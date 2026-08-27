@@ -20,6 +20,29 @@ import {
 const COMPLEX_BUILD_PROMPT =
   'Build a full-stack SaaS dashboard app with auth, backend APIs, database persistence, WebSocket collaboration, tests, deploy config, and responsive mobile support.';
 
+const architectUsage = {
+  callId: 'agent:run:architect',
+  kind: 'agent-lane' as const,
+  roleId: 'architect' as const,
+  provider: 'openai',
+  model: 'gpt-4.1-mini',
+  inputTokens: 12,
+  outputTokens: 7,
+  estimatedCostCents: 1,
+  estimated: false,
+};
+
+const runUsage = {
+  laneCount: 1,
+  inputTokens: 12,
+  outputTokens: 7,
+  totalTokens: 19,
+  estimatedCostCents: 1,
+  sharedContextTokens: 5,
+  duplicatedInputTokens: 0,
+  calls: [architectUsage],
+};
+
 describe('E-Code agent orchestration', () => {
   it('does not enable specialist lanes for discuss mode', () => {
     expect(shouldUseAgentOrchestration([{ role: 'user', content: 'Explain how React state works.' }], 'discuss')).toBe(
@@ -27,7 +50,7 @@ describe('E-Code agent orchestration', () => {
     );
   });
 
-  it('enables architect/frontend/backend/devops/qa lanes for complex build prompts', () => {
+  it('enables the full ten-lane roster for complex build prompts', () => {
     const plan = buildAgentOrchestrationPlan({
       chatMode: 'build',
       messages: [
@@ -42,7 +65,18 @@ describe('E-Code agent orchestration', () => {
 
     expect(plan.enabled).toBe(true);
     expect(plan.mode).toBe('parallel-subagents');
-    expect(plan.roles.map((role) => role.id)).toEqual(['architect', 'frontend', 'backend', 'devops', 'qa']);
+    expect(plan.roles.map((role) => role.id)).toEqual([
+      'architect',
+      'frontend',
+      'backend',
+      'database',
+      'security',
+      'devops',
+      'performance',
+      'accessibility',
+      'qa',
+      'reviewer',
+    ]);
   });
 
   it('creates a system prompt block with integration and verification gates', () => {
@@ -94,8 +128,10 @@ describe('E-Code agent orchestration', () => {
               roleId: 'architect',
               status: 'complete',
               summary: 'Architecture, data model and API contract produced.',
+              usage: architectUsage,
             },
           ],
+          usage: runUsage,
         }),
         { status: 200, headers: { 'content-type': 'application/json' } },
       );
@@ -128,10 +164,18 @@ describe('E-Code agent orchestration', () => {
     const fetchImpl = async (_url: string | URL | Request, init?: RequestInit) => {
       calls.push({ init: init ?? {} });
 
-      return new Response(JSON.stringify({ runId: 'run_123', status: 'complete', results: [] }), {
-        status: 200,
-        headers: { 'content-type': 'application/json' },
-      });
+      return new Response(
+        JSON.stringify({
+          runId: 'run_123',
+          status: 'complete',
+          results: [{ roleId: 'architect', status: 'complete', summary: 'ok', usage: architectUsage }],
+          usage: runUsage,
+        }),
+        {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        },
+      );
     };
 
     await executeAgentOrchestration({
@@ -163,13 +207,16 @@ describe('E-Code agent orchestration', () => {
       {
         type: 'lane-done',
         roleId: 'architect',
-        result: { roleId: 'architect', status: 'complete', summary: 'Architecture complete.' },
+        result: { roleId: 'architect', status: 'complete', summary: 'Architecture complete.', usage: architectUsage },
       },
       {
         type: 'run-done',
         runId: 'run_stream',
         status: 'complete',
-        results: [{ roleId: 'architect', status: 'complete', summary: 'Architecture complete.' }],
+        results: [
+          { roleId: 'architect', status: 'complete', summary: 'Architecture complete.', usage: architectUsage },
+        ],
+        usage: runUsage,
       },
     ];
 
@@ -227,7 +274,8 @@ describe('E-Code agent orchestration', () => {
         type: 'run-done',
         runId: 'run_idle',
         status: 'complete',
-        results: [{ roleId: 'architect', status: 'complete', summary: 'ok' }],
+        results: [{ roleId: 'architect', status: 'complete', summary: 'ok', usage: architectUsage }],
+        usage: runUsage,
       },
     ];
 
@@ -284,6 +332,42 @@ describe('E-Code agent orchestration', () => {
         fetchImpl: (async () => new Response(JSON.stringify({ ok: true }), { status: 200 })) as typeof fetch,
       }),
     ).rejects.toMatchObject({ code: 'invalid-response' } satisfies Partial<AgentExecutorError>);
+
+    const mutatedUsage = { ...runUsage, totalTokens: runUsage.totalTokens + 1 };
+    await expect(
+      executeAgentOrchestration({
+        env: { ECODE_SUBAGENT_EXECUTOR_URL: 'https://agents.example.com' },
+        plan,
+        messages: [],
+        fetchImpl: (async () =>
+          new Response(
+            JSON.stringify({
+              runId: 'run_mutated',
+              status: 'complete',
+              results: [{ roleId: 'architect', status: 'complete', summary: 'ok', usage: architectUsage }],
+              usage: mutatedUsage,
+            }),
+            { status: 200 },
+          )) as typeof fetch,
+      }),
+    ).rejects.toMatchObject({ code: 'invalid-response' } satisfies Partial<AgentExecutorError>);
+
+    await expect(
+      executeAgentOrchestration({
+        env: { ECODE_SUBAGENT_EXECUTOR_URL: 'https://agents.example.com' },
+        plan,
+        messages: [],
+        fetchImpl: (async () =>
+          new Response(
+            JSON.stringify({
+              runId: 'run_unmetered',
+              status: 'complete',
+              results: [{ roleId: 'architect', status: 'complete', summary: 'ok' }],
+            }),
+            { status: 200 },
+          )) as typeof fetch,
+      }),
+    ).rejects.toMatchObject({ code: 'invalid-response' } satisfies Partial<AgentExecutorError>);
   });
 
   it('parses and forwards consensus payload from the executor response', async () => {
@@ -299,9 +383,10 @@ describe('E-Code agent orchestration', () => {
           runId: 'run_consensus_e2e',
           status: 'partial',
           results: [
-            { roleId: 'architect', status: 'complete', summary: 'A.' },
+            { roleId: 'architect', status: 'complete', summary: 'A.', usage: architectUsage },
             { roleId: 'devops', status: 'failed', summary: 'devops timeout' },
           ],
+          usage: runUsage,
           consensus: {
             algorithm: 'QUORUM',
             outcome: 'PARTIAL',
@@ -353,7 +438,8 @@ describe('E-Code agent orchestration', () => {
     const annotation = buildAgentExecutionAnnotation({
       runId: 'run_anno',
       status: 'complete',
-      results: [{ roleId: 'architect', status: 'complete', summary: 'a' }],
+      results: [{ roleId: 'architect', status: 'complete', summary: 'a', usage: architectUsage }],
+      usage: runUsage,
       consensus: {
         algorithm: 'WEIGHTED_PLURALITY',
         outcome: 'ACCEPTED',
@@ -381,6 +467,7 @@ describe('E-Code agent orchestration', () => {
     expect(annotation.consensus!.algorithm).toBe('WEIGHTED_PLURALITY');
     expect(annotation.consensus!.outcome).toBe('ACCEPTED');
     expect(annotation.consensus!.claimVotes[0]!.supporters).toEqual(['architect', 'qa']);
+    expect((annotation.results[0] as Record<string, unknown>).usage).toBeUndefined();
 
     // abstainers must not leak through (executor returns it but annotation drops it).
     expect((annotation.consensus!.claimVotes[0] as Record<string, unknown>).abstainers).toBeUndefined();
@@ -392,7 +479,8 @@ describe('E-Code agent orchestration', () => {
     const annotation = buildAgentExecutionAnnotation({
       runId: 'run_no_consensus',
       status: 'complete',
-      results: [{ roleId: 'architect', status: 'complete', summary: 'a' }],
+      results: [{ roleId: 'architect', status: 'complete', summary: 'a', usage: architectUsage }],
+      usage: runUsage,
     });
     expect(annotation.consensus).toBeUndefined();
   });
@@ -409,8 +497,13 @@ describe('E-Code agent orchestration', () => {
           files: ['tests/e2e/app.spec.ts'],
           risks: ['Preview not manually verified'],
           verification: ['pnpm run test'],
+          usage: { ...architectUsage, callId: 'agent:run:qa', roleId: 'qa' },
         },
       ],
+      usage: {
+        ...runUsage,
+        calls: [{ ...architectUsage, callId: 'agent:run:qa', roleId: 'qa' }],
+      },
     });
 
     expect(context).toContain('<ecode_subagent_results>');
@@ -435,10 +528,15 @@ describe('E-Code agent orchestration', () => {
     const fetchImpl = async (_url: string | URL | Request, init?: RequestInit) => {
       calls.push({ init: init ?? {} });
 
-      return new Response(JSON.stringify({ runId: 'run_model', status: 'complete', results: [] }), {
-        status: 200,
-        headers: { 'content-type': 'application/json' },
-      });
+      return new Response(
+        JSON.stringify({
+          runId: 'run_model',
+          status: 'complete',
+          results: [{ roleId: 'architect', status: 'complete', summary: 'ok', usage: architectUsage }],
+          usage: runUsage,
+        }),
+        { status: 200, headers: { 'content-type': 'application/json' } },
+      );
     };
 
     await executeAgentOrchestration({
@@ -478,7 +576,8 @@ describe('E-Code agent orchestration', () => {
                   type: 'run-done',
                   runId: 'run_model_stream',
                   status: 'complete',
-                  results: [{ roleId: 'architect', status: 'complete', summary: 'ok' }],
+                  results: [{ roleId: 'architect', status: 'complete', summary: 'ok', usage: architectUsage }],
+                  usage: runUsage,
                 })}\n\n`,
               ),
             );
@@ -549,7 +648,7 @@ describe('E-Code agent orchestration', () => {
 
   /*
    * Bug: the plan-tier parallel-agent limit ('Up to 2 / 10 parallel agents')
-   * was never enforced — every plan always ran all 5 fixed roles.
+   * was never enforced — every plan always ran the same fixed roles.
    */
   it('clamps the specialist lane roster to the plan parallel-agent entitlement', () => {
     expect(clampRolesToParallelLimit(ECODE_AGENT_ROLES, 2).map((role) => role.id)).toEqual(['architect', 'frontend']);
@@ -564,7 +663,7 @@ describe('E-Code agent orchestration', () => {
     expect(clampRolesToParallelLimit(ECODE_AGENT_ROLES, 1).map((role) => role.id)).toEqual(['architect']);
   });
 
-  it('caps a Pro-tier (10) plan to the 5 real specialist lanes', () => {
+  it('runs the ten real specialist lanes for a Pro-tier (10) plan', () => {
     const plan = buildAgentOrchestrationPlan({
       chatMode: 'build',
       messages: [{ role: 'user', content: COMPLEX_BUILD_PROMPT }],
@@ -573,7 +672,7 @@ describe('E-Code agent orchestration', () => {
     });
 
     expect(plan.enabled).toBe(true);
-    expect(plan.roles.map((role) => role.id)).toEqual(['architect', 'frontend', 'backend', 'devops', 'qa']);
+    expect(plan.roles).toHaveLength(10);
   });
 
   it('limits a Core-tier (2) plan to exactly two specialist lanes', () => {
@@ -621,7 +720,12 @@ describe('E-Code agent orchestration', () => {
       {
         type: 'lane-done',
         roleId: 'architect',
-        result: { roleId: 'architect', status: 'complete', summary: 'Architecture complete.' },
+        result: {
+          roleId: 'architect',
+          status: 'complete',
+          summary: 'Architecture complete.',
+          usage: architectUsage,
+        },
       },
 
       // Gateway-sent error AFTER a lane already finished (and was billed).
@@ -658,6 +762,12 @@ describe('E-Code agent orchestration', () => {
     // Resolved (did not throw) from the already-billed lane, so the caller never re-runs.
     expect(response.status).toBe('partial');
     expect(response.results.map((result) => result.roleId)).toEqual(['architect']);
+    expect(response.usage).toMatchObject({
+      laneCount: 1,
+      inputTokens: architectUsage.inputTokens,
+      outputTokens: architectUsage.outputTokens,
+      calls: [architectUsage],
+    });
     expect(fetchCount).toBe(1);
   });
 
@@ -761,19 +871,19 @@ describe('E-Code agent orchestration', () => {
 
   /*
    * Power controls must VISIBLY change the number of parallel agents (previously
-   * the Lite/Economy/Power selector was cosmetic and every request ran all 5).
+   * the Lite/Economy/Power selector was cosmetic and every request ran the same roster).
    */
-  it('maps the build tier to a parallel-agent cap (Lite=1, Economy=3, Power=5)', () => {
+  it('maps the build tier to a parallel-agent cap (Lite=1, Economy=2, Power=10)', () => {
     expect(parallelAgentsForBuildTier('lite')).toBe(1);
-    expect(parallelAgentsForBuildTier('economy')).toBe(3);
-    expect(parallelAgentsForBuildTier('power')).toBe(5);
+    expect(parallelAgentsForBuildTier('economy')).toBe(2);
+    expect(parallelAgentsForBuildTier('power')).toBe(10);
 
     // High-power boost adds one lane, capped at the roster size.
-    expect(parallelAgentsForBuildTier('economy', true)).toBe(4);
-    expect(parallelAgentsForBuildTier('power', true)).toBe(5);
+    expect(parallelAgentsForBuildTier('economy', true)).toBe(3);
+    expect(parallelAgentsForBuildTier('power', true)).toBe(10);
 
     // Unknown/undefined tier falls back to the balanced default.
-    expect(parallelAgentsForBuildTier(undefined)).toBe(3);
+    expect(parallelAgentsForBuildTier(undefined)).toBe(2);
   });
 
   it('Lite tier (1 agent) disables the parallel fan-out', () => {

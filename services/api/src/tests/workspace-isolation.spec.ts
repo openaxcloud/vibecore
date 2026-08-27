@@ -128,6 +128,7 @@ async function bootstrapTwoWorkspaceProject(suiteLabel: string): Promise<Isolati
 
   const workspaceB = await store.createWorkspace({
     projectId,
+    expectedOrganizationId: auth.organization.id,
     name: 'Workspace B',
     runtimeMode: 'remote-kubernetes',
   });

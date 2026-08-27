@@ -68,6 +68,8 @@ type ReservationRequest = {
   importJobId?: string;
   rateCardVersion?: number;
   requestHash?: string;
+  enforceUserSpendLimit?: boolean;
+  userSpendPeriodStart?: string;
 };
 
 function reservationRequestHash(input: ReservationRequest): string {
@@ -83,6 +85,8 @@ function reservationRequestHash(input: ReservationRequest): string {
         importJobId: input.importJobId ?? null,
         rateCardVersion: input.rateCardVersion ?? null,
         upstreamRequestHash: input.requestHash ?? null,
+        enforceUserSpendLimit: input.enforceUserSpendLimit ?? false,
+        userSpendPeriodStart: input.userSpendPeriodStart ?? null,
       }),
     )
     .digest('hex');
@@ -109,6 +113,61 @@ function transactionRequestHash(input: PostTransactionInput): string {
       }),
     )
     .digest('hex');
+}
+
+/** AI calls that may already have reached a provider are owned by their reconciler. */
+function canonicalAiProviderMayHaveStarted(metadata: unknown): boolean {
+  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) {
+    return false;
+  }
+  const value = metadata as Record<string, unknown>;
+  const execution = value.canonicalAiExecution;
+  const batch = value.canonicalAiUsageBatch;
+  const platformIntent = value.canonicalAiPlatformIntent;
+  const platformReceipt = value.canonicalAiPlatformUsage;
+  const executionState =
+    execution !== null && typeof execution === 'object' && !Array.isArray(execution)
+      ? (execution as Record<string, unknown>).state
+      : undefined;
+  return (
+    executionState === 'started' ||
+    executionState === 'received' ||
+    (platformIntent !== null &&
+      typeof platformIntent === 'object' &&
+      !Array.isArray(platformIntent) &&
+      !(platformReceipt !== null && typeof platformReceipt === 'object' && !Array.isArray(platformReceipt))) ||
+    (batch !== null && typeof batch === 'object' && !Array.isArray(batch))
+  );
+}
+
+/** An expired canonical hold is safe to reacquire only before user-billed work. */
+function canonicalAiReservationCanRevive(metadata: unknown): boolean {
+  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) {
+    return true;
+  }
+  const value = metadata as Record<string, unknown>;
+  const execution =
+    value.canonicalAiExecution &&
+    typeof value.canonicalAiExecution === 'object' &&
+    !Array.isArray(value.canonicalAiExecution)
+      ? (value.canonicalAiExecution as Record<string, unknown>)
+      : undefined;
+  const platformIntent = value.canonicalAiPlatformIntent;
+  const platformReceipt = value.canonicalAiPlatformUsage;
+  const batch = value.canonicalAiUsageBatch;
+  const platformPending =
+    platformIntent !== null &&
+    typeof platformIntent === 'object' &&
+    !Array.isArray(platformIntent) &&
+    !(platformReceipt !== null && typeof platformReceipt === 'object' && !Array.isArray(platformReceipt));
+
+  return (
+    execution?.state !== 'started' &&
+    execution?.state !== 'received' &&
+    execution?.state !== 'settled' &&
+    !platformPending &&
+    !(batch !== null && typeof batch === 'object' && !Array.isArray(batch))
+  );
 }
 
 export type LedgerAccountType = 'ASSET' | 'LIABILITY' | 'REVENUE' | 'EXPENSE' | 'EQUITY';
@@ -150,8 +209,23 @@ export interface ReserveUsageInput {
   rateCardVersion?: number;
   hardLimitMinor?: bigint;
 
+  /**
+   * Enterprise per-user cap. The current UserSpendLimit row and all canonical
+   * reservations in this billing period are read under the same transaction
+   * lock, so two API replicas cannot both authorize the last cents.
+   */
+  enforceUserSpendLimit?: boolean;
+  userSpendPeriodStart?: string;
+
   /** Optional upstream request digest, incorporated into replay identity. */
   requestHash?: string;
+
+  /**
+   * Reacquire the same exact released request after a pre-provider crash. This
+   * is intentionally opt-in and only supports canonical AI reservations whose
+   * metadata proves that no user-billed provider call has started.
+   */
+  reviveReleasedReplay?: boolean;
 }
 
 export interface CommitReservationInput {
@@ -165,6 +239,23 @@ export interface CommitReservationInput {
 
 export class LedgerStore {
   constructor(private readonly _db: DatabaseClient) {}
+
+  /**
+   * Acquire the global reservation-mutation prefix locks without locking the
+   * reservation row yet. Callers that need a larger transaction must invoke
+   * this before their own `FOR UPDATE`, preserving account -> reservation order.
+   */
+  async lockReservationBalanceInTransaction(
+    trx: Prisma.TransactionClient,
+    reservationId: string,
+  ): Promise<void> {
+    const preflight = await trx.ledgerReservation.findUniqueOrThrow({
+      where: { id: reservationId },
+      select: { organizationId: true, currency: true },
+    });
+    const accounts = await this._reservationAccountsInTrx(trx, preflight.organizationId, preflight.currency);
+    await this._lockReservationBalance(trx, accounts.reservedAccountId);
+  }
 
   private async _getOrCreateAccountInTrx(
     trx: Prisma.TransactionClient,
@@ -468,7 +559,7 @@ export class LedgerStore {
     const accounts = await this._reservationAccountsInTrx(trx, input.organizationId, currency);
     await this._lockReservationBalance(trx, accounts.reservedAccountId);
 
-    const existing = await trx.ledgerReservation.findUnique({
+    let existing = await trx.ledgerReservation.findUnique({
       where: {
         organizationId_idempotencyKey: {
           organizationId: input.organizationId,
@@ -478,16 +569,191 @@ export class LedgerStore {
     });
 
     if (existing) {
+      await trx.$queryRaw`SELECT "id" FROM "LedgerReservation" WHERE "id" = ${existing.id} FOR UPDATE`;
+      existing = await trx.ledgerReservation.findUniqueOrThrow({ where: { id: existing.id } });
       this._assertReservationReplayMatches(existing, request, requestHash);
 
       if (!existing.requestHash) {
         await trx.ledgerReservation.update({ where: { id: existing.id }, data: { requestHash } });
       }
 
+      if (
+        input.reviveReleasedReplay &&
+        existing.operation === 'ai.chat' &&
+        canonicalAiReservationCanRevive(existing.metadata)
+      ) {
+        const now = await databaseNow(trx);
+        const expiresAt =
+          input.expiresInMs !== undefined
+            ? boundedDeadline(now, input.expiresInMs)
+            : input.expiresAt
+              ? new Date(input.expiresAt)
+              : undefined;
+        if (!expiresAt || Number.isNaN(expiresAt.getTime()) || expiresAt <= now) {
+          throw new LedgerError('Reservation expiry is required', 'LEDGER_BAD_EXPIRY');
+        }
+
+        if (existing.status === 'ACTIVE' && existing.expiresAt <= now) {
+          const renewed = await trx.ledgerReservation.updateMany({
+            where: {
+              id: existing.id,
+              status: 'ACTIVE',
+              version: existing.version,
+              expiresAt: { lte: now },
+            },
+            data: { expiresAt, version: { increment: 1 } },
+          });
+          if (renewed.count === 1) {
+            return { id: existing.id, status: 'ACTIVE', created: false };
+          }
+          throw conflict('Reservation replay lost its expiry fence', 'LEDGER_RESERVATION_FENCE_LOST');
+        }
+
+        // Only the DB-clock timeout state is replayable. An explicit RELEASED
+        // state may represent cancellation, offboarding, or purge and must stay
+        // terminal even if no provider was reached.
+        if (existing.status === 'EXPIRED') {
+          if (input.enforceUserSpendLimit) {
+            if (!input.userId || !input.userSpendPeriodStart) {
+              throw new LedgerError(
+                'User spend enforcement needs an actor and period',
+                'LEDGER_USER_SPEND_SCOPE_REQUIRED',
+              );
+            }
+            const periodStart = new Date(input.userSpendPeriodStart);
+            if (Number.isNaN(periodStart.getTime()) || periodStart > now) {
+              throw new LedgerError('User spend period is invalid', 'LEDGER_USER_SPEND_PERIOD_INVALID');
+            }
+            await trx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`ledger-user-spend:${input.organizationId}:${input.userId}`}))`;
+            const limit = await trx.userSpendLimit.findUnique({
+              where: {
+                organizationId_userId: {
+                  organizationId: input.organizationId,
+                  userId: input.userId,
+                },
+              },
+              select: { limitCents: true },
+            });
+            if (limit) {
+              const periodReservations = await trx.ledgerReservation.findMany({
+                where: {
+                  organizationId: input.organizationId,
+                  userId: input.userId,
+                  currency,
+                  OR: [
+                    { status: 'ACTIVE', createdAt: { gte: periodStart } },
+                    { status: 'COMMITTED', committedAt: { gte: periodStart } },
+                  ],
+                },
+                select: { status: true, maxAmountMinor: true, committedMinor: true },
+              });
+              const claimed = periodReservations.reduce(
+                (sum, reservation) =>
+                  sum +
+                  (reservation.status === 'COMMITTED'
+                    ? (reservation.committedMinor ?? 0n)
+                    : reservation.maxAmountMinor),
+                0n,
+              );
+              if (claimed + existing.maxAmountMinor > BigInt(limit.limitCents)) {
+                throw Object.assign(
+                  new LedgerError('User spend limit would be exceeded', 'USER_SPEND_LIMIT_REACHED'),
+                  { statusCode: 429 },
+                );
+              }
+            }
+          }
+
+          const revived = await trx.ledgerReservation.updateMany({
+            where: { id: existing.id, status: existing.status, version: existing.version, importJobId: null },
+            data: {
+              status: 'ACTIVE',
+              expiresAt,
+              releasedAt: null,
+              releaseReason: null,
+              version: { increment: 1 },
+            },
+          });
+          if (revived.count === 1) {
+            const posted = await this._postEntriesInTrx(trx, {
+              organizationId: existing.organizationId,
+              reason: RESERVATION_REVIVE_REASON,
+              idempotencyKey: `reserve:${existing.id}:v${existing.version + 1}`,
+              rateCardVersion: existing.rateCardVersion ?? undefined,
+              entries: reserveEntries(accounts, existing.maxAmountMinor, currency),
+              metadata: { reservationId: existing.id, revived: true, version: existing.version + 1 },
+            });
+            await trx.ledgerReservation.update({
+              where: { id: existing.id },
+              data: { reserveTxId: posted.id },
+            });
+            return { id: existing.id, status: 'ACTIVE', created: false };
+          }
+        }
+      }
+
       return { id: existing.id, status: existing.status, created: false };
     }
 
     const now = await databaseNow(trx);
+
+    if (input.enforceUserSpendLimit) {
+      if (!input.userId || !input.userSpendPeriodStart) {
+        throw new LedgerError('User spend enforcement needs an actor and period', 'LEDGER_USER_SPEND_SCOPE_REQUIRED');
+      }
+
+      const periodStart = new Date(input.userSpendPeriodStart);
+      if (Number.isNaN(periodStart.getTime()) || periodStart > now) {
+        throw new LedgerError('User spend period is invalid', 'LEDGER_USER_SPEND_PERIOD_INVALID');
+      }
+
+      /*
+       * User-limit mutations take the same advisory lock. The org reservation
+       * balance lock above serializes reservations, while this lock also fences
+       * an administrator lowering/clearing the cap concurrently.
+       */
+      await trx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`ledger-user-spend:${input.organizationId}:${input.userId}`}))`;
+
+      const limit = await trx.userSpendLimit.findUnique({
+        where: {
+          organizationId_userId: {
+            organizationId: input.organizationId,
+            userId: input.userId,
+          },
+        },
+        select: { limitCents: true },
+      });
+
+      if (limit) {
+        const periodReservations = await trx.ledgerReservation.findMany({
+          where: {
+            organizationId: input.organizationId,
+            userId: input.userId,
+            currency,
+            OR: [
+              { status: 'ACTIVE', createdAt: { gte: periodStart } },
+              { status: 'COMMITTED', committedAt: { gte: periodStart } },
+            ],
+          },
+          select: { status: true, maxAmountMinor: true, committedMinor: true },
+        });
+        const claimed = periodReservations.reduce(
+          (sum, reservation) =>
+            sum +
+            (reservation.status === 'COMMITTED'
+              ? (reservation.committedMinor ?? 0n)
+              : reservation.maxAmountMinor),
+          0n,
+        );
+
+        if (claimed + input.maxAmountMinor > BigInt(limit.limitCents)) {
+          throw Object.assign(
+            new LedgerError('User spend limit would be exceeded', 'USER_SPEND_LIMIT_REACHED'),
+            { statusCode: 429 },
+          );
+        }
+      }
+    }
 
     const expiresAt =
       input.expiresInMs !== undefined
@@ -575,9 +841,19 @@ export class LedgerStore {
     trx: Prisma.TransactionClient,
     input: CommitReservationInput,
   ): Promise<{ committedMinor: bigint; replayed: boolean }> {
+    const preflight = await trx.ledgerReservation.findUniqueOrThrow({
+      where: { id: input.reservationId },
+      select: { organizationId: true, currency: true },
+    });
+    const accounts = await this._reservationAccountsInTrx(trx, preflight.organizationId, preflight.currency);
+    await this._lockReservationBalance(trx, accounts.reservedAccountId);
     await trx.$queryRaw`SELECT "id" FROM "LedgerReservation" WHERE "id" = ${input.reservationId} FOR UPDATE`;
 
     const reservation = await trx.ledgerReservation.findUniqueOrThrow({ where: { id: input.reservationId } });
+
+    if (reservation.organizationId !== preflight.organizationId || reservation.currency !== preflight.currency) {
+      throw new LedgerError('Reservation identity changed while acquiring its lock', 'LEDGER_RESERVATION_SCOPE_MISMATCH');
+    }
 
     if (input.refuseOverage && input.actualAmountMinor > reservation.maxAmountMinor) {
       throw conflict('Reservation charge exceeds its authorized ceiling', 'LEDGER_RESERVATION_OVERAGE');
@@ -616,9 +892,6 @@ export class LedgerStore {
     if (reservation.expiresAt <= now) {
       throw conflict('Expired reservation cannot be committed', 'LEDGER_RESERVATION_EXPIRED');
     }
-
-    const accounts = await this._reservationAccountsInTrx(trx, reservation.organizationId, reservation.currency);
-    await this._lockReservationBalance(trx, accounts.reservedAccountId);
 
     const entries = settleEntries(accounts, reservation.maxAmountMinor, committed, reservation.currency, taxMinor);
 
@@ -660,9 +933,22 @@ export class LedgerStore {
    */
   async compensateReservation(reservationId: string): Promise<{ compensated: boolean }> {
     return this._db.$transaction(async (trx) => {
+      const preflight = await trx.ledgerReservation.findUniqueOrThrow({
+        where: { id: reservationId },
+        select: { organizationId: true, currency: true },
+      });
+      const accounts = await this._reservationAccountsInTrx(trx, preflight.organizationId, preflight.currency);
+      await this._lockReservationBalance(trx, accounts.reservedAccountId);
       await trx.$queryRaw`SELECT "id" FROM "LedgerReservation" WHERE "id" = ${reservationId} FOR UPDATE`;
 
       const reservation = await trx.ledgerReservation.findUniqueOrThrow({ where: { id: reservationId } });
+
+      if (reservation.organizationId !== preflight.organizationId || reservation.currency !== preflight.currency) {
+        throw new LedgerError(
+          'Reservation identity changed while acquiring its lock',
+          'LEDGER_RESERVATION_SCOPE_MISMATCH',
+        );
+      }
 
       if (reservation.status === 'COMPENSATED') {
         return { compensated: false };
@@ -671,9 +957,6 @@ export class LedgerStore {
       if (reservation.status !== 'COMMITTED') {
         throw new LedgerError('Only a committed reservation can be compensated', 'LEDGER_RESERVATION_NOT_COMMITTED');
       }
-
-      const accounts = await this._reservationAccountsInTrx(trx, reservation.organizationId, reservation.currency);
-      await this._lockReservationBalance(trx, accounts.reservedAccountId);
 
       const settlement = reservation.settleTxId
         ? await trx.ledgerTransaction.findUnique({
@@ -763,11 +1046,34 @@ export class LedgerStore {
     reason: 'cancel' | 'failure' | 'timeout',
     opts: { expectedVersion?: number } = {},
   ): Promise<{ released: boolean }> {
+    // All reserve/revive/release paths take the tenant balance lock before the
+    // reservation row lock. The pre-read is identity-only; the row is re-read
+    // authoritatively after both locks. This prevents the reaper from deadlocking
+    // with an exact retry that is reacquiring an expired hold.
+    const preflight = await trx.ledgerReservation.findUniqueOrThrow({
+      where: { id: reservationId },
+      select: { organizationId: true, currency: true },
+    });
+    const accounts = await this._reservationAccountsInTrx(trx, preflight.organizationId, preflight.currency);
+    await this._lockReservationBalance(trx, accounts.reservedAccountId);
     await trx.$queryRaw`SELECT "id" FROM "LedgerReservation" WHERE "id" = ${reservationId} FOR UPDATE`;
 
     const reservation = await trx.ledgerReservation.findUniqueOrThrow({ where: { id: reservationId } });
 
+    if (reservation.organizationId !== preflight.organizationId || reservation.currency !== preflight.currency) {
+      throw new LedgerError('Reservation identity changed while acquiring its lock', 'LEDGER_RESERVATION_SCOPE_MISMATCH');
+    }
+
     if (reservation.status !== 'ACTIVE') {
+      return { released: false };
+    }
+
+    /*
+     * Once STARTED is durable, releasing the hold can lose real provider spend.
+     * This check happens after the row lock, so a reaper that selected the row
+     * just before STARTED was written still observes the latch and backs off.
+     */
+    if (canonicalAiProviderMayHaveStarted(reservation.metadata)) {
       return { released: false };
     }
 
@@ -780,9 +1086,6 @@ export class LedgerStore {
     if (reason === 'timeout' && reservation.expiresAt > now) {
       return { released: false };
     }
-
-    const accounts = await this._reservationAccountsInTrx(trx, reservation.organizationId, reservation.currency);
-    await this._lockReservationBalance(trx, accounts.reservedAccountId);
 
     const cas = await trx.ledgerReservation.updateMany({
       where: {
@@ -826,12 +1129,29 @@ export class LedgerStore {
     nowIso?: string;
   }): Promise<boolean> {
     return this._db.$transaction(async (trx) => {
+      const preflight = await trx.ledgerReservation.findUnique({
+        where: { id: input.reservationId },
+        select: { organizationId: true, currency: true },
+      });
+
+      if (!preflight) {
+        return false;
+      }
+
+      const accounts = await this._reservationAccountsInTrx(trx, preflight.organizationId, preflight.currency);
+      await this._lockReservationBalance(trx, accounts.reservedAccountId);
       await trx.$queryRaw`SELECT "id" FROM "LedgerReservation" WHERE "id" = ${input.reservationId} FOR UPDATE`;
 
       const reservation = await trx.ledgerReservation.findUnique({ where: { id: input.reservationId } });
 
       if (!reservation || reservation.importJobId !== null) {
         return false;
+      }
+      if (reservation.organizationId !== preflight.organizationId || reservation.currency !== preflight.currency) {
+        throw new LedgerError(
+          'Reservation identity changed while acquiring its lock',
+          'LEDGER_RESERVATION_SCOPE_MISMATCH',
+        );
       }
 
       const now = await databaseNow(trx);
@@ -869,9 +1189,6 @@ export class LedgerStore {
       if (reservation.status !== 'EXPIRED' && reservation.status !== 'RELEASED') {
         return false;
       }
-
-      const accounts = await this._reservationAccountsInTrx(trx, reservation.organizationId, reservation.currency);
-      await this._lockReservationBalance(trx, accounts.reservedAccountId);
 
       const cas = await trx.ledgerReservation.updateMany({
         where: {
@@ -913,6 +1230,17 @@ export class LedgerStore {
       FROM "LedgerReservation"
       WHERE "status" = 'ACTIVE'
         AND "expiresAt" <= clock_timestamp()
+        AND NOT (
+          "operation" = 'ai.chat'
+          AND (
+            COALESCE("metadata"->'canonicalAiExecution'->>'state' IN ('started', 'received'), false)
+            OR COALESCE(jsonb_typeof("metadata"->'canonicalAiUsageBatch') = 'object', false)
+            OR (
+              COALESCE(jsonb_typeof("metadata"->'canonicalAiPlatformIntent') = 'object', false)
+              AND NOT COALESCE(jsonb_typeof("metadata"->'canonicalAiPlatformUsage') = 'object', false)
+            )
+          )
+        )
       ORDER BY "expiresAt" ASC
       LIMIT 100
     `);

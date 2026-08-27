@@ -777,6 +777,7 @@ runDbTests('account purge — PostgreSQL multi-client fencing', () => {
       await expect(
         storeB.addProjectCollaborator({
           projectId: otherOrganization.projects[0].id,
+          expectedOrganizationId: otherOrganization.id,
           userId: user.id,
           roleKey: 'editor',
         }),

@@ -1089,6 +1089,7 @@ model ReservedVmBillingPeriod {
   billingReservation    LedgerReservation? @relation("ReservedVmBillingPeriodLedgerReservation", fields: [billingReservationId], references: [id], onDelete: Restrict)
 
   @@unique([deploymentId, periodStart])
+  @@index([actorUserId, status])
   @@index([status, leaseExpiresAt])
   @@index([organizationId, status])
   @@index([deploymentId, status])
@@ -1135,6 +1136,11 @@ model ReleaseManifest {
   // I-AUTH-1: the access policy is part of release identity. Rollback restores
   // this exact version rather than inheriting a later/less restrictive mode.
   accessPolicyVersion Int @default(1)
+
+  // P1-COV-05: immutable, versioned plan authority. Nullable only for legacy
+  // rows created before 0099; all new publish/rollback paths reject null.
+  planEntitlements      Json?
+  projectManifestDigest String?
 
   createdAt DateTime @default(now())
 

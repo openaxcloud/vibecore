@@ -2,6 +2,11 @@ import { createHash } from 'node:crypto';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import type { PermissionKey } from '@vibecore/rbac';
+import { appPublicEnglish } from './app-public-copy.js';
+import {
+  isReadOnlyProjectRole,
+  mutateReadOnlyViewerAccessWithEntitlements,
+} from './plan-entitlements-service.js';
 import type {
   ApiStore,
   CollaborationGroupRecord,
@@ -270,6 +275,61 @@ export function registerIdentityCollaborationRoutes(
     return group;
   };
 
+  const readOnlyViewerMutation = async <T>(input: {
+    request: FastifyRequest;
+    organizationId: string;
+    prospectiveUserIds: readonly string[] | (() => Promise<readonly string[] | null>);
+    excludeGroupId?: string;
+    mutation: () => Promise<T>;
+  }): Promise<T> => {
+    let claim;
+    try {
+      claim = await mutateReadOnlyViewerAccessWithEntitlements({
+        store,
+        organizationId: input.organizationId,
+        prospectiveUserIds: input.prospectiveUserIds,
+        excludeGroupId: input.excludeGroupId,
+        mutation: input.mutation,
+      });
+    } catch (error) {
+      if ((error as { code?: string } | null)?.code === 'P2002') throw error;
+      input.request.log.warn(
+        { err: error, organizationId: input.organizationId },
+        'read-only viewer entitlement admission failed',
+      );
+      throw new IdentityCollaborationError(
+        'PLAN_ENTITLEMENT_CHECK_UNAVAILABLE',
+        appPublicEnglish('PLAN_ENTITLEMENT_CHECK_UNAVAILABLE'),
+        503,
+      );
+    }
+
+    if (!claim.allowed) {
+      throw new IdentityCollaborationError(
+        'PLAN_VIEWER_LIMIT_REACHED',
+        appPublicEnglish('PLAN_VIEWER_LIMIT_REACHED', { value1: claim.limit }),
+        403,
+      );
+    }
+
+    return claim.value;
+  };
+
+  const groupMemberUserIds = async (organizationId: string, groupId: string) => {
+    const page = await store.listCollaborationGroupMembers({ organizationId, groupId, limit: 10_000 });
+    return page.items.map((member) => member.userId);
+  };
+
+  const groupViewerAudience = async (
+    organizationId: string,
+    groupId: string,
+    replacementUserIds?: readonly string[],
+  ): Promise<readonly string[] | null> => {
+    if (!(await store.groupHasActiveReadOnlyProjectGrant(organizationId, groupId))) return null;
+    if (replacementUserIds) return replacementUserIds;
+    return groupMemberUserIds(organizationId, groupId);
+  };
+
   app.post(
     '/orgs/:orgId/groups',
     rateLimit,
@@ -309,11 +369,18 @@ export function registerIdentityCollaborationRoutes(
       const { orgId, groupId } = parse(groupParamsSchema, request.params);
       await dependencies.guardOrg(request, orgId, 'members:manage');
       await requireLiveGroup(orgId, groupId);
-      const result = await store.archiveCollaborationGroup({
+      const result = await readOnlyViewerMutation({
+        request,
         organizationId: orgId,
-        groupId,
-        writer: 'MANUAL',
-        actorUserId: request.currentUser!.id,
+        excludeGroupId: groupId,
+        prospectiveUserIds: () => groupViewerAudience(orgId, groupId, []),
+        mutation: () =>
+          store.archiveCollaborationGroup({
+            organizationId: orgId,
+            groupId,
+            writer: 'MANUAL',
+            actorUserId: request.currentUser!.id,
+          }),
       });
 
       if (!result.ok) {
@@ -351,11 +418,18 @@ export function registerIdentityCollaborationRoutes(
       const { orgId, groupId } = parse(groupParamsSchema, request.params);
       const { userId } = parse(groupMemberBodySchema, request.body ?? {});
       await dependencies.guardOrg(request, orgId, 'members:manage');
-      const result = await store.addCollaborationGroupMember({
+      const result = await readOnlyViewerMutation({
+        request,
         organizationId: orgId,
-        groupId,
-        userId,
-        writer: 'MANUAL',
+        prospectiveUserIds: async () =>
+          (await store.groupHasActiveReadOnlyProjectGrant(orgId, groupId)) ? [userId] : null,
+        mutation: () =>
+          store.addCollaborationGroupMember({
+            organizationId: orgId,
+            groupId,
+            userId,
+            writer: 'MANUAL',
+          }),
       });
 
       if (!result.ok) {
@@ -379,11 +453,21 @@ export function registerIdentityCollaborationRoutes(
     wrap(async (request, reply) => {
       const { orgId, groupId, userId } = parse(groupMemberParamsSchema, request.params);
       await dependencies.guardOrg(request, orgId, 'members:manage');
-      const result = await store.removeCollaborationGroupMember({
+      const result = await readOnlyViewerMutation({
+        request,
         organizationId: orgId,
-        groupId,
-        userId,
-        writer: 'MANUAL',
+        excludeGroupId: groupId,
+        prospectiveUserIds: async () => {
+          const current = await groupViewerAudience(orgId, groupId);
+          return current?.filter((candidate) => candidate !== userId) ?? null;
+        },
+        mutation: () =>
+          store.removeCollaborationGroupMember({
+            organizationId: orgId,
+            groupId,
+            userId,
+            writer: 'MANUAL',
+          }),
       });
 
       if (!result.ok) {
@@ -459,22 +543,35 @@ export function registerIdentityCollaborationRoutes(
         roleKey: body.roleKey,
         expiresInHours: body.expiresInHours,
       });
-      const result = await store.createResourceAccessGrant({
-        organizationId: project.organizationId,
-        subjectType: body.subjectType,
-        subjectUserId: body.subjectUserId,
-        subjectGroupId: body.subjectGroupId,
-        resourceType: 'PROJECT',
-        resourceId: projectId,
-        roleKey: body.roleKey,
-        status,
-        expiresAt: new Date(Date.now() + body.expiresInHours * 60 * 60 * 1_000),
-        acceptedAt,
-        consentVersion,
-        grantedByUserId: request.currentUser!.id,
-        idempotencyKey: key,
-        requestHash: hash,
-      });
+      const createGrant = () =>
+        store.createResourceAccessGrant({
+          organizationId: project.organizationId,
+          subjectType: body.subjectType,
+          subjectUserId: body.subjectUserId,
+          subjectGroupId: body.subjectGroupId,
+          resourceType: 'PROJECT',
+          resourceId: projectId,
+          roleKey: body.roleKey,
+          status,
+          expiresAt: new Date(Date.now() + body.expiresInHours * 60 * 60 * 1_000),
+          acceptedAt,
+          consentVersion,
+          grantedByUserId: request.currentUser!.id,
+          idempotencyKey: key,
+          requestHash: hash,
+        });
+      const result =
+        status === 'ACTIVE' && isReadOnlyProjectRole(body.roleKey)
+          ? await readOnlyViewerMutation({
+              request,
+              organizationId: project.organizationId,
+              prospectiveUserIds:
+                body.subjectType === 'USER'
+                  ? [body.subjectUserId!]
+                  : () => groupMemberUserIds(project.organizationId, body.subjectGroupId!),
+              mutation: createGrant,
+            })
+          : await createGrant();
 
       if (!result.ok) {
         const conflict = result.reason === 'IDEMPOTENCY_CONFLICT' ? 'IDEMPOTENCY_CONFLICT' : 'ACTIVE_GRANT_CONFLICT';
@@ -590,11 +687,25 @@ export function registerIdentityCollaborationRoutes(
     wrap(async (request, reply) => {
       const { grantId } = parse(ownGrantParamsSchema, request.params);
       const { consentVersion } = parse(consentGrantSchema, request.body ?? {});
-      const result = await store.acceptResourceAccessGrant({
-        grantId,
-        subjectUserId: request.currentUser!.id,
-        consentVersion,
-      });
+      const current = await store.getResourceAccessGrant(grantId);
+      const acceptGrant = () =>
+        store.acceptResourceAccessGrant({
+          grantId,
+          subjectUserId: request.currentUser!.id,
+          consentVersion,
+        });
+      const result =
+        current?.resourceType === 'PROJECT' &&
+        current.subjectType === 'USER' &&
+        current.subjectUserId === request.currentUser!.id &&
+        isReadOnlyProjectRole(current.roleKey)
+          ? await readOnlyViewerMutation({
+              request,
+              organizationId: current.organizationId,
+              prospectiveUserIds: [request.currentUser!.id],
+              mutation: acceptGrant,
+            })
+          : await acceptGrant();
 
       if (!result.ok) {
         const hidden = result.reason === 'GRANT_NOT_FOUND' || result.reason === 'GRANT_SUBJECT_MISMATCH';
@@ -699,11 +810,28 @@ export function registerIdentityCollaborationRoutes(
       const { orgId } = parse(z.object({ orgId: z.string().min(1) }), request.params);
       const body = parse(scimGroupSchema, request.body ?? {});
       await dependencies.requireScim(request, orgId);
-      const synced = await store.syncScimCollaborationGroup({
+      const replacementUserIds = body.members.map((member) => member.value);
+      const existing = body.externalId
+        ? await store.findScimCollaborationGroup(orgId, body.externalId)
+        : undefined;
+      const syncGroup = () =>
+        store.syncScimCollaborationGroup({
+          organizationId: orgId,
+          externalId: body.externalId,
+          name: body.displayName,
+          userIds: replacementUserIds,
+        });
+      const synced = await readOnlyViewerMutation({
+        request,
         organizationId: orgId,
-        externalId: body.externalId,
-        name: body.displayName,
-        userIds: body.members.map((member) => member.value),
+        excludeGroupId: existing?.id,
+        prospectiveUserIds: async () => {
+          const target =
+            existing ??
+            (body.externalId ? await store.findScimCollaborationGroup(orgId, body.externalId) : undefined);
+          return target ? groupViewerAudience(orgId, target.id, replacementUserIds) : null;
+        },
+        mutation: syncGroup,
       });
 
       if (!synced.ok) {
@@ -735,12 +863,20 @@ export function registerIdentityCollaborationRoutes(
       const { orgId, groupId } = parse(groupParamsSchema, request.params);
       const body = parse(scimGroupSchema, request.body ?? {});
       await dependencies.requireScim(request, orgId);
-      const synced = await store.syncScimCollaborationGroup({
+      const replacementUserIds = body.members.map((member) => member.value);
+      const synced = await readOnlyViewerMutation({
+        request,
         organizationId: orgId,
-        groupId,
-        externalId: body.externalId,
-        name: body.displayName,
-        userIds: body.members.map((member) => member.value),
+        excludeGroupId: groupId,
+        prospectiveUserIds: () => groupViewerAudience(orgId, groupId, replacementUserIds),
+        mutation: () =>
+          store.syncScimCollaborationGroup({
+            organizationId: orgId,
+            groupId,
+            externalId: body.externalId,
+            name: body.displayName,
+            userIds: replacementUserIds,
+          }),
       });
 
       if (!synced.ok) {
@@ -854,12 +990,20 @@ export function registerIdentityCollaborationRoutes(
         }
       }
 
-      const synced = await store.syncScimCollaborationGroup({
+      const replacementUserIds = [...memberIds];
+      const synced = await readOnlyViewerMutation({
+        request,
         organizationId: orgId,
-        groupId,
-        externalId,
-        name: displayName,
-        userIds: [...memberIds],
+        excludeGroupId: groupId,
+        prospectiveUserIds: () => groupViewerAudience(orgId, groupId, replacementUserIds),
+        mutation: () =>
+          store.syncScimCollaborationGroup({
+            organizationId: orgId,
+            groupId,
+            externalId,
+            name: displayName,
+            userIds: replacementUserIds,
+          }),
       });
       if (!synced.ok) {
         throwGroupMutationFailure(synced);
@@ -882,7 +1026,13 @@ export function registerIdentityCollaborationRoutes(
     wrap(async (request, reply) => {
       const { orgId, groupId } = parse(groupParamsSchema, request.params);
       await dependencies.requireScim(request, orgId);
-      const result = await store.archiveCollaborationGroup({ organizationId: orgId, groupId, writer: 'SCIM' });
+      const result = await readOnlyViewerMutation({
+        request,
+        organizationId: orgId,
+        excludeGroupId: groupId,
+        prospectiveUserIds: () => groupViewerAudience(orgId, groupId, []),
+        mutation: () => store.archiveCollaborationGroup({ organizationId: orgId, groupId, writer: 'SCIM' }),
+      });
 
       if (!result.ok) {
         throwGroupMutationFailure(result);

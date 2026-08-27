@@ -5,9 +5,14 @@ import { type ConsensusEngine, type ConsensusOutput, type ConsensusRunInput } fr
 export const DEFAULT_ROLE_WEIGHTS: Record<AgentRoleId, number> = {
   architect: 1.5,
   backend: 1.2,
+  database: 1.2,
+  security: 1.4,
   frontend: 1.0,
   devops: 1.0,
+  performance: 1.1,
+  accessibility: 1.1,
   qa: 1.3,
+  reviewer: 1.4,
 };
 
 export class WeightedPluralityConsensus implements ConsensusEngine {

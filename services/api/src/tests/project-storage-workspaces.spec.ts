@@ -316,6 +316,7 @@ describe('git commit endpoint syncs the manifest to the targeted workspace tree'
 
       const workspaceB = await store.createWorkspace({
         projectId,
+        expectedOrganizationId: auth.organization.id,
         name: 'Secondary Workspace',
         runtimeMode: 'remote-kubernetes',
       });
@@ -329,6 +330,7 @@ describe('git commit endpoint syncs the manifest to the targeted workspace tree'
       ];
       await store.upsertProjectIdeState({
         projectId,
+        expectedOrganizationId: auth.organization.id,
         state: {
           files: {
             entries: manifestEntries,

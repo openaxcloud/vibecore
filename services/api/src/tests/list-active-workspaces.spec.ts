@@ -20,25 +20,43 @@ describe('listActiveWorkspaces', () => {
 
     const running = await store.createWorkspace({
       projectId: projectA.id,
+      expectedOrganizationId: orgA.id,
       name: 'running',
       runtimeMode: 'remote-kubernetes',
     });
     const starting = await store.createWorkspace({
       projectId: projectA.id,
+      expectedOrganizationId: orgA.id,
       name: 'starting',
       runtimeMode: 'remote-kubernetes',
     });
-    await store.updateWorkspaceStatus({ workspaceId: starting.id, status: 'STARTING' });
+    await store.updateWorkspaceStatus({
+      workspaceId: starting.id,
+      expectedProjectId: projectA.id,
+      expectedOrganizationId: orgA.id,
+      status: 'STARTING',
+    });
 
     const stopped = await store.createWorkspace({
       projectId: projectA.id,
+      expectedOrganizationId: orgA.id,
       name: 'stopped',
       runtimeMode: 'remote-kubernetes',
     });
-    await store.updateWorkspaceStatus({ workspaceId: stopped.id, status: 'STOPPED' });
+    await store.updateWorkspaceStatus({
+      workspaceId: stopped.id,
+      expectedProjectId: projectA.id,
+      expectedOrganizationId: orgA.id,
+      status: 'STOPPED',
+    });
 
     // A different org's running workspace must not appear in org A's list.
-    await store.createWorkspace({ projectId: projectB.id, name: 'other-org', runtimeMode: 'remote-kubernetes' });
+    await store.createWorkspace({
+      projectId: projectB.id,
+      expectedOrganizationId: orgB.id,
+      name: 'other-org',
+      runtimeMode: 'remote-kubernetes',
+    });
 
     const active = await store.listActiveWorkspaces(orgA.id);
     const ids = active.map((workspace) => workspace.id).sort();

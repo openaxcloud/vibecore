@@ -26,6 +26,73 @@ export const organizationSecurityEn = {
   'organizationSecurity.errors.temporarySave':
     'Saving security settings is temporarily unavailable. Please try again in a moment.',
   'organizationSecurity.success.saved': 'Organization security settings saved.',
+  'organizationSecurity.capabilities.title': 'Enterprise capabilities',
+  'organizationSecurity.capabilities.description':
+    'Live entitlement and provisioning state. A capability is usable only when the API reports it as ready.',
+  'organizationSecurity.capabilities.loading': 'Loading Enterprise capabilities',
+  'organizationSecurity.capabilities.errorTitle': 'Enterprise capabilities could not load',
+  'organizationSecurity.capabilities.errorDescription':
+    'The current entitlement state could not be verified. No unavailable capability is presented as active.',
+  'organizationSecurity.capabilities.permissionTitle': 'Enterprise capabilities are restricted',
+  'organizationSecurity.capabilities.permissionDescription':
+    "Your role cannot view this organization's Enterprise capability state.",
+  'organizationSecurity.capabilities.retry': 'Reload Enterprise capabilities',
+  'organizationSecurity.capabilities.version': 'policy {version}',
+  'organizationSecurity.capabilities.plan.starter': 'Starter',
+  'organizationSecurity.capabilities.plan.core': 'Core',
+  'organizationSecurity.capabilities.plan.pro': 'Pro',
+  'organizationSecurity.capabilities.plan.enterprise': 'Enterprise',
+  'organizationSecurity.capabilities.state.ready': 'Ready',
+  'organizationSecurity.capabilities.state.operatorRequired': 'Operator required',
+  'organizationSecurity.capabilities.state.notEntitled': 'Not included',
+  'organizationSecurity.capabilities.singleTenant.title': 'Single-tenant runtime',
+  'organizationSecurity.capabilities.singleTenant.description':
+    'A dedicated tenant created through the platform cloud-tenant factory.',
+  'organizationSecurity.capabilities.staticOutboundIp.title': 'Static outbound IP',
+  'organizationSecurity.capabilities.staticOutboundIp.description':
+    'A provisioned fixed source address for organization workloads.',
+  'organizationSecurity.capabilities.vpcPeering.title': 'VPC peering',
+  'organizationSecurity.capabilities.vpcPeering.description':
+    'A provisioned private network connection to organization infrastructure.',
+  'organizationSecurity.capabilities.dataWarehouse.title': 'Data warehouse',
+  'organizationSecurity.capabilities.dataWarehouse.description':
+    'A provisioned organization warehouse integration for governed analytics.',
+  'organizationSecurity.capabilities.securityCenter.title': 'Security Center',
+  'organizationSecurity.capabilities.securityCenter.description':
+    'Organization-scoped authentication, MFA and security audit events.',
+  'organizationSecurity.securityCenter.title': 'Security Center',
+  'organizationSecurity.securityCenter.description':
+    'Review real organization-scoped security events and their operator resolution state.',
+  'organizationSecurity.securityCenter.loading': 'Loading Security Center events',
+  'organizationSecurity.securityCenter.errorTitle': 'Security Center events could not load',
+  'organizationSecurity.securityCenter.errorDescription':
+    'Security events are temporarily unavailable. Retry to fetch the current organization-scoped list.',
+  'organizationSecurity.securityCenter.permissionTitle': 'Security Center is restricted',
+  'organizationSecurity.securityCenter.permissionDescription':
+    "Your role cannot view this organization's Security Center events.",
+  'organizationSecurity.securityCenter.operatorTitle': 'Security Center requires an operator',
+  'organizationSecurity.securityCenter.operatorDescription':
+    'The Enterprise entitlement exists, but an operator must explicitly provision Security Center before events can be opened.',
+  'organizationSecurity.securityCenter.notEntitledDescription':
+    'Security Center is not included in the current plan. No simulated event feed is shown.',
+  'organizationSecurity.securityCenter.retry': 'Reload Security Center',
+  'organizationSecurity.securityCenter.openCount': '{count} open',
+  'organizationSecurity.securityCenter.emptyTitle': 'No security events',
+  'organizationSecurity.securityCenter.emptyDescription':
+    'No organization-scoped authentication, MFA or security audit event is currently recorded.',
+  'organizationSecurity.securityCenter.open': 'Open',
+  'organizationSecurity.securityCenter.resolved': 'Resolved',
+  'organizationSecurity.securityCenter.resource': 'Resource',
+  'organizationSecurity.securityCenter.actor': 'Actor',
+  'organizationSecurity.securityCenter.actorUnknown': 'system or unavailable',
+  'organizationSecurity.securityCenter.note': 'Resolution note',
+  'organizationSecurity.securityCenter.dateUnavailable': 'Date unavailable',
+  'organizationSecurity.securityCenter.loadMore': 'Load more events',
+  'organizationSecurity.securityCenter.loadingMore': 'Loading more events…',
+  'organizationSecurity.securityCenter.loadMoreErrorTitle': 'More security events could not load',
+  'organizationSecurity.securityCenter.loadMoreErrorDescription':
+    'The events already shown remain available. Retry the same cursor to continue safely.',
+  'organizationSecurity.securityCenter.loadMoreRetry': 'Retry loading events',
   'organizationSecurity.allowlist.title': 'IP allowlist',
   'organizationSecurity.allowlist.description':
     'Only these IP addresses or CIDR ranges may access the organization. Leave empty to allow all.',
@@ -87,6 +154,73 @@ export const organizationSecurityFr: OrganizationSecurityCopy = {
   'organizationSecurity.errors.temporarySave':
     'L’enregistrement des paramètres de sécurité est temporairement indisponible. Réessayez dans quelques instants.',
   'organizationSecurity.success.saved': 'Paramètres de sécurité de l’organisation enregistrés.',
+  'organizationSecurity.capabilities.title': 'Capacités Enterprise',
+  'organizationSecurity.capabilities.description':
+    'État réel des droits et du provisionnement. Une capacité n’est utilisable que si l’API la déclare prête.',
+  'organizationSecurity.capabilities.loading': 'Chargement des capacités Enterprise',
+  'organizationSecurity.capabilities.errorTitle': 'Impossible de charger les capacités Enterprise',
+  'organizationSecurity.capabilities.errorDescription':
+    'L’état actuel des droits n’a pas pu être vérifié. Aucune capacité indisponible n’est présentée comme active.',
+  'organizationSecurity.capabilities.permissionTitle': 'Les capacités Enterprise sont soumises à restriction',
+  'organizationSecurity.capabilities.permissionDescription':
+    'Votre rôle ne permet pas de consulter les capacités Enterprise de cette organisation.',
+  'organizationSecurity.capabilities.retry': 'Recharger les capacités Enterprise',
+  'organizationSecurity.capabilities.version': 'politique {version}',
+  'organizationSecurity.capabilities.plan.starter': 'Starter',
+  'organizationSecurity.capabilities.plan.core': 'Core',
+  'organizationSecurity.capabilities.plan.pro': 'Pro',
+  'organizationSecurity.capabilities.plan.enterprise': 'Enterprise',
+  'organizationSecurity.capabilities.state.ready': 'Prête',
+  'organizationSecurity.capabilities.state.operatorRequired': 'Opérateur requis',
+  'organizationSecurity.capabilities.state.notEntitled': 'Non incluse',
+  'organizationSecurity.capabilities.singleTenant.title': 'Environnement mono-tenant',
+  'organizationSecurity.capabilities.singleTenant.description':
+    'Un tenant dédié créé par la fabrique cloud de la plateforme.',
+  'organizationSecurity.capabilities.staticOutboundIp.title': 'Adresse IP sortante fixe',
+  'organizationSecurity.capabilities.staticOutboundIp.description':
+    'Une adresse source fixe provisionnée pour les charges de travail de l’organisation.',
+  'organizationSecurity.capabilities.vpcPeering.title': 'Peering VPC',
+  'organizationSecurity.capabilities.vpcPeering.description':
+    'Une connexion réseau privée provisionnée vers l’infrastructure de l’organisation.',
+  'organizationSecurity.capabilities.dataWarehouse.title': 'Entrepôt de données',
+  'organizationSecurity.capabilities.dataWarehouse.description':
+    'Une intégration d’entrepôt provisionnée pour les analyses gouvernées de l’organisation.',
+  'organizationSecurity.capabilities.securityCenter.title': 'Centre de sécurité',
+  'organizationSecurity.capabilities.securityCenter.description':
+    'Événements d’authentification, de MFA et d’audit de sécurité limités à l’organisation.',
+  'organizationSecurity.securityCenter.title': 'Centre de sécurité',
+  'organizationSecurity.securityCenter.description':
+    'Consultez les événements de sécurité réels de l’organisation et leur état de résolution par un opérateur.',
+  'organizationSecurity.securityCenter.loading': 'Chargement des événements du Centre de sécurité',
+  'organizationSecurity.securityCenter.errorTitle': 'Impossible de charger les événements du Centre de sécurité',
+  'organizationSecurity.securityCenter.errorDescription':
+    'Les événements de sécurité sont temporairement indisponibles. Réessayez pour charger la liste actuelle de l’organisation.',
+  'organizationSecurity.securityCenter.permissionTitle': 'Le Centre de sécurité est soumis à restriction',
+  'organizationSecurity.securityCenter.permissionDescription':
+    'Votre rôle ne permet pas de consulter les événements du Centre de sécurité de cette organisation.',
+  'organizationSecurity.securityCenter.operatorTitle': 'Le Centre de sécurité nécessite un opérateur',
+  'organizationSecurity.securityCenter.operatorDescription':
+    'Le droit Enterprise existe, mais un opérateur doit provisionner explicitement le Centre de sécurité avant l’ouverture des événements.',
+  'organizationSecurity.securityCenter.notEntitledDescription':
+    'Le Centre de sécurité n’est pas inclus dans l’offre actuelle. Aucun flux d’événements simulé n’est affiché.',
+  'organizationSecurity.securityCenter.retry': 'Recharger le Centre de sécurité',
+  'organizationSecurity.securityCenter.openCount': '{count} ouvert(s)',
+  'organizationSecurity.securityCenter.emptyTitle': 'Aucun événement de sécurité',
+  'organizationSecurity.securityCenter.emptyDescription':
+    'Aucun événement d’authentification, de MFA ou d’audit de sécurité lié à l’organisation n’est actuellement enregistré.',
+  'organizationSecurity.securityCenter.open': 'Ouvert',
+  'organizationSecurity.securityCenter.resolved': 'Résolu',
+  'organizationSecurity.securityCenter.resource': 'Ressource',
+  'organizationSecurity.securityCenter.actor': 'Acteur',
+  'organizationSecurity.securityCenter.actorUnknown': 'système ou indisponible',
+  'organizationSecurity.securityCenter.note': 'Note de résolution',
+  'organizationSecurity.securityCenter.dateUnavailable': 'Date indisponible',
+  'organizationSecurity.securityCenter.loadMore': 'Charger plus d’événements',
+  'organizationSecurity.securityCenter.loadingMore': 'Chargement d’autres événements…',
+  'organizationSecurity.securityCenter.loadMoreErrorTitle': 'Impossible de charger davantage d’événements de sécurité',
+  'organizationSecurity.securityCenter.loadMoreErrorDescription':
+    'Les événements déjà affichés restent disponibles. Réessayez avec le même curseur pour continuer sans perte.',
+  'organizationSecurity.securityCenter.loadMoreRetry': 'Réessayer de charger les événements',
   'organizationSecurity.allowlist.title': 'Liste d’adresses IP autorisées',
   'organizationSecurity.allowlist.description':
     'Seules ces adresses IP ou plages CIDR peuvent accéder à l’organisation. Laissez la liste vide pour tout autoriser.',

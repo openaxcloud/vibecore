@@ -234,6 +234,12 @@ function context(request: FastifyRequest): MutationContext {
 export interface CloudGovernanceRouteDependencies {
   service?: CloudGovernanceService;
   guardAdmin: (request: FastifyRequest, options: { reauth: boolean }) => Promise<void>;
+  /**
+   * Server-authoritative Enterprise admission. This is deliberately separate
+   * from the platform-admin guard: operator privilege must never turn an
+   * unprovisioned customer contract into a single-tenant entitlement.
+   */
+  authorizeTenantProvisioning?: (request: FastifyRequest, organizationId: string) => Promise<void>;
   audit: (
     request: FastifyRequest,
     entry: { action: string; resourceId?: string; metadata?: Record<string, unknown> },
@@ -260,6 +266,38 @@ export function registerCloudGovernanceRoutes(app: FastifyInstance, deps: CloudG
       return null;
     }
     return deps.service;
+  }
+
+  async function authorizeOrganization(request: FastifyRequest, organizationId: string | null | undefined) {
+    if (!organizationId) {
+      throw new CloudGovernanceError(
+        'ENTERPRISE_CAPABILITY_CHECK_UNAVAILABLE',
+        appPublicEnglish('PLAN_ENTITLEMENT_CHECK_UNAVAILABLE'),
+        503,
+        true,
+      );
+    }
+    if (!deps.authorizeTenantProvisioning) {
+      throw new CloudGovernanceError(
+        'ENTERPRISE_CAPABILITY_CHECK_UNAVAILABLE',
+        appPublicEnglish('PLAN_ENTITLEMENT_CHECK_UNAVAILABLE'),
+        503,
+        true,
+      );
+    }
+    await deps.authorizeTenantProvisioning(request, organizationId);
+  }
+
+  async function authorizeTenant(service: CloudGovernanceService, request: FastifyRequest, tenantId: string) {
+    const tenant = await service.store.getTenant(tenantId);
+    if (!tenant) throw new CloudGovernanceError('TENANT_NOT_FOUND', 'CloudTenant not found', 404);
+    await authorizeOrganization(request, tenant.organizationId);
+  }
+
+  async function authorizeBinding(service: CloudGovernanceService, request: FastifyRequest, bindingId: string) {
+    const binding = await service.store.getBinding(bindingId);
+    if (!binding) throw new CloudGovernanceError('BINDING_NOT_FOUND', 'CloudProjectBinding not found', 404);
+    await authorizeOrganization(request, binding.tenant.organizationId);
   }
 
   type Handler = (service: CloudGovernanceService, request: FastifyRequest, reply: FastifyReply) => Promise<unknown>;
@@ -304,6 +342,7 @@ export function registerCloudGovernanceRoutes(app: FastifyInstance, deps: CloudG
     '/admin/cloud-tenants',
     route(true, async (service, request, reply) => {
       const body = parse(createTenantSchema, request.body ?? {});
+      await authorizeOrganization(request, body.organizationId);
       const result = await service.createTenant({ context: context(request), ...body });
       await deps.audit(request, {
         action: 'admin.cloud_tenant.create',
@@ -331,6 +370,7 @@ export function registerCloudGovernanceRoutes(app: FastifyInstance, deps: CloudG
     route(true, async (service, request, reply) => {
       const tenantId = parse(z.object({ id }).strict(), request.params).id;
       const body = parse(bindSchema, request.body ?? {});
+      await authorizeTenant(service, request, tenantId);
       const result = await service.bindProject({
         context: context(request),
         tenantId,
@@ -369,6 +409,7 @@ export function registerCloudGovernanceRoutes(app: FastifyInstance, deps: CloudG
     route(true, async (service, request, reply) => {
       const tenantId = parse(z.object({ id }).strict(), request.params).id;
       const body = parse(lifecycleSchema, request.body ?? {});
+      await authorizeTenant(service, request, tenantId);
       const started = await service.changeTenantLifecycle({
         context: context(request),
         tenantId,
@@ -408,6 +449,7 @@ export function registerCloudGovernanceRoutes(app: FastifyInstance, deps: CloudG
     route(true, async (service, request, reply) => {
       const sourceTenantId = parse(z.object({ id }).strict(), request.params).id;
       const body = parse(splitSchema, request.body ?? {});
+      await authorizeOrganization(request, body.newOrganizationId);
       const started = await service.splitTenant({
         context: context(request),
         sourceTenantId,
@@ -426,6 +468,7 @@ export function registerCloudGovernanceRoutes(app: FastifyInstance, deps: CloudG
     route(true, async (service, request, reply) => {
       const bindingId = parse(z.object({ id }).strict(), request.params).id;
       const body = parse(advanceSchema, request.body ?? {});
+      await authorizeBinding(service, request, bindingId);
       const started = await service.startProjectAdvance({ context: context(request), bindingId, ...body });
       return executeAccepted(service, request, reply, started.operation.id, 'admin.cloud_project.advance', {
         bindingId,
@@ -440,12 +483,16 @@ export function registerCloudGovernanceRoutes(app: FastifyInstance, deps: CloudG
       service: CloudGovernanceService,
       input: { context: MutationContext; bindingId: string; expectedBindingVersion: number },
     ) => Promise<{ operation: { id: string } }>,
+    options: { requiresProvisionedTenant?: boolean } = {},
   ) => {
     app.post(
       path,
       route(true, async (service, request, reply) => {
         const bindingId = parse(z.object({ id }).strict(), request.params).id;
         const body = parse(bindingMutationSchema, request.body ?? {});
+        if (options.requiresProvisionedTenant) {
+          await authorizeBinding(service, request, bindingId);
+        }
         const started = await start(service, { context: context(request), bindingId, ...body });
         return executeAccepted(service, request, reply, started.operation.id, action, { bindingId });
       }),
@@ -461,8 +508,11 @@ export function registerCloudGovernanceRoutes(app: FastifyInstance, deps: CloudG
     'admin.cloud_project.teardown_execute',
     (s, i) => s.startTeardownExecution(i),
   );
-  bindingOperation('/admin/cloud-project-bindings/:id/restore', 'admin.cloud_project.restore', (s, i) =>
-    s.startProjectRestore(i),
+  bindingOperation(
+    '/admin/cloud-project-bindings/:id/restore',
+    'admin.cloud_project.restore',
+    (s, i) => s.startProjectRestore(i),
+    { requiresProvisionedTenant: true },
   );
   bindingOperation('/admin/cloud-project-bindings/:id/purge', 'admin.cloud_project.purge', (s, i) =>
     s.startProjectPurge(i),
@@ -486,6 +536,7 @@ export function registerCloudGovernanceRoutes(app: FastifyInstance, deps: CloudG
     route(true, async (service, request, reply) => {
       const bindingId = parse(z.object({ id }).strict(), request.params).id;
       const body = parse(identitySchema, request.body ?? {});
+      await authorizeBinding(service, request, bindingId);
       const started = await service.startIdentityEnsure({ context: context(request), bindingId, ...body });
       return executeAccepted(service, request, reply, started.operation.id, 'admin.cloud_iam.ensure', {
         bindingId,

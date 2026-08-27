@@ -1,7 +1,18 @@
 import type { Message } from 'ai';
+import { apiChatCatalog } from '~/lib/i18n/catalogs/api-chat';
 import { readRuntimeEnv } from '~/lib/modules/llm/runtime-env';
 
-export type AgentRoleId = 'architect' | 'frontend' | 'backend' | 'devops' | 'qa';
+export type AgentRoleId =
+  | 'architect'
+  | 'frontend'
+  | 'backend'
+  | 'database'
+  | 'security'
+  | 'devops'
+  | 'performance'
+  | 'accessibility'
+  | 'qa'
+  | 'reviewer';
 
 export type AgentOrchestrationMode = 'parallel-subagents' | 'single-model-lanes';
 
@@ -28,6 +39,30 @@ export type AgentExecutionResult = {
   files?: string[];
   risks?: string[];
   verification?: string[];
+  usage?: AgentProviderCallUsage;
+};
+
+export type AgentProviderCallUsage = {
+  callId: string;
+  kind: 'agent-lane';
+  roleId: AgentRoleId;
+  provider: string;
+  model: string;
+  inputTokens: number;
+  outputTokens: number;
+  estimatedCostCents: number;
+  estimated: boolean;
+};
+
+export type AgentRunUsage = {
+  laneCount: number;
+  inputTokens: number;
+  outputTokens: number;
+  totalTokens: number;
+  estimatedCostCents: number;
+  sharedContextTokens: number;
+  duplicatedInputTokens: number;
+  calls: AgentProviderCallUsage[];
 };
 
 export type AgentConsensusOutput = {
@@ -66,13 +101,14 @@ export type AgentExecutionResponse = {
   status: 'complete' | 'partial' | 'failed';
   results: AgentExecutionResult[];
   consensus?: AgentConsensusOutput;
+  usage: AgentRunUsage;
 };
 
 export type AgentExecutionAnnotation = {
   type: 'agentExecution';
   runId: string;
   status: 'complete' | 'partial' | 'failed';
-  results: AgentExecutionResult[];
+  results: Array<Omit<AgentExecutionResult, 'usage'>>;
   consensus?: {
     algorithm: AgentConsensusOutput['algorithm'];
     outcome: AgentConsensusOutput['outcome'];
@@ -97,7 +133,12 @@ export function buildAgentExecutionAnnotation(execution: AgentExecutionResponse)
     type: 'agentExecution',
     runId: execution.runId,
     status: execution.status,
-    results: execution.results,
+
+    /*
+     * Provider/model + billing data stay server-side; the visible annotation only
+     * carries the specialist's product output.
+     */
+    results: execution.results.map(({ usage: _usage, ...result }) => result),
   };
 
   if (execution.consensus) {
@@ -156,36 +197,64 @@ const complexBuildSignals = [
 export const ECODE_AGENT_ROLES: AgentOrchestrationRole[] = [
   {
     id: 'architect',
-    title: 'Architect',
-    responsibility: 'Define system architecture, data model, API contracts, state boundaries, and integration order.',
+    title: apiChatCatalog.en.roleArchitectTitle,
+    responsibility: apiChatCatalog.en.roleArchitectResponsibility,
     output: 'Architecture notes, file structure, domain model, API/data contracts, and verification plan.',
   },
   {
     id: 'frontend',
-    title: 'Frontend',
-    responsibility:
-      'Build UI components, pages, layouts, state management, accessibility, responsive behavior, loading states, and error states.',
+    title: apiChatCatalog.en.roleFrontendTitle,
+    responsibility: apiChatCatalog.en.roleFrontendResponsibility,
     output: 'Complete typed frontend code with every visible control wired to meaningful behavior.',
   },
   {
     id: 'backend',
-    title: 'Backend',
-    responsibility:
-      'Build API routes, validation, persistence adapters, auth/session boundaries, realtime handlers, and server-side error handling.',
+    title: apiChatCatalog.en.roleBackendTitle,
+    responsibility: apiChatCatalog.en.roleBackendResponsibility,
     output: 'Complete typed backend/API implementation with validated request and response contracts.',
   },
   {
+    id: 'database',
+    title: apiChatCatalog.en.roleDatabaseTitle,
+    responsibility: apiChatCatalog.en.roleDatabaseResponsibility,
+    output: 'Typed persistence changes, safe migrations, transactional tests, and data lifecycle verification.',
+  },
+  {
+    id: 'security',
+    title: apiChatCatalog.en.roleSecurityTitle,
+    responsibility: apiChatCatalog.en.roleSecurityResponsibility,
+    output: 'Enforced security boundaries, negative tests, audit events, and documented operational controls.',
+  },
+  {
     id: 'devops',
-    title: 'DevOps',
-    responsibility:
-      'Create runtime scripts, dependency setup, environment examples, build config, and deploy configuration.',
+    title: apiChatCatalog.en.roleDevopsTitle,
+    responsibility: apiChatCatalog.en.roleDevopsResponsibility,
     output: 'Runnable package scripts, environment documentation, Docker/deploy config when relevant.',
   },
   {
+    id: 'performance',
+    title: apiChatCatalog.en.rolePerformanceTitle,
+    responsibility: apiChatCatalog.en.rolePerformanceResponsibility,
+    output: 'Measured optimizations, resource bounds, and regression tests for the affected hot paths.',
+  },
+  {
+    id: 'accessibility',
+    title: apiChatCatalog.en.roleAccessibilityTitle,
+    responsibility: apiChatCatalog.en.roleAccessibilityResponsibility,
+    output: 'Accessible responsive UI changes with EN/FR coverage and automated or manual interaction evidence.',
+  },
+  {
     id: 'qa',
-    title: 'QA',
-    responsibility: 'Write critical-path tests, verify build/typecheck, inspect preview behavior, and fix failures.',
+    title: apiChatCatalog.en.roleQaTitle,
+    responsibility: apiChatCatalog.en.roleQaResponsibility,
     output: 'Automated tests plus a concise verification report tied to the implemented workflow.',
+  },
+  {
+    id: 'reviewer',
+    title: apiChatCatalog.en.roleReviewerTitle,
+    responsibility: apiChatCatalog.en.roleReviewerResponsibility,
+    output:
+      'Integrated review findings, corrected regressions, and a release-readiness verdict backed by verification.',
   },
 ];
 
@@ -239,15 +308,15 @@ export type AgentBuildTier = 'lite' | 'economy' | 'power';
  * Map the composer's power controls to a parallel-agent cap, so the
  * Lite/Economy/Power selector + High-power boost VISIBLY change how many
  * specialist agents run (previously the controls were cosmetic and every
- * request silently ran all 5 lanes).
+ * request silently ran a fixed roster).
  *
- * Lite = 1 (single lane → orchestration disabled, fastest/cheapest), Economy = 3
- * (balanced default), Power = 5 (full roster). High-power bumps the cap by one
+ * Lite = 1 (single lane → orchestration disabled, fastest/cheapest), Economy = 2
+ * (balanced default), Power = 10 (full roster). High-power bumps the cap by one
  * (capped at the roster size) so the boost is observable. Pure + exported for
  * unit testing.
  */
 export function parallelAgentsForBuildTier(tier?: AgentBuildTier, highPowerModel?: boolean): number {
-  const base = tier === 'lite' ? 1 : tier === 'power' ? ECODE_AGENT_ROLES.length : 3;
+  const base = tier === 'lite' ? 1 : tier === 'power' ? ECODE_AGENT_ROLES.length : 2;
   const boosted = highPowerModel ? base + 1 : base;
 
   return Math.max(1, Math.min(boosted, ECODE_AGENT_ROLES.length));
@@ -259,7 +328,7 @@ export function parallelAgentsForBuildTier(tier?: AgentBuildTier, highPowerModel
  * Pure + exported so the plan-gating (Starter=1, Core=2, Pro=10, …) is unit
  * testable. The plan limit is the headline pricing differentiator
  * ('Up to 2 / 10 parallel agents'); without clamping every tier silently runs
- * all 5 fixed roles, making the entitlement decorative. When `parallelAgents`
+ * the fixed roles, making the entitlement decorative. When `parallelAgents`
  * is undefined we keep the full roster (caller hasn't resolved a plan yet), and
  * we always keep at least the Architect lane when at least one agent is
  * entitled so the orchestration still produces a coherent decomposition.
@@ -288,10 +357,11 @@ export function buildAgentOrchestrationPlan(input: {
 
   /*
    * The org plan's parallel-agent entitlement (CreditBillingPlan.parallelAgents:
-   * Starter=1, Core=2, Pro=10, Enterprise=50). When provided we clamp the lane
+   * Starter=1, Core=2, Pro=10, Enterprise=10 unless explicitly lowered). When
+   * provided we clamp the lane
    * roster to it; a plan that allows only a single agent (Starter) disables
    * parallel orchestration entirely and degrades to a single-model lane. When
-   * omitted (caller hasn't resolved a plan) the full 5-role roster is kept so
+   * omitted (caller hasn't resolved a plan) the full roster is kept so
    * behaviour is unchanged for callers that don't yet pass the entitlement.
    */
   parallelAgents?: number;
@@ -305,7 +375,7 @@ export function buildAgentOrchestrationPlan(input: {
   /*
    * Roles the prompt-driven planner decided are actually needed for THIS request
    * (createAgentPlan). When provided, the roster is filtered to these roles
-   * (then still clamped by parallelAgents) instead of always running all 5 —
+   * (then still clamped by parallelAgents) instead of always running every lane —
    * this is what makes the fan-out a tailored plan rather than a fixed roster.
    * Omitted (planner unavailable / failed) keeps the full roster (fail-open).
    */
@@ -426,18 +496,97 @@ function isAgentExecutionResponse(value: unknown): value is AgentExecutionRespon
 
   const candidate = value as AgentExecutionResponse;
 
+  const usage = candidate.usage;
+  const results = Array.isArray(candidate.results) ? candidate.results : [];
+
+  const validUsage =
+    Boolean(usage) &&
+    typeof usage === 'object' &&
+    Number.isSafeInteger(usage.laneCount) &&
+    usage.laneCount >= 0 &&
+    Number.isSafeInteger(usage.inputTokens) &&
+    usage.inputTokens >= 0 &&
+    Number.isSafeInteger(usage.outputTokens) &&
+    usage.outputTokens >= 0 &&
+    Number.isSafeInteger(usage.totalTokens) &&
+    usage.totalTokens === usage.inputTokens + usage.outputTokens &&
+    Number.isFinite(usage.estimatedCostCents) &&
+    usage.estimatedCostCents >= 0 &&
+    Number.isSafeInteger(usage.sharedContextTokens) &&
+    usage.sharedContextTokens >= 0 &&
+    Number.isSafeInteger(usage.duplicatedInputTokens) &&
+    usage.duplicatedInputTokens >= 0 &&
+    Array.isArray(usage.calls) &&
+    usage.calls.every(isAgentProviderCallUsage) &&
+    usage.laneCount === usage.calls.length &&
+    usage.inputTokens === usage.calls.reduce((sum, call) => sum + call.inputTokens, 0) &&
+    usage.outputTokens === usage.calls.reduce((sum, call) => sum + call.outputTokens, 0) &&
+    usage.estimatedCostCents === usage.calls.reduce((sum, call) => sum + call.estimatedCostCents, 0) &&
+    new Set(usage.calls.map((call) => call.callId)).size === usage.calls.length;
+
+  const resultUsageIds = results.flatMap((result) =>
+    isAgentExecutionResult(result) && result.usage ? [result.usage.callId] : [],
+  );
+
+  const summaryUsageIds = validUsage ? usage.calls.map((call) => call.callId) : [];
+  const resultUsageIdSet = new Set(resultUsageIds);
+
   return (
     typeof candidate.runId === 'string' &&
     ['complete', 'partial', 'failed'].includes(candidate.status) &&
+    validUsage &&
     Array.isArray(candidate.results) &&
-    candidate.results.every(
-      (result) =>
-        result &&
-        typeof result === 'object' &&
-        ['architect', 'frontend', 'backend', 'devops', 'qa'].includes((result as AgentExecutionResult).roleId) &&
-        ['complete', 'partial', 'failed'].includes((result as AgentExecutionResult).status) &&
-        typeof (result as AgentExecutionResult).summary === 'string',
-    )
+    candidate.results.every(isAgentExecutionResult) &&
+    resultUsageIds.length === summaryUsageIds.length &&
+    resultUsageIdSet.size === resultUsageIds.length &&
+    resultUsageIds.every((callId) => summaryUsageIds.includes(callId)) &&
+    summaryUsageIds.every((callId) => resultUsageIdSet.has(callId))
+  );
+}
+
+function isAgentExecutionResult(value: unknown): value is AgentExecutionResult {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  const result = value as AgentExecutionResult;
+  const statusValid = ['complete', 'partial', 'failed'].includes(result.status);
+  const usageValid = result.usage === undefined || isAgentProviderCallUsage(result.usage);
+
+  return (
+    ECODE_AGENT_ROLES.some((role) => role.id === result.roleId) &&
+    statusValid &&
+    typeof result.summary === 'string' &&
+    usageValid &&
+    (result.usage === undefined || result.usage.roleId === result.roleId) &&
+    (result.status === 'failed' || Boolean(result.usage))
+  );
+}
+
+function isAgentProviderCallUsage(value: unknown): value is AgentProviderCallUsage {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  const usage = value as Partial<AgentProviderCallUsage>;
+
+  return (
+    typeof usage.callId === 'string' &&
+    usage.callId.length > 0 &&
+    usage.kind === 'agent-lane' &&
+    ECODE_AGENT_ROLES.some((role) => role.id === usage.roleId) &&
+    typeof usage.provider === 'string' &&
+    usage.provider.length > 0 &&
+    typeof usage.model === 'string' &&
+    usage.model.length > 0 &&
+    Number.isSafeInteger(usage.inputTokens) &&
+    (usage.inputTokens ?? -1) >= 0 &&
+    Number.isSafeInteger(usage.outputTokens) &&
+    (usage.outputTokens ?? -1) >= 0 &&
+    typeof usage.estimatedCostCents === 'number' &&
+    Number.isFinite(usage.estimatedCostCents) &&
+    usage.estimatedCostCents >= 0 &&
+    typeof usage.estimated === 'boolean'
   );
 }
 
@@ -474,6 +623,7 @@ export async function executeAgentOrchestration(input: {
    * immediately instead of billing every lane until the timeout fires.
    */
   signal?: AbortSignal;
+  onProviderStart?: () => Promise<void>;
 }): Promise<AgentExecutionResponse> {
   if (!input.plan.enabled || input.plan.mode !== 'parallel-subagents') {
     throw new AgentExecutorError('Parallel sub-agent execution is not enabled for this request.', 'not-configured');
@@ -506,6 +656,8 @@ export async function executeAgentOrchestration(input: {
   const fetchSignal = input.signal ? AbortSignal.any([controller.signal, input.signal]) : controller.signal;
 
   try {
+    await input.onProviderStart?.();
+
     const response = await fetcher(new URL('/v1/agent-runs', endpoint).toString(), {
       method: 'POST',
       headers: {
@@ -566,6 +718,7 @@ export type AgentLaneStreamEvent =
       status: AgentExecutionResponse['status'];
       results: AgentExecutionResult[];
       consensus?: AgentConsensusOutput;
+      usage: AgentRunUsage;
     }
   | { type: 'error'; error: string };
 
@@ -590,10 +743,24 @@ export function buildPartialExecutionFromLanes(
     return undefined;
   }
 
+  const calls = completedLanes.flatMap((lane) => (lane.usage ? [lane.usage] : []));
+  const inputTokens = calls.reduce((sum, usage) => sum + usage.inputTokens, 0);
+  const outputTokens = calls.reduce((sum, usage) => sum + usage.outputTokens, 0);
+
   return {
     runId,
     status: 'partial',
     results: completedLanes,
+    usage: {
+      laneCount: calls.length,
+      inputTokens,
+      outputTokens,
+      totalTokens: inputTokens + outputTokens,
+      estimatedCostCents: calls.reduce((sum, usage) => sum + usage.estimatedCostCents, 0),
+      sharedContextTokens: 0,
+      duplicatedInputTokens: 0,
+      calls,
+    },
   };
 }
 
@@ -632,6 +799,7 @@ export async function executeAgentOrchestrationStream(input: {
    * immediately instead of streaming every lane until the idle deadline.
    */
   signal?: AbortSignal;
+  onProviderStart?: () => Promise<void>;
   onEvent: (event: AgentLaneStreamEvent) => void;
 }): Promise<AgentExecutionResponse> {
   if (!input.plan.enabled || input.plan.mode !== 'parallel-subagents') {
@@ -694,6 +862,8 @@ export async function executeAgentOrchestrationStream(input: {
   let streamRunId: string | undefined;
 
   try {
+    await input.onProviderStart?.();
+
     const response = await fetcher(new URL('/v1/agent-runs/stream', endpoint).toString(), {
       method: 'POST',
       headers: {
@@ -767,6 +937,16 @@ export async function executeAgentOrchestrationStream(input: {
           throw new AgentExecutorError(event.error || 'Sub-agent stream error.', 'http-error');
         }
 
+        if (
+          event.type === 'lane-done' &&
+          (!isAgentExecutionResult(event.result) || event.result.roleId !== event.roleId)
+        ) {
+          throw new AgentExecutorError(
+            'Sub-agent executor returned an invalid lane usage receipt.',
+            'invalid-response',
+          );
+        }
+
         input.onEvent(event);
 
         if (event.type === 'lane-done') {
@@ -775,7 +955,13 @@ export async function executeAgentOrchestrationStream(input: {
 
         if (event.type === 'run-done') {
           streamRunId = event.runId;
-          final = { runId: event.runId, status: event.status, results: event.results, consensus: event.consensus };
+          final = {
+            runId: event.runId,
+            status: event.status,
+            results: event.results,
+            consensus: event.consensus,
+            usage: event.usage,
+          };
         }
       }
     }

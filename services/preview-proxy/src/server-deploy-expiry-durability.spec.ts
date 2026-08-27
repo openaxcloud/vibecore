@@ -37,10 +37,16 @@ function makeHarness(initial: { state?: string; down?: boolean } = {}) {
         throw new Error('API injoignable (lecture du garde KO)');
       }
 
-      return new Response(JSON.stringify({ state: control.state }), {
+      return new Response(
+        JSON.stringify({
+          state: control.state,
+          planEntitlements: { version: '2026-08-27.1', badgeRequired: false },
+        }),
+        {
         status: 200,
-        headers: { 'content-type': 'application/json' },
-      });
+          headers: { 'content-type': 'application/json' },
+        },
+      );
     }
 
     appHits.push(url);

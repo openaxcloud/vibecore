@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import {
   DEFAULT_AGENT_MODE,
@@ -62,6 +62,53 @@ describe('isAgentModeRoutingDisabled', () => {
 });
 
 describe('decideTaskHardness (heuristic gate)', () => {
+  it.each([
+    ['hard' as const, true],
+    ['easy' as const, false],
+  ])('replays an exact %s classifier receipt without another provider effect', async (outcome, hard) => {
+    const onClassifierStart = vi.fn();
+
+    const decision = await decideTaskHardness({
+      task: {
+        chatMode: 'build',
+        lastUserMessage: 'build a production marketplace with auth, billing, and migrations',
+        contextFileCount: 0,
+        planFirst: true,
+        isReasoningModel: false,
+      },
+      lastUserMessage: 'build a production marketplace with auth, billing, and migrations',
+      classifier: { provider: 'anthropic', model: 'claude-haiku-4-5' },
+      classifierReplay: { state: 'exact', outcome },
+      onClassifierStart,
+    });
+
+    expect(decision).toMatchObject({ hard, decidedBy: 'llm' });
+    expect(decision.classifierUsage).toBeUndefined();
+    expect(onClassifierStart).not.toHaveBeenCalled();
+  });
+
+  it('uses the hard heuristic for a recovered classifier ceiling without replaying the provider', async () => {
+    const onClassifierStart = vi.fn();
+
+    const decision = await decideTaskHardness({
+      task: {
+        chatMode: 'build',
+        lastUserMessage: 'build a production marketplace with auth, billing, and migrations',
+        contextFileCount: 0,
+        planFirst: true,
+        isReasoningModel: false,
+      },
+      lastUserMessage: 'build a production marketplace with auth, billing, and migrations',
+      classifier: { provider: 'anthropic', model: 'claude-haiku-4-5' },
+      classifierReplay: { state: 'recovered' },
+      onClassifierStart,
+    });
+
+    expect(decision).toMatchObject({ hard: true, decidedBy: 'heuristic' });
+    expect(decision.classifierUsage).toBeUndefined();
+    expect(onClassifierStart).not.toHaveBeenCalled();
+  });
+
   it('never escalates a small edit or a discussion — the "+0 credit" path', async () => {
     const smallEdit = await decideTaskHardness({
       task: {

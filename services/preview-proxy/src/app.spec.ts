@@ -901,6 +901,24 @@ describe('preview-proxy', () => {
   });
 
   describe('server deployments (Replit-parity durable runtime)', () => {
+    const publishedServerOptions = {
+      apiBaseUrl: 'http://api.test',
+      proxySharedSecret: 'preview-test-shared-secret',
+    } as const;
+    const withLivePaidPublication = (
+      handler: (input: URL | string | Request, init?: RequestInit) => Promise<Response>,
+    ) =>
+      (async (input: URL | string | Request, init?: RequestInit) => {
+        const href = input instanceof URL ? input.href : input instanceof Request ? input.url : String(input);
+        if (href === 'http://api.test/deployments/clr8x9abc123/serving-state') {
+          return Response.json({
+            state: 'live',
+            planEntitlements: { version: '2026-08-27.1', badgeRequired: false },
+          });
+        }
+        return handler(input, init);
+      }) as typeof fetch;
+
     it('parseServerDeployHost extracts the deployment id from a `d-<id>` host', () => {
       expect(parseServerDeployHost('d-clr8x9abc123.preview.e-code.ai', 'preview.e-code.ai')).toEqual({
         deploymentId: 'clr8x9abc123',
@@ -956,11 +974,15 @@ describe('preview-proxy', () => {
     });
 
     it('serves the starting/holding page when the deploy Service is unreachable (document nav)', async () => {
-      const fetchImpl = (async () => {
+      const fetchImpl = withLivePaidPublication(async () => {
         throw new Error('ECONNREFUSED');
-      }) as unknown as typeof fetch;
+      });
 
-      const app = await buildPreviewProxyApp({ fetchImpl, previewDomain: 'preview.e-code.ai' });
+      const app = await buildPreviewProxyApp({
+        ...publishedServerOptions,
+        fetchImpl,
+        previewDomain: 'preview.e-code.ai',
+      });
 
       const response = await app.inject({
         method: 'GET',
@@ -978,7 +1000,7 @@ describe('preview-proxy', () => {
       const seen: string[] = [];
       let upstreamHits = 0;
 
-      const fetchImpl = (async (url: any, init: any) => {
+      const fetchImpl = withLivePaidPublication(async (url: any, init: any) => {
         const href = typeof url === 'string' ? url : (url.href ?? url.toString());
         seen.push(href);
 
@@ -1000,9 +1022,10 @@ describe('preview-proxy', () => {
         }
 
         return new Response('{}', { status: 200 });
-      }) as unknown as typeof fetch;
+      });
 
       const app = await buildPreviewProxyApp({
+        ...publishedServerOptions,
         fetchImpl,
         previewDomain: 'preview.e-code.ai',
         serverDeployManagerUrl: 'http://workspace-manager.test',
@@ -1027,7 +1050,7 @@ describe('preview-proxy', () => {
     it('serves a non-refreshing billing page and never retries a suspended Reserved VM upstream', async () => {
       let activateCalls = 0;
       let upstreamHits = 0;
-      const fetchImpl = (async (url: any) => {
+      const fetchImpl = withLivePaidPublication(async (url: any) => {
         const href = typeof url === 'string' ? url : (url.href ?? url.toString());
 
         if (href.endsWith('/activate')) {
@@ -1044,8 +1067,9 @@ describe('preview-proxy', () => {
         }
 
         return new Response('{}', { status: 200 });
-      }) as unknown as typeof fetch;
+      });
       const app = await buildPreviewProxyApp({
+        ...publishedServerOptions,
         fetchImpl,
         previewDomain: 'preview.e-code.ai',
         serverDeployManagerUrl: 'http://workspace-manager.test',
@@ -1077,7 +1101,7 @@ describe('preview-proxy', () => {
       let activateCalls = 0;
       let upstreamHits = 0;
 
-      const fetchImpl = (async (url: any) => {
+      const fetchImpl = withLivePaidPublication(async (url: any) => {
         const href = typeof url === 'string' ? url : (url.href ?? url.toString());
 
         if (href.endsWith('/activate')) {
@@ -1091,9 +1115,10 @@ describe('preview-proxy', () => {
         }
 
         return new Response('{}', { status: 200 });
-      }) as unknown as typeof fetch;
+      });
 
       const app = await buildPreviewProxyApp({
+        ...publishedServerOptions,
         fetchImpl,
         previewDomain: 'preview.e-code.ai',
         serverDeployManagerUrl: 'http://workspace-manager.test',
@@ -1124,7 +1149,7 @@ describe('preview-proxy', () => {
     it('gives up waiting on a wake that never becomes ready and serves the branded page, not a gateway error', async () => {
       let activateAborted = false;
 
-      const fetchImpl = (async (url: any, init: any) => {
+      const fetchImpl = withLivePaidPublication(async (url: any, init: any) => {
         const href = typeof url === 'string' ? url : (url.href ?? url.toString());
 
         if (href.endsWith('/activate')) {
@@ -1142,9 +1167,10 @@ describe('preview-proxy', () => {
         }
 
         return new Response('{}', { status: 200 });
-      }) as unknown as typeof fetch;
+      });
 
       const app = await buildPreviewProxyApp({
+        ...publishedServerOptions,
         fetchImpl,
         previewDomain: 'preview.e-code.ai',
         serverDeployManagerUrl: 'http://workspace-manager.test',
@@ -1174,7 +1200,7 @@ describe('preview-proxy', () => {
      * renders as a finished page. It now takes the same wake + holding-page path.
      */
     it('serves the branded holding page when the app accepts the connection but never responds', async () => {
-      const fetchImpl = (async (url: any, init: any) => {
+      const fetchImpl = withLivePaidPublication(async (url: any, init: any) => {
         const href = typeof url === 'string' ? url : (url.href ?? url.toString());
 
         if (href.endsWith('/activate')) {
@@ -1190,9 +1216,10 @@ describe('preview-proxy', () => {
         }
 
         return new Response('{}', { status: 200 });
-      }) as unknown as typeof fetch;
+      });
 
       const app = await buildPreviewProxyApp({
+        ...publishedServerOptions,
         fetchImpl,
         previewDomain: 'preview.e-code.ai',
         serverDeployManagerUrl: 'http://workspace-manager.test',
@@ -1271,15 +1298,25 @@ describe('sanitizePreviewFramingHeader', () => {
  */
 describe('preview-proxy — framing headers are scoped to the IDE preview surface', () => {
   const framingUpstream = () =>
-    (async () =>
-      new Response('<!doctype html><html><head></head><body><div id="root">app</div></body></html>', {
+    (async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes('/serving-state')) {
+        return Response.json({
+          state: 'live',
+          planEntitlements: { version: '2026-08-27.1', badgeRequired: false },
+        });
+      }
+      return new Response('<!doctype html><html><head></head><body><div id="root">app</div></body></html>', {
         status: 200,
         headers: {
           'content-type': 'text/html; charset=utf-8',
           'x-frame-options': 'SAMEORIGIN',
           'content-security-policy': "default-src 'self'; frame-ancestors 'self'",
+          'x-vibecore-plan-entitlements-version': '2026-08-27.1',
+          'x-vibecore-published-badge-required': '0',
         },
-      })) as unknown as typeof fetch;
+      });
+    }) as unknown as typeof fetch;
 
   it('IDE preview (/p/:workspaceId/:port): strips framing headers so the IDE can frame the dev server', async () => {
     const app = await buildPreviewProxyApp({ fetchImpl: framingUpstream(), resolveAgent: async () => fakeAgent });
@@ -1303,7 +1340,11 @@ describe('preview-proxy — framing headers are scoped to the IDE preview surfac
   });
 
   it('PUBLISHED server deploy (d-<id>): keeps X-Frame-Options and frame-ancestors untouched', async () => {
-    const app = await buildPreviewProxyApp({ fetchImpl: framingUpstream(), previewDomain: 'preview.e-code.ai' });
+    const app = await buildPreviewProxyApp({
+      fetchImpl: framingUpstream(),
+      previewDomain: 'preview.e-code.ai',
+      apiBaseUrl: 'http://api.test',
+    });
 
     const response = await app.inject({
       method: 'GET',

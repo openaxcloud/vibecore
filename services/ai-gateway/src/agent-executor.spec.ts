@@ -98,6 +98,29 @@ describe('agent executor', () => {
     expect(request.conversationId).toBe('conv_abc');
   });
 
+  it('accepts the complete ten-role product roster', () => {
+    const roles = [
+      architect,
+      frontend,
+      { ...architect, id: 'backend' as const },
+      { ...architect, id: 'database' as const },
+      { ...architect, id: 'security' as const },
+      { ...architect, id: 'devops' as const },
+      { ...architect, id: 'performance' as const },
+      { ...architect, id: 'accessibility' as const },
+      { ...architect, id: 'qa' as const },
+      { ...architect, id: 'reviewer' as const },
+    ];
+
+    expect(
+      parseAgentRunRequest({
+        mode: 'parallel-subagents',
+        roles,
+        messages: [{ role: 'user', content: 'Build and verify.' }],
+      }).roles.map((role) => role.id),
+    ).toEqual(roles.map((role) => role.id));
+  });
+
   it('leaves projectId/userId/conversationId undefined when absent or non-string', () => {
     const base = { mode: 'parallel-subagents', roles: [architect], messages: [{ role: 'user', content: 'Build.' }] };
     expect(parseAgentRunRequest(base).projectId).toBeUndefined();
@@ -218,8 +241,8 @@ describe('agent executor', () => {
       const prompt = request.messages.map((message: { content: string }) => message.content).join(' ');
       const roleId = prompt.includes('Architect') ? 'architect' : 'frontend';
       return {
-        provider: 'openai',
-        model: 'gpt-4.1-mini',
+        provider: roleId === 'architect' ? 'openai' : 'anthropic',
+        model: roleId === 'architect' ? 'gpt-4.1-mini' : 'claude-3-5-sonnet',
         content: JSON.stringify({
           summary: `${roleId} complete`,
           files: [`${roleId}.md`],
@@ -250,6 +273,18 @@ describe('agent executor', () => {
       summary: 'architect complete',
       files: ['architect.md'],
     });
+    expect(result.usage).toMatchObject({ laneCount: 2, inputTokens: 2, outputTokens: 2, totalTokens: 4 });
+    expect(result.usage.calls).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ roleId: 'architect', provider: 'openai', model: 'gpt-4.1-mini', estimated: false }),
+        expect.objectContaining({
+          roleId: 'frontend',
+          provider: 'anthropic',
+          model: 'claude-3-5-sonnet',
+          estimated: false,
+        }),
+      ]),
+    );
     expect(complete).toHaveBeenCalledTimes(2);
   });
 
@@ -292,7 +327,12 @@ describe('agent executor', () => {
 
       yield { type: 'delta' as const, content: '{"summary":"' };
       yield { type: 'delta' as const, content: `${roleId} complete"}` };
-      yield { type: 'done' as const };
+      yield {
+        type: 'done' as const,
+        provider: roleId === 'architect' ? ('openai' as const) : ('anthropic' as const),
+        model: roleId === 'architect' ? 'gpt-4.1-mini' : 'claude-3-5-sonnet',
+        usage: { inputTokens: roleId === 'architect' ? 11 : 13, outputTokens: 5, estimatedCostCents: 1 },
+      };
     });
     const persistence: AgentRunPersistence = {
       recordRun: vi.fn(async () => undefined),
@@ -325,8 +365,106 @@ describe('agent executor', () => {
         { roleId: 'architect', summary: 'architect complete' },
         { roleId: 'frontend', summary: 'frontend complete' },
       ],
+      usage: {
+        laneCount: 2,
+        inputTokens: 24,
+        outputTokens: 10,
+        totalTokens: 34,
+        calls: expect.arrayContaining([
+          expect.objectContaining({ roleId: 'architect', provider: 'openai', inputTokens: 11, estimated: false }),
+          expect.objectContaining({ roleId: 'frontend', provider: 'anthropic', inputTokens: 13, estimated: false }),
+        ]),
+      },
     });
+    expect(events.filter((event) => event.type === 'lane-done')).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          result: expect.objectContaining({ usage: expect.objectContaining({ inputTokens: 11 }) }),
+        }),
+        expect.objectContaining({
+          result: expect.objectContaining({ usage: expect.objectContaining({ inputTokens: 13 }) }),
+        }),
+      ]),
+    );
     expect(stream).toHaveBeenCalledTimes(2);
     expect(persistence.recordRun).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns the same aggregate usage summary for stream and non-stream execution', async () => {
+    const usage = { inputTokens: 21, outputTokens: 8, estimatedCostCents: 2 };
+    const complete = vi.fn(async () => ({
+      provider: 'openai' as const,
+      model: 'gpt-4.1-mini',
+      content: '{"summary":"architecture complete"}',
+      usage,
+    }));
+    const stream = vi.fn(async function* () {
+      yield { type: 'delta' as const, content: '{"summary":"architecture complete"}' };
+      yield { type: 'done' as const, provider: 'openai' as const, model: 'gpt-4.1-mini', usage };
+    });
+    const request = {
+      mode: 'parallel-subagents' as const,
+      roles: [architect],
+      messages: [{ role: 'user' as const, content: 'Design it.' }],
+    };
+
+    const nonStream = await executeAgentRun({ gateway: { complete } as unknown as AiGateway, request });
+    const streamEvents = [];
+    for await (const event of executeAgentRunStream({ gateway: { stream } as unknown as AiGateway, request })) {
+      streamEvents.push(event);
+    }
+    const streamDone = streamEvents.find((event) => event.type === 'run-done');
+
+    expect(streamDone?.usage).toMatchObject({
+      laneCount: nonStream.usage.laneCount,
+      inputTokens: nonStream.usage.inputTokens,
+      outputTokens: nonStream.usage.outputTokens,
+      totalTokens: nonStream.usage.totalTokens,
+      estimatedCostCents: nonStream.usage.estimatedCostCents,
+      sharedContextTokens: nonStream.usage.sharedContextTokens,
+      duplicatedInputTokens: nonStream.usage.duplicatedInputTokens,
+    });
+    expect(streamDone?.usage.calls[0]).toMatchObject({
+      provider: nonStream.usage.calls[0]?.provider,
+      model: nonStream.usage.calls[0]?.model,
+      inputTokens: nonStream.usage.calls[0]?.inputTokens,
+      outputTokens: nonStream.usage.calls[0]?.outputTokens,
+      estimated: false,
+    });
+  });
+
+  it('keeps estimated usage for a stream that fails after paid output started', async () => {
+    const stream = vi.fn(async function* () {
+      yield {
+        type: 'delta' as const,
+        content: '{"summary":"partial',
+        provider: 'openai' as const,
+        model: 'gpt-4.1-mini',
+      };
+      yield {
+        type: 'error' as const,
+        provider: 'openai' as const,
+        model: 'gpt-4.1-mini',
+        error: 'connection reset',
+      };
+    });
+    const events = [];
+
+    for await (const event of executeAgentRunStream({
+      gateway: { stream } as unknown as AiGateway,
+      request: {
+        mode: 'parallel-subagents',
+        roles: [architect],
+        messages: [{ role: 'user', content: 'Design it.' }],
+      },
+    })) {
+      events.push(event);
+    }
+
+    const runDone = events.find((event) => event.type === 'run-done');
+    expect(runDone?.status).toBe('failed');
+    expect(runDone?.usage.calls).toEqual([
+      expect.objectContaining({ roleId: 'architect', provider: 'openai', model: 'gpt-4.1-mini', estimated: true }),
+    ]);
   });
 });

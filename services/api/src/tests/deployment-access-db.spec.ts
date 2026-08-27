@@ -198,7 +198,12 @@ runDbTests('deployment access — durable PostgreSQL guarantees', () => {
         0,
       );
 
-      await storeA.addProjectCollaborator({ projectId: project.id, userId: member.id, roleKey: 'viewer' });
+      await storeA.addProjectCollaborator({
+        projectId: project.id,
+        expectedOrganizationId: organization.id,
+        userId: member.id,
+        roleKey: 'viewer',
+      });
       await expect(
         storeB.isDeploymentAccessUserAuthorized({
           deploymentId: deployment.id,

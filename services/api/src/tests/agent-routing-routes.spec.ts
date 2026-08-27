@@ -1,6 +1,6 @@
 import { hashPassword } from '@vibecore/auth';
 import { BUILTIN_AGENT_ROUTING_CARD } from '@vibecore/billing';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { resetAgentRoutingCache } from '../agent-routing-service.js';
 import { buildApiApp } from '../app.js';
@@ -11,10 +11,24 @@ class QuietEmailProvider implements EmailProvider {
   async send() {}
 }
 
-const auth = (token: string) => ({ authorization: `Bearer ${token}` });
+const INTERNAL_SECRET = 'agent-routing-internal-secret-2026-08-27';
+const previousInternalSecret = process.env.INTERNAL_API_SHARED_SECRET;
+const auth = (token: string) => ({
+  authorization: `Bearer ${token}`,
+  'x-vibecore-internal-secret': INTERNAL_SECRET,
+});
 
 beforeEach(() => {
+  process.env.INTERNAL_API_SHARED_SECRET = INTERNAL_SECRET;
   resetAgentRoutingCache();
+});
+
+afterEach(() => {
+  if (previousInternalSecret === undefined) {
+    delete process.env.INTERNAL_API_SHARED_SECRET;
+  } else {
+    process.env.INTERNAL_API_SHARED_SECRET = previousInternalSecret;
+  }
 });
 
 async function setup() {
@@ -52,6 +66,84 @@ async function setup() {
   });
 
   return { app, store, org, project, user };
+}
+
+let canonicalSequence = 0;
+async function recordCanonicalUsage(input: {
+  app: Awaited<ReturnType<typeof setup>>['app'];
+  projectId: string;
+  provider: string;
+  model: string;
+  inputTokens: number;
+  outputTokens: number;
+  agentRouting: {
+    mode: 'lite' | 'economy' | 'power';
+    lineKey: 'lite' | 'economy' | 'power' | 'high-effort' | 'turbo';
+    highEffort?: boolean;
+    escalated?: boolean;
+    turbo?: boolean;
+    source?: string;
+  };
+}) {
+  canonicalSequence += 1;
+  const requestId = `agent-routing-${canonicalSequence}`;
+  const quota = await input.app.inject({
+    method: 'POST',
+    url: `/projects/${input.projectId}/ai/check-quota`,
+    headers: auth('agm-token'),
+    payload: {
+      idempotencyKey: requestId,
+      requestHash: 'a'.repeat(64),
+      estimatedInputTokens: input.inputTokens,
+      estimatedOutputTokens: input.outputTokens,
+      requestedParallelAgents: 1,
+    },
+  });
+  expect(quota.statusCode, quota.body).toBe(200);
+  const reservationId = quota.json().userSpendReservationId as string;
+  const claim = await input.app.inject({
+    method: 'POST',
+    url: `/projects/${input.projectId}/ai/execution-claim`,
+    headers: auth('agm-token'),
+    payload: { userSpendReservationId: reservationId, requestId, claimOwnerId: `${requestId}-owner` },
+  });
+  expect(claim.statusCode, claim.body).toBe(200);
+  const executionToken = claim.json().executionToken as string;
+  const started = await input.app.inject({
+    method: 'POST',
+    url: `/projects/${input.projectId}/ai/provider-started`,
+    headers: auth('agm-token'),
+    payload: { userSpendReservationId: reservationId, requestId, executionToken },
+  });
+  expect(started.statusCode, started.body).toBe(200);
+  return input.app.inject({
+    method: 'POST',
+    url: `/projects/${input.projectId}/ai/record-usage`,
+    headers: auth('agm-token'),
+    payload: {
+      requestId,
+      executionToken,
+      userSpendReservationId: reservationId,
+      calls: [
+        {
+          callId: 'main',
+          kind: 'main',
+          provider: input.provider,
+          model: input.model,
+          inputTokens: input.inputTokens,
+          outputTokens: input.outputTokens,
+        },
+      ],
+      agentRouting: {
+        highEffort: false,
+        escalated: false,
+        turbo: false,
+        source: 'chat',
+        ...input.agentRouting,
+        routingCardVersion: BUILTIN_AGENT_ROUTING_CARD.version,
+      },
+    },
+  });
 }
 
 function draftFromBuiltin() {
@@ -123,19 +215,20 @@ describe('GET /projects/:id/agent/routing (client-safe mode availability)', () =
 
 describe('record-usage AGM per-call log', () => {
   it('writes an AgentCallLog row priced from the routing card, with mode-dependent cost', async () => {
-    const { app, store, project } = await setup();
+    const { app, store, org, project } = await setup();
+    await store.upsertSubscription({ organizationId: org.id, planKey: 'pro', status: 'ACTIVE' });
 
     const record = (lineKey: string, mode: string) =>
-      app.inject({
-        method: 'POST',
-        url: `/projects/${project.id}/ai/record-usage`,
-        headers: auth('agm-token'),
-        payload: {
-          provider: 'anthropic',
-          model: lineKey === 'economy' ? 'claude-opus-5' : 'claude-opus-5',
-          inputTokens: 100_000,
-          outputTokens: 10_000,
-          agentRouting: { mode, lineKey, highEffort: false, escalated: false, turbo: false, source: 'chat' },
+      recordCanonicalUsage({
+        app,
+        projectId: project.id,
+        provider: 'anthropic',
+        model: 'claude-opus-5',
+        inputTokens: 100_000,
+        outputTokens: 10_000,
+        agentRouting: {
+          mode: mode as 'economy' | 'power',
+          lineKey: lineKey as 'economy' | 'power',
         },
       });
 
@@ -164,44 +257,144 @@ describe('record-usage AGM per-call log', () => {
   it('records the classifier as unbilled operating cost', async () => {
     const { app, store, project } = await setup();
 
-    const res = await app.inject({
+    canonicalSequence += 1;
+    const requestId = `agent-classifier-${canonicalSequence}`;
+    const quota = await app.inject({
       method: 'POST',
-      url: `/projects/${project.id}/ai/record-usage`,
+      url: `/projects/${project.id}/ai/check-quota`,
       headers: auth('agm-token'),
       payload: {
+        idempotencyKey: requestId,
+        requestHash: 'b'.repeat(64),
+        estimatedOutputTokens: 1,
+        requestedParallelAgents: 1,
+      },
+    });
+    expect(quota.statusCode, quota.body).toBe(200);
+    const reservationId = quota.json().userSpendReservationId as string;
+    const claim = await app.inject({
+      method: 'POST',
+      url: `/projects/${project.id}/ai/execution-claim`,
+      headers: auth('agm-token'),
+      payload: { userSpendReservationId: reservationId, requestId, claimOwnerId: `${requestId}-owner` },
+    });
+    expect(claim.statusCode, claim.body).toBe(200);
+    const executionToken = claim.json().executionToken as string;
+    const routing = {
+      mode: 'economy',
+      highEffort: true,
+      turbo: false,
+      lineKey: 'classifier',
+      routingCardVersion: BUILTIN_AGENT_ROUTING_CARD.version,
+      source: 'classifier',
+    } as const;
+    const intent = await app.inject({
+      method: 'POST',
+      url: `/projects/${project.id}/ai/platform-usage-started`,
+      headers: auth('agm-token'),
+      payload: {
+        userSpendReservationId: reservationId,
+        requestId,
+        executionToken,
+        agentRouting: routing,
+        call: {
+          callId: 'classifier',
+          provider: 'anthropic',
+          model: 'claude-haiku-4-5',
+          maxInputTokens: 2_000,
+          maxOutputTokens: 50,
+        },
+      },
+    });
+    expect(intent.statusCode, intent.body).toBe(200);
+
+    const nextCard = draftFromBuiltin();
+    nextCard.lines.find((line) => line.key === 'economy')!.model = 'claude-sonnet-5';
+    const published = await app.inject({
+      method: 'POST',
+      url: '/admin/agent-routing',
+      headers: auth('agm-admin-token'),
+      payload: { card: nextCard },
+    });
+    expect(published.statusCode, published.body).toBe(200);
+    expect(published.json().version).toBe(BUILTIN_AGENT_ROUTING_CARD.version + 1);
+
+    const intentReplay = await app.inject({
+      method: 'POST',
+      url: `/projects/${project.id}/ai/platform-usage-started`,
+      headers: auth('agm-token'),
+      payload: {
+        userSpendReservationId: reservationId,
+        requestId,
+        executionToken,
+        agentRouting: routing,
+        call: {
+          callId: 'classifier',
+          provider: 'anthropic',
+          model: 'claude-haiku-4-5',
+          maxInputTokens: 2_000,
+          maxOutputTokens: 50,
+        },
+      },
+    });
+    expect(intentReplay.statusCode, intentReplay.body).toBe(200);
+    expect(intentReplay.json().replayed).toBe(true);
+    const platformUsagePayload = {
+      userSpendReservationId: reservationId,
+      requestId,
+      executionToken,
+      outcome: 'hard' as const,
+      agentRouting: { ...routing, escalated: true },
+      call: {
+        callId: 'classifier' as const,
+        kind: 'classifier' as const,
+        billedToUser: false as const,
         provider: 'anthropic',
         model: 'claude-haiku-4-5',
         inputTokens: 2_000,
         outputTokens: 50,
-        agentRouting: { mode: 'economy', lineKey: 'classifier', highEffort: true, source: 'classifier' },
       },
+    };
+    const res = await app.inject({
+      method: 'POST',
+      url: `/projects/${project.id}/ai/record-platform-usage`,
+      headers: auth('agm-token'),
+      payload: platformUsagePayload,
     });
     expect(res.statusCode).toBe(200);
 
+    const replay = await app.inject({
+      method: 'POST',
+      url: `/projects/${project.id}/ai/record-platform-usage`,
+      headers: auth('agm-token'),
+      payload: platformUsagePayload,
+    });
+    expect(replay.statusCode).toBe(200);
+    expect(replay.json().replayed).toBe(true);
+
     const [call] = await store.listAgentCalls();
+    expect(await store.listAgentCalls()).toHaveLength(1);
     expect(call.billedToUser).toBe(false);
     expect(call.creditCents).toBe(0);
-    expect(call.costMillicents).toBeGreaterThan(0);
+    expect(call.costMillicents).toBe(225);
     expect(call.source).toBe('classifier');
   });
 });
 
 describe('admin agent routing', () => {
   it('serves the table with live margins and 30d volume per line', async () => {
-    const { app, project } = await setup();
+    const { app, store, org, project } = await setup();
+    await store.upsertSubscription({ organizationId: org.id, planKey: 'pro', status: 'ACTIVE' });
 
     // Generate one call of volume first.
-    await app.inject({
-      method: 'POST',
-      url: `/projects/${project.id}/ai/record-usage`,
-      headers: auth('agm-token'),
-      payload: {
-        provider: 'anthropic',
-        model: 'claude-opus-4-8',
-        inputTokens: 1_000_000,
-        outputTokens: 100_000,
-        agentRouting: { mode: 'economy', lineKey: 'economy' },
-      },
+    await recordCanonicalUsage({
+      app,
+      projectId: project.id,
+      provider: 'anthropic',
+      model: 'claude-opus-4-8',
+      inputTokens: 1_000_000,
+      outputTokens: 100_000,
+      agentRouting: { mode: 'economy', lineKey: 'economy' },
     });
 
     const res = await app.inject({ method: 'GET', url: '/admin/agent-routing', headers: auth('agm-admin-token') });
@@ -257,6 +450,33 @@ describe('admin agent routing', () => {
     expect(history[0].active).toBe(true);
   });
 
+  it('refuses routing costs that are not exactly representable or exceed the classifier ledger bound', async () => {
+    const { app, store } = await setup();
+    const before = await store.listAgentRoutingCards();
+
+    const imprecise = draftFromBuiltin();
+    imprecise.lines.find((line) => line.key === 'classifier')!.costInCentsPerM = 0.3333;
+    const impreciseResponse = await app.inject({
+      method: 'POST',
+      url: '/admin/agent-routing',
+      headers: auth('agm-admin-token'),
+      payload: { card: imprecise },
+    });
+    expect(impreciseResponse.statusCode, impreciseResponse.body).toBe(400);
+    expect(impreciseResponse.json().code).toBe('AGENT_ROUTING_INVALID');
+
+    const unsafe = draftFromBuiltin();
+    unsafe.lines.find((line) => line.key === 'classifier')!.costInCentsPerM = Number.MAX_SAFE_INTEGER;
+    const unsafeResponse = await app.inject({
+      method: 'POST',
+      url: '/admin/agent-routing',
+      headers: auth('agm-admin-token'),
+      payload: { card: unsafe },
+    });
+    expect(unsafeResponse.statusCode, unsafeResponse.body).toBe(400);
+    expect(await store.listAgentRoutingCards()).toHaveLength(before.length);
+  });
+
   it('publishing a new version changes routing WITHOUT a deployment (config-only)', async () => {
     const { app, project } = await setup();
 
@@ -288,19 +508,17 @@ describe('admin agent routing', () => {
   });
 
   it('simulates a draft against the last 30 days of real volume', async () => {
-    const { app, project } = await setup();
+    const { app, store, org, project } = await setup();
+    await store.upsertSubscription({ organizationId: org.id, planKey: 'pro', status: 'ACTIVE' });
 
-    await app.inject({
-      method: 'POST',
-      url: `/projects/${project.id}/ai/record-usage`,
-      headers: auth('agm-token'),
-      payload: {
-        provider: 'anthropic',
-        model: 'claude-opus-4-8',
-        inputTokens: 1_000_000,
-        outputTokens: 100_000,
-        agentRouting: { mode: 'economy', lineKey: 'economy' },
-      },
+    await recordCanonicalUsage({
+      app,
+      projectId: project.id,
+      provider: 'anthropic',
+      model: 'claude-opus-4-8',
+      inputTokens: 1_000_000,
+      outputTokens: 100_000,
+      agentRouting: { mode: 'economy', lineKey: 'economy' },
     });
 
     // Draft doubles the base user price.
@@ -329,17 +547,14 @@ describe('admin agent routing', () => {
   it('exposes the per-call admin log with the real model used', async () => {
     const { app, project } = await setup();
 
-    await app.inject({
-      method: 'POST',
-      url: `/projects/${project.id}/ai/record-usage`,
-      headers: auth('agm-token'),
-      payload: {
-        provider: 'openai',
-        model: 'gpt-5.6-sol',
-        inputTokens: 10_000,
-        outputTokens: 1_000,
-        agentRouting: { mode: 'power', lineKey: 'turbo', turbo: true },
-      },
+    await recordCanonicalUsage({
+      app,
+      projectId: project.id,
+      provider: 'openai',
+      model: 'gpt-5.6-sol',
+      inputTokens: 10_000,
+      outputTokens: 1_000,
+      agentRouting: { mode: 'power', lineKey: 'turbo', turbo: true },
     });
 
     const res = await app.inject({
@@ -358,11 +573,7 @@ describe('admin agent routing', () => {
 });
 
 describe('GET /projects/:id/agent/routing/resolve (control-plane decision point)', () => {
-  const resolve = (
-    app: Awaited<ReturnType<typeof setup>>['app'],
-    projectId: string,
-    qs: string,
-  ) =>
+  const resolve = (app: Awaited<ReturnType<typeof setup>>['app'], projectId: string, qs: string) =>
     app.inject({
       method: 'GET',
       url: `/projects/${projectId}/agent/routing/resolve${qs}`,

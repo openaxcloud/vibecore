@@ -70432,6 +70432,7 @@ export namespace Prisma {
     configDigest: string | null
     dbMigrationPoint: string | null
     accessPolicyVersion: number | null
+    projectManifestDigest: string | null
     createdAt: Date | null
   }
 
@@ -70449,6 +70450,7 @@ export namespace Prisma {
     configDigest: string | null
     dbMigrationPoint: string | null
     accessPolicyVersion: number | null
+    projectManifestDigest: string | null
     createdAt: Date | null
   }
 
@@ -70466,6 +70468,8 @@ export namespace Prisma {
     configDigest: number
     dbMigrationPoint: number
     accessPolicyVersion: number
+    planEntitlements: number
+    projectManifestDigest: number
     createdAt: number
     _all: number
   }
@@ -70495,6 +70499,7 @@ export namespace Prisma {
     configDigest?: true
     dbMigrationPoint?: true
     accessPolicyVersion?: true
+    projectManifestDigest?: true
     createdAt?: true
   }
 
@@ -70512,6 +70517,7 @@ export namespace Prisma {
     configDigest?: true
     dbMigrationPoint?: true
     accessPolicyVersion?: true
+    projectManifestDigest?: true
     createdAt?: true
   }
 
@@ -70529,6 +70535,8 @@ export namespace Prisma {
     configDigest?: true
     dbMigrationPoint?: true
     accessPolicyVersion?: true
+    planEntitlements?: true
+    projectManifestDigest?: true
     createdAt?: true
     _all?: true
   }
@@ -70633,6 +70641,8 @@ export namespace Prisma {
     configDigest: string | null
     dbMigrationPoint: string | null
     accessPolicyVersion: number
+    planEntitlements: JsonValue | null
+    projectManifestDigest: string | null
     createdAt: Date
     _count: ReleaseManifestCountAggregateOutputType | null
     _avg: ReleaseManifestAvgAggregateOutputType | null
@@ -70669,6 +70679,8 @@ export namespace Prisma {
     configDigest?: boolean
     dbMigrationPoint?: boolean
     accessPolicyVersion?: boolean
+    planEntitlements?: boolean
+    projectManifestDigest?: boolean
     createdAt?: boolean
   }, ExtArgs["result"]["releaseManifest"]>
 
@@ -70686,6 +70698,8 @@ export namespace Prisma {
     configDigest?: boolean
     dbMigrationPoint?: boolean
     accessPolicyVersion?: boolean
+    planEntitlements?: boolean
+    projectManifestDigest?: boolean
     createdAt?: boolean
   }, ExtArgs["result"]["releaseManifest"]>
 
@@ -70703,6 +70717,8 @@ export namespace Prisma {
     configDigest?: boolean
     dbMigrationPoint?: boolean
     accessPolicyVersion?: boolean
+    planEntitlements?: boolean
+    projectManifestDigest?: boolean
     createdAt?: boolean
   }, ExtArgs["result"]["releaseManifest"]>
 
@@ -70720,10 +70736,12 @@ export namespace Prisma {
     configDigest?: boolean
     dbMigrationPoint?: boolean
     accessPolicyVersion?: boolean
+    planEntitlements?: boolean
+    projectManifestDigest?: boolean
     createdAt?: boolean
   }
 
-  export type ReleaseManifestOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "projectId" | "deploymentId" | "environment" | "version" | "provider" | "artifactKind" | "artifactRef" | "artifactDigest" | "storeGeneration" | "configDigest" | "dbMigrationPoint" | "accessPolicyVersion" | "createdAt", ExtArgs["result"]["releaseManifest"]>
+  export type ReleaseManifestOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "projectId" | "deploymentId" | "environment" | "version" | "provider" | "artifactKind" | "artifactRef" | "artifactDigest" | "storeGeneration" | "configDigest" | "dbMigrationPoint" | "accessPolicyVersion" | "planEntitlements" | "projectManifestDigest" | "createdAt", ExtArgs["result"]["releaseManifest"]>
 
   export type $ReleaseManifestPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "ReleaseManifest"
@@ -70742,6 +70760,8 @@ export namespace Prisma {
       configDigest: string | null
       dbMigrationPoint: string | null
       accessPolicyVersion: number
+      planEntitlements: Prisma.JsonValue | null
+      projectManifestDigest: string | null
       createdAt: Date
     }, ExtArgs["result"]["releaseManifest"]>
     composites: {}
@@ -71179,6 +71199,8 @@ export namespace Prisma {
     readonly configDigest: FieldRef<"ReleaseManifest", 'String'>
     readonly dbMigrationPoint: FieldRef<"ReleaseManifest", 'String'>
     readonly accessPolicyVersion: FieldRef<"ReleaseManifest", 'Int'>
+    readonly planEntitlements: FieldRef<"ReleaseManifest", 'Json'>
+    readonly projectManifestDigest: FieldRef<"ReleaseManifest", 'String'>
     readonly createdAt: FieldRef<"ReleaseManifest", 'DateTime'>
   }
     
@@ -194617,6 +194639,8 @@ export namespace Prisma {
     configDigest: 'configDigest',
     dbMigrationPoint: 'dbMigrationPoint',
     accessPolicyVersion: 'accessPolicyVersion',
+    planEntitlements: 'planEntitlements',
+    projectManifestDigest: 'projectManifestDigest',
     createdAt: 'createdAt'
   };
 
@@ -201102,6 +201126,8 @@ export namespace Prisma {
     configDigest?: StringNullableFilter<"ReleaseManifest"> | string | null
     dbMigrationPoint?: StringNullableFilter<"ReleaseManifest"> | string | null
     accessPolicyVersion?: IntFilter<"ReleaseManifest"> | number
+    planEntitlements?: JsonNullableFilter<"ReleaseManifest">
+    projectManifestDigest?: StringNullableFilter<"ReleaseManifest"> | string | null
     createdAt?: DateTimeFilter<"ReleaseManifest"> | Date | string
   }
 
@@ -201119,6 +201145,8 @@ export namespace Prisma {
     configDigest?: SortOrderInput | SortOrder
     dbMigrationPoint?: SortOrderInput | SortOrder
     accessPolicyVersion?: SortOrder
+    planEntitlements?: SortOrderInput | SortOrder
+    projectManifestDigest?: SortOrderInput | SortOrder
     createdAt?: SortOrder
   }
 
@@ -201140,6 +201168,8 @@ export namespace Prisma {
     configDigest?: StringNullableFilter<"ReleaseManifest"> | string | null
     dbMigrationPoint?: StringNullableFilter<"ReleaseManifest"> | string | null
     accessPolicyVersion?: IntFilter<"ReleaseManifest"> | number
+    planEntitlements?: JsonNullableFilter<"ReleaseManifest">
+    projectManifestDigest?: StringNullableFilter<"ReleaseManifest"> | string | null
     createdAt?: DateTimeFilter<"ReleaseManifest"> | Date | string
   }, "id" | "projectId_environment_version">
 
@@ -201157,6 +201187,8 @@ export namespace Prisma {
     configDigest?: SortOrderInput | SortOrder
     dbMigrationPoint?: SortOrderInput | SortOrder
     accessPolicyVersion?: SortOrder
+    planEntitlements?: SortOrderInput | SortOrder
+    projectManifestDigest?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     _count?: ReleaseManifestCountOrderByAggregateInput
     _avg?: ReleaseManifestAvgOrderByAggregateInput
@@ -201182,6 +201214,8 @@ export namespace Prisma {
     configDigest?: StringNullableWithAggregatesFilter<"ReleaseManifest"> | string | null
     dbMigrationPoint?: StringNullableWithAggregatesFilter<"ReleaseManifest"> | string | null
     accessPolicyVersion?: IntWithAggregatesFilter<"ReleaseManifest"> | number
+    planEntitlements?: JsonNullableWithAggregatesFilter<"ReleaseManifest">
+    projectManifestDigest?: StringNullableWithAggregatesFilter<"ReleaseManifest"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"ReleaseManifest"> | Date | string
   }
 
@@ -214730,6 +214764,8 @@ export namespace Prisma {
     configDigest?: string | null
     dbMigrationPoint?: string | null
     accessPolicyVersion?: number
+    planEntitlements?: NullableJsonNullValueInput | InputJsonValue
+    projectManifestDigest?: string | null
     createdAt?: Date | string
   }
 
@@ -214747,6 +214783,8 @@ export namespace Prisma {
     configDigest?: string | null
     dbMigrationPoint?: string | null
     accessPolicyVersion?: number
+    planEntitlements?: NullableJsonNullValueInput | InputJsonValue
+    projectManifestDigest?: string | null
     createdAt?: Date | string
   }
 
@@ -214764,6 +214802,8 @@ export namespace Prisma {
     configDigest?: NullableStringFieldUpdateOperationsInput | string | null
     dbMigrationPoint?: NullableStringFieldUpdateOperationsInput | string | null
     accessPolicyVersion?: IntFieldUpdateOperationsInput | number
+    planEntitlements?: NullableJsonNullValueInput | InputJsonValue
+    projectManifestDigest?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -214781,6 +214821,8 @@ export namespace Prisma {
     configDigest?: NullableStringFieldUpdateOperationsInput | string | null
     dbMigrationPoint?: NullableStringFieldUpdateOperationsInput | string | null
     accessPolicyVersion?: IntFieldUpdateOperationsInput | number
+    planEntitlements?: NullableJsonNullValueInput | InputJsonValue
+    projectManifestDigest?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -214798,6 +214840,8 @@ export namespace Prisma {
     configDigest?: string | null
     dbMigrationPoint?: string | null
     accessPolicyVersion?: number
+    planEntitlements?: NullableJsonNullValueInput | InputJsonValue
+    projectManifestDigest?: string | null
     createdAt?: Date | string
   }
 
@@ -214815,6 +214859,8 @@ export namespace Prisma {
     configDigest?: NullableStringFieldUpdateOperationsInput | string | null
     dbMigrationPoint?: NullableStringFieldUpdateOperationsInput | string | null
     accessPolicyVersion?: IntFieldUpdateOperationsInput | number
+    planEntitlements?: NullableJsonNullValueInput | InputJsonValue
+    projectManifestDigest?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -214832,6 +214878,8 @@ export namespace Prisma {
     configDigest?: NullableStringFieldUpdateOperationsInput | string | null
     dbMigrationPoint?: NullableStringFieldUpdateOperationsInput | string | null
     accessPolicyVersion?: IntFieldUpdateOperationsInput | number
+    planEntitlements?: NullableJsonNullValueInput | InputJsonValue
+    projectManifestDigest?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -228367,6 +228415,8 @@ export namespace Prisma {
     configDigest?: SortOrder
     dbMigrationPoint?: SortOrder
     accessPolicyVersion?: SortOrder
+    planEntitlements?: SortOrder
+    projectManifestDigest?: SortOrder
     createdAt?: SortOrder
   }
 
@@ -228389,6 +228439,7 @@ export namespace Prisma {
     configDigest?: SortOrder
     dbMigrationPoint?: SortOrder
     accessPolicyVersion?: SortOrder
+    projectManifestDigest?: SortOrder
     createdAt?: SortOrder
   }
 
@@ -228406,6 +228457,7 @@ export namespace Prisma {
     configDigest?: SortOrder
     dbMigrationPoint?: SortOrder
     accessPolicyVersion?: SortOrder
+    projectManifestDigest?: SortOrder
     createdAt?: SortOrder
   }
 

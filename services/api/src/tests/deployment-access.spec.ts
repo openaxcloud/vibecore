@@ -1,4 +1,5 @@
 import { hashPassword } from '@vibecore/auth';
+import { PLAN_ENTITLEMENTS_VERSION } from '@vibecore/billing';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 // The API tsconfig intentionally has no `~/` path alias; runtime ESM tests use package-relative imports.
@@ -18,6 +19,14 @@ import { TestApiStore } from './test-api-store.js';
 const ACCESS_SECRET = 'deployment-access-test-secret-with-at-least-32-bytes';
 const PROXY_SECRET = 'preview-proxy-test-secret';
 const PREVIEW_DOMAIN = 'preview.e-code.test';
+const RELEASE_PROJECT_MANIFEST_DIGEST = `sha256:${'1'.repeat(64)}`;
+const RELEASE_PLAN_ENTITLEMENTS = {
+  version: PLAN_ENTITLEMENTS_VERSION,
+  plan: 'starter' as const,
+  badgeRequired: true,
+  publishRegion: 'platform-default',
+  publishRegions: 'single' as const,
+};
 
 describe('deployment access cryptographic contract', () => {
   it('fails unknown persisted modes closed and binds proofs to exact policy revision', () => {
@@ -134,6 +143,10 @@ describe('deployment access API', () => {
       environment: 'preview',
       status: 'READY',
       accessPolicy: { mode: 'PUBLIC', createdByUserId: owner.id },
+      metadata: {
+        planEntitlements: RELEASE_PLAN_ENTITLEMENTS,
+        projectManifestDigest: RELEASE_PROJECT_MANIFEST_DIGEST,
+      },
     });
     await store.updateDeployment(project.id, deployment.id, {
       url: `https://s-${deployment.id}.${PREVIEW_DOMAIN}/`,
@@ -148,6 +161,8 @@ describe('deployment access API', () => {
       artifactRef: `static-deployments/${deployment.id}`,
       artifactDigest: 'a'.repeat(64),
       accessPolicyVersion: deployment.accessPolicyVersion,
+      planEntitlements: RELEASE_PLAN_ENTITLEMENTS,
+      projectManifestDigest: RELEASE_PROJECT_MANIFEST_DIGEST,
     });
 
     return { app, store, owner, outsider, project, otherProject, deployment };
@@ -339,7 +354,12 @@ describe('deployment access API', () => {
       });
       expect(invitePolicy.statusCode).toBe(200);
 
-      await store.addProjectCollaborator({ projectId: project.id, userId: member.id, roleKey: 'viewer' });
+      await store.addProjectCollaborator({
+        projectId: project.id,
+        expectedOrganizationId: organizationId,
+        userId: member.id,
+        roleKey: 'viewer',
+      });
 
       const collaboratorTicket = await app.inject({
         method: 'POST',
@@ -348,7 +368,11 @@ describe('deployment access API', () => {
       });
       expect(collaboratorTicket.statusCode).toBe(200);
 
-      await store.removeProjectCollaborator({ projectId: project.id, userId: member.id });
+      await store.removeProjectCollaborator({
+        projectId: project.id,
+        expectedOrganizationId: organizationId,
+        userId: member.id,
+      });
 
       const revokedCollaborator = await app.inject({
         method: 'POST',
@@ -376,6 +400,8 @@ describe('deployment access API', () => {
           artifactRef: `static-deployments/${deployment.id}`,
           artifactDigest: 'b'.repeat(64),
           accessPolicyVersion: deployment.accessPolicyVersion + 1,
+          planEntitlements: RELEASE_PLAN_ENTITLEMENTS,
+          projectManifestDigest: RELEASE_PROJECT_MANIFEST_DIGEST,
         }),
       ).rejects.toMatchObject({ code: 'RELEASE_ACCESS_POLICY_INVALID' });
     } finally {

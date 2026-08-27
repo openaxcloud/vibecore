@@ -29,7 +29,12 @@ async function setup(options: { withWorkspace?: boolean } = {}) {
 
   let workspace;
   if (options.withWorkspace) {
-    workspace = await store.createWorkspace({ projectId: project.id, name: 'ws', runtimeMode: 'remote' });
+    workspace = await store.createWorkspace({
+      projectId: project.id,
+      expectedOrganizationId: org.id,
+      name: 'ws',
+      runtimeMode: 'remote',
+    });
   }
 
   return { app, store, token: 'iskills-token', project, workspace };

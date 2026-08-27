@@ -15,6 +15,73 @@ import type { EmailMessage, EmailProvider } from '../email.js';
 import type { GitProvider, ProjectFile, ProjectStorage, StoredArchive } from '../project-storage.js';
 import { TestApiStore } from './test-api-store.js';
 
+const CANONICAL_AI_INTERNAL_SECRET = 'api-spec-canonical-ai-secret-2026-08-27';
+const previousCanonicalAiInternalSecret = process.env.INTERNAL_API_SHARED_SECRET;
+
+function canonicalAiHeaders(token: string) {
+  process.env.INTERNAL_API_SHARED_SECRET = CANONICAL_AI_INTERNAL_SECRET;
+  return {
+    authorization: `Bearer ${token}`,
+    'x-vibecore-internal-secret': CANONICAL_AI_INTERNAL_SECRET,
+  };
+}
+
+function canonicalQuotaPayload(idempotencyKey: string, overrides: Record<string, unknown> = {}) {
+  return {
+    idempotencyKey,
+    requestHash: createHash('sha256').update(idempotencyKey).digest('hex'),
+    estimatedInputTokens: 0,
+    estimatedOutputTokens: 1,
+    requestedParallelAgents: 1,
+    ...overrides,
+  };
+}
+
+async function startCanonicalAiTestExecution(input: {
+  app: Awaited<ReturnType<typeof buildTestApiApp>>;
+  projectId: string;
+  token: string;
+  requestId: string;
+  estimatedInputTokens?: number;
+  estimatedOutputTokens?: number;
+}) {
+  const quota = await input.app.inject({
+    method: 'POST',
+    url: `/projects/${input.projectId}/ai/check-quota`,
+    headers: canonicalAiHeaders(input.token),
+    payload: canonicalQuotaPayload(input.requestId, {
+      estimatedInputTokens: input.estimatedInputTokens ?? 0,
+      estimatedOutputTokens: input.estimatedOutputTokens ?? 1,
+    }),
+  });
+  expect(quota.statusCode, quota.body).toBe(200);
+  const reservationId = quota.json().userSpendReservationId as string;
+  const claim = await input.app.inject({
+    method: 'POST',
+    url: `/projects/${input.projectId}/ai/execution-claim`,
+    headers: canonicalAiHeaders(input.token),
+    payload: {
+      userSpendReservationId: reservationId,
+      requestId: input.requestId,
+      claimOwnerId: `${input.requestId}-owner`,
+    },
+  });
+  expect(claim.statusCode, claim.body).toBe(200);
+  const executionToken = claim.json().executionToken as string;
+  const started = await input.app.inject({
+    method: 'POST',
+    url: `/projects/${input.projectId}/ai/provider-started`,
+    headers: canonicalAiHeaders(input.token),
+    payload: { userSpendReservationId: reservationId, requestId: input.requestId, executionToken },
+  });
+  expect(started.statusCode, started.body).toBe(200);
+  return { reservationId, executionToken };
+}
+
+afterEach(() => {
+  restoreEnv('INTERNAL_API_SHARED_SECRET', previousCanonicalAiInternalSecret);
+});
+
 // Mirror runtimeWorkspaceId(projectId, userId) from the API: runtime endpoints
 // resolve a bare project id to this deterministic per-user workspace id, so a
 // test that drives an endpoint with a project id must expect the resolved id.
@@ -3829,6 +3896,8 @@ describe('SaaS API', () => {
     const member = await register(app, { email: 'collab-member@example.com' });
     const viewer = await register(app, { email: 'collab-viewer@example.com' });
     const outsider = await register(app, { email: 'collab-outsider@example.com' });
+    await store.upsertBillingPlan({ key: 'team', name: 'Legacy Team', monthlyCents: 9_900, limits: {} });
+    await store.upsertSubscription({ organizationId: owner.organization.id, planKey: 'team', status: 'ACTIVE' });
     await store.addMember({ organizationId: owner.organization.id, userId: member.user.id, roleKey: 'member' });
     await store.addMember({ organizationId: owner.organization.id, userId: viewer.user.id, roleKey: 'viewer' });
 
@@ -4139,7 +4208,7 @@ describe('SaaS API', () => {
       headers: { authorization: `Bearer ${auth.token}` },
       payload: { name: 'Zip Project', zipBase64 },
     });
-    expect(imported.statusCode).toBe(201);
+    expect(imported.statusCode, imported.body).toBe(201);
     expect(imported.json().files.map((file: { path: string }) => file.path)).toContain('src/index.ts');
 
     const exported = await app.inject({
@@ -4185,6 +4254,7 @@ describe('SaaS API', () => {
     const projectId = project.json().project.id as string;
     await store.upsertProjectIdeState({
       projectId,
+      expectedOrganizationId: auth.organization.id,
       updatedByUserId: auth.user.id,
       state: {
         chat: {
@@ -4634,11 +4704,13 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     await app.close();
   });
 
-  it('deploys projects through static, Vercel and Cloud Run providers with redacted logs', async () => {
+  it('deploys through the authoritative static edge and refuses providers without badge proof', async () => {
     const store = new TestApiStore();
     const tempStaticRoot = await mkdtemp(join(tmpdir(), 'vibecore-static-deploy-'));
     const previous = process.env.STATIC_DEPLOY_STORAGE_DIR;
+    const previousPreviewProxySecret = process.env.PREVIEW_PROXY_SHARED_SECRET;
     process.env.STATIC_DEPLOY_STORAGE_DIR = tempStaticRoot;
+    process.env.PREVIEW_PROXY_SHARED_SECRET = 'static-edge-proof';
 
     let fakeOutputDir: string | undefined;
 
@@ -4705,15 +4777,27 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
 
     const deploymentId = staticDeploy.json().deployment.id as string;
 
+    const rawBypass = await app.inject({
+      method: 'GET',
+      url: `/static-deployments/${deploymentId}/`,
+    });
+    expect(rawBypass.statusCode).toBe(401);
+    expect(rawBypass.json()).toMatchObject({ code: 'PREVIEW_AUTH_REQUIRED' });
+
+    const edgeHeaders = { authorization: 'Bearer static-edge-proof' };
     const indexResponse = await app.inject({
       method: 'GET',
       url: `/static-deployments/${deploymentId}/`,
+      headers: edgeHeaders,
     });
     expect(indexResponse.statusCode).toBe(200);
     expect(indexResponse.headers['content-type']).toContain('text/html');
     expect(indexResponse.body).toContain('Hello Vibecore');
     expect(indexResponse.body).toContain(`/static-deployments/${deploymentId}/assets/main.css`);
     expect(indexResponse.body).toContain(`/static-deployments/${deploymentId}/assets/main.js`);
+    expect(indexResponse.headers['x-vibecore-published-badge-required']).toBe('1');
+    expect(indexResponse.headers['x-vibecore-plan-entitlements-version']).toBeTruthy();
+    expect(indexResponse.body).not.toContain('data-vibecore-published-badge');
 
     /*
      * Isolation stays intact: the document is a UNIQUE opaque origin (sandbox
@@ -4736,6 +4820,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     const cssResponse = await app.inject({
       method: 'GET',
       url: `/static-deployments/${deploymentId}/assets/main.css`,
+      headers: edgeHeaders,
     });
     expect(cssResponse.statusCode).toBe(200);
     expect(cssResponse.headers['content-type']).toContain('text/css');
@@ -4747,6 +4832,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     const spaResponse = await app.inject({
       method: 'GET',
       url: `/static-deployments/${deploymentId}/nested/route/that/does/not/exist`,
+      headers: edgeHeaders,
     });
     expect(spaResponse.statusCode).toBe(200);
     expect(spaResponse.headers['content-type']).toContain('text/html');
@@ -4754,6 +4840,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     const traversal = await app.inject({
       method: 'GET',
       url: `/static-deployments/${deploymentId}/..%2F..%2F..%2Fetc%2Fpasswd`,
+      headers: edgeHeaders,
     });
     expect([403, 404]).toContain(traversal.statusCode);
 
@@ -4769,6 +4856,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     const symlinkEscape = await app.inject({
       method: 'GET',
       url: `/static-deployments/${deploymentId}/leak.txt`,
+      headers: edgeHeaders,
     });
     expect([403, 404]).toContain(symlinkEscape.statusCode);
     expect(symlinkEscape.body).not.toContain('TOP-SECRET-SYMLINK-LEAK');
@@ -4777,47 +4865,47 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
       vercel: process.env.VERCEL_DEPLOY_HOOK_URL,
       cloudRun: process.env.CLOUD_RUN_BUILD_TRIGGER_URL,
       gcpToken: process.env.GCP_OAUTH_TOKEN,
+      cloudRunRegion: process.env.CLOUD_RUN_REGION,
     };
 
     try {
       process.env.VERCEL_DEPLOY_HOOK_URL = 'https://deploy-hooks.test/vercel';
       process.env.CLOUD_RUN_BUILD_TRIGGER_URL = 'https://deploy-hooks.test/cloud-run';
       process.env.GCP_OAUTH_TOKEN = 'ya29.test-token';
+      process.env.CLOUD_RUN_REGION = 'us-central1';
 
-      vi.stubGlobal(
-        'fetch',
-        vi.fn(async (input: Parameters<typeof fetch>[0]) => {
-          const url = String(input);
+      const deployHookFetch = vi.fn(async (input: Parameters<typeof fetch>[0]) => {
+        const url = String(input);
 
-          if (url === 'https://deploy-hooks.test/vercel') {
-            return new Response(
-              JSON.stringify({
-                job: {
-                  id: 'job_vercel_1',
-                  url: 'https://deployable-app.vercel.vibecore.local',
+        if (url === 'https://deploy-hooks.test/vercel') {
+          return new Response(
+            JSON.stringify({
+              job: {
+                id: 'job_vercel_1',
+                url: 'https://deployable-app.vercel.vibecore.local',
+              },
+            }),
+            { status: 201, headers: { 'content-type': 'application/json' } },
+          );
+        }
+
+        if (url === 'https://deploy-hooks.test/cloud-run') {
+          return new Response(
+            JSON.stringify({
+              metadata: {
+                build: {
+                  id: 'build_cloud_run_1',
+                  results: { images: [{ name: 'gcr.io/vibecore/deployable-app' }] },
                 },
-              }),
-              { status: 201, headers: { 'content-type': 'application/json' } },
-            );
-          }
+              },
+            }),
+            { status: 200, headers: { 'content-type': 'application/json' } },
+          );
+        }
 
-          if (url === 'https://deploy-hooks.test/cloud-run') {
-            return new Response(
-              JSON.stringify({
-                metadata: {
-                  build: {
-                    id: 'build_cloud_run_1',
-                    results: { images: [{ name: 'gcr.io/vibecore/deployable-app' }] },
-                  },
-                },
-              }),
-              { status: 200, headers: { 'content-type': 'application/json' } },
-            );
-          }
-
-          throw new Error(`Unexpected deploy hook request: ${url}`);
-        }),
-      );
+        throw new Error(`Unexpected deploy hook request: ${url}`);
+      });
+      vi.stubGlobal('fetch', deployHookFetch);
 
       const vercel = await app.inject({
         method: 'POST',
@@ -4830,8 +4918,8 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
           outputDirectory: 'dist',
         },
       });
-      expect(vercel.statusCode).toBe(201);
-      expect(vercel.json().deployment.productionUrl).toContain('vercel.vibecore.local');
+      expect(vercel.statusCode).toBe(503);
+      expect(vercel.json()).toMatchObject({ code: 'PUBLISH_PROVIDER_PLAN_EDGE_REQUIRED' });
 
       const cloudRun = await app.inject({
         method: 'POST',
@@ -4845,12 +4933,14 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
           injectSecrets: ['DATABASE_URL'],
         },
       });
-      expect(cloudRun.statusCode).toBe(201);
-      expect(JSON.stringify(cloudRun.json().deployment.logs)).toContain('pushed image');
+      expect(cloudRun.statusCode).toBe(503);
+      expect(cloudRun.json()).toMatchObject({ code: 'PUBLISH_PROVIDER_PLAN_EDGE_REQUIRED' });
+      expect(deployHookFetch).not.toHaveBeenCalled();
     } finally {
       restoreEnv('VERCEL_DEPLOY_HOOK_URL', previousDeployHooks.vercel);
       restoreEnv('CLOUD_RUN_BUILD_TRIGGER_URL', previousDeployHooks.cloudRun);
       restoreEnv('GCP_OAUTH_TOKEN', previousDeployHooks.gcpToken);
+      restoreEnv('CLOUD_RUN_REGION', previousDeployHooks.cloudRunRegion);
       vi.unstubAllGlobals();
     }
 
@@ -4868,6 +4958,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     } else {
       process.env.STATIC_DEPLOY_STORAGE_DIR = previous;
     }
+    restoreEnv('PREVIEW_PROXY_SHARED_SECRET', previousPreviewProxySecret);
 
     await app.close();
     await rm(tempStaticRoot, { recursive: true, force: true });
@@ -5086,7 +5177,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
       headers: { authorization: `Bearer ${auth.token}` },
       payload: { repositoryUrl: 'https://github.com/acme/app', branch: 'main' },
     });
-    expect(imported.statusCode).toBe(201);
+    expect(imported.statusCode, imported.body).toBe(201);
 
     const projectId = imported.json().project.id as string;
 
@@ -6769,6 +6860,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
   });
 
   it('records chat usage in the AI cost ledger and the usage counters', async () => {
+    process.env.INTERNAL_API_SHARED_SECRET = CANONICAL_AI_INTERNAL_SECRET;
     const store = new TestApiStore();
     const app = await buildTestApiApp({ store });
     const auth = await register(app, { email: 'usage@example.com', organizationName: 'Usage Org' });
@@ -6776,21 +6868,44 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     const project = await app.inject({
       method: 'POST',
       url: `/orgs/${auth.organization.id}/projects`,
-      headers: { authorization: `Bearer ${auth.token}` },
+      headers: {
+        authorization: `Bearer ${auth.token}`,
+        'x-vibecore-internal-secret': CANONICAL_AI_INTERNAL_SECRET,
+      },
       payload: { name: 'Usage Project' },
     });
 
     const projectId = project.json().project.id as string;
+    const canonical = await startCanonicalAiTestExecution({
+      app,
+      projectId,
+      token: auth.token,
+      requestId: 'api-record-known-model',
+      estimatedInputTokens: 10_000,
+      estimatedOutputTokens: 2_000,
+    });
 
     const record = await app.inject({
       method: 'POST',
       url: `/projects/${projectId}/ai/record-usage`,
-      headers: { authorization: `Bearer ${auth.token}` },
+      headers: {
+        authorization: `Bearer ${auth.token}`,
+        'x-vibecore-internal-secret': CANONICAL_AI_INTERNAL_SECRET,
+      },
       payload: {
-        provider: 'anthropic',
-        model: 'claude-sonnet-4-6',
-        inputTokens: 10_000,
-        outputTokens: 2_000,
+        requestId: 'api-record-known-model',
+        executionToken: canonical.executionToken,
+        userSpendReservationId: canonical.reservationId,
+        calls: [
+          {
+            callId: 'main',
+            kind: 'main',
+            provider: 'anthropic',
+            model: 'claude-sonnet-4-6',
+            inputTokens: 10_000,
+            outputTokens: 2_000,
+          },
+        ],
         finishReason: 'stop',
         source: 'bolt-chat',
       },
@@ -6813,12 +6928,13 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     expect(costs[0].inputTokens).toBe(10_000);
     expect(costs[0].outputTokens).toBe(2_000);
     expect(costs[0].costCents).toBe(6);
-    expect(costs[0].reason).toBe('chat.completion.bolt-chat');
+    expect(costs[0].reason).toBe('chat.completion.bolt-chat.main.main');
 
     await app.close();
   });
 
-  it('returns matched:false and 0¢ when the model is not in the pricing catalog', async () => {
+  it('fails closed without a receipt when the model is not in the pricing catalog', async () => {
+    process.env.INTERNAL_API_SHARED_SECRET = CANONICAL_AI_INTERNAL_SECRET;
     const store = new TestApiStore();
     const app = await buildTestApiApp({ store });
     const auth = await register(app, { email: 'unknown-model@example.com', organizationName: 'Unknown Model Org' });
@@ -6826,39 +6942,54 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     const project = await app.inject({
       method: 'POST',
       url: `/orgs/${auth.organization.id}/projects`,
-      headers: { authorization: `Bearer ${auth.token}` },
+      headers: {
+        authorization: `Bearer ${auth.token}`,
+        'x-vibecore-internal-secret': CANONICAL_AI_INTERNAL_SECRET,
+      },
       payload: { name: 'Unknown Model Project' },
     });
 
     const projectId = project.json().project.id as string;
+    const canonical = await startCanonicalAiTestExecution({
+      app,
+      projectId,
+      token: auth.token,
+      requestId: 'api-record-unknown-model',
+      estimatedInputTokens: 1_000,
+      estimatedOutputTokens: 1_000,
+    });
 
     const record = await app.inject({
       method: 'POST',
       url: `/projects/${projectId}/ai/record-usage`,
-      headers: { authorization: `Bearer ${auth.token}` },
+      headers: {
+        authorization: `Bearer ${auth.token}`,
+        'x-vibecore-internal-secret': CANONICAL_AI_INTERNAL_SECRET,
+      },
       payload: {
-        provider: 'anthropic',
-        model: 'claude-future-2030',
-        inputTokens: 1000,
-        outputTokens: 1000,
+        requestId: 'api-record-unknown-model',
+        executionToken: canonical.executionToken,
+        userSpendReservationId: canonical.reservationId,
+        calls: [
+          {
+            callId: 'main',
+            kind: 'main',
+            provider: 'anthropic',
+            model: 'claude-future-2030',
+            inputTokens: 1000,
+            outputTokens: 1000,
+          },
+        ],
       },
     });
 
-    expect(record.statusCode).toBe(200);
+    expect(record.statusCode).toBe(503);
 
     const body = record.json();
-    expect(body.recorded).toBe(true);
-    expect(body.modelMatched).toBe(false);
-    expect(body.costCents).toBe(0);
+    expect(body.code).toBe('CANONICAL_AI_USAGE_UNPRICED');
 
-    /*
-     * The cost row is still written (with cents=0) so we can spot
-     * "we silently zero-billed N chats" in the ledger later.
-     */
     const costs = await store.listAiCosts(auth.organization.id);
-    expect(costs).toHaveLength(1);
-    expect(costs[0].model).toBe('claude-future-2030');
-    expect(costs[0].costCents).toBe(0);
+    expect(costs).toHaveLength(0);
 
     await app.close();
   });
@@ -6880,8 +7011,11 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     const check = await app.inject({
       method: 'POST',
       url: `/projects/${projectId}/ai/check-quota`,
-      headers: { authorization: `Bearer ${auth.token}` },
-      payload: { estimatedInputTokens: 5_000, model: 'claude-sonnet-4-6' },
+      headers: canonicalAiHeaders(auth.token),
+      payload: canonicalQuotaPayload('api-check-quota-headroom', {
+        estimatedInputTokens: 5_000,
+        model: 'claude-sonnet-4-6',
+      }),
     });
 
     expect(check.statusCode).toBe(200);
@@ -6894,7 +7028,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
 
     // free plan is managed-mode → BYOK disallowed
     expect(body.byok.allowed).toBe(false);
-    expect(body.byok.plan).toBe('free');
+    expect(body.byok.plan).toBe('starter');
     expect(body.byok.reason).toBe('managed-mode-plan');
 
     await app.close();
@@ -6923,15 +7057,15 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     const check = await app.inject({
       method: 'POST',
       url: `/projects/${projectId}/ai/check-quota`,
-      headers: { authorization: `Bearer ${auth.token}` },
-      payload: { estimatedInputTokens: 5_000 },
+      headers: canonicalAiHeaders(auth.token),
+      payload: canonicalQuotaPayload('api-check-quota-byok', { estimatedInputTokens: 5_000 }),
     });
 
     expect(check.statusCode).toBe(200);
 
     const body = check.json();
     expect(body.byok.allowed).toBe(true);
-    expect(body.byok.plan).toBe('team');
+    expect(body.byok.plan).toBe('pro');
     expect(body.byok.reason).toBe('plan-allows-byok');
 
     await app.close();
@@ -6963,8 +7097,8 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
       const check = await app.inject({
         method: 'POST',
         url: `/projects/${projectId}/ai/check-quota`,
-        headers: { authorization: `Bearer ${auth.token}` },
-        payload: { estimatedInputTokens: 5_000 },
+        headers: canonicalAiHeaders(auth.token),
+        payload: canonicalQuotaPayload('api-check-quota-forced-managed', { estimatedInputTokens: 5_000 }),
       });
 
       expect(check.statusCode).toBe(200);
@@ -6999,8 +7133,11 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     const blocked = await app.inject({
       method: 'POST',
       url: `/projects/${projectId}/ai/check-quota`,
-      headers: { authorization: `Bearer ${auth.token}` },
-      payload: { estimatedInputTokens: 200_000, model: 'claude-sonnet-4-6' },
+      headers: canonicalAiHeaders(auth.token),
+      payload: canonicalQuotaPayload('api-check-quota-over-limit', {
+        estimatedInputTokens: 200_000,
+        model: 'claude-sonnet-4-6',
+      }),
     });
 
     expect(blocked.statusCode).toBe(429);

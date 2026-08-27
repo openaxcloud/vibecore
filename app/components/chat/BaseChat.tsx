@@ -18044,8 +18044,13 @@ const CONSENSUS_LANE_LABEL: Record<string, string> = {
   architect: 'chat.copy.architect_16639cf7',
   frontend: 'chat.copy.frontend_152d1cf2',
   backend: 'chat.copy.backend_e758ca64',
+  database: 'chat.copy.databaseLane_65830b36',
+  security: 'chat.copy.securityLane_cbdf9862',
   devops: 'chat.copy.devops_7f3f11f5',
+  performance: 'chat.copy.performanceLane_65f03aba',
+  accessibility: 'chat.copy.accessibilityLane_f062cddb',
   qa: 'chat.copy.qa_d851aefa',
+  reviewer: 'chat.copy.reviewerLane_704bd6aa',
 };
 
 function consensusLaneLabel(t: TFunction, roleId: string): string {

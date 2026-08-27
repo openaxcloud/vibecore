@@ -159,11 +159,18 @@ runDbTests('durable import staging — real PostgreSQL multi-client CAS', () => 
         operationToken: winnerToken,
         targetProjectId: project.id,
         actualCredits: 1,
+        projectIdeState: {
+          files: { entries: [{ path: 'src/index.ts', content: 'export const ready = true;' }] },
+        },
       });
 
       expect(finalized?.job.state).toBe('COMMITTED');
       expect(finalized?.reservation).toMatchObject({ state: 'SETTLED', debitedCredits: 1 });
       expect((await prismaA.project.findUniqueOrThrow({ where: { id: project.id } })).deletedAt).toBeNull();
+      expect(await prismaA.projectIdeState.findUniqueOrThrow({ where: { projectId: project.id } })).toMatchObject({
+        state: { files: { entries: [{ path: 'src/index.ts', content: 'export const ready = true;' }] } },
+        version: 1,
+      });
       expect(await prismaA.project.count({ where: { organizationId: organization.id } })).toBe(1);
       expect(await prismaA.importCreditReservation.findUnique({ where: { importJobId: job.id } })).toBeNull();
       expect(

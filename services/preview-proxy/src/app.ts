@@ -1,4 +1,4 @@
-import { createHmac, timingSafeEqual } from 'node:crypto';
+import { createCipheriv, createDecipheriv, createHash, createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 import { Readable } from 'node:stream';
 import Fastify, { type FastifyInstance, type FastifyReply, type FastifyRequest } from 'fastify';
 
@@ -31,6 +31,49 @@ import { REPORTER_SCRIPT } from './reporter-script.js';
  */
 const MAX_INJECT_BYTES = 4 * 1024 * 1024;
 const DEPLOYMENT_ACCESS_CONFIG_ERROR = 'PREVIEW_DEPLOYMENT_ACCESS_CONFIG_REQUIRED';
+const PUBLISHED_PREVIEW_CONFIG_ERROR =
+  'Published preview routing requires API_BASE_URL and PREVIEW_PROXY_SHARED_SECRET in production.';
+const PUBLISHED_BADGE_MARKER = 'data-vibecore-published-badge';
+const RAW_SERVER_FRAME_PREFIX = 'rd';
+const RAW_STATIC_FRAME_PREFIX = 'rs';
+
+export function publishedBadgeMarkup(label: string, destination = 'https://e-code.ai'): string {
+  const escape = (value: string) =>
+    value.replace(/[&<>"']/g, (character) => {
+      const escaped: Record<string, string> = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;',
+      };
+      return escaped[character] ?? character;
+    });
+  const safeLabel = escape(label);
+  const safeDestination = escape(destination);
+
+  return `<style ${PUBLISHED_BADGE_MARKER}>[${PUBLISHED_BADGE_MARKER}]{position:fixed;right:max(12px,env(safe-area-inset-right));bottom:max(12px,env(safe-area-inset-bottom));z-index:2147483647;display:inline-flex;align-items:center;justify-content:center;min-height:40px;max-width:calc(100vw - 24px);box-sizing:border-box;padding:9px 13px;border:1px solid rgba(255,255,255,.18);border-radius:10px;background:#15171c;color:#fff!important;font:600 12px/1.2 ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;text-decoration:none!important;letter-spacing:.01em;box-shadow:0 8px 28px rgba(0,0,0,.28);white-space:nowrap}[${PUBLISHED_BADGE_MARKER}]:focus-visible{outline:3px solid #f26207;outline-offset:3px}@media(max-width:480px){[${PUBLISHED_BADGE_MARKER}]{right:max(8px,env(safe-area-inset-right));bottom:max(8px,env(safe-area-inset-bottom));min-height:44px;max-width:calc(100vw - 16px);padding:10px 12px;white-space:normal;text-align:center}}</style><a ${PUBLISHED_BADGE_MARKER} href="${safeDestination}" target="_blank" rel="noopener noreferrer" aria-label="${safeLabel}">${safeLabel}</a>`;
+}
+
+function escapePublishedFrameAttribute(value: string): string {
+  return value
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
+function publishedBadgeFrameHtml(request: FastifyRequest, rawApplicationUrl: string): string {
+  const copy = getPreviewProxyCopy(request.headers);
+  const frameTitle = escapePublishedFrameAttribute(copy.publishedFrameTitle);
+  const loading = escapePublishedFrameAttribute(copy.publishedFrameLoading);
+  const delayed = escapePublishedFrameAttribute(copy.publishedFrameError);
+  const retry = escapePublishedFrameAttribute(copy.publishedFrameRetry);
+  const source = escapePublishedFrameAttribute(rawApplicationUrl);
+
+  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>${frameTitle}</title><style>html,body{width:100%;height:100%;margin:0;overflow:hidden;background:#0d1117;color:#f7f7f8;font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.vc-frame{position:fixed;inset:0;width:100%;height:100%;border:0;background:#fff}.vc-state{position:fixed;inset:0;z-index:1;display:grid;place-items:center;padding:24px;background:#0d1117}.vc-state[hidden]{display:none}.vc-card{width:min(420px,calc(100vw - 32px));text-align:center}.vc-skeleton{height:10px;margin:0 auto 16px;border-radius:999px;background:linear-gradient(90deg,#22262e 25%,#343945 50%,#22262e 75%);background-size:200% 100%;animation:vc-shimmer 1.2s linear infinite}.vc-skeleton:first-child{width:58%}.vc-skeleton:nth-child(2){width:82%}.vc-message{margin:18px 0 0;font-size:14px;line-height:1.5;color:#b7bdc8}.vc-retry{min-height:44px;margin-top:16px;padding:10px 16px;border:1px solid #545b68;border-radius:9px;background:#1d2129;color:#fff;font:600 14px/1 ui-sans-serif,system-ui;cursor:pointer}.vc-retry:focus-visible{outline:3px solid #f26207;outline-offset:3px}@keyframes vc-shimmer{to{background-position:-200% 0}}@media(max-width:600px){.vc-state{padding:16px}.vc-card{width:100%}}</style></head><body><div class="vc-state" id="vc-loading" role="status" aria-live="polite"><div class="vc-card"><div class="vc-skeleton"></div><div class="vc-skeleton"></div><p class="vc-message">${loading}</p></div></div><div class="vc-state" id="vc-delayed" role="alert" hidden><div class="vc-card"><p class="vc-message">${delayed}</p><button class="vc-retry" id="vc-retry" type="button">${retry}</button></div></div><iframe class="vc-frame" id="vc-app" src="${source}" title="${frameTitle}" sandbox="allow-downloads allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox allow-scripts allow-same-origin" referrerpolicy="no-referrer"></iframe>${publishedBadgeMarkup(copy.PUBLISH_BADGE_LABEL)}<script>(()=>{const f=document.getElementById('vc-app');const l=document.getElementById('vc-loading');const d=document.getElementById('vc-delayed');const r=document.getElementById('vc-retry');let t=setTimeout(()=>{l.hidden=true;d.hidden=false},15000);f.addEventListener('load',()=>{clearTimeout(t);l.hidden=true;d.hidden=true});r.addEventListener('click',()=>{d.hidden=true;l.hidden=false;t=setTimeout(()=>{l.hidden=true;d.hidden=false},15000);f.src=f.src})})()</script></body></html>`;
+}
 
 /*
  * Auto-refreshing holding page served for the iframe's top-level navigation when
@@ -56,6 +99,10 @@ function wantsHtmlDocument(request: FastifyRequest): boolean {
 
   if (dest === 'document' || dest === 'iframe' || dest === 'frame') {
     return true;
+  }
+
+  if (dest) {
+    return false;
   }
 
   return String(request.headers.accept ?? '').includes('text/html');
@@ -363,6 +410,34 @@ export function parseStaticDeployHost(
   return match ? { deploymentId: match[1] } : null;
 }
 
+export type PublishedBadgeFrameKind = 'server' | 'static';
+
+/**
+ * Raw application origin used only inside the platform-owned badge shell.
+ * `rd-*`/`rs-*` are separate origins, so application JavaScript cannot mutate
+ * or remove the parent shell's plan badge.
+ */
+export function parsePublishedBadgeFrameHost(
+  hostHeader: string | undefined,
+  previewDomain: string | undefined,
+): { deploymentId: string; kind: PublishedBadgeFrameKind } | null {
+  if (!hostHeader || !previewDomain) {
+    return null;
+  }
+  const host = hostHeader.split(':')[0].trim().toLowerCase();
+  const normalizedDomain = previewDomain
+    .trim()
+    .toLowerCase()
+    .replace(/^\.+|\.+$/g, '');
+  const suffix = `.${normalizedDomain}`;
+  if (!normalizedDomain || !host.endsWith(suffix)) {
+    return null;
+  }
+  const label = host.slice(0, -suffix.length);
+  const match = /^(rd|rs)-([a-z0-9]{6,})$/.exec(label);
+  return match ? { kind: match[1] === 'rd' ? 'server' : 'static', deploymentId: match[2]! } : null;
+}
+
 /*
  * Build the in-cluster upstream base URL for a server deployment from the
  * template (default: the workspace-manager's `app-<id>` Service on port 80).
@@ -391,6 +466,111 @@ const DEFAULT_SERVER_DEPLOY_UPSTREAM_TEMPLATE = 'http://app-{deploymentId}.works
 
 function base64url(input: Buffer | string): string {
   return Buffer.from(input).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+const PUBLISHED_FRAME_TOKEN_PARAMETER = '__vibecore_badge_frame';
+
+function publishedFrameCookieName(kind: PublishedBadgeFrameKind, deploymentId: string): string {
+  return `vc_badge_${kind === 'server' ? 'd' : 's'}_${deploymentId}`;
+}
+
+type PublishedFrameAccessMode = Extract<DeploymentAccessVerdict, { decision: 'allow' }>['mode'];
+
+type PublishedFrameClaims = {
+  expiresAtMs: number;
+  accessMode: PublishedFrameAccessMode;
+  accessProof?: string;
+};
+
+function publishedFrameEncryptionKey(secret: string): Buffer {
+  return createHash('sha256').update('vibecore.published-badge-frame.v2\0').update(secret).digest();
+}
+
+function signPublishedFrameToken(input: {
+  secret: string;
+  kind: PublishedBadgeFrameKind;
+  deploymentId: string;
+  expiresAtMs: number;
+  accessMode: PublishedFrameAccessMode;
+  accessProof?: string;
+}): string {
+  const iv = randomBytes(12);
+  const cipher = createCipheriv('aes-256-gcm', publishedFrameEncryptionKey(input.secret), iv);
+  const aad = Buffer.from(`vibecore.published-badge-frame.v2\0${input.kind}\0${input.deploymentId}`);
+  cipher.setAAD(aad);
+  const payload = Buffer.from(
+    JSON.stringify({
+      version: 2,
+      kind: input.kind,
+      deploymentId: input.deploymentId,
+      expiresAtMs: Math.floor(input.expiresAtMs),
+      accessMode: input.accessMode,
+      ...(input.accessProof ? { accessProof: input.accessProof } : {}),
+    }),
+  );
+  const ciphertext = Buffer.concat([cipher.update(payload), cipher.final()]);
+  const authenticationTag = cipher.getAuthTag();
+
+  return `v2.${base64url(iv)}.${base64url(ciphertext)}.${base64url(authenticationTag)}`;
+}
+
+function verifyPublishedFrameToken(input: {
+  token: string | undefined;
+  secret: string | undefined;
+  kind: PublishedBadgeFrameKind;
+  deploymentId: string;
+  nowMs?: number;
+}): PublishedFrameClaims | undefined {
+  if (!input.token || !input.secret || input.token.length > 4096) {
+    return undefined;
+  }
+  const parts = input.token.split('.');
+  if (parts.length !== 4 || parts[0] !== 'v2') {
+    return undefined;
+  }
+  try {
+    const iv = Buffer.from(parts[1]!, 'base64url');
+    const ciphertext = Buffer.from(parts[2]!, 'base64url');
+    const authenticationTag = Buffer.from(parts[3]!, 'base64url');
+    if (iv.length !== 12 || authenticationTag.length !== 16 || ciphertext.length < 1 || ciphertext.length > 3_072) {
+      return undefined;
+    }
+    const decipher = createDecipheriv('aes-256-gcm', publishedFrameEncryptionKey(input.secret), iv);
+    decipher.setAAD(Buffer.from(`vibecore.published-badge-frame.v2\0${input.kind}\0${input.deploymentId}`));
+    decipher.setAuthTag(authenticationTag);
+    const decoded = JSON.parse(Buffer.concat([decipher.update(ciphertext), decipher.final()]).toString('utf8')) as {
+      version?: unknown;
+      kind?: unknown;
+      deploymentId?: unknown;
+      expiresAtMs?: unknown;
+      accessMode?: unknown;
+      accessProof?: unknown;
+    };
+    const expiresAtMs = decoded.expiresAtMs;
+    const accessMode = decoded.accessMode;
+    const accessProof = decoded.accessProof;
+    if (
+      decoded.version !== 2 ||
+      decoded.kind !== input.kind ||
+      decoded.deploymentId !== input.deploymentId ||
+      !Number.isSafeInteger(expiresAtMs) ||
+      Number(expiresAtMs) <= (input.nowMs ?? Date.now()) ||
+      !['PUBLIC', 'PASSWORD_PROTECTED', 'WORKSPACE_ONLY', 'INVITE_ONLY'].includes(String(accessMode)) ||
+      (accessProof !== undefined &&
+        (typeof accessProof !== 'string' || accessProof.length < 1 || accessProof.length > 2048)) ||
+      (accessMode === 'PUBLIC' ? accessProof !== undefined : typeof accessProof !== 'string')
+    ) {
+      return undefined;
+    }
+
+    return {
+      expiresAtMs: Number(expiresAtMs),
+      accessMode: accessMode as PublishedFrameAccessMode,
+      ...(typeof accessProof === 'string' ? { accessProof } : {}),
+    };
+  } catch {
+    return undefined;
+  }
 }
 
 /*
@@ -495,6 +675,13 @@ export function sanitizePreviewFramingHeader(name: string, value: string): strin
   return kept.length > 0 ? kept.join('; ') : null;
 }
 
+/** Preserve the platform's raw-frame proof when the application also sets cookies. */
+function appendReplySetCookie(reply: FastifyReply, value: string): void {
+  const existing = reply.getHeader('set-cookie');
+  const current = Array.isArray(existing) ? existing.map(String) : existing === undefined ? [] : [String(existing)];
+  reply.header('set-cookie', [...current, value]);
+}
+
 /**
  * Pull a single cookie value out of a raw Cookie header. Returns undefined when
  * the header is absent or the named cookie is not present. Tolerant of the
@@ -595,6 +782,140 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
       ].filter((value): value is string => Boolean(value)),
     });
   }
+
+  if (isProduction && previewDomain && (!apiBaseUrl || !proxySharedSecret)) {
+    throw new Error(PUBLISHED_PREVIEW_CONFIG_ERROR);
+  }
+
+  type AllowedDeploymentAccess = Extract<DeploymentAccessVerdict, { decision: 'allow' }>;
+
+  const rawPublishedFrameUrl = (
+    request: FastifyRequest,
+    kind: PublishedBadgeFrameKind,
+    deploymentId: string,
+    access: AllowedDeploymentAccess,
+  ): { url: string; origin: string } | undefined => {
+    if (!previewDomain || !proxySharedSecret) {
+      return undefined;
+    }
+    const domain = previewDomain
+      .trim()
+      .toLowerCase()
+      .replace(/^\.+|\.+$/g, '');
+    if (!/^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)*[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(domain)) {
+      return undefined;
+    }
+    const label = `${kind === 'server' ? RAW_SERVER_FRAME_PREFIX : RAW_STATIC_FRAME_PREFIX}-${deploymentId}`;
+    const origin = `${isProduction ? 'https' : 'http'}://${label}.${domain}`;
+    const ttlMs = access.mode === 'PUBLIC' ? 24 * 60 * 60 * 1_000 : 15 * 60 * 1_000;
+    const accessProof = readNamedCookie(request.headers.cookie, access.cookieName);
+
+    if (access.mode !== 'PUBLIC' && !accessProof) {
+      return undefined;
+    }
+
+    const token = signPublishedFrameToken({
+      secret: proxySharedSecret,
+      kind,
+      deploymentId,
+      expiresAtMs: Date.now() + ttlMs,
+      accessMode: access.mode,
+      ...(accessProof ? { accessProof } : {}),
+    });
+    const url = new URL(request.url.startsWith('/') ? request.url : `/${request.url}`, origin);
+    url.searchParams.set(PUBLISHED_FRAME_TOKEN_PARAMETER, token);
+    return { url: url.toString(), origin };
+  };
+
+  const sendPublishedBadgeFrame = (
+    request: FastifyRequest,
+    reply: FastifyReply,
+    kind: PublishedBadgeFrameKind,
+    deploymentId: string,
+    access: AllowedDeploymentAccess,
+  ): unknown => {
+    const raw = rawPublishedFrameUrl(request, kind, deploymentId, access);
+    if (!raw) {
+      return sendPreviewProxyError(request, reply, 503, 'PUBLICATION_STATE_UNAVAILABLE');
+    }
+    applyPreviewProxyLocale(reply, request);
+    reply
+      .code(200)
+      .type('text/html; charset=utf-8')
+      .header('cache-control', 'private, no-store, max-age=0')
+      .header('x-frame-options', 'DENY')
+      .header('referrer-policy', 'no-referrer')
+      .header(
+        'content-security-policy',
+        `default-src 'none'; frame-src ${raw.origin}; style-src 'unsafe-inline'; script-src 'unsafe-inline'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'`,
+      );
+    return reply.send(publishedBadgeFrameHtml(request, raw.url));
+  };
+
+  const authorizePublishedBadgeFrame = (
+    request: FastifyRequest,
+    reply: FastifyReply,
+    frame: { deploymentId: string; kind: PublishedBadgeFrameKind },
+  ):
+    | {
+        requestUrl: string;
+        parentOrigin: string;
+        cookieName: string;
+        accessMode: PublishedFrameAccessMode;
+        accessProof?: string;
+      }
+    | undefined => {
+    if (!proxySharedSecret || !previewDomain) {
+      void sendPreviewProxyError(request, reply, 404, 'PUBLICATION_STATE_UNAVAILABLE');
+      return undefined;
+    }
+    const requestUrl = new URL(request.url.startsWith('/') ? request.url : `/${request.url}`, 'http://frame.invalid');
+    const queryToken = requestUrl.searchParams.get(PUBLISHED_FRAME_TOKEN_PARAMETER) ?? undefined;
+    const cookieName = publishedFrameCookieName(frame.kind, frame.deploymentId);
+    const cookieToken = readNamedCookie(request.headers.cookie, cookieName);
+    const queryClaims = verifyPublishedFrameToken({
+      token: queryToken,
+      secret: proxySharedSecret,
+      kind: frame.kind,
+      deploymentId: frame.deploymentId,
+    });
+    const cookieClaims = verifyPublishedFrameToken({
+      token: cookieToken,
+      secret: proxySharedSecret,
+      kind: frame.kind,
+      deploymentId: frame.deploymentId,
+    });
+    const claims = queryClaims ?? cookieClaims;
+
+    // A raw frame origin is never a top-level publication. Browsers emit this
+    // forbidden header for direct navigations, preventing a copied frame URL
+    // from becoming a badge-free public surface.
+    if (!claims || request.headers['sec-fetch-dest'] === 'document') {
+      reply.code(404).header('cache-control', 'private, no-store').send();
+      return undefined;
+    }
+    requestUrl.searchParams.delete(PUBLISHED_FRAME_TOKEN_PARAMETER);
+
+    if (queryClaims && queryToken) {
+      const maxAgeSeconds = Math.max(1, Math.floor((queryClaims.expiresAtMs - Date.now()) / 1_000));
+      reply.header(
+        'set-cookie',
+        `${cookieName}=${encodeURIComponent(queryToken)}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${maxAgeSeconds}${isProduction ? '; Secure' : ''}`,
+      );
+    }
+    const normalizedDomain = previewDomain
+      .trim()
+      .toLowerCase()
+      .replace(/^\.+|\.+$/g, '');
+    const parentLabel = `${frame.kind === 'server' ? 'd' : 's'}-${frame.deploymentId}`;
+    return {
+      requestUrl: `${requestUrl.pathname}${requestUrl.search}`,
+      parentOrigin: `${isProduction ? 'https' : 'http'}://${parentLabel}.${normalizedDomain}`,
+      cookieName,
+      accessMode: claims.accessMode,
+      ...(claims.accessProof ? { accessProof: claims.accessProof } : {}),
+    };
+  };
 
   /* Is this workspace's port marked private? Fail-open on any lookup error. */
   const isPortPrivate = async (workspaceId: string, port: string): Promise<boolean> => {
@@ -828,11 +1149,16 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
    *    c'est l'état qui, lui, peut changer.
    */
   const expiredDeployments = new Set<string>();
-  const liveUntil = new Map<string, number>();
+  const livePolicies = new Map<
+    string,
+    { expiresAt: number; badgeRequired: boolean; entitlementsVersion: string | null }
+  >();
   const LIVE_CACHE_TTL_MS = 15_000;
 
   /** Verdict du garde. `unknown` ⇒ on ne sait pas, donc on ne sert pas. */
-  type ServingVerdict = 'live' | 'expired' | 'unknown';
+  type ServingVerdict =
+    | { state: 'live'; badgeRequired: boolean; entitlementsVersion: string | null }
+    | { state: 'expired' | 'unknown' };
 
   /**
    * État de service d'une publication SERVER.
@@ -851,23 +1177,22 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
   const resolveServingVerdict = async (deploymentId: string): Promise<ServingVerdict> => {
     // (1) Verdict collant : plus rien ne peut le contredire.
     if (expiredDeployments.has(deploymentId)) {
-      return 'expired';
+      return { state: 'expired' };
     }
 
     if (!apiBaseUrl) {
       /*
-       * Sans API configurée (dev, tests unitaires du proxy), le garde est hors
-       * service : on laisse passer et l'extinction repose entièrement sur l'arrêt
-       * du workload. C'est une absence de configuration, pas un état indéterminé.
+       * Only explicit development/unit-test construction may run without the
+       * policy authority. Production boot rejects this configuration above.
        */
-      return 'live';
+      return { state: 'live', badgeRequired: true, entitlementsVersion: null };
     }
 
     // (2) Vivant et encore frais.
-    const freshUntil = liveUntil.get(deploymentId);
+    const freshPolicy = livePolicies.get(deploymentId);
 
-    if (freshUntil && Date.now() < freshUntil) {
-      return 'live';
+    if (freshPolicy && Date.now() < freshPolicy.expiresAt) {
+      return { state: 'live', ...freshPolicy };
     }
 
     // (3) Interroger l'autorité.
@@ -878,29 +1203,42 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
       });
 
       if (!response.ok) {
-        return 'unknown';
+        return { state: 'unknown' };
       }
 
-      const body = (await response.json()) as { state?: string };
+      const body = (await response.json()) as {
+        state?: string;
+        planEntitlements?: { version?: unknown; badgeRequired?: unknown };
+      };
 
       if (body?.state === 'expired') {
         expiredDeployments.add(deploymentId);
-        liveUntil.delete(deploymentId);
+        livePolicies.delete(deploymentId);
 
-        return 'expired';
+        return { state: 'expired' };
       }
 
-      if (body?.state === 'live') {
-        liveUntil.set(deploymentId, Date.now() + LIVE_CACHE_TTL_MS);
+      if (
+        body?.state === 'live' &&
+        typeof body.planEntitlements?.version === 'string' &&
+        body.planEntitlements.version.length > 0 &&
+        typeof body.planEntitlements.badgeRequired === 'boolean'
+      ) {
+        const policy = {
+          expiresAt: Date.now() + LIVE_CACHE_TTL_MS,
+          badgeRequired: body.planEntitlements.badgeRequired,
+          entitlementsVersion: body.planEntitlements.version,
+        };
+        livePolicies.set(deploymentId, policy);
 
-        return 'live';
+        return { state: 'live', ...policy };
       }
 
       // `not-found` ou réponse inattendue : on ne sait pas, donc on ne sert pas.
-      return 'unknown';
+      return { state: 'unknown' };
     } catch {
       // (4) API injoignable et aucun état frais : indéterminé.
-      return 'unknown';
+      return { state: 'unknown' };
     }
   };
 
@@ -913,6 +1251,7 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
   const resolveDeploymentAccessVerdict = async (
     request: FastifyRequest,
     deploymentId: string,
+    proofOverride?: string,
   ): Promise<DeploymentAccessVerdict> => {
     const cookieName = deploymentAccessCookieName(deploymentId);
 
@@ -920,7 +1259,7 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
       return { decision: 'allow', mode: 'PUBLIC', cookieName };
     }
 
-    const proof = readNamedCookie(request.headers.cookie, cookieName);
+    const proof = proofOverride ?? readNamedCookie(request.headers.cookie, cookieName);
     const clientKey = deploymentAccessClientKey(request);
 
     try {
@@ -985,16 +1324,16 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
     request: FastifyRequest,
     reply: FastifyReply,
     deploymentId: string,
-  ): Promise<boolean> => {
+  ): Promise<AllowedDeploymentAccess | undefined> => {
     const verdict = await resolveDeploymentAccessVerdict(request, deploymentId);
 
     if (verdict.decision === 'allow') {
-      return true;
+      return verdict;
     }
 
     await sendDeploymentAccessGate(request, reply, verdict);
 
-    return false;
+    return undefined;
   };
 
   /** Copy exactly one host-only platform proof cookie from the internal API. */
@@ -1224,12 +1563,28 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
     request: FastifyRequest,
     reply: FastifyReply,
     deploymentId: string,
+    publicationPolicy: Extract<ServingVerdict, { state: 'live' }>,
+    options: {
+      requestUrl?: string;
+      badgeFrame?: boolean;
+      parentOrigin?: string;
+      access?: AllowedDeploymentAccess;
+    } = {},
   ): Promise<unknown> => {
+    if (
+      !options.badgeFrame &&
+      publicationPolicy.badgeRequired &&
+      request.method === 'GET' &&
+      wantsHtmlDocument(request)
+    ) {
+      return sendPublishedBadgeFrame(request, reply, 'static', deploymentId, options.access!);
+    }
     if (!apiBaseUrl) {
       return sendPreviewProxyError(request, reply, 500, 'STATIC_DEPLOY_UPSTREAM_INVALID');
     }
 
-    const rawPath = request.url.startsWith('/') ? request.url : `/${request.url}`;
+    const sourceRequestUrl = options.requestUrl ?? request.url;
+    const rawPath = sourceRequestUrl.startsWith('/') ? sourceRequestUrl : `/${sourceRequestUrl}`;
     const upstreamBase = `${apiBaseUrl}/static-deployments/${encodeURIComponent(deploymentId)}`;
 
     let upstream: URL;
@@ -1251,6 +1606,7 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
       'x-vibecore-static-deploy': deploymentId,
       ...(proxySharedSecret ? { authorization: `Bearer ${proxySharedSecret}` } : {}),
       ...(publicHost ? { 'x-forwarded-host': publicHost } : {}),
+      ...(options.badgeFrame ? { 'x-vibecore-published-badge-frame': '1' } : {}),
     };
 
     for (const [name, value] of Object.entries(request.headers)) {
@@ -1294,6 +1650,7 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
       reply.status(upstreamResponse.status);
 
       const upstreamWasEncoded = upstreamResponse.headers.has('content-encoding');
+      let frameCsp: string | undefined;
 
       upstreamResponse.headers.forEach((value, name) => {
         const lower = name.toLowerCase();
@@ -1308,6 +1665,23 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
           return;
         }
 
+        if (options.badgeFrame) {
+          if (lower === 'set-cookie') {
+            appendReplySetCookie(reply, value);
+            return;
+          }
+          const safe = sanitizePreviewFramingHeader(name, value);
+          if (safe === null) {
+            return;
+          }
+          if (lower === 'content-security-policy') {
+            frameCsp = safe;
+            return;
+          }
+          reply.header(name, safe);
+          return;
+        }
+
         /*
          * PUBLISHED app (s-<id> / d-<id>): visited DIRECTLY by the public, not
          * framed by the IDE. Its anti-clickjacking headers are forwarded
@@ -1316,6 +1690,13 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
          */
         reply.header(name, value);
       });
+
+      if (options.badgeFrame && options.parentOrigin) {
+        reply.header(
+          'content-security-policy',
+          `${frameCsp ? `${frameCsp}; ` : ''}frame-ancestors ${options.parentOrigin}`,
+        );
+      }
 
       if (!upstreamResponse.body) {
         return reply.send();
@@ -1345,6 +1726,14 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
     request: FastifyRequest,
     reply: FastifyReply,
     deploymentId: string,
+    publicationPolicy: Extract<ServingVerdict, { state: 'live' }>,
+    access: AllowedDeploymentAccess,
+    options: {
+      requestUrl?: string;
+      badgeFrame?: boolean;
+      parentOrigin?: string;
+      frameCookieName?: string;
+    } = {},
     alreadyWoke = false,
 
     /*
@@ -1355,13 +1744,22 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
      */
     deadlineAt = Date.now() + requestTimeoutMs + serverDeployWakeWaitMs,
   ): Promise<unknown> => {
+    if (
+      !options.badgeFrame &&
+      publicationPolicy.badgeRequired &&
+      request.method === 'GET' &&
+      wantsHtmlDocument(request)
+    ) {
+      return sendPublishedBadgeFrame(request, reply, 'server', deploymentId, access);
+    }
     const upstreamBase = serverDeployUpstreamUrl(deploymentId, serverDeployUpstreamTemplate);
 
     if (!upstreamBase) {
       return sendPreviewProxyError(request, reply, 500, 'SERVER_DEPLOY_UPSTREAM_INVALID');
     }
 
-    const rawPath = request.url.startsWith('/') ? request.url : `/${request.url}`;
+    const sourceRequestUrl = options.requestUrl ?? request.url;
+    const rawPath = sourceRequestUrl.startsWith('/') ? sourceRequestUrl : `/${sourceRequestUrl}`;
 
     let upstream: URL;
 
@@ -1389,7 +1787,10 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
       const lower = name.toLowerCase();
 
       if (lower === 'cookie') {
-        const workloadCookies = stripDeploymentAccessCookie(value, deploymentAccessCookieName(deploymentId));
+        const withoutAccessProof = stripDeploymentAccessCookie(value, deploymentAccessCookieName(deploymentId));
+        const workloadCookies = options.frameCookieName
+          ? stripDeploymentAccessCookie(withoutAccessProof, options.frameCookieName)
+          : withoutAccessProof;
 
         if (workloadCookies) {
           headers.cookie = workloadCookies;
@@ -1444,6 +1845,7 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
       reply.status(upstreamResponse.status);
 
       const upstreamWasEncoded = upstreamResponse.headers.has('content-encoding');
+      let frameCsp: string | undefined;
 
       upstreamResponse.headers.forEach((value, name) => {
         const lower = name.toLowerCase();
@@ -1458,6 +1860,23 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
           return;
         }
 
+        if (options.badgeFrame) {
+          if (lower === 'set-cookie') {
+            appendReplySetCookie(reply, value);
+            return;
+          }
+          const safe = sanitizePreviewFramingHeader(name, value);
+          if (safe === null) {
+            return;
+          }
+          if (lower === 'content-security-policy') {
+            frameCsp = safe;
+            return;
+          }
+          reply.header(name, safe);
+          return;
+        }
+
         /*
          * PUBLISHED app (s-<id> / d-<id>): visited DIRECTLY by the public, not
          * framed by the IDE. Its anti-clickjacking headers are forwarded
@@ -1466,6 +1885,13 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
          */
         reply.header(name, value);
       });
+
+      if (options.badgeFrame && options.parentOrigin) {
+        reply.header(
+          'content-security-policy',
+          `${frameCsp ? `${frameCsp}; ` : ''}frame-ancestors ${options.parentOrigin}`,
+        );
+      }
 
       if (!upstreamResponse.body) {
         return reply.send();
@@ -1507,7 +1933,16 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
         const woke = await wakeServerDeploy(deploymentId);
 
         if (woke === 'ready') {
-          return handleServerDeployRequest(request, reply, deploymentId, true, deadlineAt);
+          return handleServerDeployRequest(
+            request,
+            reply,
+            deploymentId,
+            publicationPolicy,
+            access,
+            options,
+            true,
+            deadlineAt,
+          );
         }
 
         if (woke === 'gone') {
@@ -2058,6 +2493,50 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
     app.addHook('onRequest', async (request, reply) => {
       const path = request.url.split('?')[0].split('#')[0];
 
+      const badgeFrame = parsePublishedBadgeFrameHost(request.headers.host, previewDomain);
+
+      if (badgeFrame) {
+        const frameAccess = authorizePublishedBadgeFrame(request, reply, badgeFrame);
+        if (!frameAccess) {
+          return;
+        }
+        const verdict = await resolveServingVerdict(badgeFrame.deploymentId);
+        if (verdict.state !== 'live' || !verdict.badgeRequired) {
+          reply
+            .code(verdict.state === 'expired' ? 410 : 404)
+            .header('cache-control', 'private, no-store')
+            .send();
+          return;
+        }
+        const currentAccess = await resolveDeploymentAccessVerdict(
+          request,
+          badgeFrame.deploymentId,
+          frameAccess.accessProof,
+        );
+
+        if (currentAccess.decision !== 'allow' || currentAccess.mode !== frameAccess.accessMode) {
+          reply.code(404).header('cache-control', 'private, no-store').send();
+          return;
+        }
+
+        if (badgeFrame.kind === 'server') {
+          await handleServerDeployRequest(request, reply, badgeFrame.deploymentId, verdict, currentAccess, {
+            requestUrl: frameAccess.requestUrl,
+            badgeFrame: true,
+            parentOrigin: frameAccess.parentOrigin,
+            frameCookieName: frameAccess.cookieName,
+          });
+        } else {
+          await handleStaticDeployRequest(request, reply, badgeFrame.deploymentId, verdict, {
+            requestUrl: frameAccess.requestUrl,
+            badgeFrame: true,
+            parentOrigin: frameAccess.parentOrigin,
+            access: currentAccess,
+          });
+        }
+        return;
+      }
+
       /*
        * Server-deployment host (`d-<id>.<previewDomain>`): a public deployed app.
        * Checked before the preview parse (the two host shapes never collide) and
@@ -2089,7 +2568,8 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
           return;
         }
 
-        if (!(await enforceDeploymentGate(request, reply, deploy.deploymentId))) {
+        const deploymentAccess = await enforceDeploymentGate(request, reply, deploy.deploymentId);
+        if (!deploymentAccess) {
           return;
         }
 
@@ -2108,14 +2588,13 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
          */
         const verdict = await resolveServingVerdict(deploy.deploymentId);
 
-        if (verdict === 'expired') {
-          reply.header('cache-control', 'no-store');
-          await sendPreviewProxyError(request, reply, 410, 'PUBLISHED_DEPLOYMENT_EXPIRED');
+        if (verdict.state !== 'live') {
+          if (verdict.state === 'expired') {
+            reply.header('cache-control', 'no-store');
+            await sendPreviewProxyError(request, reply, 410, 'PUBLISHED_DEPLOYMENT_EXPIRED');
+            return;
+          }
 
-          return;
-        }
-
-        if (verdict === 'unknown') {
           /*
            * État INDÉTERMINÉ : on ne peut pas établir si cette publication est
            * encore valide. Servir reviendrait à renvoyer les octets d'un workload
@@ -2133,11 +2612,10 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
               code: 'PUBLICATION_STATE_UNAVAILABLE',
               retryable: true,
             });
-
           return;
         }
 
-        await handleServerDeployRequest(request, reply, deploy.deploymentId);
+        await handleServerDeployRequest(request, reply, deploy.deploymentId, verdict, deploymentAccess);
 
         return;
       }
@@ -2172,11 +2650,34 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
           return;
         }
 
-        if (!(await enforceDeploymentGate(request, reply, staticDeploy.deploymentId))) {
+        const deploymentAccess = await enforceDeploymentGate(request, reply, staticDeploy.deploymentId);
+        if (!deploymentAccess) {
           return;
         }
 
-        await handleStaticDeployRequest(request, reply, staticDeploy.deploymentId);
+        const verdict = await resolveServingVerdict(staticDeploy.deploymentId);
+        if (verdict.state !== 'live') {
+          if (verdict.state === 'expired') {
+            reply.header('cache-control', 'no-store');
+            await sendPreviewProxyError(request, reply, 410, 'PUBLISHED_DEPLOYMENT_EXPIRED');
+            return;
+          }
+          applyPreviewProxyLocale(reply, request);
+          reply.header('cache-control', 'no-store');
+          await reply
+            .code(503)
+            .header('retry-after', '5')
+            .send({
+              error: getPreviewProxyCopy(request.headers).PUBLICATION_STATE_UNAVAILABLE,
+              code: 'PUBLICATION_STATE_UNAVAILABLE',
+              retryable: true,
+            });
+          return;
+        }
+
+        await handleStaticDeployRequest(request, reply, staticDeploy.deploymentId, verdict, {
+          access: deploymentAccess,
+        });
 
         return;
       }

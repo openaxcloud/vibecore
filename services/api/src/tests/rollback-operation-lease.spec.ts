@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { PLAN_ENTITLEMENTS_VERSION } from '@vibecore/billing';
 
 import { acquireTestProjectReleaseFence } from './project-release-barrier-fixture.js';
 import { TestApiStore } from './test-api-store.js';
@@ -7,8 +8,83 @@ const FINGERPRINT = 'a'.repeat(64);
 const PROJECT_MANIFEST_DIGEST = `sha256:${'b'.repeat(64)}`;
 const ARTIFACT_DIGEST = `sha256:${'c'.repeat(64)}`;
 const ACTOR_USER_ID = 'rollback-actor';
+const PLAN_ENTITLEMENTS = {
+  version: PLAN_ENTITLEMENTS_VERSION,
+  plan: 'pro' as const,
+  badgeRequired: false,
+  publishRegion: 'platform-default',
+  publishRegions: 'all' as const,
+};
+
+function releaseMetadata(projectManifestDigest = PROJECT_MANIFEST_DIGEST) {
+  return { planEntitlements: PLAN_ENTITLEMENTS, projectManifestDigest };
+}
 
 describe('durable rollback operation — lease, fencing, and frozen target', () => {
+  it('never exposes static READY without its pinned manifest and replays one exact commit', async () => {
+    class FailingManifestStore extends TestApiStore {
+      failManifest = true;
+
+      override async createReleaseManifest(input: Parameters<TestApiStore['createReleaseManifest']>[0]) {
+        if (this.failManifest) {
+          throw new Error('INJECTED_RELEASE_MANIFEST_FAILURE');
+        }
+
+        return super.createReleaseManifest(input);
+      }
+    }
+
+    const store = new FailingManifestStore();
+    const owner = await store.createUser({ email: 'static-atomic@example.test', passwordHash: 'test-hash' });
+    const organization = await store.createOrganization({
+      name: 'Static Atomic',
+      slug: 'static-atomic',
+      ownerUserId: owner.id,
+    });
+    const project = await store.createProject({
+      organizationId: organization.id,
+      name: 'Static Atomic',
+      slug: 'static-atomic',
+    });
+    const release = await acquireTestProjectReleaseFence(store, {
+      projectId: project.id,
+      organizationId: organization.id,
+    });
+    const deployment = await store.createDeployment({
+      projectId: project.id,
+      provider: 'static',
+      environment: 'preview',
+      status: 'BUILDING',
+      metadata: releaseMetadata(release.digest),
+    });
+    const commit = {
+      projectId: project.id,
+      deploymentId: deployment.id,
+      environment: 'preview' as const,
+      artifactRef: `static-deployments/${deployment.id}`,
+      artifactDigest: ARTIFACT_DIGEST,
+      accessPolicyVersion: deployment.accessPolicyVersion,
+      url: 'https://static-atomic.example.test',
+      previewUrl: 'https://static-atomic.example.test',
+      metadata: releaseMetadata(release.digest),
+      logs: [],
+      finishedAt: new Date().toISOString(),
+      releaseFence: release.releaseFence,
+    };
+
+    await expect(store.commitStaticRelease(commit)).rejects.toThrow('INJECTED_RELEASE_MANIFEST_FAILURE');
+    expect((await store.getDeployment(project.id, deployment.id))?.status).toBe('BUILDING');
+    expect(await store.listReleaseManifests(project.id, 'preview')).toHaveLength(0);
+
+    store.failManifest = false;
+    const first = await store.commitStaticRelease(commit);
+    const replay = await store.commitStaticRelease(commit);
+    expect(first).toMatchObject({ committed: true, deployment: { status: 'READY' } });
+    expect(replay.manifest?.id).toBe(first.manifest?.id);
+    expect(await store.listReleaseManifests(project.id, 'preview')).toHaveLength(1);
+    await release.release();
+  });
+
   it('serializes one key, rejects a changed fingerprint, and replays the persisted response', async () => {
     const store = new TestApiStore();
 
@@ -167,6 +243,7 @@ describe('durable rollback operation — lease, fencing, and frozen target', () 
       provider: 'static',
       environment: 'preview',
       status: 'READY',
+      metadata: releaseMetadata(),
     });
     const currentDeployment = await store.createDeployment({
       projectId: 'project-pre-effect',
@@ -174,6 +251,7 @@ describe('durable rollback operation — lease, fencing, and frozen target', () 
       environment: 'preview',
       status: 'READY',
       accessPolicyVersion: sourceDeployment.accessPolicyVersion,
+      metadata: releaseMetadata(),
     });
 
     const source = await store.createReleaseManifest({
@@ -186,6 +264,8 @@ describe('durable rollback operation — lease, fencing, and frozen target', () 
       artifactRef: `static-deployments/${sourceDeployment.id}`,
       artifactDigest: ARTIFACT_DIGEST,
       accessPolicyVersion: sourceDeployment.accessPolicyVersion,
+      planEntitlements: PLAN_ENTITLEMENTS,
+      projectManifestDigest: PROJECT_MANIFEST_DIGEST,
     });
     await store.createReleaseManifest({
       projectId: 'project-pre-effect',
@@ -197,6 +277,8 @@ describe('durable rollback operation — lease, fencing, and frozen target', () 
       artifactRef: `static-deployments/${currentDeployment.id}`,
       artifactDigest: `sha256:${'d'.repeat(64)}`,
       accessPolicyVersion: currentDeployment.accessPolicyVersion,
+      planEntitlements: PLAN_ENTITLEMENTS,
+      projectManifestDigest: PROJECT_MANIFEST_DIGEST,
     });
 
     const acquired = await store.acquireRollbackOperation({
@@ -228,6 +310,7 @@ describe('durable rollback operation — lease, fencing, and frozen target', () 
         accessPolicyVersion: source.accessPolicyVersion,
         rolledBackFromId: source.deploymentId,
         metadata: {
+          planEntitlements: PLAN_ENTITLEMENTS,
           rollbackOperationId: operation.id,
           projectManifestDigest: PROJECT_MANIFEST_DIGEST,
           restoredFromVersion: 1,
@@ -273,11 +356,13 @@ describe('durable rollback operation — lease, fencing, and frozen target', () 
       name: 'Rollback Fence',
       slug: 'rollback-fence',
     });
+    const projectManifestDigest = (await store.getLatestProjectManifest(project.id))!.digest;
     const sourceDeployment = await store.createDeployment({
       projectId: project.id,
       provider: 'static',
       environment: 'preview',
       status: 'READY',
+      metadata: releaseMetadata(projectManifestDigest),
     });
     const currentDeployment = await store.createDeployment({
       projectId: project.id,
@@ -285,6 +370,7 @@ describe('durable rollback operation — lease, fencing, and frozen target', () 
       environment: 'preview',
       status: 'READY',
       accessPolicyVersion: sourceDeployment.accessPolicyVersion,
+      metadata: releaseMetadata(projectManifestDigest),
     });
 
     const source = await store.createReleaseManifest({
@@ -298,6 +384,8 @@ describe('durable rollback operation — lease, fencing, and frozen target', () 
       artifactDigest: ARTIFACT_DIGEST,
       configDigest: `sha256:${'e'.repeat(64)}`,
       accessPolicyVersion: sourceDeployment.accessPolicyVersion,
+      planEntitlements: PLAN_ENTITLEMENTS,
+      projectManifestDigest,
     });
     await store.createReleaseManifest({
       projectId: project.id,
@@ -309,6 +397,8 @@ describe('durable rollback operation — lease, fencing, and frozen target', () 
       artifactRef: `static-deployments/${currentDeployment.id}`,
       artifactDigest: `sha256:${'f'.repeat(64)}`,
       accessPolicyVersion: currentDeployment.accessPolicyVersion,
+      planEntitlements: PLAN_ENTITLEMENTS,
+      projectManifestDigest,
     });
 
     const acquired = await store.acquireRollbackOperation({
@@ -330,6 +420,7 @@ describe('durable rollback operation — lease, fencing, and frozen target', () 
       projectManifestDigest: (await store.getLatestProjectManifest(project.id))!.digest,
     });
     const metadata = {
+      planEntitlements: PLAN_ENTITLEMENTS,
       rollbackToPrevious: true,
       rollbackOperationId: operation.id,
       projectManifestDigest: operation.projectManifestDigest,

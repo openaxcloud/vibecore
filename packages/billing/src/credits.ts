@@ -112,16 +112,13 @@ export function migrateLegacyPlanKey(legacyKey: string | undefined): CreditPlanK
  * cannot use them). Extended-thinking / High-Effort is NOT gated here (it's
  * available on all plans).
  *
- * FAIL-OPEN by design: only the *unambiguous* free tier (`free`/`starter`) is
- * blocked. Every other key — including an unknown/undefined one, or the
- * ambiguous legacy-vs-parity `pro` — is treated as eligible so we NEVER wrongly
- * block a paying user on stale or ambiguous plan data (correctness of *charging*
- * is reconciled separately; behaviour just fails toward "allowed"). When the
- * plan is unresolved the safe default is to let the request proceed.
+ * This key-only compatibility helper is intentionally fail-closed. Authoritative
+ * server paths must use `resolvePlanEntitlements`, which disambiguates legacy
+ * `pro@2900` from credit-catalog `pro@10000` using the persisted monthly price.
  */
 export function premiumAgentModesEligible(planKey: string | undefined | null): boolean {
   const key = (planKey ?? '').trim().toLowerCase();
-  return key !== 'free' && key !== 'starter';
+  return key === 'core' || key === 'pro' || key === 'team' || key === 'enterprise';
 }
 
 /**

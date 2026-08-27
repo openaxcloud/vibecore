@@ -3,6 +3,8 @@ import {
   assertDeploymentProviderConfigured,
   assertDeploymentRequestAllowed,
   deployProviderConfigError,
+  providerHasAuthoritativePlanEdge,
+  providerSupportedPublishRegions,
 } from '../deployments.js';
 
 const baseRequest = {
@@ -20,6 +22,7 @@ const baseRequest = {
   envVars: {},
   injectSecrets: [],
   runtimeKind: 'autoscale' as const,
+  removeBrandingBadge: false,
   githubIntegration: undefined,
 };
 
@@ -123,5 +126,30 @@ describe('deployProviderConfigError', () => {
 
   it('passes once the provider hook env is present', () => {
     expect(deployProviderConfigError('vercel', { VERCEL_DEPLOY_HOOK_URL: 'https://hook.example' })).toBeNull();
+  });
+});
+
+describe('plan-authoritative provider edge', () => {
+  it('allows only platform-served providers until external adapters attest badge and traffic policy', () => {
+    expect(providerHasAuthoritativePlanEdge('static')).toBe(true);
+    expect(providerHasAuthoritativePlanEdge('server')).toBe(true);
+    for (const provider of [
+      'vercel',
+      'netlify',
+      'github-pages',
+      'cloudflare-pages',
+      'google-cloud-run',
+      'docker',
+    ] as const) {
+      expect(providerHasAuthoritativePlanEdge(provider), provider).toBe(false);
+    }
+  });
+
+  it('does not advertise server regions that the scheduler cannot prove', () => {
+    expect(
+      providerSupportedPublishRegions('server', {
+        SERVER_DEPLOY_SUPPORTED_REGIONS: 'eu-west-1,us-east-1',
+      }),
+    ).toEqual(['platform-default']);
   });
 });
