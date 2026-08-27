@@ -836,6 +836,10 @@ export interface ReleaseManifestRecord {
   storeGeneration?: string;
   configDigest?: string;
   dbMigrationPoint?: string;
+  /** Strict self-hashed v1 server runtime envelope; absent only on legacy rows. */
+  runtimeSpec?: unknown;
+  /** Strict self-hashed v1 tenant promotion envelope; absent only on legacy rows. */
+  promotionEvidence?: unknown;
   accessPolicyVersion: number;
   createdAt: string;
 }
@@ -918,6 +922,7 @@ export interface RollbackDeploymentCreateInput {
   environment: DeploymentRecord['environment'];
   status: DeploymentRecord['status'];
   accessPolicyVersion: number;
+  machineSize?: string;
   rolledBackFromId: string;
   metadata: Record<string, unknown>;
 }
@@ -934,6 +939,24 @@ export interface StaticRollbackReleaseCommitInput extends RollbackLeaseFence {
   dbMigrationPoint?: string;
   accessPolicyVersion: number;
   url: string;
+  metadata: Record<string, unknown>;
+  logs: DeploymentRecord['logs'];
+  finishedAt: string;
+  releaseFence: ProjectReleaseFence;
+}
+
+/** Atomic READY + initial static ReleaseManifest commit. */
+export interface StaticReleaseCommitInput {
+  projectId: string;
+  deploymentId: string;
+  environment: DeploymentRecord['environment'];
+  artifactRef: string;
+  artifactDigest: string;
+  configDigest: string;
+  accessPolicyVersion: number;
+  url: string;
+  previewUrl?: string;
+  productionUrl?: string;
   metadata: Record<string, unknown>;
   logs: DeploymentRecord['logs'];
   finishedAt: string;
@@ -980,6 +1003,8 @@ export interface ServerImageReleaseCommitInput {
   storeGeneration?: string;
   configDigest?: string;
   dbMigrationPoint?: string;
+  runtimeSpec: unknown;
+  promotionEvidence: unknown;
   url: string;
   previewUrl?: string;
   productionUrl?: string;
@@ -3206,6 +3231,9 @@ export interface ApiStore {
     expectedRuntimeVersion: number;
     productionUrl: string;
     sourceReleaseManifestId: string;
+    dbMigrationPoint?: string;
+    runtimeSpec: unknown;
+    promotionEvidence: unknown;
     releaseFence: ProjectReleaseFence;
   }): Promise<DeploymentRecord>;
   markReservedVmRuntimeApplied(input: {
@@ -3334,6 +3362,8 @@ export interface ApiStore {
     storeGeneration?: string;
     configDigest?: string;
     dbMigrationPoint?: string;
+    runtimeSpec?: unknown;
+    promotionEvidence?: unknown;
     accessPolicyVersion: number;
   }): Promise<ReleaseManifestRecord>;
   listReleaseManifests(
@@ -3342,6 +3372,8 @@ export interface ApiStore {
     options?: { take?: number },
   ): Promise<ReleaseManifestRecord[]>;
   getReleaseManifest(projectId: string, manifestId: string): Promise<ReleaseManifestRecord | undefined>;
+  /** Durable GC fence for content-addressed static artifacts. */
+  isReleaseArtifactRetained(artifactRef: string): Promise<boolean>;
 
   /**
    * Insert, reacquire, or replay a project-scoped operation. `ACQUIRED` is
@@ -3415,6 +3447,11 @@ export interface ApiStore {
 
   /** Atomically append a static rollback manifest and transition to READY. */
   commitStaticRollbackRelease(input: StaticRollbackReleaseCommitInput): Promise<{
+    deployment: DeploymentRecord;
+    manifest: ReleaseManifestRecord;
+  }>;
+  /** Atomically append a normal static manifest and transition to READY. */
+  commitStaticRelease(input: StaticReleaseCommitInput): Promise<{
     deployment: DeploymentRecord;
     manifest: ReleaseManifestRecord;
   }>;

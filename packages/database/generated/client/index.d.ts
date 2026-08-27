@@ -70465,6 +70465,8 @@ export namespace Prisma {
     storeGeneration: number
     configDigest: number
     dbMigrationPoint: number
+    runtimeSpec: number
+    promotionEvidence: number
     accessPolicyVersion: number
     createdAt: number
     _all: number
@@ -70528,6 +70530,8 @@ export namespace Prisma {
     storeGeneration?: true
     configDigest?: true
     dbMigrationPoint?: true
+    runtimeSpec?: true
+    promotionEvidence?: true
     accessPolicyVersion?: true
     createdAt?: true
     _all?: true
@@ -70632,6 +70636,8 @@ export namespace Prisma {
     storeGeneration: string | null
     configDigest: string | null
     dbMigrationPoint: string | null
+    runtimeSpec: JsonValue | null
+    promotionEvidence: JsonValue | null
     accessPolicyVersion: number
     createdAt: Date
     _count: ReleaseManifestCountAggregateOutputType | null
@@ -70668,6 +70674,8 @@ export namespace Prisma {
     storeGeneration?: boolean
     configDigest?: boolean
     dbMigrationPoint?: boolean
+    runtimeSpec?: boolean
+    promotionEvidence?: boolean
     accessPolicyVersion?: boolean
     createdAt?: boolean
   }, ExtArgs["result"]["releaseManifest"]>
@@ -70685,6 +70693,8 @@ export namespace Prisma {
     storeGeneration?: boolean
     configDigest?: boolean
     dbMigrationPoint?: boolean
+    runtimeSpec?: boolean
+    promotionEvidence?: boolean
     accessPolicyVersion?: boolean
     createdAt?: boolean
   }, ExtArgs["result"]["releaseManifest"]>
@@ -70702,6 +70712,8 @@ export namespace Prisma {
     storeGeneration?: boolean
     configDigest?: boolean
     dbMigrationPoint?: boolean
+    runtimeSpec?: boolean
+    promotionEvidence?: boolean
     accessPolicyVersion?: boolean
     createdAt?: boolean
   }, ExtArgs["result"]["releaseManifest"]>
@@ -70719,11 +70731,13 @@ export namespace Prisma {
     storeGeneration?: boolean
     configDigest?: boolean
     dbMigrationPoint?: boolean
+    runtimeSpec?: boolean
+    promotionEvidence?: boolean
     accessPolicyVersion?: boolean
     createdAt?: boolean
   }
 
-  export type ReleaseManifestOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "projectId" | "deploymentId" | "environment" | "version" | "provider" | "artifactKind" | "artifactRef" | "artifactDigest" | "storeGeneration" | "configDigest" | "dbMigrationPoint" | "accessPolicyVersion" | "createdAt", ExtArgs["result"]["releaseManifest"]>
+  export type ReleaseManifestOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "projectId" | "deploymentId" | "environment" | "version" | "provider" | "artifactKind" | "artifactRef" | "artifactDigest" | "storeGeneration" | "configDigest" | "dbMigrationPoint" | "runtimeSpec" | "promotionEvidence" | "accessPolicyVersion" | "createdAt", ExtArgs["result"]["releaseManifest"]>
 
   export type $ReleaseManifestPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "ReleaseManifest"
@@ -70741,6 +70755,8 @@ export namespace Prisma {
       storeGeneration: string | null
       configDigest: string | null
       dbMigrationPoint: string | null
+      runtimeSpec: Prisma.JsonValue | null
+      promotionEvidence: Prisma.JsonValue | null
       accessPolicyVersion: number
       createdAt: Date
     }, ExtArgs["result"]["releaseManifest"]>
@@ -71178,6 +71194,8 @@ export namespace Prisma {
     readonly storeGeneration: FieldRef<"ReleaseManifest", 'String'>
     readonly configDigest: FieldRef<"ReleaseManifest", 'String'>
     readonly dbMigrationPoint: FieldRef<"ReleaseManifest", 'String'>
+    readonly runtimeSpec: FieldRef<"ReleaseManifest", 'Json'>
+    readonly promotionEvidence: FieldRef<"ReleaseManifest", 'Json'>
     readonly accessPolicyVersion: FieldRef<"ReleaseManifest", 'Int'>
     readonly createdAt: FieldRef<"ReleaseManifest", 'DateTime'>
   }
@@ -194616,6 +194634,8 @@ export namespace Prisma {
     storeGeneration: 'storeGeneration',
     configDigest: 'configDigest',
     dbMigrationPoint: 'dbMigrationPoint',
+    runtimeSpec: 'runtimeSpec',
+    promotionEvidence: 'promotionEvidence',
     accessPolicyVersion: 'accessPolicyVersion',
     createdAt: 'createdAt'
   };
@@ -201101,6 +201121,8 @@ export namespace Prisma {
     storeGeneration?: StringNullableFilter<"ReleaseManifest"> | string | null
     configDigest?: StringNullableFilter<"ReleaseManifest"> | string | null
     dbMigrationPoint?: StringNullableFilter<"ReleaseManifest"> | string | null
+    runtimeSpec?: JsonNullableFilter<"ReleaseManifest">
+    promotionEvidence?: JsonNullableFilter<"ReleaseManifest">
     accessPolicyVersion?: IntFilter<"ReleaseManifest"> | number
     createdAt?: DateTimeFilter<"ReleaseManifest"> | Date | string
   }
@@ -201118,6 +201140,8 @@ export namespace Prisma {
     storeGeneration?: SortOrderInput | SortOrder
     configDigest?: SortOrderInput | SortOrder
     dbMigrationPoint?: SortOrderInput | SortOrder
+    runtimeSpec?: SortOrderInput | SortOrder
+    promotionEvidence?: SortOrderInput | SortOrder
     accessPolicyVersion?: SortOrder
     createdAt?: SortOrder
   }
@@ -201139,6 +201163,8 @@ export namespace Prisma {
     storeGeneration?: StringNullableFilter<"ReleaseManifest"> | string | null
     configDigest?: StringNullableFilter<"ReleaseManifest"> | string | null
     dbMigrationPoint?: StringNullableFilter<"ReleaseManifest"> | string | null
+    runtimeSpec?: JsonNullableFilter<"ReleaseManifest">
+    promotionEvidence?: JsonNullableFilter<"ReleaseManifest">
     accessPolicyVersion?: IntFilter<"ReleaseManifest"> | number
     createdAt?: DateTimeFilter<"ReleaseManifest"> | Date | string
   }, "id" | "projectId_environment_version">
@@ -201156,6 +201182,8 @@ export namespace Prisma {
     storeGeneration?: SortOrderInput | SortOrder
     configDigest?: SortOrderInput | SortOrder
     dbMigrationPoint?: SortOrderInput | SortOrder
+    runtimeSpec?: SortOrderInput | SortOrder
+    promotionEvidence?: SortOrderInput | SortOrder
     accessPolicyVersion?: SortOrder
     createdAt?: SortOrder
     _count?: ReleaseManifestCountOrderByAggregateInput
@@ -201181,6 +201209,8 @@ export namespace Prisma {
     storeGeneration?: StringNullableWithAggregatesFilter<"ReleaseManifest"> | string | null
     configDigest?: StringNullableWithAggregatesFilter<"ReleaseManifest"> | string | null
     dbMigrationPoint?: StringNullableWithAggregatesFilter<"ReleaseManifest"> | string | null
+    runtimeSpec?: JsonNullableWithAggregatesFilter<"ReleaseManifest">
+    promotionEvidence?: JsonNullableWithAggregatesFilter<"ReleaseManifest">
     accessPolicyVersion?: IntWithAggregatesFilter<"ReleaseManifest"> | number
     createdAt?: DateTimeWithAggregatesFilter<"ReleaseManifest"> | Date | string
   }
@@ -214729,6 +214759,8 @@ export namespace Prisma {
     storeGeneration?: string | null
     configDigest?: string | null
     dbMigrationPoint?: string | null
+    runtimeSpec?: NullableJsonNullValueInput | InputJsonValue
+    promotionEvidence?: NullableJsonNullValueInput | InputJsonValue
     accessPolicyVersion?: number
     createdAt?: Date | string
   }
@@ -214746,6 +214778,8 @@ export namespace Prisma {
     storeGeneration?: string | null
     configDigest?: string | null
     dbMigrationPoint?: string | null
+    runtimeSpec?: NullableJsonNullValueInput | InputJsonValue
+    promotionEvidence?: NullableJsonNullValueInput | InputJsonValue
     accessPolicyVersion?: number
     createdAt?: Date | string
   }
@@ -214763,6 +214797,8 @@ export namespace Prisma {
     storeGeneration?: NullableStringFieldUpdateOperationsInput | string | null
     configDigest?: NullableStringFieldUpdateOperationsInput | string | null
     dbMigrationPoint?: NullableStringFieldUpdateOperationsInput | string | null
+    runtimeSpec?: NullableJsonNullValueInput | InputJsonValue
+    promotionEvidence?: NullableJsonNullValueInput | InputJsonValue
     accessPolicyVersion?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -214780,6 +214816,8 @@ export namespace Prisma {
     storeGeneration?: NullableStringFieldUpdateOperationsInput | string | null
     configDigest?: NullableStringFieldUpdateOperationsInput | string | null
     dbMigrationPoint?: NullableStringFieldUpdateOperationsInput | string | null
+    runtimeSpec?: NullableJsonNullValueInput | InputJsonValue
+    promotionEvidence?: NullableJsonNullValueInput | InputJsonValue
     accessPolicyVersion?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -214797,6 +214835,8 @@ export namespace Prisma {
     storeGeneration?: string | null
     configDigest?: string | null
     dbMigrationPoint?: string | null
+    runtimeSpec?: NullableJsonNullValueInput | InputJsonValue
+    promotionEvidence?: NullableJsonNullValueInput | InputJsonValue
     accessPolicyVersion?: number
     createdAt?: Date | string
   }
@@ -214814,6 +214854,8 @@ export namespace Prisma {
     storeGeneration?: NullableStringFieldUpdateOperationsInput | string | null
     configDigest?: NullableStringFieldUpdateOperationsInput | string | null
     dbMigrationPoint?: NullableStringFieldUpdateOperationsInput | string | null
+    runtimeSpec?: NullableJsonNullValueInput | InputJsonValue
+    promotionEvidence?: NullableJsonNullValueInput | InputJsonValue
     accessPolicyVersion?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -214831,6 +214873,8 @@ export namespace Prisma {
     storeGeneration?: NullableStringFieldUpdateOperationsInput | string | null
     configDigest?: NullableStringFieldUpdateOperationsInput | string | null
     dbMigrationPoint?: NullableStringFieldUpdateOperationsInput | string | null
+    runtimeSpec?: NullableJsonNullValueInput | InputJsonValue
+    promotionEvidence?: NullableJsonNullValueInput | InputJsonValue
     accessPolicyVersion?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -228366,6 +228410,8 @@ export namespace Prisma {
     storeGeneration?: SortOrder
     configDigest?: SortOrder
     dbMigrationPoint?: SortOrder
+    runtimeSpec?: SortOrder
+    promotionEvidence?: SortOrder
     accessPolicyVersion?: SortOrder
     createdAt?: SortOrder
   }

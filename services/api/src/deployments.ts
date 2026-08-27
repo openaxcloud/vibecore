@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process';
-import { createHash } from 'node:crypto';
-import { access, cp, mkdir, readdir, readFile, rm, stat } from 'node:fs/promises';
+import { createHash, randomUUID } from 'node:crypto';
+import { access, cp, mkdir, readdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { join, relative, resolve, sep } from 'node:path';
 import { z } from 'zod';
 import { appPublicCopy, appPublicEnglish } from './app-public-copy.js';
@@ -893,6 +893,34 @@ export function staticDeploymentSnapshotDir(deploymentId: string) {
   return join(staticDeploymentStorageRoot(), deploymentId);
 }
 
+const STATIC_ARTIFACT_REF = /^static-artifacts\/sha256\/([a-f0-9]{64})$/u;
+
+export function staticDeploymentArtifactRef(digest: string): string {
+  const match = /^sha256:([a-f0-9]{64})$/u.exec(digest);
+
+  if (!match) {
+    throw Object.assign(new Error(appPublicEnglish('ROLLBACK_ARTIFACT_DIGEST_MISMATCH')), {
+      code: 'ROLLBACK_ARTIFACT_DIGEST_INVALID',
+      statusCode: 409,
+    });
+  }
+
+  return `static-artifacts/sha256/${match[1]}`;
+}
+
+export function staticDeploymentArtifactDir(artifactRef: string): string {
+  const match = STATIC_ARTIFACT_REF.exec(artifactRef);
+
+  if (!match) {
+    throw Object.assign(new Error(appPublicEnglish('ROLLBACK_PREVIOUS_SNAPSHOT_MISSING', { version: 0 })), {
+      code: 'ROLLBACK_STATIC_ARTIFACT_REF_INVALID',
+      statusCode: 409,
+    });
+  }
+
+  return join(staticDeploymentStorageRoot(), '.artifacts', 'sha256', match[1]);
+}
+
 async function pathExists(targetPath: string) {
   try {
     await access(targetPath);
@@ -1514,6 +1542,24 @@ async function walkFiles(root: string, dir: string, out: string[]): Promise<void
   }
 }
 
+async function computeSnapshotDirectoryDigest(root: string): Promise<string | undefined> {
+  if (!(await pathExists(root))) return undefined;
+
+  const files: string[] = [];
+  await walkFiles(root, root, files);
+  const entries: SnapshotEntry[] = [];
+
+  for (const rel of files) {
+    const bytes = await readFile(join(root, rel));
+    entries.push({
+      path: rel.split(sep).join('/'),
+      sha256: createHash('sha256').update(bytes).digest('hex'),
+    });
+  }
+
+  return hashSnapshotEntries(entries);
+}
+
 /**
  * P0-V3-08: deterministic content digest of a static snapshot directory. Hashes
  * every file's bytes, binds it to its relative path, and folds the sorted set into
@@ -1523,27 +1569,282 @@ async function walkFiles(root: string, dir: string, out: string[]): Promise<void
  * Returns undefined if the directory is missing (nothing to hash).
  */
 export async function computeStaticSnapshotDigest(deploymentId: string): Promise<string | undefined> {
-  const root = staticDeploymentSnapshotDir(deploymentId);
+  return computeSnapshotDirectoryDigest(staticDeploymentSnapshotDir(deploymentId));
+}
 
-  if (!(await pathExists(root))) {
-    return undefined;
-  }
+export async function computeStaticArtifactDigest(artifactRef: string): Promise<string | undefined> {
+  return computeSnapshotDirectoryDigest(staticDeploymentArtifactDir(artifactRef));
+}
 
-  const files: string[] = [];
-  await walkFiles(root, root, files);
+/**
+ * Copy one published snapshot into an immutable content-addressed retention
+ * directory. Existing bytes are always re-hashed; a collision/tamper refuses
+ * publication instead of overwriting the retained rollback target.
+ */
+async function retainStaticSnapshotArtifactLocked(deploymentId: string, expectedDigest: string): Promise<string> {
+  const artifactRef = staticDeploymentArtifactRef(expectedDigest);
+  const source = staticDeploymentSnapshotDir(deploymentId);
+  const sourceDigest = await computeSnapshotDirectoryDigest(source);
 
-  const entries: SnapshotEntry[] = [];
-
-  for (const rel of files) {
-    const bytes = await readFile(join(root, rel));
-    entries.push({
-      // Normalise to forward slashes so the digest is stable across platforms.
-      path: rel.split(sep).join('/'),
-      sha256: createHash('sha256').update(bytes).digest('hex'),
+  if (sourceDigest !== expectedDigest) {
+    throw Object.assign(new Error(appPublicEnglish('ROLLBACK_ARTIFACT_DIGEST_MISMATCH')), {
+      code: 'ROLLBACK_ARTIFACT_DIGEST_MISMATCH',
+      statusCode: 409,
     });
   }
 
-  return hashSnapshotEntries(entries);
+  const target = staticDeploymentArtifactDir(artifactRef);
+  const retainedDigest = await computeSnapshotDirectoryDigest(target);
+
+  if (retainedDigest !== undefined) {
+    if (retainedDigest !== expectedDigest) {
+      throw Object.assign(new Error(appPublicEnglish('ROLLBACK_ARTIFACT_DIGEST_MISMATCH')), {
+        code: 'ROLLBACK_ARTIFACT_DIGEST_MISMATCH',
+        statusCode: 409,
+      });
+    }
+    return artifactRef;
+  }
+
+  await mkdir(join(staticDeploymentStorageRoot(), '.artifacts', 'sha256'), { recursive: true });
+  const temporary = `${target}.tmp-${randomUUID()}`;
+
+  try {
+    await cp(source, temporary, { recursive: true, errorOnExist: true });
+
+    if ((await computeSnapshotDirectoryDigest(temporary)) !== expectedDigest) {
+      throw Object.assign(new Error(appPublicEnglish('ROLLBACK_ARTIFACT_DIGEST_MISMATCH')), {
+        code: 'ROLLBACK_ARTIFACT_DIGEST_MISMATCH',
+        statusCode: 409,
+      });
+    }
+
+    await rename(temporary, target);
+  } finally {
+    await rm(temporary, { recursive: true, force: true }).catch(() => undefined);
+  }
+
+  return artifactRef;
+}
+
+export async function retainStaticSnapshotArtifact(deploymentId: string, expectedDigest: string): Promise<string> {
+  const artifactDigest = expectedDigest.replace(/^sha256:/u, '');
+
+  return withStaticDeploymentStorageLocks([deploymentId, artifactDigest], () =>
+    retainStaticSnapshotArtifactLocked(deploymentId, expectedDigest),
+  );
+}
+
+/**
+ * Keep the content-digest lock through the caller's durable manifest append.
+ * GC takes the same lock, so it cannot observe the retained bytes in the gap
+ * before the ReleaseManifest reference commits.
+ */
+export async function withRetainedStaticSnapshotArtifact<T>(
+  deploymentId: string,
+  expectedDigest: string,
+  commit: (artifactRef: string) => Promise<T>,
+): Promise<T> {
+  const artifactDigest = expectedDigest.replace(/^sha256:/u, '');
+
+  return withStaticDeploymentStorageLocks([deploymentId, artifactDigest], async () => {
+    const artifactRef = await retainStaticSnapshotArtifactLocked(deploymentId, expectedDigest);
+
+    if ((await computeSnapshotDirectoryDigest(staticDeploymentArtifactDir(artifactRef))) !== expectedDigest) {
+      throw Object.assign(new Error(appPublicEnglish('ROLLBACK_ARTIFACT_DIGEST_MISMATCH')), {
+        code: 'ROLLBACK_ARTIFACT_DIGEST_MISMATCH',
+        statusCode: 409,
+      });
+    }
+
+    return commit(artifactRef);
+  });
+}
+
+/** Restore retained content by manifest reference, without a Deployment row. */
+export async function restoreStaticArtifactInto(
+  artifactRef: string,
+  expectedDigest: string,
+  toDeploymentId: string,
+  guard?: () => Promise<void>,
+): Promise<{ indexHtmlPath?: string }> {
+  const artifactDigest = STATIC_ARTIFACT_REF.exec(artifactRef)?.[1];
+
+  if (!artifactDigest) {
+    throw Object.assign(new Error(appPublicEnglish('ROLLBACK_STATIC_SNAPSHOT_MISSING', { deploymentId: artifactRef })), {
+      code: 'ROLLBACK_STATIC_ARTIFACT_REF_INVALID',
+      statusCode: 409,
+    });
+  }
+
+  return withStaticDeploymentStorageLocks([artifactDigest, toDeploymentId], async () => {
+    await guard?.();
+    const source = staticDeploymentArtifactDir(artifactRef);
+
+    if ((await computeSnapshotDirectoryDigest(source)) !== expectedDigest) {
+      throw Object.assign(new Error(appPublicEnglish('ROLLBACK_ARTIFACT_DIGEST_MISMATCH')), {
+        code: 'ROLLBACK_ARTIFACT_DIGEST_MISMATCH',
+        statusCode: 409,
+      });
+    }
+
+    const target = staticDeploymentSnapshotDir(toDeploymentId);
+    await guard?.();
+    await rm(target, { recursive: true, force: true });
+    await mkdir(target, { recursive: true });
+    await cp(source, target, { recursive: true });
+    await guard?.();
+
+    const indexHtmlPath = join(target, 'index.html');
+
+    if (!(await pathExists(indexHtmlPath))) return {};
+
+    return { indexHtmlPath };
+  });
+}
+
+function staticDeploymentRoutingAliasPath(deploymentId: string): string {
+  return join(staticDeploymentStorageRoot(), '.aliases', deploymentId);
+}
+
+const SAFE_STATIC_DEPLOYMENT_ALIAS_ID = /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/u;
+
+function assertStaticDeploymentRoutingAliasId(deploymentId: string): void {
+  if (!SAFE_STATIC_DEPLOYMENT_ALIAS_ID.test(deploymentId)) {
+    throw Object.assign(new Error(appPublicEnglish('ROLLBACK_STATIC_SNAPSHOT_MISSING', { deploymentId })), {
+      code: 'ROLLBACK_STATIC_ALIAS_INVALID',
+      statusCode: 409,
+    });
+  }
+}
+
+/**
+ * Keep legacy path-prefixed assets working without rewriting retained bytes.
+ * The alias is written before release commit and resolves only through the
+ * target Deployment's READY/access-policy gates in the HTTP route.
+ */
+export async function writeStaticDeploymentRoutingAlias(
+  fromDeploymentId: string,
+  toDeploymentId: string,
+  guard?: () => Promise<void>,
+): Promise<void> {
+  assertStaticDeploymentRoutingAliasId(fromDeploymentId);
+  assertStaticDeploymentRoutingAliasId(toDeploymentId);
+
+  if (fromDeploymentId === toDeploymentId) {
+    throw Object.assign(
+      new Error(appPublicEnglish('ROLLBACK_STATIC_SNAPSHOT_MISSING', { deploymentId: fromDeploymentId })),
+      { code: 'ROLLBACK_STATIC_ALIAS_INVALID', statusCode: 409 },
+    );
+  }
+
+  await withStaticDeploymentStorageLocks([fromDeploymentId, toDeploymentId], async () => {
+    await guard?.();
+    const root = join(staticDeploymentStorageRoot(), '.aliases');
+    const target = staticDeploymentRoutingAliasPath(fromDeploymentId);
+    const temporary = `${target}.tmp-${randomUUID()}`;
+    await mkdir(root, { recursive: true });
+
+    try {
+      await writeFile(temporary, `${toDeploymentId}\n`, { encoding: 'utf8', mode: 0o600 });
+      await guard?.();
+      await rename(temporary, target);
+    } finally {
+      await rm(temporary, { force: true }).catch(() => undefined);
+    }
+  });
+}
+
+/**
+ * Resolve a bounded routing-alias chain under the cross-replica filesystem
+ * locks. Consecutive rollbacks can retain the same immutable HTML, whose URLs
+ * still name the first pruned deployment; following the chain makes that old
+ * id resolve to the newest READY target without changing a single byte.
+ *
+ * `undefined` means that the requested id has no alias. `null` means a corrupt,
+ * cyclic or overlong chain and callers must fail closed rather than fall back to
+ * a possibly mutable source snapshot.
+ */
+export async function resolveStaticDeploymentRoutingAlias(
+  deploymentId: string,
+): Promise<string | null | undefined> {
+  assertStaticDeploymentRoutingAliasId(deploymentId);
+  const visited = new Set([deploymentId]);
+  let current = deploymentId;
+
+  for (let depth = 0; depth < 32; depth += 1) {
+    const rawTarget = await withStaticDeploymentStorageLock(current, () =>
+      readFile(staticDeploymentRoutingAliasPath(current), 'utf8').catch((error: unknown) =>
+        (error as NodeJS.ErrnoException).code === 'ENOENT' ? undefined : null,
+      ),
+    );
+
+    if (rawTarget === undefined) {
+      return current === deploymentId ? undefined : current;
+    }
+
+    if (rawTarget === null) return null;
+
+    const target = rawTarget.trim();
+
+    if (!SAFE_STATIC_DEPLOYMENT_ALIAS_ID.test(target) || visited.has(target)) {
+      return null;
+    }
+
+    visited.add(target);
+    current = target;
+  }
+
+  return null;
+}
+
+/** Remove only the alias owned by this rollback attempt. */
+export async function removeStaticDeploymentRoutingAlias(
+  fromDeploymentId: string,
+  expectedToDeploymentId: string,
+): Promise<void> {
+  assertStaticDeploymentRoutingAliasId(fromDeploymentId);
+  assertStaticDeploymentRoutingAliasId(expectedToDeploymentId);
+
+  await withStaticDeploymentStorageLocks([fromDeploymentId, expectedToDeploymentId], async () => {
+    const target = staticDeploymentRoutingAliasPath(fromDeploymentId);
+    const current = await readFile(target, 'utf8').catch(() => undefined);
+
+    if (current?.trim() === expectedToDeploymentId) {
+      await rm(target, { force: true });
+    }
+  });
+}
+
+/**
+ * Delete only content-addressed artifacts that the durable store confirms are
+ * unreferenced. The callback is re-run while the per-digest lock is held, so a
+ * concurrent ReleaseManifest append wins retention rather than racing GC.
+ */
+export async function garbageCollectStaticArtifacts(
+  isRetainedByReleaseManifest: (artifactRef: string) => Promise<boolean>,
+): Promise<{ removed: string[]; retained: string[] }> {
+  const root = join(staticDeploymentStorageRoot(), '.artifacts', 'sha256');
+  const entries = await readdir(root, { withFileTypes: true }).catch(() => []);
+  const removed: string[] = [];
+  const retained: string[] = [];
+
+  for (const entry of entries) {
+    if (!entry.isDirectory() || !/^[a-f0-9]{64}$/u.test(entry.name)) continue;
+    const artifactRef = `static-artifacts/sha256/${entry.name}`;
+
+    await withStaticDeploymentStorageLock(entry.name, async () => {
+      if (await isRetainedByReleaseManifest(artifactRef)) {
+        retained.push(artifactRef);
+        return;
+      }
+
+      await rm(staticDeploymentArtifactDir(artifactRef), { recursive: true, force: true });
+      removed.push(artifactRef);
+    });
+  }
+
+  return { removed, retained };
 }
 
 /**

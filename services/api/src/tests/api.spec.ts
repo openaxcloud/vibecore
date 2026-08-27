@@ -459,7 +459,9 @@ function buildTestApiApp(options: ApiAppOptions = {}) {
 
 async function withProductionWorkspaceManager<T>(callback: () => Promise<T>): Promise<T> {
   const previousManager = process.env.WORKSPACE_MANAGER_URL;
+  const previousConfigEncryptionKey = process.env.CONFIG_ENCRYPTION_KEY;
   process.env.WORKSPACE_MANAGER_URL = 'https://workspace-manager.example.com';
+  process.env.CONFIG_ENCRYPTION_KEY = 'test-production-config-encryption-key-0001';
 
   try {
     return await callback();
@@ -468,6 +470,11 @@ async function withProductionWorkspaceManager<T>(callback: () => Promise<T>): Pr
       delete process.env.WORKSPACE_MANAGER_URL;
     } else {
       process.env.WORKSPACE_MANAGER_URL = previousManager;
+    }
+    if (previousConfigEncryptionKey === undefined) {
+      delete process.env.CONFIG_ENCRYPTION_KEY;
+    } else {
+      process.env.CONFIG_ENCRYPTION_KEY = previousConfigEncryptionKey;
     }
   }
 }
@@ -672,6 +679,8 @@ describe('SaaS API', () => {
 
   it('refuses to boot in production when the workspace manager URL is missing or local', async () => {
     const previousManager = process.env.WORKSPACE_MANAGER_URL;
+    const previousConfigEncryptionKey = process.env.CONFIG_ENCRYPTION_KEY;
+    process.env.CONFIG_ENCRYPTION_KEY = 'test-production-config-encryption-key-0001';
 
     try {
       delete process.env.WORKSPACE_MANAGER_URL;
@@ -705,6 +714,11 @@ describe('SaaS API', () => {
         delete process.env.WORKSPACE_MANAGER_URL;
       } else {
         process.env.WORKSPACE_MANAGER_URL = previousManager;
+      }
+      if (previousConfigEncryptionKey === undefined) {
+        delete process.env.CONFIG_ENCRYPTION_KEY;
+      } else {
+        process.env.CONFIG_ENCRYPTION_KEY = previousConfigEncryptionKey;
       }
     }
   });

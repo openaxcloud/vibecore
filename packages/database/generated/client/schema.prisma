@@ -1089,6 +1089,7 @@ model ReservedVmBillingPeriod {
   billingReservation    LedgerReservation? @relation("ReservedVmBillingPeriodLedgerReservation", fields: [billingReservationId], references: [id], onDelete: Restrict)
 
   @@unique([deploymentId, periodStart])
+  @@index([actorUserId, status])
   @@index([status, leaseExpiresAt])
   @@index([organizationId, status])
   @@index([deploymentId, status])
@@ -1131,6 +1132,14 @@ model ReleaseManifest {
   storeGeneration  String?
   configDigest     String?
   dbMigrationPoint String?
+
+  // Nullable only for rows created before migration 0100. New server-image
+  // releases fail closed unless both strict, self-hashed envelopes are present.
+  // runtimeSpec pins the exact machine/network/env/secret/database contract;
+  // promotionEvidence retains the tenant-scoped immutable provenance after the
+  // Deployment and AdminAuditLog rows have been pruned.
+  runtimeSpec       Json?
+  promotionEvidence Json?
 
   // I-AUTH-1: the access policy is part of release identity. Rollback restores
   // this exact version rather than inheriting a later/less restrictive mode.

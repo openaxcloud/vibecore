@@ -706,6 +706,8 @@ exports.Prisma.ReleaseManifestScalarFieldEnum = {
   storeGeneration: 'storeGeneration',
   configDigest: 'configDigest',
   dbMigrationPoint: 'dbMigrationPoint',
+  runtimeSpec: 'runtimeSpec',
+  promotionEvidence: 'promotionEvidence',
   accessPolicyVersion: 'accessPolicyVersion',
   createdAt: 'createdAt'
 };

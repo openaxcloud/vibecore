@@ -6,6 +6,7 @@ import { TestApiStore } from './test-api-store.js';
 const FINGERPRINT = 'a'.repeat(64);
 const PROJECT_MANIFEST_DIGEST = `sha256:${'b'.repeat(64)}`;
 const ARTIFACT_DIGEST = `sha256:${'c'.repeat(64)}`;
+const ARTIFACT_REF = `static-artifacts/sha256/${'c'.repeat(64)}`;
 const ACTOR_USER_ID = 'rollback-actor';
 
 describe('durable rollback operation — lease, fencing, and frozen target', () => {
@@ -183,7 +184,7 @@ describe('durable rollback operation — lease, fencing, and frozen target', () 
       version: 1,
       provider: 'static',
       artifactKind: 'static-snapshot',
-      artifactRef: `static-deployments/${sourceDeployment.id}`,
+      artifactRef: ARTIFACT_REF,
       artifactDigest: ARTIFACT_DIGEST,
       accessPolicyVersion: sourceDeployment.accessPolicyVersion,
     });
@@ -194,7 +195,7 @@ describe('durable rollback operation — lease, fencing, and frozen target', () 
       version: 2,
       provider: 'static',
       artifactKind: 'static-snapshot',
-      artifactRef: `static-deployments/${currentDeployment.id}`,
+      artifactRef: `static-artifacts/sha256/${'d'.repeat(64)}`,
       artifactDigest: `sha256:${'d'.repeat(64)}`,
       accessPolicyVersion: currentDeployment.accessPolicyVersion,
     });
@@ -294,7 +295,7 @@ describe('durable rollback operation — lease, fencing, and frozen target', () 
       version: 1,
       provider: 'static',
       artifactKind: 'static-snapshot',
-      artifactRef: `static-deployments/${sourceDeployment.id}`,
+      artifactRef: ARTIFACT_REF,
       artifactDigest: ARTIFACT_DIGEST,
       configDigest: `sha256:${'e'.repeat(64)}`,
       accessPolicyVersion: sourceDeployment.accessPolicyVersion,
@@ -306,7 +307,7 @@ describe('durable rollback operation — lease, fencing, and frozen target', () 
       version: 2,
       provider: 'static',
       artifactKind: 'static-snapshot',
-      artifactRef: `static-deployments/${currentDeployment.id}`,
+      artifactRef: `static-artifacts/sha256/${'f'.repeat(64)}`,
       artifactDigest: `sha256:${'f'.repeat(64)}`,
       accessPolicyVersion: currentDeployment.accessPolicyVersion,
     });
@@ -381,7 +382,7 @@ describe('durable rollback operation — lease, fencing, and frozen target', () 
         deploymentId: 'deployment-rollback',
         environment: 'preview',
         provider: 'static',
-        artifactRef: 'static-deployments/deployment-rollback',
+        artifactRef: ARTIFACT_REF,
         artifactDigest,
         configDigest: `sha256:${'e'.repeat(64)}`,
         accessPolicyVersion: source.accessPolicyVersion,

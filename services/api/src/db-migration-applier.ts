@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto';
+
 import { Client as PgClient } from 'pg';
 
 import type {
@@ -23,6 +25,73 @@ export interface MigrationPgClient {
   connect(): Promise<unknown>;
   query(sql: string, values?: unknown[]): Promise<QueryResult>;
   end(): Promise<void>;
+}
+
+export type ExactMigrationLedgerInspection =
+  | { status: 'EXACT'; digest: string; entries: number }
+  | { status: 'MISSING' | 'INVALID' | 'UNAVAILABLE' };
+
+/**
+ * Hash the COMPLETE migration ledger, not merely the release's migration plan.
+ * Consequently both a rewritten historical row and a later/advanced migration
+ * produce a different digest and block deterministic rollback.
+ */
+export function exactMigrationLedgerDigest(rows: ReadonlyArray<{ name: string; sha256: string }>): string {
+  const canonical = [...rows]
+    .sort((left, right) => left.name.localeCompare(right.name))
+    .map((row) => `${row.name}\0${row.sha256}`)
+    .join('\0');
+
+  return `sha256:${createHash('sha256').update(canonical, 'utf8').digest('hex')}`;
+}
+
+export async function inspectExactPostgresMigrationLedger(input: {
+  connectionString: string;
+  lockKey: string;
+  createClient?: (connectionString: string) => MigrationPgClient;
+}): Promise<ExactMigrationLedgerInspection> {
+  const createClient =
+    input.createClient ?? ((connectionString: string) => new PgClient({ connectionString }) as MigrationPgClient);
+  const client = createClient(input.connectionString);
+
+  try {
+    await client.connect();
+    await client.query('BEGIN');
+    await client.query("SELECT set_config('statement_timeout', $1, true)", [String(DEFAULT_STATEMENT_TIMEOUT_MS)]);
+    await client.query("SELECT set_config('lock_timeout', $1, true)", [String(DEFAULT_LOCK_TIMEOUT_MS)]);
+    await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1, 0))', [input.lockKey]);
+    const table = await client.query('SELECT to_regclass($1) AS ledger', [MIGRATION_LEDGER_TABLE]);
+
+    if (!table.rows[0]?.ledger) {
+      await client.query('ROLLBACK');
+      return { status: 'MISSING' };
+    }
+
+    const result = await client.query(`SELECT name, sha256 FROM ${MIGRATION_LEDGER_TABLE} ORDER BY name ASC`);
+    const rows: Array<{ name: string; sha256: string }> = [];
+
+    for (const row of result.rows) {
+      if (
+        typeof row.name !== 'string' ||
+        row.name.length < 1 ||
+        row.name.length > 255 ||
+        typeof row.sha256 !== 'string' ||
+        !/^[a-f0-9]{64}$/u.test(row.sha256)
+      ) {
+        await client.query('ROLLBACK');
+        return { status: 'INVALID' };
+      }
+      rows.push({ name: row.name, sha256: row.sha256 });
+    }
+
+    await client.query('ROLLBACK');
+    return { status: 'EXACT', digest: exactMigrationLedgerDigest(rows), entries: rows.length };
+  } catch {
+    await client.query('ROLLBACK').catch(() => undefined);
+    return { status: 'UNAVAILABLE' };
+  } finally {
+    await client.end().catch(() => undefined);
+  }
 }
 
 export interface PostgresMigrationApplierOptions {

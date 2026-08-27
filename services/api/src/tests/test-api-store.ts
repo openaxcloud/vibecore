@@ -29,6 +29,14 @@ import {
   type ProjectManifest,
   type ProjectManifestCloneMode,
 } from '../project-manifest.js';
+import {
+  buildServerRollbackPromotionEvidence,
+  parseServerRollbackPromotionEvidence,
+  parseServerRollbackRuntimeSpec,
+  rebindServerRollbackRuntimeSpecAccessPolicy,
+  rollbackManifestDigest,
+  validateServerReleaseCommitPins,
+} from '../deterministic-rollback.js';
 import { isCommittedPromotionForTenant, SERVER_IMAGE_RELEASE_AUDIT_ACTION } from '../server-image-promotion.js';
 import { DEFAULT_ENV_VAR_SCOPE } from '../store.js';
 import type {
@@ -94,6 +102,7 @@ import type {
   RollbackOperationRecord,
   ServerImageReleaseCommitInput,
   ServerImageReleaseCommitResult,
+  StaticReleaseCommitInput,
   StaticRollbackReleaseCommitInput,
   DomainVerificationRecord,
   EmailDeliveryEventRecord,
@@ -4441,6 +4450,31 @@ export class TestApiStore implements ApiStore {
     }
   }
 
+  private _validateReservedVmReleaseManifest(input: {
+    manifest: ReleaseManifestRecord;
+    organizationId: string;
+    projectId: string;
+    projectManifestDigest: string;
+    machineKey?: string;
+    promotion: unknown;
+  }) {
+    if (!input.machineKey) throw new Error('RESERVED_VM_RELEASE_SOURCE_INVALID');
+
+    return validateServerReleaseCommitPins({
+      runtimeSpec: input.manifest.runtimeSpec,
+      promotionEvidence: input.manifest.promotionEvidence,
+      organizationId: input.organizationId,
+      projectId: input.projectId,
+      projectManifestDigest: input.projectManifestDigest,
+      accessPolicyVersion: input.manifest.accessPolicyVersion,
+      machineKey: input.machineKey,
+      artifactRef: input.manifest.artifactRef,
+      artifactDigest: input.manifest.artifactDigest,
+      dbMigrationPoint: input.manifest.dbMigrationPoint,
+      promotion: input.promotion,
+    });
+  }
+
   private _reservedVmPublishCandidate(
     input: {
       projectId: string;
@@ -4495,6 +4529,26 @@ export class TestApiStore implements ApiStore {
               manifest.accessPolicyVersion === releaseSource.accessPolicyVersion,
           )
         : undefined;
+      const releaseSourcePins = releaseSource
+        ? this._validateReservedVmReleaseManifest({
+            manifest: releaseSource,
+            organizationId: input.organizationId,
+            projectId: input.projectId,
+            projectManifestDigest: input.releaseFence.expectedManifestDigest,
+            machineKey: deployment.machineSize,
+            promotion: serverDeploy?.promotion,
+          })
+        : undefined;
+      const committedProductionPins = committedProductionRelease
+        ? this._validateReservedVmReleaseManifest({
+            manifest: committedProductionRelease,
+            organizationId: input.organizationId,
+            projectId: input.projectId,
+            projectManifestDigest: input.releaseFence.expectedManifestDigest,
+            machineKey: deployment.machineSize,
+            promotion: serverDeploy?.promotion,
+          })
+        : undefined;
 
       if (
         metadata.publishedFromReleaseManifestId === sourceReleaseManifestId &&
@@ -4503,6 +4557,8 @@ export class TestApiStore implements ApiStore {
         releaseSource.provider === 'server' &&
         releaseSource.artifactKind === 'server-image' &&
         releaseSource.accessPolicyVersion === deployment.accessPolicyVersion &&
+        releaseSourcePins?.runtimeSpec.hash === committedProductionPins?.runtimeSpec.hash &&
+        releaseSourcePins?.promotionEvidence.hash === committedProductionPins?.promotionEvidence.hash &&
         image?.imageRef === releaseSource.artifactRef &&
         image?.imageDigest === releaseSource.artifactDigest &&
         isCommittedPromotionForTenant(
@@ -4546,11 +4602,22 @@ export class TestApiStore implements ApiStore {
           (!sourceReleaseManifestId || manifest.id === sourceReleaseManifestId),
       )
       .sort((left, right) => right.version - left.version)[0];
+    const releaseSourcePins = releaseSource
+      ? this._validateReservedVmReleaseManifest({
+          manifest: releaseSource,
+          organizationId: input.organizationId,
+          projectId: input.projectId,
+          projectManifestDigest: input.releaseFence.expectedManifestDigest,
+          machineKey: deployment.machineSize,
+          promotion: serverDeploy?.promotion,
+        })
+      : undefined;
 
     if (
       !releaseSource ||
       releaseSource.provider !== 'server' ||
       releaseSource.artifactKind !== 'server-image' ||
+      !releaseSourcePins ||
       releaseSource.accessPolicyVersion !== deployment.accessPolicyVersion ||
       image?.imageRef !== releaseSource.artifactRef ||
       image?.imageDigest !== releaseSource.artifactDigest ||
@@ -4590,6 +4657,9 @@ export class TestApiStore implements ApiStore {
     expectedRuntimeVersion: number;
     productionUrl: string;
     sourceReleaseManifestId: string;
+    dbMigrationPoint?: string;
+    runtimeSpec: unknown;
+    promotionEvidence: unknown;
     releaseFence: ProjectReleaseFence;
   }) {
     await this.assertProjectReleaseBarrier({ projectId: input.projectId, ...input.releaseFence });
@@ -4597,6 +4667,43 @@ export class TestApiStore implements ApiStore {
       input,
       input.sourceReleaseManifestId,
     );
+    const metadata = (deployment.metadata ?? {}) as Record<string, unknown>;
+    const serverDeploy = metadata.serverDeploy as Record<string, unknown> | undefined;
+    const publishedPins = validateServerReleaseCommitPins({
+      runtimeSpec: input.runtimeSpec,
+      promotionEvidence: input.promotionEvidence,
+      organizationId: input.organizationId,
+      projectId: input.projectId,
+      projectManifestDigest: input.releaseFence.expectedManifestDigest,
+      accessPolicyVersion: releaseSource.accessPolicyVersion,
+      machineKey: deployment.machineSize ?? '',
+      artifactRef: releaseSource.artifactRef,
+      artifactDigest: releaseSource.artifactDigest,
+      dbMigrationPoint: input.dbMigrationPoint,
+      promotion: serverDeploy?.promotion,
+    });
+    const sourcePins = parseServerRollbackRuntimeSpec(releaseSource.runtimeSpec);
+    const sourcePromotion = parseServerRollbackPromotionEvidence(releaseSource.promotionEvidence);
+    const {
+      database: _sourceDatabase,
+      envOverrides: _sourceEncryptedEnv,
+      hash: _sourceHash,
+      ...sourceRuntime
+    } = sourcePins.spec;
+    const {
+      database: _publishedDatabase,
+      envOverrides: _publishedEncryptedEnv,
+      hash: _publishedHash,
+      ...publishedRuntime
+    } = publishedPins.runtimeSpec;
+
+    if (
+      rollbackManifestDigest(sourceRuntime) !== rollbackManifestDigest(publishedRuntime) ||
+      rollbackManifestDigest(sourcePins.envOverrides) !== rollbackManifestDigest(publishedPins.envOverrides) ||
+      sourcePromotion.hash !== publishedPins.promotionEvidence.hash
+    ) {
+      throw new Error('RESERVED_VM_RELEASE_SOURCE_INVALID');
+    }
 
     if (replayed) return deployment;
 
@@ -4620,6 +4727,9 @@ export class TestApiStore implements ApiStore {
       id: id('release_manifest'),
       environment: 'production',
       version: latestVersion + 1,
+      dbMigrationPoint: input.dbMigrationPoint,
+      runtimeSpec: input.runtimeSpec,
+      promotionEvidence: input.promotionEvidence,
       createdAt: now(),
     });
     this.deployments.set(deployment.id, updated);
@@ -4909,7 +5019,6 @@ export class TestApiStore implements ApiStore {
     if (!deployment) {
       return undefined;
     }
-
     const project = this.projects.get(deployment.projectId);
 
     const subscription = project ? this.subscriptions.get(project.organizationId) : undefined;
@@ -4976,6 +5085,11 @@ export class TestApiStore implements ApiStore {
     if (!deployment) {
       return undefined;
     }
+    const project = this.projects.get(deployment.projectId);
+
+    if (!project) {
+      return undefined;
+    }
 
     if (input.expectedVersion !== undefined && deployment.accessPolicyVersion !== input.expectedVersion) {
       throw Object.assign(new Error('DEPLOYMENT_ACCESS_POLICY_VERSION_CONFLICT'), {
@@ -5017,6 +5131,43 @@ export class TestApiStore implements ApiStore {
       this.deploymentAccessPolicies
         .filter((policy) => policy.projectId === deployment.projectId && policy.environment === deployment.environment)
         .reduce((max, policy) => Math.max(max, policy.version), 0) + 1;
+    let reboundServerRuntimeSpec: unknown;
+    let retainedServerPromotionEvidence: unknown;
+
+    if (
+      input.releaseSource &&
+      (deployment.provider === 'server' || input.releaseSource.artifactKind === 'server-image')
+    ) {
+      if (
+        deployment.provider !== 'server' ||
+        input.releaseSource.provider !== 'server' ||
+        input.releaseSource.artifactKind !== 'server-image' ||
+        input.releaseSource.accessPolicyVersion !== deployment.accessPolicyVersion
+      ) {
+        throw Object.assign(new Error('DEPLOYMENT_ACCESS_RELEASE_MANIFEST_MISMATCH'), {
+          statusCode: 409,
+          code: 'DEPLOYMENT_ACCESS_RELEASE_MANIFEST_MISMATCH',
+        });
+      }
+
+      const sourceRuntime = parseServerRollbackRuntimeSpec(input.releaseSource.runtimeSpec).spec;
+      const sourcePromotion = parseServerRollbackPromotionEvidence(input.releaseSource.promotionEvidence);
+      const validated = validateServerReleaseCommitPins({
+        runtimeSpec: input.releaseSource.runtimeSpec,
+        promotionEvidence: input.releaseSource.promotionEvidence,
+        organizationId: project.organizationId,
+        projectId: deployment.projectId,
+        projectManifestDigest: sourceRuntime.projectManifestDigest,
+        accessPolicyVersion: deployment.accessPolicyVersion,
+        machineKey: deployment.machineSize ?? '',
+        artifactRef: input.releaseSource.artifactRef,
+        artifactDigest: input.releaseSource.artifactDigest,
+        ...(input.releaseSource.dbMigrationPoint ? { dbMigrationPoint: input.releaseSource.dbMigrationPoint } : {}),
+        promotion: sourcePromotion.promotion,
+      });
+      reboundServerRuntimeSpec = rebindServerRollbackRuntimeSpecAccessPolicy(validated.runtimeSpec, version);
+      retainedServerPromotionEvidence = validated.promotionEvidence;
+    }
     const policy: DeploymentAccessPolicyRecord = {
       id: id('access_policy'),
       projectId: deployment.projectId,
@@ -5042,6 +5193,8 @@ export class TestApiStore implements ApiStore {
         deploymentId: deployment.id,
         version: latestVersion + 1,
         accessPolicyVersion: version,
+        runtimeSpec: reboundServerRuntimeSpec,
+        promotionEvidence: retainedServerPromotionEvidence,
         createdAt: now(),
       });
     }
@@ -5274,6 +5427,8 @@ export class TestApiStore implements ApiStore {
     storeGeneration?: string;
     configDigest?: string;
     dbMigrationPoint?: string;
+    runtimeSpec?: unknown;
+    promotionEvidence?: unknown;
     accessPolicyVersion: number;
   }): Promise<ReleaseManifestRecord> {
     const deployment = this.deployments.get(input.deploymentId);
@@ -5309,6 +5464,8 @@ export class TestApiStore implements ApiStore {
       storeGeneration: input.storeGeneration,
       configDigest: input.configDigest,
       dbMigrationPoint: input.dbMigrationPoint,
+      runtimeSpec: input.runtimeSpec,
+      promotionEvidence: input.promotionEvidence,
       accessPolicyVersion: input.accessPolicyVersion,
       createdAt: new Date().toISOString(),
     };
@@ -5326,6 +5483,10 @@ export class TestApiStore implements ApiStore {
       .filter((m) => m.projectId === projectId && m.environment === environment)
       .sort((a, b) => b.version - a.version)
       .slice(0, options?.take ?? 100);
+  }
+
+  async isReleaseArtifactRetained(artifactRef: string): Promise<boolean> {
+    return this.releaseManifests.some((manifest) => manifest.artifactRef === artifactRef);
   }
 
   async getReleaseManifest(projectId: string, manifestId: string) {
@@ -5601,6 +5762,7 @@ export class TestApiStore implements ApiStore {
         existing.projectId !== input.deployment.projectId ||
         existing.provider !== input.deployment.provider ||
         existing.environment !== input.deployment.environment ||
+        existing.machineSize !== input.deployment.machineSize ||
         existing.accessPolicyVersion !== input.deployment.accessPolicyVersion ||
         existing.rolledBackFromId !== input.deployment.rolledBackFromId ||
         persistedMetadata.rollbackOperationId !== operation.id ||
@@ -5798,7 +5960,8 @@ export class TestApiStore implements ApiStore {
         source.provider !== input.provider ||
         source.artifactDigest !== input.artifactDigest ||
         source.accessPolicyVersion !== input.accessPolicyVersion ||
-        input.artifactRef !== `static-deployments/${input.deploymentId}` ||
+        source.artifactRef !== input.artifactRef ||
+        !/^static-artifacts\/sha256\/[a-f0-9]{64}$/u.test(input.artifactRef) ||
         !sameNullable(source.storeGeneration, input.storeGeneration) ||
         !sameNullable(source.configDigest, input.configDigest) ||
         !sameNullable(source.dbMigrationPoint, input.dbMigrationPoint)
@@ -5900,6 +6063,89 @@ export class TestApiStore implements ApiStore {
     });
   }
 
+  async commitStaticRelease(input: StaticReleaseCommitInput) {
+    return this.withSerializedMutation(`release-manifest:${input.projectId}:${input.environment}`, async () => {
+      await this.assertProjectReleaseBarrier({ projectId: input.projectId, ...input.releaseFence });
+      const deployment = this.deployments.get(input.deploymentId);
+      const expectedRef = `static-artifacts/sha256/${input.artifactDigest.replace(/^sha256:/u, '')}`;
+      const policy = this.deploymentAccessPolicies.find(
+        (candidate) =>
+          candidate.projectId === input.projectId &&
+          candidate.environment === input.environment &&
+          candidate.version === input.accessPolicyVersion,
+      );
+
+      if (
+        !deployment ||
+        deployment.projectId !== input.projectId ||
+        deployment.provider !== 'static' ||
+        deployment.environment !== input.environment ||
+        deployment.accessPolicyVersion !== input.accessPolicyVersion ||
+        input.artifactRef !== expectedRef ||
+        input.metadata.projectManifestDigest !== input.releaseFence.expectedManifestDigest ||
+        !policy
+      ) {
+        throw new Error('STATIC_RELEASE_CONFLICT');
+      }
+
+      const existingRows = this.releaseManifests.filter((manifest) => manifest.deploymentId === input.deploymentId);
+      const existing = existingRows[0];
+
+      if (existing) {
+        if (
+          existingRows.length !== 1 ||
+          existing.projectId !== input.projectId ||
+          existing.environment !== input.environment ||
+          existing.provider !== 'static' ||
+          existing.artifactKind !== 'static-snapshot' ||
+          existing.artifactRef !== input.artifactRef ||
+          existing.artifactDigest !== input.artifactDigest ||
+          existing.configDigest !== input.configDigest ||
+          existing.accessPolicyVersion !== input.accessPolicyVersion ||
+          deployment.status !== 'READY'
+        ) {
+          throw new Error('STATIC_RELEASE_CONFLICT');
+        }
+
+        return { deployment, manifest: existing };
+      }
+
+      if (['READY', 'FAILED', 'CANCELED'].includes(deployment.status)) {
+        throw new Error('STATIC_RELEASE_CONFLICT');
+      }
+
+      const latestVersion = this.releaseManifests
+        .filter((manifest) => manifest.projectId === input.projectId && manifest.environment === input.environment)
+        .reduce((version, manifest) => Math.max(version, manifest.version), 0);
+      const manifest = await this.createReleaseManifest({
+        projectId: input.projectId,
+        deploymentId: input.deploymentId,
+        environment: input.environment,
+        version: latestVersion + 1,
+        provider: 'static',
+        artifactKind: 'static-snapshot',
+        artifactRef: input.artifactRef,
+        artifactDigest: input.artifactDigest,
+        configDigest: input.configDigest,
+        accessPolicyVersion: input.accessPolicyVersion,
+      });
+      const ready: DeploymentRecord = {
+        ...deployment,
+        status: 'READY',
+        url: input.url,
+        previewUrl: input.previewUrl,
+        productionUrl: input.productionUrl,
+        metadata: input.metadata,
+        logs: input.logs,
+        finishedAt: input.finishedAt,
+        updatedAt: now(),
+      };
+      this.deployments.set(ready.id, ready);
+
+      return { deployment: ready, manifest };
+    });
+  }
+
   async commitServerImageRelease(input: ServerImageReleaseCommitInput): Promise<ServerImageReleaseCommitResult> {
     return this.withSerializedMutation(`release-manifest:${input.projectId}:${input.environment}`, async () => {
       if (input.rollbackFence && input.reservedVmFence) {
@@ -5928,6 +6174,8 @@ export class TestApiStore implements ApiStore {
       const project = this.projects.get(input.projectId);
       const serverDeploy = input.metadata.serverDeploy as Record<string, unknown> | undefined;
       const image = serverDeploy?.image as Record<string, unknown> | undefined;
+      const retainedRuntime = parseServerRollbackRuntimeSpec(input.runtimeSpec).spec;
+      const retainedPromotion = parseServerRollbackPromotionEvidence(input.promotionEvidence);
       const rollbackOperationId = (deployment.metadata as Record<string, unknown> | undefined)?.rollbackOperationId;
       const rollbackOperation = input.rollbackFence ? this._requireRollbackLease(input.rollbackFence) : undefined;
       const rollbackSource = rollbackOperation ? this._requireRollbackSource(rollbackOperation) : undefined;
@@ -5961,10 +6209,36 @@ export class TestApiStore implements ApiStore {
         image?.imageDigest !== input.artifactDigest ||
         !isCommittedPromotionForTenant(
           serverDeploy?.promotion,
-          project.organizationId,
+          project?.organizationId ?? '',
           input.artifactDigest,
           input.artifactRef,
         )
+      ) {
+        throw new Error('SERVER_RELEASE_PROMOTION_NOT_COMMITTED');
+      }
+      const expectedPromotion = buildServerRollbackPromotionEvidence({
+        organizationId: input.organizationId,
+        projectId: input.projectId,
+        artifactRef: input.artifactRef,
+        artifactDigest: input.artifactDigest,
+        promotion: serverDeploy.promotion,
+      });
+
+      if (
+        retainedRuntime.organizationId !== input.organizationId ||
+        retainedRuntime.projectId !== input.projectId ||
+        retainedRuntime.projectManifestDigest !== input.releaseFence.expectedManifestDigest ||
+        retainedRuntime.accessPolicyVersion !== deployment.accessPolicyVersion ||
+        retainedRuntime.machine.key !== deployment.machineSize ||
+        retainedRuntime.secretPolicy !== 'CURRENT' ||
+        (retainedRuntime.database.mode === 'none'
+          ? input.dbMigrationPoint !== undefined
+          : input.dbMigrationPoint !== retainedRuntime.database.ledgerDigest) ||
+        retainedPromotion.organizationId !== input.organizationId ||
+        retainedPromotion.projectId !== input.projectId ||
+        retainedPromotion.artifactRef !== input.artifactRef ||
+        retainedPromotion.artifactDigest !== input.artifactDigest ||
+        retainedPromotion.hash !== expectedPromotion.hash
       ) {
         throw new Error('SERVER_RELEASE_PROMOTION_NOT_COMMITTED');
       }
@@ -5985,7 +6259,9 @@ export class TestApiStore implements ApiStore {
             rollbackSource.artifactDigest !== input.artifactDigest ||
             !sameNullable(rollbackSource.storeGeneration, input.storeGeneration) ||
             !sameNullable(rollbackSource.configDigest, input.configDigest) ||
-            !sameNullable(rollbackSource.dbMigrationPoint, input.dbMigrationPoint)))
+            !sameNullable(rollbackSource.dbMigrationPoint, input.dbMigrationPoint) ||
+            parseServerRollbackRuntimeSpec(rollbackSource.runtimeSpec).spec.hash !== retainedRuntime.hash ||
+            parseServerRollbackPromotionEvidence(rollbackSource.promotionEvidence).hash !== retainedPromotion.hash))
       ) {
         throw new Error('ROLLBACK_OWNERSHIP_LOST');
       }
@@ -6006,6 +6282,8 @@ export class TestApiStore implements ApiStore {
           !sameNullable(existing.storeGeneration, input.storeGeneration) ||
           !sameNullable(existing.configDigest, input.configDigest) ||
           !sameNullable(existing.dbMigrationPoint, input.dbMigrationPoint) ||
+          parseServerRollbackRuntimeSpec(existing.runtimeSpec).spec.hash !== retainedRuntime.hash ||
+          parseServerRollbackPromotionEvidence(existing.promotionEvidence).hash !== retainedPromotion.hash ||
           (rollbackOperation && existing.version !== input.rollbackFence!.expectedHeadVersion + 1) ||
           existing.accessPolicyVersion !== deployment.accessPolicyVersion;
 
@@ -6079,6 +6357,8 @@ export class TestApiStore implements ApiStore {
         storeGeneration: input.storeGeneration,
         configDigest: input.configDigest,
         dbMigrationPoint: input.dbMigrationPoint,
+        runtimeSpec: input.runtimeSpec,
+        promotionEvidence: input.promotionEvidence,
         accessPolicyVersion: deployment.accessPolicyVersion,
         createdAt: now(),
       };

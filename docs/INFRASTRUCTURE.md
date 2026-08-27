@@ -817,6 +817,7 @@ nothing — Helm prunes lazily on next upgrade).
 - [`PROD-SECRETS-BOOTSTRAP.md`](./PROD-SECRETS-BOOTSTRAP.md) — GCP Secret Manager → K8s Secret sync
 - [`GCP_RUNBOOK.md`](./GCP_RUNBOOK.md) — incident response (cluster, API, workspace)
 - [`ROLLBACK.md`](./ROLLBACK.md) — Helm rollback procedure
+- [`DETERMINISTIC_ROLLBACK_RUNBOOK.md`](./DETERMINISTIC_ROLLBACK_RUNBOOK.md) — release-manifest rollback pins, key rotation, DB/static retention
 - [`CI_CD.md`](./CI_CD.md) — pipeline internals
 - [`GCP_SECURITY.md`](./GCP_SECURITY.md) — IAM, audit logs, workload identity
 - [`KUBERNETES_SECURITY.md`](./KUBERNETES_SECURITY.md) — Pod Security, NetworkPolicy

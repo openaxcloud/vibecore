@@ -16,6 +16,14 @@ import {
   type DeploymentAccessPolicyRecord,
 } from './deployment-access.js';
 import {
+  buildServerRollbackPromotionEvidence,
+  parseServerRollbackPromotionEvidence,
+  parseServerRollbackRuntimeSpec,
+  rebindServerRollbackRuntimeSpecAccessPolicy,
+  rollbackManifestDigest,
+  validateServerReleaseCommitPins,
+} from './deterministic-rollback.js';
+import {
   canonicalizeProjectManifest,
   createDefaultProjectManifest,
   projectManifestSnapshotPin,
@@ -94,6 +102,7 @@ import type {
   RollbackOperationRecord,
   ServerImageReleaseCommitInput,
   ServerImageReleaseCommitResult,
+  StaticReleaseCommitInput,
   StaticRollbackReleaseCommitInput,
   DomainVerificationRecord,
   EmailDeliveryEventRecord,
@@ -920,6 +929,36 @@ async function assertNoActiveProjectReleaseBarrier(tx: Prisma.TransactionClient,
   }
 }
 
+function validateReservedVmReleaseManifest(input: {
+  manifest: ReleaseManifestRecord;
+  organizationId: string;
+  projectId: string;
+  projectManifestDigest: string;
+  machineKey?: string;
+  promotion: unknown;
+}) {
+  if (!input.machineKey) {
+    throw Object.assign(reservedVmStoreError('RESERVED_VM_RELEASE_SOURCE_INVALID'), {
+      code: 'RESERVED_VM_RELEASE_SOURCE_INVALID',
+      statusCode: 409,
+    });
+  }
+
+  return validateServerReleaseCommitPins({
+    runtimeSpec: input.manifest.runtimeSpec,
+    promotionEvidence: input.manifest.promotionEvidence,
+    organizationId: input.organizationId,
+    projectId: input.projectId,
+    projectManifestDigest: input.projectManifestDigest,
+    accessPolicyVersion: input.manifest.accessPolicyVersion,
+    machineKey: input.machineKey,
+    artifactRef: input.manifest.artifactRef,
+    artifactDigest: input.manifest.artifactDigest,
+    dbMigrationPoint: input.manifest.dbMigrationPoint,
+    promotion: input.promotion,
+  });
+}
+
 async function requireReservedVmPublishCandidate(
   tx: Prisma.TransactionClient,
   input: {
@@ -1023,6 +1062,26 @@ async function requireReservedVmPublishCandidate(
           },
         })
       : undefined;
+    const releaseSourcePins = releaseSource
+      ? validateReservedVmReleaseManifest({
+          manifest: mapReleaseManifest(releaseSource),
+          organizationId: input.organizationId,
+          projectId: input.projectId,
+          projectManifestDigest: input.releaseFence.expectedManifestDigest,
+          machineKey: deployment.machineSize ?? undefined,
+          promotion: serverDeploy?.promotion,
+        })
+      : undefined;
+    const committedProductionPins = committedProductionRelease
+      ? validateReservedVmReleaseManifest({
+          manifest: mapReleaseManifest(committedProductionRelease),
+          organizationId: input.organizationId,
+          projectId: input.projectId,
+          projectManifestDigest: input.releaseFence.expectedManifestDigest,
+          machineKey: deployment.machineSize ?? undefined,
+          promotion: serverDeploy?.promotion,
+        })
+      : undefined;
 
     if (
       releaseSource &&
@@ -1030,6 +1089,8 @@ async function requireReservedVmPublishCandidate(
       releaseSource.provider === 'server' &&
       releaseSource.artifactKind === 'server-image' &&
       releaseSource.accessPolicyVersion === deployment.accessPolicyVersion &&
+      releaseSourcePins?.runtimeSpec.hash === committedProductionPins?.runtimeSpec.hash &&
+      releaseSourcePins?.promotionEvidence.hash === committedProductionPins?.promotionEvidence.hash &&
       image?.imageRef === releaseSource.artifactRef &&
       image?.imageDigest === releaseSource.artifactDigest &&
       isCommittedPromotionForTenant(
@@ -1057,11 +1118,22 @@ async function requireReservedVmPublishCandidate(
     },
     orderBy: { version: 'desc' },
   });
+  const releaseSourcePins = releaseSource
+    ? validateReservedVmReleaseManifest({
+        manifest: mapReleaseManifest(releaseSource),
+        organizationId: input.organizationId,
+        projectId: input.projectId,
+        projectManifestDigest: input.releaseFence.expectedManifestDigest,
+        machineKey: deployment.machineSize ?? undefined,
+        promotion: serverDeploy?.promotion,
+      })
+    : undefined;
 
   if (
     !releaseSource ||
     releaseSource.provider !== 'server' ||
     releaseSource.artifactKind !== 'server-image' ||
+    !releaseSourcePins ||
     releaseSource.accessPolicyVersion !== deployment.accessPolicyVersion ||
     image?.imageRef !== releaseSource.artifactRef ||
     image?.imageDigest !== releaseSource.artifactDigest ||
@@ -9251,6 +9323,9 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
     expectedRuntimeVersion: number;
     productionUrl: string;
     sourceReleaseManifestId: string;
+    dbMigrationPoint?: string;
+    runtimeSpec: unknown;
+    promotionEvidence: unknown;
     releaseFence: ProjectReleaseFence;
   }): Promise<DeploymentRecord> {
     const actorUserId = requireReservedVmActor(input.actorUserId);
@@ -9263,6 +9338,45 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
       await lockProjectAfterPurgeTopology(tx, input.projectId);
       await requireProjectReleaseFence(tx, input.projectId, input.releaseFence);
       const { deployment, metadata, releaseSource, replayed } = await requireReservedVmPublishCandidate(tx, input);
+      const serverDeploy = metadata.serverDeploy as Record<string, unknown> | undefined;
+      const publishedPins = validateServerReleaseCommitPins({
+        runtimeSpec: input.runtimeSpec,
+        promotionEvidence: input.promotionEvidence,
+        organizationId: input.organizationId,
+        projectId: input.projectId,
+        projectManifestDigest: input.releaseFence.expectedManifestDigest,
+        accessPolicyVersion: releaseSource.accessPolicyVersion,
+        machineKey: deployment.machineSize ?? '',
+        artifactRef: releaseSource.artifactRef,
+        artifactDigest: releaseSource.artifactDigest,
+        dbMigrationPoint: input.dbMigrationPoint,
+        promotion: serverDeploy?.promotion,
+      });
+      const sourcePins = parseServerRollbackRuntimeSpec(releaseSource.runtimeSpec);
+      const sourcePromotion = parseServerRollbackPromotionEvidence(releaseSource.promotionEvidence);
+      const {
+        database: _sourceDatabase,
+        envOverrides: _sourceEncryptedEnv,
+        hash: _sourceHash,
+        ...sourceRuntime
+      } = sourcePins.spec;
+      const {
+        database: _publishedDatabase,
+        envOverrides: _publishedEncryptedEnv,
+        hash: _publishedHash,
+        ...publishedRuntime
+      } = publishedPins.runtimeSpec;
+
+      if (
+        rollbackManifestDigest(sourceRuntime) !== rollbackManifestDigest(publishedRuntime) ||
+        rollbackManifestDigest(sourcePins.envOverrides) !== rollbackManifestDigest(publishedPins.envOverrides) ||
+        sourcePromotion.hash !== publishedPins.promotionEvidence.hash
+      ) {
+        throw Object.assign(reservedVmStoreError('RESERVED_VM_RELEASE_SOURCE_INVALID'), {
+          code: 'RESERVED_VM_RELEASE_SOURCE_INVALID',
+          statusCode: 409,
+        });
+      }
 
       if (replayed) {
         return mapDeployment(deployment);
@@ -9291,7 +9405,9 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
           artifactDigest: releaseSource.artifactDigest,
           storeGeneration: releaseSource.storeGeneration,
           configDigest: releaseSource.configDigest,
-          dbMigrationPoint: releaseSource.dbMigrationPoint,
+          dbMigrationPoint: input.dbMigrationPoint,
+          runtimeSpec: input.runtimeSpec as Prisma.InputJsonValue,
+          promotionEvidence: input.promotionEvidence as Prisma.InputJsonValue,
           accessPolicyVersion: releaseSource.accessPolicyVersion,
         },
       });
@@ -10602,7 +10718,16 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
 
       const deployment = await tx.deployment.findFirst({
         where: { id: input.deploymentId, projectId: input.projectId },
-        select: { id: true, projectId: true, environmentName: true, accessPolicyVersion: true, status: true },
+        select: {
+          id: true,
+          projectId: true,
+          environmentName: true,
+          accessPolicyVersion: true,
+          status: true,
+          provider: true,
+          machineSize: true,
+          project: { select: { organizationId: true } },
+        },
       });
 
       if (!deployment) {
@@ -10657,6 +10782,48 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
       });
 
       const nextPolicyVersion = (latestPolicy?.version ?? 0) + 1;
+      let reboundServerRuntimeSpec: unknown;
+      let retainedServerPromotionEvidence: unknown;
+
+      if (
+        input.releaseSource &&
+        (deployment.provider === 'server' || input.releaseSource.artifactKind === 'server-image')
+      ) {
+        if (
+          deployment.provider !== 'server' ||
+          input.releaseSource.provider !== 'server' ||
+          input.releaseSource.artifactKind !== 'server-image' ||
+          input.releaseSource.accessPolicyVersion !== deployment.accessPolicyVersion
+        ) {
+          throw Object.assign(new Error(appPublicEnglish('DEPLOYMENT_ACCESS_RELEASE_MANIFEST_MISMATCH')), {
+            statusCode: 409,
+            code: 'DEPLOYMENT_ACCESS_RELEASE_MANIFEST_MISMATCH',
+          });
+        }
+
+        const sourceRuntime = parseServerRollbackRuntimeSpec(input.releaseSource.runtimeSpec).spec;
+        const sourcePromotion = parseServerRollbackPromotionEvidence(input.releaseSource.promotionEvidence);
+        const validated = validateServerReleaseCommitPins({
+          runtimeSpec: input.releaseSource.runtimeSpec,
+          promotionEvidence: input.releaseSource.promotionEvidence,
+          organizationId: deployment.project.organizationId,
+          projectId: deployment.projectId,
+          projectManifestDigest: sourceRuntime.projectManifestDigest,
+          accessPolicyVersion: deployment.accessPolicyVersion,
+          machineKey: deployment.machineSize ?? '',
+          artifactRef: input.releaseSource.artifactRef,
+          artifactDigest: input.releaseSource.artifactDigest,
+          ...(input.releaseSource.dbMigrationPoint
+            ? { dbMigrationPoint: input.releaseSource.dbMigrationPoint }
+            : {}),
+          promotion: sourcePromotion.promotion,
+        });
+        reboundServerRuntimeSpec = rebindServerRollbackRuntimeSpecAccessPolicy(
+          validated.runtimeSpec,
+          nextPolicyVersion,
+        );
+        retainedServerPromotionEvidence = validated.promotionEvidence;
+      }
 
       const policy = await tx.deploymentAccessPolicy.create({
         data: {
@@ -10694,6 +10861,14 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
             storeGeneration: input.releaseSource.storeGeneration ?? null,
             configDigest: input.releaseSource.configDigest ?? null,
             dbMigrationPoint: input.releaseSource.dbMigrationPoint ?? null,
+            runtimeSpec:
+              reboundServerRuntimeSpec === undefined
+                ? Prisma.JsonNull
+                : (reboundServerRuntimeSpec as Prisma.InputJsonValue),
+            promotionEvidence:
+              retainedServerPromotionEvidence === undefined
+                ? Prisma.JsonNull
+                : (retainedServerPromotionEvidence as Prisma.InputJsonValue),
             accessPolicyVersion: nextPolicyVersion,
           },
         });
@@ -11061,6 +11236,8 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
     storeGeneration?: string;
     configDigest?: string;
     dbMigrationPoint?: string;
+    runtimeSpec?: unknown;
+    promotionEvidence?: unknown;
     accessPolicyVersion: number;
   }) {
     return this.prisma.$transaction(async (tx) => {
@@ -11105,6 +11282,12 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
             storeGeneration: input.storeGeneration ?? null,
             configDigest: input.configDigest ?? null,
             dbMigrationPoint: input.dbMigrationPoint ?? null,
+            runtimeSpec:
+              input.runtimeSpec === undefined ? Prisma.JsonNull : (input.runtimeSpec as Prisma.InputJsonValue),
+            promotionEvidence:
+              input.promotionEvidence === undefined
+                ? Prisma.JsonNull
+                : (input.promotionEvidence as Prisma.InputJsonValue),
             accessPolicyVersion: input.accessPolicyVersion,
           },
         }),
@@ -11125,6 +11308,10 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
   async getReleaseManifest(projectId: string, manifestId: string) {
     const row = await this.prisma.releaseManifest.findFirst({ where: { id: manifestId, projectId } });
     return row ? mapReleaseManifest(row) : undefined;
+  }
+
+  async isReleaseArtifactRetained(artifactRef: string): Promise<boolean> {
+    return (await this.prisma.releaseManifest.count({ where: { artifactRef } })) > 0;
   }
 
   async acquireRollbackOperation(input: {
@@ -11446,6 +11633,7 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
             environmentName: input.deployment.environment,
             status: input.deployment.status,
             accessPolicyVersion: input.deployment.accessPolicyVersion,
+            ...(input.deployment.machineSize ? { machineSize: input.deployment.machineSize } : {}),
             rolledBackFromId: input.deployment.rolledBackFromId,
             metadata: input.deployment.metadata as Prisma.InputJsonValue,
             logs: [],
@@ -11459,6 +11647,7 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
           deployment.provider !== input.deployment.provider ||
           deployment.environmentName !== input.deployment.environment ||
           deployment.accessPolicyVersion !== input.deployment.accessPolicyVersion ||
+          (input.deployment.machineSize !== undefined && deployment.machineSize !== input.deployment.machineSize) ||
           deployment.rolledBackFromId !== input.deployment.rolledBackFromId ||
           persistedMetadata?.rollbackOperationId !== operation.id ||
           persistedMetadata?.projectManifestDigest !== operation.projectManifestDigest ||
@@ -11650,6 +11839,132 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
     });
   }
 
+  async commitStaticRelease(input: StaticReleaseCommitInput) {
+    return this.prisma.$transaction(async (tx) => {
+      await this.accountPurge.assertProjectMutable(tx, input.projectId);
+      await lockProjectMutation(tx, input.projectId);
+      await requireProjectReleaseFence(tx, input.projectId, input.releaseFence);
+      await tx.$executeRawUnsafe(
+        'SELECT pg_advisory_xact_lock(hashtext($1))',
+        `release-manifest:${input.projectId}:${input.environment}`,
+      );
+      await tx.$queryRawUnsafe(
+        'SELECT "id" FROM "Deployment" WHERE "id" = $1 AND "projectId" = $2 FOR UPDATE',
+        input.deploymentId,
+        input.projectId,
+      );
+      const deployment = await tx.deployment.findFirstOrThrow({
+        where: { id: input.deploymentId, projectId: input.projectId },
+      });
+      const expectedRef = `static-artifacts/sha256/${input.artifactDigest.replace(/^sha256:/u, '')}`;
+      const accessPolicy = await tx.deploymentAccessPolicy.findUnique({
+        where: {
+          projectId_environment_version: {
+            projectId: input.projectId,
+            environment: input.environment,
+            version: input.accessPolicyVersion,
+          },
+        },
+      });
+
+      if (
+        deployment.provider !== 'static' ||
+        deployment.environmentName !== input.environment ||
+        deployment.accessPolicyVersion !== input.accessPolicyVersion ||
+        input.artifactRef !== expectedRef ||
+        input.metadata.projectManifestDigest !== input.releaseFence.expectedManifestDigest ||
+        !validDeploymentAccessPolicy(accessPolicy)
+      ) {
+        throw Object.assign(new Error('STATIC_RELEASE_CONFLICT'), {
+          code: 'STATIC_RELEASE_CONFLICT',
+          statusCode: 409,
+        });
+      }
+
+      const existingRows = await tx.releaseManifest.findMany({
+        where: { deploymentId: input.deploymentId },
+        orderBy: { version: 'desc' },
+        take: 2,
+      });
+      const existing = existingRows[0];
+
+      if (existing) {
+        if (
+          existingRows.length !== 1 ||
+          existing.projectId !== input.projectId ||
+          existing.environment !== input.environment ||
+          existing.provider !== 'static' ||
+          existing.artifactKind !== 'static-snapshot' ||
+          existing.artifactRef !== input.artifactRef ||
+          existing.artifactDigest !== input.artifactDigest ||
+          existing.configDigest !== input.configDigest ||
+          existing.accessPolicyVersion !== input.accessPolicyVersion ||
+          deployment.status !== 'READY'
+        ) {
+          throw Object.assign(new Error('STATIC_RELEASE_CONFLICT'), {
+            code: 'STATIC_RELEASE_CONFLICT',
+            statusCode: 409,
+          });
+        }
+
+        return { deployment: mapDeployment(deployment), manifest: mapReleaseManifest(existing) };
+      }
+
+      if (['READY', 'FAILED', 'CANCELED'].includes(deployment.status)) {
+        throw Object.assign(new Error('STATIC_RELEASE_CONFLICT'), {
+          code: 'STATIC_RELEASE_CONFLICT',
+          statusCode: 409,
+        });
+      }
+
+      const latest = await tx.releaseManifest.findFirst({
+        where: { projectId: input.projectId, environment: input.environment },
+        orderBy: { version: 'desc' },
+        select: { version: true },
+      });
+      const manifest = await tx.releaseManifest.create({
+        data: {
+          projectId: input.projectId,
+          deploymentId: input.deploymentId,
+          environment: input.environment,
+          version: (latest?.version ?? 0) + 1,
+          provider: 'static',
+          artifactKind: 'static-snapshot',
+          artifactRef: input.artifactRef,
+          artifactDigest: input.artifactDigest,
+          configDigest: input.configDigest,
+          accessPolicyVersion: input.accessPolicyVersion,
+        },
+      });
+      const updated = await tx.deployment.updateMany({
+        where: {
+          id: input.deploymentId,
+          projectId: input.projectId,
+          status: { notIn: ['READY', 'FAILED', 'CANCELED'] as any },
+        },
+        data: {
+          status: 'READY',
+          url: input.url,
+          previewUrl: input.previewUrl,
+          productionUrl: input.productionUrl,
+          metadata: input.metadata as Prisma.InputJsonValue,
+          logs: input.logs as unknown as Prisma.InputJsonValue,
+          finishedAt: new Date(input.finishedAt),
+        },
+      });
+
+      if (updated.count !== 1) {
+        throw Object.assign(new Error('STATIC_RELEASE_CONFLICT'), {
+          code: 'STATIC_RELEASE_CONFLICT',
+          statusCode: 409,
+        });
+      }
+
+      const ready = await tx.deployment.findUniqueOrThrow({ where: { id: input.deploymentId } });
+      return { deployment: mapDeployment(ready), manifest: mapReleaseManifest(manifest) };
+    });
+  }
+
   async commitStaticRollbackRelease(input: StaticRollbackReleaseCommitInput) {
     return this.prisma.$transaction(async (tx) => {
       /* Common release order: actor -> topology -> checkpoint -> Project -> rollback/deployment/manifest. */
@@ -11670,9 +11985,10 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
         operation.projectManifestDigest !== input.releaseFence.expectedManifestDigest ||
         source.artifactKind !== 'static-snapshot' ||
         source.provider !== input.provider ||
+        source.artifactRef !== input.artifactRef ||
         source.artifactDigest !== input.artifactDigest ||
         source.accessPolicyVersion !== input.accessPolicyVersion ||
-        input.artifactRef !== `static-deployments/${input.deploymentId}` ||
+        !/^static-artifacts\/sha256\/[a-f0-9]{64}$/u.test(input.artifactRef) ||
         !sameNullable(source.storeGeneration, input.storeGeneration) ||
         !sameNullable(source.configDigest, input.configDigest) ||
         !sameNullable(source.dbMigrationPoint, input.dbMigrationPoint)
@@ -11840,6 +12156,10 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
     const ledger = new LedgerStore(this.prisma);
 
     return this.prisma.$transaction(async (tx) => {
+      /* Parse/decrypt/hash-check before any row mutation in this transaction. */
+      const retainedRuntime = parseServerRollbackRuntimeSpec(input.runtimeSpec).spec;
+      const retainedPromotion = parseServerRollbackPromotionEvidence(input.promotionEvidence);
+
       if (input.rollbackFence && input.reservedVmFence) {
         throw new Error(ROLLBACK_STORE_FAILURE.serverReleaseFenceConflict);
       }
@@ -11908,6 +12228,32 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
       ) {
         throw new Error(SERVER_RELEASE_PROMOTION_NOT_COMMITTED);
       }
+      const expectedPromotion = buildServerRollbackPromotionEvidence({
+        organizationId: input.organizationId,
+        projectId: input.projectId,
+        artifactRef: input.artifactRef,
+        artifactDigest: input.artifactDigest,
+        promotion: serverDeploy.promotion,
+      });
+
+      if (
+        retainedRuntime.organizationId !== input.organizationId ||
+        retainedRuntime.projectId !== input.projectId ||
+        retainedRuntime.projectManifestDigest !== input.releaseFence.expectedManifestDigest ||
+        retainedRuntime.accessPolicyVersion !== deployment.accessPolicyVersion ||
+        retainedRuntime.machine.key !== deployment.machineSize ||
+        retainedRuntime.secretPolicy !== 'CURRENT' ||
+        (retainedRuntime.database.mode === 'none'
+          ? input.dbMigrationPoint !== undefined
+          : input.dbMigrationPoint !== retainedRuntime.database.ledgerDigest) ||
+        retainedPromotion.organizationId !== input.organizationId ||
+        retainedPromotion.projectId !== input.projectId ||
+        retainedPromotion.artifactRef !== input.artifactRef ||
+        retainedPromotion.artifactDigest !== input.artifactDigest ||
+        retainedPromotion.hash !== expectedPromotion.hash
+      ) {
+        throw new Error(SERVER_RELEASE_PROMOTION_NOT_COMMITTED);
+      }
 
       const accessPolicy = await tx.deploymentAccessPolicy.findUnique({
         where: {
@@ -11940,7 +12286,9 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
             rollbackSource.artifactDigest !== input.artifactDigest ||
             !sameNullable(rollbackSource.storeGeneration, input.storeGeneration) ||
             !sameNullable(rollbackSource.configDigest, input.configDigest) ||
-            !sameNullable(rollbackSource.dbMigrationPoint, input.dbMigrationPoint)))
+            !sameNullable(rollbackSource.dbMigrationPoint, input.dbMigrationPoint) ||
+            parseServerRollbackRuntimeSpec(rollbackSource.runtimeSpec).spec.hash !== retainedRuntime.hash ||
+            parseServerRollbackPromotionEvidence(rollbackSource.promotionEvidence).hash !== retainedPromotion.hash))
       ) {
         throw rollbackOwnershipLost();
       }
@@ -11964,6 +12312,8 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
           !sameNullable(existing.storeGeneration, input.storeGeneration) ||
           !sameNullable(existing.configDigest, input.configDigest) ||
           !sameNullable(existing.dbMigrationPoint, input.dbMigrationPoint) ||
+          parseServerRollbackRuntimeSpec(existing.runtimeSpec).spec.hash !== retainedRuntime.hash ||
+          parseServerRollbackPromotionEvidence(existing.promotionEvidence).hash !== retainedPromotion.hash ||
           (rollbackOperation && existing.version !== input.rollbackFence!.expectedHeadVersion + 1) ||
           existing.accessPolicyVersion !== deployment.accessPolicyVersion;
 
@@ -12069,6 +12419,8 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
           storeGeneration: input.storeGeneration ?? null,
           configDigest: input.configDigest ?? null,
           dbMigrationPoint: input.dbMigrationPoint ?? null,
+          runtimeSpec: input.runtimeSpec as Prisma.InputJsonValue,
+          promotionEvidence: input.promotionEvidence as Prisma.InputJsonValue,
           accessPolicyVersion: deployment.accessPolicyVersion,
         },
       });
@@ -15839,6 +16191,8 @@ function mapReleaseManifest(row: any): ReleaseManifestRecord {
     storeGeneration: row.storeGeneration ?? undefined,
     configDigest: row.configDigest ?? undefined,
     dbMigrationPoint: row.dbMigrationPoint ?? undefined,
+    runtimeSpec: row.runtimeSpec ?? undefined,
+    promotionEvidence: row.promotionEvidence ?? undefined,
     accessPolicyVersion: Number(row.accessPolicyVersion ?? 0),
     createdAt: toIso(row.createdAt)!,
   };

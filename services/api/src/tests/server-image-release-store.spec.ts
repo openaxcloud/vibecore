@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
+import {
+  parseServerRollbackPromotionEvidence,
+  parseServerRollbackRuntimeSpec,
+} from '../deterministic-rollback.js';
 // eslint-disable-next-line no-restricted-imports -- this service has no ~/ path alias; keep the store spec service-local.
 import type { DeploymentRecord, ServerImageReleaseCommitInput } from '../store.js';
+import { deterministicServerReleaseFixture } from './deterministic-release-fixture.js';
 import { acquireTestProjectReleaseFence } from './project-release-barrier-fixture.js';
 import { TestApiStore } from './test-api-store.js';
 
@@ -29,38 +34,27 @@ async function fixture() {
     projectId: project.id,
     organizationId: organization.id,
   });
-  const promotion = {
+  const pins = deterministicServerReleaseFixture({
+    organizationId: organization.id,
+    projectId: project.id,
+    projectManifestDigest: release.digest,
+    accessPolicyVersion: 1,
+    artifactRef: IMAGE_REF,
+    artifactDigest: DIGEST,
     promotionId: 'promo-store-test',
-    sourceRepo: 'europe-west9-docker.pkg.dev/build-project/build-repo/p-project',
-    sourceDigest: DIGEST,
-    targetRepo: IMAGE_REF,
-    targetTenant: organization.id,
-    retentionTag: `active-promo-${'a'.repeat(32)}`,
-    attachments: ['signature', 'sbom', 'provenance'].map((type, index) => ({
-      type,
-      digest: `sha256:${String(index + 1).repeat(64)}`,
-      subjectDigest: DIGEST,
-      relinked: true,
-    })),
-    binaryAuthorizationResult: 'PASSED',
-    binaryAuthorizationPolicy: 'projects/policy-proj/platforms/gke/policies/release-policy',
-    binaryAuthorizationPolicyEtag: 'policy-etag-0001',
-    binaryAuthorizationEvaluatedImage: `${IMAGE_REF}@${DIGEST}`,
-    binaryAuthorizationEvaluatedAt: '2026-08-26T00:00:00.500Z',
-    state: 'PROMOTION_COMMITTED',
-    preparedAt: '2026-08-26T00:00:00.000Z',
-    committedAt: '2026-08-26T00:00:01.000Z',
-  };
+  });
   const deployment = await store.createDeployment({
     projectId: project.id,
     provider: 'server',
     environment: 'preview',
     status: 'BUILDING',
+    machineSize: 'shared-0.5',
     metadata: {
       projectManifestDigest: release.digest,
       serverDeploy: {
         image: { imageRef: IMAGE_REF, imageDigest: DIGEST },
-        promotion,
+        promotion: pins.promotion,
+        rollbackRuntimeSpec: pins.runtimeSpec,
       },
     },
   });
@@ -71,6 +65,8 @@ async function fixture() {
     environment: 'preview',
     artifactRef: IMAGE_REF,
     artifactDigest: DIGEST,
+    runtimeSpec: pins.runtimeSpec,
+    promotionEvidence: pins.promotionEvidence,
     url: 'https://release.example.test',
     previewUrl: 'https://release.example.test',
     metadata: deployment.metadata as Record<string, unknown>,
@@ -160,5 +156,37 @@ describe('commitServerImageRelease', () => {
     expect(result.committed).toBe(false);
     expect(result.deployment.status).toBe('CANCELED');
     expect(store.releaseManifests).toEqual([]);
+  });
+
+  it('rebinds both deterministic envelopes atomically when READY access policy changes', async () => {
+    const { store, deployment, input } = await fixture();
+    const committed = await store.commitServerImageRelease(input);
+    const source = committed.manifest!;
+
+    const policy = await store.setDeploymentAccessPolicy({
+      projectId: input.projectId,
+      deploymentId: deployment.id,
+      mode: 'INVITE_ONLY',
+      expectedVersion: 1,
+      releaseSource: source,
+    });
+
+    expect(policy?.version).toBe(2);
+    const releases = await store.listReleaseManifests(input.projectId, input.environment);
+    expect(releases).toHaveLength(2);
+    const rebound = releases[0]!;
+    const sourceRuntime = parseServerRollbackRuntimeSpec(source.runtimeSpec);
+    const reboundRuntime = parseServerRollbackRuntimeSpec(rebound.runtimeSpec);
+
+    expect(rebound.accessPolicyVersion).toBe(2);
+    expect(reboundRuntime.spec.accessPolicyVersion).toBe(2);
+    expect(reboundRuntime.spec.envOverrides).toEqual(sourceRuntime.spec.envOverrides);
+    expect(reboundRuntime.spec.machine).toEqual(sourceRuntime.spec.machine);
+    expect(reboundRuntime.spec.port).toBe(sourceRuntime.spec.port);
+    expect(reboundRuntime.spec.healthPath).toBe(sourceRuntime.spec.healthPath);
+    expect(parseServerRollbackPromotionEvidence(rebound.promotionEvidence)).toEqual(
+      parseServerRollbackPromotionEvidence(source.promotionEvidence),
+    );
+    expect((await store.getDeployment(input.projectId, deployment.id))?.accessPolicyVersion).toBe(2);
   });
 });
