@@ -14,6 +14,7 @@
  * `panelTitle`); this module owns identity, icon, accent, grouping and dock
  * membership.
  */
+import { panelIcon } from '~/components/project-ide/panel-meta';
 import { PROJECT_EDITOR_TOOLS, type ProjectEditorTool } from '~/lib/project-editor-layout';
 
 /** Group headings in the All-tools popup, in display order. */
@@ -51,42 +52,47 @@ const ACCENT_MUTED = 'var(--vc-ide-text-secondary)';
  * the mobile tab metadata already used for them.
  */
 export const PROJECT_EDITOR_TOOL_CATALOG: Record<ProjectEditorTool, ProjectEditorToolDescriptor> = {
-  overview: { id: 'overview', icon: 'i-ph:gauge', accent: ACCENT_ACTION, category: 'workspace' },
-  editor: { id: 'editor', icon: 'i-ph:code', accent: ACCENT_ACTION, category: 'workspace' },
-  files: { id: 'files', icon: 'i-ph:files', accent: ACCENT_WARNING, category: 'workspace' },
-  search: { id: 'search', icon: 'i-ph:magnifying-glass', accent: ACCENT_ACTION, category: 'workspace' },
-  locks: { id: 'locks', icon: 'i-ph:lock', accent: ACCENT_WARNING, category: 'workspace' },
+  overview: { id: 'overview', icon: panelIcon('overview'), accent: ACCENT_ACTION, category: 'workspace' },
+  editor: { id: 'editor', icon: panelIcon('editor'), accent: ACCENT_ACTION, category: 'workspace' },
+  files: { id: 'files', icon: panelIcon('files'), accent: ACCENT_WARNING, category: 'workspace' },
+  search: { id: 'search', icon: panelIcon('search'), accent: ACCENT_ACTION, category: 'workspace' },
+  locks: { id: 'locks', icon: panelIcon('locks'), accent: ACCENT_WARNING, category: 'workspace' },
 
-  terminal: { id: 'terminal', icon: 'i-ph:terminal-window', accent: ACCENT_SUCCESS, category: 'runtime' },
-  logs: { id: 'logs', icon: 'i-ph:list-magnifying-glass', accent: ACCENT_SUCCESS, category: 'runtime' },
-  preview: { id: 'preview', icon: 'i-ph:browser', accent: ACCENT_ACTION, category: 'runtime' },
-  ports: { id: 'ports', icon: 'i-ph:plugs', accent: ACCENT_SUCCESS, category: 'runtime' },
+  terminal: { id: 'terminal', icon: panelIcon('terminal'), accent: ACCENT_SUCCESS, category: 'runtime' },
+  logs: { id: 'logs', icon: panelIcon('logs'), accent: ACCENT_SUCCESS, category: 'runtime' },
+  preview: { id: 'preview', icon: panelIcon('preview'), accent: ACCENT_ACTION, category: 'runtime' },
+  ports: { id: 'ports', icon: panelIcon('ports'), accent: ACCENT_SUCCESS, category: 'runtime' },
 
-  database: { id: 'database', icon: 'i-ph:database', accent: ACCENT_ACTION, category: 'data' },
-  'object-storage': { id: 'object-storage', icon: 'i-ph:package', accent: ACCENT_WARNING, category: 'data' },
+  database: { id: 'database', icon: panelIcon('database'), accent: ACCENT_ACTION, category: 'data' },
+  'object-storage': {
+    id: 'object-storage',
+    icon: panelIcon('object-storage'),
+    accent: ACCENT_WARNING,
+    category: 'data',
+  },
 
-  git: { id: 'git', icon: 'i-ph:git-branch', accent: ACCENT_SUCCESS, category: 'project' },
-  packages: { id: 'packages', icon: 'i-ph:cube', accent: ACCENT_WARNING, category: 'project' },
-  skills: { id: 'skills', icon: 'i-ph:sparkle', accent: ACCENT_ACTION, category: 'project' },
-  integrations: { id: 'integrations', icon: 'i-ph:plugs-connected', accent: ACCENT_SUCCESS, category: 'project' },
-  workflows: { id: 'workflows', icon: 'i-ph:git-branch', accent: ACCENT_SUCCESS, category: 'project' },
-  debugger: { id: 'debugger', icon: 'i-ph:bug', accent: ACCENT_ACTION, category: 'project' },
-  extensions: { id: 'extensions', icon: 'i-ph:puzzle-piece', accent: ACCENT_MUTED, category: 'project' },
-  snapshots: { id: 'snapshots', icon: 'i-ph:stack', accent: ACCENT_ACTION, category: 'project' },
-  studio: { id: 'studio', icon: 'i-ph:robot', accent: ACCENT_ACTION, category: 'project' },
+  git: { id: 'git', icon: panelIcon('git'), accent: ACCENT_SUCCESS, category: 'project' },
+  packages: { id: 'packages', icon: panelIcon('packages'), accent: ACCENT_WARNING, category: 'project' },
+  skills: { id: 'skills', icon: panelIcon('skills'), accent: ACCENT_ACTION, category: 'project' },
+  integrations: { id: 'integrations', icon: panelIcon('integrations'), accent: ACCENT_SUCCESS, category: 'project' },
+  workflows: { id: 'workflows', icon: panelIcon('workflows'), accent: ACCENT_SUCCESS, category: 'project' },
+  debugger: { id: 'debugger', icon: panelIcon('debugger'), accent: ACCENT_ACTION, category: 'project' },
+  extensions: { id: 'extensions', icon: panelIcon('extensions'), accent: ACCENT_MUTED, category: 'project' },
+  snapshots: { id: 'snapshots', icon: panelIcon('snapshots'), accent: ACCENT_ACTION, category: 'project' },
+  studio: { id: 'studio', icon: panelIcon('studio'), accent: ACCENT_ACTION, category: 'project' },
 
-  deployments: { id: 'deployments', icon: 'i-ph:rocket-launch', accent: ACCENT_ACTION, category: 'delivery' },
-  monitoring: { id: 'monitoring', icon: 'i-ph:chart-line', accent: ACCENT_ACTION, category: 'delivery' },
-  domains: { id: 'domains', icon: 'i-ph:globe', accent: ACCENT_ACTION, category: 'delivery' },
+  deployments: { id: 'deployments', icon: panelIcon('deployments'), accent: ACCENT_ACTION, category: 'delivery' },
+  monitoring: { id: 'monitoring', icon: panelIcon('monitoring'), accent: ACCENT_ACTION, category: 'delivery' },
+  domains: { id: 'domains', icon: panelIcon('domains'), accent: ACCENT_ACTION, category: 'delivery' },
 
-  security: { id: 'security', icon: 'i-ph:shield-check', accent: ACCENT_ERROR, category: 'security' },
+  security: { id: 'security', icon: panelIcon('security'), accent: ACCENT_ERROR, category: 'security' },
 
-  activity: { id: 'activity', icon: 'i-ph:activity', accent: ACCENT_ACTION, category: 'team' },
-  collaborators: { id: 'collaborators', icon: 'i-ph:users', accent: ACCENT_MUTED, category: 'team' },
+  activity: { id: 'activity', icon: panelIcon('activity'), accent: ACCENT_ACTION, category: 'team' },
+  collaborators: { id: 'collaborators', icon: panelIcon('collaborators'), accent: ACCENT_MUTED, category: 'team' },
 
-  env: { id: 'env', icon: 'i-ph:brackets-curly', accent: ACCENT_WARNING, category: 'configuration' },
-  secrets: { id: 'secrets', icon: 'i-ph:lock', accent: ACCENT_WARNING, category: 'configuration' },
-  settings: { id: 'settings', icon: 'i-ph:gear', accent: ACCENT_MUTED, category: 'configuration' },
+  env: { id: 'env', icon: panelIcon('env'), accent: ACCENT_WARNING, category: 'configuration' },
+  secrets: { id: 'secrets', icon: panelIcon('secrets'), accent: ACCENT_WARNING, category: 'configuration' },
+  settings: { id: 'settings', icon: panelIcon('settings'), accent: ACCENT_MUTED, category: 'configuration' },
 };
 
 /**

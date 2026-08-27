@@ -149,7 +149,16 @@ describe('BaseChat strengthened-AST catalog', () => {
      * à l'aveugle, comparer la tranche `[frozenStartOffset, frozenEndOffset)`
      * entre la branche et `origin/main`.
      */
-    expect(frozenHash).toBe('e4cd95fb85f9802fd8fe949083eacbad600655f0ceacbc0b8c77187e7f4dd01d');
+    /*
+     * Re-scellé après fusion de `origin/main`. Vérifié selon la procédure
+     * décrite juste au-dessus, et non à l'aveugle : la tranche
+     * [frozenStartOffset, frozenEndOffset) de cette branche a été comparée à
+     * celle de `origin/main` (509abbb9…). Un SEUL hunk les sépare — l'en-tête
+     * Spotlight de RPL-IDE-001.8 et l'aria-label/data-mode qui le
+     * conditionnent. Le markup mobile Terminal/en-tête est identique à
+     * `origin/main` au caractère près.
+     */
+    expect(frozenHash).toBe('f19699c395a846aeee4aa418be7b3e735df4815eb9e09cd3ddf550a12a5857f0');
     expect(outsideFrozen).toEqual([]);
 
     // The mobile header/dock labels are now localized via t(); no raw English remains.

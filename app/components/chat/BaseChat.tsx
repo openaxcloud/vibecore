@@ -8319,7 +8319,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
     const renderIdeRailToolItem = (item: (typeof ideRailToolItems)[number]) => {
       const badgeLabel = 'badgeLabel' in item ? item.badgeLabel : undefined;
-      const title = 'title' in item && item.title ? item.title : IDE_TOOL_DESCRIPTIONS[item.panel];
+      const title = 'title' in item && item.title ? item.title : t(IDE_TOOL_DESCRIPTIONS[item.panel]);
       const baseTooltip = formatRailItemTooltip(t, item.label, title, badgeLabel);
       const active = 'active' in item ? item.active : activeWorkspacePanel === item.panel;
 
@@ -23442,10 +23442,15 @@ function MobileReplitAgentIcon({ className }: { className?: string }) {
  * "Code" there, and the shell carries the deployment's configured terminal name.
  */
 function toolDisplayTitle(tool: string, t: TFunction) {
-  if (tool === 'editor') {
-    return t('baseChatAst.common.code');
-  }
-
+  /*
+   * T2 — pas d'exception pour `editor`. La palette doit nommer l'éditeur
+   * EXACTEMENT comme son onglet : `panelTitle('editor')` rend « Éditeur ».
+   * Un cas particulier renvoyant `baseChatAst.common.code` réintroduisait
+   * « Code » dans la palette seule, et donc deux noms pour un même panneau.
+   *
+   * Le cas `terminal` ci-dessous, lui, reste : SHELL_TERMINAL_LABEL est un
+   * libellé de marque gelé, utilisé partout ailleurs dans le fichier.
+   */
   if (tool === 'terminal') {
     return SHELL_TERMINAL_LABEL;
   }
