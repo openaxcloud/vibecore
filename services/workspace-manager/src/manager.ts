@@ -1705,10 +1705,13 @@ export class WorkspaceManager {
 
       if (!pvc) {
         if (currentRuntimeKind === 'reserved-vm') {
-          throw Object.assign(reservedVmManagerError('The Reserved VM data claim is missing; refusing to create a replacement.'), {
-            code: 'RESERVED_VM_PVC_NOT_FOUND',
-            statusCode: 409,
-          });
+          throw Object.assign(
+            reservedVmManagerError('The Reserved VM data claim is missing; refusing to create a replacement.'),
+            {
+              code: 'RESERVED_VM_PVC_NOT_FOUND',
+              statusCode: 409,
+            },
+          );
         }
 
         pvc = await this.#applyFencedServerDeployment(
@@ -2093,10 +2096,13 @@ export class WorkspaceManager {
     const pvc = await this.k8s.get('PersistentVolumeClaim', input.namespace, claimName).catch(() => undefined);
 
     if (!pvc) {
-      throw Object.assign(reservedVmManagerError('The Reserved VM data claim is missing; refusing an unverified suspension.'), {
-        code: 'RESERVED_VM_PVC_NOT_FOUND',
-        statusCode: 409,
-      });
+      throw Object.assign(
+        reservedVmManagerError('The Reserved VM data claim is missing; refusing an unverified suspension.'),
+        {
+          code: 'RESERVED_VM_PVC_NOT_FOUND',
+          statusCode: 409,
+        },
+      );
     }
 
     if (pvc.metadata.labels?.['vibecore.ai/server-deploy'] !== input.deploymentId) {

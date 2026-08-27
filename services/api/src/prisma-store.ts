@@ -942,7 +942,10 @@ async function requireReservedVmPublishCandidate(
   });
 
   if (!deployment) {
-    throw Object.assign(reservedVmStoreError('DEPLOYMENT_NOT_FOUND'), { code: 'DEPLOYMENT_NOT_FOUND', statusCode: 404 });
+    throw Object.assign(reservedVmStoreError('DEPLOYMENT_NOT_FOUND'), {
+      code: 'DEPLOYMENT_NOT_FOUND',
+      statusCode: 404,
+    });
   }
 
   const metadata =
@@ -8219,10 +8222,13 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
         });
 
         if (!projectOwner || projectOwner.organizationId !== input.reservedVm.organizationId) {
-          throw Object.assign(reservedVmStoreError('Reserved VM project ownership does not match the billing tenant.'), {
-            code: 'RESERVED_VM_TENANT_FORBIDDEN',
-            statusCode: 403,
-          });
+          throw Object.assign(
+            reservedVmStoreError('Reserved VM project ownership does not match the billing tenant.'),
+            {
+              code: 'RESERVED_VM_TENANT_FORBIDDEN',
+              statusCode: 403,
+            },
+          );
         }
 
         await assertAccountPurgeMutationAllowed(tx, {
@@ -8434,7 +8440,10 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
       });
 
       if (!deployment) {
-        throw Object.assign(reservedVmStoreError('Deployment not found.'), { code: 'DEPLOYMENT_NOT_FOUND', statusCode: 404 });
+        throw Object.assign(reservedVmStoreError('Deployment not found.'), {
+          code: 'DEPLOYMENT_NOT_FOUND',
+          statusCode: 404,
+        });
       }
 
       const projectOwner = await tx.project.findUnique({
@@ -8638,7 +8647,10 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
       });
 
       if (!deployment) {
-        throw Object.assign(reservedVmStoreError('Deployment not found.'), { code: 'DEPLOYMENT_NOT_FOUND', statusCode: 404 });
+        throw Object.assign(reservedVmStoreError('Deployment not found.'), {
+          code: 'DEPLOYMENT_NOT_FOUND',
+          statusCode: 404,
+        });
       }
 
       const projectOwner = await tx.project.findUnique({
@@ -8796,7 +8808,10 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
       });
 
       if (!deployment) {
-        throw Object.assign(reservedVmStoreError('DEPLOYMENT_NOT_FOUND'), { code: 'DEPLOYMENT_NOT_FOUND', statusCode: 404 });
+        throw Object.assign(reservedVmStoreError('DEPLOYMENT_NOT_FOUND'), {
+          code: 'DEPLOYMENT_NOT_FOUND',
+          statusCode: 404,
+        });
       }
 
       const project = await tx.project.findUnique({
