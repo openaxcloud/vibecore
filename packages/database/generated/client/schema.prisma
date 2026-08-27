@@ -2807,6 +2807,7 @@ model ImportJob {
   organization  Organization             @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   actor         User?                    @relation("ImportJobActor", fields: [actorUserId], references: [id], onDelete: SetNull)
   targetProject Project?                 @relation("ImportJobTarget", fields: [targetProjectId], references: [id], onDelete: SetNull)
+  /// Rolling-upgrade compatibility only. New imports reserve through LedgerReservation.
   reservation   ImportCreditReservation?
 
   @@unique([organizationId, idempotencyKey])
@@ -2815,9 +2816,9 @@ model ImportJob {
   @@index([state])
 }
 
-/// Durable import credit hold. The FK makes job + reservation one lifecycle;
-/// SETTLED is written in the same transaction as COMMITTED, while every
-/// non-committed terminal path writes COMPENSATED with a zero debit.
+/// Legacy import credit hold retained only so jobs created before migration 0095
+/// can finish or clean up during a rolling deployment. New imports use the
+/// canonical double-entry LedgerReservation/Transaction/Entry lifecycle.
 model ImportCreditReservation {
   id              String    @id @default(cuid())
   organizationId  String

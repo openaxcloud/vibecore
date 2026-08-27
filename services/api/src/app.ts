@@ -21221,6 +21221,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return reply.code(201).send({ project });
   });
 
+  const IMPORT_MAX_STAGED_FILES = 5_000;
+
+  const assertImportFileLimit = (files: ImportFile[]) => {
+    if (files.length > IMPORT_MAX_STAGED_FILES) {
+      throw Object.assign(new Error(appPublicEnglish('IMPORT_JOB_FAILED')), {
+        statusCode: 413,
+        code: 'IMPORT_TOO_MANY_FILES',
+      });
+    }
+  };
+
   const importCreateSchema = z.object({
     provider: z.enum(IMPORT_HUB_PROVIDERS as [string, ...string[]]),
     sourceRef: z.string().max(500).optional(),
@@ -21242,7 +21253,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     idempotencyKey: z.string().trim().min(1).max(200),
     files: z
       .array(z.object({ path: z.string().min(1), content: z.string(), encoding: z.string().optional() }))
-      .max(5000)
+      .max(IMPORT_MAX_STAGED_FILES)
       .default([]),
   });
 
@@ -21484,7 +21495,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       expiresInMs: 60 * 60_000,
       idempotencyKey: body.idempotencyKey,
       requestHash,
-      reservedCredits: estimateImportReservation(inputFiles.length),
+      reservedCredits: estimateImportReservation(
+        body.zipBase64 || isCredentialImportProvider(body.provider) ? IMPORT_MAX_STAGED_FILES : inputFiles.length,
+      ),
     });
 
     if (created.replayed) {
@@ -21634,6 +21647,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         });
 
         stagedFiles = fetched.files;
+        assertImportFileLimit(stagedFiles);
         const preview: CredentialImportPreview = {
           provider: fetched.preview.provider,
           title: fetched.preview.title,
@@ -21652,6 +21666,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           stagedFileCount: stagedFiles.length,
         });
       } else {
+        assertImportFileLimit(stagedFiles);
         await advance('STAGING_ISOLATED', { stagedFiles, stagedFileCount: stagedFiles.length });
       }
 
@@ -21774,8 +21789,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       expiresInMs: 60 * 60_000,
       idempotencyKey: input.idempotencyKey,
       requestHash: input.requestHash,
-      /* Exact adjustment happens only in finalizeImportCommit. */
-      reservedCredits: estimateImportReservation(0),
+      /* Unknown repository/archive size: reserve the accepted ceiling up front. */
+      reservedCredits: estimateImportReservation(IMPORT_MAX_STAGED_FILES),
     });
 
     let current = created.job;
@@ -21829,6 +21844,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         );
         await ensureQuota(input.request, input.organizationId, 'projects.count');
         const loaded = await input.load();
+        assertImportFileLimit(loaded.files);
         stagedFiles = loaded.files;
         preview = loaded.preview ?? null;
         await advance('STAGING_ISOLATED', {

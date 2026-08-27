@@ -62,7 +62,17 @@ runDbTests('durable import staging — real PostgreSQL multi-client CAS', () => 
       expect(createdA.job.id).toBe(createdB.job.id);
       expect([createdA.replayed, createdB.replayed].sort()).toEqual([false, true]);
       expect(await prismaA.importJob.count({ where: { organizationId: organization.id } })).toBe(1);
-      expect(await prismaA.importCreditReservation.count({ where: { organizationId: organization.id } })).toBe(1);
+      expect(await prismaA.importCreditReservation.count({ where: { organizationId: organization.id } })).toBe(0);
+      const hold = await prismaA.ledgerReservation.findFirstOrThrow({
+        where: { organizationId: organization.id, importJobId: createdA.job.id, operation: 'import' },
+      });
+      expect(hold).toMatchObject({
+        status: 'ACTIVE',
+        currency: 'credits',
+        maxAmountMinor: 1n,
+        version: 0,
+      });
+      expect(await prismaA.ledgerEntry.count({ where: { transactionId: hold.reserveTxId ?? '__missing__' } })).toBe(2);
 
       let job = createdA.job;
       job = await advance(storeA, job, 'STAGING_ISOLATED', {
@@ -155,9 +165,12 @@ runDbTests('durable import staging — real PostgreSQL multi-client CAS', () => 
       expect(finalized?.reservation).toMatchObject({ state: 'SETTLED', debitedCredits: 1 });
       expect((await prismaA.project.findUniqueOrThrow({ where: { id: project.id } })).deletedAt).toBeNull();
       expect(await prismaA.project.count({ where: { organizationId: organization.id } })).toBe(1);
-      expect(await prismaA.importCreditReservation.findUnique({ where: { importJobId: job.id } })).toMatchObject({
-        state: 'SETTLED',
-        debitedCredits: 1,
+      expect(await prismaA.importCreditReservation.findUnique({ where: { importJobId: job.id } })).toBeNull();
+      expect(
+        await prismaA.ledgerReservation.findFirst({ where: { importJobId: job.id, operation: 'import' } }),
+      ).toMatchObject({
+        status: 'COMMITTED',
+        committedMinor: 1n,
         version: 1,
       });
       const nulls = await prismaA.$queryRawUnsafe<Array<{ staged: boolean; preview: boolean }>>(
@@ -282,7 +295,14 @@ runDbTests('durable import staging — real PostgreSQL multi-client CAS', () => 
       expect(rolledBack).toMatchObject({ state: 'ROLLING_BACK', targetProjectId: undefined });
       expect(await prisma.project.findUnique({ where: { id: project.id } })).toBeNull();
       expect(await prisma.projectIdeState.findUnique({ where: { projectId: project.id } })).toBeNull();
-      expect(await prisma.importCreditReservation.findUnique({ where: { importJobId: job.id } })).toMatchObject({
+      expect(await prisma.importCreditReservation.findUnique({ where: { importJobId: job.id } })).toBeNull();
+      expect(
+        await prisma.ledgerReservation.findFirst({ where: { importJobId: job.id, operation: 'import' } }),
+      ).toMatchObject({
+        status: 'RELEASED',
+        committedMinor: null,
+      });
+      expect(await store.getImportReservationByJob(job.id, organization.id)).toMatchObject({
         state: 'COMPENSATED',
         debitedCredits: 0,
       });
@@ -326,6 +346,9 @@ runDbTests('durable import staging — real PostgreSQL multi-client CAS', () => 
       };
       const cancelledJob = await create('cancel-other-replica', new Date(Date.now() + 60_000).toISOString());
       expect(await storeB.cancelImportJob(cancelledJob.id, organization.id)).toMatchObject({ state: 'CANCELLED' });
+      expect(
+        await prismaA.ledgerReservation.findFirst({ where: { importJobId: cancelledJob.id, operation: 'import' } }),
+      ).toMatchObject({ status: 'RELEASED', committedMinor: null });
 
       const expiredJob = await create('reap-other-replica', new Date(Date.now() - 60_000).toISOString());
       const nowIso = new Date().toISOString();
@@ -335,12 +358,14 @@ runDbTests('durable import staging — real PostgreSQL multi-client CAS', () => 
       ]);
       expect([...reapedA, ...reapedB].filter((id) => id === expiredJob.id)).toEqual([expiredJob.id]);
       expect(await prismaA.importJob.findUnique({ where: { id: expiredJob.id } })).toMatchObject({ state: 'EXPIRED' });
-      expect(await prismaA.importCreditReservation.findUnique({ where: { importJobId: expiredJob.id } })).toMatchObject(
-        {
-          state: 'COMPENSATED',
-          debitedCredits: 0,
-        },
-      );
+      expect(await prismaA.importCreditReservation.findUnique({ where: { importJobId: expiredJob.id } })).toBeNull();
+      expect(
+        await prismaA.ledgerReservation.findFirst({ where: { importJobId: expiredJob.id, operation: 'import' } }),
+      ).toMatchObject({ status: 'EXPIRED', committedMinor: null });
+      expect(await storeA.getImportReservationByJob(expiredJob.id, organization.id)).toMatchObject({
+        state: 'COMPENSATED',
+        debitedCredits: 0,
+      });
       const nulls = await prismaA.$queryRawUnsafe<Array<{ staged: boolean; preview: boolean }>>(
         'SELECT "stagedFiles" IS NULL AS staged, "connectorPreview" IS NULL AS preview FROM "ImportJob" WHERE "id" = $1',
         expiredJob.id,
@@ -351,6 +376,98 @@ runDbTests('durable import staging — real PostgreSQL multi-client CAS', () => 
         await prismaA.organization.delete({ where: { id: organizationId } }).catch(() => undefined);
       }
       await Promise.allSettled([prismaA.$disconnect(), prismaB.$disconnect()]);
+    }
+  });
+
+  it('finishes and cancels legacy reservations created before the canonical ledger rollout', async () => {
+    const prisma = createDatabaseClient();
+    let organizationId: string | undefined;
+
+    try {
+      const suffix = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+      const organization = await prisma.organization.create({
+        data: { name: `Legacy import ${suffix}`, slug: `legacy-import-${suffix}` },
+      });
+      organizationId = organization.id;
+      const store = new PrismaApiStore(prisma);
+      const token = `legacy-token-${suffix}`;
+      const target = await prisma.project.create({
+        data: {
+          organizationId: organization.id,
+          name: 'Legacy hidden target',
+          slug: `legacy-target-${suffix}`,
+          sourceType: 'zip',
+          persistentVolumeClaim: `pvc-legacy-${suffix}`,
+          deletedAt: new Date(),
+        },
+      });
+      const legacyCommit = await prisma.importJob.create({
+        data: {
+          organizationId: organization.id,
+          provider: 'zip',
+          state: 'COMMITTING',
+          idempotencyKey: `legacy-commit-${suffix}`,
+          requestHash: 'c'.repeat(64),
+          targetProjectId: target.id,
+          creditsReserved: true,
+          operationToken: token,
+          operationExpiresAt: new Date(Date.now() + 60_000),
+          expiresAt: new Date(Date.now() + 60_000),
+        },
+      });
+      await prisma.importCreditReservation.create({
+        data: {
+          organizationId: organization.id,
+          key: legacyCommit.idempotencyKey,
+          importJobId: legacyCommit.id,
+          reservedCredits: 3,
+        },
+      });
+
+      const finalized = await store.finalizeImportCommit({
+        importJobId: legacyCommit.id,
+        organizationId: organization.id,
+        operationToken: token,
+        targetProjectId: target.id,
+        actualCredits: 2,
+      });
+      expect(finalized?.reservation).toMatchObject({ state: 'SETTLED', debitedCredits: 2 });
+      expect(await prisma.project.findUniqueOrThrow({ where: { id: target.id } })).toMatchObject({ deletedAt: null });
+      expect(await prisma.ledgerReservation.count({ where: { importJobId: legacyCommit.id } })).toBe(0);
+
+      const legacyCancel = await prisma.importJob.create({
+        data: {
+          organizationId: organization.id,
+          provider: 'zip',
+          state: 'STAGING_ISOLATED',
+          idempotencyKey: `legacy-cancel-${suffix}`,
+          requestHash: 'd'.repeat(64),
+          creditsReserved: true,
+          expiresAt: new Date(Date.now() + 60_000),
+        },
+      });
+      await prisma.importCreditReservation.create({
+        data: {
+          organizationId: organization.id,
+          key: legacyCancel.idempotencyKey,
+          importJobId: legacyCancel.id,
+          reservedCredits: 2,
+        },
+      });
+
+      expect(await store.cancelImportJob(legacyCancel.id, organization.id)).toMatchObject({ state: 'CANCELLED' });
+      expect(
+        await prisma.importCreditReservation.findUnique({ where: { importJobId: legacyCancel.id } }),
+      ).toMatchObject({
+        state: 'COMPENSATED',
+        debitedCredits: 0,
+      });
+      expect(await prisma.ledgerReservation.count({ where: { importJobId: legacyCancel.id } })).toBe(0);
+    } finally {
+      if (organizationId) {
+        await prisma.organization.delete({ where: { id: organizationId } }).catch(() => undefined);
+      }
+      await prisma.$disconnect();
     }
   });
 

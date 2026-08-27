@@ -106,7 +106,10 @@ export function settleReservation(
   }
 
   if (reservation.state === 'COMPENSATED') {
-    throw new ImportBillingError('Cannot settle a compensated (released) reservation', 'BILLING_SETTLE_AFTER_COMPENSATE');
+    throw new ImportBillingError(
+      'Cannot settle a compensated (released) reservation',
+      'BILLING_SETTLE_AFTER_COMPENSATE',
+    );
   }
 
   if (reservation.state === 'SETTLED') {
@@ -169,7 +172,12 @@ export class ImportCreditLedger {
   private readonly keyByJob = new Map<string, string>();
 
   /** Idempotent reserve. Returns the reservation (existing one on key replay). */
-  reserve(input: { key: string; organizationId: string; importJobId: string; reservedCredits: number }): ImportReservation {
+  reserve(input: {
+    key: string;
+    organizationId: string;
+    importJobId: string;
+    reservedCredits: number;
+  }): ImportReservation {
     const existing = this.byKey.get(input.key);
     const next = reserveReservation(existing, input);
     this.byKey.set(next.key, next);
@@ -256,8 +264,9 @@ export class ImportCreditLedger {
 /**
  * Estimate the credits to reserve up-front for an import. Kept trivial and
  * deterministic (1 credit per staged file, min 1) — the point of this module is
- * the reservation LIFECYCLE safety, not a pricing model (real pricing lives in
- * RATE_CARD / the UsageReservation follow-up). Settle adjusts to the real amount.
+ * the reservation LIFECYCLE safety, not a pricing model. Pricing is versioned by
+ * RATE_CARD; durable holds and settlement live in the canonical LedgerReservation
+ * double-entry ledger. Settle adjusts the hold to the measured amount.
  */
 export function estimateImportReservation(stagedFileCount: number): number {
   if (!Number.isFinite(stagedFileCount) || stagedFileCount <= 0) {
