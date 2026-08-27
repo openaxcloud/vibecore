@@ -38,9 +38,16 @@ import {
   formatDeploymentDuration,
   shouldPollDeployments,
 } from './projects.$projectId.deployments.view';
+import { AsyncPanelError, AsyncPanelSkeleton } from '~/components/dashboard/AsyncPanelState';
 import { ProjectShell } from '~/components/dashboard/SaaSLayout';
 import { DeploySubNav, type DeployView } from '~/components/deploy/DeploySubNav';
 import { DeploymentOverview } from '~/components/deploy/DeploymentOverview';
+import {
+  isDeploymentPlanReadyForPublish,
+  PlanDeploymentControls,
+  type DeploymentPlanEntitlements,
+  type DeploymentPlanProvider,
+} from '~/components/deploy/PlanDeploymentControls';
 import { DEFAULT_DEPLOYMENT_TYPE, type DeploymentTypeId } from '~/components/deploy/deployment-types';
 import { Button } from '~/components/ui/Button';
 import { ConfirmationDialog } from '~/components/ui/Dialog';
@@ -142,6 +149,27 @@ export type DeployRateCard = {
   }>;
 };
 
+export type DeployPlanEntitlementsData = {
+  planEntitlements: DeploymentPlanEntitlements | null;
+  error: string | null;
+};
+
+function isDeploymentPlanProvider(value: string | null): value is DeploymentPlanProvider {
+  return value === 'static' || value === 'server';
+}
+
+export function deploymentPlanRequestFields(body: { publishRegion?: string; removeBrandingBadge?: string }): {
+  publishRegion?: string;
+  removeBrandingBadge: boolean;
+} {
+  const publishRegion = body.publishRegion?.trim();
+
+  return {
+    ...(publishRegion ? { publishRegion } : {}),
+    removeBrandingBadge: body.removeBrandingBadge === 'on',
+  };
+}
+
 /** ~$ per active hour for a size (compute units/s × 3600 × unit price). */
 export function machineSizeHourlyDollars(
   card: DeployRateCard,
@@ -215,6 +243,44 @@ export const loader = async (args: EnterpriseLoaderArgs) => {
     }
   }
 
+  /*
+   * Server-authoritative publication policy for the currently detected
+   * provider. The browser never derives badge/region rights from a plan name.
+   */
+  if (url.searchParams.get('planEntitlements') === '1') {
+    const projectId = args.params.projectId;
+    const provider = url.searchParams.get('provider');
+
+    if (!projectId) {
+      throw json({ ok: false, error: copy.errors.projectNotFound }, { status: 404 });
+    }
+
+    if (!isDeploymentPlanProvider(provider)) {
+      return json<DeployPlanEntitlementsData>(
+        { planEntitlements: null, error: copy.publish.entitlements.providerEdgeRequired },
+        { status: 400 },
+      );
+    }
+
+    try {
+      const planEntitlements = await apiRequest<DeploymentPlanEntitlements>(
+        args.request,
+        `/projects/${projectId}/deployments/plan-entitlements?provider=${encodeURIComponent(provider)}`,
+      );
+
+      return json<DeployPlanEntitlementsData>({ planEntitlements, error: null });
+    } catch (error) {
+      if (isReauthRedirect(error)) {
+        throw error;
+      }
+
+      return json<DeployPlanEntitlementsData>({
+        planEntitlements: null,
+        error: await apiErrorMessage(error, copy.publish.entitlements.errorDescription),
+      });
+    }
+  }
+
   return projectPageLoader<DeploymentsData>(args, (projectId) => `/projects/${projectId}/deployments`);
 };
 
@@ -226,7 +292,11 @@ async function localizedDeploymentApiError(
   const language = resolveProjectUserAreaLanguage(resolveRequestLocale(request).language);
   const fallback = getProjectDeploymentsCopy(language).errors[key];
 
-  return language === 'fr' ? fallback : apiErrorMessage(error, fallback);
+  /*
+   * apiRequest forwards the resolved locale and only exposes the API's public
+   * error contract, so entitlement/provider denials remain precise in EN/FR.
+   */
+  return apiErrorMessage(error, fallback);
 }
 
 export const action = (args: EnterpriseActionArgs) =>
@@ -279,6 +349,7 @@ export const action = (args: EnterpriseActionArgs) =>
 
             // Server deploys: rate-card machine size picked in the publish card.
             machineSize: body.machineSize || undefined,
+            ...deploymentPlanRequestFields(body),
             accessMode: body.accessMode || 'INVITE_ONLY',
             accessPassword: body.accessMode === 'PASSWORD_PROTECTED' ? body.accessPassword || undefined : undefined,
           }),
@@ -573,6 +644,7 @@ function DeployPublishCard({
   const { copy, language } = useProjectDeploymentsLocale();
   const detectFetcher = useFetcher<{ detected: DeployDetect }>();
   const rateCardFetcher = useFetcher<{ rateCard: DeployRateCard | null }>();
+  const planEntitlementsFetcher = useFetcher<DeployPlanEntitlementsData>();
   const [override, setOverride] = useState<'auto' | 'server' | 'static'>('auto');
   const [accessMode, setAccessMode] = useState<DeploymentAccessMode>('INVITE_ONLY');
 
@@ -584,13 +656,6 @@ function DeployPublishCard({
   useEffect(() => {
     detectFetcher.load(detectHref);
   }, [detectHref]);
-
-  // The rate card (machine sizes + availability) drives the server-mode selector.
-  useEffect(() => {
-    rateCardFetcher.load(`/projects/${projectId}/deployments?rateCard=1`);
-  }, [projectId]);
-
-  const rateCard = rateCardFetcher.data?.rateCard ?? null;
 
   const detected = detectFetcher.data?.detected;
   const detecting = detectFetcher.state !== 'idle' || !detected;
@@ -605,8 +670,44 @@ function DeployPublishCard({
     }
   }, [effectiveMode]);
 
-  const provider = effectiveMode === 'server' ? 'server' : 'static';
-  const canPublish = (effectiveMode === 'server' || effectiveMode === 'static') && !busy && !building;
+  const provider: DeploymentPlanProvider = effectiveMode === 'server' ? 'server' : 'static';
+  const planEntitlementsHref = `/projects/${projectId}/deployments?planEntitlements=1&provider=${provider}`;
+
+  useEffect(() => {
+    if (effectiveMode === 'server' || effectiveMode === 'static') {
+      planEntitlementsFetcher.load(planEntitlementsHref);
+    }
+  }, [effectiveMode, planEntitlementsHref]);
+
+  // A server publication cannot proceed without its current authoritative rate card.
+  useEffect(() => {
+    if (effectiveMode === 'server') {
+      rateCardFetcher.load(`/projects/${projectId}/deployments?rateCard=1`);
+    }
+  }, [effectiveMode, projectId]);
+
+  const rateCard = rateCardFetcher.data?.rateCard ?? null;
+
+  const rateCardLoading =
+    effectiveMode === 'server' && (rateCardFetcher.state !== 'idle' || rateCardFetcher.data === undefined);
+
+  const planEntitlements = planEntitlementsFetcher.data?.planEntitlements ?? null;
+
+  const planEntitlementsError = planEntitlementsFetcher.data?.error ?? null;
+
+  const planEntitlementsLoading =
+    effectiveMode === 'server' || effectiveMode === 'static'
+      ? planEntitlementsFetcher.state !== 'idle' ||
+        planEntitlementsFetcher.data === undefined ||
+        planEntitlements?.provider !== provider
+      : false;
+
+  const planReady = isDeploymentPlanReadyForPublish(planEntitlements, provider);
+
+  const rateCardReady = effectiveMode !== 'server' || Boolean(rateCard);
+
+  const canPublish =
+    (effectiveMode === 'server' || effectiveMode === 'static') && planReady && rateCardReady && !busy && !building;
 
   return (
     <div className="grid gap-4">
@@ -626,7 +727,7 @@ function DeployPublishCard({
             <button
               type="button"
               onClick={() => detectFetcher.load(detectHref)}
-              className="justify-self-start text-xs font-medium text-bolt-elements-item-contentAccent hover:underline"
+              className="inline-flex min-h-[44px] items-center justify-center justify-self-start rounded-md px-2 text-xs font-medium text-bolt-elements-item-contentAccent hover:bg-bolt-elements-background-depth-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-bolt-elements-focus"
             >
               {copy.publish.redetect}
             </button>
@@ -656,6 +757,19 @@ function DeployPublishCard({
         <p className="text-xs text-bolt-elements-textSecondary">
           {effectiveMode === 'server' ? copy.publish.serverDescription : copy.publish.staticDescription}
         </p>
+
+        {effectiveMode === 'server' || effectiveMode === 'static' ? (
+          <PlanDeploymentControls
+            key={provider}
+            copy={copy.publish.entitlements}
+            provider={provider}
+            entitlements={planEntitlements}
+            loading={planEntitlementsLoading}
+            error={planEntitlementsError}
+            retrying={planEntitlementsFetcher.state !== 'idle'}
+            onRetry={() => planEntitlementsFetcher.load(planEntitlementsHref)}
+          />
+        ) : null}
 
         <div className="grid gap-2 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-4">
           <label className="grid gap-2 text-xs font-medium uppercase tracking-[0.04em] text-bolt-elements-textTertiary">
@@ -711,30 +825,43 @@ function DeployPublishCard({
          * never hard-coded. Sizes the plan or current capacity cannot grant stay
          * visible but disabled, so the ladder is honest about what exists.
          */}
-        {effectiveMode === 'server' && rateCard ? (
-          <div className="grid gap-1.5">
-            <Field
-              as="select"
-              label={copy.publish.machineSize}
-              name="machineSize"
-              defaultValue={rateCard.defaultMachineSize}
-            >
-              {rateCard.machineSizes.map((size) => (
-                <option key={size.key} value={size.key} disabled={!size.available}>
-                  {size.label} —{' '}
-                  {interpolateProjectCopy(copy.publish.hourlyActive, {
-                    amount: machineSizeHourlyDollars(rateCard, size, language),
-                  })}
-                  {size.available
-                    ? ''
-                    : ` ${size.reason === 'plan' ? copy.publish.upgradePlan : copy.publish.unavailable}`}
-                </option>
-              ))}
-            </Field>
-            <p className="text-[11px] text-bolt-elements-textTertiary">
-              {interpolateProjectCopy(copy.publish.billing, { version: rateCard.version })}
-            </p>
-          </div>
+        {effectiveMode === 'server' ? (
+          rateCardLoading ? (
+            <AsyncPanelSkeleton compact rows={2} label={copy.publish.entitlements.rateCardLoading} />
+          ) : rateCard ? (
+            <div className="grid gap-1.5">
+              <Field
+                as="select"
+                label={copy.publish.machineSize}
+                name="machineSize"
+                defaultValue={rateCard.defaultMachineSize}
+              >
+                {rateCard.machineSizes.map((size) => (
+                  <option key={size.key} value={size.key} disabled={!size.available}>
+                    {size.label} —{' '}
+                    {interpolateProjectCopy(copy.publish.hourlyActive, {
+                      amount: machineSizeHourlyDollars(rateCard, size, language),
+                    })}
+                    {size.available
+                      ? ''
+                      : ` ${size.reason === 'plan' ? copy.publish.upgradePlan : copy.publish.unavailable}`}
+                  </option>
+                ))}
+              </Field>
+              <p className="text-[11px] text-bolt-elements-textTertiary">
+                {interpolateProjectCopy(copy.publish.billing, { version: rateCard.version })}
+              </p>
+            </div>
+          ) : (
+            <AsyncPanelError
+              compact
+              title={copy.publish.entitlements.rateCardErrorTitle}
+              description={copy.publish.entitlements.rateCardErrorDescription}
+              retryLabel={copy.publish.entitlements.rateCardRetry}
+              retrying={rateCardFetcher.state !== 'idle'}
+              onRetry={() => rateCardFetcher.load(`/projects/${projectId}/deployments?rateCard=1`)}
+            />
+          )
         ) : null}
 
         <Field
@@ -745,7 +872,7 @@ function DeployPublishCard({
         />
 
         <details className="group">
-          <summary className="cursor-pointer text-xs font-medium text-bolt-elements-textTertiary hover:text-bolt-elements-textSecondary">
+          <summary className="flex min-h-[44px] cursor-pointer items-center rounded-md text-xs font-medium text-bolt-elements-textTertiary hover:text-bolt-elements-textSecondary focus:outline-none focus-visible:ring-2 focus-visible:ring-bolt-elements-focus">
             {copy.publish.advanced}
           </summary>
           <div className="mt-2 grid gap-1.5 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-3">
@@ -758,7 +885,7 @@ function DeployPublishCard({
             ).map(([value, label]) => (
               <label
                 key={value}
-                className="flex cursor-pointer items-center gap-2 text-xs text-bolt-elements-textSecondary"
+                className="flex min-h-[44px] cursor-pointer items-center gap-2 rounded-md px-2 text-xs text-bolt-elements-textSecondary focus-within:ring-2 focus-within:ring-bolt-elements-focus"
               >
                 <input
                   className="h-3.5 w-3.5 accent-bolt-elements-focus"
