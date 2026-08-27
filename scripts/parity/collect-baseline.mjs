@@ -26,6 +26,8 @@ import { createRequire } from 'node:module';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { classifyRenderedCapture, createWarcResponseRecord } from './collector-integrity.mjs';
+
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(here, '..', '..');
 const snapshotsRoot = join(repoRoot, 'docs', 'parity', 'baseline', 'snapshots');
@@ -45,19 +47,70 @@ const snapshotsRoot = join(repoRoot, 'docs', 'parity', 'baseline', 'snapshots');
 const SOURCES = [
   // --- docs (fetch) ---
   { id: 'llms-txt', url: 'https://docs.replit.com/llms.txt', kind: 'text', file: 'llms.txt', family: 'docs' },
-  { id: 'llms-full-txt', url: 'https://docs.replit.com/llms-full.txt', kind: 'text', file: 'llms-full.txt', family: 'docs' },
+  {
+    id: 'llms-full-txt',
+    url: 'https://docs.replit.com/llms-full.txt',
+    kind: 'text',
+    file: 'llms-full.txt',
+    family: 'docs',
+  },
   { id: 'sitemap-xml', url: 'https://docs.replit.com/sitemap.xml', kind: 'xml', file: 'sitemap.xml', family: 'docs' },
   // --- launch-channel (fetch/html) ---
-  { id: 'changelog-index', url: 'https://docs.replit.com/updates', kind: 'html', file: 'changelog-index.html', family: 'launch-channel' },
-  { id: 'product-blog', url: 'https://blog.replit.com/', kind: 'html', file: 'product-blog.html', family: 'launch-channel' },
+  {
+    id: 'changelog-index',
+    url: 'https://docs.replit.com/updates',
+    kind: 'html',
+    file: 'changelog-index.html',
+    family: 'launch-channel',
+  },
+  {
+    id: 'product-blog',
+    url: 'https://blog.replit.com/',
+    kind: 'html',
+    file: 'product-blog.html',
+    family: 'launch-channel',
+  },
   // --- product-route (JS-RENDERED) ---
-  { id: 'pricing', url: 'https://replit.com/pricing', kind: 'html', file: 'pricing.rendered.html', family: 'product-route', render: true },
-  { id: 'gallery', url: 'https://replit.com/gallery', kind: 'html', file: 'gallery.rendered.html', family: 'product-route', render: true },
-  { id: 'community', url: 'https://replit.com/community', kind: 'html', file: 'community.rendered.html', family: 'product-route', render: true },
+  {
+    id: 'pricing',
+    url: 'https://replit.com/pricing',
+    kind: 'html',
+    file: 'pricing.rendered.html',
+    family: 'product-route',
+    render: true,
+  },
+  {
+    id: 'gallery',
+    url: 'https://replit.com/gallery',
+    kind: 'html',
+    file: 'gallery.rendered.html',
+    family: 'product-route',
+    render: true,
+  },
+  {
+    id: 'community',
+    url: 'https://replit.com/community',
+    kind: 'html',
+    file: 'community.rendered.html',
+    family: 'product-route',
+    render: true,
+  },
   // --- governance / operational channels (audit v4 A) ---
   { id: 'status', url: 'https://status.replit.com/', kind: 'html', file: 'status.html', family: 'status' },
-  { id: 'trust-safety', url: 'https://docs.replit.com/legal-and-security-info/misuse-and-trust-safety-policies', kind: 'html', file: 'trust-safety.html', family: 'trust-safety' },
-  { id: 'security', url: 'https://docs.replit.com/legal-and-security-info/security', kind: 'html', file: 'security.html', family: 'security' },
+  {
+    id: 'trust-safety',
+    url: 'https://docs.replit.com/legal-and-security-info/misuse-and-trust-safety-policies',
+    kind: 'html',
+    file: 'trust-safety.html',
+    family: 'trust-safety',
+  },
+  {
+    id: 'security',
+    url: 'https://docs.replit.com/legal-and-security-info/security',
+    kind: 'html',
+    file: 'security.html',
+    family: 'security',
+  },
   { id: 'legal-terms', url: 'https://replit.com/site/terms', kind: 'html', file: 'legal-terms.html', family: 'legal' },
 ];
 
@@ -111,10 +164,23 @@ async function fetchSource(source) {
     const body = Buffer.from(await response.arrayBuffer());
 
     if (!response.ok) {
-      return { source, status: 'FAILED', httpStatus: response.status, body: null };
+      return {
+        source,
+        status: response.status === 404 || response.status === 410 ? 'ROUTE_REMOVED' : 'FAILED',
+        httpStatus: response.status,
+        finalUrl: response.url,
+        body: null,
+      };
     }
 
-    return { source, status: 'OK', httpStatus: response.status, body };
+    return {
+      source,
+      status: 'OK',
+      httpStatus: response.status,
+      finalUrl: response.url,
+      contentType: response.headers.get('content-type') ?? undefined,
+      body,
+    };
   } catch (error) {
     return { source, status: 'FAILED', httpStatus: 0, error: String(error?.message ?? error), body: null };
   }
@@ -193,29 +259,58 @@ async function renderSources(renderSources) {
   const results = [];
 
   try {
-    const context = await browser.newContext({ userAgent: REALISTIC_UA, viewport: { width: 1280, height: 900 }, locale: 'en-US' });
+    const context = await browser.newContext({
+      userAgent: REALISTIC_UA,
+      viewport: { width: 1280, height: 900 },
+      locale: 'en-US',
+    });
 
     for (const source of renderSources) {
       try {
         const page = await context.newPage();
-        await page.goto(source.url, { waitUntil: 'domcontentloaded', timeout: 60_000 });
-        await page.waitForTimeout(6_000); // let client render settle
+        try {
+          const response = await page.goto(source.url, { waitUntil: 'domcontentloaded', timeout: 60_000 });
+          await page.waitForTimeout(6_000); // let client render settle
 
-        for (let i = 1; i <= 4; i++) {
-          await page.evaluate((f) => window.scrollTo(0, document.body.scrollHeight * f / 4), i);
-          await page.waitForTimeout(600);
+          for (let i = 1; i <= 4; i++) {
+            await page.evaluate((f) => window.scrollTo(0, (document.body.scrollHeight * f) / 4), i);
+            await page.waitForTimeout(600);
+          }
+
+          const html = await page.evaluate(() => document.documentElement.outerHTML);
+          const text = await page.evaluate(() => document.body.innerText);
+          const finalUrl = page.url();
+          const classification = classifyRenderedCapture({
+            sourceId: source.id,
+            requestedUrl: source.url,
+            finalUrl,
+            httpStatus: response?.status() ?? 0,
+            html,
+            text,
+          });
+
+          if (classification.status !== 'OK') {
+            results.push({
+              source,
+              ...classification,
+              finalUrl,
+              body: null,
+            });
+            continue;
+          }
+
+          results.push({
+            source,
+            status: 'OK',
+            httpStatus: classification.httpStatus,
+            finalUrl,
+            contentType: response?.headers()['content-type'] ?? 'text/html; charset=utf-8',
+            body: Buffer.from(html, 'utf8'),
+            renderedText: text,
+          });
+        } finally {
+          await page.close();
         }
-
-        const html = await page.evaluate(() => document.documentElement.outerHTML);
-        const text = await page.evaluate(() => document.body.innerText);
-        await page.close();
-
-        if (/been blocked|security service to protect/i.test(text)) {
-          results.push({ source, status: 'BLOCKED', httpStatus: 403, error: 'bot-detection block', body: null });
-          continue;
-        }
-
-        results.push({ source, status: 'OK', httpStatus: 200, body: Buffer.from(html, 'utf8'), renderedText: text });
       } catch (error) {
         results.push({ source, status: 'FAILED', httpStatus: 0, error: String(error?.message ?? error), body: null });
       }
@@ -250,6 +345,7 @@ mkdirSync(outDir, { recursive: true });
 
 const fetchSources = SOURCES.filter((source) => !source.render);
 const jsRenderSources = SOURCES.filter((source) => source.render);
+const collectionStartedAt = new Date().toISOString();
 
 const [fetched, rendered] = await Promise.all([
   Promise.all(fetchSources.map((source) => fetchSource(source))),
@@ -259,7 +355,7 @@ const results = [...fetched, ...rendered];
 
 const manifest = {
   schemaVersion: 2,
-  collectedAt: new Date().toISOString(),
+  collectedAt: collectionStartedAt,
   cadence: 'daily',
   cadenceNote:
     'Replit changelog publishes on ARBITRARY weekdays (llms.txt index includes Sunday 2025-11-16 and Wednesday 2025-11-26). Friday-keyed automation is forbidden.',
@@ -295,6 +391,28 @@ for (const result of results) {
   writeFileSync(join(outDir, source.file), result.body);
   writeFileSync(join(outDir, `${source.id}.links.txt`), links.slice().sort().join('\n') + '\n');
 
+  const archiveFile = `${source.id}.warc`;
+  const archive = createWarcResponseRecord({
+    url: result.finalUrl ?? source.url,
+    capturedAt: manifest.collectedAt,
+    httpStatus: result.httpStatus,
+    contentType:
+      result.contentType ?? (source.kind === 'html' ? 'text/html; charset=utf-8' : 'text/plain; charset=utf-8'),
+    body: result.body,
+  });
+  writeFileSync(join(outDir, archiveFile), archive);
+
+  let renderedTextFile;
+  let renderedTextBytes;
+  let renderedTextSha256;
+  if (source.render) {
+    renderedTextFile = `${source.id}.rendered.txt`;
+    const renderedTextBody = sanitizeSnapshot(Buffer.from(result.renderedText ?? '', 'utf8'));
+    renderedTextBytes = renderedTextBody.length;
+    renderedTextSha256 = sha256(renderedTextBody);
+    writeFileSync(join(outDir, renderedTextFile), renderedTextBody);
+  }
+
   // Watch-term detection: search the rendered TEXT (falls back to raw for docs).
   // This is how Community Profiles is surfaced — a property of the snapshot.
   const haystack = result.renderedText ?? text;
@@ -313,6 +431,17 @@ for (const result of results) {
     file: source.file,
     sha256: sha256(result.body),
     bytes: result.body.length,
+    finalUrl: result.finalUrl ?? source.url,
+    archiveFormat: 'WARC/1.1',
+    archiveFile,
+    archiveSha256: sha256(archive),
+    ...(source.render
+      ? {
+          renderedTextFile,
+          renderedTextBytes,
+          renderedTextSha256,
+        }
+      : {}),
 
     // eventDate is UNKNOWN for a page snapshot (no publish date on a route);
     // detectionDate is when WE saw it — the pair makes blindness measurable.
@@ -360,7 +489,9 @@ if (!previousDir) {
     }
 
     const previousLinksPath = join(previousDir, `${source.id}.links.txt`);
-    const currentLinks = readFileSync(join(outDir, `${source.id}.links.txt`), 'utf8').split('\n').filter(Boolean);
+    const currentLinks = readFileSync(join(outDir, `${source.id}.links.txt`), 'utf8')
+      .split('\n')
+      .filter(Boolean);
     const previousLinks = existsSync(previousLinksPath)
       ? readFileSync(previousLinksPath, 'utf8').split('\n').filter(Boolean)
       : [];

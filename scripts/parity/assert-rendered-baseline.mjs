@@ -10,8 +10,14 @@
  */
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
-import { dirname, isAbsolute, join, resolve } from 'node:path';
+import { basename, dirname, isAbsolute, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+import {
+  classifyRenderedCapture,
+  MIN_RENDERED_TEXT_BYTES,
+  validateWarcResponseRecord,
+} from './collector-integrity.mjs';
 
 export const REQUIRED_RENDERED_SOURCES = Object.freeze({
   pricing: 'pricing.rendered.html',
@@ -35,6 +41,46 @@ export function validateRenderedBaseline(manifestPath) {
     manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
   } catch (error) {
     return [`manifest is not valid JSON: ${String(error?.message ?? error)}`];
+  }
+
+  for (const [sourceId, source] of Object.entries(manifest.sources ?? {})) {
+    if (source?.status !== 'OK') continue;
+    if (!/^[a-z0-9-]+$/.test(sourceId)) {
+      errors.push(`${sourceId}: unsafe source id`);
+      continue;
+    }
+    if (typeof source.file !== 'string' || basename(source.file) !== source.file) {
+      errors.push(`${sourceId}: source artifact path is unsafe`);
+      continue;
+    }
+
+    const sourcePath = join(dirname(manifestPath), source.file);
+    if (!existsSync(sourcePath)) {
+      errors.push(`${sourceId}: source artifact missing: ${sourcePath}`);
+      continue;
+    }
+    const sourceBody = readFileSync(sourcePath);
+    const expectedArchiveFile = `${sourceId}.warc`;
+    if (source.archiveFormat !== 'WARC/1.1' || source.archiveFile !== expectedArchiveFile) {
+      errors.push(`${sourceId}: valid WARC/1.1 archive metadata is required`);
+      continue;
+    }
+    const archivePath = join(dirname(manifestPath), expectedArchiveFile);
+    if (!existsSync(archivePath)) {
+      errors.push(`${sourceId}: WARC archive missing: ${archivePath}`);
+      continue;
+    }
+    const archive = readFileSync(archivePath);
+    if (source.archiveSha256 !== sha256(archive)) {
+      errors.push(`${sourceId}: WARC archive sha256 does not match manifest`);
+    }
+    for (const archiveError of validateWarcResponseRecord(archive, {
+      url: source.finalUrl ?? source.url,
+      httpStatus: source.httpStatus,
+      body: sourceBody,
+    })) {
+      errors.push(`${sourceId}: ${archiveError}`);
+    }
   }
 
   for (const [sourceId, expectedFile] of Object.entries(REQUIRED_RENDERED_SOURCES)) {
@@ -88,6 +134,40 @@ export function validateRenderedBaseline(manifestPath) {
     if (source.sha256 !== digest) {
       errors.push(`${sourceId}: manifest sha256 does not match rendered artifact`);
     }
+
+    const expectedTextFile = `${sourceId}.rendered.txt`;
+    if (source.renderedTextFile !== expectedTextFile) {
+      errors.push(`${sourceId}: expected rendered text file ${expectedTextFile}`);
+    } else {
+      const renderedTextPath = join(dirname(manifestPath), expectedTextFile);
+      if (!existsSync(renderedTextPath)) {
+        errors.push(`${sourceId}: rendered text artifact missing: ${renderedTextPath}`);
+      } else {
+        const renderedTextBody = readFileSync(renderedTextPath);
+        const renderedText = renderedTextBody.toString('utf8');
+        if (renderedTextBody.length < MIN_RENDERED_TEXT_BYTES) {
+          errors.push(`${sourceId}: rendered text is implausibly small (${renderedTextBody.length} bytes)`);
+        }
+        if (source.renderedTextBytes !== renderedTextBody.length) {
+          errors.push(`${sourceId}: rendered text byte count does not match manifest`);
+        }
+        if (source.renderedTextSha256 !== sha256(renderedTextBody)) {
+          errors.push(`${sourceId}: rendered text sha256 does not match manifest`);
+        }
+
+        const capture = classifyRenderedCapture({
+          sourceId,
+          requestedUrl: source.url,
+          finalUrl: source.finalUrl,
+          httpStatus: source.httpStatus,
+          html: text,
+          text: renderedText,
+        });
+        if (capture.status !== 'OK') {
+          errors.push(`${sourceId}: rendered capture classified as ${capture.status}`);
+        }
+      }
+    }
   }
 
   return errors;
@@ -118,7 +198,7 @@ function main() {
   }
 
   console.log(
-    `[parity-render-gate] pricing, gallery and community rendered artifacts verified from ${manifestPath}`,
+    `[parity-render-gate] pricing, gallery and community HTML, text and WARC artifacts verified from ${manifestPath}`,
   );
 }
 

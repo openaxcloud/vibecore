@@ -113,8 +113,8 @@ export function validateCollectorWorkflowContract({ workflowSource, runtimePacka
   requirePattern(
     errors,
     job,
-    /if:\s*always\(\)[\s\S]*?uses:\s*actions\/upload-artifact@v4[\s\S]*?\/tmp\/collect\.log[\s\S]*?manifest\.json[\s\S]*?pricing\.rendered\.html[\s\S]*?gallery\.rendered\.html[\s\S]*?community\.rendered\.html/,
-    'collector logs, manifest and rendered pages must be uploaded even on failure',
+    /if:\s*always\(\)[\s\S]*?uses:\s*actions\/upload-artifact@v4[\s\S]*?\/tmp\/collect\.log[\s\S]*?\$\{\{ steps\.collect\.outputs\.snapshot_dir \}\}[ \t]*\r?\n/,
+    'collector logs and the complete snapshot directory must be uploaded even on failure',
   );
 
   if (/\bnpx\b/.test(job) || /(^|\s)(pnpm|yarn)\s/.test(job)) {
@@ -152,7 +152,9 @@ function main() {
     return;
   }
 
-  console.log('[parity-collector-workflow] pinned runtime, Chromium, timeouts, render gate and artifacts verified');
+  console.log(
+    '[parity-collector-workflow] pinned runtime, Chromium, timeouts, render/WARC gate and artifacts verified',
+  );
 }
 
 const isMain = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
