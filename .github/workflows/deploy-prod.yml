@@ -219,7 +219,10 @@ jobs:
 
       - name: Production smoke tests
         env:
-          SYNTHETIC_BASE_URL: https://${{ vars.PROD_APP_DOMAIN }}
+          # synthetic:health probes API-only /health, /ready, /synthetic/health
+          # and /metrics endpoints. This public API origin is already the origin
+          # baked into the continuous production web build; no new secret is used.
+          SYNTHETIC_BASE_URL: https://api.e-code.ai
         run: pnpm synthetic:health
 
       - name: Rollback instructions
