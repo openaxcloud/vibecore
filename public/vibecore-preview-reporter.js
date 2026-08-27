@@ -115,11 +115,29 @@
 
       var h = document.createElement('div');
       h.style.cssText = 'font-size:15px;font-weight:600;margin:0 0 8px;color:#f0f6fc;';
-      h.textContent = 'This preview failed to load';
+
+      /*
+       * Cet overlay est injecté DANS la page de l'application : il n'a ni React
+       * ni le catalogue i18n de la plateforme. Il choisit donc sa langue à la
+       * source la plus fiable disponible ici — la langue du document si le
+       * gabarit en déclare une, sinon celle du navigateur.
+       */
+      var fr = false;
+
+      try {
+        var tag = (document.documentElement.getAttribute('lang') || navigator.language || '').toLowerCase();
+        fr = tag.indexOf('fr') === 0;
+      } catch (error) {
+        fr = false;
+      }
+
+      h.textContent = fr ? 'Cet aperçu n\u2019a pas pu se charger' : 'This preview failed to load';
 
       var p = document.createElement('div');
       p.style.cssText = 'font-size:13px;line-height:1.5;color:#8b949e;margin:0 0 14px;';
-      p.textContent = 'The dev server is running but the app never rendered — an error in the app code stopped it before it could mount.';
+      p.textContent = fr
+        ? 'Le serveur de développement tourne, mais l\u2019application ne s\u2019est jamais affichée \u2014 une erreur dans son code l\u2019a arrêtée avant qu\u2019elle ne démarre.'
+        : 'The dev server is running but the app never rendered — an error in the app code stopped it before it could mount.';
 
       card.appendChild(h);
       card.appendChild(p);
@@ -134,10 +152,10 @@
 
       var btn = document.createElement('button');
       btn.type = 'button';
-      btn.textContent = 'Reload preview';
+      btn.textContent = fr ? 'Recharger l\u2019aperçu' : 'Reload preview';
       btn.style.cssText =
         'font:inherit;font-size:13px;font-weight:500;color:#fff;background:#238636;border:0;border-radius:6px;padding:8px 14px;cursor:pointer;';
-      btn.addEventListener('click', function () {
+      btn.addEventListener('click', () => {
         try {
           location.reload();
         } catch (error) {
@@ -166,7 +184,7 @@
       ? 'Preview served but the app never mounted: ' + lastErrorMessage
       : 'Preview served but the app never mounted';
 
-    send({ type: 'PREVIEW_BLANK', message: message, url: location.href, ts: Date.now() });
+    send({ type: 'PREVIEW_BLANK', message, url: location.href, ts: Date.now() });
     renderBlankOverlay(lastErrorMessage);
   }
 
@@ -178,12 +196,15 @@
     }
 
     loadErrorCheckScheduled = true;
-    // Give a slow/late mount a short grace; if still empty after a load-time error,
-    // it is definitively broken → surface now instead of at the slow watchdog.
+
+    /*
+     * Give a slow/late mount a short grace; if still empty after a load-time error,
+     * it is definitively broken → surface now instead of at the slow watchdog.
+     */
     setTimeout(reportBlank, 1500);
   }
 
-  setTimeout(function () {
+  setTimeout(() => {
     if (mountIsEmpty()) {
       setTimeout(reportBlank, 8000);
     }

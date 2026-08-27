@@ -1622,8 +1622,15 @@ export function createDeploymentLogs(
   /*
    * Same lie for server deploys: readiness is logged by the pipeline when the
    * Deployment really answers, never at queue time.
+   *
+   * 2026-08-17: `static` had exactly the same problem and was still exempt. Its
+   * pipeline installs and builds inside the workspace pod AFTER queueing, so a
+   * deploy that then died on `npm install` had already announced
+   * "Déploiement ready: https://s-…/" in its own log — an address that serves
+   * nothing. Measured live on two consecutive failed deploys. A provider that
+   * still has work to do cannot report readiness up front.
    */
-  if (deployment.provider !== 'server') {
+  if (deployment.provider !== 'server' && deployment.provider !== 'static') {
     baseLogs.push(
       `Deployment ready: ${deployment.url ?? deployment.previewUrl ?? deployment.productionUrl ?? 'pending URL'}`,
     );

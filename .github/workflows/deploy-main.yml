@@ -1063,6 +1063,26 @@ jobs:
       - name: Helm render test — rollback flag (blocking)
         run: node scripts/validate-helm-rollback-flag.mjs
 
+      # P11 screenshotter render test: proves the chart renders the screenshotter
+      # Deployment/Service, the chart-managed auth Secret (mounted on every pod)
+      # and the egress NetworkPolicy under the exact --set combination the
+      # upgrade below uses — BEFORE touching the release. Failing here blocks
+      # the deploy instead of burning an --atomic rollback.
+      - name: Helm render test — screenshotter (blocking)
+        run: node scripts/validate-helm-screenshotter.mjs
+
+      # kubectl through Connect Gateway: the cluster control plane is
+      # IP-restricted, so direct `get-gke-credentials` won't reach it from a
+      # GitHub-hosted runner. Connect Gateway routes kubectl through a
+      # Google-managed proxy authenticated by the WIF identity (IAM), no VPN.
+      - name: Get cluster credentials via Connect Gateway
+        run: |
+          set -euo pipefail
+          gcloud components install gke-gcloud-auth-plugin --quiet
+          gcloud container fleet memberships get-credentials "${FLEET_MEMBERSHIP}" \
+            --project="${GCP_PROJECT_ID}"
+          kubectl config current-context
+
       - name: Record current release revision (for rollback)
         id: prevrev
         run: |
@@ -1129,6 +1149,18 @@ jobs:
           WSAGENT_DIGEST="$(jq -r '.services[] | select(.service == "workspaceAgent") | .digest' release-manifest.json)"
           if [ -n "${WSAGENT_DIGEST}" ]; then
             SETS+=( --set-string "platformEnv.runtime.workspaceAgentImage=${REG}/workspace-agent@${WSAGENT_DIGEST}" )
+
+          # Repris de main : ces valeurs de configmap sont RÉ-AFFIRMÉES à chaque
+          # upgrade parce que `--reuse-values` ignore values-prod.yaml — sans quoi
+          # elles resteraient figées sur ce que la release avait stocké. Le digest
+          # du screenshotter, lui, arrive par la boucle ci-dessus : c'est un chart
+          # service comme un autre, il n'a donc pas besoin d'imageTag ici.
+          SETS+=(
+            --set "services.screenshotter.enabled=true"
+            --set-string "platformEnv.screenshotterUrl=http://vibecore-vibecore-platform-screenshotter.vibecore.svc.cluster.local:8080"
+            --set-string "platformEnv.screenshotterAllowedHosts=preview.e-code.ai"
+            --set-string "platformEnv.screenshotterPreviewProxyUrl=http://vibecore-vibecore-platform-preview-proxy.vibecore.svc.cluster.local:8080"
+          )
           fi
 
           echo "helm --set args: ${SETS[*]}"
@@ -1157,6 +1189,16 @@ jobs:
             kubectl -n "${HELM_NAMESPACE}" rollout status "${dep}" --timeout=5m
             echo "::endgroup::"
           done
+          # P11 screenshotter — only exists once a runtime-tier deploy has asserted
+          # services.screenshotter.enabled=true (see the helm SETS above), so check
+          # for the Deployment instead of failing a web-only deploy that predates it.
+          if kubectl -n "${HELM_NAMESPACE}" get deploy "${HELM_RELEASE}-vibecore-platform-screenshotter" >/dev/null 2>&1; then
+            echo "::group::rollout status deploy/${HELM_RELEASE}-vibecore-platform-screenshotter"
+            kubectl -n "${HELM_NAMESPACE}" rollout status "deploy/${HELM_RELEASE}-vibecore-platform-screenshotter" --timeout=5m
+            echo "::endgroup::"
+          else
+            echo "screenshotter Deployment absent (not yet enabled by a runtime-tier deploy) — skipped"
+          fi
 
       # Release-integrity requirement 6, second half: prove the cluster is running the
       # digests this release recorded. `helm upgrade` succeeding only proves what we

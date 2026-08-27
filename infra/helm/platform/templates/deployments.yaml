@@ -116,6 +116,13 @@ spec:
             # ignore it) so both sides always agree on the value.
             - secretRef:
                 name: {{ include "vibecore-platform.fullname" $ }}-ai-gateway-auth
+            # Chart-managed shared secret for api -> screenshotter auth (P11 auto
+            # thumbnails, templates/screenshotter-auth-secret.yaml). Same model:
+            # generated on first install, preserved via lookup, mounted on every
+            # pod (the api sends it as a Bearer on POST /capture, the screenshotter
+            # verifies it; other services ignore it) so both sides always agree.
+            - secretRef:
+                name: {{ include "vibecore-platform.fullname" $ }}-screenshotter-auth
             # Non-secret platform-wide URLs (OAuth endpoints, in-cluster api
             # base URL, admin allowlist). Defined in templates/configmap.yaml.
             - configMapRef:

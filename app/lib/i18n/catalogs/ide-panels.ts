@@ -327,6 +327,7 @@ export const idePanelsEn = {
   'idePanels.preview.startingCommand': 'Starting {label}…',
   'idePanels.preview.buildStarted': 'Build started: {label}',
   'idePanels.preview.startFailed': 'Failed to start preview server.',
+  'idePanels.preview.startExhausted': 'The dev server did not come up after several attempts. Try Run / Reinstall.',
   'idePanels.preview.staticReady': 'Static HTML preview ready.',
   'idePanels.preview.filesChanged': 'App files changed. Detecting preview port…',
   'idePanels.preview.reopening': 'Reopening workspace — restarting the dev server…',
@@ -815,6 +816,8 @@ export const idePanelsFr: Record<keyof typeof idePanelsEn, string> = {
   'idePanels.preview.startingCommand': 'Démarrage de {label}…',
   'idePanels.preview.buildStarted': 'Compilation démarrée : {label}',
   'idePanels.preview.startFailed': 'Impossible de démarrer le serveur d’aperçu.',
+  'idePanels.preview.startExhausted':
+    'Le serveur de développement n’a pas démarré après plusieurs tentatives. Essayez Exécuter / Réinstaller.',
   'idePanels.preview.staticReady': 'Aperçu HTML statique prêt.',
   'idePanels.preview.filesChanged': 'Fichiers de l’application modifiés. Détection du port d’aperçu…',
   'idePanels.preview.reopening': 'Réouverture de l’espace de travail — redémarrage du serveur de développement…',

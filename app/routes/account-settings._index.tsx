@@ -163,18 +163,19 @@ export default function AccountSettingsIndex() {
 
   return (
     <>
-      <div className="w-full max-w-full rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 sm:p-6">
+      <div className="w-full max-w-full rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5 shadow-sm sm:p-6">
         {feedback ? (
           <p
-            className="mb-4 rounded-md border border-bolt-elements-borderColor px-3 py-2 text-sm text-bolt-elements-textSecondary"
+            className="mb-4 rounded-md border border-[var(--status-success-border)] bg-[var(--status-success-bg)] px-3 py-2 text-sm text-[var(--status-success-text)]"
             role="status"
+            aria-live="polite"
           >
             {feedback}
           </p>
         ) : null}
         {actionError ? (
           <p
-            className="mb-4 rounded-md border border-bolt-elements-icon-error px-3 py-2 text-sm text-bolt-elements-icon-error"
+            className="mb-4 rounded-md border border-[var(--status-error-border)] bg-[var(--status-error-bg)] px-3 py-2 text-sm text-[var(--status-error-text)]"
             role="alert"
           >
             {actionError}
@@ -185,7 +186,7 @@ export default function AccountSettingsIndex() {
             <label key={field.name} className="grid gap-2 text-sm font-medium">
               {field.label}
               <input
-                className="h-[44px] rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 text-sm outline-none focus:border-bolt-elements-focus focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]"
+                className="h-[44px] rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 text-[16px] outline-none focus:border-bolt-elements-focus focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)] sm:text-sm"
                 name={field.name}
                 type={field.type}
                 autoComplete={field.autoComplete}

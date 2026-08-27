@@ -80,6 +80,15 @@ export const aiModelCatalog: AiModel[] = [
     contextWindow: 1_000_000,
   },
   {
+    id: 'claude-opus-5',
+    provider: 'anthropic',
+    displayName: 'Claude Opus 5',
+    plans: ['business', 'enterprise'],
+    inputCentsPerMillion: 500,
+    outputCentsPerMillion: 2500,
+    contextWindow: 1_000_000,
+  },
+  {
     id: 'claude-opus-4-8',
     provider: 'anthropic',
     displayName: 'Claude Opus 4.8',

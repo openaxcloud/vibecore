@@ -1,7 +1,7 @@
-import { expect, test, type Page, type TestInfo } from '@playwright/test';
-import JSZip from 'jszip';
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
+import { expect, test, type Page, type TestInfo } from '@playwright/test';
+import JSZip from 'jszip';
 
 /**
  * RPL-IDE-001.1/.2/.3 — live proof on prod.
@@ -17,18 +17,22 @@ mkdirSync(OUT_DIR, { recursive: true });
 function apiBaseUrl() {
   return process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'https://api.e-code.ai';
 }
+
 function appBaseUrl() {
   return process.env.PLAYWRIGHT_BASE_URL ?? 'https://app.e-code.ai';
 }
+
 function width(testInfo: TestInfo) {
   return testInfo.project.use.viewport?.width ?? 1440;
 }
+
 function isDesktop(testInfo: TestInfo) {
   return width(testInfo) >= 1024;
 }
 
 async function authenticate(page: Page) {
   const suffix = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
   let payload: { token: string; organization: { id: string } } | undefined;
   let text = '';
 
@@ -73,6 +77,7 @@ async function seedProject(page: Page, auth: { token: string; organization: { id
   zip.file('index.html', '<!doctype html><title>RPL-IDE</title><h1>Window/Panes/Tabs</h1>');
   zip.file('src/app.js', 'export const app = () => "rpl-ide";\n');
   zip.file('README.md', '# RPL-IDE live proof\n');
+
   const imp = await page.request.post(`${apiBaseUrl()}/projects/${projectId}/files/import/zip`, {
     headers: { authorization: `Bearer ${auth.token}` },
     data: { zipBase64: await zip.generateAsync({ type: 'base64' }) },
@@ -92,17 +97,18 @@ async function shot(page: Page, name: string) {
 }
 
 async function assertNoHorizontalOverflow(page: Page) {
-  const overflow = await page.evaluate(
-    () => document.documentElement.scrollWidth > window.innerWidth + 2,
-  );
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 2);
   expect(overflow, 'page must not overflow horizontally').toBeFalsy();
 }
 
 async function paneActions(page: Page, paneIndex = 0) {
   const pane = page.locator('.bolt-project-pane-leaf').nth(paneIndex);
   await pane.scrollIntoViewIfNeeded().catch(() => {});
-  // Activate the pane first, then open its actions menu — retry the open a few
-  // times since a click can land mid-render on a freshly-split pane.
+
+  /*
+   * Activate the pane first, then open its actions menu — retry the open a few
+   * times since a click can land mid-render on a freshly-split pane.
+   */
   await pane.click({ position: { x: 30, y: 8 } }).catch(() => {});
 
   const trigger = pane.locator('button[aria-label="Tab actions"]').first();
@@ -123,6 +129,7 @@ async function paneActions(page: Page, paneIndex = 0) {
 
 async function clickPaneAction(page: Page, paneIndex: number, name: string) {
   await paneActions(page, paneIndex);
+
   const item = page.locator('.bolt-project-tab-actions-menu').getByRole('button', { name, exact: true });
   await expect(item).toBeVisible();
   await item.click();
@@ -147,8 +154,10 @@ for (const theme of ['light', 'dark'] as const) {
     await assertNoHorizontalOverflow(page);
     await shot(page, `ide-loaded-${label}`);
 
-    // The docked pane model is a desktop-class surface (as in Replit). Gate the
-    // interactive proof on its actual presence, not width alone.
+    /*
+     * The docked pane model is a desktop-class surface (as in Replit). Gate the
+     * interactive proof on its actual presence, not width alone.
+     */
     const hasDesktopPanes =
       (await page.locator('.bolt-project-pane-leaf').count()) > 0 &&
       (await page.locator('.bolt-responsive-ide-mobile').count()) === 0;
@@ -177,6 +186,7 @@ for (const theme of ['light', 'dark'] as const) {
     // --- .2 Resizable divider ---
     const handle = page.locator('[data-testid^="pane-resize-"]').first();
     await expect(handle).toBeVisible();
+
     const before = await page.locator('.bolt-project-pane-leaf').first().boundingBox();
     const hb = await handle.boundingBox();
 
@@ -194,6 +204,7 @@ for (const theme of ['light', 'dark'] as const) {
 
     // --- .3 Float a pane ---
     await clickPaneAction(page, 0, 'Float pane');
+
     const floating = page.locator('[data-testid^="floating-pane-"]').first();
     await expect(floating).toBeVisible();
     await shot(page, `pane-floating-${label}`);
@@ -221,6 +232,7 @@ for (const theme of ['light', 'dark'] as const) {
     // --- .1 Open in new window (multi-screen) ---
     const popupPromise = page.context().waitForEvent('page', { timeout: 20_000 });
     await clickPaneAction(page, 0, 'Open in new window');
+
     const popup = await popupPromise;
     await popup.waitForLoadState('domcontentloaded');
     expect(popup.url(), 'new window carries its own peWindow id').toContain('peWindow=');

@@ -22,10 +22,17 @@ import type {
   ProjectOverviewScript,
   ProjectOverviewStackItem,
 } from '~/lib/project-overview';
+import {
+  describeByteGauge,
+  describeCpuGauge,
+  type GaugeDisplay,
+  type ProjectOverviewResources,
+} from '~/lib/project-overview-resources';
 
 type ProjectOverviewPanelProps = {
   data: {
     overview?: ProjectOverviewInsights;
+    resources?: ProjectOverviewResources;
     recentActivity?: ProjectOverviewActivity[];
     commits?: ProjectOverviewCommit[];
     collaborators?: Array<{ id?: string; userId?: string; roleKey?: string }>;
@@ -95,6 +102,60 @@ function OverviewMetric({
       </div>
       <div className="mt-2 break-all text-lg font-semibold text-bolt-elements-textPrimary">{value}</div>
       <div className="mt-1 break-all text-xs leading-5 text-bolt-elements-textSecondary">{detail}</div>
+    </div>
+  );
+}
+
+/*
+ * SCR-008 — une jauge de ressource.
+ *
+ * La barre n'est dessinée QUE si `fill` est un nombre. Quand la consommation
+ * est inconnue, ou qu'aucune limite n'existe à laquelle la rapporter, la barre
+ * disparaît : une barre vide se lirait « 0 % consommé », ce qui inventerait la
+ * mesure que le noyau n'a justement pas donnée.
+ */
+function OverviewGauge({
+  label,
+  display,
+  detail,
+  ariaLabel,
+}: {
+  label: string;
+  display: GaugeDisplay;
+  detail?: string;
+  ariaLabel: string;
+}) {
+  const percent = display.fill === null ? undefined : Math.round(display.fill * 100);
+
+  return (
+    <div
+      className="min-w-0 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-3 py-3"
+      role="group"
+      aria-label={ariaLabel}
+      data-testid={`overview-gauge-${label.toLowerCase()}`}
+      data-measured={display.fill === null ? 'false' : 'true'}
+    >
+      <div className="break-words text-[11px] font-semibold uppercase tracking-[0.08em] text-bolt-elements-textTertiary">
+        {label}
+      </div>
+      <div className="mt-2 break-words text-base font-semibold text-bolt-elements-textPrimary">{display.value}</div>
+      {percent === undefined ? null : (
+        <div
+          className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-bolt-elements-background-depth-3"
+          role="progressbar"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={percent}
+        >
+          <div
+            className="h-full rounded-full bg-[var(--vc-ide-accent-action)]"
+            style={{ width: `${Math.max(2, percent)}%` }}
+          />
+        </div>
+      )}
+      {detail ? (
+        <div className="mt-1 break-words text-xs leading-5 text-bolt-elements-textSecondary">{detail}</div>
+      ) : null}
     </div>
   );
 }
@@ -338,6 +399,53 @@ export function ProjectOverviewPanel({ data, project }: ProjectOverviewPanelProp
   const metricAriaLabel = (label: string, value: string, detail: string) =>
     formatProjectOverviewPanelCopy(copy['projectOverview.metric.aria'], { label, value, detail });
 
+  /*
+   * SCR-008 — jauges RAM / CPU / stockage. La source est le lecteur cgroup du
+   * workspace-agent : `null` veut dire « le noyau ne l'expose pas », et se rend
+   * « non communiqué », jamais zéro.
+   */
+  const resources = data.resources;
+
+  const byteCopy = {
+    unknown: copy['projectOverview.resources.unknown'],
+    noLimit: copy['projectOverview.resources.noLimit'],
+    usedOfLimit: copy['projectOverview.resources.usedOfLimit'],
+  };
+
+  const memoryGauge = describeByteGauge(resources?.memory, byteCopy, language);
+  const storageGauge = describeByteGauge(resources?.storage, byteCopy, language);
+
+  const cpuGauge = describeCpuGauge(
+    resources?.cpu,
+    { pending: copy['projectOverview.resources.cpuPending'] },
+    language,
+  );
+
+  const cpuCores = resources?.cpu?.limitCores;
+
+  const cpuDetail =
+    typeof cpuCores === 'number' && Number.isFinite(cpuCores) && cpuCores > 0
+      ? formatProjectOverviewPanelCopy(
+          cpuCores === 1
+            ? copy['projectOverview.resources.cpuCores']
+            : copy['projectOverview.resources.cpuCoresPlural'],
+          { cores: formatProjectOverviewPanelNumber(cpuCores, language) },
+        )
+      : undefined;
+
+  const measuredAtLabel = resources?.measuredAt
+    ? formatProjectOverviewPanelCopy(copy['projectOverview.resources.measuredAt'], {
+        date: formatProjectOverviewPanelDate(resources.measuredAt, language),
+      })
+    : undefined;
+
+  const gaugeAria = (label: string, display: GaugeDisplay, detail?: string) =>
+    formatProjectOverviewPanelCopy(copy['projectOverview.resources.gaugeAria'], {
+      label,
+      value: display.value,
+      detail: detail ?? '',
+    });
+
   return (
     <div
       className="grid min-w-0 gap-5"
@@ -402,6 +510,32 @@ export function ProjectOverviewPanel({ data, project }: ProjectOverviewPanelProp
           />
         </div>
       </section>
+
+      <OverviewSection title={copy['projectOverview.section.resources']} action={measuredAtLabel}>
+        <div className="grid gap-3 sm:grid-cols-3" data-testid="project-overview-resources">
+          <OverviewGauge
+            label={copy['projectOverview.resources.memory']}
+            display={memoryGauge}
+            ariaLabel={gaugeAria(copy['projectOverview.resources.memory'], memoryGauge)}
+          />
+          <OverviewGauge
+            label={copy['projectOverview.resources.cpu']}
+            display={cpuGauge}
+            detail={cpuDetail}
+            ariaLabel={gaugeAria(copy['projectOverview.resources.cpu'], cpuGauge, cpuDetail)}
+          />
+          <OverviewGauge
+            label={copy['projectOverview.resources.storage']}
+            display={storageGauge}
+            ariaLabel={gaugeAria(copy['projectOverview.resources.storage'], storageGauge)}
+          />
+        </div>
+        {resources?.unavailable ? (
+          <p className="mt-2 text-xs leading-5 text-bolt-elements-textTertiary">
+            {copy['projectOverview.resources.unavailable']}
+          </p>
+        ) : null}
+      </OverviewSection>
 
       <OverviewSection
         title={copy['projectOverview.section.stack']}

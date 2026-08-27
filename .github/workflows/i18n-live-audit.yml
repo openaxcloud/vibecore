@@ -73,11 +73,17 @@ jobs:
 
       # Match the production E2E workflow's real local dependencies instead of
       # mocking registration, persistence, mail delivery, or cache behavior.
+      # `--wait` bloque jusqu'à ce que les trois services soient déclarés SAINS
+      # par leurs propres healthchecks (`pg_isready` pour postgres), et pas
+      # seulement démarrés. Sans lui, l'attente ci-dessous ne testait que
+      # l'OUVERTURE DU PORT — or postgres ouvre son port avant d'accepter des
+      # requêtes, et répond `FATAL: the database system is starting up`. La
+      # migration partait alors dans le vide et rendait la CI rouge au hasard.
       - name: Start local dependencies
         run: |
           trap 'docker compose --env-file .env -f docker-compose.dev.yml ps; docker compose --env-file .env -f docker-compose.dev.yml logs --tail=120 postgres redis mailpit' ERR
           touch .env
-          docker compose --env-file .env -f docker-compose.dev.yml up -d postgres redis mailpit
+          docker compose --env-file .env -f docker-compose.dev.yml up -d --wait --wait-timeout 180 postgres redis mailpit
           wait_for_tcp() {
             local host="$1"
             local port="$2"

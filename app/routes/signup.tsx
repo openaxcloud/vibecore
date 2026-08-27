@@ -18,6 +18,7 @@ import type { MetaFunction } from 'react-router';
 import { Form, Link, useActionData, useNavigation } from 'react-router';
 import { AuthField, AuthOauthButton, AuthScreen, AuthSubmit, useAuthOauthPending } from '~/components/auth/AuthScreen';
 import { PASSWORD_MIN_LENGTH, PasswordStrengthMeter } from '~/components/auth/PasswordStrength';
+import { AUTH_HERO_STATS } from '~/lib/auth-hero-stats';
 import {
   apiRequest,
   formObject,
@@ -253,14 +254,15 @@ export default function SignupPage() {
           </div>
 
           <div className="mt-10 grid grid-cols-2 gap-5 border-t border-white/20 pt-8">
-            <div>
-              <div className="text-3xl font-bold">21</div>
-              <div className="mt-1 text-[12px] text-white/72">{t('auth.signup.statProviders')}</div>
-            </div>
-            <div>
-              <div className="text-3xl font-bold">29+</div>
-              <div className="mt-1 text-[12px] text-white/72">{t('auth.signup.statLanguages')}</div>
-            </div>
+            {/* Chiffres depuis AUTH_HERO_STATS (source unique partagée avec /login). */}
+            {AUTH_HERO_STATS.slice(0, 2).map((item, index) => (
+              <div key={item.value}>
+                <div className="text-3xl font-bold">{item.value}</div>
+                <div className="mt-1 text-[12px] text-white/72">
+                  {t(index === 0 ? 'auth.signup.statProviders' : 'auth.signup.statLanguages')}
+                </div>
+              </div>
+            ))}
           </div>
         </>
       }
@@ -273,17 +275,29 @@ export default function SignupPage() {
         </>
       }
       belowCard={
-        <p className="vc-auth-legal mt-5 text-center text-[11px] leading-5 sm:mt-6">
-          {t('auth.signup.legalPrefix')}{' '}
-          <Link to="/terms" className="underline">
-            {t('auth.common.terms')}
-          </Link>{' '}
-          {t('auth.common.and')}{' '}
-          <Link to="/privacy" className="underline">
-            {t('auth.common.privacyPolicy')}
-          </Link>
-          .
-        </p>
+        <>
+          {/* Parité avec /login : la preuve sociale reste visible sous 1024px. */}
+          <div className="vc-auth-mobile-stats mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4 lg:hidden">
+            {AUTH_HERO_STATS.map((item) => (
+              <div key={item.value} className="vc-auth-mobile-stat rounded-lg px-3 py-3 text-center">
+                <div className="text-[16px] font-bold">{item.value}</div>
+                <div className="mt-1 text-[11px]">{t(item.labelKey)}</div>
+              </div>
+            ))}
+          </div>
+
+          <p className="vc-auth-legal mt-5 text-center text-[11px] leading-5 sm:mt-6">
+            {t('auth.signup.legalPrefix')}{' '}
+            <Link to="/terms" className="underline">
+              {t('auth.common.terms')}
+            </Link>{' '}
+            {t('auth.common.and')}{' '}
+            <Link to="/privacy" className="underline">
+              {t('auth.common.privacyPolicy')}
+            </Link>
+            .
+          </p>
+        </>
       }
     >
       <Form method="post" className="space-y-4 sm:space-y-5">
@@ -325,7 +339,7 @@ export default function SignupPage() {
             <button
               type="button"
               onClick={() => setShowPassword((value) => !value)}
-              className="vc-auth-input-action absolute right-2 top-1/2 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-md transition-colors sm:h-8 sm:w-8"
+              className="vc-auth-input-action absolute right-1 top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-md transition-colors lg:right-2 lg:h-8 lg:w-8"
               aria-label={showPassword ? t('auth.common.hidePassword') : t('auth.common.showPassword')}
             >
               {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -351,7 +365,7 @@ export default function SignupPage() {
             <button
               type="button"
               onClick={() => setShowConfirmPassword((value) => !value)}
-              className="vc-auth-input-action absolute right-2 top-1/2 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-md transition-colors sm:h-8 sm:w-8"
+              className="vc-auth-input-action absolute right-1 top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-md transition-colors lg:right-2 lg:h-8 lg:w-8"
               aria-label={showConfirmPassword ? t('auth.common.hidePassword') : t('auth.common.showPassword')}
             >
               {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -373,7 +387,7 @@ export default function SignupPage() {
           <button
             type="button"
             onClick={() => setShowOrgField(true)}
-            className="vc-auth-inline-link text-[12px] font-semibold hover:underline"
+            className="vc-auth-inline-link inline-flex min-h-11 items-center px-1 text-[12px] font-semibold hover:underline"
           >
             {t('auth.signup.addOrganization')}
           </button>
