@@ -415,6 +415,15 @@ jobs:
       - name: Helm render test — screenshotter (blocking)
         run: node scripts/validate-helm-screenshotter.mjs
 
+      # P104 / SEC-8: same idea as the D2 test above, for the password-activation
+      # interlock — and with the default INVERTED (safe state = "0", not armed).
+      # Proves the chart renders "0" by default, under values-prod.yaml, and for
+      # legacy stored values (--reuse-values), that the schema rejects a malformed
+      # value, that an explicit --set can still arm it, and that the api Deployment
+      # actually consumes the configmap carrying it. Failing here blocks the deploy.
+      - name: Helm render test — password-activation interlock (blocking)
+        run: node scripts/validate-helm-access-activation-flag.mjs
+
       # kubectl through Connect Gateway: the cluster control plane is
       # IP-restricted, so direct `get-gke-credentials` won't reach it from a
       # GitHub-hosted runner. Connect Gateway routes kubectl through a
@@ -433,8 +442,127 @@ jobs:
           helm history "${HELM_RELEASE}" -n "${HELM_NAMESPACE}" || true
           echo "Rollback: helm rollback ${HELM_RELEASE} <REVISION> -n ${HELM_NAMESPACE}"
 
-      # --reuse-values preserves every existing production value and overrides
-      # only the tiers rebuilt above: web, admin, api,
+      # ---- P104 / SEC-8: decide phase-1 vs steady-state BEFORE the upgrade ----
+      #
+      # The hazard, precisely: a PRE-CUTOVER api answered a public static
+      # deployment with `Cache-Control: public, max-age=60`. A shared cache may
+      # replay that entry for 60s with no revalidation, and the origin cannot
+      # purge it. Activating password protection inside that window protects the
+      # origin and nothing else — an anonymous visitor keeps getting the cached
+      # public copy. Post-cutover the origin emits `no-cache, must-revalidate`,
+      # which closes the window for good, but only once every pre-cutover pod is
+      # gone AND its last response has aged out.
+      #
+      # Two independent facts decide what this run must do:
+      #
+      #   CODE_HAS_INTERLOCK — does the tree being deployed even contain the
+      #     interlock? It ships in the same commit as the `no-cache` header, so
+      #     its absence means this run deploys PRE-cutover api code.
+      #   LIVE_FLAG — is the interlock already armed on the live release? It is
+      #     only ever set to "1" by the phase-2 step below, i.e. after a barrier
+      #     has already run against post-cutover code. So `LIVE_FLAG=1` implies
+      #     the pods currently serving are post-cutover and emit `no-cache`;
+      #     nothing can mint a fresh max-age=60 entry and no barrier is needed.
+      #
+      # Any state we cannot positively recognise as "already safe" takes the
+      # barrier. The cost of a needless barrier is ~90s of deploy time; the cost
+      # of a skipped one is a protected deployment served from a public cache.
+      - name: Detect password-activation cutover (SEC-8)
+        id: cutover
+        run: |
+          set -euo pipefail
+
+          # SEC-9: does the PRODUCTION BUNDLE carry the interlock?
+          #
+          # This used to be `grep -rq ... services/api/src`, which walks a
+          # DIRECTORY — and the directory contains the tests. The token lives in
+          # access-policy tests too, so deleting the interlock from the
+          # production route while leaving the spec in place still matched: the
+          # workflow saw "control present", skipped the barrier as steady state,
+          # and armed activation against an api with no interlock at all.
+          #
+          # The fix is not an --exclude list (another denylist to forget). The
+          # verifier walks the real production module graph from the production
+          # entrypoint (services/api/src/server.ts) and only inspects files
+          # genuinely reachable from it — a spec file is not, so it cannot vote.
+          # Cross-validated against `tsc`'s own emitted graph (identical file set).
+          # It also refuses to certify if any test file IS reachable, or if the
+          # graph is implausibly small (a broken walker must never look like a pass).
+          #
+          # --expect-sha binds the verdict to the exact commit being deployed, so a
+          # certification can never be carried over from another tree.
+          #
+          # RELATION TO THE RELEASE-GATE LOT (feat/deploy-exact-sha-gate): that lot
+          # adds a `resolve-target` job which pins `target_sha`, derives
+          # `short_sha = ${TARGET_SHA:0:10}` into this same SHORT_SHA env, and makes
+          # every job check out `ref: target_sha`. The two compose rather than
+          # duplicate: this gate keeps reading SHORT_SHA and keeps returning the same
+          # verdict, while that lot makes the checkout PROVABLY the target — at which
+          # point the `sha-mismatch` branch below becomes unreachable. It is kept as a
+          # belt, because it is the only thing standing between "we inspected tree A"
+          # and "we deployed image B" until that lot actually lands.
+          INTERLOCK_FAIL_REASON=''
+
+          if node scripts/verify-prod-interlock.mjs \
+               --expect-sha "${SHORT_SHA}" \
+               --json "${RUNNER_TEMP:-/tmp}/sec9-interlock-attestation.json"; then
+            CODE_HAS_INTERLOCK=true
+          else
+            CODE_HAS_INTERLOCK=false
+            # Distinguish the two ways this can fail, because they mean very
+            # different things and a wrong message sends the next person hunting
+            # the wrong bug.
+            HEAD_SHA="$(git rev-parse HEAD)"
+            case "${HEAD_SHA}" in
+              "${SHORT_SHA}"*) INTERLOCK_FAIL_REASON='absent-from-production-bundle' ;;
+              *)               INTERLOCK_FAIL_REASON='sha-mismatch' ;;
+            esac
+          fi
+
+          # `|| true`: the key is absent on every release predating this change,
+          # and an absent key must read as "not armed", not as a step failure.
+          LIVE_FLAG="$(kubectl -n "${HELM_NAMESPACE}" get configmap \
+            "${HELM_RELEASE}-vibecore-platform-platform-env" \
+            -o jsonpath='{.data.DEPLOYMENT_ACCESS_ACTIVATION_ENABLED}' 2>/dev/null || true)"
+
+          echo "code carries the interlock : ${CODE_HAS_INTERLOCK}"
+          echo "live activation flag       : '${LIVE_FLAG}'"
+
+          if [ "${CODE_HAS_INTERLOCK}" != "true" ]; then
+            # Either the interlock is genuinely absent from the shipping bundle
+            # (a rollback to pre-cutover api code — that code ignores the flag AND
+            # re-emits max-age=60, so it reverts the fix whatever we set here), or
+            # the tree we can inspect is not the image being deployed, in which
+            # case we simply cannot certify anything. Both disarm: the flag goes
+            # to 0, so the next provable post-cutover deploy is treated as a fresh
+            # cutover and re-runs the barrier.
+            if [ "${INTERLOCK_FAIL_REASON}" = 'sha-mismatch' ]; then
+              echo "::warning::SEC-9 exact-SHA gate: deploying image tag ${SHORT_SHA} but the checked-out tree is $(git rev-parse --short=10 HEAD). The production bundle actually being deployed cannot be inspected from here, so the activation interlock is NOT certified. Disarming DEPLOYMENT_ACCESS_ACTIVATION_ENABLED (fail-closed)."
+            else
+              echo "::warning::Deploying api code WITHOUT the SEC-8 activation interlock in its PRODUCTION BUNDLE — this reverts the deployment-password cache fix (public static deployments will again be served with Cache-Control: max-age=60). Disarming DEPLOYMENT_ACCESS_ACTIVATION_ENABLED."
+            fi
+            echo "barrier=false" >> "$GITHUB_OUTPUT"
+            echo "phase1_flag=0" >> "$GITHUB_OUTPUT"
+            echo "final_flag=0" >> "$GITHUB_OUTPUT"
+          elif [ "${LIVE_FLAG}" = "1" ]; then
+            # Steady state: the running pods are already post-cutover, so no pod
+            # in this rollout — old or new — can mint a max-age=60 response. Single
+            # upgrade, flag re-asserted (--reuse-values would otherwise freeze it).
+            echo "Steady state — pods already post-cutover; no drain barrier needed."
+            echo "barrier=false" >> "$GITHUB_OUTPUT"
+            echo "phase1_flag=1" >> "$GITHUB_OUTPUT"
+            echo "final_flag=1" >> "$GITHUB_OUTPUT"
+          else
+            # THE CUTOVER. Roll the new code with activation still closed, drain,
+            # wait out the legacy max-age, and only then arm it in phase 2.
+            echo "CUTOVER — phase 1 rolls out with activation CLOSED; phase 2 arms it after the drain barrier."
+            echo "barrier=true" >> "$GITHUB_OUTPUT"
+            echo "phase1_flag=0" >> "$GITHUB_OUTPUT"
+            echo "final_flag=1" >> "$GITHUB_OUTPUT"
+          fi
+
+      # --reuse-values preserves every existing value (including production
+      # config) and overrides only the tiers rebuilt above: web, admin, api,
       # workspace-manager, preview-proxy, ai-gateway, worker, and the
       # workspace-agent runtime image. NOTE: because --reuse-values keeps the
       # release's stored configmap values, a change to values-prod.yaml alone
@@ -461,6 +589,11 @@ jobs:
           # "1" + values.schema.json; the post-deploy step below verifies the
           # flag actually reached the running api pods.
           SETS+=( --set-string "platformEnv.runtime.serverDeployRollbackFromDigest=1" )
+          # P104 / SEC-8: phase-1 value of the activation interlock, decided by the
+          # cutover step above ("0" on a cutover, "1" in steady state). Always
+          # explicit — --reuse-values would otherwise freeze whatever the release
+          # happens to store, which is precisely how an interlock silently rots.
+          SETS+=( --set-string "platformEnv.runtime.deploymentAccessActivationEnabled=${{ steps.cutover.outputs.phase1_flag }}" )
           if [ "${{ steps.tiers.outputs.web }}" = "true" ]; then
             SETS+=( --set "services.web.imageTag=${SHORT_SHA}" )
           fi
@@ -538,6 +671,167 @@ jobs:
             echo "screenshotter Deployment absent (not yet enabled by a runtime-tier deploy) — skipped"
           fi
 
+      # ---- P104 / SEC-8 · phase 1 -> phase 2 barrier -------------------------
+      #
+      # `rollout status` above returned as soon as the NEW ReplicaSet was complete.
+      # That is not the property we need. Old pods can still exist and still serve
+      # (they keep answering through their ~10s preStop drain), and any response
+      # they emit carries `max-age=60` — reusable from a shared cache for a full
+      # minute after the pod itself is gone. So the barrier waits for BOTH:
+      #
+      #   1. zero pods outside the image the Deployment now wants — terminating
+      #      ones included, since a terminating pod still answers; and
+      #   2. 60s (the legacy max-age) + 30s margin of that being CONTINUOUSLY true.
+      #
+      # The clock is armed when the last old pod disappears, not when the rollout
+      # started, and it RE-ARMS from zero if an old pod ever reappears (HPA scaling
+      # the previous ReplicaSet, a partial rollback). The margin absorbs clock skew
+      # between the pod that stamped the response and this runner, `Age` already
+      # accrued in an intermediate cache, and the poll granularity.
+      #
+      # The state machine lives in scripts/deploy-cache-window.mjs and is proven
+      # against a fake clock in scripts/deploy-cache-window.spec.mjs — including
+      # the re-arm, the terminating-pod and the timeout cases — so this guarantee
+      # is testable without a cluster. On timeout the step FAILS with the release
+      # still at DEPLOYMENT_ACCESS_ACTIVATION_ENABLED=0: activation stays closed.
+      # ---- P104 / SEC-9 · runtime probe of the DEPLOYED production API --------
+      #
+      # Everything before this point reasons about SOURCE. This step asks the
+      # thing that is actually serving traffic. After phase 1 the rolled-out api
+      # must REFUSE to activate password protection, and refuse it with the
+      # interlock's own error code. That is only true if the interlock is present
+      # AND wired AND reading the flag we set — three things no static check can
+      # fully guarantee about a container image built elsewhere by Cloud Build.
+      #
+      # Unauthenticated on purpose: the route answers 401 before any interlock is
+      # consulted, so the probe asserts the WEAKER, always-true property — the api
+      # must never answer 2xx here while the interlock is closed. A 2xx means an
+      # activation just succeeded unauthenticated, which is a far worse bug.
+      # 401/403 (auth first) and 503 (interlock) are both acceptable; 200/201 is not.
+      - name: Runtime probe — deployed api refuses activation in phase 1 (SEC-9)
+        if: steps.cutover.outputs.barrier == 'true'
+        run: |
+          set -euo pipefail
+          POD="$(kubectl -n "${HELM_NAMESPACE}" get pods \
+            -l "app.kubernetes.io/name=api,app.kubernetes.io/instance=${HELM_RELEASE}" \
+            --field-selector=status.phase=Running \
+            -o jsonpath='{.items[0].metadata.name}')"
+          if [ -z "${POD}" ]; then
+            echo "::error::no Running api pod to probe — refusing to arm activation" >&2
+            exit 1
+          fi
+          echo "probing pod ${POD}"
+
+          # Probe from INSIDE the cluster via a throwaway pod: the api Service is
+          # not reachable from the runner, and `kubectl exec` is denied to the CI
+          # identity through Connect Gateway (see the D2 step's note).
+          CODE="$(kubectl -n "${HELM_NAMESPACE}" run "sec9-probe-${GITHUB_RUN_ID}" \
+            --rm -i --restart=Never --quiet \
+            --image=curlimages/curl:8.10.1 \
+            --command -- curl -s -o /dev/null -w '%{http_code}' -m 15 -X PUT \
+            "http://${HELM_RELEASE}-vibecore-platform-api.${HELM_NAMESPACE}.svc:3001/projects/sec9-probe/deployments/sec9-probe/access" \
+            -H 'content-type: application/json' \
+            -d '{"mode":"PASSWORD_PROTECTED","password":"sec9-probe-not-a-real-password","expectedVersion":1}' 2>/dev/null | tr -dc '0-9')"
+
+          echo "deployed api answered HTTP ${CODE} to an activation attempt during phase 1"
+          case "${CODE}" in
+            2*)
+              echo "::error::PHASE-1 PROBE FAILED — the deployed api answered ${CODE} to an activation request while the interlock is supposed to be CLOSED. Not arming activation." >&2
+              exit 1
+              ;;
+            '')
+              echo "::error::PHASE-1 PROBE INCONCLUSIVE — no HTTP status from the deployed api. Refusing to arm activation (fail-closed)." >&2
+              exit 1
+              ;;
+            *)
+              echo "ok — deployed api refuses activation (HTTP ${CODE}) while the interlock is closed"
+              ;;
+          esac
+
+      - name: Drain barrier — outlast the legacy public max-age (SEC-8)
+        id: barrier
+        if: steps.cutover.outputs.barrier == 'true'
+        env:
+          LEGACY_MAX_AGE_SECONDS: '60'
+          SAFETY_MARGIN_SECONDS: '30'
+          POLL_INTERVAL_SECONDS: '5'
+          MAX_WAIT_SECONDS: '900'
+        run: |
+          set -euo pipefail
+          # The image the api Deployment now WANTS (read back from the live
+          # cluster, not assumed from SHORT_SHA — a run where the runtime tier was
+          # skipped keeps its previous tag, and the barrier must compare against
+          # what is actually being rolled out).
+          EXPECTED_IMAGE="$(kubectl -n "${HELM_NAMESPACE}" get deploy \
+            "${HELM_RELEASE}-vibecore-platform-api" \
+            -o jsonpath='{.spec.template.spec.containers[0].image}')"
+          if [ -z "${EXPECTED_IMAGE}" ]; then
+            echo "::error::Could not read the api Deployment's image — refusing to arm activation." >&2
+            exit 1
+          fi
+          echo "Barrier target image: ${EXPECTED_IMAGE}"
+
+          # SEC-10: the api actually running MUST be the commit whose production
+          # bundle we certified, or the certification says nothing about it.
+          #
+          # Without this the barrier can clear against PRE-cutover code. Concretely:
+          # a cutover run dies before the helm upgrade (flag never set, api still
+          # pre-cutover); a later push touches only app/, so `Detect changed tiers`
+          # leaves runtime=false and the api keeps its old image. Cutover detection
+          # still says "cutover" (the TREE carries the interlock), the barrier
+          # compares pods against that OLD image, finds nothing older, clears after
+          # 90s — and phase 2 arms activation against an api with no interlock that
+          # is still emitting `max-age=60`. The runtime probe above does not catch
+          # it either: it is unauthenticated, and the route answers 401 before the
+          # interlock is ever consulted, so a pre-cutover api looks identical.
+          #
+          # Withhold arming instead — do NOT fail the job. By this point the
+          # rollout has already succeeded, and turning "cannot certify the
+          # interlock" into "the production deploy failed" would be both wrong and
+          # actively harmful: it fires the rollback alarms for a deploy that is
+          # fine. The safe outcome is simply that activation stays closed, so this
+          # sets armable=false and the phase-2 step below skips. The release stays
+          # at DEPLOYMENT_ACCESS_ACTIVATION_ENABLED=0 and the next deploy that
+          # really rebuilds the api re-runs the whole sequence.
+          case "${EXPECTED_IMAGE}" in
+            *:"${SHORT_SHA}")
+              echo "armable=true" >> "$GITHUB_OUTPUT"
+              echo "SEC-10 ok: running api image is built from the certified commit ${SHORT_SHA}"
+              ;;
+            *)
+              echo "armable=false" >> "$GITHUB_OUTPUT"
+              echo "::warning::SEC-10: the api Deployment runs ${EXPECTED_IMAGE}, which is not built from the commit whose production bundle was certified (${SHORT_SHA}) — the runtime tier was not rebuilt this run, so the running code may predate the activation interlock. NOT arming password activation; the release stays fail-closed at DEPLOYMENT_ACCESS_ACTIVATION_ENABLED=0. The deploy itself is unaffected."
+              exit 0
+              ;;
+          esac
+          EXPECTED_IMAGE="${EXPECTED_IMAGE}" node scripts/deploy-cache-window.mjs
+
+      # ---- P104 / SEC-8 · phase 2: NOW it is safe to arm activation ----------
+      #
+      # Only reached when the barrier proved no pre-cutover pod has existed for
+      # longer than the legacy max-age. Flipping the configmap changes the pod
+      # template's checksum annotation, so the api rolls once more; that is fine
+      # and deliberate — every pod involved (old and new) is post-cutover code
+      # emitting `no-cache`, so no cache entry can be minted during it. While that
+      # roll is in flight, activation requests may hit a not-yet-updated pod and
+      # get 503 DEPLOYMENT_ACCESS_ACTIVATION_DISABLED: fail-closed, and transient.
+      - name: Phase 2 — arm password activation (SEC-8)
+        # SEC-10: also requires the barrier to have certified that the api pods
+        # actually run the commit whose production bundle was verified.
+        if: steps.cutover.outputs.barrier == 'true' && steps.barrier.outputs.armable == 'true'
+        run: |
+          set -euo pipefail
+          helm upgrade "${HELM_RELEASE}" infra/helm/platform \
+            --namespace "${HELM_NAMESPACE}" \
+            --reuse-values \
+            --atomic \
+            --timeout 10m \
+            --set "platformEnv.runtime.previewUrlTemplate=https://{workspaceId}-{port}.preview.e-code.ai/" \
+            --set-string "platformEnv.runtime.serverDeployRollbackFromDigest=1" \
+            --set-string "platformEnv.runtime.deploymentAccessActivationEnabled=1"
+          kubectl -n "${HELM_NAMESPACE}" rollout status \
+            "deploy/${HELM_RELEASE}-vibecore-platform-api" --timeout=5m
+
       # D2 (approved 2026-07-17): POST-DEPLOY proof that the rollback flag
       # survived the upgrade — checked against the LIVE cluster (rendered
       # configmap value AND the env of a running api pod), not the workflow's
@@ -577,6 +871,47 @@ jobs:
             echo "::error::api pod template neither sets SERVER_DEPLOY_ROLLBACK_FROM_DIGEST nor consumes the platform-env configmap" >&2
             exit 1
           fi
+
+      # P104 / SEC-8: POST-DEPLOY proof, read back from the LIVE cluster, that the
+      # interlock ended this run in exactly the state the cutover step decided —
+      # "1" only when a barrier actually ran (or had already run on a previous
+      # deploy), "0" otherwise. Guards the two failures that matter: a phase-2 that
+      # silently no-op'd (protection unusable, loud instead of mysterious), and a
+      # flag that arrived at "1" without a barrier (the hole this change closes).
+      - name: Verify the activation interlock state (SEC-8)
+        run: |
+          set -euo pipefail
+          WANT="${{ steps.cutover.outputs.final_flag }}"
+          CM_VALUE="$(kubectl -n "${HELM_NAMESPACE}" get configmap "${HELM_RELEASE}-vibecore-platform-platform-env" \
+            -o jsonpath='{.data.DEPLOYMENT_ACCESS_ACTIVATION_ENABLED}')"
+          echo "configmap DEPLOYMENT_ACCESS_ACTIVATION_ENABLED='${CM_VALUE}' (expected '${WANT}')"
+          if [ "${CM_VALUE}" != "${WANT}" ]; then
+            echo "::error::DEPLOYMENT_ACCESS_ACTIVATION_ENABLED is '${CM_VALUE}' in the live configmap, expected '${WANT}'" >&2
+            exit 1
+          fi
+          # Same reasoning as the D2 step above: `kubectl exec` is not available to
+          # the CI identity through Connect Gateway, so prove the value REACHES the
+          # process via the api pod template instead. An explicit env entry would
+          # override the configmap, so it must either be absent or already correct.
+          TEMPLATE_JSON="$(kubectl -n "${HELM_NAMESPACE}" get deploy "${HELM_RELEASE}-vibecore-platform-api" \
+            -o jsonpath='{.spec.template.spec.containers[0]}')"
+          EXPLICIT="$(printf '%s' "${TEMPLATE_JSON}" | jq -r '[.env // [] | .[] | select(.name=="DEPLOYMENT_ACCESS_ACTIVATION_ENABLED")][0].value // "ABSENT"')"
+          CONSUMES_CM="$(printf '%s' "${TEMPLATE_JSON}" | jq -r --arg cm "${HELM_RELEASE}-vibecore-platform-platform-env" '[.envFrom // [] | .[] | select(.configMapRef.name==$cm)] | length')"
+          echo "api pod template: explicit env='${EXPLICIT}', envFrom platform-env configmap refs=${CONSUMES_CM}"
+          if [ "${EXPLICIT}" != "ABSENT" ] && [ "${EXPLICIT}" != "${WANT}" ]; then
+            echo "::error::api pod template pins DEPLOYMENT_ACCESS_ACTIVATION_ENABLED='${EXPLICIT}' (explicit env overrides the configmap)" >&2
+            exit 1
+          fi
+          if [ "${EXPLICIT}" = "ABSENT" ] && [ "${CONSUMES_CM}" = "0" ]; then
+            echo "::error::api pod template neither sets DEPLOYMENT_ACCESS_ACTIVATION_ENABLED nor consumes the platform-env configmap" >&2
+            exit 1
+          fi
+          {
+            echo "### SEC-8 password-activation interlock"
+            echo ""
+            echo "- **Barrier ran this deploy:** \`${{ steps.cutover.outputs.barrier }}\`"
+            echo "- **Live \`DEPLOYMENT_ACCESS_ACTIVATION_ENABLED\`:** \`${CM_VALUE}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
 
       # Notifications: always runs. Writes a GitHub job summary (visible on the
       # run + emailed to the actor by GitHub on failure) and, when a Slack

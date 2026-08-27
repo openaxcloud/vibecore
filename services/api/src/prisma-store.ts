@@ -8720,7 +8720,9 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
         status: true,
         createdAt: true,
         environmentName: true,
-
+        // Retain metadata for rolling compatibility and status consumers. The
+        // durable DeploymentAccessPolicy remains the serving authority.
+        metadata: true,
         /*
          * L'org et son abonnement sont nécessaires ICI : l'extinction à 30 jours
          * d'une publication Starter se décide dans le chemin de SERVICE, pas
@@ -8759,6 +8761,7 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
       environmentName: deployment.environmentName ?? undefined,
       organizationId: deployment.project?.organizationId,
       planKey: subscription?.status === 'ACTIVE' ? subscription.plan?.key : undefined,
+      metadata: (deployment.metadata ?? undefined) as Record<string, unknown> | undefined,
     };
   }
 

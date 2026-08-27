@@ -3146,6 +3146,8 @@ export interface ApiStore {
 
         /** Plan de l'org, uniquement si l'abonnement est ACTIF. */
         planKey?: string;
+        /** Metadata retained for status consumers and rolling compatibility. */
+        metadata?: Record<string, unknown>;
       }
     | undefined
   >;

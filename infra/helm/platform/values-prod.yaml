@@ -129,9 +129,6 @@ platformEnv:
   cloudTenantAllowedParentFolders: ''
   cloudOperationWorker: 'off'
   cloudOperationWorkerIntervalMs: '5000'
-  # Phase 2 only: set true after DEPLOYMENT_ACCESS_ENFORCEMENT is confirmed on
-  # every preview-proxy replica (see docs/parity/AUTH_ACCESS_CONTRACT.md).
-  deploymentAccessActivationEnabled: 'false'
   # Fastify must trust X-Forwarded-* headers because traffic arrives via the
   # GKE ingress (ingress-nginx). Without this, request.ip is always the proxy
   # pod IP, breaking audit logs, rate-limits, and OAuth callback origin checks.

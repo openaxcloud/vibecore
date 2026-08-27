@@ -10128,7 +10128,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * file into memory — this is a public, unauthenticated route serving
      * attacker-controlled build output, so a full read amplifies memory use.
      */
-    reply.header('cache-control', 'public, max-age=60, must-revalidate');
+    /*
+     * Public bytes may be stored, but every reuse must revalidate. A positive
+     * max-age leaves a cache window where a deployment made private can still
+     * be replayed anonymously even though the origin already enforces the new
+     * policy. The deployment cutover workflow drains the last legacy entries;
+     * this header makes that transition terminal.
+     */
+    reply.header('cache-control', 'public, no-cache, must-revalidate');
     reply.header('x-vibecore-static-deployment', deploymentId);
 
     /*

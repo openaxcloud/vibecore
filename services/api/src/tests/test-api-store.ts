@@ -3878,6 +3878,8 @@ export class TestApiStore implements ApiStore {
       environmentName: (deployment as any).environment,
       organizationId: project?.organizationId,
       planKey: subscription?.status === 'ACTIVE' ? subscription.planKey : undefined,
+      // Keep parity with PrismaApiStore's owner-status projection.
+      metadata: deployment.metadata as Record<string, unknown> | undefined,
     };
   }
 
@@ -4179,7 +4181,22 @@ export class TestApiStore implements ApiStore {
   }
 
   async listDeployments(projectId: string) {
-    return [...this.deployments.values()].filter((deployment) => deployment.projectId === projectId);
+    /*
+     * NEWEST FIRST, like the real store (`prisma-store.ts` orders
+     * `createdAt: 'desc'`). This double used to return raw Map insertion order,
+     * i.e. OLDEST first — so any code taking `[0]` as "the current release"
+     * behaved one way in production and the opposite way under test. SEC-13
+     * (inheriting a deployment's access config on re-publish) is exactly such
+     * code, and the divergence made a wrong implementation look correct.
+     *
+     * Reverse first, then sort by createdAt descending: the sort is stable, so
+     * deployments created within the same millisecond — routine in tests — keep
+     * newest-inserted first instead of resolving to the oldest.
+     */
+    return [...this.deployments.values()]
+      .filter((deployment) => deployment.projectId === projectId)
+      .reverse()
+      .sort((a, b) => Date.parse(b.createdAt ?? '') - Date.parse(a.createdAt ?? ''));
   }
 
   async listStaleDeployments(cutoffIso: string) {

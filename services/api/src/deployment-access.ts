@@ -41,8 +41,18 @@ export const ACCESS_EXCHANGE_TICKET_TTL_SECONDS = 90;
  * they explicitly exercise the mixed-rollout refusal with `false`.
  */
 export function deploymentAccessActivationEnabled(isProduction: boolean): boolean {
-  const configured = process.env.DEPLOYMENT_ACCESS_ACTIVATION_ENABLED;
-  return configured === 'true' || (!isProduction && configured !== 'false');
+  if (
+    process.env.DEPLOYMENT_ACCESS_ACTIVATION_ENABLED === '1' ||
+    process.env.DEPLOYMENT_ACCESS_ACTIVATION_ENABLED === 'true'
+  ) {
+    return true;
+  }
+
+  return (
+    !isProduction &&
+    process.env.DEPLOYMENT_ACCESS_ACTIVATION_ENABLED !== '0' &&
+    process.env.DEPLOYMENT_ACCESS_ACTIVATION_ENABLED !== 'false'
+  );
 }
 
 const ACCESS_COOKIE_SECRET_LABEL = 'vibecore.deployment-access.cookie.v1';
