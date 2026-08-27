@@ -25,6 +25,13 @@ import type { ApiStore, ProjectRecord, RemixJobRecord } from './store.js';
 
 const REMIX_LEASE_MS = 5 * 60_000;
 
+export interface PreparedRemixSourceArtifact {
+  files: ProjectFile[];
+  piiFindings: ReturnType<typeof maskPiiInFiles>['masked'];
+  piiMaskedCount: number;
+  scrubbedCount: number;
+}
+
 export interface RemixPhysicalServiceDeps {
   store: ApiStore;
   projectStorage: ProjectStorage;
@@ -38,6 +45,22 @@ export interface RemixPhysicalServiceDeps {
     actorUserId?: string;
     guard: () => Promise<void>;
   }): Promise<{ snapshotId: string; snapshotHash: string }>;
+  /**
+   * Capture a live source tree and its ProjectManifest under one durable source
+   * barrier. The callback is deliberately executed while the barrier is held:
+   * only its scrubbed result may enter the immutable remix archive.
+   */
+  captureSourceSnapshot?(input: {
+    remixJobId: string;
+    sourceProjectId: string;
+    actorUserId?: string;
+    guard: () => Promise<void>;
+    prepare: (files: ProjectFile[]) => PreparedRemixSourceArtifact;
+  }): Promise<{
+    snapshotId: string;
+    snapshotHash: string;
+    prepared: PreparedRemixSourceArtifact;
+  }>;
   loadSourceSnapshot(snapshotId: string, sourceProjectId: string): Promise<ProjectFile[]>;
   persistTargetManifest(projectId: string, files: ProjectFile[], actorUserId?: string): Promise<void>;
   recordCompleted(input: { job: RemixJobRecord; targetProject: ProjectRecord }): Promise<void>;
@@ -61,6 +84,10 @@ export interface RemixPhysicalInput {
   consentVersion?: string;
   sanitizePii?: boolean;
   piiConsentVersion?: string;
+  /** Ordinary duplicate keeps same-tenant bindings; secure remixes detach them. */
+  manifestCloneMode?: 'COPY' | 'DETACH_EXTERNALS';
+  /** Same-tenant duplicate preserves the pinned tree byte-for-byte. */
+  sourceFilePolicy?: 'SECURE_DETACH' | 'COPY_EXACT';
 }
 
 export type RemixPhysicalResult =
@@ -378,8 +405,12 @@ export async function executePhysicalRemix(
       return pinnedFiles;
     };
 
-    const sourceSecrets = await deps.store.listProjectSecrets(current.sourceProjectId);
-    const sourceEnvVars = await deps.store.listProjectEnvVars(current.sourceProjectId);
+    const copyExact = input.sourceFilePolicy === 'COPY_EXACT';
+    if (copyExact && input.sanitizePii) {
+      throw new RemixInvariantError('Exact file copy cannot also sanitize PII', 'REMIX_SOURCE_POLICY_CONFLICT');
+    }
+    const sourceSecrets = copyExact ? [] : await deps.store.listProjectSecrets(current.sourceProjectId);
+    const sourceEnvVars = copyExact ? [] : await deps.store.listProjectEnvVars(current.sourceProjectId);
     const liveDetached = detachCredentials(sourceSecrets, sourceEnvVars);
     const persistedDetached = detachedKeys(current.detachedKeys);
     const detached = {
@@ -402,7 +433,16 @@ export async function executePhysicalRemix(
       if (envVar.value) materializedValues.push({ key: envVar.key, value: envVar.value });
     }
 
-    const prepareArtifact = (files: ProjectFile[]) => {
+    const prepareArtifact = (files: ProjectFile[]): PreparedRemixSourceArtifact => {
+      if (copyExact) {
+        return {
+          files: files.map((file) => ({ ...file })),
+          piiFindings: [],
+          piiMaskedCount: 0,
+          scrubbedCount: 0,
+        };
+      }
+
       let piiSafeFiles = files;
       let piiFindings: ReturnType<typeof maskPiiInFiles>['masked'] = [];
 
@@ -429,31 +469,56 @@ export async function executePhysicalRemix(
       return {
         piiFindings,
         piiMaskedCount: piiFindings.length,
-        assignmentScrubbed,
-        scrubbed,
         files: scrubbed.files.map((file, index) => ({ ...piiSafeFiles[index], content: file.content })),
         scrubbedCount: assignmentScrubbed.removed.length + scrubbed.removed.length,
       };
     };
 
-    const sourceFilesForAttempt =
+    let captured:
+      | {
+          snapshotId: string;
+          snapshotHash: string;
+          prepared: PreparedRemixSourceArtifact;
+        }
+      | undefined;
+    let sourceFilesForAttempt =
       current.state === 'PENDING'
         ? current.sourceSnapshotId
           ? await deps.loadSourceSnapshot(current.sourceSnapshotId, current.sourceProjectId)
           : input.sourceFiles
         : await loadPinnedFiles();
 
+    if (
+      current.state === 'PENDING' &&
+      !current.sourceSnapshotId &&
+      !sourceFilesForAttempt &&
+      deps.captureSourceSnapshot
+    ) {
+      captured = await deps.captureSourceSnapshot({
+        remixJobId: current.id,
+        sourceProjectId: current.sourceProjectId,
+        actorUserId: input.actorUserId,
+        guard,
+        prepare: prepareArtifact,
+      });
+      sourceFilesForAttempt = captured.prepared.files;
+      pinnedFiles = captured.prepared.files;
+    }
+
     if (!sourceFilesForAttempt) {
       throw new RemixInvariantError('Source files are required to pin a new remix', 'REMIX_SOURCE_UNAVAILABLE');
     }
 
-    const prepared = prepareArtifact(sourceFilesForAttempt);
+    const prepared = captured?.prepared ?? prepareArtifact(sourceFilesForAttempt);
 
     if (current.state === 'PENDING') {
       let snapshotId = current.sourceSnapshotId;
       let snapshotHash: string;
 
-      if (!snapshotId) {
+      if (!snapshotId && captured) {
+        snapshotId = captured.snapshotId;
+        snapshotHash = captured.snapshotHash;
+      } else if (!snapshotId) {
         /*
          * I-RMX-1 applies to the pin itself, not only to the eventual target.
          * Archive the already scrubbed artifact so a committed .env value never
@@ -515,8 +580,6 @@ export async function executePhysicalRemix(
     }
 
     const sanitizedFiles = prepared.files;
-    const assignmentScrubbed = prepared.assignmentScrubbed;
-    const scrubbed = prepared.scrubbed;
 
     if (current.state === 'SOURCE_SANITIZED') {
       const target = await deps.store.withSerializedMutation(`projects:${current.organizationId}`, async () => {
@@ -527,24 +590,24 @@ export async function executePhysicalRemix(
           operationToken,
           name: input.name,
           slug: input.slug ?? input.name,
+          manifestCloneMode: input.manifestCloneMode ?? 'DETACH_EXTERNALS',
         });
       });
       current = (await deps.store.getRemixJob(current.id, current.organizationId)) ?? current;
       await guard();
-      const written = await deps.projectStorage.writeFiles(
-        target.id,
-        scrubbed.files.map((file, index) => ({ ...sanitizedFiles[index], content: file.content })),
-        undefined,
-        guard,
-      );
+      await deps.projectStorage.writeFiles(target.id, sanitizedFiles, undefined, guard);
       await guard();
-      await deps.persistTargetManifest(target.id, written, input.actorUserId);
+      const verifiedFiles = await deps.projectStorage.listFiles(target.id);
+      if (remixFileSnapshotHash(verifiedFiles) !== remixFileSnapshotHash(sanitizedFiles)) {
+        throw new RemixInvariantError('Target file digest mismatch after clone', 'REMIX_TARGET_DIGEST_MISMATCH');
+      }
+      await deps.persistTargetManifest(target.id, verifiedFiles, input.actorUserId);
       await advance('CLONING', {
         targetProjectId: target.id,
         // Preserve the first-pass count stored with the immutable pin. On a
         // crash/retry the archive is already clean, so a second scrub may find
         // fewer lines even though the original proof must remain auditable.
-        scrubbedCount: Math.max(current.scrubbedCount, assignmentScrubbed.removed.length + scrubbed.removed.length),
+        scrubbedCount: Math.max(current.scrubbedCount, prepared.scrubbedCount),
       });
     }
 

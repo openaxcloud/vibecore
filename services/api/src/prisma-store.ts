@@ -2345,6 +2345,7 @@ export class PrismaApiStore implements ApiStore {
     operationToken: string;
     name: string;
     slug: string;
+    manifestCloneMode?: ProjectManifestCloneMode;
   }) {
     return this.prisma.$transaction(async (tx) => {
       await tx.$queryRawUnsafe(
@@ -2389,7 +2390,7 @@ export class PrismaApiStore implements ApiStore {
        * latest live revision. Files v1 + topology v2 is not a valid remix.
        */
       const sourceManifest = readProjectManifestSnapshotPin(sourceSnapshot.manifest, source.id).manifest;
-      const ensureDetachedTargetManifest = async (targetProjectId: string) => {
+      const ensureTargetManifest = async (targetProjectId: string) => {
         const existingRevisionRow = await tx.projectManifestRevision.findFirst({
           where: { projectId: targetProjectId },
           orderBy: { manifestVersion: 'desc' },
@@ -2400,7 +2401,11 @@ export class PrismaApiStore implements ApiStore {
           return;
         }
 
-        const manifest = projectManifestForClone(sourceManifest, targetProjectId, 'DETACH_EXTERNALS');
+        const manifest = projectManifestForClone(
+          sourceManifest,
+          targetProjectId,
+          input.manifestCloneMode ?? 'DETACH_EXTERNALS',
+        );
         await tx.projectManifestRevision.create({
           data: {
             projectId: targetProjectId,
@@ -2419,7 +2424,7 @@ export class PrismaApiStore implements ApiStore {
         });
 
         if (existing) {
-          await ensureDetachedTargetManifest(existing.id);
+          await ensureTargetManifest(existing.id);
           return mapProject(existing);
         }
       }
@@ -2446,7 +2451,7 @@ export class PrismaApiStore implements ApiStore {
           deletedAt: new Date(),
         },
       });
-      await ensureDetachedTargetManifest(project.id);
+      await ensureTargetManifest(project.id);
       await tx.remixJob.update({
         where: { id: job.id },
         data: { targetProjectId: project.id, version: { increment: 1 } },
@@ -3200,6 +3205,12 @@ export class PrismaApiStore implements ApiStore {
     name: string;
     slug: string;
     sourceType: ProjectRecord['sourceType'];
+    description?: string;
+    templateName?: string;
+    gitRepositoryUrl?: string;
+    gitDefaultBranch?: string;
+    initialManifest?: unknown;
+    manifestCloneMode?: ProjectManifestCloneMode;
   }) {
     return this.prisma.$transaction(async (tx) => {
       await tx.$queryRawUnsafe(
@@ -3225,7 +3236,7 @@ export class PrismaApiStore implements ApiStore {
         });
       }
 
-      const ensureDefaultManifest = async (targetProjectId: string) => {
+      const ensureInitialManifest = async (targetProjectId: string) => {
         const existingRevisionRow = await tx.projectManifestRevision.findFirst({
           where: { projectId: targetProjectId },
           orderBy: { manifestVersion: 'desc' },
@@ -3236,7 +3247,9 @@ export class PrismaApiStore implements ApiStore {
           return;
         }
 
-        const manifest = createDefaultProjectManifest(targetProjectId);
+        const manifest = input.initialManifest
+          ? projectManifestForClone(input.initialManifest, targetProjectId, input.manifestCloneMode)
+          : createDefaultProjectManifest(targetProjectId);
         await tx.projectManifestRevision.create({
           data: {
             projectId: targetProjectId,
@@ -3255,24 +3268,34 @@ export class PrismaApiStore implements ApiStore {
         });
 
         if (existing) {
-          await ensureDefaultManifest(existing.id);
+          await ensureInitialManifest(existing.id);
           return mapProject(existing);
         }
       }
 
+      const baseSlug = slugify(input.slug) || `import-${job.id.slice(-8).toLowerCase()}`;
+      const occupied = await tx.project.findUnique({
+        where: { organizationId_slug: { organizationId: input.organizationId, slug: baseSlug } },
+        select: { id: true },
+      });
+      const slug = occupied ? `${baseSlug}-${job.id.slice(-8).toLowerCase()}` : baseSlug;
       const project = await tx.project.create({
         data: {
           organizationId: input.organizationId,
           name: input.name,
-          slug: input.slug,
+          slug,
           sourceType: input.sourceType,
-          persistentVolumeClaim: `pvc-${input.organizationId}-${input.slug}`,
+          description: input.description,
+          templateName: input.templateName,
+          gitRepositoryUrl: input.gitRepositoryUrl,
+          gitDefaultBranch: input.gitDefaultBranch,
+          persistentVolumeClaim: `pvc-${input.organizationId}-${slug}`,
           // Hidden until files, file manifest, billing settlement and import
           // state commit succeed atomically in finalizeImportCommit.
           deletedAt: now,
         },
       });
-      await ensureDefaultManifest(project.id);
+      await ensureInitialManifest(project.id);
       await tx.importJob.update({
         where: { id: job.id },
         data: { targetProjectId: project.id, version: { increment: 1 } },

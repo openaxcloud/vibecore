@@ -3809,6 +3809,7 @@ export class TestApiStore implements ApiStore {
     operationToken: string;
     name: string;
     slug: string;
+    manifestCloneMode?: ProjectManifestCloneMode;
   }) {
     const job = this.remixJobs.get(input.remixJobId);
 
@@ -3839,7 +3840,11 @@ export class TestApiStore implements ApiStore {
         if (existingRevision) {
           verifyStoredProjectManifestRevision(existingRevision, existing.id);
         } else {
-          const manifest = projectManifestForClone(sourceManifest, existing.id, 'DETACH_EXTERNALS');
+          const manifest = projectManifestForClone(
+            sourceManifest,
+            existing.id,
+            input.manifestCloneMode ?? 'DETACH_EXTERNALS',
+          );
           this.projectManifestRevisions.set(existing.id, [
             {
               id: id('project_manifest'),
@@ -3857,17 +3862,23 @@ export class TestApiStore implements ApiStore {
       }
     }
 
+    const baseSlug = slugify(input.slug) || `import-${job.id.slice(-8).toLowerCase()}`;
+    const slug = [...this.projects.values()].some(
+      (candidate) => candidate.organizationId === input.organizationId && candidate.slug === baseSlug,
+    )
+      ? `${baseSlug}-${job.id.slice(-8).toLowerCase()}`
+      : baseSlug;
     const project = await this.createProject({
       organizationId: input.organizationId,
       name: input.name,
-      slug: input.slug,
+      slug,
       description: source.description,
       sourceType: 'duplicate',
       templateName: source.templateName,
       gitRepositoryUrl: source.gitRepositoryUrl,
       gitDefaultBranch: source.gitDefaultBranch,
       initialManifest: sourceManifest,
-      manifestCloneMode: 'DETACH_EXTERNALS',
+      manifestCloneMode: input.manifestCloneMode ?? 'DETACH_EXTERNALS',
     });
     project.deletedAt = now();
     job.targetProjectId = project.id;
@@ -3976,6 +3987,8 @@ export class TestApiStore implements ApiStore {
     const job = this.remixJobs.get(input.remixJobId);
     if (!job || job.state !== 'CLEANUP_PENDING' || job.operationToken !== input.operationToken) return false;
     this.projects.delete(input.targetProjectId);
+    this.projectManifestRevisions.delete(input.targetProjectId);
+    this.projectIdeStates.delete(input.targetProjectId);
     job.targetProjectId = undefined;
     return true;
   }
@@ -4362,6 +4375,12 @@ export class TestApiStore implements ApiStore {
     name: string;
     slug: string;
     sourceType: ProjectRecord['sourceType'];
+    description?: string;
+    templateName?: string;
+    gitRepositoryUrl?: string;
+    gitDefaultBranch?: string;
+    initialManifest?: unknown;
+    manifestCloneMode?: ProjectManifestCloneMode;
   }) {
     const job = this.importJobs.get(input.importJobId);
 
@@ -4387,7 +4406,9 @@ export class TestApiStore implements ApiStore {
         if (existingRevision) {
           verifyStoredProjectManifestRevision(existingRevision, existing.id);
         } else {
-          const manifest = createDefaultProjectManifest(existing.id);
+          const manifest = input.initialManifest
+            ? projectManifestForClone(input.initialManifest, existing.id, input.manifestCloneMode)
+            : createDefaultProjectManifest(existing.id);
           this.projectManifestRevisions.set(existing.id, [
             {
               id: id('project_manifest'),
@@ -4405,11 +4426,23 @@ export class TestApiStore implements ApiStore {
       }
     }
 
+    const baseSlug = slugify(input.slug) || `import-${job.id.slice(-8).toLowerCase()}`;
+    const slug = [...this.projects.values()].some(
+      (candidate) => candidate.organizationId === input.organizationId && candidate.slug === baseSlug,
+    )
+      ? `${baseSlug}-${job.id.slice(-8).toLowerCase()}`
+      : baseSlug;
     const project = await this.createProject({
       organizationId: input.organizationId,
       name: input.name,
-      slug: input.slug,
+      slug,
       sourceType: input.sourceType,
+      description: input.description,
+      templateName: input.templateName,
+      gitRepositoryUrl: input.gitRepositoryUrl,
+      gitDefaultBranch: input.gitDefaultBranch,
+      initialManifest: input.initialManifest,
+      manifestCloneMode: input.manifestCloneMode,
     });
     project.deletedAt = now();
     job.targetProjectId = project.id;
@@ -4540,6 +4573,7 @@ export class TestApiStore implements ApiStore {
     const target = this.projects.get(input.targetProjectId);
     if (!target || target.organizationId !== input.organizationId || !target.deletedAt) return false;
     this.projects.delete(input.targetProjectId);
+    this.projectManifestRevisions.delete(input.targetProjectId);
     this.projectIdeStates.delete(input.targetProjectId);
     job.targetProjectId = undefined;
 
