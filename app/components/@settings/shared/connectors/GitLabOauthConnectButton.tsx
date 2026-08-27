@@ -1,5 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '~/components/ui/Button';
+import {
+  formatSettingsConnectorsResidualCopy,
+  getSettingsConnectorsResidualCopy,
+} from '~/lib/i18n/catalogs/settings-connectors-residual';
 import { logStore } from '~/lib/stores/logs';
 
 /*
@@ -52,11 +57,20 @@ export interface GitLabOauthConnectButtonProps {
 }
 
 export function GitLabOauthConnectButton({ projectId, className, onConnected }: GitLabOauthConnectButtonProps) {
+  const { i18n } = useTranslation();
+  const copy = getSettingsConnectorsResidualCopy(i18n.resolvedLanguage ?? i18n.language);
   const [isLaunching, setIsLaunching] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
+  const [errorCode, setErrorCode] = useState<'connection' | 'start' | 'popup' | null>(null);
+  const [connectedAccount, setConnectedAccount] = useState<string | null>(null);
   const popupRef = useRef<Window | null>(null);
   const pollRef = useRef<number | null>(null);
+  const errorMessage = errorCode ? copy[`settingsResidual.gitlabOauth.error.${errorCode}`] : null;
+
+  const successMessage = connectedAccount
+    ? formatSettingsConnectorsResidualCopy(copy['settingsResidual.gitlabOauth.connected'], {
+        account: connectedAccount,
+      })
+    : null;
 
   const closePopupTracking = useCallback(() => {
     if (pollRef.current !== null) {
@@ -91,16 +105,15 @@ export function GitLabOauthConnectButton({ projectId, className, onConnected }: 
       setIsLaunching(false);
 
       if (event.data.type === 'e-code.connector.connection.resolved') {
-        setError(null);
-        setSuccess(`Connected as ${event.data.accountLabel}`);
+        setErrorCode(null);
+        setConnectedAccount(event.data.accountLabel);
         logStore.logSystem(`GitLab OAuth connection established for ${event.data.accountLabel}`);
         onConnected?.({ userConnectionId: event.data.userConnectionId, accountLabel: event.data.accountLabel });
       } else {
-        const message = event.data.errorMessage ?? 'GitLab connection failed.';
-        setError(message);
+        setConnectedAccount(null);
+        setErrorCode('connection');
         logStore.logError('GitLab OAuth connection failed', {
           code: event.data.errorCode,
-          message,
         });
       }
     }
@@ -113,8 +126,8 @@ export function GitLabOauthConnectButton({ projectId, className, onConnected }: 
   }, [closePopupTracking, onConnected]);
 
   const handleClick = useCallback(async () => {
-    setError(null);
-    setSuccess(null);
+    setErrorCode(null);
+    setConnectedAccount(null);
     setIsLaunching(true);
 
     try {
@@ -125,8 +138,9 @@ export function GitLabOauthConnectButton({ projectId, className, onConnected }: 
       });
 
       if (!response.ok) {
-        const payload = (await response.json().catch(() => ({}))) as { code?: string; error?: string };
-        setError(payload.error ?? `Failed to start OAuth flow (HTTP ${response.status})`);
+        const payload = (await response.json().catch(() => ({}))) as { code?: string };
+        setErrorCode('start');
+        logStore.logError('GitLab OAuth flow failed to start', { code: payload.code, status: response.status });
         setIsLaunching(false);
 
         return;
@@ -141,7 +155,7 @@ export function GitLabOauthConnectButton({ projectId, className, onConnected }: 
       );
 
       if (!popup) {
-        setError('Popup was blocked. Allow popups for this site and try again.');
+        setErrorCode('popup');
         setIsLaunching(false);
 
         return;
@@ -156,31 +170,45 @@ export function GitLabOauthConnectButton({ projectId, className, onConnected }: 
         }
       }, 500);
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'Unknown failure starting OAuth flow.');
+      setErrorCode('start');
+      logStore.logError('GitLab OAuth flow failed to start', {
+        name: caught instanceof Error ? caught.name : 'UnknownError',
+      });
       setIsLaunching(false);
     }
   }, [closePopupTracking, projectId]);
 
   return (
     <div className={className}>
-      <Button onClick={handleClick} disabled={isLaunching}>
+      <Button onClick={handleClick} disabled={isLaunching} className="min-h-11 max-w-full whitespace-normal">
         {isLaunching ? (
-          <span className="flex items-center gap-2">
-            <span className="i-ph:spinner-gap-bold animate-spin w-4 h-4" />
-            Waiting for GitLab authorization...
+          <span className="flex min-w-0 items-center gap-2" role="status" aria-live="polite">
+            <span className="i-ph:spinner-gap-bold h-4 w-4 shrink-0 animate-spin" aria-hidden="true" />
+            <span className="break-words text-left">{copy['settingsResidual.gitlabOauth.waiting']}</span>
           </span>
         ) : (
-          <span className="flex items-center gap-2">
-            <span className="i-ph:gitlab-logo w-4 h-4" />
-            Connect with GitLab (OAuth)
+          <span className="flex min-w-0 items-center gap-2">
+            <span className="i-ph:gitlab-logo h-4 w-4 shrink-0" aria-hidden="true" />
+            <span className="break-words text-left">{copy['settingsResidual.gitlabOauth.connect']}</span>
           </span>
         )}
       </Button>
-      {error ? (
-        <p className="mt-2 text-xs text-bolt-elements-icon-error dark:text-bolt-elements-icon-error">{error}</p>
+      {errorMessage ? (
+        <p
+          className="mt-2 break-words text-xs text-bolt-elements-icon-error dark:text-bolt-elements-icon-error"
+          role="alert"
+        >
+          {errorMessage}
+        </p>
       ) : null}
-      {success ? (
-        <p className="mt-2 text-xs text-bolt-elements-icon-success dark:text-bolt-elements-icon-success">{success}</p>
+      {successMessage ? (
+        <p
+          className="mt-2 break-words text-xs text-bolt-elements-icon-success dark:text-bolt-elements-icon-success"
+          role="status"
+          aria-live="polite"
+        >
+          {successMessage}
+        </p>
       ) : null}
     </div>
   );

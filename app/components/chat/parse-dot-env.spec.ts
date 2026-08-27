@@ -103,5 +103,7 @@ describe('describeSkipReason', () => {
   it('maps both reasons to human labels', () => {
     expect(describeSkipReason('no-equals-sign')).toContain('=');
     expect(describeSkipReason('invalid-key')).toContain('key');
+    expect(describeSkipReason('no-equals-sign', 'fr-FR')).toBe('séparateur « = » manquant');
+    expect(describeSkipReason('invalid-key', 'fr-FR')).toBe('nom de clé invalide');
   });
 });

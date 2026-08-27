@@ -1,11 +1,20 @@
 import { useStore } from '@nanostores/react';
 import { diffLines, type Change } from 'diff';
-import { memo, useMemo, useState, useEffect, useCallback } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useTranslation } from 'react-i18next';
 import { getHighlighter } from 'shiki';
 import { formatModifiedTime } from './diff-modified-time';
 import type { EditorDocument } from '~/components/editor/codemirror/CodeMirrorEditor';
 import { ConfirmationDialog } from '~/components/ui/Dialog';
+import {
+  formatDiffViewCopy,
+  formatDiffViewNumber,
+  formatDiffViewStatLabel,
+  getDiffViewCopy,
+  resolveDiffViewLanguage,
+  type DiffViewCopy,
+} from '~/lib/i18n/catalogs/diff-view';
 import type { FileMap } from '~/lib/stores/files';
 import { themeStore } from '~/lib/stores/theme';
 import { workbenchStore } from '~/lib/stores/workbench';
@@ -18,6 +27,8 @@ interface CodeComparisonProps {
   beforeCode: string;
   afterCode: string;
   language: string;
+  locale: string;
+  copy: DiffViewCopy;
   filename: string;
   lightTheme: string;
   darkTheme: string;
@@ -84,22 +95,42 @@ interface DiffBlock {
 interface FullscreenButtonProps {
   onClick: () => void;
   isFullscreen: boolean;
+  enterLabel: string;
+  exitLabel: string;
 }
 
-const FullscreenButton = memo(({ onClick, isFullscreen }: FullscreenButtonProps) => (
-  <button
-    type="button"
-    onClick={onClick}
-    aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
-    className="ml-4 p-1 rounded hover:bg-bolt-elements-background-depth-3 text-bolt-elements-textTertiary hover:text-bolt-elements-textPrimary transition-colors"
-    title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
-  >
-    <div className={isFullscreen ? 'i-ph:corners-in' : 'i-ph:corners-out'} />
-  </button>
-));
+const FullscreenButton = memo(({ onClick, isFullscreen, enterLabel, exitLabel }: FullscreenButtonProps) => {
+  const label = isFullscreen ? exitLabel : enterLabel;
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-md text-bolt-elements-textTertiary transition-colors hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)] motion-reduce:transition-none"
+      title={label}
+    >
+      <span className={isFullscreen ? 'i-ph:corners-in' : 'i-ph:corners-out'} aria-hidden="true" />
+    </button>
+  );
+});
 
 const FullscreenOverlay = memo(
-  ({ isFullscreen, onClose, children }: { isFullscreen: boolean; onClose?: () => void; children: React.ReactNode }) => {
+  ({
+    isFullscreen,
+    onClose,
+    dialogLabel,
+    closeLabel,
+    children,
+  }: {
+    isFullscreen: boolean;
+    onClose?: () => void;
+    dialogLabel: string;
+    closeLabel: string;
+    children: React.ReactNode;
+  }) => {
+    const dialogRef = useRef<HTMLDivElement>(null);
+
     useEffect(() => {
       if (!isFullscreen || !onClose) {
         return undefined;
@@ -112,6 +143,7 @@ const FullscreenOverlay = memo(
       };
 
       document.addEventListener('keydown', onKey);
+      dialogRef.current?.focus();
 
       return () => document.removeEventListener('keydown', onKey);
     }, [isFullscreen, onClose]);
@@ -130,16 +162,24 @@ const FullscreenOverlay = memo(
     }
 
     return createPortal(
-      <div
-        className="fixed inset-0 z-[9999] bg-black/50 flex items-center justify-center p-6"
-        onClick={() => onClose?.()}
-      >
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center p-2 sm:p-4 lg:p-6">
         <div
-          className="w-full h-full max-w-[90vw] max-h-[90vh] bg-bolt-elements-background-depth-2 rounded-lg border border-bolt-elements-borderColor shadow-xl overflow-hidden"
-          onClick={(event) => event.stopPropagation()}
+          ref={dialogRef}
+          role="dialog"
+          aria-modal="true"
+          aria-label={dialogLabel}
+          tabIndex={-1}
+          className="relative z-10 h-full max-h-[calc(100dvh-1rem)] w-full min-w-0 max-w-[calc(100vw-1rem)] overflow-hidden rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-xl outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)] sm:max-h-[90dvh] sm:max-w-[90vw]"
         >
           {children}
         </div>
+        <button
+          type="button"
+          className="absolute inset-0 min-h-11 min-w-11 cursor-default bg-black/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--vc-ide-accent-action)]"
+          aria-label={closeLabel}
+          title={closeLabel}
+          onClick={() => onClose?.()}
+        />
       </div>,
       document.body,
     );
@@ -445,19 +485,28 @@ const changeColorStyles = {
   unchanged: 'text-bolt-elements-textPrimary',
 };
 
-const renderContentWarning = (type: 'binary' | 'error') => (
-  <div className="h-full flex items-center justify-center p-4">
-    <div className="text-center text-bolt-elements-textTertiary">
-      <div className={`i-ph:${type === 'binary' ? 'file-x' : 'warning-circle'} text-4xl text-red-400 mb-2 mx-auto`} />
-      <p className="font-medium text-bolt-elements-textPrimary">
-        {type === 'binary' ? 'Binary file detected' : 'Error processing file'}
-      </p>
-      <p className="text-sm mt-1">
-        {type === 'binary' ? 'Diff view is not available for binary files' : 'Could not generate diff preview'}
-      </p>
+const renderContentWarning = (type: 'binary' | 'error', copy: DiffViewCopy) => {
+  const title = type === 'binary' ? copy['diffView.warning.binary.title'] : copy['diffView.warning.processing.title'];
+
+  const description =
+    type === 'binary' ? copy['diffView.warning.binary.description'] : copy['diffView.warning.processing.description'];
+
+  return (
+    <div
+      className="flex h-full min-w-0 items-center justify-center bg-bolt-elements-background-depth-1 p-4 text-bolt-elements-textPrimary sm:p-6"
+      role={type === 'error' ? 'alert' : 'status'}
+    >
+      <div className="max-w-md min-w-0 text-center text-bolt-elements-textTertiary">
+        <span
+          className={`i-ph:${type === 'binary' ? 'file-x' : 'warning-circle'} mx-auto mb-3 block text-4xl text-[var(--status-error-text)]`}
+          aria-hidden="true"
+        />
+        <p className="break-words font-medium text-bolt-elements-textPrimary [overflow-wrap:anywhere]">{title}</p>
+        <p className="mt-1 break-words text-sm [overflow-wrap:anywhere]">{description}</p>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 const NoChangesView = memo(
   ({
@@ -465,23 +514,27 @@ const NoChangesView = memo(
     language,
     highlighter,
     theme,
+    copy,
   }: {
     beforeCode: string;
     language: string;
     highlighter: any;
     theme: string;
+    copy: DiffViewCopy;
   }) => (
-    <div className="h-full flex flex-col items-center justify-center p-4">
-      <div className="text-center text-bolt-elements-textTertiary">
-        <div className="i-ph:files text-4xl text-green-400 mb-2 mx-auto" />
-        <p className="font-medium text-bolt-elements-textPrimary">Files are identical</p>
-        <p className="text-sm mt-1">Both versions match exactly</p>
+    <div className="flex h-full min-w-0 flex-col items-center justify-center bg-bolt-elements-background-depth-1 p-4 sm:p-6">
+      <div className="min-w-0 max-w-md text-center text-bolt-elements-textTertiary" role="status">
+        <span className="i-ph:files mx-auto mb-3 block text-4xl text-[var(--status-success-text)]" aria-hidden="true" />
+        <p className="break-words font-medium text-bolt-elements-textPrimary [overflow-wrap:anywhere]">
+          {copy['diffView.identical.title']}
+        </p>
+        <p className="mt-1 break-words text-sm [overflow-wrap:anywhere]">{copy['diffView.identical.description']}</p>
       </div>
-      <div className="mt-4 w-full max-w-2xl bg-bolt-elements-background-depth-1 rounded-lg border border-bolt-elements-borderColor overflow-hidden">
-        <div className="p-2 text-xs font-bold text-bolt-elements-textTertiary border-b border-bolt-elements-borderColor">
-          Current Content
+      <div className="mt-4 w-full min-w-0 max-w-2xl overflow-hidden rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2">
+        <div className="break-words border-b border-bolt-elements-borderColor p-2 text-xs font-bold text-bolt-elements-textTertiary [overflow-wrap:anywhere]">
+          {copy['diffView.identical.currentContent']}
         </div>
-        <div className="overflow-auto max-h-96">
+        <div className="max-h-96 overflow-auto">
           {beforeCode.split('\n').map((line, index) => (
             <div key={index} className="flex group min-w-fit">
               <div className={lineNumberStyles}>{index + 1}</div>
@@ -593,6 +646,8 @@ const FileInfo = memo(
     beforeCode,
     afterCode,
     lastModified,
+    copy,
+    locale,
   }: {
     filename: string;
     hasChanges: boolean;
@@ -601,6 +656,8 @@ const FileInfo = memo(
     beforeCode: string;
     afterCode: string;
     lastModified?: number;
+    copy: DiffViewCopy;
+    locale: string;
   }) => {
     /*
      * Calculate additions and deletions from the current document.
@@ -623,30 +680,64 @@ const FileInfo = memo(
     }, [hasChanges, beforeCode, afterCode]);
 
     const showStats = additions > 0 || deletions > 0;
+    const modifiedTime = formatModifiedTime(lastModified, locale);
 
     return (
-      <div className="flex items-center bg-bolt-elements-background-depth-1 p-2 text-sm text-bolt-elements-textPrimary shrink-0">
-        <div className="i-ph:file mr-2 h-4 w-4 shrink-0" />
-        <span className="truncate">{filename}</span>
-        <span className="ml-auto shrink-0 flex items-center gap-2">
+      <div className="flex min-w-0 shrink-0 flex-col gap-2 border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-2 py-1.5 text-sm text-bolt-elements-textPrimary sm:flex-row sm:items-center">
+        <div className="flex min-w-0 items-start gap-2 sm:items-center">
+          <span className="i-ph:file mt-0.5 h-4 w-4 shrink-0 sm:mt-0" aria-hidden="true" />
+          <span className="min-w-0 break-all [overflow-wrap:anywhere]">{filename}</span>
+        </div>
+        <div className="flex w-full min-w-0 flex-wrap items-center gap-x-2 gap-y-1 sm:ml-auto sm:w-auto sm:shrink-0 sm:justify-end">
           {hasChanges ? (
             <>
               {showStats && (
                 <div className="flex items-center gap-1 text-xs">
-                  {additions > 0 && <span className="text-[var(--status-success-text)]">+{additions}</span>}
-                  {deletions > 0 && <span className="text-[var(--status-error-text)]">-{deletions}</span>}
+                  {additions > 0 && (
+                    <span
+                      className="text-[var(--status-success-text)]"
+                      aria-label={formatDiffViewStatLabel('additions', additions, locale)}
+                    >
+                      +{formatDiffViewNumber(additions, locale)}
+                    </span>
+                  )}
+                  {deletions > 0 && (
+                    <span
+                      className="text-[var(--status-error-text)]"
+                      aria-label={formatDiffViewStatLabel('deletions', deletions, locale)}
+                    >
+                      -{formatDiffViewNumber(deletions, locale)}
+                    </span>
+                  )}
                 </div>
               )}
-              <span className="text-[var(--status-warning-text)]">Modified</span>
-              {formatModifiedTime(lastModified) && (
-                <span className="text-bolt-elements-textTertiary text-xs">{formatModifiedTime(lastModified)}</span>
+              <span className="text-[var(--status-warning-text)]" aria-live="polite">
+                {copy['diffView.status.modified']}
+              </span>
+              {modifiedTime && lastModified !== undefined && (
+                <time
+                  dateTime={new Date(lastModified).toISOString()}
+                  aria-label={formatDiffViewCopy(copy['diffView.status.modifiedAt'], { date: modifiedTime })}
+                  className="break-words text-xs text-bolt-elements-textTertiary [overflow-wrap:anywhere]"
+                >
+                  {modifiedTime}
+                </time>
               )}
             </>
           ) : (
-            <span className="text-[var(--status-success-text)]">No Changes</span>
+            <span className="text-[var(--status-success-text)]" role="status">
+              {copy['diffView.status.noChanges']}
+            </span>
           )}
-          <FullscreenButton onClick={onToggleFullscreen} isFullscreen={isFullscreen} />
-        </span>
+          <span className="ml-auto sm:ml-1">
+            <FullscreenButton
+              onClick={onToggleFullscreen}
+              isFullscreen={isFullscreen}
+              enterLabel={copy['diffView.fullscreen.enter']}
+              exitLabel={copy['diffView.fullscreen.exit']}
+            />
+          </span>
+        </div>
       </div>
     );
   },
@@ -655,6 +746,8 @@ const FileInfo = memo(
 // Create and manage a single highlighter instance at the module level
 let highlighterInstance: any = null;
 let highlighterPromise: Promise<any> | null = null;
+
+const HIGHLIGHTER_TIMEOUT_MS = 15_000;
 
 const getSharedHighlighter = async () => {
   if (highlighterInstance) {
@@ -665,24 +758,31 @@ const getSharedHighlighter = async () => {
     return highlighterPromise;
   }
 
-  highlighterPromise = getHighlighter({
+  const pendingHighlighter = getHighlighter({
     themes: ['github-dark', 'github-light'],
     langs: [...DIFF_SUPPORTED_LANGS],
   });
+  highlighterPromise = pendingHighlighter;
 
-  highlighterInstance = await highlighterPromise;
-  highlighterPromise = null;
+  try {
+    highlighterInstance = await pendingHighlighter;
 
-  // Clear the promise once resolved
-  return highlighterInstance;
+    return highlighterInstance;
+  } finally {
+    if (highlighterPromise === pendingHighlighter) {
+      highlighterPromise = null;
+    }
+  }
 };
 
-const InlineDiffComparison = memo(
-  ({ beforeCode, afterCode, filename, language, lastModified }: CodeComparisonProps) => {
-    const [isFullscreen, setIsFullscreen] = useState(false);
+type HighlighterStatus = 'loading' | 'ready' | 'error';
 
-    // Use state to hold the shared highlighter instance
+const InlineDiffComparison = memo(
+  ({ beforeCode, afterCode, filename, language, locale, copy, lastModified }: CodeComparisonProps) => {
+    const [isFullscreen, setIsFullscreen] = useState(false);
     const [highlighter, setHighlighter] = useState<any>(null);
+    const [highlighterStatus, setHighlighterStatus] = useState<HighlighterStatus>('loading');
+    const [loadAttempt, setLoadAttempt] = useState(0);
     const theme = useStore(themeStore);
 
     const toggleFullscreen = useCallback(() => {
@@ -692,35 +792,87 @@ const InlineDiffComparison = memo(
     const { unifiedBlocks, hasChanges, isBinary, error } = useProcessChanges(beforeCode, afterCode);
 
     useEffect(() => {
-      // Fetch the shared highlighter instance
-      getSharedHighlighter().then(setHighlighter);
+      let active = true;
+      let timedOut = false;
+      setHighlighter(null);
+      setHighlighterStatus('loading');
 
-      /*
-       * No cleanup needed here for the highlighter instance itself,
-       * as it's managed globally. Shiki instances don't typically
-       * need disposal unless you are dynamically loading/unloading themes/languages.
-       * If you were dynamically loading, you might need a more complex
-       * shared instance manager with reference counting or similar.
-       * For static themes/langs, a single instance is sufficient.
-       */
-    }, []); // Empty dependency array ensures this runs only once on mount
+      const timeout = window.setTimeout(() => {
+        if (!active) {
+          return;
+        }
+
+        timedOut = true;
+        highlighterPromise = null;
+        setHighlighterStatus('error');
+      }, HIGHLIGHTER_TIMEOUT_MS);
+
+      void getSharedHighlighter()
+        .then((instance) => {
+          if (!active || timedOut) {
+            return;
+          }
+
+          window.clearTimeout(timeout);
+          setHighlighter(instance);
+          setHighlighterStatus('ready');
+        })
+        .catch((highlighterError: unknown) => {
+          if (!active) {
+            return;
+          }
+
+          window.clearTimeout(timeout);
+          console.error('Diff syntax highlighter failed:', highlighterError);
+          setHighlighterStatus('error');
+        });
+
+      return () => {
+        active = false;
+        window.clearTimeout(timeout);
+      };
+    }, [loadAttempt]);
 
     if (isBinary || error) {
-      return renderContentWarning(isBinary ? 'binary' : 'error');
+      return renderContentWarning(isBinary ? 'binary' : 'error', copy);
     }
 
-    // Render a loading state or null while highlighter is not ready
-    if (!highlighter) {
+    if (highlighterStatus === 'loading') {
       return (
-        <div className="h-full flex items-center justify-center">
-          <div className="text-bolt-elements-textTertiary">Loading diff...</div>
+        <div
+          className="flex h-full min-w-0 items-center justify-center bg-bolt-elements-background-depth-1 p-4 text-bolt-elements-textPrimary sm:p-6"
+          role="status"
+          aria-live="polite"
+          aria-busy="true"
+          data-testid="diff-view-loading"
+        >
+          <div className="w-full max-w-md min-w-0 text-center">
+            <span
+              className="i-ph:spinner-gap-bold mx-auto mb-3 block text-3xl text-[var(--vc-ide-accent-action)] motion-safe:animate-spin"
+              aria-hidden="true"
+            />
+            <p className="break-words font-medium [overflow-wrap:anywhere]">{copy['diffView.loading.title']}</p>
+            <p className="mt-1 break-words text-sm text-bolt-elements-textTertiary [overflow-wrap:anywhere]">
+              {copy['diffView.loading.description']}
+            </p>
+            <div className="mx-auto mt-5 grid max-w-sm gap-2" aria-hidden="true">
+              <span className="h-3 w-full rounded bg-bolt-elements-background-depth-3 motion-safe:animate-pulse" />
+              <span className="h-3 w-4/5 rounded bg-bolt-elements-background-depth-3 motion-safe:animate-pulse" />
+              <span className="h-3 w-3/5 rounded bg-bolt-elements-background-depth-3 motion-safe:animate-pulse" />
+            </div>
+          </div>
         </div>
       );
     }
 
     return (
-      <FullscreenOverlay isFullscreen={isFullscreen} onClose={() => setIsFullscreen(false)}>
-        <div className="w-full h-full flex flex-col">
+      <FullscreenOverlay
+        isFullscreen={isFullscreen}
+        onClose={() => setIsFullscreen(false)}
+        dialogLabel={formatDiffViewCopy(copy['diffView.fullscreen.dialog'], { fileName: filename })}
+        closeLabel={copy['diffView.fullscreen.close']}
+      >
+        <div className="flex h-full w-full min-w-0 flex-col bg-bolt-elements-background-depth-2">
           <FileInfo
             filename={filename}
             hasChanges={hasChanges}
@@ -729,7 +881,32 @@ const InlineDiffComparison = memo(
             beforeCode={beforeCode}
             afterCode={afterCode}
             lastModified={lastModified}
+            copy={copy}
+            locale={locale}
           />
+          {highlighterStatus === 'error' ? (
+            <div
+              className="flex min-w-0 flex-col gap-3 border-b border-[var(--status-error-border)] bg-[var(--status-error-bg)] p-3 text-sm text-[var(--status-error-text)] sm:flex-row sm:items-center sm:justify-between"
+              role="alert"
+              data-testid="diff-view-highlighter-error"
+            >
+              <div className="min-w-0">
+                <p className="break-words font-medium [overflow-wrap:anywhere]">
+                  {copy['diffView.loading.error.title']}
+                </p>
+                <p className="mt-1 break-words text-xs [overflow-wrap:anywhere]">
+                  {copy['diffView.loading.error.description']}
+                </p>
+              </div>
+              <button
+                type="button"
+                className="inline-flex min-h-11 w-full shrink-0 items-center justify-center rounded-md border border-current px-4 py-2 font-medium transition-colors hover:bg-bolt-elements-background-depth-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)] motion-reduce:transition-none sm:w-auto"
+                onClick={() => setLoadAttempt((attempt) => attempt + 1)}
+              >
+                {copy['diffView.loading.retry']}
+              </button>
+            </div>
+          ) : null}
           <div className={diffPanelStyles}>
             {hasChanges ? (
               <div className="overflow-x-auto min-w-full">
@@ -747,7 +924,13 @@ const InlineDiffComparison = memo(
                 ))}
               </div>
             ) : (
-              <NoChangesView beforeCode={beforeCode} language={language} highlighter={highlighter} theme={theme} />
+              <NoChangesView
+                beforeCode={beforeCode}
+                language={language}
+                highlighter={highlighter}
+                theme={theme}
+                copy={copy}
+              />
             )}
           </div>
         </div>
@@ -762,12 +945,16 @@ interface DiffViewProps {
 }
 
 export const DiffView = memo(({ fileHistory, setFileHistory }: DiffViewProps) => {
+  const { i18n } = useTranslation();
+  const locale = resolveDiffViewLanguage(i18n.resolvedLanguage ?? i18n.language);
+  const copy = getDiffViewCopy(locale);
   const files = useStore(workbenchStore.files) as FileMap;
   const selectedFile = useStore(workbenchStore.selectedFile);
   const currentDocument = useStore(workbenchStore.currentDocument) as EditorDocument;
   const unsavedFiles = useStore(workbenchStore.unsavedFiles);
   const [revertOpen, setRevertOpen] = useState(false);
   const [reverting, setReverting] = useState(false);
+  const [revertFailed, setRevertFailed] = useState(false);
 
   useEffect(() => {
     if (selectedFile && currentDocument) {
@@ -854,8 +1041,21 @@ export const DiffView = memo(({ fileHistory, setFileHistory }: DiffViewProps) =>
 
   if (!selectedFile || !currentDocument) {
     return (
-      <div className="flex w-full h-full justify-center items-center bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary">
-        Select a file to view differences
+      <div
+        className="flex h-full w-full min-w-0 items-center justify-center bg-bolt-elements-background-depth-1 p-4 text-bolt-elements-textPrimary sm:p-6"
+        role="status"
+        data-testid="diff-view-empty"
+      >
+        <div className="max-w-md min-w-0 text-center">
+          <span
+            className="i-ph:file-magnifying-glass mx-auto mb-3 block text-4xl text-bolt-elements-textTertiary"
+            aria-hidden="true"
+          />
+          <p className="break-words font-medium [overflow-wrap:anywhere]">{copy['diffView.empty.title']}</p>
+          <p className="mt-1 break-words text-sm text-bolt-elements-textTertiary [overflow-wrap:anywhere]">
+            {copy['diffView.empty.description']}
+          </p>
+        </div>
       </div>
     );
   }
@@ -877,6 +1077,7 @@ export const DiffView = memo(({ fileHistory, setFileHistory }: DiffViewProps) =>
 
   const revertFile = async () => {
     setReverting(true);
+    setRevertFailed(false);
 
     try {
       workbenchStore.setCurrentDocumentContent(effectiveOriginalContent);
@@ -887,24 +1088,46 @@ export const DiffView = memo(({ fileHistory, setFileHistory }: DiffViewProps) =>
 
         return next;
       });
+      setRevertOpen(false);
+    } catch (revertError) {
+      console.error('Diff file revert failed:', revertError);
+
+      try {
+        workbenchStore.setCurrentDocumentContent(currentContent);
+      } catch (rollbackError) {
+        console.error('Diff file revert rollback failed:', rollbackError);
+      }
+
+      setRevertFailed(true);
     } finally {
       setReverting(false);
-      setRevertOpen(false);
     }
+  };
+
+  const closeRevertDialog = () => {
+    if (reverting) {
+      return;
+    }
+
+    setRevertOpen(false);
+    setRevertFailed(false);
   };
 
   try {
     return (
-      <div className="flex h-full flex-col overflow-hidden">
+      <div className="flex h-full min-w-0 flex-col overflow-hidden bg-bolt-elements-background-depth-2">
         {hasDiff ? (
-          <div className="flex shrink-0 items-center justify-end border-b border-bolt-elements-borderColor px-3 py-1.5">
+          <div className="flex min-w-0 shrink-0 items-center justify-end border-b border-bolt-elements-borderColor px-2 py-1.5 sm:px-3">
             <button
               type="button"
-              onClick={() => setRevertOpen(true)}
-              className="inline-flex items-center gap-1.5 rounded-md border border-bolt-elements-borderColor px-2 py-1 text-xs font-medium text-bolt-elements-textPrimary transition-colors hover:bg-bolt-elements-background-depth-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]"
+              onClick={() => {
+                setRevertFailed(false);
+                setRevertOpen(true);
+              }}
+              className="inline-flex min-h-11 w-full items-center justify-center gap-1.5 whitespace-normal rounded-md border border-bolt-elements-borderColor px-3 py-2 text-center text-xs font-medium text-bolt-elements-textPrimary transition-colors hover:bg-bolt-elements-background-depth-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)] motion-reduce:transition-none sm:w-auto"
             >
-              <span className="i-ph:arrow-counter-clockwise" aria-hidden />
-              Revert file
+              <span className="i-ph:arrow-counter-clockwise shrink-0" aria-hidden="true" />
+              {copy['diffView.revert.action']}
             </button>
           </div>
         ) : null}
@@ -917,28 +1140,50 @@ export const DiffView = memo(({ fileHistory, setFileHistory }: DiffViewProps) =>
             lightTheme="github-light"
             darkTheme="github-dark"
             lastModified={history?.lastModified}
+            copy={copy}
+            locale={locale}
           />
         </div>
         <ConfirmationDialog
           isOpen={revertOpen}
-          title="Revert file?"
-          description={`This restores ${diffBasename} to its content before these edits and saves it. This can't be undone from here.`}
-          confirmLabel={reverting ? 'Reverting…' : 'Revert file'}
-          cancelLabel="Keep changes"
+          title={copy['diffView.revert.title']}
+          description={
+            <div className="min-w-0">
+              <p className="break-words [overflow-wrap:anywhere]">
+                {formatDiffViewCopy(copy['diffView.revert.description'], { fileName: diffBasename })}
+              </p>
+              {revertFailed ? (
+                <p
+                  className="mt-3 break-words rounded-md border border-[var(--status-error-border)] bg-[var(--status-error-bg)] p-3 text-[var(--status-error-text)] [overflow-wrap:anywhere]"
+                  role="alert"
+                >
+                  {copy['diffView.revert.error']}
+                </p>
+              ) : null}
+            </div>
+          }
+          confirmLabel={reverting ? copy['diffView.revert.confirming'] : copy['diffView.revert.confirm']}
+          cancelLabel={copy['diffView.revert.cancel']}
           variant="destructive"
           isLoading={reverting}
           onConfirm={() => void revertFile()}
-          onClose={() => setRevertOpen(false)}
+          onClose={closeRevertDialog}
         />
       </div>
     );
   } catch (error) {
     console.error('DiffView render error:', error);
     return (
-      <div className="flex w-full h-full justify-center items-center bg-bolt-elements-background-depth-1 text-[var(--status-error-text)]">
-        <div className="text-center">
-          <div className="i-ph:warning-circle text-4xl mb-2" />
-          <p>Failed to render diff view</p>
+      <div
+        className="flex h-full w-full min-w-0 items-center justify-center bg-bolt-elements-background-depth-1 p-4 text-[var(--status-error-text)] sm:p-6"
+        role="alert"
+      >
+        <div className="max-w-md min-w-0 text-center">
+          <span className="i-ph:warning-circle mx-auto mb-3 block text-4xl" aria-hidden="true" />
+          <p className="break-words font-medium [overflow-wrap:anywhere]">{copy['diffView.renderError.title']}</p>
+          <p className="mt-1 break-words text-sm [overflow-wrap:anywhere]">
+            {copy['diffView.renderError.description']}
+          </p>
         </div>
       </div>
     );

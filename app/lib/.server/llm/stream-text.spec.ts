@@ -13,7 +13,7 @@ import {
 } from './stream-text';
 import { DEFAULT_MODEL } from '~/utils/constants';
 
-const ANTHROPIC_FRONTIER = 'claude-sonnet-4-5-20250929';
+const ANTHROPIC_FRONTIER = 'claude-opus-5';
 const ANTHROPIC_SMALL = 'claude-haiku-4-5-20251001';
 
 // A provider-usability probe that mirrors the real Anthropic static catalog.

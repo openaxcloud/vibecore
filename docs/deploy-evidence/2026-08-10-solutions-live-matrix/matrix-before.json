@@ -1,0 +1,4178 @@
+[
+  {
+    "slug": "app-builder",
+    "lang": "en",
+    "theme": "light",
+    "width": 390,
+    "status": 200,
+    "htmlLang": "en",
+    "title": "Business App Builder with Real Code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 82,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "app-builder/en-light-390.png"
+  },
+  {
+    "slug": "app-builder",
+    "lang": "en",
+    "theme": "light",
+    "width": 768,
+    "status": 200,
+    "htmlLang": "en",
+    "title": "Business App Builder with Real Code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 82,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "app-builder/en-light-768.png"
+  },
+  {
+    "slug": "app-builder",
+    "lang": "en",
+    "theme": "light",
+    "width": 1024,
+    "status": 200,
+    "htmlLang": "en",
+    "title": "Business App Builder with Real Code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 82,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "app-builder/en-light-1024.png"
+  },
+  {
+    "slug": "app-builder",
+    "lang": "en",
+    "theme": "light",
+    "width": 1440,
+    "status": 200,
+    "htmlLang": "en",
+    "title": "Business App Builder with Real Code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 82,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "app-builder/en-light-1440.png"
+  },
+  {
+    "slug": "app-builder",
+    "lang": "en",
+    "theme": "dark",
+    "width": 390,
+    "status": 200,
+    "htmlLang": "en",
+    "title": "Business App Builder with Real Code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 82,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "app-builder/en-dark-390.png"
+  },
+  {
+    "slug": "app-builder",
+    "lang": "en",
+    "theme": "dark",
+    "width": 768,
+    "status": 200,
+    "htmlLang": "en",
+    "title": "Business App Builder with Real Code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 82,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "app-builder/en-dark-768.png"
+  },
+  {
+    "slug": "app-builder",
+    "lang": "en",
+    "theme": "dark",
+    "width": 1024,
+    "status": 200,
+    "htmlLang": "en",
+    "title": "Business App Builder with Real Code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 82,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "app-builder/en-dark-1024.png"
+  },
+  {
+    "slug": "app-builder",
+    "lang": "en",
+    "theme": "dark",
+    "width": 1440,
+    "status": 200,
+    "htmlLang": "en",
+    "title": "Business App Builder with Real Code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 82,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "app-builder/en-dark-1440.png"
+  },
+  {
+    "slug": "app-builder",
+    "lang": "fr",
+    "theme": "light",
+    "width": 390,
+    "status": 200,
+    "htmlLang": "fr",
+    "title": "App Builder métier avec code source réel | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 82,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "app-builder/fr-light-390.png"
+  },
+  {
+    "slug": "app-builder",
+    "lang": "fr",
+    "theme": "light",
+    "width": 768,
+    "status": 200,
+    "htmlLang": "fr",
+    "title": "App Builder métier avec code source réel | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 82,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "app-builder/fr-light-768.png"
+  },
+  {
+    "slug": "app-builder",
+    "lang": "fr",
+    "theme": "light",
+    "width": 1024,
+    "status": 200,
+    "htmlLang": "fr",
+    "title": "App Builder métier avec code source réel | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 82,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "app-builder/fr-light-1024.png"
+  },
+  {
+    "slug": "app-builder",
+    "lang": "fr",
+    "theme": "light",
+    "width": 1440,
+    "status": 200,
+    "htmlLang": "fr",
+    "title": "App Builder métier avec code source réel | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 82,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "app-builder/fr-light-1440.png"
+  },
+  {
+    "slug": "app-builder",
+    "lang": "fr",
+    "theme": "dark",
+    "width": 390,
+    "status": 200,
+    "htmlLang": "fr",
+    "title": "App Builder métier avec code source réel | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 82,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "app-builder/fr-dark-390.png"
+  },
+  {
+    "slug": "app-builder",
+    "lang": "fr",
+    "theme": "dark",
+    "width": 768,
+    "status": 200,
+    "htmlLang": "fr",
+    "title": "App Builder métier avec code source réel | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 82,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "app-builder/fr-dark-768.png"
+  },
+  {
+    "slug": "app-builder",
+    "lang": "fr",
+    "theme": "dark",
+    "width": 1024,
+    "status": 200,
+    "htmlLang": "fr",
+    "title": "App Builder métier avec code source réel | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 82,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "app-builder/fr-dark-1024.png"
+  },
+  {
+    "slug": "app-builder",
+    "lang": "fr",
+    "theme": "dark",
+    "width": 1440,
+    "status": 200,
+    "htmlLang": "fr",
+    "title": "App Builder métier avec code source réel | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 82,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "app-builder/fr-dark-1440.png"
+  },
+  {
+    "slug": "website-builder",
+    "lang": "en",
+    "theme": "light",
+    "width": 390,
+    "status": 200,
+    "htmlLang": "en",
+    "title": "Website Builder with Real Code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "website-builder/en-light-390.png"
+  },
+  {
+    "slug": "website-builder",
+    "lang": "en",
+    "theme": "light",
+    "width": 768,
+    "status": 200,
+    "htmlLang": "en",
+    "title": "Website Builder with Real Code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "website-builder/en-light-768.png"
+  },
+  {
+    "slug": "website-builder",
+    "lang": "en",
+    "theme": "light",
+    "width": 1024,
+    "status": 200,
+    "htmlLang": "en",
+    "title": "Website Builder with Real Code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "website-builder/en-light-1024.png"
+  },
+  {
+    "slug": "website-builder",
+    "lang": "en",
+    "theme": "light",
+    "width": 1440,
+    "status": 200,
+    "htmlLang": "en",
+    "title": "Website Builder with Real Code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "website-builder/en-light-1440.png"
+  },
+  {
+    "slug": "website-builder",
+    "lang": "en",
+    "theme": "dark",
+    "width": 390,
+    "status": 200,
+    "htmlLang": "en",
+    "title": "Website Builder with Real Code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "website-builder/en-dark-390.png"
+  },
+  {
+    "slug": "website-builder",
+    "lang": "en",
+    "theme": "dark",
+    "width": 768,
+    "status": 200,
+    "htmlLang": "en",
+    "title": "Website Builder with Real Code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "website-builder/en-dark-768.png"
+  },
+  {
+    "slug": "website-builder",
+    "lang": "en",
+    "theme": "dark",
+    "width": 1024,
+    "status": 200,
+    "htmlLang": "en",
+    "title": "Website Builder with Real Code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "website-builder/en-dark-1024.png"
+  },
+  {
+    "slug": "website-builder",
+    "lang": "en",
+    "theme": "dark",
+    "width": 1440,
+    "status": 200,
+    "htmlLang": "en",
+    "title": "Website Builder with Real Code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "website-builder/en-dark-1440.png"
+  },
+  {
+    "slug": "website-builder",
+    "lang": "fr",
+    "theme": "light",
+    "width": 390,
+    "status": 200,
+    "htmlLang": "fr",
+    "title": "Générateur de site web avec vrai code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "website-builder/fr-light-390.png"
+  },
+  {
+    "slug": "website-builder",
+    "lang": "fr",
+    "theme": "light",
+    "width": 768,
+    "status": 200,
+    "htmlLang": "fr",
+    "title": "Générateur de site web avec vrai code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "website-builder/fr-light-768.png"
+  },
+  {
+    "slug": "website-builder",
+    "lang": "fr",
+    "theme": "light",
+    "width": 1024,
+    "status": 200,
+    "htmlLang": "fr",
+    "title": "Générateur de site web avec vrai code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "website-builder/fr-light-1024.png"
+  },
+  {
+    "slug": "website-builder",
+    "lang": "fr",
+    "theme": "light",
+    "width": 1440,
+    "status": 200,
+    "htmlLang": "fr",
+    "title": "Générateur de site web avec vrai code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "website-builder/fr-light-1440.png"
+  },
+  {
+    "slug": "website-builder",
+    "lang": "fr",
+    "theme": "dark",
+    "width": 390,
+    "status": 200,
+    "htmlLang": "fr",
+    "title": "Générateur de site web avec vrai code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "website-builder/fr-dark-390.png"
+  },
+  {
+    "slug": "website-builder",
+    "lang": "fr",
+    "theme": "dark",
+    "width": 768,
+    "status": 200,
+    "htmlLang": "fr",
+    "title": "Générateur de site web avec vrai code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "website-builder/fr-dark-768.png"
+  },
+  {
+    "slug": "website-builder",
+    "lang": "fr",
+    "theme": "dark",
+    "width": 1024,
+    "status": 200,
+    "htmlLang": "fr",
+    "title": "Générateur de site web avec vrai code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "website-builder/fr-dark-1024.png"
+  },
+  {
+    "slug": "website-builder",
+    "lang": "fr",
+    "theme": "dark",
+    "width": 1440,
+    "status": 200,
+    "htmlLang": "fr",
+    "title": "Générateur de site web avec vrai code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "website-builder/fr-dark-1440.png"
+  },
+  {
+    "slug": "game-builder",
+    "lang": "en",
+    "theme": "light",
+    "width": 390,
+    "status": 200,
+    "htmlLang": "en",
+    "title": "Game Builder with Real Code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "game-builder/en-light-390.png"
+  },
+  {
+    "slug": "game-builder",
+    "lang": "en",
+    "theme": "light",
+    "width": 768,
+    "status": 200,
+    "htmlLang": "en",
+    "title": "Game Builder with Real Code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "game-builder/en-light-768.png"
+  },
+  {
+    "slug": "game-builder",
+    "lang": "en",
+    "theme": "light",
+    "width": 1024,
+    "status": 200,
+    "htmlLang": "en",
+    "title": "Game Builder with Real Code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "game-builder/en-light-1024.png"
+  },
+  {
+    "slug": "game-builder",
+    "lang": "en",
+    "theme": "light",
+    "width": 1440,
+    "status": 200,
+    "htmlLang": "en",
+    "title": "Game Builder with Real Code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "game-builder/en-light-1440.png"
+  },
+  {
+    "slug": "game-builder",
+    "lang": "en",
+    "theme": "dark",
+    "width": 390,
+    "status": 200,
+    "htmlLang": "en",
+    "title": "Game Builder with Real Code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "game-builder/en-dark-390.png"
+  },
+  {
+    "slug": "game-builder",
+    "lang": "en",
+    "theme": "dark",
+    "width": 768,
+    "status": 200,
+    "htmlLang": "en",
+    "title": "Game Builder with Real Code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "game-builder/en-dark-768.png"
+  },
+  {
+    "slug": "game-builder",
+    "lang": "en",
+    "theme": "dark",
+    "width": 1024,
+    "status": 200,
+    "htmlLang": "en",
+    "title": "Game Builder with Real Code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "game-builder/en-dark-1024.png"
+  },
+  {
+    "slug": "game-builder",
+    "lang": "en",
+    "theme": "dark",
+    "width": 1440,
+    "status": 200,
+    "htmlLang": "en",
+    "title": "Game Builder with Real Code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "game-builder/en-dark-1440.png"
+  },
+  {
+    "slug": "game-builder",
+    "lang": "fr",
+    "theme": "light",
+    "width": 390,
+    "status": 200,
+    "htmlLang": "fr",
+    "title": "Générateur de jeu avec vrai code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "game-builder/fr-light-390.png"
+  },
+  {
+    "slug": "game-builder",
+    "lang": "fr",
+    "theme": "light",
+    "width": 768,
+    "status": 200,
+    "htmlLang": "fr",
+    "title": "Générateur de jeu avec vrai code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "game-builder/fr-light-768.png"
+  },
+  {
+    "slug": "game-builder",
+    "lang": "fr",
+    "theme": "light",
+    "width": 1024,
+    "status": 200,
+    "htmlLang": "fr",
+    "title": "Générateur de jeu avec vrai code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "game-builder/fr-light-1024.png"
+  },
+  {
+    "slug": "game-builder",
+    "lang": "fr",
+    "theme": "light",
+    "width": 1440,
+    "status": 200,
+    "htmlLang": "fr",
+    "title": "Générateur de jeu avec vrai code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "game-builder/fr-light-1440.png"
+  },
+  {
+    "slug": "game-builder",
+    "lang": "fr",
+    "theme": "dark",
+    "width": 390,
+    "status": 200,
+    "htmlLang": "fr",
+    "title": "Générateur de jeu avec vrai code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "game-builder/fr-dark-390.png"
+  },
+  {
+    "slug": "game-builder",
+    "lang": "fr",
+    "theme": "dark",
+    "width": 768,
+    "status": 200,
+    "htmlLang": "fr",
+    "title": "Générateur de jeu avec vrai code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "game-builder/fr-dark-768.png"
+  },
+  {
+    "slug": "game-builder",
+    "lang": "fr",
+    "theme": "dark",
+    "width": 1024,
+    "status": 200,
+    "htmlLang": "fr",
+    "title": "Générateur de jeu avec vrai code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "game-builder/fr-dark-1024.png"
+  },
+  {
+    "slug": "game-builder",
+    "lang": "fr",
+    "theme": "dark",
+    "width": 1440,
+    "status": 200,
+    "htmlLang": "fr",
+    "title": "Générateur de jeu avec vrai code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "game-builder/fr-dark-1440.png"
+  },
+  {
+    "slug": "dashboard-builder",
+    "lang": "en",
+    "theme": "light",
+    "width": 390,
+    "status": 200,
+    "htmlLang": "en",
+    "title": "Dashboard Builder with Real Code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "dashboard-builder/en-light-390.png"
+  },
+  {
+    "slug": "dashboard-builder",
+    "lang": "en",
+    "theme": "light",
+    "width": 768,
+    "status": 200,
+    "htmlLang": "en",
+    "title": "Dashboard Builder with Real Code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "dashboard-builder/en-light-768.png"
+  },
+  {
+    "slug": "dashboard-builder",
+    "lang": "en",
+    "theme": "light",
+    "width": 1024,
+    "status": 200,
+    "htmlLang": "en",
+    "title": "Dashboard Builder with Real Code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "dashboard-builder/en-light-1024.png"
+  },
+  {
+    "slug": "dashboard-builder",
+    "lang": "en",
+    "theme": "light",
+    "width": 1440,
+    "status": 200,
+    "htmlLang": "en",
+    "title": "Dashboard Builder with Real Code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "dashboard-builder/en-light-1440.png"
+  },
+  {
+    "slug": "dashboard-builder",
+    "lang": "en",
+    "theme": "dark",
+    "width": 390,
+    "status": 200,
+    "htmlLang": "en",
+    "title": "Dashboard Builder with Real Code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "dashboard-builder/en-dark-390.png"
+  },
+  {
+    "slug": "dashboard-builder",
+    "lang": "en",
+    "theme": "dark",
+    "width": 768,
+    "status": 200,
+    "htmlLang": "en",
+    "title": "Dashboard Builder with Real Code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "dashboard-builder/en-dark-768.png"
+  },
+  {
+    "slug": "dashboard-builder",
+    "lang": "en",
+    "theme": "dark",
+    "width": 1024,
+    "status": 200,
+    "htmlLang": "en",
+    "title": "Dashboard Builder with Real Code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "dashboard-builder/en-dark-1024.png"
+  },
+  {
+    "slug": "dashboard-builder",
+    "lang": "en",
+    "theme": "dark",
+    "width": 1440,
+    "status": 200,
+    "htmlLang": "en",
+    "title": "Dashboard Builder with Real Code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "dashboard-builder/en-dark-1440.png"
+  },
+  {
+    "slug": "dashboard-builder",
+    "lang": "fr",
+    "theme": "light",
+    "width": 390,
+    "status": 200,
+    "htmlLang": "fr",
+    "title": "Générateur de tableau de bord avec vrai code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "dashboard-builder/fr-light-390.png"
+  },
+  {
+    "slug": "dashboard-builder",
+    "lang": "fr",
+    "theme": "light",
+    "width": 768,
+    "status": 200,
+    "htmlLang": "fr",
+    "title": "Générateur de tableau de bord avec vrai code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "dashboard-builder/fr-light-768.png"
+  },
+  {
+    "slug": "dashboard-builder",
+    "lang": "fr",
+    "theme": "light",
+    "width": 1024,
+    "status": 200,
+    "htmlLang": "fr",
+    "title": "Générateur de tableau de bord avec vrai code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "dashboard-builder/fr-light-1024.png"
+  },
+  {
+    "slug": "dashboard-builder",
+    "lang": "fr",
+    "theme": "light",
+    "width": 1440,
+    "status": 200,
+    "htmlLang": "fr",
+    "title": "Générateur de tableau de bord avec vrai code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "dashboard-builder/fr-light-1440.png"
+  },
+  {
+    "slug": "dashboard-builder",
+    "lang": "fr",
+    "theme": "dark",
+    "width": 390,
+    "status": 200,
+    "htmlLang": "fr",
+    "title": "Générateur de tableau de bord avec vrai code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "dashboard-builder/fr-dark-390.png"
+  },
+  {
+    "slug": "dashboard-builder",
+    "lang": "fr",
+    "theme": "dark",
+    "width": 768,
+    "status": 200,
+    "htmlLang": "fr",
+    "title": "Générateur de tableau de bord avec vrai code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "dashboard-builder/fr-dark-768.png"
+  },
+  {
+    "slug": "dashboard-builder",
+    "lang": "fr",
+    "theme": "dark",
+    "width": 1024,
+    "status": 200,
+    "htmlLang": "fr",
+    "title": "Générateur de tableau de bord avec vrai code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "dashboard-builder/fr-dark-1024.png"
+  },
+  {
+    "slug": "dashboard-builder",
+    "lang": "fr",
+    "theme": "dark",
+    "width": 1440,
+    "status": 200,
+    "htmlLang": "fr",
+    "title": "Générateur de tableau de bord avec vrai code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "dashboard-builder/fr-dark-1440.png"
+  },
+  {
+    "slug": "chatbot-builder",
+    "lang": "en",
+    "theme": "light",
+    "width": 390,
+    "status": 200,
+    "htmlLang": "en",
+    "title": "Chatbot & AI Agent Builder with Real Code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "chatbot-builder/en-light-390.png"
+  },
+  {
+    "slug": "chatbot-builder",
+    "lang": "en",
+    "theme": "light",
+    "width": 768,
+    "status": 200,
+    "htmlLang": "en",
+    "title": "Chatbot & AI Agent Builder with Real Code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "chatbot-builder/en-light-768.png"
+  },
+  {
+    "slug": "chatbot-builder",
+    "lang": "en",
+    "theme": "light",
+    "width": 1024,
+    "status": 200,
+    "htmlLang": "en",
+    "title": "Chatbot & AI Agent Builder with Real Code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "chatbot-builder/en-light-1024.png"
+  },
+  {
+    "slug": "chatbot-builder",
+    "lang": "en",
+    "theme": "light",
+    "width": 1440,
+    "status": 200,
+    "htmlLang": "en",
+    "title": "Chatbot & AI Agent Builder with Real Code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "chatbot-builder/en-light-1440.png"
+  },
+  {
+    "slug": "chatbot-builder",
+    "lang": "en",
+    "theme": "dark",
+    "width": 390,
+    "status": 200,
+    "htmlLang": "en",
+    "title": "Chatbot & AI Agent Builder with Real Code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "chatbot-builder/en-dark-390.png"
+  },
+  {
+    "slug": "chatbot-builder",
+    "lang": "en",
+    "theme": "dark",
+    "width": 768,
+    "status": 200,
+    "htmlLang": "en",
+    "title": "Chatbot & AI Agent Builder with Real Code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "chatbot-builder/en-dark-768.png"
+  },
+  {
+    "slug": "chatbot-builder",
+    "lang": "en",
+    "theme": "dark",
+    "width": 1024,
+    "status": 200,
+    "htmlLang": "en",
+    "title": "Chatbot & AI Agent Builder with Real Code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "chatbot-builder/en-dark-1024.png"
+  },
+  {
+    "slug": "chatbot-builder",
+    "lang": "en",
+    "theme": "dark",
+    "width": 1440,
+    "status": 200,
+    "htmlLang": "en",
+    "title": "Chatbot & AI Agent Builder with Real Code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "chatbot-builder/en-dark-1440.png"
+  },
+  {
+    "slug": "chatbot-builder",
+    "lang": "fr",
+    "theme": "light",
+    "width": 390,
+    "status": 200,
+    "htmlLang": "fr",
+    "title": "Générateur de chatbot et d’agent IA avec vrai code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "chatbot-builder/fr-light-390.png"
+  },
+  {
+    "slug": "chatbot-builder",
+    "lang": "fr",
+    "theme": "light",
+    "width": 768,
+    "status": 200,
+    "htmlLang": "fr",
+    "title": "Générateur de chatbot et d’agent IA avec vrai code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "chatbot-builder/fr-light-768.png"
+  },
+  {
+    "slug": "chatbot-builder",
+    "lang": "fr",
+    "theme": "light",
+    "width": 1024,
+    "status": 200,
+    "htmlLang": "fr",
+    "title": "Générateur de chatbot et d’agent IA avec vrai code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "chatbot-builder/fr-light-1024.png"
+  },
+  {
+    "slug": "chatbot-builder",
+    "lang": "fr",
+    "theme": "light",
+    "width": 1440,
+    "status": 200,
+    "htmlLang": "fr",
+    "title": "Générateur de chatbot et d’agent IA avec vrai code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "chatbot-builder/fr-light-1440.png"
+  },
+  {
+    "slug": "chatbot-builder",
+    "lang": "fr",
+    "theme": "dark",
+    "width": 390,
+    "status": 200,
+    "htmlLang": "fr",
+    "title": "Générateur de chatbot et d’agent IA avec vrai code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "chatbot-builder/fr-dark-390.png"
+  },
+  {
+    "slug": "chatbot-builder",
+    "lang": "fr",
+    "theme": "dark",
+    "width": 768,
+    "status": 200,
+    "htmlLang": "fr",
+    "title": "Générateur de chatbot et d’agent IA avec vrai code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "chatbot-builder/fr-dark-768.png"
+  },
+  {
+    "slug": "chatbot-builder",
+    "lang": "fr",
+    "theme": "dark",
+    "width": 1024,
+    "status": 200,
+    "htmlLang": "fr",
+    "title": "Générateur de chatbot et d’agent IA avec vrai code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "chatbot-builder/fr-dark-1024.png"
+  },
+  {
+    "slug": "chatbot-builder",
+    "lang": "fr",
+    "theme": "dark",
+    "width": 1440,
+    "status": 200,
+    "htmlLang": "fr",
+    "title": "Générateur de chatbot et d’agent IA avec vrai code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "chatbot-builder/fr-dark-1440.png"
+  },
+  {
+    "slug": "internal-ai-builder",
+    "lang": "en",
+    "theme": "light",
+    "width": 390,
+    "status": 200,
+    "htmlLang": "en",
+    "title": "Internal AI Builder with Real Code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "internal-ai-builder/en-light-390.png"
+  },
+  {
+    "slug": "internal-ai-builder",
+    "lang": "en",
+    "theme": "light",
+    "width": 768,
+    "status": 200,
+    "htmlLang": "en",
+    "title": "Internal AI Builder with Real Code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "internal-ai-builder/en-light-768.png"
+  },
+  {
+    "slug": "internal-ai-builder",
+    "lang": "en",
+    "theme": "light",
+    "width": 1024,
+    "status": 200,
+    "htmlLang": "en",
+    "title": "Internal AI Builder with Real Code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "internal-ai-builder/en-light-1024.png"
+  },
+  {
+    "slug": "internal-ai-builder",
+    "lang": "en",
+    "theme": "light",
+    "width": 1440,
+    "status": 200,
+    "htmlLang": "en",
+    "title": "Internal AI Builder with Real Code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "internal-ai-builder/en-light-1440.png"
+  },
+  {
+    "slug": "internal-ai-builder",
+    "lang": "en",
+    "theme": "dark",
+    "width": 390,
+    "status": 200,
+    "htmlLang": "en",
+    "title": "Internal AI Builder with Real Code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "internal-ai-builder/en-dark-390.png"
+  },
+  {
+    "slug": "internal-ai-builder",
+    "lang": "en",
+    "theme": "dark",
+    "width": 768,
+    "status": 200,
+    "htmlLang": "en",
+    "title": "Internal AI Builder with Real Code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "internal-ai-builder/en-dark-768.png"
+  },
+  {
+    "slug": "internal-ai-builder",
+    "lang": "en",
+    "theme": "dark",
+    "width": 1024,
+    "status": 200,
+    "htmlLang": "en",
+    "title": "Internal AI Builder with Real Code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "internal-ai-builder/en-dark-1024.png"
+  },
+  {
+    "slug": "internal-ai-builder",
+    "lang": "en",
+    "theme": "dark",
+    "width": 1440,
+    "status": 200,
+    "htmlLang": "en",
+    "title": "Internal AI Builder with Real Code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "internal-ai-builder/en-dark-1440.png"
+  },
+  {
+    "slug": "internal-ai-builder",
+    "lang": "fr",
+    "theme": "light",
+    "width": 390,
+    "status": 200,
+    "htmlLang": "fr",
+    "title": "Générateur d’IA interne avec vrai code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "internal-ai-builder/fr-light-390.png"
+  },
+  {
+    "slug": "internal-ai-builder",
+    "lang": "fr",
+    "theme": "light",
+    "width": 768,
+    "status": 200,
+    "htmlLang": "fr",
+    "title": "Générateur d’IA interne avec vrai code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "internal-ai-builder/fr-light-768.png"
+  },
+  {
+    "slug": "internal-ai-builder",
+    "lang": "fr",
+    "theme": "light",
+    "width": 1024,
+    "status": 200,
+    "htmlLang": "fr",
+    "title": "Générateur d’IA interne avec vrai code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "internal-ai-builder/fr-light-1024.png"
+  },
+  {
+    "slug": "internal-ai-builder",
+    "lang": "fr",
+    "theme": "light",
+    "width": 1440,
+    "status": 200,
+    "htmlLang": "fr",
+    "title": "Générateur d’IA interne avec vrai code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "internal-ai-builder/fr-light-1440.png"
+  },
+  {
+    "slug": "internal-ai-builder",
+    "lang": "fr",
+    "theme": "dark",
+    "width": 390,
+    "status": 200,
+    "htmlLang": "fr",
+    "title": "Générateur d’IA interne avec vrai code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "internal-ai-builder/fr-dark-390.png"
+  },
+  {
+    "slug": "internal-ai-builder",
+    "lang": "fr",
+    "theme": "dark",
+    "width": 768,
+    "status": 200,
+    "htmlLang": "fr",
+    "title": "Générateur d’IA interne avec vrai code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "internal-ai-builder/fr-dark-768.png"
+  },
+  {
+    "slug": "internal-ai-builder",
+    "lang": "fr",
+    "theme": "dark",
+    "width": 1024,
+    "status": 200,
+    "htmlLang": "fr",
+    "title": "Générateur d’IA interne avec vrai code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "internal-ai-builder/fr-dark-1024.png"
+  },
+  {
+    "slug": "internal-ai-builder",
+    "lang": "fr",
+    "theme": "dark",
+    "width": 1440,
+    "status": 200,
+    "htmlLang": "fr",
+    "title": "Générateur d’IA interne avec vrai code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "internal-ai-builder/fr-dark-1440.png"
+  },
+  {
+    "slug": "enterprise",
+    "lang": "en",
+    "theme": "light",
+    "width": 390,
+    "status": 200,
+    "htmlLang": "en",
+    "title": "Enterprise Rollout with Governance | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "enterprise/en-light-390.png"
+  },
+  {
+    "slug": "enterprise",
+    "lang": "en",
+    "theme": "light",
+    "width": 768,
+    "status": 200,
+    "htmlLang": "en",
+    "title": "Enterprise Rollout with Governance | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "enterprise/en-light-768.png"
+  },
+  {
+    "slug": "enterprise",
+    "lang": "en",
+    "theme": "light",
+    "width": 1024,
+    "status": 200,
+    "htmlLang": "en",
+    "title": "Enterprise Rollout with Governance | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "enterprise/en-light-1024.png"
+  },
+  {
+    "slug": "enterprise",
+    "lang": "en",
+    "theme": "light",
+    "width": 1440,
+    "status": 200,
+    "htmlLang": "en",
+    "title": "Enterprise Rollout with Governance | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "enterprise/en-light-1440.png"
+  },
+  {
+    "slug": "enterprise",
+    "lang": "en",
+    "theme": "dark",
+    "width": 390,
+    "status": 200,
+    "htmlLang": "en",
+    "title": "Enterprise Rollout with Governance | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "enterprise/en-dark-390.png"
+  },
+  {
+    "slug": "enterprise",
+    "lang": "en",
+    "theme": "dark",
+    "width": 768,
+    "status": 200,
+    "htmlLang": "en",
+    "title": "Enterprise Rollout with Governance | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "enterprise/en-dark-768.png"
+  },
+  {
+    "slug": "enterprise",
+    "lang": "en",
+    "theme": "dark",
+    "width": 1024,
+    "status": 200,
+    "htmlLang": "en",
+    "title": "Enterprise Rollout with Governance | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "enterprise/en-dark-1024.png"
+  },
+  {
+    "slug": "enterprise",
+    "lang": "en",
+    "theme": "dark",
+    "width": 1440,
+    "status": 200,
+    "htmlLang": "en",
+    "title": "Enterprise Rollout with Governance | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "enterprise/en-dark-1440.png"
+  },
+  {
+    "slug": "enterprise",
+    "lang": "fr",
+    "theme": "light",
+    "width": 390,
+    "status": 200,
+    "htmlLang": "fr",
+    "title": "Déploiement entreprise avec gouvernance | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "enterprise/fr-light-390.png"
+  },
+  {
+    "slug": "enterprise",
+    "lang": "fr",
+    "theme": "light",
+    "width": 768,
+    "status": 200,
+    "htmlLang": "fr",
+    "title": "Déploiement entreprise avec gouvernance | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "enterprise/fr-light-768.png"
+  },
+  {
+    "slug": "enterprise",
+    "lang": "fr",
+    "theme": "light",
+    "width": 1024,
+    "status": 200,
+    "htmlLang": "fr",
+    "title": "Déploiement entreprise avec gouvernance | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "enterprise/fr-light-1024.png"
+  },
+  {
+    "slug": "enterprise",
+    "lang": "fr",
+    "theme": "light",
+    "width": 1440,
+    "status": 200,
+    "htmlLang": "fr",
+    "title": "Déploiement entreprise avec gouvernance | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "enterprise/fr-light-1440.png"
+  },
+  {
+    "slug": "enterprise",
+    "lang": "fr",
+    "theme": "dark",
+    "width": 390,
+    "status": 200,
+    "htmlLang": "fr",
+    "title": "Déploiement entreprise avec gouvernance | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "enterprise/fr-dark-390.png"
+  },
+  {
+    "slug": "enterprise",
+    "lang": "fr",
+    "theme": "dark",
+    "width": 768,
+    "status": 200,
+    "htmlLang": "fr",
+    "title": "Déploiement entreprise avec gouvernance | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "enterprise/fr-dark-768.png"
+  },
+  {
+    "slug": "enterprise",
+    "lang": "fr",
+    "theme": "dark",
+    "width": 1024,
+    "status": 200,
+    "htmlLang": "fr",
+    "title": "Déploiement entreprise avec gouvernance | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "enterprise/fr-dark-1024.png"
+  },
+  {
+    "slug": "enterprise",
+    "lang": "fr",
+    "theme": "dark",
+    "width": 1440,
+    "status": 200,
+    "htmlLang": "fr",
+    "title": "Déploiement entreprise avec gouvernance | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "enterprise/fr-dark-1440.png"
+  },
+  {
+    "slug": "startups",
+    "lang": "en",
+    "theme": "light",
+    "width": 390,
+    "status": 200,
+    "htmlLang": "en",
+    "title": "Ship a Startup MVP Fast with Real Code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "startups/en-light-390.png"
+  },
+  {
+    "slug": "startups",
+    "lang": "en",
+    "theme": "light",
+    "width": 768,
+    "status": 200,
+    "htmlLang": "en",
+    "title": "Ship a Startup MVP Fast with Real Code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "startups/en-light-768.png"
+  },
+  {
+    "slug": "startups",
+    "lang": "en",
+    "theme": "light",
+    "width": 1024,
+    "status": 200,
+    "htmlLang": "en",
+    "title": "Ship a Startup MVP Fast with Real Code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "startups/en-light-1024.png"
+  },
+  {
+    "slug": "startups",
+    "lang": "en",
+    "theme": "light",
+    "width": 1440,
+    "status": 200,
+    "htmlLang": "en",
+    "title": "Ship a Startup MVP Fast with Real Code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "startups/en-light-1440.png"
+  },
+  {
+    "slug": "startups",
+    "lang": "en",
+    "theme": "dark",
+    "width": 390,
+    "status": 200,
+    "htmlLang": "en",
+    "title": "Ship a Startup MVP Fast with Real Code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "startups/en-dark-390.png"
+  },
+  {
+    "slug": "startups",
+    "lang": "en",
+    "theme": "dark",
+    "width": 768,
+    "status": 200,
+    "htmlLang": "en",
+    "title": "Ship a Startup MVP Fast with Real Code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "startups/en-dark-768.png"
+  },
+  {
+    "slug": "startups",
+    "lang": "en",
+    "theme": "dark",
+    "width": 1024,
+    "status": 200,
+    "htmlLang": "en",
+    "title": "Ship a Startup MVP Fast with Real Code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "startups/en-dark-1024.png"
+  },
+  {
+    "slug": "startups",
+    "lang": "en",
+    "theme": "dark",
+    "width": 1440,
+    "status": 200,
+    "htmlLang": "en",
+    "title": "Ship a Startup MVP Fast with Real Code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "startups/en-dark-1440.png"
+  },
+  {
+    "slug": "startups",
+    "lang": "fr",
+    "theme": "light",
+    "width": 390,
+    "status": 200,
+    "htmlLang": "fr",
+    "title": "Lancez un MVP de startup avec du vrai code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "startups/fr-light-390.png"
+  },
+  {
+    "slug": "startups",
+    "lang": "fr",
+    "theme": "light",
+    "width": 768,
+    "status": 200,
+    "htmlLang": "fr",
+    "title": "Lancez un MVP de startup avec du vrai code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "startups/fr-light-768.png"
+  },
+  {
+    "slug": "startups",
+    "lang": "fr",
+    "theme": "light",
+    "width": 1024,
+    "status": 200,
+    "htmlLang": "fr",
+    "title": "Lancez un MVP de startup avec du vrai code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "startups/fr-light-1024.png"
+  },
+  {
+    "slug": "startups",
+    "lang": "fr",
+    "theme": "light",
+    "width": 1440,
+    "status": 200,
+    "htmlLang": "fr",
+    "title": "Lancez un MVP de startup avec du vrai code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "startups/fr-light-1440.png"
+  },
+  {
+    "slug": "startups",
+    "lang": "fr",
+    "theme": "dark",
+    "width": 390,
+    "status": 200,
+    "htmlLang": "fr",
+    "title": "Lancez un MVP de startup avec du vrai code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "startups/fr-dark-390.png"
+  },
+  {
+    "slug": "startups",
+    "lang": "fr",
+    "theme": "dark",
+    "width": 768,
+    "status": 200,
+    "htmlLang": "fr",
+    "title": "Lancez un MVP de startup avec du vrai code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "startups/fr-dark-768.png"
+  },
+  {
+    "slug": "startups",
+    "lang": "fr",
+    "theme": "dark",
+    "width": 1024,
+    "status": 200,
+    "htmlLang": "fr",
+    "title": "Lancez un MVP de startup avec du vrai code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "startups/fr-dark-1024.png"
+  },
+  {
+    "slug": "startups",
+    "lang": "fr",
+    "theme": "dark",
+    "width": 1440,
+    "status": 200,
+    "htmlLang": "fr",
+    "title": "Lancez un MVP de startup avec du vrai code | E-Code",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "startups/fr-dark-1440.png"
+  },
+  {
+    "slug": "freelancers",
+    "lang": "en",
+    "theme": "light",
+    "width": 390,
+    "status": 200,
+    "htmlLang": "en",
+    "title": "Deliver Client Projects Faster | E-Code for Freelancers",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "freelancers/en-light-390.png"
+  },
+  {
+    "slug": "freelancers",
+    "lang": "en",
+    "theme": "light",
+    "width": 768,
+    "status": 200,
+    "htmlLang": "en",
+    "title": "Deliver Client Projects Faster | E-Code for Freelancers",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "freelancers/en-light-768.png"
+  },
+  {
+    "slug": "freelancers",
+    "lang": "en",
+    "theme": "light",
+    "width": 1024,
+    "status": 200,
+    "htmlLang": "en",
+    "title": "Deliver Client Projects Faster | E-Code for Freelancers",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "freelancers/en-light-1024.png"
+  },
+  {
+    "slug": "freelancers",
+    "lang": "en",
+    "theme": "light",
+    "width": 1440,
+    "status": 200,
+    "htmlLang": "en",
+    "title": "Deliver Client Projects Faster | E-Code for Freelancers",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "freelancers/en-light-1440.png"
+  },
+  {
+    "slug": "freelancers",
+    "lang": "en",
+    "theme": "dark",
+    "width": 390,
+    "status": 200,
+    "htmlLang": "en",
+    "title": "Deliver Client Projects Faster | E-Code for Freelancers",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "freelancers/en-dark-390.png"
+  },
+  {
+    "slug": "freelancers",
+    "lang": "en",
+    "theme": "dark",
+    "width": 768,
+    "status": 200,
+    "htmlLang": "en",
+    "title": "Deliver Client Projects Faster | E-Code for Freelancers",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "freelancers/en-dark-768.png"
+  },
+  {
+    "slug": "freelancers",
+    "lang": "en",
+    "theme": "dark",
+    "width": 1024,
+    "status": 200,
+    "htmlLang": "en",
+    "title": "Deliver Client Projects Faster | E-Code for Freelancers",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "freelancers/en-dark-1024.png"
+  },
+  {
+    "slug": "freelancers",
+    "lang": "en",
+    "theme": "dark",
+    "width": 1440,
+    "status": 200,
+    "htmlLang": "en",
+    "title": "Deliver Client Projects Faster | E-Code for Freelancers",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "freelancers/en-dark-1440.png"
+  },
+  {
+    "slug": "freelancers",
+    "lang": "fr",
+    "theme": "light",
+    "width": 390,
+    "status": 200,
+    "htmlLang": "fr",
+    "title": "Livrez vos projets clients plus vite | E-Code pour freelances",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "freelancers/fr-light-390.png"
+  },
+  {
+    "slug": "freelancers",
+    "lang": "fr",
+    "theme": "light",
+    "width": 768,
+    "status": 200,
+    "htmlLang": "fr",
+    "title": "Livrez vos projets clients plus vite | E-Code pour freelances",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "freelancers/fr-light-768.png"
+  },
+  {
+    "slug": "freelancers",
+    "lang": "fr",
+    "theme": "light",
+    "width": 1024,
+    "status": 200,
+    "htmlLang": "fr",
+    "title": "Livrez vos projets clients plus vite | E-Code pour freelances",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "freelancers/fr-light-1024.png"
+  },
+  {
+    "slug": "freelancers",
+    "lang": "fr",
+    "theme": "light",
+    "width": 1440,
+    "status": 200,
+    "htmlLang": "fr",
+    "title": "Livrez vos projets clients plus vite | E-Code pour freelances",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "freelancers/fr-light-1440.png"
+  },
+  {
+    "slug": "freelancers",
+    "lang": "fr",
+    "theme": "dark",
+    "width": 390,
+    "status": 200,
+    "htmlLang": "fr",
+    "title": "Livrez vos projets clients plus vite | E-Code pour freelances",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "freelancers/fr-dark-390.png"
+  },
+  {
+    "slug": "freelancers",
+    "lang": "fr",
+    "theme": "dark",
+    "width": 768,
+    "status": 200,
+    "htmlLang": "fr",
+    "title": "Livrez vos projets clients plus vite | E-Code pour freelances",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "freelancers/fr-dark-768.png"
+  },
+  {
+    "slug": "freelancers",
+    "lang": "fr",
+    "theme": "dark",
+    "width": 1024,
+    "status": 200,
+    "htmlLang": "fr",
+    "title": "Livrez vos projets clients plus vite | E-Code pour freelances",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "freelancers/fr-dark-1024.png"
+  },
+  {
+    "slug": "freelancers",
+    "lang": "fr",
+    "theme": "dark",
+    "width": 1440,
+    "status": 200,
+    "htmlLang": "fr",
+    "title": "Livrez vos projets clients plus vite | E-Code pour freelances",
+    "overflowPx": 0,
+    "errors": 0,
+    "errorSample": [],
+    "tapChecked": 83,
+    "tapUnder44": 2,
+    "tapOffenders": [
+      {
+        "tag": "BUTTON",
+        "text": "EN",
+        "w": 40,
+        "h": 36
+      },
+      {
+        "tag": "BUTTON",
+        "text": "FR",
+        "w": 40,
+        "h": 36
+      }
+    ],
+    "file": "freelancers/fr-dark-1440.png"
+  }
+]

@@ -1495,9 +1495,12 @@ model McpCatalogEntry {
   id                  String       @id @default(cuid())
   slug                String       @unique
   name                String
+  nameFr              String?
   description         String
+  descriptionFr       String?
   domain              McpDomain
   tags                String[]
+  tagsFr              String[]     @default([])
   author              String
   homepageUrl         String?
   iconUrl             String?
@@ -1505,6 +1508,7 @@ model McpCatalogEntry {
   transport           McpTransport
   configTemplate      Json
   configSchema        Json         @default("{}")
+  configSchemaFr      Json         @default("{}")
   installCount        Int          @default(0)
   featured            Boolean      @default(false)
   verified            Boolean      @default(false)
@@ -1881,6 +1885,10 @@ model Notification {
   category  String    @default("system")
   title     String
   body      String?
+  /// Stable i18n descriptor for newly-produced notifications. Nullable keeps
+  /// every historical row and older producer compatible with title/body.
+  messageKey    String?
+  messageParams Json?
   /// Optional in-app link the notification points at (e.g. /account/connections).
   linkUrl   String?
   /// Free-form producer metadata (e.g. the source alert id / provider) so the

@@ -1,12 +1,16 @@
 import { useStore } from '@nanostores/react';
 import { useState, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
 import { downscaleAvatarDataUrl, isQuotaExceededError } from './avatar-upload';
+import { formatProfileTabCopy, getProfileTabCopy } from '~/lib/i18n/catalogs/profile-tab';
 import { profileStore, updateProfile } from '~/lib/stores/profile';
 import { classNames } from '~/utils/classNames';
 import { debounce } from '~/utils/debounce';
 
 export default function ProfileTab() {
+  const { i18n } = useTranslation();
+  const copy = getProfileTabCopy(i18n.resolvedLanguage ?? i18n.language);
   const profile = useStore(profileStore);
   const [isUploading, setIsUploading] = useState(false);
 
@@ -14,9 +18,9 @@ export default function ProfileTab() {
   const debouncedUpdate = useCallback(
     debounce((field: 'username' | 'bio', value: string) => {
       updateProfile({ [field]: value });
-      toast.success(`${field.charAt(0).toUpperCase() + field.slice(1)} updated`);
+      toast.success(copy[field === 'username' ? 'profileTab.toast.usernameUpdated' : 'profileTab.toast.bioUpdated']);
     }, 1000),
-    [],
+    [copy],
   );
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -48,14 +52,14 @@ export default function ProfileTab() {
            * QuotaExceededError, so this must stay inside the try/catch.
            */
           updateProfile({ avatar: optimized });
-          toast.success('Profile picture updated');
+          toast.success(copy['profileTab.toast.avatarUpdated']);
         } catch (error) {
           console.error('Error saving avatar:', error);
 
           if (isQuotaExceededError(error)) {
-            toast.error('Image is too large to save. Please choose a smaller picture.');
+            toast.error(copy['profileTab.toast.avatarTooLarge']);
           } else {
-            toast.error('Failed to update profile picture');
+            toast.error(copy['profileTab.toast.avatarFailed']);
           }
         } finally {
           setIsUploading(false);
@@ -65,13 +69,13 @@ export default function ProfileTab() {
       reader.onerror = () => {
         console.error('Error reading file:', reader.error);
         setIsUploading(false);
-        toast.error('Failed to update profile picture');
+        toast.error(copy['profileTab.toast.avatarFailed']);
       };
       reader.readAsDataURL(file);
     } catch (error) {
       console.error('Error uploading avatar:', error);
       setIsUploading(false);
-      toast.error('Failed to update profile picture');
+      toast.error(copy['profileTab.toast.avatarFailed']);
     }
   };
 
@@ -84,12 +88,12 @@ export default function ProfileTab() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="mx-auto min-w-0 max-w-2xl">
       <div className="space-y-6">
         {/* Personal Information Section */}
         <div>
           {/* Avatar Upload */}
-          <div className="flex items-start gap-6 mb-8">
+          <div className="mb-8 flex min-w-0 flex-col items-start gap-4 sm:flex-row sm:gap-6">
             <div
               className={classNames(
                 'w-24 h-24 rounded-full overflow-hidden',
@@ -105,7 +109,11 @@ export default function ProfileTab() {
               {profile.avatar ? (
                 <img
                   src={profile.avatar}
-                  alt="Profile"
+                  alt={
+                    profile.username
+                      ? formatProfileTabCopy(copy['profileTab.avatar.altWithName'], { name: profile.username })
+                      : copy['profileTab.avatar.alt']
+                  }
                   className={classNames(
                     'w-full h-full object-cover',
                     'transition-all duration-300 ease-out',
@@ -117,6 +125,7 @@ export default function ProfileTab() {
               )}
 
               <label
+                htmlFor="profile-avatar"
                 className={classNames(
                   'absolute inset-0',
                   'flex items-center justify-center',
@@ -126,34 +135,53 @@ export default function ProfileTab() {
                 )}
               >
                 <input
+                  id="profile-avatar"
                   type="file"
                   accept="image/*"
                   className="hidden"
                   onChange={handleAvatarUpload}
                   disabled={isUploading}
+                  aria-label={copy['profileTab.avatar.inputLabel']}
                 />
                 {isUploading ? (
-                  <div className="i-ph:spinner-gap w-6 h-6 text-white animate-spin" />
+                  <div
+                    className="i-ph:spinner-gap h-6 w-6 animate-spin text-white"
+                    role="status"
+                    aria-label={copy['profileTab.avatar.uploading']}
+                  />
                 ) : (
-                  <div className="i-ph:camera-plus w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-all duration-300 ease-out transform group-hover:scale-110" />
+                  <div
+                    className="i-ph:camera-plus h-6 w-6 transform text-white opacity-0 transition-all duration-300 ease-out group-hover:scale-110 group-hover:opacity-100"
+                    aria-hidden
+                  />
                 )}
               </label>
             </div>
 
-            <div className="flex-1 pt-1">
-              <label className="block text-base font-medium text-bolt-elements-textPrimary mb-1">Profile Picture</label>
-              <p className="text-sm text-bolt-elements-textTertiary">Upload a profile picture or avatar</p>
+            <div className="min-w-0 flex-1 pt-1">
+              <label
+                htmlFor="profile-avatar"
+                className="mb-1 block break-words text-base font-medium text-bolt-elements-textPrimary"
+              >
+                {copy['profileTab.avatar.title']}
+              </label>
+              <p className="break-words text-sm text-bolt-elements-textTertiary">
+                {copy['profileTab.avatar.description']}
+              </p>
             </div>
           </div>
 
           {/* Username Input */}
           <div className="mb-6">
-            <label className="block text-sm font-medium text-bolt-elements-textPrimary mb-2">Username</label>
+            <label htmlFor="profile-username" className="mb-2 block text-sm font-medium text-bolt-elements-textPrimary">
+              {copy['profileTab.username.label']}
+            </label>
             <div className="relative group">
               <div className="absolute left-3.5 top-1/2 -translate-y-1/2">
                 <div className="i-ph:user-circle-fill w-5 h-5 text-bolt-elements-textTertiary transition-colors group-focus-within:text-[var(--vc-ide-accent-action)]" />
               </div>
               <input
+                id="profile-username"
                 type="text"
                 value={profile.username}
                 onChange={(e) => handleProfileUpdate('username', e.target.value)}
@@ -166,19 +194,22 @@ export default function ProfileTab() {
                   'focus:outline-none focus:ring-2 focus:ring-[var(--vc-ide-focus-ring)] focus:border-[var(--vc-ide-accent-action)]',
                   'transition-all duration-300 ease-out',
                 )}
-                placeholder="Enter your username"
+                placeholder={copy['profileTab.username.placeholder']}
               />
             </div>
           </div>
 
           {/* Bio Input */}
           <div className="mb-8">
-            <label className="block text-sm font-medium text-bolt-elements-textPrimary mb-2">Bio</label>
+            <label htmlFor="profile-bio" className="mb-2 block text-sm font-medium text-bolt-elements-textPrimary">
+              {copy['profileTab.bio.label']}
+            </label>
             <div className="relative group">
               <div className="absolute left-3.5 top-3">
                 <div className="i-ph:text-aa w-5 h-5 text-bolt-elements-textTertiary transition-colors group-focus-within:text-[var(--vc-ide-accent-action)]" />
               </div>
               <textarea
+                id="profile-bio"
                 value={profile.bio}
                 onChange={(e) => handleProfileUpdate('bio', e.target.value)}
                 className={classNames(
@@ -192,7 +223,7 @@ export default function ProfileTab() {
                   'resize-none',
                   'h-32',
                 )}
-                placeholder="Tell us about yourself"
+                placeholder={copy['profileTab.bio.placeholder']}
               />
             </div>
           </div>

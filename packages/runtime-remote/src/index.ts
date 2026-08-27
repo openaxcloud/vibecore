@@ -18,6 +18,14 @@ import {
   type WorkspaceSession,
   type WorkspaceStatus,
 } from '@vibecore/runtime-contract';
+import {
+  initialTerminalReconnectState,
+  onTerminalConnectionOpened,
+  onTerminalConnectionStable,
+  onTerminalFrame,
+  onTerminalReconnectScheduled,
+  onTerminalReconnected,
+} from './terminal-reconnect.js';
 
 export interface RemoteKubernetesRuntimeAdapterOptions {
   baseUrl: string;
@@ -49,6 +57,30 @@ export interface WebSocketLike {
   close(code?: number, reason?: string): void;
   addEventListener(type: 'open' | 'message' | 'error' | 'close', listener: (event: any) => void): void;
   removeEventListener?(type: 'open' | 'message' | 'error' | 'close', listener: (event: any) => void): void;
+}
+
+/**
+ * `Retry-After` en secondes (entier) ou en date HTTP. Renvoie undefined si
+ * l'en-tête est absent ou illisible — on retombe alors sur le backoff calculé.
+ */
+function parseRetryAfterMs(header: string | null): number | undefined {
+  if (!header) {
+    return undefined;
+  }
+
+  const seconds = Number(header.trim());
+
+  if (Number.isFinite(seconds) && seconds >= 0) {
+    return Math.min(seconds * 1000, 60_000);
+  }
+
+  const when = Date.parse(header);
+
+  if (Number.isFinite(when)) {
+    return Math.max(0, Math.min(when - Date.now(), 60_000));
+  }
+
+  return undefined;
 }
 
 export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
@@ -205,6 +237,28 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
     return true;
   }
 
+  /*
+   * A runtime op (file write during reseed, status/ports poll) can fire the instant
+   * before `POST /workspaces` has created the workspace record. authorizeRuntimeWorkspace
+   * then can't resolve the `ws-…` id and answers 404 PROJECT_NOT_FOUND / WORKSPACE_NOT_FOUND
+   * (or 425 Too Early) — surfaced to the caller as a hard "Remote runtime request failed:
+   * 404" because 404 is not in the transient set. That is a provisioning RACE, not a real
+   * missing resource, so let idempotent ops retry it briefly; by the next attempt the record
+   * exists. A genuinely deleted project keeps returning it and fails after the bounded
+   * retries, exactly as before (just a ~1s later, storm-free).
+   */
+  #isRetryableProvisioningError(error: unknown): boolean {
+    if (!(error instanceof RuntimeError)) {
+      return false;
+    }
+
+    if (error.status === 425) {
+      return true;
+    }
+
+    return error.status === 404 && (error.code === 'WORKSPACE_NOT_FOUND' || error.code === 'PROJECT_NOT_FOUND');
+  }
+
   async #waitForWorkspaceRunning(workspaceId: string): Promise<WorkspaceSession> {
     const deadline = Date.now() + this.#startReadinessTimeoutMs;
 
@@ -333,7 +387,31 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
     return { content: result.content, encoding: result.encoding };
   }
 
+  /*
+   * BUG-AGENT-001 — dernier contenu écrit par chemin, pour ne PUT que sur un
+   * changement réel.
+   *
+   * Le mémo vit sur l'ADAPTATEUR, pas sur l'ActionRunner. Une première version
+   * placée dans le runner n'a rien changé en réel (144 écritures avant, 144
+   * après, `tsconfig.json` 28× pour une seule taille) : les écritures
+   * redondantes ne partagent pas le même runner. L'adaptateur est le seul point
+   * de passage obligé de TOUTES les écritures — action-runner, agent-file-write,
+   * files store, reconcile d'entrée — donc le seul endroit où la garde attrape
+   * le cas réel.
+   */
+  #lastWrittenContent = new Map<string, string>();
+
   async writeFile(path: string, content: string): Promise<void> {
+    /*
+     * Sauter une écriture qui produirait, octet pour octet, ce que l'on a déjà
+     * écrit à ce chemin. On compare au DERNIER contenu, pas à l'ensemble des
+     * contenus déjà vus : avec un ensemble, la séquence A → B → A sauterait la
+     * troisième écriture et laisserait B sur le disque — une perte de fichier.
+     */
+    if (this.#lastWrittenContent.get(path) === content) {
+      return;
+    }
+
     /*
      * Overwrite is idempotent — retry through a transient api/agent 5xx so a pod
      * rollout/restart mid-generation never silently drops a generated file.
@@ -343,6 +421,18 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
       { method: 'PUT', body: JSON.stringify({ path, content }) },
       { retryIdempotentWrite: true },
     );
+
+    // Après succès seulement : un échec doit laisser le chemin réécrivable.
+    this.#lastWrittenContent.set(path, content);
+  }
+
+  /**
+   * Oublier ce que l'on croit savoir du disque. Une commande shell, un checkout
+   * git ou une restauration peuvent modifier les fichiers hors de notre vue :
+   * garder le mémo ferait sauter une réécriture pourtant nécessaire.
+   */
+  #forgetWrittenContent(): void {
+    this.#lastWrittenContent.clear();
   }
 
   async createFile(path: string, content = ''): Promise<void> {
@@ -401,6 +491,9 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
   }
 
   async runCommand(request: CommandRequest): Promise<CommandResult> {
+    // Une commande peut réécrire n'importe quel fichier : le mémo n'est plus fiable.
+    this.#forgetWrittenContent();
+
     return this.#request<CommandResult>(`/workspaces/${this.#requireWorkspaceId()}/commands`, {
       method: 'POST',
       body: JSON.stringify(request),
@@ -480,7 +573,17 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
   }
 
   async openTerminal(request: Partial<CommandRequest> = {}): Promise<TerminalSession> {
-    const terminalId = `terminal-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    /*
+     * A caller-supplied `sessionKey` makes the id DETERMINISTIC, which is what
+     * makes reattach possible: the agent keys its shell on `?sessionId`, so the
+     * same pane must present the same id on every reconnect and remount. The
+     * random fallback stays for callers that have no stable pane identity —
+     * it works, but it can never reattach.
+     */
+    const terminalId = request.sessionKey
+      ? `terminal-${request.sessionKey}`
+      : `terminal-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
     const cols = request.terminal?.cols ?? 80;
     const rows = request.terminal?.rows ?? 24;
 
@@ -496,16 +599,18 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
 
     let stopped = false;
     let reconnectTimer: ReturnType<typeof setTimeout> | undefined;
-    let reconnectAttempts = 0;
     let stableTimer: ReturnType<typeof setTimeout> | undefined;
     let heartbeatTimer: ReturnType<typeof setInterval> | undefined;
     let halted = false;
 
     /*
-     * True once the terminal has delivered a real frame — gates the
-     * "[terminal reconnected]" notice so cold-start retries don't spam it.
+     * Reconnect/announce policy (pure, unit-tested in terminal-reconnect.ts):
+     * bounds the flap, latches the "[terminal reconnected]" notice, and only
+     * lets a connection that actually DELIVERED a frame reset the backoff — an
+     * open-but-mute socket cycling every ~10–30s used to reset the budget each
+     * time and spam "[terminal reconnected]" forever.
      */
-    let everWorked = false;
+    let reconnectState = initialTerminalReconnectState();
 
     /*
      * Consecutive WORKSPACE_NOT_STARTED responses; a COLD-STARTING workspace may
@@ -577,7 +682,8 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
        * isn't started. The workspace may be COLD-STARTING (agent not ready for a few
        * seconds) or genuinely STOPPED, so retry a bounded number of times (the socket
        * close drives the retry) before halting with a clear "click Run" message —
-       * without the "[terminal reconnected]" spam (gated on everWorked in reconnect()).
+       * without the "[terminal reconnected]" spam (gated on the reconnect policy's
+       * everWorked in reconnect()).
        */
       if (
         (parsed as { type?: string }).type === 'error' &&
@@ -593,7 +699,7 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
       }
 
       // A real frame means the terminal is live — reset the not-started budget.
-      everWorked = true;
+      reconnectState = onTerminalFrame(reconnectState);
       notStartedCount = 0;
       queue.push(parsed);
     };
@@ -605,10 +711,11 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
       /*
        * Bound the reconnect: a workspace that stays unreachable (crashed/stopped
        * mid-session, network gone) must not flap forever. The stableTimer resets
-       * reconnectAttempts once a connection holds for ~5s, so an occasional drop on
-       * a healthy terminal never trips this — only a sustained failure does.
+       * the attempt budget once a connection holds for ~5s AND has delivered a
+       * real frame, so an occasional drop on a healthy terminal never trips this
+       * — only a sustained failure (or an open-but-mute flap) does.
        */
-      if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
+      if (reconnectState.attempts >= MAX_RECONNECT_ATTEMPTS) {
         haltReconnect('\r\n\x1b[33m[terminal disconnected — reload or click Run to reconnect]\x1b[0m\r\n');
         return;
       }
@@ -618,8 +725,8 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
         stableTimer = undefined;
       }
 
-      const delay = Math.min(1000 * 2 ** reconnectAttempts, 10_000);
-      reconnectAttempts += 1;
+      const delay = Math.min(1000 * 2 ** reconnectState.attempts, 10_000);
+      reconnectState = onTerminalReconnectScheduled(reconnectState);
       reconnectTimer = setTimeout(() => {
         reconnectTimer = undefined;
         void reconnect();
@@ -659,10 +766,14 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
       nextSocket.addEventListener('error', scheduleReconnect);
       nextSocket.addEventListener('close', scheduleReconnect);
 
+      reconnectState = onTerminalConnectionOpened(reconnectState);
+
       /*
-       * Only treat the connection as healthy (and reset the backoff) once it has stayed
-       * open for a few seconds. Resetting immediately turns a server that accepts then
-       * drops the socket into a tight 1s flap that never backs off.
+       * Only treat the connection as healthy (and reset the backoff) once it has
+       * stayed open for a few seconds AND actually delivered a frame. Resetting
+       * immediately turns a server that accepts then drops the socket into a
+       * tight 1s flap that never backs off; resetting on a mute-but-open socket
+       * let an accept-then-idle-kill cycle flap (and announce) forever.
        */
       if (stableTimer) {
         clearTimeout(stableTimer);
@@ -670,7 +781,7 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
 
       stableTimer = setTimeout(() => {
         stableTimer = undefined;
-        reconnectAttempts = 0;
+        reconnectState = onTerminalConnectionStable(reconnectState);
       }, 5_000);
     };
     const reconnect = async () => {
@@ -704,9 +815,14 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
         /*
          * Only announce a reconnect once the terminal has actually worked — so a
          * cold-starting workspace's retries (which open the client↔API socket but
-         * then get WORKSPACE_NOT_STARTED) don't spam "[terminal reconnected]".
+         * then get WORKSPACE_NOT_STARTED) don't spam "[terminal reconnected]" —
+         * and at most ONCE until real output flows again, so a reconnect cycle
+         * that never yields a frame doesn't scroll the notice in a loop.
          */
-        if (everWorked) {
+        const announced = onTerminalReconnected(reconnectState);
+        reconnectState = announced.state;
+
+        if (announced.announce) {
           queue.push({ type: 'stdout', data: '\r\n[terminal reconnected]\r\n', timestamp: now() });
         }
       } catch {
@@ -870,8 +986,26 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
   }
 
   /** True when the api reports the workspace agent unreachable — the pod is gone (GC'd) or never came up. */
+  /*
+   * BUG-AGENT-006 — quels échecs signifient « il faut (re)créer le pod ».
+   *
+   * `WORKSPACE_AGENT_REQUEST_FAILED` (502) couvrait le pod réclamé par le GC.
+   * Il manquait `WORKSPACE_NOT_STARTED` (425), que l'api renvoie quand le DNS du
+   * pod ne résout pas — c'est-à-dire, très souvent, quand le pod n'existe tout
+   * simplement PAS.
+   *
+   * Mesuré en direct le 21/08 : sur une génération de 15 min, 468 écritures ont
+   * répondu `425` et il y a eu **zéro `POST /workspaces`** sur toute la fenêtre.
+   * Personne ne provisionnait : le client retentait indéfiniment contre un
+   * workspace que rien ne créait, et le projet restait vide.
+   *
+   * `#ensureWorkspaceReprovisioned` est dédupliqué et rattache le même PVC, donc
+   * l'appeler sur un workspace déjà en train de démarrer est sans effet de bord.
+   */
   #isAgentUnavailable(error: unknown): boolean {
-    return (error as { code?: string } | undefined)?.code === 'WORKSPACE_AGENT_REQUEST_FAILED';
+    const code = (error as { code?: string } | undefined)?.code;
+
+    return code === 'WORKSPACE_AGENT_REQUEST_FAILED' || code === 'WORKSPACE_NOT_STARTED';
   }
 
   /**
@@ -935,7 +1069,7 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
   async #requestOnce<T>(
     path: string,
     init: RequestInit = {},
-    options: { retryReads?: boolean; retryIdempotentWrite?: boolean } = {},
+    options: { retryReads?: boolean; retryIdempotentWrite?: boolean; ensureWorkspace?: boolean } = {},
   ): Promise<T> {
     /*
      * Idempotent reads (file/dir reads) AND idempotent writes (file overwrite,
@@ -951,11 +1085,31 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
      * though the agent reported "done". Non-idempotent mutations (move/rename) and
      * non-transient errors (4xx) still fail fast.
      */
-    const maxAttempts = options.retryReads || options.retryIdempotentWrite ? 4 : 1;
+    const retryable = options.retryReads || options.retryIdempotentWrite;
+
+    /*
+     * BUG-AGENT-006 / BUG-AGENT-002 — deux budgets de tentatives, pas un.
+     *
+     * Un 5xx transitoire se règle en une seconde : 4 tentatives suffisent. Un
+     * workspace qui n'est pas encore PRÊT (`425 Too Early`) met des dizaines de
+     * secondes, et l'ancien budget — 4 tentatives, 250/500/750 ms, soit ~1,5 s —
+     * expirait toujours avant. Chaque action ré-émise repartait alors pour sa
+     * propre rafale : mesuré en direct le 21/08, 468 `PUT …/files/write` sur une
+     * génération de 15 min, dont 468 réponses `425` et AUCUN succès.
+     */
+    const maxAttempts = retryable ? 4 : 1;
+    const maxProvisioningAttempts = retryable ? 7 : 1;
 
     let lastError: unknown;
 
-    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    /*
+     * La boucle porte le PLUS GRAND des deux budgets ; c'est le test dans le
+     * `catch` qui coupe court au budget court pour une erreur non liée au
+     * provisionnement. Borner la boucle sur `maxAttempts` rendait le budget long
+     * inatteignable — défaut introduit puis attrapé par le test qui compte les
+     * requêtes réellement émises.
+     */
+    for (let attempt = 1; attempt <= Math.max(maxAttempts, maxProvisioningAttempts); attempt++) {
       try {
         const response = await this.#rawRequest(path, init);
 
@@ -967,16 +1121,53 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
       } catch (error) {
         lastError = error;
 
-        if (init.signal?.aborted || attempt >= maxAttempts || !this.#isTransientStartError(error)) {
+        const provisioning = this.#isRetryableProvisioningError(error);
+        const budget = provisioning ? maxProvisioningAttempts : maxAttempts;
+
+        if (
+          init.signal?.aborted ||
+          attempt >= budget ||
+          !(this.#isTransientStartError(error) || provisioning)
+        ) {
           throw error;
         }
 
-        // Exponential-ish backoff (~250/500/750ms) to ride a brief restart window.
+        if (provisioning) {
+          /*
+           * Déclencher le provisionnement DÈS la première tentative, pas après
+           * épuisement du budget : le backoff sert alors à attendre que le pod
+           * monte, au lieu d'attendre pour rien.
+           */
+          if (options.ensureWorkspace !== false && this.#isAgentUnavailable(error)) {
+            await this.#ensureWorkspaceReprovisioned().catch(() => undefined);
+          }
+
+          await this.#waitBeforeProvisioningRetry(attempt, error);
+          continue;
+        }
+
+        /*
+         * Exponential-ish backoff (~250/500/750ms) to ride a brief restart window
+         * (or the window before POST /workspaces has created the workspace record).
+         */
         await new Promise<void>((resolve) => setTimeout(resolve, 250 * attempt));
       }
     }
 
     throw lastError;
+  }
+
+  /*
+   * BUG-AGENT-002 — temporisation avant une nouvelle tentative sur un workspace
+   * pas encore prêt : backoff exponentiel (1s, 2s, 4s, 8s, plafonné à 10s), que
+   * `Retry-After` remplace quand le serveur en fournit un.
+   */
+  async #waitBeforeProvisioningRetry(attempt: number, error: unknown): Promise<void> {
+    const serverHint = (error as { retryAfterMs?: number } | null)?.retryAfterMs;
+    const backoffMs = Math.min(10_000, 1000 * 2 ** (attempt - 1));
+    const delayMs = serverHint ?? backoffMs;
+
+    await new Promise<void>((resolve) => setTimeout(resolve, delayMs));
   }
 
   async #rawRequest(path: string, init: RequestInit = {}): Promise<Response> {
@@ -1027,11 +1218,25 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
         }
       }
 
-      throw new RuntimeError(`Remote runtime request failed: ${response.status}`, {
+      const runtimeError = new RuntimeError(`Remote runtime request failed: ${response.status}`, {
         code: apiCode ?? 'REMOTE_RUNTIME_REQUEST_FAILED',
         status: response.status,
         details: bodyText,
       });
+
+      /*
+       * BUG-AGENT-002 — respecter `Retry-After` quand le serveur le donne.
+       * On l'attache à l'erreur plutôt qu'à `details`, qui porte le corps brut et
+       * qui est déjà scruté ailleurs (détection de quota) : en changer le type
+       * casserait ces lectures.
+       */
+      const retryAfterMs = parseRetryAfterMs(response.headers?.get?.('retry-after') ?? null);
+
+      if (retryAfterMs !== undefined) {
+        Object.defineProperty(runtimeError, 'retryAfterMs', { value: retryAfterMs, enumerable: false });
+      }
+
+      throw runtimeError;
     }
   }
 

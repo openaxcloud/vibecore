@@ -78,3 +78,95 @@ describe('diagnostics store', () => {
     expect(useDiagnosticsStore.getState().diagnostics).toHaveLength(2);
   });
 });
+
+describe('build-error recovery (audit cluster D, BUG-IDE-003)', () => {
+  // Verbatim shapes captured on app.e-code.ai while breaking then fixing src/App.tsx.
+  const transformError =
+    '3:08:59 PM [vite] Pre-transform error: /workspace/src/App.tsx: Unterminated JSX contents. (1:60)';
+
+  const hmrRecovery = '3:09:41 PM [vite] hmr update /src/App.tsx';
+
+  it('reports the build error while the file is still broken', () => {
+    const diagnostics = buildRuntimeDiagnostics({ workspaceLogs: [transformError] });
+
+    expect(diagnostics.filter((d) => d.severity === 'error')).toHaveLength(1);
+  });
+
+  it('retires the build error once the dev server re-transforms the file', () => {
+    const diagnostics = buildRuntimeDiagnostics({ workspaceLogs: [transformError, hmrRecovery] });
+
+    expect(diagnostics.filter((d) => d.severity === 'error')).toHaveLength(0);
+  });
+
+  it('accepts a page reload as the recovery signal too', () => {
+    const diagnostics = buildRuntimeDiagnostics({
+      workspaceLogs: [transformError, '3:09:41 PM [vite] page reload src/App.tsx'],
+    });
+
+    expect(diagnostics.filter((d) => d.severity === 'error')).toHaveLength(0);
+  });
+
+  it('re-reports the error when the same file breaks again after a recovery', () => {
+    const diagnostics = buildRuntimeDiagnostics({
+      workspaceLogs: [transformError, hmrRecovery, transformError],
+    });
+
+    expect(diagnostics.filter((d) => d.severity === 'error')).toHaveLength(1);
+  });
+
+  it('only retires the module that actually recovered', () => {
+    const otherError = '3:08:59 PM [vite] Pre-transform error: /workspace/src/main.tsx: Unexpected token. (2:3)';
+
+    const diagnostics = buildRuntimeDiagnostics({ workspaceLogs: [transformError, otherError, hmrRecovery] });
+    const errors = diagnostics.filter((d) => d.severity === 'error');
+
+    expect(errors).toHaveLength(1);
+    expect(errors[0].message).toContain('main.tsx');
+  });
+
+  it('never retires a runtime exception — only build errors name a module they can recover', () => {
+    const diagnostics = buildRuntimeDiagnostics({
+      workspaceLogs: ['TypeError: cannot read properties of undefined at /workspace/src/App.tsx:9:1', hmrRecovery],
+    });
+
+    expect(diagnostics.filter((d) => d.severity === 'error')).toHaveLength(1);
+  });
+});
+
+describe('buildRuntimeDiagnostics — refus de quota', () => {
+  /*
+   * Mesuré sur l'env d'audit : espace de travail refusé en 429, panneau
+   * Problèmes affichant « 0 erreurs · 0 avertissements » et mot « quota »
+   * absent de toute la page. Le message existait, mais seulement dans un
+   * attribut `title`.
+   */
+  const AVERTISSEMENT = 'Votre organisation a atteint sa limite d’espaces de travail actifs.';
+  const OFFRE = 'Libérez un espace de travail ou passez à une offre supérieure.';
+
+  it('remonte le refus de quota en erreur, avec la marche à suivre', () => {
+    const diagnostics = buildRuntimeDiagnostics({
+      workspaceLogs: [],
+      quotaWarning: AVERTISSEMENT,
+      quotaUpgrade: OFFRE,
+    });
+
+    expect(diagnostics).toHaveLength(1);
+    expect(diagnostics[0].severity).toBe('error');
+    expect(diagnostics[0].message).toContain('limite d’espaces de travail actifs');
+    expect(diagnostics[0].detail).toContain('offre supérieure');
+  });
+
+  it('garde le refus même quand un aperçu tourne — ce n’est pas un raté de démarrage', () => {
+    const diagnostics = buildRuntimeDiagnostics({
+      workspaceLogs: [],
+      quotaWarning: AVERTISSEMENT,
+      previewLive: true,
+    });
+
+    expect(diagnostics.map((d) => d.message)).toContain(AVERTISSEMENT);
+  });
+
+  it('ne signale rien quand aucun quota n’est atteint', () => {
+    expect(buildRuntimeDiagnostics({ workspaceLogs: [] })).toEqual([]);
+  });
+});

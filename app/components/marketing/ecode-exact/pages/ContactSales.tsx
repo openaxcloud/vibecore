@@ -1,5 +1,7 @@
 import { Building2, ShieldCheck, Server, Network, Gauge, Headphones, CheckCircle, Send } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useEcodeToast } from '~/components/marketing/ecode-exact/EcodeExactLandingControls';
 import {
   EcodeExactPublicFooter as PublicFooter,
@@ -14,6 +16,13 @@ import {
 } from '~/components/marketing/ecode-exact/EcodeExactUi';
 import { Badge } from '~/components/marketing/ecode-exact/EcodeExactUi';
 import { FieldError, FormErrorSummary, fieldErrorProps } from '~/components/ui/FieldError';
+import {
+  getMarketingExactCompanyCopy,
+  marketingExactCompanyEn,
+  type ContactSalesMailtoCopy,
+  type ContactSalesValidationCopy,
+  type EnterpriseFeatureId,
+} from '~/lib/i18n/catalogs/marketing-exact-company';
 
 export type ContactSalesLead = {
   name: string;
@@ -36,48 +45,67 @@ type ContactSalesResponse = {
 
 type ContactSalesField = 'name' | 'email' | 'company' | 'message';
 
+const CONTACT_FIELD_PREFIX = 'contact';
+
 const FIELD_IDS: Record<ContactSalesField, string> = {
   name: 'contact-name',
   email: 'contact-email',
   company: 'contact-company',
-  message: 'contact-message',
+  message: `${CONTACT_FIELD_PREFIX}-message`,
 };
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const TEAM_SIZES = ['1–10', '11–50', '51–200', '201–500', '500+'] as const;
 
-export function validateContactSalesField(field: ContactSalesField, value: string): string | undefined {
+const FEATURE_ICONS: Record<EnterpriseFeatureId, LucideIcon> = {
+  sso: ShieldCheck,
+  quotas: Gauge,
+  singleTenant: Server,
+  vpc: Network,
+  support: Headphones,
+  procurement: Building2,
+};
+
+export function validateContactSalesField(
+  field: ContactSalesField,
+  value: string,
+  copy: ContactSalesValidationCopy = marketingExactCompanyEn.exactContactSales.validation,
+): string | undefined {
   const trimmed = value.trim();
 
   switch (field) {
     case 'name':
-      return trimmed ? undefined : 'Enter your name.';
+      return trimmed ? undefined : copy.nameRequired;
     case 'email': {
       if (!trimmed) {
-        return 'Enter your work email.';
+        return copy.emailRequired;
       }
 
-      return EMAIL_PATTERN.test(trimmed) ? undefined : 'Enter a valid email address.';
+      return EMAIL_PATTERN.test(trimmed) ? undefined : copy.emailInvalid;
     }
     case 'company':
-      return trimmed ? undefined : 'Enter your company name.';
+      return trimmed ? undefined : copy.companyRequired;
     case 'message':
-      return trimmed ? undefined : 'Tell us briefly how we can help.';
+      return trimmed ? undefined : copy.messageRequired;
     default:
       return undefined;
   }
 }
 
-export function buildContactSalesMailto(lead: ContactSalesLead) {
-  const subject = `E-Code Enterprise inquiry${lead.company ? ` — ${lead.company}` : ''}`;
+export function buildContactSalesMailto(
+  lead: ContactSalesLead,
+  copy: ContactSalesMailtoCopy = marketingExactCompanyEn.exactContactSales.mailto,
+) {
+  const subject = `${copy.subject}${lead.company ? ` — ${lead.company}` : ''}`;
 
   const body = [
-    lead.name ? `Name: ${lead.name}` : undefined,
-    lead.email ? `Work email: ${lead.email}` : undefined,
-    lead.company ? `Company: ${lead.company}` : undefined,
-    lead.teamSize ? `Team size: ${lead.teamSize}` : undefined,
-    lead.pagePath ? `Page path: ${lead.pagePath}` : undefined,
+    lead.name ? `${copy.name}: ${lead.name}` : undefined,
+    lead.email ? `${copy.email}: ${lead.email}` : undefined,
+    lead.company ? `${copy.company}: ${lead.company}` : undefined,
+    lead.teamSize ? `${copy.teamSize}: ${lead.teamSize}` : undefined,
+    lead.pagePath ? `${copy.pagePath}: ${lead.pagePath}` : undefined,
     '',
-    'How can we help?',
+    copy.message,
     lead.message,
   ]
     .filter((line) => line !== undefined)
@@ -86,7 +114,7 @@ export function buildContactSalesMailto(lead: ContactSalesLead) {
   return `mailto:sales@e-code.ai?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 }
 
-async function submitContactSalesLead(lead: ContactSalesLead, honeypot: string) {
+async function submitContactSalesLead(lead: ContactSalesLead, honeypot: string, fallbackError: string) {
   const response = await fetch('/api/contact/sales', {
     method: 'POST',
     headers: {
@@ -103,20 +131,22 @@ async function submitContactSalesLead(lead: ContactSalesLead, honeypot: string) 
       return { fallbackMailto: data.fallbackMailto };
     }
 
-    throw new Error(data.error || 'Failed to submit your request.');
+    throw new Error(fallbackError);
   }
 
   return data;
 }
 
 export default function ContactSales() {
+  const { i18n } = useTranslation();
+  const copy = getMarketingExactCompanyCopy(i18n.resolvedLanguage ?? i18n.language).exactContactSales;
   const { toast } = useEcodeToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Partial<Record<ContactSalesField, string>>>({});
   const [sent, setSent] = useState<{ reference?: string } | null>(null);
 
   const handleBlur = (field: ContactSalesField, value: string) => {
-    setErrors((previous) => ({ ...previous, [field]: validateContactSalesField(field, value) }));
+    setErrors((previous) => ({ ...previous, [field]: validateContactSalesField(field, value, copy.validation) }));
   };
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
@@ -144,7 +174,7 @@ export default function ContactSales() {
     const validation: Partial<Record<ContactSalesField, string>> = {};
 
     for (const field of Object.keys(FIELD_IDS) as ContactSalesField[]) {
-      validation[field] = validateContactSalesField(field, lead[field]);
+      validation[field] = validateContactSalesField(field, lead[field], copy.validation);
     }
 
     setErrors(validation);
@@ -159,22 +189,22 @@ export default function ContactSales() {
     setIsSubmitting(true);
 
     try {
-      const result = await submitContactSalesLead(lead, String(formData.get('website') ?? ''));
+      const result = await submitContactSalesLead(lead, String(formData.get('website') ?? ''), copy.errors.submit);
 
       if (result.fallbackMailto) {
         if (typeof window !== 'undefined') {
-          window.location.href = result.fallbackMailto || buildContactSalesMailto(lead);
+          window.location.href = result.fallbackMailto || buildContactSalesMailto(lead, copy.mailto);
         }
 
         toast({
-          title: 'Opening email client',
-          description: 'Your details were prepared for sales@e-code.ai.',
+          title: copy.toasts.title,
+          description: copy.toasts.prepared,
         });
       } else {
         // The reference is the API-allocated id of the stored lead, never invented here.
         setSent({ reference: result.reference });
       }
-    } catch (error) {
+    } catch {
       /*
        * The intake backend (/api/contact/sales → API /contact-sales) may still
        * reject or be unreachable. Rather than silently dropping the lead — the
@@ -183,74 +213,22 @@ export default function ContactSales() {
        * still reach sales@e-code.ai with their message intact.
        */
       if (typeof window !== 'undefined') {
-        window.location.href = buildContactSalesMailto(lead);
+        window.location.href = buildContactSalesMailto(lead, copy.mailto);
       }
 
       toast({
-        title: 'Opening email client',
-        description:
-          error instanceof Error
-            ? `${error.message} We've prepared your request for sales@e-code.ai instead.`
-            : "We couldn't reach the server, so we've prepared your request for sales@e-code.ai instead.",
+        title: copy.toasts.title,
+        description: copy.toasts.fallback,
       });
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const enterpriseFeatures = [
-    {
-      icon: ShieldCheck,
-      title: 'SSO & SAML',
-      description: 'Connect Okta, Azure AD, or any SAML 2.0 identity provider with SCIM user provisioning',
-    },
-    {
-      icon: Gauge,
-      title: 'Custom Quotas',
-      description: 'Tailored compute, workspace, and seat limits sized to how your teams actually build',
-    },
-    {
-      icon: Server,
-      title: 'Single-Tenant',
-      description: 'Dedicated, isolated infrastructure for your organization with no shared workloads',
-    },
-    {
-      icon: Network,
-      title: 'VPC Peering',
-      description: 'Private network connectivity so E-Code reaches your internal services securely',
-    },
-    {
-      icon: Headphones,
-      title: 'Dedicated Support',
-      description: 'A named account team, priority response SLAs, and direct access to our engineers',
-    },
-    {
-      icon: Building2,
-      title: 'Procurement Ready',
-      description: 'Security reviews, custom contracts, invoicing, and DPAs handled by our team',
-    },
-  ];
-
-  const whatToExpect = [
-    {
-      title: 'Discovery call',
-      description: 'A 30-minute conversation to understand your stack, security needs, and rollout goals',
-    },
-    {
-      title: 'Tailored proposal',
-      description: 'Quotas, deployment model, and pricing scoped to your team — no off-the-shelf tiers',
-    },
-    {
-      title: 'Guided pilot',
-      description: 'A hands-on trial with onboarding support so your developers can evaluate E-Code live',
-    },
-    {
-      title: 'Rollout & onboarding',
-      description: 'SSO wiring, workspace setup, and admin training to get every team productive fast',
-    },
-  ];
-
-  const teamSizes = ['1–10', '11–50', '51–200', '201–500', '500+'];
+  const enterpriseFeatures = copy.features.items.map((feature) => ({
+    ...feature,
+    icon: FEATURE_ICONS[feature.id],
+  }));
 
   return (
     <div className="min-h-screen flex flex-col" data-testid="page-contact-sales">
@@ -263,14 +241,11 @@ export default function ContactSales() {
             <div className="text-center max-w-3xl mx-auto">
               <Building2 className="h-12 w-12 mx-auto mb-4 text-primary" />
               <h1 className="mkt-h1 font-bold mb-4" data-testid="heading-contact-sales">
-                Talk to our sales team
+                {copy.hero.title}
               </h1>
-              <p className="mkt-lead text-muted-foreground mb-8">
-                E-Code Enterprise brings SSO/SAML, custom quotas, single-tenant deployments, VPC peering, and dedicated
-                support to teams shipping software at scale.
-              </p>
+              <p className="mkt-lead text-muted-foreground mb-8">{copy.hero.description}</p>
               <Badge variant="secondary" className="text-[15px] px-4 py-2">
-                Enterprise plan
+                {copy.hero.badge}
               </Badge>
             </div>
           </div>
@@ -279,7 +254,7 @@ export default function ContactSales() {
         {/* Enterprise Features */}
         <section className="py-responsive">
           <div className="container-responsive">
-            <h2 className="mkt-h2 font-bold text-center mb-12">Built for Enterprise</h2>
+            <h2 className="mkt-h2 font-bold text-center mb-12">{copy.features.title}</h2>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {enterpriseFeatures.map((feature) => {
@@ -301,10 +276,10 @@ export default function ContactSales() {
         {/* What to Expect */}
         <section className="py-responsive bg-muted">
           <div className="container-responsive">
-            <h2 className="mkt-h2 font-bold text-center mb-12">What to expect</h2>
+            <h2 className="mkt-h2 font-bold text-center mb-12">{copy.expectations.title}</h2>
 
             <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-              {whatToExpect.map((step) => (
+              {copy.expectations.items.map((step) => (
                 <div key={step.title} className="flex gap-4">
                   <CheckCircle className="h-6 w-6 text-primary flex-shrink-0 mt-1" />
                   <div>
@@ -326,17 +301,15 @@ export default function ContactSales() {
                   <CardContent className="pt-6">
                     <div className="text-center space-y-4 py-8" role="status" data-testid="contact-sales-success">
                       <CheckCircle className="h-12 w-12 mx-auto text-primary" />
-                      <h3 className="mkt-h3 font-semibold">Request received</h3>
-                      <p className="mkt-body text-muted-foreground">
-                        Thanks for reaching out — we&apos;ll get back within 1 business day.
-                      </p>
+                      <h3 className="mkt-h3 font-semibold">{copy.success.title}</h3>
+                      <p className="mkt-body text-muted-foreground">{copy.success.description}</p>
                       {sent.reference ? (
                         <p className="mkt-body">
-                          Your reference number is{' '}
+                          {copy.success.referencePrefix}{' '}
                           <span className="font-mono font-semibold" data-testid="contact-sales-reference">
                             {sent.reference}
                           </span>{' '}
-                          — quote it in any follow-up.
+                          {copy.success.referenceSuffix}
                         </p>
                       ) : null}
                     </div>
@@ -344,10 +317,8 @@ export default function ContactSales() {
                 ) : (
                   <>
                     <CardHeader>
-                      <CardTitle>Contact sales</CardTitle>
-                      <CardDescription>
-                        Tell us about your team and we&apos;ll be in touch within one business day.
-                      </CardDescription>
+                      <CardTitle>{copy.form.title}</CardTitle>
+                      <CardDescription>{copy.form.description}</CardDescription>
                     </CardHeader>
                     <CardContent>
                       <form className="space-y-6" onSubmit={handleSubmit} noValidate data-testid="form-contact-sales">
@@ -359,14 +330,14 @@ export default function ContactSales() {
                         <div className="grid sm:grid-cols-2 gap-6">
                           <div className="space-y-2">
                             <label htmlFor="contact-name" className="mkt-small font-medium">
-                              Name
+                              {copy.form.name}
                             </label>
                             <input
                               id="contact-name"
                               name="name"
                               type="text"
                               autoComplete="name"
-                              placeholder="Ada Lovelace"
+                              placeholder={copy.form.namePlaceholder}
                               onBlur={(event) => handleBlur('name', event.currentTarget.value)}
                               className="w-full rounded-md border border-input bg-background px-3 py-2 text-[15px] min-h-[44px] focus:outline-none focus:ring-2 focus:ring-ring"
                               {...fieldErrorProps('contact-name', errors.name)}
@@ -375,14 +346,14 @@ export default function ContactSales() {
                           </div>
                           <div className="space-y-2">
                             <label htmlFor="contact-email" className="mkt-small font-medium">
-                              Work email
+                              {copy.form.email}
                             </label>
                             <input
                               id="contact-email"
                               name="email"
                               type="email"
                               autoComplete="email"
-                              placeholder="you@company.com"
+                              placeholder={copy.form.emailPlaceholder}
                               onBlur={(event) => handleBlur('email', event.currentTarget.value)}
                               className="w-full rounded-md border border-input bg-background px-3 py-2 text-[15px] min-h-[44px] focus:outline-none focus:ring-2 focus:ring-ring"
                               {...fieldErrorProps('contact-email', errors.email)}
@@ -391,14 +362,14 @@ export default function ContactSales() {
                           </div>
                           <div className="space-y-2">
                             <label htmlFor="contact-company" className="mkt-small font-medium">
-                              Company
+                              {copy.form.company}
                             </label>
                             <input
                               id="contact-company"
                               name="company"
                               type="text"
                               autoComplete="organization"
-                              placeholder="Acme Inc."
+                              placeholder={copy.form.companyPlaceholder}
                               onBlur={(event) => handleBlur('company', event.currentTarget.value)}
                               className="w-full rounded-md border border-input bg-background px-3 py-2 text-[15px] min-h-[44px] focus:outline-none focus:ring-2 focus:ring-ring"
                               {...fieldErrorProps('contact-company', errors.company)}
@@ -407,7 +378,7 @@ export default function ContactSales() {
                           </div>
                           <div className="space-y-2">
                             <label htmlFor="contact-team-size" className="mkt-small font-medium">
-                              Team size
+                              {copy.form.teamSize}
                             </label>
                             <select
                               id="contact-team-size"
@@ -416,11 +387,11 @@ export default function ContactSales() {
                               className="w-full rounded-md border border-input bg-background px-3 py-2 text-[15px] min-h-[44px] focus:outline-none focus:ring-2 focus:ring-ring"
                             >
                               <option value="" disabled>
-                                Select team size
+                                {copy.form.teamSizePlaceholder}
                               </option>
-                              {teamSizes.map((size) => (
+                              {TEAM_SIZES.map((size) => (
                                 <option key={size} value={size}>
-                                  {size} developers
+                                  {size} {copy.form.developerSuffix}
                                 </option>
                               ))}
                             </select>
@@ -429,13 +400,13 @@ export default function ContactSales() {
 
                         <div className="space-y-2">
                           <label htmlFor="contact-message" className="mkt-small font-medium">
-                            How can we help?
+                            {copy.form.message}
                           </label>
                           <textarea
                             id="contact-message"
                             name="message"
                             rows={4}
-                            placeholder="Tell us about your use case, security requirements, or timeline."
+                            placeholder={copy.form.messagePlaceholder}
                             onBlur={(event) => handleBlur('message', event.currentTarget.value)}
                             className="w-full rounded-md border border-input bg-background px-3 py-2 text-[15px] focus:outline-none focus:ring-2 focus:ring-ring"
                             {...fieldErrorProps('contact-message', errors.message)}
@@ -461,19 +432,16 @@ export default function ContactSales() {
                           data-testid="button-contact-sales-submit"
                         >
                           {isSubmitting ? (
-                            <>Sending...</>
+                            <>{copy.form.submitting}</>
                           ) : (
                             <>
                               <Send className="h-4 w-4" />
-                              Contact sales
+                              {copy.form.submit}
                             </>
                           )}
                         </button>
 
-                        <p className="mkt-small text-muted-foreground text-center">
-                          By submitting, you agree to be contacted about E-Code Enterprise. We&apos;ll never share your
-                          details.
-                        </p>
+                        <p className="mkt-small text-muted-foreground text-center">{copy.form.consent}</p>
                       </form>
                     </CardContent>
                   </>

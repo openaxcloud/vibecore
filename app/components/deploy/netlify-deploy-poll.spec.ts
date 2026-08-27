@@ -30,7 +30,7 @@ describe('pollNetlifyDeploy', () => {
 
     const result = await pollNetlifyDeploy({ fetchStatus, maxAttempts: 5, sleep: noSleep });
 
-    expect(result).toEqual({ outcome: 'error', error: 'Deployment failed: boom', attempts: 1 });
+    expect(result).toEqual({ outcome: 'error', technicalCause: 'boom', attempts: 1 });
   });
 
   it('polls through pending states until ready', async () => {

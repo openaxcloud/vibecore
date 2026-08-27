@@ -17,18 +17,18 @@ describe('user-area product vocabulary', () => {
     const organizationInvitations = source('app/routes/organization-invitations.tsx');
     const pendingInvitations = source('app/components/dashboard/PendingInvitationsSection.tsx');
 
-    expect(usage).toContain('quotaDisplayLabel(quota)');
-    expect(usage).toContain('quotaDisplayLabel(override.key)');
-    expect(usage).toContain('memberDisplayLabel(member, memberIndex)');
+    expect(usage).toContain("label(quota, 'billing.label.planAllowance')");
+    expect(usage).toContain("label(override.key, 'billing.label.planAllowance')");
+    expect(usage).toContain('memberLabel(member, memberIndex)');
     expect(usage).not.toContain('\n                        {quota}\n');
     expect(usage).not.toContain('>{override.key}<');
     expect(usage).not.toContain('m.email || m.name || m.userId');
-    expect(support).toContain('statusDisplayLabel(ticket.status)');
-    expect(supportTicket).toContain('statusDisplayLabel(ticket.status)');
+    expect(support).toContain('supportTicketStatusLabel(ticket.status, language)');
+    expect(supportTicket).toContain('supportTicketDetailStatusLabel(ticket.status, language)');
     expect(organizationMembers).toContain('{memberRoleLabel}');
     expect(organizationMembers).not.toContain('\n                    {member.roleKey}\n');
     expect(organizationInvitations).toContain('{roleLabel(invite.roleKey)}');
-    expect(pendingInvitations).toContain("userFacingLabel(invite.roleKey, 'Member')");
+    expect(pendingInvitations).toContain('organizationMemberRoleLabel(invite.roleKey, undefined, copy)');
   });
 
   it('does not expose implementation-oriented copy on primary user surfaces', () => {
@@ -74,16 +74,16 @@ describe('user-area product vocabulary', () => {
     expect(projectsNew).not.toContain('<summary>Technical details</summary>');
     expect(projectsNew).not.toContain('{descriptor.detail}');
     expect(billing).not.toContain("'No expiry'");
-    expect(billing).toContain('Expiration date unavailable');
-    expect(invoices).toContain("currency: 'EUR'");
-    expect(invoices).toContain('formatInvoiceAmount(invoice.amountPaidCents || invoice.amountDueCents)');
-    expect(invoices).not.toContain('currency.toUpperCase()');
+    expect(billing).toContain("t('billing.packs.expiryUnavailable')");
+    expect(invoices).toContain('invoice.currency');
+    expect(invoices).toContain('formatInvoiceAmount(');
+    expect(invoices).not.toContain("currency: 'EUR'");
   });
 
   it('uses labelled permission controls instead of requiring API permission keys', () => {
     const roles = source('app/routes/roles-and-permissions.tsx');
 
-    expect(roles).toContain('permissionLabel(permission)');
+    expect(roles).toContain('permissionLabel(permission, language)');
     expect(roles).toContain('selectedPermissions.join');
     expect(roles).not.toContain('placeholder="projects:read,usage:read"');
     expect(roles).not.toContain("role.permissions.join(', ')");
@@ -96,14 +96,14 @@ describe('user-area product vocabulary', () => {
     const database = source('app/routes/projects.$projectId.database.tsx');
     const deployments = source('app/routes/projects.$projectId.deployments.tsx');
 
-    expect(projectCards).toContain('statusDisplayLabel(project.status ?? fallback)');
+    expect(projectCards).toContain('localizedProjectStatus(project, t)');
     expect(projects).toContain('<ProjectStatusPill project={project} />');
-    expect(projects).toContain('stack: projectStackLabel(project)');
-    expect(recentProjects).toContain('stack: projectStackLabel(project)');
+    expect(projects).toContain('stack: projectStackLabel(project, language)');
+    expect(recentProjects).toContain('stack: projectStackLabel(project, language)');
     expect(projects).not.toContain('stack: project.gitRepositoryUrl ?? project.sourceType');
     expect(recentProjects).not.toContain('stack: project.gitRepositoryUrl ?? project.sourceType');
-    expect(database).toContain('statusDisplayLabel(status)');
-    expect(deployments).toContain('statusDisplayLabel(status)');
+    expect(database).toContain('databaseRestoreStatusLabel(status, copy)');
+    expect(deployments).toContain('copy.statuses.unknown');
   });
 
   it('does not render audit identifiers or OAuth query details as customer copy', () => {
@@ -112,16 +112,16 @@ describe('user-area product vocabulary', () => {
     const connectedAccounts = source('app/routes/account-settings.connected.tsx');
     const organizationMembers = source('app/routes/organization-members.tsx');
 
-    expect(auditLogs).toContain("userFacingLabel(row.action, 'Recorded action')");
-    expect(auditLogs).toContain("userFacingLabel(row.resourceType, 'Resource')");
+    expect(auditLogs).toContain('auditActionLabel(row.action, language)');
+    expect(auditLogs).toContain('auditResourceLabel(row.resourceType, language)');
     expect(auditLogs).not.toContain("{row.actorUserId ?? '—'}");
     expect(auditLogs).not.toContain('Organization <span className="font-mono">{orgId}</span>');
-    expect(login).toContain('oauthErrorDisplayMessage(loaderData.oauth.error)');
+    expect(login).toContain('oauthErrorTranslationKey(loaderData.oauth.error)');
     expect(login).not.toContain('loaderData.oauth.detail ?');
-    expect(connectedAccounts).toContain('oauthErrorDisplayMessage(linkErrorDetail)');
+    expect(connectedAccounts).toContain('connectedAccountOauthError(linkErrorDetail');
     expect(connectedAccounts).not.toContain('state.result.errorMessage');
     expect(connectedAccounts).not.toContain('parsed.error ??');
-    expect(organizationMembers).toContain('memberDisplayLabel(');
+    expect(organizationMembers).toContain("copy['organizationMembers.members.fallbackIndexed']");
     expect(organizationMembers).not.toContain('member.userName ?? member.userEmail ?? member.userId');
 
     const integrationCallback = source('app/routes/integrations.oauth.$provider.callback.tsx');

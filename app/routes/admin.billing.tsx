@@ -1,5 +1,7 @@
-import { Form, useActionData, useLoaderData } from 'react-router';
-import { EnterpriseFormPage, TextField, PrimaryButton } from '~/components/enterprise/EnterpriseFormPage';
+import type { MetaFunction } from 'react-router';
+import { Form, useActionData, useLoaderData, useNavigation } from 'react-router';
+import { EnterpriseFormPage, PrimaryButton, TextField } from '~/components/enterprise/EnterpriseFormPage';
+import { FieldError, fieldErrorProps } from '~/components/ui/FieldError';
 import {
   apiRequest,
   formObject,
@@ -8,68 +10,100 @@ import {
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
-import { formatUserAreaDate } from '~/lib/i18n/user-area-locale';
+import {
+  adminBillingInlineStatus,
+  formatAdminBillingCopy,
+  formatAdminBillingDate,
+  formatAdminBillingError,
+  formatAdminBillingMonthlyPrice,
+  formatAdminBillingPlanCount,
+  formatAdminBillingStatus,
+  formatAdminBillingSubscriptionCount,
+  getAdminBillingCopy,
+  getAdminBillingSubscriptionStatus,
+  resolveAdminBillingErrorCode,
+  type AdminBillingErrorCode,
+  type AdminBillingIntent,
+  type AdminBillingMessageData,
+} from '~/lib/i18n/catalogs/admin-billing';
+import { resolveRequestLocale } from '~/lib/i18n/request-locale';
+
+type BillingPlan = {
+  key: string;
+  name: string;
+  monthlyCents: number;
+};
+
+type BillingSubscription = {
+  id: string;
+  organizationId: string;
+  planKey: string;
+  status: string;
+  externalId?: string;
+  cancelAtPeriodEnd: boolean;
+  currentPeriodEnd?: string;
+};
 
 type AdminBillingData = {
-  plans: Array<{ key: string; name: string; monthlyCents: number }>;
-  subscriptions: Array<{
-    id: string;
-    organizationId: string;
-    planKey: string;
-    status: string;
-    externalId?: string;
-    cancelAtPeriodEnd: boolean;
-    currentPeriodEnd?: string;
-  }>;
+  plans: BillingPlan[];
+  subscriptions: BillingSubscription[];
 };
+
+type BillingField = 'password' | 'orgId' | 'key' | 'limit' | 'planKey' | 'reason';
+
+type ActionData = AdminBillingMessageData & {
+  intent?: AdminBillingIntent;
+  field?: BillingField;
+};
+
+const QUOTA_KEY_EXAMPLE = 'projects.count';
+
+export const meta: MetaFunction<typeof loader> = ({ data }) => {
+  const copy = getAdminBillingCopy(data?.language);
+
+  return [
+    { title: copy['adminBilling.meta.title'] },
+    { name: 'description', content: copy['adminBilling.meta.description'] },
+  ];
+};
+
+export { UserAreaRouteErrorBoundary as ErrorBoundary } from '~/components/dashboard/UserAreaRouteError';
 
 export async function loader({ request }: EnterpriseLoaderArgs) {
   await requirePlatformAdmin(request);
 
+  const language = resolveRequestLocale(request).language;
   const data = await apiRequest<AdminBillingData>(request, '/admin/billing');
 
-  return json(data);
+  return json({
+    plans: data.plans ?? [],
+    subscriptions: data.subscriptions ?? [],
+    language,
+  });
 }
 
-/*
- * Admin billing mutations require BOTH platform-admin and a recent (≤5 min) re-authentication on the
- * API. The page collects the admin's password and we step the session up via /auth/reauth before the
- * mutation, then translate the API's typed 401/403 codes into actionable inline messages.
- */
 async function reauthenticate(request: Request, password: string) {
-  try {
-    await apiRequest(request, '/auth/reauth', {
-      method: 'POST',
-      redirectOn401: false,
-      body: JSON.stringify({ password }),
-    });
-
-    return undefined;
-  } catch (error) {
-    if (error instanceof Response && error.status === 401) {
-      return 'Incorrect password. Re-enter your password to confirm this change.';
-    }
-
-    throw error;
-  }
+  await apiRequest(request, '/auth/reauth', {
+    method: 'POST',
+    redirectOn401: false,
+    body: JSON.stringify({ password }),
+  });
 }
 
-async function adminMutationError(error: unknown): Promise<string> {
-  if (error instanceof Response) {
-    const payload = (await error.json().catch(() => ({}))) as { error?: string; code?: string };
-
-    if (payload.code === 'ADMIN_REAUTH_REQUIRED') {
-      return 'Re-authentication expired. Enter your password and submit again.';
-    }
-
-    if (payload.code === 'PLATFORM_ADMIN_REQUIRED') {
-      return 'This action requires a platform administrator account.';
-    }
-
-    return payload.error ?? 'The billing change could not be applied.';
-  }
-
-  return 'The billing service is not reachable. Please try again in a moment.';
+function actionError(
+  errorCode: AdminBillingErrorCode,
+  intent?: AdminBillingIntent,
+  field?: BillingField,
+  status = 400,
+) {
+  return json<ActionData>(
+    {
+      errorCode,
+      ...(intent ? { intent } : {}),
+      ...(field ? { field } : {}),
+    },
+    { status },
+  );
 }
 
 export async function action({ request }: EnterpriseActionArgs) {
@@ -85,165 +119,345 @@ export async function action({ request }: EnterpriseActionArgs) {
     password?: string;
   };
 
+  const intent: AdminBillingIntent | undefined =
+    body.intent === 'quota' || body.intent === 'plan' ? body.intent : undefined;
+
+  if (!intent) {
+    return actionError('invalidIntent');
+  }
+
   if (!body.password) {
-    return json({ error: 'Enter your password to confirm this billing change.' }, { status: 400 });
+    return actionError('passwordRequired', intent, 'password');
   }
 
-  if (body.intent === 'plan') {
-    if (!body.orgId || !body.planKey || !body.reason) {
-      return json({ error: 'Organization ID, plan and reason are required.' }, { status: 400 });
+  const organizationId = body.orgId?.trim();
+
+  let quotaLimit: number | undefined;
+
+  if (!organizationId) {
+    return actionError('organizationRequired', intent, 'orgId');
+  }
+
+  if (intent === 'plan') {
+    if (!body.planKey) {
+      return actionError('planRequired', intent, 'planKey');
     }
-  } else if (!body.orgId || !body.key || !body.limit) {
-    return json({ error: 'Organization ID, quota key and limit are required.' }, { status: 400 });
+
+    if (!body.reason?.trim()) {
+      return actionError('reasonRequired', intent, 'reason');
+    }
+  } else {
+    if (!body.key?.trim()) {
+      return actionError('quotaKeyRequired', intent, 'key');
+    }
+
+    if (body.limit === undefined || body.limit.trim() === '') {
+      return actionError('limitRequired', intent, 'limit');
+    }
+
+    quotaLimit = Number(body.limit);
+
+    if (!Number.isInteger(quotaLimit) || quotaLimit < 0) {
+      return actionError('invalidLimit', intent, 'limit');
+    }
   }
 
-  let reauthError: string | undefined;
-
   try {
-    reauthError = await reauthenticate(request, body.password);
+    await reauthenticate(request, body.password);
   } catch (error) {
-    /*
-     * Non-401 reauth failures (API 500/timeout/network) re-throw; catch so a
-     * transient failure surfaces inline instead of crashing the admin billing page.
-     */
-    return json({ error: await adminMutationError(error) }, { status: 502 });
-  }
+    const errorCode = await resolveAdminBillingErrorCode(error, 'reauth');
+    const field = errorCode === 'incorrectPassword' || errorCode === 'reauthExpired' ? 'password' : undefined;
 
-  if (reauthError) {
-    return json({ error: reauthError }, { status: 401 });
+    return actionError(errorCode, intent, field, adminBillingInlineStatus(error));
   }
 
   try {
-    if (body.intent === 'plan') {
+    if (intent === 'plan') {
       await apiRequest(request, '/admin/plan-overrides', {
         method: 'POST',
         redirectOn401: false,
-        body: JSON.stringify({ organizationId: body.orgId, planKey: body.planKey, reason: body.reason }),
+        body: JSON.stringify({
+          organizationId,
+          planKey: body.planKey,
+          reason: body.reason,
+        }),
       });
 
-      return json({ status: 'Plan override created.' });
+      return json<ActionData>({ statusCode: 'planCreated', intent });
     }
 
-    const limit = Number(body.limit);
-
-    if (!Number.isFinite(limit) || limit < 0) {
-      return json({ error: 'Invalid quota limit.' }, { status: 400 });
-    }
+    const language = resolveRequestLocale(request).language;
+    const copy = getAdminBillingCopy(language);
 
     await apiRequest(request, '/admin/quota-overrides', {
       method: 'POST',
       redirectOn401: false,
       body: JSON.stringify({
-        organizationId: body.orgId,
-        key: body.key,
-        limit,
-        reason: body.reason || 'Admin billing override',
+        organizationId,
+        key: body.key?.trim(),
+        limit: quotaLimit,
+        reason: body.reason?.trim() ? body.reason : copy['adminBilling.audit.defaultQuotaReason'],
       }),
     });
 
-    return json({ status: 'Quota override created.' });
+    return json<ActionData>({ statusCode: 'quotaCreated', intent });
   } catch (error) {
-    return json({ error: await adminMutationError(error) }, { status: 403 });
+    return actionError(
+      await resolveAdminBillingErrorCode(error, intent),
+      intent,
+      undefined,
+      adminBillingInlineStatus(error),
+    );
   }
+}
+
+function CountBadge({ children }: { children: string }) {
+  return (
+    <span className="inline-flex max-w-full whitespace-normal break-words rounded-full bg-bolt-elements-background-depth-2 px-2 py-0.5 text-left text-xs leading-snug text-bolt-elements-textSecondary">
+      {children}
+    </span>
+  );
 }
 
 export default function AdminBillingPage() {
   const data = useLoaderData<typeof loader>();
-  const actionData = useActionData<typeof action>() as { status?: string; error?: string } | undefined;
+  const actionData = useActionData<typeof action>() as ActionData | undefined;
+  const navigation = useNavigation();
+  const copy = getAdminBillingCopy(data.language);
+  const status = formatAdminBillingStatus(actionData ?? {}, data.language);
+  const error = formatAdminBillingError(actionData ?? {}, data.language);
+  const busy = navigation.state !== 'idle';
+  const pendingIntent = navigation.formData?.get('intent')?.toString();
+  const creatingQuota = busy && pendingIntent === 'quota';
+  const applyingPlan = busy && pendingIntent === 'plan';
+
+  const fieldError = (intent: AdminBillingIntent, field: BillingField) =>
+    actionData?.intent === intent && actionData.field === field ? error : undefined;
 
   return (
     <EnterpriseFormPage
-      title="Admin billing"
-      description="Review plans and create audited quota overrides for enterprise organizations."
-      status={actionData?.status}
-      error={actionData?.error}
+      title={copy['adminBilling.page.title']}
+      description={copy['adminBilling.page.description']}
+      status={status}
+      error={actionData?.field ? undefined : error}
     >
-      <Form method="post" className="space-y-4">
-        <input type="hidden" name="intent" value="quota" />
-        <TextField label="Organization ID" name="orgId" required />
-        <TextField label="Quota key" name="key" placeholder="projects.count" required />
-        <TextField label="Limit" name="limit" type="number" required />
-        <TextField label="Reason" name="reason" placeholder="contract expansion" />
-        <TextField
-          label="Confirm with your password"
-          name="password"
-          type="password"
-          autoComplete="current-password"
-          required
-        />
-        <PrimaryButton>Create override</PrimaryButton>
-      </Form>
-      <Form method="post" className="mt-6 space-y-4">
-        <input type="hidden" name="intent" value="plan" />
-        <TextField label="Organization ID" name="orgId" required />
-        <label className="grid gap-1 text-sm">
-          <span className="font-medium text-bolt-elements-textPrimary">Plan</span>
-          <select
-            name="planKey"
-            required
-            className="rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-3 py-2 text-bolt-elements-textPrimary"
-          >
-            {data.plans.map((plan) => (
-              <option key={plan.key} value={plan.key}>
-                {plan.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <TextField label="Reason" name="reason" placeholder="contract correction" required />
-        <TextField
-          label="Confirm with your password"
-          name="password"
-          type="password"
-          autoComplete="current-password"
-          required
-        />
-        <PrimaryButton>Apply plan override</PrimaryButton>
-      </Form>
-      <div className="mt-6 rounded-md border border-bolt-elements-borderColor p-3 text-xs text-bolt-elements-textSecondary">
-        <strong className="block text-bolt-elements-textPrimary">Configured plans</strong>
-        <pre className="mt-2 overflow-auto">{JSON.stringify(data.plans, null, 2)}</pre>
-      </div>
-      <div className="mt-6 rounded-md border border-bolt-elements-borderColor p-3 text-xs text-bolt-elements-textSecondary">
-        <strong className="block text-bolt-elements-textPrimary">Recent subscriptions</strong>
-        <div className="mt-2 overflow-auto">
-          <table className="w-full min-w-[720px] text-left">
-            <thead>
-              <tr className="border-b border-bolt-elements-borderColor text-bolt-elements-textPrimary">
-                <th className="py-2 pr-3">Organization</th>
-                <th className="py-2 pr-3">Plan</th>
-                <th className="py-2 pr-3">Status</th>
-                <th className="py-2 pr-3">Stripe subscription</th>
-                <th className="py-2 pr-3">Period end</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.subscriptions.map((subscription) => (
-                <tr key={subscription.id} className="border-b border-bolt-elements-borderColor last:border-b-0">
-                  <td className="py-2 pr-3">{subscription.organizationId}</td>
-                  <td className="py-2 pr-3">{subscription.planKey}</td>
-                  <td className="py-2 pr-3">
-                    {subscription.status}
-                    {subscription.cancelAtPeriodEnd ? ' - canceling' : ''}
-                  </td>
-                  <td className="py-2 pr-3">{subscription.externalId ?? 'manual'}</td>
-                  <td className="py-2 pr-3">
-                    {subscription.currentPeriodEnd
-                      ? (formatUserAreaDate(subscription.currentPeriodEnd) ?? 'invalid date')
-                      : 'not set'}
-                  </td>
-                </tr>
+      <div className="min-w-0 space-y-8">
+        <section className="min-w-0 space-y-4 rounded-lg border border-bolt-elements-borderColor p-4">
+          <div className="min-w-0 space-y-1">
+            <h2 className="break-words text-base font-semibold text-bolt-elements-textPrimary">
+              {copy['adminBilling.quota.title']}
+            </h2>
+            <p className="break-words text-xs leading-relaxed text-bolt-elements-textSecondary">
+              {copy['adminBilling.quota.description']}
+            </p>
+          </div>
+          <Form method="post" className="min-w-0 space-y-4">
+            <input type="hidden" name="intent" value="quota" />
+            <TextField
+              label={copy['adminBilling.field.organizationId']}
+              name="orgId"
+              id="quota-org-id"
+              required
+              error={fieldError('quota', 'orgId')}
+            />
+            <TextField
+              label={copy['adminBilling.field.quotaKey']}
+              name="key"
+              id="quota-key"
+              placeholder={QUOTA_KEY_EXAMPLE}
+              required
+              error={fieldError('quota', 'key')}
+            />
+            <TextField
+              label={copy['adminBilling.field.limit']}
+              name="limit"
+              id="quota-limit"
+              type="number"
+              required
+              error={fieldError('quota', 'limit')}
+            />
+            <TextField
+              label={copy['adminBilling.field.reason']}
+              name="reason"
+              placeholder={copy['adminBilling.field.quotaReasonPlaceholder']}
+            />
+            <TextField
+              label={copy['adminBilling.field.password']}
+              name="password"
+              id="quota-password"
+              type="password"
+              autoComplete="current-password"
+              required
+              error={fieldError('quota', 'password')}
+            />
+            <div className="[&_button]:w-full [&_button]:max-w-full [&_button]:!whitespace-normal sm:[&_button]:w-auto">
+              <PrimaryButton type="submit" disabled={busy}>
+                {copy[creatingQuota ? 'adminBilling.action.creatingQuota' : 'adminBilling.action.createQuota']}
+              </PrimaryButton>
+            </div>
+          </Form>
+        </section>
+
+        <section className="min-w-0 space-y-4 rounded-lg border border-bolt-elements-borderColor p-4">
+          <div className="min-w-0 space-y-1">
+            <h2 className="break-words text-base font-semibold text-bolt-elements-textPrimary">
+              {copy['adminBilling.planOverride.title']}
+            </h2>
+            <p className="break-words text-xs leading-relaxed text-bolt-elements-textSecondary">
+              {copy['adminBilling.planOverride.description']}
+            </p>
+          </div>
+          <Form method="post" className="min-w-0 space-y-4">
+            <input type="hidden" name="intent" value="plan" />
+            <TextField
+              label={copy['adminBilling.field.organizationId']}
+              name="orgId"
+              id="plan-org-id"
+              required
+              error={fieldError('plan', 'orgId')}
+            />
+            <label className="grid min-w-0 gap-1 text-sm" htmlFor="plan-key">
+              <span className="break-words font-medium text-bolt-elements-textPrimary">
+                {copy['adminBilling.field.plan']}
+              </span>
+              <select
+                name="planKey"
+                id="plan-key"
+                required
+                disabled={busy || data.plans.length === 0}
+                className={`min-h-[44px] max-w-full rounded-md border ${
+                  fieldError('plan', 'planKey')
+                    ? 'border-[var(--vc-ide-accent-error)]'
+                    : 'border-bolt-elements-borderColor'
+                } bg-bolt-elements-background-depth-2 px-3 py-2 text-bolt-elements-textPrimary disabled:cursor-not-allowed disabled:opacity-60`}
+                {...fieldErrorProps('plan-key', fieldError('plan', 'planKey'))}
+              >
+                {data.plans.length === 0 ? (
+                  <option value="">{copy['adminBilling.field.planUnavailable']}</option>
+                ) : (
+                  data.plans.map((plan) => (
+                    <option key={plan.key} value={plan.key}>
+                      {formatAdminBillingCopy(copy['adminBilling.field.planOption'], {
+                        name: plan.name,
+                        price: formatAdminBillingMonthlyPrice(plan.monthlyCents, data.language),
+                      })}
+                    </option>
+                  ))
+                )}
+              </select>
+              <FieldError fieldId="plan-key" error={fieldError('plan', 'planKey')} />
+            </label>
+            <TextField
+              label={copy['adminBilling.field.reason']}
+              name="reason"
+              id="plan-reason"
+              placeholder={copy['adminBilling.field.planReasonPlaceholder']}
+              required
+              error={fieldError('plan', 'reason')}
+            />
+            <TextField
+              label={copy['adminBilling.field.password']}
+              name="password"
+              id="plan-password"
+              type="password"
+              autoComplete="current-password"
+              required
+              error={fieldError('plan', 'password')}
+            />
+            <div className="[&_button]:w-full [&_button]:max-w-full [&_button]:!whitespace-normal sm:[&_button]:w-auto">
+              <PrimaryButton type="submit" disabled={busy || data.plans.length === 0}>
+                {copy[applyingPlan ? 'adminBilling.action.applyingPlan' : 'adminBilling.action.applyPlan']}
+              </PrimaryButton>
+            </div>
+          </Form>
+        </section>
+
+        <section className="min-w-0 space-y-4 rounded-lg border border-bolt-elements-borderColor p-4">
+          <div className="flex min-w-0 flex-col items-start gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+            <h2 className="break-words text-base font-semibold text-bolt-elements-textPrimary">
+              {copy['adminBilling.plans.title']}
+            </h2>
+            <CountBadge>{formatAdminBillingPlanCount(data.plans.length, data.language)}</CountBadge>
+          </div>
+          {data.plans.length === 0 ? (
+            <p className="text-sm text-bolt-elements-textSecondary">{copy['adminBilling.plans.empty']}</p>
+          ) : (
+            <div className="grid min-w-0 gap-3 sm:grid-cols-2">
+              {data.plans.map((plan) => (
+                <article
+                  key={plan.key}
+                  className="min-w-0 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-3"
+                >
+                  <div className="flex min-w-0 flex-col items-start justify-between gap-2 sm:flex-row sm:gap-3">
+                    <strong className="min-w-0 break-words text-bolt-elements-textPrimary">{plan.name}</strong>
+                    <span className="break-words text-sm font-medium text-bolt-elements-textPrimary">
+                      {formatAdminBillingMonthlyPrice(plan.monthlyCents, data.language)}
+                    </span>
+                  </div>
+                  <code className="mt-2 block break-all text-xs text-bolt-elements-textSecondary">{plan.key}</code>
+                </article>
               ))}
-              {data.subscriptions.length === 0 && (
-                <tr>
-                  <td className="py-3 text-bolt-elements-textSecondary" colSpan={5}>
-                    No subscriptions recorded yet.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+            </div>
+          )}
+        </section>
+
+        <section className="min-w-0 space-y-4 rounded-lg border border-bolt-elements-borderColor p-4">
+          <div className="flex min-w-0 flex-col items-start gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+            <h2 className="break-words text-base font-semibold text-bolt-elements-textPrimary">
+              {copy['adminBilling.subscriptions.title']}
+            </h2>
+            <CountBadge>{formatAdminBillingSubscriptionCount(data.subscriptions.length, data.language)}</CountBadge>
+          </div>
+          {data.subscriptions.length === 0 ? (
+            <p className="text-sm text-bolt-elements-textSecondary">{copy['adminBilling.subscriptions.empty']}</p>
+          ) : (
+            <div className="max-w-full overflow-x-auto">
+              <table className="min-w-[54rem] table-fixed text-left text-xs">
+                <caption className="sr-only">{copy['adminBilling.subscriptions.title']}</caption>
+                <thead>
+                  <tr className="border-b border-bolt-elements-borderColor text-bolt-elements-textPrimary">
+                    <th className="w-44 py-2 pr-3 font-medium">{copy['adminBilling.subscriptions.organization']}</th>
+                    <th className="w-32 py-2 pr-3 font-medium">{copy['adminBilling.subscriptions.plan']}</th>
+                    <th className="w-40 py-2 pr-3 font-medium">{copy['adminBilling.subscriptions.status']}</th>
+                    <th className="w-48 py-2 pr-3 font-medium">{copy['adminBilling.subscriptions.stripeId']}</th>
+                    <th className="w-40 py-2 pr-3 font-medium">{copy['adminBilling.subscriptions.periodEnd']}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.subscriptions.map((subscription) => (
+                    <tr
+                      key={subscription.id}
+                      className="border-b border-bolt-elements-borderColor align-top last:border-b-0"
+                    >
+                      <td className="break-all py-2 pr-3 font-mono text-bolt-elements-textPrimary">
+                        {subscription.organizationId}
+                      </td>
+                      <td className="break-all py-2 pr-3">{subscription.planKey}</td>
+                      <td className="break-words py-2 pr-3">
+                        <span className="block">
+                          {getAdminBillingSubscriptionStatus(subscription.status, data.language)}
+                        </span>
+                        {subscription.cancelAtPeriodEnd ? (
+                          <span className="mt-1 block text-bolt-elements-textSecondary">
+                            {copy['adminBilling.subscriptions.cancellationScheduled']}
+                          </span>
+                        ) : null}
+                      </td>
+                      <td className="break-all py-2 pr-3 font-mono">
+                        {subscription.externalId ?? copy['adminBilling.subscriptions.manual']}
+                      </td>
+                      <td className="break-words py-2 pr-3">
+                        {subscription.currentPeriodEnd
+                          ? formatAdminBillingDate(subscription.currentPeriodEnd, data.language)
+                          : copy['adminBilling.subscriptions.dateNotSet']}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
       </div>
     </EnterpriseFormPage>
   );

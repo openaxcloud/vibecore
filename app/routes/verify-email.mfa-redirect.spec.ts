@@ -68,25 +68,23 @@ describe('verify-email action — MFA-required redirect handling', () => {
 
     // The action returns RR7's `data()` sentinel: { type, data, init }, not a Response.
     const result = (await action({ request: buildRequest({ token: 'verify_abc1234567890123' }) } as never)) as {
-      data: { error?: string };
+      data: { errorCode?: string };
       init?: { status?: number };
     };
 
     expect(result.init?.status).toBe(400);
-    expect(result.data).toEqual({ error: 'Token expired.' });
+    expect(result.data).toEqual({ errorCode: 'AUTH_VERIFICATION_FAILED' });
   });
 
   it('returns a 503 inline message when the API is unreachable (non-Response error)', async () => {
     apiRequest.mockRejectedValueOnce(new Error('ECONNREFUSED'));
 
     const result = (await action({ request: buildRequest({ token: 'verify_abc1234567890123' }) } as never)) as {
-      data: { error?: string };
+      data: { errorCode?: string };
       init?: { status?: number };
     };
 
     expect(result.init?.status).toBe(503);
-    expect(result.data).toEqual({
-      error: 'Verification service is not reachable. Please try again in a moment.',
-    });
+    expect(result.data).toEqual({ errorCode: 'AUTH_VERIFICATION_UNAVAILABLE' });
   });
 });

@@ -1,4 +1,5 @@
 import { formatDistanceToNow } from 'date-fns';
+import { enGB, fr } from 'date-fns/locale';
 import {
   Bell,
   CircleCheck,
@@ -13,22 +14,30 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { MetaFunction } from 'react-router';
 import { useLoaderData, useRevalidator } from 'react-router';
 import { AsyncPanelError, AsyncPanelSkeleton } from '~/components/dashboard/AsyncPanelState';
 import { AppShell, LinkButton } from '~/components/dashboard/SaaSLayout';
 import { Button } from '~/components/ui/Button';
+import { EmptyState } from '~/components/ui/EmptyState';
 import { Switch } from '~/components/ui/Switch';
 import { apiRequest, type EnterpriseActionArgs, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
+import { notificationsEn, notificationsFr, type NotificationMessageKey } from '~/lib/i18n/catalogs/notifications';
+import { resolveRequestLocale } from '~/lib/i18n/request-locale';
 import { classNames } from '~/utils/classNames';
 
-export const meta: MetaFunction = () => [{ title: 'Notifications - E-Code' }];
+export const meta: MetaFunction<typeof loader> = ({ data }) => [
+  {
+    title: (data?.language === 'fr' ? notificationsFr : notificationsEn)['notifications.metaTitle'],
+  },
+];
 export { UserAreaRouteErrorBoundary as ErrorBoundary } from '~/components/dashboard/UserAreaRouteError';
 
 type NotificationCategory = {
   key: string;
-  title: string;
-  description: string;
+  titleKey: NotificationMessageKey;
+  descriptionKey: NotificationMessageKey;
   icon: LucideIcon;
   tone: 'critical' | 'warning' | 'info' | 'success';
 };
@@ -41,36 +50,36 @@ type NotificationCategory = {
 const categories: NotificationCategory[] = [
   {
     key: 'security',
-    title: 'Security events',
-    description: 'MFA changes, API key rotation, suspicious session activity and access policy updates.',
+    titleKey: 'notifications.category.security.title',
+    descriptionKey: 'notifications.category.security.description',
     icon: ShieldAlert,
     tone: 'critical',
   },
   {
     key: 'billing',
-    title: 'Billing alerts',
-    description: 'Quota thresholds, failed payments, invoice availability and subscription changes.',
+    titleKey: 'notifications.category.billing.title',
+    descriptionKey: 'notifications.category.billing.description',
     icon: CreditCard,
     tone: 'warning',
   },
   {
     key: 'deployments',
-    title: 'Deployment updates',
-    description: 'Preview builds, production releases, rollbacks, domain checks and failed jobs.',
+    titleKey: 'notifications.category.deployments.title',
+    descriptionKey: 'notifications.category.deployments.description',
     icon: Rocket,
     tone: 'info',
   },
   {
     key: 'team',
-    title: 'Team changes',
-    description: 'Invitations, role updates, collaborator changes and owner-level membership events.',
+    titleKey: 'notifications.category.team.title',
+    descriptionKey: 'notifications.category.team.description',
     icon: Users,
     tone: 'success',
   },
   {
     key: 'system',
-    title: 'System updates',
-    description: 'Platform releases, maintenance windows and product announcements.',
+    titleKey: 'notifications.category.system.title',
+    descriptionKey: 'notifications.category.system.description',
     icon: Megaphone,
     tone: 'info',
   },
@@ -78,8 +87,8 @@ const categories: NotificationCategory[] = [
 
 type NotificationChannel = {
   key: string;
-  label: string;
-  detail: string;
+  labelKey: NotificationMessageKey;
+  detailKey: NotificationMessageKey;
   icon: LucideIcon;
 };
 
@@ -90,8 +99,18 @@ type NotificationChannel = {
  * grid deliberately does not offer them.
  */
 const channels: NotificationChannel[] = [
-  { key: 'email', label: 'Email', detail: 'Transactional email', icon: Mail },
-  { key: 'inApp', label: 'In-app', detail: 'Workspace inbox', icon: Bell },
+  {
+    key: 'email',
+    labelKey: 'notifications.channel.email.label',
+    detailKey: 'notifications.channel.email.detail',
+    icon: Mail,
+  },
+  {
+    key: 'inApp',
+    labelKey: 'notifications.channel.inApp.label',
+    detailKey: 'notifications.channel.inApp.detail',
+    icon: Bell,
+  },
 ];
 
 /* Security emails are mandatory; the API enforces the same invariant on PATCH. */
@@ -99,13 +118,27 @@ function isLockedCell(categoryKey: string, channelKey: string) {
   return categoryKey === 'security' && channelKey === 'email';
 }
 
-const SECURITY_EMAIL_LOCK_REASON = 'Security alerts are always emailed';
-
 const policies = [
-  { label: 'Critical', icon: Siren, detail: 'Security, billing failure and production outage events.' },
-  { label: 'Action needed', icon: Clock3, detail: 'Reviews, approvals, quota limits and pending invitations.' },
-  { label: 'Informational', icon: Megaphone, detail: 'Release notes, usage summaries and collaboration updates.' },
-];
+  {
+    labelKey: 'notifications.policy.critical.label',
+    icon: Siren,
+    detailKey: 'notifications.policy.critical.detail',
+  },
+  {
+    labelKey: 'notifications.policy.action.label',
+    icon: Clock3,
+    detailKey: 'notifications.policy.action.detail',
+  },
+  {
+    labelKey: 'notifications.policy.informational.label',
+    icon: Megaphone,
+    detailKey: 'notifications.policy.informational.detail',
+  },
+] as const satisfies readonly {
+  labelKey: NotificationMessageKey;
+  icon: LucideIcon;
+  detailKey: NotificationMessageKey;
+}[];
 
 type NotificationMatrix = Record<string, Record<string, boolean>>;
 type NotificationPreferences = { matrix: NotificationMatrix };
@@ -213,7 +246,7 @@ function useRecoverableNotificationPost({
       const payload = (await response.json().catch(() => null)) as NotificationMutationResponse | null;
 
       if (!response.ok || payload?.ok !== true) {
-        throw new Error('Notification mutation was not confirmed');
+        throw new Error();
       }
 
       await onSuccessRef.current?.(payload);
@@ -235,6 +268,8 @@ function useRecoverableNotificationPost({
 }
 
 export async function loader({ request }: EnterpriseLoaderArgs) {
+  const { language } = resolveRequestLocale(request);
+
   /*
    * Preferences and the real per-user feed load together. The feed is fetched
    * best-effort so a transient feed error never blanks the whole preferences
@@ -249,6 +284,7 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
   ]);
 
   return {
+    language,
     preferences: resolvePreferences(data.preferences?.notifications),
     feed: feedResult.feed,
     feedUnavailable: feedResult.unavailable,
@@ -282,7 +318,7 @@ export async function action({ request }: EnterpriseActionArgs) {
       throw error;
     }
 
-    return { ok: false as const, error: 'Could not save notification preferences.' };
+    return { ok: false as const, errorKey: 'notifications.preferences.saveFailed' as const };
   }
 
   return { ok: true as const, preferences: { matrix } };
@@ -290,12 +326,13 @@ export async function action({ request }: EnterpriseActionArgs) {
 
 export default function NotificationsPage() {
   const { preferences, feed, feedUnavailable } = useLoaderData<typeof loader>();
+  const { t } = useTranslation();
 
   return (
     <AppShell
-      title="Notifications"
-      description="Control high-signal product, billing, deployment and security notifications across your workspace."
-      actions={<LinkButton to="/security-settings">Security rules</LinkButton>}
+      title={t('notifications.page.title')}
+      description={t('notifications.page.description')}
+      actions={<LinkButton to="/security-settings">{t('notifications.page.securityRules')}</LinkButton>}
     >
       <NotificationFeedSection feed={feed} unavailable={feedUnavailable} />
       <div className="space-y-6">
@@ -304,8 +341,8 @@ export default function NotificationsPage() {
         <section className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5 shadow-sm sm:p-6">
           <div className="mb-5 flex items-center justify-between gap-3">
             <div>
-              <h2 className="text-base font-semibold tracking-normal">Priority model</h2>
-              <p className="mt-1 text-sm text-bolt-elements-textSecondary">Clear escalation paths for every event.</p>
+              <h2 className="text-base font-semibold tracking-normal">{t('notifications.priority.title')}</h2>
+              <p className="mt-1 text-sm text-bolt-elements-textSecondary">{t('notifications.priority.description')}</p>
             </div>
             <CircleCheck className="h-5 w-5 text-bolt-elements-textTertiary" aria-hidden />
           </div>
@@ -314,11 +351,11 @@ export default function NotificationsPage() {
               const Icon = policy.icon;
 
               return (
-                <div key={policy.label} className="flex gap-3 rounded-md bg-bolt-elements-background-depth-1 p-3">
+                <div key={policy.labelKey} className="flex gap-3 rounded-md bg-bolt-elements-background-depth-1 p-3">
                   <Icon className="mt-0.5 h-4 w-4 shrink-0 text-bolt-elements-textSecondary" aria-hidden />
                   <div>
-                    <h3 className="text-sm font-semibold">{policy.label}</h3>
-                    <p className="mt-1 text-xs leading-5 text-bolt-elements-textSecondary">{policy.detail}</p>
+                    <h3 className="text-sm font-semibold">{t(policy.labelKey)}</h3>
+                    <p className="mt-1 text-xs leading-5 text-bolt-elements-textSecondary">{t(policy.detailKey)}</p>
                   </div>
                 </div>
               );
@@ -331,6 +368,7 @@ export default function NotificationsPage() {
 }
 
 export function PreferencesMatrixSection({ initial }: { initial: NotificationPreferences }) {
+  const { t } = useTranslation();
   const [matrix, setMatrix] = useState(initial.matrix);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -340,51 +378,54 @@ export function PreferencesMatrixSection({ initial }: { initial: NotificationPre
   const lastAttempted = useRef<NotificationMatrix | null>(null);
   const saveController = useRef<AbortController | null>(null);
 
-  const submitMatrix = useCallback(async (next: NotificationMatrix) => {
-    saveController.current?.abort();
+  const submitMatrix = useCallback(
+    async (next: NotificationMatrix) => {
+      saveController.current?.abort();
 
-    const controller = new AbortController();
-    saveController.current = controller;
-    lastAttempted.current = next;
-    setSaving(true);
-    setError(null);
+      const controller = new AbortController();
+      saveController.current = controller;
+      lastAttempted.current = next;
+      setSaving(true);
+      setError(null);
 
-    try {
-      const response = await fetch('/api/user/preferences', {
-        method: 'PATCH',
-        credentials: 'same-origin',
-        headers: {
-          accept: 'application/json',
-          'content-type': 'application/json',
-        },
-        body: JSON.stringify({ preferences: { notifications: { matrix: next } } }),
-        signal: controller.signal,
-      });
+      try {
+        const response = await fetch('/api/user/preferences', {
+          method: 'PATCH',
+          credentials: 'same-origin',
+          headers: {
+            accept: 'application/json',
+            'content-type': 'application/json',
+          },
+          body: JSON.stringify({ preferences: { notifications: { matrix: next } } }),
+          signal: controller.signal,
+        });
 
-      if (!response.ok) {
-        throw new Error('Notification preferences were not persisted');
-      }
+        if (!response.ok) {
+          throw new Error();
+        }
 
-      if (saveController.current === controller) {
-        committed.current = next;
-        lastAttempted.current = null;
-      }
-    } catch (requestError) {
-      if (requestError instanceof Error && requestError.name === 'AbortError') {
-        return;
-      }
+        if (saveController.current === controller) {
+          committed.current = next;
+          lastAttempted.current = null;
+        }
+      } catch (requestError) {
+        if (requestError instanceof Error && requestError.name === 'AbortError') {
+          return;
+        }
 
-      if (saveController.current === controller) {
-        setMatrix(committed.current);
-        setError('Could not save notification preferences.');
+        if (saveController.current === controller) {
+          setMatrix(committed.current);
+          setError(t('notifications.preferences.saveFailed'));
+        }
+      } finally {
+        if (saveController.current === controller) {
+          saveController.current = null;
+          setSaving(false);
+        }
       }
-    } finally {
-      if (saveController.current === controller) {
-        saveController.current = null;
-        setSaving(false);
-      }
-    }
-  }, []);
+    },
+    [t],
+  );
 
   useEffect(
     () => () => {
@@ -428,26 +469,28 @@ export function PreferencesMatrixSection({ initial }: { initial: NotificationPre
     0,
   );
 
+  const securityEmailLockReason = t('notifications.security.lockReason');
+
   return (
     <section className="overflow-hidden rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-sm">
       <div className="border-b border-bolt-elements-borderColor p-5 sm:p-6">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-normal text-bolt-elements-textTertiary">
-              Delivery command center
+              {t('notifications.preferences.eyebrow')}
             </p>
-            <h2 className="mt-2 text-xl font-semibold tracking-normal">Notification preferences</h2>
+            <h2 className="mt-2 text-xl font-semibold tracking-normal">{t('notifications.preferences.title')}</h2>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-bolt-elements-textSecondary">
-              Choose how each event category reaches you. Changes save automatically.
+              {t('notifications.preferences.description')}
               <span aria-live="polite" className="ml-2 text-bolt-elements-textTertiary">
-                {saving ? 'Saving…' : ''}
+                {saving ? t('notifications.preferences.saving') : ''}
               </span>
             </p>
           </div>
           <div className="grid grid-cols-3 gap-2 text-center">
-            <Metric value={`${enabledCells}/${totalCells}`} label="Cells on" />
-            <Metric value={String(channels.length)} label="Channels" />
-            <Metric value={String(policies.length)} label="Priorities" />
+            <Metric value={`${enabledCells}/${totalCells}`} label={t('notifications.preferences.cellsOn')} />
+            <Metric value={String(channels.length)} label={t('notifications.preferences.channels')} />
+            <Metric value={String(policies.length)} label={t('notifications.preferences.priorities')} />
           </div>
         </div>
       </div>
@@ -455,8 +498,8 @@ export function PreferencesMatrixSection({ initial }: { initial: NotificationPre
       {error ? (
         <AsyncPanelError
           compact
-          title="Preferences were not saved"
-          description={`${error} Your previous settings remain active.`}
+          title={t('notifications.preferences.errorTitle')}
+          description={t('notifications.preferences.errorDescription', { error })}
           onRetry={retryLastSave}
           retrying={saving}
           className="mx-5 mt-4 sm:mx-6"
@@ -469,21 +512,28 @@ export function PreferencesMatrixSection({ initial }: { initial: NotificationPre
             <tr className="border-b border-bolt-elements-borderColor">
               <th
                 scope="col"
-                className="p-4 text-left text-xs font-semibold uppercase tracking-normal text-bolt-elements-textTertiary sm:pl-6"
+                className="p-3 text-left text-xs font-semibold uppercase tracking-normal text-bolt-elements-textTertiary sm:p-4 sm:pl-6"
               >
-                Category
+                {t('notifications.preferences.category')}
               </th>
               {channels.map((channel) => {
                 const Icon = channel.icon;
 
+                /*
+                 * Colonnes resserrées en dessous de `sm` : à 128px chacune, la
+                 * table dépassait à 617px dans un écran de 390 et les
+                 * interrupteurs se retrouvaient hors du cadre visible — sur une
+                 * page dont c'est justement l'unique commande. Le détail de
+                 * canal, secondaire, ne s'affiche qu'à partir de `sm`.
+                 */
                 return (
-                  <th scope="col" key={channel.key} className="w-32 p-4 text-center align-top">
-                    <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-normal text-bolt-elements-textTertiary">
+                  <th scope="col" key={channel.key} className="w-20 p-2 text-center align-top sm:w-32 sm:p-4">
+                    <span className="inline-flex flex-col items-center gap-1 text-xs font-semibold uppercase tracking-normal text-bolt-elements-textTertiary sm:flex-row sm:gap-2">
                       <Icon className="h-4 w-4" aria-hidden />
-                      {channel.label}
+                      {t(channel.labelKey)}
                     </span>
-                    <span className="mt-1 block text-[11px] font-normal normal-case text-bolt-elements-textTertiary">
-                      {channel.detail}
+                    <span className="mt-1 hidden text-[11px] font-normal normal-case text-bolt-elements-textTertiary sm:block">
+                      {t(channel.detailKey)}
                     </span>
                   </th>
                 );
@@ -493,10 +543,12 @@ export function PreferencesMatrixSection({ initial }: { initial: NotificationPre
           <tbody className="divide-y divide-bolt-elements-borderColor">
             {categories.map((category) => {
               const Icon = category.icon;
+              const categoryTitle = t(category.titleKey);
+              const categoryDescription = t(category.descriptionKey);
 
               return (
                 <tr key={category.key}>
-                  <th scope="row" className="p-4 text-left font-normal sm:pl-6">
+                  <th scope="row" className="p-3 text-left font-normal sm:p-4 sm:pl-6">
                     <span className="flex items-start gap-3">
                       <span
                         className={classNames(
@@ -507,9 +559,9 @@ export function PreferencesMatrixSection({ initial }: { initial: NotificationPre
                         <Icon className="h-4 w-4" aria-hidden />
                       </span>
                       <span className="min-w-0">
-                        <span className="block text-sm font-semibold">{category.title}</span>
+                        <span className="block text-sm font-semibold">{categoryTitle}</span>
                         <span className="mt-1 block max-w-xl text-sm leading-6 text-bolt-elements-textSecondary">
-                          {category.description}
+                          {categoryDescription}
                         </span>
                       </span>
                     </span>
@@ -517,15 +569,26 @@ export function PreferencesMatrixSection({ initial }: { initial: NotificationPre
                   {channels.map((channel) => {
                     const locked = isLockedCell(category.key, channel.key);
                     const checked = locked || Boolean(matrix[category.key]?.[channel.key]);
+                    const channelLabel = t(channel.labelKey);
+
+                    const switchLabel = t(
+                      locked ? 'notifications.preferences.switchLabelLocked' : 'notifications.preferences.switchLabel',
+                      {
+                        category: categoryTitle,
+                        channel: channelLabel,
+                        reason: securityEmailLockReason.toLocaleLowerCase(),
+                      },
+                    );
 
                     return (
-                      <td key={channel.key} className="p-4 text-center align-middle">
-                        <span className="inline-flex" title={locked ? SECURITY_EMAIL_LOCK_REASON : undefined}>
+                      <td key={channel.key} className="p-2 text-center align-middle sm:p-4">
+                        <span className="inline-flex" title={locked ? securityEmailLockReason : undefined}>
                           <Switch
                             checked={checked}
                             disabled={locked || undefined}
-                            aria-label={`${category.title} via ${channel.label}${locked ? ` (${SECURITY_EMAIL_LOCK_REASON.toLowerCase()})` : ''}`}
+                            aria-label={switchLabel}
                             onCheckedChange={(value) => setCell(category.key, channel.key, value)}
+                            className="after:absolute after:-inset-x-1 after:-inset-y-2.5 after:content-['']"
                           />
                         </span>
                       </td>
@@ -539,19 +602,19 @@ export function PreferencesMatrixSection({ initial }: { initial: NotificationPre
       </div>
 
       <p className="border-t border-bolt-elements-borderColor px-5 py-3 text-xs text-bolt-elements-textTertiary sm:px-6">
-        {SECURITY_EMAIL_LOCK_REASON} and cannot be turned off.
+        {t('notifications.security.lockFootnote', { reason: securityEmailLockReason })}
       </p>
     </section>
   );
 }
 
-const categoryTone: Record<string, NotificationCategory['tone']> = {
-  security: 'critical',
-  billing: 'warning',
-  deployments: 'info',
-  team: 'success',
-  system: 'info',
-};
+/*
+ * Ton dérivé de `categories` (source unique) : plus de second dictionnaire à
+ * maintenir en parallèle lors de l'ajout d'une catégorie.
+ */
+function categoryToneFor(category: string): NotificationCategory['tone'] {
+  return categories.find((entry) => entry.key === category)?.tone ?? 'info';
+}
 
 function toneClasses(tone: NotificationCategory['tone']) {
   return classNames(
@@ -559,12 +622,14 @@ function toneClasses(tone: NotificationCategory['tone']) {
       'border-[var(--status-error-border)] bg-[var(--status-error-bg)] text-[var(--status-error-text)]',
     tone === 'warning' &&
       'border-[var(--status-warning-border)] bg-[var(--status-warning-bg)] text-[var(--status-warning-text)]',
-    tone === 'info' && 'border-blue-500/35 bg-blue-500/10 text-blue-400',
-    tone === 'success' && 'border-emerald-500/35 bg-emerald-500/10 text-emerald-400',
+    tone === 'info' && 'border-[var(--status-info-border)] bg-[var(--status-info-bg)] text-[var(--status-info-text)]',
+    tone === 'success' &&
+      'border-[var(--status-success-border)] bg-[var(--status-success-bg)] text-[var(--status-success-text)]',
   );
 }
 
 export function NotificationFeedSection({ feed, unavailable }: { feed: NotificationFeed; unavailable: boolean }) {
+  const { t } = useTranslation();
   const revalidator = useRevalidator();
   const [currentFeed, setCurrentFeed] = useState(feed);
   const { notifications, unreadCount } = currentFeed;
@@ -572,7 +637,7 @@ export function NotificationFeedSection({ feed, unavailable }: { feed: Notificat
 
   const markAll = useRecoverableNotificationPost({
     endpoint: '/api/notifications/read-all',
-    failureMessage: 'E-Code could not confirm that every notification was marked as read.',
+    failureMessage: t('notifications.feed.markAllFailure'),
     onSuccess: (response) => {
       setCurrentFeed((current) => ({
         notifications: current.notifications.map((notification) => ({
@@ -602,11 +667,11 @@ export function NotificationFeedSection({ feed, unavailable }: { feed: Notificat
 
   if (unavailable) {
     return retrying ? (
-      <AsyncPanelSkeleton label="Loading notification inbox" rows={3} className="mb-6" />
+      <AsyncPanelSkeleton label={t('notifications.feed.loading')} rows={3} className="mb-6" />
     ) : (
       <AsyncPanelError
-        title="Notification inbox could not load"
-        description="Notification preferences remain available, and no inbox item was changed. Try loading the inbox again."
+        title={t('notifications.feed.loadErrorTitle')}
+        description={t('notifications.feed.loadErrorDescription')}
         onRetry={revalidator.revalidate}
         className="mb-6"
       />
@@ -622,15 +687,17 @@ export function NotificationFeedSection({ feed, unavailable }: { feed: Notificat
           </span>
           <div>
             <h2 className="flex items-center gap-2 text-base font-semibold tracking-normal">
-              Inbox
+              {t('notifications.feed.inbox')}
               {unreadCount > 0 ? (
-                <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-bolt-elements-item-contentAccent px-1.5 py-0.5 text-[11px] font-semibold text-bolt-elements-textPrimary">
+                <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-[var(--vc-action-primary-strong)] px-1.5 py-0.5 text-[11px] font-semibold text-white">
                   {unreadCount}
                 </span>
               ) : null}
             </h2>
             <p className="mt-0.5 text-sm text-bolt-elements-textSecondary">
-              {unreadCount > 0 ? `${unreadCount} unread` : 'You are all caught up.'}
+              {unreadCount > 0
+                ? t('notifications.feed.unread', { count: unreadCount })
+                : t('notifications.feed.caughtUp')}
             </p>
           </div>
         </div>
@@ -643,7 +710,7 @@ export function NotificationFeedSection({ feed, unavailable }: { feed: Notificat
             className="min-h-[44px]"
             onClick={() => void markAll.run()}
           >
-            {markAll.pending ? 'Marking…' : 'Mark all as read'}
+            {markAll.pending ? t('notifications.feed.marking') : t('notifications.feed.markAll')}
           </Button>
         ) : null}
       </div>
@@ -652,8 +719,8 @@ export function NotificationFeedSection({ feed, unavailable }: { feed: Notificat
         <div className="border-b border-bolt-elements-borderColor p-4 sm:px-6">
           <AsyncPanelError
             compact
-            title="Notifications were not marked as read"
-            description={`${markAll.error} Try again before relying on the unread count.`}
+            title={t('notifications.feed.markAllErrorTitle')}
+            description={t('notifications.feed.markAllErrorDescription', { error: markAll.error })}
             onRetry={() => void markAll.run()}
             retrying={markAll.pending}
           />
@@ -661,13 +728,13 @@ export function NotificationFeedSection({ feed, unavailable }: { feed: Notificat
       ) : null}
 
       {notifications.length === 0 ? (
-        <div className="flex flex-col items-center gap-2 p-8 text-center">
-          <Bell className="h-8 w-8 text-bolt-elements-textTertiary" aria-hidden />
-          <p className="text-sm font-medium">No notifications yet</p>
-          <p className="text-sm text-bolt-elements-textSecondary">
-            Security, billing and deployment events will appear here.
-          </p>
-        </div>
+        <EmptyState
+          variant="compact"
+          icon={Bell}
+          title={t('notifications.feed.emptyTitle')}
+          description={t('notifications.feed.emptyDescription')}
+          className="border-0 shadow-none"
+        />
       ) : (
         <ul className="divide-y divide-bolt-elements-borderColor">
           {notifications.map((notification) => (
@@ -686,12 +753,13 @@ function NotificationRow({
   notification: FeedNotification;
   onRead: (notificationId: string, unreadCount?: number) => void;
 }) {
+  const { i18n, t } = useTranslation();
   const [confirmedRead, setConfirmedRead] = useState(notification.read);
-  const tone = categoryTone[notification.category] ?? 'info';
+  const tone = categoryToneFor(notification.category);
 
   const markRead = useRecoverableNotificationPost({
     endpoint: `/api/notifications/${encodeURIComponent(notification.id)}/read`,
-    failureMessage: 'E-Code could not confirm that this notification was marked as read.',
+    failureMessage: t('notifications.feed.markReadFailure'),
     onSuccess: (response) => {
       setConfirmedRead(true);
       onRead(notification.id, response.unreadCount);
@@ -729,7 +797,7 @@ function NotificationRow({
               {!isRead ? (
                 <span
                   className="h-2 w-2 shrink-0 rounded-full bg-bolt-elements-item-contentAccent"
-                  aria-label="Unread"
+                  aria-label={t('notifications.feed.unreadLabel')}
                 />
               ) : null}
             </div>
@@ -738,13 +806,19 @@ function NotificationRow({
             ) : null}
             <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-bolt-elements-textTertiary">
               <time dateTime={notification.createdAt}>
-                {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
+                {formatDistanceToNow(new Date(notification.createdAt), {
+                  addSuffix: true,
+                  locale: i18n.resolvedLanguage?.startsWith('fr') ? fr : enGB,
+                })}
               </time>
               {notification.linkUrl ? (
                 <>
                   <span aria-hidden>·</span>
-                  <a className="text-bolt-elements-item-contentAccent hover:underline" href={notification.linkUrl}>
-                    View
+                  <a
+                    className="relative inline-flex items-center rounded px-1 py-2 -my-2 text-bolt-elements-item-contentAccent underline decoration-transparent underline-offset-2 transition-colors hover:decoration-current focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]"
+                    href={notification.linkUrl}
+                  >
+                    {t('notifications.feed.view')}
                   </a>
                 </>
               ) : null}
@@ -759,15 +833,15 @@ function NotificationRow({
             className="min-h-[44px] shrink-0"
             onClick={() => void markRead.run()}
           >
-            Mark read
+            {t('notifications.feed.markRead')}
           </Button>
         ) : null}
       </div>
       {markRead.error ? (
         <AsyncPanelError
           compact
-          title="Notification was not marked as read"
-          description={`${markRead.error} Try the request again.`}
+          title={t('notifications.feed.markReadErrorTitle')}
+          description={t('notifications.feed.markReadErrorDescription', { error: markRead.error })}
           onRetry={() => void markRead.run()}
           retrying={markRead.pending}
           className="mt-3"

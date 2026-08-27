@@ -1,7 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
 import { isSshRemoteUrl, sshHostFromGitUrl } from '~/components/git/git-ssh-url';
 import { useConnectorPopup } from '~/lib/chat/use-connector-popup';
+import {
+  formatGitSettingsCopy,
+  getGitSettingsCopy,
+  getGitSettingsErrorMessage,
+  type GitSettingsCopy,
+} from '~/lib/i18n/catalogs/git-settings';
 import { classNames } from '~/utils/classNames';
 
 /*
@@ -23,14 +30,16 @@ type Connection = {
   revokedAt: string | null;
 };
 
-const PROVIDERS: Array<{ id: OAuthProviderId; label: string; icon: string }> = [
-  { id: 'github', label: 'GitHub', icon: 'i-ph:github-logo' },
-  { id: 'gitlab', label: 'GitLab', icon: 'i-ph:gitlab-logo' },
-  { id: 'bitbucket', label: 'Bitbucket', icon: 'i-ph:git-branch' },
+const PROVIDERS: Array<{ id: OAuthProviderId; icon: string }> = [
+  { id: 'github', icon: 'i-ph:github-logo' },
+  { id: 'gitlab', icon: 'i-ph:gitlab-logo' },
+  { id: 'bitbucket', icon: 'i-ph:git-branch' },
 ];
 
-function providerLabel(provider: string) {
-  return PROVIDERS.find((item) => item.id === provider)?.label ?? provider;
+function providerLabel(copy: GitSettingsCopy, provider: string) {
+  const key = `gitSettings.provider.${provider}` as const;
+
+  return key in copy ? copy[key as keyof GitSettingsCopy] : provider;
 }
 
 /*
@@ -39,6 +48,9 @@ function providerLabel(provider: string) {
  * back (POST { content }). Real file IO, no mock.
  */
 function GitIgnoreEditor({ projectId }: { projectId: string }) {
+  const { i18n } = useTranslation();
+  const language = i18n.resolvedLanguage ?? i18n.language ?? 'en';
+  const copy = getGitSettingsCopy(language);
   const [content, setContent] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -81,25 +93,27 @@ function GitIgnoreEditor({ projectId }: { projectId: string }) {
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ content }),
       });
-      setStatus(response.ok ? 'Saved' : 'Could not save');
+      setStatus(response.ok ? copy['gitSettings.gitignore.saved'] : copy['gitSettings.gitignore.saveFailed']);
     } catch {
-      setStatus('Could not save');
+      setStatus(copy['gitSettings.gitignore.saveFailed']);
     } finally {
       setSaving(false);
     }
-  }, [content, url]);
+  }, [content, copy, url]);
 
   return (
     <section className="grid gap-2">
-      <h4 className="text-xs font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">.gitignore</h4>
+      <h4 className="text-xs font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">
+        {copy['gitSettings.gitignore.title']}
+      </h4>
       <textarea
         value={content}
         onChange={(event) => setContent(event.currentTarget.value)}
         disabled={loading}
         rows={6}
         spellCheck={false}
-        aria-label=".gitignore contents"
-        placeholder={loading ? 'Loading…' : 'node_modules\n.env\ndist'}
+        aria-label={copy['gitSettings.gitignore.contents']}
+        placeholder={loading ? copy['gitSettings.gitignore.loading'] : 'node_modules\n.env\ndist'}
         className="w-full rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-2 py-1.5 font-mono text-xs outline-none focus:border-bolt-elements-focus"
       />
       <div className="flex items-center gap-3">
@@ -109,7 +123,7 @@ function GitIgnoreEditor({ projectId }: { projectId: string }) {
           disabled={saving || loading}
           className="inline-flex h-8 items-center justify-center rounded-md bg-bolt-elements-button-primary-background px-3 text-sm font-medium text-bolt-elements-button-primary-text hover:bg-bolt-elements-button-primary-backgroundHover disabled:opacity-60"
         >
-          {saving ? 'Saving…' : 'Save .gitignore'}
+          {saving ? copy['gitSettings.gitignore.saving'] : copy['gitSettings.gitignore.save']}
         </button>
         {status ? <span className="text-xs text-bolt-elements-textTertiary">{status}</span> : null}
       </div>
@@ -165,6 +179,16 @@ function SshKeysSection({
   workspaceId?: string;
   busy?: boolean;
 }) {
+  const { i18n } = useTranslation();
+  const language = i18n.resolvedLanguage ?? i18n.language ?? 'en';
+  const copy = getGitSettingsCopy(language);
+
+  const text = useCallback(
+    (template: string, values: Readonly<Record<string, string | number>> = {}) =>
+      formatGitSettingsCopy(template, values),
+    [],
+  );
+
   const [keys, setKeys] = useState<SshKeyConnection[]>([]);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
@@ -237,12 +261,12 @@ function SshKeysSection({
       const payload = (await response.json().catch(() => ({}))) as Record<string, unknown> & { error?: string };
 
       if (!response.ok) {
-        throw new Error(payload.error ?? `Request failed (HTTP ${response.status})`);
+        throw new Error(payload.error ?? text(copy['gitSettings.ssh.requestFailed'], { status: response.status }));
       }
 
       return payload;
     },
-    [terminalUrl, workspaceId],
+    [copy, terminalUrl, text, workspaceId],
   );
 
   const generate = useCallback(async () => {
@@ -256,17 +280,17 @@ function SshKeysSection({
         type: 'ed25519',
         host,
         username: 'git',
-        name: host ? `Git · ${host}` : 'Git SSH key',
+        name: host ? `Git · ${host}` : copy['gitSettings.ssh.defaultName'],
       });
       setRevealedId(String(payload.connectionId ?? ''));
-      toast.success('SSH key generated — add the public key to your Git host, then push/pull over SSH.');
+      toast.success(copy['gitSettings.ssh.generated']);
       await load();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Could not generate SSH key.');
+      toast.error(getGitSettingsErrorMessage(language, error, copy['gitSettings.ssh.generateFailed']));
     } finally {
       setGenerating(false);
     }
-  }, [load, originHost, postIntent]);
+  }, [copy, language, load, originHost, postIntent]);
 
   const removeKey = useCallback(
     async (id: string) => {
@@ -279,15 +303,15 @@ function SshKeysSection({
           setRevealedId(null);
         }
 
-        toast.success('SSH key deleted');
+        toast.success(copy['gitSettings.ssh.deleted']);
         await load();
       } catch (error) {
-        toast.error(error instanceof Error ? error.message : 'Could not delete SSH key.');
+        toast.error(getGitSettingsErrorMessage(language, error, copy['gitSettings.ssh.deleteFailed']));
       } finally {
         setBusyKeyId(null);
       }
     },
-    [load, postIntent, revealedId],
+    [copy, language, load, postIntent, revealedId],
   );
 
   const testAccess = useCallback(
@@ -295,7 +319,7 @@ function SshKeysSection({
       const remote = (gitRepositoryUrl ?? '').trim();
 
       if (!remote || !originIsSsh) {
-        toast.error('Set an SSH remote URL (git@host:org/repo.git) in Remote above first.');
+        toast.error(copy['gitSettings.ssh.remoteRequired']);
 
         return;
       }
@@ -314,67 +338,69 @@ function SshKeysSection({
         setKeys(list);
 
         if (list.find((key) => key.id === id)?.lastError) {
-          toast.error('SSH access failed — confirm the public key is on your Git host and restart the workspace.');
+          toast.error(copy['gitSettings.ssh.accessFailed']);
         } else {
-          toast.success(`SSH access to ${originHost ?? 'origin'} OK`);
+          toast.success(text(copy['gitSettings.ssh.accessOk'], { host: originHost ?? 'origin' }));
         }
       } catch (error) {
-        toast.error(error instanceof Error ? error.message : 'Could not test SSH access.');
+        toast.error(getGitSettingsErrorMessage(language, error, copy['gitSettings.ssh.testFailed']));
       } finally {
         setBusyKeyId(null);
       }
     },
-    [gitRepositoryUrl, originHost, originIsSsh, postIntent, readKeys],
+    [copy, gitRepositoryUrl, language, originHost, originIsSsh, postIntent, readKeys, text],
   );
 
-  const copyPublicKey = useCallback(async (id: string, publicKey?: string) => {
-    if (!publicKey || typeof navigator === 'undefined' || !navigator.clipboard?.writeText) {
-      toast.error('Public key is unavailable to copy.');
+  const copyPublicKey = useCallback(
+    async (id: string, publicKey?: string) => {
+      if (!publicKey || typeof navigator === 'undefined' || !navigator.clipboard?.writeText) {
+        toast.error(copy['gitSettings.ssh.publicKeyUnavailable']);
 
-      return;
-    }
+        return;
+      }
 
-    try {
-      await navigator.clipboard.writeText(publicKey);
-      setCopiedId(id);
-      setTimeout(() => setCopiedId((current) => (current === id ? null : current)), 2000);
-    } catch {
-      toast.error('Could not copy to clipboard.');
-    }
-  }, []);
+      try {
+        await navigator.clipboard.writeText(publicKey);
+        setCopiedId(id);
+        setTimeout(() => setCopiedId((current) => (current === id ? null : current)), 2000);
+      } catch {
+        toast.error(copy['gitSettings.ssh.copyFailed']);
+      }
+    },
+    [copy],
+  );
 
   const secondaryButton =
     'inline-flex h-8 items-center rounded-md border border-bolt-elements-borderColor px-2.5 text-xs font-medium text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3 disabled:opacity-60';
 
   return (
     <section className="grid gap-2" data-testid="git-ssh-keys">
-      <h4 className="text-xs font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">SSH keys</h4>
-      <p className="text-xs text-bolt-elements-textSecondary">
-        Authenticate push/pull over SSH. The private key stays in this project&apos;s isolated workspace — never on
-        shared infrastructure. These are the same keys as Terminal&nbsp;→&nbsp;SSH.
-      </p>
+      <h4 className="text-xs font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">
+        {copy['gitSettings.ssh.title']}
+      </h4>
+      <p className="text-xs text-bolt-elements-textSecondary">{copy['gitSettings.ssh.description']}</p>
 
       {originIsSsh ? (
         <p className="text-xs text-bolt-elements-textTertiary">
-          Origin host <span className="font-mono text-bolt-elements-textSecondary">{originHost ?? '—'}</span> ·{' '}
+          {copy['gitSettings.ssh.originHost']}{' '}
+          <span className="font-mono text-bolt-elements-textSecondary">{originHost ?? '—'}</span> ·{' '}
           {boundKeyId ? (
-            <span className="text-bolt-elements-icon-success">a key is bound</span>
+            <span className="text-bolt-elements-icon-success">{copy['gitSettings.ssh.bound']}</span>
           ) : (
-            <span className="text-bolt-elements-item-contentDanger">no key bound — generate one below</span>
+            <span className="text-bolt-elements-item-contentDanger">{copy['gitSettings.ssh.unbound']}</span>
           )}
         </p>
       ) : (
         <p className="text-xs text-bolt-elements-textTertiary">
-          Set an SSH remote (<span className="font-mono">git@github.com:org/repo.git</span>) in Remote above to push and
-          pull with these keys.
+          {text(copy['gitSettings.ssh.remoteHint'], { example: 'git@github.com:org/repo.git' })}
         </p>
       )}
 
       <div className="grid gap-2">
         {loading ? (
-          <span className="text-xs text-bolt-elements-textTertiary">Loading…</span>
+          <span className="text-xs text-bolt-elements-textTertiary">{copy['gitSettings.ssh.loading']}</span>
         ) : keys.length === 0 ? (
-          <span className="text-xs text-bolt-elements-textTertiary">No SSH keys yet.</span>
+          <span className="text-xs text-bolt-elements-textTertiary">{copy['gitSettings.ssh.empty']}</span>
         ) : (
           keys.map((key) => {
             const bound = boundKeyId === key.id;
@@ -388,17 +414,17 @@ function SshKeysSection({
                   <div className="flex min-w-0 items-center gap-2">
                     <span className="i-ph:key h-4 w-4 text-bolt-elements-item-contentAccent" aria-hidden />
                     <span className="truncate text-sm font-medium text-bolt-elements-textPrimary">
-                      {key.name || key.host || 'SSH key'}
+                      {key.name || key.host || copy['gitSettings.ssh.keyFallback']}
                     </span>
                     {key.keyType ? (
-                      <span className="rounded-full border border-bolt-elements-borderColor px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-bolt-elements-textTertiary">
+                      <span className="rounded-full border border-bolt-elements-borderColor px-1.5 py-0.5 text-[11px] uppercase tracking-wide text-bolt-elements-textTertiary">
                         {key.keyType}
                       </span>
                     ) : null}
                     {bound ? (
                       <span className="inline-flex items-center gap-1 text-[11px] text-bolt-elements-icon-success">
                         <span className="h-2 w-2 rounded-full bg-green-500" aria-hidden />
-                        bound to origin
+                        {copy['gitSettings.ssh.boundToOrigin']}
                       </span>
                     ) : null}
                   </div>
@@ -410,7 +436,7 @@ function SshKeysSection({
                         disabled={busy}
                         className={secondaryButton}
                       >
-                        {copiedId === key.id ? 'Copied' : 'Copy public key'}
+                        {copiedId === key.id ? copy['gitSettings.ssh.copied'] : copy['gitSettings.ssh.copyPublic']}
                       </button>
                     ) : null}
                     <button
@@ -419,7 +445,7 @@ function SshKeysSection({
                       disabled={busy || busyKeyId === key.id}
                       className={secondaryButton}
                     >
-                      {busyKeyId === key.id ? 'Testing…' : 'Test'}
+                      {busyKeyId === key.id ? copy['gitSettings.ssh.testing'] : copy['gitSettings.ssh.test']}
                     </button>
                     <button
                       type="button"
@@ -428,7 +454,7 @@ function SshKeysSection({
                       disabled={busy || busyKeyId === key.id}
                       className="inline-flex h-8 items-center rounded-md border border-red-500/40 px-2.5 text-xs font-medium text-red-500 hover:bg-red-500/10 disabled:opacity-60"
                     >
-                      Delete
+                      {copy['gitSettings.ssh.delete']}
                     </button>
                   </div>
                 </div>
@@ -437,11 +463,13 @@ function SshKeysSection({
                     {key.fingerprint}
                   </code>
                 ) : null}
-                {key.lastError ? <span className="text-[11px] text-red-500">Last SSH test failed.</span> : null}
+                {key.lastError ? (
+                  <span className="text-[11px] text-red-500">{copy['gitSettings.ssh.lastTestFailed']}</span>
+                ) : null}
                 {revealedId === key.id && key.publicKey ? (
                   <div className="grid gap-1 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-2">
                     <span className="text-[11px] text-bolt-elements-textSecondary">
-                      Add this public key to your Git host (Deploy keys / SSH keys), then Test:
+                      {copy['gitSettings.ssh.installPublicKey']}
                     </span>
                     <code className="block max-h-24 overflow-auto whitespace-pre-wrap break-all font-mono text-[11px] text-bolt-elements-textPrimary">
                       {key.publicKey}
@@ -462,9 +490,9 @@ function SshKeysSection({
           disabled={generating || busy}
           className="inline-flex h-9 items-center justify-center rounded-md bg-bolt-elements-button-primary-background px-3 text-sm font-medium text-bolt-elements-button-primary-text hover:bg-bolt-elements-button-primary-backgroundHover disabled:opacity-60"
         >
-          {generating ? 'Generating…' : 'Generate SSH key'}
+          {generating ? copy['gitSettings.ssh.generating'] : copy['gitSettings.ssh.generate']}
         </button>
-        <span className="text-xs text-bolt-elements-textTertiary">ed25519 · stays in the workspace</span>
+        <span className="text-xs text-bolt-elements-textTertiary">{copy['gitSettings.ssh.storage']}</span>
       </div>
     </section>
   );
@@ -489,6 +517,16 @@ export function GitSettingsPanel({
   onClose,
   onRemoteConfigured,
 }: GitSettingsPanelProps) {
+  const { i18n } = useTranslation();
+  const language = i18n.resolvedLanguage ?? i18n.language ?? 'en';
+  const copy = getGitSettingsCopy(language);
+
+  const text = useCallback(
+    (template: string, values: Readonly<Record<string, string | number>> = {}) =>
+      formatGitSettingsCopy(template, values),
+    [],
+  );
+
   const { state, launch, reset } = useConnectorPopup();
   const [pendingProvider, setPendingProvider] = useState<OAuthProviderId | null>(null);
   const [connections, setConnections] = useState<Connection[]>([]);
@@ -573,9 +611,9 @@ export function GitSettingsPanel({
       setAuthorName(profile.name);
       setAuthorEmail(profile.email);
       setActiveAuthor(profile.name, profile.email);
-      toast.success(`Commit author set to ${profile.name || profile.email}`);
+      toast.success(text(copy['gitSettings.toast.authorSelected'], { author: profile.name || profile.email }));
     },
-    [setActiveAuthor],
+    [copy, setActiveAuthor, text],
   );
 
   const saveAuthorAsProfile = useCallback(() => {
@@ -583,7 +621,7 @@ export function GitSettingsPanel({
     const email = authorEmail.trim();
 
     if (!name && !email) {
-      toast.error('Enter a name or email before saving a profile.');
+      toast.error(copy['gitSettings.toast.authorRequired']);
       return;
     }
 
@@ -591,8 +629,8 @@ export function GitSettingsPanel({
     const next = [{ id, name, email }, ...authorProfiles.filter((entry) => entry.id !== id)].slice(0, 12);
     persistAuthorProfiles(next);
     setActiveAuthor(name, email);
-    toast.success('Commit author profile saved');
-  }, [authorEmail, authorName, authorProfiles, persistAuthorProfiles, setActiveAuthor]);
+    toast.success(copy['gitSettings.toast.profileSaved']);
+  }, [authorEmail, authorName, authorProfiles, copy, persistAuthorProfiles, setActiveAuthor]);
 
   const removeAuthorProfile = useCallback(
     (id: string) => {
@@ -644,17 +682,26 @@ export function GitSettingsPanel({
     }
 
     handledConnectionRef.current = connectionKey;
-    toast.success(`${providerLabel(state.result.provider)} connected as ${state.result.accountLabel}`);
+    toast.success(
+      text(copy['gitSettings.toast.providerConnected'], {
+        provider: providerLabel(copy, state.result.provider),
+        account: state.result.accountLabel,
+      }),
+    );
     setPendingProvider(null);
     void loadConnections();
-  }, [state, loadConnections]);
+  }, [copy, loadConnections, state, text]);
 
   useEffect(() => {
     if (state.phase === 'failed') {
       setPendingProvider(null);
-      toast.error(state.result.errorMessage ?? `${providerLabel(state.result.provider)} connection failed.`);
+
+      const fallback = text(copy['gitSettings.toast.providerConnectionFailed'], {
+        provider: providerLabel(copy, state.result.provider),
+      });
+      toast.error(language.toLowerCase().startsWith('fr') ? fallback : (state.result.errorMessage ?? fallback));
     }
-  }, [state]);
+  }, [copy, language, state, text]);
 
   const startOAuth = useCallback(
     async (provider: OAuthProviderId) => {
@@ -671,17 +718,23 @@ export function GitSettingsPanel({
 
         if (!response.ok) {
           const parsed = (await response.json().catch(() => ({}))) as { error?: string };
-          throw new Error(parsed.error ?? `Failed to start ${providerLabel(provider)} OAuth (HTTP ${response.status})`);
+          throw new Error(
+            parsed.error ??
+              text(copy['gitSettings.toast.oauthStartFailed'], {
+                provider: providerLabel(copy, provider),
+                status: response.status,
+              }),
+          );
         }
 
         const result = (await response.json()) as { provider: string; authorizationUrl: string };
         launch({ authorizationUrl: result.authorizationUrl, provider: result.provider });
       } catch (error) {
         setPendingProvider(null);
-        toast.error(error instanceof Error ? error.message : 'Unable to start OAuth flow.');
+        toast.error(getGitSettingsErrorMessage(language, error, copy['gitSettings.toast.oauthUnavailable']));
       }
     },
-    [launch, projectId, reset],
+    [copy, language, launch, projectId, reset, text],
   );
 
   const disconnect = useCallback(
@@ -697,18 +750,24 @@ export function GitSettingsPanel({
 
         if (!response.ok) {
           const parsed = (await response.json().catch(() => ({}))) as { error?: string };
-          throw new Error(parsed.error ?? `Failed to disconnect (HTTP ${response.status})`);
+          throw new Error(
+            parsed.error ?? text(copy['gitSettings.toast.disconnectFailed'], { status: response.status }),
+          );
         }
 
-        toast.success(`${providerLabel(connection.provider)} disconnected`);
+        toast.success(
+          text(copy['gitSettings.toast.providerDisconnected'], {
+            provider: providerLabel(copy, connection.provider),
+          }),
+        );
         await loadConnections();
       } catch (error) {
-        toast.error(error instanceof Error ? error.message : 'Unable to disconnect this account.');
+        toast.error(getGitSettingsErrorMessage(language, error, copy['gitSettings.toast.disconnectUnavailable']));
       } finally {
         setRevoking(null);
       }
     },
-    [loadConnections],
+    [copy, language, loadConnections, text],
   );
 
   const saveRemote = useCallback(
@@ -733,18 +792,20 @@ export function GitSettingsPanel({
 
         if (!response.ok) {
           const parsed = (await response.json().catch(() => ({}))) as { error?: string };
-          throw new Error(parsed.error ?? `Failed to save remote (HTTP ${response.status})`);
+          throw new Error(
+            parsed.error ?? text(copy['gitSettings.toast.remoteSaveFailed'], { status: response.status }),
+          );
         }
 
-        toast.success('Git remote saved');
+        toast.success(copy['gitSettings.toast.remoteSaved']);
         void onRemoteConfigured?.();
       } catch (error) {
-        toast.error(error instanceof Error ? error.message : 'Unable to save this Git remote.');
+        toast.error(getGitSettingsErrorMessage(language, error, copy['gitSettings.toast.remoteSaveUnavailable']));
       } finally {
         setSavingRemote(false);
       }
     },
-    [branch, onRemoteConfigured, projectId, remoteUrl, workspaceId],
+    [branch, copy, language, onRemoteConfigured, projectId, remoteUrl, text, workspaceId],
   );
 
   const disconnectRemote = useCallback(async () => {
@@ -765,23 +826,25 @@ export function GitSettingsPanel({
 
       if (!response.ok) {
         const parsed = (await response.json().catch(() => ({}))) as { error?: string };
-        throw new Error(parsed.error ?? `Failed to remove remote (HTTP ${response.status})`);
+        throw new Error(
+          parsed.error ?? text(copy['gitSettings.toast.remoteRemoveFailed'], { status: response.status }),
+        );
       }
 
       setRemoteUrl('');
-      toast.success('Git remote removed');
+      toast.success(copy['gitSettings.toast.remoteRemoved']);
       void onRemoteConfigured?.();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Unable to remove this Git remote.');
+      toast.error(getGitSettingsErrorMessage(language, error, copy['gitSettings.toast.remoteRemoveUnavailable']));
     } finally {
       setRemovingRemote(false);
     }
-  }, [onRemoteConfigured, projectId, workspaceId]);
+  }, [copy, language, onRemoteConfigured, projectId, text, workspaceId]);
 
   const saveAuthor = useCallback(() => {
     setActiveAuthor(authorName.trim(), authorEmail.trim());
-    toast.success('Default commit author saved');
-  }, [authorEmail, authorName, setActiveAuthor]);
+    toast.success(copy['gitSettings.toast.defaultAuthorSaved']);
+  }, [authorEmail, authorName, copy, setActiveAuthor]);
 
   /*
    * Fixed px (not rem) so the Git settings keep IDE density despite the ecode
@@ -796,12 +859,12 @@ export function GitSettingsPanel({
     <div
       className="grid gap-4 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4"
       data-testid="git-settings-panel"
-      aria-label="Git settings"
+      aria-label={copy['gitSettings.panel.label']}
     >
       <div className="flex items-center justify-between gap-3">
         <h3 className="flex items-center gap-2 text-sm font-semibold text-bolt-elements-textPrimary">
           <span className="i-ph:gear text-base text-bolt-elements-item-contentAccent" aria-hidden />
-          Git settings
+          {copy['gitSettings.panel.title']}
         </h3>
         <button
           type="button"
@@ -809,28 +872,30 @@ export function GitSettingsPanel({
           onClick={onClose}
           className="rounded-md border border-bolt-elements-borderColor px-2 py-1 text-xs text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3"
         >
-          Done
+          {copy['gitSettings.panel.done']}
         </button>
       </div>
 
       {/* Remote */}
       <section className="grid gap-2">
-        <h4 className="text-xs font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">Remote</h4>
+        <h4 className="text-xs font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">
+          {copy['gitSettings.remote.title']}
+        </h4>
         <form onSubmit={saveRemote} className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_130px_auto]">
           <input
             className={inputClass}
             value={remoteUrl}
             onChange={(event) => setRemoteUrl(event.currentTarget.value)}
             placeholder="https://github.com/org/repo.git"
-            aria-label="Remote origin URL"
+            aria-label={copy['gitSettings.remote.urlLabel']}
             required
           />
           <input
             className={inputClass}
             value={branch}
             onChange={(event) => setBranch(event.currentTarget.value)}
-            placeholder="main"
-            aria-label="Default branch"
+            placeholder={copy['gitSettings.remote.branchPlaceholder']}
+            aria-label={copy['gitSettings.remote.branchLabel']}
             required
           />
           <button
@@ -838,7 +903,11 @@ export function GitSettingsPanel({
             disabled={savingRemote || busy}
             className="inline-flex h-9 items-center justify-center rounded-md bg-bolt-elements-button-primary-background px-3 text-sm font-medium text-bolt-elements-button-primary-text hover:bg-bolt-elements-button-primary-backgroundHover disabled:opacity-60"
           >
-            {savingRemote ? 'Saving…' : gitRepositoryUrl ? 'Update' : 'Create'}
+            {savingRemote
+              ? copy['gitSettings.remote.saving']
+              : gitRepositoryUrl
+                ? copy['gitSettings.remote.update']
+                : copy['gitSettings.remote.create']}
           </button>
         </form>
         {gitRepositoryUrl ? (
@@ -849,7 +918,7 @@ export function GitSettingsPanel({
             disabled={removingRemote || busy}
             className="justify-self-start text-xs font-medium text-red-500 hover:underline disabled:opacity-60"
           >
-            {removingRemote ? 'Removing…' : 'Remove remote'}
+            {removingRemote ? copy['gitSettings.remote.removing'] : copy['gitSettings.remote.remove']}
           </button>
         ) : null}
       </section>
@@ -859,7 +928,9 @@ export function GitSettingsPanel({
 
       {/* Connections */}
       <section className="grid gap-2">
-        <h4 className="text-xs font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">Connections</h4>
+        <h4 className="text-xs font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">
+          {copy['gitSettings.connections.title']}
+        </h4>
         <div className="grid gap-2">
           {PROVIDERS.map((provider) => {
             const connection = activeByProvider.get(provider.id);
@@ -876,7 +947,9 @@ export function GitSettingsPanel({
                     className={classNames(provider.icon, 'h-4 w-4 text-bolt-elements-item-contentAccent')}
                     aria-hidden
                   />
-                  <span className="text-sm font-medium text-bolt-elements-textPrimary">{provider.label}</span>
+                  <span className="text-sm font-medium text-bolt-elements-textPrimary">
+                    {providerLabel(copy, provider.id)}
+                  </span>
                   <span
                     className={classNames(
                       'inline-flex items-center gap-1 text-xs',
@@ -893,8 +966,10 @@ export function GitSettingsPanel({
                     {connectionsLoading
                       ? '…'
                       : connected
-                        ? `Active · ${connection!.externalAccountLabel}`
-                        : 'Disconnected'}
+                        ? text(copy['gitSettings.connections.active'], {
+                            account: connection!.externalAccountLabel,
+                          })
+                        : copy['gitSettings.connections.disconnected']}
                   </span>
                 </div>
                 {connected ? (
@@ -905,7 +980,9 @@ export function GitSettingsPanel({
                     disabled={revoking === connection!.id || busy}
                     className="inline-flex h-8 items-center rounded-md border border-red-500/40 px-3 text-xs font-medium text-red-500 hover:bg-red-500/10 disabled:opacity-60"
                   >
-                    {revoking === connection!.id ? 'Disconnecting…' : 'Disconnect'}
+                    {revoking === connection!.id
+                      ? copy['gitSettings.connections.disconnecting']
+                      : copy['gitSettings.connections.disconnect']}
                   </button>
                 ) : (
                   <button
@@ -918,10 +995,10 @@ export function GitSettingsPanel({
                     {launchingThis ? (
                       <>
                         <span className="i-ph:spinner-gap-bold h-3.5 w-3.5 animate-spin" aria-hidden />
-                        Waiting…
+                        {copy['gitSettings.connections.waiting']}
                       </>
                     ) : (
-                      'Sign in'
+                      copy['gitSettings.connections.signIn']
                     )}
                   </button>
                 )}
@@ -937,14 +1014,11 @@ export function GitSettingsPanel({
       {/* Commit author */}
       <section className="grid gap-2">
         <h4 className="text-xs font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">
-          Commit author
+          {copy['gitSettings.author.title']}
         </h4>
-        <p className="text-xs text-bolt-elements-textSecondary">
-          Default author for commits from this project (stored in this browser; used to prefill the commit form). Save
-          multiple identities and switch between them per project.
-        </p>
+        <p className="text-xs text-bolt-elements-textSecondary">{copy['gitSettings.author.description']}</p>
         {authorProfiles.length ? (
-          <div className="flex flex-wrap gap-2" aria-label="Saved commit author profiles">
+          <div className="flex flex-wrap gap-2" aria-label={copy['gitSettings.author.savedProfiles']}>
             {authorProfiles.map((profile) => {
               const isActive = authorProfileId(authorName, authorEmail) === profile.id;
 
@@ -961,7 +1035,9 @@ export function GitSettingsPanel({
                     type="button"
                     onClick={() => applyAuthorProfile(profile)}
                     className="max-w-[14rem] truncate text-start"
-                    title={`${profile.name || '(no name)'} <${profile.email || 'no email'}>`}
+                    title={`${profile.name || copy['gitSettings.author.noName']} <${
+                      profile.email || copy['gitSettings.author.noEmail']
+                    }>`}
                   >
                     {profile.name || profile.email}
                     {isActive ? ' ✓' : ''}
@@ -969,7 +1045,9 @@ export function GitSettingsPanel({
                   <button
                     type="button"
                     onClick={() => removeAuthorProfile(profile.id)}
-                    aria-label={`Remove commit author profile ${profile.name || profile.email}`}
+                    aria-label={text(copy['gitSettings.author.removeProfile'], {
+                      author: profile.name || profile.email,
+                    })}
                     className="text-bolt-elements-textTertiary hover:text-bolt-elements-item-contentDanger"
                   >
                     ×
@@ -984,30 +1062,30 @@ export function GitSettingsPanel({
             className={inputClass}
             value={authorName}
             onChange={(event) => setAuthorName(event.currentTarget.value)}
-            placeholder="Author name"
-            aria-label="Default commit author name"
+            placeholder={copy['gitSettings.author.namePlaceholder']}
+            aria-label={copy['gitSettings.author.nameLabel']}
           />
           <input
             className={inputClass}
             type="email"
             value={authorEmail}
             onChange={(event) => setAuthorEmail(event.currentTarget.value)}
-            placeholder="author@example.com"
-            aria-label="Default commit author email"
+            placeholder={copy['gitSettings.author.emailPlaceholder']}
+            aria-label={copy['gitSettings.author.emailLabel']}
           />
           <button
             type="button"
             onClick={saveAuthor}
             className="inline-flex h-9 items-center justify-center rounded-md border border-bolt-elements-borderColor px-3 text-sm font-medium text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3"
           >
-            Save
+            {copy['gitSettings.author.save']}
           </button>
           <button
             type="button"
             onClick={saveAuthorAsProfile}
             className="inline-flex h-9 items-center justify-center rounded-md border border-bolt-elements-borderColor px-3 text-sm font-medium text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3"
           >
-            Save as profile
+            {copy['gitSettings.author.saveProfile']}
           </button>
         </div>
       </section>

@@ -1,5 +1,6 @@
 import { Users } from 'lucide-react';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { MetaFunction } from 'react-router';
 import { Form, useActionData, useLoaderData, useNavigation } from 'react-router';
 import { ProjectShell } from '~/components/dashboard/SaaSLayout';
@@ -13,6 +14,12 @@ import {
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
+import {
+  formatProjectCollaboratorsCopy,
+  getProjectCollaboratorsCopy,
+  type ProjectCollaboratorsKey,
+} from '~/lib/i18n/catalogs/project-collaborators';
+import { resolveRequestLocale } from '~/lib/i18n/request-locale';
 import { collaboratorDetail, collaboratorTitle, type ProjectCollaborator } from '~/lib/project-collaborator-display';
 import { projectAction, projectPageLoader } from '~/lib/project-route.server';
 import { classNames } from '~/utils/classNames';
@@ -29,20 +36,24 @@ type InviteLink = {
 type CollaboratorsData = { collaborators: ProjectCollaborator[]; shareLinks?: InviteLink[] };
 type ActionResult = { error?: string; invite?: { url: string; roleKey: string; expiresAt?: string } };
 
-const ROLE_OPTIONS: Array<{ value: string; label: string }> = [
-  { value: 'viewer', label: 'Viewer — read only' },
-  { value: 'editor', label: 'Editor — edit files & run' },
-  { value: 'owner', label: 'Admin — full project control' },
+const ROLE_OPTIONS: Array<{ value: string; labelKey: ProjectCollaboratorsKey }> = [
+  { value: 'viewer', labelKey: 'projectCollaborators.role.viewer' },
+  { value: 'editor', labelKey: 'projectCollaborators.role.editor' },
+  { value: 'owner', labelKey: 'projectCollaborators.role.owner' },
 ];
 
-const EXPIRY_OPTIONS: Array<{ value: number; label: string }> = [
-  { value: 60, label: '1 hour' },
-  { value: 60 * 24, label: '24 hours' },
-  { value: 60 * 24 * 7, label: '7 days' },
-  { value: 60 * 24 * 30, label: '30 days' },
+const EXPIRY_OPTIONS: Array<{ value: number; labelKey: ProjectCollaboratorsKey }> = [
+  { value: 60, labelKey: 'projectCollaborators.expiry.oneHour' },
+  { value: 60 * 24, labelKey: 'projectCollaborators.expiry.twentyFourHours' },
+  { value: 60 * 24 * 7, labelKey: 'projectCollaborators.expiry.sevenDays' },
+  { value: 60 * 24 * 30, labelKey: 'projectCollaborators.expiry.thirtyDays' },
 ];
 
-export const meta: MetaFunction = () => [{ title: 'Project collaborators - E-Code' }];
+export const meta: MetaFunction = ({ matches }) => {
+  const rootData = matches.find((match) => match.id === 'root')?.data as { language?: string } | undefined;
+
+  return [{ title: getProjectCollaboratorsCopy(rootData?.language)['projectCollaborators.metaTitle'] }];
+};
 export { UserAreaRouteErrorBoundary as ErrorBoundary } from '~/components/dashboard/UserAreaRouteError';
 
 /*
@@ -53,8 +64,11 @@ export { UserAreaRouteErrorBoundary as ErrorBoundary } from '~/components/dashbo
 export const loader = (args: EnterpriseLoaderArgs) =>
   projectPageLoader<CollaboratorsData>(args, (projectId) => `/projects/${projectId}/collaboration`);
 
-export const action = (args: EnterpriseActionArgs) =>
-  projectAction(args, {
+export const action = (args: EnterpriseActionArgs) => {
+  const language = resolveRequestLocale(args.request).language;
+  const copy = getProjectCollaboratorsCopy(language);
+
+  return projectAction(args, {
     default: async ({ request, projectId, body }) => {
       try {
         await apiRequest(request, `/projects/${projectId}/collaborators`, {
@@ -62,14 +76,14 @@ export const action = (args: EnterpriseActionArgs) =>
           body: JSON.stringify({ email: body.email, roleKey: body.roleKey ?? 'editor' }),
         });
       } catch (error) {
-        return handleCollaboratorActionError(error);
+        return handleCollaboratorActionError(error, language);
       }
 
       return redirect(`/projects/${projectId}/collaborators`);
     },
     remove: async ({ request, projectId, body }) => {
       if (!body.userId) {
-        return handleCollaboratorActionError(new Error('Missing collaborator to remove.'));
+        return json({ error: copy['projectCollaborators.error.removeRequired'] }, { status: 400 });
       }
 
       try {
@@ -77,7 +91,7 @@ export const action = (args: EnterpriseActionArgs) =>
           method: 'DELETE',
         });
       } catch (error) {
-        return handleCollaboratorActionError(error);
+        return handleCollaboratorActionError(error, language);
       }
 
       return redirect(`/projects/${projectId}/collaborators`);
@@ -105,14 +119,14 @@ export const action = (args: EnterpriseActionArgs) =>
           invite: { url, roleKey: result.shareLink.roleKey, expiresAt: result.shareLink.expiresAt },
         });
       } catch (error) {
-        return handleCollaboratorActionError(error);
+        return handleCollaboratorActionError(error, language);
       }
     },
 
     // Revoke an invite link (reuses DELETE /collaboration/share-links/:id).
     'revoke-invite': async ({ request, projectId, body }) => {
       if (!body.linkId) {
-        return handleCollaboratorActionError(new Error('Missing invite link to revoke.'));
+        return json({ error: copy['projectCollaborators.error.linkRequired'] }, { status: 400 });
       }
 
       try {
@@ -124,14 +138,18 @@ export const action = (args: EnterpriseActionArgs) =>
           },
         );
       } catch (error) {
-        return handleCollaboratorActionError(error);
+        return handleCollaboratorActionError(error, language);
       }
 
       return redirect(`/projects/${projectId}/collaborators`);
     },
   });
+};
 
 export default function ProjectCollaboratorsPage() {
+  const { i18n } = useTranslation();
+  const language = i18n.resolvedLanguage ?? i18n.language;
+  const copy = getProjectCollaboratorsCopy(language);
   const { project, data } = useLoaderData<typeof loader>();
   const navigation = useNavigation();
   const submittedIntent = navigation.formData?.get('intent');
@@ -150,8 +168,8 @@ export default function ProjectCollaboratorsPage() {
   return (
     <ProjectShell
       projectId={project.id}
-      title="Collaborators"
-      description="Manage project-level access with organization RBAC enforcement."
+      title={copy['projectCollaborators.title']}
+      description={copy['projectCollaborators.description']}
     >
       <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
         <div className="grid gap-6">
@@ -163,10 +181,12 @@ export default function ProjectCollaboratorsPage() {
             method="post"
             className="grid gap-4 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-6"
           >
-            <h2 className="text-sm font-semibold text-bolt-elements-textPrimary">Add a member by email</h2>
-            <Field label="Email" name="email" type="email" required />
+            <h2 className="text-sm font-semibold text-bolt-elements-textPrimary">
+              {copy['projectCollaborators.add.title']}
+            </h2>
+            <Field label={copy['projectCollaborators.email']} name="email" type="email" required />
             <label className="grid gap-2 text-sm font-medium">
-              Role
+              {copy['projectCollaborators.role']}
               <select
                 className="h-10 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 text-sm outline-none focus:border-bolt-elements-focus"
                 name="roleKey"
@@ -174,13 +194,13 @@ export default function ProjectCollaboratorsPage() {
               >
                 {ROLE_OPTIONS.map((role) => (
                   <option key={role.value} value={role.value}>
-                    {role.label}
+                    {copy[role.labelKey]}
                   </option>
                 ))}
               </select>
             </label>
             <Button type="submit" disabled={saving} aria-busy={saving}>
-              {saving ? 'Adding…' : 'Add collaborator'}
+              {saving ? copy['projectCollaborators.add.adding'] : copy['projectCollaborators.add.submit']}
             </Button>
             {actionData?.error ? (
               <p
@@ -198,13 +218,15 @@ export default function ProjectCollaboratorsPage() {
           >
             <input type="hidden" name="intent" value="create-invite" />
             <div>
-              <h2 className="text-sm font-semibold text-bolt-elements-textPrimary">Create an invite link</h2>
+              <h2 className="text-sm font-semibold text-bolt-elements-textPrimary">
+                {copy['projectCollaborators.invite.createTitle']}
+              </h2>
               <p className="mt-1 text-xs text-bolt-elements-textSecondary">
-                Anyone with the link can join with the role you choose, until it expires or is revoked.
+                {copy['projectCollaborators.invite.createDescription']}
               </p>
             </div>
             <label className="grid gap-2 text-sm font-medium">
-              Role
+              {copy['projectCollaborators.role']}
               <select
                 className="h-10 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 text-sm outline-none focus:border-bolt-elements-focus"
                 name="roleKey"
@@ -212,13 +234,13 @@ export default function ProjectCollaboratorsPage() {
               >
                 {ROLE_OPTIONS.map((role) => (
                   <option key={role.value} value={role.value}>
-                    {role.label}
+                    {copy[role.labelKey]}
                   </option>
                 ))}
               </select>
             </label>
             <label className="grid gap-2 text-sm font-medium">
-              Expires after
+              {copy['projectCollaborators.invite.expiresAfter']}
               <select
                 className="h-10 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 text-sm outline-none focus:border-bolt-elements-focus"
                 name="expiresInMinutes"
@@ -226,13 +248,15 @@ export default function ProjectCollaboratorsPage() {
               >
                 {EXPIRY_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value}>
-                    {option.label}
+                    {copy[option.labelKey]}
                   </option>
                 ))}
               </select>
             </label>
             <Button type="submit" variant="outline" disabled={creatingInvite} aria-busy={creatingInvite}>
-              {creatingInvite ? 'Creating…' : 'Create invite link'}
+              {creatingInvite
+                ? copy['projectCollaborators.invite.creating']
+                : copy['projectCollaborators.invite.create']}
             </Button>
             {actionData?.invite ? <InviteResult invite={actionData.invite} /> : null}
           </Form>
@@ -244,18 +268,25 @@ export default function ProjectCollaboratorsPage() {
 
 /** Shows the freshly minted invite URL once, with copy-to-clipboard. */
 function InviteResult({ invite }: { invite: NonNullable<ActionResult['invite']> }) {
+  const { i18n } = useTranslation();
+  const language = i18n.resolvedLanguage ?? i18n.language;
+  const copy = getProjectCollaboratorsCopy(language);
+
+  const text = (template: string, values: Readonly<Record<string, string | number>> = {}) =>
+    formatProjectCollaboratorsCopy(template, values);
+
   const [copied, setCopied] = useState(false);
 
   return (
     <div className="grid gap-2 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-3">
       <p className="text-xs font-medium text-[var(--status-success-text)]">
-        Invite link created — copy it now, it won&apos;t be shown again.
+        {copy['projectCollaborators.invite.created']}
       </p>
       <div className="flex items-center gap-2">
         <input
           readOnly
           value={invite.url}
-          aria-label="Invite link"
+          aria-label={copy['projectCollaborators.invite.link']}
           className="h-9 min-w-0 flex-1 select-all rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-2 font-mono text-xs outline-none"
           onFocus={(event) => event.currentTarget.select()}
         />
@@ -272,14 +303,14 @@ function InviteResult({ invite }: { invite: NonNullable<ActionResult['invite']> 
             }
           }}
         >
-          {copied ? 'Copied' : 'Copy'}
+          {copied ? copy['projectCollaborators.invite.copied'] : copy['projectCollaborators.invite.copy']}
         </Button>
       </div>
       <p className="text-xs text-bolt-elements-textTertiary">
-        Role: {roleLabel(invite.roleKey)}
+        {text(copy['projectCollaborators.invite.resultRole'], { role: roleLabel(invite.roleKey, language) })}
         {invite.expiresAt ? (
           <>
-            {' · expires '}
+            {copy['projectCollaborators.invite.resultExpires']}
             <RelativeTime value={invite.expiresAt} />
           </>
         ) : null}
@@ -289,6 +320,13 @@ function InviteResult({ invite }: { invite: NonNullable<ActionResult['invite']> 
 }
 
 function InviteLinkList({ links }: { links: InviteLink[] }) {
+  const { i18n } = useTranslation();
+  const language = i18n.resolvedLanguage ?? i18n.language;
+  const copy = getProjectCollaboratorsCopy(language);
+
+  const text = (template: string, values: Readonly<Record<string, string | number>> = {}) =>
+    formatProjectCollaboratorsCopy(template, values);
+
   if (links.length === 0) {
     return null;
   }
@@ -296,10 +334,14 @@ function InviteLinkList({ links }: { links: InviteLink[] }) {
   return (
     <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-sm">
       <div className="border-b border-bolt-elements-borderColor px-4 py-3">
-        <h2 className="text-sm font-semibold text-bolt-elements-textPrimary">Invite links</h2>
+        <h2 className="text-sm font-semibold text-bolt-elements-textPrimary">
+          {copy['projectCollaborators.invite.linksTitle']}
+        </h2>
       </div>
       {links.map((link, index) => {
-        const status = inviteStatus(link);
+        const status = inviteStatus(link, language);
+        const localizedRole = roleLabel(link.roleKey, language);
+
         return (
           <div
             key={link.id}
@@ -309,7 +351,9 @@ function InviteLinkList({ links }: { links: InviteLink[] }) {
             )}
           >
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-bolt-elements-textPrimary">{roleLabel(link.roleKey)} access</p>
+              <p className="text-sm font-medium text-bolt-elements-textPrimary">
+                {text(copy['projectCollaborators.invite.access'], { role: localizedRole })}
+              </p>
               <p className="mt-0.5 text-xs text-bolt-elements-textSecondary">
                 {status.label}
                 {link.expiresAt && status.tone === 'active' ? (
@@ -322,7 +366,7 @@ function InviteLinkList({ links }: { links: InviteLink[] }) {
             </div>
             <span
               className={classNames(
-                'shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide',
+                'shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide',
                 status.tone === 'active'
                   ? 'text-[var(--status-success-text)]'
                   : status.tone === 'expired'
@@ -340,9 +384,9 @@ function InviteLinkList({ links }: { links: InviteLink[] }) {
                   type="submit"
                   variant="outline"
                   size="sm"
-                  aria-label={`Revoke ${roleLabel(link.roleKey)} invite link`}
+                  aria-label={text(copy['projectCollaborators.invite.revokeAria'], { role: localizedRole })}
                 >
-                  Revoke
+                  {copy['projectCollaborators.invite.revoke']}
                 </Button>
               </Form>
             ) : null}
@@ -353,32 +397,51 @@ function InviteLinkList({ links }: { links: InviteLink[] }) {
   );
 }
 
-function roleLabel(roleKey: string): string {
+function roleLabel(roleKey: string, language?: string | null): string {
+  const copy = getProjectCollaboratorsCopy(language);
+
   if (roleKey === 'owner') {
-    return 'Admin';
+    return copy['projectCollaborators.role.ownerShort'];
   }
 
   if (roleKey === 'editor') {
-    return 'Editor';
+    return copy['projectCollaborators.role.editorShort'];
   }
 
   if (roleKey === 'viewer') {
-    return 'Viewer';
+    return copy['projectCollaborators.role.viewerShort'];
   }
 
   return roleKey;
 }
 
-function inviteStatus(link: InviteLink): { label: string; badge: string; tone: 'active' | 'expired' | 'revoked' } {
+function inviteStatus(
+  link: InviteLink,
+  language?: string | null,
+): { label: string; badge: string; tone: 'active' | 'expired' | 'revoked' } {
+  const copy = getProjectCollaboratorsCopy(language);
+
   if (link.revokedAt) {
-    return { label: 'Revoked', badge: 'Revoked', tone: 'revoked' };
+    return {
+      label: copy['projectCollaborators.invite.status.revoked'],
+      badge: copy['projectCollaborators.invite.status.revoked'],
+      tone: 'revoked',
+    };
   }
 
   if (link.expiresAt && new Date(link.expiresAt).getTime() < Date.now()) {
-    return { label: 'Expired', badge: 'Expired', tone: 'expired' };
+    return {
+      label: copy['projectCollaborators.invite.status.expired'],
+      badge: copy['projectCollaborators.invite.status.expired'],
+      tone: 'expired',
+    };
   }
 
-  return { label: 'Expires', badge: 'Active', tone: 'active' };
+  return {
+    label: copy['projectCollaborators.invite.status.expires'],
+    badge: copy['projectCollaborators.invite.status.active'],
+    tone: 'active',
+  };
 }
 
 function CollaboratorList({
@@ -388,6 +451,13 @@ function CollaboratorList({
   collaborators: ProjectCollaborator[];
   removing: string | null;
 }) {
+  const { i18n } = useTranslation();
+  const language = i18n.resolvedLanguage ?? i18n.language;
+  const copy = getProjectCollaboratorsCopy(language);
+
+  const text = (template: string, values: Readonly<Record<string, string | number>> = {}) =>
+    formatProjectCollaboratorsCopy(template, values);
+
   if (collaborators.length === 0) {
     return (
       <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-sm">
@@ -396,9 +466,9 @@ function CollaboratorList({
             <Users className="h-4 w-4" aria-hidden />
           </span>
           <div>
-            <p className="text-sm font-medium">No project collaborators</p>
+            <p className="text-sm font-medium">{copy['projectCollaborators.empty.title']}</p>
             <p className="mt-1 text-sm text-bolt-elements-textSecondary">
-              Add an organization member by email, or share an invite link, to grant project access.
+              {copy['projectCollaborators.empty.description']}
             </p>
           </div>
         </div>
@@ -422,8 +492,10 @@ function CollaboratorList({
               <Users className="h-4 w-4" aria-hidden />
             </span>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium">{collaboratorTitle(collaborator)}</p>
-              <p className="mt-1 text-sm text-bolt-elements-textSecondary">{collaboratorDetail(collaborator)}</p>
+              <p className="truncate text-sm font-medium">{collaboratorTitle(collaborator, language)}</p>
+              <p className="mt-1 text-sm text-bolt-elements-textSecondary">
+                {collaboratorDetail(collaborator, language)}
+              </p>
             </div>
             <Form method="post" className="shrink-0">
               <input type="hidden" name="intent" value="remove" />
@@ -434,9 +506,11 @@ function CollaboratorList({
                 size="sm"
                 disabled={isRemoving}
                 aria-busy={isRemoving}
-                aria-label={`Remove ${collaboratorTitle(collaborator)}`}
+                aria-label={text(copy['projectCollaborators.removeAria'], {
+                  member: collaboratorTitle(collaborator, language),
+                })}
               >
-                {isRemoving ? 'Removing…' : 'Remove'}
+                {isRemoving ? copy['projectCollaborators.removing'] : copy['projectCollaborators.remove']}
               </Button>
             </Form>
           </div>

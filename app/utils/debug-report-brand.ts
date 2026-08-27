@@ -1,3 +1,8 @@
+import {
+  formatClientRuntimeResidualCopy,
+  getClientRuntimeResidualCopy,
+} from '~/lib/i18n/catalogs/client-runtime-residual';
+
 /**
  * Brand strings for the user-facing debug report produced by
  * {@link ../utils/debugLogger#downloadDebugLog}.
@@ -23,6 +28,12 @@ export function debugReportFilename(date: Date = new Date()): string {
 }
 
 /** Header line that opens the human-readable debug summary. */
-export function debugReportSummaryHeader(): string {
-  return `=== ${DEBUG_REPORT_BRAND.toUpperCase()} DEBUG LOG SUMMARY ===`;
+export function debugReportSummaryHeader(language?: string | null): string {
+  const copy = getClientRuntimeResidualCopy(language);
+
+  const label = formatClientRuntimeResidualCopy(copy['clientRuntime.debugReport.summaryHeader'], {
+    brand: DEBUG_REPORT_BRAND.toUpperCase(),
+  });
+
+  return `=== ${label.toUpperCase()} ===`;
 }

@@ -3,9 +3,13 @@
  */
 
 import { cleanup, render, screen } from '@testing-library/react';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { PresenceAvatars, type PresenceEntry } from './PresenceAvatars';
+
+vi.mock('react-i18next', () => ({
+  useTranslation: () => ({ i18n: { language: 'en', resolvedLanguage: 'en' } }),
+}));
 
 function entry(userId: string, name: string, status: PresenceEntry['status'] = 'viewing'): PresenceEntry {
   return { userId, name, status, lastSeenAt: Date.now() };

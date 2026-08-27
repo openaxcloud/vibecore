@@ -36,4 +36,15 @@ describe('centsToUsd', () => {
     expect(centsToUsd(12345)).toBe('$123.45');
     expect(centsToUsd(5)).toBe('$0.05');
   });
+
+  it('uses French decimal and currency spacing when French is selected', () => {
+    expect(centsToUsd(12345, 'fr')).toBe(
+      new Intl.NumberFormat('fr-FR', {
+        style: 'currency',
+        currency: 'USD',
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }).format(123.45),
+    );
+  });
 });

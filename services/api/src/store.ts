@@ -462,6 +462,8 @@ export interface NotificationRecord {
   category: string;
   title: string;
   body?: string;
+  messageKey?: string;
+  messageParams?: Record<string, unknown>;
   linkUrl?: string;
   metadata?: Record<string, unknown>;
   readAt?: string;
@@ -1229,6 +1231,7 @@ export interface ApiStore {
     name?: string;
     passwordHash: string;
     platformAdmin?: boolean;
+    language?: string;
   }): Promise<UserRecord>;
   updateUser(input: {
     userId: string;
@@ -1778,6 +1781,24 @@ export interface ApiStore {
    * republication d'un 2e projet, ni d'ignorer les publications expirées.
    */
   listPublishedProjects(organizationId: string): Promise<Array<{ projectId: string; publishedAt: string }>>;
+  /**
+   * Déploiements candidats à l'extinction 30 j : PRODUCTION + READY, avec la
+   * date et le plan de l'org. Nécessaire au balayage qui ARRÊTE réellement les
+   * workloads expirés — un compteur ou un simple 410 ne suffisent pas.
+   */
+  listExpiryCandidateDeployments(options?: { take?: number }): Promise<
+    Array<{
+      id: string;
+      projectId: string;
+      organizationId?: string;
+      provider: string;
+      environmentName?: string;
+      status: string;
+      createdAt: string;
+      planKey?: string;
+      expiredAt?: string;
+    }>
+  >;
   createSnapshot(input: {
     projectId: string;
     label?: string;
@@ -1877,7 +1898,24 @@ export interface ApiStore {
   getDeployment(projectId: string, deploymentId: string): Promise<DeploymentRecord | undefined>;
   getDeploymentOwnerStatus(
     deploymentId: string,
-  ): Promise<{ projectId: string; status: string; projectDeletedAt: Date | string | null } | undefined>;
+  ): Promise<
+    | {
+        projectId: string;
+        status: string;
+        projectDeletedAt: Date | string | null;
+        /*
+         * Nécessaires pour éteindre RÉELLEMENT une publication Starter expirée
+         * dans le chemin de service : sans la date ET le plan, le serveur ne peut
+         * que l'exclure d'un compteur — l'URL, elle, continuerait de répondre.
+         */
+        createdAt?: string;
+        environmentName?: string;
+        organizationId?: string;
+        /** Plan de l'org, uniquement si l'abonnement est ACTIF. */
+        planKey?: string;
+      }
+    | undefined
+  >;
   updateDeployment(
     projectId: string,
     deploymentId: string,
@@ -2238,6 +2276,8 @@ export interface ApiStore {
     category?: string;
     title: string;
     body?: string;
+    messageKey?: string;
+    messageParams?: Record<string, unknown>;
     linkUrl?: string;
     metadata?: Record<string, unknown>;
   }): Promise<NotificationRecord>;

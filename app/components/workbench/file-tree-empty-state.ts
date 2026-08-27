@@ -1,5 +1,7 @@
 import type { WorkspaceStatus } from '@vibecore/runtime-contract';
 
+import { fileTreeEn, type FileTreeCopy } from '~/lib/i18n/catalogs/file-tree';
+
 /**
  * Inputs the file explorer's empty branch uses to decide *why* there are no
  * files to show.
@@ -48,7 +50,11 @@ export interface EmptyExplorerView {
  *   - error:   crashed / errored runtime → real error + Reconnect affordance
  *   - empty:   workspace genuinely ready but has no files → original copy
  */
-export function resolveEmptyExplorerState(input: EmptyExplorerInput): EmptyExplorerView {
+export function resolveEmptyExplorerState(
+  input: EmptyExplorerInput,
+  copy: FileTreeCopy['empty'] = fileTreeEn.empty,
+  includeWorkspaceError = true,
+): EmptyExplorerView {
   const { workspaceLoading, workspaceStatus, workspaceError, hasWorkspace } = input;
 
   const runtimeCrashed = workspaceStatus === 'error' || workspaceStatus === 'stopped';
@@ -62,9 +68,8 @@ export function resolveEmptyExplorerState(input: EmptyExplorerInput): EmptyExplo
     return {
       variant: 'error',
       icon: 'i-ph:warning-circle',
-      title: 'Workspace unavailable',
-      description:
-        workspaceError ?? 'The workspace runtime stopped or failed to start. Reconnect to load your project files.',
+      title: copy.workspaceUnavailableTitle,
+      description: includeWorkspaceError && workspaceError ? workspaceError : copy.workspaceUnavailableDescription,
       showReconnect: true,
     };
   }
@@ -73,8 +78,8 @@ export function resolveEmptyExplorerState(input: EmptyExplorerInput): EmptyExplo
     return {
       variant: 'loading',
       icon: 'i-svg-spinners:90-ring-with-bg',
-      title: 'Loading workspace files…',
-      description: 'Provisioning your workspace. Files will appear here once it is ready.',
+      title: copy.loadingTitle,
+      description: copy.loadingDescription,
       showReconnect: false,
     };
   }
@@ -82,8 +87,8 @@ export function resolveEmptyExplorerState(input: EmptyExplorerInput): EmptyExplo
   return {
     variant: 'empty',
     icon: 'i-ph:folder-open',
-    title: 'No files available',
-    description: 'Project files will appear here once the workspace is loaded.',
+    title: copy.noFilesTitle,
+    description: copy.noFilesDescription,
     showReconnect: false,
   };
 }

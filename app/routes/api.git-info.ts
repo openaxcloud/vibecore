@@ -3,8 +3,13 @@ import { existsSync } from 'node:fs';
 import type { LoaderFunctionArgs } from 'react-router';
 import { data as json } from 'react-router';
 import { readSessionToken } from '~/lib/enterprise-api.server';
+import { getWebApiRoutesCopy, webApiErrorResponse, webApiLocaleHeaders } from '~/lib/i18n/catalogs/web-api-routes';
+import { resolveRequestLocale } from '~/lib/i18n/request-locale';
 
 export async function loader({ request }: LoaderFunctionArgs) {
+  const copy = getWebApiRoutesCopy(resolveRequestLocale(request).language);
+  const localeHeaders = webApiLocaleHeaders(request);
+
   /*
    * Require an authenticated session. When VIBECORE_EXPOSE_PLATFORM_GIT_INFO is
    * enabled this loader returns the platform deployment's branch/commit/remote —
@@ -21,27 +26,33 @@ export async function loader({ request }: LoaderFunctionArgs) {
         isDirty: false,
         lastCommit: undefined,
       },
-      { status: 401 },
+      { status: 401, headers: localeHeaders },
     );
   }
 
   if (process.env.VIBECORE_EXPOSE_PLATFORM_GIT_INFO !== 'true') {
-    return json({
-      branch: 'workspace',
-      commit: 'hidden',
-      isDirty: false,
-      lastCommit: undefined,
-    });
+    return json(
+      {
+        branch: 'workspace',
+        commit: 'hidden',
+        isDirty: false,
+        lastCommit: undefined,
+      },
+      { headers: localeHeaders },
+    );
   }
 
   try {
     // Check if we're in a git repository
     if (!existsSync('.git')) {
-      return json({
-        branch: 'unknown',
-        commit: 'unknown',
-        isDirty: false,
-      });
+      return json(
+        {
+          branch: copy.gitInfoUnknown,
+          commit: copy.gitInfoUnknown,
+          isDirty: false,
+        },
+        { headers: localeHeaders },
+      );
     }
 
     // Get current branch
@@ -70,31 +81,32 @@ export async function loader({ request }: LoaderFunctionArgs) {
       const commitInfo = execSync('git log -1 --pretty=format:"%s|%ci|%an"', { encoding: 'utf8' }).trim();
       const [message, date, author] = commitInfo.split('|');
       lastCommit = {
-        message: message || 'unknown',
-        date: date || 'unknown',
-        author: author || 'unknown',
+        message: message || copy.gitInfoUnknown,
+        date: date || copy.gitInfoUnknown,
+        author: author || copy.gitInfoUnknown,
       };
     } catch {
       // Could not get commit info
     }
 
-    return json({
-      branch,
-      commit,
-      isDirty,
-      remoteUrl,
-      lastCommit,
-    });
-  } catch (error) {
-    console.error('Error fetching git info:', error);
     return json(
       {
+        branch,
+        commit,
+        isDirty,
+        remoteUrl,
+        lastCommit,
+      },
+      { headers: localeHeaders },
+    );
+  } catch (error) {
+    console.error('Error fetching git info:', error);
+    return webApiErrorResponse(request, 'GIT_INFO_FAILED', 500, {
+      extra: {
         branch: 'error',
         commit: 'error',
         isDirty: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
       },
-      { status: 500 },
-    );
+    });
   }
 }

@@ -14,6 +14,16 @@ const requiredPhrases = [
   'Dark mode by default',
   'Multi-agent strategy',
   'External service behavior must use real typed local/offline adapters',
+
+  /*
+   * BUG-GEN-BACKEND-UNSERVED-001: a trivial "local counter" prompt produced a
+   * fetch('/api/counter') frontend with an unserved backend. Lock the two
+   * guardrails: right-sized architecture (no invented backend for client-only
+   * tools) and the src/api handler convention the dev-server middleware mounts.
+   */
+  'RIGHT-SIZED ARCHITECTURE (simplest solution that works)',
+  'DEV API CONVENTION',
+  'src/api/<route>.ts',
 ];
 
 describe('E-Code prompt requirements', () => {
@@ -47,5 +57,7 @@ describe('E-Code prompt requirements', () => {
     expect(ECODE_PROJECT_REQUIREMENT_LINES.join('\n')).toContain('phones, tablets, and desktop');
     expect(ECODE_PROJECT_REQUIREMENT_LINES.join('\n')).toContain('exponential backoff');
     expect(ECODE_PROJECT_REQUIREMENT_LINES.join('\n')).toContain('Never report successful external-service behavior');
+    expect(ECODE_PROJECT_REQUIREMENT_LINES.join('\n')).toContain('Right-size the architecture');
+    expect(ECODE_PROJECT_REQUIREMENT_LINES.join('\n')).toContain('src/api/<route>.ts');
   });
 });

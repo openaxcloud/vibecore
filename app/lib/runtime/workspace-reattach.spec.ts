@@ -1,14 +1,46 @@
 import { describe, expect, it, vi } from 'vitest';
-import { reseedWorkspacePreservingOnFailure, shouldReattachWarmWorkspace } from './workspace-reattach';
+import {
+  hasAdoptablePreviewPort,
+  reseedWorkspacePreservingOnFailure,
+  shouldReattachWarmWorkspace,
+} from './workspace-reattach';
 
+/*
+ * `portProbeSucceeded` rejoint le cas nominal (option A, signal 2) : la sonde de
+ * ports doit avoir ABOUTI pour qu'un port vivant veuille dire quelque chose.
+ * Auparavant `refreshRuntimePorts()` était appelée en `.catch(() => undefined)`,
+ * si bien qu'une sonde en échec et un pod qui n'écoute rien donnaient tous deux
+ * `hasLivePort: false` — indiscernables.
+ */
 const warm = {
   reused: true,
   seededThisSession: true,
   hasLivePort: true,
+  portProbeSucceeded: true,
   storageNewerThanSeed: false,
 };
 
 describe('shouldReattachWarmWorkspace', () => {
+  /*
+   * CHANGEMENT DE CONTRAT assumé, imposé par la mesure réelle : exiger un port
+   * vivant créait une boucle qui s'auto-entretenait. Le reseed tue le serveur de
+   * dev ; à la réouverture suivante le port n'est pas encore revenu, donc on
+   * reseede encore. L'état du port ne conditionne plus l'adoption — voir le
+   * commentaire de `shouldReattachWarmWorkspace`.
+   */
+  it('une sonde de ports en échec n_empêche plus d_adopter un pod chaud et semé', () => {
+    expect(shouldReattachWarmWorkspace({ ...warm, portProbeSucceeded: false })).toBe(true);
+  });
+
+  it('un pod chaud et semé SANS port vivant est adopté : reseeder ne ferait que détruire', () => {
+    /*
+     * L'absence de port ne dit rien sur la validité de l'arborescence, et le
+     * reseed ne la répare pas — `startPreviewServer()` relance le serveur juste
+     * après, sans rien effacer.
+     */
+    expect(shouldReattachWarmWorkspace({ ...warm, hasLivePort: false, portProbeSucceeded: false })).toBe(true);
+  });
+
   it('reattaches when the pod is warm, seeded this page-session, and serving a live port', () => {
     expect(shouldReattachWarmWorkspace(warm)).toBe(true);
   });
@@ -21,8 +53,11 @@ describe('shouldReattachWarmWorkspace', () => {
     expect(shouldReattachWarmWorkspace({ ...warm, seededThisSession: false })).toBe(false);
   });
 
-  it('reseeds when there is no live preview port to adopt', () => {
-    expect(shouldReattachWarmWorkspace({ ...warm, hasLivePort: false })).toBe(false);
+  it('les trois conditions qui RESTENT sont bien exigées', () => {
+    // Ce sont elles qui garantissent que l'arborescence du pod est celle qu'on y a mise.
+    expect(shouldReattachWarmWorkspace({ ...warm, reused: false })).toBe(false);
+    expect(shouldReattachWarmWorkspace({ ...warm, seededThisSession: false })).toBe(false);
+    expect(shouldReattachWarmWorkspace({ ...warm, storageNewerThanSeed: true })).toBe(false);
   });
 
   it('reseeds when project storage is known to be newer than the last seed', () => {
@@ -85,5 +120,65 @@ describe('reseedWorkspacePreservingOnFailure', () => {
       'agent 502',
     );
     expect(clearTree).toHaveBeenCalledOnce();
+  });
+});
+
+describe('hasAdoptablePreviewPort — signal 2, second volet', () => {
+  it('accepte un port dont `ready` n_est pas encore confirmé', () => {
+    /*
+     * `hasLivePreviewPort` exige `ready === true` : un port réellement en écoute
+     * mais pas encore confirmé par le flux de surveillance comptait comme mort,
+     * et la réouverture reseedait un pod sain. Le voisin qui répond à la même
+     * question (`refreshRuntimePorts`) accepte `ready !== false`.
+     */
+    expect(hasAdoptablePreviewPort([{ ready: undefined }])).toBe(true);
+    expect(hasAdoptablePreviewPort([{ ready: true }])).toBe(true);
+  });
+
+  it('refuse un port explicitement mort', () => {
+    expect(hasAdoptablePreviewPort([{ ready: false }])).toBe(false);
+  });
+
+  it('refuse l_absence de port', () => {
+    expect(hasAdoptablePreviewPort([])).toBe(false);
+    expect(hasAdoptablePreviewPort(null)).toBe(false);
+    expect(hasAdoptablePreviewPort(undefined)).toBe(false);
+  });
+
+  it('adopte dès qu_UN port est adoptable', () => {
+    expect(hasAdoptablePreviewPort([{ ready: false }, { ready: undefined }])).toBe(true);
+  });
+});
+
+describe('hasAdoptablePreviewPort — `serving` prime sur `ready`', () => {
+  /*
+   * Cause RACINE mesurée en réel : sur un pod sain servant `port 5173`, la route
+   * runtime répondait `ready:false, notReadyReason:'manager'`. `ready` agrège
+   * quatre signaux pour répondre à « cet aperçu est-il sûr à afficher » ; deux
+   * d'entre eux — statut manager, beacon du rendu PRÉCÉDENT — n'ont rien à dire
+   * sur « puis-je adopter ce pod ». La réouverture effaçait donc un espace de
+   * travail qui tournait.
+   */
+  it('adopte un port qui SERT, même si `ready` est faux (veto manager)', () => {
+    expect(hasAdoptablePreviewPort([{ ready: false, serving: true }])).toBe(true);
+  });
+
+  it('refuse un port qui NE sert pas, même si `ready` est vrai', () => {
+    // L'inverse doit valoir aussi : `serving` est la réponse, pas un assouplissement.
+    expect(hasAdoptablePreviewPort([{ ready: true, serving: false }])).toBe(false);
+  });
+
+  it('retombe sur `ready` quand le runtime ne calcule pas `serving`', () => {
+    expect(hasAdoptablePreviewPort([{ ready: true }])).toBe(true);
+    expect(hasAdoptablePreviewPort([{ ready: undefined }])).toBe(true);
+    expect(hasAdoptablePreviewPort([{ ready: false }])).toBe(false);
+  });
+
+  it('adopte dès qu_UN port sert, parmi plusieurs', () => {
+    expect(hasAdoptablePreviewPort([{ serving: false }, { serving: true }])).toBe(true);
+  });
+
+  it('l_absence de port reste un refus', () => {
+    expect(hasAdoptablePreviewPort([])).toBe(false);
   });
 });

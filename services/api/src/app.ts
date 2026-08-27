@@ -31,6 +31,9 @@ import {
   StripeBillingClient,
   assertQuota,
   assertPublishEntitlement,
+  isPublicationActive,
+  publishedProjectTtlDays,
+  toEntitlementPlanKey,
   EntitlementError,
   aiModelCatalog,
   availableMachineSizes,
@@ -48,6 +51,7 @@ import {
   availableAgentModes,
   lineMargins,
   lineUserPrice,
+  localizeAgentRoutingCardLabels,
   negativeMarginLineKeys,
   routingLine,
   switchAvailableForPlan,
@@ -95,6 +99,7 @@ import {
   requireCsrfToken,
   requireProductionSecret,
 } from '@vibecore/security';
+import { getGalleryDemoApp } from '@vibecore/template-catalog/server';
 import { DOMParser } from '@xmldom/xmldom';
 import Fastify, { type FastifyInstance, type FastifyReply, type FastifyRequest } from 'fastify';
 import { Redis } from 'ioredis';
@@ -148,8 +153,24 @@ import {
   type ServerRuntimePlan,
 } from './server-runtime-detect.js';
 import { runAppImageBuild } from './app-image-build.js';
+import {
+  publicDeclaredDeployTarget,
+  publicDetectedDeployTarget,
+  publicPendingDeployTarget,
+} from './deploy-target-public.js';
+import {
+  appPublicCopy,
+  appPublicEnglish,
+  localizeAppPublicErrorPayload,
+  localizeAppPublicMessage,
+  localizeAppValidationIssues,
+  localizeCreditLedgerReason,
+  type AppPublicCopyKey,
+} from './app-public-copy.js';
 import { generateAuthJwtSecret, generateAuthScaffoldFiles, isAuthScaffoldEnabled } from './auth-scaffold.js';
+import { boltFileActionsFromContent } from './bolt-file-actions.js';
 import { shouldRetirePresenceRow } from './collaboration-presence-cleanup.js';
+import { slugifyRouteSegment } from './slugify.js';
 import {
   checkServiceShutdown,
   openCheckpoint,
@@ -164,7 +185,12 @@ import {
   deletionStatus,
   purgeDueAtMs,
 } from './data-deletion.js';
-import { clusterName, resolveDatabaseTier, resolveDefaultDatabaseProvisioner } from './database-provisioner.js';
+import {
+  clusterName,
+  resolveDatabaseTier,
+  resolveDefaultDatabaseProvisioner,
+  type ProvisionResult,
+} from './database-provisioner.js';
 import {
   IMPORT_HUB_PROVIDERS,
   ImportInvariantError,
@@ -235,6 +261,7 @@ import {
 } from './deployments.js';
 import { createEmailProvider, type EmailProvider } from './email.js';
 import { evaluateFeatureFlag, flagEnabledForUser } from './feature-flags.js';
+import { forwardedAgentQuery } from './forwarded-agent-query.js';
 import {
   resolveIntegrationOauthStateSecret,
   signIntegrationOauthState,
@@ -244,6 +271,7 @@ import { bitbucketConnector, resolveBitbucketCredentials } from './integrations/
 import { githubConnector, resolveGithubCredentials } from './integrations/providers/github.js';
 import { gitlabConnector, resolveGitLabCredentials } from './integrations/providers/gitlab.js';
 import { netlifyConnector } from './integrations/providers/netlify.js';
+import { connectorPublicErrorMessage } from './integrations/providers/public-error-copy.js';
 import { supabaseConnector } from './integrations/providers/supabase.js';
 import {
   ConnectorProviderError,
@@ -254,6 +282,7 @@ import { vercelConnector } from './integrations/providers/vercel.js';
 import {
   McpMarketplaceService,
   McpMarketplaceError,
+  catalogLocaleQuerySchema,
   catalogParamsSchema,
   catalogQuerySchema,
   installInputSchema,
@@ -269,6 +298,8 @@ import {
   adminGlobalPolicySetSchema,
   adminGlobalPolicyClearSchema,
   createDefaultMcpMarketplaceService,
+  resolveMcpCatalogLocale,
+  type McpCatalogLocale,
 } from './mcp-marketplace.js';
 import {
   meterAllDatabaseStorage,
@@ -307,12 +338,20 @@ import {
   seedAgentRoutingCard,
 } from './agent-routing-service.js';
 import {
+  assertPublicationStartable,
+  ExpiredPublicationStartError,
+  servingState,
+  stopExpiredServerDeployments,
+  type ServingState,
+} from './published-expiry-sweep.js';
+import {
   MachineSizeError,
   getActiveRateCard,
   machineSizeResources,
   maxSchedulableVcpu,
   resolveDeployMachineSize,
 } from './rate-card-service.js';
+import { publicMachineSizeError } from './rate-card-public.js';
 import { resolveRollbackImage, resolveRollbackSecrets, type SecretPolicy } from './release-rollback.js';
 import {
   assertArtifactMatchesManifest,
@@ -320,16 +359,9 @@ import {
   RollbackManifestError,
   selectPreviousRelease,
 } from './release-manifest.js';
+import { recordIbanMasked, recordUnknownIbanCountry, shouldLogUnknownIbanCountry } from './remix-pii-metrics.js';
 import { computeWorkspaceRestorePlan, isPortReadyFromProbe, type PortProbeResult } from './runtime-readiness.js';
 import { aggregatePreviewReadiness } from './runtime-readiness.js';
-import {
-  recordPreviewBeacon,
-  readClientBeacon,
-  recordLifecycleFromStatus,
-  captureWorkspacePostMortem,
-  getWorkspaceDiagnostics,
-  type PreviewBeaconStatus,
-} from './workspace-diagnostics.js';
 import { flattenRuntimeTreeFilePaths, normalizeRuntimePath, persistedFileContentMatches } from './runtime-reseed.js';
 import { describeCron } from './scheduled-tasks-cron.js';
 import {
@@ -340,6 +372,7 @@ import {
 } from './scheduled-tasks-repository.js';
 import {
   clampTimeoutSeconds,
+  localizeScheduledRunText,
   planMaxTasks,
   ScheduledTaskService,
   startScheduledTaskScheduler,
@@ -348,22 +381,38 @@ import {
   type SandboxExec,
   type WorkflowResolver,
 } from './scheduled-tasks.js';
+import { auditSkill, localizeAuditFindings, type SkillContent } from './skill-audit.js';
+import { parseSkillManifest, type SkillManifest } from './skill-manifest.js';
 import { isKnownSkill, resolveProjectSkills, resolveSkill } from './skills-catalog.js';
 import { fetchSkillRepoInstructions } from './skills-github-fetch.js';
-import { SKILL_REPO_CATALOG, findRepoEntry, normalizeOwnerRepo } from './skills-repo-catalog.js';
-import { auditSkill, type SkillContent } from './skill-audit.js';
-import { parseSkillManifest, type SkillManifest } from './skill-manifest.js';
+import { findRepoEntry, normalizeOwnerRepo, skillRepoCatalogForLocale } from './skills-repo-catalog.js';
 import { nextSpendAlertPct, spendAlertEmailContent } from './spend-alerts.js';
+import {
+  abuseWarningEmailContent,
+  invoiceEmailContent,
+  invitationEmailContent,
+  localizedPublicErrorPayload,
+  localizedNotificationContent,
+  passwordResetEmailContent,
+  publicErrorMessage,
+  resolveTransactionalLocale,
+  verificationEmailContent,
+  welcomeEmailContent,
+  type InvoiceEmailEvent,
+  type TransactionalLocale,
+} from './transactional-i18n.js';
 import {
   API_KEY_SCOPES,
   type ApiKeyScope,
   type ApiStore,
   type CollaborationPresenceRecord,
   type DeploymentRecord,
+  type InstalledSkillRecord,
   type ProjectIdeStateRecord,
   type ProjectRecord,
   type ProviderConfigRecord,
   type SessionRecord,
+  type SkillAuditEventRecord,
   type SnapshotRecord,
   type WorkspaceRecord,
 } from './store.js';
@@ -377,7 +426,18 @@ import {
   higherConsequence,
   permissionsForAction,
 } from './strike-system.js';
+import { StorageDeadlineError, THUMBNAIL_LOOKUP_DEADLINE_MS, withStorageDeadline } from './storage-deadline.js';
+import { decideWorkspaceSlot } from './workspace-slot.js';
 import { createThumbnailCapturer, ThumbnailCapturer, type ThumbnailLogger } from './thumbnail-capture.js';
+import { redactUrlCredentials } from './log-redaction.js';
+import {
+  recordPreviewBeacon,
+  readClientBeacon,
+  recordLifecycleFromStatus,
+  captureWorkspacePostMortem,
+  getWorkspaceDiagnostics,
+  type PreviewBeaconStatus,
+} from './workspace-diagnostics.js';
 
 declare module 'fastify' {
   interface FastifyRequest {
@@ -479,7 +539,7 @@ function createDefaultStore() {
     return new PrismaApiStore();
   }
 
-  throw new Error('DATABASE_URL is required. The API does not start with an in-memory store.');
+  throw new Error(appPublicEnglish('INTERNAL_DATABASE_URL_REQUIRED'));
 }
 
 function createDefaultAgentMemory(store: ApiStore) {
@@ -539,7 +599,7 @@ const contactSalesSchema = z
     topic: z.string().trim().min(1).max(100).optional(),
   })
   .refine((body) => Boolean(body.company || body.topic), {
-    message: 'Provide a company (sales) or a topic (general contact).',
+    message: appPublicEnglish('CONTACT_COMPANY_OR_TOPIC_REQUIRED'),
     path: ['company'],
   });
 
@@ -665,7 +725,12 @@ const projectResolveQuerySchema = z.object({
 const workspaceParams = z.object({ workspaceId: z.string().min(1) });
 
 const createProjectSchema = z.object({
-  name: z.string().min(1),
+  /*
+   * BUG-USR-009: trim BEFORE min(1) so a whitespace-only name ("   ") is rejected
+   * like an empty one (previously it passed min(1) and created a project literally
+   * named "   " with slug "project"); cap length so a 400-char name can't be stored.
+   */
+  name: z.string().trim().min(1).max(200),
   slug: z.string().min(2).optional(),
   description: z.string().optional(),
 });
@@ -719,7 +784,11 @@ const gitRemoteUrlSchema = z
   .max(2048)
   .refine(isSafeGitRemoteUrl, 'Git remote URL must be an HTTPS or SSH URL.');
 const projectSettingsSchema = z.object({
-  name: z.string().min(1).optional(),
+  /*
+   * BUG-USR-009: same trim+cap as create — a rename to "   " or a 400-char string
+   * must be rejected consistently with the empty-name rejection.
+   */
+  name: z.string().trim().min(1).max(200).optional(),
   description: z.string().optional(),
   gitRepositoryUrl: gitRemoteUrlSchema.optional(),
   gitDefaultBranch: z.string().min(1).optional(),
@@ -765,6 +834,7 @@ const skillToggleBody = z.object({
   scope: installedSkillScope.default('project'),
   enabled: z.boolean(),
 });
+
 /** RPL-SK-001.4 revoke + RPL-SK-001.3 approve / audit-journal. */
 const skillRevokeBody = z.object({
   ownerRepo: z.string().min(1).max(220),
@@ -1032,7 +1102,7 @@ const collaboratorSchema = z
     roleKey: z.enum(['owner', 'admin', 'member', 'editor', 'viewer']),
   })
   .refine((value) => Boolean(value.userId || value.email), {
-    message: 'Provide a userId or email',
+    message: appPublicEnglish('USER_ID_OR_EMAIL_REQUIRED'),
   });
 const roleKeySchema = z
   .string()
@@ -1260,7 +1330,7 @@ const abuseEventSchema = z.object({
 const systemSettingSchema = z
   .object({ key: z.string().min(1), value: z.any() })
   .refine((value) => Object.hasOwn(value, 'value'), {
-    message: 'value is required',
+    message: appPublicEnglish('VALUE_REQUIRED'),
   });
 const enterpriseSettingsSchema = z.object({
   ipAllowlist: z.array(z.string().min(1)).optional(),
@@ -1350,6 +1420,17 @@ const packagesInstallSchema = z.object({
   // Optional override; when omitted the manager is detected from the lockfile.
   packageManager: z.enum(['npm', 'pnpm', 'yarn', 'bun']).optional(),
   timeoutMs: z.number().int().positive().max(600_000).optional(),
+
+  /*
+   * Target workspace. The Packages panel resolves and displays a specific
+   * workspace (and offers a workspace selector), so the install has to run in
+   * THAT pod. Without it this route fell back to the projectId, which
+   * authorizeRuntimeWorkspace turns into the deterministic per-user
+   * `ws-<hash>` id — a pod that does not exist whenever the project's active
+   * workspace is a different record, making every install 502 while the panel
+   * still reported success.
+   */
+  workspaceId: z.string().trim().min(1).optional(),
 });
 const domainSchema = z.object({
   domain: z
@@ -1547,7 +1628,7 @@ const adminLogsRedactSchema = z
     before: z.string().datetime().optional(),
   })
   .refine((value) => Boolean(value.organizationId || value.actorUserId), {
-    message: 'organizationId or actorUserId is required to scope the redaction',
+    message: appPublicEnglish('REDACTION_SCOPE_REQUIRED'),
   });
 
 const adminAnnouncementSchema = z.object({
@@ -1802,7 +1883,7 @@ function collaborationTicketSecret() {
   if (!secret) {
     if (process.env.NODE_ENV === 'production') {
       // A literal 'dev' fallback in prod makes WS tickets forgeable by anyone.
-      throw new Error('No HMAC secret configured (COLLABORATION_WS_TICKET_SECRET/JWT_SECRET/COOKIE_SECRET)');
+      throw new Error(appPublicEnglish('INTERNAL_COLLAB_HMAC_SECRET_REQUIRED'));
     }
 
     return 'dev';
@@ -1894,7 +1975,7 @@ function chatShareTokenSecret() {
   if (!secret) {
     if (process.env.NODE_ENV === 'production') {
       // A literal 'dev' fallback in prod makes chat-share tokens forgeable.
-      throw new Error('No HMAC secret configured (SHARE_LINK_SECRET/JWT_SECRET/COOKIE_SECRET)');
+      throw new Error(appPublicEnglish('INTERNAL_SHARE_HMAC_SECRET_REQUIRED'));
     }
 
     return 'dev';
@@ -1987,7 +2068,7 @@ async function authenticateCollaborationWebSocketTicket(request: FastifyRequest,
     const settings = await store.getEnterpriseSettings(ticketedProject.organizationId);
 
     if (!isIpAllowed(request.ip, settings.ipAllowlist)) {
-      reply.code(403).send({ error: 'IP address is not allowed for this organization', code: 'IP_ALLOWLIST_BLOCKED' });
+      reply.code(403).send({ error: appPublicEnglish('IP_ALLOWLIST_BLOCKED'), code: 'IP_ALLOWLIST_BLOCKED' });
       return 'rejected' as const;
     }
   }
@@ -2005,7 +2086,7 @@ async function authenticateCollaborationWebSocketTicket(request: FastifyRequest,
 }
 
 function authError(reply: FastifyReply) {
-  return reply.code(401).send({ error: 'Unauthorized', code: 'AUTH_REQUIRED' });
+  return reply.code(401).send({ error: appPublicEnglish('UNAUTHORIZED'), code: 'AUTH_REQUIRED' });
 }
 
 function adminMfaRequired() {
@@ -2304,7 +2385,10 @@ async function reachUrl(
 
     return { ok: true, status: response.status, ...(await parseDiscovery(response)) };
   } catch (error) {
-    return { ok: false, error: error instanceof Error ? error.name : 'fetch_failed' };
+    return {
+      ok: false,
+      error: error instanceof Error ? error.name : appPublicEnglish('FETCH_FAILED'),
+    };
   } finally {
     clearTimeout(timeout);
   }
@@ -2590,7 +2674,7 @@ export function assertReadOnlySql(query: string) {
     .filter(Boolean);
 
   if (statements.length > 1) {
-    throw Object.assign(new Error('Only a single read-only SQL statement is allowed in the IDE query editor'), {
+    throw Object.assign(new Error(appPublicEnglish('DATABASE_SQL_SINGLE_READONLY')), {
       statusCode: 400,
       code: 'DATABASE_QUERY_NOT_READ_ONLY',
     });
@@ -2599,7 +2683,7 @@ export function assertReadOnlySql(query: string) {
   const normalized = (statements[0] ?? '').toLowerCase();
 
   if (!/^(select|show|describe|desc|explain|with)\b/.test(normalized)) {
-    throw Object.assign(new Error('Only read-only SQL statements are allowed in the IDE query editor'), {
+    throw Object.assign(new Error(appPublicEnglish('DATABASE_SQL_READONLY_ONLY')), {
       statusCode: 400,
       code: 'DATABASE_QUERY_NOT_READ_ONLY',
     });
@@ -2615,7 +2699,7 @@ export function assertReadOnlySql(query: string) {
     normalized.startsWith('with') &&
     /\b(insert|update|delete|merge|drop|alter|create|truncate|grant|revoke)\b/.test(normalized)
   ) {
-    throw Object.assign(new Error('Data-modifying statements are not allowed in the IDE query editor'), {
+    throw Object.assign(new Error(appPublicEnglish('DATABASE_SQL_WRITE_BLOCKED')), {
       statusCode: 400,
       code: 'DATABASE_QUERY_NOT_READ_ONLY',
     });
@@ -2643,7 +2727,7 @@ function assertReadOnlyRedis(query: string) {
   ]);
 
   if (!command || !allowed.has(command)) {
-    throw Object.assign(new Error('Only read-only Redis commands are allowed in the IDE query editor'), {
+    throw Object.assign(new Error(appPublicEnglish('DATABASE_REDIS_READONLY_ONLY')), {
       statusCode: 400,
       code: 'DATABASE_QUERY_NOT_READ_ONLY',
     });
@@ -2737,7 +2821,7 @@ async function requireDatabaseConnection(store: ApiStore, projectId: string, key
   const connection = connections.find((item) => item.key === key);
 
   if (!connection) {
-    throw Object.assign(new Error('Database connection not found for this project'), {
+    throw Object.assign(new Error(appPublicEnglish('DATABASE_CONNECTION_NOT_FOUND')), {
       statusCode: 404,
       code: 'DATABASE_CONNECTION_NOT_FOUND',
     });
@@ -2949,7 +3033,7 @@ async function runDatabaseQuery(
        * A malformed query is user error, not a server fault — return a coded
        * 400 instead of letting the raw SyntaxError surface as a generic 500.
        */
-      throw Object.assign(new Error('MongoDB query must be valid JSON'), {
+      throw Object.assign(new Error(appPublicEnglish('DATABASE_MONGODB_INVALID_JSON')), {
         statusCode: 400,
         code: 'DB_QUERY_INVALID_JSON',
         cause: error,
@@ -3023,11 +3107,11 @@ async function authenticateApiKey(request: FastifyRequest, reply: FastifyReply, 
   }
 
   if (apiKey.expiresAt && new Date(apiKey.expiresAt).getTime() <= Date.now()) {
-    return reply.code(401).send({ error: 'API key expired', code: 'API_KEY_EXPIRED' });
+    return reply.code(401).send({ error: appPublicEnglish('API_KEY_EXPIRED'), code: 'API_KEY_EXPIRED' });
   }
 
   if (!apiKey.userId) {
-    return reply.code(403).send({ error: 'API key is not bound to a user', code: 'API_KEY_NO_USER' });
+    return reply.code(403).send({ error: appPublicEnglish('API_KEY_NO_USER'), code: 'API_KEY_NO_USER' });
   }
 
   const user = await store.findUserById(apiKey.userId);
@@ -3037,7 +3121,7 @@ async function authenticateApiKey(request: FastifyRequest, reply: FastifyReply, 
   }
 
   if (await isUserSuspended(store, user.id)) {
-    return reply.code(403).send({ error: 'User is suspended', code: 'USER_SUSPENDED' });
+    return reply.code(403).send({ error: appPublicEnglish('USER_SUSPENDED'), code: 'USER_SUSPENDED' });
   }
 
   /*
@@ -3051,7 +3135,7 @@ async function authenticateApiKey(request: FastifyRequest, reply: FastifyReply, 
 
     if (!membership) {
       return reply.code(403).send({
-        error: 'API key owner is no longer a member of the organization',
+        error: appPublicEnglish('API_KEY_OWNER_NOT_MEMBER'),
         code: 'API_KEY_ORG_MEMBERSHIP_REVOKED',
       });
     }
@@ -3061,7 +3145,7 @@ async function authenticateApiKey(request: FastifyRequest, reply: FastifyReply, 
 
   if (!scopesSatisfy(apiKey.scopes, required)) {
     return reply.code(403).send({
-      error: `API key is missing the '${required}' scope`,
+      error: appPublicEnglish('API_KEY_SCOPE_MISSING', { value1: required }),
       code: 'API_KEY_SCOPE_INSUFFICIENT',
     });
   }
@@ -3073,7 +3157,7 @@ async function authenticateApiKey(request: FastifyRequest, reply: FastifyReply, 
    * policy entirely.
    */
   if (adminMfaRequired() && user.platformAdmin && !user.mfaEnabled) {
-    return reply.code(403).send({ error: 'MFA required for platform administrators', code: 'MFA_REQUIRED' });
+    return reply.code(403).send({ error: appPublicEnglish('PLATFORM_ADMIN_MFA_REQUIRED'), code: 'MFA_REQUIRED' });
   }
 
   // Best-effort usage stamp; never block the request on it.
@@ -3114,7 +3198,7 @@ async function requireAuth(request: FastifyRequest, reply: FastifyReply, store: 
   }
 
   if (await isUserSuspended(store, user.id)) {
-    return reply.code(403).send({ error: 'User is suspended', code: 'USER_SUSPENDED' });
+    return reply.code(403).send({ error: appPublicEnglish('USER_SUSPENDED'), code: 'USER_SUSPENDED' });
   }
 
   request.currentUser = {
@@ -3149,7 +3233,7 @@ async function requireAuth(request: FastifyRequest, reply: FastifyReply, store: 
     mfaPathname === '/auth/reauth';
 
   if (adminMfaRequired() && user.platformAdmin && !user.mfaEnabled && !mfaExempt) {
-    return reply.code(403).send({ error: 'MFA required for platform administrators', code: 'MFA_REQUIRED' });
+    return reply.code(403).send({ error: appPublicEnglish('PLATFORM_ADMIN_MFA_REQUIRED'), code: 'MFA_REQUIRED' });
   }
 }
 
@@ -3226,7 +3310,7 @@ function buildWorkspaceObjectStorage(input: {
 
 async function requirePlatformAdmin(request: FastifyRequest) {
   if (!request.currentUser?.platformAdmin) {
-    throw Object.assign(new Error('Platform administrator required'), {
+    throw Object.assign(new Error(appPublicEnglish('PLATFORM_ADMIN_REQUIRED')), {
       statusCode: 403,
       code: 'PLATFORM_ADMIN_REQUIRED',
     });
@@ -3247,7 +3331,10 @@ function requireInternalSecret(request: FastifyRequest) {
     typeof header === 'string' && header.startsWith('Bearer ') ? header.slice('Bearer '.length).trim() : '';
 
   const fail = () =>
-    Object.assign(new Error('Internal authentication required'), { statusCode: 401, code: 'INTERNAL_AUTH_REQUIRED' });
+    Object.assign(new Error(appPublicEnglish('INTERNAL_AUTH_REQUIRED')), {
+      statusCode: 401,
+      code: 'INTERNAL_AUTH_REQUIRED',
+    });
 
   if (!expected || !provided) {
     throw fail();
@@ -3276,7 +3363,10 @@ function requirePreviewProxySecret(request: FastifyRequest) {
     typeof header === 'string' && header.startsWith('Bearer ') ? header.slice('Bearer '.length).trim() : '';
 
   const fail = () =>
-    Object.assign(new Error('Preview authentication required'), { statusCode: 401, code: 'PREVIEW_AUTH_REQUIRED' });
+    Object.assign(new Error(appPublicEnglish('PREVIEW_AUTH_REQUIRED')), {
+      statusCode: 401,
+      code: 'PREVIEW_AUTH_REQUIRED',
+    });
 
   if (!expected || !provided) {
     throw fail();
@@ -3323,45 +3413,147 @@ function appPublicBaseUrl(): string {
   return (corsOrigin ?? 'http://localhost:5173').replace(/\/+$/, '');
 }
 
-/*
- * Build a verification email with a clickable link to the web verify page
- * (which reads ?token=…) plus the raw token as a paste-able fallback. The web
- * page promised "click the verification link directly" but no email ever
- * contained one — this closes that gap.
- */
-function verificationEmailContent(token: string, label = 'email'): { text: string; html: string } {
-  const link = `${appPublicBaseUrl()}/verify-email?token=${encodeURIComponent(token)}`;
+/** Resolve persisted recipient language first, then the normalized request locale. */
+function transactionalLocaleForRequest(
+  request: Pick<FastifyRequest, 'headers'>,
+  preferredLanguage?: string | null,
+  options: { manualRequestWins?: boolean } = {},
+): TransactionalLocale {
+  const rawSource = request.headers['x-vibecore-locale-source'];
+  const source = Array.isArray(rawSource) ? rawSource[0] : rawSource;
+  const isExplicitRequestChoice = source === 'manual-cookie' || source === 'query';
+  const cookieHeader = request.headers.cookie;
+  const cookies = typeof cookieHeader === 'string' ? cookieHeader.split(';') : [];
+
+  const cookieLocale = ['vibecore-lang', 'vibecore-auto-lang']
+    .map((name) =>
+      cookies
+        .map((cookie) => cookie.trim())
+        .find((cookie) => cookie.startsWith(`${name}=`))
+        ?.slice(name.length + 1),
+    )
+    .find(Boolean);
+
+  return resolveTransactionalLocale({
+    preferredLanguage:
+      options.manualRequestWins !== false && isExplicitRequestChoice
+        ? cookieLocale
+        : (preferredLanguage ?? cookieLocale),
+    acceptLanguage: request.headers['accept-language'],
+  });
+}
+
+function localizeBackendOwnedText(value: string, locale: TransactionalLocale): string {
+  const localized = localizeAppPublicMessage(value, locale);
+
+  return localized.matched ? localized.value : value;
+}
+
+function localizeBackendErrorForResponse(
+  value: string,
+  locale: TransactionalLocale,
+  fallbackKey: AppPublicCopyKey,
+): string {
+  const localized = localizeAppPublicMessage(value, locale);
+
+  if (localized.matched) {
+    return localized.value;
+  }
+
+  return locale === 'en' ? value : appPublicCopy(fallbackKey, locale);
+}
+
+function localizeInstalledSkillRecord(record: InstalledSkillRecord, locale: TransactionalLocale): InstalledSkillRecord {
+  const catalogEntry = record.origin === 'catalog' ? findRepoEntry(record.ownerRepo, locale) : undefined;
 
   return {
-    text: `Verify your ${label} by opening this link:\n${link}\n\nOr paste this token into the verification page: ${token}`,
-    html: `<p>Verify your ${label} by clicking the link below:</p><p><a href="${link}">${link}</a></p><p>Or paste this token into the verification page: <code>${token}</code></p>`,
+    ...record,
+    description: catalogEntry ? catalogEntry.description : localizeBackendOwnedText(record.description, locale),
+    ...(catalogEntry ? { name: catalogEntry.name } : {}),
+    auditFindings: localizeAuditFindings(record.auditFindings, locale),
   };
 }
 
-function passwordResetEmailContent(token: string): { text: string; html: string } {
-  const link = `${appPublicBaseUrl()}/reset-password?token=${encodeURIComponent(token)}`;
+function localizeSkillAuditEvent(event: SkillAuditEventRecord, locale: TransactionalLocale): SkillAuditEventRecord {
+  return { ...event, findings: localizeAuditFindings(event.findings, locale) };
+}
+
+function setAppLocaleResponseHeaders(reply: FastifyReply, locale: TransactionalLocale): void {
+  const existingVary = reply.getHeader('vary');
+
+  const varyValues = (Array.isArray(existingVary) ? existingVary.join(',') : String(existingVary ?? ''))
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+  for (const header of ['Cookie', 'Accept-Language']) {
+    if (!varyValues.some((value) => value.toLowerCase() === header.toLowerCase())) {
+      varyValues.push(header);
+    }
+  }
+
+  reply.header('content-language', locale);
+  reply.header('vary', varyValues.join(', '));
+}
+
+function localizeDeploymentRecord<T extends Pick<DeploymentRecord, 'logs'>>(
+  deployment: T,
+  locale: TransactionalLocale,
+): T {
+  return {
+    ...deployment,
+    logs: deployment.logs.map((log) => ({
+      ...log,
+      message: localizeBackendOwnedText(log.message, locale),
+    })),
+  };
+}
+
+function serverRuntimeDetectionMessage(
+  code: 'NO_PACKAGE_JSON' | 'INVALID_PACKAGE_JSON' | 'NO_START_COMMAND' | 'STATIC_ONLY',
+): string {
+  const keyByCode = {
+    NO_PACKAGE_JSON: 'SERVER_RUNTIME_NO_PACKAGE_JSON',
+    INVALID_PACKAGE_JSON: 'SERVER_RUNTIME_INVALID_PACKAGE_JSON',
+    NO_START_COMMAND: 'SERVER_RUNTIME_NO_START_COMMAND',
+    STATIC_ONLY: 'SERVER_RUNTIME_STATIC_ONLY',
+  } as const satisfies Record<typeof code, AppPublicCopyKey>;
+
+  return appPublicEnglish(keyByCode[code]);
+}
+
+function localizeSnapshotRecord<T extends Pick<SnapshotRecord, 'kind' | 'label'>>(
+  snapshot: T,
+  locale: TransactionalLocale,
+): T {
+  if (snapshot.kind !== 'before-ai-change' || !snapshot.label) {
+    return snapshot;
+  }
 
   return {
-    text: `Reset your password by opening this link:\n${link}\n\nOr paste this token into the reset page: ${token}`,
-    html: `<p>Reset your password by clicking the link below:</p><p><a href="${link}">${link}</a></p><p>Or paste this token into the reset page: <code>${token}</code></p>`,
+    ...snapshot,
+    label: localizeBackendOwnedText(snapshot.label, locale),
   };
 }
 
 async function requireOrg(request: any, store: ApiStore, organizationId: string, permission: PermissionKey) {
   if (!request.currentUser) {
-    throw Object.assign(new Error('Unauthorized'), { statusCode: 401, code: 'AUTH_REQUIRED' });
+    throw Object.assign(new Error(appPublicEnglish('UNAUTHORIZED')), { statusCode: 401, code: 'AUTH_REQUIRED' });
   }
 
   const member = await store.getMembership(request.currentUser.id, organizationId);
 
   if (!member) {
-    throw Object.assign(new Error('Organization not found'), { statusCode: 404, code: 'ORG_NOT_FOUND' });
+    throw Object.assign(new Error(appPublicEnglish('ORGANIZATION_NOT_FOUND')), {
+      statusCode: 404,
+      code: 'ORG_NOT_FOUND',
+    });
   }
 
   const permissions = await permissionsForOrganizationRole(store, organizationId, member.roleKey);
 
   if (!permissions.includes(permission)) {
-    throw Object.assign(new Error(`Missing permission: ${permission}`), {
+    throw Object.assign(new Error(appPublicEnglish('RBAC_PERMISSION_MISSING', { value1: permission })), {
       statusCode: 403,
       code: 'RBAC_FORBIDDEN',
     });
@@ -3377,22 +3569,28 @@ async function requireOrgAny(
   permissionsToMatch: PermissionKey[],
 ) {
   if (!request.currentUser) {
-    throw Object.assign(new Error('Unauthorized'), { statusCode: 401, code: 'AUTH_REQUIRED' });
+    throw Object.assign(new Error(appPublicEnglish('UNAUTHORIZED')), { statusCode: 401, code: 'AUTH_REQUIRED' });
   }
 
   const member = await store.getMembership(request.currentUser.id, organizationId);
 
   if (!member) {
-    throw Object.assign(new Error('Organization not found'), { statusCode: 404, code: 'ORG_NOT_FOUND' });
+    throw Object.assign(new Error(appPublicEnglish('ORGANIZATION_NOT_FOUND')), {
+      statusCode: 404,
+      code: 'ORG_NOT_FOUND',
+    });
   }
 
   const permissions = await permissionsForOrganizationRole(store, organizationId, member.roleKey);
 
   if (!permissionsToMatch.some((permission) => permissions.includes(permission))) {
-    throw Object.assign(new Error(`Missing one of permissions: ${permissionsToMatch.join(', ')}`), {
-      statusCode: 403,
-      code: 'RBAC_FORBIDDEN',
-    });
+    throw Object.assign(
+      new Error(appPublicEnglish('RBAC_ANY_PERMISSION_MISSING', { value1: permissionsToMatch.join(', ') })),
+      {
+        statusCode: 403,
+        code: 'RBAC_FORBIDDEN',
+      },
+    );
   }
 
   return member;
@@ -3414,7 +3612,7 @@ async function requireAssignableOrganizationRole(store: ApiStore, organizationId
   const permissions = await permissionsForOrganizationRole(store, organizationId, roleKey);
 
   if (permissions.length === 0 && !rolePermissions[roleKey]) {
-    throw Object.assign(new Error('Role not found'), { statusCode: 404, code: 'ROLE_NOT_FOUND' });
+    throw Object.assign(new Error(appPublicEnglish('ROLE_NOT_FOUND')), { statusCode: 404, code: 'ROLE_NOT_FOUND' });
   }
 }
 
@@ -3439,10 +3637,13 @@ async function requireRoleAssignableByCaller(
   const escalated = targetPermissions.filter((permission) => !callerPermissions.includes(permission));
 
   if (escalated.length > 0) {
-    throw Object.assign(new Error(`Cannot grant a role with permissions you do not hold: ${escalated.join(', ')}`), {
-      statusCode: 403,
-      code: 'RBAC_PRIVILEGE_ESCALATION',
-    });
+    throw Object.assign(
+      new Error(appPublicEnglish('RBAC_ROLE_PERMISSION_ESCALATION', { value1: escalated.join(', ') })),
+      {
+        statusCode: 403,
+        code: 'RBAC_PRIVILEGE_ESCALATION',
+      },
+    );
   }
 }
 
@@ -3466,7 +3667,7 @@ async function requireCallerOutranksMember(
   const outranks = targetPermissions.filter((permission) => !callerPermissions.includes(permission));
 
   if (outranks.length > 0) {
-    throw Object.assign(new Error('Cannot modify a member whose role outranks yours'), {
+    throw Object.assign(new Error(appPublicEnglish('RBAC_TARGET_OUTRANKS_CALLER')), {
       statusCode: 403,
       code: 'RBAC_TARGET_OUTRANKS_CALLER',
     });
@@ -3502,7 +3703,10 @@ async function requireProject(
   const project = await store.getProject(projectId);
 
   if (!project) {
-    throw Object.assign(new Error('Project not found'), { statusCode: 404, code: 'PROJECT_NOT_FOUND' });
+    throw Object.assign(new Error(appPublicEnglish('PROJECT_NOT_FOUND')), {
+      statusCode: 404,
+      code: 'PROJECT_NOT_FOUND',
+    });
   }
 
   /*
@@ -3514,7 +3718,10 @@ async function requireProject(
    * instead of letting a "deleted" project remain fully readable and mutable.
    */
   if (project.deletedAt && !options?.allowDeleted) {
-    throw Object.assign(new Error('Project not found'), { statusCode: 404, code: 'PROJECT_NOT_FOUND' });
+    throw Object.assign(new Error(appPublicEnglish('PROJECT_NOT_FOUND')), {
+      statusCode: 404,
+      code: 'PROJECT_NOT_FOUND',
+    });
   }
 
   /*
@@ -3548,7 +3755,7 @@ async function requireProject(
    * and a collaborator-only user needs a write-capable role to perform writes.
    */
   if (isWriteProjectPermission(permission) && isReadOnlyProjectRole(collaboratorRole)) {
-    throw Object.assign(new Error('Read-only collaborators cannot modify this project'), {
+    throw Object.assign(new Error(appPublicEnglish('PROJECT_ROLE_READ_ONLY')), {
       statusCode: 403,
       code: 'PROJECT_ROLE_READ_ONLY',
     });
@@ -3714,7 +3921,10 @@ async function reconcileDeploymentStatus(store: ApiStore, deployment: Deployment
             {
               timestamp: new Date().toISOString(),
               level: 'info' as const,
-              message: `Server deploy: ready with ${live.readyReplicas} replica(s) at ${url}.`,
+              message: appPublicEnglish('DEPLOY_SERVER_READY', {
+                replicas: live.readyReplicas,
+                url,
+              }),
             },
           ],
           finishedAt: new Date().toISOString(),
@@ -3743,7 +3953,7 @@ async function reconcileDeploymentStatus(store: ApiStore, deployment: Deployment
           {
             timestamp: new Date().toISOString(),
             level: 'error' as const,
-            message: 'Build interrupted: deployment exceeded the maximum build time and was marked failed.',
+            message: appPublicEnglish('DEPLOYMENT_BUILD_TIMEOUT'),
           },
         ],
         finishedAt: new Date().toISOString(),
@@ -3824,20 +4034,15 @@ function normalizeProjectPath(path?: string) {
   const hasTraversalSegment = normalized.split('/').some((segment) => segment === '..' || segment === '.');
 
   if (!normalized || hasTraversalSegment || normalized.startsWith('~')) {
-    throw Object.assign(new Error('Invalid project path'), { statusCode: 400, code: 'INVALID_PROJECT_PATH' });
+    throw Object.assign(new Error(appPublicEnglish('INVALID_PROJECT_PATH')), {
+      statusCode: 400,
+      code: 'INVALID_PROJECT_PATH',
+    });
   }
 
   return normalized;
 }
 
-function slugifyRouteSegment(value: string) {
-  return value
-    .toLowerCase()
-    .trim()
-    .replace(/^@+/, '')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '');
-}
 
 /*
  * Accepts either ProjectIdeStateRecord or WorkspaceIdeStateRecord — both
@@ -3903,7 +4108,7 @@ async function mutateProjectIdeState(
     }
   }
 
-  throw Object.assign(new Error('IDE state is being modified too frequently; please retry'), {
+  throw Object.assign(new Error(appPublicEnglish('IDE_STATE_CONTENDED')), {
     code: 'IDE_STATE_CONTENDED',
     statusCode: 409,
   });
@@ -3935,7 +4140,7 @@ function projectFilesFromIdeStateRoot(root: Record<string, unknown>): Array<{ pa
       continue;
     }
 
-    for (const file of boltFileActionsFromContent(content)) {
+    for (const file of boltFileActionsFromContent(content, normalizeProjectPath)) {
       files.set(file.path, file.content);
     }
   }
@@ -4099,54 +4304,6 @@ function persistedIdeMessageContent(message: unknown) {
     .join('\n');
 }
 
-function boltFileActionsFromContent(content: string) {
-  const files: Array<{ path: string; content: string }> = [];
-  const actionPattern = /<boltAction\b([^>]*)>([\s\S]*?)<\/boltAction>/gi;
-
-  let match: RegExpExecArray | null;
-
-  while ((match = actionPattern.exec(content))) {
-    const attributes = boltActionAttributes(match[1]);
-
-    if (attributes.type !== 'file' || !attributes.filePath) {
-      continue;
-    }
-
-    const normalizedPath = normalizeProjectPath(attributes.filePath);
-
-    if (!normalizedPath) {
-      continue;
-    }
-
-    files.push({ path: normalizedPath, content: match[2].replace(/^\n/, '').replace(/\n$/, '') });
-  }
-
-  return files;
-}
-
-function boltActionAttributes(source: string) {
-  const attributes: Record<string, string> = {};
-  const attributePattern = /([A-Za-z_:][\w:.-]*)\s*=\s*(["'])(.*?)\2/g;
-
-  let match: RegExpExecArray | null;
-
-  while ((match = attributePattern.exec(source))) {
-    attributes[match[1]] = decodeHtmlAttribute(match[3]);
-  }
-
-  return attributes;
-}
-
-function decodeHtmlAttribute(value: string) {
-  return value
-    .replaceAll('&quot;', '"')
-    .replaceAll('&#34;', '"')
-    .replaceAll('&apos;', "'")
-    .replaceAll('&#39;', "'")
-    .replaceAll('&amp;', '&')
-    .replaceAll('&lt;', '<')
-    .replaceAll('&gt;', '>');
-}
 
 async function ensureProjectStorageFromIdeState(
   store: ApiStore,
@@ -4172,6 +4329,28 @@ async function ensureProjectStorageFromIdeState(
   }
 
   return projectStorage.writeFiles(projectId, recoveredFiles);
+}
+
+/*
+ * BUG-RUNTIME-DIVERGENCE (option A, signal 3) — une révision dérivée des
+ * FICHIERS.
+ *
+ * La décision de reattach comparait jusqu'ici `ideState.version`, que les
+ * écritures d'INTERFACE incrémentent : ouvrir un onglet ou bouger le curseur la
+ * fait avancer. Mesuré en réel : 5 → 9 en une seule session, sans qu'aucun
+ * fichier ait changé. Toute comparaison bâtie dessus conclut « le stockage a
+ * bougé » à presque chaque réouverture et force le reseed — c'est-à-dire
+ * exactement le symptôme d'Avi.
+ *
+ * Cette empreinte ne dépend que de ce qui compte pour savoir si le pod chaud est
+ * périmé : l'ensemble des chemins, leur date de modification et leur taille. Le
+ * contenu n'est pas haché — inutile, et cela rendrait la route coûteuse.
+ */
+export function projectFilesRevision(files: ReadonlyArray<{ path: string; updatedAt?: string; content?: string }>) {
+  const SEP = '\u0000';
+  const lines = files.map((file) => [file.path, file.updatedAt ?? '', file.content?.length ?? 0].join(SEP)).sort();
+
+  return createHash('sha256').update(lines.join('\n')).digest('hex').slice(0, 32);
 }
 
 async function listProjectFilesIncludingIdeState(
@@ -4243,7 +4422,10 @@ async function requireWorkspace(
   const workspace = await store.getWorkspace(workspaceId);
 
   if (!workspace) {
-    throw Object.assign(new Error('Workspace not found'), { statusCode: 404, code: 'WORKSPACE_NOT_FOUND' });
+    throw Object.assign(new Error(appPublicEnglish('WORKSPACE_NOT_FOUND')), {
+      statusCode: 404,
+      code: 'WORKSPACE_NOT_FOUND',
+    });
   }
 
   await requireProject(request, store, workspace.projectId, permission);
@@ -4253,7 +4435,7 @@ async function requireWorkspace(
 
 async function requireAnyOrgPermission(request: any, store: ApiStore, permission: PermissionKey) {
   if (!request.currentUser) {
-    throw Object.assign(new Error('Unauthorized'), { statusCode: 401, code: 'AUTH_REQUIRED' });
+    throw Object.assign(new Error(appPublicEnglish('UNAUTHORIZED')), { statusCode: 401, code: 'AUTH_REQUIRED' });
   }
 
   const organizations = await store.listOrganizations(request.currentUser.id);
@@ -4269,18 +4451,43 @@ async function requireAnyOrgPermission(request: any, store: ApiStore, permission
     }
   }
 
-  throw Object.assign(new Error(`Missing permission: ${permission}`), { statusCode: 403, code: 'RBAC_FORBIDDEN' });
+  throw Object.assign(new Error(appPublicEnglish('RBAC_PERMISSION_MISSING', { value1: permission })), {
+    statusCode: 403,
+    code: 'RBAC_FORBIDDEN',
+  });
 }
 
 function requireMcpMarketplaceService(mcpMarketplace?: McpMarketplaceService) {
   if (!mcpMarketplace) {
-    throw Object.assign(new Error('MCP marketplace service is unavailable in this environment'), {
+    throw Object.assign(new Error(appPublicEnglish('MCP_MARKETPLACE_UNAVAILABLE')), {
       statusCode: 503,
       code: 'MCP_MARKETPLACE_UNAVAILABLE',
     });
   }
 
   return mcpMarketplace;
+}
+
+function resolveMcpRequestLocale(request: Pick<FastifyRequest, 'headers'>, explicitLocale?: unknown) {
+  return resolveMcpCatalogLocale({
+    explicitLocale,
+    acceptLanguage: request.headers['accept-language'],
+  });
+}
+
+function setMcpLocaleResponseHeaders(reply: FastifyReply, locale: McpCatalogLocale) {
+  const existingVary = reply.getHeader('vary');
+  const varyValues = (Array.isArray(existingVary) ? existingVary.join(',') : String(existingVary ?? ''))
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+  if (!varyValues.some((value) => value.toLowerCase() === 'accept-language')) {
+    varyValues.push('Accept-Language');
+  }
+
+  reply.header('content-language', locale);
+  reply.header('vary', varyValues.join(', '));
 }
 
 function mapMcpMarketplaceError(
@@ -4310,7 +4517,7 @@ async function authorizeAgentMemoryScope(
   permission: PermissionKey,
 ) {
   if (!request.currentUser) {
-    throw Object.assign(new Error('Unauthorized'), { statusCode: 401, code: 'AUTH_REQUIRED' });
+    throw Object.assign(new Error(appPublicEnglish('UNAUTHORIZED')), { statusCode: 401, code: 'AUTH_REQUIRED' });
   }
 
   if (input.projectId) {
@@ -4324,7 +4531,7 @@ async function authorizeAgentMemoryScope(
   }
 
   if (input.scope === 'organization' || input.scope === 'project') {
-    throw Object.assign(new Error(`${input.scope} memory requires an organizationId or projectId`), {
+    throw Object.assign(new Error(appPublicEnglish('MEMORY_SCOPE_OWNER_REQUIRED', { value1: input.scope })), {
       statusCode: 400,
       code: 'AGENT_MEMORY_SCOPE_INVALID',
     });
@@ -4335,7 +4542,7 @@ async function authorizeAgentMemoryScope(
 
 async function requireRecentAdminReauth(request: FastifyRequest, ttlSeconds = 300) {
   if (!hasRecentReauth(request.currentSession?.lastReauthAt, ttlSeconds)) {
-    throw Object.assign(new Error('Recent administrator re-authentication required'), {
+    throw Object.assign(new Error(appPublicEnglish('ADMIN_REAUTH_REQUIRED')), {
       statusCode: 403,
       code: 'ADMIN_REAUTH_REQUIRED',
     });
@@ -4359,7 +4566,7 @@ async function assertNotLastPlatformAdmin(store: ApiStore, targetUserId: string,
   const remaining = admins.filter((user) => user.id !== targetUserId && !(suspendedUserIds?.has(user.id) ?? false));
 
   if (remaining.length === 0) {
-    throw Object.assign(new Error('Cannot remove the last platform administrator'), {
+    throw Object.assign(new Error(appPublicEnglish('LAST_PLATFORM_ADMIN')), {
       statusCode: 409,
       code: 'LAST_PLATFORM_ADMIN',
     });
@@ -4368,7 +4575,7 @@ async function assertNotLastPlatformAdmin(store: ApiStore, targetUserId: string,
 
 async function requireRecentReauth(request: FastifyRequest, ttlSeconds = 300) {
   if (!hasRecentReauth(request.currentSession?.lastReauthAt, ttlSeconds)) {
-    throw Object.assign(new Error('Recent re-authentication required'), {
+    throw Object.assign(new Error(appPublicEnglish('REAUTH_REQUIRED')), {
       statusCode: 403,
       code: 'REAUTH_REQUIRED',
     });
@@ -4381,7 +4588,7 @@ async function requireAdminMfaForSensitiveAction(request: FastifyRequest) {
   }
 
   if (!request.currentUser?.mfaEnabled) {
-    throw Object.assign(new Error('Administrator MFA must be enabled to perform this action'), {
+    throw Object.assign(new Error(appPublicEnglish('ADMIN_MFA_REQUIRED')), {
       statusCode: 403,
       code: 'ADMIN_MFA_REQUIRED',
     });
@@ -4423,7 +4630,7 @@ async function isOrganizationSuspended(store: ApiStore, organizationId: string) 
 
 async function requireOrganizationNotSuspended(store: ApiStore, organizationId?: string) {
   if (organizationId && (await isOrganizationSuspended(store, organizationId))) {
-    throw Object.assign(new Error('Organization is suspended'), { statusCode: 403, code: 'ORG_SUSPENDED' });
+    throw Object.assign(new Error(appPublicEnglish('ORG_SUSPENDED')), { statusCode: 403, code: 'ORG_SUSPENDED' });
   }
 }
 
@@ -4918,7 +5125,7 @@ async function providerHealth(
   return [...rows.values()];
 }
 
-async function adminHealthSummary(store: ApiStore) {
+async function adminHealthSummary(store: ApiStore, locale: TransactionalLocale) {
   const databaseUrl = process.env.DATABASE_URL;
   const redisUrl = process.env.REDIS_URL;
 
@@ -4936,11 +5143,11 @@ async function adminHealthSummary(store: ApiStore) {
     try {
       await store.ping();
       return { status: 'healthy' as const, provider: 'PostgreSQL' as const, latencyMs: Date.now() - startedAt };
-    } catch (error) {
+    } catch {
       return {
         status: 'unreachable' as const,
         provider: 'PostgreSQL' as const,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: appPublicCopy('ADMIN_HEALTH_PROBE_FAILED', locale),
       };
     }
   })();
@@ -4964,8 +5171,8 @@ async function adminHealthSummary(store: ApiStore) {
       await client.ping();
 
       return { status: 'healthy' as const, latencyMs: Date.now() - startedAt };
-    } catch (error) {
-      return { status: 'unreachable' as const, error: error instanceof Error ? error.message : 'Unknown error' };
+    } catch {
+      return { status: 'unreachable' as const, error: appPublicCopy('ADMIN_HEALTH_PROBE_FAILED', locale) };
     } finally {
       client.disconnect();
     }
@@ -5027,7 +5234,7 @@ export async function assertOidcIdToken(
      * local/dev OIDC stubs keep working.
      */
     if (process.env.NODE_ENV === 'production') {
-      throw Object.assign(new Error('OIDC id_token cannot be verified: JWKS not configured'), {
+      throw Object.assign(new Error(appPublicEnglish('OIDC_JWKS_UNAVAILABLE')), {
         statusCode: 401,
         code: 'OIDC_JWKS_UNAVAILABLE',
       });
@@ -5046,7 +5253,7 @@ export async function assertOidcIdToken(
     });
     return payload;
   } catch (error) {
-    throw Object.assign(new Error('OIDC id_token verification failed'), {
+    throw Object.assign(new Error(appPublicEnglish('OIDC_ID_TOKEN_INVALID')), {
       statusCode: 401,
       code: 'OIDC_ID_TOKEN_INVALID',
       cause: error,
@@ -5161,7 +5368,7 @@ async function resolveOAuthProfile(
    */
   if (body.email && body.externalId && body.accessToken) {
     if (process.env.NODE_ENV === 'production') {
-      throw Object.assign(new Error('Pre-resolved OAuth profiles are test-only'), {
+      throw Object.assign(new Error(appPublicEnglish('OAUTH_PRERESOLVED_TEST_ONLY')), {
         statusCode: 400,
         code: 'OAUTH_INVALID_CALLBACK',
       });
@@ -5177,7 +5384,7 @@ async function resolveOAuthProfile(
   }
 
   if (!body.code) {
-    throw Object.assign(new Error('OAuth callback requires code or resolved profile'), {
+    throw Object.assign(new Error(appPublicEnglish('OAUTH_CALLBACK_INPUT_REQUIRED')), {
       statusCode: 400,
       code: 'OAUTH_INVALID_CALLBACK',
     });
@@ -5191,7 +5398,11 @@ async function resolveOAuthProfile(
   if (!tokenUrl || !userInfoUrl) {
     throw Object.assign(
       new Error(
-        `OAuth provider ${provider} is not configured (missing ${provider.toUpperCase()}_TOKEN_URL or ${provider.toUpperCase()}_USERINFO_URL)`,
+        appPublicEnglish('OAUTH_PROVIDER_URLS_NOT_CONFIGURED', {
+          provider,
+          tokenVariable: `${provider.toUpperCase()}_TOKEN_URL`,
+          userInfoVariable: `${provider.toUpperCase()}_USERINFO_URL`,
+        }),
       ),
       {
         statusCode: 503,
@@ -5208,7 +5419,11 @@ async function resolveOAuthProfile(
   if (!clientId || !clientSecret) {
     throw Object.assign(
       new Error(
-        `OAuth provider ${provider} is missing credentials (need ${provider.toUpperCase()}_CLIENT_ID and ${provider.toUpperCase()}_CLIENT_SECRET)`,
+        appPublicEnglish('OAUTH_PROVIDER_CREDENTIALS_MISSING', {
+          provider,
+          clientIdVariable: `${provider.toUpperCase()}_CLIENT_ID`,
+          clientSecretVariable: `${provider.toUpperCase()}_CLIENT_SECRET`,
+        }),
       ),
       {
         statusCode: 503,
@@ -5242,28 +5457,17 @@ async function resolveOAuthProfile(
   });
 
   if (!tokenResponse.ok) {
-    let providerBody = '';
-
-    try {
-      providerBody = (await tokenResponse.text()).slice(0, 500);
-    } catch {
-      // ignore body read failures
-    }
-    throw Object.assign(
-      new Error(`OAuth token exchange failed (status=${tokenResponse.status}): ${providerBody || '<empty>'}`),
-      {
-        statusCode: 401,
-        code: 'OAUTH_TOKEN_EXCHANGE_FAILED',
-        providerStatus: tokenResponse.status,
-        providerBody,
-      },
-    );
+    throw Object.assign(new Error(appPublicEnglish('CONNECTOR_PROVIDER_TOKEN_EXCHANGE_FAILED')), {
+      statusCode: 401,
+      code: 'OAUTH_TOKEN_EXCHANGE_FAILED',
+      providerStatus: tokenResponse.status,
+    });
   }
 
   const tokens = (await tokenResponse.json()) as { access_token?: string; id_token?: string; refresh_token?: string };
 
   if (!tokens.access_token && !tokens.id_token) {
-    throw Object.assign(new Error('OAuth token response did not include an access token'), {
+    throw Object.assign(new Error(appPublicEnglish('OAUTH_TOKEN_MISSING')), {
       statusCode: 401,
       code: 'OAUTH_TOKEN_MISSING',
     });
@@ -5301,22 +5505,11 @@ async function resolveOAuthProfile(
   });
 
   if (!profileResponse.ok) {
-    let providerBody = '';
-
-    try {
-      providerBody = (await profileResponse.text()).slice(0, 500);
-    } catch {
-      // ignore body read failures
-    }
-    throw Object.assign(
-      new Error(`OAuth userinfo failed (status=${profileResponse.status}): ${providerBody || '<empty>'}`),
-      {
-        statusCode: 401,
-        code: 'OAUTH_USERINFO_FAILED',
-        providerStatus: profileResponse.status,
-        providerBody,
-      },
-    );
+    throw Object.assign(new Error(appPublicEnglish('CONNECTOR_PROVIDER_USER_INFO_FAILED')), {
+      statusCode: 401,
+      code: 'OAUTH_USERINFO_FAILED',
+      providerStatus: profileResponse.status,
+    });
   }
 
   const profile = (await profileResponse.json()) as {
@@ -5353,7 +5546,7 @@ async function resolveOAuthProfile(
       : (profile.email_verified ?? profile.verified);
 
   if (provider === 'oidc' && claimEmail && profile.email && claimEmail.toLowerCase() !== profile.email.toLowerCase()) {
-    throw Object.assign(new Error('OIDC id_token email does not match userinfo email'), {
+    throw Object.assign(new Error(appPublicEnglish('OAUTH_EMAIL_MISMATCH')), {
       statusCode: 401,
       code: 'OAUTH_EMAIL_MISMATCH',
     });
@@ -5362,7 +5555,7 @@ async function resolveOAuthProfile(
   const effectiveEmail = provider === 'oidc' && claimEmail ? claimEmail : profile.email;
 
   if (effectiveEmail && claimEmailVerified === false) {
-    throw Object.assign(new Error('OAuth email is not verified'), {
+    throw Object.assign(new Error(appPublicEnglish('OAUTH_EMAIL_UNVERIFIED')), {
       statusCode: 401,
       code: 'OAUTH_EMAIL_UNVERIFIED',
     });
@@ -5373,7 +5566,7 @@ async function resolveOAuthProfile(
      * Generic OIDC IdP omitted email_verified — do not auto-link on an
      * unproven email.
      */
-    throw Object.assign(new Error('OIDC email verification status is unknown'), {
+    throw Object.assign(new Error(appPublicEnglish('OIDC_EMAIL_VERIFICATION_UNKNOWN')), {
       statusCode: 401,
       code: 'OAUTH_EMAIL_UNVERIFIED',
     });
@@ -5421,7 +5614,7 @@ async function resolveOAuthProfile(
   }
 
   if (!email || !externalId) {
-    throw Object.assign(new Error('OAuth profile is missing email or subject'), {
+    throw Object.assign(new Error(appPublicEnglish('OAUTH_PROFILE_INCOMPLETE')), {
       statusCode: 400,
       code: 'OAUTH_PROFILE_INCOMPLETE',
     });
@@ -5551,7 +5744,7 @@ function parseSamlXmlAssertion(xml: string, certificate: string, expectedAudienc
   const assertionXml = verifiedAssertion ?? /<(?:\w+:)?Assertion[\s\S]*?<\/(?:\w+:)?Assertion>/.exec(xml)?.[0];
 
   if (!assertionXml) {
-    throw Object.assign(new Error('SAML response is missing assertion'), {
+    throw Object.assign(new Error(appPublicEnglish('SAML_ASSERTION_MISSING')), {
       statusCode: 400,
       code: 'SAML_INVALID_ASSERTION',
     });
@@ -5596,7 +5789,7 @@ function parseSamlXmlAssertion(xml: string, certificate: string, expectedAudienc
     : undefined;
 
   if (!email || !externalId) {
-    throw Object.assign(new Error('SAML assertion is missing email or subject'), {
+    throw Object.assign(new Error(appPublicEnglish('SAML_PROFILE_INCOMPLETE')), {
       statusCode: 400,
       code: 'SAML_PROFILE_INCOMPLETE',
     });
@@ -5703,7 +5896,7 @@ function parseSamlAssertion(encoded: string, certificate?: string, expectedAudie
      */
     if (/<(?:\w+:)?Assertion[\s>]/.test(decoded)) {
       if (!certificate) {
-        throw Object.assign(new Error('SAML provider certificate is not configured'), {
+        throw Object.assign(new Error(appPublicEnglish('SAML_PROVIDER_NOT_CONFIGURED')), {
           statusCode: 503,
           code: 'SAML_PROVIDER_NOT_CONFIGURED',
         });
@@ -5721,11 +5914,11 @@ function parseSamlAssertion(encoded: string, certificate?: string, expectedAudie
     };
 
     if (!assertion.email || !assertion.externalId) {
-      throw new Error('SAML assertion is missing email or subject');
+      throw new Error(appPublicEnglish('SAML_PROFILE_INCOMPLETE'));
     }
 
     if (process.env.NODE_ENV === 'production') {
-      throw new Error('JSON SAML assertions are test-only');
+      throw new Error(appPublicEnglish('SAML_JSON_TEST_ONLY'));
     }
 
     return {
@@ -5742,7 +5935,7 @@ function parseSamlAssertion(encoded: string, certificate?: string, expectedAudie
       throw error;
     }
 
-    throw Object.assign(new Error('Invalid SAML assertion'), {
+    throw Object.assign(new Error(appPublicEnglish('SAML_INVALID_ASSERTION')), {
       statusCode: 400,
       code: 'SAML_INVALID_ASSERTION',
       cause: error,
@@ -5767,32 +5960,75 @@ function starterFiles(input: {
   artifactType?: string;
   framework?: string;
   model?: string;
+  locale?: TransactionalLocale;
 }): Array<{ path: string; content: string }> {
+  const locale = input.locale ?? 'en';
+
   if (input.sourceType === 'template') {
+    const templateName = input.templateName ?? '';
+
+    /*
+     * Each curated template maps to a distinct, real, runnable application in
+     * @vibecore/template-catalog (the same source the Gallery demo apps ship
+     * from). Use those exact files so every template scaffolds its OWN app —
+     * not the identical generic Vite shell every template produced before this
+     * fix. A templateName with no catalog entry (e.g. a browse-only framework
+     * starter that isn't wired to from-template) falls through to the generic
+     * but still-runnable Vite scaffold below, so a project is never empty.
+     */
+    const demoApp = templateName ? getGalleryDemoApp(templateName) : undefined;
+
+    if (demoApp && demoApp.files.length > 0) {
+      return demoApp.files.map((demoFile) => ({ path: demoFile.path, content: demoFile.content }));
+    }
+
     return [
-      { path: 'README.md', content: `# ${input.name}\n\nCreated from Bolt template \`${input.templateName}\`.\n` },
+      {
+        path: 'README.md',
+        content: `# ${input.name}\n\n${appPublicCopy('PROJECT_STARTER_TEMPLATE_README', locale, { templateName })}\n`,
+      },
       { path: 'package.json', content: vitePackageJson(input.name) },
       { path: 'vite.config.ts', content: viteConfigTs() },
-      { path: 'index.html', content: viteIndexHtml(input.name) },
+      { path: 'index.html', content: viteIndexHtml(input.name, locale) },
       { path: 'src/main.tsx', content: viteMainTsx() },
-      { path: 'src/App.tsx', content: viteAppTsx(input.name, `Created from Bolt template ${input.templateName}.`) },
+      {
+        path: 'src/App.tsx',
+        content: viteAppTsx(
+          input.name,
+          appPublicCopy('PROJECT_STARTER_TEMPLATE_PROMPT', locale, { templateName }),
+          locale,
+        ),
+      },
       { path: 'src/styles.css', content: viteStylesCss() },
     ];
   }
 
   if (input.sourceType === 'ai') {
-    const generationContext = [
-      input.artifactType ? `Artifact type: ${input.artifactType}` : undefined,
-      input.framework ? `Preferred framework: ${input.framework}` : undefined,
-      input.model ? `Requested model: ${input.model}` : undefined,
-    ]
-      .filter(Boolean)
-      .join('\n');
-
+    /*
+     * BUG-QA-PROMPT-IN-README. This README is a PROJECT FILE: it is exported in
+     * the ZIP, committed to the user's git, shipped inside deployment artifacts
+     * and visible to every collaborator. It must therefore carry nothing that
+     * belongs to the platform or to the user's private input.
+     *
+     * It previously embedded, verbatim:
+     *   - the platform's own scaffolding wording ("Application files are
+     *     intentionally left for the IDE agent to produce…"),
+     *   - the generation context, INCLUDING the exact model identifier
+     *     (e.g. "Requested model: claude-sonnet-4-5-20250929"),
+     *   - the raw user prompt — which routinely contains secrets. Proven live:
+     *     a prompt carrying an API key and a Postgres URL with its password was
+     *     recovered intact from `GET /projects/:id/export/zip`.
+     *
+     * The prompt now travels through `ProjectIdeState.chat.pendingPrompt`
+     * (written by the caller right after creation), which is exactly what the
+     * IDE already reads (`Chat.client.tsx` → `memory.chat?.pendingPrompt`).
+     * `extractGenerationPrompt` keeps its README fallback so projects created
+     * BEFORE this change stay recoverable.
+     */
     return [
       {
         path: 'README.md',
-        content: `# ${input.name}\n\nThis project was created from an AI prompt. Application files are intentionally left for the IDE agent to produce as real generated output.\n\n${generationContext ? `Generation context:\n\n${generationContext}\n\n` : ''}Prompt:\n\n${input.prompt}\n`,
+        content: `# ${input.name}\n\n${appPublicCopy('PROJECT_STARTER_AI_DESCRIPTION', locale)}\n`,
       },
     ];
   }
@@ -5801,9 +6037,12 @@ function starterFiles(input: {
     { path: 'README.md', content: `# ${input.name}\n` },
     { path: 'package.json', content: vitePackageJson(input.name) },
     { path: 'vite.config.ts', content: viteConfigTs() },
-    { path: 'index.html', content: viteIndexHtml(input.name) },
+    { path: 'index.html', content: viteIndexHtml(input.name, locale) },
     { path: 'src/main.tsx', content: viteMainTsx() },
-    { path: 'src/App.tsx', content: viteAppTsx(input.name, 'Start building your app with the E-Code agent.') },
+    {
+      path: 'src/App.tsx',
+      content: viteAppTsx(input.name, appPublicCopy('PROJECT_STARTER_BLANK_PROMPT', locale), locale),
+    },
     { path: 'src/styles.css', content: viteStylesCss() },
   ];
 }
@@ -5821,7 +6060,7 @@ async function resolveGitWorkspaceId(
   const target = workspaces.find((workspace) => workspace.id === workspaceId);
 
   if (!target) {
-    throw Object.assign(new Error('Workspace does not belong to this project'), {
+    throw Object.assign(new Error(appPublicEnglish('WORKSPACE_PROJECT_MISMATCH')), {
       statusCode: 404,
       code: 'WORKSPACE_NOT_FOUND',
     });
@@ -5879,7 +6118,7 @@ async function commitInitialScaffold(gitProvider: GitProvider, projectId: string
 
   return gitProvider.commit({
     projectId,
-    message: 'chore: initial scaffold',
+    message: appPublicEnglish('GIT_INITIAL_COMMIT_MESSAGE'),
     files: [],
   });
 }
@@ -5950,9 +6189,9 @@ export default defineConfig({
 `;
 }
 
-function viteIndexHtml(name: string) {
+function viteIndexHtml(name: string, locale: TransactionalLocale) {
   return `<!doctype html>
-<html lang="en">
+<html lang="${locale}">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -5980,12 +6219,14 @@ createRoot(document.getElementById('root')!).render(
 `;
 }
 
-function viteAppTsx(name: string, prompt: string) {
+function viteAppTsx(name: string, prompt: string, locale: TransactionalLocale) {
+  const eyebrow = appPublicCopy('PROJECT_STARTER_EYEBROW', locale);
+
   return `export default function App() {
   return (
     <main className="app-shell">
       <section className="hero">
-        <p className="eyebrow">E-Code project</p>
+        <p className="eyebrow">${eyebrow}</p>
         <h1>{${JSON.stringify(name)}}</h1>
         <p>{${JSON.stringify(prompt)}}</p>
       </section>
@@ -6081,7 +6322,7 @@ function previewLine(value: string, maxLength: number) {
   return cleaned.length > maxLength ? `${cleaned.slice(0, maxLength - 1).trim()}…` : cleaned;
 }
 
-function homepagePreviewText(files: ProjectFile[]) {
+function homepagePreviewText(files: ProjectFile[], locale: TransactionalLocale) {
   const preferredPaths = [
     'src/App.tsx',
     'src/App.jsx',
@@ -6100,7 +6341,10 @@ function homepagePreviewText(files: ProjectFile[]) {
     files[0];
 
   if (!homepage) {
-    return { sourcePath: 'No files yet', lines: ['Open the E-code IDE to create the homepage preview.'] };
+    return {
+      sourcePath: appPublicCopy('PROJECT_HOMEPAGE_PREVIEW_NO_FILES', locale),
+      lines: [appPublicCopy('PROJECT_HOMEPAGE_PREVIEW_CREATE_PROMPT', locale)],
+    };
   }
 
   const cleaned = homepage.content
@@ -6119,26 +6363,47 @@ function homepagePreviewText(files: ProjectFile[]) {
 
   return {
     sourcePath: homepage.path,
-    lines: lines.length ? lines : ['Homepage files are ready in the E-code IDE.'],
+    lines: lines.length ? lines : [appPublicCopy('PROJECT_HOMEPAGE_PREVIEW_FILES_READY', locale)],
   };
 }
 
 function renderProjectHomepagePreviewSvg(input: {
   project: { name: string; updatedAt?: string; sourceType?: string };
   files: ProjectFile[];
+  locale: TransactionalLocale;
 }) {
-  const { sourcePath, lines } = homepagePreviewText(input.files);
-  const updated = input.project.updatedAt ? new Date(input.project.updatedAt).toLocaleDateString('en-US') : 'recent';
+  const { locale } = input;
+  const { sourcePath, lines } = homepagePreviewText(input.files, locale);
+  const updated = input.project.updatedAt
+    ? new Intl.DateTimeFormat(locale === 'fr' ? 'fr-FR' : 'en-US', { dateStyle: 'medium' }).format(
+        new Date(input.project.updatedAt),
+      )
+    : appPublicCopy('PROJECT_HOMEPAGE_PREVIEW_RECENT', locale);
   const fileCount = input.files.length;
-  const title = escapeHtml(previewLine(input.project.name, 42));
-  const subtitle = escapeHtml(previewLine(lines[0] ?? 'Homepage preview', 84));
-  const detail = escapeHtml(previewLine(lines[1] ?? 'Latest project files', 52));
+  const rawTitle = previewLine(input.project.name, 42);
+  const title = escapeHtml(rawTitle);
+  const subtitle = escapeHtml(previewLine(lines[0] ?? appPublicCopy('PROJECT_HOMEPAGE_PREVIEW_SUBTITLE', locale), 84));
+  const detail = escapeHtml(previewLine(lines[1] ?? appPublicCopy('PROJECT_HOMEPAGE_PREVIEW_DETAIL', locale), 52));
   const small = escapeHtml(previewLine(lines[2] ?? sourcePath, 72));
   const source = escapeHtml(previewLine(sourcePath, 70));
-  const sourceType = escapeHtml(previewLine(input.project.sourceType ?? 'E-code project', 36));
+  const sourceType = escapeHtml(
+    previewLine(input.project.sourceType ?? appPublicCopy('PROJECT_HOMEPAGE_PREVIEW_SOURCE_TYPE', locale), 36),
+  );
+  const previewAria = escapeHtml(appPublicCopy('PROJECT_HOMEPAGE_PREVIEW_ARIA', locale, { title: rawTitle }));
+  const openIde = escapeHtml(appPublicCopy('PROJECT_HOMEPAGE_PREVIEW_OPEN_IDE', locale));
+  const latestPreview = escapeHtml(appPublicCopy('PROJECT_HOMEPAGE_PREVIEW_LATEST', locale));
+  const filesLabel = escapeHtml(
+    appPublicCopy(
+      fileCount === 1 ? 'PROJECT_HOMEPAGE_PREVIEW_FILE_ONE' : 'PROJECT_HOMEPAGE_PREVIEW_FILE_OTHER',
+      locale,
+      { count: new Intl.NumberFormat(locale === 'fr' ? 'fr-FR' : 'en-US').format(fileCount) },
+    ),
+  );
+  const updatedLabel = escapeHtml(appPublicCopy('PROJECT_HOMEPAGE_PREVIEW_UPDATED', locale, { date: updated }));
+  const generatedLabel = escapeHtml(appPublicCopy('PROJECT_HOMEPAGE_PREVIEW_GENERATED', locale));
 
   return `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="675" viewBox="0 0 1200 675" role="img" aria-label="${title} homepage preview">
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="675" viewBox="0 0 1200 675" role="img" aria-label="${previewAria}">
   <defs>
     <linearGradient id="accent" x1="0" x2="1" y1="0" y2="1">
       <stop offset="0%" stop-color="#7B61FF"/>
@@ -6171,14 +6436,14 @@ function renderProjectHomepagePreviewSvg(input: {
   <text x="178" y="378" fill="#F5F9FC" font-family="Inter, Arial, sans-serif" font-size="25" font-weight="650">${detail}</text>
   <text x="178" y="416" fill="#C2C8CC" font-family="Inter, Arial, sans-serif" font-size="16">${small}</text>
   <rect x="178" y="444" width="210" height="36" rx="9" fill="url(#accent)"/>
-  <text x="210" y="467" fill="#FFFFFF" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="650">Open in E-code IDE</text>
+  <text x="283" y="467" text-anchor="middle" fill="#FFFFFF" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="650">${openIde}</text>
   <rect x="744" y="292" width="314" height="196" rx="18" fill="#111827" stroke="#2B3245"/>
-  <text x="782" y="340" fill="#6E7681" font-family="IBM Plex Mono, monospace" font-size="14">latest preview</text>
-  <text x="782" y="378" fill="#F5F9FC" font-family="Inter, Arial, sans-serif" font-size="22" font-weight="650">${fileCount} files</text>
+  <text x="782" y="340" fill="#6E7681" font-family="IBM Plex Mono, monospace" font-size="14">${latestPreview}</text>
+  <text x="782" y="378" fill="#F5F9FC" font-family="Inter, Arial, sans-serif" font-size="22" font-weight="650">${filesLabel}</text>
   <text x="782" y="410" fill="#C2C8CC" font-family="Inter, Arial, sans-serif" font-size="15">${sourceType}</text>
-  <text x="782" y="442" fill="#6E7681" font-family="Inter, Arial, sans-serif" font-size="13">Updated ${updated}</text>
+  <text x="782" y="442" fill="#6E7681" font-family="Inter, Arial, sans-serif" font-size="13">${updatedLabel}</text>
   <rect x="142" y="522" width="916" height="1" fill="#1A2030"/>
-  <text x="142" y="556" fill="#6E7681" font-family="Inter, Arial, sans-serif" font-size="13">Generated from the current homepage files for this project.</text>
+  <text x="142" y="556" fill="#6E7681" font-family="Inter, Arial, sans-serif" font-size="13">${generatedLabel}</text>
 </svg>`;
 }
 
@@ -6454,7 +6719,7 @@ function assertProductionWorkspaceManagerUrl(rawUrl = process.env.WORKSPACE_MANA
   const normalized = rawUrl?.trim().replace(/\/+$/, '');
 
   if (!normalized) {
-    throw new Error('WORKSPACE_MANAGER_URL is required in production.');
+    throw new Error(appPublicEnglish('INTERNAL_WORKSPACE_MANAGER_URL_REQUIRED'));
   }
 
   let url: URL;
@@ -6462,7 +6727,7 @@ function assertProductionWorkspaceManagerUrl(rawUrl = process.env.WORKSPACE_MANA
   try {
     url = new URL(normalized);
   } catch {
-    throw new Error('WORKSPACE_MANAGER_URL must be an absolute URL in production.');
+    throw new Error(appPublicEnglish('INTERNAL_WORKSPACE_MANAGER_URL_ABSOLUTE'));
   }
 
   const isInternalKubernetesService =
@@ -6471,11 +6736,11 @@ function assertProductionWorkspaceManagerUrl(rawUrl = process.env.WORKSPACE_MANA
   const isHttps = url.protocol === 'https:';
 
   if (!isHttps && !isInternalKubernetesService) {
-    throw new Error('WORKSPACE_MANAGER_URL must use HTTPS or an internal Kubernetes service DNS URL in production.');
+    throw new Error(appPublicEnglish('INTERNAL_WORKSPACE_MANAGER_URL_SECURE'));
   }
 
   if (/^(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\])$/i.test(url.hostname)) {
-    throw new Error('WORKSPACE_MANAGER_URL must not point to localhost in production.');
+    throw new Error(appPublicEnglish('INTERNAL_WORKSPACE_MANAGER_URL_NO_LOCALHOST'));
   }
 
   return normalized;
@@ -6647,14 +6912,18 @@ async function writeReleaseManifest(
       artifactRef = `static-deployments/${deployment.id}`;
       artifactDigest = digest;
     } else if (deployment.provider === 'server') {
-      const image = ((deployment.metadata as Record<string, unknown> | undefined)?.serverDeploy as
-        | { image?: { imageRef?: string; imageUri?: string; imageDigest?: string; storeGeneration?: string } }
-        | undefined)?.image;
+      const image = (
+        (deployment.metadata as Record<string, unknown> | undefined)?.serverDeploy as
+          | { image?: { imageRef?: string; imageUri?: string; imageDigest?: string; storeGeneration?: string } }
+          | undefined
+      )?.image;
 
       if (!image?.imageDigest) {
-        // A server release with no retained digest can never be a rollback target
-        // (resolveRollbackImage refuses it) — recording a manifest without one
-        // would be a lie, so skip. Rollback then fail-closes on the missing digest.
+        /*
+         * A server release with no retained digest can never be a rollback target
+         * (resolveRollbackImage refuses it) — recording a manifest without one
+         * would be a lie, so skip. Rollback then fail-closes on the missing digest.
+         */
         logger.warn({ deploymentId: deployment.id }, 'release_manifest.server_no_digest');
         return;
       }
@@ -6715,10 +6984,10 @@ async function runAppBuildViaManager(
   });
 
   if (!response.ok) {
-    const text = await response.text().catch(() => '');
-    throw Object.assign(new Error(`app build failed to run: ${response.status} ${text}`), {
+    throw Object.assign(new Error(appPublicEnglish('SERVER_DEPLOY_BUILD_MANAGER_FAILED')), {
       statusCode: 502,
       code: 'SERVER_DEPLOY_BUILD_FAILED',
+      upstreamStatus: response.status,
     });
   }
 
@@ -6749,7 +7018,31 @@ async function startServerDeploymentViaManager(payload: {
   cpuLimit?: string;
   memoryRequest?: string;
   memoryLimit?: string;
+
+  /**
+   * État d'expiration du déploiement, lu par l'appelant. Fourni séparément parce
+   * que ce helper est un client HTTP sans accès au store.
+   */
+  expiryCheck?: {
+    candidate?: { environmentName?: string; createdAt: string; planKey?: string; expiredAt?: string };
+    ttlDays: number | null;
+  };
 }): Promise<{ ready: boolean; url: string; name: string; readyReplicas: number }> {
+  /*
+   * BARRIÈRE DE DÉMARRAGE. Point d'étranglement de TOUS les démarrages de
+   * workload serveur passant par l'API : redéploiement, réconciliation, reprise.
+   * Sans elle, l'extinction ne serait qu'une pause — le premier redémarrage
+   * ramènerait l'app en ligne.
+   */
+  if (payload.expiryCheck) {
+    assertPublicationStartable({
+      deploymentId: payload.deploymentId,
+      candidate: payload.expiryCheck.candidate,
+      ttlDays: payload.expiryCheck.ttlDays,
+      now: new Date(),
+    });
+  }
+
   const managerSecret = process.env.WORKSPACE_MANAGER_SHARED_SECRET?.trim();
 
   const response = await fetch(`${workspaceManagerUrl()}/server-deployments/start`, {
@@ -6764,10 +7057,10 @@ async function startServerDeploymentViaManager(payload: {
   });
 
   if (!response.ok) {
-    const text = await response.text().catch(() => '');
-    throw Object.assign(new Error(`server-deployment start failed: ${response.status} ${text}`), {
+    throw Object.assign(new Error(appPublicEnglish('SERVER_DEPLOY_MANAGER_START_FAILED')), {
       statusCode: 502,
       code: 'SERVER_DEPLOY_MANAGER_FAILED',
+      upstreamStatus: response.status,
     });
   }
 
@@ -6783,6 +7076,32 @@ async function stopServerDeploymentViaManager(deploymentId: string): Promise<voi
     headers: { accept: 'application/json', ...(managerSecret ? { authorization: `Bearer ${managerSecret}` } : {}) },
     signal: AbortSignal.timeout(30_000),
   }).catch(() => undefined);
+}
+
+/**
+ * Arrêt STRICT — lève si le manager n'a pas confirmé.
+ *
+ * La variante ci-dessus avale tout (`.catch(() => undefined)`, aucun contrôle de
+ * `response.ok`) : c'est acceptable là où l'arrêt est un nettoyage best-effort,
+ * mais pas pour l'extinction d'une publication. Le balayage marquerait sinon le
+ * déploiement « éteint » alors que le manager a répondu 500 et que le workload
+ * tourne toujours — un échec transformé en succès apparent, exactement ce que
+ * l'invariant interdit.
+ *
+ * Constaté en réel : manager répondant 500, `stopped:["…"]` et `expiredAt` posé.
+ */
+async function stopServerDeploymentViaManagerStrict(deploymentId: string): Promise<void> {
+  const managerSecret = process.env.WORKSPACE_MANAGER_SHARED_SECRET?.trim();
+
+  const response = await fetch(`${workspaceManagerUrl()}/server-deployments/${encodeURIComponent(deploymentId)}/stop`, {
+    method: 'POST',
+    headers: { accept: 'application/json', ...(managerSecret ? { authorization: `Bearer ${managerSecret}` } : {}) },
+    signal: AbortSignal.timeout(30_000),
+  });
+
+  if (!response.ok) {
+    throw new Error(appPublicEnglish('DEPLOY_STOP_MANAGER_REFUSED', { deploymentId, status: response.status }));
+  }
 }
 
 /*
@@ -6982,9 +7301,71 @@ function runtimeSession(
   };
 }
 
-function runtimeWorkspaceId(projectId: string, userId: string) {
+export function runtimeWorkspaceId(projectId: string, userId: string) {
   const digest = createHash('sha256').update(`${projectId}:${userId}`).digest('hex').slice(0, 16);
   return `ws-${digest}`;
+}
+
+/** Shape of an id produced by `runtimeWorkspaceId` — `ws-` + 16 hex chars. */
+const DERIVED_WORKSPACE_ID = /^ws-[0-9a-f]{16}$/;
+
+/*
+ * BUG-WS-ID-SPLIT (D1) — résoudre le workspace du projet au lieu d'en DÉRIVER
+ * un id.
+ *
+ * Quatre chemins créent un workspace ; trois d'entre eux (API publique,
+ * planificateur, publish) laissent Prisma poser un `cuid()`. Huit sites — build
+ * statique, build de déploiement, outils de l'agent, restore de snapshot, et
+ * `authorizeRuntimeWorkspace` lui-même — recalculaient au contraire
+ * `ws-sha256(projectId:userId)[:16]`. Quand les deux diffèrent, l'écriture va
+ * dans `workspace-<cuid>` pendant que le build provisionne `workspace-ws-<hash>`,
+ * VIDE : `ENOENT package.json`. C'est la même racine que BUG-IDE-001.
+ *
+ * Le projet a légitimement PLUSIEURS workspaces — le schéma le dit : « a project
+ * keeps multiple dev workspaces (primary + secondary agent-run checkouts) », et
+ * le checkout de publication est celui dont `environment` vaut `production`. Il
+ * fallait donc trancher « lequel est actif ». Règle retenue, dans cet ordre :
+ *
+ *   1. l'id dérivé s'il existe VRAIMENT en base — c'est le cas courant, et le
+ *      comportement actuel est alors strictement inchangé ;
+ *   2. sinon le workspace de développement PRIMAIRE du projet, en reprenant la
+ *      définition que `resolveGitWorkspaceId` utilise déjà (le plus ancien par
+ *      `createdAt`) — mais UNIQUEMENT s'il n'a pas la forme d'un id dérivé ;
+ *   3. sinon l'id dérivé, comme avant (tout premier provisionnement).
+ *
+ * L'exclusion des ids en `ws-<hash>` à l'étape 2 est délibérée et porte la
+ * sûreté de la règle : un id dérivé qui n'est pas le mien appartient à un AUTRE
+ * utilisateur — la table ne porte pas de `userId`, l'id est la seule trace du
+ * propriétaire — et l'adopter ferait travailler deux personnes dans le même pod
+ * à leur insu. Les ids `cuid()` sont exactement la population du défaut : ceux
+ * qu'aucun utilisateur ne s'est vu attribuer.
+ */
+export async function resolveProjectWorkspaceId(
+  store: Pick<ApiStore, 'listWorkspaces'>,
+  projectId: string,
+  userId: string | undefined,
+): Promise<string> {
+  const derived = userId ? runtimeWorkspaceId(projectId, userId) : projectId;
+
+  let workspaces: WorkspaceRecord[];
+
+  try {
+    workspaces = await store.listWorkspaces(projectId);
+  } catch {
+    // Un store indisponible ne doit pas changer la cible : on retombe sur l'id dérivé.
+    return derived;
+  }
+
+  if (workspaces.some((workspace) => workspace.id === derived)) {
+    return derived;
+  }
+
+  const adoptable = workspaces
+    .filter((workspace) => (workspace.environment ?? 'development') === 'development')
+    .filter((workspace) => !DERIVED_WORKSPACE_ID.test(workspace.id))
+    .sort((a, b) => String(a.createdAt ?? '').localeCompare(String(b.createdAt ?? '')));
+
+  return adoptable[0]?.id ?? derived;
 }
 
 function mapRuntimeNodes(nodes: AgentNode[]): RuntimeFileNode[] {
@@ -7061,7 +7442,7 @@ function normalizeRuntimeApiWebSocket(rawSocket: unknown) {
     typeof candidate.send !== 'function' ||
     (typeof candidate.on !== 'function' && typeof candidate.addEventListener !== 'function')
   ) {
-    throw Object.assign(new Error('Unsupported runtime WebSocket implementation'), {
+    throw Object.assign(new Error(appPublicEnglish('RUNTIME_WEBSOCKET_UNSUPPORTED')), {
       statusCode: 500,
       code: 'RUNTIME_WEBSOCKET_UNSUPPORTED',
     });
@@ -7506,7 +7887,7 @@ function normalizeAiPath(path = '.') {
     }
 
     if (segment === '..' || segment.includes('\0')) {
-      throw Object.assign(new Error('Path traversal is blocked'), {
+      throw Object.assign(new Error(appPublicEnglish('AI_PATH_TRAVERSAL_BLOCKED')), {
         statusCode: 400,
         code: 'AI_PATH_TRAVERSAL_BLOCKED',
       });
@@ -7557,7 +7938,7 @@ function ensureAiCommandAllowed(command = '', args: string[] = []) {
   ];
 
   if (abuseSignal || blocked.some((pattern) => pattern.test(line))) {
-    throw Object.assign(new Error('Command requires explicit human confirmation'), {
+    throw Object.assign(new Error(appPublicEnglish('AI_COMMAND_CONFIRMATION_REQUIRED')), {
       statusCode: 409,
       code: abuseSignal ? `ABUSE_${abuseSignal.type.toUpperCase()}` : 'AI_COMMAND_CONFIRMATION_REQUIRED',
       abuseSignal,
@@ -7565,11 +7946,14 @@ function ensureAiCommandAllowed(command = '', args: string[] = []) {
   }
 
   if (allowList && (!primaryCommand || !allowList.has(primaryCommand))) {
-    throw Object.assign(new Error(`AI shell command "${primaryCommand ?? command}" is not allow-listed`), {
-      statusCode: 409,
-      code: 'AI_COMMAND_NOT_ALLOWLISTED',
-      allowedCommands: [...allowList],
-    });
+    throw Object.assign(
+      new Error(appPublicEnglish('AI_COMMAND_NOT_ALLOWLISTED', { value1: primaryCommand ?? command })),
+      {
+        statusCode: 409,
+        code: 'AI_COMMAND_NOT_ALLOWLISTED',
+        allowedCommands: [...allowList],
+      },
+    );
   }
 }
 
@@ -7826,6 +8210,36 @@ export async function seedProviderRegistry(store: ApiStore) {
  * `http` 502/503/504 came FROM the agent, so a write may have applied — only
  * retry idempotent reads. Never retry once the attempt budget is exhausted.
  */
+/*
+ * True when a fetch failed because the workspace Service name did not resolve
+ * yet. The Service and its endpoints are created together with the pod, so a
+ * DNS miss right after provisioning is a propagation window, not a fault.
+ *
+ * Node wraps connection errors (AggregateError / TypeError with `cause`), so
+ * walk the cause chain and any aggregated errors instead of string-matching the
+ * message, which differs between Node versions and resolvers.
+ */
+export function isWorkspaceDnsNotResolvedYet(error: unknown, depth = 0): boolean {
+  if (!error || depth > 5) {
+    return false;
+  }
+
+  const candidate = error as { code?: unknown; errors?: unknown; cause?: unknown };
+
+  if (typeof candidate.code === 'string' && (candidate.code === 'ENOTFOUND' || candidate.code === 'EAI_AGAIN')) {
+    return true;
+  }
+
+  if (
+    Array.isArray(candidate.errors) &&
+    candidate.errors.some((nested) => isWorkspaceDnsNotResolvedYet(nested, depth + 1))
+  ) {
+    return true;
+  }
+
+  return isWorkspaceDnsNotResolvedYet(candidate.cause, depth + 1);
+}
+
 export function shouldRetryAgentHop(opts: {
   kind: 'connection' | 'http';
   status?: number;
@@ -7847,6 +8261,42 @@ export function shouldRetryAgentHop(opts: {
   return idempotent && transient;
 }
 
+/**
+ * Une publication Starter a-t-elle dépassé sa durée de vie ?
+ *
+ * L'offre annonce que l'app publiée « descend » au bout de 30 jours. Tant que
+ * cette extinction n'existe que dans le COMPTEUR d'entitlement, l'URL continue
+ * de répondre : le produit dirait une chose et le serveur en ferait une autre.
+ * Cette fonction est appliquée dans le chemin de SERVICE pour que l'extinction
+ * soit réelle.
+ *
+ * Ne s'applique qu'aux publications de PRODUCTION d'une org Starter : une
+ * preview n'est pas une publication, et un plan payant n'a pas de TTL.
+ */
+export function publishedDeploymentExpired(input: {
+  planKey?: string;
+  environmentName?: string;
+  createdAt?: string;
+  now?: Date;
+}): boolean {
+  if (input.environmentName !== 'production' || !input.createdAt) {
+    return false;
+  }
+
+  const plan = toEntitlementPlanKey(input.planKey);
+  const ttlDays = publishedProjectTtlDays(plan);
+
+  if (ttlDays === null) {
+    return false;
+  }
+
+  return !isPublicationActive({
+    plan,
+    publishedAt: new Date(input.createdAt),
+    now: input.now ?? new Date(),
+  });
+}
+
 export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyInstance> {
   const store = options.store ?? createDefaultStore();
   const agentMemory = options.agentMemory ?? createDefaultAgentMemory(store);
@@ -7855,8 +8305,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     options.mcpMarketplace ??
     (store instanceof PrismaApiStore ? createDefaultMcpMarketplaceService(store.prisma) : undefined);
 
-  // BLOCKER #5/#6: persisted readiness beacons + workspace diagnostics live on
-  // the Prisma client. Undefined off Prisma (tests) — helpers are best-effort.
+  /*
+   * BLOCKER #5/#6: persisted readiness beacons + workspace diagnostics live on
+   * the Prisma client. Undefined off Prisma (tests) — helpers are best-effort.
+   */
   const diagnosticsDb = store instanceof PrismaApiStore ? store.prisma : undefined;
 
   const projectStorage = options.projectStorage ?? new LocalProjectStorage();
@@ -7891,9 +8343,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     if (allowedOrigins.length === 0 || unsafeOrigins.length > 0) {
       throw new Error(
-        `Production startup blocked: API_CORS_ORIGINS must list explicit HTTPS origins (got: ${
-          allowedOrigins.length === 0 ? '<empty>' : JSON.stringify(allowedOrigins)
-        }). Set API_CORS_ORIGINS=https://app.example.com,https://admin.example.com before boot.`,
+        appPublicEnglish('INTERNAL_CORS_ORIGINS_REQUIRED', {
+          value1: allowedOrigins.length === 0 ? '<empty>' : JSON.stringify(allowedOrigins),
+        }),
       );
     }
 
@@ -8050,11 +8502,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       serializers: {
         req(request): any {
           /*
-           * Mask capability tokens that travel in the URL path (chat-share links
-           * are GET /chat-shares/<token>, auth-allowlisted). Logging the raw path
-           * would persist a working, unexpirable share credential in cleartext.
+           * Mask credentials that travel in the URL — both the capability tokens
+           * in the PATH (chat-share links are GET /chat-shares/<token>,
+           * auth-allowlisted) and the bearer tokens in the QUERY STRING. The
+           * runtime WebSocket endpoints (ports/watch, files/watch, terminal)
+           * must pass their token as `?token=` because a browser cannot set
+           * headers on a WS handshake, so logging the raw URL wrote a WORKING
+           * credential into the logs on every connection. Pino's `redact`
+           * option only walks object properties, so it never saw it.
            */
-          const safeUrl = (request.url as string).replace(/\/chat-shares\/[^/?#]+/, '/chat-shares/[redacted]');
+          const safeUrl = redactUrlCredentials(request.url as string);
 
           return redactSecrets({
             method: request.method,
@@ -8161,6 +8618,55 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     reply.header('x-request-id', request.id);
     reply.header('x-correlation-id', correlationId);
   });
+  app.addHook('preSerialization', async (request, reply, payload) => {
+    if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+      return payload;
+    }
+
+    const existingContentLanguage = reply.getHeader('content-language');
+    const explicitLocaleValue = Array.isArray(existingContentLanguage)
+      ? existingContentLanguage[0]
+      : existingContentLanguage;
+    const explicitLocale =
+      typeof explicitLocaleValue === 'string' && (explicitLocaleValue === 'en' || explicitLocaleValue === 'fr')
+        ? explicitLocaleValue
+        : undefined;
+    const locale = explicitLocale ?? transactionalLocaleForRequest(request);
+
+    if (existingContentLanguage === undefined) {
+      setAppLocaleResponseHeaders(reply, locale);
+    }
+
+    if (reply.statusCode < 400) {
+      return payload;
+    }
+
+    const errorPayload = payload as Record<string, unknown>;
+    const nestedError =
+      errorPayload.error && typeof errorPayload.error === 'object' && !Array.isArray(errorPayload.error)
+        ? (errorPayload.error as Record<string, unknown>)
+        : undefined;
+
+    if (
+      typeof errorPayload.error !== 'string' &&
+      typeof errorPayload.message !== 'string' &&
+      typeof nestedError?.message !== 'string'
+    ) {
+      return payload;
+    }
+
+    const appLocalized = localizeAppPublicErrorPayload(errorPayload, locale);
+
+    if (appLocalized.handled) {
+      const hasTopLevelMessage = typeof errorPayload.error === 'string' || typeof errorPayload.message === 'string';
+
+      return hasTopLevelMessage && typeof errorPayload.code !== 'string'
+        ? { ...appLocalized.payload, code: 'API_ERROR' }
+        : appLocalized.payload;
+    }
+
+    return localizedPublicErrorPayload(errorPayload, locale);
+  });
   app.addHook('onResponse', async (request, reply) => {
     const route = request.routeOptions.url ?? request.url.split('?')[0] ?? 'unknown';
     const labels = { method: request.method, route, status: reply.statusCode };
@@ -8205,7 +8711,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         total += buf.length;
 
         if (total > WEBHOOK_BODY_LIMIT) {
-          const tooLarge = new Error('Webhook payload exceeds the maximum allowed size') as Error & {
+          const tooLarge = new Error(appPublicEnglish('WEBHOOK_PAYLOAD_TOO_LARGE')) as Error & {
             statusCode?: number;
           };
           tooLarge.statusCode = 413;
@@ -8229,7 +8735,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   app.setErrorHandler((error: any, request, reply) => {
     if (error instanceof z.ZodError) {
-      return reply.code(400).send({ error: 'Validation failed', code: 'VALIDATION_ERROR', issues: error.issues });
+      const locale = transactionalLocaleForRequest(request);
+
+      return reply.code(400).send({
+        error: publicErrorMessage({
+          code: 'VALIDATION_ERROR',
+          locale,
+          englishFallback: appPublicEnglish('VALIDATION_FAILED'),
+        }),
+        code: 'VALIDATION_ERROR',
+        issues: localizeAppValidationIssues(error.issues, locale),
+      });
     }
 
     const statusCode = typeof error.statusCode === 'number' ? error.statusCode : 500;
@@ -8262,9 +8778,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       metrics.increment('stripe_webhook_failures_total', { code: error.code ?? 'STRIPE_WEBHOOK_ERROR' });
     }
 
+    const code = (error as Error & { code?: string }).code ?? 'API_ERROR';
+    const locale = transactionalLocaleForRequest(request);
+    const englishFallback =
+      statusCode >= 500 ? (error.publicMessage ?? appPublicEnglish('INTERNAL_SERVER_ERROR')) : error.message;
+    const appLocalized = localizeAppPublicMessage(englishFallback, locale);
+
     return reply.code(statusCode).send({
-      error: statusCode >= 500 ? (error.publicMessage ?? 'Internal server error') : error.message,
-      code: (error as Error & { code?: string }).code ?? 'API_ERROR',
+      error: appLocalized.matched ? appLocalized.value : publicErrorMessage({ code, locale, englishFallback }),
+      code,
     });
   });
 
@@ -8285,20 +8807,75 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * SPA routes (anything that does not resolve to a real file) fall back
    * to index.html so client-side routers work.
    */
+  /*
+   * ÉTAT DE SERVICE d'un déploiement, pour preview-proxy.
+   *
+   * Le proxy transmet `d-<id>` DIRECTEMENT au Service in-cluster sans consulter
+   * l'API : il ne pouvait donc pas savoir qu'une publication Starter avait
+   * expiré, et servait l'app indéfiniment. Cette route lui donne l'autorité
+   * manquante.
+   *
+   * Publique et sans secret : elle ne révèle que ce qu'un visiteur découvre déjà
+   * en ouvrant l'URL (vivante ou éteinte), jamais l'identité du projet ni son
+   * org. `not-found` pour tout le reste — le proxy ne doit jamais servir une app
+   * parce que l'API n'a pas su répondre.
+   */
+  app.get('/deployments/:deploymentId/serving-state', async (request, reply) => {
+    const deploymentId = ((request.params as { deploymentId?: string }).deploymentId ?? '').trim();
+
+    if (!/^[A-Za-z0-9_-]{1,80}$/.test(deploymentId)) {
+      return reply.code(400).send({
+        error: appPublicCopy('DEPLOY_INVALID_ID', transactionalLocaleForRequest(request)),
+        code: 'DEPLOY_INVALID_ID',
+      });
+    }
+
+    const owner = await store.getDeploymentOwnerStatus(deploymentId).catch(() => undefined);
+
+    if (!owner || owner.projectDeletedAt || owner.status === 'CANCELED') {
+      reply.header('cache-control', 'no-store');
+
+      return reply.send({ state: 'not-found' satisfies ServingState });
+    }
+
+    const state = servingState({
+      candidate: {
+        environmentName: owner.environmentName,
+        createdAt: owner.createdAt ?? '',
+        planKey: owner.planKey,
+        status: owner.status,
+      },
+      ttlDays: publishedProjectTtlDays(toEntitlementPlanKey(owner.planKey)),
+      now: new Date(),
+    });
+
+    /*
+     * Cache TRÈS court côté proxy : une expiration doit prendre effet en
+     * secondes, pas au prochain redémarrage. Assez long malgré tout pour ne pas
+     * transformer chaque requête de l'app en aller-retour vers l'API.
+     */
+    reply.header('cache-control', 'public, max-age=15');
+
+    return reply.send({ state });
+  });
+
   app.get('/static-deployments/:deploymentId/*', async (request, reply) => {
     const params = request.params as { deploymentId?: string; '*'?: string };
     const deploymentId = (params.deploymentId ?? '').trim();
 
     if (!/^[A-Za-z0-9_-]{1,80}$/.test(deploymentId)) {
-      return reply.code(400).send({ error: 'Invalid deployment id', code: 'STATIC_DEPLOY_INVALID_ID' });
+      return reply
+        .code(400)
+        .send({ error: appPublicEnglish('STATIC_DEPLOY_INVALID_ID'), code: 'STATIC_DEPLOY_INVALID_ID' });
     }
 
     const snapshotRoot = staticDeploymentSnapshotDir(deploymentId);
 
     if (!(await pathExistsAsync(snapshotRoot))) {
-      return reply
-        .code(404)
-        .send({ error: 'Static deployment artifact not found', code: 'STATIC_DEPLOY_ARTIFACT_NOT_FOUND' });
+      return reply.code(404).send({
+        error: appPublicEnglish('STATIC_DEPLOY_ARTIFACT_NOT_FOUND'),
+        code: 'STATIC_DEPLOY_ARTIFACT_NOT_FOUND',
+      });
     }
 
     /*
@@ -8318,9 +8895,31 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * the deployment's terminal status so a canceled build isn't publicly served.
      */
     if (!ownerStatus || ownerStatus.projectDeletedAt || ownerStatus.status === 'CANCELED') {
-      return reply
-        .code(404)
-        .send({ error: 'Static deployment artifact not found', code: 'STATIC_DEPLOY_ARTIFACT_NOT_FOUND' });
+      return reply.code(404).send({
+        error: appPublicEnglish('STATIC_DEPLOY_ARTIFACT_NOT_FOUND'),
+        code: 'STATIC_DEPLOY_ARTIFACT_NOT_FOUND',
+      });
+    }
+
+    /*
+     * EXTINCTION RÉELLE de la publication Starter arrivée à 30 jours. 410 Gone
+     * (et non 404) : la ressource a bien existé et son URL est définitivement
+     * retirée — republier crée une nouvelle publication. Sans ce gate, le
+     * produit annonçait une extinction qui n'avait jamais lieu.
+     */
+    if (
+      publishedDeploymentExpired({
+        planKey: ownerStatus.planKey,
+        environmentName: ownerStatus.environmentName,
+        createdAt: ownerStatus.createdAt,
+      })
+    ) {
+      reply.header('cache-control', 'no-store');
+
+      return reply.code(410).send({
+        error: appPublicCopy('PUBLISHED_DEPLOYMENT_EXPIRED', transactionalLocaleForRequest(request)),
+        code: 'PUBLISHED_DEPLOYMENT_EXPIRED',
+      });
     }
 
     let decodedPath: string;
@@ -8328,7 +8927,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     try {
       decodedPath = decodeURIComponent(params['*'] ?? '');
     } catch {
-      return reply.code(400).send({ error: 'Invalid path encoding', code: 'INVALID_STATIC_DEPLOY_PATH' });
+      return reply
+        .code(400)
+        .send({ error: appPublicEnglish('INVALID_PATH_ENCODING'), code: 'INVALID_STATIC_DEPLOY_PATH' });
     }
 
     const rawPath = decodedPath.replace(/\\/g, '/');
@@ -8339,7 +8940,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     if (!resolved.startsWith(`${snapshotRoot}${sep}`) && resolved !== snapshotRoot) {
       return reply
         .code(403)
-        .send({ error: 'Path is outside the deployment artifact', code: 'STATIC_DEPLOY_FORBIDDEN' });
+        .send({ error: appPublicEnglish('STATIC_DEPLOY_PATH_OUTSIDE'), code: 'STATIC_DEPLOY_FORBIDDEN' });
     }
 
     const directHit = await readableFileOrUndefined(resolved);
@@ -8360,7 +8961,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const filePath = directHit ?? (fallbackIndex ? await readableFileOrUndefined(fallbackIndex) : undefined);
 
     if (!filePath) {
-      return reply.code(404).send({ error: 'File not found in deployment', code: 'STATIC_DEPLOY_FILE_NOT_FOUND' });
+      return reply
+        .code(404)
+        .send({ error: appPublicEnglish('STATIC_DEPLOY_FILE_NOT_FOUND'), code: 'STATIC_DEPLOY_FILE_NOT_FOUND' });
     }
 
     /*
@@ -8378,13 +8981,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       realRoot = await realpath(snapshotRoot);
       realFile = await realpath(filePath);
     } catch {
-      return reply.code(404).send({ error: 'File not found in deployment', code: 'STATIC_DEPLOY_FILE_NOT_FOUND' });
+      return reply
+        .code(404)
+        .send({ error: appPublicEnglish('STATIC_DEPLOY_FILE_NOT_FOUND'), code: 'STATIC_DEPLOY_FILE_NOT_FOUND' });
     }
 
     if (realFile !== realRoot && !realFile.startsWith(`${realRoot}${sep}`)) {
       return reply
         .code(403)
-        .send({ error: 'Path is outside the deployment artifact', code: 'STATIC_DEPLOY_FORBIDDEN' });
+        .send({ error: appPublicEnglish('STATIC_DEPLOY_PATH_OUTSIDE'), code: 'STATIC_DEPLOY_FORBIDDEN' });
     }
 
     /*
@@ -8420,6 +9025,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * API-origin URL now redirects here.
      */
     const dedicatedOrigin = staticDeployDedicatedOrigin(deploymentId);
+
     const onDedicatedHost = isDedicatedStaticDeployHost(
       request.headers.host,
       deploymentId,
@@ -8608,8 +9214,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
               'sales@vibecore.local')
             : (process.env.SALES_EMAIL_TO ?? process.env.EMAIL_FROM ?? 'sales@vibecore.local'),
           subject: isGeneralContact
-            ? `E-Code contact request - ${body.topic} [${reference}]`
-            : `E-Code sales request - ${body.company} [${reference}]`,
+            ? appPublicCopy('CONTACT_REQUEST_EMAIL_SUBJECT', transactionalLocaleForRequest(request), {
+                topic: body.topic,
+                reference,
+              })
+            : appPublicCopy('SALES_REQUEST_EMAIL_SUBJECT', transactionalLocaleForRequest(request), {
+                company: body.company,
+                reference,
+              }),
           text: [
             `Reference: ${reference} (record ${record.id})`,
             `Email: ${body.email}`,
@@ -8671,10 +9283,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     },
     async (request, reply) => {
       const body = parse(registerSchema, request.body);
+      const locale = transactionalLocaleForRequest(request);
       const existing = await store.findUserByEmail(body.email);
 
       if (existing) {
-        return reply.code(409).send({ error: 'Email already registered', code: 'AUTH_EMAIL_EXISTS' });
+        return reply.code(409).send({ error: appPublicEnglish('AUTH_EMAIL_EXISTS'), code: 'AUTH_EMAIL_EXISTS' });
       }
 
       /*
@@ -8687,6 +9300,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         email: body.email,
         name: body.name,
         passwordHash: hashPassword(body.password),
+        language: locale,
       });
 
       const verificationToken = createOpaqueToken('verify');
@@ -8716,10 +9330,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        * continue; the account is usable and verification can be re-requested.
        */
       try {
+        const content = verificationEmailContent({
+          baseUrl: appPublicBaseUrl(),
+          token: verificationToken,
+          locale,
+        });
         await emailProvider.send({
           to: user.email,
-          subject: 'Verify your email',
-          ...verificationEmailContent(verificationToken),
+          ...content,
         });
       } catch (error) {
         request.log.error({ err: error, userId: user.id }, 'failed to send registration verification email');
@@ -8785,7 +9403,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           await store.recordFailedLogin(user.id, Date.now(), throttleConfig).catch(() => undefined);
         }
 
-        return reply.code(401).send({ error: 'Invalid credentials', code: 'AUTH_INVALID_CREDENTIALS' });
+        return reply
+          .code(401)
+          .send({ error: appPublicEnglish('AUTH_INVALID_CREDENTIALS'), code: 'AUTH_INVALID_CREDENTIALS' });
       }
 
       if (user.mfaEnabled) {
@@ -8793,7 +9413,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
         if (!body.mfaCode) {
           metrics.increment('auth_failures_total', { reason: 'mfa_required' });
-          return reply.code(401).send({ error: 'MFA code is required', code: 'AUTH_MFA_REQUIRED' });
+          return reply.code(401).send({ error: appPublicEnglish('AUTH_MFA_CODE_REQUIRED'), code: 'AUTH_MFA_REQUIRED' });
         }
 
         const totpValid = verifyEncryptedTotpCode(encryptedSecret, body.mfaCode);
@@ -8807,7 +9427,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           // A wrong MFA code is also a failed auth attempt — count it toward the lock.
           await store.recordFailedLogin(user.id, Date.now(), throttleConfig).catch(() => undefined);
 
-          return reply.code(401).send({ error: 'Invalid MFA code', code: 'AUTH_INVALID_MFA_CODE' });
+          return reply
+            .code(401)
+            .send({ error: appPublicEnglish('AUTH_INVALID_MFA_CODE'), code: 'AUTH_INVALID_MFA_CODE' });
         }
       }
 
@@ -8820,7 +9442,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        */
       if (await isUserSuspended(store, user.id)) {
         metrics.increment('auth_failures_total', { reason: 'suspended' });
-        return reply.code(403).send({ error: 'User is suspended', code: 'USER_SUSPENDED' });
+        return reply.code(403).send({ error: appPublicEnglish('USER_SUSPENDED'), code: 'USER_SUSPENDED' });
       }
 
       /*
@@ -8835,7 +9457,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       if (ssoBlockingOrg) {
         metrics.increment('auth_failures_total', { reason: 'sso_enforced' });
         return reply.code(403).send({
-          error: 'Your organization requires single sign-on. Please sign in through your identity provider.',
+          error: appPublicEnglish('AUTH_SSO_REQUIRED'),
           code: 'SSO_ENFORCED',
         });
       }
@@ -8869,7 +9491,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       const user = await store.consumeEmailVerification(body.token);
 
       if (!user) {
-        return reply.code(400).send({ error: 'Invalid verification token', code: 'AUTH_INVALID_VERIFICATION_TOKEN' });
+        return reply.code(400).send({
+          error: appPublicEnglish('AUTH_INVALID_VERIFICATION_TOKEN'),
+          code: 'AUTH_INVALID_VERIFICATION_TOKEN',
+        });
       }
 
       /*
@@ -8882,6 +9507,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       }
 
       await audit(request, store, { action: 'auth.email.verify', resourceType: 'user', resourceId: user.id });
+
+      try {
+        const content = welcomeEmailContent({
+          baseUrl: appPublicBaseUrl(),
+          locale: transactionalLocaleForRequest(request, user.language, { manualRequestWins: false }),
+          name: user.name,
+        });
+        await emailProvider.send({ to: user.email, ...content });
+      } catch (error) {
+        request.log.error({ err: error, userId: user.id }, 'failed to send welcome email');
+      }
 
       return { verified: true };
     },
@@ -8896,6 +9532,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       const resetToken = createOpaqueToken('reset');
 
       if (user) {
+        const locale = transactionalLocaleForRequest(request, user.language, { manualRequestWins: false });
         await store.createPasswordReset({
           userId: user.id,
           token: resetToken,
@@ -8907,10 +9544,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
          * exists, nor 500 the request (the response is intentionally uniform).
          */
         try {
+          const content = passwordResetEmailContent({
+            baseUrl: appPublicBaseUrl(),
+            token: resetToken,
+            locale,
+          });
           await emailProvider.send({
             to: user.email,
-            subject: 'Reset your password',
-            ...passwordResetEmailContent(resetToken),
+            ...content,
           });
         } catch (error) {
           request.log.error({ err: error, userId: user.id }, 'failed to send password reset email');
@@ -8935,7 +9576,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       const user = await store.consumePasswordReset(body.token, hashPassword(body.password));
 
       if (!user) {
-        return reply.code(400).send({ error: 'Invalid password reset token', code: 'AUTH_INVALID_RESET_TOKEN' });
+        return reply
+          .code(400)
+          .send({ error: appPublicEnglish('AUTH_INVALID_RESET_TOKEN'), code: 'AUTH_INVALID_RESET_TOKEN' });
       }
 
       await store.revokeAllSessions(user.id);
@@ -9107,7 +9750,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        * flow through this route (OIDC has its own /auth/oidc/callback).
        */
       if (provider !== 'github' && provider !== 'google') {
-        return reply.code(400).send({ error: 'Unsupported sign-in provider', code: 'OAUTH_PROVIDER_UNKNOWN' });
+        return reply
+          .code(400)
+          .send({ error: appPublicEnglish('OAUTH_PROVIDER_UNKNOWN'), code: 'OAUTH_PROVIDER_UNKNOWN' });
       }
 
       const body = parse(oauthCallbackSchema, request.body);
@@ -9118,7 +9763,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        * skipped validation entirely.
        */
       if (body.code && (!body.state || !verifyOauthState(body.state, provider))) {
-        return reply.code(401).send({ error: 'Invalid or expired OAuth state', code: 'OAUTH_STATE_INVALID' });
+        return reply.code(401).send({ error: appPublicEnglish('OAUTH_STATE_INVALID'), code: 'OAUTH_STATE_INVALID' });
       }
 
       /*
@@ -9128,7 +9773,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       const loginCreds = await resolveLoginProviderCredentials(provider, store);
 
       if (!loginCreds.enabled) {
-        return reply.code(503).send({ error: 'This sign-in provider is disabled', code: 'OAUTH_PROVIDER_DISABLED' });
+        return reply
+          .code(503)
+          .send({ error: appPublicEnglish('OAUTH_PROVIDER_DISABLED'), code: 'OAUTH_PROVIDER_DISABLED' });
       }
 
       let profile;
@@ -9145,7 +9792,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         );
         return reply
           .code(err?.statusCode ?? 500)
-          .send({ error: 'OAuth resolve failed', code: err?.code ?? 'OAUTH_RESOLVE_FAILED' });
+          .send({ error: appPublicEnglish('OAUTH_RESOLVE_FAILED'), code: err?.code ?? 'OAUTH_RESOLVE_FAILED' });
       }
 
       try {
@@ -9157,6 +9804,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             email: profile.email,
             name: profile.name,
             passwordHash: hashPassword(createOpaqueToken('oauth')),
+            language: transactionalLocaleForRequest(request),
           });
           isNewUser = true;
         }
@@ -9202,7 +9850,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           { provider, code: err?.code, msg: err?.message, stack: err?.stack },
           'oauth user/session persistence failed',
         );
-        return reply.code(500).send({ error: 'OAuth login persistence failed', code: 'OAUTH_SESSION_FAILED' });
+        return reply.code(500).send({ error: appPublicEnglish('OAUTH_SESSION_FAILED'), code: 'OAUTH_SESSION_FAILED' });
       }
     },
   );
@@ -9219,25 +9867,29 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     { config: { rateLimit: { max: Number(process.env.AUTH_OAUTH_RATE_LIMIT_MAX ?? 100), timeWindow: '1 minute' } } },
     async (request, reply) => {
       if (!request.currentUser) {
-        return reply.code(401).send({ error: 'Authentication required', code: 'AUTH_REQUIRED' });
+        return reply.code(401).send({ error: appPublicEnglish('AUTHENTICATION_REQUIRED'), code: 'AUTH_REQUIRED' });
       }
 
       const provider = (request.params as { provider: string }).provider;
 
       if (provider !== 'github' && provider !== 'google') {
-        return reply.code(400).send({ error: 'Unsupported sign-in provider', code: 'OAUTH_PROVIDER_UNKNOWN' });
+        return reply
+          .code(400)
+          .send({ error: appPublicEnglish('OAUTH_PROVIDER_UNKNOWN'), code: 'OAUTH_PROVIDER_UNKNOWN' });
       }
 
       const body = parse(oauthCallbackSchema, request.body);
 
       if (body.code && (!body.state || !verifyOauthState(body.state, provider))) {
-        return reply.code(401).send({ error: 'Invalid or expired OAuth state', code: 'OAUTH_STATE_INVALID' });
+        return reply.code(401).send({ error: appPublicEnglish('OAUTH_STATE_INVALID'), code: 'OAUTH_STATE_INVALID' });
       }
 
       const linkCreds = await resolveLoginProviderCredentials(provider, store);
 
       if (!linkCreds.enabled) {
-        return reply.code(503).send({ error: 'This sign-in provider is disabled', code: 'OAUTH_PROVIDER_DISABLED' });
+        return reply
+          .code(503)
+          .send({ error: appPublicEnglish('OAUTH_PROVIDER_DISABLED'), code: 'OAUTH_PROVIDER_DISABLED' });
       }
 
       let profile;
@@ -9251,7 +9903,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         request.log.error({ provider, code: err?.code, msg: err?.message }, 'oauth link resolveOAuthProfile failed');
         return reply
           .code(err?.statusCode ?? 500)
-          .send({ error: 'OAuth resolve failed', code: err?.code ?? 'OAUTH_RESOLVE_FAILED' });
+          .send({ error: appPublicEnglish('OAUTH_RESOLVE_FAILED'), code: err?.code ?? 'OAUTH_RESOLVE_FAILED' });
       }
 
       /*
@@ -9262,7 +9914,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
       if (existing && existing.userId !== request.currentUser.id) {
         return reply.code(409).send({
-          error: `This ${provider} account is already linked to another user.`,
+          error: appPublicEnglish('OAUTH_ACCOUNT_ALREADY_LINKED', { value1: provider }),
           code: 'OAUTH_ALREADY_LINKED',
         });
       }
@@ -9296,13 +9948,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       const body = parse(oidcCallbackSchema, request.body);
 
       if (body.code && (!body.state || !verifyOauthState(body.state, 'oidc'))) {
-        return reply.code(401).send({ error: 'Invalid or expired OIDC state', code: 'OAUTH_STATE_INVALID' });
+        return reply.code(401).send({ error: appPublicEnglish('OIDC_STATE_INVALID'), code: 'OAUTH_STATE_INVALID' });
       }
 
       const oidcCreds = await resolveLoginProviderCredentials('oidc', store);
 
       if (!oidcCreds.enabled) {
-        return reply.code(503).send({ error: 'This sign-in provider is disabled', code: 'OAUTH_PROVIDER_DISABLED' });
+        return reply
+          .code(503)
+          .send({ error: appPublicEnglish('OAUTH_PROVIDER_DISABLED'), code: 'OAUTH_PROVIDER_DISABLED' });
       }
 
       let profile;
@@ -9319,7 +9973,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         );
         return reply
           .code(err?.statusCode ?? 500)
-          .send({ error: 'OIDC resolve failed', code: err?.code ?? 'OAUTH_RESOLVE_FAILED' });
+          .send({ error: appPublicEnglish('OIDC_RESOLVE_FAILED'), code: err?.code ?? 'OAUTH_RESOLVE_FAILED' });
       }
 
       let user = await store.findUserByEmail(profile.email);
@@ -9329,6 +9983,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           email: profile.email,
           name: profile.name,
           passwordHash: hashPassword(createOpaqueToken('oidc')),
+          language: transactionalLocaleForRequest(request),
         });
       }
 
@@ -9403,7 +10058,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       const config = await store.getSsoConfig(orgId, 'saml');
 
       if (!config?.enabled) {
-        return reply.code(404).send({ error: 'SAML provider is not configured', code: 'SAML_PROVIDER_NOT_CONFIGURED' });
+        return reply
+          .code(404)
+          .send({ error: appPublicEnglish('SAML_PROVIDER_NOT_FOUND'), code: 'SAML_PROVIDER_NOT_CONFIGURED' });
       }
 
       let assertion;
@@ -9416,11 +10073,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
          * Attacker-controlled SAMLResponse that makes parsing throw must return a
          * clean 401, not an unauthenticated 500 (+ Sentry amplification).
          */
-        return reply.code(401).send({ error: 'Invalid SAML assertion', code: 'SAML_INVALID_ASSERTION' });
+        return reply
+          .code(401)
+          .send({ error: appPublicEnglish('SAML_INVALID_ASSERTION'), code: 'SAML_INVALID_ASSERTION' });
       }
 
       if (!assertion.signatureValid) {
-        return reply.code(401).send({ error: 'Invalid SAML assertion signature', code: 'SAML_INVALID_SIGNATURE' });
+        return reply
+          .code(401)
+          .send({ error: appPublicEnglish('SAML_INVALID_SIGNATURE'), code: 'SAML_INVALID_SIGNATURE' });
       }
 
       /*
@@ -9439,7 +10100,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         });
 
         if (!consumption.created) {
-          return reply.code(401).send({ error: 'SAML assertion already used', code: 'SAML_ASSERTION_REPLAYED' });
+          return reply
+            .code(401)
+            .send({ error: appPublicEnglish('SAML_ASSERTION_REPLAYED'), code: 'SAML_ASSERTION_REPLAYED' });
         }
       }
 
@@ -9460,7 +10123,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
       if (!emailDomain || !verifiedDomains.includes(emailDomain)) {
         return reply.code(403).send({
-          error: 'SAML assertion email domain is not a verified domain for this organization',
+          error: appPublicEnglish('SAML_EMAIL_DOMAIN_UNVERIFIED'),
           code: 'SAML_EMAIL_DOMAIN_NOT_VERIFIED',
         });
       }
@@ -9471,6 +10134,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           email: assertion.email,
           name: assertion.name,
           passwordHash: hashPassword(createOpaqueToken('saml')),
+          language: transactionalLocaleForRequest(request),
         }));
       await store.upsertOAuthConnection({
         userId: user.id,
@@ -9562,7 +10226,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         return reply
           .code(429)
           .header('retry-after', Math.max(1, Math.ceil((bucket.resetAt - now) / 1000)))
-          .send({ error: 'Too many admin requests', code: 'ADMIN_RATE_LIMITED' });
+          .send({ error: appPublicEnglish('ADMIN_RATE_LIMITED'), code: 'ADMIN_RATE_LIMITED' });
       } else {
         bucket.count += 1;
       }
@@ -9576,6 +10240,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       request.url === '/ready' ||
       request.url === '/metrics' ||
       request.url === '/synthetic/health' ||
+      /*
+       * État de service d'un déploiement : appelé par preview-proxy SANS
+       * credentials (il n'en a pas). Ne révèle que ce qu'un visiteur découvre en
+       * ouvrant l'URL publique — vivante ou éteinte — jamais l'identité du projet
+       * ni de son org.
+       */
+      /^\/deployments\/[A-Za-z0-9_-]{1,80}\/serving-state$/.test(request.url.split('?')[0]) ||
       request.url.startsWith('/auth/register') ||
       request.url.startsWith('/auth/login') ||
       request.url.startsWith('/auth/verify-email') ||
@@ -9692,9 +10363,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       const settings = await store.getEnterpriseSettings(orgId);
 
       if (!isIpAllowed(request.ip, settings.ipAllowlist)) {
-        return reply
-          .code(403)
-          .send({ error: 'IP address is not allowed for this organization', code: 'IP_ALLOWLIST_BLOCKED' });
+        return reply.code(403).send({ error: appPublicEnglish('IP_ALLOWLIST_BLOCKED'), code: 'IP_ALLOWLIST_BLOCKED' });
       }
     }
   });
@@ -9848,14 +10517,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     { config: { rateLimit: { max: Number(process.env.ACCOUNT_DELETE_RATE_LIMIT_MAX ?? 5), timeWindow: '1 minute' } } },
     async (request, reply) => {
       if (!accountDeletionEnabled()) {
-        return reply.code(404).send({ error: 'not_found' });
+        return reply
+          .code(404)
+          .send({ error: appPublicEnglish('RESOURCE_NOT_FOUND'), code: 'ACCOUNT_DELETION_DISABLED' });
       }
 
       const userId = request.currentUser!.id;
       const user = await store.findUserById(userId);
 
       if (!user) {
-        return reply.code(404).send({ error: 'not_found' });
+        return reply.code(404).send({ error: appPublicEnglish('RESOURCE_NOT_FOUND'), code: 'USER_NOT_FOUND' });
       }
 
       const nowMs = Date.now();
@@ -9897,7 +10568,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       const nowMs = Date.now();
 
       if (!canCancelDeletion({ ...state, nowMs })) {
-        return reply.code(409).send({ error: 'cannot_cancel', status: deletionStatus({ ...state, nowMs }) });
+        return reply.code(409).send({
+          error: appPublicEnglish('ACCOUNT_DELETION_CANNOT_CANCEL'),
+          code: 'ACCOUNT_DELETION_CANNOT_CANCEL',
+          status: deletionStatus({ ...state, nowMs }),
+        });
       }
 
       const preferences = { ...(user!.preferences ?? {}) };
@@ -10107,14 +10782,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     },
     async (request, reply) => {
       if (!accountDataExportEnabled()) {
-        return reply.code(404).send({ error: 'not_found' });
+        return reply
+          .code(404)
+          .send({ error: appPublicEnglish('RESOURCE_NOT_FOUND'), code: 'ACCOUNT_DATA_EXPORT_DISABLED' });
       }
 
       const userId = request.currentUser!.id;
       const document = await buildAccountDataExport(userId);
 
       if (!document) {
-        return reply.code(404).send({ error: 'not_found' });
+        return reply.code(404).send({ error: appPublicEnglish('RESOURCE_NOT_FOUND'), code: 'USER_NOT_FOUND' });
       }
 
       await audit(request, store, { action: 'account.data_export', resourceType: 'user', resourceId: userId });
@@ -10224,7 +10901,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const archived = await service.archive({ id: memoryId, userId: request.currentUser!.id });
 
     if (!archived) {
-      return reply.code(404).send({ error: 'Memory not found', code: 'AGENT_MEMORY_NOT_FOUND' });
+      return reply
+        .code(404)
+        .send({ error: appPublicEnglish('AGENT_MEMORY_NOT_FOUND'), code: 'AGENT_MEMORY_NOT_FOUND' });
     }
 
     await audit(request, store, {
@@ -10245,7 +10924,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     },
     async (request, reply) => {
       if (!request.currentUser) {
-        return reply.code(401).send({ error: 'Authentication required', code: 'AUTH_REQUIRED' });
+        return reply.code(401).send({ error: appPublicEnglish('AUTHENTICATION_REQUIRED'), code: 'AUTH_REQUIRED' });
       }
 
       const params = parse(integrationOauthProviderParams, request.params);
@@ -10255,14 +10934,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
       if (!connector) {
         return reply.code(400).send({
-          error: `Unsupported connector provider: ${params.provider}`,
+          error: appPublicEnglish('CONNECTOR_PROVIDER_UNSUPPORTED', { value1: params.provider }),
           code: 'CONNECTOR_UNKNOWN_PROVIDER',
         });
       }
 
       if (connector.authType !== 'oauth' || !connector.buildAuthorizeUrl) {
         return reply.code(400).send({
-          error: `Provider ${params.provider} is an API-key connector and cannot start an OAuth flow.`,
+          error: appPublicEnglish('CONNECTOR_API_KEY_CANNOT_START_OAUTH', { value1: params.provider }),
           code: 'CONNECTOR_AUTH_TYPE_MISMATCH',
         });
       }
@@ -10284,7 +10963,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
         if (orgs.length === 0) {
           return reply.code(400).send({
-            error: 'Account is not a member of any organization.',
+            error: appPublicEnglish('ACCOUNT_HAS_NO_ORGANIZATION'),
             code: 'NO_ORGANIZATION_MEMBERSHIP',
           });
         }
@@ -10296,7 +10975,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
       if (!credentials) {
         return reply.code(503).send({
-          error: `${params.provider} integration OAuth credentials are not configured on this server.`,
+          error: appPublicEnglish('CONNECTOR_OAUTH_CREDENTIALS_NOT_CONFIGURED', { value1: params.provider }),
           code: 'PROVIDER_NOT_CONFIGURED',
         });
       }
@@ -10324,7 +11003,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     },
     async (request, reply) => {
       if (!request.currentUser) {
-        return reply.code(401).send({ error: 'Authentication required', code: 'AUTH_REQUIRED' });
+        return reply.code(401).send({ error: appPublicEnglish('AUTHENTICATION_REQUIRED'), code: 'AUTH_REQUIRED' });
       }
 
       const params = parse(integrationOauthProviderParams, request.params);
@@ -10334,14 +11013,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
       if (!connector) {
         return reply.code(400).send({
-          error: `Unsupported connector provider: ${params.provider}`,
+          error: appPublicEnglish('CONNECTOR_PROVIDER_UNSUPPORTED', { value1: params.provider }),
           code: 'CONNECTOR_UNKNOWN_PROVIDER',
         });
       }
 
       if (connector.authType !== 'oauth' || !connector.exchangeCodeForToken) {
         return reply.code(400).send({
-          error: `Provider ${params.provider} is an API-key connector and cannot complete an OAuth callback.`,
+          error: appPublicEnglish('CONNECTOR_API_KEY_CANNOT_COMPLETE_OAUTH', { value1: params.provider }),
           code: 'CONNECTOR_AUTH_TYPE_MISMATCH',
         });
       }
@@ -10355,7 +11034,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       if (!stateResult.ok) {
         const code = stateResult.reason === 'expired' ? 'OAUTH_STATE_EXPIRED' : 'OAUTH_STATE_INVALID';
 
-        return reply.code(401).send({ error: `OAuth state ${stateResult.reason}`, code });
+        return reply
+          .code(401)
+          .send({ error: appPublicEnglish('CONNECTOR_OAUTH_STATE_REJECTED', { value1: stateResult.reason }), code });
       }
 
       const context = stateResult.context;
@@ -10363,14 +11044,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       if (context.userId !== request.currentUser.id) {
         return reply
           .code(401)
-          .send({ error: 'OAuth state does not belong to the current user', code: 'OAUTH_STATE_USER_MISMATCH' });
+          .send({ error: appPublicEnglish('OAUTH_STATE_USER_MISMATCH'), code: 'OAUTH_STATE_USER_MISMATCH' });
       }
 
       if (context.projectId) {
         const project = await store.getProject(context.projectId);
 
         if (!project || project.organizationId !== context.organizationId) {
-          return reply.code(404).send({ error: 'Project not found', code: 'PROJECT_NOT_FOUND' });
+          return reply.code(404).send({ error: appPublicEnglish('PROJECT_NOT_FOUND'), code: 'PROJECT_NOT_FOUND' });
         }
 
         /*
@@ -10386,7 +11067,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
       if (!credentials) {
         return reply.code(503).send({
-          error: `${params.provider} integration OAuth credentials are not configured on this server.`,
+          error: appPublicEnglish('CONNECTOR_OAUTH_CREDENTIALS_NOT_CONFIGURED', { value1: params.provider }),
           code: 'PROVIDER_NOT_CONFIGURED',
         });
       }
@@ -10463,10 +11144,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         };
       } catch (error) {
         if (error instanceof ConnectorProviderError) {
+          const locale = transactionalLocaleForRequest(request);
+          setAppLocaleResponseHeaders(reply, locale);
+
           return reply.code(error.httpStatus ?? 502).send({
-            error: error.message,
+            error: connectorPublicErrorMessage({ code: error.code, locale }),
             code: error.code,
-            detail: error.providerDetail,
           });
         }
 
@@ -10482,7 +11165,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     },
     async (request, reply) => {
       if (!request.currentUser) {
-        return reply.code(401).send({ error: 'Authentication required', code: 'AUTH_REQUIRED' });
+        return reply.code(401).send({ error: appPublicEnglish('AUTHENTICATION_REQUIRED'), code: 'AUTH_REQUIRED' });
       }
 
       const params = parse(integrationOauthProviderParams, request.params);
@@ -10492,14 +11175,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
       if (!connector) {
         return reply.code(400).send({
-          error: `Unsupported connector provider: ${params.provider}`,
+          error: appPublicEnglish('CONNECTOR_PROVIDER_UNSUPPORTED', { value1: params.provider }),
           code: 'CONNECTOR_UNKNOWN_PROVIDER',
         });
       }
 
       if (connector.authType !== 'api_key' || !connector.testApiKey) {
         return reply.code(400).send({
-          error: `Provider ${params.provider} is an OAuth connector and cannot be configured with an API key.`,
+          error: appPublicEnglish('CONNECTOR_OAUTH_CANNOT_USE_API_KEY', { value1: params.provider }),
           code: 'CONNECTOR_AUTH_TYPE_MISMATCH',
         });
       }
@@ -10509,7 +11192,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
       if (apiKeyCatalog && !apiKeyCatalog.enabled) {
         return reply.code(403).send({
-          error: `The ${params.provider} connector is disabled by an administrator.`,
+          error: appPublicEnglish('CONNECTOR_DISABLED_BY_ADMIN', { value1: params.provider }),
           code: 'CONNECTOR_DISABLED',
         });
       }
@@ -10526,7 +11209,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
         if (orgs.length === 0) {
           return reply.code(400).send({
-            error: 'Account is not a member of any organization.',
+            error: appPublicEnglish('ACCOUNT_HAS_NO_ORGANIZATION'),
             code: 'NO_ORGANIZATION_MEMBERSHIP',
           });
         }
@@ -10544,24 +11227,34 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       const testResult = await connector.testApiKey({ apiKey: body.apiKey, fetchImpl: testApiKeyFetch });
 
       if (!testResult.ok) {
+        const code = testResult.code ?? 'API_KEY_INVALID';
+        const locale = transactionalLocaleForRequest(request);
+
         const status =
-          testResult.code === 'API_KEY_INVALID' || testResult.code === 'API_KEY_EXPIRED'
+          code === 'API_KEY_INVALID' || code === 'API_KEY_EXPIRED'
             ? 400
-            : testResult.code === 'API_KEY_INSUFFICIENT_SCOPE'
+            : code === 'API_KEY_INSUFFICIENT_SCOPE'
               ? 403
               : 502;
+        setAppLocaleResponseHeaders(reply, locale);
 
         return reply.code(status).send({
-          error: testResult.detail ?? `Provider ${params.provider} rejected the API key.`,
-          code: testResult.code ?? 'API_KEY_INVALID',
+          error: connectorPublicErrorMessage({ code, locale }),
+          code,
         });
       }
 
       const userInfo = testResult.userInfo;
 
       if (!userInfo) {
+        const locale = transactionalLocaleForRequest(request);
+        setAppLocaleResponseHeaders(reply, locale);
+
         return reply.code(502).send({
-          error: `Provider ${params.provider} accepted the API key but returned no account info.`,
+          error: connectorPublicErrorMessage({
+            code: 'PROVIDER_RESPONSE_MALFORMED',
+            locale,
+          }),
           code: 'PROVIDER_RESPONSE_MALFORMED',
         });
       }
@@ -10627,14 +11320,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     { config: { rateLimit: { max: 60, timeWindow: '1 minute' } } },
     async (request, reply) => {
       if (!request.currentUser) {
-        return reply.code(401).send({ error: 'Authentication required', code: 'AUTH_REQUIRED' });
+        return reply.code(401).send({ error: appPublicEnglish('AUTHENTICATION_REQUIRED'), code: 'AUTH_REQUIRED' });
       }
 
       const params = parse(integrationOauthProviderParams, request.params);
 
       if (!CLIENT_TOKEN_PROVIDERS.has(params.provider)) {
         return reply.code(400).send({
-          error: `Client token read is not available for ${params.provider}.`,
+          error: appPublicEnglish('CONNECTOR_CLIENT_TOKEN_READ_UNAVAILABLE', { value1: params.provider }),
           code: 'CONNECTOR_TOKEN_NOT_EXPOSED',
         });
       }
@@ -10682,7 +11375,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   app.get('/api/account/connections', async (request, reply) => {
     if (!request.currentUser) {
-      return reply.code(401).send({ error: 'Authentication required', code: 'AUTH_REQUIRED' });
+      return reply.code(401).send({ error: appPublicEnglish('AUTHENTICATION_REQUIRED'), code: 'AUTH_REQUIRED' });
     }
 
     const query = parse(userConnectionListQuerySchema, request.query);
@@ -10718,7 +11411,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    */
   app.get('/api/integration-requests', async (request, reply) => {
     if (!request.currentUser) {
-      return reply.code(401).send({ error: 'Authentication required', code: 'AUTH_REQUIRED' });
+      return reply.code(401).send({ error: appPublicEnglish('AUTHENTICATION_REQUIRED'), code: 'AUTH_REQUIRED' });
     }
 
     const query = parse(
@@ -10732,7 +11425,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       const membership = await store.getMembership(request.currentUser.id, query.organizationId);
 
       if (!membership) {
-        return reply.code(403).send({ error: 'Not a member of this organization', code: 'NOT_A_MEMBER' });
+        return reply.code(403).send({ error: appPublicEnglish('NOT_ORGANIZATION_MEMBER'), code: 'NOT_A_MEMBER' });
       }
 
       organizationId = query.organizationId;
@@ -10765,7 +11458,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     },
     async (request, reply) => {
       if (!request.currentUser) {
-        return reply.code(401).send({ error: 'Authentication required', code: 'AUTH_REQUIRED' });
+        return reply.code(401).send({ error: appPublicEnglish('AUTHENTICATION_REQUIRED'), code: 'AUTH_REQUIRED' });
       }
 
       const body = parse(integrationFeatureRequestCreateSchema, request.body);
@@ -10776,7 +11469,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         const membership = await store.getMembership(request.currentUser.id, body.organizationId);
 
         if (!membership) {
-          return reply.code(403).send({ error: 'Not a member of this organization', code: 'NOT_A_MEMBER' });
+          return reply.code(403).send({ error: appPublicEnglish('NOT_ORGANIZATION_MEMBER'), code: 'NOT_A_MEMBER' });
         }
 
         organizationId = body.organizationId;
@@ -10828,7 +11521,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     },
     async (request, reply) => {
       if (!request.currentUser) {
-        return reply.code(401).send({ error: 'Authentication required', code: 'AUTH_REQUIRED' });
+        return reply.code(401).send({ error: appPublicEnglish('AUTHENTICATION_REQUIRED'), code: 'AUTH_REQUIRED' });
       }
 
       const body = parse(aiMessageFeedbackSchema, request.body);
@@ -10871,14 +11564,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     },
     async (request, reply) => {
       if (!request.currentUser) {
-        return reply.code(401).send({ error: 'Authentication required', code: 'AUTH_REQUIRED' });
+        return reply.code(401).send({ error: appPublicEnglish('AUTHENTICATION_REQUIRED'), code: 'AUTH_REQUIRED' });
       }
 
       const params = parse(userConnectionIdParams, request.params);
       const existing = await store.getUserConnectionById(params.userConnectionId);
 
       if (!existing || existing.userId !== request.currentUser.id) {
-        return reply.code(404).send({ error: 'Connection not found', code: 'CONNECTION_NOT_FOUND' });
+        return reply.code(404).send({ error: appPublicEnglish('CONNECTION_NOT_FOUND'), code: 'CONNECTION_NOT_FOUND' });
       }
 
       if (existing.status === 'revoked') {
@@ -10923,7 +11616,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    */
   app.get('/api/account/reconnection-alerts', async (request, reply) => {
     if (!request.currentUser) {
-      return reply.code(401).send({ error: 'Authentication required', code: 'AUTH_REQUIRED' });
+      return reply.code(401).send({ error: appPublicEnglish('AUTHENTICATION_REQUIRED'), code: 'AUTH_REQUIRED' });
     }
 
     const alerts = await store.listUnresolvedReconnectionAlertsByUser(request.currentUser.id);
@@ -10949,7 +11642,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     },
     async (request, reply) => {
       if (!request.currentUser) {
-        return reply.code(401).send({ error: 'Authentication required', code: 'AUTH_REQUIRED' });
+        return reply.code(401).send({ error: appPublicEnglish('AUTHENTICATION_REQUIRED'), code: 'AUTH_REQUIRED' });
       }
 
       const params = parse(reconnectionAlertIdParams, request.params);
@@ -10963,7 +11656,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       const connection = existing ? await store.getUserConnectionById(existing.userConnectionId) : undefined;
 
       if (!existing || !connection || connection.userId !== request.currentUser.id) {
-        return reply.code(404).send({ error: 'Reconnection alert not found', code: 'RECONNECTION_ALERT_NOT_FOUND' });
+        return reply
+          .code(404)
+          .send({ error: appPublicEnglish('RECONNECTION_ALERT_NOT_FOUND'), code: 'RECONNECTION_ALERT_NOT_FOUND' });
       }
 
       if (existing.resolvedAt) {
@@ -10996,21 +11691,37 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * mark-read verifies row ownership before mutating, so a user can only ever
    * see and modify their own notifications.
    */
-  function publicNotification(notification: {
-    id: string;
-    category: string;
-    title: string;
-    body?: string;
-    linkUrl?: string;
-    metadata?: Record<string, unknown>;
-    readAt?: string;
-    createdAt: string;
-  }) {
+  function publicNotification(
+    notification: {
+      id: string;
+      category: string;
+      title: string;
+      body?: string;
+      messageKey?: string;
+      messageParams?: Record<string, unknown>;
+      linkUrl?: string;
+      metadata?: Record<string, unknown>;
+      readAt?: string;
+      createdAt: string;
+    },
+    locale: TransactionalLocale,
+  ) {
+    const localized = localizedNotificationContent({
+      messageKey: notification.messageKey,
+      messageParams: notification.messageParams,
+      fallbackTitle: notification.title,
+      fallbackBody: notification.body,
+      category: notification.category,
+      locale,
+    });
+
     return {
       id: notification.id,
       category: notification.category,
-      title: notification.title,
-      body: notification.body ?? null,
+      title: localized.title,
+      body: localized.body ?? null,
+      messageKey: notification.messageKey ?? null,
+      messageParams: notification.messageParams ?? null,
       linkUrl: notification.linkUrl ?? null,
       metadata: notification.metadata ?? null,
       read: Boolean(notification.readAt),
@@ -11021,17 +11732,22 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   app.get('/user/notifications', async (request, reply) => {
     if (!request.currentUser) {
-      return reply.code(401).send({ error: 'Authentication required', code: 'AUTH_REQUIRED' });
+      return reply.code(401).send({ error: appPublicEnglish('AUTHENTICATION_REQUIRED'), code: 'AUTH_REQUIRED' });
     }
 
     const query = parse(notificationListQuerySchema, request.query);
 
-    const [notifications, unreadCount] = await Promise.all([
+    const [notifications, unreadCount, user] = await Promise.all([
       store.listNotificationsByUser({ userId: request.currentUser.id, limit: query.limit }),
       store.countUnreadNotificationsByUser(request.currentUser.id),
+      store.findUserById(request.currentUser.id),
     ]);
+    const locale = transactionalLocaleForRequest(request, user?.language);
 
-    return { notifications: notifications.map(publicNotification), unreadCount };
+    return {
+      notifications: notifications.map((notification) => publicNotification(notification, locale)),
+      unreadCount,
+    };
   });
 
   app.post(
@@ -11043,7 +11759,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     },
     async (request, reply) => {
       if (!request.currentUser) {
-        return reply.code(401).send({ error: 'Authentication required', code: 'AUTH_REQUIRED' });
+        return reply.code(401).send({ error: appPublicEnglish('AUTHENTICATION_REQUIRED'), code: 'AUTH_REQUIRED' });
       }
 
       const params = parse(notificationIdParams, request.params);
@@ -11051,13 +11767,21 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
       // Not-found on a mismatch too, so we never confirm another user's row exists.
       if (!existing || existing.userId !== request.currentUser.id) {
-        return reply.code(404).send({ error: 'Notification not found', code: 'NOTIFICATION_NOT_FOUND' });
+        return reply
+          .code(404)
+          .send({ error: appPublicEnglish('NOTIFICATION_NOT_FOUND'), code: 'NOTIFICATION_NOT_FOUND' });
       }
 
       const updated = await store.markNotificationRead({ id: existing.id });
-      const unreadCount = await store.countUnreadNotificationsByUser(request.currentUser.id);
+      const [unreadCount, user] = await Promise.all([
+        store.countUnreadNotificationsByUser(request.currentUser.id),
+        store.findUserById(request.currentUser.id),
+      ]);
 
-      return { notification: publicNotification(updated ?? existing), unreadCount };
+      return {
+        notification: publicNotification(updated ?? existing, transactionalLocaleForRequest(request, user?.language)),
+        unreadCount,
+      };
     },
   );
 
@@ -11070,7 +11794,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     },
     async (request, reply) => {
       if (!request.currentUser) {
-        return reply.code(401).send({ error: 'Authentication required', code: 'AUTH_REQUIRED' });
+        return reply.code(401).send({ error: appPublicEnglish('AUTHENTICATION_REQUIRED'), code: 'AUTH_REQUIRED' });
       }
 
       const marked = await store.markAllNotificationsRead({ userId: request.currentUser.id });
@@ -11106,7 +11830,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   app.get('/api/keys', async (request, reply) => {
     if (!request.currentUser) {
-      return reply.code(401).send({ error: 'Authentication required', code: 'AUTH_REQUIRED' });
+      return reply.code(401).send({ error: appPublicEnglish('AUTHENTICATION_REQUIRED'), code: 'AUTH_REQUIRED' });
     }
 
     const keys = await store.listApiKeys({ userId: request.currentUser.id });
@@ -11143,7 +11867,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   app.get('/feature-flags', async (request, reply) => {
     if (!request.currentUser) {
-      return reply.code(401).send({ error: 'Authentication required', code: 'AUTH_REQUIRED' });
+      return reply.code(401).send({ error: appPublicEnglish('AUTHENTICATION_REQUIRED'), code: 'AUTH_REQUIRED' });
     }
 
     /*
@@ -11166,7 +11890,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   app.get('/feature-flags/:key', async (request, reply) => {
     if (!request.currentUser) {
-      return reply.code(401).send({ error: 'Authentication required', code: 'AUTH_REQUIRED' });
+      return reply.code(401).send({ error: appPublicEnglish('AUTHENTICATION_REQUIRED'), code: 'AUTH_REQUIRED' });
     }
 
     const { key } = parse(z.object({ key: z.string().min(1) }), request.params);
@@ -11195,7 +11919,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     },
     async (request, reply) => {
       if (!request.currentUser) {
-        return reply.code(401).send({ error: 'Authentication required', code: 'AUTH_REQUIRED' });
+        return reply.code(401).send({ error: appPublicEnglish('AUTHENTICATION_REQUIRED'), code: 'AUTH_REQUIRED' });
       }
 
       /*
@@ -11205,7 +11929,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       if (request.apiKeyAuth && !request.apiKeyAuth.scopes.includes('admin')) {
         return reply
           .code(403)
-          .send({ error: "Creating API keys requires the 'admin' scope", code: 'API_KEY_SCOPE_INSUFFICIENT' });
+          .send({ error: appPublicEnglish('API_KEY_CREATE_ADMIN_SCOPE_REQUIRED'), code: 'API_KEY_SCOPE_INSUFFICIENT' });
       }
 
       const body = parse(apiKeyCreateSchema, request.body);
@@ -11246,14 +11970,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     },
     async (request, reply) => {
       if (!request.currentUser) {
-        return reply.code(401).send({ error: 'Authentication required', code: 'AUTH_REQUIRED' });
+        return reply.code(401).send({ error: appPublicEnglish('AUTHENTICATION_REQUIRED'), code: 'AUTH_REQUIRED' });
       }
 
       const params = parse(apiKeyIdParams, request.params);
       const deleted = await store.deleteApiKey({ id: params.keyId, userId: request.currentUser.id });
 
       if (!deleted) {
-        return reply.code(404).send({ error: 'API key not found', code: 'API_KEY_NOT_FOUND' });
+        return reply.code(404).send({ error: appPublicEnglish('API_KEY_NOT_FOUND'), code: 'API_KEY_NOT_FOUND' });
       }
 
       await audit(request, store, {
@@ -11268,7 +11992,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   async function resolveActiveGithubAccessToken(request: any, reply: any): Promise<string | null> {
     if (!request.currentUser) {
-      reply.code(401).send({ error: 'Authentication required', code: 'AUTH_REQUIRED' });
+      reply.code(401).send({ error: appPublicEnglish('AUTHENTICATION_REQUIRED'), code: 'AUTH_REQUIRED' });
 
       return null;
     }
@@ -11277,13 +12001,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const active = connections.find((row) => row.status === 'active');
 
     if (!active) {
-      reply.code(401).send({ error: 'GitHub is not connected for this account.', code: 'CONNECTOR_NOT_LINKED' });
+      reply.code(401).send({ error: appPublicEnglish('GITHUB_NOT_CONNECTED'), code: 'CONNECTOR_NOT_LINKED' });
 
       return null;
     }
 
     if (!active.accessTokenEncrypted) {
-      reply.code(503).send({ error: 'GitHub token unavailable', code: 'CONNECTOR_TOKEN_UNAVAILABLE' });
+      reply
+        .code(503)
+        .send({ error: appPublicEnglish('GITHUB_TOKEN_UNAVAILABLE'), code: 'CONNECTOR_TOKEN_UNAVAILABLE' });
 
       return null;
     }
@@ -11293,7 +12019,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
       return decrypted.value;
     } catch {
-      reply.code(503).send({ error: 'GitHub token could not be decrypted', code: 'CONNECTOR_TOKEN_DECRYPT_FAILED' });
+      reply
+        .code(503)
+        .send({ error: appPublicEnglish('GITHUB_TOKEN_DECRYPT_FAILED'), code: 'CONNECTOR_TOKEN_DECRYPT_FAILED' });
 
       return null;
     }
@@ -11327,7 +12055,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       }
 
       return reply.code(401).send({
-        error: 'GitHub rejected the stored access token',
+        error: appPublicEnglish('GITHUB_TOKEN_REJECTED'),
         code: 'CONNECTOR_NEEDS_RECONNECT',
         upstreamStatus: response.status,
       });
@@ -11336,14 +12064,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     if (response.status === 403) {
       // Forbidden ≠ dead token: surface it without flipping the connection.
       return reply.code(403).send({
-        error: 'GitHub forbade the request (rate limit, scope, or org policy)',
+        error: appPublicEnglish('GITHUB_REQUEST_FORBIDDEN'),
         code: 'PROVIDER_FORBIDDEN',
         upstreamStatus: response.status,
       });
     }
 
     return reply.code(502).send({
-      error: `GitHub upstream returned HTTP ${response.status}`,
+      error: appPublicEnglish('GITHUB_UPSTREAM_HTTP_ERROR', { value1: response.status }),
       code: fallbackCode,
       upstreamStatus: response.status,
     });
@@ -11457,9 +12185,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * 200) would make `.reduce` throw a generic 500 for a 502-class condition.
      */
     if (!Array.isArray(reposJson)) {
-      return reply
-        .code(502)
-        .send({ error: 'GitHub returned an unexpected repos payload', code: 'PROVIDER_RESPONSE_MALFORMED' });
+      return reply.code(502).send({
+        error: appPublicEnglish('GITHUB_REPOSITORIES_RESPONSE_MALFORMED'),
+        code: 'PROVIDER_RESPONSE_MALFORMED',
+      });
     }
 
     const repos = reposJson as GithubRepoSummary[];
@@ -11534,17 +12263,19 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         | undefined;
 
       if (!body || typeof body.path !== 'string') {
-        return reply.code(400).send({ error: 'path is required', code: 'PROXY_BAD_REQUEST' });
+        return reply.code(400).send({ error: appPublicEnglish('PROXY_PATH_REQUIRED'), code: 'PROXY_BAD_REQUEST' });
       }
 
       const method = (body.method ?? 'GET').toUpperCase();
 
       if (method !== 'GET' && method !== 'POST' && method !== 'PUT' && method !== 'PATCH' && method !== 'DELETE') {
-        return reply.code(400).send({ error: 'Unsupported HTTP method', code: 'PROXY_BAD_REQUEST' });
+        return reply.code(400).send({ error: appPublicEnglish('PROXY_METHOD_UNSUPPORTED'), code: 'PROXY_BAD_REQUEST' });
       }
 
       if (!body.path.startsWith('/')) {
-        return reply.code(400).send({ error: 'path must start with /', code: 'PROXY_BAD_REQUEST' });
+        return reply
+          .code(400)
+          .send({ error: appPublicEnglish('PROXY_PATH_MUST_BE_ABSOLUTE'), code: 'PROXY_BAD_REQUEST' });
       }
 
       if (body.path === '/__token__') {
@@ -11558,8 +12289,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           return reply.code(409).send({
             token: null,
             code: 'CONNECTOR_USE_BACKEND_GIT',
-            message:
-              'A server-side UserConnection is active; route git operations through /api/projects/:projectId/git/* instead of grabbing the token client-side.',
+            message: appPublicCopy('CONNECTOR_USE_BACKEND_GIT', transactionalLocaleForRequest(request)),
           });
         }
 
@@ -11577,7 +12307,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       try {
         url = new URL(`https://api.github.com${body.path}`);
       } catch {
-        return reply.code(400).send({ error: 'invalid path', code: 'PROXY_BAD_REQUEST' });
+        return reply.code(400).send({ error: appPublicEnglish('PROXY_PATH_INVALID'), code: 'PROXY_BAD_REQUEST' });
       }
 
       if (body.query) {
@@ -11587,7 +12317,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
            * be coerced to "[object Object]"/comma-joined garbage. Require primitives.
            */
           if (typeof value !== 'string' && typeof value !== 'number' && typeof value !== 'boolean') {
-            return reply.code(400).send({ error: 'query values must be primitive', code: 'PROXY_BAD_REQUEST' });
+            return reply
+              .code(400)
+              .send({ error: appPublicEnglish('PROXY_QUERY_VALUE_INVALID'), code: 'PROXY_BAD_REQUEST' });
           }
 
           url.searchParams.set(key, String(value));
@@ -11623,7 +12355,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
            */
           return reply
             .code(502)
-            .send({ error: 'GitHub returned a malformed JSON response', code: 'PROVIDER_RESPONSE_MALFORMED' });
+            .send({ error: appPublicEnglish('GITHUB_JSON_RESPONSE_MALFORMED'), code: 'PROVIDER_RESPONSE_MALFORMED' });
         }
       }
 
@@ -11647,7 +12379,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   async function resolveActiveConnectorToken(request: any, reply: any, provider: string): Promise<string | null> {
     if (!request.currentUser) {
-      reply.code(401).send({ error: 'Authentication required', code: 'AUTH_REQUIRED' });
+      reply.code(401).send({ error: appPublicEnglish('AUTHENTICATION_REQUIRED'), code: 'AUTH_REQUIRED' });
 
       return null;
     }
@@ -11656,7 +12388,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const catalog = await store.getConnectorOAuthCatalog(provider);
 
     if (catalog && !catalog.enabled) {
-      reply.code(403).send({ error: `The ${provider} connector is disabled.`, code: 'CONNECTOR_DISABLED' });
+      reply
+        .code(403)
+        .send({ error: appPublicEnglish('CONNECTOR_DISABLED', { value1: provider }), code: 'CONNECTOR_DISABLED' });
 
       return null;
     }
@@ -11665,13 +12399,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const active = connections.find((row) => row.status === 'active');
 
     if (!active) {
-      reply.code(401).send({ error: `${provider} is not connected for this account.`, code: 'CONNECTOR_NOT_LINKED' });
+      reply
+        .code(401)
+        .send({ error: appPublicEnglish('CONNECTOR_NOT_LINKED', { value1: provider }), code: 'CONNECTOR_NOT_LINKED' });
 
       return null;
     }
 
     if (!active.accessTokenEncrypted) {
-      reply.code(503).send({ error: `${provider} token unavailable`, code: 'CONNECTOR_TOKEN_UNAVAILABLE' });
+      reply.code(503).send({
+        error: appPublicEnglish('CONNECTOR_TOKEN_UNAVAILABLE', { value1: provider }),
+        code: 'CONNECTOR_TOKEN_UNAVAILABLE',
+      });
 
       return null;
     }
@@ -11679,9 +12418,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     try {
       return decryptJson<{ value: string }>(active.accessTokenEncrypted).value;
     } catch {
-      reply
-        .code(503)
-        .send({ error: `${provider} token could not be decrypted`, code: 'CONNECTOR_TOKEN_DECRYPT_FAILED' });
+      reply.code(503).send({
+        error: appPublicEnglish('CONNECTOR_TOKEN_DECRYPT_FAILED', { value1: provider }),
+        code: 'CONNECTOR_TOKEN_DECRYPT_FAILED',
+      });
 
       return null;
     }
@@ -11704,7 +12444,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       }
 
       return reply.code(401).send({
-        error: `${provider} rejected the stored access token`,
+        error: appPublicEnglish('CONNECTOR_TOKEN_REJECTED', { value1: provider }),
         code: 'CONNECTOR_NEEDS_RECONNECT',
         upstreamStatus: response.status,
       });
@@ -11712,14 +12452,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     if (response.status === 403) {
       return reply.code(403).send({
-        error: `${provider} forbade the request (rate limit, scope, or policy)`,
+        error: appPublicEnglish('CONNECTOR_REQUEST_FORBIDDEN', { value1: provider }),
         code: 'PROVIDER_FORBIDDEN',
         upstreamStatus: response.status,
       });
     }
 
     return reply.code(502).send({
-      error: `${provider} upstream returned HTTP ${response.status}`,
+      error: appPublicEnglish('CONNECTOR_UPSTREAM_HTTP_ERROR', { value1: provider, value2: response.status }),
       code: 'PROVIDER_API_FAILED',
       upstreamStatus: response.status,
     });
@@ -11741,17 +12481,21 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           | undefined;
 
         if (!body || typeof body.path !== 'string') {
-          return reply.code(400).send({ error: 'path is required', code: 'PROXY_BAD_REQUEST' });
+          return reply.code(400).send({ error: appPublicEnglish('PROXY_PATH_REQUIRED'), code: 'PROXY_BAD_REQUEST' });
         }
 
         const method = (body.method ?? 'GET').toUpperCase();
 
         if (method !== 'GET' && method !== 'POST' && method !== 'PUT' && method !== 'PATCH' && method !== 'DELETE') {
-          return reply.code(400).send({ error: 'Unsupported HTTP method', code: 'PROXY_BAD_REQUEST' });
+          return reply
+            .code(400)
+            .send({ error: appPublicEnglish('PROXY_METHOD_UNSUPPORTED'), code: 'PROXY_BAD_REQUEST' });
         }
 
         if (!body.path.startsWith('/')) {
-          return reply.code(400).send({ error: 'path must start with /', code: 'PROXY_BAD_REQUEST' });
+          return reply
+            .code(400)
+            .send({ error: appPublicEnglish('PROXY_PATH_MUST_BE_ABSOLUTE'), code: 'PROXY_BAD_REQUEST' });
         }
 
         const accessToken = await resolveActiveConnectorToken(request, reply, provider);
@@ -11765,18 +12509,22 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         try {
           url = new URL(`${cfg.host}${body.path}`);
         } catch {
-          return reply.code(400).send({ error: 'invalid path', code: 'PROXY_BAD_REQUEST' });
+          return reply.code(400).send({ error: appPublicEnglish('PROXY_PATH_INVALID'), code: 'PROXY_BAD_REQUEST' });
         }
 
         // Pin the host: reject any path that resolved to a different origin.
         if (url.origin !== new URL(cfg.host).origin) {
-          return reply.code(400).send({ error: 'path must stay on the provider host', code: 'PROXY_BAD_REQUEST' });
+          return reply
+            .code(400)
+            .send({ error: appPublicEnglish('PROXY_PATH_HOST_FORBIDDEN'), code: 'PROXY_BAD_REQUEST' });
         }
 
         if (body.query) {
           for (const [key, value] of Object.entries(body.query)) {
             if (typeof value !== 'string' && typeof value !== 'number' && typeof value !== 'boolean') {
-              return reply.code(400).send({ error: 'query values must be primitive', code: 'PROXY_BAD_REQUEST' });
+              return reply
+                .code(400)
+                .send({ error: appPublicEnglish('PROXY_QUERY_VALUE_INVALID'), code: 'PROXY_BAD_REQUEST' });
             }
 
             url.searchParams.set(key, String(value));
@@ -11805,9 +12553,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           try {
             return await response.json();
           } catch {
-            return reply
-              .code(502)
-              .send({ error: `${provider} returned a malformed JSON response`, code: 'PROVIDER_RESPONSE_MALFORMED' });
+            return reply.code(502).send({
+              error: appPublicEnglish('CONNECTOR_JSON_RESPONSE_MALFORMED', { value1: provider }),
+              code: 'PROVIDER_RESPONSE_MALFORMED',
+            });
           }
         }
 
@@ -11821,7 +12570,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     if (!signingSecret) {
       return reply.code(503).send({
-        error: 'GitHub webhook signing secret is not configured on this server.',
+        error: appPublicEnglish('GITHUB_WEBHOOK_SECRET_NOT_CONFIGURED'),
         code: 'WEBHOOK_NOT_CONFIGURED',
       });
     }
@@ -11830,7 +12579,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     if (typeof rawBody !== 'string') {
       return reply.code(400).send({
-        error: 'Raw body unavailable; the preParsing hook did not capture this request.',
+        error: appPublicEnglish('WEBHOOK_RAW_BODY_UNAVAILABLE'),
         code: 'WEBHOOK_RAW_BODY_MISSING',
       });
     }
@@ -11839,7 +12588,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     if (typeof headerSignature !== 'string' || !headerSignature.startsWith('sha256=')) {
       return reply.code(401).send({
-        error: 'Missing or malformed X-Hub-Signature-256 header.',
+        error: appPublicEnglish('GITHUB_WEBHOOK_SIGNATURE_HEADER_INVALID'),
         code: 'WEBHOOK_SIGNATURE_MISSING',
       });
     }
@@ -11849,7 +12598,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     if (expected.length !== provided.length) {
       return reply.code(401).send({
-        error: 'Webhook signature is invalid.',
+        error: appPublicEnglish('WEBHOOK_SIGNATURE_INVALID'),
         code: 'WEBHOOK_SIGNATURE_INVALID',
       });
     }
@@ -11860,14 +12609,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       signaturesMatch = timingSafeEqual(Buffer.from(expected, 'hex'), Buffer.from(provided, 'hex'));
     } catch {
       return reply.code(401).send({
-        error: 'Webhook signature is invalid.',
+        error: appPublicEnglish('WEBHOOK_SIGNATURE_INVALID'),
         code: 'WEBHOOK_SIGNATURE_INVALID',
       });
     }
 
     if (!signaturesMatch) {
       return reply.code(401).send({
-        error: 'Webhook signature is invalid.',
+        error: appPublicEnglish('WEBHOOK_SIGNATURE_INVALID'),
         code: 'WEBHOOK_SIGNATURE_INVALID',
       });
     }
@@ -11881,7 +12630,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       payload = JSON.parse(rawBody) as typeof payload;
     } catch {
       return reply.code(400).send({
-        error: 'Webhook body is not valid JSON.',
+        error: appPublicEnglish('WEBHOOK_JSON_INVALID'),
         code: 'WEBHOOK_BODY_INVALID',
       });
     }
@@ -11932,7 +12681,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     if (!rawSecret) {
       return reply.code(503).send({
-        error: 'Resend webhook signing secret is not configured on this server.',
+        error: appPublicEnglish('RESEND_WEBHOOK_SECRET_NOT_CONFIGURED'),
         code: 'WEBHOOK_NOT_CONFIGURED',
       });
     }
@@ -11941,7 +12690,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     if (typeof rawBody !== 'string') {
       return reply.code(400).send({
-        error: 'Raw body unavailable; the preParsing hook did not capture this request.',
+        error: appPublicEnglish('WEBHOOK_RAW_BODY_UNAVAILABLE'),
         code: 'WEBHOOK_RAW_BODY_MISSING',
       });
     }
@@ -11952,7 +12701,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     if (typeof svixId !== 'string' || typeof svixTimestamp !== 'string' || typeof svixSignature !== 'string') {
       return reply.code(401).send({
-        error: 'Missing svix-id, svix-timestamp, or svix-signature header.',
+        error: appPublicEnglish('RESEND_WEBHOOK_HEADERS_MISSING'),
         code: 'WEBHOOK_SIGNATURE_MISSING',
       });
     }
@@ -11961,7 +12710,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     if (!Number.isFinite(timestampSeconds)) {
       return reply.code(401).send({
-        error: 'Invalid svix-timestamp header.',
+        error: appPublicEnglish('RESEND_WEBHOOK_TIMESTAMP_INVALID'),
         code: 'WEBHOOK_TIMESTAMP_INVALID',
       });
     }
@@ -11976,7 +12725,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     if (skewSeconds > 5 * 60) {
       return reply.code(401).send({
-        error: 'Webhook timestamp is outside the allowed tolerance.',
+        error: appPublicEnglish('WEBHOOK_TIMESTAMP_OUTSIDE_TOLERANCE'),
         code: 'WEBHOOK_TIMESTAMP_SKEW',
       });
     }
@@ -11989,11 +12738,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       secretBytes = Buffer.from(secretBase64, 'base64');
 
       if (secretBytes.length === 0) {
-        throw new Error('empty secret');
+        throw new Error(appPublicEnglish('INTERNAL_EMPTY_SECRET'));
       }
     } catch {
       return reply.code(503).send({
-        error: 'Resend webhook signing secret is malformed.',
+        error: appPublicEnglish('RESEND_WEBHOOK_SECRET_MALFORMED'),
         code: 'WEBHOOK_SECRET_INVALID',
       });
     }
@@ -12036,7 +12785,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     if (!signatureMatched) {
       return reply.code(401).send({
-        error: 'Webhook signature is invalid.',
+        error: appPublicEnglish('WEBHOOK_SIGNATURE_INVALID'),
         code: 'WEBHOOK_SIGNATURE_INVALID',
       });
     }
@@ -12058,7 +12807,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       payload = JSON.parse(rawBody) as typeof payload;
     } catch {
       return reply.code(400).send({
-        error: 'Webhook body is not valid JSON.',
+        error: appPublicEnglish('WEBHOOK_JSON_INVALID'),
         code: 'WEBHOOK_BODY_INVALID',
       });
     }
@@ -12133,6 +12882,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   app.get('/mcp/catalog', async (request, reply) => {
     const query = parse(catalogQuerySchema, request.query);
     const service = requireMcpMarketplaceService(mcpMarketplace);
+    const locale = resolveMcpRequestLocale(request, query.locale);
+
+    setMcpLocaleResponseHeaders(reply, locale);
 
     try {
       return await service.listCatalog({
@@ -12142,6 +12894,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         verified: typeof query.verified === 'boolean' ? query.verified : undefined,
         limit: query.limit ?? 50,
         cursor: query.cursor,
+        locale,
       });
     } catch (error) {
       const mapped = mapMcpMarketplaceError(error);
@@ -12161,10 +12914,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   app.get('/mcp/catalog/:slug', async (request, reply) => {
     const { slug } = parse(catalogParamsSchema, request.params);
+    const query = parse(catalogLocaleQuerySchema, request.query);
     const service = requireMcpMarketplaceService(mcpMarketplace);
+    const locale = resolveMcpRequestLocale(request, query.locale);
+
+    setMcpLocaleResponseHeaders(reply, locale);
 
     try {
-      return { entry: await service.getCatalogEntry(slug) };
+      return { entry: await service.getCatalogEntry(slug, locale) };
     } catch (error) {
       const mapped = mapMcpMarketplaceError(error);
 
@@ -12176,9 +12933,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
   });
 
-  app.get('/mcp/installs', async (request) => {
+  app.get('/mcp/installs', async (request, reply) => {
     const query = parse(installListQuerySchema, request.query);
     const service = requireMcpMarketplaceService(mcpMarketplace);
+    const locale = resolveMcpRequestLocale(request, query.locale);
+
+    setMcpLocaleResponseHeaders(reply, locale);
 
     if (query.organizationId) {
       await requireOrg(request, store, query.organizationId, 'projects:read');
@@ -12188,13 +12948,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       installs: await service.listInstalls({
         userId: request.currentUser!.id,
         organizationId: query.organizationId,
+        locale,
       }),
     };
   });
 
   app.post('/mcp/installs', async (request, reply) => {
     const body = parse(installInputSchema, request.body);
+    const query = parse(catalogLocaleQuerySchema, request.query);
     const service = requireMcpMarketplaceService(mcpMarketplace);
+    const locale = resolveMcpRequestLocale(request, query.locale);
+
+    setMcpLocaleResponseHeaders(reply, locale);
 
     if (body.organizationId) {
       await requireOrg(request, store, body.organizationId, 'projects:write');
@@ -12207,6 +12972,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         alias: body.alias,
         config: body.config,
         organizationId: body.organizationId,
+        locale,
       });
 
       await audit(request, store, {
@@ -12232,7 +12998,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   app.patch('/mcp/installs/:installId', async (request, reply) => {
     const { installId } = parse(installParamsSchema, request.params);
     const patch = parse(installPatchSchema, request.body);
+    const query = parse(catalogLocaleQuerySchema, request.query);
     const service = requireMcpMarketplaceService(mcpMarketplace);
+    const locale = resolveMcpRequestLocale(request, query.locale);
+
+    setMcpLocaleResponseHeaders(reply, locale);
 
     try {
       /*
@@ -12240,7 +13010,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        * POST /mcp/installs gates with requireOrg, but PATCH/DELETE only scoped by
        * userId, so a user removed from the org could still manage the org's install.
        */
-      const existingInstall = await service.getInstall({ id: installId, userId: request.currentUser!.id });
+      const existingInstall = await service.getInstall({ id: installId, userId: request.currentUser!.id, locale });
 
       if (existingInstall.organizationId) {
         await requireOrg(request, store, existingInstall.organizationId, 'projects:write');
@@ -12250,6 +13020,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         id: installId,
         userId: request.currentUser!.id,
         patch,
+        locale,
       });
 
       await audit(request, store, {
@@ -12645,7 +13416,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     });
 
     if (!memory) {
-      return reply.code(404).send({ error: 'Memory not found', code: 'AGENT_MEMORY_NOT_FOUND' });
+      return reply
+        .code(404)
+        .send({ error: appPublicEnglish('AGENT_MEMORY_NOT_FOUND'), code: 'AGENT_MEMORY_NOT_FOUND' });
     }
 
     await audit(request, store, {
@@ -12687,7 +13460,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     try {
       return JSON.parse(text);
     } catch (error) {
-      throw Object.assign(new Error('Workspace runtime returned a malformed response'), {
+      throw Object.assign(new Error(appPublicEnglish('WORKSPACE_RUNTIME_BAD_RESPONSE')), {
         statusCode: 502,
         code: 'WORKSPACE_RUNTIME_BAD_RESPONSE',
         cause: error,
@@ -12757,10 +13530,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         },
       });
     } catch (error) {
-      throw Object.assign(new Error('Workspace manager is unavailable'), {
+      throw Object.assign(new Error(appPublicEnglish('WORKSPACE_MANAGER_UNAVAILABLE')), {
         statusCode: 502,
         code: 'WORKSPACE_MANAGER_UNAVAILABLE',
-        publicMessage: 'Workspace manager is unavailable',
+        publicMessage: appPublicEnglish('WORKSPACE_MANAGER_UNAVAILABLE'),
         cause: error,
       });
     } finally {
@@ -12768,10 +13541,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     if (!response.ok) {
-      throw Object.assign(new Error(`Workspace manager request failed: ${response.status}`), {
+      throw Object.assign(new Error(appPublicEnglish('WORKSPACE_MANAGER_REQUEST_FAILED')), {
         statusCode: 502,
         code: 'WORKSPACE_MANAGER_REQUEST_FAILED',
-        publicMessage: 'Workspace manager request failed',
+        publicMessage: appPublicEnglish('WORKSPACE_MANAGER_REQUEST_FAILED'),
+        upstreamStatus: response.status,
 
         /*
          * Preserve the upstream status so callers can distinguish a genuine
@@ -12818,7 +13592,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     for (let attempt = 1; attempt <= AGENT_REQUEST_ATTEMPTS; attempt++) {
       // Never retry once the caller (client) has disconnected.
       if (init.signal?.aborted) {
-        throw Object.assign(new Error('Workspace agent request aborted'), {
+        throw Object.assign(new Error(appPublicEnglish('STREAM_ABORTED')), {
           statusCode: 499,
           code: 'STREAM_ABORTED',
         });
@@ -12841,7 +13615,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
          * disconnect — propagate it, do not retry.
          */
         if (init.signal?.aborted) {
-          throw Object.assign(new Error('Workspace agent request aborted'), {
+          throw Object.assign(new Error(appPublicEnglish('STREAM_ABORTED')), {
             statusCode: 499,
             code: 'STREAM_ABORTED',
             cause: error,
@@ -12854,12 +13628,35 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         }
 
         /*
+         * A DNS failure on the workspace Service name is NOT a server error: the
+         * Service and its endpoints are created with the pod, and there is a
+         * short window where kube-dns has not propagated the record yet. During
+         * IDE load that window produced bursts of user-visible
+         * `502 WORKSPACE_AGENT_REQUEST_FAILED` /
+         * `getaddrinfo ENOTFOUND workspace-ws-<id>.workspaces.svc.cluster.local`
+         * for a workspace that was simply still coming up (42 occurrences over a
+         * ~4s window in one measured load).
+         *
+         * Report it with the SAME provisioning contract the write path already
+         * uses (425 WORKSPACE_NOT_STARTED / WORKSPACE_STARTING), so the UI shows
+         * "starting" instead of a server error.
+         */
+        if (isWorkspaceDnsNotResolvedYet(error)) {
+          throw Object.assign(new Error(appPublicEnglish('WORKSPACE_STARTING')), {
+            statusCode: 425,
+            code: 'WORKSPACE_NOT_STARTED',
+            publicMessage: appPublicEnglish('WORKSPACE_STARTING'),
+            cause: error,
+          });
+        }
+
+        /*
          * The agent pod may not be reachable yet (workspace still provisioning)
          * or may have been reclaimed. Surface the same coded 502 as a non-ok
          * agent response so callers (and the local-runtime fallback) treat it as
          * agent-unavailable.
          */
-        throw Object.assign(new Error('Workspace agent is unavailable'), {
+        throw Object.assign(new Error(appPublicEnglish('WORKSPACE_AGENT_UNAVAILABLE')), {
           statusCode: 502,
           code: 'WORKSPACE_AGENT_REQUEST_FAILED',
           cause: error,
@@ -12901,22 +13698,24 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
          * pressure, where the existing retry/self-heal behaviour is correct.
          */
         if (response.status >= 400 && response.status < 500 && ![408, 429].includes(response.status)) {
-          throw Object.assign(new Error(`Workspace agent rejected the request: ${response.status}`), {
+          throw Object.assign(new Error(appPublicEnglish('WORKSPACE_AGENT_CLIENT_ERROR')), {
             statusCode: response.status,
             code: 'WORKSPACE_AGENT_CLIENT_ERROR',
+            upstreamStatus: response.status,
           });
         }
 
-        throw Object.assign(new Error(`Workspace agent request failed: ${response.status}`), {
+        throw Object.assign(new Error(appPublicEnglish('WORKSPACE_AGENT_REQUEST_FAILED')), {
           statusCode: 502,
           code: 'WORKSPACE_AGENT_REQUEST_FAILED',
+          upstreamStatus: response.status,
         });
       }
 
       return (await readJsonBody(response)) as T;
     }
 
-    throw Object.assign(new Error('Workspace agent is unavailable'), {
+    throw Object.assign(new Error(appPublicEnglish('WORKSPACE_AGENT_UNAVAILABLE')), {
       statusCode: 502,
       code: 'WORKSPACE_AGENT_REQUEST_FAILED',
       cause: lastError,
@@ -13049,10 +13848,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       }
     }
 
-    throw Object.assign(new Error('Workspace is starting — retrying automatically.'), {
+    throw Object.assign(new Error(appPublicEnglish('WORKSPACE_STARTING')), {
       statusCode: 425,
       code: 'WORKSPACE_NOT_STARTED',
-      publicMessage: 'Workspace is starting — retrying automatically.',
+      publicMessage: appPublicEnglish('WORKSPACE_STARTING'),
     });
   };
 
@@ -13135,7 +13934,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return { handled: false };
     }
 
-    const workspaceId = runtimeWorkspaceId(project.id, userId);
+    const workspaceId = await resolveProjectWorkspaceId(store, project.id, userId);
     const authorized = { workspaceId, projectId: project.id, organizationId: project.organizationId };
 
     try {
@@ -13245,7 +14044,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return { ok: false, reason: 'Open the project workspace before deploying.' };
     }
 
-    const workspaceId = runtimeWorkspaceId(project.id, userId);
+    const workspaceId = await resolveProjectWorkspaceId(store, project.id, userId);
     const authorized = { workspaceId, projectId: project.id, organizationId: project.organizationId };
 
     try {
@@ -13388,8 +14187,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const db = diagnosticsDb;
 
     const [ports, processes, problems, logsTail] = await Promise.all([
-      agentRequest<{ ports: unknown }>(workspaceId, '/ports').then((r) => r.ports).catch(() => undefined),
-      agentRequest<{ processes: unknown }>(workspaceId, '/processes').then((r) => r.processes).catch(() => undefined),
+      agentRequest<{ ports: unknown }>(workspaceId, '/ports')
+        .then((r) => r.ports)
+        .catch(() => undefined),
+      agentRequest<{ processes: unknown }>(workspaceId, '/processes')
+        .then((r) => r.processes)
+        .catch(() => undefined),
       db.previewReadinessBeacon
         .findMany({ where: { workspaceId } })
         .then((rows) => rows.map((r) => ({ port: r.port, status: r.status, detail: r.detail, at: r.reportedAt })))
@@ -13483,9 +14286,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * per-user runtime workspace id so every runtime call targets the real pod,
      * exactly as the POST /workspaces start handler computes it.
      */
-    const resolvedWorkspaceId = request.currentUser
-      ? runtimeWorkspaceId(project.id, request.currentUser.id)
-      : project.id;
+    const resolvedWorkspaceId = await resolveProjectWorkspaceId(store, project.id, request.currentUser?.id);
 
     return { workspaceId: resolvedWorkspaceId, projectId: project.id, organizationId: project.organizationId };
   };
@@ -13495,7 +14296,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     if (existing) {
       if (existing.projectId !== project.id) {
-        throw Object.assign(new Error('Workspace does not belong to this project'), {
+        throw Object.assign(new Error(appPublicEnglish('WORKSPACE_PROJECT_MISMATCH')), {
           statusCode: 403,
           code: 'WORKSPACE_PROJECT_MISMATCH',
         });
@@ -13523,7 +14324,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
       if (raced) {
         if (raced.projectId !== project.id) {
-          throw Object.assign(new Error('Workspace does not belong to this project'), {
+          throw Object.assign(new Error(appPublicEnglish('WORKSPACE_PROJECT_MISMATCH')), {
             statusCode: 403,
             code: 'WORKSPACE_PROJECT_MISMATCH',
           });
@@ -13704,7 +14505,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   const isRuntimeManagerUnavailable = (error: unknown) =>
     (error as { code?: string } | undefined)?.code === 'WORKSPACE_MANAGER_UNAVAILABLE' ||
-    (error instanceof Error && error.message === 'Workspace manager is unavailable');
+    (error instanceof Error && error.message === appPublicEnglish('WORKSPACE_MANAGER_UNAVAILABLE'));
 
   /*
    * True when the manager has no record of the workspace (it returned 404) or is
@@ -13729,13 +14530,19 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const normalizedPath = normalizeProjectPath(projectPath);
 
     if (!normalizedPath) {
-      throw Object.assign(new Error('Invalid project path'), { statusCode: 400, code: 'INVALID_PROJECT_PATH' });
+      throw Object.assign(new Error(appPublicEnglish('INVALID_PROJECT_PATH')), {
+        statusCode: 400,
+        code: 'INVALID_PROJECT_PATH',
+      });
     }
 
     const target = resolve(root, normalizedPath);
 
     if (target !== root && !target.startsWith(`${root}${sep}`)) {
-      throw Object.assign(new Error('Invalid project path'), { statusCode: 400, code: 'INVALID_PROJECT_PATH' });
+      throw Object.assign(new Error(appPublicEnglish('INVALID_PROJECT_PATH')), {
+        statusCode: 400,
+        code: 'INVALID_PROJECT_PATH',
+      });
     }
 
     return target;
@@ -13747,7 +14554,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     organizationId?: string;
   }) => {
     if (!localRuntimeFallbackEnabled()) {
-      throw Object.assign(new Error('Workspace manager is unavailable'), {
+      throw Object.assign(new Error(appPublicEnglish('WORKSPACE_MANAGER_UNAVAILABLE')), {
         statusCode: 502,
         code: 'WORKSPACE_MANAGER_UNAVAILABLE',
       });
@@ -14135,7 +14942,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   /** Every scheduled-task route needs both the repository and the service. */
   const requireScheduledTasks = () => {
     if (!scheduledTaskRepository || !scheduledTasks) {
-      throw Object.assign(new Error('Scheduled tasks require the database-backed store'), {
+      throw Object.assign(new Error(appPublicEnglish('INTERNAL_SCHEDULED_TASKS_STORE_REQUIRED')), {
         statusCode: 503,
         code: 'SCHEDULED_TASKS_UNAVAILABLE',
       });
@@ -14244,6 +15051,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     content: string;
     provider?: string;
     model?: string;
+    locale?: TransactionalLocale;
   }) => {
     let response: Response;
 
@@ -14285,6 +15093,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         headers: {
           'content-type': 'application/json',
           accept: 'application/json',
+          'accept-language': input.locale ?? 'en',
           ...(aiGatewaySharedSecret ? { authorization: `Bearer ${aiGatewaySharedSecret}` } : {}),
         },
         signal: AbortSignal.timeout(60_000),
@@ -14310,18 +15119,19 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        * API_ERROR; surface a clean, retryable 502 like managerRequest does so
        * clients can tell the difference between "AI is down" and a real bug.
        */
-      throw Object.assign(new Error('AI Gateway is unavailable'), {
+      throw Object.assign(new Error(appPublicEnglish('AI_GATEWAY_UNAVAILABLE')), {
         statusCode: 502,
         code: 'AI_GATEWAY_UNAVAILABLE',
-        publicMessage: 'AI Gateway is unavailable',
+        publicMessage: appPublicEnglish('AI_GATEWAY_UNAVAILABLE'),
         cause: error,
       });
     }
 
     if (!response.ok) {
-      throw Object.assign(new Error(`AI Gateway request failed: ${response.status}`), {
+      throw Object.assign(new Error(appPublicEnglish('AI_GATEWAY_REQUEST_FAILED')), {
         statusCode: 502,
         code: 'AI_GATEWAY_REQUEST_FAILED',
+        upstreamStatus: response.status,
       });
     }
 
@@ -14333,7 +15143,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         usage: { inputTokens: number; outputTokens: number; estimatedCostCents: number };
       };
     } catch (error) {
-      throw Object.assign(new Error('AI Gateway returned a malformed response'), {
+      throw Object.assign(new Error(appPublicEnglish('AI_GATEWAY_BAD_RESPONSE')), {
         statusCode: 502,
         code: 'AI_GATEWAY_BAD_RESPONSE',
         cause: error,
@@ -14654,7 +15464,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   const getSnapshotFiles = async (snapshot: SnapshotRecord): Promise<ProjectFile[]> => {
     if (!snapshot.storageKey) {
       metrics.increment('project_snapshot_restore_failures_total', { reason: 'missing_storage_key' });
-      throw Object.assign(new Error('Snapshot archive is missing a storage key'), {
+      throw Object.assign(new Error(appPublicEnglish('SNAPSHOT_STORAGE_KEY_MISSING')), {
         statusCode: 409,
         code: 'SNAPSHOT_STORAGE_MISSING',
       });
@@ -14682,7 +15492,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     if (!object) {
       metrics.increment('project_snapshot_restore_failures_total', { reason: 'durable_archive_missing' });
-      throw Object.assign(new Error('Snapshot archive is not available on local or durable storage'), {
+      throw Object.assign(new Error(appPublicEnglish('SNAPSHOT_STORAGE_UNAVAILABLE')), {
         statusCode: 409,
         code: 'SNAPSHOT_STORAGE_MISSING',
       });
@@ -14692,7 +15502,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     if (contentHash !== object.contentHash) {
       metrics.increment('project_snapshot_restore_failures_total', { reason: 'checksum_mismatch' });
-      throw Object.assign(new Error('Snapshot archive checksum mismatch'), {
+      throw Object.assign(new Error(appPublicEnglish('SNAPSHOT_CHECKSUM_MISMATCH')), {
         statusCode: 409,
         code: 'SNAPSHOT_STORAGE_CHECKSUM_MISMATCH',
       });
@@ -14749,9 +15559,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * named `workspace-ws-<hash>` — so every AI tool call (list_files,
      * read_file, write_file, run_command, …) 502'd with ENOTFOUND.
      */
-    const defaultWorkspaceId = request.currentUser
-      ? runtimeWorkspaceId(project.id, request.currentUser.id)
-      : project.id;
+    const defaultWorkspaceId = await resolveProjectWorkspaceId(store, project.id, request.currentUser?.id);
 
     /*
      * An explicit workspaceId is caller-supplied and must be bound to this
@@ -14768,7 +15576,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       const requestedWorkspace = await store.getWorkspace(input.workspaceId);
 
       if (!requestedWorkspace || requestedWorkspace.projectId !== project.id) {
-        throw Object.assign(new Error('Workspace does not belong to this project'), {
+        throw Object.assign(new Error(appPublicEnglish('WORKSPACE_PROJECT_MISMATCH')), {
           statusCode: 404,
           code: 'WORKSPACE_NOT_FOUND',
         });
@@ -14866,7 +15674,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        * orthogonal to terminal revocation).
        */
       if (await isTerminalAccessRevoked({ projectId: project.id }, request)) {
-        throw Object.assign(new Error('Terminal access is restricted for this project role'), {
+        throw Object.assign(new Error(appPublicEnglish('TERMINAL_ACCESS_DENIED')), {
           statusCode: 403,
           code: 'TERMINAL_ACCESS_DENIED',
         });
@@ -14916,7 +15724,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       output = await gitProvider.commit({
         projectId: project.id,
         workspaceId: gitWorkspaceId,
-        message: input.message ?? 'AI changes',
+        message: input.message ?? appPublicCopy('AI_CHANGES_COMMIT_MESSAGE', transactionalLocaleForRequest(request)),
         files: await listProjectFilesIncludingIdeState(store, projectStorage, project.id, gitWorkspaceId),
       });
     } else if (toolName === 'deploy_project') {
@@ -14952,6 +15760,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * for the free tier that is at most one extra manager call, and only on the
    * paths that would otherwise 429.
    */
+  /*
+   * Au-delà de ce délai sans changement d'état côté manager, un espace de
+   * travail PENDING/STARTING n'est plus en train de démarrer : il a échoué. La
+   * valeur est large devant un démarrage à froid mesuré (~17 s pod chaud, une
+   * poignée de minutes dans le pire cas observé) pour ne jamais libérer le
+   * créneau d'un provisionnement encore légitime.
+   */
+  const WORKSPACE_PROVISION_DEADLINE_MS = 10 * 60_000;
+
   const reconcileOrphanedActiveWorkspaces = async (organizationId: string, skipWorkspaceId: string): Promise<void> => {
     const active = await store.listActiveWorkspaces(organizationId).catch(() => []);
     const stale = active.filter((workspace) => workspace.id !== skipWorkspaceId);
@@ -14965,7 +15782,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         let shouldStop = false;
 
         try {
-          const managerWorkspace = await managerRequest<{ status?: string }>(
+          const managerWorkspace = await managerRequest<{ status?: string; updatedAt?: string }>(
             `/workspaces/${encodeURIComponent(workspace.id)}`,
           );
 
@@ -14974,9 +15791,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
            * slot. An absent status is ambiguous — leave the record untouched
            * rather than guess it's dead.
            */
-          if (managerWorkspace?.status) {
-            shouldStop = !['RUNNING', 'STARTING', 'PENDING'].includes(String(managerWorkspace.status));
-          }
+          shouldStop =
+            decideWorkspaceSlot(managerWorkspace, {
+              now: Date.now(),
+              deadlineMs: WORKSPACE_PROVISION_DEADLINE_MS,
+            }) === 'free';
         } catch (error) {
           /*
            * Only a genuine "gone" (manager 404) frees the slot. A TRANSIENT
@@ -15003,7 +15822,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     if (!projectId) {
       return reply
         .code(400)
-        .send({ error: 'workspaceId or projectId is required', code: 'RUNTIME_WORKSPACE_ID_REQUIRED' });
+        .send({ error: appPublicEnglish('WORKSPACE_OR_PROJECT_ID_REQUIRED'), code: 'RUNTIME_WORKSPACE_ID_REQUIRED' });
     }
 
     const project = await requireProject(request, store, projectId, 'workspaces:write');
@@ -15011,7 +15830,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const workspaceId =
       !requestedWorkspaceId || requestedWorkspaceId === project.id
-        ? runtimeWorkspaceId(project.id, request.currentUser!.id)
+        ? await resolveProjectWorkspaceId(store, project.id, request.currentUser!.id)
         : requestedWorkspaceId;
 
     const authorized = { workspaceId, projectId: project.id, organizationId: project.organizationId };
@@ -15030,7 +15849,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
       if (shutdown.shutdown) {
         return reply.code(402).send({
-          error: 'Service shutdown limit reached; workspace start is paused.',
+          error: appPublicEnglish('SERVICE_SHUTDOWN_WORKSPACE_START_PAUSED'),
           code: 'SERVICE_SHUTDOWN_LIMIT_REACHED',
         });
       }
@@ -15122,6 +15941,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     try {
       managerWorkspace = await managerRequest<any>('/workspaces/start', {
         method: 'POST',
+        headers: { 'accept-language': transactionalLocaleForRequest(request) },
         body: JSON.stringify({
           namespace: runtimeNamespace(),
           orgId: authorized.organizationId ?? 'unknown-org',
@@ -15376,6 +16196,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     try {
       managerWorkspace = await managerRequest<any>(`/workspaces/${authorized.workspaceId}/restart`, {
         method: 'POST',
+        headers: { 'accept-language': transactionalLocaleForRequest(request) },
         body: JSON.stringify({
           namespace: runtimeNamespace(),
           orgId: authorized.organizationId ?? 'unknown-org',
@@ -15674,7 +16495,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         // RE2 (linear-time, ReDoS-immune) when available; capped JS RegExp fallback.
         regex = createUserPatternMatcher(body.query, !options.caseSensitive);
       } catch {
-        return reply.code(400).send({ error: 'Invalid regular expression', code: 'RUNTIME_SEARCH_BAD_REGEX' });
+        return reply
+          .code(400)
+          .send({ error: appPublicEnglish('REGULAR_EXPRESSION_INVALID'), code: 'RUNTIME_SEARCH_BAD_REGEX' });
       }
 
       findMatch = (line) => {
@@ -15828,7 +16651,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * could still run arbitrary commands here.
      */
     if (await isTerminalAccessRevoked(authorized, request)) {
-      throw Object.assign(new Error('Terminal access is restricted for this project role'), {
+      throw Object.assign(new Error(appPublicEnglish('TERMINAL_ACCESS_DENIED')), {
         statusCode: 403,
         code: 'TERMINAL_ACCESS_DENIED',
       });
@@ -15846,7 +16669,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         reason: signal.reason,
         action: signal.action,
       });
-      throw Object.assign(new Error('Command blocked by abuse prevention policy'), {
+      throw Object.assign(new Error(appPublicEnglish('COMMAND_BLOCKED_BY_ABUSE')), {
         statusCode: 409,
         code: `ABUSE_${signal.type.toUpperCase()}`,
       });
@@ -15919,6 +16742,32 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return reply.code(204).send();
   });
+  /*
+   * SCR-008 — passe-plat des jauges RAM / CPU / stockage de « Vue d'ensemble ».
+   *
+   * Aucune donnée n'est fabriquée ici : la route relaie ce que l'agent lit dans
+   * les cgroup du conteneur. Si l'agent n'est pas joignable, on rend des jauges
+   * VIDES (`null`) plutôt qu'une erreur — une jauge absente est une information
+   * honnête, une erreur bloquerait l'ouverture de tout le panneau pour une
+   * ligne d'affichage secondaire.
+   */
+  app.get('/api/runtime/workspaces/:workspaceId/resources', async (request) => {
+    const { workspaceId } = parse(workspaceParams, request.params);
+    const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:read');
+
+    try {
+      return await agentRequest(authorized.workspaceId, '/resources');
+    } catch {
+      return {
+        memory: { used: null, limit: null },
+        cpu: { ratio: null, limitCores: null },
+        storage: { used: null, limit: null },
+        measuredAt: new Date().toISOString(),
+        unavailable: true,
+      };
+    }
+  });
+
   app.get('/api/runtime/workspaces/:workspaceId/ports', async (request) => {
     const { workspaceId } = parse(workspaceParams, request.params);
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:read');
@@ -15959,9 +16808,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     let managerStatus: string | undefined;
 
     try {
-      const managerWorkspace = await managerRequest<{ status?: string }>(
-        `/workspaces/${authorized.workspaceId}`,
-      );
+      const managerWorkspace = await managerRequest<{ status?: string }>(`/workspaces/${authorized.workspaceId}`);
       managerStatus = managerWorkspace?.status;
     } catch (error) {
       if (!isRuntimeManagerUnavailable(error)) {
@@ -15974,12 +16821,21 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return Promise.all(
       result.ports.map(async (port) => {
         if (localFallback) {
-          // Local-runtime fallback serves the dev server directly on the host
-          // (no agent to probe through) — report ready without probing.
-          return { ...port, type: 'open', ready: true, url: previewUrlForWorkspacePort(authorized.workspaceId, port.port) };
+          /*
+           * Local-runtime fallback serves the dev server directly on the host
+           * (no agent to probe through) — report ready without probing.
+           */
+          return {
+            ...port,
+            type: 'open',
+            ready: true,
+            serving: true,
+            url: previewUrlForWorkspacePort(authorized.workspaceId, port.port),
+          };
         }
 
         const portReady = await probePortReady(authorized.workspaceId, port.port);
+
         const clientBeacon = diagnosticsDb
           ? await readClientBeacon(diagnosticsDb, authorized.workspaceId, port.port).catch(() => 'none' as const)
           : ('none' as const);
@@ -15995,12 +16851,25 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           ...port,
           type: 'open',
           ready: verdict.ready,
+
+          /*
+           * `serving` ne retient que les deux signaux qui disent si le pod chaud
+           * peut être ADOPTÉ : le port répond, un processus vivant le détient.
+           * `ready` y ajoute le statut manager et le beacon client — pertinents
+           * pour décider d'AFFICHER un aperçu, hors sujet pour décider de ne pas
+           * effacer un espace de travail qui tourne. Le statut manager retarde
+           * notoirement à la réouverture (« that row legitimately lags at
+           * PENDING/STARTING »), et le beacon reflète le rendu de la page
+           * précédente : tous deux faisaient reseeder un pod parfaitement sain.
+           */
+          serving: portReady && Boolean(port.processId),
           ...(verdict.blockedBy ? { notReadyReason: verdict.blockedBy } : {}),
           url: previewUrlForWorkspacePort(authorized.workspaceId, port.port),
         };
       }),
     );
   });
+
   /*
    * BLOCKER #6: reconstruct WHY a workspace died after the pod is gone — the
    * timestamped lifecycle trail + the post-mortem snapshots (last ports /
@@ -16025,7 +16894,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const port = Number((request.params as { port: string }).port);
 
     if (!Number.isInteger(port) || port <= 0 || port > 65535) {
-      return reply.code(400).send({ error: 'invalid_port' });
+      return reply
+        .code(400)
+        .send({ error: appPublicEnglish('PREVIEW_PORT_INVALID'), code: 'RUNTIME_PREVIEW_BAD_PORT' });
     }
 
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:read');
@@ -16042,8 +16913,55 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const url = previewUrlForWorkspacePort(authorized.workspaceId, port);
 
-    return { port, url, ready: true };
+    /*
+     * Drive `ready` from a real HTTP probe of the served content, exactly like the
+     * `/ports` listing does. Reporting `ready: true` unconditionally was a
+     * readiness lie: a dev server that has bound its port but not yet served its
+     * app (e.g. Vite answering `GET /` with a 0-byte 404 before `index.html` is
+     * synced) was reported ready, so a caller of this single-port endpoint latched
+     * onto a preview that renders blank. isPortReadyFromProbe requires a 2xx/3xx
+     * AND a non-empty body, so this is false during the startup window and flips
+     * true only when the hostname actually serves.
+     */
+    const ready = await probePortReady(authorized.workspaceId, port);
+
+    return { port, url, ready };
   });
+
+  /*
+   * Marker + tag for the same-origin preview error reporter injected into HTML
+   * served through the api-origin preview fallback. The reporter file lives in the
+   * app's public assets (public/vibecore-preview-reporter.js) and is served on the
+   * app origin, which is the SAME origin as this proxy path — so a bare
+   * `/vibecore-preview-reporter.js` resolves without a cross-origin/CSP hop. Kept
+   * byte-compatible with the preview-proxy's injected reporter so the IDE handler
+   * treats both transports identically. The marker makes injection idempotent (a
+   * page that already self-hosts the reporter, or a double-proxy, is not doubled).
+   */
+  const PREVIEW_REPORTER_MARKER = 'data-vibecore-reporter';
+  const PREVIEW_REPORTER_TAG = `<script src="/vibecore-preview-reporter.js" ${PREVIEW_REPORTER_MARKER}></script>`;
+
+  // Only buffer+inject a plausibly-small HTML document; larger bodies stream raw.
+  const MAX_PREVIEW_REPORTER_INJECT_BYTES = 2 * 1024 * 1024;
+
+  const injectPreviewReporterScript = (html: string): string => {
+    if (html.includes(PREVIEW_REPORTER_MARKER)) {
+      return html;
+    }
+
+    // Prefer end-of-<head> so the (classic, non-module) reporter runs before the
+    // app's deferred module scripts and can catch a load-time throw.
+    if (/<\/head>/i.test(html)) {
+      return html.replace(/<\/head>/i, `${PREVIEW_REPORTER_TAG}</head>`);
+    }
+
+    if (/<body[^>]*>/i.test(html)) {
+      return html.replace(/<body[^>]*>/i, (match) => `${match}${PREVIEW_REPORTER_TAG}`);
+    }
+
+    // No <head>/<body> (fragment/minimal doc): prepend so it still loads.
+    return `${PREVIEW_REPORTER_TAG}${html}`;
+  };
 
   const handleRuntimePreviewProxy = async (request: FastifyRequest, reply: FastifyReply) => {
     const { workspaceId } = parse(workspaceParams, request.params);
@@ -16052,7 +16970,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:read');
 
     if (!Number.isInteger(port) || port <= 0 || port > 65535) {
-      return reply.code(400).send({ error: 'invalid_port' });
+      return reply
+        .code(400)
+        .send({ error: appPublicEnglish('PREVIEW_PORT_INVALID'), code: 'RUNTIME_PREVIEW_BAD_PORT' });
     }
 
     /*
@@ -16077,14 +16997,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * so the proxy can only ever address the preview subtree.
      */
     if (proxyPath.split('/').some((segment) => segment === '..')) {
-      return reply.code(400).send({ error: 'invalid_path', code: 'RUNTIME_PREVIEW_BAD_PATH' });
+      return reply
+        .code(400)
+        .send({ error: appPublicEnglish('PREVIEW_PATH_INVALID'), code: 'RUNTIME_PREVIEW_BAD_PATH' });
     }
 
     const agentUrl = new URL(`${agentBaseUrl(authorized.workspaceId)}/preview/${port}/${proxyPath}`);
 
     // Belt-and-braces: confirm normalisation kept us inside the preview subtree.
     if (!agentUrl.pathname.startsWith(`/preview/${port}/`) && agentUrl.pathname !== `/preview/${port}`) {
-      return reply.code(400).send({ error: 'invalid_path', code: 'RUNTIME_PREVIEW_BAD_PATH' });
+      return reply
+        .code(400)
+        .send({ error: appPublicEnglish('PREVIEW_PATH_INVALID'), code: 'RUNTIME_PREVIEW_BAD_PATH' });
     }
 
     const queryIndex = request.url.indexOf('?');
@@ -16137,10 +17061,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        * Our own connect-deadline abort surfaces as AbortError, not TimeoutError.
        */
       if (error instanceof Error && (error.name === 'TimeoutError' || error.name === 'AbortError')) {
-        return reply.code(504).send({ error: 'preview_timeout', code: 'RUNTIME_PREVIEW_TIMEOUT' });
+        return reply.code(504).send({ error: appPublicEnglish('PREVIEW_TIMEOUT'), code: 'RUNTIME_PREVIEW_TIMEOUT' });
       }
 
-      return reply.code(502).send({ error: 'preview_unreachable', code: 'RUNTIME_PREVIEW_UNREACHABLE' });
+      return reply
+        .code(502)
+        .send({ error: appPublicEnglish('PREVIEW_UNREACHABLE'), code: 'RUNTIME_PREVIEW_UNREACHABLE' });
     }
 
     /*
@@ -16150,9 +17076,37 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const upstreamWasEncoded = response.headers.has('content-encoding');
 
     for (const [key, value] of response.headers.entries()) {
-      if (!['content-encoding', 'content-length', 'transfer-encoding', 'connection'].includes(key.toLowerCase())) {
-        reply.header(key, value);
+      if (['content-encoding', 'content-length', 'transfer-encoding', 'connection'].includes(key.toLowerCase())) {
+        continue;
       }
+
+      /*
+       * Same framing rule as the preview-proxy: this same-origin fallback serves
+       * the preview when PREVIEW_URL_TEMPLATE / PREVIEW_PROXY_URL is absent, so
+       * without this an upstream X-Frame-Options / CSP frame-ancestors blocks
+       * the IDE's iframe and the Webview goes blank at HTTP 200. Kept inline
+       * rather than imported: services/api must not depend on preview-proxy.
+       */
+      const lower = key.toLowerCase();
+
+      if (lower === 'x-frame-options') {
+        continue;
+      }
+
+      if (lower === 'content-security-policy' || lower === 'content-security-policy-report-only') {
+        const kept = value
+          .split(';')
+          .map((directive) => directive.trim())
+          .filter((directive) => directive.length > 0 && !/^frame-ancestors(\s|$)/i.test(directive));
+
+        if (kept.length > 0) {
+          reply.header(key, kept.join('; '));
+        }
+
+        continue;
+      }
+
+      reply.header(key, value);
     }
 
     /*
@@ -16167,12 +17121,50 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      */
     const contentLength = response.headers.get('content-length');
 
-    if (contentLength && !upstreamWasEncoded) {
-      reply.header('content-length', contentLength);
+    if (!response.body) {
+      if (contentLength && !upstreamWasEncoded) {
+        reply.header('content-length', contentLength);
+      }
+
+      return reply.code(response.status).send();
     }
 
-    if (!response.body) {
-      return reply.code(response.status).send();
+    /*
+     * Inject the preview error reporter into the top-level HTML document served
+     * on THIS same-origin fallback path (used when PREVIEW_URL_TEMPLATE is unset).
+     * The external preview-proxy injects the reporter on the *.preview host, but
+     * this api-origin proxy historically streamed the HTML RAW — so a preview
+     * served here (HTTP 200) that never mounts, or crashes on load, showed a
+     * SILENT BLANK with no in-iframe error overlay and no PREVIEW_BLANK signal to
+     * the IDE ("preview stayed empty / no visible preview status"). Injecting the
+     * same reporter (a same-origin <script>, since this document is app-origin)
+     * restores the blank-watchdog + error overlay on this path too, so a blank is
+     * never invisible. Only a small text/html document is buffered+rewritten; every
+     * other response (assets, big bundles, streams) still passes through untouched,
+     * so the OOM/streaming guarantees above are preserved.
+     */
+    const previewContentType = response.headers.get('content-type') ?? '';
+    const previewCharset = /charset\s*=\s*"?([\w-]+)"?/i.exec(previewContentType)?.[1]?.toLowerCase();
+    const previewIsUtf8 = !previewCharset || previewCharset === 'utf-8' || previewCharset === 'utf8';
+    const declaredLen = Number(contentLength ?? '');
+    const injectable =
+      previewContentType.includes('text/html') &&
+      previewIsUtf8 &&
+      (!Number.isFinite(declaredLen) || declaredLen <= MAX_PREVIEW_REPORTER_INJECT_BYTES);
+
+    if (injectable) {
+      const rawHtml = await response.text();
+      const injectedHtml =
+        rawHtml.length <= MAX_PREVIEW_REPORTER_INJECT_BYTES ? injectPreviewReporterScript(rawHtml) : rawHtml;
+      const outBuffer = Buffer.from(injectedHtml, 'utf8');
+
+      reply.header('content-length', String(outBuffer.byteLength));
+
+      return reply.code(response.status).send(outBuffer);
+    }
+
+    if (contentLength && !upstreamWasEncoded) {
+      reply.header('content-length', contentLength);
     }
 
     /*
@@ -16248,9 +17240,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       }
 
       if (++exportFiles > MAX_EXPORT_FILES) {
-        return reply
-          .code(413)
-          .send({ error: 'Workspace has too many files to export', code: 'RUNTIME_EXPORT_TOO_MANY_FILES' });
+        return reply.code(413).send({
+          error: appPublicEnglish('RUNTIME_EXPORT_TOO_MANY_FILES'),
+          code: 'RUNTIME_EXPORT_TOO_MANY_FILES',
+        });
       }
 
       /*
@@ -16267,7 +17260,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       exportBytes += isBase64 ? Math.floor((fileRead.content.length * 3) / 4) : Buffer.byteLength(fileRead.content);
 
       if (exportBytes > MAX_EXPORT_BYTES) {
-        return reply.code(413).send({ error: 'Workspace is too large to export', code: 'RUNTIME_EXPORT_TOO_LARGE' });
+        return reply
+          .code(413)
+          .send({ error: appPublicEnglish('RUNTIME_EXPORT_TOO_LARGE'), code: 'RUNTIME_EXPORT_TOO_LARGE' });
       }
 
       if (isBase64) {
@@ -16291,7 +17286,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * Reject traversal here before fanning the writes out to the agent.
      */
     if (targetPath !== '.' && targetPath.split(/[\\/]/).some((segment) => segment === '..')) {
-      return reply.code(400).send({ error: 'Invalid targetPath', code: 'RUNTIME_IMPORT_BAD_TARGET' });
+      return reply
+        .code(400)
+        .send({ error: appPublicEnglish('RUNTIME_IMPORT_BAD_TARGET'), code: 'RUNTIME_IMPORT_BAD_TARGET' });
     }
 
     let zip: JSZip;
@@ -16299,7 +17296,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     try {
       zip = await JSZip.loadAsync(request.body as Buffer);
     } catch (error) {
-      throw Object.assign(new Error('Uploaded file is not a valid zip archive'), {
+      throw Object.assign(new Error(appPublicEnglish('RUNTIME_IMPORT_BAD_ZIP')), {
         statusCode: 400,
         code: 'RUNTIME_IMPORT_BAD_ZIP',
         cause: error,
@@ -16335,6 +17332,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     workspaceId: string,
     agentPath: string,
     wrapMessages = true,
+    locale: TransactionalLocale = 'en',
+    clientQuery?: unknown,
   ) => {
     const token = await agentToken(workspaceId);
     const client = normalizeRuntimeApiWebSocket(rawSocket);
@@ -16342,7 +17341,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const upstream = new WebSocket(
       `${agentBaseUrl(workspaceId)
         .replace(/^http:/, 'ws:')
-        .replace(/^https:/, 'wss:')}${agentPath}?token=${encodeURIComponent(token)}`,
+        .replace(/^https:/, 'wss:')}${agentPath}?token=${encodeURIComponent(token)}${forwardedAgentQuery(clientQuery)}`,
+      { headers: { 'accept-language': locale } },
     );
 
     const pendingMessages: string[] = [];
@@ -16393,7 +17393,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           client.send(
             JSON.stringify({
               type: 'error',
-              error: { message: 'Workspace is not running. Click Run to start it.', code: 'WORKSPACE_NOT_STARTED' },
+              error: { message: appPublicCopy('WORKSPACE_NOT_RUNNING', locale), code: 'WORKSPACE_NOT_STARTED' },
               timestamp: new Date().toISOString(),
             }),
           );
@@ -16421,7 +17421,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         client.send(
           JSON.stringify({
             type: 'error',
-            error: { message: 'Workspace agent WebSocket failed' },
+            error: { message: appPublicCopy('WORKSPACE_AGENT_WEBSOCKET_FAILED', locale) },
             timestamp: new Date().toISOString(),
           }),
         );
@@ -16531,7 +17531,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       client.send(
         JSON.stringify({
           type: 'error',
-          error: { code: 'TERMINAL_ACCESS_DENIED', message: 'Terminal access is restricted for this project role' },
+          error: {
+            code: 'TERMINAL_ACCESS_DENIED',
+            message: appPublicCopy('TERMINAL_ACCESS_DENIED', transactionalLocaleForRequest(request)),
+          },
           timestamp: new Date().toISOString(),
         }),
       );
@@ -16552,7 +17555,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return;
     }
 
-    await proxyRuntimeSocket(socket, authorized.workspaceId, '/commands/stream', false);
+    await proxyRuntimeSocket(
+      socket,
+      authorized.workspaceId,
+      '/commands/stream',
+      false,
+      transactionalLocaleForRequest(request),
+      request.query,
+    );
   });
 
   app.get('/api/runtime/workspaces/:workspaceId/terminal', { websocket: true }, async (socket, request) => {
@@ -16617,7 +17627,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * through unwrapped — wrapping here would double-encode every frame, so the
      * client would render the inner JSON as literal text instead of shell output.
      */
-    await proxyRuntimeSocket(socket, authorized.workspaceId, '/terminal', false);
+    await proxyRuntimeSocket(
+      socket,
+      authorized.workspaceId,
+      '/terminal',
+      false,
+      transactionalLocaleForRequest(request),
+      request.query,
+    );
   });
   app.get('/api/runtime/workspaces/:workspaceId/logs', { websocket: true }, async (socket, request) => {
     const { workspaceId } = parse(workspaceParams, request.params);
@@ -16963,7 +17980,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       const existing = await store.findUserByEmail(body.email!);
 
       if (existing && existing.id !== request.currentUser!.id) {
-        return reply.code(409).send({ error: 'Email already registered', code: 'AUTH_EMAIL_EXISTS' });
+        return reply.code(409).send({ error: appPublicEnglish('AUTH_EMAIL_EXISTS'), code: 'AUTH_EMAIL_EXISTS' });
       }
     }
 
@@ -16991,10 +18008,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        * They can request another verification later.
        */
       try {
+        const content = verificationEmailContent({
+          baseUrl: appPublicBaseUrl(),
+          token: verificationToken,
+          locale: transactionalLocaleForRequest(request, user.language),
+          kind: 'new-email',
+        });
         await emailProvider.send({
           to: user.email,
-          subject: 'Verify your new email',
-          ...verificationEmailContent(verificationToken, 'new email address'),
+          ...content,
         });
       } catch (error) {
         request.log.error({ err: error, userId: user.id }, 'failed to send email-change verification');
@@ -17105,7 +18127,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       const existingUser = await store.findUserById(request.currentUser!.id);
 
       if (!existingUser || !verifyPassword(body.currentPassword, existingUser.passwordHash)) {
-        return reply.code(401).send({ error: 'Invalid credentials', code: 'AUTH_INVALID_CREDENTIALS' });
+        return reply
+          .code(401)
+          .send({ error: appPublicEnglish('AUTH_INVALID_CREDENTIALS'), code: 'AUTH_INVALID_CREDENTIALS' });
       }
 
       const user = await store.updateUser({
@@ -17132,7 +18156,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       const user = await store.findUserById(request.currentUser!.id);
 
       if (!user) {
-        throw Object.assign(new Error('User not found'), { statusCode: 404, code: 'USER_NOT_FOUND' });
+        throw Object.assign(new Error(appPublicEnglish('USER_NOT_FOUND')), { statusCode: 404, code: 'USER_NOT_FOUND' });
       }
 
       if (user.emailVerifiedAt) {
@@ -17148,10 +18172,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
 
       try {
+        const content = verificationEmailContent({
+          baseUrl: appPublicBaseUrl(),
+          token: verificationToken,
+          locale: transactionalLocaleForRequest(request, user.language),
+        });
         await emailProvider.send({
           to: user.email,
-          subject: 'Verify your email',
-          ...verificationEmailContent(verificationToken),
+          ...content,
         });
       } catch (error) {
         request.log.error({ err: error, userId: user.id }, 'failed to resend verification email');
@@ -17171,7 +18199,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const user = await store.findUserById(request.currentUser!.id);
 
     if (!user) {
-      throw Object.assign(new Error('User not found'), { statusCode: 404, code: 'USER_NOT_FOUND' });
+      throw Object.assign(new Error(appPublicEnglish('USER_NOT_FOUND')), { statusCode: 404, code: 'USER_NOT_FOUND' });
     }
 
     const organizations = await store.listOrganizations(user.id);
@@ -17229,8 +18257,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
         if (isSoleOwner && members.length > 1) {
           return reply.code(409).send({
-            error:
-              'You are the sole owner of an organization with other members. Transfer ownership or delete the organization first.',
+            error: appPublicEnglish('AUTH_SOLE_ORGANIZATION_OWNER'),
             code: 'LAST_OWNER',
             organizationId: organization.id,
           });
@@ -17265,7 +18292,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       const currentSession = request.currentSession;
 
       if (!currentSession) {
-        return reply.code(400).send({ error: 'No active session to refresh', code: 'SESSION_REQUIRED' });
+        return reply
+          .code(400)
+          .send({ error: appPublicEnglish('AUTH_SESSION_REFRESH_MISSING'), code: 'SESSION_REQUIRED' });
       }
 
       const token = createOpaqueToken('session');
@@ -17315,14 +18344,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const target = connections.find((c) => c.provider === provider);
 
     if (!target) {
-      return reply.code(404).send({ error: 'No such linked provider', code: 'CONNECTION_NOT_FOUND' });
+      return reply
+        .code(404)
+        .send({ error: appPublicEnglish('AUTH_LINKED_PROVIDER_NOT_FOUND'), code: 'CONNECTION_NOT_FOUND' });
     }
 
     const user = await store.findUserById(userId);
 
     if (!user?.passwordHash && connections.length <= 1) {
       return reply.code(400).send({
-        error: 'Cannot unlink your only sign-in method. Set a password or link another provider first.',
+        error: appPublicEnglish('AUTH_ONLY_SIGN_IN_METHOD'),
         code: 'LAST_LOGIN_METHOD',
       });
     }
@@ -17342,7 +18373,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     { config: { rateLimit: { max: Number(process.env.AUTH_LOGOUT_RATE_LIMIT_MAX ?? 30), timeWindow: '1 minute' } } },
     async (request, reply) => {
       if (!request.currentSession) {
-        return reply.code(400).send({ error: 'No active session to log out', code: 'SESSION_REQUIRED' });
+        return reply
+          .code(400)
+          .send({ error: appPublicEnglish('AUTH_LOGOUT_SESSION_MISSING'), code: 'SESSION_REQUIRED' });
       }
 
       const sessionId = request.currentSession.id;
@@ -17380,14 +18413,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   );
   app.post('/auth/reauth', { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } }, async (request, reply) => {
     if (!request.currentSession) {
-      return reply.code(400).send({ error: 'Re-auth requires an active session', code: 'SESSION_REQUIRED' });
+      return reply
+        .code(400)
+        .send({ error: appPublicEnglish('AUTH_REAUTH_SESSION_REQUIRED'), code: 'SESSION_REQUIRED' });
     }
 
     const body = parse(reauthSchema, request.body);
     const user = await store.findUserById(request.currentUser!.id);
 
     if (!user || !verifyPassword(body.password, user.passwordHash)) {
-      return reply.code(401).send({ error: 'Invalid credentials', code: 'AUTH_INVALID_CREDENTIALS' });
+      return reply
+        .code(401)
+        .send({ error: appPublicEnglish('AUTH_INVALID_CREDENTIALS'), code: 'AUTH_INVALID_CREDENTIALS' });
     }
 
     await store.markSessionReauthenticated(request.currentSession.id);
@@ -17418,9 +18455,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const current = await store.findUserById(request.currentUser!.id);
 
     if (current?.mfaEnabled) {
-      return reply
-        .code(409)
-        .send({ error: 'MFA is already enabled; disable it before re-enrolling', code: 'MFA_ALREADY_ENABLED' });
+      return reply.code(409).send({ error: appPublicEnglish('AUTH_MFA_ALREADY_ENABLED'), code: 'MFA_ALREADY_ENABLED' });
     }
 
     const secret = createTotpSecret();
@@ -17445,7 +18480,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       const encryptedSecret = user?.mfaSecretEncrypted;
 
       if (!encryptedSecret) {
-        return reply.code(400).send({ error: 'MFA setup is not started', code: 'MFA_NOT_SETUP' });
+        return reply.code(400).send({ error: appPublicEnglish('AUTH_MFA_SETUP_NOT_STARTED'), code: 'MFA_NOT_SETUP' });
       }
 
       const { secret } = decryptJson<{ secret: string }>(encryptedSecret);
@@ -17454,7 +18489,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         const consumed = await store.consumeRecoveryCode(request.currentUser!.id, hashRecoveryCode(body.code));
 
         if (!consumed) {
-          return reply.code(401).send({ error: 'Invalid MFA code', code: 'MFA_INVALID_CODE' });
+          return reply.code(401).send({ error: appPublicEnglish('AUTH_INVALID_MFA_CODE'), code: 'MFA_INVALID_CODE' });
         }
       }
 
@@ -17485,7 +18520,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       const user = await store.findUserById(request.currentUser!.id);
 
       if (!user?.mfaEnabled || !user.mfaSecretEncrypted) {
-        return reply.code(400).send({ error: 'MFA is not enabled', code: 'MFA_NOT_ENABLED' });
+        return reply.code(400).send({ error: appPublicEnglish('AUTH_MFA_NOT_ENABLED'), code: 'MFA_NOT_ENABLED' });
       }
 
       const { secret } = decryptJson<{ secret: string }>(user.mfaSecretEncrypted);
@@ -17494,7 +18529,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         const consumed = await store.consumeRecoveryCode(request.currentUser!.id, hashRecoveryCode(body.code));
 
         if (!consumed) {
-          return reply.code(401).send({ error: 'Invalid MFA code', code: 'MFA_INVALID_CODE' });
+          return reply.code(401).send({ error: appPublicEnglish('AUTH_INVALID_MFA_CODE'), code: 'MFA_INVALID_CODE' });
         }
       }
 
@@ -17551,7 +18586,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const body = parse(platformAdminSchema, request.body);
 
     if (!request.currentUser?.platformAdmin) {
-      throw Object.assign(new Error('Platform administrator required'), {
+      throw Object.assign(new Error(appPublicEnglish('PLATFORM_ADMIN_REQUIRED')), {
         statusCode: 403,
         code: 'PLATFORM_ADMIN_REQUIRED',
       });
@@ -17621,7 +18656,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        */
       if ((error as { code?: string } | null)?.code === 'P2002') {
         return reply.code(409).send({
-          error: 'An organization with this name or slug already exists. Pick a different name.',
+          error: appPublicEnglish('ORGANIZATION_NAME_OR_SLUG_TAKEN'),
           code: 'ORG_SLUG_TAKEN',
         });
       }
@@ -17660,7 +18695,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const user = await store.findUserById(body.userId);
 
     if (!user) {
-      return reply.code(404).send({ error: 'User not found', code: 'USER_NOT_FOUND' });
+      return reply.code(404).send({ error: appPublicEnglish('USER_NOT_FOUND'), code: 'USER_NOT_FOUND' });
     }
 
     const existing = await store.getMembership(body.userId, orgId);
@@ -17690,7 +18725,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
 
       if ('conflict' in result) {
-        return reply.code(409).send({ error: 'Cannot demote the last organization owner', code: 'LAST_OWNER' });
+        return reply
+          .code(409)
+          .send({ error: appPublicEnglish('ORGANIZATION_LAST_OWNER_CANNOT_DEMOTE'), code: 'LAST_OWNER' });
       }
 
       membership = result.membership;
@@ -17734,7 +18771,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const existing = await store.getMembership(userId, orgId);
 
     if (!existing) {
-      return reply.code(404).send({ error: 'Membership not found', code: 'MEMBERSHIP_NOT_FOUND' });
+      return reply.code(404).send({ error: appPublicEnglish('MEMBERSHIP_NOT_FOUND'), code: 'MEMBERSHIP_NOT_FOUND' });
     }
 
     /*
@@ -17763,7 +18800,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
 
       if ('conflict' in result) {
-        return reply.code(409).send({ error: 'Cannot demote the last organization owner', code: 'LAST_OWNER' });
+        return reply
+          .code(409)
+          .send({ error: appPublicEnglish('ORGANIZATION_LAST_OWNER_CANNOT_DEMOTE'), code: 'LAST_OWNER' });
       }
 
       membership = result.membership;
@@ -17794,17 +18833,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     if (member.roleKey !== 'owner') {
       return reply
         .code(403)
-        .send({ error: 'Only an organization owner can transfer ownership', code: 'RBAC_FORBIDDEN' });
+        .send({ error: appPublicEnglish('ORGANIZATION_OWNER_REQUIRED_FOR_TRANSFER'), code: 'RBAC_FORBIDDEN' });
     }
 
     if (userId === member.userId) {
-      return reply.code(400).send({ error: 'You already own this organization', code: 'TRANSFER_TO_SELF' });
+      return reply.code(400).send({ error: appPublicEnglish('ORGANIZATION_ALREADY_OWNER'), code: 'TRANSFER_TO_SELF' });
     }
 
     const target = await store.getMembership(userId, orgId);
 
     if (!target) {
-      return reply.code(404).send({ error: 'Membership not found', code: 'MEMBERSHIP_NOT_FOUND' });
+      return reply.code(404).send({ error: appPublicEnglish('MEMBERSHIP_NOT_FOUND'), code: 'MEMBERSHIP_NOT_FOUND' });
     }
 
     /*
@@ -17839,7 +18878,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const existing = await store.getMembership(userId, orgId);
 
     if (!existing) {
-      return reply.code(404).send({ error: 'Membership not found', code: 'MEMBERSHIP_NOT_FOUND' });
+      return reply.code(404).send({ error: appPublicEnglish('MEMBERSHIP_NOT_FOUND'), code: 'MEMBERSHIP_NOT_FOUND' });
     }
 
     /*
@@ -17866,7 +18905,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
 
       if ('conflict' in result) {
-        return reply.code(409).send({ error: 'Cannot remove the last organization owner', code: 'LAST_OWNER' });
+        return reply
+          .code(409)
+          .send({ error: appPublicEnglish('ORGANIZATION_LAST_OWNER_CANNOT_REMOVE'), code: 'LAST_OWNER' });
       }
 
       membership = result.membership;
@@ -17910,6 +18951,48 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       await requireAssignableOrganizationRole(store, orgId, roleKey);
       await requireRoleAssignableByCaller(store, orgId, member.roleKey, roleKey);
 
+      const inviteEmail = body.email.trim().toLowerCase();
+
+      /*
+       * BUG-USR-010: refuse inviting an email that is ALREADY a member of the org
+       * (this also covers self-invite — previously a caller could invite their own
+       * already-member address and it returned 201, creating a dead pending invite).
+       */
+      const members = await store.listMembers(orgId);
+
+      if (members.some((existingMember) => (existingMember.userEmail ?? '').trim().toLowerCase() === inviteEmail)) {
+        return reply
+          .code(409)
+          .send({
+            error: appPublicCopy('ALREADY_MEMBER', transactionalLocaleForRequest(request)),
+            code: 'ALREADY_MEMBER',
+          });
+      }
+
+      /*
+       * BUG-USR-011: refuse a duplicate PENDING invitation for the same email
+       * (previously two invites to the same address both returned 201, producing
+       * duplicate rows in the Pending invitations list with ambiguous resend/accept).
+       */
+      const pendingInvites = await store.listOrganizationInvites(orgId);
+      const nowMs = Date.now();
+
+      const hasPending = pendingInvites.some(
+        (invite) =>
+          invite.email.trim().toLowerCase() === inviteEmail &&
+          !invite.acceptedAt &&
+          new Date(invite.expiresAt).getTime() > nowMs,
+      );
+
+      if (hasPending) {
+        return reply
+          .code(409)
+          .send({
+            error: appPublicCopy('ALREADY_INVITED', transactionalLocaleForRequest(request)),
+            code: 'ALREADY_INVITED',
+          });
+      }
+
       const token = createOpaqueToken('invite');
 
       const invitation = await store.createOrganizationInvite({
@@ -17919,10 +19002,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         token,
         expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 14),
       });
+      const invitedUser = await store.findUserByEmail(body.email);
+      const invitationContent = invitationEmailContent({
+        baseUrl: appPublicBaseUrl(),
+        token,
+        locale: transactionalLocaleForRequest(request, invitedUser?.language, { manualRequestWins: false }),
+      });
       await emailProvider.send({
         to: body.email,
-        subject: 'You have been invited',
-        text: `Use this invitation token to join: ${token}`,
+        ...invitationContent,
       });
       await audit(request, store, {
         organizationId: orgId,
@@ -17958,7 +19046,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       const ownsResendInvite = (await store.listOrganizationInvites(orgId)).some((entry) => entry.id === inviteId);
 
       if (!ownsResendInvite) {
-        return reply.code(404).send({ error: 'Invitation not found', code: 'INVITE_NOT_FOUND' });
+        return reply.code(404).send({ error: appPublicEnglish('INVITATION_NOT_FOUND'), code: 'INVITE_NOT_FOUND' });
       }
 
       const resendNow = Date.now();
@@ -17970,10 +19058,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           Math.ceil((INVITE_RESEND_COOLDOWN_MS - (resendNow - lastResentAt)) / 1000),
         );
 
-        return reply.code(429).header('retry-after', retryAfterSeconds).send({
-          error: 'This invitation was resent less than a minute ago. Try again shortly.',
-          code: 'INVITE_RESEND_THROTTLED',
-        });
+        return reply
+          .code(429)
+          .header('retry-after', retryAfterSeconds)
+          .send({
+            error: appPublicEnglish('INVITATION_RESEND_TOO_SOON'),
+            code: 'INVITE_RESEND_THROTTLED',
+          });
       }
 
       const token = createOpaqueToken('invite');
@@ -17985,13 +19076,19 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       );
 
       if (!invitation || invitation.organizationId !== orgId) {
-        return reply.code(404).send({ error: 'Invitation not found', code: 'INVITE_NOT_FOUND' });
+        return reply.code(404).send({ error: appPublicEnglish('INVITATION_NOT_FOUND'), code: 'INVITE_NOT_FOUND' });
       }
 
+      const invitedUser = await store.findUserByEmail(invitation.email);
+      const invitationContent = invitationEmailContent({
+        baseUrl: appPublicBaseUrl(),
+        token,
+        locale: transactionalLocaleForRequest(request, invitedUser?.language, { manualRequestWins: false }),
+        kind: 'resend',
+      });
       await emailProvider.send({
         to: invitation.email,
-        subject: 'Your invitation link',
-        text: `Use this invitation token to join: ${token}`,
+        ...invitationContent,
       });
       inviteResendSentAt.set(inviteId, resendNow);
 
@@ -18025,13 +19122,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const ownsExpireInvite = (await store.listOrganizationInvites(orgId)).some((entry) => entry.id === inviteId);
 
     if (!ownsExpireInvite) {
-      return reply.code(404).send({ error: 'Invitation not found', code: 'INVITE_NOT_FOUND' });
+      return reply.code(404).send({ error: appPublicEnglish('INVITATION_NOT_FOUND'), code: 'INVITE_NOT_FOUND' });
     }
 
     const invitation = await store.expireOrganizationInvite(inviteId);
 
     if (!invitation || invitation.organizationId !== orgId) {
-      return reply.code(404).send({ error: 'Invitation not found', code: 'INVITE_NOT_FOUND' });
+      return reply.code(404).send({ error: appPublicEnglish('INVITATION_NOT_FOUND'), code: 'INVITE_NOT_FOUND' });
     }
 
     await audit(request, store, {
@@ -18048,7 +19145,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const pendingInvitation = await store.findOrganizationInviteByToken(body.token);
 
     if (!pendingInvitation) {
-      return reply.code(400).send({ error: 'Invalid invitation token', code: 'INVITE_INVALID_TOKEN' });
+      return reply
+        .code(400)
+        .send({ error: appPublicEnglish('INVITATION_TOKEN_INVALID'), code: 'INVITE_INVALID_TOKEN' });
     }
 
     /*
@@ -18062,7 +19161,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     if (!accepterEmail || accepterEmail !== pendingInvitation.email.toLowerCase()) {
       return reply
         .code(403)
-        .send({ error: 'Invitation was issued to a different email', code: 'INVITE_EMAIL_MISMATCH' });
+        .send({ error: appPublicEnglish('INVITATION_EMAIL_MISMATCH'), code: 'INVITE_EMAIL_MISMATCH' });
     }
 
     /*
@@ -18074,7 +19173,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     if (!request.currentUser!.emailVerifiedAt) {
       return reply
         .code(403)
-        .send({ error: 'Verify your email before accepting an invitation', code: 'EMAIL_NOT_VERIFIED' });
+        .send({ error: appPublicEnglish('INVITATION_EMAIL_VERIFICATION_REQUIRED'), code: 'EMAIL_NOT_VERIFIED' });
     }
 
     const existingMembership = await store.getMembership(request.currentUser!.id, pendingInvitation.organizationId);
@@ -18092,7 +19191,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         });
 
     if (!invitation) {
-      return reply.code(400).send({ error: 'Invalid invitation token', code: 'INVITE_INVALID_TOKEN' });
+      return reply
+        .code(400)
+        .send({ error: appPublicEnglish('INVITATION_TOKEN_INVALID'), code: 'INVITE_INVALID_TOKEN' });
     }
 
     if (!existingMembership) {
@@ -18171,7 +19272,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     });
 
     if (!updated) {
-      return reply.code(404).send({ error: 'Domain not found', code: 'DOMAIN_NOT_FOUND' });
+      return reply
+        .code(404)
+        .send({ error: appPublicEnglish('ORGANIZATION_DOMAIN_NOT_FOUND'), code: 'DOMAIN_NOT_FOUND' });
     }
 
     await audit(request, store, {
@@ -18191,7 +19294,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const verified = await store.verifyDomain({ organizationId: orgId, domain });
 
     if (!verified) {
-      return reply.code(404).send({ error: 'Domain not found', code: 'DOMAIN_NOT_FOUND' });
+      return reply
+        .code(404)
+        .send({ error: appPublicEnglish('ORGANIZATION_DOMAIN_NOT_FOUND'), code: 'DOMAIN_NOT_FOUND' });
     }
 
     await audit(request, store, {
@@ -18215,7 +19320,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const member = await requireOrg(request, store, orgId, 'roles:manage');
 
     if (Object.hasOwn(rolePermissions, body.key)) {
-      return reply.code(409).send({ error: 'System roles cannot be overwritten', code: 'SYSTEM_ROLE_RESERVED' });
+      return reply.code(409).send({ error: appPublicEnglish('SYSTEM_ROLE_RESERVED'), code: 'SYSTEM_ROLE_RESERVED' });
     }
 
     /*
@@ -18233,7 +19338,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     if (escalated.length > 0) {
       return reply.code(403).send({
-        error: `Cannot grant permissions you do not hold: ${escalated.join(', ')}`,
+        error: appPublicEnglish('RBAC_PERMISSION_ESCALATION', { value1: escalated.join(', ') }),
         code: 'RBAC_PRIVILEGE_ESCALATION',
       });
     }
@@ -18304,7 +19409,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     if (!config) {
       return reply.code(404).send({
-        error: `No ${type.toUpperCase()} provider is configured for this organization.`,
+        error: appPublicEnglish('ORGANIZATION_IDENTITY_PROVIDER_NOT_CONFIGURED', { value1: type.toUpperCase() }),
         code: 'SSO_NOT_CONFIGURED',
       });
     }
@@ -18439,13 +19544,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const ownsScimToken = (await store.listScimTokens(params.orgId)).some((token) => token.id === params.tokenId);
 
     if (!ownsScimToken) {
-      return reply.code(404).send({ error: 'SCIM token not found', code: 'SCIM_TOKEN_NOT_FOUND' });
+      return reply.code(404).send({ error: appPublicEnglish('SCIM_TOKEN_NOT_FOUND'), code: 'SCIM_TOKEN_NOT_FOUND' });
     }
 
     const revoked = await store.revokeScimToken(params.tokenId);
 
     if (!revoked || revoked.organizationId !== params.orgId) {
-      return reply.code(404).send({ error: 'SCIM token not found', code: 'SCIM_TOKEN_NOT_FOUND' });
+      return reply.code(404).send({ error: appPublicEnglish('SCIM_TOKEN_NOT_FOUND'), code: 'SCIM_TOKEN_NOT_FOUND' });
     }
 
     await audit(request, store, {
@@ -18469,7 +19574,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const existingRotateToken = (await store.listScimTokens(params.orgId)).find((token) => token.id === params.tokenId);
 
     if (!existingRotateToken) {
-      return reply.code(404).send({ error: 'SCIM token not found', code: 'SCIM_TOKEN_NOT_FOUND' });
+      return reply.code(404).send({ error: appPublicEnglish('SCIM_TOKEN_NOT_FOUND'), code: 'SCIM_TOKEN_NOT_FOUND' });
     }
 
     /*
@@ -18482,7 +19587,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const scimToken = await store.rotateScimToken(params.tokenId, token);
 
     if (!scimToken || scimToken.organizationId !== params.orgId) {
-      return reply.code(404).send({ error: 'SCIM token not found', code: 'SCIM_TOKEN_NOT_FOUND' });
+      return reply.code(404).send({ error: appPublicEnglish('SCIM_TOKEN_NOT_FOUND'), code: 'SCIM_TOKEN_NOT_FOUND' });
     }
 
     await audit(request, store, {
@@ -18551,7 +19656,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const deleted = await store.deleteSiemWebhook(params.orgId, params.webhookId);
 
     if (!deleted) {
-      return reply.code(404).send({ error: 'SIEM webhook not found', code: 'SIEM_WEBHOOK_NOT_FOUND' });
+      return reply
+        .code(404)
+        .send({ error: appPublicEnglish('SIEM_WEBHOOK_NOT_FOUND'), code: 'SIEM_WEBHOOK_NOT_FOUND' });
     }
 
     await audit(request, store, {
@@ -18571,7 +19678,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const webhook = (await store.listSiemWebhooks(params.orgId)).find((candidate) => candidate.id === params.webhookId);
 
     if (!webhook) {
-      return reply.code(404).send({ error: 'SIEM webhook not found', code: 'SIEM_WEBHOOK_NOT_FOUND' });
+      return reply
+        .code(404)
+        .send({ error: appPublicEnglish('SIEM_WEBHOOK_NOT_FOUND'), code: 'SIEM_WEBHOOK_NOT_FOUND' });
     }
 
     let secret: string;
@@ -18581,7 +19690,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     } catch {
       return reply
         .code(500)
-        .send({ error: 'The webhook signing secret could not be read.', code: 'SIEM_SECRET_UNREADABLE' });
+        .send({ error: appPublicEnglish('SIEM_WEBHOOK_SECRET_UNREADABLE'), code: 'SIEM_SECRET_UNREADABLE' });
     }
 
     /*
@@ -18597,7 +19706,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       deliveredAt: new Date().toISOString(),
       organizationId: params.orgId,
       test: true,
-      message: 'Test event from E-Code SIEM webhook configuration.',
+      message: appPublicCopy('SIEM_TEST_EVENT', transactionalLocaleForRequest(request)),
     });
 
     const signature = createHmac('sha256', secret).update(body).digest('hex');
@@ -18675,7 +19784,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     });
     const files = await projectStorage.writeFiles(
       project.id,
-      starterFiles({ sourceType: 'blank', name: project.name }),
+      starterFiles({ sourceType: 'blank', name: project.name, locale: transactionalLocaleForRequest(request) }),
     );
     await persistProjectFileManifest(store, project.id, files, request.currentUser!.id);
     await commitInitialScaffold(gitProvider, project.id);
@@ -18701,55 +19810,66 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * opened (so the agent panel isn't empty). Derived from the template id — no made-up
    * claims; a generic-but-useful message covers any template not in the map.
    */
-  const templateWelcomeMessage = (templateName: string | undefined, projectName: string): string => {
-    const perTemplate: Record<string, { is: string; steps: string[] }> = {
+  const templateWelcomeMessage = (
+    templateName: string | undefined,
+    projectName: string,
+    locale: TransactionalLocale,
+  ): string => {
+    const perTemplate: Record<string, { descriptionKey: AppPublicCopyKey; stepKeys: AppPublicCopyKey[] }> = {
       'react-saas': {
-        is: 'a React + Vite + TypeScript SaaS starter with a landing page and a routing-ready structure',
-        steps: [
-          'Update the hero copy and app name in `src/App.tsx`',
-          'Add your first page/route',
-          'Wire up auth and your data/API',
-        ],
+        descriptionKey: 'TEMPLATE_REACT_SAAS_DESCRIPTION',
+        stepKeys: ['TEMPLATE_REACT_SAAS_STEP_HERO', 'TEMPLATE_REACT_SAAS_STEP_ROUTE', 'TEMPLATE_REACT_SAAS_STEP_AUTH'],
       },
       'next-dashboard': {
-        is: 'a Next.js dashboard starter with layout, navigation and example pages',
-        steps: ['Edit the dashboard layout and cards', 'Add a new dashboard page', 'Connect a data source'],
+        descriptionKey: 'TEMPLATE_NEXT_DASHBOARD_DESCRIPTION',
+        stepKeys: [
+          'TEMPLATE_NEXT_DASHBOARD_STEP_LAYOUT',
+          'TEMPLATE_NEXT_DASHBOARD_STEP_PAGE',
+          'TEMPLATE_NEXT_DASHBOARD_STEP_DATA',
+        ],
       },
       'fastify-api': {
-        is: 'a Fastify + TypeScript API starter with example routes and validation',
-        steps: ['Add a new route/handler', 'Define request/response schemas', 'Connect a database'],
+        descriptionKey: 'TEMPLATE_FASTIFY_API_DESCRIPTION',
+        stepKeys: [
+          'TEMPLATE_FASTIFY_API_STEP_ROUTE',
+          'TEMPLATE_FASTIFY_API_STEP_SCHEMAS',
+          'TEMPLATE_FASTIFY_API_STEP_DATABASE',
+        ],
       },
       'ai-agent': {
-        is: 'an AI agent starter wired for tool calls and streaming',
-        steps: ['Define your agent’s tools', 'Adjust the system prompt', 'Try a prompt in the preview'],
+        descriptionKey: 'TEMPLATE_AI_AGENT_DESCRIPTION',
+        stepKeys: ['TEMPLATE_AI_AGENT_STEP_TOOLS', 'TEMPLATE_AI_AGENT_STEP_PROMPT', 'TEMPLATE_AI_AGENT_STEP_PREVIEW'],
       },
       'landing-page': {
-        is: 'a polished landing-page starter with sections and responsive styles',
-        steps: ['Edit the hero and feature sections', 'Swap in your brand colors and copy', 'Add a contact/CTA form'],
+        descriptionKey: 'TEMPLATE_LANDING_PAGE_DESCRIPTION',
+        stepKeys: [
+          'TEMPLATE_LANDING_PAGE_STEP_SECTIONS',
+          'TEMPLATE_LANDING_PAGE_STEP_BRAND',
+          'TEMPLATE_LANDING_PAGE_STEP_CTA',
+        ],
       },
       'mobile-starter': {
-        is: 'a mobile-first (Expo/React Native compatible) starter with touch-friendly navigation',
-        steps: ['Edit the home screen', 'Add a new screen/tab', 'Hook up your data'],
+        descriptionKey: 'TEMPLATE_MOBILE_DESCRIPTION',
+        stepKeys: ['TEMPLATE_MOBILE_STEP_HOME', 'TEMPLATE_MOBILE_STEP_SCREEN', 'TEMPLATE_MOBILE_STEP_DATA'],
       },
     };
     const info = (templateName && perTemplate[templateName]) || {
-      is: 'a ready-to-run starter project',
-      steps: [
-        'Describe the first change you want and I’ll edit the files',
-        'Edit files directly in the editor',
-        'Deploy from the Deployments tab',
-      ],
+      descriptionKey: 'TEMPLATE_GENERIC_DESCRIPTION' as const,
+      stepKeys: ['TEMPLATE_GENERIC_STEP_DESCRIBE', 'TEMPLATE_GENERIC_STEP_EDIT', 'TEMPLATE_GENERIC_STEP_DEPLOY'],
     };
 
     return [
-      `👋 Welcome to **${projectName}** — ${info.is}.`,
+      appPublicCopy('TEMPLATE_WELCOME_HEADING', locale, {
+        projectName,
+        description: appPublicCopy(info.descriptionKey, locale),
+      }),
       '',
-      'The dev server starts automatically and the app appears in the **Webview** (Preview) — no clicking needed. Your files save automatically.',
+      appPublicCopy('TEMPLATE_WELCOME_PREVIEW', locale),
       '',
-      'To make changes, just describe what you want here and I’ll edit the files for you, or edit them directly in the editor on the left.',
+      appPublicCopy('TEMPLATE_WELCOME_EDIT', locale),
       '',
-      '**Next steps:**',
-      ...info.steps.map((step, index) => `${index + 1}. ${step}`),
+      appPublicCopy('TEMPLATE_WELCOME_NEXT_STEPS', locale),
+      ...info.stepKeys.map((stepKey, index) => `${index + 1}. ${appPublicCopy(stepKey, locale)}`),
     ].join('\n');
   };
 
@@ -18774,7 +19894,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     });
     const files = await projectStorage.writeFiles(
       project.id,
-      starterFiles({ sourceType: 'template', name: project.name, templateName: body.templateName }),
+      starterFiles({
+        sourceType: 'template',
+        name: project.name,
+        templateName: body.templateName,
+        locale: transactionalLocaleForRequest(request),
+      }),
     );
     await persistProjectFileManifest(store, project.id, files, request.currentUser!.id);
     await commitInitialScaffold(gitProvider, project.id);
@@ -18785,15 +19910,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * empty agent panel. Non-fatal — never fail project creation on a seeding hiccup.
      */
     try {
+      const locale = transactionalLocaleForRequest(request);
       const conversation = await store.createAiConversation({
         projectId: project.id,
         userId: request.currentUser!.id,
-        title: `${project.name} — getting started`,
+        title: appPublicCopy('TEMPLATE_GETTING_STARTED_TITLE', locale, { projectName: project.name }),
       });
       await store.createAiMessage({
         conversationId: conversation.id,
         role: 'assistant',
-        content: templateWelcomeMessage(body.templateName, project.name),
+        content: templateWelcomeMessage(body.templateName, project.name, locale),
       });
     } catch (error) {
       request.log.warn({ err: error, projectId: project.id }, 'failed to seed template welcome message');
@@ -18843,9 +19969,33 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         artifactType: body.artifactType,
         framework: body.framework,
         model: body.model,
+        locale: transactionalLocaleForRequest(request),
       }),
     );
     await persistProjectFileManifest(store, project.id, files, request.currentUser!.id);
+
+    /*
+     * Carry the generation prompt OUT of the delivered files
+     * (BUG-QA-PROMPT-IN-README). `ProjectIdeState` is platform state, not a
+     * project file: it is never exported, committed or deployed. This is also
+     * the channel the IDE already consumes — `Chat.client.tsx` reads
+     * `memory.chat?.pendingPrompt` to auto-run the first generation — so the
+     * prompt→app flow is preserved without shipping the prompt to the customer.
+     */
+    await mutateProjectIdeState(store, project.id, request.currentUser!.id, (_ctx, existing) =>
+      mergeProjectIdeState(existing?.state, {
+        chat: {
+          pendingPrompt: {
+            id: randomUUID(),
+            prompt: body.prompt,
+            ...(body.model ? { model: body.model } : {}),
+            ...(body.framework ? { framework: body.framework } : {}),
+            ...(body.artifactType ? { artifactType: body.artifactType } : {}),
+            createdAt: new Date().toISOString(),
+          },
+        },
+      }),
+    );
     await commitInitialScaffold(gitProvider, project.id);
     await recordUsage(request, orgId, 'projects.count');
     await store.recordProjectActivity({
@@ -18862,9 +20012,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return reply.code(201).send({ project });
   });
+
   const importCreateSchema = z.object({
     provider: z.enum(IMPORT_HUB_PROVIDERS as [string, ...string[]]),
     sourceRef: z.string().optional(),
+
     /*
      * Mandatory idempotency key (safety billing): a retried create with the same
      * key replays the same import and never double-reserves credits.
@@ -18966,6 +20118,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     // Staging expires (idle) — the sweeper / timeout path uses this.
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+
     const job = await store.createImportJob({
       organizationId: orgId,
       actorUserId: request.currentUser?.id,
@@ -18976,6 +20129,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     importIdemIndex.set(idemMapKey, job.id);
 
     let state: ImportState = 'RECEIVED';
+
     const advance = async (to: ImportState, patch: Record<string, unknown> = {}) => {
       assertImportTransition(state, to);
       state = to;
@@ -19004,6 +20158,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
       // SCANNING — read-only detection; content is never mutated here.
       await advance('SCANNING');
+
       const findings = scanStagedFilesForSecrets(stagedFiles);
 
       // Log counts + kinds ONLY — never a raw value (I-IMP redacted logs).
@@ -19082,16 +20237,22 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       .string()
       .min(1)
       .parse((request.params as { importJobId: string }).importJobId);
+
     const body = parse(importConsentSchema, request.body);
 
     const job = await store.getImportJob(importJobId);
+
     if (!job || job.organizationId !== orgId) {
-      throw Object.assign(new Error('Import job not found'), { statusCode: 404, code: 'IMPORT_JOB_NOT_FOUND' });
+      throw Object.assign(new Error(appPublicEnglish('IMPORT_JOB_NOT_FOUND')), {
+        statusCode: 404,
+        code: 'IMPORT_JOB_NOT_FOUND',
+      });
     }
 
     const staged = importStaging.get(importJobId);
+
     if (!staged) {
-      throw Object.assign(new Error('Import staging expired or already committed'), {
+      throw Object.assign(new Error(appPublicEnglish('IMPORT_STAGING_GONE')), {
         statusCode: 409,
         code: 'IMPORT_STAGING_GONE',
       });
@@ -19102,9 +20263,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     // I-IMP-1: block while any finding is unresolved.
     const blocked = unresolvedFindings(findings, consent);
+
     if (blocked.length > 0) {
       return reply.status(409).send({
-        error: 'Import blocked: resolve every secret finding (keep or redact) before committing.',
+        error: appPublicEnglish('IMPORT_UNRESOLVED_FINDINGS'),
         code: 'IMPORT_UNRESOLVED_FINDINGS',
         findings: blocked,
         importJobId,
@@ -19112,6 +20274,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     let state = job.state as ImportState;
+
     const advance = async (to: ImportState, patch: Record<string, unknown> = {}) => {
       assertImportTransition(state, to);
       state = to;
@@ -19142,7 +20305,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           await advance('QUARANTINED', { findings: rescanFindings });
 
           return reply.status(409).send({
-            error: 'Import blocked after rescan: resolve every remaining finding before committing.',
+            error: appPublicEnglish('IMPORT_RESCAN_STILL_BLOCKED'),
             code: 'IMPORT_RESCAN_STILL_BLOCKED',
             findings: stillUnresolved,
             importJobId,
@@ -19161,6 +20324,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           ?.split('/')
           .pop()
           ?.replace(/\.git$/, '') || `Imported ${job.provider}`;
+
       /*
        * Record the origin in the fixed sourceType enum where a member exists
        * (github/gitlab/bitbucket/zip); other hub tiles fall back to 'blank'
@@ -19235,31 +20399,42 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   app.post('/orgs/:orgId/imports/:importJobId/cancel', async (request, reply) => {
     const { orgId } = parse(orgParams, request.params);
     await requireOrg(request, store, orgId, 'projects:write');
+
     const importJobId = z
       .string()
       .min(1)
       .parse((request.params as { importJobId: string }).importJobId);
 
     const job = await store.getImportJob(importJobId);
+
     if (!job || job.organizationId !== orgId) {
-      throw Object.assign(new Error('Import job not found'), { statusCode: 404, code: 'IMPORT_JOB_NOT_FOUND' });
+      throw Object.assign(new Error(appPublicEnglish('IMPORT_JOB_NOT_FOUND')), {
+        statusCode: 404,
+        code: 'IMPORT_JOB_NOT_FOUND',
+      });
     }
 
     await cleanupImport(importJobId, 'CANCELLED');
+
     return reply.send({ import: { importJobId, state: 'CANCELLED' } });
   });
 
   app.get('/orgs/:orgId/imports/:importJobId', async (request) => {
     const { orgId } = parse(orgParams, request.params);
     await requireOrg(request, store, orgId, 'projects:read');
+
     const importJobId = z
       .string()
       .min(1)
       .parse((request.params as { importJobId: string }).importJobId);
 
     const job = await store.getImportJob(importJobId);
+
     if (!job || job.organizationId !== orgId) {
-      throw Object.assign(new Error('Import job not found'), { statusCode: 404, code: 'IMPORT_JOB_NOT_FOUND' });
+      throw Object.assign(new Error(appPublicEnglish('IMPORT_JOB_NOT_FOUND')), {
+        statusCode: 404,
+        code: 'IMPORT_JOB_NOT_FOUND',
+      });
     }
 
     /*
@@ -19268,10 +20443,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * positive debit only on COMMITTED, COMPENSATED (zero debit) on any cleanup.
      */
     const reservation = importLedger.getByJob(importJobId);
+    const localizedJobError = job.error
+      ? localizeAppPublicMessage(job.error, transactionalLocaleForRequest(request))
+      : undefined;
 
     return {
       import: {
         ...job,
+        error: localizedJobError
+          ? localizedJobError.matched
+            ? localizedJobError.value
+            : appPublicCopy('IMPORT_JOB_FAILED', transactionalLocaleForRequest(request))
+          : undefined,
         reservation: reservation
           ? {
               state: reservation.state,
@@ -19456,7 +20639,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const projectSlug = slugifyRouteSegment(query.projectSlug);
 
     if (!organizationSlug || !projectSlug) {
-      throw Object.assign(new Error('Project not found'), { statusCode: 404, code: 'PROJECT_NOT_FOUND' });
+      throw Object.assign(new Error(appPublicEnglish('PROJECT_NOT_FOUND')), {
+        statusCode: 404,
+        code: 'PROJECT_NOT_FOUND',
+      });
     }
 
     /*
@@ -19470,7 +20656,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       (await store.resolveProjectSlugRedirect({ organizationSlug, oldSlug: projectSlug }));
 
     if (!project) {
-      throw Object.assign(new Error('Project not found'), { statusCode: 404, code: 'PROJECT_NOT_FOUND' });
+      throw Object.assign(new Error(appPublicEnglish('PROJECT_NOT_FOUND')), {
+        statusCode: 404,
+        code: 'PROJECT_NOT_FOUND',
+      });
     }
 
     const redirectedFromOldSlug = project.slug !== projectSlug;
@@ -19478,7 +20667,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const organization = await store.getOrganization(project.organizationId);
 
     if (!organization || organization.slug !== organizationSlug) {
-      throw Object.assign(new Error('Project not found'), { statusCode: 404, code: 'PROJECT_NOT_FOUND' });
+      throw Object.assign(new Error(appPublicEnglish('PROJECT_NOT_FOUND')), {
+        statusCode: 404,
+        code: 'PROJECT_NOT_FOUND',
+      });
     }
 
     await requireOrg(request, store, organization.id, 'projects:read');
@@ -19509,6 +20701,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       files: publicFiles(files),
       git: await gitProvider.status(project.id),
       recentActivity: await store.listProjectActivity(project.id, { limit: 20, order: 'desc' }),
+
+      /*
+       * The IDE Monitoring panel reads `data.deployments` for its Deployments
+       * metric and its deployment timeline, and this payload is what feeds it.
+       * Without the key both fell back to the empty array, so a project with
+       * live READY deployments reported "0" and "No deployment recorded"
+       * (proven live 2026-08-06 on a project with three READY static deploys).
+       * Read-only listing — no provider reconcile, which belongs to the
+       * deployments routes.
+       */
+      deployments: await store.listDeployments(project.id).catch(() => []),
     };
   });
   app.get('/projects/:projectId/packages', async (request) => {
@@ -19588,17 +20791,35 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const invalid = packages.filter((entry) => !isValidPackageSpec(entry));
 
     if (invalid.length > 0) {
-      throw Object.assign(new Error(`Invalid package name(s): ${invalid.join(', ')}`), {
+      throw Object.assign(new Error(appPublicEnglish('PACKAGE_NAME_INVALID', { value1: invalid.join(', ') })), {
         statusCode: 400,
         code: 'INVALID_PACKAGE_SPEC',
       });
     }
 
-    // Resolve to the project's dedicated per-user workspace pod (never shared).
-    const authorized = await authorizeRuntimeWorkspace(request, projectId, 'workspaces:write');
+    /*
+     * Resolve to the workspace pod the caller is actually looking at (never
+     * shared). Falling back to the projectId keeps pre-workspaceId clients
+     * working, but when the panel names a workspace we must install THERE —
+     * see packagesInstallSchema.workspaceId.
+     */
+    const authorized = await authorizeRuntimeWorkspace(request, body.workspaceId ?? projectId, 'workspaces:write');
+
+    /*
+     * A caller-supplied workspace id is only trusted after confirming it belongs
+     * to this project; otherwise the projectId in the path (already permission
+     * checked) could be paired with a workspace from another project the user
+     * happens to own, installing into the wrong pod.
+     */
+    if (authorized.projectId !== projectId) {
+      throw Object.assign(new Error(appPublicEnglish('WORKSPACE_PROJECT_MISMATCH')), {
+        statusCode: 403,
+        code: 'WORKSPACE_PROJECT_MISMATCH',
+      });
+    }
 
     if (await isTerminalAccessRevoked(authorized, request)) {
-      throw Object.assign(new Error('Terminal access is restricted for this project role'), {
+      throw Object.assign(new Error(appPublicEnglish('TERMINAL_ACCESS_DENIED')), {
         statusCode: 403,
         code: 'TERMINAL_ACCESS_DENIED',
       });
@@ -19666,7 +20887,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         reason: signal.reason,
         action: signal.action,
       });
-      throw Object.assign(new Error('Command blocked by abuse prevention policy'), {
+      throw Object.assign(new Error(appPublicEnglish('COMMAND_BLOCKED_BY_ABUSE')), {
         statusCode: 409,
         code: `ABUSE_${signal.type.toUpperCase()}`,
       });
@@ -19709,6 +20930,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     });
   });
   app.get('/projects/:projectId/homepage-preview.svg', async (request, reply) => {
+    const locale = transactionalLocaleForRequest(request);
+    setAppLocaleResponseHeaders(reply, locale);
     const project = await requireProject(
       request,
       store,
@@ -19722,6 +20945,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         sourceType: project.sourceType,
       },
       files: await listProjectFilesIncludingIdeState(store, projectStorage, project.id),
+      locale,
     });
 
     return reply
@@ -19771,7 +20995,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     if (ifMatch && existingState && String(existingState.version) !== ifMatch) {
       reply.header('etag', `"${existingState.version}"`);
       return reply.code(412).send({
-        error: 'IDE state was modified by another session',
+        error: appPublicEnglish('IDE_STATE_MODIFIED_BY_ANOTHER_SESSION'),
         code: 'IDE_STATE_PRECONDITION_FAILED',
         ideState: existingState,
       });
@@ -19816,7 +21040,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         }
 
         return reply.code(412).send({
-          error: 'IDE state was modified by another session',
+          error: appPublicEnglish('IDE_STATE_MODIFIED_BY_ANOTHER_SESSION'),
           code: 'IDE_STATE_PRECONDITION_FAILED',
           ideState: current,
         });
@@ -19891,7 +21115,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     if (ifMatch && existingState && String(existingState.version) !== ifMatch) {
       reply.header('etag', `"${existingState.version}"`);
       return reply.code(412).send({
-        error: 'IDE state was modified by another session',
+        error: appPublicEnglish('IDE_STATE_MODIFIED_BY_ANOTHER_SESSION'),
         code: 'IDE_STATE_PRECONDITION_FAILED',
         ideState: existingState,
       });
@@ -19923,7 +21147,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         }
 
         return reply.code(412).send({
-          error: 'IDE state was modified by another session',
+          error: appPublicEnglish('IDE_STATE_MODIFIED_BY_ANOTHER_SESSION'),
           code: 'IDE_STATE_PRECONDITION_FAILED',
           ideState: current,
         });
@@ -20074,7 +21298,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const record = await store.getConsensusRecordDetail(project.id, params.runId);
 
     if (!record) {
-      return reply.code(404).send({ error: 'Consensus record not found', code: 'CONSENSUS_RECORD_NOT_FOUND' });
+      return reply
+        .code(404)
+        .send({ error: appPublicEnglish('CONSENSUS_RECORD_NOT_FOUND'), code: 'CONSENSUS_RECORD_NOT_FOUND' });
     }
 
     return { record };
@@ -20089,20 +21315,25 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       'projects:read',
     );
 
-    return { skills: resolveProjectSkills(await store.listProjectSkillOverrides(project.id)) };
+    const locale = transactionalLocaleForRequest(request);
+
+    return { skills: resolveProjectSkills(await store.listProjectSkillOverrides(project.id), locale) };
   });
 
   const setSkillEnabled = async (request: FastifyRequest, reply: FastifyReply, enabled: boolean) => {
     const { projectId, skillId } = parse(skillParams, request.params);
     const project = await requireProject(request, store, projectId, 'projects:write');
+    const locale = transactionalLocaleForRequest(request);
 
     if (!isKnownSkill(skillId)) {
-      return reply.code(404).send({ error: 'Unknown skill', code: 'SKILL_NOT_FOUND' });
+      return reply.code(404).send({ error: appPublicEnglish('SKILL_NOT_FOUND'), code: 'SKILL_NOT_FOUND' });
     }
 
     await store.setProjectSkillEnabled({ projectId: project.id, skillId, enabled });
 
-    return reply.send({ skill: resolveSkill(skillId, await store.listProjectSkillOverrides(project.id)) });
+    return reply.send({
+      skill: resolveSkill(skillId, await store.listProjectSkillOverrides(project.id), locale),
+    });
   };
 
   app.post('/projects/:projectId/skills/:skillId/enable', (request, reply) => setSkillEnabled(request, reply, true));
@@ -20129,7 +21360,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     if (!workspace) {
       reply.code(409).send({
-        error: 'This project has no workspace yet. Open the project once, then install workspace-scoped skills.',
+        error: appPublicEnglish('SKILL_WORKSPACE_NOT_CREATED'),
         code: 'SKILL_NO_WORKSPACE',
       });
 
@@ -20152,6 +21383,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     );
 
     const { q } = parse(skillCatalogQuery, request.query);
+    const catalog = skillRepoCatalogForLocale(transactionalLocaleForRequest(request));
 
     const [counts, projectInstalls, workspaceScopeId] = await Promise.all([
       store.countInstallsByRepo(),
@@ -20166,27 +21398,29 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const needle = q?.trim().toLowerCase();
 
-    const entries = SKILL_REPO_CATALOG.filter((entry) => {
-      if (!needle) {
-        return true;
-      }
+    const entries = catalog
+      .filter((entry) => {
+        if (!needle) {
+          return true;
+        }
 
-      return (
-        entry.name.toLowerCase().includes(needle) ||
-        entry.description.toLowerCase().includes(needle) ||
-        entry.ownerRepo.toLowerCase().includes(needle) ||
-        entry.category.toLowerCase().includes(needle)
-      );
-    }).map((entry) => ({
-      ownerRepo: entry.ownerRepo,
-      name: entry.name,
-      description: entry.description,
-      category: entry.category,
-      homepageUrl: entry.homepageUrl,
-      installCount: counts[entry.ownerRepo] ?? 0,
-      installedInProject: projectSet.has(entry.ownerRepo),
-      installedInWorkspace: workspaceSet.has(entry.ownerRepo),
-    }));
+        return (
+          entry.name.toLowerCase().includes(needle) ||
+          entry.description.toLowerCase().includes(needle) ||
+          entry.ownerRepo.toLowerCase().includes(needle) ||
+          entry.category.toLowerCase().includes(needle)
+        );
+      })
+      .map((entry) => ({
+        ownerRepo: entry.ownerRepo,
+        name: entry.name,
+        description: entry.description,
+        category: entry.category,
+        homepageUrl: entry.homepageUrl,
+        installCount: counts[entry.ownerRepo] ?? 0,
+        installedInProject: projectSet.has(entry.ownerRepo),
+        installedInWorkspace: workspaceSet.has(entry.ownerRepo),
+      }));
 
     return { entries, hasWorkspace: workspaceScopeId !== null };
   });
@@ -20208,7 +21442,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return reply; // 409 already sent
     }
 
-    return reply.send({ scope, skills: await store.listInstalledSkills(scope, scopeId) });
+    const locale = transactionalLocaleForRequest(request);
+
+    const skills = (await store.listInstalledSkills(scope, scopeId)).map((skill) =>
+      localizeInstalledSkillRecord(skill, locale),
+    );
+
+    return reply.send({ scope, skills });
   });
 
   /*
@@ -20225,12 +21465,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const body = parse(skillInstallBody, request.body);
     const scope = body.scope ?? 'project';
+    const locale = transactionalLocaleForRequest(request);
 
     const ownerRepo = normalizeOwnerRepo(body.ownerRepo);
 
     if (!ownerRepo) {
       return reply.code(400).send({
-        error: 'ownerRepo must be a valid "owner/repo" GitHub slug',
+        error: appPublicEnglish('SKILL_GITHUB_REPOSITORY_SLUG_INVALID'),
         code: 'SKILL_REPO_INVALID',
       });
     }
@@ -20244,7 +21485,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const already = (await store.listInstalledSkills(scope, scopeId)).some((row) => row.ownerRepo === ownerRepo);
 
     if (already) {
-      return reply.code(409).send({ error: `'${ownerRepo}' is already installed`, code: 'SKILL_ALREADY_INSTALLED' });
+      return reply.code(409).send({
+        error: appPublicEnglish('SKILL_ALREADY_INSTALLED', { value1: ownerRepo }),
+        code: 'SKILL_ALREADY_INSTALLED',
+      });
     }
 
     const catalogEntry = findRepoEntry(ownerRepo);
@@ -20258,24 +21502,27 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     } else if (catalogEntry) {
       // Public curated repo we couldn't read right now — fall back to our summary.
       instructions = catalogEntry.description;
-      note =
+      note = appPublicCopy(
         fetched.reason === 'private_or_missing'
-          ? 'No SKILL.md/AGENTS.md/README.md found in the repo; using the catalog summary.'
-          : 'The repo could not be reached right now; using the catalog summary.';
+          ? 'SKILL_CATALOG_SUMMARY_MANIFEST_MISSING'
+          : 'SKILL_CATALOG_SUMMARY_REPOSITORY_UNREACHABLE',
+        locale,
+      );
     } else if (fetched.reason === 'private_or_missing') {
       return reply.code(404).send({
-        error: `'${ownerRepo}' has no public SKILL.md/AGENTS.md/README.md — it may be private or not exist.`,
+        error: appPublicEnglish('SKILL_PUBLIC_MANIFEST_NOT_FOUND', { value1: ownerRepo }),
         code: 'SKILL_REPO_PRIVATE',
       });
     } else {
       return reply.code(502).send({
-        error: `Could not reach GitHub to read '${ownerRepo}'. Try again shortly.`,
+        error: appPublicEnglish('SKILL_GITHUB_UNREACHABLE', { value1: ownerRepo }),
         code: 'SKILL_REPO_UNREACHABLE',
       });
     }
 
     const name = catalogEntry?.name ?? ownerRepo.split('/')[1];
-    const description = catalogEntry?.description ?? `Installed from ${ownerRepo}`;
+    const description =
+      catalogEntry?.description ?? appPublicEnglish('SKILL_INSTALLED_FROM_REPOSITORY', { value1: ownerRepo });
     const homepageUrl = catalogEntry?.homepageUrl ?? `https://github.com/${ownerRepo}`;
     const userId = request.currentUser?.id ?? null;
 
@@ -20289,10 +21536,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * skill DISABLED, pending explicit approval.
      */
     const parsedManifest = parseSkillManifest(instructions);
+
     const auditManifest: SkillManifest = parsedManifest.ok
       ? parsedManifest.manifest
       : { name, description, allowedTools: [], metadata: {}, body: instructions, resources: [], raw: instructions };
+
     const auditContent: SkillContent = { manifest: auditManifest, resourceContents: {} };
+
     const audit = auditSkill(auditContent);
     const auditedAt = new Date().toISOString();
 
@@ -20309,10 +21559,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
 
       return reply.code(422).send({
-        error: `'${ownerRepo}' was refused by the security audit and was not installed.`,
+        error: appPublicEnglish('SKILL_SECURITY_AUDIT_REJECTED', { value1: ownerRepo }),
         code: 'SKILL_AUDIT_REJECTED',
         verdict: 'rejected',
-        findings: audit.findings,
+        findings: localizeAuditFindings(audit.findings, locale),
       });
     }
 
@@ -20339,7 +21589,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     if (!created) {
       // Lost a race with a concurrent install of the same repo.
-      return reply.code(409).send({ error: `'${ownerRepo}' is already installed`, code: 'SKILL_ALREADY_INSTALLED' });
+      return reply.code(409).send({
+        error: appPublicEnglish('SKILL_ALREADY_INSTALLED', { value1: ownerRepo }),
+        code: 'SKILL_ALREADY_INSTALLED',
+      });
     }
 
     await store.recordSkillAudit({
@@ -20354,10 +21607,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     });
 
     return reply.code(201).send({
-      skill: record,
+      skill: localizeInstalledSkillRecord(record, locale),
       source: fetched.ok ? fetched.source : null,
       note,
-      audit: { verdict: audit.verdict, findings: audit.findings },
+      audit: { verdict: audit.verdict, findings: localizeAuditFindings(audit.findings, locale) },
     });
   });
 
@@ -20376,7 +21629,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const ownerRepo = normalizeOwnerRepo(body.ownerRepo);
 
     if (!ownerRepo) {
-      return reply.code(400).send({ error: 'ownerRepo must be a valid "owner/repo" slug', code: 'SKILL_REPO_INVALID' });
+      return reply
+        .code(400)
+        .send({ error: appPublicEnglish('SKILL_REPOSITORY_SLUG_INVALID'), code: 'SKILL_REPO_INVALID' });
     }
 
     const scopeId = await resolveSkillScopeId(scope, project, reply);
@@ -20388,7 +21643,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const removed = await store.uninstallSkill(scope, scopeId, ownerRepo);
 
     if (!removed) {
-      return reply.code(404).send({ error: `'${ownerRepo}' is not installed`, code: 'SKILL_NOT_INSTALLED' });
+      return reply
+        .code(404)
+        .send({ error: appPublicEnglish('SKILL_NOT_INSTALLED', { value1: ownerRepo }), code: 'SKILL_NOT_INSTALLED' });
     }
 
     await store.recordSkillAudit({
@@ -20417,7 +21674,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const ownerRepo = normalizeOwnerRepo(body.ownerRepo);
 
     if (!ownerRepo) {
-      return reply.code(400).send({ error: 'ownerRepo must be a valid "owner/repo" slug', code: 'SKILL_REPO_INVALID' });
+      return reply
+        .code(400)
+        .send({ error: appPublicEnglish('SKILL_REPOSITORY_SLUG_INVALID'), code: 'SKILL_REPO_INVALID' });
     }
 
     const scopeId = await resolveSkillScopeId(scope, project, reply);
@@ -20434,16 +21693,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     });
 
     if (!updated) {
-      return reply.code(404).send({ error: `'${ownerRepo}' is not installed`, code: 'SKILL_NOT_INSTALLED' });
+      return reply
+        .code(404)
+        .send({ error: appPublicEnglish('SKILL_NOT_INSTALLED', { value1: ownerRepo }), code: 'SKILL_NOT_INSTALLED' });
     }
 
-    // Fail-closed: the store refuses to enable a revoked or audit-rejected skill,
-    // returning it still-disabled. Surface that as a 409 rather than a false 200.
+    /*
+     * Fail-closed: the store refuses to enable a revoked or audit-rejected skill,
+     * returning it still-disabled. Surface that as a 409 rather than a false 200.
+     */
     if (body.enabled && !updated.enabled) {
       const reason = updated.revokedAt ? 'has been revoked' : 'was rejected by the security audit';
 
       return reply.code(409).send({
-        error: `'${ownerRepo}' ${reason} and cannot be enabled. Uninstall and re-install it to reconsider.`,
+        error: appPublicEnglish('SKILL_CANNOT_ENABLE', { value1: ownerRepo, value2: reason }),
         code: 'SKILL_ENABLE_BLOCKED',
         skill: updated,
       });
@@ -20458,7 +21721,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       actorUserId: request.currentUser?.id ?? null,
     });
 
-    return reply.send({ skill: updated });
+    return reply.send({
+      skill: localizeInstalledSkillRecord(updated, transactionalLocaleForRequest(request)),
+    });
   });
 
   /*
@@ -20480,7 +21745,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const ownerRepo = normalizeOwnerRepo(body.ownerRepo);
 
     if (!ownerRepo) {
-      return reply.code(400).send({ error: 'ownerRepo must be a valid "owner/repo" slug', code: 'SKILL_REPO_INVALID' });
+      return reply
+        .code(400)
+        .send({ error: appPublicEnglish('SKILL_REPOSITORY_SLUG_INVALID'), code: 'SKILL_REPO_INVALID' });
     }
 
     const scopeId = await resolveSkillScopeId(scope, project, reply);
@@ -20500,7 +21767,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     });
 
     if (!revoked) {
-      return reply.code(404).send({ error: `'${ownerRepo}' is not installed`, code: 'SKILL_NOT_INSTALLED' });
+      return reply
+        .code(404)
+        .send({ error: appPublicEnglish('SKILL_NOT_INSTALLED', { value1: ownerRepo }), code: 'SKILL_NOT_INSTALLED' });
     }
 
     await store.recordSkillAudit({
@@ -20513,7 +21782,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       actorUserId: userId,
     });
 
-    return reply.send({ skill: revoked });
+    return reply.send({
+      skill: localizeInstalledSkillRecord(revoked, transactionalLocaleForRequest(request)),
+    });
   });
 
   /*
@@ -20535,7 +21806,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const ownerRepo = normalizeOwnerRepo(body.ownerRepo);
 
     if (!ownerRepo) {
-      return reply.code(400).send({ error: 'ownerRepo must be a valid "owner/repo" slug', code: 'SKILL_REPO_INVALID' });
+      return reply
+        .code(400)
+        .send({ error: appPublicEnglish('SKILL_REPOSITORY_SLUG_INVALID'), code: 'SKILL_REPO_INVALID' });
     }
 
     const scopeId = await resolveSkillScopeId(scope, project, reply);
@@ -20547,12 +21820,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const current = (await store.listInstalledSkills(scope, scopeId)).find((row) => row.ownerRepo === ownerRepo);
 
     if (!current) {
-      return reply.code(404).send({ error: `'${ownerRepo}' is not installed`, code: 'SKILL_NOT_INSTALLED' });
+      return reply
+        .code(404)
+        .send({ error: appPublicEnglish('SKILL_NOT_INSTALLED', { value1: ownerRepo }), code: 'SKILL_NOT_INSTALLED' });
     }
 
     if (current.revokedAt || current.auditVerdict === 'rejected') {
       return reply.code(409).send({
-        error: `'${ownerRepo}' cannot be approved (it is revoked or was rejected by the audit).`,
+        error: appPublicEnglish('SKILL_CANNOT_APPROVE', { value1: ownerRepo }),
         code: 'SKILL_NOT_APPROVABLE',
       });
     }
@@ -20571,7 +21846,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       actorUserId: userId,
     });
 
-    return reply.send({ skill: updated });
+    return reply.send({
+      skill: updated ? localizeInstalledSkillRecord(updated, transactionalLocaleForRequest(request)) : updated,
+    });
   });
 
   /*
@@ -20598,8 +21875,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const ownerRepo = queryParsed.ownerRepo ? normalizeOwnerRepo(queryParsed.ownerRepo) : undefined;
 
     const events = await store.listSkillAuditEvents(scope, scopeId, { ownerRepo, limit: 200 });
+    const locale = transactionalLocaleForRequest(request);
 
-    return reply.send({ scope, events });
+    return reply.send({ scope, events: events.map((event) => localizeSkillAuditEvent(event, locale)) });
   });
 
   app.get('/projects/:projectId/settings', async (request) => ({
@@ -20626,7 +21904,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       const normalizedSlug = slugifyRouteSegment(requestedSlug);
 
       if (!normalizedSlug) {
-        throw Object.assign(new Error('Slug must contain at least one letter or number.'), {
+        throw Object.assign(new Error(appPublicEnglish('PROJECT_SLUG_INVALID')), {
           statusCode: 400,
           code: 'PROJECT_SLUG_INVALID',
         });
@@ -20671,6 +21949,26 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       files: publicFiles(files),
       runtime: { mode: 'remote-kubernetes', autosave: true, conflictDetection: true, offlineWarning: true },
     };
+  });
+
+  /*
+   * Empreinte bon marché de l'arborescence persistée, pour que la réouverture
+   * puisse distinguer « le pod chaud est encore à jour » de « le stockage a
+   * changé depuis qu'il a été semé » SANS repasser par `ideState.version`, que
+   * les écritures d'interface incrémentent (voir `projectFilesRevision`).
+   * Renvoie uniquement le hachage : aucun contenu de fichier ne transite.
+   */
+  app.get('/projects/:projectId/files/revision', async (request) => {
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:read',
+    );
+
+    const files = await listProjectFilesIncludingIdeState(store, projectStorage, project.id);
+
+    return { revision: projectFilesRevision(files) };
   });
   app.post('/projects/:projectId/files/import/zip', async (request) => {
     const project = await requireProject(
@@ -20786,7 +22084,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const envVar = await store.deleteProjectEnvVar(project.id, body.key, body.scope);
 
     if (!envVar) {
-      return reply.code(404).send({ error: 'Environment variable not found', code: 'PROJECT_ENV_NOT_FOUND' });
+      return reply.code(404).send({ error: appPublicEnglish('PROJECT_ENV_NOT_FOUND'), code: 'PROJECT_ENV_NOT_FOUND' });
     }
 
     await store.recordProjectActivity({
@@ -20816,7 +22114,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    */
   app.post('/projects/:projectId/auth/scaffold', async (request, reply) => {
     if (!isAuthScaffoldEnabled()) {
-      return reply.code(404).send({ error: 'Add Authentication is not enabled', code: 'FEATURE_NOT_ENABLED' });
+      return reply
+        .code(404)
+        .send({ error: appPublicEnglish('AUTH_SCAFFOLD_NOT_ENABLED'), code: 'FEATURE_NOT_ENABLED' });
     }
 
     const project = await requireProject(
@@ -20828,7 +22128,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const workspaceId = await resolveGitWorkspaceId(store, project.id, undefined);
 
-    const files = generateAuthScaffoldFiles();
+    const files = generateAuthScaffoldFiles(transactionalLocaleForRequest(request));
     const existingPaths = new Set((await projectStorage.listFiles(project.id, workspaceId)).map((file) => file.path));
     const toWrite = files.filter((file) => !existingPaths.has(file.path));
     const skipped = files.filter((file) => existingPaths.has(file.path)).map((file) => file.path);
@@ -20963,7 +22263,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const secret = await store.deleteProjectSecret(project.id, body.key);
 
     if (!secret) {
-      return reply.code(404).send({ error: 'Secret not found', code: 'PROJECT_SECRET_NOT_FOUND' });
+      return reply
+        .code(404)
+        .send({ error: appPublicEnglish('PROJECT_SECRET_NOT_FOUND'), code: 'PROJECT_SECRET_NOT_FOUND' });
     }
 
     await store.recordProjectActivity({
@@ -21143,7 +22445,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       : await store.findUserByEmail(body.email!.trim().toLowerCase());
 
     if (!targetUser) {
-      return reply.code(404).send({ error: 'User not found', code: 'USER_NOT_FOUND' });
+      return reply.code(404).send({ error: appPublicEnglish('USER_NOT_FOUND'), code: 'USER_NOT_FOUND' });
     }
 
     const targetMembership = await store.getMembership(targetUser.id, project.organizationId);
@@ -21151,7 +22453,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     if (!targetMembership) {
       return reply
         .code(403)
-        .send({ error: 'Collaborator must be an organization member', code: 'COLLABORATOR_NOT_ORG_MEMBER' });
+        .send({ error: appPublicEnglish('COLLABORATOR_NOT_ORGANIZATION_MEMBER'), code: 'COLLABORATOR_NOT_ORG_MEMBER' });
     }
 
     const collaborator = await store.addProjectCollaborator({
@@ -21190,7 +22492,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const removed = await store.removeProjectCollaborator({ projectId: project.id, userId: params.userId });
 
     if (!removed) {
-      return reply.code(404).send({ error: 'Collaborator not found', code: 'COLLABORATOR_NOT_FOUND' });
+      return reply
+        .code(404)
+        .send({ error: appPublicEnglish('COLLABORATOR_NOT_FOUND'), code: 'COLLABORATOR_NOT_FOUND' });
     }
 
     await store.recordProjectActivity({
@@ -21298,7 +22602,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       if (!canManage) {
         return reply
           .code(403)
-          .send({ error: "Cannot evict another collaborator's presence", code: 'PRESENCE_FORBIDDEN' });
+          .send({ error: appPublicEnglish('COLLABORATOR_PRESENCE_EVICTION_FORBIDDEN'), code: 'PRESENCE_FORBIDDEN' });
       }
     }
 
@@ -21353,7 +22657,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const role = await projectCollaborationRole(store, project.id, request.currentUser!.id);
 
     if (isReadOnlyProjectRole(role)) {
-      return reply.code(403).send({ code: 'COLLABORATION_READ_ONLY', error: 'Viewer collaborators cannot edit files' });
+      return reply
+        .code(403)
+        .send({ code: 'COLLABORATION_READ_ONLY', error: appPublicEnglish('COLLABORATION_VIEWER_READ_ONLY') });
     }
 
     const body = parse(collaborationEditSchema, request.body);
@@ -21430,7 +22736,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     if (conflictDocument !== undefined) {
       return reply.code(409).send({
         code: 'DOCUMENT_CONFLICT',
-        error: 'Document version conflict',
+        error: appPublicEnglish('COLLABORATION_DOCUMENT_VERSION_CONFLICT'),
         document: conflictDocument,
       });
     }
@@ -21438,7 +22744,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     if (!ideState) {
       return reply.code(409).send({
         code: 'IDE_STATE_CONTENDED',
-        error: 'Document is being edited too frequently; please retry',
+        error: appPublicEnglish('COLLABORATION_DOCUMENT_CONTENDED'),
       });
     }
 
@@ -21585,7 +22891,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const revoked = await store.revokeProjectShareLink({ projectId: project.id, id });
 
     if (!revoked) {
-      return reply.code(404).send({ error: 'Share link not found', code: 'SHARE_LINK_NOT_FOUND' });
+      return reply.code(404).send({ error: appPublicEnglish('SHARE_LINK_NOT_FOUND'), code: 'SHARE_LINK_NOT_FOUND' });
     }
 
     await store.recordProjectActivity({
@@ -21618,7 +22924,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     if (!link) {
       return reply.code(404).send({
-        error: { code: 'SHARE_LINK_INVALID', message: 'Share link is invalid, expired, or revoked.' },
+        error: { code: 'SHARE_LINK_INVALID', message: appPublicEnglish('SHARE_LINK_INVALID') },
       });
     }
 
@@ -21626,7 +22932,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     if (!project || project.deletedAt) {
       return reply.code(404).send({
-        error: { code: 'SHARE_LINK_PROJECT_MISSING', message: 'The shared project no longer exists.' },
+        error: { code: 'SHARE_LINK_PROJECT_MISSING', message: appPublicEnglish('SHARE_LINK_PROJECT_MISSING') },
       });
     }
 
@@ -21755,7 +23061,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const revoked = await store.revokeChatShare({ id, projectId: project.id });
 
     if (!revoked) {
-      return reply.code(404).send({ error: 'Chat share not found', code: 'CHAT_SHARE_NOT_FOUND' });
+      return reply.code(404).send({ error: appPublicEnglish('CHAT_SHARE_NOT_FOUND'), code: 'CHAT_SHARE_NOT_FOUND' });
     }
 
     await audit(request, store, {
@@ -21780,7 +23086,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     if (!raw) {
       return reply.code(404).send({
-        error: { code: 'CHAT_SHARE_INVALID', message: 'Share link is invalid or has been tampered with.' },
+        error: { code: 'CHAT_SHARE_INVALID', message: appPublicEnglish('CHAT_SHARE_TAMPERED') },
       });
     }
 
@@ -21788,7 +23094,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     if (!share) {
       return reply.code(404).send({
-        error: { code: 'CHAT_SHARE_NOT_FOUND', message: 'Share link is invalid, expired, or revoked.' },
+        error: { code: 'CHAT_SHARE_NOT_FOUND', message: appPublicEnglish('SHARE_LINK_INVALID') },
       });
     }
 
@@ -21801,7 +23107,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
       if (!sourceProject || (sourceProject as { deletedAt?: unknown }).deletedAt) {
         return reply.code(404).send({
-          error: { code: 'CHAT_SHARE_NOT_FOUND', message: 'Share link is invalid, expired, or revoked.' },
+          error: { code: 'CHAT_SHARE_NOT_FOUND', message: appPublicEnglish('SHARE_LINK_INVALID') },
         });
       }
     }
@@ -21903,6 +23209,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     );
 
     const client = normalizeRuntimeApiWebSocket(socket);
+    const locale = transactionalLocaleForRequest(request);
     const query = request.query as { sessionId?: string };
     const sessionId = query.sessionId || request.currentSession?.id || `ws:${request.currentUser!.id}`;
 
@@ -22018,7 +23325,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           client.send(
             JSON.stringify({
               type: 'error',
-              error: { message: 'Collaboration message too large' },
+              error: {
+                code: 'COLLAB_MESSAGE_TOO_LARGE',
+                message: appPublicCopy('COLLAB_MESSAGE_TOO_LARGE', transactionalLocaleForRequest(request)),
+              },
               timestamp: new Date().toISOString(),
             }),
           );
@@ -22107,13 +23417,24 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         client.send(
           JSON.stringify({
             type: 'error',
-            error: { message: `Unsupported collaboration event: ${String(event.type)}` },
+            error: {
+              code: 'COLLABORATION_EVENT_UNSUPPORTED',
+              message: appPublicCopy('COLLABORATION_EVENT_UNSUPPORTED', locale, { value1: String(event.type) }),
+            },
             timestamp: new Date().toISOString(),
           }),
         );
       } catch (error: any) {
+        const localized = localizeAppPublicMessage(error?.message, locale);
         client.send(
-          JSON.stringify({ type: 'error', error: { message: error.message }, timestamp: new Date().toISOString() }),
+          JSON.stringify({
+            type: 'error',
+            error: {
+              code: typeof error?.code === 'string' ? error.code : 'COLLABORATION_ERROR',
+              message: localized.matched ? localized.value : appPublicCopy('GENERIC_REQUEST_FAILED', locale),
+            },
+            timestamp: new Date().toISOString(),
+          }),
         );
       }
     });
@@ -22255,7 +23576,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const confirmation = parse(projectDeleteConfirmSchema, request.body ?? {});
 
     if (confirmation.confirmName !== undefined && confirmation.confirmName !== project.name) {
-      throw Object.assign(new Error('Project name confirmation does not match.'), {
+      throw Object.assign(new Error(appPublicEnglish('PROJECT_NAME_MISMATCH')), {
         statusCode: 400,
         code: 'PROJECT_NAME_MISMATCH',
       });
@@ -22325,6 +23646,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return { project: transferred };
   });
+
   const remixSchema = z.object({
     name: z.string().min(1),
     slug: z.string().min(2).optional(),
@@ -22354,6 +23676,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     sourceFiles: ProjectFile[];
     sourceSnapshotId?: string;
     sourceListingId?: string;
+
     /*
      * License + consent (I-RMX-3, P0-V3-05). A gallery remix passes the
      * VERSIONED license captured from the listing plus the consent version the
@@ -22362,8 +23685,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      */
     licenseSnapshot?: RemixLicenseSnapshot;
     consentVersion?: string;
+
     /** Mask PII in the source files before cloning (cross-user remix only). */
     sanitizePii?: boolean;
+
     /** Author's explicit versioned PII consent — skips masking, recorded. */
     piiConsentVersion?: string;
   }): Promise<
@@ -22392,6 +23717,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     });
 
     let state: RemixState = 'SNAPSHOT_PINNED';
+
     const advance = async (to: RemixState, patch: Record<string, unknown> = {}) => {
       assertRemixTransition(state, to);
       state = to;
@@ -22399,8 +23725,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     };
 
     try {
-      // (1) SNAPSHOT_PINNED — the caller already resolved & pinned the source
-      // file set (live or a snapshot archive); nothing to read here.
+      /*
+       * (1) SNAPSHOT_PINNED — the caller already resolved & pinned the source
+       * file set (live or a snapshot archive); nothing to read here.
+       */
       const sourceFiles = params.sourceFiles;
 
       // (2) CREDENTIALS_DETACHED — references (keys) only, recorded BEFORE any clone.
@@ -22414,8 +23742,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        * any materialized copy out of the clone files. Never persisted onto the clone.
        */
       const materializedValues: Array<{ key: string; value: string }> = [];
+
       for (const ref of detached.secretKeys) {
         const full = await store.getProjectSecret(sourceProject.id, ref);
+
         if (full?.valueEncrypted) {
           try {
             materializedValues.push({ key: ref, value: decryptJson<{ value: string }>(full.valueEncrypted).value });
@@ -22424,6 +23754,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           }
         }
       }
+
       for (const envVar of sourceEnvVars) {
         if (typeof envVar.value === 'string' && envVar.value.length > 0) {
           materializedValues.push({ key: envVar.key, value: envVar.value });
@@ -22445,9 +23776,52 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           content: file.content,
           encoding: file.encoding,
         }));
-        const { files: maskedFiles, masked } = maskPiiInFiles(remixFiles);
+
+        const { files: maskedFiles, masked, observations } = maskPiiInFiles(remixFiles);
+
+        /*
+         * Observabilité du masquage IBAN (politique du 2026-08-05) : le checksum
+         * MOD-97 ne conditionne PAS le masquage, il l'étiquette. Un code pays hors
+         * registre ISO 13616 n'est PAS masqué — on le journalise et on le compte
+         * pour qu'un nouveau pays devienne visible et que la table soit mise à
+         * jour, plutôt que la fuite passe inaperçue.
+         */
+        for (let n = 0; n < observations.ibanMaskedChecksumValid; n += 1) {
+          recordIbanMasked(true);
+        }
+
+        for (let n = 0; n < observations.ibanMaskedChecksumInvalid; n += 1) {
+          recordIbanMasked(false);
+        }
+
+        /*
+         * La MÉTRIQUE compte CHAQUE candidat ; le LOG est ÉCHANTILLONNÉ (1er par
+         * code pays et par fenêtre, cardinalité bornée) et ne porte qu'un
+         * spécimen TRONQUÉ — jamais l'IBAN en clair.
+         */
+        for (const candidate of observations.ibanUnknownCandidates) {
+          recordUnknownIbanCountry(candidate.countryCode);
+
+          if (shouldLogUnknownIbanCountry(candidate.countryCode)) {
+            /*
+             * Le log ne porte AUCUN fragment du candidat — pas même tronqué :
+             * ni corps, ni clé de contrôle, ni préfixe. Code pays, longueur,
+             * catégorie de décision et identifiant de job suffisent à agir.
+             */
+            request.log.warn(
+              {
+                countryCode: candidate.countryCode,
+                normalizedLength: candidate.normalizedLength,
+                decision: candidate.decision,
+                remixJobId: job.id,
+              },
+              'remix PII: IBAN-shaped value whose country code is absent from the ISO 13616 table — NOT masked; update IBAN_LENGTH_BY_COUNTRY (no candidate value is logged; further occurrences of this country are not logged)',
+            );
+          }
+        }
 
         const residual = scanFilesForPii(maskedFiles);
+
         if (residual.length > 0) {
           throw new RemixInvariantError(
             `SOURCE_SANITIZED left ${residual.length} PII span(s) unmasked`,
@@ -22459,8 +23833,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         piiMaskedCount = masked.length;
         await advance('SOURCE_SANITIZED', { piiFindings: masked, piiMaskedCount });
       } else {
-        // Owner self-remix, or author consent on file — nothing masked, and the
-        // job says WHY (consent version or absence of a cross-user flow).
+        /*
+         * Owner self-remix, or author consent on file — nothing masked, and the
+         * job says WHY (consent version or absence of a cross-user flow).
+         */
         await advance('SOURCE_SANITIZED', { piiFindings: [], piiMaskedCount: 0 });
       }
 
@@ -22502,10 +23878,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         await store.updateRemixJob(job.id, {
           state: 'FAILED',
           scanFindings: findings,
-          error: `SCANNING found ${findings.length} materialized secret value(s) in the clone`,
+          error: appPublicEnglish('REMIX_SCAN_MATERIALIZED_SECRETS', { value1: findings.length }),
         });
         return { ok: false, findings, remixJobId: job.id };
       }
+
       await advance('SCANNING', { scanFindings: [] });
 
       // (8) INDEXING — honest completion marker (project code index does not exist yet).
@@ -22572,9 +23949,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const storagePolicy = body.storagePolicy as RemixStoragePolicy;
 
     try {
-      // Plain project-to-project remix: pin the LIVE source file set, clone into
-      // the SAME org. (A gallery remix pins a snapshot and targets the remixer's
-      // org — see POST /gallery/:slug/remix.)
+      /*
+       * Plain project-to-project remix: pin the LIVE source file set, clone into
+       * the SAME org. (A gallery remix pins a snapshot and targets the remixer's
+       * org — see POST /gallery/:slug/remix.)
+       */
       const sourceFiles = await listProjectFilesIncludingIdeState(store, projectStorage, project.id);
 
       const result = await runSecureRemixClone({
@@ -22585,14 +23964,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         name: body.name,
         slug: body.slug,
         sourceFiles,
-        // Same-org self-remix: the org already owns this data — no cross-user
-        // license/PII flow, so nothing to mask and no consent to capture.
+
+        /*
+         * Same-org self-remix: the org already owns this data — no cross-user
+         * license/PII flow, so nothing to mask and no consent to capture.
+         */
         sanitizePii: false,
       });
 
       if (!result.ok) {
         return reply.status(409).send({
-          error: 'Remix blocked: a secret value materialized into the clone.',
+          error: appPublicEnglish('REMIX_MATERIALIZED_SECRET_BLOCKED'),
           code: 'REMIX_SECRET_LEAK',
           findings: result.findings, // key + location only, never the value
           remixJobId: result.remixJobId,
@@ -22630,10 +24012,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       .string()
       .min(1)
       .parse((request.params as { remixJobId: string }).remixJobId);
+
     const job = await store.getRemixJob(remixJobId);
 
     if (!job || job.sourceProjectId !== project.id) {
-      throw Object.assign(new Error('Remix job not found'), { statusCode: 404, code: 'REMIX_JOB_NOT_FOUND' });
+      throw Object.assign(new Error(appPublicEnglish('REMIX_JOB_NOT_FOUND')), {
+        statusCode: 404,
+        code: 'REMIX_JOB_NOT_FOUND',
+      });
     }
 
     return { remix: job };
@@ -22676,9 +24062,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     author: row.authorName,
     appUrl: row.appUrl ?? null,
     thumbnailUrl: row.thumbnailUrl ?? null,
-    // License + fork rights are PUBLIC listing facts (P0-V3-05): a remixer
-    // must see what they'd accept before clicking Remix. Never the text sha
-    // alone — the detail route carries the full text.
+
+    /*
+     * License + fork rights are PUBLIC listing facts (P0-V3-05): a remixer
+     * must see what they'd accept before clicking Remix. Never the text sha
+     * alone — the detail route carries the full text.
+     */
     remixAllowed: row.remixAllowed,
     license: row.licenseId ? { id: row.licenseId, textSha256: row.licenseTextSha256 ?? null } : null,
     piiHandling: row.piiConsentVersion
@@ -22698,6 +24087,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   app.get('/gallery', async (request) => {
     const query = parse(galleryListQuery, request.query);
+
     const listings = await store.listGalleryListings({
       category: query.category,
       query: query.q,
@@ -22712,9 +24102,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      */
     const all = query.category || query.q ? await store.listGalleryListings({}) : listings;
     const counts = new Map<string, number>();
+
     for (const listing of all) {
       counts.set(listing.category, (counts.get(listing.category) ?? 0) + 1);
     }
+
     const categories = [...counts.entries()]
       .map(([id, count]) => ({ id, count }))
       .sort((a, b) => b.count - a.count || a.id.localeCompare(b.id));
@@ -22731,25 +24123,34 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       .string()
       .min(1)
       .parse((request.params as { slug: string }).slug);
+
     const listing = await store.getGalleryListingBySlug(slug);
 
     if (!listing || listing.status !== 'PUBLISHED') {
-      return reply.status(404).send({ error: 'Listing not found', code: 'GALLERY_LISTING_NOT_FOUND' });
+      return reply
+        .status(404)
+        .send({ error: appPublicEnglish('GALLERY_LISTING_NOT_FOUND'), code: 'GALLERY_LISTING_NOT_FOUND' });
     }
 
-    // A public detail view counts once per request (best-effort; never blocks the
-    // read). Capture the post-view count BEFORE incrementing so the response is
-    // correct regardless of whether the store returns a fresh row or a live ref.
+    /*
+     * A public detail view counts once per request (best-effort; never blocks the
+     * read). Capture the post-view count BEFORE incrementing so the response is
+     * correct regardless of whether the store returns a fresh row or a live ref.
+     */
     const views = listing.viewCount + 1;
     await store.incrementGalleryListingViews(listing.id).catch(() => undefined);
 
     return {
       listing: {
         ...toPublicListing(listing),
+
         // detail-only: the immutable release the Remix reproduces (provenance, no secret)
         sourceSnapshotId: listing.sourceSnapshotId,
-        // detail-only: the FULL versioned license text a remixer accepts, and
-        // the consent-text version their acceptance is recorded under.
+
+        /*
+         * detail-only: the FULL versioned license text a remixer accepts, and
+         * the consent-text version their acceptance is recorded under.
+         */
         licenseText: listing.licenseText ?? null,
         remixConsentVersion: REMIX_CONSENT_VERSION,
         views,
@@ -22761,6 +24162,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     organizationId: z.string().min(1),
     name: z.string().min(1).optional(),
     slug: z.string().min(2).optional(),
+
     /*
      * Explicit, versioned acceptance (I-RMX-3). The UI sends acceptLicense
      * after showing the license block; the server refuses a remix without it —
@@ -22780,29 +24182,35 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       .string()
       .min(1)
       .parse((request.params as { slug: string }).slug);
+
     const body = parse(galleryRemixSchema, request.body);
 
     // The clone lands in the remixer's org — authorize membership there.
     await requireOrg(request, store, body.organizationId, 'projects:write');
 
     const listing = await store.getGalleryListingBySlug(slug);
+
     if (!listing || listing.status !== 'PUBLISHED') {
-      return reply.status(404).send({ error: 'Listing not found', code: 'GALLERY_LISTING_NOT_FOUND' });
+      return reply
+        .status(404)
+        .send({ error: appPublicEnglish('GALLERY_LISTING_NOT_FOUND'), code: 'GALLERY_LISTING_NOT_FOUND' });
     }
 
     // Curation gate (P0-V3-05): a published listing may be view-only.
     if (!listing.remixAllowed) {
       return reply.status(403).send({
-        error: 'The author has not allowed this app to be remixed.',
+        error: appPublicEnglish('GALLERY_REMIX_NOT_ALLOWED'),
         code: 'REMIX_NOT_ALLOWED',
       });
     }
 
-    // FAIL-CLOSED en profondeur : même un listing marqué remixable ne se
-    // remixe pas sans licence explicite enregistrée (aucun fallback).
+    /*
+     * FAIL-CLOSED en profondeur : même un listing marqué remixable ne se
+     * remixe pas sans licence explicite enregistrée (aucun fallback).
+     */
     if (!listing.licenseId || !listing.licenseTextSha256) {
       return reply.status(403).send({
-        error: 'This listing has no explicit license — remixing is closed by default.',
+        error: appPublicEnglish('GALLERY_LICENSE_MISSING'),
         code: 'REMIX_LICENSE_REQUIRED',
       });
     }
@@ -22819,8 +24227,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return reply.status(403).send({
         error:
           licenseDecision.reason === 'NOT_DERIVATIVE'
-            ? `The source license "${listing.licenseId}" does not grant derivative-work rights.`
-            : `The source license "${listing.licenseId}" is not a recognised SPDX id that allows derivative works.`,
+            ? appPublicEnglish('GALLERY_SOURCE_LICENSE_NO_DERIVATIVES', { value1: listing.licenseId })
+            : appPublicEnglish('GALLERY_SOURCE_LICENSE_SPDX_UNRECOGNIZED', { value1: listing.licenseId }),
         code: 'REMIX_LICENSE_NOT_DERIVATIVE',
         reason: licenseDecision.reason,
       });
@@ -22833,7 +24241,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      */
     if (body.acceptLicense !== true) {
       return reply.status(400).send({
-        error: 'Remixing requires accepting the license terms first.',
+        error: appPublicEnglish('GALLERY_LICENSE_ACCEPTANCE_REQUIRED'),
         code: 'REMIX_CONSENT_REQUIRED',
         license: listing.licenseId ? { id: listing.licenseId, textSha256: listing.licenseTextSha256 ?? null } : null,
         remixConsentVersion: REMIX_CONSENT_VERSION,
@@ -22841,16 +24249,25 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     const sourceProject = await store.getProject(listing.sourceProjectId);
+
     if (!sourceProject) {
-      return reply.status(409).send({ error: 'Source project unavailable', code: 'GALLERY_SOURCE_MISSING' });
+      return reply
+        .status(409)
+        .send({ error: appPublicEnglish('GALLERY_SOURCE_UNAVAILABLE'), code: 'GALLERY_SOURCE_MISSING' });
     }
 
-    // Pin the IMMUTABLE release: read the clone's files from the listing's snapshot
-    // archive, NOT the live source project.
+    /*
+     * Pin the IMMUTABLE release: read the clone's files from the listing's snapshot
+     * archive, NOT the live source project.
+     */
     const snapshot = await store.getSnapshot(listing.sourceSnapshotId);
+
     if (!snapshot || snapshot.projectId !== listing.sourceProjectId) {
-      return reply.status(409).send({ error: 'Pinned release unavailable', code: 'GALLERY_SNAPSHOT_MISSING' });
+      return reply
+        .status(409)
+        .send({ error: appPublicEnglish('GALLERY_PINNED_RELEASE_UNAVAILABLE'), code: 'GALLERY_SNAPSHOT_MISSING' });
     }
+
     const sourceFiles = await getSnapshotFiles(snapshot);
 
     /*
@@ -22878,6 +24295,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         sourceListingId: listing.id,
         licenseSnapshot,
         consentVersion: REMIX_CONSENT_VERSION,
+
         // Cross-user flow: mask PII unless the AUTHOR consented (versioned).
         sanitizePii: true,
         piiConsentVersion: listing.piiConsentVersion,
@@ -22885,7 +24303,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
       if (!result.ok) {
         return reply.status(409).send({
-          error: 'Remix blocked: a secret value materialized into the clone.',
+          error: appPublicEnglish('REMIX_MATERIALIZED_SECRET_BLOCKED'),
           code: 'REMIX_SECRET_LEAK',
           findings: result.findings,
           remixJobId: result.remixJobId,
@@ -22913,6 +24331,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         const message = error instanceof Error ? error.message : String(error);
         return reply.status(error.statusCode).send({ error: message, code: error.code });
       }
+
       throw error;
     }
   });
@@ -22931,19 +24350,23 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     authorName: z.string().min(1),
     authorUserId: z.string().min(1).optional(),
     appUrl: z.string().url().optional(),
-    // Card preview image: either an https URL or a root-relative static asset
-    // (/gallery-apps/<id>/thumbnail.png) served by the web app. Rejected
-    // otherwise so a listing can't point the grid at an arbitrary scheme.
+
+    /*
+     * Card preview image: either an https URL or a root-relative static asset
+     * (/gallery-apps/<id>/thumbnail.png) served by the web app. Rejected
+     * otherwise so a listing can't point the grid at an arbitrary scheme.
+     */
     thumbnailUrl: z
       .string()
       .trim()
       .max(2_048)
       .refine((value) => /^\/[A-Za-z0-9._~!$&'()*+,;=:@%/-]+$/.test(value) || /^https:\/\//.test(value), {
-        message: 'thumbnailUrl must be an https URL or a root-relative /path',
+        message: appPublicEnglish('THUMBNAIL_URL_INVALID'),
       })
       .optional(),
     featured: z.boolean().optional(),
     status: z.enum(['PUBLISHED', 'PENDING_REVIEW', 'UNPUBLISHED']).optional(),
+
     /*
      * License + PII declarations captured at CURATION (P0-V3-05). licenseText
      * is hashed server-side — the sha256 pin is computed, never client-supplied.
@@ -22954,6 +24377,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     licenseId: z.string().min(1).max(64).optional(),
     licenseText: z.string().min(1).max(100_000).optional(),
     piiConsentVersion: z.string().min(1).max(64).optional(),
+
     /*
      * FAIL-CLOSED (directive 20/07) : rendre un listing remixable exige que
      * l'AUTEUR ait explicitement (1) choisi une licence autorisant le remix,
@@ -22977,19 +24401,21 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const body = parse(adminGalleryListingSchema, request.body ?? {});
 
-    // FAIL-CLOSED : pas de listing remixable sans licence explicite + droits
-    // confirmés + politique PII acceptée. Le défaut est NON-remixable.
+    /*
+     * FAIL-CLOSED : pas de listing remixable sans licence explicite + droits
+     * confirmés + politique PII acceptée. Le défaut est NON-remixable.
+     */
     if (body.remixAllowed === true) {
       if (!body.licenseId || !body.licenseText) {
         return reply.status(400).send({
-          error: 'A remixable listing requires an explicit license (id + text). Default is non-remixable.',
+          error: appPublicEnglish('GALLERY_REMIX_LICENSE_REQUIRED'),
           code: 'REMIX_LICENSE_REQUIRED',
         });
       }
 
       if (body.rightsConfirmed !== true || body.piiPolicyAccepted !== true) {
         return reply.status(400).send({
-          error: 'A remixable listing requires explicit rights confirmation and PII policy acceptance.',
+          error: appPublicEnglish('GALLERY_REMIX_RIGHTS_CONFIRMATION_REQUIRED'),
           code: 'REMIX_RIGHTS_CONFIRMATION_REQUIRED',
         });
       }
@@ -23006,8 +24432,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         return reply.status(400).send({
           error:
             decision.reason === 'NOT_DERIVATIVE'
-              ? `License "${body.licenseId}" does not grant derivative-work rights — it cannot be remixed.`
-              : `License "${body.licenseId}" is not a recognised SPDX id that allows derivative works.`,
+              ? appPublicEnglish('GALLERY_LICENSE_NO_DERIVATIVES', { value1: body.licenseId })
+              : appPublicEnglish('GALLERY_LICENSE_SPDX_UNRECOGNIZED', { value1: body.licenseId }),
           code: 'REMIX_LICENSE_NOT_DERIVATIVE',
           reason: decision.reason,
           allowedLicenseIds: listDerivativeAllowedLicenseIds(),
@@ -23019,15 +24445,19 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     const sourceProject = await store.getProject(body.sourceProjectId);
+
     if (!sourceProject) {
-      return reply.status(404).send({ error: 'Source project not found', code: 'GALLERY_SOURCE_MISSING' });
+      return reply
+        .status(404)
+        .send({ error: appPublicEnglish('GALLERY_SOURCE_NOT_FOUND'), code: 'GALLERY_SOURCE_MISSING' });
     }
 
     const snapshot = await store.getSnapshot(body.sourceSnapshotId);
+
     if (!snapshot || snapshot.projectId !== body.sourceProjectId) {
       return reply
         .status(400)
-        .send({ error: 'Pinned snapshot does not belong to the source project', code: 'GALLERY_SNAPSHOT_INVALID' });
+        .send({ error: appPublicEnglish('GALLERY_SNAPSHOT_PROJECT_MISMATCH'), code: 'GALLERY_SNAPSHOT_INVALID' });
     }
 
     try {
@@ -23041,8 +24471,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
       const listing = await store.createGalleryListing({
         ...body,
-        // Version pin computed HERE: the accepted license text is identified by
-        // content hash, not by whatever a client claims (P0-V3-05).
+
+        /*
+         * Version pin computed HERE: the accepted license text is identified by
+         * content hash, not by whatever a client claims (P0-V3-05).
+         */
         licenseTextSha256: body.licenseText
           ? createHash('sha256').update(body.licenseText, 'utf8').digest('hex')
           : undefined,
@@ -23064,8 +24497,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           remixAllowed: listing.remixAllowed,
           licenseId: listing.licenseId ?? null,
           piiConsentVersion: listing.piiConsentVersion ?? null,
-          // La confirmation des droits doit être retrouvable dans l'audit, pas
-          // seulement dans la table (réserve #8).
+
+          /*
+           * La confirmation des droits doit être retrouvable dans l'audit, pas
+           * seulement dans la table (réserve #8).
+           */
           rightsConfirmedAt: listing.rightsConfirmedAt?.toISOString() ?? null,
           rightsConfirmedBy: listing.rightsConfirmedBy ?? null,
           piiPolicyAcceptedAt: listing.piiPolicyAcceptedAt?.toISOString() ?? null,
@@ -23077,8 +24513,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     } catch (error) {
       // Unique-slug collision → 409 rather than a 500.
       if (error instanceof Error && /unique|slug/i.test(error.message)) {
-        return reply.status(409).send({ error: 'A listing with that slug already exists', code: 'GALLERY_SLUG_TAKEN' });
+        return reply.status(409).send({ error: appPublicEnglish('GALLERY_SLUG_TAKEN'), code: 'GALLERY_SLUG_TAKEN' });
       }
+
       throw error;
     }
   });
@@ -23257,7 +24694,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       'projects:read',
     );
 
-    return { snapshots: await store.listSnapshots(project.id) };
+    const locale = transactionalLocaleForRequest(request);
+    return {
+      snapshots: (await store.listSnapshots(project.id)).map((snapshot) => localizeSnapshotRecord(snapshot, locale)),
+    };
   });
   app.post('/projects/:projectId/snapshots', async (request, reply) => {
     const project = await requireProject(
@@ -23330,7 +24770,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       resourceId: snapshot.id,
     });
 
-    return reply.code(201).send({ snapshot });
+    return reply.code(201).send({ snapshot: localizeSnapshotRecord(snapshot, transactionalLocaleForRequest(request)) });
   });
   app.post('/projects/:projectId/snapshots/before-ai-change', async (request, reply) => {
     const project = await requireProject(
@@ -23344,7 +24784,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const archive = await projectStorage.createSnapshot({
       projectId: project.id,
-      label: 'Before AI large change',
+      label: appPublicEnglish('SNAPSHOT_BEFORE_AI_CHANGE'),
       files,
     });
 
@@ -23365,7 +24805,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
       return store.createSnapshot({
         projectId: project.id,
-        label: 'Before AI large change',
+        label: appPublicEnglish('SNAPSHOT_BEFORE_AI_CHANGE'),
         kind: 'before-ai-change',
         manifest: { files: publicFiles(files), excludesRuntimeSecrets: true },
         storageKey: archive.storageKey,
@@ -23393,7 +24833,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       resourceId: snapshot.id,
     });
 
-    return reply.code(201).send({ snapshot });
+    return reply.code(201).send({ snapshot: localizeSnapshotRecord(snapshot, transactionalLocaleForRequest(request)) });
   });
 
   /*
@@ -23416,7 +24856,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const snapshot = await store.getSnapshot(snapshotId);
 
     if (!snapshot || snapshot.projectId !== project.id) {
-      throw Object.assign(new Error('Snapshot not found'), { statusCode: 404, code: 'SNAPSHOT_NOT_FOUND' });
+      throw Object.assign(new Error(appPublicEnglish('SNAPSHOT_NOT_FOUND')), {
+        statusCode: 404,
+        code: 'SNAPSHOT_NOT_FOUND',
+      });
     }
 
     const snapshotFiles = await getSnapshotFiles(snapshot);
@@ -23458,7 +24901,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return {
       preview: {
         snapshotId: snapshot.id,
-        label: snapshot.label,
+        label: localizeSnapshotRecord(snapshot, transactionalLocaleForRequest(request)).label,
         createdAt: snapshot.createdAt,
         byteLength: snapshot.byteLength,
         counts: { added: added.length, changed: changed.length, removed: removed.length, unchanged },
@@ -23479,7 +24922,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const snapshot = await store.getSnapshot(snapshotId);
 
     if (!snapshot || snapshot.projectId !== project.id) {
-      throw Object.assign(new Error('Snapshot not found'), { statusCode: 404, code: 'SNAPSHOT_NOT_FOUND' });
+      throw Object.assign(new Error(appPublicEnglish('SNAPSHOT_NOT_FOUND')), {
+        statusCode: 404,
+        code: 'SNAPSHOT_NOT_FOUND',
+      });
     }
 
     const snapshotFiles = await getSnapshotFiles(snapshot);
@@ -23522,7 +24968,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * terminal and preview actually rewind too — not just project storage / the
      * editor. Best-effort: a stopped/GC'd pod must not fail the restore.
      */
-    await syncRestoredFilesToWorkspace(runtimeWorkspaceId(project.id, request.currentUser!.id), restored);
+    await syncRestoredFilesToWorkspace(
+      await resolveProjectWorkspaceId(store, project.id, request.currentUser!.id),
+      restored,
+    );
 
     await store.recordProjectActivity({
       projectId: project.id,
@@ -23551,7 +25000,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       'projects:read',
     );
 
-    return { snapshots: await store.listSnapshots(project.id) };
+    const locale = transactionalLocaleForRequest(request);
+    return {
+      snapshots: (await store.listSnapshots(project.id)).map((snapshot) => localizeSnapshotRecord(snapshot, locale)),
+    };
   });
 
   app.get('/projects/:projectId/ai/conversations', async (request) => {
@@ -23611,7 +25063,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const conversation = await store.getAiConversation(conversationId);
 
     if (!conversation || conversation.projectId !== project.id) {
-      return reply.code(404).send({ error: 'AI conversation not found', code: 'AI_CONVERSATION_NOT_FOUND' });
+      return reply
+        .code(404)
+        .send({ error: appPublicEnglish('AI_CONVERSATION_NOT_FOUND'), code: 'AI_CONVERSATION_NOT_FOUND' });
     }
 
     const body = parse(aiMessageSchema, request.body);
@@ -23626,6 +25080,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       content: body.content,
       provider: body.provider,
       model: body.model,
+      locale: transactionalLocaleForRequest(request),
     });
 
     /*
@@ -23704,7 +25159,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const conversation = await store.getAiConversation(conversationId);
 
     if (!conversation || conversation.projectId !== project.id) {
-      throw Object.assign(new Error('AI conversation not found'), {
+      throw Object.assign(new Error(appPublicEnglish('AI_CONVERSATION_NOT_FOUND')), {
         statusCode: 404,
         code: 'AI_CONVERSATION_NOT_FOUND',
       });
@@ -23740,7 +25195,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const conversation = await store.getAiConversation(conversationId);
 
     if (!conversation || conversation.projectId !== project.id) {
-      throw Object.assign(new Error('AI conversation not found'), {
+      throw Object.assign(new Error(appPublicEnglish('AI_CONVERSATION_NOT_FOUND')), {
         statusCode: 404,
         code: 'AI_CONVERSATION_NOT_FOUND',
       });
@@ -23808,7 +25263,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           .catch(() => 0);
 
         if (spent >= limit.limitCents) {
-          throw Object.assign(new Error('You have reached your personal usage limit for this billing period.'), {
+          throw Object.assign(new Error(appPublicEnglish('USER_SPEND_LIMIT_REACHED')), {
             statusCode: 429,
             code: 'USER_SPEND_LIMIT_REACHED',
           });
@@ -24042,7 +25497,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     if (!modeLine || !modeLine.active || !modeLine.availablePlans.includes(planKey)) {
       return reply.status(403).send({
-        error: `The ${requestedMode} mode is not available on the ${planKey} plan.`,
+        error: appPublicEnglish('AGENT_MODE_UNAVAILABLE_FOR_PLAN', { value1: requestedMode, value2: planKey }),
         code: 'AGENT_MODE_NOT_ALLOWED',
         mode: requestedMode,
         plan: planKey,
@@ -24055,6 +25510,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       model: modeLine.model,
       multiplier: modeLine.multiplier,
     };
+
     let escalation: typeof base | undefined;
     let classifier: { provider: string; model: string } | undefined;
 
@@ -24062,13 +25518,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       // Turbo: Power only, plan-gated AND org-gated (agent_turbo flag, OFF by default).
       if (requestedMode !== 'power') {
         return reply.status(403).send({
-          error: 'Turbo is only available in Power mode.',
+          error: appPublicEnglish('AGENT_TURBO_REQUIRES_POWER'),
           code: 'AGENT_TURBO_POWER_ONLY',
           mode: requestedMode,
         });
       }
 
       const turboLine = routingLine(card, 'turbo');
+
       const turboOrgEnabled = await evaluateFeatureFlag(store, 'agent_turbo', {
         userId: request.currentUser?.id,
         organizationId: project.organizationId,
@@ -24076,7 +25533,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
       if (!turboLine || !turboLine.active || !turboLine.availablePlans.includes(planKey) || !turboOrgEnabled) {
         return reply.status(403).send({
-          error: 'Turbo is not enabled for this organization.',
+          error: appPublicEnglish('AGENT_TURBO_NOT_ENABLED'),
           code: 'AGENT_TURBO_NOT_ALLOWED',
           plan: planKey,
         });
@@ -24094,7 +25551,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       // High effort: Economy and Power only — NEVER Lite — and plan-gated.
       if (requestedMode === 'lite') {
         return reply.status(403).send({
-          error: 'High effort is not available in Lite mode.',
+          error: appPublicEnglish('AGENT_HIGH_EFFORT_UNAVAILABLE_IN_LITE'),
           code: 'AGENT_HIGH_EFFORT_LITE',
           mode: requestedMode,
         });
@@ -24104,7 +25561,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
       if (!escalationLine || !escalationLine.active || !escalationLine.availablePlans.includes(planKey)) {
         return reply.status(403).send({
-          error: `High effort is not available on the ${planKey} plan.`,
+          error: appPublicEnglish('AGENT_HIGH_EFFORT_UNAVAILABLE_FOR_PLAN', { value1: planKey }),
           code: 'AGENT_HIGH_EFFORT_NOT_ALLOWED',
           plan: planKey,
         });
@@ -24175,6 +25632,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     if (body.agentRouting) {
       try {
         const routingCard = await getActiveAgentRoutingCard(store);
+
         const callBilling = computeAgentCallBilling(
           routingCard,
           body.agentRouting.lineKey,
@@ -24342,13 +25800,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
               });
 
               if (pct != null) {
-                const email = request.currentUser?.email;
+                const recipient = request.currentUser ? await store.findUserById(request.currentUser.id) : undefined;
+                const email = recipient?.email ?? request.currentUser?.email;
 
                 if (email) {
                   const content = spendAlertEmailContent({
                     pct,
                     paygSpentCents,
                     budgetCapCents: wallet.budgetCapCents,
+                    currency: wallet.currency,
+                    locale: transactionalLocaleForRequest(request, recipient?.language),
                   });
                   await emailProvider.send({
                     to: email,
@@ -24405,14 +25866,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       const conversation = await store.getAiConversation(conversationId);
 
       if (!conversation || conversation.projectId !== project.id || conversation.userId !== request.currentUser!.id) {
-        return reply.code(404).send({ error: 'AI conversation not found', code: 'AI_CONVERSATION_NOT_FOUND' });
+        return reply
+          .code(404)
+          .send({ error: appPublicEnglish('AI_CONVERSATION_NOT_FOUND'), code: 'AI_CONVERSATION_NOT_FOUND' });
       }
     } else {
       conversationId = (
         await store.createAiConversation({
           projectId: project.id,
           userId: request.currentUser!.id,
-          title: `Tool ${toolName}`,
+          title: appPublicCopy('AI_TOOL_CONVERSATION_TITLE', transactionalLocaleForRequest(request), { toolName }),
         })
       ).id;
     }
@@ -24625,9 +26088,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * Powers the Dashboard credits panel and the agent proof-of-work view. Dormant
    * values (zeros) until grants/settle run, so safe to expose now.
    */
-  app.get('/orgs/:orgId/credits', async (request) => {
+  app.get('/orgs/:orgId/credits', async (request, reply) => {
     const { orgId } = parse(orgParams, request.params);
     await requireOrg(request, store, orgId, 'projects:read');
+    const locale = transactionalLocaleForRequest(request);
 
     const wallet = await store.getCreditWallet(orgId);
     const packs = await store.listCreditPacks(orgId, { activeOnly: true });
@@ -24664,6 +26128,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       periodEndIso = new Date(Date.UTC(periodStart.getUTCFullYear(), periodStart.getUTCMonth() + 1, 1)).toISOString();
     }
 
+    const ledger = await store.listCreditLedger(orgId, { take: 50 });
+
+    setAppLocaleResponseHeaders(reply, locale);
+
     return {
       creditsEnabled: process.env.BILLING_CREDITS_ENABLED === 'true',
       shadow: process.env.BILLING_CREDITS_SHADOW === 'true',
@@ -24679,7 +26147,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       blockExternalAi,
       spendAlertThresholds: [50, 80, 100],
       activePacks: packs,
-      ledger: await store.listCreditLedger(orgId, { take: 50 }),
+      ledger: ledger.map((entry) => ({
+        ...entry,
+        reason: localizeCreditLedgerReason(entry.reason, entry.kind, locale),
+      })),
       checkpoints: await store.listAgentCheckpoints(orgId, { take: 50 }),
 
       /*
@@ -24720,7 +26191,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       cents == null || cents === 1 || cents % FIVE_HUNDRED === 0;
 
     if (!validIncrement(body.budgetCapCents) || !validIncrement(body.serviceShutdownCents)) {
-      throw Object.assign(new Error('Spend limits must be set in €500 increments (or €0.01 to cap at credits).'), {
+      throw Object.assign(new Error(appPublicEnglish('SPEND_LIMIT_INCREMENT')), {
         statusCode: 400,
         code: 'SPEND_LIMIT_INCREMENT',
       });
@@ -24765,7 +26236,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const membership = await store.getMembership(userId, orgId);
 
     if (!membership) {
-      throw Object.assign(new Error('User is not a member of this organization.'), {
+      throw Object.assign(new Error(appPublicEnglish('MEMBER_NOT_FOUND')), {
         statusCode: 404,
         code: 'MEMBER_NOT_FOUND',
       });
@@ -24832,19 +26303,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     await requireOrg(request, store, orgId, 'billing:manage');
 
     if (body.planKey === 'free') {
-      throw Object.assign(
-        new Error(
-          'Free plan has no checkout. Cancel any paid subscription via /orgs/:orgId/billing/portal to return to free.',
-        ),
-        { statusCode: 400, code: 'STRIPE_FREE_NO_CHECKOUT' },
-      );
+      throw Object.assign(new Error(appPublicEnglish('STRIPE_FREE_NO_CHECKOUT')), {
+        statusCode: 400,
+        code: 'STRIPE_FREE_NO_CHECKOUT',
+      });
     }
 
     if (body.planKey === 'enterprise') {
-      throw Object.assign(
-        new Error('Enterprise plans are not self-serve. Visit /contact-sales to start a conversation.'),
-        { statusCode: 400, code: 'STRIPE_ENTERPRISE_CONTACT_SALES', contactSalesUrl: '/contact-sales' },
-      );
+      throw Object.assign(new Error(appPublicEnglish('STRIPE_ENTERPRISE_CONTACT_SALES')), {
+        statusCode: 400,
+        code: 'STRIPE_ENTERPRISE_CONTACT_SALES',
+        contactSalesUrl: '/contact-sales',
+      });
     }
 
     const plan = await store.getBillingPlan(body.planKey);
@@ -24859,15 +26329,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       throw Object.assign(
         new Error(
           body.interval === 'annual'
-            ? 'Annual Stripe price is not configured for this plan'
-            : 'Stripe price is not configured for this plan',
+            ? appPublicEnglish('STRIPE_ANNUAL_PRICE_NOT_CONFIGURED')
+            : appPublicEnglish('STRIPE_PLAN_PRICE_NOT_CONFIGURED'),
         ),
         { statusCode: 503, code: 'STRIPE_PRICE_NOT_CONFIGURED' },
       );
     }
 
     if (!stripeClient) {
-      throw Object.assign(new Error('Stripe is not configured'), { statusCode: 503, code: 'STRIPE_NOT_CONFIGURED' });
+      throw Object.assign(new Error(appPublicEnglish('STRIPE_NOT_CONFIGURED')), {
+        statusCode: 503,
+        code: 'STRIPE_NOT_CONFIGURED',
+      });
     }
 
     /*
@@ -24888,10 +26361,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * billing portal (which can un-cancel) instead.
      */
     if (currentSubscription && ['ACTIVE', 'TRIALING', 'PAST_DUE'].includes(currentSubscription.status)) {
-      throw Object.assign(
-        new Error('Organization already has an active subscription; use the billing portal to change or resume plans.'),
-        { statusCode: 409, code: 'STRIPE_SUBSCRIPTION_ALREADY_ACTIVE' },
-      );
+      throw Object.assign(new Error(appPublicEnglish('STRIPE_SUBSCRIPTION_ALREADY_ACTIVE')), {
+        statusCode: 409,
+        code: 'STRIPE_SUBSCRIPTION_ALREADY_ACTIVE',
+      });
     }
 
     const organization = await store.getOrganization(orgId);
@@ -24937,7 +26410,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     });
 
     if (!session.url) {
-      throw Object.assign(new Error('Stripe checkout session did not include a redirect URL'), {
+      throw Object.assign(new Error(appPublicEnglish('STRIPE_CHECKOUT_URL_MISSING')), {
         statusCode: 502,
         code: 'STRIPE_CHECKOUT_URL_MISSING',
       });
@@ -24968,7 +26441,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     await requireOrg(request, store, orgId, 'billing:manage');
 
     if (process.env.BILLING_CREDITS_ENABLED !== 'true') {
-      throw Object.assign(new Error('Credit packs are not available yet.'), {
+      throw Object.assign(new Error(appPublicEnglish('CREDIT_PACKS_DISABLED')), {
         statusCode: 503,
         code: 'CREDIT_PACKS_DISABLED',
       });
@@ -24977,7 +26450,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const pack = findCreditPack(body.packId);
 
     if (!pack) {
-      throw Object.assign(new Error('Unknown credit pack.'), {
+      throw Object.assign(new Error(appPublicEnglish('CREDIT_PACK_UNKNOWN')), {
         statusCode: 400,
         code: 'CREDIT_PACK_UNKNOWN',
         availablePacks: creditPackCatalog.map((entry) => entry.id),
@@ -24987,14 +26460,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const priceId = process.env[pack.stripePriceEnv];
 
     if (!priceId) {
-      throw Object.assign(new Error(`Stripe price for ${pack.label} pack is not configured.`), {
-        statusCode: 503,
-        code: 'CREDIT_PACK_PRICE_NOT_CONFIGURED',
-      });
+      throw Object.assign(
+        new Error(appPublicEnglish('STRIPE_CREDIT_PACK_PRICE_NOT_CONFIGURED', { value1: pack.label })),
+        {
+          statusCode: 503,
+          code: 'CREDIT_PACK_PRICE_NOT_CONFIGURED',
+        },
+      );
     }
 
     if (!stripeClient) {
-      throw Object.assign(new Error('Stripe is not configured'), { statusCode: 503, code: 'STRIPE_NOT_CONFIGURED' });
+      throw Object.assign(new Error(appPublicEnglish('STRIPE_NOT_CONFIGURED')), {
+        statusCode: 503,
+        code: 'STRIPE_NOT_CONFIGURED',
+      });
     }
 
     const organization = await store.getOrganization(orgId);
@@ -25024,7 +26503,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     });
 
     if (!session.url) {
-      throw Object.assign(new Error('Stripe checkout session did not include a redirect URL'), {
+      throw Object.assign(new Error(appPublicEnglish('STRIPE_CHECKOUT_URL_MISSING')), {
         statusCode: 502,
         code: 'STRIPE_CHECKOUT_URL_MISSING',
       });
@@ -25048,14 +26527,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const customer = await store.getBillingCustomer(orgId);
 
     if (!customer) {
-      throw Object.assign(new Error('Billing customer not found'), {
+      throw Object.assign(new Error(appPublicEnglish('BILLING_CUSTOMER_NOT_FOUND')), {
         statusCode: 404,
         code: 'BILLING_CUSTOMER_NOT_FOUND',
       });
     }
 
     if (!stripeClient) {
-      throw Object.assign(new Error('Stripe is not configured'), { statusCode: 503, code: 'STRIPE_NOT_CONFIGURED' });
+      throw Object.assign(new Error(appPublicEnglish('STRIPE_NOT_CONFIGURED')), {
+        statusCode: 503,
+        code: 'STRIPE_NOT_CONFIGURED',
+      });
     }
 
     const session = await stripeClient.createPortalSession({
@@ -25064,7 +26546,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     });
 
     if (!session.url) {
-      throw Object.assign(new Error('Stripe portal session did not include a redirect URL'), {
+      throw Object.assign(new Error(appPublicEnglish('STRIPE_PORTAL_URL_MISSING')), {
         statusCode: 502,
         code: 'STRIPE_PORTAL_URL_MISSING',
       });
@@ -25586,6 +27068,49 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           resourceType: 'invoice',
           resourceId: object.id,
         }).catch(() => {});
+
+        /*
+         * Stripe webhooks are deduplicated before this branch, so each invoice
+         * event produces at most one customer email. Delivery stays best-effort:
+         * a provider outage must not roll back subscription or revenue state.
+         */
+        try {
+          const organization = await store.getOrganization(organizationId);
+          const members = await store.listMembers(organizationId);
+          const ownerMembership = members.find((member) => member.roleKey === 'owner') ?? members[0];
+          const owner = ownerMembership ? await store.findUserById(ownerMembership.userId) : undefined;
+          const recipient = organization?.billingEmail ?? owner?.email ?? ownerMembership?.userEmail;
+
+          if (recipient) {
+            const invoiceEvent = event.type.slice('invoice.'.length) as InvoiceEmailEvent;
+            const amountMinor = Number(
+              invoiceEvent === 'paid' ? (object.amount_paid ?? object.amount_due ?? 0) : (object.amount_due ?? 0),
+            );
+            const createdAt = Number.isFinite(Number(object.created ?? event.created))
+              ? Number(object.created ?? event.created) * 1000
+              : Date.now();
+            const content = invoiceEmailContent({
+              event: invoiceEvent,
+              invoiceId: String(object.id),
+              invoiceNumber: typeof object.number === 'string' ? object.number : undefined,
+              amountMinor: Number.isFinite(amountMinor) ? amountMinor : 0,
+              currency: typeof object.currency === 'string' ? object.currency : 'usd',
+              createdAt,
+              invoiceUrl:
+                typeof object.hosted_invoice_url === 'string'
+                  ? object.hosted_invoice_url
+                  : typeof object.invoice_pdf === 'string'
+                    ? object.invoice_pdf
+                    : undefined,
+              locale: resolveTransactionalLocale({ preferredLanguage: owner?.language }),
+              timeZone: owner?.timezone,
+            });
+
+            await emailProvider.send({ to: recipient, ...content });
+          }
+        } catch (error) {
+          request.log.error({ err: error, organizationId, invoiceId: object.id }, 'failed to send invoice email');
+        }
       }
 
       return { code: 200, body: { received: true } };
@@ -25600,7 +27125,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const webhookSecret = await resolveStripeWebhookSecret();
 
     if (!webhookSecret) {
-      throw Object.assign(new Error('Stripe webhook secret is not configured'), {
+      throw Object.assign(new Error(appPublicEnglish('STRIPE_WEBHOOK_SECRET_NOT_CONFIGURED')), {
         statusCode: 503,
         code: 'STRIPE_WEBHOOK_SECRET_NOT_CONFIGURED',
       });
@@ -25617,7 +27142,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     try {
       event = JSON.parse(payload);
     } catch {
-      return reply.code(400).send({ error: 'Invalid Stripe webhook payload', code: 'STRIPE_WEBHOOK_INVALID_JSON' });
+      return reply
+        .code(400)
+        .send({ error: appPublicEnglish('STRIPE_WEBHOOK_PAYLOAD_INVALID'), code: 'STRIPE_WEBHOOK_INVALID_JSON' });
     }
 
     try {
@@ -25705,7 +27232,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         aiCostCents: aiCosts.reduce((sum, item) => sum + item.costCents, 0),
         usageEvents: usage.reduce((sum, item) => sum + item.quantity, 0),
       },
-      health: await adminHealthSummary(store),
+      health: await adminHealthSummary(store, transactionalLocaleForRequest(request)),
       suspendedUserIds: await listSettingIds(store, 'admin.suspendedUserIds'),
       suspendedOrganizationIds: await listSettingIds(store, 'admin.suspendedOrganizationIds'),
     };
@@ -25788,6 +27315,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    */
   app.get('/admin/capacity', async (request) => {
     await requirePlatformAdmin(request);
+    const locale = transactionalLocaleForRequest(request);
 
     const capacity = await managerRequest<ClusterCapacity>('/capacity').catch(() => null);
 
@@ -25807,13 +27335,41 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const workspaces = await store.listAdminWorkspaces().catch(() => []);
     const idleStopped = workspaces.filter((workspace) => workspace.status === 'STOPPED').length;
+    const alerts = capacity
+      ? evaluateCapacityAlerts(capacity, thresholds).map((alert) => {
+          if (alert.kind === 'node-count' && capacity.autoscaling) {
+            const key: AppPublicCopyKey =
+              alert.level === 'critical' ? 'CAPACITY_NODE_COUNT_CRITICAL' : 'CAPACITY_NODE_COUNT_WARNING';
+
+            return {
+              ...alert,
+              code: key,
+              message: appPublicCopy(key, locale, {
+                nodePool: capacity.autoscaling.nodePool,
+                currentNodes: capacity.autoscaling.currentNodes,
+                maxNodes: capacity.autoscaling.maxNodes,
+                percentage: Math.round((capacity.autoscaling.currentNodes / capacity.autoscaling.maxNodes) * 100),
+              }),
+            };
+          }
+
+          return {
+            ...alert,
+            code: 'CAPACITY_RESERVED_CPU_PRESSURE',
+            message: appPublicCopy('CAPACITY_RESERVED_CPU_PRESSURE', locale, {
+              nodePool: capacity.nodePool.name,
+              percentage: Math.round(capacity.nodePool.reservedCpuRatio * 100),
+            }),
+          };
+        })
+      : [];
 
     return {
       available: capacity !== null,
       capacity,
       idleStopped,
       thresholds,
-      alerts: capacity ? evaluateCapacityAlerts(capacity, thresholds) : [],
+      alerts,
       generatedAt: new Date().toISOString(),
     };
   });
@@ -25912,7 +27468,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   app.get('/admin/deployments', async (request) => {
     await requirePlatformAdmin(request);
-    return { deployments: await store.listAdminDeployments() };
+    const locale = transactionalLocaleForRequest(request);
+    return {
+      deployments: (await store.listAdminDeployments()).map((deployment) =>
+        localizeDeploymentRecord(deployment, locale),
+      ),
+    };
   });
 
   app.get('/admin/billing', async (request) => {
@@ -26037,7 +27598,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    */
   app.get('/providers/enabled', async (request: any) => {
     if (!request.currentUser) {
-      throw Object.assign(new Error('Authentication required'), { statusCode: 401, code: 'UNAUTHORIZED' });
+      throw Object.assign(new Error(appPublicEnglish('AUTHENTICATION_REQUIRED')), {
+        statusCode: 401,
+        code: 'UNAUTHORIZED',
+      });
     }
 
     const byName = new Map((await store.listProviderConfigs()).map((p) => [p.provider, p.enabled] as const));
@@ -26070,7 +27634,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const existing = allModels.find((m) => m.provider === body.provider && m.modelId === body.modelId);
 
     if (!existing) {
-      throw Object.assign(new Error('Model not found in registry'), { statusCode: 404, code: 'MODEL_NOT_FOUND' });
+      throw Object.assign(new Error(appPublicEnglish('MODEL_NOT_FOUND')), { statusCode: 404, code: 'MODEL_NOT_FOUND' });
     }
 
     /*
@@ -26090,13 +27654,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       );
 
       if (strandedPlan) {
-        throw Object.assign(
-          new Error(`Disabling this model would leave the "${strandedPlan}" plan with no active model`),
-          {
-            statusCode: 409,
-            code: 'PLAN_WOULD_HAVE_NO_MODEL',
-          },
-        );
+        throw Object.assign(new Error(appPublicEnglish('PLAN_WOULD_HAVE_NO_MODEL', { plan: strandedPlan })), {
+          statusCode: 409,
+          code: 'PLAN_WOULD_HAVE_NO_MODEL',
+        });
       }
     }
 
@@ -26131,11 +27692,21 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     await requirePlatformAdmin(request);
 
     const card = await getActiveAgentRoutingCard(store);
+    const locale = transactionalLocaleForRequest(request);
+    const localizedCard = localizeAgentRoutingCardLabels(card, locale);
     const since = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString();
-    const volume = await store.aggregateAgentCallVolume(since).catch(() => []);
+    const [volume, historyRows] = await Promise.all([
+      store.aggregateAgentCallVolume(since).catch(() => []),
+      store.listAgentRoutingCards(50).catch(() => []),
+    ]);
     const volumeByLine = new Map(volume.map((row) => [row.lineKey, row]));
+    const history = historyRows.map((row) => {
+      const parsed = agentRoutingCardSchema.safeParse(row.data);
 
-    const lines = card.lines.map((line) => {
+      return parsed.success ? { ...row, data: localizeAgentRoutingCardLabels(parsed.data, locale) } : row;
+    });
+
+    const lines = localizedCard.lines.map((line) => {
       const rowVolume = volumeByLine.get(line.key);
 
       return {
@@ -26156,10 +27727,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     });
 
     return {
-      card,
+      card: localizedCard,
       lines,
       negativeLines: negativeMarginLineKeys(card),
-      history: await store.listAgentRoutingCards(50).catch(() => []),
+      history,
     };
   });
 
@@ -26214,12 +27785,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     );
 
     const candidate = buildCandidateRoutingCard(body.card);
-    const structural = validateAgentRoutingCard(candidate);
+    const structural = validateAgentRoutingCard(candidate, transactionalLocaleForRequest(request));
 
     if (structural.length > 0) {
-      return reply
-        .status(400)
-        .send({ error: 'Invalid routing card', code: 'AGENT_ROUTING_INVALID', issues: structural });
+      return reply.status(400).send({
+        error: appPublicEnglish('AGENT_ROUTING_CARD_INVALID'),
+        code: 'AGENT_ROUTING_INVALID',
+        issues: structural,
+      });
     }
 
     /*
@@ -26230,7 +27803,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     if (negative.length > 0 && !body.confirmNegativeMargin) {
       return reply.status(409).send({
-        error: `Negative margin on: ${negative.join(', ')}. Confirm explicitly to publish anyway.`,
+        error: appPublicEnglish('AGENT_ROUTING_NEGATIVE_MARGIN_CONFIRMATION_REQUIRED', { value1: negative.join(', ') }),
         code: 'AGENT_ROUTING_NEGATIVE_MARGIN',
         negativeLines: negative,
       });
@@ -26287,12 +27860,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const body = parse(z.object({ card: adminAgentRoutingDraftSchema }), request.body ?? {});
     const candidate = buildCandidateRoutingCard(body.card);
-    const structural = validateAgentRoutingCard(candidate);
+    const structural = validateAgentRoutingCard(candidate, transactionalLocaleForRequest(request));
 
     if (structural.length > 0) {
-      return reply
-        .status(400)
-        .send({ error: 'Invalid routing card', code: 'AGENT_ROUTING_INVALID', issues: structural });
+      return reply.status(400).send({
+        error: appPublicEnglish('AGENT_ROUTING_CARD_INVALID'),
+        code: 'AGENT_ROUTING_INVALID',
+        issues: structural,
+      });
     }
 
     const since = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString();
@@ -26320,6 +27895,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       }
 
       const price = lineUserPrice(candidate, line);
+
       const simulatedCostCents =
         (row.tokensIn * line.costInCentsPerM + row.tokensOut * line.costOutCentsPerM) / 1_000_000;
       const simulatedCreditCents = line.billedToUser
@@ -26413,7 +27989,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const { provider } = parse(providerCredentialsParams, request.params);
 
     if (!KNOWN_LLM_PROVIDER_SET.has(provider)) {
-      throw Object.assign(new Error('Unknown provider'), { statusCode: 404, code: 'PROVIDER_NOT_FOUND' });
+      throw Object.assign(new Error(appPublicEnglish('PROVIDER_NOT_FOUND')), {
+        statusCode: 404,
+        code: 'PROVIDER_NOT_FOUND',
+      });
     }
 
     const body = parse(
@@ -26441,7 +28020,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       if (candidate.length === 0) {
         baseUrlUpdate = null;
       } else if (!isSafeProviderBaseUrl(candidate)) {
-        throw Object.assign(new Error('Base URL is not allowed'), {
+        throw Object.assign(new Error(appPublicEnglish('PROVIDER_BASE_URL_BLOCKED')), {
           statusCode: 400,
           code: 'PROVIDER_BASE_URL_BLOCKED',
         });
@@ -26489,7 +28068,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const { provider } = parse(providerCredentialsParams, request.params);
 
     if (!KNOWN_LLM_PROVIDER_SET.has(provider)) {
-      throw Object.assign(new Error('Unknown provider'), { statusCode: 404, code: 'PROVIDER_NOT_FOUND' });
+      throw Object.assign(new Error(appPublicEnglish('PROVIDER_NOT_FOUND')), {
+        statusCode: 404,
+        code: 'PROVIDER_NOT_FOUND',
+      });
     }
 
     const existing = (await store.listProviderConfigs()).find((p) => p.provider === provider);
@@ -26804,11 +28386,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    */
   app.get('/admin/stripe/webhook-failures', async (request) => {
     await requirePlatformAdmin(request);
+    const locale = transactionalLocaleForRequest(request);
 
     const failures = await store.listStripeWebhookFailures({ limit: 50 });
 
     return {
-      failures: failures.map(({ payload: _payload, ...safe }) => safe),
+      failures: failures.map(({ payload: _payload, ...safe }) => ({
+        ...safe,
+        lastErrorCode: 'STRIPE_WEBHOOK_PROCESSING_FAILED',
+        lastError: localizeBackendErrorForResponse(safe.lastError, locale, 'STRIPE_WEBHOOK_PROCESSING_FAILED'),
+      })),
     };
   });
 
@@ -26822,7 +28409,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   const replayStripeWebhookFailure = async (
     request: any,
     failure: { eventId: string; type: string; payload: unknown },
-  ): Promise<{ eventId: string; type: string; ok: boolean; attempts?: number; error?: string }> => {
+  ): Promise<{
+    eventId: string;
+    type: string;
+    ok: boolean;
+    attempts?: number;
+    error?: string;
+    errorCode?: string;
+  }> => {
     try {
       await processStripeWebhookEvent(request, failure.payload);
 
@@ -26839,6 +28433,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return { eventId: failure.eventId, type: failure.type, ok: true };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
+      const errorCode =
+        typeof (error as { code?: unknown })?.code === 'string'
+          ? (error as { code: string }).code
+          : 'STRIPE_WEBHOOK_PROCESSING_FAILED';
 
       const updated = await store
         .recordStripeWebhookFailure({
@@ -26849,7 +28447,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         })
         .catch(() => undefined);
 
-      return { eventId: failure.eventId, type: failure.type, ok: false, attempts: updated?.attempts, error: message };
+      return {
+        eventId: failure.eventId,
+        type: failure.type,
+        ok: false,
+        attempts: updated?.attempts,
+        errorCode,
+        error: localizeBackendErrorForResponse(
+          message,
+          transactionalLocaleForRequest(request),
+          'STRIPE_WEBHOOK_PROCESSING_FAILED',
+        ),
+      };
     }
   };
 
@@ -26860,9 +28469,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const failure = await store.getStripeWebhookFailure(eventId);
 
     if (!failure || failure.resolvedAt) {
-      return reply
-        .code(404)
-        .send({ error: 'No unresolved webhook failure with this event id', code: 'STRIPE_WEBHOOK_FAILURE_NOT_FOUND' });
+      return reply.code(404).send({
+        error: appPublicEnglish('STRIPE_WEBHOOK_FAILURE_NOT_FOUND'),
+        code: 'STRIPE_WEBHOOK_FAILURE_NOT_FOUND',
+      });
     }
 
     return { result: await replayStripeWebhookFailure(request, failure) };
@@ -26872,7 +28482,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     await requirePlatformAdmin(request);
 
     const failures = await store.listStripeWebhookFailures({ limit: 50 });
-    const results: Array<{ eventId: string; type: string; ok: boolean; attempts?: number; error?: string }> = [];
+    const results: Array<{
+      eventId: string;
+      type: string;
+      ok: boolean;
+      attempts?: number;
+      error?: string;
+      errorCode?: string;
+    }> = [];
 
     /*
      * Sequential on purpose: replays share subscription rows; parallel replays
@@ -26970,12 +28587,21 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * the admin wallet panel's "movements" table so an operator can see exactly
    * what every signed adjustment did and why. Platform-admin gated (read-only).
    */
-  app.get('/admin/wallets/:organizationId/ledger', async (request) => {
+  app.get('/admin/wallets/:organizationId/ledger', async (request, reply) => {
     await requirePlatformAdmin(request);
 
     const { organizationId } = parse(z.object({ organizationId: z.string().min(1) }), request.params);
+    const locale = transactionalLocaleForRequest(request);
+    const ledger = await store.listCreditLedger(organizationId, { take: 100 });
 
-    return { ledger: await store.listCreditLedger(organizationId, { take: 100 }) };
+    setAppLocaleResponseHeaders(reply, locale);
+
+    return {
+      ledger: ledger.map((entry) => ({
+        ...entry,
+        reason: localizeCreditLedgerReason(entry.reason, entry.kind, locale),
+      })),
+    };
   });
 
   /*
@@ -26995,7 +28621,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         deltaCents: z
           .number()
           .int()
-          .refine((value) => value !== 0, { message: 'deltaCents must be a non-zero integer' }),
+          .refine((value) => value !== 0, { message: appPublicEnglish('WALLET_DELTA_NONZERO') }),
 
         /*
          * Optional at the schema layer so both a missing AND a whitespace-only
@@ -27016,13 +28642,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const reason = (body.reason ?? '').trim();
 
     if (!reason) {
-      throw Object.assign(
-        new Error('A reason is required for wallet adjustments — it is recorded in the audit trail.'),
-        {
-          statusCode: 400,
-          code: 'WALLET_ADJUST_REASON_REQUIRED',
-        },
-      );
+      throw Object.assign(new Error(appPublicEnglish('WALLET_REASON_REQUIRED')), {
+        statusCode: 400,
+        code: 'WALLET_ADJUST_REASON_REQUIRED',
+      });
     }
 
     const { entry, balanceCents } = await store.recordCreditEntry({
@@ -27104,18 +28727,31 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   app.get('/admin/stripe-health', async (request) => {
     await requirePlatformAdmin(request);
+    const locale = transactionalLocaleForRequest(request);
 
     if (!stripeClient) {
-      return { configured: false, ok: false, detail: 'STRIPE_SECRET_KEY not configured' };
+      return {
+        configured: false,
+        ok: false,
+        detailCode: 'STRIPE_NOT_CONFIGURED',
+        detail: appPublicCopy('STRIPE_HEALTH_NOT_CONFIGURED', locale),
+      };
     }
 
     const result = await stripeClient.ping();
+
+    if (!result.ok) {
+      request.log.warn({ stripeError: redactSecretString(result.error ?? '') }, 'Stripe health check failed');
+    }
 
     return {
       configured: true,
       ok: result.ok,
       livemode: result.livemode ?? null,
-      detail: result.ok ? (result.livemode ? 'Live key OK' : 'Test key OK') : result.error,
+      detailCode: result.ok ? (result.livemode ? 'STRIPE_LIVE_KEY_OK' : 'STRIPE_TEST_KEY_OK') : 'STRIPE_UNREACHABLE',
+      detail: result.ok
+        ? appPublicCopy(result.livemode ? 'STRIPE_HEALTH_LIVE_KEY_OK' : 'STRIPE_HEALTH_TEST_KEY_OK', locale)
+        : appPublicCopy('STRIPE_HEALTH_REQUEST_FAILED', locale),
     };
   });
 
@@ -27340,7 +28976,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   app.get('/admin/health', async (request) => {
     await requirePlatformAdmin(request);
-    return adminHealthSummary(store);
+    return adminHealthSummary(store, transactionalLocaleForRequest(request));
   });
 
   app.get('/admin/costs', async (request) => {
@@ -27477,21 +29113,25 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const adminId = request.currentUser!.id;
 
     if (userId === adminId) {
-      return reply.code(400).send({ error: 'cannot_impersonate_self' });
+      return reply
+        .code(400)
+        .send({ error: appPublicEnglish('IMPERSONATION_SELF_FORBIDDEN'), code: 'IMPERSONATION_SELF_FORBIDDEN' });
     }
 
     const target = await store.findUserById(userId);
 
     if (!target) {
-      return reply.code(404).send({ error: 'not_found' });
+      return reply.code(404).send({ error: appPublicEnglish('RESOURCE_NOT_FOUND'), code: 'USER_NOT_FOUND' });
     }
 
     if (target.platformAdmin) {
-      return reply.code(403).send({ error: 'cannot_impersonate_admin' });
+      return reply
+        .code(403)
+        .send({ error: appPublicEnglish('IMPERSONATION_ADMIN_FORBIDDEN'), code: 'IMPERSONATION_ADMIN_FORBIDDEN' });
     }
 
     if (await isUserSuspended(store, userId)) {
-      return reply.code(409).send({ error: 'user_suspended' });
+      return reply.code(409).send({ error: appPublicEnglish('IMPERSONATION_USER_SUSPENDED'), code: 'USER_SUSPENDED' });
     }
 
     const token = createOpaqueToken('session');
@@ -27521,7 +29161,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const session = request.currentSession;
 
     if (!session?.impersonatedBy) {
-      return reply.code(409).send({ error: 'not_impersonating' });
+      return reply
+        .code(409)
+        .send({ error: appPublicEnglish('IMPERSONATION_SESSION_MISSING'), code: 'NOT_IMPERSONATING' });
     }
 
     await store.revokeSession(request.currentUser!.id, session.id);
@@ -27629,7 +29271,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const document = await buildAccountDataExport(userId);
 
     if (!document) {
-      return reply.code(404).send({ error: 'User not found', code: 'USER_NOT_FOUND' });
+      return reply.code(404).send({ error: appPublicEnglish('USER_NOT_FOUND'), code: 'USER_NOT_FOUND' });
     }
 
     await recordAdminAction(request, store, { action: 'admin.account_data_export', metadata: { userId } });
@@ -27818,7 +29460,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             const preferences = (user?.preferences ?? {}) as { inactivityWarnings?: Record<string, string> };
 
             if (user?.email && shouldSendInactivityWarning(preferences, threshold, nowMs)) {
-              const content = inactivityWarningEmailContent(daysInactive);
+              const content = inactivityWarningEmailContent(daysInactive, {
+                locale: transactionalLocaleForRequest(request, user.language, { manualRequestWins: false }),
+                nowMs,
+                timeZone: user.timezone,
+              });
               await emailProvider.send({
                 to: user.email,
                 subject: content.subject,
@@ -28239,7 +29885,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const user = await store.findUserById(userId);
 
     if (!user) {
-      throw Object.assign(new Error('User not found'), { statusCode: 404, code: 'USER_NOT_FOUND' });
+      throw Object.assign(new Error(appPublicEnglish('USER_NOT_FOUND')), { statusCode: 404, code: 'USER_NOT_FOUND' });
     }
 
     return strikeView(readStrikeRecords(user.preferences), Date.now());
@@ -28259,7 +29905,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const user = await store.findUserById(userId);
 
     if (!user) {
-      throw Object.assign(new Error('User not found'), { statusCode: 404, code: 'USER_NOT_FOUND' });
+      throw Object.assign(new Error(appPublicEnglish('USER_NOT_FOUND')), { statusCode: 404, code: 'USER_NOT_FOUND' });
     }
 
     const nowMs = Date.now();
@@ -28298,7 +29944,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const user = await store.findUserById(userId);
 
     if (!user) {
-      throw Object.assign(new Error('User not found'), { statusCode: 404, code: 'USER_NOT_FOUND' });
+      throw Object.assign(new Error(appPublicEnglish('USER_NOT_FOUND')), { statusCode: 404, code: 'USER_NOT_FOUND' });
     }
 
     const preferences = { ...(user.preferences ?? {}) };
@@ -28394,7 +30040,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const record = await store.getWorkspace(workspaceId);
 
     if (!record) {
-      return reply.code(404).send({ error: 'Workspace not found', code: 'WORKSPACE_NOT_FOUND' });
+      return reply.code(404).send({ error: appPublicEnglish('WORKSPACE_NOT_FOUND'), code: 'WORKSPACE_NOT_FOUND' });
     }
 
     const project = await store.getProject(record.projectId);
@@ -28603,24 +30249,23 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const event = (await store.listAbuseEvents()).find((candidate) => candidate.id === abuseEventId);
 
     if (!event) {
-      return reply.code(404).send({ error: 'abuse_event_not_found' });
+      return reply.code(404).send({ error: appPublicEnglish('ABUSE_EVENT_NOT_FOUND'), code: 'ABUSE_EVENT_NOT_FOUND' });
     }
 
     const user = event.userId ? await store.findUserById(event.userId) : undefined;
 
     if (!user?.email) {
-      return reply.code(400).send({ error: 'no_user_to_warn' });
+      return reply
+        .code(400)
+        .send({ error: appPublicEnglish('ABUSE_EVENT_USER_NOT_WARNABLE'), code: 'ABUSE_EVENT_USER_NOT_WARNABLE' });
     }
 
-    await emailProvider.send({
-      to: user.email,
-      subject: 'E-Code — a note about recent account activity',
-      text:
-        `Hi${user.name ? ` ${user.name}` : ''},\n\n` +
-        `Our systems flagged activity on your E-Code account that may conflict with our acceptable-use policy ` +
-        `(${event.type}). This is a friendly warning — please review our policy. Repeated issues may lead to ` +
-        `suspension.\n\nIf you believe this is a mistake, reply to this email.\n\n— The E-Code team`,
+    const content = abuseWarningEmailContent({
+      eventType: event.type,
+      locale: resolveTransactionalLocale({ preferredLanguage: user.language }),
+      name: user.name,
     });
+    await emailProvider.send({ to: user.email, ...content });
 
     const abuseEvent = await store.updateAbuseEvent({ abuseEventId, resolved: false, disposition: 'warned' });
     await recordAdminAction(request, store, {
@@ -28646,11 +30291,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const event = (await store.listAbuseEvents()).find((candidate) => candidate.id === abuseEventId);
 
     if (!event) {
-      return reply.code(404).send({ error: 'abuse_event_not_found' });
+      return reply.code(404).send({ error: appPublicEnglish('ABUSE_EVENT_NOT_FOUND'), code: 'ABUSE_EVENT_NOT_FOUND' });
     }
 
     if (!event.userId) {
-      return reply.code(400).send({ error: 'no_user_to_suspend' });
+      return reply.code(400).send({
+        error: appPublicEnglish('ABUSE_EVENT_USER_NOT_SUSPENDABLE'),
+        code: 'ABUSE_EVENT_USER_NOT_SUSPENDABLE',
+      });
     }
 
     const userId = event.userId;
@@ -28715,7 +30363,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       const assignee = (await store.listAdminUsers()).find((user) => user.id === body.assigneeUserId);
 
       if (!assignee?.platformAdmin) {
-        throw Object.assign(new Error('Assignee must be a platform administrator'), {
+        throw Object.assign(new Error(appPublicEnglish('SUPPORT_ASSIGNEE_NOT_ADMIN')), {
           statusCode: 400,
           code: 'SUPPORT_ASSIGNEE_NOT_ADMIN',
         });
@@ -28897,25 +30545,44 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const computeCents = ceilCents(computeUnitsCents(computeUnits));
     const objectCents = ceilCents(objectStorageCents({ gibMonths: objGiBMonths, transferGib }));
     const dbCents = ceilCents(databaseStorageCents(dbGiBMonths));
+    const locale = transactionalLocaleForRequest(request);
 
     const categories = [
-      { key: 'agent', label: 'Agent', unit: 'checkpoints', quantity: checkpoints.length, costCents: agentCents },
+      {
+        key: 'agent',
+        label: appPublicCopy('USAGE_AGENT', locale),
+        unit: appPublicCopy('USAGE_UNIT_CHECKPOINTS', locale),
+        quantity: checkpoints.length,
+        costCents: agentCents,
+      },
       {
         key: 'compute',
-        label: 'Workspace compute',
-        unit: 'compute units',
+        label: appPublicCopy('USAGE_WORKSPACE_COMPUTE', locale),
+        unit: appPublicCopy('USAGE_UNIT_COMPUTE', locale),
         quantity: computeUnits,
         costCents: computeCents,
       },
-      { key: 'deployments', label: 'Deployments', unit: 'deploys', quantity: deployCount, costCents: 0 },
+      {
+        key: 'deployments',
+        label: appPublicCopy('USAGE_DEPLOYMENTS', locale),
+        unit: appPublicCopy('USAGE_UNIT_DEPLOYS', locale),
+        quantity: deployCount,
+        costCents: 0,
+      },
       {
         key: 'objectStorage',
-        label: 'Object storage',
-        unit: 'GiB-months',
+        label: appPublicCopy('USAGE_OBJECT_STORAGE', locale),
+        unit: appPublicCopy('USAGE_UNIT_GIB_MONTHS', locale),
         quantity: objGiBMonths,
         costCents: objectCents,
       },
-      { key: 'database', label: 'Database', unit: 'GiB-months', quantity: dbGiBMonths, costCents: dbCents },
+      {
+        key: 'database',
+        label: appPublicCopy('USAGE_DATABASE', locale),
+        unit: appPublicCopy('USAGE_UNIT_GIB_MONTHS', locale),
+        quantity: dbGiBMonths,
+        costCents: dbCents,
+      },
     ];
 
     return {
@@ -28956,7 +30623,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const query = parse(gitWorkspaceQuerySchema, request.query ?? {});
     const workspaceId = await resolveGitWorkspaceId(store, project.id, query.workspaceId);
 
-    return { status: await gitProvider.status(project.id, workspaceId) };
+    /*
+     * Hand the provider the files as the user currently sees them (project
+     * storage + ide-state) so a hand-edited file actually shows up as changed.
+     * The same list is what `commit` receives, so the panel and the commit agree
+     * on what "changed" means.
+     */
+    const files = await listProjectFilesIncludingIdeState(store, projectStorage, project.id, workspaceId);
+
+    return { status: await gitProvider.status(project.id, workspaceId, files) };
   });
   app.post('/projects/:projectId/git/commit', async (request) => {
     const project = await requireProject(
@@ -29061,7 +30736,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     if (!gitProvider.configureRemote) {
       return reply
         .code(501)
-        .send({ error: 'Git remote configuration is not supported by this runtime.', code: 'GIT_REMOTE_UNSUPPORTED' });
+        .send({ error: appPublicEnglish('GIT_REMOTE_CONFIGURATION_UNSUPPORTED'), code: 'GIT_REMOTE_UNSUPPORTED' });
     }
 
     const body = parse(gitRemoteSchema, request.body ?? {});
@@ -29128,7 +30803,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     if (!gitProvider.removeRemote) {
       return reply
         .code(501)
-        .send({ error: 'Git remote removal is not supported by this runtime.', code: 'GIT_REMOTE_UNSUPPORTED' });
+        .send({ error: appPublicEnglish('GIT_REMOTE_REMOVAL_UNSUPPORTED'), code: 'GIT_REMOTE_UNSUPPORTED' });
     }
 
     const body = parse(z.object({ workspaceId: workspaceIdField }), request.body ?? {});
@@ -29395,7 +31070,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const workspaceId = await resolveGitWorkspaceId(store, project.id, body.workspaceId);
 
     if (!gitProvider.restoreCommit) {
-      return reply.code(501).send({ error: 'Restore not supported', code: 'GIT_RESTORE_UNSUPPORTED' });
+      return reply
+        .code(501)
+        .send({ error: appPublicEnglish('GIT_RESTORE_UNSUPPORTED'), code: 'GIT_RESTORE_UNSUPPORTED' });
     }
 
     const result = await gitProvider.restoreCommit(project.id, body.sha, workspaceId);
@@ -29446,7 +31123,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const workspaceId = await resolveGitWorkspaceId(store, project.id, body.workspaceId);
 
     if (!gitProvider.markResolved) {
-      return reply.code(501).send({ error: 'Mark resolved not supported', code: 'GIT_MARK_RESOLVED_UNSUPPORTED' });
+      return reply
+        .code(501)
+        .send({ error: appPublicEnglish('GIT_MARK_RESOLVED_UNSUPPORTED'), code: 'GIT_MARK_RESOLVED_UNSUPPORTED' });
     }
 
     const result = await gitProvider.markResolved({
@@ -29590,7 +31269,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       deployments.map((deployment) => reconcileDeploymentStatus(store, deployment).catch(() => deployment)),
     );
 
-    return { deployments: reconciled.map(annotateRollbackAvailability) };
+    const locale = transactionalLocaleForRequest(request);
+    return {
+      deployments: reconciled.map((deployment) =>
+        localizeDeploymentRecord(annotateRollbackAvailability(deployment), locale),
+      ),
+    };
   });
 
   /*
@@ -29600,7 +31284,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * handler, so the shown mode and the executed mode agree. Returns mode
    * 'server' | 'static' | 'unknown' — never a silent guess.
    */
-  app.get('/projects/:projectId/deployments/detect', async (request) => {
+  app.get('/projects/:projectId/deployments/detect', async (request, reply) => {
+    const locale = transactionalLocaleForRequest(request);
+    setAppLocaleResponseHeaders(reply, locale);
     const project = await requireProject(
       request,
       store,
@@ -29612,7 +31298,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     if (!manifest.ok) {
       // Workspace not reachable yet — tell the panel to retry rather than guess.
-      return { mode: 'unknown', framework: 'unknown', reason: manifest.reason, pending: true };
+      return publicPendingDeployTarget(locale);
     }
 
     /*
@@ -29620,12 +31306,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * deploy handler, so the shown mode and the executed mode stay in lockstep.
      */
     if (manifest.declaredRun) {
-      return {
-        mode: 'server',
-        framework: 'custom',
-        reason: `Run command declared in .ecode/deploy.json ("${manifest.declaredRun}").`,
-        pending: false,
-      };
+      return publicDeclaredDeployTarget(locale);
     }
 
     const target = detectDeployTarget({
@@ -29633,13 +31314,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       topLevelFiles: manifest.topLevelFiles,
     });
 
-    return {
-      mode: target.mode,
-      framework: target.framework,
-      reason: target.reason,
-      ...(target.error ? { error: target.error } : {}),
-      pending: false,
-    };
+    return publicDetectedDeployTarget(target, locale);
   });
   app.get('/projects/:projectId/deployments/:deploymentId', async (request, reply) => {
     const { projectId, deploymentId } = parse(deploymentActionParams, request.params);
@@ -29647,7 +31322,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const deployment = await store.getDeployment(project.id, deploymentId);
 
     if (!deployment) {
-      return reply.code(404).send({ error: 'Deployment not found', code: 'DEPLOYMENT_NOT_FOUND' });
+      return reply.code(404).send({ error: appPublicEnglish('DEPLOYMENT_NOT_FOUND'), code: 'DEPLOYMENT_NOT_FOUND' });
     }
 
     return {
@@ -29668,7 +31343,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    */
   app.get('/projects/:projectId/database', async (request, reply) => {
     if (!isDatabaseRollbackEnabled()) {
-      return reply.code(404).send({ error: 'Database rollback is not enabled', code: 'FEATURE_NOT_ENABLED' });
+      return reply.code(404).send({ error: appPublicEnglish('ROLLBACK_DISABLED'), code: 'FEATURE_NOT_ENABLED' });
     }
 
     const project = await requireProject(
@@ -29728,7 +31403,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   app.post('/projects/:projectId/database/restores', async (request, reply) => {
     if (!isDatabaseRollbackEnabled()) {
-      return reply.code(404).send({ error: 'Database rollback is not enabled', code: 'FEATURE_NOT_ENABLED' });
+      return reply.code(404).send({ error: appPublicEnglish('ROLLBACK_DISABLED'), code: 'FEATURE_NOT_ENABLED' });
     }
 
     const project = await requireProject(
@@ -29745,7 +31420,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           targetTimestamp: z.string().datetime().optional(),
         })
         .refine((value) => Boolean(value.snapshotId || value.targetTimestamp), {
-          message: 'Provide a snapshotId or a targetTimestamp',
+          message: appPublicEnglish('SNAPSHOT_OR_TIMESTAMP_REQUIRED'),
         }),
       request.body ?? {},
     );
@@ -29753,7 +31428,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const instance = await store.getDatabaseInstanceByProject(project.id);
 
     if (!instance) {
-      return reply.code(409).send({ error: 'No database for this project', code: 'NO_DATABASE' });
+      return reply.code(409).send({ error: appPublicEnglish('DATABASE_PROJECT_MISSING'), code: 'NO_DATABASE' });
     }
 
     const state = await billingState(project.organizationId).catch(() => undefined);
@@ -29773,13 +31448,19 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       const snapshot = snapshots.find((entry) => entry.id === body.snapshotId);
 
       if (!snapshot) {
-        return reply.code(404).send({ error: 'Snapshot not found', code: 'SNAPSHOT_NOT_FOUND' });
+        return reply.code(404).send({ error: appPublicEnglish('SNAPSHOT_NOT_FOUND'), code: 'SNAPSHOT_NOT_FOUND' });
       }
 
       targetTimestampMs = Date.parse(snapshot.createdAt);
     }
 
-    const validation = validateRestoreTarget({ enabled: true, entitlement, targetTimestampMs, nowMs });
+    const validation = validateRestoreTarget({
+      enabled: true,
+      entitlement,
+      targetTimestampMs,
+      nowMs,
+      locale: transactionalLocaleForRequest(request),
+    });
 
     if (!validation.ok) {
       return reply.code(validation.code === 'PLAN_NOT_ELIGIBLE' ? 403 : 422).send({
@@ -29824,7 +31505,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    */
   app.post('/projects/:projectId/database/provision', async (request, reply) => {
     if (!isDatabaseRollbackEnabled()) {
-      return reply.code(404).send({ error: 'Database rollback is not enabled', code: 'FEATURE_NOT_ENABLED' });
+      return reply.code(404).send({ error: appPublicEnglish('ROLLBACK_DISABLED'), code: 'FEATURE_NOT_ENABLED' });
     }
 
     const project = await requireProject(
@@ -29844,18 +31525,26 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const state = await billingState(project.organizationId).catch(() => undefined);
     const entitlement = databaseRollbackEntitlement(toCreditPlanKey(state?.plan.key));
 
-    const instance = await store.createDatabaseInstance({
-      projectId: project.id,
-      organizationId: project.organizationId,
-      retentionDays: entitlement.retentionDays,
-      environment,
-    });
-
     const provisioner = resolveDefaultDatabaseProvisioner();
     const tier = resolveDatabaseTier(state?.plan.key);
 
+    /*
+     * BUG-QA-DB-PROVISIONING-STUCK — un provisionnement qui n'a pas démarré ne
+     * doit pas être enregistré comme « en cours ».
+     *
+     * La ligne était créée en PROVISIONING, puis l'appel au provisionneur était
+     * avalé (`non-fatal`) : quand il échouait, PLUS RIEN ne réconciliait la
+     * ligne. L'utilisateur voyait « provisionnement » indéfiniment, et le
+     * réessai était impossible — la ligne zombie faisait répondre
+     * `{ created: false }` à toute nouvelle demande.
+     *
+     * Même règle transverse que pour la progression de l'agent : ne jamais
+     * déduire « c'est en cours » de l'ABSENCE d'un signal d'échec. Si le
+     * provisionnement ne part pas, on retire la ligne et on nomme la cause, ce
+     * qui rend le réessai possible.
+     */
     if (provisioner.active) {
-      await provisioner
+      const outcome = await provisioner
         .provisionInstance({
           projectId: project.id,
           organizationId: project.organizationId,
@@ -29863,8 +31552,36 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           tier,
           environment,
         })
-        .catch((error) => request.log?.warn?.({ err: error }, 'db provision kickoff failed (non-fatal)'));
+        .catch((error) => {
+          request.log?.warn?.({ err: error }, 'db provision kickoff failed');
+
+          /* Une exception ne dit pas POURQUOI : on ne lui invente pas de raison. */
+          const failed: ProvisionResult = { clusterName: '', applied: false };
+
+          return failed;
+        });
+
+      if (!outcome.applied) {
+        return reply.code(503).send({
+          error: appPublicEnglish('DATABASE_PROVISION_UNAVAILABLE'),
+          code: 'DATABASE_PROVISION_UNAVAILABLE',
+          reason: outcome.reason,
+        });
+      }
     }
+
+    /*
+     * La ligne n'est ecrite qu'ICI : une fois le provisionnement reellement
+     * accepte. Aucune ligne zombie ne peut donc subsister en PROVISIONING, et
+     * un reessai repart d'un etat propre (la contrainte unique
+     * (projectId, environment) rendait sinon la reprise impossible).
+     */
+    const instance = await store.createDatabaseInstance({
+      projectId: project.id,
+      organizationId: project.organizationId,
+      retentionDays: entitlement.retentionDays,
+      environment,
+    });
 
     return reply
       .code(202)
@@ -29874,7 +31591,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   /** Take a manual snapshot of a project's database (Phase 2, dormant). */
   app.post('/projects/:projectId/database/snapshots', async (request, reply) => {
     if (!isDatabaseRollbackEnabled()) {
-      return reply.code(404).send({ error: 'Database rollback is not enabled', code: 'FEATURE_NOT_ENABLED' });
+      return reply.code(404).send({ error: appPublicEnglish('ROLLBACK_DISABLED'), code: 'FEATURE_NOT_ENABLED' });
     }
 
     const project = await requireProject(
@@ -29887,7 +31604,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const instance = await store.getDatabaseInstanceByProject(project.id);
 
     if (!instance) {
-      return reply.code(409).send({ error: 'No database for this project', code: 'NO_DATABASE' });
+      return reply.code(409).send({ error: appPublicEnglish('DATABASE_PROJECT_MISSING'), code: 'NO_DATABASE' });
     }
 
     const body = parse(z.object({ label: z.string().max(200).optional() }), request.body ?? {});
@@ -29925,7 +31642,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    */
   app.get('/projects/:projectId/database/recovery-points', async (request, reply) => {
     if (!isDatabaseRollbackEnabled()) {
-      return reply.code(404).send({ error: 'Database rollback is not enabled', code: 'FEATURE_NOT_ENABLED' });
+      return reply.code(404).send({ error: appPublicEnglish('ROLLBACK_DISABLED'), code: 'FEATURE_NOT_ENABLED' });
     }
 
     const project = await requireProject(
@@ -29994,7 +31711,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    */
   app.post('/projects/:projectId/database/restore', async (request, reply) => {
     if (!isDatabaseRollbackEnabled()) {
-      return reply.code(404).send({ error: 'Database rollback is not enabled', code: 'FEATURE_NOT_ENABLED' });
+      return reply.code(404).send({ error: appPublicEnglish('ROLLBACK_DISABLED'), code: 'FEATURE_NOT_ENABLED' });
     }
 
     const project = await requireProject(
@@ -30012,7 +31729,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           environment: z.enum(['development', 'production']).default('development'),
         })
         .refine((value) => Boolean(value.snapshotId || value.targetTimestamp), {
-          message: 'Provide a snapshotId or a targetTimestamp',
+          message: appPublicEnglish('SNAPSHOT_OR_TIMESTAMP_REQUIRED'),
         }),
       request.body ?? {},
     );
@@ -30020,7 +31737,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const instance = await store.getDatabaseInstanceByProject(project.id, body.environment);
 
     if (!instance) {
-      return reply.code(409).send({ error: 'No database for this project', code: 'NO_DATABASE' });
+      return reply.code(409).send({ error: appPublicEnglish('DATABASE_PROJECT_MISSING'), code: 'NO_DATABASE' });
     }
 
     const state = await billingState(project.organizationId).catch(() => undefined);
@@ -30041,13 +31758,19 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       const snapshot = snapshots.find((entry) => entry.id === body.snapshotId);
 
       if (!snapshot) {
-        return reply.code(404).send({ error: 'Snapshot not found', code: 'SNAPSHOT_NOT_FOUND' });
+        return reply.code(404).send({ error: appPublicEnglish('SNAPSHOT_NOT_FOUND'), code: 'SNAPSHOT_NOT_FOUND' });
       }
 
       targetTimestampMs = Date.parse(snapshot.createdAt);
     }
 
-    const validation = validateRestoreTarget({ enabled: true, entitlement, targetTimestampMs, nowMs });
+    const validation = validateRestoreTarget({
+      enabled: true,
+      entitlement,
+      targetTimestampMs,
+      nowMs,
+      locale: transactionalLocaleForRequest(request),
+    });
 
     if (!validation.ok) {
       return reply.code(validation.code === 'PLAN_NOT_ELIGIBLE' ? 403 : 422).send({
@@ -30135,7 +31858,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       const project = await store.getProject(projectId);
 
       if (!project) {
-        throw Object.assign(new Error('Project not found'), { statusCode: 404, code: 'PROJECT_NOT_FOUND' });
+        throw Object.assign(new Error(appPublicEnglish('PROJECT_NOT_FOUND')), {
+          statusCode: 404,
+          code: 'PROJECT_NOT_FOUND',
+        });
       }
 
       return project;
@@ -30152,7 +31878,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    */
   app.get('/projects/:projectId/object-storage/status', async (request, reply) => {
     if (!isObjectStorageEnabled()) {
-      return reply.code(404).send({ error: 'Object storage is not enabled', code: 'FEATURE_NOT_ENABLED' });
+      return reply.code(404).send({ error: appPublicEnglish('OBJECT_STORAGE_DISABLED'), code: 'FEATURE_NOT_ENABLED' });
     }
 
     const project = await requireObjectStorageProject(request, 'projects:read');
@@ -30166,7 +31892,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   app.post('/projects/:projectId/object-storage/bucket', async (request, reply) => {
     if (!isObjectStorageEnabled()) {
-      return reply.code(404).send({ error: 'Object storage is not enabled', code: 'FEATURE_NOT_ENABLED' });
+      return reply.code(404).send({ error: appPublicEnglish('OBJECT_STORAGE_DISABLED'), code: 'FEATURE_NOT_ENABLED' });
     }
 
     const project = await requireObjectStorageProject(request, 'projects:write');
@@ -30180,7 +31906,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   app.delete('/projects/:projectId/object-storage/bucket', async (request, reply) => {
     if (!isObjectStorageEnabled()) {
-      return reply.code(404).send({ error: 'Object storage is not enabled', code: 'FEATURE_NOT_ENABLED' });
+      return reply.code(404).send({ error: appPublicEnglish('OBJECT_STORAGE_DISABLED'), code: 'FEATURE_NOT_ENABLED' });
     }
 
     const project = await requireObjectStorageProject(request, 'projects:write');
@@ -30194,7 +31920,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   app.get('/projects/:projectId/object-storage/objects', async (request, reply) => {
     if (!isObjectStorageEnabled()) {
-      return reply.code(404).send({ error: 'Object storage is not enabled', code: 'FEATURE_NOT_ENABLED' });
+      return reply.code(404).send({ error: appPublicEnglish('OBJECT_STORAGE_DISABLED'), code: 'FEATURE_NOT_ENABLED' });
     }
 
     const project = await requireObjectStorageProject(request, 'projects:read');
@@ -30213,7 +31939,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   app.post('/projects/:projectId/object-storage/objects/upload-url', async (request, reply) => {
     if (!isObjectStorageEnabled()) {
-      return reply.code(404).send({ error: 'Object storage is not enabled', code: 'FEATURE_NOT_ENABLED' });
+      return reply.code(404).send({ error: appPublicEnglish('OBJECT_STORAGE_DISABLED'), code: 'FEATURE_NOT_ENABLED' });
     }
 
     const project = await requireObjectStorageProject(request, 'projects:write');
@@ -30232,7 +31958,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   app.get('/projects/:projectId/object-storage/objects/download-url', async (request, reply) => {
     if (!isObjectStorageEnabled()) {
-      return reply.code(404).send({ error: 'Object storage is not enabled', code: 'FEATURE_NOT_ENABLED' });
+      return reply.code(404).send({ error: appPublicEnglish('OBJECT_STORAGE_DISABLED'), code: 'FEATURE_NOT_ENABLED' });
     }
 
     const project = await requireObjectStorageProject(request, 'projects:read');
@@ -30247,7 +31973,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   app.post('/projects/:projectId/object-storage/objects/move', async (request, reply) => {
     if (!isObjectStorageEnabled()) {
-      return reply.code(404).send({ error: 'Object storage is not enabled', code: 'FEATURE_NOT_ENABLED' });
+      return reply.code(404).send({ error: appPublicEnglish('OBJECT_STORAGE_DISABLED'), code: 'FEATURE_NOT_ENABLED' });
     }
 
     const project = await requireObjectStorageProject(request, 'projects:write');
@@ -30266,7 +31992,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   app.delete('/projects/:projectId/object-storage/objects', async (request, reply) => {
     if (!isObjectStorageEnabled()) {
-      return reply.code(404).send({ error: 'Object storage is not enabled', code: 'FEATURE_NOT_ENABLED' });
+      return reply.code(404).send({ error: appPublicEnglish('OBJECT_STORAGE_DISABLED'), code: 'FEATURE_NOT_ENABLED' });
     }
 
     const project = await requireObjectStorageProject(request, 'projects:write');
@@ -30275,7 +32001,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       z
         .object({ key: z.string().min(1).max(1024).optional(), prefix: z.string().min(1).max(1024).optional() })
         .refine((value) => Boolean(value.key) !== Boolean(value.prefix), {
-          message: 'Provide exactly one of key or prefix',
+          message: appPublicEnglish('OBJECT_STORAGE_KEY_OR_PREFIX_REQUIRED'),
         }),
       request.body ?? {},
     );
@@ -30301,7 +32027,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    */
   app.post('/projects/:projectId/thumbnail/upload-url', async (request, reply) => {
     if (!isObjectStorageEnabled()) {
-      return reply.code(404).send({ error: 'Object storage is not enabled', code: 'FEATURE_NOT_ENABLED' });
+      return reply.code(404).send({ error: appPublicEnglish('OBJECT_STORAGE_DISABLED'), code: 'FEATURE_NOT_ENABLED' });
     }
 
     const project = await requireObjectStorageProject(request, 'projects:write');
@@ -30327,7 +32053,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   app.get('/projects/:projectId/thumbnail', async (request, reply) => {
     if (!isObjectStorageEnabled()) {
-      return reply.code(404).send({ error: 'Object storage is not enabled', code: 'FEATURE_NOT_ENABLED' });
+      return reply.code(404).send({ error: appPublicEnglish('OBJECT_STORAGE_DISABLED'), code: 'FEATURE_NOT_ENABLED' });
     }
 
     const project = await requireObjectStorageProject(request, 'projects:read');
@@ -30339,15 +32065,42 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        * Only sign a URL when a screenshot has actually been captured, so a
        * project with none 404s and the card keeps its "No preview yet" state
        * instead of pointing <img> at a would-be-broken signed URL.
+       *
+       * Borné dans le temps : le client GCS réessaie sans plafond, si bien
+       * qu'un bucket injoignable faisait tenir la requête 30 s avant que le
+       * loader Remix n'abandonne (502). Pendant ce temps la carte de projet
+       * restait un rectangle vide — l'`<img>` ne charge pas et n'échoue pas
+       * non plus, donc l'état de repli « Aucun aperçu » n'apparaissait jamais.
+       * Une vignette est décorative : elle ne doit jamais retenir une requête.
        */
-      const { objects } = await storage.listObjects(project.id, { prefix: PROJECT_THUMBNAIL_KEY });
+      const { objects } = await withStorageDeadline(
+        storage.listObjects(project.id, { prefix: PROJECT_THUMBNAIL_KEY }),
+        THUMBNAIL_LOOKUP_DEADLINE_MS,
+      );
 
       if (!objects.some((object) => object.key === PROJECT_THUMBNAIL_KEY)) {
-        return reply.code(404).send({ error: 'No thumbnail captured', code: 'THUMBNAIL_NOT_FOUND' });
+        return reply.code(404).send({ error: appPublicEnglish('THUMBNAIL_NOT_FOUND'), code: 'THUMBNAIL_NOT_FOUND' });
       }
 
-      return reply.send(await storage.createDownloadUrl(project.id, { key: PROJECT_THUMBNAIL_KEY }));
+      return reply.send(
+        await withStorageDeadline(
+          storage.createDownloadUrl(project.id, { key: PROJECT_THUMBNAIL_KEY }),
+          THUMBNAIL_LOOKUP_DEADLINE_MS,
+        ),
+      );
     } catch (error) {
+      /*
+       * Un dépassement de délai se lit comme « pas de vignette pour l'instant » :
+       * le web mappe ce 404 sur un 204, l'`<img>` bascule sur son état de repli
+       * et la carte reste présentable. On le journalise pour ne pas transformer
+       * une panne de stockage en silence.
+       */
+      if (error instanceof StorageDeadlineError) {
+        request.log.warn({ projectId: project.id }, 'thumbnail lookup timed out');
+
+        return reply.code(404).send({ error: appPublicEnglish('THUMBNAIL_NOT_FOUND'), code: 'THUMBNAIL_UNAVAILABLE' });
+      }
+
       return sendObjectStorageError(reply, error);
     }
   });
@@ -30364,7 +32117,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    */
   app.post('/projects/:projectId/thumbnail/refresh', async (request, reply) => {
     if (!isObjectStorageEnabled()) {
-      return reply.code(404).send({ error: 'Object storage is not enabled', code: 'FEATURE_NOT_ENABLED' });
+      return reply.code(404).send({ error: appPublicEnglish('OBJECT_STORAGE_DISABLED'), code: 'FEATURE_NOT_ENABLED' });
     }
 
     const project = await requireObjectStorageProject(request, 'projects:write');
@@ -30455,11 +32208,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       buildProgress.onLog({
         timestamp: nowIso(),
         level: 'info',
-        message: `Server deploy: starting runtime for ${host}`,
+        message: appPublicEnglish('DEPLOY_SERVER_STARTING_RUNTIME', { host }),
       });
 
       let started: { ready: boolean; url: string; name: string; readyReplicas: number } | undefined;
       let serverError: string | undefined;
+
+      /*
+       * The runtime the pipeline actually detected (or that .ecode/deploy.json
+       * declared), lifted out of the detection block so the persisted row can
+       * carry it. The row is created with the STATIC heuristic's guess
+       * (outputDirectory 'dist' → "vite"), which the panel then showed for a
+       * plain Node app — proven live 2026-08-06 (BUG-DEPLOY-006).
+       */
+      let detectedFramework: string | undefined;
 
       const serverPort = Number(process.env.SERVER_DEPLOY_PORT) || 3000;
 
@@ -30544,7 +32306,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       } else if (!userId || !WebSocketCtor) {
         serverError = 'Open the project workspace before deploying a server.';
       } else {
-        const workspaceId = runtimeWorkspaceId(project.id, userId);
+        const workspaceId = await resolveProjectWorkspaceId(store, project.id, userId);
         const authorized = { workspaceId, projectId: project.id, organizationId: project.organizationId };
 
         try {
@@ -30649,7 +32411,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                 buildProgress.onLog({
                   timestamp: nowIso(),
                   level: 'info',
-                  message: `Server deploy: ${ECODE_LOCK_FILENAME} pins store generation ${parsedLock.storeGeneration} (nixpkgs ${parsedLock.nixpkgsRev.slice(0, 12)})`,
+                  message: appPublicEnglish('DEPLOY_SERVER_NIX_PIN', {
+                    filename: ECODE_LOCK_FILENAME,
+                    generation: parsedLock.storeGeneration,
+                    revision: parsedLock.nixpkgsRev.slice(0, 12),
+                  }),
                 });
               } catch (error) {
                 // RR-08: the typed code MUST survive into the persisted artifact.
@@ -30666,26 +32432,35 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                 startCommand: deployConfig.run,
                 port: serverPort,
                 staticHint: false,
-                notes: ['Run/build declared by .ecode/deploy.json.'],
+                notes: [appPublicEnglish('DEPLOY_SERVER_DECLARED_CONFIG_NOTE')],
               }
             : isDetectionError(detection)
               ? undefined
               : detection;
 
           if (ecodeLockFailure) {
-            // The typed code leads the persisted error (machine-parseable),
-            // e.g. "Server deploy: ECODE_LOCK_GENERATION_REVOKED: ecode.lock.json pins …".
+            /*
+             * The typed code leads the persisted error (machine-parseable),
+             * e.g. "Server deploy: ECODE_LOCK_GENERATION_REVOKED: ecode.lock.json pins …".
+             */
             serverError = `Server deploy: ${ecodeLockFailure.logLine}`;
           } else if (!runPlan) {
-            const detectionError = detection as { error: string };
-            serverError = `${detectionError.error} You can also declare {"run": "<command>"} in .ecode/deploy.json.`;
+            const detectionError = detection as {
+              code: 'NO_PACKAGE_JSON' | 'INVALID_PACKAGE_JSON' | 'NO_START_COMMAND' | 'STATIC_ONLY';
+            };
+            serverError = serverRuntimeDetectionMessage(detectionError.code);
+            buildProgress.onLog({ timestamp: nowIso(), level: 'error', message: serverError });
           } else {
+            detectedFramework = runPlan.framework;
+
             buildProgress.onLog({
               timestamp: nowIso(),
               level: 'info',
-              message: `Server deploy: ${deployConfig ? 'declared (.ecode/deploy.json)' : `detected ${runPlan.framework}`} — build "${
-                runPlan.buildCommand ?? '(none)'
-              }", start "${runPlan.startCommand}"`,
+              message: appPublicEnglish(deployConfig ? 'DEPLOY_SERVER_DECLARED_PLAN' : 'DEPLOY_SERVER_DETECTED_PLAN', {
+                build: runPlan.buildCommand ?? '—',
+                start: runPlan.startCommand,
+                framework: runPlan.framework,
+              }),
             });
 
             const objectStorage = (() => {
@@ -30807,9 +32582,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                     buildProgress.onLog({
                       timestamp: nowIso(),
                       level: 'info',
-                      message: `Server deploy: image ready ${imageUri}${
-                        buildResult.imageSizeBytes ? ` (${Math.round(buildResult.imageSizeBytes / 1_000_000)} MB)` : ''
-                      } in ${Math.round(buildResult.durationMs / 1000)}s`,
+                      message: appPublicEnglish(
+                        buildResult.imageSizeBytes
+                          ? 'DEPLOY_SERVER_IMAGE_READY_WITH_SIZE'
+                          : 'DEPLOY_SERVER_IMAGE_READY',
+                        {
+                          image: imageUri,
+                          seconds: Math.round(buildResult.durationMs / 1000),
+                          size: buildResult.imageSizeBytes
+                            ? Math.round(buildResult.imageSizeBytes / 1_000_000)
+                            : undefined,
+                        },
+                      ),
                     });
 
                     const projectSecrets = await resolveProjectSecretValues(store, project.id).catch(
@@ -30878,6 +32662,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         try {
           started = await startServerDeploymentViaManager({
             deploymentId: queued.id,
+            expiryCheck: {
+              candidate: {
+                environmentName: queued.environment,
+                createdAt: queued.createdAt,
+                planKey: (await billingState(project.organizationId).catch(() => undefined))?.plan.key,
+                expiredAt: ((queued.metadata ?? {}) as Record<string, unknown>)?.expiredAt as string | undefined,
+              },
+              ttlDays: publishedProjectTtlDays(
+                toEntitlementPlanKey((await billingState(project.organizationId).catch(() => undefined))?.plan.key),
+              ),
+            },
             ...machineSizeResources(machineSize),
             image:
               serverImage ??
@@ -30934,14 +32729,25 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         timestamp: nowIso(),
         level: ok ? 'info' : converging ? 'info' : 'error',
         message: ok
-          ? `Server deploy: ready with ${started?.readyReplicas ?? 0} replica(s) at ${serverUrl}`
+          ? appPublicEnglish('DEPLOY_SERVER_READY', {
+              replicas: started?.readyReplicas ?? 0,
+              url: serverUrl,
+            })
           : converging
-            ? `Server deploy: applied — still starting at ${serverUrl} (this can take a few minutes on a cold node).`
-            : `Server deploy: failed${serverError ? ` (${serverError})` : ''}.`,
+            ? appPublicEnglish('DEPLOY_SERVER_STILL_STARTING', { url: serverUrl })
+            : appPublicEnglish('DEPLOY_SERVER_FAILED'),
       });
 
       const readyRow = await store.updateDeployment(project.id, queued.id, {
         status: serverStatus,
+
+        /*
+         * The row was created with the STATIC heuristic's guess (outputDirectory
+         * 'dist' → "vite"), which the panel then showed for a plain Node/Express
+         * app whose real run plan the pipeline had already detected and logged as
+         * "node". Persist what actually ran.
+         */
+        framework: detectedFramework ?? queued.framework,
         url: ok ? serverUrl : undefined,
         previewUrl: ok && body.environment !== 'production' ? serverUrl : undefined,
         productionUrl: ok && body.environment === 'production' ? serverUrl : undefined,
@@ -30962,7 +32768,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             ...(imageBuildInfo ? { image: imageBuildInfo } : {}),
           },
         },
-        logs: [...createDeploymentLogs(body, { ...queued, url: serverUrl }, project), ...liveLog],
+        logs: [
+          ...createDeploymentLogs(
+            body,
+            { ...queued, url: serverUrl, framework: detectedFramework ?? queued.framework },
+            project,
+          ),
+          ...liveLog,
+        ],
 
         /*
          * A converging (BUILDING) deploy is not finished — leaving finishedAt
@@ -31032,12 +32845,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           staticBuild = workspaceAttempt.result;
         } else {
           // Pod unreachable after provision + health-poll → clean failure, no api-pod build.
-          const message =
-            'Workspace is starting — please retry. The build runs in your project workspace, which could not be reached in time.';
+          const message = appPublicEnglish('DEPLOY_WORKSPACE_UNREACHABLE');
           buildProgress.onLog({ timestamp: new Date().toISOString(), level: 'error', message });
           staticBuild = {
             ok: false,
-            error: 'WORKSPACE_UNREACHABLE',
+            error: message,
             logs: [{ timestamp: new Date().toISOString(), level: 'error', message }],
           };
         }
@@ -31061,7 +32873,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           staticBuildLogs.push({
             timestamp: new Date().toISOString(),
             level: 'info',
-            message: `Static deploy: snapshot stored at ${staticDeploymentSnapshotDir(queued.id)}`,
+            message: appPublicEnglish('DEPLOY_STATIC_SNAPSHOT_STORED', {
+              path: staticDeploymentSnapshotDir(queued.id),
+            }),
           });
 
           /*
@@ -31078,7 +32892,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             staticBuildLogs.push({
               timestamp: new Date().toISOString(),
               level: 'info',
-              message: 'Static deploy: deployment was canceled mid-build; snapshot discarded.',
+              message: appPublicEnglish('STATIC_DEPLOY_CANCELED_SNAPSHOT'),
             });
           }
         } catch (error) {
@@ -31089,10 +32903,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
            * behind; remove it so failed deploys don't slowly accumulate on disk.
            */
           await removeStaticDeploymentSnapshot(queued.id).catch(() => undefined);
+          request.log?.error?.({ err: error, deploymentId: queued.id }, 'static deployment snapshot failed');
           staticBuildLogs.push({
             timestamp: new Date().toISOString(),
             level: 'error',
-            message: `Static deploy: snapshot failed (${(error as Error).message ?? 'unknown error'}).`,
+            message: appPublicEnglish('DEPLOY_STATIC_SNAPSHOT_FAILED'),
           });
         }
       } else {
@@ -31182,8 +32997,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       finishedAt: status === 'BUILDING' ? undefined : new Date().toISOString(),
     });
 
-    // P0-V3-08: record the immutable release manifest for a successful publish so
-    // a later rollback is deterministic + fail-closed. Best-effort; never blocks.
+    /*
+     * P0-V3-08: record the immutable release manifest for a successful publish so
+     * a later rollback is deterministic + fail-closed. Best-effort; never blocks.
+     */
     await writeReleaseManifest(store, app.log, ready, body.envVars);
 
     /*
@@ -31232,6 +33049,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    */
   app.post('/projects/:projectId/nix-lock', async (request, reply) => {
     const { projectId } = parse(projectParams, request.params);
+
     const body = parse(
       z.object({
         generation: z.string().min(1).optional(),
@@ -31239,15 +33057,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       }),
       request.body ?? {},
     );
+
     const project = await requireProject(request, store, projectId, 'projects:write');
 
     const registry = (() => {
       try {
         return nixGenerationRegistryFromEnv();
       } catch (error) {
-        throw Object.assign(new Error(`nix generation registry misconfigured: ${(error as Error).message}`), {
+        throw Object.assign(new Error(appPublicEnglish('INTERNAL_NIX_GENERATION_REGISTRY_INVALID')), {
           statusCode: 503,
           code: 'NIX_GENERATIONS_INVALID',
+          cause: error,
         });
       }
     })();
@@ -31255,7 +33075,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     if (!registry) {
       return reply
         .code(503)
-        .send({ error: 'No nix generation registry configured', code: 'NIX_GENERATIONS_UNAVAILABLE' });
+        .send({ error: appPublicEnglish('NIX_GENERATIONS_UNAVAILABLE'), code: 'NIX_GENERATIONS_UNAVAILABLE' });
     }
 
     let lock;
@@ -31269,9 +33089,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                 const found = registry.generations.find((gen) => gen.id === body.generation);
 
                 if (!found) {
-                  throw Object.assign(new Error(`unknown store generation "${body.generation}"`), {
-                    code: 'NIX_GENERATION_UNKNOWN',
-                  });
+                  throw Object.assign(
+                    new Error(appPublicEnglish('NIX_GENERATION_UNKNOWN', { generation: body.generation })),
+                    {
+                      code: 'NIX_GENERATION_UNKNOWN',
+                    },
+                  );
                 }
 
                 return found;
@@ -31285,14 +33108,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       if (!generation) {
         return reply
           .code(409)
-          .send({ error: 'No ACTIVE store generation in the registry', code: 'NIX_GENERATION_NONE_ACTIVE' });
+          .send({ error: appPublicEnglish('NIX_GENERATION_NONE_ACTIVE'), code: 'NIX_GENERATION_NONE_ACTIVE' });
       }
 
       lock = buildEcodeLock(generation, body.bundles);
 
-      // The write-side runs the SAME gates as the publish-side read: a concrete
-      // generation pin (point 1) AND exhaustive catalog binding (point 3). The
-      // platform never writes a lock it would itself refuse at publish time.
+      /*
+       * The write-side runs the SAME gates as the publish-side read: a concrete
+       * generation pin (point 1) AND exhaustive catalog binding (point 3). The
+       * platform never writes a lock it would itself refuse at publish time.
+       */
       assertLockPublishable(lock);
       assertLockAgainstRegistry(lock, registry);
     } catch (error) {
@@ -31302,7 +33127,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     const content = serializeEcodeLock(lock);
-    const workspaceId = runtimeWorkspaceId(project.id, request.currentUser!.id);
+    const workspaceId = await resolveProjectWorkspaceId(store, project.id, request.currentUser!.id);
     const authorized = { workspaceId, projectId: project.id, organizationId: project.organizationId };
 
     await agentMutateEnsuring(request, authorized, '/files/write', {
@@ -31346,7 +33171,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     if (deployShutdown.shutdown) {
       return reply.code(402).send({
-        error: 'Service shutdown limit reached; deployments are paused.',
+        error: appPublicEnglish('SERVICE_SHUTDOWN_DEPLOYS_PAUSED'),
         code: 'SERVICE_SHUTDOWN_LIMIT_REACHED',
       });
     }
@@ -31390,7 +33215,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         deployMachineSize = resolveDeployMachineSize(rateCard, body.machineSize, deployPlanKey).key;
       } catch (error) {
         if (error instanceof MachineSizeError) {
-          return reply.code(error.statusCode).send({ error: error.message, code: error.code });
+          const locale = transactionalLocaleForRequest(request);
+          setAppLocaleResponseHeaders(reply, locale);
+          return reply.code(error.statusCode).send(publicMachineSizeError(error, locale));
         }
 
         throw error;
@@ -31403,7 +33230,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * deployment READY (audit #1). The static provider builds in-process and
      * never trips this guard.
      */
-    const providerConfigError = deployProviderConfigError(body.provider);
+    const providerConfigError = deployProviderConfigError(
+      body.provider,
+      process.env,
+      transactionalLocaleForRequest(request),
+    );
 
     if (providerConfigError) {
       return reply.code(400).send(providerConfigError);
@@ -31464,7 +33295,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     if ('conflict' in createResult) {
       return reply.code(409).send({
-        error: 'A deployment is already in progress for this project',
+        error: appPublicEnglish('DEPLOYMENT_IN_PROGRESS'),
         code: 'DEPLOYMENT_IN_PROGRESS',
         deploymentId: createResult.deploymentId,
       });
@@ -31503,6 +33334,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
          * catch it later, but failing now is better UX). Still 202 so the client
          * tails the SSE log stream and sees the failure.
          */
+        request.log?.error?.({ err: error, deploymentId: queued.id }, 'deployment build enqueue failed');
         const failedRow = await store
           .updateDeployment(project.id, queued.id, {
             status: 'FAILED',
@@ -31512,16 +33344,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
               {
                 timestamp: new Date().toISOString(),
                 level: 'error' as const,
-                message: `Could not queue the build — please retry. (${(error as Error).message ?? 'queue unavailable'})`,
+                message: appPublicEnglish('DEPLOYMENT_QUEUE_FAILED'),
               },
             ],
           })
           .catch(() => ({ ...queued, status: 'FAILED' as const }));
 
-        return reply.code(202).send({ deployment: failedRow });
+        return reply
+          .code(202)
+          .send({ deployment: localizeDeploymentRecord(failedRow, transactionalLocaleForRequest(request)) });
       }
 
-      return reply.code(202).send({ deployment: queued });
+      return reply
+        .code(202)
+        .send({ deployment: localizeDeploymentRecord(queued, transactionalLocaleForRequest(request)) });
     }
 
     /*
@@ -31530,7 +33366,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      */
     const ready = await runDeploymentBuildFlow({ request, project, queued, body, secondaryWorkspaceId });
 
-    return reply.code(201).send({ deployment: ready });
+    return reply
+      .code(201)
+      .send({ deployment: localizeDeploymentRecord(ready, transactionalLocaleForRequest(request)) });
   });
 
   /*
@@ -31554,7 +33392,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const deployment = await store.getDeployment(data.projectId, data.deploymentId);
 
     if (!deployment) {
-      return reply.code(404).send({ error: 'Deployment not found', code: 'DEPLOYMENT_NOT_FOUND' });
+      return reply.code(404).send({ error: appPublicEnglish('DEPLOYMENT_NOT_FOUND'), code: 'DEPLOYMENT_NOT_FOUND' });
     }
 
     /*
@@ -31569,7 +33407,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const project = await store.getProject(data.projectId);
 
     if (!project) {
-      return reply.code(404).send({ error: 'Project not found', code: 'PROJECT_NOT_FOUND' });
+      return reply.code(404).send({ error: appPublicEnglish('PROJECT_NOT_FOUND'), code: 'PROJECT_NOT_FOUND' });
     }
 
     /*
@@ -31611,6 +33449,46 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const reaped = await reapStaleDeployments(store, { timeoutMs: resolveDeployBuildTimeoutMs() });
 
     /*
+     * EXTINCTION 30 j des publications SERVER — la substance derrière le 410.
+     *
+     * Le workload est réellement ARRÊTÉ via le workspace-manager, puis la ligne
+     * est marquée. Sans cet arrêt, un 410 au niveau du proxy ne serait qu'une
+     * façade : l'app continuerait de tourner, de consommer des ressources, et
+     * resterait joignable par tout chemin ne passant pas par le proxy.
+     *
+     * Best-effort : un échec d'extinction ne doit pas faire échouer le reap, mais
+     * il est RENDU dans la réponse plutôt qu'avalé.
+     */
+    let publicationExpiry: Awaited<ReturnType<typeof stopExpiredServerDeployments>> | { error: string };
+
+    try {
+      publicationExpiry = await stopExpiredServerDeployments({
+        candidates: await store.listExpiryCandidateDeployments(),
+        ttlDaysForPlan: (planKey) => publishedProjectTtlDays(toEntitlementPlanKey(planKey)),
+        now: new Date(),
+        stopWorkload: (deploymentId) => stopServerDeploymentViaManagerStrict(deploymentId),
+        markExpired: async (deployment) => {
+          /*
+           * Marquage dans `metadata`, pas dans `status` : `DeploymentStatus` est
+           * un enum Prisma, l'étendre imposerait une migration pour un simple
+           * drapeau. `expiredAt` suffit à sortir la ligne des balayages suivants
+           * sans toucher au schéma.
+           */
+          const existing = await store.getDeployment(deployment.projectId, deployment.id).catch(() => undefined);
+          const metadata = (existing?.metadata ?? {}) as Record<string, unknown>;
+
+          await store.updateDeployment(deployment.projectId, deployment.id, {
+            metadata: { ...metadata, expiredAt: new Date().toISOString() },
+          });
+        },
+        onError: (deploymentId, error) =>
+          request.log?.error?.({ err: error, deploymentId }, 'failed to stop expired server deployment'),
+      });
+    } catch (error) {
+      publicationExpiry = { error: error instanceof Error ? error.message : String(error) };
+    }
+
+    /*
      * Same tick, second sweep: runtime metering for READY server deployments.
      * Bills observed ACTIVE machine time (replicas > 0) at the row's machine
      * size; a sleeping app advances its watermark for free. Best-effort — a
@@ -31630,7 +33508,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       request.log.error({ err: error }, 'server-deploy runtime metering sweep failed');
     }
 
-    return { ...reaped, runtimeMetering };
+    return { ...reaped, runtimeMetering, publicationExpiry };
   });
 
   /*
@@ -31727,7 +33605,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   });
 
   /** Run summary for the history list — full logs are fetched per-run, not in bulk. */
-  const serializeScheduledRun = (run: ScheduledTaskRunRow, options: { logs?: boolean } = {}) => ({
+  const serializeScheduledRun = (
+    run: ScheduledTaskRunRow,
+    locale: TransactionalLocale,
+    options: { logs?: boolean } = {},
+  ) => ({
     id: run.id,
     taskId: run.taskId,
     status: run.status,
@@ -31738,12 +33620,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     finishedAt: iso(run.finishedAt),
     durationMs: run.durationMs ?? null,
     exitCode: run.exitCode ?? null,
-    error: run.error ?? null,
+    error: run.error ? localizeScheduledRunText(run.error, locale) : null,
     machineSize: run.machineSize ?? null,
     computeUnits: run.computeUnits ?? null,
     costCents: run.costCents ?? null,
     meteredAt: iso(run.meteredAt),
-    ...(options.logs ? { logs: run.logs ?? '' } : {}),
+    ...(options.logs ? { logs: localizeScheduledRunText(run.logs, locale) } : {}),
   });
 
   app.get('/projects/:projectId/scheduled-tasks', async (request) => {
@@ -31757,13 +33639,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       scheduledTaskPlanKey(project.organizationId),
     ]);
 
+    const locale = transactionalLocaleForRequest(request);
+
     return {
       tasks: tasks.map((task) => {
         const lastRun = recentRuns.find((run) => run.taskId === task.id);
 
         return {
           ...serializeScheduledTask(task),
-          lastRun: lastRun ? serializeScheduledRun(lastRun) : null,
+          lastRun: lastRun ? serializeScheduledRun(lastRun, locale) : null,
         };
       }),
       limits: { planKey, maxTasks: planMaxTasks(planKey) },
@@ -31788,20 +33672,31 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     if (existing >= planMaxTasks(planKey)) {
       return reply.code(402).send({
-        error: `Your plan allows ${planMaxTasks(planKey)} scheduled task(s) per project.`,
+        error: appPublicCopy('SCHEDULED_TASK_PLAN_LIMIT', transactionalLocaleForRequest(request), {
+          maximum: planMaxTasks(planKey),
+        }),
         code: 'SCHEDULED_TASK_LIMIT_REACHED',
       });
     }
 
     if (body.kind === 'DEPLOYMENT' && !body.command?.trim()) {
-      return reply.code(400).send({ error: 'A command is required.', code: 'SCHEDULED_TASK_NO_COMMAND' });
+      return reply
+        .code(400)
+        .send({ error: appPublicEnglish('SCHEDULED_TASK_NO_COMMAND'), code: 'SCHEDULED_TASK_NO_COMMAND' });
     }
 
     if (body.kind === 'WORKFLOW' && !body.workflowId) {
-      return reply.code(400).send({ error: 'A workflowId is required.', code: 'SCHEDULED_TASK_NO_WORKFLOW' });
+      return reply
+        .code(400)
+        .send({ error: appPublicEnglish('SCHEDULED_WORKFLOW_ID_REQUIRED'), code: 'SCHEDULED_TASK_NO_WORKFLOW' });
     }
 
-    const schedule = validateSchedule({ cron: body.cron, timezone: body.timezone, planKey });
+    const schedule = validateSchedule({
+      cron: body.cron,
+      timezone: body.timezone,
+      planKey,
+      locale: transactionalLocaleForRequest(request),
+    });
 
     if (!schedule.valid) {
       return reply.code(400).send({ error: schedule.error, code: schedule.code });
@@ -31846,7 +33741,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const current = await repository.getProjectTask(project.id, taskId);
 
     if (!current) {
-      return reply.code(404).send({ error: 'Scheduled task not found', code: 'SCHEDULED_TASK_NOT_FOUND' });
+      return reply
+        .code(404)
+        .send({ error: appPublicEnglish('SCHEDULED_TASK_NOT_FOUND'), code: 'SCHEDULED_TASK_NOT_FOUND' });
     }
 
     const cron = body.cron ?? current.cron;
@@ -31854,7 +33751,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const enabled = body.enabled ?? current.enabled;
     const planKey = await scheduledTaskPlanKey(project.organizationId);
 
-    const schedule = validateSchedule({ cron, timezone, planKey });
+    const schedule = validateSchedule({
+      cron,
+      timezone,
+      planKey,
+      locale: transactionalLocaleForRequest(request),
+    });
 
     if (!schedule.valid) {
       return reply.code(400).send({ error: schedule.error, code: schedule.code });
@@ -31882,7 +33784,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     });
 
     if (!task) {
-      return reply.code(404).send({ error: 'Scheduled task not found', code: 'SCHEDULED_TASK_NOT_FOUND' });
+      return reply
+        .code(404)
+        .send({ error: appPublicEnglish('SCHEDULED_TASK_NOT_FOUND'), code: 'SCHEDULED_TASK_NOT_FOUND' });
     }
 
     await audit(request, store, {
@@ -31902,7 +33806,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const { repository } = requireScheduledTasks();
 
     if (!(await repository.deleteTask(project.id, taskId))) {
-      return reply.code(404).send({ error: 'Scheduled task not found', code: 'SCHEDULED_TASK_NOT_FOUND' });
+      return reply
+        .code(404)
+        .send({ error: appPublicEnglish('SCHEDULED_TASK_NOT_FOUND'), code: 'SCHEDULED_TASK_NOT_FOUND' });
     }
 
     await audit(request, store, {
@@ -31924,7 +33830,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const task = await repository.getProjectTask(project.id, taskId);
 
     if (!task) {
-      return reply.code(404).send({ error: 'Scheduled task not found', code: 'SCHEDULED_TASK_NOT_FOUND' });
+      return reply
+        .code(404)
+        .send({ error: appPublicEnglish('SCHEDULED_TASK_NOT_FOUND'), code: 'SCHEDULED_TASK_NOT_FOUND' });
     }
 
     const run = await service.runNow(task.id);
@@ -31948,12 +33856,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const task = await repository.getProjectTask(project.id, taskId);
 
     if (!task) {
-      return reply.code(404).send({ error: 'Scheduled task not found', code: 'SCHEDULED_TASK_NOT_FOUND' });
+      return reply
+        .code(404)
+        .send({ error: appPublicEnglish('SCHEDULED_TASK_NOT_FOUND'), code: 'SCHEDULED_TASK_NOT_FOUND' });
     }
 
     const runs = await repository.listRuns(task.id, 50);
 
-    return { runs: runs.map((run) => serializeScheduledRun(run)) };
+    const locale = transactionalLocaleForRequest(request);
+
+    return { runs: runs.map((run) => serializeScheduledRun(run, locale)) };
   });
 
   /** Full, untruncated logs of one run — what the panel's log viewer shows. */
@@ -31965,10 +33877,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const run = await repository.getProjectRun(project.id, taskId, runId);
 
     if (!run) {
-      return reply.code(404).send({ error: 'Run not found', code: 'SCHEDULED_TASK_RUN_NOT_FOUND' });
+      return reply
+        .code(404)
+        .send({ error: appPublicEnglish('SCHEDULED_TASK_RUN_NOT_FOUND'), code: 'SCHEDULED_TASK_RUN_NOT_FOUND' });
     }
 
-    return { run: serializeScheduledRun(run, { logs: true }) };
+    return { run: serializeScheduledRun(run, transactionalLocaleForRequest(request), { logs: true }) };
   });
 
   app.post('/projects/:projectId/scheduled-tasks/:taskId/runs/:runId/cancel', async (request, reply) => {
@@ -31979,7 +33893,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const run = await repository.getProjectRun(project.id, taskId, runId);
 
     if (!run) {
-      return reply.code(404).send({ error: 'Run not found', code: 'SCHEDULED_TASK_RUN_NOT_FOUND' });
+      return reply
+        .code(404)
+        .send({ error: appPublicEnglish('SCHEDULED_TASK_RUN_NOT_FOUND'), code: 'SCHEDULED_TASK_RUN_NOT_FOUND' });
     }
 
     await service.cancelRun(run.id);
@@ -31993,8 +33909,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       z.object({ cron: z.string().min(1).max(200), timezone: z.string().min(1).max(64).default('UTC') }),
       request.body ?? {},
     );
+    const preview = describeCron(body.cron, body.timezone);
 
-    return describeCron(body.cron, body.timezone);
+    if (preview.valid) {
+      return preview;
+    }
+
+    const locale = transactionalLocaleForRequest(request);
+    const neverFires = preview.error === 'This schedule never fires (no matching date).';
+
+    return {
+      valid: false,
+      code: neverFires ? 'SCHEDULE_NEVER_FIRES' : 'SCHEDULE_INVALID_CRON',
+      error: appPublicCopy(neverFires ? 'SCHEDULE_NEVER_FIRES' : 'SCHEDULE_INVALID_CRON', locale),
+    };
   });
 
   /*
@@ -32014,10 +33942,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const deployment = await store.getDeployment(project.id, deploymentId);
 
     if (!deployment) {
-      return reply.code(404).send({ error: 'Deployment not found', code: 'DEPLOYMENT_NOT_FOUND' });
+      return reply.code(404).send({ error: appPublicEnglish('DEPLOYMENT_NOT_FOUND'), code: 'DEPLOYMENT_NOT_FOUND' });
     }
 
-    return { logs: deployment.logs.map((log) => ({ ...log, message: redactDeploymentLog(log.message) })) };
+    const locale = transactionalLocaleForRequest(request);
+    return {
+      logs: deployment.logs.map((log) => ({
+        ...log,
+        message: localizeBackendOwnedText(redactDeploymentLog(log.message), locale),
+      })),
+    };
   });
 
   /*
@@ -32034,7 +33968,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const initial = await store.getDeployment(project.id, deploymentId);
 
     if (!initial) {
-      return reply.code(404).send({ error: 'Deployment not found', code: 'DEPLOYMENT_NOT_FOUND' });
+      return reply.code(404).send({ error: appPublicEnglish('DEPLOYMENT_NOT_FOUND'), code: 'DEPLOYMENT_NOT_FOUND' });
     }
 
     reply.raw.writeHead(200, {
@@ -32103,7 +34037,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       const dep = await store.getDeployment(project.id, deploymentId).catch(() => undefined);
 
       if (!dep) {
-        send('error', { message: 'Deployment not found' });
+        send('error', {
+          message: appPublicCopy('DEPLOYMENT_NOT_FOUND', transactionalLocaleForRequest(request)),
+        });
         end();
 
         return;
@@ -32112,7 +34048,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       const logs = Array.isArray(dep.logs) ? dep.logs : [];
 
       if (logs.length > sentLogCount) {
-        const delta = logs.slice(sentLogCount).map((log) => ({ ...log, message: redactDeploymentLog(log.message) }));
+        const locale = transactionalLocaleForRequest(request);
+        const delta = logs.slice(sentLogCount).map((log) => ({
+          ...log,
+          message: localizeBackendOwnedText(redactDeploymentLog(log.message), locale),
+        }));
         sentLogCount = logs.length;
         send('logs', delta);
       }
@@ -32147,7 +34087,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const deployment = await store.getDeployment(project.id, deploymentId);
 
     if (!deployment) {
-      return reply.code(404).send({ error: 'Deployment not found', code: 'DEPLOYMENT_NOT_FOUND' });
+      return reply.code(404).send({ error: appPublicEnglish('DEPLOYMENT_NOT_FOUND'), code: 'DEPLOYMENT_NOT_FOUND' });
     }
 
     /*
@@ -32157,7 +34097,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      */
     if (deployment.status !== 'QUEUED' && deployment.status !== 'BUILDING') {
       return reply.code(409).send({
-        error: `Deployment cannot be canceled in status ${deployment.status}`,
+        error: appPublicEnglish('DEPLOYMENT_CANNOT_CANCEL_STATUS', { value1: deployment.status }),
         code: 'DEPLOYMENT_NOT_CANCELABLE',
       });
     }
@@ -32167,7 +34107,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       canceledAt: new Date().toISOString(),
       logs: [
         ...deployment.logs,
-        { timestamp: new Date().toISOString(), level: 'warn', message: 'Deployment canceled by user' },
+        {
+          timestamp: new Date().toISOString(),
+          level: 'warn',
+          message: appPublicEnglish('DEPLOYMENT_CANCELED_BY_USER'),
+        },
       ],
     });
 
@@ -32187,7 +34131,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       resourceId: deployment.id,
     });
 
-    return { deployment: canceled };
+    return { deployment: localizeDeploymentRecord(canceled, transactionalLocaleForRequest(request)) };
   });
 
   /*
@@ -32197,10 +34141,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   app.post('/projects/:projectId/deployments/:deploymentId/publish', async (request, reply) => {
     const { projectId, deploymentId } = parse(deploymentActionParams, request.params);
     const project = await requireProject(request, store, projectId, 'projects:write');
+    const locale = transactionalLocaleForRequest(request);
+    setAppLocaleResponseHeaders(reply, locale);
     const source = await store.getDeployment(project.id, deploymentId);
 
     if (!source) {
-      return reply.code(404).send({ error: 'Deployment not found', code: 'DEPLOYMENT_NOT_FOUND' });
+      return reply.code(404).send({ error: appPublicEnglish('DEPLOYMENT_NOT_FOUND'), code: 'DEPLOYMENT_NOT_FOUND' });
     }
 
     const check = canPublishDeployment(source);
@@ -32209,8 +34155,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return reply.code(409).send({
         error:
           check.code === 'ALREADY_PRODUCTION'
-            ? 'Deployment is already in production'
-            : 'Only a READY deployment can be published',
+            ? appPublicEnglish('DEPLOYMENT_ALREADY_PRODUCTION')
+            : appPublicEnglish('DEPLOYMENT_READY_REQUIRED_TO_PUBLISH'),
         code: check.code,
       });
     }
@@ -32218,45 +34164,113 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     /*
      * ---- Contrat Starter : projets publiés ACTIFS (pas « déploiements ») ----
      *
-     * L'offre gratuite autorise UN projet publié à la fois. Trois conséquences
-     * que le modèle précédent (« cap de déploiements ») ratait :
+     * L'offre gratuite autorise UN projet publié à la fois :
      *  - republier le MÊME projet est toujours autorisé — sinon on interdirait
      *    de corriger un bug en production ;
-     *  - seul un DEUXIÈME projet distinct déclenche l'invitation à monter de
-     *    plan ;
-     *  - une publication Starter s'éteint au bout de 30 jours et cesse alors de
-     *    consommer la place, ce qui permet de republier sans intervention.
+     *  - seul un DEUXIÈME projet distinct déclenche l'invitation à monter de plan.
      *
-     * Hors du flag crédits : un entitlement décrit l'OFFRE, pas le modèle de
-     * facturation à l'usage ; derrière un flag non défini, il n'applique rien.
+     * SÉRIALISÉ PAR ORGANISATION (advisory lock PostgreSQL, cf.
+     * withSerializedMutation) : lecture des publications + décision d'entitlement
+     * + création du déploiement forment UNE SEULE section critique. Séparées,
+     * deux publishes simultanés de projets différents lisaient tous les deux
+     * « 0 actif » et passaient tous les deux — le plafond ne tenait pas sous
+     * concurrence. Le lock est pris par ORG (et non par projet) parce que c'est
+     * l'org qui porte le quota.
+     *
+     * FAIL-CLOSED : aucune de ces lectures n'est neutralisée par un `.catch`.
+     * Une erreur de lecture des publications ou de l'état de facturation ne doit
+     * JAMAIS se traduire par « 0 publication active » — ce serait un quota remis
+     * à zéro par une panne. On refuse temporairement (503) et on réessaiera.
      */
-    const publications = await store.listPublishedProjects(project.organizationId).catch(() => []);
-    const entitlementPlanKey = (await billingState(project.organizationId).catch(() => undefined))?.plan.key;
+    const publishOutcome = await store.withSerializedMutation(
+      `publish:org:${project.organizationId}`,
+      async (): Promise<
+        | { ok: true; deployment: Awaited<ReturnType<typeof store.createDeployment>> }
+        | { ok: false; response: unknown; status: number }
+      > => {
+        let publications: Array<{ projectId: string; publishedAt: string }>;
+        let entitlementPlanKey: string | undefined;
 
-    try {
-      assertPublishEntitlement({
-        planKey: entitlementPlanKey,
-        targetProjectId: project.id,
-        publications: publications.map((p) => ({ projectId: p.projectId, publishedAt: new Date(p.publishedAt) })),
-      });
-    } catch (error) {
-      if (error instanceof EntitlementError) {
+        try {
+          publications = await store.listPublishedProjects(project.organizationId);
+          entitlementPlanKey = (await billingState(project.organizationId))?.plan.key;
+        } catch (error) {
+          request.log?.error?.(
+            { err: error, organizationId: project.organizationId },
+            'publish entitlement precheck failed — refusing (fail-closed)',
+          );
+
+          return {
+            ok: false,
+            status: 503,
+            response: {
+              error: appPublicCopy('ENTITLEMENT_CHECK_UNAVAILABLE', locale),
+              code: 'ENTITLEMENT_CHECK_UNAVAILABLE',
+              retryable: true,
+            },
+          };
+        }
+
+        try {
+          assertPublishEntitlement({
+            planKey: entitlementPlanKey,
+            targetProjectId: project.id,
+            publications: publications.map((p) => ({ projectId: p.projectId, publishedAt: new Date(p.publishedAt) })),
+          });
+        } catch (error) {
+          if (error instanceof EntitlementError) {
+            return {
+              ok: false,
+              status: error.statusCode,
+              response: { error: error.message, code: error.code, ...error.details },
+            };
+          }
+
+          throw error;
+        }
+
+        // Création DANS la section critique : c'est elle qui rend le plafond réel.
+        const publishUrl = source.url ?? source.previewUrl ?? buildDeploymentUrl(project, source);
+
+        return {
+          ok: true,
+          deployment: await store.createDeployment(buildPublishedDeploymentInput(source, publishUrl)),
+        };
+      },
+    );
+
+    if (!publishOutcome.ok) {
+      if (publishOutcome.status === 402) {
         await audit(request, store, {
           organizationId: project.organizationId,
           action: 'entitlement.refused',
           resourceType: 'deployment',
           resourceId: deploymentId,
-          metadata: { code: error.code, ...error.details },
+          metadata: publishOutcome.response as Record<string, unknown>,
         });
 
-        return reply.code(error.statusCode).send({ error: error.message, code: error.code, ...error.details });
+        /*
+         * Le refus de plafond remonte par `publishOutcome` (la section critique
+         * renvoie un résultat, elle ne relaie pas l'exception) : code et détails
+         * se lisent donc sur la réponse, et seul le message est localisé.
+         */
+        const refusal = publishOutcome.response as Record<string, unknown>;
+        const cap = Number(refusal.cap);
+
+        return reply.code(publishOutcome.status).send({
+          ...refusal,
+          error: appPublicCopy(
+            cap === 1 ? 'PLAN_ACTIVE_PUBLISHED_PROJECT_LIMIT_ONE' : 'PLAN_ACTIVE_PUBLISHED_PROJECT_LIMIT_OTHER',
+            locale,
+            { cap },
+          ),
+        });
       }
 
-      throw error;
+      return reply.code(publishOutcome.status).send(publishOutcome.response);
     }
 
-    const publishUrl = source.url ?? source.previewUrl ?? buildDeploymentUrl(project, source);
-    const published = await store.createDeployment(buildPublishedDeploymentInput(source, publishUrl));
+    const published = publishOutcome.deployment;
 
     /*
      * P2d: publishing gives the project a real PRODUCTION database, distinct
@@ -32333,7 +34347,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       resourceId: published.id,
     });
 
-    return reply.code(201).send({ deployment: published });
+    return reply.code(201).send({ deployment: localizeDeploymentRecord(published, locale) });
   });
 
   app.post('/projects/:projectId/deployments/:deploymentId/redeploy', async (request, reply) => {
@@ -32342,7 +34356,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const source = await store.getDeployment(project.id, deploymentId);
 
     if (!source) {
-      return reply.code(404).send({ error: 'Deployment not found', code: 'DEPLOYMENT_NOT_FOUND' });
+      return reply.code(404).send({ error: appPublicEnglish('DEPLOYMENT_NOT_FOUND'), code: 'DEPLOYMENT_NOT_FOUND' });
     }
 
     // A suspended org must not queue new builds (matches the create route).
@@ -32358,7 +34372,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * zod schema before it was stored) so the provider helpers accept it.
      */
     const sourceProvider = source.provider as (typeof deploymentProviders)[number];
-    const providerConfigError = deployProviderConfigError(sourceProvider);
+    const providerConfigError = deployProviderConfigError(
+      sourceProvider,
+      process.env,
+      transactionalLocaleForRequest(request),
+    );
 
     if (providerConfigError) {
       return reply.code(400).send(providerConfigError);
@@ -32426,14 +34444,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           machineSize: source.machineSize,
           metadata: { ...source.metadata, redeployedFromId: source.id },
           startedAt: new Date().toISOString(),
-          logs: [{ timestamp: new Date().toISOString(), level: 'info', message: `Redeploying from ${source.id}` }],
+          logs: [
+            {
+              timestamp: new Date().toISOString(),
+              level: 'info',
+              message: appPublicEnglish('DEPLOYMENT_REDEPLOYING_FROM', { value1: source.id }),
+            },
+          ],
         }),
       };
     });
 
     if ('conflict' in redeployResult) {
       return reply.code(409).send({
-        error: 'A deployment is already in progress for this project',
+        error: appPublicEnglish('DEPLOYMENT_IN_PROGRESS'),
         code: 'DEPLOYMENT_IN_PROGRESS',
         deploymentId: redeployResult.deploymentId,
       });
@@ -32512,7 +34536,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           rebuildLogs.push({
             timestamp: new Date().toISOString(),
             level: 'info',
-            message: `Static deploy: snapshot stored at ${staticDeploymentSnapshotDir(redeploy.id)}`,
+            message: appPublicEnglish('DEPLOY_STATIC_SNAPSHOT_STORED', {
+              path: staticDeploymentSnapshotDir(redeploy.id),
+            }),
           });
 
           /*
@@ -32529,16 +34555,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             rebuildLogs.push({
               timestamp: new Date().toISOString(),
               level: 'info',
-              message: 'Static deploy: deployment was canceled mid-build; snapshot discarded.',
+              message: appPublicEnglish('STATIC_DEPLOY_CANCELED_SNAPSHOT'),
             });
           }
         } catch (error) {
           staticBuildFailed = true;
+          request.log.error({ err: error, deploymentId: redeploy.id }, 'static deployment snapshot failed');
           await removeStaticDeploymentSnapshot(redeploy.id).catch(() => undefined);
           rebuildLogs.push({
             timestamp: new Date().toISOString(),
             level: 'error',
-            message: `Static deploy: snapshot failed (${(error as Error).message ?? 'unknown error'}).`,
+            message: appPublicEnglish('DEPLOY_STATIC_SNAPSHOT_FAILED'),
           });
         }
       } else {
@@ -32637,7 +34664,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       thumbnailCapturer.schedule(project.id, ready.url);
     }
 
-    return reply.code(201).send({ deployment: ready });
+    return reply
+      .code(201)
+      .send({ deployment: localizeDeploymentRecord(ready, transactionalLocaleForRequest(request)) });
   });
 
   /*
@@ -32668,6 +34697,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const body = parse(z.object({ environment: z.string().min(1).max(64).optional() }), request.body ?? {});
     const project = await requireProject(request, store, projectId, 'projects:write');
     await requireOrganizationNotSuspended(store, project.organizationId);
+    const locale = transactionalLocaleForRequest(request);
+    setAppLocaleResponseHeaders(reply, locale);
 
     const environment = body.environment ?? 'preview';
     const manifests = await store.listReleaseManifests(project.id, environment);
@@ -32679,13 +34710,21 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       ({ current, previous } = selectPreviousRelease(manifests));
     } catch (error) {
       if (error instanceof RollbackManifestError) {
-        return reply.code(error.statusCode).send({ error: error.message, code: error.code });
+        return reply.code(error.statusCode).send({
+          error: localizeBackendErrorForResponse(error.message, locale, 'ROLLBACK_REQUEST_FAILED'),
+          code: error.code,
+        });
       }
 
       throw error;
     }
 
-    const appendRollbackManifest = async (rollbackId: string, artifactKind: string, artifactRef: string, artifactDigest: string) => {
+    const appendRollbackManifest = async (
+      rollbackId: string,
+      artifactKind: string,
+      artifactRef: string,
+      artifactDigest: string,
+    ) => {
       await store.withSerializedMutation(`release-manifest:${project.id}:${environment}`, async () => {
         const latest = await store.listReleaseManifests(project.id, environment, { take: 1 });
         const nextVersion = (latest[0]?.version ?? 0) + 1;
@@ -32712,7 +34751,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
       if (!recomputed) {
         return reply.code(409).send({
-          error: `Previous release v${previous.version} snapshot is missing on disk — cannot restore it. Refusing a blind rollback.`,
+          error: appPublicCopy('ROLLBACK_PREVIOUS_SNAPSHOT_MISSING', locale, { version: previous.version }),
           code: 'ROLLBACK_SNAPSHOT_SOURCE_MISSING',
         });
       }
@@ -32721,7 +34760,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         assertArtifactMatchesManifest(recomputed, previous);
       } catch (error) {
         if (error instanceof RollbackManifestError) {
-          return reply.code(error.statusCode).send({ error: error.message, code: error.code });
+          return reply.code(error.statusCode).send({
+            error: localizeBackendErrorForResponse(error.message, locale, 'ROLLBACK_REQUEST_FAILED'),
+            code: error.code,
+          });
         }
 
         throw error;
@@ -32749,12 +34791,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       try {
         await restoreStaticSnapshotInto(previous.deploymentId, rollback.id);
       } catch (error) {
+        request.log.error(
+          { err: error, deploymentId: rollback.id, sourceDeploymentId: previous.deploymentId },
+          'static rollback restore failed',
+        );
         await store
           .updateDeployment(project.id, rollback.id, {
             status: 'FAILED',
             logs: [
               ...rollback.logs,
-              { timestamp: new Date().toISOString(), level: 'error', message: `Rollback restore failed: ${(error as Error).message}` },
+              {
+                timestamp: new Date().toISOString(),
+                level: 'error',
+                message: `${appPublicEnglish('ROLLBACK_RESTORE_FAILED_LOG')} ${(error as Error).message}`,
+              },
             ],
             finishedAt: new Date().toISOString(),
           })
@@ -32763,10 +34813,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         const code = (error as { code?: string }).code ?? 'ROLLBACK_RESTORE_FAILED';
         const statusCode = (error as { statusCode?: number }).statusCode ?? 500;
 
-        return reply.code(statusCode).send({ error: (error as Error).message, code });
+        return reply.code(statusCode).send({
+          error: localizeBackendErrorForResponse((error as Error).message, locale, 'ROLLBACK_REQUEST_FAILED'),
+          code,
+        });
       }
 
       const url = buildDeploymentUrl(project, rollback);
+
       const ready = await store.updateDeployment(project.id, rollback.id, {
         status: 'READY',
         url,
@@ -32778,18 +34832,24 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           {
             timestamp: new Date().toISOString(),
             level: 'info',
-            message: `Rolled back to release v${previous.version} (deployment ${previous.deploymentId}); artifact digest ${previous.artifactDigest} verified byte-identical before restore.`,
+            message: appPublicEnglish('ROLLBACK_STATIC_SUCCESS_LOG', {
+              version: previous.version,
+              deploymentId: previous.deploymentId,
+              artifactDigest: previous.artifactDigest,
+            }),
           },
         ],
       });
 
-      // The restored copy is a first-class release too — record its OWN manifest
-      // (new monotonic version), digested from the freshly-materialised bytes.
+      /*
+       * The restored copy is a first-class release too — record its OWN manifest
+       * (new monotonic version), digested from the freshly-materialised bytes.
+       */
       const restoredDigest = (await computeStaticSnapshotDigest(rollback.id)) ?? previous.artifactDigest;
       await appendRollbackManifest(rollback.id, 'static-snapshot', `static-deployments/${rollback.id}`, restoredDigest);
 
       return reply.code(201).send({
-        deployment: ready,
+        deployment: localizeDeploymentRecord(ready, locale),
         restoredFromVersion: previous.version,
         restoredFromDeploymentId: previous.deploymentId,
         supersededVersion: current.version,
@@ -32802,7 +34862,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     if (previous.artifactKind === 'server-image') {
       if (process.env.SERVER_DEPLOY_ROLLBACK_FROM_DIGEST === '0') {
         return reply.code(409).send({
-          error: 'Server rollback is disabled (SERVER_DEPLOY_ROLLBACK_FROM_DIGEST=0).',
+          error: appPublicCopy('ROLLBACK_SERVER_DISABLED', locale),
           code: 'SERVER_ROLLBACK_DIGEST_DISABLED',
         });
       }
@@ -32841,10 +34901,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         const currentSecrets = await resolveProjectSecretValues(store, project.id).catch(
           (): Record<string, string> => ({}),
         );
+
         const secretResolution = resolveRollbackSecrets({ policy: 'CURRENT', currentSecrets, pinnedSecrets: null });
 
         const rbHost = serverDeployHost(rollback.id);
         const rbPort = Number(process.env.SERVER_DEPLOY_PORT) || 3000;
+
         const rbEnv = buildServerDeployEnv({
           deploymentId: rollback.id,
           port: rbPort,
@@ -32852,6 +34914,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           projectSecrets: secretResolution.secrets,
           envOverrides: {},
         });
+
         const deployRateCard = await getActiveRateCard(store);
         const machineSize = machineSizeFromCard(deployRateCard, undefined);
 
@@ -32871,6 +34934,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
         const ok = Boolean(started?.ready);
         const rbUrl = started?.url ?? `https://${rbHost}`;
+
         const ready = await store.updateDeployment(project.id, rollback.id, {
           status: ok ? 'READY' : 'BUILDING',
           url: ok ? rbUrl : undefined,
@@ -32897,7 +34961,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             {
               timestamp: new Date().toISOString(),
               level: 'info',
-              message: `Rolled back to release v${previous.version} by digest ${plan.pullRef} (revision-independent, I-REL-1).`,
+              message: appPublicEnglish('ROLLBACK_SERVER_SUCCESS_LOG', {
+                version: previous.version,
+                pullRef: plan.pullRef,
+              }),
             },
           ],
           finishedAt: ok ? new Date().toISOString() : undefined,
@@ -32908,7 +34975,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         }
 
         return reply.code(201).send({
-          deployment: ready,
+          deployment: localizeDeploymentRecord(ready, locale),
           restoredFromVersion: previous.version,
           restoredFromDeploymentId: previous.deploymentId,
           supersededVersion: current.version,
@@ -32916,13 +34983,21 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           url: rbUrl,
         });
       } catch (error) {
+        request.log.error(
+          { err: error, deploymentId: rollback.id, sourceDeploymentId: previous.deploymentId },
+          'server rollback refused',
+        );
         await store
           .updateDeployment(project.id, rollback.id, {
             status: 'FAILED',
             url: '',
             logs: [
               ...rollback.logs,
-              { timestamp: new Date().toISOString(), level: 'error', message: `Rollback refused: ${(error as Error).message}` },
+              {
+                timestamp: new Date().toISOString(),
+                level: 'error',
+                message: `${appPublicEnglish('ROLLBACK_REFUSED_LOG')} ${(error as Error).message}`,
+              },
             ],
             finishedAt: new Date().toISOString(),
           })
@@ -32931,12 +35006,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         const code = (error as { code?: string }).code ?? 'ROLLBACK_FAILED';
         const statusCode = (error as { statusCode?: number }).statusCode ?? 502;
 
-        return reply.code(statusCode).send({ error: (error as Error).message, code });
+        return reply.code(statusCode).send({
+          error: localizeBackendErrorForResponse((error as Error).message, locale, 'ROLLBACK_REQUEST_FAILED'),
+          code,
+        });
       }
     }
 
     return reply.code(409).send({
-      error: `Unsupported artifact kind '${previous.artifactKind}' for rollback.`,
+      error: appPublicCopy('ROLLBACK_UNSUPPORTED_KIND', locale, { artifactKind: previous.artifactKind }),
       code: 'ROLLBACK_UNSUPPORTED_KIND',
     });
   });
@@ -32947,12 +35025,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const target = await store.getDeployment(project.id, deploymentId);
 
     if (!target) {
-      return reply.code(404).send({ error: 'Deployment not found', code: 'DEPLOYMENT_NOT_FOUND' });
+      return reply.code(404).send({ error: appPublicEnglish('DEPLOYMENT_NOT_FOUND'), code: 'DEPLOYMENT_NOT_FOUND' });
     }
 
     if (target.status !== 'READY') {
       return reply.code(409).send({
-        error: 'Can only roll back to a deployment that built successfully',
+        error: appPublicEnglish('DEPLOYMENT_ROLLBACK_TARGET_NOT_SUCCESSFUL'),
         code: 'DEPLOYMENT_ROLLBACK_TARGET_NOT_READY',
       });
     }
@@ -32989,8 +35067,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      */
     if (target.provider === 'server' && process.env.SERVER_DEPLOY_ROLLBACK_FROM_DIGEST === '0') {
       return reply.code(409).send({
-        error:
-          'Server rollback is disabled (SERVER_DEPLOY_ROLLBACK_FROM_DIGEST=0) — refusing a URL-only rollback that would re-deploy nothing.',
+        error: appPublicEnglish('DEPLOYMENT_SERVER_ROLLBACK_DISABLED'),
         code: 'SERVER_ROLLBACK_DIGEST_DISABLED',
       });
     }
@@ -33033,7 +35110,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           {
             timestamp: new Date().toISOString(),
             level: 'info',
-            message: `Rolled back to deployment ${target.id} (${target.provider} buildId=${(target.metadata as Record<string, unknown>)?.providerBuildId ?? 'unknown'}, url=${target.url ?? 'n/a'})`,
+            message: appPublicEnglish('DEPLOYMENT_ROLLED_BACK_TO', {
+              deploymentId: target.id,
+              provider: target.provider,
+              buildId: String((target.metadata as Record<string, unknown>)?.providerBuildId ?? 'unknown'),
+              url: target.url ?? 'n/a',
+            }),
           },
         ],
       });
@@ -33100,6 +35182,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           imageRef: (image.imageRef ?? image.imageUri ?? '').replace(/:[^:/]+$/, ''),
           imageDigest: image.imageDigest ?? '',
           createdAt: new Date().toISOString(),
+
           // CTR-RUNTIME-NIX point 2: carry the ORIGINAL release's pinned generation.
           ...(image.storeGeneration ? { storeGeneration: image.storeGeneration } : {}),
         };
@@ -33144,6 +35227,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           env: rbEnv,
           healthPath: process.env.SERVER_DEPLOY_HEALTH_PATH || '/',
           nixStorePvcName: nixStorePvcForProject(project.id),
+
           /*
            * Re-pin the ORIGINAL release's generation (expert refusal v3 point 2):
            * the rollback is evaluated against the generation THAT release used,
@@ -33170,6 +35254,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
               applied: Boolean(started),
               rolledBackFromDigest: plan.imageDigest,
               secretPolicy: secretResolution.policy,
+
               // Persist the re-pinned generation so a rollback-of-a-rollback carries it too.
               image: {
                 imageRef: retained.imageRef,
@@ -33184,7 +35269,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             {
               timestamp: new Date().toISOString(),
               level: 'info' as const,
-              message: `Rollback re-deployed the retained image by digest ${plan.pullRef} (revision-independent, I-REL-1; secretPolicy=${secretResolution.policy})`,
+              message: appPublicEnglish('DEPLOYMENT_ROLLBACK_DIGEST_REDEPLOYED', {
+                pullRef: plan.pullRef,
+                secretPolicy: secretResolution.policy,
+              }),
             },
           ],
           finishedAt: ok ? new Date().toISOString() : undefined,
@@ -33192,6 +35280,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       } catch (error) {
         const code = (error as { code?: string }).code ?? 'ROLLBACK_FAILED';
         const statusCode = (error as { statusCode?: number }).statusCode ?? 502;
+        request.log.error({ err: error, deploymentId: rollback.id, targetDeploymentId: target.id }, 'rollback refused');
 
         /*
          * Refuse loudly (ROLLBACK_NO_RETAINED_DIGEST / ROLLBACK_SECRET_POLICY_UNSATISFIABLE)
@@ -33207,7 +35296,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             {
               timestamp: new Date().toISOString(),
               level: 'error' as const,
-              message: `Rollback refused: ${(error as Error).message}`,
+              message: appPublicEnglish('DEPLOYMENT_ROLLBACK_REFUSED'),
             },
           ],
         });
@@ -33227,7 +35316,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       },
     });
 
-    return reply.code(201).send({ deployment: finalDeployment });
+    return reply
+      .code(201)
+      .send({ deployment: localizeDeploymentRecord(finalDeployment, transactionalLocaleForRequest(request)) });
   });
   app.get('/deployments/:projectId', async (request) => {
     const project = await requireProject(
@@ -33237,7 +35328,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       'projects:read',
     );
 
-    return { deployments: await store.listDeployments(project.id) };
+    const locale = transactionalLocaleForRequest(request);
+    return {
+      deployments: (await store.listDeployments(project.id)).map((deployment) =>
+        localizeDeploymentRecord(deployment, locale),
+      ),
+    };
   });
 
   app.post('/orgs/:orgId/support/tickets', async (request, reply) => {
@@ -33278,7 +35374,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const ticket = await store.getSupportTicket(orgId, ticketId);
 
     if (!ticket) {
-      return reply.code(404).send({ error: 'Ticket not found.' });
+      return reply
+        .code(404)
+        .send({ error: appPublicEnglish('ADMIN_TICKET_NOT_FOUND'), code: 'SUPPORT_TICKET_NOT_FOUND' });
     }
 
     return { ticket, messages: await store.listTicketMessages(ticketId) };
@@ -33296,7 +35394,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const ticket = await store.getSupportTicket(orgId, ticketId);
 
     if (!ticket) {
-      return reply.code(404).send({ error: 'Ticket not found.' });
+      return reply
+        .code(404)
+        .send({ error: appPublicEnglish('ADMIN_TICKET_NOT_FOUND'), code: 'SUPPORT_TICKET_NOT_FOUND' });
     }
 
     const message = await store.addTicketMessage({
@@ -33387,7 +35487,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const scimToken = token ? await store.findScimToken(token) : undefined;
 
     if (!scimToken || scimToken.organizationId !== orgId || isScimTokenExpired(scimToken)) {
-      return reply.code(401).send({ error: 'Invalid SCIM token', code: 'SCIM_AUTH_REQUIRED' });
+      return reply.code(401).send({ error: appPublicEnglish('SCIM_TOKEN_INVALID'), code: 'SCIM_AUTH_REQUIRED' });
     }
 
     const members = await store.listMembers(orgId);
@@ -33410,7 +35510,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const scimToken = token ? await store.findScimToken(token) : undefined;
 
     if (!scimToken || scimToken.organizationId !== orgId || isScimTokenExpired(scimToken)) {
-      return reply.code(401).send({ error: 'Invalid SCIM token', code: 'SCIM_AUTH_REQUIRED' });
+      return reply.code(401).send({ error: appPublicEnglish('SCIM_TOKEN_INVALID'), code: 'SCIM_AUTH_REQUIRED' });
     }
 
     const body = parse(scimUserSchema, request.body);
@@ -33429,7 +35529,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     if (!emailDomain || !verifiedDomains.includes(emailDomain)) {
       return reply.code(403).send({
-        error: 'SCIM userName email domain is not a verified domain for this organization',
+        error: appPublicEnglish('SCIM_EMAIL_DOMAIN_UNVERIFIED'),
         code: 'SCIM_EMAIL_DOMAIN_NOT_VERIFIED',
       });
     }
@@ -33490,14 +35590,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const scimToken = token ? await store.findScimToken(token) : undefined;
 
     if (!scimToken || scimToken.organizationId !== orgId || isScimTokenExpired(scimToken)) {
-      return reply.code(401).send({ error: 'Invalid SCIM token', code: 'SCIM_AUTH_REQUIRED' });
+      return reply.code(401).send({ error: appPublicEnglish('SCIM_TOKEN_INVALID'), code: 'SCIM_AUTH_REQUIRED' });
     }
 
     const body = parse(scimPatchSchema, request.body);
     const membership = await store.getMembership(userId, orgId);
 
     if (!membership) {
-      return reply.code(404).send({ error: 'User is not a member of this organization', code: 'SCIM_USER_NOT_FOUND' });
+      return reply.code(404).send({ error: appPublicEnglish('SCIM_USER_NOT_FOUND'), code: 'SCIM_USER_NOT_FOUND' });
     }
 
     let active: boolean | undefined;
@@ -33544,7 +35644,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
 
       if (removalConflict) {
-        return reply.code(409).send({ error: 'Cannot deactivate the last organization owner', code: 'LAST_OWNER' });
+        return reply
+          .code(409)
+          .send({ error: appPublicEnglish('SCIM_LAST_OWNER_CANNOT_DEACTIVATE'), code: 'LAST_OWNER' });
       }
 
       await store.recordAudit({
@@ -33579,13 +35681,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const scimToken = token ? await store.findScimToken(token) : undefined;
 
     if (!scimToken || scimToken.organizationId !== orgId || isScimTokenExpired(scimToken)) {
-      return reply.code(401).send({ error: 'Invalid SCIM token', code: 'SCIM_AUTH_REQUIRED' });
+      return reply.code(401).send({ error: appPublicEnglish('SCIM_TOKEN_INVALID'), code: 'SCIM_AUTH_REQUIRED' });
     }
 
     const membership = await store.getMembership(userId, orgId);
 
     if (!membership) {
-      return reply.code(404).send({ error: 'User is not a member of this organization', code: 'SCIM_USER_NOT_FOUND' });
+      return reply.code(404).send({ error: appPublicEnglish('SCIM_USER_NOT_FOUND'), code: 'SCIM_USER_NOT_FOUND' });
     }
 
     /*
@@ -33603,7 +35705,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     });
 
     if (deleteConflict) {
-      return reply.code(409).send({ error: 'Cannot remove the last organization owner', code: 'LAST_OWNER' });
+      return reply
+        .code(409)
+        .send({ error: appPublicEnglish('ORGANIZATION_LAST_OWNER_CANNOT_REMOVE'), code: 'LAST_OWNER' });
     }
 
     await store.recordAudit({

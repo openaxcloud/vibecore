@@ -3,9 +3,16 @@
  */
 
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import type { ReactElement } from 'react';
+import { I18nextProvider } from 'react-i18next';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { TerminalTabs } from './TerminalTabs';
+import { createI18nInstance } from '~/lib/i18n/runtime';
+
+function renderTabs(ui: ReactElement, language: 'en' | 'fr' = 'en') {
+  return render(<I18nextProvider i18n={createI18nInstance(language)}>{ui}</I18nextProvider>);
+}
 
 const workbenchMocks = vi.hoisted(() => ({
   attachBoltTerminal: vi.fn(),
@@ -133,7 +140,7 @@ describe('<TerminalTabs />', () => {
   });
 
   it('uses a compact Shell (Terminal) header without the legacy E-Code tab', () => {
-    render(<TerminalTabs panelDefaultSize={100} />);
+    renderTabs(<TerminalTabs panelDefaultSize={100} />);
 
     expect(screen.getByTestId('terminal-tabs-bar').getAttribute('aria-label')).toBe('Shell (Terminal)');
     expect(screen.queryByText('E-Code Terminal')).toBeNull();
@@ -143,7 +150,7 @@ describe('<TerminalTabs />', () => {
   });
 
   it('opens Replit-style find controls only after clicking the search icon', () => {
-    render(<TerminalTabs panelDefaultSize={100} />);
+    renderTabs(<TerminalTabs panelDefaultSize={100} />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Find in Shell' }));
 
@@ -174,7 +181,7 @@ describe('<TerminalTabs />', () => {
     Object.defineProperty(window.navigator, 'clipboard', { configurable: true, value: { writeText } });
     terminalHarness.xterm.getSelection.mockReturnValue('pnpm run dev');
 
-    render(<TerminalTabs panelDefaultSize={100} />);
+    renderTabs(<TerminalTabs panelDefaultSize={100} />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Copy' }));
 
@@ -186,7 +193,7 @@ describe('<TerminalTabs />', () => {
     Object.defineProperty(window.navigator, 'clipboard', { configurable: true, value: { writeText } });
     terminalHarness.xterm.getSelection.mockReturnValue('');
 
-    render(<TerminalTabs panelDefaultSize={100} />);
+    renderTabs(<TerminalTabs panelDefaultSize={100} />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Copy' }));
 
@@ -195,7 +202,7 @@ describe('<TerminalTabs />', () => {
   });
 
   it('opens new shell sessions from the session dropdown', () => {
-    render(<TerminalTabs panelDefaultSize={100} />);
+    renderTabs(<TerminalTabs panelDefaultSize={100} />);
 
     fireEvent.click(screen.getByRole('button', { name: /Open shell sessions/i }));
     fireEvent.click(screen.getByRole('menuitem', { name: 'New Shell' }));
@@ -205,7 +212,7 @@ describe('<TerminalTabs />', () => {
   });
 
   it('keeps destructive and recovery actions in the Shell menu', () => {
-    render(<TerminalTabs panelDefaultSize={100} />);
+    renderTabs(<TerminalTabs panelDefaultSize={100} />);
 
     fireEvent.click(screen.getByRole('button', { name: 'More Shell actions' }));
 
@@ -219,14 +226,14 @@ describe('<TerminalTabs />', () => {
   });
 
   it('writes a connecting notice into the terminal on spawn so cold start is not blank', () => {
-    render(<TerminalTabs panelDefaultSize={100} />);
+    renderTabs(<TerminalTabs panelDefaultSize={100} />);
 
     const writes = terminalHarness.xterm.write.mock.calls.map((call) => String(call[0]));
     expect(writes.some((value) => value.includes('Connecting to workspace…'))).toBe(true);
   });
 
   it('keeps an already-spawned shell labelled with the profile it was created under', () => {
-    render(<TerminalTabs panelDefaultSize={100} />);
+    renderTabs(<TerminalTabs panelDefaultSize={100} />);
 
     // Spawn a second shell while the default (managed) profile is selected.
     fireEvent.click(screen.getByRole('button', { name: /Open shell sessions/i }));
@@ -240,5 +247,32 @@ describe('<TerminalTabs />', () => {
     const sessionButton = screen.getByRole('button', { name: /Open shell sessions/i });
     expect(sessionButton.textContent).toContain('~/workspace: bash');
     expect(sessionButton.textContent).not.toContain('zsh');
+  });
+
+  it('renders the terminal bar and menus in French without leaking raw keys', () => {
+    const { container } = renderTabs(<TerminalTabs panelDefaultSize={100} />, 'fr');
+
+    // Frozen technical label stays identical in French.
+    expect(screen.getByTestId('terminal-tabs-bar').getAttribute('aria-label')).toBe('Shell (Terminal)');
+
+    // Localized controls resolve to French copy.
+    expect(screen.getByRole('button', { name: 'Copier' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /Ouvrir les sessions shell/i })).toBeTruthy();
+
+    // Open the more-menu and the find bar to exercise the deeper strings.
+    fireEvent.click(screen.getByRole('button', { name: 'Plus d’actions du shell' }));
+
+    const menu = screen.getByRole('menu', { name: 'Plus d’actions du shell' });
+    expect(within(menu).getByText('Arrêter le shell')).toBeTruthy();
+    expect(within(menu).getByText('Redémarrer le shell')).toBeTruthy();
+    expect(within(menu).getByText('Vue divisée')).toBeTruthy();
+    expect(within(menu).getByText('Taille PTY')).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Rechercher dans le shell' }));
+    expect(screen.getByPlaceholderText('Rechercher')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Quitter' })).toBeTruthy();
+
+    // No raw i18n key ever reaches the DOM.
+    expect(container.textContent).not.toMatch(/terminalTabs\./);
   });
 });

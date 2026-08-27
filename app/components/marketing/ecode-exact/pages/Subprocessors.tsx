@@ -15,6 +15,7 @@ import {
   Users,
 } from 'lucide-react';
 import type { ElementType } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   EcodeExactPublicFooter as PublicFooter,
   EcodeExactPublicNavbar as PublicNavbar,
@@ -37,120 +38,93 @@ import {
   TableRow,
 } from '~/components/marketing/ecode-exact/EcodeExactUi';
 import { Link } from '~/components/marketing/ecode-exact/EcodeExactUi';
+import {
+  getMarketingExactSubprocessorsCopy,
+  type SubprocessorCategoryId,
+  type SubprocessorId,
+} from '~/lib/i18n/catalogs/marketing-exact-subprocessors';
+import { formatLegalMonthYear } from '~/lib/i18n/legal-date';
 import { LEGAL_DATES } from '~/lib/legal-dates';
 
-interface Subprocessor {
-  name: string;
-  service: string;
-  category: string;
-  location: string;
-  purpose: string;
-  compliance: string[];
-  website?: string;
-}
-
-export default function Subprocessors() {
-  const subprocessors: Subprocessor[] = [
-    {
+const SUBPROCESSOR_TECHNICAL: Record<SubprocessorId, { name: string; compliance: readonly string[]; website: string }> =
+  {
+    aws: {
       name: 'Amazon Web Services',
-      service: 'AWS',
-      category: 'Infrastructure',
-      location: 'United States',
-      purpose: 'Cloud hosting, storage, and compute services',
       compliance: ['SOC 2', 'ISO 27001', 'GDPR', 'HIPAA'],
       website: 'https://aws.amazon.com',
     },
-    {
+    gcp: {
       name: 'Google Cloud Platform',
-      service: 'GCP',
-      category: 'Infrastructure',
-      location: 'United States',
-      purpose: 'Cloud services and container hosting',
       compliance: ['SOC 2', 'ISO 27001', 'GDPR'],
       website: 'https://cloud.google.com',
     },
-    {
+    cloudflare: {
       name: 'Cloudflare',
-      service: 'CDN & Security',
-      category: 'Infrastructure',
-      location: 'United States',
-      purpose: 'Content delivery network and DDoS protection',
       compliance: ['SOC 2', 'ISO 27001', 'GDPR'],
       website: 'https://cloudflare.com',
     },
-    {
+    stripe: {
       name: 'Stripe',
-      service: 'Payment Processing',
-      category: 'Payments',
-      location: 'United States',
-      purpose: 'Payment processing and subscription management',
       compliance: ['PCI DSS', 'SOC 2', 'ISO 27001'],
       website: 'https://stripe.com',
     },
-    {
+    sendgrid: {
       name: 'SendGrid',
-      service: 'Email Service',
-      category: 'Communications',
-      location: 'United States',
-      purpose: 'Transactional email delivery',
       compliance: ['SOC 2', 'ISO 27001', 'GDPR'],
       website: 'https://sendgrid.com',
     },
-    {
+    datadog: {
       name: 'Datadog',
-      service: 'Monitoring',
-      category: 'Analytics',
-      location: 'United States',
-      purpose: 'Application performance monitoring and logging',
       compliance: ['SOC 2', 'ISO 27001', 'GDPR'],
       website: 'https://datadoghq.com',
     },
-    {
+    github: {
       name: 'GitHub',
-      service: 'Version Control',
-      category: 'Development',
-      location: 'United States',
-      purpose: 'Code repository and version control integration',
       compliance: ['SOC 2', 'ISO 27001', 'GDPR'],
       website: 'https://github.com',
     },
-    {
+    auth0: {
       name: 'Auth0',
-      service: 'Authentication',
-      category: 'Security',
-      location: 'United States',
-      purpose: 'User authentication and identity management',
       compliance: ['SOC 2', 'ISO 27001', 'GDPR', 'HIPAA'],
       website: 'https://auth0.com',
     },
-    {
+    intercom: {
       name: 'Intercom',
-      service: 'Customer Support',
-      category: 'Communications',
-      location: 'United States',
-      purpose: 'Customer support and chat services',
       compliance: ['SOC 2', 'ISO 27001', 'GDPR'],
       website: 'https://intercom.com',
     },
-    {
+    mongodb: {
       name: 'MongoDB Atlas',
-      service: 'Database',
-      category: 'Infrastructure',
-      location: 'United States',
-      purpose: 'Managed database services',
       compliance: ['SOC 2', 'ISO 27001', 'GDPR'],
       website: 'https://mongodb.com/atlas',
     },
-  ];
-
-  const categoryIcons: Record<string, ElementType> = {
-    Infrastructure: Server,
-    Payments: CreditCard,
-    Communications: Mail,
-    Analytics: Activity,
-    Development: Users,
-    Security: Lock,
   };
+
+const CATEGORY_ICONS: Record<SubprocessorCategoryId, ElementType> = {
+  infrastructure: Server,
+  payments: CreditCard,
+  communications: Mail,
+  analytics: Activity,
+  development: Users,
+  security: Lock,
+};
+
+const RELATED_DOCUMENTS = {
+  privacy: { icon: FileText, href: '/privacy' },
+  dpa: { icon: FileText, href: '/dpa' },
+  security: { icon: Shield, href: '/security' },
+} as const;
+
+export default function Subprocessors() {
+  const { i18n } = useTranslation();
+  const language = i18n.resolvedLanguage ?? i18n.language;
+  const copy = getMarketingExactSubprocessorsCopy(language).exactSubprocessors;
+  const lastUpdated = formatLegalMonthYear(LEGAL_DATES.subprocessors, language);
+
+  const subprocessors = copy.table.providers.map((provider) => ({
+    ...provider,
+    ...SUBPROCESSOR_TECHNICAL[provider.id],
+  }));
 
   return (
     <div className="min-h-screen bg-background" data-testid="page-subprocessors">
@@ -160,16 +134,14 @@ export default function Subprocessors() {
       <section className="border-b bg-gradient-to-b from-muted/30 to-background">
         <div className="container-responsive py-20">
           <div className="text-center max-w-3xl mx-auto">
-            <h1 className="text-4xl md:text-6xl font-bold mb-6" data-testid="heading-subprocessors">
-              Subprocessors
+            {/* Échelle h1 de la famille légale (Terms/Privacy/DPA) : text-responsive-2xl, pas 60px. */}
+            <h1 className="break-words text-responsive-2xl font-bold mb-6" data-testid="heading-subprocessors">
+              {copy.title}
             </h1>
-            <p className="text-xl text-muted-foreground mb-8">
-              E-Code partners with industry-leading service providers to deliver a secure, reliable, and performant
-              platform
-            </p>
+            <p className="text-xl text-muted-foreground mb-8">{copy.description}</p>
             <Badge variant="outline" className="text-[13px]">
               <CheckCircle className="h-4 w-4 mr-1" />
-              Last Updated: {LEGAL_DATES.subprocessors}
+              {copy.lastUpdated}: {lastUpdated}
             </Badge>
           </div>
         </div>
@@ -182,24 +154,17 @@ export default function Subprocessors() {
             <CardHeader>
               <div className="flex items-center gap-3 mb-2">
                 <Shield className="h-6 w-6 text-primary" />
-                <CardTitle>Our Commitment to Data Protection</CardTitle>
+                <CardTitle>{copy.commitment.title}</CardTitle>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              <p>
-                E-Code carefully selects subprocessors who maintain the highest standards of security and privacy. All
-                subprocessors are required to:
-              </p>
+              <p>{copy.commitment.intro}</p>
               <ul className="list-disc pl-6 space-y-2">
-                <li>Sign data processing agreements that meet GDPR requirements</li>
-                <li>Implement appropriate technical and organizational measures</li>
-                <li>Undergo regular security audits and maintain compliance certifications</li>
-                <li>Limit data processing to the specific purposes outlined below</li>
-                <li>Delete or return data upon termination of services</li>
+                {copy.commitment.requirements.map((requirement) => (
+                  <li key={requirement}>{requirement}</li>
+                ))}
               </ul>
-              <p className="text-[13px] text-muted-foreground">
-                We continuously monitor our subprocessors to ensure they maintain these standards.
-              </p>
+              <p className="text-[13px] text-muted-foreground">{copy.commitment.monitoring}</p>
             </CardContent>
           </Card>
         </div>
@@ -209,22 +174,20 @@ export default function Subprocessors() {
       <section className="py-12">
         <div className="container-responsive">
           <div className="max-w-6xl mx-auto">
-            <h2 className="text-2xl font-bold mb-6">Current Subprocessors</h2>
+            <h2 className="text-2xl font-bold mb-6">{copy.table.title}</h2>
 
             <Card className="overflow-hidden">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Service Provider</TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead>Location</TableHead>
-                    <TableHead>Purpose</TableHead>
-                    <TableHead>Compliance</TableHead>
+                    {copy.table.headers.map((header) => (
+                      <TableHead key={header}>{header}</TableHead>
+                    ))}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {subprocessors.map((sp) => {
-                    const Icon = categoryIcons[sp.category] || Building;
+                    const Icon = CATEGORY_ICONS[sp.categoryId] || Building;
                     return (
                       <TableRow key={sp.name}>
                         <TableCell>
@@ -258,17 +221,15 @@ export default function Subprocessors() {
                               </Badge>
                             ))}
                           </div>
-                          {sp.website && (
-                            <a
-                              href={sp.website}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 text-[11px] text-primary hover:underline mt-1"
-                            >
-                              View details
-                              <ExternalLink className="h-3 w-3" />
-                            </a>
-                          )}
+                          <a
+                            href={sp.website}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-[11px] text-primary hover:underline mt-1"
+                          >
+                            {copy.table.viewDetails}
+                            <ExternalLink className="h-3 w-3" />
+                          </a>
                         </TableCell>
                       </TableRow>
                     );
@@ -284,34 +245,24 @@ export default function Subprocessors() {
       <section className="py-12 bg-muted/30">
         <div className="container-responsive">
           <div className="max-w-4xl mx-auto">
-            <h2 className="text-2xl font-bold mb-6 text-center">Data Center Locations</h2>
+            <h2 className="text-2xl font-bold mb-6 text-center">{copy.dataCenters.title}</h2>
 
             <div className="grid md:grid-cols-2 gap-6">
               <Card>
                 <CardHeader>
                   <div className="flex items-center gap-2">
                     <Globe className="h-5 w-5 text-primary" />
-                    <CardTitle className="text-[15px]">Primary Regions</CardTitle>
+                    <CardTitle className="text-[15px]">{copy.dataCenters.regionsTitle}</CardTitle>
                   </div>
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-2">
-                    <li className="flex items-center gap-2">
-                      <CheckCircle className="h-4 w-4 text-green-500" />
-                      <span>United States (US-East, US-West)</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <CheckCircle className="h-4 w-4 text-green-500" />
-                      <span>European Union (EU-West, EU-Central)</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <CheckCircle className="h-4 w-4 text-green-500" />
-                      <span>Asia Pacific (APAC-Southeast)</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <CheckCircle className="h-4 w-4 text-green-500" />
-                      <span>Canada (CA-Central)</span>
-                    </li>
+                    {copy.dataCenters.regions.map((region) => (
+                      <li key={region} className="flex items-center gap-2">
+                        <CheckCircle className="h-4 w-4 text-green-500" />
+                        <span>{region}</span>
+                      </li>
+                    ))}
                   </ul>
                 </CardContent>
               </Card>
@@ -320,26 +271,18 @@ export default function Subprocessors() {
                 <CardHeader>
                   <div className="flex items-center gap-2">
                     <Database className="h-5 w-5 text-primary" />
-                    <CardTitle className="text-[15px]">Data Residency</CardTitle>
+                    <CardTitle className="text-[15px]">{copy.dataCenters.residencyTitle}</CardTitle>
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-[13px] mb-3">
-                    Customer data is stored in the region closest to your primary usage location.
-                  </p>
+                  <p className="text-[13px] mb-3">{copy.dataCenters.residencyDescription}</p>
                   <ul className="space-y-2 text-[13px]">
-                    <li className="flex items-center gap-2">
-                      <Lock className="h-4 w-4 text-muted-foreground" />
-                      <span>Data encrypted at rest and in transit</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <Lock className="h-4 w-4 text-muted-foreground" />
-                      <span>Automated backups in same region</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <Lock className="h-4 w-4 text-muted-foreground" />
-                      <span>No cross-region data transfer by default</span>
-                    </li>
+                    {copy.dataCenters.safeguards.map((safeguard) => (
+                      <li key={safeguard} className="flex items-center gap-2">
+                        <Lock className="h-4 w-4 text-muted-foreground" />
+                        <span>{safeguard}</span>
+                      </li>
+                    ))}
                   </ul>
                 </CardContent>
               </Card>
@@ -356,43 +299,31 @@ export default function Subprocessors() {
               <CardHeader>
                 <div className="flex items-center gap-3">
                   <Mail className="h-6 w-6 text-primary" />
-                  <CardTitle>Subprocessor Updates</CardTitle>
+                  <CardTitle>{copy.updates.title}</CardTitle>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                <p>
-                  We are committed to transparency regarding our use of subprocessors. Here's how we keep you informed:
-                </p>
+                <p>{copy.updates.intro}</p>
 
                 <div className="grid md:grid-cols-2 gap-6">
                   <div>
-                    <h4 className="font-semibold mb-2">Notification Process</h4>
+                    <h4 className="font-semibold mb-2">{copy.updates.processTitle}</h4>
                     <ul className="space-y-2 text-[13px]">
-                      <li className="flex items-start gap-2">
-                        <CheckCircle className="h-4 w-4 text-green-500 mt-0.5" />
-                        <span>30-day advance notice for new subprocessors</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <CheckCircle className="h-4 w-4 text-green-500 mt-0.5" />
-                        <span>Email notifications to account administrators</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <CheckCircle className="h-4 w-4 text-green-500 mt-0.5" />
-                        <span>Updates posted to this page</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <CheckCircle className="h-4 w-4 text-green-500 mt-0.5" />
-                        <span>Opportunity to object to changes</span>
-                      </li>
+                      {copy.updates.process.map((step) => (
+                        <li key={step} className="flex items-start gap-2">
+                          <CheckCircle className="h-4 w-4 text-green-500 mt-0.5" />
+                          <span>{step}</span>
+                        </li>
+                      ))}
                     </ul>
                   </div>
 
                   <div>
-                    <h4 className="font-semibold mb-2">Subscribe to Updates</h4>
-                    <p className="text-[13px] mb-3">Stay informed about changes to our subprocessor list</p>
+                    <h4 className="font-semibold mb-2">{copy.updates.subscribeTitle}</h4>
+                    <p className="text-[13px] mb-3">{copy.updates.subscribeDescription}</p>
                     <Button className="w-full min-h-[44px]" asChild data-testid="button-subprocessors-subscribe">
-                      <a href="mailto:privacy@e-code.ai?subject=Subscribe to Subprocessor Updates">
-                        Subscribe to Notifications
+                      <a href={`mailto:privacy@e-code.ai?subject=${encodeURIComponent(copy.updates.mailSubject)}`}>
+                        {copy.updates.subscribeAction}
                       </a>
                     </Button>
                   </div>
@@ -407,49 +338,30 @@ export default function Subprocessors() {
       <section className="py-12 bg-muted/30">
         <div className="container-responsive">
           <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold mb-2">Related Documents</h2>
-            <p className="text-muted-foreground">Learn more about our data protection practices</p>
+            <h2 className="text-2xl font-bold mb-2">{copy.related.title}</h2>
+            <p className="text-muted-foreground">{copy.related.description}</p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
-            <Card className="hover:shadow-lg transition-shadow">
-              <CardHeader>
-                <FileText className="h-8 w-8 text-primary mb-2" />
-                <CardTitle className="text-[15px]">Privacy Policy</CardTitle>
-                <CardDescription>How we collect, use, and protect your data</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button variant="outline" className="w-full" asChild>
-                  <Link href="/privacy">View Policy</Link>
-                </Button>
-              </CardContent>
-            </Card>
+            {copy.related.documents.map((document) => {
+              const related = RELATED_DOCUMENTS[document.id];
+              const Icon = related.icon;
 
-            <Card className="hover:shadow-lg transition-shadow">
-              <CardHeader>
-                <FileText className="h-8 w-8 text-primary mb-2" />
-                <CardTitle className="text-[15px]">Data Processing Agreement</CardTitle>
-                <CardDescription>Our commitments for processing personal data</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button variant="outline" className="w-full" asChild>
-                  <Link href="/dpa">View DPA</Link>
-                </Button>
-              </CardContent>
-            </Card>
-
-            <Card className="hover:shadow-lg transition-shadow">
-              <CardHeader>
-                <Shield className="h-8 w-8 text-primary mb-2" />
-                <CardTitle className="text-[15px]">Security Overview</CardTitle>
-                <CardDescription>Our security measures and certifications</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button variant="outline" className="w-full" asChild>
-                  <Link href="/security">View Security</Link>
-                </Button>
-              </CardContent>
-            </Card>
+              return (
+                <Card key={document.id} className="hover:shadow-lg transition-shadow">
+                  <CardHeader>
+                    <Icon className="h-8 w-8 text-primary mb-2" />
+                    <CardTitle className="text-[15px]">{document.title}</CardTitle>
+                    <CardDescription>{document.description}</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Button variant="outline" className="w-full" asChild>
+                      <Link href={related.href}>{document.action}</Link>
+                    </Button>
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         </div>
       </section>
@@ -460,19 +372,17 @@ export default function Subprocessors() {
           <Card className="max-w-2xl mx-auto text-center">
             <CardContent className="py-8">
               <Shield className="h-12 w-12 mx-auto mb-4 text-primary" />
-              <h3 className="text-xl font-semibold mb-2">Questions About Our Subprocessors?</h3>
-              <p className="text-muted-foreground mb-6">
-                Our privacy team is here to answer your questions about data processing and subprocessors
-              </p>
+              <h3 className="text-xl font-semibold mb-2">{copy.contact.title}</h3>
+              <p className="text-muted-foreground mb-6">{copy.contact.description}</p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Button asChild>
                   <a href="mailto:privacy@e-code.ai">
                     <Mail className="mr-2 h-4 w-4" />
-                    Contact Privacy Team
+                    {copy.contact.primary}
                   </a>
                 </Button>
                 <Button variant="outline" asChild>
-                  <Link href="/support">Get Support</Link>
+                  <Link href="/support">{copy.contact.secondary}</Link>
                 </Button>
               </div>
             </CardContent>

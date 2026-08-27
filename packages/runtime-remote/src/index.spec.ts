@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   RemoteKubernetesRuntimeAdapter,
   isAuthSocketClose,
@@ -283,6 +283,98 @@ describe('RemoteKubernetesRuntimeAdapter', () => {
 
     await expect(adapter.writeFile('src/App.tsx', 'export default null;')).resolves.toBeUndefined();
     expect(writeAttempts).toBe(2); // failed once (502), retried, succeeded — file not lost
+  });
+
+  it('retries an idempotent write through a provisioning 404 (op raced ahead of workspace creation) instead of hard-failing', async () => {
+    let writeAttempts = 0;
+
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+
+      if (url.endsWith('/runtime/boot')) {
+        return new Response(null, { status: 204 });
+      }
+
+      if (url.endsWith('/workspaces') && init?.method === 'POST') {
+        return Response.json({
+          id: 'ws-1',
+          runtimeMode: 'remote-kubernetes',
+          status: 'running',
+          workdir: '/workspace',
+          createdAt: '2026-04-28T00:00:00.000Z',
+          updatedAt: '2026-04-28T00:00:00.000Z',
+        });
+      }
+
+      if (url.endsWith('/files/write')) {
+        writeAttempts += 1;
+
+        // First attempt lands before authorizeRuntimeWorkspace can resolve the id →
+        // 404 PROJECT_NOT_FOUND (the reported "Remote runtime request failed: 404").
+        // The record exists by the retry.
+        return writeAttempts === 1
+          ? Response.json({ code: 'PROJECT_NOT_FOUND', error: 'not found' }, { status: 404 })
+          : new Response(null, { status: 204 });
+      }
+
+      return Response.json([]);
+    });
+
+    const adapter = new RemoteKubernetesRuntimeAdapter({
+      baseUrl: 'https://runtime.example.com',
+      authToken: 'token-123',
+      fetchImpl: fetchMock as typeof fetch,
+      WebSocketImpl: FakeWebSocket,
+    });
+
+    await adapter.boot();
+    await adapter.startWorkspace();
+
+    await expect(adapter.writeFile('src/App.tsx', 'export default null;')).resolves.toBeUndefined();
+    expect(writeAttempts).toBe(2); // provisioning 404 on attempt 1, self-healed on retry
+  });
+
+  it('does NOT retry a 404 that is not a provisioning-not-found (a genuine 4xx stays a hard failure)', async () => {
+    let writeAttempts = 0;
+
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+
+      if (url.endsWith('/runtime/boot')) {
+        return new Response(null, { status: 204 });
+      }
+
+      if (url.endsWith('/workspaces') && init?.method === 'POST') {
+        return Response.json({
+          id: 'ws-1',
+          runtimeMode: 'remote-kubernetes',
+          status: 'running',
+          workdir: '/workspace',
+          createdAt: '2026-04-28T00:00:00.000Z',
+          updatedAt: '2026-04-28T00:00:00.000Z',
+        });
+      }
+
+      if (url.endsWith('/files/write')) {
+        writeAttempts += 1;
+        return Response.json({ code: 'SOME_OTHER_404', error: 'nope' }, { status: 404 });
+      }
+
+      return Response.json([]);
+    });
+
+    const adapter = new RemoteKubernetesRuntimeAdapter({
+      baseUrl: 'https://runtime.example.com',
+      authToken: 'token-123',
+      fetchImpl: fetchMock as typeof fetch,
+      WebSocketImpl: FakeWebSocket,
+    });
+
+    await adapter.boot();
+    await adapter.startWorkspace();
+
+    await expect(adapter.writeFile('src/App.tsx', 'export default null;')).rejects.toMatchObject({ status: 404 });
+    expect(writeAttempts).toBe(1); // thrown immediately, not retried
   });
 
   it('re-provisions a GC-reaped workspace (stale ws-id) on WORKSPACE_AGENT_REQUEST_FAILED, then retries — no ENOTFOUND loop', async () => {
@@ -1126,3 +1218,267 @@ describe('RemoteKubernetesRuntimeAdapter', () => {
     expect(isAuthSocketClose(undefined)).toBe(false);
   });
 });
+
+/*
+ * BUG-AGENT-001 — amplification d'écritures.
+ *
+ * Mesuré en direct : 144 `PUT …/files/write` pour 5 fichiers sur UNE génération,
+ * dont `tsconfig.json` 28 fois pour une SEULE taille de contenu. Une première
+ * garde posée sur l'ActionRunner n'a rien changé (144 avant, 144 après) : les
+ * écritures redondantes ne partagent pas le même runner. L'adaptateur est le
+ * seul point de passage obligé.
+ *
+ * On compte donc les requêtes réellement émises, pas la forme du code.
+ */
+describe('BUG-AGENT-001 — writeFile ne repart sur le réseau que sur changement réel', () => {
+  const writesOf = (fetchMock: ReturnType<typeof vi.fn>) =>
+    fetchMock.mock.calls.filter(([url]) => String(url).includes('/files/write'));
+
+  function makeAdapter() {
+    const fetchMock = createFetchMock() as unknown as ReturnType<typeof vi.fn>;
+    const adapter = new RemoteKubernetesRuntimeAdapter({
+      baseUrl: 'https://runtime.example.com',
+      authToken: 'token',
+      workspaceId: 'ws-1',
+      fetchImpl: fetchMock as unknown as typeof fetch,
+      WebSocketImpl: FakeWebSocket,
+    });
+
+    return { adapter, fetchMock };
+  }
+
+  it('vingt écritures identiques ne produisent QU_UNE requête', async () => {
+    const { adapter, fetchMock } = makeAdapter();
+
+    for (let i = 0; i < 20; i++) {
+      await adapter.writeFile('tsconfig.json', '{"compilerOptions":{}}');
+    }
+
+    expect(writesOf(fetchMock)).toHaveLength(1);
+  });
+
+  it('tout changement de contenu passe — sinon on perd le fichier', async () => {
+    const { adapter, fetchMock } = makeAdapter();
+
+    await adapter.writeFile('package.json', '{"name":"a"}');
+    await adapter.writeFile('package.json', '{"name":"a"}');
+    await adapter.writeFile('package.json', '{"name":"a","deps":{}}');
+
+    expect(writesOf(fetchMock)).toHaveLength(2);
+  });
+
+  it('un retour au contenu précédent est bien réécrit (A → B → A)', async () => {
+    const { adapter, fetchMock } = makeAdapter();
+
+    await adapter.writeFile('src/App.tsx', 'AAA');
+    await adapter.writeFile('src/App.tsx', 'BBB');
+    await adapter.writeFile('src/App.tsx', 'AAA');
+
+    const bodies = writesOf(fetchMock).map(([, init]) => JSON.parse(String((init as RequestInit).body)).content);
+    expect(bodies).toEqual(['AAA', 'BBB', 'AAA']);
+  });
+
+  it('une commande shell invalide le mémo — elle a pu toucher le disque', async () => {
+    const { adapter, fetchMock } = makeAdapter();
+
+    await adapter.writeFile('src/App.tsx', 'AAA');
+    await adapter.runCommand({ command: 'rm -f src/App.tsx' } as never).catch(() => undefined);
+    await adapter.writeFile('src/App.tsx', 'AAA');
+
+    expect(writesOf(fetchMock)).toHaveLength(2);
+  });
+
+  it('deux chemins différents ne se masquent pas', async () => {
+    const { adapter, fetchMock } = makeAdapter();
+
+    await adapter.writeFile('a.ts', 'X');
+    await adapter.writeFile('b.ts', 'X');
+
+    expect(writesOf(fetchMock)).toHaveLength(2);
+  });
+});
+
+/*
+ * BUG-AGENT-006 + BUG-AGENT-002 — un workspace pas encore prêt ne doit pas
+ * déclencher une rafale.
+ *
+ * Mesuré en direct le 21/08 : une génération de 15 min a produit 468
+ * `PUT …/files/write`, dont 468 réponses `425 Too Early` et AUCUN succès. Le
+ * budget de tentatives (4 essais, 250/500/750 ms) expirait en ~1,5 s alors
+ * qu'un workspace met des dizaines de secondes, et chaque action ré-émise
+ * repartait pour sa propre rafale.
+ *
+ * On compte donc les requêtes RÉELLEMENT émises, avec des timers simulés pour
+ * ne pas attendre le backoff en vrai.
+ */
+describe('BUG-AGENT-006/002 — 425 Too Early : backoff, Retry-After et attente partagée', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  function adapterWith(handler: (url: string, init?: RequestInit) => Response) {
+    const base = createFetchMock() as unknown as ReturnType<typeof vi.fn>;
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+
+      if (url.includes('/files/write')) {
+        return handler(url, init);
+      }
+
+      return base(input, init);
+    });
+
+    const adapter = new RemoteKubernetesRuntimeAdapter({
+      baseUrl: 'https://runtime.example.com',
+      authToken: 'token',
+      workspaceId: 'ws-1',
+      fetchImpl: fetchMock as unknown as typeof fetch,
+      WebSocketImpl: FakeWebSocket,
+    });
+
+    const writes = () => fetchMock.mock.calls.filter(([u]) => String(u).includes('/files/write'));
+
+    return { adapter, writes };
+  }
+
+  it('un 425 persistant finit par abandonner, sans marteler', async () => {
+    vi.useFakeTimers();
+
+    const { adapter, writes } = adapterWith(() => new Response('{"code":"WORKSPACE_NOT_READY"}', { status: 425 }));
+
+    const pending = adapter.writeFile('src/App.tsx', 'x').catch(() => 'rejeté');
+    await vi.runAllTimersAsync();
+
+    expect(await pending).toBe('rejeté');
+
+    /*
+     * Le point du ticket : un nombre BORNÉ de tentatives. 468 en 15 min était
+     * le symptôme ; ici on veut une poignée.
+     */
+    expect(writes().length).toBe(7);
+    expect(writes().length).toBeGreaterThan(1);
+  });
+
+  it('aboutit dès que le workspace devient prêt', async () => {
+    vi.useFakeTimers();
+
+    let calls = 0;
+    const { adapter, writes } = adapterWith(() => {
+      calls += 1;
+      return calls < 3 ? new Response('{}', { status: 425 }) : new Response(null, { status: 204 });
+    });
+
+    const pending = adapter.writeFile('src/App.tsx', 'x');
+    await vi.runAllTimersAsync();
+    await expect(pending).resolves.toBeUndefined();
+
+    expect(writes()).toHaveLength(3);
+  });
+
+  it('chaque fichier reste borné à son budget — pas de martèlement', async () => {
+    vi.useFakeTimers();
+
+    const { adapter, writes } = adapterWith(() => new Response('{}', { status: 425 }));
+
+    const all = Promise.allSettled(
+      Array.from({ length: 10 }, (_, i) => adapter.writeFile(`src/f${i}.ts`, `contenu ${i}`)),
+    );
+    await vi.runAllTimersAsync();
+    await all;
+
+    /*
+     * 10 fichiers × 7 tentatives = 70, et ça s'ARRÊTE là. Le symptôme mesuré
+     * était 468 écritures qui montaient encore après 15 min, parce que chaque
+     * action échouait en ~1,5 s et repartait aussitôt. Ici chaque fichier occupe
+     * ~35 s de backoff avant d'abandonner proprement.
+     */
+    expect(writes()).toHaveLength(70);
+  });
+
+  it('respecte Retry-After quand le serveur en fournit un', async () => {
+    vi.useFakeTimers();
+
+    const { adapter, writes } = adapterWith(
+      () => new Response('{}', { status: 425, headers: { 'retry-after': '2' } }),
+    );
+
+    const pending = adapter.writeFile('src/App.tsx', 'x').catch(() => 'rejeté');
+
+    // avant le délai annoncé, aucune nouvelle tentative
+    await vi.advanceTimersByTimeAsync(500);
+
+    const early = writes().length;
+    await vi.runAllTimersAsync();
+    await pending;
+
+    expect(early).toBeLessThan(writes().length);
+  });
+});
+
+/*
+ * BUG-AGENT-006 — un `425 WORKSPACE_NOT_STARTED` doit PROVISIONNER, pas
+ * seulement retenter.
+ *
+ * Mesuré en direct le 21/08 : 468 écritures en `425` sur 15 min et **zéro
+ * `POST /workspaces`** sur toute la fenêtre. Personne ne créait le pod ; le
+ * client retentait contre un workspace inexistant et le projet restait vide.
+ */
+describe('BUG-AGENT-006 — 425 WORKSPACE_NOT_STARTED déclenche le provisionnement', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('émet un POST /workspaces puis aboutit une fois le pod prêt', async () => {
+    vi.useFakeTimers();
+
+    let notStarted = 2;
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+
+      if (url.includes('/files/write')) {
+        if (notStarted > 0) {
+          notStarted -= 1;
+          return new Response('{"code":"WORKSPACE_NOT_STARTED"}', { status: 425 });
+        }
+
+        return new Response(null, { status: 204 });
+      }
+
+      if (url.endsWith('/workspaces') && init?.method === 'POST') {
+        return Response.json({
+          id: 'ws-1',
+          runtimeMode: 'remote-kubernetes',
+          status: 'running',
+          workdir: '/workspace',
+          createdAt: '2026-04-28T00:00:00.000Z',
+          updatedAt: '2026-04-28T00:00:00.000Z',
+        });
+      }
+
+      if (url.includes('/status')) {
+        return Response.json({ id: 'ws-1', status: 'running', workdir: '/workspace' });
+      }
+
+      return new Response(null, { status: 204 });
+    });
+
+    const adapter = new RemoteKubernetesRuntimeAdapter({
+      baseUrl: 'https://runtime.example.com',
+      authToken: 'token',
+      workspaceId: 'ws-1',
+      fetchImpl: fetchMock as unknown as typeof fetch,
+      WebSocketImpl: FakeWebSocket,
+    });
+
+    const pending = adapter.writeFile('src/App.tsx', 'contenu');
+    await vi.runAllTimersAsync();
+    await expect(pending).resolves.toBeUndefined();
+
+    const provisions = fetchMock.mock.calls.filter(
+      ([u, i]) => String(u).endsWith('/workspaces') && (i as RequestInit | undefined)?.method === 'POST',
+    );
+
+    // le point du ticket : au moins UN provisionnement a été demandé
+    expect(provisions.length).toBeGreaterThanOrEqual(1);
+  });
+})

@@ -1,4 +1,5 @@
 import { Check, X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 /*
  * Mirrors the API's `registerSchema` (services/api/src/app.ts):
@@ -59,18 +60,28 @@ export function evaluatePassword(password: string): PasswordStrength {
  * Status tokens only (design accent policy: orange stays reserved for
  * brand CTAs; state colors come from the shared status palette).
  */
-const SCORE_META: Record<1 | 2 | 3 | 4, { label: string; color: string }> = {
-  1: { label: 'Weak', color: 'var(--status-error-text)' },
-  2: { label: 'Fair', color: 'var(--status-warning-text)' },
-  3: { label: 'Good', color: 'var(--status-warning-text)' },
-  4: { label: 'Strong', color: 'var(--status-success-text)' },
+const SCORE_META: Record<1 | 2 | 3 | 4, { labelKey: string; color: string }> = {
+  1: { labelKey: 'auth.passwordStrength.weak', color: 'var(--status-error-text)' },
+  2: { labelKey: 'auth.passwordStrength.fair', color: 'var(--status-warning-text)' },
+  3: { labelKey: 'auth.passwordStrength.good', color: 'var(--status-warning-text)' },
+  4: { labelKey: 'auth.passwordStrength.strong', color: 'var(--status-success-text)' },
 };
 
-const CHECKLIST: Array<{ key: keyof PasswordCriteria; label: string; required?: boolean }> = [
-  { key: 'minLength', label: `At least ${PASSWORD_MIN_LENGTH} characters (required)`, required: true },
-  { key: 'longLength', label: `${PASSWORD_STRONG_LENGTH}+ characters` },
-  { key: 'hasNumber', label: 'At least one number' },
-  { key: 'hasSymbol', label: 'At least one symbol' },
+const CHECKLIST: Array<{
+  key: keyof PasswordCriteria;
+  labelKey: string;
+  value?: number;
+  required?: boolean;
+}> = [
+  {
+    key: 'minLength',
+    labelKey: 'auth.passwordStrength.minimumRequired',
+    value: PASSWORD_MIN_LENGTH,
+    required: true,
+  },
+  { key: 'longLength', labelKey: 'auth.passwordStrength.recommendedLength', value: PASSWORD_STRONG_LENGTH },
+  { key: 'hasNumber', labelKey: 'auth.passwordStrength.number' },
+  { key: 'hasSymbol', labelKey: 'auth.passwordStrength.symbol' },
 ];
 
 /**
@@ -80,19 +91,21 @@ const CHECKLIST: Array<{ key: keyof PasswordCriteria; label: string; required?: 
  * criteria flip as the user types without being interrupted mid-keystroke.
  */
 export function PasswordStrengthMeter({ password, className }: { password: string; className?: string }) {
+  const { t } = useTranslation();
   const { score, criteria } = evaluatePassword(password);
   const meta = score === 0 ? null : SCORE_META[score];
+  const scoreLabel = meta ? t(meta.labelKey) : t('auth.passwordStrength.empty');
 
   return (
     <div className={className} aria-live="polite">
       <div className="flex items-center gap-2">
         <div
           role="meter"
-          aria-label="Password strength"
+          aria-label={t('auth.passwordStrength.label')}
           aria-valuemin={0}
           aria-valuemax={4}
           aria-valuenow={score}
-          aria-valuetext={meta ? meta.label : 'Empty'}
+          aria-valuetext={scoreLabel}
           className="grid flex-1 grid-cols-4 gap-1"
         >
           {[1, 2, 3, 4].map((segment) => (
@@ -109,12 +122,12 @@ export function PasswordStrengthMeter({ password, className }: { password: strin
           className="min-w-[3.5rem] text-right text-[11px] font-semibold"
           style={{ color: meta?.color ?? 'var(--vc-auth-muted)' }}
         >
-          {meta ? meta.label : ' '}
+          {meta ? scoreLabel : ' '}
         </span>
       </div>
 
       <ul className="mt-2 grid gap-1 sm:grid-cols-2">
-        {CHECKLIST.map(({ key, label, required }) => {
+        {CHECKLIST.map(({ key, labelKey, value, required }) => {
           const met = criteria[key];
 
           const color = met
@@ -131,8 +144,10 @@ export function PasswordStrengthMeter({ password, className }: { password: strin
                 <X className="h-3 w-3 shrink-0" aria-hidden />
               )}
               <span>
-                {label}
-                <span className="sr-only">{met ? ' — met' : ' — not met'}</span>
+                {t(labelKey, value === undefined ? undefined : { count: value })}
+                <span className="sr-only">
+                  {met ? t('auth.passwordStrength.met') : t('auth.passwordStrength.notMet')}
+                </span>
               </span>
             </li>
           );

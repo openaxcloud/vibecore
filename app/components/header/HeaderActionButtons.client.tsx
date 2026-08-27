@@ -1,19 +1,26 @@
 import { useStore } from '@nanostores/react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { toast } from 'react-toastify';
 import { ACCOUNT_MENU_LINKS, resolveAccountMenuLink } from '~/components/@settings/core/account-menu-links';
 import { DeployButton } from '~/components/deploy/DeployButton';
 import { buttonVariants } from '~/components/ui/Button';
 import { Dropdown, DropdownItem } from '~/components/ui/Dropdown';
 import { useHydrateConnectors } from '~/lib/hooks/useHydrateConnectors';
+import { getHeaderActionButtonsCopy } from '~/lib/i18n/catalogs/header-action-buttons';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { classNames } from '~/utils/classNames';
 
-async function downloadDebugLog() {
+async function downloadDebugLog(): Promise<boolean> {
   try {
     const { downloadDebugLog: run } = await import('~/utils/debugLogger');
     await run();
+
+    return true;
   } catch (error) {
     console.error('Failed to download debug log:', error);
+
+    return false;
   }
 }
 
@@ -23,6 +30,12 @@ interface HeaderActionButtonsProps {
 
 export function HeaderActionButtons({ chatStarted: _chatStarted }: HeaderActionButtonsProps) {
   const [activePreviewIndex] = useState(0);
+  const [isDownloadingDebugLog, setIsDownloadingDebugLog] = useState(false);
+  const { i18n } = useTranslation();
+  const copy = getHeaderActionButtonsCopy(i18n.resolvedLanguage ?? i18n.language);
+  const liveCopy = useRef(copy);
+  liveCopy.current = copy;
+
   const previews = useStore(workbenchStore.previews);
   const activePreview = previews[activePreviewIndex];
 
@@ -36,8 +49,38 @@ export function HeaderActionButtons({ chatStarted: _chatStarted }: HeaderActionB
 
   const shouldShowButtons = activePreview;
 
+  const openBugReport = () => {
+    const openedWindow = window.open(
+      resolveAccountMenuLink(ACCOUNT_MENU_LINKS.reportBug),
+      '_blank',
+      'noopener,noreferrer',
+    );
+
+    if (openedWindow) {
+      openedWindow.opener = null;
+    }
+  };
+
+  const handleDebugLogDownload = async () => {
+    if (isDownloadingDebugLog) {
+      return;
+    }
+
+    setIsDownloadingDebugLog(true);
+
+    const downloaded = await downloadDebugLog();
+
+    if (downloaded) {
+      toast.success(liveCopy.current['headerActionButtons.debugLogDownloaded']);
+    } else {
+      toast.error(liveCopy.current['headerActionButtons.debugLogDownloadFailed']);
+    }
+
+    setIsDownloadingDebugLog(false);
+  };
+
   return (
-    <div className="flex items-center gap-1">
+    <div className="flex min-w-0 flex-wrap items-center justify-end gap-1">
       {/* Deploy Button */}
       {shouldShowButtons && <DeployButton />}
 
@@ -49,22 +92,48 @@ export function HeaderActionButtons({ chatStarted: _chatStarted }: HeaderActionB
           trigger={
             <button
               type="button"
-              title="Help & debug tools"
-              aria-label="Help and debug tools"
-              className={classNames(buttonVariants({ variant: 'outline', size: 'sm' }), 'gap-1.5')}
+              title={copy['headerActionButtons.help.tooltip']}
+              aria-label={copy['headerActionButtons.help.aria']}
+              className={classNames(
+                buttonVariants({ variant: 'outline', size: 'sm' }),
+                'min-h-11 min-w-11 max-w-full gap-1.5 px-2 sm:px-3',
+              )}
             >
-              <div className="i-ph:question" />
-              <span>Help</span>
+              <div className="i-ph:question shrink-0" aria-hidden="true" />
+              <span className="hidden min-w-0 sm:inline">{copy['headerActionButtons.help.label']}</span>
             </button>
           }
         >
-          <DropdownItem onSelect={() => window.open(resolveAccountMenuLink(ACCOUNT_MENU_LINKS.reportBug), '_blank')}>
-            <div className="i-ph:bug" />
-            Report a bug
+          <DropdownItem
+            className="min-h-11 min-w-0 whitespace-normal [overflow-wrap:anywhere]"
+            onSelect={openBugReport}
+          >
+            <div className="i-ph:bug shrink-0" aria-hidden="true" />
+            <span className="min-w-0">{copy['headerActionButtons.reportBug']}</span>
           </DropdownItem>
-          <DropdownItem onSelect={() => void downloadDebugLog()}>
-            <div className="i-ph:download" />
-            Download debug log
+          <DropdownItem
+            className={classNames(
+              'min-h-11 min-w-0 whitespace-normal [overflow-wrap:anywhere]',
+              isDownloadingDebugLog && 'pointer-events-none opacity-60',
+            )}
+            onSelect={() => void handleDebugLogDownload()}
+          >
+            <div
+              className={classNames(
+                'shrink-0',
+                isDownloadingDebugLog ? 'i-svg-spinners:90-ring-with-bg' : 'i-ph:download',
+              )}
+              aria-hidden="true"
+            />
+            <span className="min-w-0" aria-live="polite">
+              {
+                copy[
+                  isDownloadingDebugLog
+                    ? 'headerActionButtons.downloadingDebugLog'
+                    : 'headerActionButtons.downloadDebugLog'
+                ]
+              }
+            </span>
           </DropdownItem>
         </Dropdown>
       )}

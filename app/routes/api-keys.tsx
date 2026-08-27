@@ -9,10 +9,22 @@ import { ConfirmationDialog, Dialog, DialogTitle } from '~/components/ui/Dialog'
 import { EmptyState } from '~/components/ui/EmptyState';
 import { RelativeTime } from '~/components/ui/RelativeTime';
 import { apiRequest, type EnterpriseActionArgs, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
-import { formatUserAreaDate } from '~/lib/i18n/user-area-locale';
+import {
+  formatApiKeyCount,
+  formatApiKeyDate,
+  getApiKeysCopy,
+  interpolateApiKeysWorkspaceSettingsCopy,
+  resolveApiKeyActionErrorCode,
+  type ApiKeyActionErrorCode,
+} from '~/lib/i18n/catalogs/api-keys-workspace-settings';
+import { resolveRequestLocale } from '~/lib/i18n/request-locale';
 import { shouldRethrowActionError } from '~/lib/route-reauth';
 
-export const meta: MetaFunction = () => [{ title: 'API keys - E-Code' }];
+export const meta: MetaFunction<typeof loader> = ({ data }) => {
+  const copy = getApiKeysCopy(data?.language).seo;
+
+  return [{ title: copy.title }, { name: 'description', content: copy.description }];
+};
 export { UserAreaRouteErrorBoundary as ErrorBoundary } from '~/components/dashboard/UserAreaRouteError';
 
 type ApiKeyScope = 'read' | 'write' | 'admin';
@@ -27,40 +39,39 @@ type ApiKey = {
   createdAt: string;
 };
 
-const SCOPE_OPTIONS: { value: ApiKeyScope; label: string; detail: string }[] = [
-  { value: 'read', label: 'Read', detail: 'List and fetch resources (safe, read-only requests).' },
-  { value: 'write', label: 'Write', detail: 'Create, update and delete resources.' },
-  { value: 'admin', label: 'Admin', detail: 'Full access, including minting and revoking other keys.' },
-];
+const API_KEY_SCOPES: readonly ApiKeyScope[] = ['read', 'write', 'admin'];
+const MASKED_API_KEY_PREFIX = 'vck_…';
 
-const EXPIRY_OPTIONS: { value: string; label: string }[] = [
-  { value: '', label: 'Never expires' },
-  { value: '30', label: '30 days' },
-  { value: '90', label: '90 days' },
-  { value: '365', label: '1 year' },
-];
+const EXPIRY_OPTIONS = [
+  ['', 'never'],
+  ['30', 'days30'],
+  ['90', 'days90'],
+  ['365', 'year1'],
+] as const;
 
 export async function loader({ request }: EnterpriseLoaderArgs) {
+  const language = resolveRequestLocale(request).language;
   const data = await apiRequest<{ keys: ApiKey[] }>(request, '/api/keys');
 
-  return { keys: data.keys };
+  return { keys: data.keys, language };
 }
 
 type ActionResult =
   | { ok: true; intent: 'create'; token: string; key: ApiKey }
   | { ok: true; intent: 'revoke'; id: string }
-  | { ok: false; error: string };
+  | { ok: false; intent: 'create' | 'revoke' | 'unknown'; errorCode: ApiKeyActionErrorCode };
 
 export async function action({ request }: EnterpriseActionArgs) {
   const form = await request.formData();
   const intent = String(form.get('intent') ?? '');
+  const actionIntent = intent === 'create' || intent === 'revoke' ? intent : 'unknown';
 
   try {
     if (intent === 'revoke') {
       const id = String(form.get('keyId') ?? '');
 
       if (!id) {
-        return json<ActionResult>({ ok: false, error: 'Missing key id.' }, { status: 400 });
+        return json<ActionResult>({ ok: false, intent: 'revoke', errorCode: 'missingKeyId' }, { status: 400 });
       }
 
       await apiRequest(request, `/api/keys/${encodeURIComponent(id)}`, { method: 'DELETE' });
@@ -70,16 +81,20 @@ export async function action({ request }: EnterpriseActionArgs) {
 
     if (intent === 'create') {
       const name = String(form.get('name') ?? '').trim();
-      const scopes = SCOPE_OPTIONS.map((option) => option.value).filter((scope) => form.get(`scope.${scope}`) === 'on');
+      const scopes = API_KEY_SCOPES.filter((scope) => form.get(`scope.${scope}`) === 'on');
       const expiresInDaysRaw = String(form.get('expiresInDays') ?? '').trim();
       const expiresInDays = expiresInDaysRaw ? Number(expiresInDaysRaw) : undefined;
 
       if (!name) {
-        return json<ActionResult>({ ok: false, error: 'Give the key a name.' }, { status: 400 });
+        return json<ActionResult>({ ok: false, intent: 'create', errorCode: 'nameRequired' }, { status: 400 });
       }
 
       if (scopes.length === 0) {
-        return json<ActionResult>({ ok: false, error: 'Select at least one scope.' }, { status: 400 });
+        return json<ActionResult>({ ok: false, intent: 'create', errorCode: 'scopeRequired' }, { status: 400 });
+      }
+
+      if (expiresInDaysRaw && !EXPIRY_OPTIONS.some(([value]) => value === expiresInDaysRaw)) {
+        return json<ActionResult>({ ok: false, intent: 'create', errorCode: 'expiryInvalid' }, { status: 400 });
       }
 
       const created = await apiRequest<{ key: ApiKey & { token: string } }>(request, '/api/keys', {
@@ -92,7 +107,7 @@ export async function action({ request }: EnterpriseActionArgs) {
       return json<ActionResult>({ ok: true, intent: 'create', token, key });
     }
 
-    return json<ActionResult>({ ok: false, error: 'Unknown action.' }, { status: 400 });
+    return json<ActionResult>({ ok: false, intent: 'unknown', errorCode: 'unknownAction' }, { status: 400 });
   } catch (error) {
     /*
      * apiRequest throws a 3xx redirect Response when the session expired mid-flight
@@ -105,21 +120,19 @@ export async function action({ request }: EnterpriseActionArgs) {
       throw error;
     }
 
-    // apiRequest throws a json() Response on 4xx API errors; surface its message inline.
+    /*
+     * Never render provider/API response bodies: they can contain English-only
+     * technical details or sensitive data. Map the status to reviewed UI copy.
+     */
     if (error instanceof Response) {
-      const payload = (await error.json().catch(() => null)) as { error?: string } | null;
-
-      return json<ActionResult>({ ok: false, error: payload?.error ?? 'Request failed.' }, { status: error.status });
+      return json<ActionResult>(
+        { ok: false, intent: actionIntent, errorCode: resolveApiKeyActionErrorCode(error.status) },
+        { status: error.status },
+      );
     }
 
-    return json<ActionResult>({ ok: false, error: 'Request failed.' }, { status: 500 });
+    return json<ActionResult>({ ok: false, intent: actionIntent, errorCode: 'requestFailed' }, { status: 500 });
   }
-}
-
-const dateFormat: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'short', day: 'numeric' };
-
-function formatDate(value: string | null) {
-  return value ? formatUserAreaDate(value, dateFormat) : null;
 }
 
 const BLUE_CTA =
@@ -128,11 +141,13 @@ const BLUE_CTA =
 function RevokeKeyButton({
   apiKey,
   busy,
+  label,
   onRequest,
   className,
 }: {
   apiKey: Pick<ApiKey, 'id' | 'name'>;
   busy: boolean;
+  label: string;
   onRequest: (key: Pick<ApiKey, 'id' | 'name'>) => void;
   className?: string;
 }) {
@@ -151,17 +166,19 @@ function RevokeKeyButton({
         type="submit"
         disabled={busy}
         style={{ color: 'var(--status-error-text)' }}
-        className="inline-flex min-h-[44px] w-full items-center justify-center gap-1.5 rounded-md border border-bolt-elements-borderColor px-3 text-xs font-medium hover:bg-[var(--status-error-bg)] disabled:opacity-60 sm:w-auto"
+        className="inline-flex min-h-[44px] w-full min-w-0 items-center justify-center gap-1.5 rounded-md border border-bolt-elements-borderColor px-3 text-center text-xs font-medium hover:bg-[var(--status-error-bg)] disabled:opacity-60 sm:w-auto"
       >
-        <Trash2 className="h-3.5 w-3.5" aria-hidden />
-        Revoke
+        <Trash2 className="h-3.5 w-3.5 shrink-0" aria-hidden />
+        <span className="break-words">{label}</span>
       </button>
     </Form>
   );
 }
 
 export default function ApiKeysPage() {
-  const { keys } = useLoaderData<typeof loader>();
+  const { keys, language } = useLoaderData<typeof loader>();
+  const copy = getApiKeysCopy(language);
+  const scopeOptions = API_KEY_SCOPES.map((value) => ({ value, ...copy.scopes[value] }));
   const actionData = useActionData<typeof action>() as ActionResult | undefined;
   const navigation = useNavigation();
   const busy = navigation.state !== 'idle';
@@ -171,7 +188,8 @@ export default function ApiKeysPage() {
   const [keyPendingRevoke, setKeyPendingRevoke] = useState<{ id: string; name: string } | null>(null);
 
   const createdToken = actionData?.ok && actionData.intent === 'create' ? actionData.token : null;
-  const error = actionData && !actionData.ok ? actionData.error : null;
+  const error = actionData && !actionData.ok ? copy.errors[actionData.errorCode] : null;
+  const errorIntent = actionData && !actionData.ok ? actionData.intent : null;
 
   /* Close the create dialog once the key lands (the banner takes over). */
   useEffect(() => {
@@ -195,7 +213,7 @@ export default function ApiKeysPage() {
   };
 
   return (
-    <AppShell title="API keys" description="Create, scope, rotate and revoke API keys for automation.">
+    <AppShell title={copy.shell.title} description={copy.shell.description}>
       <div className="min-w-0 space-y-6">
         {createdToken ? (
           <div
@@ -207,10 +225,10 @@ export default function ApiKeysPage() {
               borderLeft: '3px solid var(--vc-ide-accent-warning)',
             }}
           >
-            <p className="text-sm font-semibold" style={{ color: 'var(--status-warning-text)' }}>
-              Key created — copy it now. This is the only time the full key is shown.
+            <p className="break-words text-sm font-semibold" style={{ color: 'var(--status-warning-text)' }}>
+              {copy.created.notice}
             </p>
-            <div className="mt-2 flex min-w-0 items-center gap-2">
+            <div className="mt-2 flex min-w-0 flex-col items-stretch gap-2 sm:flex-row sm:items-center">
               <code
                 className="min-w-0 flex-1 overflow-x-auto whitespace-nowrap rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-3 px-3 py-2 text-sm text-bolt-elements-textPrimary"
                 style={{ fontFamily: 'var(--vc-font-code)' }}
@@ -220,16 +238,16 @@ export default function ApiKeysPage() {
               <button
                 type="button"
                 onClick={copyToken}
-                className="inline-flex min-h-[44px] shrink-0 items-center gap-1.5 rounded-md border border-bolt-elements-borderColor px-3 text-xs font-medium text-bolt-elements-textPrimary transition-colors hover:bg-bolt-elements-background-depth-3"
+                className="inline-flex min-h-[44px] shrink-0 items-center justify-center gap-1.5 rounded-md border border-bolt-elements-borderColor px-3 text-xs font-medium text-bolt-elements-textPrimary transition-colors hover:bg-bolt-elements-background-depth-3"
               >
                 {copied ? <Check className="h-3.5 w-3.5" aria-hidden /> : <Copy className="h-3.5 w-3.5" aria-hidden />}
-                {copied ? 'Copied' : 'Copy'}
+                {copied ? copy.created.copied : copy.created.copy}
               </button>
             </div>
           </div>
         ) : null}
 
-        {error ? (
+        {error && errorIntent !== 'create' ? (
           <p
             role="alert"
             className="rounded-md border border-[var(--status-error-border)] bg-[var(--status-error-bg)] px-3 py-2 text-sm"
@@ -241,21 +259,21 @@ export default function ApiKeysPage() {
 
         <section className="min-w-0 overflow-hidden rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-bolt-elements-borderColor p-5 sm:p-6">
-            <div className="flex items-center gap-3">
-              <h2 className="text-base font-semibold text-bolt-elements-textPrimary">Active keys</h2>
-              <StatusPill label={`${keys.length} key${keys.length === 1 ? '' : 's'}`} />
+            <div className="flex min-w-0 flex-wrap items-center gap-3">
+              <h2 className="break-words text-base font-semibold text-bolt-elements-textPrimary">{copy.list.title}</h2>
+              <StatusPill label={formatApiKeyCount(language, keys.length)} />
             </div>
             <button type="button" onClick={() => setCreateOpen(true)} className={BLUE_CTA}>
-              Create key
+              {copy.list.create}
             </button>
           </div>
 
           {keys.length === 0 ? (
             <EmptyState
               icon={KeyRound}
-              title="No API keys yet"
-              description="Create a key to authenticate with the E-Code API."
-              actionLabel="Create key"
+              title={copy.list.emptyTitle}
+              description={copy.list.emptyDescription}
+              actionLabel={copy.list.create}
               onAction={() => setCreateOpen(true)}
             />
           ) : (
@@ -270,12 +288,13 @@ export default function ApiKeysPage() {
                           className="mt-1 block truncate text-xs text-bolt-elements-textTertiary"
                           style={{ fontFamily: 'var(--vc-font-code)' }}
                         >
-                          {key.keyPrefix ? `${key.keyPrefix}…` : 'vck_…'}
+                          {key.keyPrefix ? `${key.keyPrefix}…` : MASKED_API_KEY_PREFIX}
                         </code>
                       </div>
                       <RevokeKeyButton
                         apiKey={key}
                         busy={busy}
+                        label={copy.revoke.action}
                         onRequest={setKeyPendingRevoke}
                         className="w-full shrink-0 sm:w-auto"
                       />
@@ -283,34 +302,42 @@ export default function ApiKeysPage() {
 
                     <dl className="mt-5 grid grid-cols-2 gap-x-5 gap-y-4 sm:grid-cols-4">
                       <div className="min-w-0">
-                        <dt className="text-xs font-medium text-bolt-elements-textTertiary">Scopes</dt>
+                        <dt className="break-words text-xs font-medium text-bolt-elements-textTertiary">
+                          {copy.fields.scopes}
+                        </dt>
                         <dd className="mt-1 flex flex-wrap gap-1.5">
                           {key.scopes.map((scope) => (
                             <span
                               key={scope}
                               className="rounded-full border border-bolt-elements-borderColor px-2 py-0.5 text-xs text-bolt-elements-textSecondary"
                             >
-                              {scope}
+                              {copy.scopes[scope].label}
                             </span>
                           ))}
                         </dd>
                       </div>
                       <div className="min-w-0">
-                        <dt className="text-xs font-medium text-bolt-elements-textTertiary">Last used</dt>
+                        <dt className="break-words text-xs font-medium text-bolt-elements-textTertiary">
+                          {copy.fields.lastUsed}
+                        </dt>
                         <dd className="mt-1 text-sm text-bolt-elements-textSecondary">
-                          {key.lastUsedAt ? <RelativeTime value={key.lastUsedAt} /> : 'Never'}
+                          {key.lastUsedAt ? <RelativeTime value={key.lastUsedAt} /> : copy.fields.never}
                         </dd>
                       </div>
                       <div className="min-w-0">
-                        <dt className="text-xs font-medium text-bolt-elements-textTertiary">Created</dt>
+                        <dt className="break-words text-xs font-medium text-bolt-elements-textTertiary">
+                          {copy.fields.created}
+                        </dt>
                         <dd className="mt-1 text-sm text-bolt-elements-textSecondary">
                           <RelativeTime value={key.createdAt} />
                         </dd>
                       </div>
                       <div className="min-w-0">
-                        <dt className="text-xs font-medium text-bolt-elements-textTertiary">Expiration</dt>
+                        <dt className="break-words text-xs font-medium text-bolt-elements-textTertiary">
+                          {copy.fields.expiration}
+                        </dt>
                         <dd className="mt-1 text-sm text-bolt-elements-textSecondary">
-                          {key.expiresAt ? formatDate(key.expiresAt) : 'Never expires'}
+                          {key.expiresAt ? formatApiKeyDate(key.expiresAt, language) : copy.fields.neverExpires}
                         </dd>
                       </div>
                     </dl>
@@ -321,20 +348,20 @@ export default function ApiKeysPage() {
               <div
                 className="hidden max-w-full overflow-x-auto overscroll-x-contain xl:block"
                 role="region"
-                aria-label="API keys table"
+                aria-label={copy.fields.tableAria}
                 tabIndex={0}
                 data-testid="api-key-table-scroll-region"
               >
                 <table className="w-full min-w-[760px] border-collapse text-sm">
                   <thead>
                     <tr className="border-b border-bolt-elements-borderColor text-left text-xs uppercase tracking-wide text-bolt-elements-textSecondary">
-                      <th className="px-5 py-3 font-medium">Name</th>
-                      <th className="px-5 py-3 font-medium">Key</th>
-                      <th className="px-5 py-3 font-medium">Scopes</th>
-                      <th className="px-5 py-3 font-medium">Last used</th>
-                      <th className="px-5 py-3 font-medium">Created</th>
+                      <th className="px-5 py-3 font-medium">{copy.fields.name}</th>
+                      <th className="px-5 py-3 font-medium">{copy.fields.key}</th>
+                      <th className="px-5 py-3 font-medium">{copy.fields.scopes}</th>
+                      <th className="px-5 py-3 font-medium">{copy.fields.lastUsed}</th>
+                      <th className="px-5 py-3 font-medium">{copy.fields.created}</th>
                       <th className="px-5 py-3 font-medium">
-                        <span className="sr-only">Actions</span>
+                        <span className="sr-only">{copy.fields.actions}</span>
                       </th>
                     </tr>
                   </thead>
@@ -349,7 +376,7 @@ export default function ApiKeysPage() {
                           className="px-5 py-3 text-xs text-bolt-elements-textTertiary"
                           style={{ fontFamily: 'var(--vc-font-code)' }}
                         >
-                          {key.keyPrefix ? `${key.keyPrefix}…` : 'vck_…'}
+                          {key.keyPrefix ? `${key.keyPrefix}…` : MASKED_API_KEY_PREFIX}
                         </td>
                         <td className="px-5 py-3">
                           <div className="flex flex-wrap gap-1.5">
@@ -358,24 +385,29 @@ export default function ApiKeysPage() {
                                 key={scope}
                                 className="rounded-full border border-bolt-elements-borderColor px-2 py-0.5 text-xs text-bolt-elements-textSecondary"
                               >
-                                {scope}
+                                {copy.scopes[scope].label}
                               </span>
                             ))}
                           </div>
                         </td>
                         <td className="px-5 py-3 text-bolt-elements-textSecondary">
-                          {key.lastUsedAt ? <RelativeTime value={key.lastUsedAt} /> : 'Never'}
+                          {key.lastUsedAt ? <RelativeTime value={key.lastUsedAt} /> : copy.fields.never}
                         </td>
                         <td className="px-5 py-3 text-bolt-elements-textSecondary">
                           <RelativeTime value={key.createdAt} />
                           <span className="block text-xs text-bolt-elements-textTertiary">
-                            {key.expiresAt ? `Expires ${formatDate(key.expiresAt)}` : 'Never expires'}
+                            {key.expiresAt
+                              ? interpolateApiKeysWorkspaceSettingsCopy(copy.fields.expiresOn, {
+                                  date: formatApiKeyDate(key.expiresAt, language),
+                                })
+                              : copy.fields.neverExpires}
                           </span>
                         </td>
                         <td className="px-5 py-3 text-right">
                           <RevokeKeyButton
                             apiKey={key}
                             busy={busy}
+                            label={copy.revoke.action}
                             onRequest={setKeyPendingRevoke}
                             className="inline"
                           />
@@ -395,18 +427,30 @@ export default function ApiKeysPage() {
           <Dialog onClose={() => setCreateOpen(false)} onBackdrop={() => setCreateOpen(false)}>
             <div className="p-6">
               <DialogTitle asChild>
-                <h2 className="text-base font-semibold text-bolt-elements-textPrimary">Create an API key</h2>
+                <h2 className="break-words text-base font-semibold text-bolt-elements-textPrimary">
+                  {copy.createDialog.title}
+                </h2>
               </DialogTitle>
-              <p className="mt-1 text-sm text-bolt-elements-textSecondary">
-                Scoped, least-privilege tokens authenticate as you for programmatic access.
+              <p className="mt-1 break-words text-sm leading-5 text-bolt-elements-textSecondary">
+                {copy.createDialog.description}
               </p>
 
-              <Form method="post" className="mt-4 space-y-5">
+              {error && errorIntent === 'create' ? (
+                <p
+                  role="alert"
+                  className="mt-4 rounded-md border border-[var(--status-error-border)] bg-[var(--status-error-bg)] px-3 py-2 text-sm"
+                  style={{ color: 'var(--status-error-text)' }}
+                >
+                  {error}
+                </p>
+              ) : null}
+
+              <Form method="post" noValidate className="mt-4 space-y-5">
                 <input type="hidden" name="intent" value="create" />
 
                 <div>
                   <label htmlFor="name" className="block text-sm font-medium text-bolt-elements-textPrimary">
-                    Name
+                    {copy.createDialog.name}
                   </label>
                   <input
                     id="name"
@@ -414,25 +458,31 @@ export default function ApiKeysPage() {
                     type="text"
                     required
                     maxLength={120}
-                    placeholder="CI deploy bot"
+                    placeholder={copy.createDialog.namePlaceholder}
                     className="mt-1 min-h-[44px] w-full rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-sm text-bolt-elements-textPrimary focus:border-bolt-elements-focus focus:outline-none"
                   />
                 </div>
 
                 <fieldset>
-                  <legend className="text-sm font-medium text-bolt-elements-textPrimary">Scopes</legend>
+                  <legend className="text-sm font-medium text-bolt-elements-textPrimary">
+                    {copy.createDialog.scopes}
+                  </legend>
                   <div className="mt-2 space-y-2">
-                    {SCOPE_OPTIONS.map((option) => (
-                      <label key={option.value} className="flex items-start gap-3">
+                    {scopeOptions.map((option) => (
+                      <label key={option.value} className="flex min-w-0 items-start gap-3">
                         <input
                           type="checkbox"
                           name={`scope.${option.value}`}
                           defaultChecked={option.value === 'read'}
                           className="mt-0.5 h-4 w-4 rounded border-bolt-elements-borderColor"
                         />
-                        <span>
-                          <span className="text-sm font-medium text-bolt-elements-textPrimary">{option.label}</span>
-                          <span className="block text-xs text-bolt-elements-textTertiary">{option.detail}</span>
+                        <span className="min-w-0">
+                          <span className="break-words text-sm font-medium text-bolt-elements-textPrimary">
+                            {option.label}
+                          </span>
+                          <span className="block break-words text-xs leading-5 text-bolt-elements-textTertiary">
+                            {option.detail}
+                          </span>
                         </span>
                       </label>
                     ))}
@@ -441,32 +491,32 @@ export default function ApiKeysPage() {
 
                 <div>
                   <label htmlFor="expiresInDays" className="block text-sm font-medium text-bolt-elements-textPrimary">
-                    Expiration
+                    {copy.createDialog.expiration}
                   </label>
                   <select
                     id="expiresInDays"
                     name="expiresInDays"
                     defaultValue="90"
-                    className="mt-1 min-h-[44px] rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-sm text-bolt-elements-textPrimary focus:border-bolt-elements-focus focus:outline-none"
+                    className="mt-1 min-h-[44px] w-full rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-sm text-bolt-elements-textPrimary focus:border-bolt-elements-focus focus:outline-none"
                   >
                     {EXPIRY_OPTIONS.map((option) => (
-                      <option key={option.label} value={option.value}>
-                        {option.label}
+                      <option key={option[0] || 'never'} value={option[0]}>
+                        {copy.expiry[option[1]]}
                       </option>
                     ))}
                   </select>
                 </div>
 
-                <div className="flex justify-end gap-2">
+                <div className="flex flex-col-reverse justify-end gap-2 sm:flex-row">
                   <button
                     type="button"
                     onClick={() => setCreateOpen(false)}
                     className="inline-flex min-h-[44px] items-center justify-center rounded-md border border-bolt-elements-borderColor px-4 text-sm font-medium text-bolt-elements-textPrimary transition-colors hover:bg-bolt-elements-background-depth-3"
                   >
-                    Cancel
+                    {copy.createDialog.cancel}
                   </button>
                   <button type="submit" disabled={busy} aria-busy={busy} className={BLUE_CTA}>
-                    {busy ? 'Creating…' : 'Create key'}
+                    {busy ? copy.createDialog.creating : copy.createDialog.create}
                   </button>
                 </div>
               </Form>
@@ -485,9 +535,11 @@ export default function ApiKeysPage() {
             submit({ intent: 'revoke', keyId: pending.id }, { method: 'post' });
           }
         }}
-        title={`Revoke key "${keyPendingRevoke?.name ?? ''}"?`}
-        description="Any client using it will immediately lose access. This cannot be undone."
-        confirmLabel="Revoke key"
+        title={interpolateApiKeysWorkspaceSettingsCopy(copy.revoke.title, {
+          name: keyPendingRevoke?.name ?? '',
+        })}
+        description={copy.revoke.description}
+        confirmLabel={copy.revoke.confirm}
         variant="destructive"
       />
     </AppShell>

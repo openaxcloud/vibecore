@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto';
 
 import { apiRequest, json, type EnterpriseActionArgs } from '~/lib/enterprise-api.server';
+import { remainingApiErrorResponse } from '~/lib/i18n/catalogs/remaining-api-routes';
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -15,7 +16,7 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
  */
 export async function action({ request }: EnterpriseActionArgs) {
   if (request.method.toUpperCase() !== 'POST') {
-    return json({ ok: false, error: 'Method not allowed.' }, { status: 405 });
+    return remainingApiErrorResponse(request, 'METHOD_NOT_ALLOWED', 405, { extra: { ok: false } });
   }
 
   const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
@@ -32,7 +33,7 @@ export async function action({ request }: EnterpriseActionArgs) {
   const pagePath = String(body?.pagePath ?? '').trim();
 
   if (!email || !EMAIL_PATTERN.test(email) || !company || !message) {
-    return json({ ok: false, error: 'Enter a valid email, your company, and a short message.' }, { status: 400 });
+    return remainingApiErrorResponse(request, 'CONTACT_SALES_INVALID', 400, { extra: { ok: false } });
   }
 
   try {
@@ -54,9 +55,9 @@ export async function action({ request }: EnterpriseActionArgs) {
     return json({ ok: true, reference: result.reference });
   } catch (error) {
     if (error instanceof Response && error.status === 429) {
-      return json({ ok: false, error: 'Too many attempts — try again in a minute.' }, { status: 429 });
+      return remainingApiErrorResponse(request, 'CONTACT_RATE_LIMIT', 429, { extra: { ok: false } });
     }
 
-    return json({ ok: false, error: "We couldn't submit your request. Please try again." }, { status: 502 });
+    return remainingApiErrorResponse(request, 'CONTACT_SALES_FAILED', 502, { extra: { ok: false } });
   }
 }

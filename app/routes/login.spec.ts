@@ -5,7 +5,7 @@
 import { readFileSync } from 'node:fs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { action, loader } from './login';
+import { action, loader, loginFeedbackFromFailure, meta, oauthErrorTranslationKey } from './login';
 import { toResponse } from '~/lib/test/rr7-data';
 
 function buildRequest(host: string): Request {
@@ -130,6 +130,22 @@ describe('login route loader', () => {
     expect(body.oauth).toBeNull();
   });
 
+  it('resolves French from Accept-Language for localized metadata', async () => {
+    const response = toResponse(
+      await loader({
+        request: new Request('http://app.e-code.ai/login', {
+          headers: { host: 'app.e-code.ai', 'Accept-Language': 'fr-FR, en;q=0.8' },
+        }),
+        params: {},
+        context: { cloudflare: { env: {}, cf: {}, ctx: {}, caches: {} } } as unknown as Parameters<
+          typeof loader
+        >[0]['context'],
+      }),
+    );
+
+    expect((await response.json()) as { language: string }).toMatchObject({ language: 'fr' });
+  });
+
   it('surfaces the oauth error from query params', async () => {
     const request = new Request(
       'http://app.e-code.ai/login?oauth=google&error=callback_failed&detail=OAUTH_TOKEN_EXCHANGE_FAILED',
@@ -170,14 +186,46 @@ describe('login visible branding', () => {
      * and the "E-Code" wordmark — not the old Vibecore bolt or the marketing login.
      */
     expect(authScreenSource).toContain('EcodeBrandMark');
-    expect(authScreenSource).toContain('>E-Code<');
+    expect(authScreenSource).toContain("t('auth.shell.brandName')");
     expect(authScreenSource).not.toContain('src="/logo.svg"');
     expect(authScreenSource).not.toContain('src="/assets/logo.svg"');
     expect(authScreenSource).not.toContain('>E-code<');
     expect(authScreenSource).not.toContain('Vibecore');
-    expect(loginSource).toContain('Login - E-Code');
-    expect(loginSource).toContain('E-Code IDE');
+    expect(loginSource).toContain("'auth.login.metaTitle'");
+    expect(loginSource).toContain("t('auth.login.description')");
     expect(loginSource).not.toContain('E-code IDE');
+  });
+
+  it('publishes localized French route metadata', () => {
+    const metadata = meta({ data: { language: 'fr', oauth: null, providers: [] } } as Parameters<typeof meta>[0]);
+
+    expect(metadata).toContainEqual({ title: 'Connexion - E-Code' });
+    expect(metadata).toContainEqual({
+      name: 'description',
+      content: 'Connectez-vous à votre espace de travail E-Code.',
+    });
+  });
+});
+
+describe('login localized failure mapping', () => {
+  it('maps OAuth query codes without exposing callback details', () => {
+    expect(oauthErrorTranslationKey('access_denied')).toBe('auth.oauth.accessDenied');
+    expect(oauthErrorTranslationKey('OAUTH_TOKEN_EXCHANGE_FAILED')).toBe('auth.oauth.generic');
+  });
+
+  it('keeps precise rate-limit values as interpolation parameters', () => {
+    expect(loginFeedbackFromFailure(undefined, 429, '45')).toEqual({
+      errorCode: 'RATE_LIMITED_SECONDS',
+      errorParams: { count: 45 },
+    });
+    expect(loginFeedbackFromFailure(undefined, 429, '120')).toEqual({
+      errorCode: 'RATE_LIMITED_MINUTES',
+      errorParams: { count: 2 },
+    });
+  });
+
+  it('maps SSO enforcement to a stable client-side code', () => {
+    expect(loginFeedbackFromFailure('SSO_ENFORCED', 403, null)).toEqual({ errorCode: 'SSO_ENFORCED' });
   });
 });
 
@@ -288,5 +336,36 @@ describe('login route action', () => {
 
     expect(response.status).toBe(302);
     expect(response.headers.get('location')).toBe('/dashboard');
+  });
+
+  it('returns a stable localized-code contract instead of raw API prose', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        Response.json({ error: 'Internal identity lookup detail', code: 'AUTH_INVALID_CREDENTIALS' }, { status: 401 }),
+      ),
+    );
+
+    const response = toResponse(
+      await action({
+        request: buildActionRequest('http://app.e-code.ai/login', {
+          email: 'a@b.c',
+          password: 'incorrect',
+        }),
+        params: {},
+        context: { cloudflare: { env: {}, cf: {}, ctx: {}, caches: {} } } as unknown as Parameters<
+          typeof action
+        >[0]['context'],
+      }),
+    );
+
+    const payload = (await response.json()) as Record<string, unknown>;
+
+    expect(payload).toMatchObject({
+      errorCode: 'AUTH_INVALID_CREDENTIALS',
+      code: 'AUTH_INVALID_CREDENTIALS',
+    });
+    expect(payload).not.toHaveProperty('error');
+    expect(JSON.stringify(payload)).not.toContain('Internal identity lookup detail');
   });
 });

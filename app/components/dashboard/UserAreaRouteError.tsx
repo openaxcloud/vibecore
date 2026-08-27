@@ -1,7 +1,13 @@
+import { useTranslation } from 'react-i18next';
 import { useLocation, useRouteError } from 'react-router';
 import { AsyncPanelError } from './AsyncPanelState';
 import { AppShell, LinkButton } from './SaaSLayout';
-import { resolveUserAreaSurface, type UserAreaSurface } from '~/lib/user-area-surface';
+import {
+  defaultUserAreaTranslate,
+  resolveUserAreaSurface,
+  type UserAreaSurface,
+  type UserAreaTranslate,
+} from '~/lib/user-area-surface';
 
 export { resolveUserAreaSurface } from '~/lib/user-area-surface';
 
@@ -25,13 +31,17 @@ function errorStatus(error: unknown): number | null {
   return null;
 }
 
-export function describeUserAreaRouteError(error: unknown, surface: UserAreaSurface): UserAreaErrorDescriptor {
+export function describeUserAreaRouteError(
+  error: unknown,
+  surface: UserAreaSurface,
+  translate: UserAreaTranslate = defaultUserAreaTranslate,
+): UserAreaErrorDescriptor {
   const status = errorStatus(error);
 
   if (status === 401) {
     return {
-      title: 'Sign in required',
-      description: 'Your session ended before this page could load. Sign in again to continue.',
+      title: translate('userArea.routeError.signInRequired'),
+      description: translate('userArea.routeError.signInRequiredBody'),
       retryable: false,
       tone: 'warning',
       signInRequired: true,
@@ -40,8 +50,8 @@ export function describeUserAreaRouteError(error: unknown, surface: UserAreaSurf
 
   if (status === 403) {
     return {
-      title: 'Access restricted',
-      description: 'Your current role does not include access to this page. No data was changed.',
+      title: translate('userArea.routeError.accessRestricted'),
+      description: translate('userArea.routeError.accessRestrictedBody'),
       retryable: false,
       tone: 'warning',
       signInRequired: false,
@@ -50,8 +60,8 @@ export function describeUserAreaRouteError(error: unknown, surface: UserAreaSurf
 
   if (status === 404) {
     return {
-      title: `${surface.title} was not found`,
-      description: 'The requested resource may have been removed or you may no longer have access to it.',
+      title: translate('userArea.routeError.notFound', { surface: surface.title }),
+      description: translate('userArea.routeError.notFoundBody'),
       retryable: false,
       tone: 'warning',
       signInRequired: false,
@@ -60,8 +70,8 @@ export function describeUserAreaRouteError(error: unknown, surface: UserAreaSurf
 
   if (status === 429) {
     return {
-      title: `${surface.title} is temporarily limited`,
-      description: 'Too many requests were made in a short period. Wait a moment, then try again.',
+      title: translate('userArea.routeError.rateLimited', { surface: surface.title }),
+      description: translate('userArea.routeError.rateLimitedBody'),
       retryable: true,
       tone: 'warning',
       signInRequired: false,
@@ -69,9 +79,8 @@ export function describeUserAreaRouteError(error: unknown, surface: UserAreaSurf
   }
 
   return {
-    title: `${surface.title} could not load`,
-    description:
-      'The latest request failed, so this page is hidden to avoid showing incomplete data. No data was changed.',
+    title: translate('userArea.routeError.loadFailed', { surface: surface.title }),
+    description: translate('userArea.routeError.loadFailedBody'),
     retryable: true,
     tone: 'error',
     signInRequired: false,
@@ -79,19 +88,27 @@ export function describeUserAreaRouteError(error: unknown, surface: UserAreaSurf
 }
 
 export function UserAreaRouteErrorBoundary() {
+  const { t } = useTranslation();
   const error = useRouteError();
   const location = useLocation();
-  const surface = resolveUserAreaSurface(location.pathname);
-  const descriptor = describeUserAreaRouteError(error, surface);
+  const translate: UserAreaTranslate = (key, values) => t(key, values);
+  const surface = resolveUserAreaSurface(location.pathname, translate);
+  const descriptor = describeUserAreaRouteError(error, surface, translate);
   const signInTarget = `/login?returnTo=${encodeURIComponent(`${location.pathname}${location.search}`)}`;
 
+  /*
+   * `serverSync={false}` : cette coque s'affiche aussi HORS session
+   * (`signInRequired`), où `/api/user/preferences` répondrait 401 et ferait
+   * journaliser une erreur de console au navigateur.
+   */
   return (
     <AppShell
       title={surface.title}
       description={surface.description}
+      serverSync={false}
       actions={
         <LinkButton to={descriptor.signInRequired ? signInTarget : surface.backTo} variant="outline">
-          {descriptor.signInRequired ? 'Sign in' : surface.backLabel}
+          {descriptor.signInRequired ? t('userArea.routeError.signIn') : surface.backLabel}
         </LinkButton>
       }
     >
@@ -99,7 +116,6 @@ export function UserAreaRouteErrorBoundary() {
         title={descriptor.title}
         description={descriptor.description}
         tone={descriptor.tone}
-        retryLabel="Try again"
         onRetry={
           descriptor.retryable
             ? () => {

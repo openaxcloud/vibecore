@@ -1,4 +1,5 @@
 import { apiRequest, isApiResponse, type EnterpriseActionArgs } from '~/lib/enterprise-api.server';
+import { remainingApiErrorResponse } from '~/lib/i18n/catalogs/remaining-api-routes';
 
 /*
  * Browser-accessible proxy for disconnecting an integration account. The
@@ -6,17 +7,17 @@ import { apiRequest, isApiResponse, type EnterpriseActionArgs } from '~/lib/ente
  * `/api/account/connections/:id/revoke` from the client; the handler lives on the
  * API service. Without this resource route the POST fell through to the SPA
  * catch-all and 405'd, so "Disconnect" silently failed. We forward to the API and
- * surface its real error verbatim.
+ * expose a localized stable failure code without echoing upstream internals.
  */
 export async function action({ request, params }: EnterpriseActionArgs) {
   if (request.method !== 'POST') {
-    return Response.json({ error: 'Method not allowed' }, { status: 405 });
+    return remainingApiErrorResponse(request, 'METHOD_NOT_ALLOWED', 405);
   }
 
   const id = String(params.id ?? '').trim();
 
   if (!id) {
-    return Response.json({ error: 'A connection id is required.' }, { status: 400 });
+    return remainingApiErrorResponse(request, 'CONNECTION_ID_REQUIRED', 400);
   }
 
   try {
@@ -28,13 +29,8 @@ export async function action({ request, params }: EnterpriseActionArgs) {
 
     return Response.json({ ok: true, ...result });
   } catch (error) {
-    if (isApiResponse(error)) {
-      return error;
-    }
+    const status = isApiResponse(error) && error.status !== 500 ? error.status : 502;
 
-    return Response.json(
-      { error: error instanceof Error ? error.message : 'Unable to disconnect this account.' },
-      { status: 502 },
-    );
+    return remainingApiErrorResponse(request, 'CONNECTION_REVOKE_FAILED', status);
   }
 }

@@ -1,4 +1,5 @@
 import { synthesizeMissingBarrels } from './barrel-synthesis';
+import { ensureViteApiServeConfig, needsApiDevServe } from './vite-api-serve';
 import { ensureViteHmrConfig } from './vite-hmr-config';
 
 export interface GeneratedPreviewFile {
@@ -339,16 +340,32 @@ function supplementalPreviewFiles(
     'vite.config.mts',
   ]);
 
+  /*
+   * BUG-GEN-BACKEND-UNSERVED-001: the client calls fetch('/api/...') but nothing
+   * serves it in dev — plain `vite` answers /api/* with the SPA index.html
+   * fallback and the app dies on res.json(). Inject a configureServer middleware
+   * that mounts /api/* onto the project's own handler modules (src/api/**, …).
+   */
+  const wireApiServe = needsApiDevServe(files);
+
   if (options.hasReact && !viteConfigPath) {
-    result.push({ path: joinRuntimePath(cwd, 'vite.config.ts'), content: VITE_REACT_CONFIG });
+    result.push({
+      path: joinRuntimePath(cwd, 'vite.config.ts'),
+      content: wireApiServe ? ensureViteApiServeConfig(VITE_REACT_CONFIG) : VITE_REACT_CONFIG,
+    });
   } else if (viteConfigPath) {
     /*
      * The model wrote its OWN vite.config, so the scaffold above is skipped and
      * its HMR isn't wired for the proxy (→ wss://localhost:undefined, blank app).
-     * Post-process it to guarantee server.host + server.hmr without discarding
-     * the model's settings. Only re-emit when the merge actually changed it.
+     * Post-process it to guarantee server.host + server.hmr — and the dev API
+     * middleware when needed — without discarding the model's settings. Only
+     * re-emit when the merge actually changed it.
      */
-    const ensured = ensureViteHmrConfig(files[viteConfigPath]);
+    let ensured = ensureViteHmrConfig(files[viteConfigPath]);
+
+    if (wireApiServe) {
+      ensured = ensureViteApiServeConfig(ensured);
+    }
 
     if (ensured !== files[viteConfigPath]) {
       result.push({ path: joinRuntimePath(cwd, viteConfigPath), content: ensured });

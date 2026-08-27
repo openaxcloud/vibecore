@@ -3,9 +3,19 @@ import { Octokit } from '@octokit/rest';
 import * as Dialog from '@radix-ui/react-dialog';
 import { motion } from 'framer-motion';
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
 import { GitHubAuthDialog } from '~/components/@settings/tabs/github/components/GitHubAuthDialog';
 import { SearchInput, EmptyState, StatusIndicator, Badge, ConfirmationDialog } from '~/components/ui';
+import { formatClientAstResidualCopy, getClientAstResidualCopy } from '~/lib/i18n/catalogs/client-ast-residual';
+import {
+  formatRepositoryDeploymentCopy,
+  formatRepositoryDeploymentDate,
+  formatRepositoryDeploymentNumber,
+  formatRepositoryDeploymentSize,
+  formatRepositoryDeploymentTime,
+  getRepositoryDeploymentCopy,
+} from '~/lib/i18n/catalogs/repository-deployment';
 import { getLocalStorage } from '~/lib/persistence/localStorage';
 import { chatId } from '~/lib/persistence/useChatHistory';
 import { logStore } from '~/lib/stores/logs';
@@ -20,6 +30,16 @@ interface GitHubDeploymentDialogProps {
 }
 
 export function GitHubDeploymentDialog({ isOpen, onClose, projectName, files }: GitHubDeploymentDialogProps) {
+  const { i18n } = useTranslation();
+  const language = i18n.resolvedLanguage ?? i18n.language ?? 'en';
+  const copy = getRepositoryDeploymentCopy(language);
+  const astCopy = getClientAstResidualCopy(language);
+  const provider = 'GitHub';
+  const isFrench = language.toLowerCase().startsWith('fr');
+
+  const text = (template: string, values: Readonly<Record<string, string | number>> = {}) =>
+    formatRepositoryDeploymentCopy(template, { provider, ...values });
+
   const [repoName, setRepoName] = useState('');
   const [isPrivate, setIsPrivate] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -117,8 +137,8 @@ export function GitHubDeploymentDialog({ isOpen, onClose, projectName, files }: 
 
   const fetchRecentRepos = async (token: string) => {
     if (!token) {
-      logStore.logError('No GitHub token available');
-      toast.error('GitHub authentication required');
+      logStore.logError(text(copy.errors.authenticationRequired));
+      toast.error(text(copy.errors.authenticationRequired));
 
       return;
     }
@@ -147,11 +167,11 @@ export function GitHubDeploymentDialog({ isOpen, onClose, projectName, files }: 
           try {
             errorData = await response.json();
           } catch {
-            errorData = { message: 'Could not parse error response' };
+            errorData = { message: copy.errors.couldNotParseResponse };
           }
 
           if (response.status === 401) {
-            toast.error('GitHub token expired. Please reconnect your account.');
+            toast.error(text(copy.errors.tokenExpired));
 
             // Clear invalid token
             const connection = getLocalStorage('github_connection');
@@ -166,16 +186,20 @@ export function GitHubDeploymentDialog({ isOpen, onClose, projectName, files }: 
             const parsedResetTime = resetTime ? parseInt(resetTime, 10) : NaN;
 
             const resetDate = Number.isFinite(parsedResetTime)
-              ? new Date(parsedResetTime * 1000).toLocaleTimeString()
-              : 'soon';
-            toast.error(`GitHub API rate limit exceeded. Limit resets at ${resetDate}`);
+              ? formatRepositoryDeploymentTime(parsedResetTime * 1000, language)
+              : copy.errors.resetSoon;
+            toast.error(text(copy.errors.apiRateLimit, { time: resetDate }));
           } else {
-            logStore.logError('Failed to fetch GitHub repositories', {
+            logStore.logError(copy.errors.fetchRecent, {
               status: response.status,
               statusText: response.statusText,
               error: errorData,
             });
-            toast.error(`Failed to fetch repositories: ${errorData.message || response.statusText}`);
+            toast.error(
+              isFrench
+                ? copy.errors.fetchRecent
+                : text(copy.errors.fetchWithReason, { reason: errorData.message || response.statusText }),
+            );
           }
 
           return;
@@ -191,8 +215,8 @@ export function GitHubDeploymentDialog({ isOpen, onClose, projectName, files }: 
             page += 1;
           }
         } catch (parseError) {
-          logStore.logError('Failed to parse GitHub repositories response', { parseError });
-          toast.error('Failed to parse repository data');
+          logStore.logError(copy.errors.parseRepositoryData, { parseError });
+          toast.error(copy.errors.parseRepositoryData);
           setRecentRepos([]);
 
           return;
@@ -201,8 +225,8 @@ export function GitHubDeploymentDialog({ isOpen, onClose, projectName, files }: 
 
       setRecentRepos(allRepos);
     } catch (error) {
-      logStore.logError('Failed to fetch GitHub repositories', { error });
-      toast.error('Failed to fetch recent repositories');
+      logStore.logError(copy.errors.fetchRecent, { error });
+      toast.error(copy.errors.fetchRecent);
     } finally {
       setIsFetchingRepos(false);
     }
@@ -215,12 +239,12 @@ export function GitHubDeploymentDialog({ isOpen, onClose, projectName, files }: 
     const connection = getLocalStorage('github_connection');
 
     if (!connection?.token || !connection?.user) {
-      toast.error('Please connect your GitHub account in Settings > Connections first');
+      toast.error(text(copy.errors.connectFirst));
       return;
     }
 
     if (!repoName.trim()) {
-      toast.error('Repository name is required');
+      toast.error(copy.errors.repositoryNameRequired);
       return;
     }
 
@@ -228,19 +252,19 @@ export function GitHubDeploymentDialog({ isOpen, onClose, projectName, files }: 
     const sanitizedName = sanitizeRepoName(repoName);
 
     if (!sanitizedName || sanitizedName.length < 1) {
-      toast.error('Repository name must contain at least one alphanumeric character');
+      toast.error(copy.errors.repositoryNameInvalid);
       return;
     }
 
     if (sanitizedName.length > 100) {
-      toast.error('Repository name is too long (maximum 100 characters)');
+      toast.error(copy.errors.repositoryNameTooLong);
       return;
     }
 
     // Update the repo name field with the sanitized version if it was changed
     if (sanitizedName !== repoName) {
       setRepoName(sanitizedName);
-      toast.info(`Repository name sanitized to: ${sanitizedName}`);
+      toast.info(text(copy.progress.sanitized, { name: sanitizedName }));
     }
 
     setIsLoading(true);
@@ -263,13 +287,13 @@ export function GitHubDeploymentDialog({ isOpen, onClose, projectName, files }: 
         repoExists = true;
 
         // If we get here, the repo exists - confirm overwrite
-        let confirmMessage = `Repository "${repoName}" already exists. Do you want to update it? This will add or modify files in the repository.`;
+        let confirmMessage = text(copy.repositoryUpdate.repositoryExists, { name: repoName });
 
         // Add visibility change warning if needed
         if (existingRepo.private !== isPrivate) {
           const visibilityChange = isPrivate
-            ? 'This will also change the repository from public to private.'
-            : 'This will also change the repository from private to public.';
+            ? copy.repositoryUpdate.publicToPrivate
+            : copy.repositoryUpdate.privateToPublic;
 
           confirmMessage += `\n\n${visibilityChange}`;
         }
@@ -435,7 +459,9 @@ export function GitHubDeploymentDialog({ isOpen, onClose, projectName, files }: 
         const { data: commitData } = await octokit.git.createCommit({
           owner: connection.user.login,
           repo: sanitizedRepoName,
-          message: !repoExists ? 'Initial commit from E-Code' : 'Update from E-Code',
+          message: !repoExists
+            ? astCopy['clientAst.deploy.github.initialCommit']
+            : astCopy['clientAst.deploy.github.updateCommit'],
           tree: treeData.sha,
           parents: parentCommitSha ? [parentCommitSha] : [], // Use parent if available
         });
@@ -471,8 +497,12 @@ export function GitHubDeploymentDialog({ isOpen, onClose, projectName, files }: 
             const errorMsg =
               typeof createRefError === 'object' && createRefError !== null && 'message' in createRefError
                 ? String(createRefError.message)
-                : 'Unknown error';
-            throw new Error(`Failed to create Git reference: ${errorMsg}`);
+                : astCopy['clientAst.deploy.github.unknownError'];
+            throw new Error(
+              formatClientAstResidualCopy(astCopy['clientAst.deploy.github.referenceCreateFailed'], {
+                reason: errorMsg,
+              }),
+            );
           }
         }
       } catch (gitError) {
@@ -481,8 +511,12 @@ export function GitHubDeploymentDialog({ isOpen, onClose, projectName, files }: 
         const gitErrorMsg =
           typeof gitError === 'object' && gitError !== null && 'message' in gitError
             ? String(gitError.message)
-            : 'Unknown error';
-        throw new Error(`Failed during git operations: ${gitErrorMsg}`);
+            : astCopy['clientAst.deploy.github.unknownError'];
+        throw new Error(
+          formatClientAstResidualCopy(astCopy['clientAst.deploy.github.operationsFailed'], {
+            reason: gitErrorMsg,
+          }),
+        );
       }
 
       // Save the repository information for this chat
@@ -505,42 +539,40 @@ export function GitHubDeploymentDialog({ isOpen, onClose, projectName, files }: 
       console.error('Error pushing to GitHub:', error);
 
       // Attempt to extract more specific error information
-      let errorMessage = 'Failed to push to GitHub';
+      let errorMessage = text(copy.errors.pushFailed);
       let isRetryable = false;
 
       if (error instanceof Error) {
         const errorMsg = error.message.toLowerCase();
 
         if (errorMsg.includes('network') || errorMsg.includes('fetch failed') || errorMsg.includes('connection')) {
-          errorMessage = 'Network error. Please check your internet connection and try again.';
+          errorMessage = copy.errors.network;
           isRetryable = true;
         } else if (errorMsg.includes('401') || errorMsg.includes('unauthorized')) {
-          errorMessage = 'GitHub authentication failed. Please check your access token in Settings > Connections.';
+          errorMessage = text(copy.errors.authenticationFailed);
         } else if (errorMsg.includes('403') || errorMsg.includes('forbidden')) {
-          errorMessage =
-            'Access denied. Your GitHub token may not have sufficient permissions to create/modify repositories.';
+          errorMessage = text(copy.errors.accessDenied);
         } else if (errorMsg.includes('404') || errorMsg.includes('not found')) {
-          errorMessage = 'Repository or resource not found. Please check the repository name and your permissions.';
+          errorMessage = text(copy.errors.resourceNotFound);
         } else if (errorMsg.includes('422') || errorMsg.includes('validation failed')) {
           if (errorMsg.includes('name already exists')) {
-            errorMessage =
-              'A repository with this name already exists in your account. Please choose a different name.';
+            errorMessage = copy.errors.nameAlreadyExists;
           } else {
-            errorMessage = 'Repository validation failed. Please check the repository name and settings.';
+            errorMessage = copy.errors.validationFailed;
           }
         } else if (errorMsg.includes('rate limit') || errorMsg.includes('429')) {
-          errorMessage = 'GitHub API rate limit exceeded. Please wait a moment and try again.';
+          errorMessage = text(copy.errors.apiRateLimitWait);
           isRetryable = true;
         } else if (errorMsg.includes('timeout')) {
-          errorMessage = 'Request timed out. Please check your connection and try again.';
+          errorMessage = copy.errors.timeout;
           isRetryable = true;
         } else {
-          errorMessage = `GitHub error: ${error.message}`;
+          errorMessage = text(copy.errors.generic);
         }
       } else if (typeof error === 'object' && error !== null) {
         // Octokit errors
         if ('message' in error) {
-          errorMessage = `GitHub API error: ${error.message as string}`;
+          errorMessage = text(copy.errors.generic);
         }
 
         // GitHub API errors
@@ -550,7 +582,7 @@ export function GitHubDeploymentDialog({ isOpen, onClose, projectName, files }: 
       }
 
       // Show error with retry suggestion if applicable
-      const finalMessage = isRetryable ? `${errorMessage} Click to retry.` : errorMessage;
+      const finalMessage = isRetryable ? text(copy.errors.retry, { message: errorMessage }) : errorMessage;
       toast.error(finalMessage);
 
       // Log detailed error for debugging
@@ -599,11 +631,8 @@ export function GitHubDeploymentDialog({ isOpen, onClose, projectName, files }: 
               transition={{ duration: 0.2 }}
               className="w-[90vw] md:w-[600px] max-h-[85vh] overflow-y-auto"
             >
-              <Dialog.Content
-                className="bg-bolt-elements-background-depth-1 rounded-lg border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark shadow-xl"
-                aria-describedby="success-dialog-description"
-              >
-                <Dialog.Title className="sr-only">Successfully pushed to GitHub</Dialog.Title>
+              <Dialog.Content className="bg-bolt-elements-background-depth-1 rounded-lg border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark shadow-xl">
+                <Dialog.Title className="sr-only">{text(copy.success.title)}</Dialog.Title>
                 <div className="p-6 space-y-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -612,14 +641,11 @@ export function GitHubDeploymentDialog({ isOpen, onClose, projectName, files }: 
                       </div>
                       <div>
                         <h3 className="text-lg font-medium text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary-dark">
-                          Successfully pushed to GitHub
+                          {text(copy.success.title)}
                         </h3>
-                        <p
-                          id="success-dialog-description"
-                          className="text-sm text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary-dark"
-                        >
-                          Your code is now available on GitHub
-                        </p>
+                        <Dialog.Description className="text-sm text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary-dark">
+                          {text(copy.success.description)}
+                        </Dialog.Description>
                       </div>
                     </div>
                     <Dialog.Close asChild>
@@ -628,7 +654,7 @@ export function GitHubDeploymentDialog({ isOpen, onClose, projectName, files }: 
                         className="p-2 rounded-lg transition-all duration-200 ease-in-out bg-transparent text-bolt-elements-textTertiary hover:text-bolt-elements-textPrimary dark:text-bolt-elements-textTertiary-dark dark:hover:text-bolt-elements-textPrimary-dark hover:bg-bolt-elements-background-depth-2 dark:hover:bg-bolt-elements-background-depth-3 focus:outline-none focus:ring-2 focus:ring-bolt-elements-borderColor dark:focus:ring-bolt-elements-borderColor-dark"
                       >
                         <span className="i-ph:x block w-5 h-5" aria-hidden="true" />
-                        <span className="sr-only">Close dialog</span>
+                        <span className="sr-only">{copy.form.closeDialog}</span>
                       </button>
                     </Dialog.Close>
                   </div>
@@ -636,7 +662,7 @@ export function GitHubDeploymentDialog({ isOpen, onClose, projectName, files }: 
                   <div className="bg-bolt-elements-background-depth-2 dark:bg-bolt-elements-background-depth-3 rounded-lg p-4 text-left border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark">
                     <p className="text-sm font-medium text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary-dark mb-2 flex items-center gap-2">
                       <span className="i-ph:github-logo w-4 h-4 text-[var(--ecode-accent)]" />
-                      Repository URL
+                      {copy.success.repositoryUrl}
                     </p>
                     <div className="flex items-center gap-2">
                       <code className="flex-1 min-w-0 truncate text-sm bg-bolt-elements-background-depth-1 dark:bg-bolt-elements-background-depth-4 px-3 py-2 rounded border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary-dark font-mono">
@@ -646,8 +672,8 @@ export function GitHubDeploymentDialog({ isOpen, onClose, projectName, files }: 
                         onClick={() => {
                           void navigator.clipboard
                             ?.writeText(createdRepoUrl)
-                            .then(() => toast.success('URL copied to clipboard'))
-                            .catch(() => toast.error('Failed to copy URL'));
+                            .then(() => toast.success(copy.success.urlCopied))
+                            .catch(() => toast.error(copy.success.urlCopyFailed));
                         }}
                         className="shrink-0 p-2 text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary dark:text-bolt-elements-textSecondary-dark dark:hover:text-bolt-elements-textPrimary-dark bg-bolt-elements-background-depth-1 dark:bg-bolt-elements-background-depth-4 rounded-lg border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark"
                         whileHover={{ scale: 1.05 }}
@@ -661,7 +687,7 @@ export function GitHubDeploymentDialog({ isOpen, onClose, projectName, files }: 
                   <div className="bg-bolt-elements-background-depth-2 dark:bg-bolt-elements-background-depth-3 rounded-lg p-4 border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark">
                     <p className="text-sm font-medium text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary-dark mb-2 flex items-center gap-2">
                       <span className="i-ph:files w-4 h-4 text-[var(--ecode-accent)]" />
-                      Pushed Files ({pushedFiles.length})
+                      {text(copy.success.pushedFiles, { count: pushedFiles.length })}
                     </p>
                     <div className="max-h-[200px] overflow-y-auto custom-scrollbar pr-2">
                       {pushedFiles.slice(0, 100).map((file) => (
@@ -671,13 +697,13 @@ export function GitHubDeploymentDialog({ isOpen, onClose, projectName, files }: 
                         >
                           <span className="font-mono truncate flex-1 text-xs">{file.path}</span>
                           <span className="text-xs px-2 py-0.5 rounded-full bg-bolt-elements-background-depth-3 dark:bg-bolt-elements-background-depth-4 text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary-dark ml-2">
-                            {(file.size / 1024).toFixed(1)} KB
+                            {formatRepositoryDeploymentSize(file.size, language)}
                           </span>
                         </div>
                       ))}
                       {pushedFiles.length > 100 && (
                         <div className="py-2 text-center text-xs text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary-dark">
-                          +{pushedFiles.length - 100} more files
+                          {text(copy.success.moreFiles, { count: pushedFiles.length - 100 })}
                         </div>
                       )}
                     </div>
@@ -693,21 +719,21 @@ export function GitHubDeploymentDialog({ isOpen, onClose, projectName, files }: 
                       whileTap={{ scale: 0.98 }}
                     >
                       <div className="i-ph:github-logo w-4 h-4" />
-                      View Repository
+                      {copy.success.viewRepository}
                     </motion.a>
                     <motion.button
                       onClick={() => {
                         void navigator.clipboard
                           ?.writeText(createdRepoUrl)
-                          .then(() => toast.success('URL copied to clipboard'))
-                          .catch(() => toast.error('Failed to copy URL'));
+                          .then(() => toast.success(copy.success.urlCopied))
+                          .catch(() => toast.error(copy.success.urlCopyFailed));
                       }}
                       className="px-4 py-2 rounded-lg bg-bolt-elements-background-depth-2 dark:bg-bolt-elements-background-depth-3 text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary-dark hover:bg-bolt-elements-background-depth-3 dark:hover:bg-bolt-elements-background-depth-4 text-sm inline-flex items-center gap-2 border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark"
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                     >
                       <div className="i-ph:copy w-4 h-4" />
-                      Copy URL
+                      {copy.success.copyUrl}
                     </motion.button>
                     <motion.button
                       onClick={handleClose}
@@ -715,7 +741,7 @@ export function GitHubDeploymentDialog({ isOpen, onClose, projectName, files }: 
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                     >
-                      Close
+                      {copy.success.close}
                     </motion.button>
                   </div>
                 </div>
@@ -740,11 +766,8 @@ export function GitHubDeploymentDialog({ isOpen, onClose, projectName, files }: 
               transition={{ duration: 0.2 }}
               className="w-[90vw] md:w-[500px]"
             >
-              <Dialog.Content
-                className="bg-bolt-elements-background-depth-1 rounded-lg p-6 border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark shadow-xl"
-                aria-describedby="connection-required-description"
-              >
-                <Dialog.Title className="sr-only">GitHub Connection Required</Dialog.Title>
+              <Dialog.Content className="bg-bolt-elements-background-depth-1 rounded-lg p-6 border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark shadow-xl">
+                <Dialog.Title className="sr-only">{text(copy.connection.title)}</Dialog.Title>
                 <div className="relative text-center space-y-4">
                   <Dialog.Close asChild>
                     <button
@@ -752,7 +775,7 @@ export function GitHubDeploymentDialog({ isOpen, onClose, projectName, files }: 
                       className="absolute right-0 top-0 p-2 rounded-lg transition-all duration-200 ease-in-out bg-transparent text-bolt-elements-textTertiary hover:text-bolt-elements-textPrimary dark:text-bolt-elements-textTertiary-dark dark:hover:text-bolt-elements-textPrimary-dark hover:bg-bolt-elements-background-depth-2 dark:hover:bg-bolt-elements-background-depth-3 focus:outline-none focus:ring-2 focus:ring-bolt-elements-borderColor dark:focus:ring-bolt-elements-borderColor-dark"
                     >
                       <span className="i-ph:x block w-5 h-5" aria-hidden="true" />
-                      <span className="sr-only">Close dialog</span>
+                      <span className="sr-only">{copy.form.closeDialog}</span>
                     </button>
                   </Dialog.Close>
                   <motion.div
@@ -764,14 +787,11 @@ export function GitHubDeploymentDialog({ isOpen, onClose, projectName, files }: 
                     <div className="i-ph:github-logo w-8 h-8" />
                   </motion.div>
                   <h3 className="text-lg font-medium text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary-dark">
-                    GitHub Connection Required
+                    {text(copy.connection.title)}
                   </h3>
-                  <p
-                    id="connection-required-description"
-                    className="text-sm text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary-dark max-w-md mx-auto"
-                  >
-                    To deploy your code to GitHub, you need to connect your GitHub account first.
-                  </p>
+                  <Dialog.Description className="text-sm text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary-dark max-w-md mx-auto">
+                    {text(copy.connection.description)}
+                  </Dialog.Description>
                   <div className="pt-2 flex justify-center gap-3">
                     <motion.button
                       className="px-4 py-2 rounded-lg bg-bolt-elements-background-depth-2 dark:bg-bolt-elements-background-depth-3 text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary-dark text-sm hover:bg-bolt-elements-background-depth-3 dark:hover:bg-bolt-elements-background-depth-4 border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark"
@@ -779,7 +799,7 @@ export function GitHubDeploymentDialog({ isOpen, onClose, projectName, files }: 
                       whileTap={{ scale: 0.98 }}
                       onClick={handleClose}
                     >
-                      Close
+                      {copy.success.close}
                     </motion.button>
                     <motion.button
                       onClick={() => setShowAuthDialog(true)}
@@ -788,7 +808,7 @@ export function GitHubDeploymentDialog({ isOpen, onClose, projectName, files }: 
                       whileTap={{ scale: 0.98 }}
                     >
                       <div className="i-ph:github-logo w-4 h-4" />
-                      Connect GitHub Account
+                      {text(copy.connection.connectAccount)}
                     </motion.button>
                   </div>
                 </div>
@@ -815,10 +835,7 @@ export function GitHubDeploymentDialog({ isOpen, onClose, projectName, files }: 
             transition={{ duration: 0.2 }}
             className="w-[90vw] md:w-[500px] max-h-[90dvh] overflow-y-auto"
           >
-            <Dialog.Content
-              className="bg-bolt-elements-background-depth-1 rounded-lg border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark shadow-xl"
-              aria-describedby="push-dialog-description"
-            >
+            <Dialog.Content className="bg-bolt-elements-background-depth-1 rounded-lg border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark shadow-xl">
               <div className="p-6">
                 <div className="flex items-center gap-4 mb-6">
                   <motion.div
@@ -831,14 +848,11 @@ export function GitHubDeploymentDialog({ isOpen, onClose, projectName, files }: 
                   </motion.div>
                   <div>
                     <Dialog.Title className="text-lg font-medium text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary-dark">
-                      Deploy to GitHub
+                      {text(copy.form.title)}
                     </Dialog.Title>
-                    <p
-                      id="push-dialog-description"
-                      className="text-sm text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary-dark"
-                    >
-                      Deploy your code to a new or existing GitHub repository
-                    </p>
+                    <Dialog.Description className="text-sm text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary-dark">
+                      {text(copy.form.description)}
+                    </Dialog.Description>
                   </div>
                   <Dialog.Close asChild>
                     <button
@@ -846,7 +860,7 @@ export function GitHubDeploymentDialog({ isOpen, onClose, projectName, files }: 
                       className="ml-auto p-2 rounded-lg transition-all duration-200 ease-in-out bg-transparent text-bolt-elements-textTertiary hover:text-bolt-elements-textPrimary dark:text-bolt-elements-textTertiary-dark dark:hover:text-bolt-elements-textPrimary-dark hover:bg-bolt-elements-background-depth-2 dark:hover:bg-bolt-elements-background-depth-3 focus:outline-none focus:ring-2 focus:ring-bolt-elements-borderColor dark:focus:ring-bolt-elements-borderColor-dark"
                     >
                       <span className="i-ph:x block w-5 h-5" aria-hidden="true" />
-                      <span className="sr-only">Close dialog</span>
+                      <span className="sr-only">{copy.form.closeDialog}</span>
                     </button>
                   </Dialog.Close>
                 </div>
@@ -874,7 +888,7 @@ export function GitHubDeploymentDialog({ isOpen, onClose, projectName, files }: 
                       htmlFor="repoName"
                       className="text-sm text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary-dark"
                     >
-                      Repository Name
+                      {copy.form.repositoryName}
                     </label>
                     <div className="relative">
                       <div className="absolute left-3 top-1/2 -translate-y-1/2 text-bolt-elements-textTertiary dark:text-bolt-elements-textTertiary-dark">
@@ -898,17 +912,17 @@ export function GitHubDeploymentDialog({ isOpen, onClose, projectName, files }: 
                             e.target.removeAttribute('data-sanitized');
                           }
                         }}
-                        placeholder="my-awesome-project"
+                        placeholder={copy.form.repositoryNamePlaceholder}
                         className="w-full pl-10 px-4 py-2 rounded-lg bg-bolt-elements-background-depth-2 dark:bg-bolt-elements-background-depth-3 border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary-dark placeholder-bolt-elements-textTertiary dark:placeholder-bolt-elements-textTertiary-dark focus:outline-none focus:ring-2 focus:ring-[var(--ecode-accent)]"
                         required
                         maxLength={100}
                         pattern="[a-zA-Z0-9\-_\s]+"
-                        title="Repository name can contain letters, numbers, hyphens, underscores, and spaces"
+                        title={copy.form.repositoryNameHelp}
                       />
                     </div>
                     {repoName && sanitizeRepoName(repoName) !== repoName && (
                       <p className="text-xs text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary-dark mt-1">
-                        Will be created as:{' '}
+                        {copy.form.willCreateAs}{' '}
                         <span className="font-mono text-[var(--ecode-accent)]">{sanitizeRepoName(repoName)}</span>
                       </p>
                     )}
@@ -917,16 +931,19 @@ export function GitHubDeploymentDialog({ isOpen, onClose, projectName, files }: 
                   <div className="space-y-2">
                     <div className="flex items-center justify-between mb-2">
                       <label className="text-sm text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary-dark">
-                        Recent Repositories
+                        {copy.form.recentRepositories}
                       </label>
                       <span className="text-xs text-bolt-elements-textTertiary dark:text-bolt-elements-textTertiary-dark">
-                        {filteredRepos.length} of {recentRepos.length}
+                        {text(copy.form.repositoryCount, {
+                          shown: formatRepositoryDeploymentNumber(filteredRepos.length, language),
+                          total: formatRepositoryDeploymentNumber(recentRepos.length, language),
+                        })}
                       </span>
                     </div>
 
                     <div className="mb-2">
                       <SearchInput
-                        placeholder="Search repositories..."
+                        placeholder={copy.form.searchRepositories}
                         value={repoSearchQuery}
                         onChange={(e) => setRepoSearchQuery(e.target.value)}
                         onClear={() => setRepoSearchQuery('')}
@@ -937,8 +954,8 @@ export function GitHubDeploymentDialog({ isOpen, onClose, projectName, files }: 
                     {recentRepos.length === 0 && !isFetchingRepos ? (
                       <EmptyState
                         icon="i-ph:github-logo"
-                        title="No repositories found"
-                        description="We couldn't find any repositories in your GitHub account."
+                        title={copy.form.noRepositories}
+                        description={text(copy.form.noRepositoriesDescription)}
                         variant="compact"
                       />
                     ) : (
@@ -946,8 +963,8 @@ export function GitHubDeploymentDialog({ isOpen, onClose, projectName, files }: 
                         {filteredRepos.length === 0 && repoSearchQuery.trim() !== '' ? (
                           <EmptyState
                             icon="i-ph:magnifying-glass"
-                            title="No matching repositories"
-                            description="Try a different search term"
+                            title={copy.form.noMatchingRepositories}
+                            description={copy.form.tryDifferentSearch}
                             variant="compact"
                           />
                         ) : (
@@ -969,7 +986,7 @@ export function GitHubDeploymentDialog({ isOpen, onClose, projectName, files }: 
                                 </div>
                                 {repo.private && (
                                   <Badge variant="primary" size="sm" icon="i-ph:lock w-3 h-3">
-                                    Private
+                                    {copy.form.private}
                                   </Badge>
                                 )}
                               </div>
@@ -985,13 +1002,13 @@ export function GitHubDeploymentDialog({ isOpen, onClose, projectName, files }: 
                                   </Badge>
                                 )}
                                 <Badge variant="subtle" size="sm" icon="i-ph:star w-3 h-3">
-                                  {repo.stargazers_count.toLocaleString()}
+                                  {formatRepositoryDeploymentNumber(repo.stargazers_count, language)}
                                 </Badge>
                                 <Badge variant="subtle" size="sm" icon="i-ph:git-fork w-3 h-3">
-                                  {repo.forks_count.toLocaleString()}
+                                  {formatRepositoryDeploymentNumber(repo.forks_count, language)}
                                 </Badge>
                                 <Badge variant="subtle" size="sm" icon="i-ph:clock w-3 h-3">
-                                  {new Date(repo.updated_at).toLocaleDateString()}
+                                  {formatRepositoryDeploymentDate(repo.updated_at, language)}
                                 </Badge>
                               </div>
                             </motion.button>
@@ -1003,7 +1020,7 @@ export function GitHubDeploymentDialog({ isOpen, onClose, projectName, files }: 
 
                   {isFetchingRepos && (
                     <div className="flex items-center justify-center py-4">
-                      <StatusIndicator status="loading" pulse={true} label="Loading repositories..." />
+                      <StatusIndicator status="loading" pulse={true} label={copy.form.loadingRepositories} />
                     </div>
                   )}
 
@@ -1020,11 +1037,11 @@ export function GitHubDeploymentDialog({ isOpen, onClose, projectName, files }: 
                         htmlFor="private"
                         className="text-sm text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary-dark"
                       >
-                        Make repository private
+                        {copy.form.makePrivate}
                       </label>
                     </div>
                     <p className="text-xs text-bolt-elements-textTertiary dark:text-bolt-elements-textTertiary-dark mt-2 ml-6">
-                      Private repositories are only visible to you and people you share them with
+                      {copy.form.privateDescription}
                     </p>
                   </div>
 
@@ -1036,7 +1053,7 @@ export function GitHubDeploymentDialog({ isOpen, onClose, projectName, files }: 
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                     >
-                      Cancel
+                      {copy.form.cancel}
                     </motion.button>
                     <motion.button
                       type="submit"
@@ -1051,12 +1068,12 @@ export function GitHubDeploymentDialog({ isOpen, onClose, projectName, files }: 
                       {isLoading ? (
                         <>
                           <div className="i-ph:spinner-gap animate-spin w-4 h-4" />
-                          Deploying...
+                          {copy.form.deploying}
                         </>
                       ) : (
                         <>
                           <div className="i-ph:github-logo w-4 h-4" />
-                          Deploy to GitHub
+                          {text(copy.form.deploy)}
                         </>
                       )}
                     </motion.button>
@@ -1074,9 +1091,9 @@ export function GitHubDeploymentDialog({ isOpen, onClose, projectName, files }: 
         isOpen={overwriteConfirmation !== null}
         onClose={() => settleOverwriteConfirmation(false)}
         onConfirm={() => settleOverwriteConfirmation(true)}
-        title="Update existing repository?"
+        title={copy.repositoryUpdate.title}
         description={<span className="whitespace-pre-line">{overwriteConfirmation?.description}</span>}
-        confirmLabel="Update repository"
+        confirmLabel={copy.repositoryUpdate.confirm}
       />
     </Dialog.Root>
   );

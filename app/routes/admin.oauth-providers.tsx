@@ -1,4 +1,5 @@
-import { Form, useActionData, useLoaderData } from 'react-router';
+import type { MetaFunction } from 'react-router';
+import { Form, useActionData, useLoaderData, useNavigation } from 'react-router';
 import { EnterpriseFormPage, TextField, PrimaryButton } from '~/components/enterprise/EnterpriseFormPage';
 import {
   apiRequest,
@@ -8,6 +9,21 @@ import {
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
+import {
+  adminOauthInlineStatus,
+  formatAdminOauthCopy,
+  formatAdminOauthProviderCount,
+  getAdminOauthProviderName,
+  getAdminOauthProvidersCopy,
+  isAdminOauthProvider,
+  resolveAdminOauthErrorCode,
+  type AdminOauthErrorCode,
+  type AdminOauthProviderKind,
+  type AdminOauthProvidersCopy,
+  type AdminOauthProvidersKey,
+  type AdminOauthStatusCode,
+} from '~/lib/i18n/catalogs/admin-oauth-providers';
+import { resolveRequestLocale } from '~/lib/i18n/request-locale';
 
 /*
  * Admin OAuth providers — platform admins paste each provider's OAuth app
@@ -58,48 +74,54 @@ type LoginProvider = {
   envSecretPresent: boolean;
 };
 
-/* Short, provider-specific "how to register the OAuth app" guidance shown in-UI. */
-const LOGIN_HOWTO: Record<string, { console: string; steps: string[] }> = {
+type HowToGuide = {
+  consoleUrl: string;
+  consolePathKey: AdminOauthProvidersKey;
+  stepKeys: readonly AdminOauthProvidersKey[];
+};
+
+const OAUTH_SCOPE_PLACEHOLDERS = {
+  google: 'openid email profile',
+  gitProvider: 'read:user user:email',
+} as const;
+
+/* Provider URLs remain technical constants; every explanatory sentence lives in the EN/FR catalog. */
+const LOGIN_HOWTO: Readonly<Record<string, HowToGuide>> = {
   github: {
-    console: 'https://github.com/settings/developers → OAuth Apps → New OAuth App',
-    steps: [
-      'Set "Authorization callback URL" to the callback URL shown above.',
-      'Copy the Client ID and generate a Client secret.',
-      'Paste both here and save — sign-in goes live immediately (no redeploy).',
+    consoleUrl: 'https://github.com/settings/developers',
+    consolePathKey: 'adminOauth.howTo.login.github.consolePath',
+    stepKeys: [
+      'adminOauth.howTo.login.github.step1',
+      'adminOauth.howTo.login.github.step2',
+      'adminOauth.howTo.login.github.step3',
     ],
   },
   google: {
-    console:
-      'https://console.cloud.google.com → APIs & Services → Credentials → Create OAuth client ID (Web application)',
-    steps: [
-      'Add the callback URL above under "Authorized redirect URIs".',
-      'Configure the OAuth consent screen (email + profile scopes) if prompted.',
-      'Copy the Client ID + Client secret, paste here and save.',
+    consoleUrl: 'https://console.cloud.google.com',
+    consolePathKey: 'adminOauth.howTo.login.google.consolePath',
+    stepKeys: [
+      'adminOauth.howTo.login.google.step1',
+      'adminOauth.howTo.login.google.step2',
+      'adminOauth.howTo.login.google.step3',
     ],
   },
 };
 
-const CONNECTOR_HOWTO: Record<string, { console: string; steps: string[] }> = {
+const CONNECTOR_HOWTO: Readonly<Record<string, HowToGuide>> = {
   github: {
-    console: 'https://github.com/settings/developers → OAuth Apps (a SEPARATE app from sign-in)',
-    steps: [
-      'Use the connector callback URL above (…/integrations/oauth/github/callback).',
-      'Grant repo + read:user + user:email scopes.',
-    ],
+    consoleUrl: 'https://github.com/settings/developers',
+    consolePathKey: 'adminOauth.howTo.connector.github.consolePath',
+    stepKeys: ['adminOauth.howTo.connector.github.step1', 'adminOauth.howTo.connector.github.step2'],
   },
   gitlab: {
-    console: 'https://gitlab.com/-/profile/applications',
-    steps: [
-      'Set Redirect URI to the connector callback URL above.',
-      'Scopes: read_user, read_api, read_repository, write_repository.',
-    ],
+    consoleUrl: 'https://gitlab.com/-/profile/applications',
+    consolePathKey: 'adminOauth.howTo.connector.gitlab.consolePath',
+    stepKeys: ['adminOauth.howTo.connector.gitlab.step1', 'adminOauth.howTo.connector.gitlab.step2'],
   },
   bitbucket: {
-    console: 'https://bitbucket.org/account/settings/app-passwords/ → OAuth consumers',
-    steps: [
-      'Set Callback URL to the connector callback URL above.',
-      'Permissions: account, repository (read/write), pull requests.',
-    ],
+    consoleUrl: 'https://bitbucket.org/account/settings/app-passwords/',
+    consolePathKey: 'adminOauth.howTo.connector.bitbucket.consolePath',
+    stepKeys: ['adminOauth.howTo.connector.bitbucket.step1', 'adminOauth.howTo.connector.bitbucket.step2'],
   },
 };
 
@@ -112,18 +134,40 @@ type ApiKeyConnector = {
   configureEndpoint: string;
 };
 
-/* Per-provider "how to get a token" copy for the API-key connectors. */
-const API_KEY_HOWTO: Record<string, string> = {
-  vercel:
-    'vercel.com → Account Settings → Tokens → Create. Users paste it in the IDE Connect panel; the platform deploys to their Vercel account.',
-  netlify:
-    'app.netlify.com → User settings → Applications → Personal access tokens → New token. Used for "Deploy to Netlify" against the user account.',
-  supabase:
-    'supabase.com → Account → Access Tokens → Generate. Used by the Database panel "Connect Supabase" flow (list projects + connection string).',
+const API_KEY_HOWTO: Readonly<Record<string, AdminOauthProvidersKey>> = {
+  vercel: 'adminOauth.howTo.apikey.vercel',
+  netlify: 'adminOauth.howTo.apikey.netlify',
+  supabase: 'adminOauth.howTo.apikey.supabase',
 };
+
+type ActionData = {
+  statusCode?: AdminOauthStatusCode;
+  errorCode?: AdminOauthErrorCode;
+  provider?: string;
+  kind?: AdminOauthProviderKind;
+};
+
+const SUCCESS_COPY_KEYS = {
+  loginSaved: 'adminOauth.success.loginSaved',
+  connectorSaved: 'adminOauth.success.connectorSaved',
+  apiKeySaved: 'adminOauth.success.apiKeySaved',
+} as const satisfies Record<AdminOauthStatusCode, AdminOauthProvidersKey>;
+
+export const meta: MetaFunction<typeof loader> = ({ data }) => {
+  const copy = getAdminOauthProvidersCopy(data?.language);
+
+  return [
+    { title: copy['adminOauth.meta.title'] },
+    { name: 'description', content: copy['adminOauth.meta.description'] },
+  ];
+};
+
+export { UserAreaRouteErrorBoundary as ErrorBoundary } from '~/components/dashboard/UserAreaRouteError';
 
 export async function loader({ request }: EnterpriseLoaderArgs) {
   await requirePlatformAdmin(request);
+
+  const language = resolveRequestLocale(request).language;
 
   const [connectorsData, loginData, apiKeyData] = await Promise.all([
     apiRequest<{ connectors: Connector[] }>(request, '/admin/connectors/oauth'),
@@ -135,43 +179,16 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
     connectors: connectorsData.connectors ?? [],
     loginProviders: loginData.providers ?? [],
     apiKeyConnectors: apiKeyData.connectors ?? [],
+    language,
   });
 }
 
 async function reauthenticate(request: Request, password: string) {
-  try {
-    await apiRequest(request, '/auth/reauth', {
-      method: 'POST',
-      redirectOn401: false,
-      body: JSON.stringify({ password }),
-    });
-
-    return undefined;
-  } catch (error) {
-    if (error instanceof Response && error.status === 401) {
-      return 'Incorrect password. Re-enter your password to confirm this change.';
-    }
-
-    throw error;
-  }
-}
-
-async function mutationError(error: unknown): Promise<string> {
-  if (error instanceof Response) {
-    const payload = (await error.json().catch(() => ({}))) as { error?: string; code?: string };
-
-    if (payload.code === 'ADMIN_REAUTH_REQUIRED') {
-      return 'Re-authentication expired. Enter your password and submit again.';
-    }
-
-    if (payload.code === 'PLATFORM_ADMIN_REQUIRED') {
-      return 'This action requires a platform administrator account.';
-    }
-
-    return payload.error ?? 'The provider configuration could not be saved.';
-  }
-
-  return 'The admin service is not reachable. Please try again in a moment.';
+  await apiRequest(request, '/auth/reauth', {
+    method: 'POST',
+    redirectOn401: false,
+    body: JSON.stringify({ password }),
+  });
 }
 
 export async function action({ request }: EnterpriseActionArgs) {
@@ -187,24 +204,34 @@ export async function action({ request }: EnterpriseActionArgs) {
     password?: string;
   };
 
-  if (!body.provider) {
-    return json({ error: 'Missing provider.' }, { status: 400 });
+  const provider = body.provider?.trim() ?? '';
+
+  const kind: AdminOauthProviderKind | undefined =
+    body.kind === 'login' || body.kind === 'connector' || body.kind === 'apikey' ? body.kind : undefined;
+
+  if (!kind) {
+    return json<ActionData>({ errorCode: 'connectorTypeUnsupported' }, { status: 400 });
+  }
+
+  if (!provider) {
+    return json<ActionData>({ errorCode: 'providerRequired' }, { status: 400 });
+  }
+
+  if (!isAdminOauthProvider(kind, provider)) {
+    return json<ActionData>({ errorCode: 'providerUnsupported' }, { status: 400 });
   }
 
   if (!body.password) {
-    return json({ error: 'Enter your password to confirm this change.' }, { status: 400 });
+    return json<ActionData>({ errorCode: 'passwordRequired' }, { status: 400 });
   }
-
-  let reauthError: string | undefined;
 
   try {
-    reauthError = await reauthenticate(request, body.password);
+    await reauthenticate(request, body.password);
   } catch (error) {
-    return json({ error: await mutationError(error) }, { status: 502 });
-  }
-
-  if (reauthError) {
-    return json({ error: reauthError }, { status: 401 });
+    return json<ActionData>(
+      { errorCode: await resolveAdminOauthErrorCode(error, 'reauth') },
+      { status: adminOauthInlineStatus(error) },
+    );
   }
 
   /*
@@ -212,7 +239,7 @@ export async function action({ request }: EnterpriseActionArgs) {
    * field leaves the stored (write-only) secret untouched rather than clearing it.
    */
   const payload: Record<string, unknown> = {
-    provider: body.provider,
+    provider,
     enabled: body.enabled === 'on' || body.enabled === 'true',
   };
 
@@ -224,8 +251,8 @@ export async function action({ request }: EnterpriseActionArgs) {
     payload.clientSecret = body.clientSecret;
   }
 
-  const isLogin = body.kind === 'login';
-  const isApiKey = body.kind === 'apikey';
+  const isLogin = kind === 'login';
+  const isApiKey = kind === 'apikey';
 
   const endpoint = isLogin
     ? '/admin/login-providers'
@@ -238,7 +265,7 @@ export async function action({ request }: EnterpriseActionArgs) {
   }
 
   // The api-key toggle endpoint only accepts { provider, enabled }.
-  const sentPayload = isApiKey ? { provider: body.provider, enabled: payload.enabled } : payload;
+  const sentPayload = isApiKey ? { provider, enabled: payload.enabled } : payload;
 
   try {
     await apiRequest(request, endpoint, {
@@ -247,263 +274,441 @@ export async function action({ request }: EnterpriseActionArgs) {
       body: JSON.stringify(sentPayload),
     });
 
-    return json({ status: `${body.provider} ${isLogin ? 'sign-in' : 'connector'} configuration saved.` });
+    const statusCode: AdminOauthStatusCode = isLogin ? 'loginSaved' : isApiKey ? 'apiKeySaved' : 'connectorSaved';
+
+    return json<ActionData>({ statusCode, provider, kind });
   } catch (error) {
-    return json({ error: await mutationError(error) }, { status: 403 });
+    return json<ActionData>(
+      { errorCode: await resolveAdminOauthErrorCode(error, 'save') },
+      { status: adminOauthInlineStatus(error) },
+    );
   }
 }
 
-function ReadOnlyField({ label, value }: { label: string; value: string }) {
+function ReadOnlyField({ label, value, hint }: { label: string; value: string; hint: string }) {
   return (
-    <label className="block text-sm font-medium">
+    <label className="block min-w-0 break-words text-sm font-medium">
       {label}
       <input
         readOnly
         value={value}
+        title={hint}
         onFocus={(e) => e.currentTarget.select()}
-        className="mt-2 w-full select-all rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-3 py-2 font-mono text-xs text-bolt-elements-textSecondary outline-none"
+        className="mt-2 w-full max-w-full select-all rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-3 py-2 font-mono text-xs text-bolt-elements-textSecondary outline-none"
       />
     </label>
   );
 }
 
-function HowTo({ console: consoleUrl, steps }: { console: string; steps: string[] }) {
+function HowTo({ guide, copy }: { guide: HowToGuide; copy: AdminOauthProvidersCopy }) {
   return (
-    <details className="rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-xs">
-      <summary className="cursor-pointer font-medium text-bolt-elements-textSecondary">How to set this up</summary>
-      <p className="mt-2 text-bolt-elements-textSecondary">
-        Provider console: <span className="font-mono">{consoleUrl}</span>
+    <details className="min-w-0 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-xs">
+      <summary className="cursor-pointer break-words font-medium text-bolt-elements-textSecondary">
+        {copy['adminOauth.howTo.summary']}
+      </summary>
+      <p className="mt-2 min-w-0 break-words text-bolt-elements-textSecondary">
+        {copy['adminOauth.howTo.console']} <span className="break-all font-mono">{guide.consoleUrl}</span>
+        {' · '}
+        <span>{copy[guide.consolePathKey]}</span>
       </p>
       <ol className="mt-2 list-decimal space-y-1 pl-4 text-bolt-elements-textSecondary">
-        {steps.map((s) => (
-          <li key={s}>{s}</li>
+        {guide.stepKeys.map((key) => (
+          <li className="break-words" key={key}>
+            {copy[key]}
+          </li>
         ))}
       </ol>
     </details>
   );
 }
 
-function StatusPill({ enabled, hasSecret }: { enabled: boolean; hasSecret: boolean }) {
+function StatusPill({
+  enabled,
+  hasSecret,
+  apiKey,
+  copy,
+}: {
+  enabled: boolean;
+  hasSecret?: boolean;
+  apiKey?: boolean;
+  copy: AdminOauthProvidersCopy;
+}) {
+  const label = enabled
+    ? apiKey
+      ? copy['adminOauth.status.apiKeyEnabled']
+      : hasSecret
+        ? copy['adminOauth.status.enabledSecret']
+        : copy['adminOauth.status.enabledNoSecret']
+    : copy['adminOauth.status.disabled'];
+
   return (
     <span
-      className={`rounded-full px-2 py-0.5 text-xs ${
-        enabled && hasSecret
+      className={`max-w-full break-words rounded-full px-2 py-0.5 text-center text-xs ${
+        enabled && (apiKey || hasSecret)
           ? 'bg-[var(--vc-ide-accent-success)]/15 text-[var(--status-success-text)]'
           : 'bg-bolt-elements-background-depth-2 text-bolt-elements-textSecondary'
       }`}
     >
-      {enabled ? (hasSecret ? 'Enabled · secret set' : 'Enabled · no secret') : 'Disabled'}
+      {label}
     </span>
   );
 }
 
+function SectionHeader({
+  id,
+  title,
+  description,
+  count,
+}: {
+  id: string;
+  title: string;
+  description: string;
+  count: string;
+}) {
+  return (
+    <div className="min-w-0 space-y-2">
+      <div className="flex min-w-0 flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <h2
+          className="min-w-0 break-words text-sm font-semibold uppercase tracking-[0.18em] text-bolt-elements-textSecondary"
+          id={id}
+        >
+          {title}
+        </h2>
+        <span className="shrink-0 rounded-full bg-bolt-elements-background-depth-2 px-2 py-0.5 text-xs text-bolt-elements-textSecondary">
+          {count}
+        </span>
+      </div>
+      <p className="min-w-0 break-words text-sm text-bolt-elements-textSecondary">{description}</p>
+    </div>
+  );
+}
+
 export default function AdminOauthProvidersPage() {
-  const { connectors, loginProviders, apiKeyConnectors } = useLoaderData<typeof loader>();
-  const actionData = useActionData<typeof action>() as { status?: string; error?: string } | undefined;
+  const { connectors, loginProviders, apiKeyConnectors, language } = useLoaderData<typeof loader>();
+  const copy = getAdminOauthProvidersCopy(language);
+  const actionData = useActionData<typeof action>() as ActionData | undefined;
+  const navigation = useNavigation();
+  const mutationBusy = navigation.state !== 'idle';
+  const submittingProvider = navigation.formData?.get('provider');
+  const submittingKind = navigation.formData?.get('kind');
+
+  const actionProviderName =
+    actionData?.provider && actionData.kind
+      ? getAdminOauthProviderName(actionData.kind, actionData.provider, language)
+      : undefined;
+
+  const successKey = actionData?.statusCode ? SUCCESS_COPY_KEYS[actionData.statusCode] : undefined;
+
+  const status =
+    successKey && actionProviderName
+      ? formatAdminOauthCopy(copy[successKey], { provider: actionProviderName })
+      : undefined;
+
+  const error = actionData?.errorCode ? copy[`adminOauth.error.${actionData.errorCode}`] : undefined;
+
+  const isSubmitting = (kind: AdminOauthProviderKind, provider: string) =>
+    mutationBusy && submittingKind === kind && submittingProvider === provider;
 
   return (
     <EnterpriseFormPage
-      title="OAuth providers"
-      description="Configure the OAuth apps used for sign-in and Git connectors. Paste each provider's client ID / secret and register the callback URL shown below in the provider's console. Saved changes take effect immediately — no redeploy."
-      status={actionData?.status}
-      error={actionData?.error}
+      title={copy['adminOauth.page.title']}
+      description={copy['adminOauth.page.description']}
+      status={status}
+      error={error}
     >
-      <section className="space-y-6">
-        <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-bolt-elements-textSecondary">
-          Sign-in providers (editable)
-        </h2>
-        <p className="text-sm text-bolt-elements-textSecondary">
-          These are the social-login OAuth apps. Credentials saved here are stored encrypted and used by the login flow
-          DB-first; if left blank the service falls back to the environment variables.
-        </p>
+      <section className="min-w-0 space-y-6" aria-labelledby="admin-oauth-login-title">
+        <SectionHeader
+          id="admin-oauth-login-title"
+          title={copy['adminOauth.section.login.title']}
+          description={copy['adminOauth.section.login.description']}
+          count={formatAdminOauthProviderCount(loginProviders.length, language)}
+        />
 
-        {loginProviders.map((p) => (
-          <Form
-            method="post"
-            key={`login-${p.provider}`}
-            className="space-y-4 rounded-lg border border-bolt-elements-borderColor p-4"
+        {loginProviders.length === 0 ? (
+          <p
+            className="min-w-0 break-words rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-3 text-sm text-bolt-elements-textSecondary"
+            role="status"
           >
-            <div className="flex items-center justify-between">
-              <strong className="text-bolt-elements-textPrimary">{p.displayName}</strong>
-              <StatusPill enabled={p.enabled} hasSecret={p.hasSecret || p.envSecretPresent} />
-            </div>
-
-            <input type="hidden" name="kind" value="login" />
-            <input type="hidden" name="provider" value={p.provider} />
-
-            <ReadOnlyField
-              label="Callback / redirect URL (register this in the provider console)"
-              value={p.callbackUrl}
-            />
-
-            {!p.hasSecret && p.envClientIdPresent ? (
-              <p className="text-xs text-bolt-elements-textSecondary">
-                Currently using environment-variable credentials. Saving here overrides them (DB-first).
-              </p>
-            ) : null}
-
-            <TextField label="Client ID" name="clientId" defaultValue={p.clientId} placeholder="OAuth app client ID" />
-            <TextField
-              label={p.hasSecret ? 'Client secret (leave blank to keep current)' : 'Client secret'}
-              name="clientSecret"
-              type="password"
-              autoComplete="off"
-              placeholder={p.hasSecret ? '•••••••• (unchanged)' : 'OAuth app client secret'}
-            />
-            <TextField
-              label="Scopes (optional, space or comma separated)"
-              name="scopes"
-              defaultValue={p.scopes.join(' ')}
-              placeholder={p.provider === 'google' ? 'openid email profile' : 'read:user user:email'}
-            />
-
-            <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" name="enabled" defaultChecked={p.enabled} className="h-4 w-4" />
-              Enabled (show this sign-in button)
-            </label>
-
-            {LOGIN_HOWTO[p.provider] ? <HowTo {...LOGIN_HOWTO[p.provider]} /> : null}
-
-            <TextField
-              label="Confirm with your password"
-              name="password"
-              type="password"
-              autoComplete="current-password"
-              required
-            />
-
-            <PrimaryButton>Save {p.displayName}</PrimaryButton>
-          </Form>
-        ))}
-      </section>
-
-      <section className="mt-8 space-y-6">
-        <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-bolt-elements-textSecondary">
-          Git connectors (editable)
-        </h2>
-        <p className="text-sm text-bolt-elements-textSecondary">
-          OAuth apps for the in-IDE Connect flow. These are separate apps from sign-in (different callback URLs).
-        </p>
-
-        {connectors.length === 0 ? (
-          <p className="text-sm text-bolt-elements-textSecondary">No connector catalog rows found.</p>
+            {copy['adminOauth.section.login.empty']}
+          </p>
         ) : (
-          connectors.map((c) => (
-            <Form
-              method="post"
-              key={`connector-${c.provider}`}
-              className="space-y-4 rounded-lg border border-bolt-elements-borderColor p-4"
-            >
-              <div className="flex items-center justify-between">
-                <strong className="text-bolt-elements-textPrimary">{c.displayName}</strong>
-                <StatusPill enabled={c.enabled} hasSecret={c.hasSecret} />
-              </div>
+          loginProviders.map((provider) => {
+            const providerName = getAdminOauthProviderName('login', provider.provider, language);
+            const guide = LOGIN_HOWTO[provider.provider];
+            const saving = isSubmitting('login', provider.provider);
 
-              <input type="hidden" name="kind" value="connector" />
-              <input type="hidden" name="provider" value={c.provider} />
+            return (
+              <Form
+                method="post"
+                key={`login-${provider.provider}`}
+                className="min-w-0 space-y-4 overflow-hidden rounded-lg border border-bolt-elements-borderColor p-4"
+              >
+                <div className="flex min-w-0 flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <strong className="min-w-0 break-words text-bolt-elements-textPrimary">{providerName}</strong>
+                  <StatusPill
+                    enabled={provider.enabled}
+                    hasSecret={provider.hasSecret || provider.envSecretPresent}
+                    copy={copy}
+                  />
+                </div>
 
-              <ReadOnlyField
-                label="Callback / redirect URL (register this in the provider console)"
-                value={c.callbackUrl}
-              />
+                <input type="hidden" name="kind" value="login" />
+                <input type="hidden" name="provider" value={provider.provider} />
 
-              <TextField
-                label="Client ID"
-                name="clientId"
-                defaultValue={c.clientId}
-                placeholder="OAuth app client ID"
-              />
-              <TextField
-                label={c.hasSecret ? 'Client secret (leave blank to keep current)' : 'Client secret'}
-                name="clientSecret"
-                type="password"
-                autoComplete="off"
-                placeholder={c.hasSecret ? '•••••••• (unchanged)' : 'OAuth app client secret'}
-              />
+                <ReadOnlyField
+                  label={copy['adminOauth.field.callbackUrl']}
+                  value={provider.callbackUrl}
+                  hint={copy['adminOauth.field.readOnlyHint']}
+                />
 
-              <label className="flex items-center gap-2 text-sm">
-                <input type="checkbox" name="enabled" defaultChecked={c.enabled} className="h-4 w-4" />
-                Enabled
-              </label>
+                {!provider.hasSecret && provider.envClientIdPresent ? (
+                  <p className="min-w-0 break-words text-xs text-bolt-elements-textSecondary">
+                    {copy['adminOauth.field.environmentFallback']}
+                  </p>
+                ) : null}
 
-              <div className="text-xs text-bolt-elements-textSecondary">
-                Scopes: <span className="font-mono">{c.scopes.join(', ') || '—'}</span>
-              </div>
+                <TextField
+                  label={copy['adminOauth.field.clientId']}
+                  name="clientId"
+                  defaultValue={provider.clientId}
+                  placeholder={copy['adminOauth.field.clientIdPlaceholder']}
+                />
+                <TextField
+                  label={
+                    provider.hasSecret
+                      ? copy['adminOauth.field.clientSecretKeep']
+                      : copy['adminOauth.field.clientSecret']
+                  }
+                  name="clientSecret"
+                  type="password"
+                  autoComplete="off"
+                  placeholder={
+                    provider.hasSecret
+                      ? copy['adminOauth.field.clientSecretKeepPlaceholder']
+                      : copy['adminOauth.field.clientSecretPlaceholder']
+                  }
+                />
+                <TextField
+                  label={copy['adminOauth.field.scopes']}
+                  name="scopes"
+                  defaultValue={provider.scopes.join(' ')}
+                  placeholder={
+                    provider.provider === 'google'
+                      ? OAUTH_SCOPE_PLACEHOLDERS.google
+                      : OAUTH_SCOPE_PLACEHOLDERS.gitProvider
+                  }
+                />
 
-              {CONNECTOR_HOWTO[c.provider] ? <HowTo {...CONNECTOR_HOWTO[c.provider]} /> : null}
+                <label className="flex min-w-0 items-start gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    name="enabled"
+                    defaultChecked={provider.enabled}
+                    className="mt-0.5 h-4 w-4 shrink-0"
+                  />
+                  <span className="min-w-0 break-words">{copy['adminOauth.field.enabledLogin']}</span>
+                </label>
 
-              <TextField
-                label="Confirm with your password"
-                name="password"
-                type="password"
-                autoComplete="current-password"
-                required
-              />
+                {guide ? <HowTo guide={guide} copy={copy} /> : null}
 
-              <PrimaryButton>Save {c.displayName}</PrimaryButton>
-            </Form>
-          ))
+                <TextField
+                  label={copy['adminOauth.field.password']}
+                  name="password"
+                  type="password"
+                  autoComplete="current-password"
+                  required
+                />
+
+                <div className="grid min-w-0 sm:inline-grid [&_button]:!h-auto [&_button]:min-h-[44px] [&_button]:max-w-full [&_button]:!whitespace-normal [&_button]:break-words [&_button]:text-center [&_button]:leading-tight">
+                  <PrimaryButton disabled={mutationBusy} aria-busy={saving}>
+                    {formatAdminOauthCopy(copy[saving ? 'adminOauth.action.saving' : 'adminOauth.action.save'], {
+                      provider: providerName,
+                    })}
+                  </PrimaryButton>
+                </div>
+              </Form>
+            );
+          })
         )}
       </section>
 
-      <section className="mt-8 space-y-4">
-        <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-bolt-elements-textSecondary">
-          API-key connectors (per-user token)
-        </h2>
-        <p className="text-sm text-bolt-elements-textSecondary">
-          Deploy/database connectors that use a personal access token rather than a shared OAuth app — each user pastes
-          their own token in the IDE Connect panel (validated live and stored encrypted server-side). There is no
-          platform-wide secret; enable/disable each connector for the whole instance here.
-        </p>
+      <section className="mt-8 min-w-0 space-y-6" aria-labelledby="admin-oauth-connectors-title">
+        <SectionHeader
+          id="admin-oauth-connectors-title"
+          title={copy['adminOauth.section.connector.title']}
+          description={copy['adminOauth.section.connector.description']}
+          count={formatAdminOauthProviderCount(connectors.length, language)}
+        />
 
-        {apiKeyConnectors.map((c) => (
-          <Form
-            method="post"
-            key={`apikey-${c.provider}`}
-            className="space-y-3 rounded-lg border border-bolt-elements-borderColor p-4"
+        {connectors.length === 0 ? (
+          <p
+            className="min-w-0 break-words rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-3 text-sm text-bolt-elements-textSecondary"
+            role="status"
           >
-            <div className="flex items-center justify-between">
-              <strong className="text-bolt-elements-textPrimary">{c.displayName}</strong>
-              <span
-                className={`rounded-full px-2 py-0.5 text-xs ${
-                  c.enabled
-                    ? 'bg-[var(--vc-ide-accent-success)]/15 text-[var(--status-success-text)]'
-                    : 'bg-bolt-elements-background-depth-2 text-bolt-elements-textSecondary'
-                }`}
+            {copy['adminOauth.section.connector.empty']}
+          </p>
+        ) : (
+          connectors.map((provider) => {
+            const providerName = getAdminOauthProviderName('connector', provider.provider, language);
+            const guide = CONNECTOR_HOWTO[provider.provider];
+            const saving = isSubmitting('connector', provider.provider);
+
+            return (
+              <Form
+                method="post"
+                key={`connector-${provider.provider}`}
+                className="min-w-0 space-y-4 overflow-hidden rounded-lg border border-bolt-elements-borderColor p-4"
               >
-                {c.enabled ? 'Enabled · API key (per-user)' : 'Disabled'}
-              </span>
-            </div>
+                <div className="flex min-w-0 flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <strong className="min-w-0 break-words text-bolt-elements-textPrimary">{providerName}</strong>
+                  <StatusPill enabled={provider.enabled} hasSecret={provider.hasSecret} copy={copy} />
+                </div>
 
-            <input type="hidden" name="kind" value="apikey" />
-            <input type="hidden" name="provider" value={c.provider} />
+                <input type="hidden" name="kind" value="connector" />
+                <input type="hidden" name="provider" value={provider.provider} />
 
-            <p className="text-xs text-bolt-elements-textSecondary">
-              Token console: <span className="font-mono">{c.tokenConsoleUrl}</span>
-            </p>
-            {API_KEY_HOWTO[c.provider] ? (
-              <p className="text-xs text-bolt-elements-textSecondary">{API_KEY_HOWTO[c.provider]}</p>
-            ) : null}
-            <p className="text-xs text-bolt-elements-textSecondary">
-              Per-user connect endpoint: <span className="font-mono">{c.configureEndpoint}</span>
-            </p>
+                <ReadOnlyField
+                  label={copy['adminOauth.field.callbackUrl']}
+                  value={provider.callbackUrl}
+                  hint={copy['adminOauth.field.readOnlyHint']}
+                />
 
-            <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" name="enabled" defaultChecked={c.enabled} className="h-4 w-4" />
-              Enabled (available to users)
-            </label>
+                <TextField
+                  label={copy['adminOauth.field.clientId']}
+                  name="clientId"
+                  defaultValue={provider.clientId}
+                  placeholder={copy['adminOauth.field.clientIdPlaceholder']}
+                />
+                <TextField
+                  label={
+                    provider.hasSecret
+                      ? copy['adminOauth.field.clientSecretKeep']
+                      : copy['adminOauth.field.clientSecret']
+                  }
+                  name="clientSecret"
+                  type="password"
+                  autoComplete="off"
+                  placeholder={
+                    provider.hasSecret
+                      ? copy['adminOauth.field.clientSecretKeepPlaceholder']
+                      : copy['adminOauth.field.clientSecretPlaceholder']
+                  }
+                />
 
-            <TextField
-              label="Confirm with your password"
-              name="password"
-              type="password"
-              autoComplete="current-password"
-              required
-            />
+                <label className="flex min-w-0 items-start gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    name="enabled"
+                    defaultChecked={provider.enabled}
+                    className="mt-0.5 h-4 w-4 shrink-0"
+                  />
+                  <span className="min-w-0 break-words">{copy['adminOauth.field.enabled']}</span>
+                </label>
 
-            <PrimaryButton>Save {c.displayName}</PrimaryButton>
-          </Form>
-        ))}
+                <div className="min-w-0 break-words text-xs text-bolt-elements-textSecondary">
+                  {copy['adminOauth.field.scopesLabel']}{' '}
+                  <span className="break-all font-mono">{provider.scopes.join(', ') || '—'}</span>
+                </div>
+
+                {guide ? <HowTo guide={guide} copy={copy} /> : null}
+
+                <TextField
+                  label={copy['adminOauth.field.password']}
+                  name="password"
+                  type="password"
+                  autoComplete="current-password"
+                  required
+                />
+
+                <div className="grid min-w-0 sm:inline-grid [&_button]:!h-auto [&_button]:min-h-[44px] [&_button]:max-w-full [&_button]:!whitespace-normal [&_button]:break-words [&_button]:text-center [&_button]:leading-tight">
+                  <PrimaryButton disabled={mutationBusy} aria-busy={saving}>
+                    {formatAdminOauthCopy(copy[saving ? 'adminOauth.action.saving' : 'adminOauth.action.save'], {
+                      provider: providerName,
+                    })}
+                  </PrimaryButton>
+                </div>
+              </Form>
+            );
+          })
+        )}
+      </section>
+
+      <section className="mt-8 min-w-0 space-y-6" aria-labelledby="admin-oauth-api-key-title">
+        <SectionHeader
+          id="admin-oauth-api-key-title"
+          title={copy['adminOauth.section.apikey.title']}
+          description={copy['adminOauth.section.apikey.description']}
+          count={formatAdminOauthProviderCount(apiKeyConnectors.length, language)}
+        />
+
+        {apiKeyConnectors.length === 0 ? (
+          <p
+            className="min-w-0 break-words rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-3 text-sm text-bolt-elements-textSecondary"
+            role="status"
+          >
+            {copy['adminOauth.section.apikey.empty']}
+          </p>
+        ) : (
+          apiKeyConnectors.map((provider) => {
+            const providerName = getAdminOauthProviderName('apikey', provider.provider, language);
+            const guideKey = API_KEY_HOWTO[provider.provider];
+            const saving = isSubmitting('apikey', provider.provider);
+
+            return (
+              <Form
+                method="post"
+                key={`apikey-${provider.provider}`}
+                className="min-w-0 space-y-3 overflow-hidden rounded-lg border border-bolt-elements-borderColor p-4"
+              >
+                <div className="flex min-w-0 flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <strong className="min-w-0 break-words text-bolt-elements-textPrimary">{providerName}</strong>
+                  <StatusPill enabled={provider.enabled} apiKey copy={copy} />
+                </div>
+
+                <input type="hidden" name="kind" value="apikey" />
+                <input type="hidden" name="provider" value={provider.provider} />
+
+                <p className="min-w-0 break-words text-xs text-bolt-elements-textSecondary">
+                  {copy['adminOauth.field.tokenConsole']}{' '}
+                  <span className="break-all font-mono">{provider.tokenConsoleUrl}</span>
+                </p>
+                {guideKey ? (
+                  <p className="min-w-0 break-words text-xs text-bolt-elements-textSecondary">{copy[guideKey]}</p>
+                ) : null}
+                <p className="min-w-0 break-words text-xs text-bolt-elements-textSecondary">
+                  {copy['adminOauth.field.connectEndpoint']}{' '}
+                  <span className="break-all font-mono">{provider.configureEndpoint}</span>
+                </p>
+
+                <label className="flex min-w-0 items-start gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    name="enabled"
+                    defaultChecked={provider.enabled}
+                    className="mt-0.5 h-4 w-4 shrink-0"
+                  />
+                  <span className="min-w-0 break-words">{copy['adminOauth.field.enabledForUsers']}</span>
+                </label>
+
+                <TextField
+                  label={copy['adminOauth.field.password']}
+                  name="password"
+                  type="password"
+                  autoComplete="current-password"
+                  required
+                />
+
+                <div className="grid min-w-0 sm:inline-grid [&_button]:!h-auto [&_button]:min-h-[44px] [&_button]:max-w-full [&_button]:!whitespace-normal [&_button]:break-words [&_button]:text-center [&_button]:leading-tight">
+                  <PrimaryButton disabled={mutationBusy} aria-busy={saving}>
+                    {formatAdminOauthCopy(copy[saving ? 'adminOauth.action.saving' : 'adminOauth.action.save'], {
+                      provider: providerName,
+                    })}
+                  </PrimaryButton>
+                </div>
+              </Form>
+            );
+          })
+        )}
       </section>
     </EnterpriseFormPage>
   );

@@ -31,7 +31,7 @@ function readPngSize(file: string): { width: number; height: number } {
   return { width: image.readUInt32BE(16), height: image.readUInt32BE(20) };
 }
 
-describe('declined solution routes', () => {
+describe('solution routes', () => {
   for (const route of routes) {
     for (const language of ['en', 'fr'] as const) {
       it(`${route.slug} ${language}: publishes a dedicated complete Open Graph image`, () => {

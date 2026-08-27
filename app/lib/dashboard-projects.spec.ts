@@ -69,6 +69,14 @@ describe('toProjectCards', () => {
     expect(srcCard.stack).toBe('GitHub repository');
   });
 
+  it('maps project card labels and fallback time in French', () => {
+    const [card] = toProjectCards([project({ id: 'fr', sourceType: 'github' })], null, 6, 'fr');
+
+    expect(card.status).toBe('Brouillon');
+    expect(card.stack).toBe('Dépôt GitHub');
+    expect(card.updated).toBe('récemment');
+  });
+
   it('does not mutate the input array order', () => {
     const input = [
       project({ id: 'a', updatedAt: '2025-01-01T00:00:00Z' }),

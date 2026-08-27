@@ -5,6 +5,10 @@
 import { cleanup, fireEvent, render, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+vi.mock('react-i18next', () => ({
+  useTranslation: () => ({ i18n: { language: 'en', resolvedLanguage: 'en' } }),
+}));
+
 /*
  * Heavy / network-y collaborators are stubbed so the test can focus on the
  * input-reset behaviour of the change handler. The validation logic itself
@@ -32,13 +36,13 @@ vi.mock('~/lib/stores/logs', () => ({
   },
 }));
 
-const isBinaryFileMock = vi.fn(async () => false);
+const isBinaryFileMock = vi.fn<(file: File) => Promise<boolean>>(async () => false);
 vi.mock('~/utils/fileUtils', async (importOriginal) => {
   const actual = await importOriginal<typeof import('~/utils/fileUtils')>();
 
   return {
     ...actual,
-    isBinaryFile: (...args: unknown[]) => isBinaryFileMock(...args),
+    isBinaryFile: (file: File) => isBinaryFileMock(file),
   };
 });
 
@@ -89,8 +93,9 @@ describe('<ImportFolderButton /> handleFileChange input reset', () => {
   });
 
   function renderInput() {
-    const { container } = render(<ImportFolderButton />);
-    const input = container.querySelector('#folder-import') as HTMLInputElement;
+    const importChat = vi.fn(async () => undefined);
+    const { container } = render(<ImportFolderButton importChat={importChat} />);
+    const input = container.querySelector('input[type="file"]') as HTMLInputElement;
     expect(input).toBeTruthy();
 
     /*

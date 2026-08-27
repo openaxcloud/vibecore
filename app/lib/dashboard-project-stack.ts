@@ -5,6 +5,8 @@
  * identifiers as customer copy.
  */
 
+import { userAreaEn, userAreaFr } from './i18n/catalogs/user-area';
+import type { SupportedLanguage } from './i18n/language';
 import { humanizeTechnicalIdentifier } from './user-facing-labels';
 
 type StackSource = {
@@ -17,7 +19,8 @@ type StackSource = {
  * provider name, known source types use product vocabulary, and unknown values
  * are humanized instead of being rendered as implementation identifiers.
  */
-export function projectStackLabel(project: StackSource): string {
+export function projectStackLabel(project: StackSource, language: SupportedLanguage = 'en'): string {
+  const copy = language === 'fr' ? userAreaFr : userAreaEn;
   const gitUrl = project.gitRepositoryUrl?.trim();
 
   if (gitUrl) {
@@ -25,40 +28,45 @@ export function projectStackLabel(project: StackSource): string {
       const hostname = new URL(gitUrl).hostname.toLowerCase();
 
       if (hostname === 'github.com' || hostname.endsWith('.github.com')) {
-        return 'GitHub repository';
+        return copy['userArea.project.stackGithub'];
       }
 
       if (hostname === 'gitlab.com' || hostname.endsWith('.gitlab.com')) {
-        return 'GitLab repository';
+        return copy['userArea.project.stackGitlab'];
       }
 
       if (hostname === 'bitbucket.org' || hostname.endsWith('.bitbucket.org')) {
-        return 'Bitbucket repository';
+        return copy['userArea.project.stackBitbucket'];
       }
     } catch {
       // A malformed legacy URL is still a Git source, but is never echoed.
     }
 
-    return 'Git repository';
+    return copy['userArea.project.stackGit'];
   }
 
   const sourceType = project.sourceType?.trim().toLowerCase();
 
   if (sourceType) {
     const knownSourceLabels: Record<string, string> = {
-      blank: 'E-Code project',
-      prompt: 'E-Code project',
-      agent: 'E-Code project',
-      template: 'Template',
-      github: 'GitHub repository',
-      gitlab: 'GitLab repository',
-      bitbucket: 'Bitbucket repository',
-      git: 'Git repository',
-      import: 'Imported project',
+      blank: copy['userArea.project.stackEcode'],
+      prompt: copy['userArea.project.stackEcode'],
+      agent: copy['userArea.project.stackEcode'],
+      template: copy['userArea.project.stackTemplate'],
+      github: copy['userArea.project.stackGithub'],
+      gitlab: copy['userArea.project.stackGitlab'],
+      bitbucket: copy['userArea.project.stackBitbucket'],
+      git: copy['userArea.project.stackGit'],
+      import: copy['userArea.project.stackImported'],
     };
 
-    return knownSourceLabels[sourceType] ?? humanizeTechnicalIdentifier(sourceType, 'E-Code project');
+    return (
+      knownSourceLabels[sourceType] ??
+      (language === 'fr'
+        ? copy['userArea.project.stackEcode']
+        : humanizeTechnicalIdentifier(sourceType, copy['userArea.project.stackEcode']))
+    );
   }
 
-  return 'E-Code project';
+  return copy['userArea.project.stackEcode'];
 }

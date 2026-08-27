@@ -1,6 +1,11 @@
 import { toast } from 'react-toastify';
 
 import { AGENT_APPLIED_TOAST_ID, showCoalescedAppliedToast } from '~/components/chat/AppliedFilesToast';
+import {
+  formatClientRuntimeUndoFailure,
+  getClientRuntimeResidualCopy,
+} from '~/lib/i18n/catalogs/client-runtime-residual';
+import { getI18nInstance } from '~/lib/i18n/runtime';
 
 const COALESCE_WINDOW_MS = 800;
 
@@ -43,17 +48,16 @@ function defaultEmit(entries: BatchedFileApplied[]): void {
       runUndos(undos)
         .then((failures) => {
           if (failures > 0) {
-            toast.error(
-              failures === 1
-                ? 'Failed to undo one change. The file may have been modified or locked.'
-                : `Failed to undo ${failures} changes. Some files may have been modified or locked.`,
-            );
+            const i18n = getI18nInstance();
+            toast.error(formatClientRuntimeUndoFailure(failures, i18n.resolvedLanguage ?? i18n.language));
           } else {
             toast.dismiss(AGENT_APPLIED_TOAST_ID);
           }
         })
         .catch(() => {
-          toast.error('Failed to undo changes.');
+          const i18n = getI18nInstance();
+          const copy = getClientRuntimeResidualCopy(i18n.resolvedLanguage ?? i18n.language);
+          toast.error(copy['clientRuntime.undo.failedGeneric']);
         });
     },
   });

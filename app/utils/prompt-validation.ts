@@ -87,6 +87,9 @@ export interface ValidateProjectPromptOptions {
 
   /** When true, an empty prompt is allowed (the form supports blank → empty project). */
   allowEmpty?: boolean;
+
+  /** Locale used for reviewed validation copy and number formatting. */
+  language?: string | null;
 }
 
 /**
@@ -248,6 +251,8 @@ export function validateProjectPrompt(
   const minWords = options.minWords ?? PROMPT_MIN_WORDS;
   const maxChars = options.maxChars ?? PROMPT_MAX_CHARS;
   const maxLines = options.maxLines ?? PROMPT_MAX_LINES;
+  const copy = getClientRuntimeResidualCopy(options.language);
+  const language = resolveClientRuntimeResidualLanguage(options.language);
 
   const original = raw ?? '';
   const value = normalizeProjectPrompt(original);
@@ -261,7 +266,7 @@ export function validateProjectPrompt(
 
   if (!value) {
     if (!options.allowEmpty) {
-      errors.push({ code: 'empty', message: 'Describe the project you want to create.' });
+      errors.push({ code: 'empty', message: copy['clientRuntime.promptValidation.empty'] });
     }
 
     return { value, errors, warnings, characterCount, wordCount, lineCount };
@@ -270,28 +275,41 @@ export function validateProjectPrompt(
   if (wordCount < minWords) {
     errors.push({
       code: 'too_short',
-      message: `Add a bit more detail — at least ${minWords} words help the agent build the right thing.`,
+      message: formatClientRuntimeResidualCopy(
+        copy[
+          new Intl.PluralRules(language).select(minWords) === 'one'
+            ? 'clientRuntime.promptValidation.tooShort_one'
+            : 'clientRuntime.promptValidation.tooShort_other'
+        ],
+        { minimum: formatClientRuntimeResidualNumber(minWords, language) },
+      ),
     });
   }
 
   if (characterCount > maxChars) {
     errors.push({
       code: 'too_long',
-      message: `Trim your prompt — keep it under ${maxChars.toLocaleString()} characters (you have ${characterCount.toLocaleString()}).`,
+      message: formatClientRuntimeResidualCopy(copy['clientRuntime.promptValidation.tooLong'], {
+        maximum: formatClientRuntimeResidualNumber(maxChars, language),
+        current: formatClientRuntimeResidualNumber(characterCount, language),
+      }),
     });
   }
 
   if (lineCount > maxLines) {
     errors.push({
       code: 'too_many_lines',
-      message: `Too many lines (${lineCount}). Keep the brief under ${maxLines} lines; paste long docs into the project instead.`,
+      message: formatClientRuntimeResidualCopy(copy['clientRuntime.promptValidation.tooManyLines'], {
+        current: formatClientRuntimeResidualNumber(lineCount, language),
+        maximum: formatClientRuntimeResidualNumber(maxLines, language),
+      }),
     });
   }
 
   if (countStrippedNonPrintable(original) > 0) {
     warnings.push({
       code: 'non_printable_stripped',
-      message: 'Removed invisible / control characters from your prompt.',
+      message: copy['clientRuntime.promptValidation.nonPrintable'],
     });
   }
 
@@ -300,10 +318,15 @@ export function validateProjectPrompt(
   if (injectionMatches.length > 0) {
     warnings.push({
       code: 'injection_pattern',
-      message:
-        "Your prompt contains phrases agents use to bypass safety — if that's intentional, fine; otherwise rephrase.",
+      message: copy['clientRuntime.promptValidation.injection'],
     });
   }
 
   return { value, errors, warnings, characterCount, wordCount, lineCount };
 }
+import {
+  formatClientRuntimeResidualCopy,
+  formatClientRuntimeResidualNumber,
+  getClientRuntimeResidualCopy,
+  resolveClientRuntimeResidualLanguage,
+} from '~/lib/i18n/catalogs/client-runtime-residual';

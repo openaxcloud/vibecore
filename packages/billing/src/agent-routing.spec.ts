@@ -8,6 +8,7 @@ import {
   computeAgentCallBilling,
   lineMargins,
   lineUserPrice,
+  localizeAgentRoutingCardLabels,
   negativeMarginLineKeys,
   routingLine,
   switchAvailableForPlan,
@@ -15,19 +16,22 @@ import {
 } from './agent-routing.js';
 
 describe('BUILTIN_AGENT_ROUTING_CARD', () => {
-  it('is version 1, effective 2026-07-16, with all six lines', () => {
-    expect(BUILTIN_AGENT_ROUTING_CARD.version).toBe(1);
-    expect(BUILTIN_AGENT_ROUTING_CARD.sourceDate).toBe('2026-07-16');
+  it('is version 3, sourced 2026-08-20, with all six lines', () => {
+    expect(BUILTIN_AGENT_ROUTING_CARD.version).toBe(3);
+    expect(BUILTIN_AGENT_ROUTING_CARD.sourceDate).toBe('2026-08-20');
     expect(BUILTIN_AGENT_ROUTING_CARD.lines.map((l) => l.key).sort()).toEqual([...AGENT_ROUTING_LINE_KEYS].sort());
   });
 
-  it("matches Avi's target config: economy=opus-4-8 ×1, high-effort=fable ×2, turbo=gpt-5.6 ×2", () => {
+  it("matches Avi's target config: Opus 5 is the principal generation model, turbo=gpt-5.6 ×2", () => {
     const economy = routingLine(BUILTIN_AGENT_ROUTING_CARD, 'economy')!;
-    expect(economy.model).toBe('claude-opus-4-8');
+    expect(economy.model).toBe('claude-opus-5');
     expect(economy.multiplier).toBe(1);
 
+    // Opus 5 is the principal model: the DEFAULT mode and both escalation lines.
+    expect(routingLine(BUILTIN_AGENT_ROUTING_CARD, 'power')!.model).toBe('claude-opus-5');
+
     const highEffort = routingLine(BUILTIN_AGENT_ROUTING_CARD, 'high-effort')!;
-    expect(highEffort.model).toBe('claude-fable-5');
+    expect(highEffort.model).toBe('claude-opus-5');
     expect(highEffort.multiplier).toBe(2);
 
     const turbo = routingLine(BUILTIN_AGENT_ROUTING_CARD, 'turbo')!;
@@ -87,7 +91,7 @@ describe('computeAgentCallBilling', () => {
     expect(billing.creditCents).toBe(98);
     expect(billing.marginCents).toBeCloseTo(23, 5);
     expect(billing.billedToUser).toBe(true);
-    expect(billing.routingCardVersion).toBe(1);
+    expect(billing.routingCardVersion).toBe(3);
   });
 
   it('bills power/high-effort at 2x economy for the same tokens', () => {
@@ -159,5 +163,29 @@ describe('validateAgentRoutingCard', () => {
     const errors = validateAgentRoutingCard(card);
     expect(errors.some((e) => e.line === 'lite')).toBe(true);
     expect(errors.some((e) => e.line === 'power')).toBe(true);
+  });
+
+  it('localizes French validation copy without translating schema identifiers', () => {
+    const card = structuredClone(BUILTIN_AGENT_ROUTING_CARD);
+    card.lines = card.lines.filter((line) => line.key !== 'turbo');
+
+    expect(validateAgentRoutingCard(card, 'fr')).toContainEqual({
+      line: 'turbo',
+      message: 'ligne de routage manquante « turbo »',
+    });
+  });
+});
+
+describe('localizeAgentRoutingCardLabels', () => {
+  it('translates visible labels and preserves routing identifiers and prices', () => {
+    const localized = localizeAgentRoutingCardLabels(BUILTIN_AGENT_ROUTING_CARD, 'fr');
+    const economy = routingLine(localized, 'economy')!;
+
+    expect(economy.label).toBe('Économie');
+    expect(economy.key).toBe('economy');
+    expect(economy.provider).toBe('anthropic');
+    expect(economy.model).toBe('claude-opus-5');
+    expect(economy.costInCentsPerM).toBe(500);
+    expect(BUILTIN_AGENT_ROUTING_CARD.lines.find((line) => line.key === 'economy')?.label).toBe('Economy');
   });
 });

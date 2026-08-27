@@ -1,5 +1,7 @@
 import { Component, Fragment, type ErrorInfo, type ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 
+import { getErrorSurfacesCopy } from '~/lib/i18n/catalogs/error-surfaces';
 import { logStore } from '~/lib/stores/logs';
 
 interface PanelBoundaryProps {
@@ -22,7 +24,11 @@ interface PanelBoundaryState {
   reported: boolean;
 }
 
-export class PanelBoundary extends Component<PanelBoundaryProps, PanelBoundaryState> {
+interface PanelBoundaryImplementationProps extends PanelBoundaryProps {
+  language?: string | null;
+}
+
+class PanelBoundaryImplementation extends Component<PanelBoundaryImplementationProps, PanelBoundaryState> {
   state: PanelBoundaryState = { retryCount: 0, reported: false };
   #retryTimer?: number;
 
@@ -80,7 +86,7 @@ export class PanelBoundary extends Component<PanelBoundaryProps, PanelBoundarySt
   render() {
     if (this.state.error) {
       const level = this.#boundaryLevel();
-      const noun = level === 'app' ? 'application' : level;
+      const copy = getErrorSurfacesCopy(this.props.language);
 
       return (
         <section
@@ -92,27 +98,27 @@ export class PanelBoundary extends Component<PanelBoundaryProps, PanelBoundarySt
             <span className="i-ph:warning-duotone text-2xl" aria-hidden />
           </div>
           <div className="max-w-sm">
-            <h2 className="text-sm font-semibold text-bolt-elements-textPrimary">
-              The {this.props.title} {noun} crashed
+            <h2 className="break-words text-sm font-semibold text-bolt-elements-textPrimary">
+              {copy[`panelBoundary.title.${level}`]}
             </h2>
-            <p className="mt-1 text-xs leading-5 text-bolt-elements-textSecondary">
-              {this.state.error.message || 'The error was isolated so the rest of the workspace can keep running.'}
+            <p className="mt-1 break-words text-xs leading-5 text-bolt-elements-textSecondary">
+              {copy['panelBoundary.body']}
             </p>
           </div>
           {this.state.retryCount === 0 && this.props.autoRetry !== false ? (
-            <p className="text-[11px] text-bolt-elements-textTertiary">Retrying once automatically...</p>
+            <p className="text-[11px] text-bolt-elements-textTertiary">{copy['panelBoundary.retrying']}</p>
           ) : null}
           <div className="flex flex-wrap items-center justify-center gap-2">
             <button
               type="button"
-              className="h-8 rounded-md border border-bolt-elements-borderColor px-3 text-xs text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-2"
+              className="min-h-11 min-w-11 whitespace-normal rounded-md border border-bolt-elements-borderColor px-3 py-2 text-xs text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bolt-elements-focus"
               onClick={() => this.setState({ error: undefined, reported: false })}
             >
-              Reload {level}
+              {copy[`panelBoundary.reload.${level}`]}
             </button>
             <button
               type="button"
-              className="h-8 rounded-md px-3 text-xs text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-2"
+              className="min-h-11 min-w-11 whitespace-normal rounded-md px-3 py-2 text-xs text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bolt-elements-focus"
               onClick={() => {
                 if (this.state.error) {
                   this.#report(this.state.error, undefined, 'manual');
@@ -120,7 +126,7 @@ export class PanelBoundary extends Component<PanelBoundaryProps, PanelBoundarySt
                 }
               }}
             >
-              {this.state.reported ? 'Bug report logged' : 'Report bug'}
+              {this.state.reported ? copy['panelBoundary.reported'] : copy['panelBoundary.report']}
             </button>
           </div>
         </section>
@@ -136,6 +142,12 @@ export class PanelBoundary extends Component<PanelBoundaryProps, PanelBoundarySt
      */
     return <Fragment key={this.state.retryCount}>{this.props.children}</Fragment>;
   }
+}
+
+export function PanelBoundary(props: PanelBoundaryProps) {
+  const { i18n } = useTranslation();
+
+  return <PanelBoundaryImplementation {...props} language={i18n.resolvedLanguage ?? i18n.language} />;
 }
 
 export function AppErrorBoundary(props: Omit<PanelBoundaryProps, 'level'>) {
@@ -210,6 +222,9 @@ function getBrowserSessionId() {
 }
 
 export function PanelLoading({ title }: { title: string }) {
+  const { i18n } = useTranslation();
+  const copy = getErrorSurfacesCopy(i18n.resolvedLanguage ?? i18n.language);
+
   return (
     <section
       className="flex h-full min-h-0 flex-col items-center justify-center gap-3 bg-bolt-elements-background-depth-1 p-6 text-center"
@@ -217,11 +232,14 @@ export function PanelLoading({ title }: { title: string }) {
       aria-live="polite"
     >
       <div className="w-full max-w-xs space-y-4">
-        <div className="mx-auto h-9 w-9 animate-spin rounded-full border-2 border-bolt-elements-borderColor border-t-bolt-elements-textPrimary" />
+        <div
+          className="mx-auto h-9 w-9 animate-spin rounded-full border-2 border-bolt-elements-borderColor border-t-bolt-elements-textPrimary motion-reduce:animate-none"
+          aria-hidden="true"
+        />
         <div>
-          <p className="text-sm font-medium text-bolt-elements-textPrimary">{title}</p>
-          <p className="mt-1 text-xs leading-5 text-bolt-elements-textSecondary">
-            Preparing panels, runtime signals and workspace data.
+          <p className="break-words text-sm font-medium text-bolt-elements-textPrimary">{title}</p>
+          <p className="mt-1 break-words text-xs leading-5 text-bolt-elements-textSecondary">
+            {copy['panelBoundary.loading']}
           </p>
         </div>
         <div className="h-1.5 overflow-hidden rounded-full bg-bolt-elements-background-depth-3">

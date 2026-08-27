@@ -1,4 +1,5 @@
 import { apiRequest, isApiResponse, type EnterpriseActionArgs } from '~/lib/enterprise-api.server';
+import { remainingApiErrorResponse } from '~/lib/i18n/catalogs/remaining-api-routes';
 
 /*
  * Browser-accessible proxy for starting an integration OAuth flow from the IDE
@@ -10,20 +11,20 @@ import { apiRequest, isApiResponse, type EnterpriseActionArgs } from '~/lib/ente
  *
  * We forward the request (and its `{ projectId }` body) to the API, which
  * validates the project/org, checks the provider's OAuth credentials, and returns
- * the provider authorization URL for the popup. Upstream errors (e.g. provider
- * not configured → 503) are forwarded verbatim so the UI shows the real reason.
+ * the provider authorization URL for the popup. Upstream failures keep a safe
+ * status but are mapped to localized public copy instead of exposing internals.
  */
 const SUPPORTED_PROVIDERS = new Set(['github', 'gitlab', 'bitbucket']);
 
 export async function action({ request, params }: EnterpriseActionArgs) {
   if (request.method !== 'POST') {
-    return Response.json({ error: 'Method not allowed' }, { status: 405 });
+    return remainingApiErrorResponse(request, 'METHOD_NOT_ALLOWED', 405);
   }
 
   const provider = String(params.provider ?? '').toLowerCase();
 
   if (!SUPPORTED_PROVIDERS.has(provider)) {
-    return Response.json({ error: `Unsupported provider "${provider}".` }, { status: 400 });
+    return remainingApiErrorResponse(request, 'OAUTH_PROVIDER_UNSUPPORTED', 400, { values: { provider } });
   }
 
   let projectId: string | undefined;
@@ -44,18 +45,9 @@ export async function action({ request, params }: EnterpriseActionArgs) {
 
     return Response.json(result);
   } catch (error) {
-    /*
-     * apiRequest throws a Response (status + JSON body) on an upstream non-2xx;
-     * forward it so the panel surfaces the genuine error (provider not configured,
-     * no organization membership, …) instead of a generic failure.
-     */
-    if (isApiResponse(error)) {
-      return error;
-    }
+    /* apiRequest may throw a provider response; retain only a safe status. */
+    const status = isApiResponse(error) && error.status !== 500 ? error.status : 502;
 
-    return Response.json(
-      { error: error instanceof Error ? error.message : 'Unable to start the OAuth flow.' },
-      { status: 502 },
-    );
+    return remainingApiErrorResponse(request, 'OAUTH_START_FAILED', status);
   }
 }

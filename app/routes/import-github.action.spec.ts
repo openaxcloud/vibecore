@@ -9,8 +9,9 @@ import { action } from './import-github';
  * of the action and was rendered by the route error boundary as a generic crash
  * page, never reaching the inline `{actionData?.error}` slot in the form.
  *
- * The action must now surface those API failures inline and only re-throw 3xx
- * re-auth (login / MFA) redirects so the framework follows them.
+ * The action must now surface stable, localizable error codes inline without
+ * leaking upstream text, and only re-throw re-auth responses so the framework
+ * follows them.
  *
  * These tests drive the real action with a stubbed global fetch (a standard
  * test double, no module mocks): the first call resolves the user's org via
@@ -41,6 +42,14 @@ function importRequest(repositoryUrl: string | undefined = 'https://github.com/o
     },
     body: form.toString(),
   });
+}
+
+function readData<T>(result: unknown): T {
+  if (result && typeof result === 'object' && 'data' in result) {
+    return (result as { data: T }).data;
+  }
+
+  return result as T;
 }
 
 /**
@@ -76,7 +85,8 @@ describe('import-github action error handling', () => {
 
     const result = await action({ request: importRequest() } as never);
 
-    expect(result).toEqual({ error: 'Repository URL is not a valid GitHub repo.' });
+    expect(readData(result)).toEqual({ errorCode: 'inaccessible' });
+    expect(JSON.stringify(readData(result))).not.toContain('not a valid GitHub repo');
   });
 
   it('returns an inline error when the repo is missing/private (404)', async () => {
@@ -84,7 +94,8 @@ describe('import-github action error handling', () => {
 
     const result = await action({ request: importRequest() } as never);
 
-    expect(result).toEqual({ error: 'Repository not found or is private.' });
+    expect(readData(result)).toEqual({ errorCode: 'inaccessible' });
+    expect(JSON.stringify(readData(result))).not.toContain('not found or is private');
   });
 
   it('returns an inline error when the project quota is exceeded (402)', async () => {
@@ -92,15 +103,17 @@ describe('import-github action error handling', () => {
 
     const result = await action({ request: importRequest() } as never);
 
-    expect(result).toEqual({ error: 'Project limit reached for this plan.' });
+    expect(readData(result)).toEqual({ errorCode: 'quota' });
+    expect(JSON.stringify(readData(result))).not.toContain('Project limit reached');
   });
 
-  it('returns an inline error (with fallback message) on an upstream 500', async () => {
+  it('returns a safe inline code on an upstream 500', async () => {
     globalThis.fetch = stubFetch(new Response('upstream boom', { status: 500 }));
 
     const result = await action({ request: importRequest() } as never);
 
-    expect(result).toEqual({ error: 'upstream boom' });
+    expect(readData(result)).toEqual({ errorCode: 'importFailed' });
+    expect(JSON.stringify(readData(result))).not.toContain('upstream boom');
   });
 
   it('re-throws a 3xx re-auth redirect so the framework follows it', async () => {
@@ -119,9 +132,10 @@ describe('import-github action error handling', () => {
 
     const result = await action({ request: importRequest('') } as never);
 
-    expect(result).toEqual({ error: 'Repository URL is required.' });
+    expect(readData(result)).toEqual({ errorCode: 'urlRequired' });
 
-    // /orgs is still fetched (firstOrganization), but the import POST is not.
+    // Validation runs before either the organization lookup or import request.
+    expect(fetchSpy).not.toHaveBeenCalled();
     expect(fetchSpy.mock.calls.some(([u]) => String(u).includes('/projects/import/github'))).toBe(false);
   });
 });

@@ -2,9 +2,21 @@
  * @vitest-environment jsdom
  */
 
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { createInstance } from 'i18next';
 import { createRef } from 'react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { I18nextProvider, initReactI18next } from 'react-i18next';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+const mocks = vi.hoisted(() => ({
+  toastError: vi.fn(),
+}));
+
+vi.mock('react-toastify', () => ({
+  toast: {
+    error: (...args: unknown[]) => mocks.toastError(...args),
+  },
+}));
 
 import { ComposerSlashOverlay, detectSlashTrigger } from './ComposerSlashOverlay';
 import { shouldForwardKeyToSlashPalette } from './composer-slash-keys';
@@ -33,6 +45,10 @@ describe('detectSlashTrigger', () => {
 });
 
 describe('<ComposerSlashOverlay />', () => {
+  beforeEach(() => {
+    mocks.toastError.mockReset();
+  });
+
   afterEach(() => {
     cleanup();
   });
@@ -50,12 +66,22 @@ describe('<ComposerSlashOverlay />', () => {
        * "sent".
        */
       onSend?: () => void;
+      language?: 'en' | 'fr' | 'es';
     },
   ) {
     const ref = createRef<HTMLTextAreaElement>();
+    const i18n = createInstance();
+
+    void i18n.use(initReactI18next).init({
+      lng: options?.language ?? 'en',
+      fallbackLng: 'en',
+      supportedLngs: ['en', 'fr', 'es'],
+      resources: { en: { translation: {} }, fr: { translation: {} }, es: { translation: {} } },
+      initImmediate: false,
+    });
 
     const result = render(
-      <>
+      <I18nextProvider i18n={i18n}>
         <textarea
           ref={ref}
           defaultValue={input}
@@ -73,7 +99,7 @@ describe('<ComposerSlashOverlay />', () => {
           handleInputChange={options?.handleInputChange}
           context={options?.context}
         />
-      </>,
+      </I18nextProvider>,
     );
 
     const textarea = screen.getByLabelText('composer') as HTMLTextAreaElement;
@@ -91,6 +117,15 @@ describe('<ComposerSlashOverlay />', () => {
   it('renders the palette when input starts with /', () => {
     renderWithTextarea('/cl');
     expect(screen.getByText('/clear')).toBeTruthy();
+  });
+
+  it('renders the active French palette without translating technical command ids', () => {
+    renderWithTextarea('/effacer', { language: 'fr' });
+
+    expect(screen.getByRole('listbox', { name: 'Commandes slash' })).toBeTruthy();
+    expect(screen.getByText('/clear')).toBeTruthy();
+    expect(screen.getByText('Effacer la conversation')).toBeTruthy();
+    expect(screen.queryByText('Clear conversation')).toBeNull();
   });
 
   it('runs command execute() on select and clears the input', async () => {
@@ -121,6 +156,35 @@ describe('<ComposerSlashOverlay />', () => {
     expect(setChatMode).toHaveBeenCalledWith('build');
     expect(handleInputChange).toHaveBeenCalledTimes(1);
     expect(handleInputChange.mock.calls[0][0].target.value).toBe('');
+  });
+
+  it('masks a rejected command error with reviewed French copy and still restores the composer', async () => {
+    const rawError = 'Command failed: service_role=raw-secret-detail';
+    const runShellCommand = vi.fn().mockRejectedValue(new Error(rawError));
+    const handleInputChange = vi.fn();
+
+    const { textarea } = renderWithTextarea('/run pnpm test', {
+      language: 'fr',
+      handleInputChange,
+      context: { runShellCommand },
+    });
+
+    const runOption = screen.getAllByRole('option').find((option) => option.textContent?.includes('/run'));
+
+    if (!runOption) {
+      throw new Error('expected /run option in palette');
+    }
+
+    fireEvent.click(runOption);
+
+    await waitFor(() =>
+      expect(mocks.toastError).toHaveBeenCalledWith('Impossible d’exécuter cette commande. Réessayez.'),
+    );
+    expect(runShellCommand).toHaveBeenCalledWith('pnpm test');
+    expect(mocks.toastError).not.toHaveBeenCalledWith(expect.stringContaining(rawError));
+    expect(document.body.textContent).not.toContain(rawError);
+    expect(handleInputChange.mock.calls.at(-1)?.[0].target.value).toBe('');
+    expect(document.activeElement).toBe(textarea);
   });
 
   it('Escape clears the leading slash via handleInputChange', () => {
