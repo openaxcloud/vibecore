@@ -1,5 +1,6 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z, type ZodType } from 'zod';
+import { appPublicEnglish } from './app-public-copy.js';
 import { CloudGovernanceService } from './cloud-governance-service.js';
 import { CloudGovernanceError, type MutationContext } from './cloud-governance-store.js';
 
@@ -245,13 +246,17 @@ export function registerCloudGovernanceRoutes(app: FastifyInstance, deps: CloudG
 
   function requireService(reply: FastifyReply): CloudGovernanceService | null {
     if (!enabled()) {
-      reply.code(503).send({ code: 'CLOUD_TENANT_FACTORY_DISABLED', error: 'CloudTenant factory is disabled' });
+      reply.code(503).send({
+        code: 'CLOUD_TENANT_FACTORY_DISABLED',
+        error: appPublicEnglish('CLOUD_TENANT_FACTORY_DISABLED'),
+      });
       return null;
     }
     if (!deps.service) {
-      reply
-        .code(503)
-        .send({ code: 'CLOUD_TENANT_FACTORY_NOT_CONFIGURED', error: 'CloudTenant factory is not configured' });
+      reply.code(503).send({
+        code: 'CLOUD_TENANT_FACTORY_NOT_CONFIGURED',
+        error: appPublicEnglish('CLOUD_TENANT_FACTORY_NOT_CONFIGURED'),
+      });
       return null;
     }
     return deps.service;

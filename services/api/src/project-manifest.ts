@@ -8,6 +8,19 @@ export const PROJECT_MANIFEST_MAX_ARTIFACTS = 7;
 export const PROJECT_MANIFEST_MAX_BYTES = 64 * 1024;
 export const PROJECT_MANIFEST_DIGEST_PATTERN = /^sha256:[a-f0-9]{64}$/u;
 
+const PROJECT_MANIFEST_ISSUES = {
+  scheduleRequired: 'schedule-required',
+  scheduleNotAllowed: 'schedule-not-allowed',
+  duplicateArtifactId: 'duplicate-artifact-id',
+  duplicateSourceRoot: 'duplicate-source-root',
+  duplicateComponentId: 'duplicate-component-id',
+  mobileArtifactLimit: 'mobile-artifact-limit',
+  duplicateBindingId: 'duplicate-binding-id',
+  duplicateComponentReference: 'duplicate-component-reference',
+  unknownComponentReference: 'unknown-component-reference',
+  duplicateScope: 'duplicate-scope',
+} as const;
+
 const identifier = z
   .string()
   .trim()
@@ -106,11 +119,19 @@ const publishConfigSchema = z
   .strict()
   .superRefine((value, context) => {
     if (value.deploymentType === 'SCHEDULED' && !value.schedule) {
-      context.addIssue({ code: z.ZodIssueCode.custom, path: ['schedule'], message: 'schedule-required' });
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['schedule'],
+        message: PROJECT_MANIFEST_ISSUES.scheduleRequired,
+      });
     }
 
     if (value.deploymentType !== 'SCHEDULED' && value.schedule) {
-      context.addIssue({ code: z.ZodIssueCode.custom, path: ['schedule'], message: 'schedule-not-allowed' });
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['schedule'],
+        message: PROJECT_MANIFEST_ISSUES.scheduleNotAllowed,
+      });
     }
   });
 
@@ -182,7 +203,7 @@ export const projectManifestSchema = z
         context.addIssue({
           code: z.ZodIssueCode.custom,
           path: ['artifacts', artifactIndex, 'artifactId'],
-          message: 'duplicate-artifact-id',
+          message: PROJECT_MANIFEST_ISSUES.duplicateArtifactId,
         });
       }
 
@@ -192,7 +213,7 @@ export const projectManifestSchema = z
         context.addIssue({
           code: z.ZodIssueCode.custom,
           path: ['artifacts', artifactIndex, 'sourceRoot'],
-          message: 'duplicate-source-root',
+          message: PROJECT_MANIFEST_ISSUES.duplicateSourceRoot,
         });
       }
 
@@ -207,7 +228,7 @@ export const projectManifestSchema = z
           context.addIssue({
             code: z.ZodIssueCode.custom,
             path: ['artifacts', artifactIndex, 'components', componentIndex, 'componentId'],
-            message: 'duplicate-component-id',
+            message: PROJECT_MANIFEST_ISSUES.duplicateComponentId,
           });
         }
 
@@ -216,7 +237,11 @@ export const projectManifestSchema = z
     });
 
     if (mobileArtifacts > 1) {
-      context.addIssue({ code: z.ZodIssueCode.custom, path: ['artifacts'], message: 'mobile-artifact-limit' });
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['artifacts'],
+        message: PROJECT_MANIFEST_ISSUES.mobileArtifactLimit,
+      });
     }
 
     const bindingIds = new Set<string>();
@@ -232,7 +257,7 @@ export const projectManifestSchema = z
         context.addIssue({
           code: z.ZodIssueCode.custom,
           path: ['bindings', bindingIndex, 'bindingId'],
-          message: 'duplicate-binding-id',
+          message: PROJECT_MANIFEST_ISSUES.duplicateBindingId,
         });
       }
 
@@ -244,13 +269,13 @@ export const projectManifestSchema = z
           context.addIssue({
             code: z.ZodIssueCode.custom,
             path: ['bindings', bindingIndex, 'componentIds', componentIndex],
-            message: 'duplicate-component-reference',
+            message: PROJECT_MANIFEST_ISSUES.duplicateComponentReference,
           });
         } else if (!componentIds.has(componentId)) {
           context.addIssue({
             code: z.ZodIssueCode.custom,
             path: ['bindings', bindingIndex, 'componentIds', componentIndex],
-            message: 'unknown-component-reference',
+            message: PROJECT_MANIFEST_ISSUES.unknownComponentReference,
           });
         }
 
@@ -261,7 +286,11 @@ export const projectManifestSchema = z
     const scopes = manifest.scopes ?? [];
 
     if (new Set(scopes).size !== scopes.length) {
-      context.addIssue({ code: z.ZodIssueCode.custom, path: ['scopes'], message: 'duplicate-scope' });
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['scopes'],
+        message: PROJECT_MANIFEST_ISSUES.duplicateScope,
+      });
     }
   });
 

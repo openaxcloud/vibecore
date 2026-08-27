@@ -18,6 +18,7 @@ const MAX_EVIDENCE_BYTES = 25 * 1024 * 1024;
 const SIGSTORE_BUNDLE_MEDIA_TYPE = 'application/vnd.dev.sigstore.bundle.v0.3+json';
 const COSIGN_SIGNATURE_PREDICATE_TYPE = 'https://sigstore.dev/cosign/sign/v1';
 const IN_TOTO_PAYLOAD_TYPE = 'application/vnd.in-toto+json';
+const INVALID_JSON_OBJECT = 'invalid-json-object';
 const IN_TOTO_STATEMENT_TYPES = new Set(['https://in-toto.io/Statement/v0.1', 'https://in-toto.io/Statement/v1']);
 
 const SPDX_PREDICATE_TYPES = new Set([
@@ -224,7 +225,7 @@ function parseJsonObject(bytes: Buffer, code: string, message: string): Record<s
     const value = JSON.parse(bytes.toString('utf8')) as unknown;
 
     if (!value || typeof value !== 'object' || Array.isArray(value)) {
-      throw new Error('not an object');
+      throw new Error(INVALID_JSON_OBJECT);
     }
 
     return value as Record<string, unknown>;

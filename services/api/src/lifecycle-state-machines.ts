@@ -380,11 +380,11 @@ export function releaseMayBeCut(promotion: PromotionManifest): { allowed: boolea
     promotion.binaryAuthorizationEvaluatedImage !== `${promotion.targetRepo}@${promotion.sourceDigest}` ||
     !promotion.binaryAuthorizationEvaluatedAt
   ) {
-    return { allowed: false, reason: 'Binary Authorization evidence is incomplete or targets another image' };
+    return { allowed: false, reason: appPublicEnglish('SERVER_PROMOTION_BINAUTH_EVIDENCE_INVALID') };
   }
 
   if (!promotion.retentionTag || !/^active-promo-[a-f0-9]{32}$/u.test(promotion.retentionTag)) {
-    return { allowed: false, reason: 'promotion has no immutable active-* retention tag' };
+    return { allowed: false, reason: appPublicEnglish('SERVER_PROMOTION_RETENTION_TAG_MISSING') };
   }
 
   return { allowed: true };
