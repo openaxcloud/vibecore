@@ -433,7 +433,11 @@ import {
   selectPreviousRelease,
 } from './release-manifest.js';
 import { recordIbanMasked, recordUnknownIbanCountry, shouldLogUnknownIbanCountry } from './remix-pii-metrics.js';
-import { executePhysicalRemix, remixFileSnapshotHash } from './remix-physical-service.js';
+import {
+  executePhysicalRemix,
+  remixFileSnapshotHash,
+  type PreparedRemixSourceArtifact,
+} from './remix-physical-service.js';
 import { computeWorkspaceRestorePlan, isPortReadyFromProbe, type PortProbeResult } from './runtime-readiness.js';
 import { aggregatePreviewReadiness } from './runtime-readiness.js';
 import { flattenRuntimeTreeFilePaths, normalizeRuntimePath, persistedFileContentMatches } from './runtime-reseed.js';
@@ -488,6 +492,7 @@ import {
   type DatabaseInstanceRecord,
   type DeploymentRecord,
   type InstalledSkillRecord,
+  type ImportJobRecord,
   type ProjectIdeStateRecord,
   type ProjectRecord,
   type ProviderConfigRecord,
@@ -909,12 +914,14 @@ const githubImportSchema = z.object({
     .optional(),
   name: z.string().min(1).optional(),
   slug: z.string().min(2).optional(),
+  idempotencyKey: z.string().trim().min(8).max(200).optional(),
 });
 const zipImportSchema = z.object({
   name: z.string().min(1).optional(),
   slug: z.string().min(2).optional(),
   zipBase64: z.string().min(1),
   replaceExisting: z.boolean().optional(),
+  idempotencyKey: z.string().trim().min(8).max(200).optional(),
 });
 const gitRemoteUrlSchema = z
   .string()
@@ -1324,7 +1331,11 @@ const collaborationWebSocketTicketSchema = z.object({
 });
 
 const transferProjectSchema = z.object({ targetOrganizationId: z.string().min(1) });
-const duplicateProjectSchema = z.object({ name: z.string().min(1), slug: z.string().min(2).optional() });
+const duplicateProjectSchema = z.object({
+  name: z.string().trim().min(1).max(200),
+  slug: z.string().min(2).max(160).optional(),
+  idempotencyKey: z.string().trim().min(8).max(200).optional(),
+});
 const templateFromProjectSchema = z.object({ name: z.string().min(1), description: z.string().optional() });
 
 const createWorkspaceSchema = z.object({
@@ -4694,16 +4705,20 @@ async function syncProjectStorageWithFileManifest(
   existingFiles: ProjectFile[],
   files: Array<{ path: string; content: string }>,
   workspaceId?: string,
+  guard?: () => Promise<void>,
 ) {
   if (projectFilesMatch(existingFiles, files)) {
     return existingFiles;
   }
 
-  return projectStorage.restoreSnapshot({
-    projectId,
-    workspaceId,
-    files: projectFilesWithUpdatedAt(files),
-  });
+  return projectStorage.restoreSnapshot(
+    {
+      projectId,
+      workspaceId,
+      files: projectFilesWithUpdatedAt(files),
+    },
+    guard,
+  );
 }
 
 async function persistProjectFileManifest(
@@ -4827,6 +4842,7 @@ async function listProjectFilesIncludingIdeState(
   projectStorage: ProjectStorage,
   projectId: string,
   workspaceId?: string,
+  guard?: () => Promise<void>,
 ): Promise<ProjectFile[]> {
   const existingFiles = await projectStorage.listFiles(projectId, workspaceId);
 
@@ -4850,6 +4866,7 @@ async function listProjectFilesIncludingIdeState(
       existingFiles,
       persistedManifest.files,
       workspaceId,
+      guard,
     );
   }
 
@@ -4876,7 +4893,7 @@ async function listProjectFilesIncludingIdeState(
   }
 
   if (missingFiles.length) {
-    await projectStorage.writeFiles(projectId, missingFiles, workspaceId);
+    await projectStorage.writeFiles(projectId, missingFiles, workspaceId, guard);
   }
 
   return [...mergedFiles.values()];
@@ -21233,6 +21250,63 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     consent: z.record(z.string(), z.enum(['keep', 'redact'])).default({}),
   });
 
+  const durableImportTargetSchema = z
+    .object({
+      name: z.string().trim().min(1).max(200),
+      slug: z.string().trim().min(1).max(160),
+      sourceType: z.enum([
+        'blank',
+        'template',
+        'ai',
+        'github',
+        'gitlab',
+        'bitbucket',
+        'zip',
+        'vercel',
+        'figma',
+        'claude',
+        'duplicate',
+      ]),
+      description: z.string().max(10_000).optional(),
+      templateName: z.string().max(200).optional(),
+      gitRepositoryUrl: z.string().max(2_048).optional(),
+      gitDefaultBranch: z.string().max(255).optional(),
+      sourceSnapshotId: z.string().min(1).optional(),
+      expectedFileHash: z
+        .string()
+        .regex(/^[a-f0-9]{64}$/u)
+        .optional(),
+      manifestCloneMode: z.enum(['COPY', 'DETACH_EXTERNALS']).optional(),
+      completionAction: z
+        .enum(['project.import_github', 'project.import_gitlab', 'project.import_bitbucket', 'project.import_zip'])
+        .optional(),
+      initializeGitScaffold: z.boolean().optional(),
+    })
+    .strict();
+  type DurableImportTarget = z.infer<typeof durableImportTargetSchema>;
+
+  const IMPORT_STAGING_ENVELOPE = 'vibecore.import-staging.v1' as const;
+  const importStagingEnvelope = (preview: unknown, target: DurableImportTarget) => ({
+    schema: IMPORT_STAGING_ENVELOPE,
+    publicPreview: preview ?? null,
+    target,
+  });
+  const readImportStagingEnvelope = (value: unknown): { preview: unknown; target?: DurableImportTarget } => {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      return { preview: value };
+    }
+    const record = value as Record<string, unknown>;
+    if (record.schema !== IMPORT_STAGING_ENVELOPE) {
+      return { preview: value };
+    }
+    const target = durableImportTargetSchema.safeParse(record.target);
+    if (!target.success) {
+      throw new ImportInvariantError('Durable import target metadata is invalid.', 'IMPORT_TARGET_METADATA_INVALID');
+    }
+    return { preview: record.publicPreview ?? null, target: target.data };
+  };
+  const publicImportPreview = (value: unknown) => readImportStagingEnvelope(value).preview;
+
   const IMPORT_OPERATION_LEASE_MS = 5 * 60_000;
   const IMPORT_OPERATION_RENEW_MS = 30_000;
 
@@ -21426,7 +21500,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           findings: (existing.findings as unknown[]) ?? [],
           stagedFileCount: existing.stagedFileCount,
           requiresConsent,
-          preview: staged?.preview ?? null,
+          preview: publicImportPreview(staged?.preview) ?? null,
           replayed: true,
         },
       });
@@ -21618,7 +21692,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             findings, // redacted previews only
             stagedFileCount: stagedFiles.length,
             requiresConsent: true,
-            preview: (await store.getImportStaging(current.id, orgId))?.preview ?? null,
+            preview: publicImportPreview((await store.getImportStaging(current.id, orgId))?.preview) ?? null,
           },
         });
       }
@@ -21634,7 +21708,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           findings: [],
           stagedFileCount: stagedFiles.length,
           requiresConsent: false,
-          preview: (await store.getImportStaging(current.id, orgId))?.preview ?? null,
+          preview: publicImportPreview((await store.getImportStaging(current.id, orgId))?.preview) ?? null,
         },
       });
     } catch (error) {
@@ -21659,6 +21733,161 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
   });
 
+  type CompatibilityImportStage = {
+    job: ImportJobRecord;
+    findings: ReturnType<typeof scanStagedFilesForSecrets>;
+    requiresConsent: boolean;
+    preview: unknown;
+    replayed: boolean;
+  };
+
+  const compatibilityImportKey = (
+    request: FastifyRequest,
+    bodyKey: string | undefined,
+    requestHash: string,
+  ): string => {
+    const header = request.headers['idempotency-key'];
+    const explicit = (Array.isArray(header) ? header[0] : header)?.trim() || bodyKey?.trim();
+    return explicit || `generated:${requestHash}:${randomUUID()}`;
+  };
+
+  /**
+   * Adapter for legacy project-import routes. It uses the same persisted job,
+   * credit reservation, scanner, quarantine and CAS states as Import Hub, but
+   * accepts a deferred loader so repository clone / ZIP inflation only starts
+   * after the durable reservation exists.
+   */
+  const stageCompatibilityImport = async (input: {
+    request: FastifyRequest;
+    organizationId: string;
+    provider: 'github' | 'gitlab' | 'bitbucket' | 'zip';
+    sourceRef?: string;
+    idempotencyKey: string;
+    requestHash: string;
+    load: () => Promise<{ files: ImportFile[]; target: DurableImportTarget; preview?: unknown }>;
+  }): Promise<CompatibilityImportStage> => {
+    const created = await store.createImportJob({
+      organizationId: input.organizationId,
+      actorUserId: input.request.currentUser?.id,
+      provider: input.provider,
+      sourceRef: input.sourceRef,
+      expiresInMs: 60 * 60_000,
+      idempotencyKey: input.idempotencyKey,
+      requestHash: input.requestHash,
+      /* Exact adjustment happens only in finalizeImportCommit. */
+      reservedCredits: estimateImportReservation(0),
+    });
+
+    let current = created.job;
+    let state = current.state as ImportState;
+    const advance = async (to: ImportState, patch: Parameters<ApiStore['transitionImportJob']>[0]['patch'] = {}) => {
+      assertImportTransition(state, to);
+      const updated = await store.transitionImportJob({
+        id: current.id,
+        organizationId: input.organizationId,
+        expectedVersion: current.version,
+        expectedStates: [state],
+        state: to,
+        patch,
+      });
+      if (!updated) {
+        throw new ImportInvariantError('Another worker changed this import state.', 'IMPORT_STATE_CONFLICT');
+      }
+      current = updated;
+      state = to;
+    };
+
+    try {
+      if (
+        created.replayed &&
+        ['COMMITTED', 'COMMITTING', 'CLEANUP_PENDING', 'ROLLING_BACK', 'EXPIRED', 'CANCELLED', 'FAILED'].includes(state)
+      ) {
+        return {
+          job: current,
+          findings: (current.findings as ReturnType<typeof scanStagedFilesForSecrets>) ?? [],
+          requiresConsent: false,
+          preview: null,
+          replayed: true,
+        };
+      }
+
+      let stagedFiles: ImportFile[];
+      let preview: unknown = null;
+      if (state === 'RECEIVED') {
+        /*
+         * Check mutable capacity only after the idempotency lookup. A retry of
+         * an already-COMMITTED import must replay even if the first commit filled
+         * the tenant quota; a genuinely new/resumed RECEIVED job is still
+         * rejected before repository clone or ZIP inflation starts.
+         */
+        await ensureTenantAdmission(
+          input.request,
+          input.organizationId,
+          'project.create',
+          { action: 'project.create' },
+          { preflight: true },
+        );
+        await ensureQuota(input.request, input.organizationId, 'projects.count');
+        const loaded = await input.load();
+        stagedFiles = loaded.files;
+        preview = loaded.preview ?? null;
+        await advance('STAGING_ISOLATED', {
+          sourceRef: input.sourceRef,
+          stagedFiles,
+          stagedFileCount: stagedFiles.length,
+          connectorPreview: importStagingEnvelope(loaded.preview, loaded.target),
+        });
+      } else {
+        const staging = await store.getImportStaging(current.id, input.organizationId);
+        if (!staging?.files) {
+          throw new ImportInvariantError('Durable import staging is unavailable.', 'IMPORT_STAGING_GONE');
+        }
+        stagedFiles = staging.files;
+        preview = publicImportPreview(staging.preview) ?? null;
+      }
+
+      if (state === 'STAGING_ISOLATED') {
+        await advance('SCANNING');
+      }
+      const findings = scanStagedFilesForSecrets(stagedFiles);
+      if (state === 'SCANNING') {
+        input.request.log?.info?.(
+          {
+            event: 'import.scan',
+            importJobId: current.id,
+            findingCount: findings.length,
+            kinds: findings.map((finding) => finding.kind),
+            compatibilityRoute: true,
+          },
+          'import scan complete',
+        );
+        const branch = scanBranchTarget(findings.length > 0);
+        assertScanBranch(branch, findings.length > 0);
+        await advance(branch, branch === 'QUARANTINED' ? { findings } : {});
+      }
+      if (state === 'QUARANTINED') {
+        await advance('AWAITING_USER_ACTION');
+      }
+      const requiresConsent = ['QUARANTINED', 'AWAITING_USER_ACTION', 'RESCANNING'].includes(state);
+      return {
+        job: current,
+        findings,
+        requiresConsent,
+        preview,
+        replayed: created.replayed,
+      };
+    } catch (error) {
+      await cleanupImport({
+        importJobId: current.id,
+        organizationId: input.organizationId,
+        terminalState: 'FAILED',
+        expectedStates: [current.state],
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw error;
+    }
+  };
+
   /*
    * Commit an import ATOMICALLY into a NEW target project — the ONLY place the
    * target is written. With unresolved findings and no per-finding consent, the
@@ -21667,17 +21896,23 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * reaches ROLLING_BACK only after physical and database cleanup is verified;
    * cleanup failures remain durably CLEANUP_PENDING for the reaper.
    */
-  app.post('/orgs/:orgId/imports/:importJobId/commit', async (request, reply) => {
-    const { orgId } = parse(orgParams, request.params);
+  const commitDurableImport = async (
+    request: FastifyRequest,
+    reply: FastifyReply,
+    override?: { orgId: string; importJobId: string; consent?: ConsentDecision },
+  ) => {
+    const { orgId } = override ?? parse(orgParams, request.params);
     await requireOrg(request, store, orgId, 'projects:write');
     await requireOrganizationNotSuspended(store, orgId);
 
-    const importJobId = z
-      .string()
-      .min(1)
-      .parse((request.params as { importJobId: string }).importJobId);
+    const importJobId =
+      override?.importJobId ??
+      z
+        .string()
+        .min(1)
+        .parse((request.params as { importJobId: string }).importJobId);
 
-    const body = parse(importConsentSchema, request.body);
+    const body = override ? { consent: override.consent ?? {} } : parse(importConsentSchema, request.body);
 
     const job = await store.getImportJob(importJobId);
 
@@ -21700,6 +21935,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
       return reply.code(200).send({
         project,
+        files: publicFiles(await projectStorage.listFiles(project.id)),
         import: {
           importJobId,
           state: 'COMMITTED',
@@ -21728,6 +21964,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         code: 'IMPORT_STAGING_GONE',
       });
     }
+    const stagingMetadata = readImportStagingEnvelope(staging?.preview);
+    const durableTarget = stagingMetadata.target;
 
     const findings = scanStagedFilesForSecrets(staged);
     const consent = body.consent as ConsentDecision;
@@ -21777,6 +22015,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     try {
       // Apply ONLY consented redactions (never silent).
       const { files: finalFiles, redacted } = applyConsentedRedactions(staged, findings, consent);
+      const targetFiles: Array<{ path: string; content: string; encoding?: FileEncoding }> = finalFiles.map((file) => ({
+        path: file.path,
+        content: file.content,
+        ...(file.encoding === 'base64' ? { encoding: 'base64' as const } : {}),
+      }));
 
       /*
        * Quarantine path (P0-EX-04): a job AWAITING_USER_ACTION does NOT jump to
@@ -21785,9 +22028,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        * unresolved finding → back to QUARANTINED (409). Only READY_TO_COMMIT may
        * then advance to COMMITTING.
        */
+      if (state === 'QUARANTINED') {
+        await advance('AWAITING_USER_ACTION');
+      }
       if (state === 'AWAITING_USER_ACTION') {
         await advance('RESCANNING');
+      }
 
+      if (state === 'RESCANNING') {
         const rescanFindings = scanStagedFilesForSecrets(finalFiles);
         const stillUnresolved = unresolvedFindings(rescanFindings, consent);
         const hasBlocking = stillUnresolved.length > 0;
@@ -21832,17 +22080,29 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
       // Atomic target write — the first and only touch of a target project.
       const name =
-        current.sourceRef
+        durableTarget?.name ??
+        (current.sourceRef
           ?.split('/')
           .pop()
-          ?.replace(/\.git$/, '') || `Imported ${current.provider}`;
+          ?.replace(/\.git$/, '') ||
+          `Imported ${current.provider}`);
 
       /* Record every executing connector origin on the target project. */
-      const sourceType = (['github', 'gitlab', 'bitbucket', 'zip', 'vercel', 'figma', 'claude'] as const).includes(
-        current.provider as 'github' | 'gitlab' | 'bitbucket' | 'zip' | 'vercel' | 'figma' | 'claude',
-      )
-        ? (current.provider as 'github' | 'gitlab' | 'bitbucket' | 'zip' | 'vercel' | 'figma' | 'claude')
-        : ('blank' as const);
+      const sourceType =
+        durableTarget?.sourceType ??
+        ((['github', 'gitlab', 'bitbucket', 'zip', 'vercel', 'figma', 'claude'] as const).includes(
+          current.provider as 'github' | 'gitlab' | 'bitbucket' | 'zip' | 'vercel' | 'figma' | 'claude',
+        )
+          ? (current.provider as 'github' | 'gitlab' | 'bitbucket' | 'zip' | 'vercel' | 'figma' | 'claude')
+          : ('blank' as const));
+      let initialManifest: ProjectManifest | undefined;
+      if (durableTarget?.sourceSnapshotId) {
+        const sourceSnapshot = await store.getSnapshot(durableTarget.sourceSnapshotId);
+        if (!sourceSnapshot) {
+          throw new ImportInvariantError('Pinned import source snapshot is missing.', 'IMPORT_SOURCE_SNAPSHOT_MISSING');
+        }
+        initialManifest = readProjectManifestSnapshotPin(sourceSnapshot.manifest, sourceSnapshot.projectId).manifest;
+      }
       const project = await store.withSerializedMutation(`projects:${orgId}`, async () => {
         await operationLeaseManager!.guard();
         await ensureTenantAdmission(request, orgId, 'project.create', { action: 'project.create' });
@@ -21852,30 +22112,44 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           organizationId: orgId,
           operationToken: operationToken!,
           name,
-          slug: name.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + importJobId.slice(-6),
+          slug: durableTarget?.slug ?? name.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + importJobId.slice(-6),
           sourceType,
+          description: durableTarget?.description,
+          templateName: durableTarget?.templateName,
+          gitRepositoryUrl: durableTarget?.gitRepositoryUrl,
+          gitDefaultBranch: durableTarget?.gitDefaultBranch,
+          initialManifest,
+          manifestCloneMode: durableTarget?.manifestCloneMode,
         });
       });
 
+      let verifiedFiles: ProjectFile[] = [];
       const finalized = await store.withSerializedMutation(
         `import-target-effect:${project.id}`,
         async () => {
           await operationLeaseManager!.guard();
-          const written = await projectStorage.writeFiles(
-            project.id,
-            finalFiles.map((file) => ({ path: file.path, content: file.content })),
-            undefined,
-            () => operationLeaseManager!.guard(),
-          );
+          await projectStorage.writeFiles(project.id, targetFiles, undefined, () => operationLeaseManager!.guard());
           await operationLeaseManager!.guard();
-          await persistProjectFileManifest(store, project.id, written, request.currentUser!.id);
+          if (durableTarget?.initializeGitScaffold) {
+            await commitInitialScaffold(gitProvider, project.id);
+            await operationLeaseManager!.guard();
+          }
+          verifiedFiles = await projectStorage.listFiles(project.id);
+          const expectedFileHash = durableTarget?.expectedFileHash ?? checkpointFilesHash(targetFiles);
+          if (checkpointFilesHash(verifiedFiles) !== expectedFileHash) {
+            throw new ImportInvariantError(
+              'Target file digest mismatch after import.',
+              'IMPORT_TARGET_DIGEST_MISMATCH',
+            );
+          }
+          await persistProjectFileManifest(store, project.id, verifiedFiles, request.currentUser!.id);
           await operationLeaseManager!.guard();
           return store.finalizeImportCommit({
             importJobId,
             organizationId: orgId,
             operationToken: operationToken!,
             targetProjectId: project.id,
-            actualCredits: estimateImportReservation(finalFiles.length),
+            actualCredits: estimateImportReservation(targetFiles.length),
           });
         },
         { transactionTimeoutMs: 2 * 60 * 60_000 },
@@ -21923,8 +22197,36 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         request.log.warn({ err: error, importJobId }, 'failed to append committed import audit');
       });
 
+      if (durableTarget?.completionAction) {
+        const completionMetadata =
+          sourceType === 'zip'
+            ? { files: verifiedFiles.length }
+            : { repositoryUrl: durableTarget.gitRepositoryUrl ?? current.sourceRef ?? null };
+        await store
+          .recordProjectActivity({
+            projectId: project.id,
+            actorUserId: request.currentUser!.id,
+            action: durableTarget.completionAction,
+            metadata: completionMetadata,
+          })
+          .catch((error) => {
+            request.log.warn({ err: error, importJobId }, 'failed to append compatibility import activity');
+          });
+        await audit(request, store, {
+          organizationId: orgId,
+          action: durableTarget.completionAction,
+          resourceType: 'project',
+          resourceId: project.id,
+          metadata: completionMetadata,
+        }).catch((error) => {
+          request.log.warn({ err: error, importJobId }, 'failed to append compatibility import audit');
+        });
+      }
+
+      const visibleProject = (await store.getProject(project.id)) ?? project;
       return reply.code(201).send({
-        project,
+        project: visibleProject,
+        files: publicFiles(verifiedFiles),
         import: { importJobId, state, redactedCount: redacted.length, targetProjectId: project.id },
       });
     } catch (error) {
@@ -21955,7 +22257,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     } finally {
       await operationLeaseManager?.stop();
     }
-  });
+  };
+
+  app.post('/orgs/:orgId/imports/:importJobId/commit', (request, reply) => commitDurableImport(request, reply));
 
   app.post('/orgs/:orgId/imports/:importJobId/cancel', async (request, reply) => {
     const { orgId } = parse(orgParams, request.params);
@@ -22048,7 +22352,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
               debitedCredits: reservation.debitedCredits,
             }
           : null,
-        preview: staging?.preview ?? null,
+        preview: publicImportPreview(staging?.preview) ?? null,
         stagedFiles:
           staging?.files.map((file) => ({
             path: file.path,
@@ -22063,68 +22367,72 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const body = parse(githubImportSchema, request.body);
     await requireOrg(request, store, orgId, 'projects:write');
     await requireOrganizationNotSuspended(store, orgId);
-
-    /*
-     * Cheap pre-check to reject an over-quota org before the (slow) clone; the
-     * authoritative atomic check is inside the serialized block below.
-     */
-    await ensureTenantAdmission(request, orgId, 'project.create', { action: 'project.create' }, { preflight: true });
-    await ensureQuota(request, orgId, 'projects.count');
-
-    const imported = await gitProvider.importRepository({ repositoryUrl: body.repositoryUrl, branch: body.branch });
-
-    const name =
-      body.name ??
-      body.repositoryUrl
-        .split('/')
-        .pop()
-        ?.replace(/\.git$/, '') ??
-      'Imported project';
-
-    /*
-     * Re-check quota + create atomically (the slow clone is intentionally OUTSIDE
-     * the advisory-lock transaction).
-     */
-    const project = await store.withSerializedMutation(`projects:${orgId}`, async () => {
-      await ensureTenantAdmission(request, orgId, 'project.create', { action: 'project.create' });
-      await ensureQuota(request, orgId, 'projects.count');
-
-      return store.createProject({
-        organizationId: orgId,
-        name,
-        slug: body.slug ?? name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-        sourceType: 'github',
-        gitRepositoryUrl: imported.remoteUrl,
-        gitDefaultBranch: imported.defaultBranch,
-      });
-    });
-
-    const files = await projectStorage.writeFiles(project.id, imported.files);
-    await persistProjectFileManifest(store, project.id, files, request.currentUser!.id);
-    await recordUsage(request, orgId, 'projects.count');
-    await store.recordProjectActivity({
-      projectId: project.id,
-      actorUserId: request.currentUser!.id,
-      action: 'project.import_github',
-      metadata: { repositoryUrl: body.repositoryUrl },
-    });
-    await audit(request, store, {
+    const requestHash = createHash('sha256')
+      .update(
+        JSON.stringify({
+          provider: 'github',
+          repositoryUrl: body.repositoryUrl,
+          branch: body.branch ?? null,
+          name: body.name ?? null,
+          slug: body.slug ?? null,
+        }),
+      )
+      .digest('hex');
+    const staged = await stageCompatibilityImport({
+      request,
       organizationId: orgId,
-      action: 'project.import_github',
-      resourceType: 'project',
-      resourceId: project.id,
-      metadata: { repositoryUrl: body.repositoryUrl },
+      provider: 'github',
+      sourceRef: body.repositoryUrl,
+      idempotencyKey: compatibilityImportKey(request, body.idempotencyKey, requestHash),
+      requestHash,
+      load: async () => {
+        const imported = await gitProvider.importRepository({
+          repositoryUrl: body.repositoryUrl,
+          branch: body.branch,
+        });
+        const name =
+          body.name ??
+          body.repositoryUrl
+            .split('/')
+            .pop()
+            ?.replace(/\.git$/, '') ??
+          'Imported project';
+        return {
+          files: imported.files,
+          target: {
+            name,
+            slug: body.slug ?? name,
+            sourceType: 'github',
+            gitRepositoryUrl: imported.remoteUrl,
+            gitDefaultBranch: imported.defaultBranch,
+            completionAction: 'project.import_github',
+          },
+        };
+      },
     });
 
-    return reply.code(201).send({ project, files: publicFiles(files) });
+    if (staged.requiresConsent) {
+      return reply.code(202).send({
+        project: null,
+        import: {
+          importJobId: staged.job.id,
+          state: staged.job.state,
+          provider: staged.job.provider,
+          findings: staged.findings,
+          stagedFileCount: staged.job.stagedFileCount,
+          requiresConsent: true,
+          preview: staged.preview,
+          replayed: staged.replayed,
+        },
+      });
+    }
+    return commitDurableImport(request, reply, { orgId, importJobId: staged.job.id });
   });
 
   /*
-   * GitLab / Bitbucket repo import — parity with the GitHub import above so these
-   * connectors create a real, persistent project (not deploy-only). Reuses the
-   * same SSRF-safe githubImportSchema (HTTPS/SSH only, blocks file://+internal
-   * hosts) and the same gitProvider.importRepository → createProject → writeFiles
-   * chain, org-scoped and quota-gated. sourceType records the origin per provider.
+   * GitLab / Bitbucket compatibility routes use the same durable staging + scan
+   * + hidden commit path as GitHub above. No target exists before a clean scan or
+   * explicit per-finding consent.
    */
   async function importRepositoryIntoProject(
     request: FastifyRequest,
@@ -22135,51 +22443,65 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const body = parse(githubImportSchema, request.body);
     await requireOrg(request, store, orgId, 'projects:write');
     await requireOrganizationNotSuspended(store, orgId);
-    await ensureTenantAdmission(request, orgId, 'project.create', { action: 'project.create' }, { preflight: true });
-    await ensureQuota(request, orgId, 'projects.count');
-
-    const imported = await gitProvider.importRepository({ repositoryUrl: body.repositoryUrl, branch: body.branch });
-
-    const name =
-      body.name ??
-      body.repositoryUrl
-        .split('/')
-        .pop()
-        ?.replace(/\.git$/, '') ??
-      'Imported project';
-
-    const project = await store.withSerializedMutation(`projects:${orgId}`, async () => {
-      await ensureTenantAdmission(request, orgId, 'project.create', { action: 'project.create' });
-      await ensureQuota(request, orgId, 'projects.count');
-
-      return store.createProject({
-        organizationId: orgId,
-        name,
-        slug: body.slug ?? name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-        sourceType: provider,
-        gitRepositoryUrl: imported.remoteUrl,
-        gitDefaultBranch: imported.defaultBranch,
-      });
-    });
-
-    const files = await projectStorage.writeFiles(project.id, imported.files);
-    await persistProjectFileManifest(store, project.id, files, request.currentUser!.id);
-    await recordUsage(request, orgId, 'projects.count');
-    await store.recordProjectActivity({
-      projectId: project.id,
-      actorUserId: request.currentUser!.id,
-      action: `project.import_${provider}`,
-      metadata: { repositoryUrl: body.repositoryUrl },
-    });
-    await audit(request, store, {
+    const requestHash = createHash('sha256')
+      .update(
+        JSON.stringify({
+          provider,
+          repositoryUrl: body.repositoryUrl,
+          branch: body.branch ?? null,
+          name: body.name ?? null,
+          slug: body.slug ?? null,
+        }),
+      )
+      .digest('hex');
+    const staged = await stageCompatibilityImport({
+      request,
       organizationId: orgId,
-      action: `project.import_${provider}`,
-      resourceType: 'project',
-      resourceId: project.id,
-      metadata: { repositoryUrl: body.repositoryUrl },
+      provider,
+      sourceRef: body.repositoryUrl,
+      idempotencyKey: compatibilityImportKey(request, body.idempotencyKey, requestHash),
+      requestHash,
+      load: async () => {
+        const imported = await gitProvider.importRepository({
+          repositoryUrl: body.repositoryUrl,
+          branch: body.branch,
+        });
+        const name =
+          body.name ??
+          body.repositoryUrl
+            .split('/')
+            .pop()
+            ?.replace(/\.git$/, '') ??
+          'Imported project';
+        return {
+          files: imported.files,
+          target: {
+            name,
+            slug: body.slug ?? name,
+            sourceType: provider,
+            gitRepositoryUrl: imported.remoteUrl,
+            gitDefaultBranch: imported.defaultBranch,
+            completionAction: `project.import_${provider}` as const,
+          },
+        };
+      },
     });
-
-    return reply.code(201).send({ project, files: publicFiles(files) });
+    if (staged.requiresConsent) {
+      return reply.code(202).send({
+        project: null,
+        import: {
+          importJobId: staged.job.id,
+          state: staged.job.state,
+          provider: staged.job.provider,
+          findings: staged.findings,
+          stagedFileCount: staged.job.stagedFileCount,
+          requiresConsent: true,
+          preview: staged.preview,
+          replayed: staged.replayed,
+        },
+      });
+    }
+    return commitDurableImport(request, reply, { orgId, importJobId: staged.job.id });
   }
 
   app.post('/orgs/:orgId/projects/import/gitlab', (request, reply) =>
@@ -22196,39 +22518,51 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     await requireOrganizationNotSuspended(store, orgId);
 
     const name = body.name ?? 'Imported zip project';
-
-    // Serialize quota + create (projects.count TOCTOU).
-    const project = await store.withSerializedMutation(`projects:${orgId}`, async () => {
-      await ensureTenantAdmission(request, orgId, 'project.create', { action: 'project.create' });
-      await ensureQuota(request, orgId, 'projects.count');
-
-      return store.createProject({
-        organizationId: orgId,
-        name,
-        slug: body.slug ?? name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-        sourceType: 'zip',
-      });
-    });
-
-    const files = await projectStorage.importZip(project.id, body.zipBase64);
-    await persistProjectFileManifest(store, project.id, files, request.currentUser!.id);
-    await commitInitialScaffold(gitProvider, project.id);
-    await recordUsage(request, orgId, 'projects.count');
-    await store.recordProjectActivity({
-      projectId: project.id,
-      actorUserId: request.currentUser!.id,
-      action: 'project.import_zip',
-      metadata: { files: files.length },
-    });
-    await audit(request, store, {
+    const zipHash = createHash('sha256').update(body.zipBase64).digest('hex');
+    const requestHash = createHash('sha256')
+      .update(
+        JSON.stringify({
+          provider: 'zip',
+          zipHash,
+          name,
+          slug: body.slug ?? null,
+        }),
+      )
+      .digest('hex');
+    const staged = await stageCompatibilityImport({
+      request,
       organizationId: orgId,
-      action: 'project.import_zip',
-      resourceType: 'project',
-      resourceId: project.id,
-      metadata: { files: files.length },
+      provider: 'zip',
+      sourceRef: `zip:sha256:${zipHash}`,
+      idempotencyKey: compatibilityImportKey(request, body.idempotencyKey, requestHash),
+      requestHash,
+      load: async () => ({
+        files: await filesFromZipBase64(body.zipBase64),
+        target: {
+          name,
+          slug: body.slug ?? name,
+          sourceType: 'zip',
+          completionAction: 'project.import_zip',
+          initializeGitScaffold: true,
+        },
+      }),
     });
-
-    return reply.code(201).send({ project, files: publicFiles(files) });
+    if (staged.requiresConsent) {
+      return reply.code(202).send({
+        project: null,
+        import: {
+          importJobId: staged.job.id,
+          state: staged.job.state,
+          provider: staged.job.provider,
+          findings: staged.findings,
+          stagedFileCount: staged.job.stagedFileCount,
+          requiresConsent: true,
+          preview: staged.preview,
+          replayed: staged.replayed,
+        },
+      });
+    }
+    return commitDurableImport(request, reply, { orgId, importJobId: staged.job.id });
   });
   app.get('/projects/resolve', async (request) => {
     const query = parse(projectResolveQuerySchema, request.query);
@@ -26254,6 +26588,182 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     };
   };
 
+  /**
+   * Capture the live project tree and the exact ProjectManifest revision behind
+   * one durable, cross-replica source barrier. The source tree is transformed
+   * (secret/PII scrubbing) while frozen and only that transformed artifact is
+   * archived. A snapshot produced by the pre-barrier implementation is refused
+   * on retry because it cannot prove that files and topology shared an instant.
+   */
+  const captureRemixSourceSnapshot = async (input: {
+    remixJobId: string;
+    sourceProjectId: string;
+    actorUserId?: string;
+    guard: () => Promise<void>;
+    prepare: (files: ProjectFile[]) => PreparedRemixSourceArtifact;
+  }) => {
+    const snapshotId = `remix-${input.remixJobId}`;
+    const storageKey = `snapshots/${input.sourceProjectId}/${snapshotId}.zip`;
+    const readExisting = async () => {
+      const existing = await store.getSnapshot(snapshotId);
+      if (!existing) return undefined;
+      const manifest = existing.manifest as {
+        snapshotHash?: unknown;
+        sourceBarrierId?: unknown;
+      };
+      if (
+        existing.projectId !== input.sourceProjectId ||
+        existing.storageKey !== storageKey ||
+        typeof manifest.snapshotHash !== 'string' ||
+        typeof manifest.sourceBarrierId !== 'string'
+      ) {
+        throw new RemixInvariantError('Pinned source snapshot conflicts with the remix job', 'REMIX_SNAPSHOT_CONFLICT');
+      }
+      readProjectManifestSnapshotPin(existing.manifest, input.sourceProjectId);
+      const files = await getSnapshotFiles(existing);
+      if (remixFileSnapshotHash(files) !== manifest.snapshotHash) {
+        throw new RemixInvariantError('Pinned source snapshot digest mismatch', 'REMIX_SNAPSHOT_DIGEST_MISMATCH');
+      }
+      const prepared = input.prepare(files);
+      if (remixFileSnapshotHash(prepared.files) !== manifest.snapshotHash) {
+        throw new RemixInvariantError('Pinned source snapshot contains detached data', 'REMIX_SNAPSHOT_UNSAFE');
+      }
+      return { snapshotId: existing.id, snapshotHash: manifest.snapshotHash, prepared };
+    };
+
+    const existing = await readExisting();
+    if (existing) return existing;
+
+    const sourceProject = await store.getProject(input.sourceProjectId);
+    if (!sourceProject) {
+      throw new RemixInvariantError('Source project is unavailable', 'REMIX_SOURCE_UNAVAILABLE');
+    }
+
+    /* Materialize v1 before acquiring the barrier; appending it under our own
+     * source freeze would deadlock/refuse against the same manifest lock. */
+    await currentProjectManifest(store, sourceProject);
+
+    const checkpoint = await store.createProjectCheckpoint({
+      projectId: input.sourceProjectId,
+      createdByUserId: input.actorUserId,
+      idempotencyKey: `remix-source-pin:${snapshotId}:${randomUUID()}`,
+      requestHash: createHash('sha256').update(`${snapshotId}:${storageKey}`).digest('hex'),
+    });
+    const barrierId = `remix_pin_${randomUUID()}`;
+    const ownerToken = `remix_pin_owner_${randomUUID()}`;
+    const lease = await withProjectLock(input.sourceProjectId, () =>
+      store.acquireProjectCheckpointBarrier({
+        checkpointId: checkpoint.id,
+        projectId: input.sourceProjectId,
+        barrierId,
+        ownerToken,
+        ttlSeconds: CHECKPOINT_LEASE_TTL_SECONDS,
+      }),
+    );
+
+    if (!lease) {
+      await store
+        .updateProjectCheckpoint(checkpoint.id, {
+          state: 'CLEANED',
+          error: 'REMIX_SOURCE_BARRIER_UNAVAILABLE',
+        })
+        .catch(() => undefined);
+      throw new RemixInvariantError('Source project is already frozen', 'REMIX_SOURCE_BARRIER_UNAVAILABLE');
+    }
+
+    const leaseManager = new ProjectCheckpointLeaseManager(
+      store,
+      lease,
+      CHECKPOINT_LEASE_TTL_SECONDS,
+      CHECKPOINT_LEASE_RENEW_MS,
+    );
+    leaseManager.start();
+    const guard = async () => {
+      await input.guard();
+      await leaseManager.guard();
+    };
+
+    try {
+      await guard();
+      const liveFiles = await listProjectFilesIncludingIdeState(
+        store,
+        rawProjectStorage,
+        input.sourceProjectId,
+        undefined,
+        guard,
+      );
+      await guard();
+      const pinnedManifest = await currentProjectManifest(store, sourceProject);
+      await guard();
+      const prepared = input.prepare(liveFiles);
+      const snapshotHash = remixFileSnapshotHash(prepared.files);
+      const archive = await rawProjectStorage.createSnapshot({
+        projectId: input.sourceProjectId,
+        label: appPublicEnglish('REMIX_SOURCE_PIN_STORAGE_LABEL'),
+        files: prepared.files,
+        storageKey,
+        guard,
+      });
+      await guard();
+      await persistProjectArchiveObject(archive, { projectId: input.sourceProjectId, kind: 'snapshot' });
+      await guard();
+      const snapshot = await store.createSnapshot({
+        id: snapshotId,
+        projectId: input.sourceProjectId,
+        label: appPublicEnglish('REMIX_SOURCE_PIN_LABEL'),
+        kind: 'manual',
+        manifest: {
+          remixJobId: input.remixJobId,
+          fileCount: prepared.files.length,
+          snapshotHash,
+          sourceBarrierId: barrierId,
+          captureVersion: 1,
+          excludesRuntimeSecrets: true,
+        },
+        storageKey: archive.storageKey,
+        byteLength: archive.byteLength,
+        createdByUserId: input.actorUserId,
+      });
+      const snapshotPin = readProjectManifestSnapshotPin(snapshot.manifest, input.sourceProjectId);
+      if (snapshotPin.digest !== pinnedManifest.digest) {
+        throw new RemixInvariantError('Source manifest changed during snapshot capture', 'REMIX_SNAPSHOT_CONFLICT');
+      }
+      await guard();
+      const verifiedFiles = await getSnapshotFiles(snapshot);
+      if (remixFileSnapshotHash(verifiedFiles) !== snapshotHash) {
+        throw new RemixInvariantError('Pinned source snapshot digest mismatch', 'REMIX_SNAPSHOT_DIGEST_MISMATCH');
+      }
+      await store.updateProjectCheckpoint(checkpoint.id, {
+        state: 'CLEANED',
+        logicalBarrierId: barrierId,
+        consistencyLevel: 'SOURCE_PIN_EXACT',
+        manifest: {
+          snapshotId: snapshot.id,
+          snapshotHash,
+          projectManifestDigest: snapshotPin.digest,
+        },
+      });
+      return { snapshotId: snapshot.id, snapshotHash, prepared };
+    } catch (error) {
+      await store
+        .updateProjectCheckpoint(checkpoint.id, {
+          state: 'CLEANED',
+          error: 'REMIX_SOURCE_CAPTURE_FAILED',
+        })
+        .catch(() => undefined);
+      throw error;
+    } finally {
+      await leaseManager.stop();
+      await store
+        .releaseProjectCheckpointBarrier({
+          checkpointId: checkpoint.id,
+          ownerToken: lease.ownerToken,
+          fence: lease.fence,
+        })
+        .catch(() => false);
+    }
+  };
+
   const runSecureRemixClone = async (params: {
     request: FastifyRequest;
     sourceProject: { id: string; organizationId: string };
@@ -26271,6 +26781,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     consentVersion?: string;
     sanitizePii?: boolean;
     piiConsentVersion?: string;
+    manifestCloneMode?: 'COPY' | 'DETACH_EXTERNALS';
+    sourceFilePolicy?: 'SECURE_DETACH' | 'COPY_EXACT';
+    completionAction?: 'project.remix' | 'project.duplicate';
   }) => {
     const databaseProvisioner = options.databaseProvisioner ?? resolveDefaultDatabaseProvisioner();
 
@@ -26286,6 +26799,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           await ensureTenantAdmission(params.request, organizationId, 'project.create', { action: 'project.create' });
           await ensureQuota(params.request, organizationId, 'projects.count');
         },
+        captureSourceSnapshot: captureRemixSourceSnapshot,
         createSourceSnapshot: async ({ remixJobId, sourceProjectId, files, actorUserId, guard }) => {
           const snapshotHash = remixFileSnapshotHash(files);
           // Stable target names make every retry overwrite/replay the same two
@@ -26353,7 +26867,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         recordCompleted: async ({ job, targetProject }) => {
           await audit(params.request, store, {
             organizationId: targetProject.organizationId,
-            action: 'project.remix',
+            action: params.completionAction ?? 'project.remix',
             resourceType: 'project',
             resourceId: targetProject.id,
             metadata: {
@@ -26388,6 +26902,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         consentVersion: params.consentVersion,
         sanitizePii: params.sanitizePii,
         piiConsentVersion: params.piiConsentVersion,
+        manifestCloneMode: params.manifestCloneMode,
+        sourceFilePolicy: params.sourceFilePolicy,
       },
     );
   };
@@ -26432,13 +26948,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const idempotencyKey = remixRequestKey(request, body, requestHash);
 
     try {
-      /*
-       * Plain project-to-project remix: pin the LIVE source file set, clone into
-       * the SAME org. (A gallery remix pins a snapshot and targets the remixer's
-       * org — see POST /gallery/:slug/remix.)
-       */
-      const sourceFiles = await listProjectFilesIncludingIdeState(store, projectStorage, project.id);
-
+      /* The physical service asks the source-capture dependency to read, scrub
+       * and pin the live tree + manifest under one durable barrier. */
       const result = await runSecureRemixClone({
         request,
         sourceProject: project,
@@ -26449,8 +26960,6 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         slug: body.slug,
         idempotencyKey,
         requestHash,
-        sourceFiles,
-
         /*
          * Same-org self-remix: the org already owns this data — no cross-user
          * license/PII flow, so nothing to mask and no consent to capture.
@@ -27050,40 +27559,88 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * membership, not the collaborator fallback.
      */
     await requireOrg(request, store, project.organizationId, 'projects:write');
+    await requireOrganizationNotSuspended(store, project.organizationId);
 
     const body = parse(duplicateProjectSchema, request.body);
-
-    // Serialize quota-check + duplicate (projects.count TOCTOU); see /transfer.
-    const duplicate = await store.withSerializedMutation(`projects:${project.organizationId}`, async () => {
-      await ensureTenantAdmission(request, project.organizationId, 'project.create', { action: 'project.create' });
-      await ensureQuota(request, project.organizationId, 'projects.count');
-
-      return store.duplicateProject({
-        projectId: project.id,
-        name: body.name,
-        slug: body.slug ?? body.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-      });
-    });
-
-    const sourceFiles = await listProjectFilesIncludingIdeState(store, projectStorage, project.id);
-    const duplicateFiles = await projectStorage.writeFiles(duplicate.id, sourceFiles);
-    await persistProjectFileManifest(store, duplicate.id, duplicateFiles, request.currentUser!.id);
-    await recordUsage(request, duplicate.organizationId, 'projects.count');
-    await store.recordProjectActivity({
-      projectId: duplicate.id,
+    const requestHash = remixRequestDigest({
       actorUserId: request.currentUser!.id,
-      action: 'project.duplicate',
-      metadata: { sourceProjectId: project.id },
+      sourceProjectId: project.id,
+      targetOrganizationId: project.organizationId,
+      name: body.name,
+      slug: body.slug ?? null,
+      operation: 'duplicate',
     });
-    await audit(request, store, {
-      organizationId: duplicate.organizationId,
-      action: 'project.duplicate',
-      resourceType: 'project',
-      resourceId: duplicate.id,
-      metadata: { sourceProjectId: project.id },
-    });
+    const idempotencyKey = remixRequestKey(request, body, requestHash);
 
-    return reply.code(201).send({ project: duplicate });
+    try {
+      /*
+       * Duplicate is a same-tenant variant of the durable physical clone: its
+       * source files + ProjectManifest are pinned behind one barrier, its target
+       * remains hidden while bytes are copied and re-hashed, and reveal happens
+       * atomically with COMPLETED. COPY preserves same-tenant bindings; secure
+       * cross-tenant remixes keep the DETACH_EXTERNALS default.
+       */
+      const result = await runSecureRemixClone({
+        request,
+        sourceProject: project,
+        targetOrganizationId: project.organizationId,
+        storagePolicy: 'DETACH',
+        name: body.name,
+        slug: body.slug,
+        idempotencyKey,
+        requestHash,
+        sanitizePii: false,
+        manifestCloneMode: 'COPY',
+        sourceFilePolicy: 'COPY_EXACT',
+        completionAction: 'project.duplicate',
+      });
+
+      if (result.kind === 'failed') {
+        return reply.status(409).send({
+          error: result.error,
+          code: result.code,
+          duplicateJobId: result.job.id,
+        });
+      }
+
+      if (result.kind !== 'completed') {
+        return reply.code(202).send({
+          project: null,
+          duplicate: publicRemixJob(result.job),
+          retryAfterMs: result.kind === 'busy' ? 1_000 : 2_000,
+        });
+      }
+
+      if (result.fresh) {
+        await recordUsage(request, project.organizationId, 'projects.count').catch((error) => {
+          request.log.warn({ err: error, duplicateJobId: result.job.id }, 'failed to record duplicate usage');
+        });
+        await store
+          .recordProjectActivity({
+            projectId: result.project.id,
+            actorUserId: request.currentUser!.id,
+            action: 'project.duplicate',
+            metadata: { sourceProjectId: project.id, sourceSnapshotId: result.job.sourceSnapshotId ?? null },
+          })
+          .catch((error) => {
+            request.log.warn({ err: error, duplicateJobId: result.job.id }, 'failed to record duplicate activity');
+          });
+      }
+
+      return reply.code(result.fresh ? 201 : 200).send({
+        project: result.project,
+        duplicate: {
+          ...publicRemixJob(result.job),
+          duplicateJobId: result.job.id,
+          sourceSnapshotId: result.job.sourceSnapshotId ?? null,
+        },
+      });
+    } catch (error) {
+      if (error instanceof RemixInvariantError) {
+        return reply.status(error.statusCode).send({ error: error.message, code: error.code });
+      }
+      throw error;
+    }
   });
   app.post('/projects/:projectId/template', async (request, reply) => {
     const project = await requireProject(

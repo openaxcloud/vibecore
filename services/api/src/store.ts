@@ -1893,6 +1893,7 @@ export interface ApiStore {
     operationToken: string;
     name: string;
     slug: string;
+    manifestCloneMode?: 'COPY' | 'DETACH_EXTERNALS';
   }): Promise<ProjectRecord>;
   completeClaimedRemixDatabase(input: {
     remixJobId: string;
@@ -2063,6 +2064,12 @@ export interface ApiStore {
     name: string;
     slug: string;
     sourceType: ProjectRecord['sourceType'];
+    description?: string;
+    templateName?: string;
+    gitRepositoryUrl?: string;
+    gitDefaultBranch?: string;
+    initialManifest?: unknown;
+    manifestCloneMode?: 'COPY' | 'DETACH_EXTERNALS';
   }): Promise<ProjectRecord>;
 
   /** Atomically publish COMMITTED and SETTLED, disposing Json staging/preview. */
