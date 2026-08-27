@@ -129,13 +129,56 @@ describe('provisioner dispatch + DATABASE_URL resolution', () => {
   });
 
   it('shared tier: applies a Pooler + Database CRD (no dedicated Cluster)', async () => {
-    const k8s = new FakeK8s();
-    const p = new CnpgProvisioner(k8s, 'bkt');
+    /*
+     * BUG-QA-DB-PROVISIONING-STUCK : ce chemin exige desormais que le locataire
+     * (role proprietaire + base) soit REELLEMENT en place. La CR `Database` le
+     * reference par son owner ; la poser sans le role produisait un
+     * `APPLIED=false` definitif ("role does not exist", SQLSTATE 42704) et un
+     * statut PROVISIONING qui ne finissait jamais. Le test fournit donc les
+     * prerequis que la production a bien de son cote.
+     */
+    process.env.DB_SHARED_TENANT_SECRET = 'tenant-secret-de-test';
 
-    await p.provisionInstance({ projectId: 'p1', retentionDays: 7, tier: 'shared', sharedClusterName: 'shared-pg-0' });
+    const k8s = new FakeK8s();
+    k8s.secrets.set('shared-pg-0-app', { username: 'app', password: 'pw', dbname: 'app' });
+
+    const sqlExec = new FakeTenantSqlExecutor();
+    const p = new CnpgProvisioner(k8s, 'bkt', undefined, sqlExec);
+
+    const result = await p.provisionInstance({
+      projectId: 'p1',
+      retentionDays: 7,
+      tier: 'shared',
+      sharedClusterName: 'shared-pg-0',
+    });
+
+    expect(result.applied).toBe(true);
     expect(k8s.applied.some((m) => m.kind === 'Pooler')).toBe(true);
     expect(k8s.applied.some((m) => m.kind === 'Database')).toBe(true);
     expect(k8s.applied.some((m) => m.kind === 'Cluster')).toBe(false);
+
+    // Le role proprietaire a bien ete cree AVANT la CR qui le reference.
+    expect(sqlExec.calls).toHaveLength(1);
+    expect(sqlExec.calls[0].role).toBe('t_p1');
+  });
+
+  it('shared tier: n_applique RIEN quand le locataire ne peut pas etre cree', async () => {
+    // Sans secret de locataire, l'ancien code posait quand meme la CR empoisonnee.
+    delete process.env.DB_SHARED_TENANT_SECRET;
+
+    const k8s = new FakeK8s();
+    const p = new CnpgProvisioner(k8s, 'bkt');
+
+    const result = await p.provisionInstance({
+      projectId: 'p1',
+      retentionDays: 7,
+      tier: 'shared',
+      sharedClusterName: 'shared-pg-0',
+    });
+
+    expect(result.applied).toBe(false);
+    expect(result.reason).toBe('SHARED_TENANT_UNAVAILABLE');
+    expect(k8s.applied).toEqual([]);
   });
 });
 

@@ -1,15 +1,15 @@
+import {
+  formatProjectEnvCopy,
+  getProjectEnvCopy,
+  getProjectEnvScopeLabel,
+  resolveProjectEnvLanguage,
+  type ProjectEnvCopy,
+} from '~/lib/i18n/catalogs/project-env';
 import { formatUserAreaDateTime } from '~/lib/i18n/user-area-locale';
 
 /** Env-var scopes, mirroring the API's `envVarScopeSchema` (services/api). */
 export const ENV_VAR_SCOPES = ['development', 'preview', 'production'] as const;
 export type EnvVarScope = (typeof ENV_VAR_SCOPES)[number];
-
-/** Human labels for the scope tabs (Dev / Preview / Prod). */
-export const ENV_VAR_SCOPE_LABELS: Record<EnvVarScope, string> = {
-  development: 'Development',
-  preview: 'Preview',
-  production: 'Production',
-};
 
 export type EnvVarRecord = { id: string; key: string; value: string; scope?: string; updatedAt?: string };
 
@@ -33,7 +33,16 @@ export function normalizeEnvVarScope(scope: string | undefined): EnvVarScope {
  * no key and must never render a delete control. Rows are sorted by key so the
  * panel order is stable across saves.
  */
-export function buildEnvVarRows(envVars: EnvVarRecord[] | undefined, scope: EnvVarScope): EnvVarRow[] {
+export function buildEnvVarRows(
+  envVars: EnvVarRecord[] | undefined,
+  scope: EnvVarScope,
+  language?: string | null,
+  suppliedCopy?: ProjectEnvCopy,
+): EnvVarRow[] {
+  const resolvedLanguage = resolveProjectEnvLanguage(language);
+  const copy = suppliedCopy ?? getProjectEnvCopy(resolvedLanguage);
+  const scopeLabel = getProjectEnvScopeLabel(scope, copy);
+
   const vars = (envVars ?? [])
     .filter((item) => normalizeEnvVarScope(item.scope) === scope)
     .sort((a, b) => a.key.localeCompare(b.key));
@@ -42,8 +51,8 @@ export function buildEnvVarRows(envVars: EnvVarRecord[] | undefined, scope: EnvV
     return [
       {
         kind: 'empty',
-        title: `No ${ENV_VAR_SCOPE_LABELS[scope].toLowerCase()} variables`,
-        detail: `Add the first variable for the ${ENV_VAR_SCOPE_LABELS[scope].toLowerCase()} environment.`,
+        title: formatProjectEnvCopy(copy['projectEnv.empty.title'], { scope: scopeLabel }),
+        detail: formatProjectEnvCopy(copy['projectEnv.empty.description'], { scope: scopeLabel }),
       },
     ];
   }
@@ -53,8 +62,12 @@ export function buildEnvVarRows(envVars: EnvVarRecord[] | undefined, scope: EnvV
     id: item.id,
     key: item.key,
     detail: item.updatedAt
-      ? `Updated ${formatUserAreaDateTime(item.updatedAt) ?? 'date unavailable'}`
-      : 'Saved for this project',
+      ? formatProjectEnvCopy(copy['projectEnv.row.updated'], {
+          date:
+            formatUserAreaDateTime(item.updatedAt, undefined, resolvedLanguage) ??
+            copy['projectEnv.row.dateUnavailable'],
+        })
+      : copy['projectEnv.row.saved'],
   }));
 }
 

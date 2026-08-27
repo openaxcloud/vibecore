@@ -65,8 +65,61 @@ env:
   HELM_NAMESPACE: vibecore
 
 jobs:
+  # B6 — gates that must pass BEFORE anything is built or rolled out.
+  #
+  # security.yaml already runs gitleaks on push/PR, but that is a *separate*
+  # workflow: a red run there does not stop this one, so a secret could still
+  # ride into production. This job puts the same check on the deploy path
+  # itself, where failing it actually prevents the rollout.
+  preflight-gates:
+    name: Preflight gates (secrets + pipeline policy, blocking)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install gitleaks
+        run: |
+          set -euo pipefail
+          GITLEAKS_VERSION=8.21.2
+          curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" \
+            | tar -xz -C /tmp gitleaks
+          sudo install /tmp/gitleaks /usr/local/bin/gitleaks
+          gitleaks version
+
+      - name: Secret scan (blocking)
+        run: |
+          set -euo pipefail
+          gitleaks detect \
+            --no-git \
+            --source . \
+            --config .gitleaks.toml \
+            --redact \
+            --no-banner \
+            --exit-code 1
+
+      # Policy gate: the image-signing steps are what make the Kyverno admission
+      # policy satisfiable. If someone deletes or renames them, builds keep
+      # succeeding and the failure only surfaces later as pods refused at
+      # admission — during a rollout, at the worst possible moment. Assert here
+      # instead, where the error is obvious and cheap.
+      # The validator parses the step structure rather than grepping it. A
+      # line-range grep here is actively dangerous: an awk range like
+      # /id: sign-image/,/^  - id: [^s]/ never closes when the following step
+      # also starts with "s" (scan-images), so it swallows that step's
+      # `allowFailure: true` and the gate fails on a perfectly good tree.
+      # The validator is HERMETIC — pure Python 3 stdlib, no PyYAML — so the gate
+      # never depends on a dependency that happens to be preinstalled on the
+      # runner. --self-test first proves the parser itself before it is trusted.
+      - name: Pipeline policy — image signing must still be wired
+        run: |
+          set -euo pipefail
+          python3 scripts/validate-image-signing-wired.py --self-test
+          python3 scripts/validate-image-signing-wired.py
+
   build-and-deploy:
     name: Build tiers sequentially, then helm upgrade
+    needs: [preflight-gates]
     runs-on: ubuntu-latest
     timeout-minutes: 90
     environment:
@@ -261,6 +314,75 @@ jobs:
             .
           echo "::endgroup::"
 
+      # B6 — BLOCKING vulnerability gate on the images this run just built.
+      #
+      # Deliberately placed AFTER the builds and BEFORE `helm upgrade`: that is
+      # the last point where refusing to ship costs nothing. A gate that ran
+      # after the rollout would only be able to tell us we had already shipped
+      # the CVE.
+      #
+      # Why Trivy and not the `gcloud artifacts docker images scan` steps in the
+      # Cloud Build configs: Artifact Registry scanning is DISABLED on this
+      # project (`containerscanning.googleapis.com` is not enabled), so those
+      # steps have been failing into their `|| echo WARN` for as long as they
+      # have existed and `allowFailure: true` hid it. They report nothing today.
+      #
+      # --ignore-unfixed: only CVEs with an available fix can block, otherwise
+      # the gate is unactionable and the first instinct is to disable it.
+      # Accepted-risk CVEs live in .trivyignore with a justification and expiry.
+      - name: Vulnerability gate on built images (blocking)
+        run: |
+          set -euo pipefail
+          # Keep this pinned, and verify the asset actually exists before
+          # bumping: release asset names are not stable across versions, and a
+          # 404 here fails the gate for the wrong reason (curl -sSfL is silent
+          # about it until tar chokes).
+          TRIVY_VERSION=0.72.0
+          curl -sSfL "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz" \
+            | tar -xz -C /tmp trivy
+          sudo install /tmp/trivy /usr/local/bin/trivy
+          trivy --version
+          gcloud auth configure-docker "${GAR_LOCATION}-docker.pkg.dev" --quiet
+
+          REG="${GAR_LOCATION}-docker.pkg.dev/${GCP_PROJECT_ID}/${GAR_REPO}"
+          IMAGES=""
+          if [ "${{ steps.tiers.outputs.web }}" = "true" ]; then
+            IMAGES="${IMAGES} ${REG}/web:${SHORT_SHA}"
+          fi
+          if [ "${{ steps.tiers.outputs.runtime }}" = "true" ]; then
+            for s in api workspace-manager preview-proxy ai-gateway worker screenshotter; do
+              IMAGES="${IMAGES} ${REG}/${s}:${SHORT_SHA}"
+            done
+          fi
+          if [ "${{ steps.tiers.outputs.wsagent }}" = "true" ]; then
+            IMAGES="${IMAGES} ${REG}/workspace-agent:sha-${SHORT_SHA}"
+          fi
+          if [ -z "${IMAGES// /}" ]; then
+            echo "No tier was rebuilt this run — nothing to scan."
+            exit 0
+          fi
+
+          rc=0
+          for img in ${IMAGES}; do
+            echo "::group::trivy ${img}"
+            # Two passes so the log is useful: an informational HIGH listing,
+            # then the CRITICAL pass that actually decides the gate.
+            trivy image --quiet --scanners vuln --severity HIGH \
+              --ignore-unfixed --ignorefile .trivyignore "${img}" || true
+            if ! trivy image --quiet --scanners vuln --severity CRITICAL \
+                   --ignore-unfixed --ignorefile .trivyignore \
+                   --exit-code 1 "${img}"; then
+              echo "::error::CRITICAL fixable vulnerability in ${img}"
+              rc=1
+            fi
+            echo "::endgroup::"
+          done
+          if [ "$rc" -ne 0 ]; then
+            echo "::error::Vulnerability gate FAILED — refusing to deploy. Fix the CVE, or add a justified entry to .trivyignore."
+            exit 1
+          fi
+          echo "Vulnerability gate passed for:${IMAGES}"
+
       - name: Set up Helm
         uses: azure/setup-helm@v4
         with:
@@ -275,6 +397,14 @@ jobs:
       # malformed value. Failing here blocks the deploy.
       - name: Helm render test — rollback flag (blocking)
         run: node scripts/validate-helm-rollback-flag.mjs
+
+      # P11 screenshotter render test: proves the chart renders the screenshotter
+      # Deployment/Service, the chart-managed auth Secret (mounted on every pod)
+      # and the egress NetworkPolicy under the exact --set combination the
+      # upgrade below uses — BEFORE touching the release. Failing here blocks
+      # the deploy instead of burning an --atomic rollback.
+      - name: Helm render test — screenshotter (blocking)
+        run: node scripts/validate-helm-screenshotter.mjs
 
       # kubectl through Connect Gateway: the cluster control plane is
       # IP-restricted, so direct `get-gke-credentials` won't reach it from a
@@ -332,6 +462,19 @@ jobs:
               --set "services.previewProxy.imageTag=${SHORT_SHA}"
               --set "services.aiGateway.imageTag=${SHORT_SHA}"
               --set "services.worker.imageTag=${SHORT_SHA}"
+              # P11 screenshotter (auto thumbnails). Asserted here — NOT only in
+              # values-prod.yaml — because --reuse-values ignores that file. Gated
+              # on the runtime tier so enabled=true is only ever set in a run that
+              # just pushed screenshotter:${SHORT_SHA} (never an unpublished tag →
+              # no ImagePullBackOff risk); once stored, --reuse-values carries
+              # enabled+imageTag through web-only deploys. The shared secret is
+              # chart-managed (templates/screenshotter-auth-secret.yaml), the
+              # config values are re-asserted like previewUrlTemplate above.
+              --set "services.screenshotter.enabled=true"
+              --set "services.screenshotter.imageTag=${SHORT_SHA}"
+              --set-string "platformEnv.screenshotterUrl=http://vibecore-vibecore-platform-screenshotter.vibecore.svc.cluster.local:3030"
+              --set-string "platformEnv.screenshotterAllowedHosts=preview.e-code.ai"
+              --set-string "platformEnv.screenshotterPreviewProxyUrl=http://vibecore-vibecore-platform-preview-proxy.vibecore.svc.cluster.local:3020"
             )
           fi
           if [ "${{ steps.tiers.outputs.wsagent }}" = "true" ]; then
@@ -359,6 +502,16 @@ jobs:
             kubectl -n "${HELM_NAMESPACE}" rollout status "${dep}" --timeout=5m
             echo "::endgroup::"
           done
+          # P11 screenshotter — only exists once a runtime-tier deploy has asserted
+          # services.screenshotter.enabled=true (see the helm SETS above), so check
+          # for the Deployment instead of failing a web-only deploy that predates it.
+          if kubectl -n "${HELM_NAMESPACE}" get deploy "${HELM_RELEASE}-vibecore-platform-screenshotter" >/dev/null 2>&1; then
+            echo "::group::rollout status deploy/${HELM_RELEASE}-vibecore-platform-screenshotter"
+            kubectl -n "${HELM_NAMESPACE}" rollout status "deploy/${HELM_RELEASE}-vibecore-platform-screenshotter" --timeout=5m
+            echo "::endgroup::"
+          else
+            echo "screenshotter Deployment absent (not yet enabled by a runtime-tier deploy) — skipped"
+          fi
 
       # D2 (approved 2026-07-17): POST-DEPLOY proof that the rollback flag
       # survived the upgrade — checked against the LIVE cluster (rendered

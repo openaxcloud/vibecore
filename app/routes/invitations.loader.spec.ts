@@ -19,8 +19,18 @@ vi.mock('~/lib/enterprise-api.server', async () => {
   };
 });
 
-function loaderRequest(orgId = 'org-1'): Request {
-  return new Request(`https://app.test/invitations?orgId=${orgId}`);
+function loaderRequest(orgId = 'org-1', language = 'en'): Request {
+  return new Request(`https://app.test/invitations?orgId=${encodeURIComponent(orgId)}`, {
+    headers: { 'accept-language': language },
+  });
+}
+
+function actionRequest(body: Record<string, string>, language = 'en'): Request {
+  return new Request('https://app.test/invitations', {
+    method: 'POST',
+    headers: { 'content-type': 'application/x-www-form-urlencoded', 'accept-language': language },
+    body: new URLSearchParams(body),
+  });
 }
 
 /** Mirrors the real Response apiRequest throws on a non-2xx upstream status. */
@@ -58,6 +68,7 @@ describe('invitations loader graceful degradation', () => {
     const data = await readJson(await loader({ request: loaderRequest() } as any));
 
     expect(data.canManageInvitations).toBe(true);
+    expect(data.loadErrorCode).toBeNull();
     expect(data.invitations).toHaveLength(1);
     expect(data.roles.map((r: { key: string }) => r.key)).toContain('auditor');
   });
@@ -76,10 +87,11 @@ describe('invitations loader graceful degradation', () => {
     const data = await readJson(await loader({ request: loaderRequest() } as any));
 
     expect(data.canManageInvitations).toBe(false);
+    expect(data.loadErrorCode).toBe('permission');
     expect(data.invitations).toEqual([]);
 
     // Custom roles are dropped, but the static role list remains intact.
-    expect(data.roles.map((r: { key: string }) => r.key)).toEqual(['viewer', 'member', 'admin', 'owner']);
+    expect(data.roles.map((r: { key: string }) => r.key)).toEqual(['viewer', 'member', 'editor', 'admin', 'owner']);
   });
 
   it('still degrades when only the roles call is forbidden but invitations succeed', async () => {
@@ -96,13 +108,17 @@ describe('invitations loader graceful degradation', () => {
     expect(apiRequest).toHaveBeenCalledTimes(2);
   });
 
-  it('re-throws a 5xx server error from the roles call to the error boundary', async () => {
-    const serverError = apiErrorResponse(500, 'Upstream failure.');
+  it('degrades a 5xx roles failure to a stable unavailable state without exposing upstream copy', async () => {
+    const upstreamError = 'Prisma connection failed at private-db.internal';
+    const serverError = apiErrorResponse(500, upstreamError);
     apiRequest.mockRejectedValueOnce(serverError);
 
     const { loader } = await import('./invitations');
+    const data = await readJson(await loader({ request: loaderRequest() } as any));
 
-    await expect(loader({ request: loaderRequest() } as any)).rejects.toBe(serverError);
+    expect(data.loadErrorCode).toBe('unavailable');
+    expect(data.canManageInvitations).toBe(false);
+    expect(JSON.stringify(data)).not.toContain(upstreamError);
   });
 
   it('re-throws a re-auth redirect (3xx) from the roles call so the browser follows it', async () => {
@@ -121,5 +137,173 @@ describe('invitations loader graceful degradation', () => {
     const { loader } = await import('./invitations');
 
     await expect(loader({ request: loaderRequest() } as any)).rejects.toBe(unauthorized);
+  });
+
+  it('resolves the request locale for SSR and keeps custom role names unchanged', async () => {
+    apiRequest
+      .mockResolvedValueOnce({ roles: [{ key: 'release-captain', name: 'Release Captain', permissions: [] }] })
+      .mockResolvedValueOnce({ invitations: [] });
+
+    const { loader } = await import('./invitations');
+    const data = await readJson(await loader({ request: loaderRequest('org-1', 'fr-FR,fr;q=0.9') } as any));
+
+    expect(data.language).toBe('fr');
+    expect(data.roles).toContainEqual({ key: 'release-captain', name: 'Release Captain', system: false });
+  });
+
+  it('turns malformed upstream payloads into a safe retry state', async () => {
+    apiRequest.mockResolvedValueOnce({ roles: 'not-an-array' });
+
+    const { loader } = await import('./invitations');
+    const data = await readJson(await loader({ request: loaderRequest() } as any));
+
+    expect(data.loadErrorCode).toBe('unavailable');
+    expect(data.invitations).toEqual([]);
+    expect(apiRequest).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('invitations action stable contracts', () => {
+  afterEach(() => {
+    apiRequest.mockReset();
+  });
+
+  it('creates an invitation with a stable success code and trimmed values', async () => {
+    apiRequest.mockResolvedValueOnce({ invitation: { id: 'invite-1' } });
+
+    const { action } = await import('./invitations');
+
+    const data = await readJson(
+      await action({
+        request: actionRequest({
+          intent: 'create',
+          orgId: 'org-1',
+          email: '  teammate@example.com  ',
+          roleKey: 'member',
+        }),
+      } as any),
+    );
+
+    expect(data).toEqual({ statusCode: 'created' });
+    expect(apiRequest).toHaveBeenCalledWith(
+      expect.any(Request),
+      '/orgs/org-1/invitations',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ email: 'teammate@example.com', roleKey: 'member' }),
+      }),
+    );
+  });
+
+  it('encodes organization and invitation identifiers for resend', async () => {
+    apiRequest.mockResolvedValueOnce({ invitation: { id: 'invite/2' } });
+
+    const { action } = await import('./invitations');
+
+    const data = await readJson(
+      await action({
+        request: actionRequest({ intent: 'resend', orgId: 'org/1', inviteId: 'invite/2' }),
+      } as any),
+    );
+
+    expect(data).toEqual({ statusCode: 'resent' });
+    expect(apiRequest).toHaveBeenCalledWith(expect.any(Request), '/orgs/org%2F1/invitations/invite%2F2/resend', {
+      method: 'POST',
+    });
+  });
+
+  it('maps upstream failures to safe stable codes without exposing their body', async () => {
+    const upstreamError = 'PostgreSQL postgres://secret@private-db.internal';
+    apiRequest.mockRejectedValueOnce(apiErrorResponse(429, upstreamError, 'INVITE_RESEND_THROTTLED'));
+
+    const { action } = await import('./invitations');
+
+    const data = await readJson(
+      await action({
+        request: actionRequest({ intent: 'resend', orgId: 'org-1', inviteId: 'invite-1' }),
+      } as any),
+    );
+
+    expect(data).toEqual({ errorCode: 'rateLimited' });
+    expect(JSON.stringify(data)).not.toContain(upstreamError);
+    expect(JSON.stringify(data)).not.toContain('postgres://');
+  });
+
+  it('maps forbidden, not-found and network failures without returning upstream errors', async () => {
+    const { action } = await import('./invitations');
+
+    apiRequest.mockRejectedValueOnce(apiErrorResponse(403, 'private permission trace'));
+
+    const forbidden = await readJson(
+      await action({
+        request: actionRequest({ intent: 'expire', orgId: 'org-1', inviteId: 'invite-1' }),
+      } as any),
+    );
+
+    apiRequest.mockRejectedValueOnce(apiErrorResponse(404, 'private lookup trace'));
+
+    const missing = await readJson(
+      await action({
+        request: actionRequest({ intent: 'expire', orgId: 'org-1', inviteId: 'invite-1' }),
+      } as any),
+    );
+
+    apiRequest.mockRejectedValueOnce(new Error('socket exposed internal host'));
+
+    const unavailable = await readJson(
+      await action({
+        request: actionRequest({ intent: 'expire', orgId: 'org-1', inviteId: 'invite-1' }),
+      } as any),
+    );
+
+    expect(forbidden).toEqual({ errorCode: 'permission' });
+    expect(missing).toEqual({ errorCode: 'notFound' });
+    expect(unavailable).toEqual({ errorCode: 'unavailable' });
+  });
+
+  it('validates required fields and rejects unknown intents before calling the API', async () => {
+    const { action } = await import('./invitations');
+
+    const missingOrganization = await readJson(
+      await action({ request: actionRequest({ intent: 'create', email: 'a@example.com' }) } as any),
+    );
+    const missingEmail = await readJson(
+      await action({ request: actionRequest({ intent: 'create', orgId: 'org-1' }) } as any),
+    );
+    const missingInvitation = await readJson(
+      await action({ request: actionRequest({ intent: 'expire', orgId: 'org-1' }) } as any),
+    );
+    const invalidIntent = await readJson(
+      await action({ request: actionRequest({ intent: 'delete-all', orgId: 'org-1' }) } as any),
+    );
+    const malformedForm = await readJson(
+      await action({
+        request: new Request('https://app.test/invitations', {
+          method: 'POST',
+          headers: { 'content-type': 'multipart/form-data; boundary=missing-boundary' },
+          body: 'malformed form body',
+        }),
+      } as any),
+    );
+
+    expect(missingOrganization).toEqual({ errorCode: 'organizationUnavailable' });
+    expect(missingEmail).toEqual({ errorCode: 'emailRequired' });
+    expect(missingInvitation).toEqual({ errorCode: 'invitationRequired' });
+    expect(invalidIntent).toEqual({ errorCode: 'invalidAction' });
+    expect(malformedForm).toEqual({ errorCode: 'invalidAction' });
+    expect(apiRequest).not.toHaveBeenCalled();
+  });
+
+  it('re-throws authentication redirects instead of turning them into inline failures', async () => {
+    const redirectResponse = new Response(null, { status: 302, headers: { Location: '/login' } });
+    apiRequest.mockRejectedValueOnce(redirectResponse);
+
+    const { action } = await import('./invitations');
+
+    await expect(
+      action({
+        request: actionRequest({ intent: 'resend', orgId: 'org-1', inviteId: 'invite-1' }),
+      } as any),
+    ).rejects.toBe(redirectResponse);
   });
 });

@@ -1,10 +1,18 @@
-import { data as json, type ActionFunction } from 'react-router';
+import { type ActionFunction } from 'react-router';
 import { preferredConnectorToken } from '~/lib/connectors/connector-token.server';
+import {
+  getWebApiRoutesCopy,
+  interpolateWebApiCopy,
+  webApiErrorResponse,
+  webApiLocaleHeaders,
+} from '~/lib/i18n/catalogs/web-api-routes';
+import { resolveRequestLocale } from '~/lib/i18n/request-locale';
+import { json } from '~/lib/json-response';
 import type { SupabaseProject } from '~/types/supabase';
 
 export const action: ActionFunction = async ({ request }) => {
   if (request.method !== 'POST') {
-    return json({ error: 'Method not allowed' }, { status: 405 });
+    return webApiErrorResponse(request, 'SUPABASE_METHOD_NOT_ALLOWED', 405);
   }
 
   try {
@@ -17,7 +25,7 @@ export const action: ActionFunction = async ({ request }) => {
     const token = await preferredConnectorToken(request, 'supabase', fallbackToken);
 
     if (!token || typeof token !== 'string') {
-      return json({ error: 'A Supabase access token is required' }, { status: 400 });
+      return webApiErrorResponse(request, 'SUPABASE_ACCESS_TOKEN_REQUIRED', 400);
     }
 
     const projectsResponse = await fetch('https://api.supabase.com/v1/projects', {
@@ -34,7 +42,7 @@ export const action: ActionFunction = async ({ request }) => {
       const errorText = await projectsResponse.text();
       console.error('Projects fetch failed:', errorText);
 
-      return json({ error: 'Failed to fetch projects' }, { status: 401 });
+      return webApiErrorResponse(request, 'SUPABASE_PROJECTS_FAILED', 401);
     }
 
     const projects = (await projectsResponse.json()) as SupabaseProject[];
@@ -86,27 +94,28 @@ export const action: ActionFunction = async ({ request }) => {
      * project — a real "member since" proxy when the org has no created_at.
      */
     const oldestProjectCreatedAt = uniqueProjects[uniqueProjects.length - 1]?.created_at;
+    const copy = getWebApiRoutesCopy(resolveRequestLocale(request).language);
 
-    return json({
-      user: {
-        id: primaryOrg?.id ?? primaryOrgId ?? 'supabase-account',
-        email: primaryOrg?.name ?? 'Supabase account',
-        role: planName ? `${planName} plan` : 'Connected via access token',
-        created_at: primaryOrg?.created_at ?? oldestProjectCreatedAt ?? '',
-        last_sign_in_at: '',
-      },
-      stats: {
-        projects: uniqueProjects,
-        totalProjects: uniqueProjects.length,
-      },
-    });
-  } catch (error) {
-    console.error('Supabase API error:', error);
     return json(
       {
-        error: error instanceof Error ? error.message : 'Authentication failed',
+        user: {
+          id: primaryOrg?.id ?? primaryOrgId ?? 'supabase-account',
+          email: primaryOrg?.name ?? copy.supabaseAccount,
+          role: planName
+            ? interpolateWebApiCopy(copy.supabasePlan, { plan: planName })
+            : copy.supabaseConnectedAccessToken,
+          created_at: primaryOrg?.created_at ?? oldestProjectCreatedAt ?? '',
+          last_sign_in_at: '',
+        },
+        stats: {
+          projects: uniqueProjects,
+          totalProjects: uniqueProjects.length,
+        },
       },
-      { status: 401 },
+      { headers: webApiLocaleHeaders(request) },
     );
+  } catch (error) {
+    console.error('Supabase API error:', error);
+    return webApiErrorResponse(request, 'SUPABASE_AUTH_FAILED', 401);
   }
 };

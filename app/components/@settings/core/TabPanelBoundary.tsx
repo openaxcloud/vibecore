@@ -1,4 +1,5 @@
 import React, { Component, type ReactNode } from 'react';
+import { getSettingsCoreCopy } from '~/lib/i18n/catalogs/settings-core';
 import { classNames } from '~/utils/classNames';
 
 interface Props {
@@ -10,11 +11,11 @@ interface Props {
    * re-attempts the dynamic import (a failed import is otherwise cached as rejected).
    */
   onRetry?: () => void;
+  language?: string | null;
 }
 
 interface State {
   hasError: boolean;
-  error?: Error;
 }
 
 /**
@@ -36,8 +37,8 @@ export class TabPanelBoundary extends Component<Props, State> {
     this.state = { hasError: false };
   }
 
-  static getDerivedStateFromError(error: Error): State {
-    return { hasError: true, error };
+  static getDerivedStateFromError(): State {
+    return { hasError: true };
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
@@ -45,30 +46,37 @@ export class TabPanelBoundary extends Component<Props, State> {
   }
 
   handleRetry = () => {
-    this.setState({ hasError: false, error: undefined });
+    this.setState({ hasError: false });
     this.props.onRetry?.();
   };
 
   render() {
     if (this.state.hasError) {
+      const copy = getSettingsCoreCopy(this.props.language);
+
       return (
-        <div className="p-6 text-center">
-          <div className="i-ph:warning-circle mx-auto mb-3 h-10 w-10 text-bolt-elements-textSecondary" aria-hidden />
-          <p className="mb-1 text-sm font-medium text-bolt-elements-textPrimary">Couldn't load this section</p>
-          <p className="mb-4 text-sm text-bolt-elements-textSecondary">
-            Something went wrong while loading this part of settings.
+        <div className="mx-auto max-w-xl p-4 text-center sm:p-6" role="alert" aria-live="assertive" aria-atomic="true">
+          <div
+            className="i-ph:warning-circle mx-auto mb-3 h-10 w-10 text-[var(--status-warning-text)]"
+            aria-hidden="true"
+          />
+          <p className="mb-1 text-sm font-medium text-bolt-elements-textPrimary [overflow-wrap:anywhere]">
+            {copy['settingsCore.boundary.title']}
+          </p>
+          <p className="mb-4 text-sm text-bolt-elements-textSecondary [overflow-wrap:anywhere]">
+            {copy['settingsCore.boundary.description']}
           </p>
           <button
             type="button"
             onClick={this.handleRetry}
             className={classNames(
-              'inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium',
+              'vc-focus-ring inline-flex min-h-11 items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium focus:outline-none',
               'bg-[color-mix(in_srgb,var(--vc-ide-accent-action)_10%,transparent)] text-[var(--vc-ide-accent-action)]',
               'hover:bg-[color-mix(in_srgb,var(--vc-ide-accent-action)_18%,transparent)] transition-colors duration-200',
             )}
           >
-            <span className="i-ph:arrow-clockwise h-4 w-4" aria-hidden />
-            Retry
+            <span className="i-ph:arrow-clockwise h-4 w-4 shrink-0" aria-hidden="true" />
+            {copy['settingsCore.boundary.retry']}
           </button>
         </div>
       );

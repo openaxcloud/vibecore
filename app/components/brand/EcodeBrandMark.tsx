@@ -8,10 +8,10 @@
  */
 
 const SIZES = {
-  xs: { icon: 'h-6 w-6', text: 'text-base' },
-  sm: { icon: 'h-7 w-7', text: 'text-[15px]' },
-  md: { icon: 'h-9 w-9', text: 'text-xl' },
-  lg: { icon: 'h-11 w-11', text: 'text-2xl' },
+  xs: { icon: 'h-6 w-6', wordmark: 'text-base' },
+  sm: { icon: 'h-7 w-7', wordmark: 'text-[15px]' },
+  md: { icon: 'h-9 w-9', wordmark: 'text-xl' },
+  lg: { icon: 'h-11 w-11', wordmark: 'text-2xl' },
 } as const;
 
 export function EcodeBrandMark({
@@ -54,7 +54,7 @@ export function EcodeBrandMark({
           </linearGradient>
         </defs>
       </svg>
-      {showText ? <span className={`font-bold ${resolved.text}`}>E-Code</span> : null}
+      {showText ? <span className={`font-bold ${resolved.wordmark}`}>E-Code</span> : null}
     </span>
   );
 }

@@ -135,7 +135,7 @@ describe('billing action — set-limits rejects a $0 cap (silently blocks all PA
     const response = toResponse(await action(args(actionRequest({ intent: 'set-limits', budgetCapDollars: '0' }))));
 
     expect(response.status).toBe(400);
-    expect(((await response.json()) as { error: string }).error).toMatch(/blank|0\.01|credits/i);
+    expect(((await response.json()) as { errorKey: string }).errorKey).toBe('billing.feedback.zeroSpendLimit');
     expect(calls.some((c) => c.includes('/credits/limits'))).toBe(false);
   });
 

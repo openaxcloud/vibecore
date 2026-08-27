@@ -1,4 +1,5 @@
-import { Rocket, Brain, Shield, MessagesSquare, Gauge, Globe2 } from 'lucide-react';
+import { Brain, Gauge, Globe2, MessagesSquare, Rocket, Shield, type LucideIcon } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import {
   Card,
   CardContent,
@@ -6,82 +7,91 @@ import {
   CardHeader,
   CardTitle,
 } from '~/components/marketing/ecode-exact/EcodeExactUi';
+import {
+  formatMarketingExactLandingFeaturesInteger,
+  formatMarketingExactLandingFeaturesPercent,
+  getMarketingExactLandingFeaturesCopy,
+  interpolateMarketingExactLandingFeaturesCopy,
+  type LandingFeatureId,
+} from '~/lib/i18n/catalogs/marketing-exact-landing-features';
 
-const features = [
-  {
-    icon: <Rocket className="h-6 w-6" />,
-    title: 'Enterprise-Grade Infrastructure',
-    description: 'Built on Fortune 500 standards with 99.99% uptime SLA, auto-scaling, and global CDN distribution',
-  },
-  {
-    icon: <Brain className="h-6 w-6" />,
-    title: 'AI-Powered Development',
-    description: 'Advanced AI agents that understand context, write production code, and deploy automatically',
-  },
-  {
-    icon: <Shield className="h-6 w-6" />,
-    title: 'Bank-Level Security',
-    description: 'SOC 2 Type II certified with end-to-end encryption, RBAC, and continuous security monitoring',
-  },
-  {
-    icon: <MessagesSquare className="h-6 w-6" />,
-    title: 'Real-Time Collaboration',
-    description: 'Multiple developers can code simultaneously with instant sync and conflict resolution',
-  },
-  {
-    icon: <Gauge className="h-6 w-6" />,
-    title: '10x Faster Development',
-    description: 'Ship features in minutes instead of months with our optimized development pipeline',
-  },
-  {
-    icon: <Globe2 className="h-6 w-6" />,
-    title: 'Global Edge Deployment',
-    description: 'Deploy to 200+ edge locations worldwide with automatic SSL and DDoS protection',
-  },
-];
+const FEATURE_ICONS: Record<LandingFeatureId, LucideIcon> = {
+  infrastructure: Rocket,
+  ai: Brain,
+  security: Shield,
+  collaboration: MessagesSquare,
+  speed: Gauge,
+  edge: Globe2,
+};
 
 export default function LandingFeatures() {
+  const { i18n } = useTranslation();
+  const language = i18n.resolvedLanguage ?? i18n.language;
+  const copy = getMarketingExactLandingFeaturesCopy(language).exactLandingFeatures;
+
+  const featureVariables = {
+    uptime: formatMarketingExactLandingFeaturesPercent(0.9999, language),
+    locations: formatMarketingExactLandingFeaturesInteger(200, language),
+  };
+
   return (
-    <section className="py-24 bg-[var(--ecode-surface)]" data-testid="section-features">
+    <section
+      className="bg-[var(--ecode-surface)] py-16 sm:py-20 lg:py-24"
+      aria-labelledby="landing-features-heading"
+      data-testid="section-features"
+    >
       <div className="container-responsive max-w-7xl">
-        <div className="text-center mb-16 animate-fade-in">
-          <h2 className="text-4xl sm:text-5xl font-bold mb-4 text-[var(--ecode-text)]">
-            Enterprise Features, Startup Speed
+        <div className="mx-auto mb-12 min-w-0 max-w-3xl animate-fade-in text-center motion-reduce:animate-none sm:mb-16">
+          <h2
+            id="landing-features-heading"
+            className="mb-4 break-words text-responsive-2xl font-bold text-[var(--ecode-text)] [overflow-wrap:anywhere]"
+          >
+            {copy.heading}
           </h2>
-          <p className="text-xl text-[var(--ecode-text-muted)] max-w-3xl mx-auto">
-            Everything you need to build, deploy, and scale production applications
+          <p className="mx-auto max-w-3xl break-words text-responsive-base text-[var(--ecode-text-muted)] [overflow-wrap:anywhere]">
+            {copy.description}
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {features.map((feature, index) => (
-            <Card
-              key={index}
-              className="group bg-[var(--ecode-surface)] border-[var(--ecode-border)] hover:border-ecode-accent/50 transition-all duration-300 hover:shadow-[0_8px_32px_-8px_rgba(242,98,7,0.2)] animate-fade-in"
-              style={{ animationDelay: `${index * 100}ms` }}
-              data-testid={`card-feature-${index}`}
-            >
-              <CardHeader>
-                <div
-                  className="w-12 h-12 rounded-xl bg-gradient-to-br from-ecode-accent to-ecode-secondary-accent flex items-center justify-center mb-4 shadow-[0_4px_16px_-4px_rgba(242,98,7,0.5)] transition-all duration-300 group-hover:scale-110"
-                  data-testid={`icon-feature-${index}`}
-                >
-                  <div className="text-white">{feature.icon}</div>
-                </div>
-                <CardTitle className="text-xl text-[var(--ecode-text)]" data-testid={`text-feature-title-${index}`}>
-                  {feature.title}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CardDescription
-                  className="text-[var(--ecode-text-muted)] text-base"
-                  data-testid={`text-feature-description-${index}`}
-                >
-                  {feature.description}
-                </CardDescription>
-              </CardContent>
-            </Card>
-          ))}
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 lg:gap-8">
+          {copy.features.map((feature, index) => {
+            const Icon = FEATURE_ICONS[feature.id];
+
+            const description = interpolateMarketingExactLandingFeaturesCopy(feature.description, featureVariables);
+
+            return (
+              <Card
+                key={feature.id}
+                className="group h-full min-w-0 animate-fade-in border-[var(--ecode-border)] bg-[var(--ecode-surface)] transition-all duration-300 hover:border-ecode-accent/50 hover:shadow-xl motion-reduce:animate-none motion-reduce:transition-none"
+                style={{ animationDelay: `${index * 100}ms` }}
+                data-testid={`card-feature-${index}`}
+              >
+                <CardHeader className="min-w-0">
+                  <div
+                    className="mb-4 flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-ecode-accent to-ecode-secondary-accent text-white shadow-lg shadow-primary/20 transition-transform duration-300 group-hover:scale-110 motion-reduce:transform-none motion-reduce:transition-none"
+                    data-testid={`icon-feature-${index}`}
+                    aria-hidden="true"
+                  >
+                    <Icon className="h-6 w-6" aria-hidden="true" />
+                  </div>
+                  <CardTitle
+                    className="break-words text-xl text-[var(--ecode-text)] [overflow-wrap:anywhere]"
+                    data-testid={`text-feature-title-${index}`}
+                  >
+                    {feature.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="min-w-0">
+                  <CardDescription
+                    className="break-words text-base text-[var(--ecode-text-muted)] [overflow-wrap:anywhere]"
+                    data-testid={`text-feature-description-${index}`}
+                  >
+                    {description}
+                  </CardDescription>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       </div>
     </section>

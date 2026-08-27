@@ -1,3 +1,4 @@
+import { projectUserAreaEn } from '~/lib/i18n/catalogs/project-user-area';
 import { classNames } from '~/utils/classNames';
 
 /**
@@ -9,19 +10,33 @@ import { classNames } from '~/utils/classNames';
  */
 export type DeployView = 'overview' | 'logs' | 'domains' | 'manage';
 
+const defaultNavigation = projectUserAreaEn.projectUserArea.deployments.navigation;
+
 export const DEPLOY_VIEWS: readonly { id: DeployView; label: string }[] = [
-  { id: 'overview', label: 'Overview' },
-  { id: 'logs', label: 'Logs' },
-  { id: 'domains', label: 'Domains' },
-  { id: 'manage', label: 'Manage' },
+  { id: 'overview', label: defaultNavigation.overview },
+  { id: 'logs', label: defaultNavigation.logs },
+  { id: 'domains', label: defaultNavigation.domains },
+  { id: 'manage', label: defaultNavigation.manage },
 ];
 
-export function DeploySubNav({ active, onSelect }: { active: DeployView; onSelect: (view: DeployView) => void }) {
+export type DeployViewLabels = Readonly<Record<DeployView, string>>;
+
+export function DeploySubNav({
+  active,
+  onSelect,
+  labels,
+  ariaLabel = defaultNavigation.aria,
+}: {
+  active: DeployView;
+  onSelect: (view: DeployView) => void;
+  labels?: Partial<DeployViewLabels>;
+  ariaLabel?: string;
+}) {
   return (
     <div
       role="tablist"
-      aria-label="Deployment views"
-      className="flex items-stretch gap-1 border-b border-bolt-elements-borderColor"
+      aria-label={ariaLabel}
+      className="flex min-w-0 items-stretch gap-1 overflow-x-auto border-b border-bolt-elements-borderColor"
     >
       {DEPLOY_VIEWS.map((view) => {
         const selected = view.id === active;
@@ -35,13 +50,13 @@ export function DeploySubNav({ active, onSelect }: { active: DeployView; onSelec
             data-testid={`deploy-view-${view.id}`}
             onClick={() => onSelect(view.id)}
             className={classNames(
-              'inline-flex h-[38px] items-center border-b-2 px-3 text-[14px] transition-colors',
+              'inline-flex h-[38px] shrink-0 items-center whitespace-nowrap border-b-2 px-3 text-[14px] transition-colors',
               selected
                 ? 'border-[var(--vc-ide-accent-action)] text-bolt-elements-textPrimary'
                 : 'border-transparent text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary',
             )}
           >
-            {view.label}
+            {labels?.[view.id] ?? view.label}
           </button>
         );
       })}

@@ -1,4 +1,9 @@
 import type { ActionFunctionArgs, LoaderFunctionArgs } from 'react-router';
+import {
+  securityLanguageForRequest,
+  securityServerMessage,
+  type SecurityServerLanguage,
+} from './i18n/catalogs/security-server';
 
 // Rate limiting store (in-memory for serverless environments)
 const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
@@ -214,7 +219,11 @@ export function validateApiKeyFormat(apiKey: string, provider: string): boolean 
 /**
  * Sanitize error messages to prevent information leakage
  */
-export function sanitizeErrorMessage(error: unknown, isDevelopment = false): string {
+export function sanitizeErrorMessage(
+  error: unknown,
+  isDevelopment = false,
+  language: SecurityServerLanguage = 'en',
+): string {
   if (isDevelopment) {
     // In development, show full error details
     return error instanceof Error ? error.message : String(error);
@@ -224,15 +233,19 @@ export function sanitizeErrorMessage(error: unknown, isDevelopment = false): str
   if (error instanceof Error) {
     // Check for sensitive information in error messages
     if (error.message.includes('API key') || error.message.includes('token') || error.message.includes('secret')) {
-      return 'Authentication failed';
+      return securityServerMessage('authenticationFailed', language);
     }
 
     if (error.message.includes('rate limit') || error.message.includes('429')) {
-      return 'Rate limit exceeded. Please try again later.';
+      return securityServerMessage('rateLimitExceeded', language);
     }
   }
 
-  return 'An unexpected error occurred';
+  return securityServerMessage('unexpectedError', language);
+}
+
+function localeResponseHeaders(language: SecurityServerLanguage): Record<string, string> {
+  return { 'Content-Language': language, Vary: 'Accept-Language' };
 }
 
 /**
@@ -256,12 +269,13 @@ export function withSecurity<T extends (args: ActionFunctionArgs | LoaderFunctio
     const { request } = args;
     const url = new URL(request.url);
     const endpoint = url.pathname;
+    const language = securityLanguageForRequest(request);
 
     // Check allowed methods
     if (options.allowedMethods && !options.allowedMethods.includes(request.method)) {
-      return new Response('Method not allowed', {
+      return new Response(securityServerMessage('methodNotAllowed', language), {
         status: 405,
-        headers: createSecurityHeaders(),
+        headers: { ...createSecurityHeaders(), ...localeResponseHeaders(language) },
       });
     }
 
@@ -270,10 +284,11 @@ export function withSecurity<T extends (args: ActionFunctionArgs | LoaderFunctio
       const rateLimitResult = checkRateLimit(request, endpoint);
 
       if (!rateLimitResult.allowed) {
-        return new Response('Rate limit exceeded', {
+        return new Response(securityServerMessage('rateLimitExceeded', language), {
           status: 429,
           headers: {
             ...createSecurityHeaders(),
+            ...localeResponseHeaders(language),
             'Retry-After': Math.ceil((rateLimitResult.resetTime! - Date.now()) / 1000).toString(),
             'X-RateLimit-Reset': rateLimitResult.resetTime!.toString(),
           },
@@ -290,6 +305,20 @@ export function withSecurity<T extends (args: ActionFunctionArgs | LoaderFunctio
       Object.entries(createSecurityHeaders()).forEach(([key, value]) => {
         responseHeaders.set(key, value);
       });
+      responseHeaders.set('Content-Language', language);
+
+      const vary = responseHeaders.get('Vary');
+
+      const varyValues = (vary ?? '')
+        .split(',')
+        .map((value) => value.trim())
+        .filter(Boolean);
+
+      if (!varyValues.some((value) => value.toLowerCase() === 'accept-language')) {
+        varyValues.push('Accept-Language');
+      }
+
+      responseHeaders.set('Vary', varyValues.join(', '));
 
       return new Response(response.body, {
         status: response.status,
@@ -299,7 +328,7 @@ export function withSecurity<T extends (args: ActionFunctionArgs | LoaderFunctio
     } catch (error) {
       console.error('Security-wrapped handler error:', error);
 
-      const errorMessage = sanitizeErrorMessage(error, process.env.NODE_ENV === 'development');
+      const errorMessage = sanitizeErrorMessage(error, process.env.NODE_ENV === 'development', language);
 
       return new Response(
         JSON.stringify({
@@ -310,6 +339,7 @@ export function withSecurity<T extends (args: ActionFunctionArgs | LoaderFunctio
           status: 500,
           headers: {
             ...createSecurityHeaders(),
+            ...localeResponseHeaders(language),
             'Content-Type': 'application/json',
           },
         },

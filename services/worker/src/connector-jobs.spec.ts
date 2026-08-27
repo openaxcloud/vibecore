@@ -190,6 +190,12 @@ describe('runConnectorTokenHealthCheck', () => {
     expect(state.connections[0].status).toBe('needs_reconnect');
     expect(state.alerts).toHaveLength(1);
     expect(state.alerts[0].reason).toBe('token_revoked');
+    expect(state.notifications).toHaveLength(1);
+    expect(state.notifications[0]).toMatchObject({
+      messageKey: 'notifications.connectionReconnectRequired',
+      messageParams: { provider: 'github', accountLabel: 'octocat' },
+      title: 'Reconnect github',
+    });
   });
 
   it('updates lastHealthCheckAt (not lastUsedAt) and leaves status alone on a 200 response', async () => {

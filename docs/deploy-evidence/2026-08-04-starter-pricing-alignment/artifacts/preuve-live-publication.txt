@@ -1,0 +1,26 @@
+PREUVE LIVE — contrat Starter : projets publiés ACTIFS
+Banc : vraie API (tsx src/server.ts, port 3401) + vrai PostgreSQL 16 (pgvector, port 55434)
+Compte : créé par le VRAI POST /auth/register ; plan résolu serveur = starter
+
+(a) publier le projet A                        -> HTTP 201
+(b) republier A (x3)                           -> HTTP 201, 201, 201
+(c) publier B (2e projet DISTINCT, A actif)    -> HTTP 402
+    PLAN_ACTIVE_PUBLISHED_PROJECT_LIMIT, plan=starter, cap=1,
+    activeOtherProjects=1, upgradeRequired=true
+(d) A vieilli de 31 j (TTL 30 j dépassé) :
+      republier A                              -> HTTP 201
+      publier B une fois A expiré              -> HTTP 201
+
+--- état DB final ---
+ projet | publications 
+--------+--------------
+ ProjA  |            5
+ ProjB  |            1
+(2 rows)
+
+--- audit du refus ---
+       action        |                                                            metadata                                                             
+---------------------+---------------------------------------------------------------------------------------------------------------------------------
+ entitlement.refused | {"cap": 1, "code": "PLAN_ACTIVE_PUBLISHED_PROJECT_LIMIT", "plan": "starter", "upgradeRequired": true, "activeOtherProjects": 1}
+(1 row)
+

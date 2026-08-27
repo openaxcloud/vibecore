@@ -4,112 +4,93 @@ import AIAgent from './ecode-exact/pages/AIAgent';
 import Bounties from './ecode-exact/pages/Bounties';
 import Features from './ecode-exact/pages/Features';
 import Mobile from './ecode-exact/pages/Mobile';
-import Pricing from './ecode-exact/pages/Pricing';
 import Deployments from './ecode-exact/pages/PublicDeploymentsPage';
 import Teams from './ecode-exact/pages/PublicTeamPage';
+import { formatMarketingDocumentTitle } from '~/lib/i18n/catalogs/marketing';
+import {
+  getMarketingExactProductControlsCopy,
+  type ExactCampaignPageKey,
+  type ExactProductPageCopy,
+  type ExactProductPageKey,
+} from '~/lib/i18n/catalogs/marketing-exact-product-controls';
 import { socialMetaTags } from '~/utils/social-meta';
 
-type ProductPageKey =
-  | 'ai-agent'
-  | 'ide'
-  | 'multiplayer'
-  | 'mobile-app'
-  | 'teams'
-  | 'deployments'
-  | 'pricing'
-  | 'bounties'
-  | 'ai-platform';
+export type ProductPageKey = ExactProductPageKey;
+export type CampaignPageKey = ExactCampaignPageKey;
 
-type CampaignPageKey = 'bounties' | 'deployments' | 'teams';
-
-type PageRouteDefinition = {
-  label: string;
+export type PageRouteDefinition = ExactProductPageCopy & {
   route: string;
-  title: string;
-  description: string;
 };
 
-export const ecodeProductMarketingPages = {
-  'ai-agent': {
-    label: 'AI Agent',
-    route: '/ai-agent',
-    title: 'AI Agent v2',
-    description: 'Describe your idea, watch E-Code build it, and deploy instantly from the public AI Agent page.',
-  },
-  ide: {
-    label: 'IDE',
-    route: '/features',
-    title: 'Browser IDE',
-    description: 'The E-Code browser IDE page with editor, terminal, files, previews and project workflows.',
-  },
-  multiplayer: {
-    label: 'Multiplayer',
-    route: '/features#multiplayer',
-    title: 'Multiplayer',
-    description: 'Live collaboration, pair programming, shared presence and review workflows inside the IDE page.',
-  },
-  'mobile-app': {
-    label: 'Mobile App',
-    route: '/mobile',
-    title: 'Mobile IDE',
-    description: 'The E-Code mobile app marketing page for editor, terminal, AI, preview, collaboration and Git.',
-  },
-  teams: {
-    label: 'Teams',
-    route: '/marketing/teams',
-    title: 'Teams',
-    description: 'Real-time collaboration, enterprise controls and governed project access for modern teams.',
-  },
-  deployments: {
-    label: 'Deployments',
-    route: '/marketing/deployments',
-    title: 'Deployments',
-    description: 'Production deployments with global routing, observability, rollbacks and enterprise controls.',
-  },
-  pricing: {
-    label: 'Pricing',
-    route: '/pricing',
-    title: 'Pricing',
-    description: 'E-Code pricing cards, comparison table, enterprise section and FAQ.',
-  },
-  bounties: {
-    label: 'Bounties',
-    route: '/marketing/bounties',
-    title: 'Bounties',
-    description: 'Outcome-based developer bounties with secure review sandboxes and managed payouts.',
-  },
-  'ai-platform': {
-    label: 'AI Platform',
-    route: '/ai',
-    title: 'AI Platform',
-    description: 'Enterprise AI that builds applications with natural-language prompts, tools and governance.',
-  },
-} as const satisfies Record<ProductPageKey, PageRouteDefinition>;
+const PRODUCT_ROUTES = {
+  'ai-agent': '/ai-agent',
+  ide: '/features',
+  multiplayer: '/features#multiplayer',
+  'mobile-app': '/mobile',
+  teams: '/marketing/teams',
+  deployments: '/marketing/deployments',
+  pricing: '/pricing',
+  bounties: '/marketing/bounties',
+  'ai-platform': '/ai',
+} as const satisfies Record<ProductPageKey, string>;
 
-export const ecodeCampaignMarketingPages = {
-  bounties: ecodeProductMarketingPages.bounties,
-  deployments: ecodeProductMarketingPages.deployments,
-  teams: ecodeProductMarketingPages.teams,
-} as const satisfies Record<CampaignPageKey, PageRouteDefinition>;
+export function getEcodeExactProductMarketingPages(
+  language?: string | null,
+): Record<ProductPageKey, PageRouteDefinition> {
+  const pages = getMarketingExactProductControlsCopy(language).exactProductRegistry.pages;
+
+  return Object.fromEntries(
+    (Object.keys(PRODUCT_ROUTES) as ProductPageKey[]).map((key) => [
+      key,
+      { ...pages[key], route: PRODUCT_ROUTES[key] },
+    ]),
+  ) as Record<ProductPageKey, PageRouteDefinition>;
+}
+
+export function getEcodeExactCampaignMarketingPages(
+  language?: string | null,
+): Record<CampaignPageKey, PageRouteDefinition> {
+  const pages = getEcodeExactProductMarketingPages(language);
+
+  return {
+    bounties: pages.bounties,
+    deployments: pages.deployments,
+    teams: pages.teams,
+  };
+}
+
+export const ecodeProductMarketingPages = getEcodeExactProductMarketingPages('en');
+
+export const ecodeCampaignMarketingPages = getEcodeExactCampaignMarketingPages('en');
 
 export function makeEcodeProductMeta(key: ProductPageKey): MetaFunction {
-  const page = ecodeProductMarketingPages[key];
+  return ({ data, location, matches }) => {
+    const routeLanguage = (data as { language?: string } | undefined)?.language;
 
-  return () => [
-    { title: `${page.title} - E-Code` },
-    { name: 'description', content: page.description },
-    ...socialMetaTags({ title: `${page.title} - E-Code`, description: page.description }),
-  ];
+    const rootLanguage = (matches?.find((match) => match.id === 'root')?.data as { language?: string } | undefined)
+      ?.language;
+
+    const page = getEcodeExactProductMarketingPages(routeLanguage ?? rootLanguage)[key];
+    const title = formatMarketingDocumentTitle(page.title);
+
+    /*
+     * BUG-MKT-003 : canonical dérivé de `location.pathname`, jamais d'un chemin
+     * recopié — une table écrite à la main dérive au premier renommage de route.
+     */
+    const social = socialMetaTags({ title, description: page.description, path: location?.pathname }).map((tag) => {
+      const identifier = 'property' in tag ? tag.property : 'name' in tag ? tag.name : undefined;
+
+      return identifier === 'og:image:alt' || identifier === 'twitter:image:alt'
+        ? { ...tag, content: page.imageAlt }
+        : tag;
+    });
+
+    return [{ title }, { name: 'description', content: page.description }, ...social];
+  };
 }
 
 export function makeEcodeCampaignMeta(key: CampaignPageKey): MetaFunction {
-  const page = ecodeCampaignMarketingPages[key];
-
-  return () => [
-    { title: `${page.title} - E-Code` },
-    { name: 'description', content: page.description },
-    ...socialMetaTags({ title: `${page.title} - E-Code`, description: page.description }),
-  ];
+  return makeEcodeProductMeta(key);
 }
 
 export function EcodeAiAgentPage() {
@@ -126,10 +107,6 @@ export function EcodeFeaturesPage() {
 
 export function EcodeMobilePage() {
   return <Mobile />;
-}
-
-export function EcodePricingPage() {
-  return <Pricing />;
 }
 
 export function EcodeDeploymentsPage() {

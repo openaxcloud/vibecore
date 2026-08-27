@@ -11,7 +11,7 @@
 export type MergeContentState = {
   content: string;
   loading: boolean;
-  error?: string;
+  error?: 'empty-content' | 'load-failed';
 };
 
 /**
@@ -35,7 +35,7 @@ export function resolveConflictContentState(content: unknown): MergeContentState
   return {
     content: '',
     loading: false,
-    error: 'Could not load the conflicted file. Refusing to open an empty editor to avoid overwriting it.',
+    error: 'empty-content',
   };
 }
 
@@ -46,6 +46,6 @@ export function failedConflictContentState(): MergeContentState {
   return {
     content: '',
     loading: false,
-    error: 'Could not load the conflicted file. Check the connection and try again.',
+    error: 'load-failed',
   };
 }

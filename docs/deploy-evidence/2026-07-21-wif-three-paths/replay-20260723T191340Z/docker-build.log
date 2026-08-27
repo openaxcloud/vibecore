@@ -1,0 +1,264 @@
+#0 building with "orbstack" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 217B 0.0s done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python:3.12-slim
+#2 DONE 1.8s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 2B done
+#3 DONE 0.0s
+
+#4 [internal] load build context
+#4 transferring context: 1.50kB done
+#4 DONE 0.1s
+
+#5 [1/3] FROM docker.io/library/python:3.12-slim@sha256:57cd7c3a7a273101a6485ba99423ee568157882804b1124b4dd04266317710de
+#5 resolve docker.io/library/python:3.12-slim@sha256:57cd7c3a7a273101a6485ba99423ee568157882804b1124b4dd04266317710de
+#5 resolve docker.io/library/python:3.12-slim@sha256:57cd7c3a7a273101a6485ba99423ee568157882804b1124b4dd04266317710de 0.0s done
+#5 DONE 0.1s
+
+#6 [2/3] WORKDIR /app
+#6 CACHED
+
+#7 [3/3] COPY cloudrun-main.py main.py
+#7 CACHED
+
+#8 exporting to image
+#8 exporting layers done
+#8 exporting manifest sha256:a610f8b40d8d1f054063a606613a46a416f28f610fd9175a240b853390cb45e2 done
+#8 exporting config sha256:46faaa48bc687facf2a6deaa601a60f64c3754c8d78410ddacf52dc37679757a done
+#8 exporting attestation manifest sha256:019a114fa72a926f3222bf545823b9af1bce29d277cf31c4daf78d61533faa09
+#8 exporting attestation manifest sha256:019a114fa72a926f3222bf545823b9af1bce29d277cf31c4daf78d61533faa09 0.0s done
+#8 exporting manifest list sha256:77a6a5e771567fcb94dbc919651b1173865d32e9b92c66479b2a3c16221655a4 0.0s done
+#8 naming to europe-west9-docker.pkg.dev/ecode-wif-proof-834022/wif-proof/wif-proof:v1 done
+#8 DONE 0.2s
+The push refers to repository [europe-west9-docker.pkg.dev/ecode-wif-proof-834022/wif-proof/wif-proof]
+dffe00e5666f: Waiting
+0ab6a4d233ae: Waiting
+062e450697fa: Waiting
+98db2485a0d0: Waiting
+48347b15c85f: Waiting
+fd079632edc0: Waiting
+fb1ec1ae9e26: Waiting
+dffe00e5666f: Waiting
+0ab6a4d233ae: Waiting
+062e450697fa: Waiting
+98db2485a0d0: Waiting
+48347b15c85f: Waiting
+fd079632edc0: Waiting
+fb1ec1ae9e26: Waiting
+0ab6a4d233ae: Waiting
+062e450697fa: Waiting
+98db2485a0d0: Waiting
+48347b15c85f: Waiting
+fd079632edc0: Waiting
+fb1ec1ae9e26: Waiting
+dffe00e5666f: Waiting
+062e450697fa: Waiting
+98db2485a0d0: Waiting
+48347b15c85f: Waiting
+fd079632edc0: Waiting
+fb1ec1ae9e26: Waiting
+dffe00e5666f: Waiting
+0ab6a4d233ae: Waiting
+dffe00e5666f: Waiting
+0ab6a4d233ae: Waiting
+062e450697fa: Waiting
+98db2485a0d0: Waiting
+48347b15c85f: Waiting
+fd079632edc0: Waiting
+fb1ec1ae9e26: Waiting
+98db2485a0d0: Waiting
+48347b15c85f: Waiting
+fd079632edc0: Waiting
+fb1ec1ae9e26: Waiting
+dffe00e5666f: Waiting
+0ab6a4d233ae: Waiting
+062e450697fa: Waiting
+fb1ec1ae9e26: Waiting
+dffe00e5666f: Waiting
+0ab6a4d233ae: Waiting
+062e450697fa: Waiting
+98db2485a0d0: Waiting
+48347b15c85f: Waiting
+fd079632edc0: Waiting
+dffe00e5666f: Waiting
+0ab6a4d233ae: Waiting
+062e450697fa: Waiting
+98db2485a0d0: Waiting
+48347b15c85f: Waiting
+fd079632edc0: Waiting
+fb1ec1ae9e26: Waiting
+062e450697fa: Waiting
+98db2485a0d0: Waiting
+48347b15c85f: Waiting
+fd079632edc0: Waiting
+fb1ec1ae9e26: Waiting
+dffe00e5666f: Waiting
+0ab6a4d233ae: Waiting
+dffe00e5666f: Waiting
+0ab6a4d233ae: Waiting
+062e450697fa: Waiting
+98db2485a0d0: Waiting
+48347b15c85f: Waiting
+fd079632edc0: Waiting
+fb1ec1ae9e26: Waiting
+062e450697fa: Waiting
+98db2485a0d0: Waiting
+48347b15c85f: Waiting
+fd079632edc0: Waiting
+fb1ec1ae9e26: Waiting
+dffe00e5666f: Waiting
+0ab6a4d233ae: Waiting
+98db2485a0d0: Waiting
+48347b15c85f: Waiting
+fd079632edc0: Waiting
+fb1ec1ae9e26: Waiting
+dffe00e5666f: Waiting
+0ab6a4d233ae: Waiting
+062e450697fa: Waiting
+062e450697fa: Waiting
+98db2485a0d0: Waiting
+48347b15c85f: Waiting
+fd079632edc0: Waiting
+fb1ec1ae9e26: Waiting
+dffe00e5666f: Waiting
+0ab6a4d233ae: Waiting
+98db2485a0d0: Waiting
+48347b15c85f: Waiting
+fd079632edc0: Waiting
+fb1ec1ae9e26: Waiting
+dffe00e5666f: Waiting
+0ab6a4d233ae: Waiting
+062e450697fa: Waiting
+062e450697fa: Waiting
+98db2485a0d0: Waiting
+48347b15c85f: Waiting
+fd079632edc0: Waiting
+fb1ec1ae9e26: Waiting
+dffe00e5666f: Waiting
+0ab6a4d233ae: Waiting
+dffe00e5666f: Waiting
+0ab6a4d233ae: Waiting
+062e450697fa: Waiting
+98db2485a0d0: Waiting
+48347b15c85f: Waiting
+fd079632edc0: Waiting
+fb1ec1ae9e26: Waiting
+48347b15c85f: Waiting
+fd079632edc0: Waiting
+fb1ec1ae9e26: Waiting
+dffe00e5666f: Waiting
+0ab6a4d233ae: Waiting
+062e450697fa: Waiting
+98db2485a0d0: Waiting
+062e450697fa: Waiting
+98db2485a0d0: Waiting
+48347b15c85f: Waiting
+fd079632edc0: Waiting
+fb1ec1ae9e26: Waiting
+dffe00e5666f: Waiting
+0ab6a4d233ae: Waiting
+dffe00e5666f: Waiting
+0ab6a4d233ae: Waiting
+062e450697fa: Waiting
+98db2485a0d0: Waiting
+48347b15c85f: Waiting
+fd079632edc0: Waiting
+fb1ec1ae9e26: Waiting
+98db2485a0d0: Waiting
+48347b15c85f: Waiting
+fd079632edc0: Waiting
+fb1ec1ae9e26: Waiting
+dffe00e5666f: Waiting
+0ab6a4d233ae: Waiting
+062e450697fa: Waiting
+0ab6a4d233ae: Waiting
+062e450697fa: Waiting
+98db2485a0d0: Waiting
+48347b15c85f: Waiting
+fd079632edc0: Waiting
+fb1ec1ae9e26: Waiting
+dffe00e5666f: Waiting
+0ab6a4d233ae: Waiting
+062e450697fa: Waiting
+98db2485a0d0: Waiting
+48347b15c85f: Waiting
+fd079632edc0: Waiting
+fb1ec1ae9e26: Waiting
+dffe00e5666f: Waiting
+fd079632edc0: Waiting
+fb1ec1ae9e26: Waiting
+dffe00e5666f: Waiting
+0ab6a4d233ae: Waiting
+062e450697fa: Waiting
+98db2485a0d0: Waiting
+48347b15c85f: Waiting
+062e450697fa: Waiting
+98db2485a0d0: Waiting
+48347b15c85f: Waiting
+fd079632edc0: Waiting
+fb1ec1ae9e26: Waiting
+dffe00e5666f: Waiting
+0ab6a4d233ae: Waiting
+98db2485a0d0: Waiting
+48347b15c85f: Waiting
+fd079632edc0: Waiting
+fb1ec1ae9e26: Waiting
+dffe00e5666f: Waiting
+0ab6a4d233ae: Waiting
+062e450697fa: Waiting
+fd079632edc0: Waiting
+fb1ec1ae9e26: Waiting
+dffe00e5666f: Waiting
+0ab6a4d233ae: Waiting
+062e450697fa: Waiting
+98db2485a0d0: Waiting
+48347b15c85f: Waiting
+48347b15c85f: Waiting
+fd079632edc0: Waiting
+fb1ec1ae9e26: Waiting
+dffe00e5666f: Waiting
+0ab6a4d233ae: Waiting
+062e450697fa: Waiting
+98db2485a0d0: Waiting
+062e450697fa: Waiting
+98db2485a0d0: Waiting
+48347b15c85f: Waiting
+fd079632edc0: Waiting
+fb1ec1ae9e26: Waiting
+dffe00e5666f: Waiting
+0ab6a4d233ae: Waiting
+48347b15c85f: Waiting
+fd079632edc0: Waiting
+fb1ec1ae9e26: Waiting
+0ab6a4d233ae: Waiting
+062e450697fa: Waiting
+98db2485a0d0: Waiting
+0ab6a4d233ae: Waiting
+062e450697fa: Waiting
+98db2485a0d0: Waiting
+48347b15c85f: Waiting
+fd079632edc0: Waiting
+fb1ec1ae9e26: Waiting
+98db2485a0d0: Waiting
+fd079632edc0: Waiting
+fb1ec1ae9e26: Waiting
+0ab6a4d233ae: Waiting
+062e450697fa: Waiting
+fb1ec1ae9e26: Waiting
+062e450697fa: Waiting
+98db2485a0d0: Waiting
+fd079632edc0: Waiting
+fd079632edc0: Waiting
+dffe00e5666f: Pushed
+0ab6a4d233ae: Pushed
+fd079632edc0: Pushed
+fb1ec1ae9e26: Pushed
+98db2485a0d0: Pushed
+48347b15c85f: Pushed
+062e450697fa: Pushed
+v1: digest: sha256:77a6a5e771567fcb94dbc919651b1173865d32e9b92c66479b2a3c16221655a4 size: 856

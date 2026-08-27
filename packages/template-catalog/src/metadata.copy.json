@@ -1,0 +1,134 @@
+{
+  "en": {
+    "docs-copilot": {
+      "name": "Docs Copilot",
+      "description": "A support assistant that answers from your documentation and shows its work. Ask a question, inspect the cited source, disable stale articles, and escalate safely when the knowledge base has no answer."
+    },
+    "neon-trivia-arena": {
+      "name": "Neon Trivia Arena",
+      "description": "Challenge a live room across six fast trivia rounds. Build a combo, spend your 50:50 lifeline wisely, climb the leaderboard and return to beat your best score."
+    },
+    "vendor-risk-review": {
+      "name": "Vendor Risk Review",
+      "description": "Every new vendor is a risk nobody has time to assess. Score them in five minutes, route approval to the right level, and pull the audit trail the day the regulator asks for it."
+    },
+    "field-service-inspector": {
+      "name": "Field Service Inspector",
+      "description": "Your technicians work where there is no signal. Inspections, photos, customer signature: everything works offline and syncs the moment the 4G comes back."
+    },
+    "revenue-cohort-explorer": {
+      "name": "Revenue Cohort Explorer",
+      "description": "You know what you invoice. Do you know which cohort is still making you money eighteen months later? Click through the chart all the way down to the customer."
+    },
+    "qbr-generator": {
+      "name": "QBR Generator",
+      "description": "The quarterly business review, generated from your real numbers instead of being retyped by hand the night before. Two artifacts — the deck and the data appendix — share one backend."
+    },
+    "incident-postmortem-explainer": {
+      "name": "Incident Postmortem Explainer",
+      "description": "An incident explained in thirty animated seconds instead of twelve pages nobody reads. Scrub the timeline, replay each phase, share the story."
+    },
+    "warehouse-layout-planner": {
+      "name": "Warehouse Layout Planner",
+      "description": "Move an aisle and see immediately what you gain in capacity — before moving a single pallet. A live 3D model of your floor with real rack math."
+    },
+    "pipeline-crm": {
+      "name": "Pipeline CRM",
+      "description": "The CRM your team will actually use: accounts, contacts, opportunities and forecasts. Without the six-month integration project or the per-seat invoice."
+    },
+    "storefront": {
+      "name": "Storefront",
+      "description": "Catalog, cart, Stripe checkout, orders, inventory and a back office. A store that takes real test-mode payments — not a mockup."
+    },
+    "react-saas": {
+      "name": "Orbit CRM",
+      "description": "A working sales workspace for contacts, pipeline stages, follow-ups and revenue visibility."
+    },
+    "next-dashboard": {
+      "name": "Northstar Operations",
+      "description": "An incident and service operations dashboard with live health, ownership and resolution workflows."
+    },
+    "fastify-api": {
+      "name": "Pulse API Monitor",
+      "description": "A self-contained API monitoring tool that runs endpoint checks and surfaces latency and failures."
+    },
+    "ai-agent": {
+      "name": "Launchline Planner",
+      "description": "A collaborative launch planner that turns milestones into a focused, executable release checklist."
+    },
+    "landing-page": {
+      "name": "Kindred Booking",
+      "description": "A customer booking experience with real time-slot selection, contact capture and confirmation."
+    },
+    "mobile-starter": {
+      "name": "Relay Field Service",
+      "description": "An installable field-service PWA for daily jobs, technician notes and offline-ready status updates."
+    }
+  },
+  "fr": {
+    "docs-copilot": {
+      "name": "Docs Copilot",
+      "description": "Un assistant d’assistance qui répond à partir de votre documentation et cite ses sources. Posez une question, examinez le document utilisé, désactivez les articles obsolètes et transmettez à un spécialiste lorsqu’aucune réponse n’est vérifiable."
+    },
+    "neon-trivia-arena": {
+      "name": "Neon Trivia Arena",
+      "description": "Défiez une salle entière en six manches rapides. Enchaînez les bonnes réponses, utilisez judicieusement votre joker 50:50, grimpez au classement et revenez battre votre meilleur score."
+    },
+    "vendor-risk-review": {
+      "name": "Vendor Risk Review",
+      "description": "Chaque nouveau fournisseur représente un risque que personne n’a le temps d’évaluer. Attribuez-lui un score en cinq minutes, dirigez l’approbation vers le bon niveau et retrouvez la piste d’audit dès que le régulateur la demande."
+    },
+    "field-service-inspector": {
+      "name": "Field Service Inspector",
+      "description": "Vos techniciens interviennent là où le réseau ne passe pas. Inspections, photos et signature du client fonctionnent hors ligne, puis se synchronisent dès le retour de la 4G."
+    },
+    "revenue-cohort-explorer": {
+      "name": "Revenue Cohort Explorer",
+      "description": "Vous connaissez votre chiffre d’affaires facturé. Savez-vous quelle cohorte reste rentable dix-huit mois plus tard ? Explorez le graphique jusqu’au détail de chaque client."
+    },
+    "qbr-generator": {
+      "name": "QBR Generator",
+      "description": "La revue trimestrielle est générée à partir de vos chiffres réels, sans ressaisie manuelle la veille. Deux livrables — la présentation et l’annexe de données — partagent le même serveur."
+    },
+    "incident-postmortem-explainer": {
+      "name": "Incident Postmortem Explainer",
+      "description": "Expliquez un incident en trente secondes animées au lieu de douze pages que personne ne lit. Parcourez la chronologie, rejouez chaque phase et partagez le récit."
+    },
+    "warehouse-layout-planner": {
+      "name": "Warehouse Layout Planner",
+      "description": "Déplacez une allée et mesurez immédiatement le gain de capacité, avant de bouger la moindre palette. Un modèle 3D interactif de votre entrepôt, fondé sur les dimensions réelles des rayonnages."
+    },
+    "pipeline-crm": {
+      "name": "Pipeline CRM",
+      "description": "Le CRM que votre équipe utilisera vraiment : comptes, contacts, opportunités et prévisions, sans projet d’intégration de six mois ni facturation par utilisateur."
+    },
+    "storefront": {
+      "name": "Storefront",
+      "description": "Catalogue, panier, paiement Stripe, commandes, stock et espace d’administration. Une boutique qui accepte de vrais paiements en mode test, pas une simple maquette."
+    },
+    "react-saas": {
+      "name": "Orbit CRM",
+      "description": "Un espace commercial opérationnel pour gérer les contacts, les étapes du cycle de vente, les relances et le suivi des revenus."
+    },
+    "next-dashboard": {
+      "name": "Northstar Operations",
+      "description": "Un tableau de bord pour les incidents et les opérations de service, avec état de santé en direct, responsables et circuits de résolution."
+    },
+    "fastify-api": {
+      "name": "Pulse API Monitor",
+      "description": "Un outil autonome de supervision des API qui vérifie les points d’accès et met en évidence la latence et les échecs."
+    },
+    "ai-agent": {
+      "name": "Launchline Planner",
+      "description": "Un planificateur de lancement collaboratif qui transforme les jalons en une liste de contrôle claire et directement exploitable pour la mise en production."
+    },
+    "landing-page": {
+      "name": "Kindred Booking",
+      "description": "Une expérience de réservation client avec sélection de créneaux en temps réel, collecte des coordonnées et confirmation."
+    },
+    "mobile-starter": {
+      "name": "Relay Field Service",
+      "description": "Une PWA installable pour les interventions terrain, avec missions quotidiennes, notes des techniciens et mises à jour d’état disponibles hors ligne."
+    }
+  }
+}

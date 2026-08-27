@@ -99,14 +99,26 @@ export function maxSchedulableVcpu(): number {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : 2;
 }
 
+export type MachineSizeErrorDetails =
+  | Readonly<{ code: 'MACHINE_SIZE_UNKNOWN'; values: Readonly<{ requested: string }> }>
+  | Readonly<{ code: 'MACHINE_SIZE_PLAN'; values: Readonly<{ label: string; planKey: string }> }>
+  | Readonly<{ code: 'MACHINE_SIZE_CAPACITY'; values: Readonly<{ label: string }> }>;
+
 export class MachineSizeError extends Error {
   statusCode = 400;
+  readonly code: MachineSizeErrorDetails['code'];
+  readonly values: MachineSizeErrorDetails['values'];
 
-  constructor(
-    message: string,
-    readonly code: 'MACHINE_SIZE_UNKNOWN' | 'MACHINE_SIZE_PLAN' | 'MACHINE_SIZE_CAPACITY',
-  ) {
-    super(message);
+  constructor(details: MachineSizeErrorDetails) {
+    /*
+     * The public API maps `code` + typed values through its request locale.
+     * Keep Error.message machine-stable so an omitted boundary cannot leak
+     * English prose or interpolate an untrusted value by accident.
+     */
+    super(details.code);
+    this.name = 'MachineSizeError';
+    this.code = details.code;
+    this.values = details.values;
   }
 }
 
@@ -124,7 +136,7 @@ export function resolveDeployMachineSize(
   const size = requested ? card.machineSizes.find((candidate) => candidate.key === requested) : undefined;
 
   if (requested && !size) {
-    throw new MachineSizeError(`Unknown machine size '${requested}'.`, 'MACHINE_SIZE_UNKNOWN');
+    throw new MachineSizeError({ code: 'MACHINE_SIZE_UNKNOWN', values: { requested } });
   }
 
   const resolved = size ?? machineSizeFromCard(card, undefined);
@@ -135,16 +147,16 @@ export function resolveDeployMachineSize(
 
   if (annotated && !annotated.available) {
     if (annotated.reason === 'plan') {
-      throw new MachineSizeError(
-        `The ${resolved.label} size is not available on the ${planKey} plan.`,
-        'MACHINE_SIZE_PLAN',
-      );
+      throw new MachineSizeError({
+        code: 'MACHINE_SIZE_PLAN',
+        values: { label: resolved.label, planKey },
+      });
     }
 
-    throw new MachineSizeError(
-      `The ${resolved.label} size is temporarily unavailable (capacity).`,
-      'MACHINE_SIZE_CAPACITY',
-    );
+    throw new MachineSizeError({
+      code: 'MACHINE_SIZE_CAPACITY',
+      values: { label: resolved.label },
+    });
   }
 
   return resolved;

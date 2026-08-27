@@ -32,6 +32,16 @@ describe('disk-info', () => {
         expect(typeof disk.timestamp).toBe('string');
       }
     });
+
+    it('uses French-safe fallback copy without leaking raw execution errors', async () => {
+      const result = await getDiskInfo('fr');
+
+      for (const disk of result) {
+        if (disk.error) {
+          expect(disk.error).not.toMatch(/unknown error|unsupported platform|disk information/i);
+        }
+      }
+    });
   });
 
   describe('parseDfOutput', () => {

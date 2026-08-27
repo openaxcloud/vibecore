@@ -1,3 +1,5 @@
+import type { TFunction } from 'i18next';
+import { useTranslation } from 'react-i18next';
 import McpServerListItem from '~/components/@settings/tabs/mcp/McpServerListItem';
 import McpStatusBadge from '~/components/@settings/tabs/mcp/McpStatusBadge';
 import type { MCPServer } from '~/lib/services/mcpService';
@@ -10,7 +12,11 @@ type McpServerListProps = {
   toggleServerExpanded: (serverName: string) => void;
 };
 
-export function getNoAvailableServersMessage(configuredCount: number): string {
+export function getNoAvailableServersMessage(configuredCount: number, translate?: TFunction): string {
+  if (translate) {
+    return translate('settings.mcp.noAvailableServers', { count: configuredCount });
+  }
+
   const serverWord = configuredCount === 1 ? 'server is' : 'servers are';
 
   return `No available MCP servers — ${configuredCount} configured ${serverWord} currently unavailable`;
@@ -23,8 +29,12 @@ export default function McpServerList({
   onlyShowAvailableServers = false,
   toggleServerExpanded,
 }: McpServerListProps) {
+  const { t } = useTranslation();
+
   if (serverEntries.length === 0) {
-    return <p className="text-sm text-bolt-elements-textSecondary">No MCP servers configured</p>;
+    return (
+      <p className="text-sm text-bolt-elements-textSecondary">{t('settings.copy.noMcpServersConfigured_013e6b9d')}</p>
+    );
   }
 
   const filteredEntries = onlyShowAvailableServers
@@ -34,7 +44,7 @@ export default function McpServerList({
   if (onlyShowAvailableServers && filteredEntries.length === 0) {
     return (
       <p className="text-sm text-bolt-elements-textSecondary">
-        {checkingServers ? 'Checking MCP servers…' : getNoAvailableServersMessage(serverEntries.length)}
+        {checkingServers ? t('settings.mcp.checkingServers') : getNoAvailableServersMessage(serverEntries.length, t)}
       </p>
     );
   }
@@ -92,16 +102,20 @@ export default function McpServerList({
             {/* Error message */}
             {!isAvailable && mcpServer.error && (
               <div className="mt-1.5 ml-6 text-xs text-red-600 dark:text-red-400 break-words">
-                Error: {mcpServer.error}
+                {t('settings.mcp.serverError')}
               </div>
             )}
 
             {/* Tool list */}
             {isExpanded && isAvailable && (
               <div className="mt-2">
-                <div className="text-bolt-elements-textSecondary text-xs font-medium ml-1 mb-1.5">Available Tools:</div>
+                <div className="text-bolt-elements-textSecondary text-xs font-medium ml-1 mb-1.5">
+                  {t('settings.copy.availableTools_36aa4821')}
+                </div>
                 {serverTools.length === 0 ? (
-                  <div className="ml-4 text-xs text-bolt-elements-textSecondary">No tools available</div>
+                  <div className="ml-4 text-xs text-bolt-elements-textSecondary">
+                    {t('settings.copy.noToolsAvailable_0ec9813e')}
+                  </div>
                 ) : (
                   <div className="mt-1 space-y-2">
                     {serverTools.map(([toolName, toolSchema]) => (

@@ -1,9 +1,17 @@
 import { describe, expect, it } from 'vitest';
 
-import { createWorkspaceBuildAgent, flattenAgentTree, streamAgentCommand, type WsLike } from './deploy-workspace-agent.js';
+import {
+  createWorkspaceBuildAgent,
+  flattenAgentTree,
+  streamAgentCommand,
+  type WsLike,
+} from './deploy-workspace-agent.js';
 
 /** A scripted fake WebSocket that replays a sequence of agent frames on open. */
-function fakeSocket(frames: Array<Record<string, unknown>>, opts: { closeWithoutExit?: boolean } = {}): (url: string) => WsLike {
+function fakeSocket(
+  frames: Array<Record<string, unknown>>,
+  opts: { closeWithoutExit?: boolean } = {},
+): (url: string) => WsLike {
   return (_url: string) => {
     const listeners: Record<string, Array<(e: any) => void>> = {};
     const on = (t: string, fn: (e: any) => void) => {
@@ -73,14 +81,25 @@ describe('streamAgentCommand', () => {
       fakeSocket([
         { type: 'stdout', data: 'building...\n' },
         { type: 'stderr', data: 'warn: x\n' },
+        { type: 'stderr', data: 'npm error code ENOENT\n' },
         { type: 'exit', exitCode: 0 },
       ]),
     );
 
     expect(result).toEqual({ exitCode: 0, timedOut: false });
+
+    /*
+     * This assertion used to demand `['error', 'warn: x']`. The point of the test
+     * is that stderr lines are COLLECTED — the sample just happened to be a
+     * warning, and the expectation froze "every stderr line is an error". npm
+     * sends its warnings to stderr, so that painted working installs red and
+     * buried the one line that explained a real failure. Levels are now
+     * classified by what the line says, and both cases are covered here.
+     */
     expect(lines).toEqual([
       ['info', 'building...'],
-      ['error', 'warn: x'],
+      ['info', 'warn: x'],
+      ['error', 'npm error code ENOENT'],
     ]);
   });
 
@@ -94,7 +113,7 @@ describe('streamAgentCommand', () => {
     );
 
     expect(result.exitCode).toBeNull();
-    expect(result.error).toMatch(/closed before/);
+    expect(result.error).toBe('WORKSPACE_STREAM_CLOSED');
   });
 
   it('passes the token as a query param', async () => {

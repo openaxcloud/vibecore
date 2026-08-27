@@ -1,4 +1,5 @@
 import { AlertCircle, AlertTriangle, RefreshCw } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { classNames } from '~/utils/classNames';
 
 type AsyncPanelStateProps = {
@@ -61,11 +62,12 @@ export function AsyncPanelError({
   description,
   onRetry,
   retrying = false,
-  retryLabel = 'Try again',
+  retryLabel,
   tone = 'error',
   compact = false,
   className,
 }: AsyncPanelErrorProps) {
+  const { t } = useTranslation();
   const Icon = tone === 'warning' ? AlertTriangle : AlertCircle;
 
   return (
@@ -77,7 +79,12 @@ export function AsyncPanelError({
         tone === 'warning'
           ? 'border-[var(--status-warning-border)] bg-[var(--status-warning-bg)] text-[var(--status-warning-text)]'
           : 'border-[var(--status-error-border)] bg-[var(--status-error-bg)] text-[var(--status-error-text)]',
-        compact ? 'p-3' : 'p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6',
+
+        /*
+         * Même padding compact que `AsyncPanelSkeleton` : les deux états se
+         * remplacent au même emplacement, le panneau ne doit pas sauter.
+         */
+        compact ? 'p-4' : 'p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6',
         className,
       )}
     >
@@ -110,7 +117,7 @@ export function AsyncPanelError({
             className={classNames('h-4 w-4', retrying && 'animate-spin motion-reduce:animate-none')}
             aria-hidden
           />
-          {retrying ? 'Retrying…' : retryLabel}
+          {retrying ? t('userArea.async.retrying') : (retryLabel ?? t('userArea.async.retry'))}
         </button>
       ) : null}
     </section>

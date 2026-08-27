@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { buildConnectingNotice, getSessionLabel, shellNameForProfile } from './terminal-session';
+import {
+  buildConnectingNotice,
+  getSessionLabel,
+  getTerminalProfileLabel,
+  shellNameForProfile,
+} from './terminal-session';
 
 describe('shellNameForProfile', () => {
   it('reports the managed shell as bash (its real process name)', () => {
@@ -50,5 +55,12 @@ describe('buildConnectingNotice', () => {
 
   it('names the explicit shell when not the managed profile', () => {
     expect(buildConnectingNotice('zsh')).toContain('Connecting to zsh shell…');
+  });
+
+  it('localizes the managed profile and connection state without translating shell identifiers', () => {
+    expect(getTerminalProfileLabel('managed', 'fr')).toBe('Shell géré');
+    expect(getTerminalProfileLabel('zsh', 'fr')).toBe('zsh');
+    expect(buildConnectingNotice('managed', 'fr')).toContain('Connexion à l’espace de travail…');
+    expect(buildConnectingNotice('zsh', 'fr')).toContain('Connexion au shell zsh…');
   });
 });

@@ -56,8 +56,11 @@ export interface ModerationResult {
   /** When `checked: false`, why. Always undefined when `checked: true`. */
   reason?: ModerationSkipReason;
 
-  /** Free-form provider / transport error message. */
+  /** Stable internal diagnostic code. Never rendered or serialized. */
   error?: string;
+
+  /** Provider HTTP status for operator telemetry, when available. */
+  providerStatus?: number;
 
   /** Categories OpenAI flagged. Empty when allowed or unchecked. */
   flaggedCategories: ModerationCategory[];
@@ -164,32 +167,24 @@ export async function moderateProjectPrompt(
       body: JSON.stringify({ model, input: prompt }),
       signal: options.signal,
     });
-  } catch (error) {
+  } catch {
     return {
       allowed: true,
       checked: false,
       reason: 'provider_error',
-      error: error instanceof Error ? error.message : 'moderation transport error',
+      error: 'MODERATION_TRANSPORT_ERROR',
       flaggedCategories: [],
       scores: {},
     };
   }
 
   if (!response.ok) {
-    let bodyMessage: string | undefined;
-
-    try {
-      const text = await response.text();
-      bodyMessage = text.slice(0, 200);
-    } catch {
-      bodyMessage = undefined;
-    }
-
     return {
       allowed: true,
       checked: false,
       reason: 'provider_error',
-      error: `moderation HTTP ${response.status}${bodyMessage ? `: ${bodyMessage}` : ''}`,
+      error: 'MODERATION_HTTP_ERROR',
+      providerStatus: response.status,
       flaggedCategories: [],
       scores: {},
     };
@@ -199,12 +194,12 @@ export async function moderateProjectPrompt(
 
   try {
     payload = (await response.json()) as OpenAIModerationResponse;
-  } catch (error) {
+  } catch {
     return {
       allowed: true,
       checked: false,
       reason: 'provider_error',
-      error: error instanceof Error ? error.message : 'invalid moderation JSON',
+      error: 'MODERATION_INVALID_JSON',
       flaggedCategories: [],
       scores: {},
     };
@@ -217,7 +212,7 @@ export async function moderateProjectPrompt(
       allowed: true,
       checked: false,
       reason: 'provider_error',
-      error: 'moderation response missing results[]',
+      error: 'MODERATION_RESULTS_MISSING',
       flaggedCategories: [],
       scores: {},
     };

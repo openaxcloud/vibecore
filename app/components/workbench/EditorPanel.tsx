@@ -2,6 +2,7 @@ import { useStore } from '@nanostores/react';
 import * as Tabs from '@radix-ui/react-tabs';
 import { EditorAdapter, TouchSymbolToolbar, useResponsiveLayout } from '@vibecore/editor';
 import { memo, useEffect, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { EditorHistoryOverlay } from './EditorHistoryOverlay';
 import { FileBreadcrumb } from './FileBreadcrumb';
@@ -46,7 +47,6 @@ interface EditorPanelProps {
 
 const DEFAULT_EDITOR_SIZE = 100 - DEFAULT_TERMINAL_SIZE;
 const LARGE_FILE_BYTES = 1_000_000;
-const SHELL_TERMINAL_LABEL = 'Shell (Terminal)';
 
 export const EditorPanel = memo(
   ({
@@ -63,6 +63,7 @@ export const EditorPanel = memo(
   }: EditorPanelProps) => {
     renderLogger.trace('EditorPanel');
 
+    const { t } = useTranslation();
     const theme = useStore(themeStore);
     const showTerminal = useStore(workbenchStore.showTerminal);
     const layout = useResponsiveLayout();
@@ -151,27 +152,31 @@ export const EditorPanel = memo(
         <PanelHeader className="w-full text-sm font-medium text-bolt-elements-textSecondary px-1">
           <div className="h-full flex-shrink-0 flex items-center justify-between w-full">
             <Tabs.List className="vc-editor-panel-tabs h-full flex-shrink-0 flex items-center">
-              <Tabs.Trigger value="files" className={classNames('vc-editor-panel-tab')} aria-label="Library">
-                Library
+              <Tabs.Trigger
+                value="files"
+                className={classNames('vc-editor-panel-tab')}
+                aria-label={t('idePanels.editor.library')}
+              >
+                {t('idePanels.editor.library')}
               </Tabs.Trigger>
               <Tabs.Trigger value="search" className={classNames('vc-editor-panel-tab')}>
-                Search
+                {t('idePanels.editor.search')}
               </Tabs.Trigger>
               <Tabs.Trigger value="locks" className={classNames('vc-editor-panel-tab')}>
-                Locks
+                {t('idePanels.editor.locks')}
               </Tabs.Trigger>
             </Tabs.List>
             {unsavedFiles instanceof Set && unsavedFiles.size > 0 && (
               <button
                 type="button"
                 onClick={() => void workbenchStore.saveAllFiles()}
-                title="Save all files (⌘⇧S)"
-                aria-label={`${unsavedFiles.size} unsaved ${unsavedFiles.size === 1 ? 'file' : 'files'}. Save all.`}
+                title={t('idePanels.editor.saveAllTitle')}
+                aria-label={t('idePanels.editor.unsavedAria', { count: unsavedFiles.size })}
                 className="flex items-center shrink-0 gap-1 px-1.5 py-0.5 mr-1 rounded-md text-xs font-medium cursor-pointer text-[var(--vc-ide-accent-action)] hover:opacity-80 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]"
                 style={{ background: 'color-mix(in srgb, var(--vc-ide-accent-action) 12%, transparent)' }}
               >
                 <div className="i-ph:floppy-disk" aria-hidden="true" />
-                {unsavedFiles.size} unsaved
+                {t('idePanels.editor.unsaved', { count: unsavedFiles.size })}
               </button>
             )}
           </div>
@@ -212,22 +217,22 @@ export const EditorPanel = memo(
                     <div className="vc-editor-header-action-group" data-toolbar-group="navigation">
                       <PanelHeaderButton onClick={() => runEditorCommand('goToDefinition')}>
                         <div className="i-ph:crosshair-simple-duotone" />
-                        Definition
+                        {t('idePanels.editor.definition')}
                       </PanelHeaderButton>
                       <PanelHeaderButton onClick={() => runEditorCommand('findReferences')}>
                         <div className="i-ph:list-magnifying-glass-duotone" />
-                        References
+                        {t('idePanels.editor.references')}
                       </PanelHeaderButton>
                     </div>
                     <span className="vc-editor-header-action-divider" aria-hidden="true" />
                     <div className="vc-editor-header-action-group" data-toolbar-group="editing">
                       <PanelHeaderButton onClick={() => runEditorCommand('renameSymbol')}>
                         <div className="i-ph:textbox-duotone" />
-                        Rename
+                        {t('idePanels.editor.rename')}
                       </PanelHeaderButton>
                       <PanelHeaderButton onClick={() => runEditorCommand('refactor')}>
                         <div className="i-ph:magic-wand-duotone" />
-                        Refactor
+                        {t('idePanels.editor.refactor')}
                       </PanelHeaderButton>
                     </div>
                   </>
@@ -238,11 +243,11 @@ export const EditorPanel = memo(
                     <div className="vc-editor-header-action-group" data-toolbar-group="save">
                       <PanelHeaderButton className="vc-editor-header-save-button" onClick={onFileSave}>
                         <div className="i-ph:floppy-disk-duotone" />
-                        Save
+                        {t('idePanels.editor.save')}
                       </PanelHeaderButton>
                       <PanelHeaderButton onClick={onFileReset}>
                         <div className="i-ph:clock-counter-clockwise-duotone" />
-                        Reset
+                        {t('idePanels.editor.reset')}
                       </PanelHeaderButton>
                     </div>
                   </>
@@ -261,7 +266,7 @@ export const EditorPanel = memo(
         <div className="relative h-full flex-1 overflow-hidden modern-scrollbar" data-testid="responsive-code-editor">
           {isLargeFile && (
             <div className="border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-3 py-2 text-xs text-bolt-elements-textSecondary">
-              Large file mode: rich editor features are reduced to keep typing and scrolling responsive.
+              {t('idePanels.editor.largeFile')}
             </div>
           )}
           {isCurrentFileLocked && editorDocument ? (
@@ -274,8 +279,8 @@ export const EditorPanel = memo(
                     const inheritedFrom = dirent?.type === 'file' ? dirent.lockedByFolder : undefined;
 
                     return inheritedFrom
-                      ? `Locked by folder ${inheritedFrom} — protected from AI edits.`
-                      : 'This file is locked — protected from AI edits.';
+                      ? t('idePanels.editor.lockedByFolder', { folder: inheritedFrom })
+                      : t('idePanels.editor.fileLocked');
                   })()}
                 </span>
               </span>
@@ -287,15 +292,15 @@ export const EditorPanel = memo(
 
                   if (inheritedFrom) {
                     workbenchStore.unlockFolder(inheritedFrom);
-                    toast.success('Folder unlocked — its files can be edited again.');
+                    toast.success(t('idePanels.editor.folderUnlocked'));
                   } else {
                     workbenchStore.unlockFile(editorDocument.filePath);
-                    toast.success('File unlocked — it can be edited again.');
+                    toast.success(t('idePanels.editor.fileUnlocked'));
                   }
                 }}
                 className="shrink-0 rounded-md border border-bolt-elements-borderColor px-2 py-1 font-medium text-[var(--vc-ide-accent-action)] hover:bg-bolt-elements-background-depth-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]"
               >
-                Request unlock
+                {t('idePanels.editor.requestUnlock')}
               </button>
             </div>
           ) : null}
@@ -316,7 +321,7 @@ export const EditorPanel = memo(
             />
           ) : (
             <div className="flex h-full items-center justify-center text-sm text-bolt-elements-textSecondary">
-              {editorDocument?.isBinary ? 'Binary files can’t be previewed in the editor.' : 'No file selected.'}
+              {editorDocument?.isBinary ? t('idePanels.editor.binaryUnavailable') : t('idePanels.editor.noFile')}
             </div>
           )}
 
@@ -331,7 +336,7 @@ export const EditorPanel = memo(
     if (useMobilePanelLayout) {
       if (mobilePanel === 'files') {
         return (
-          <PanelBoundary title="Files">
+          <PanelBoundary title={t('idePanels.editor.files')}>
             <div className="h-full" data-testid="mobile-files-panel">
               <FileTree
                 className="h-full"
@@ -350,7 +355,7 @@ export const EditorPanel = memo(
 
       if (mobilePanel === 'search') {
         return (
-          <PanelBoundary title="Search">
+          <PanelBoundary title={t('idePanels.editor.search')}>
             <div className="h-full overflow-auto" data-testid="mobile-search-panel">
               <Search />
             </div>
@@ -360,7 +365,7 @@ export const EditorPanel = memo(
 
       if (mobilePanel === 'locks') {
         return (
-          <PanelBoundary title="Locks">
+          <PanelBoundary title={t('idePanels.editor.locks')}>
             <div className="h-full overflow-auto" data-testid="mobile-locks-panel">
               <LockManager />
             </div>
@@ -370,12 +375,12 @@ export const EditorPanel = memo(
 
       if (mobilePanel === 'terminal') {
         return (
-          <PanelBoundary title={SHELL_TERMINAL_LABEL}>
+          <PanelBoundary title={t('idePanels.editor.shellTerminal')}>
             <div
               className="h-full min-h-0"
               data-testid="mobile-terminal-panel"
               role="region"
-              aria-label="Interactive terminal"
+              aria-label={t('idePanels.editor.interactiveTerminal')}
             >
               <PanelGroup direction="vertical">
                 <TerminalTabs panelDefaultSize={100} />
@@ -385,7 +390,7 @@ export const EditorPanel = memo(
         );
       }
 
-      return <PanelBoundary title="Editor">{editorPane}</PanelBoundary>;
+      return <PanelBoundary title={t('idePanels.editor.editor')}>{editorPane}</PanelBoundary>;
     }
 
     return (
@@ -393,19 +398,19 @@ export const EditorPanel = memo(
         <Panel defaultSize={showTerminal ? DEFAULT_EDITOR_SIZE : 100} minSize={20}>
           <PanelGroup direction="horizontal" autoSaveId="ecode:panels:editor-files">
             <Panel defaultSize={20} minSize={15} collapsible className="border-r border-bolt-elements-borderColor">
-              <PanelBoundary title="Files">
+              <PanelBoundary title={t('idePanels.editor.files')}>
                 <div className="h-full">{fileTabs}</div>
               </PanelBoundary>
             </Panel>
 
             <PanelResizeHandle />
             <Panel className="flex flex-col" defaultSize={80} minSize={20}>
-              <PanelBoundary title="Editor">{editorPane}</PanelBoundary>
+              <PanelBoundary title={t('idePanels.editor.editor')}>{editorPane}</PanelBoundary>
             </Panel>
           </PanelGroup>
         </Panel>
         <PanelResizeHandle />
-        <PanelBoundary title={SHELL_TERMINAL_LABEL}>
+        <PanelBoundary title={t('idePanels.editor.shellTerminal')}>
           <TerminalTabs />
         </PanelBoundary>
       </PanelGroup>

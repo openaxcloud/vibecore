@@ -1,0 +1,178 @@
+authorized	Set up job	﻿2026-07-23T11:46:09.0388437Z Current runner version: '2.336.0'
+authorized	Set up job	2026-07-23T11:46:09.0412799Z ##[group]Runner Image Provisioner
+authorized	Set up job	2026-07-23T11:46:09.0413965Z Hosted Compute Agent
+authorized	Set up job	2026-07-23T11:46:09.0414940Z Version: 20260707.563
+authorized	Set up job	2026-07-23T11:46:09.0415633Z Commit: 02667638d2b423fbc733a8e32a88b44996a3ba6e
+authorized	Set up job	2026-07-23T11:46:09.0416383Z Build Date: 2026-07-07T19:33:50Z
+authorized	Set up job	2026-07-23T11:46:09.0417132Z Worker ID: {19cfe66b-69a3-432d-bfd0-acca1fff5bad}
+authorized	Set up job	2026-07-23T11:46:09.0417853Z Azure Region: eastus
+authorized	Set up job	2026-07-23T11:46:09.0418441Z ##[endgroup]
+authorized	Set up job	2026-07-23T11:46:09.0419957Z ##[group]Operating System
+authorized	Set up job	2026-07-23T11:46:09.0420634Z Ubuntu
+authorized	Set up job	2026-07-23T11:46:09.0421216Z 24.04.4
+authorized	Set up job	2026-07-23T11:46:09.0421721Z LTS
+authorized	Set up job	2026-07-23T11:46:09.0422201Z ##[endgroup]
+authorized	Set up job	2026-07-23T11:46:09.0422794Z ##[group]Runner Image
+authorized	Set up job	2026-07-23T11:46:09.0423404Z Image: ubuntu-24.04
+authorized	Set up job	2026-07-23T11:46:09.0423977Z Version: 20260720.247.2
+authorized	Set up job	2026-07-23T11:46:09.0425243Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260720.247/images/ubuntu/Ubuntu2404-Readme.md
+authorized	Set up job	2026-07-23T11:46:09.0426942Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260720.247
+authorized	Set up job	2026-07-23T11:46:09.0427924Z ##[endgroup]
+authorized	Set up job	2026-07-23T11:46:09.0429072Z ##[group]GITHUB_TOKEN Permissions
+authorized	Set up job	2026-07-23T11:46:09.0431146Z Contents: read
+authorized	Set up job	2026-07-23T11:46:09.0432156Z Metadata: read
+authorized	Set up job	2026-07-23T11:46:09.0432794Z ##[endgroup]
+authorized	Set up job	2026-07-23T11:46:09.0435068Z Secret source: Actions
+authorized	Set up job	2026-07-23T11:46:09.0436467Z Prepare workflow directory
+authorized	Set up job	2026-07-23T11:46:09.0759449Z Prepare all required actions
+authorized	Set up job	2026-07-23T11:46:09.0802617Z Getting action download info
+authorized	Set up job	2026-07-23T11:46:09.2709522Z Download action repository 'google-github-actions/auth@v2' (SHA:c200f3691d83b41bf9bbd8638997a462592937ed)
+authorized	Set up job	2026-07-23T11:46:09.5840142Z Complete job name: authorized
+authorized	Federate GitHub OIDC -> impersonate AUTHORIZED SA (eager token, no key)	﻿2026-07-23T11:46:09.6843698Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+authorized	Federate GitHub OIDC -> impersonate AUTHORIZED SA (eager token, no key)	2026-07-23T11:46:09.6852766Z ##[group]Run google-github-actions/auth@v2
+authorized	Federate GitHub OIDC -> impersonate AUTHORIZED SA (eager token, no key)	2026-07-23T11:46:09.6853572Z with:
+authorized	Federate GitHub OIDC -> impersonate AUTHORIZED SA (eager token, no key)	2026-07-23T11:46:09.6854022Z   project_id: ecode-wif-proof-806836
+authorized	Federate GitHub OIDC -> impersonate AUTHORIZED SA (eager token, no key)	2026-07-23T11:46:09.6855361Z   workload_identity_provider: projects/609134893637/locations/global/workloadIdentityPools/github-pool/providers/github
+authorized	Federate GitHub OIDC -> impersonate AUTHORIZED SA (eager token, no key)	2026-07-23T11:46:09.6856641Z   service_account: wif-authorized@ecode-wif-proof-806836.iam.gserviceaccount.com
+authorized	Federate GitHub OIDC -> impersonate AUTHORIZED SA (eager token, no key)	2026-07-23T11:46:09.6857420Z   token_format: access_token
+authorized	Federate GitHub OIDC -> impersonate AUTHORIZED SA (eager token, no key)	2026-07-23T11:46:09.6857914Z   create_credentials_file: true
+authorized	Federate GitHub OIDC -> impersonate AUTHORIZED SA (eager token, no key)	2026-07-23T11:46:09.6858428Z   export_environment_variables: true
+authorized	Federate GitHub OIDC -> impersonate AUTHORIZED SA (eager token, no key)	2026-07-23T11:46:09.6858957Z   universe: googleapis.com
+authorized	Federate GitHub OIDC -> impersonate AUTHORIZED SA (eager token, no key)	2026-07-23T11:46:09.6859446Z   cleanup_credentials: true
+authorized	Federate GitHub OIDC -> impersonate AUTHORIZED SA (eager token, no key)	2026-07-23T11:46:09.6859972Z   access_token_lifetime: 3600s
+authorized	Federate GitHub OIDC -> impersonate AUTHORIZED SA (eager token, no key)	2026-07-23T11:46:09.6860698Z   access_token_scopes: https://www.googleapis.com/auth/cloud-platform
+authorized	Federate GitHub OIDC -> impersonate AUTHORIZED SA (eager token, no key)	2026-07-23T11:46:09.6861420Z   id_token_include_email: false
+authorized	Federate GitHub OIDC -> impersonate AUTHORIZED SA (eager token, no key)	2026-07-23T11:46:09.6862207Z ##[endgroup]
+authorized	Federate GitHub OIDC -> impersonate AUTHORIZED SA (eager token, no key)	2026-07-23T11:46:09.8579605Z ⚠️ The "create_credentials_file" option is true, but the current GitHub workspace is empty. Did you forget to use "actions/checkout" before this step? If you do not intend to share authentication with future steps in this job, set "create_credentials_file" to false.
+authorized	Federate GitHub OIDC -> impersonate AUTHORIZED SA (eager token, no key)	2026-07-23T11:46:09.8649225Z Created credentials file at "/home/runner/work/vibecore/vibecore/gha-creds-87e58f397615cbb8.json"
+authorized	Read the secret bucket with the WIF-obtained token (no key) — REQUIRE 200 + content	﻿2026-07-23T11:46:10.0588067Z ##[group]Run set -euo pipefail
+authorized	Read the secret bucket with the WIF-obtained token (no key) — REQUIRE 200 + content	2026-07-23T11:46:10.0588751Z [36;1mset -euo pipefail[0m
+authorized	Read the secret bucket with the WIF-obtained token (no key) — REQUIRE 200 + content	2026-07-23T11:46:10.0589348Z [36;1mecho "NONCE=wifproof-20260723T114035Z-46794"[0m
+authorized	Read the secret bucket with the WIF-obtained token (no key) — REQUIRE 200 + content	2026-07-23T11:46:10.0590343Z [36;1mecho "CREDENTIAL_FILE=$GOOGLE_APPLICATION_CREDENTIALS (external_account/federated, NOT a key)"[0m
+authorized	Read the secret bucket with the WIF-obtained token (no key) — REQUIRE 200 + content	2026-07-23T11:46:10.0591786Z [36;1mgrep -q '"type": "external_account"' "$GOOGLE_APPLICATION_CREDENTIALS" && echo "CREDENTIAL_KIND=external_account (federated, keyless)"[0m
+authorized	Read the secret bucket with the WIF-obtained token (no key) — REQUIRE 200 + content	2026-07-23T11:46:10.0593030Z [36;1mecho "TOKEN_ACQUIRED_VIA=WIF_impersonation length=${#TOKEN}"[0m
+authorized	Read the secret bucket with the WIF-obtained token (no key) — REQUIRE 200 + content	2026-07-23T11:46:10.0594343Z [36;1mCODE=$(curl -s -o /tmp/body -w "%{http_code}" -H "Authorization: ***" \[0m
+authorized	Read the secret bucket with the WIF-obtained token (no key) — REQUIRE 200 + content	2026-07-23T11:46:10.0595565Z [36;1m  "https://storage.googleapis.com/storage/v1/b/${BUCKET}/o/secret.txt?alt=media")[0m
+authorized	Read the secret bucket with the WIF-obtained token (no key) — REQUIRE 200 + content	2026-07-23T11:46:10.0596407Z [36;1mecho "READ_HTTP=$CODE"[0m
+authorized	Read the secret bucket with the WIF-obtained token (no key) — REQUIRE 200 + content	2026-07-23T11:46:10.0596973Z [36;1mecho "SECRET_CONTENT=$(cat /tmp/body)"[0m
+authorized	Read the secret bucket with the WIF-obtained token (no key) — REQUIRE 200 + content	2026-07-23T11:46:10.0597753Z [36;1mtest "$CODE" = "200" || { echo "FAIL: expected HTTP 200, got $CODE"; exit 1; }[0m
+authorized	Read the secret bucket with the WIF-obtained token (no key) — REQUIRE 200 + content	2026-07-23T11:46:10.0598533Z [36;1mcase "$(cat /tmp/body)" in[0m
+authorized	Read the secret bucket with the WIF-obtained token (no key) — REQUIRE 200 + content	2026-07-23T11:46:10.0599264Z [36;1m  "$EXPECT"*) echo "CONTENT_OK: secret starts with expected prefix" ;;[0m
+authorized	Read the secret bucket with the WIF-obtained token (no key) — REQUIRE 200 + content	2026-07-23T11:46:10.0600060Z [36;1m  *) echo "FAIL: unexpected content"; exit 1 ;;[0m
+authorized	Read the secret bucket with the WIF-obtained token (no key) — REQUIRE 200 + content	2026-07-23T11:46:10.0600652Z [36;1mesac[0m
+authorized	Read the secret bucket with the WIF-obtained token (no key) — REQUIRE 200 + content	2026-07-23T11:46:10.0648208Z shell: /usr/bin/bash -e {0}
+authorized	Read the secret bucket with the WIF-obtained token (no key) — REQUIRE 200 + content	2026-07-23T11:46:10.0648769Z env:
+authorized	Read the secret bucket with the WIF-obtained token (no key) — REQUIRE 200 + content	2026-07-23T11:46:10.0649607Z   CLOUDSDK_AUTH_CREDENTIAL_FILE_OVERRIDE: /home/runner/work/vibecore/vibecore/gha-creds-87e58f397615cbb8.json
+authorized	Read the secret bucket with the WIF-obtained token (no key) — REQUIRE 200 + content	2026-07-23T11:46:10.0650973Z   GOOGLE_APPLICATION_CREDENTIALS: /home/runner/work/vibecore/vibecore/gha-creds-87e58f397615cbb8.json
+authorized	Read the secret bucket with the WIF-obtained token (no key) — REQUIRE 200 + content	2026-07-23T11:46:10.0652177Z   GOOGLE_GHA_CREDS_PATH: /home/runner/work/vibecore/vibecore/gha-creds-87e58f397615cbb8.json
+authorized	Read the secret bucket with the WIF-obtained token (no key) — REQUIRE 200 + content	2026-07-23T11:46:10.0653066Z   CLOUDSDK_CORE_PROJECT: ecode-wif-proof-806836
+authorized	Read the secret bucket with the WIF-obtained token (no key) — REQUIRE 200 + content	2026-07-23T11:46:10.0653701Z   CLOUDSDK_PROJECT: ecode-wif-proof-806836
+authorized	Read the secret bucket with the WIF-obtained token (no key) — REQUIRE 200 + content	2026-07-23T11:46:10.0654297Z   GCLOUD_PROJECT: ecode-wif-proof-806836
+authorized	Read the secret bucket with the WIF-obtained token (no key) — REQUIRE 200 + content	2026-07-23T11:46:10.0655258Z   GCP_PROJECT: ecode-wif-proof-806836
+authorized	Read the secret bucket with the WIF-obtained token (no key) — REQUIRE 200 + content	2026-07-23T11:46:10.0655875Z   GOOGLE_CLOUD_PROJECT: ecode-wif-proof-806836
+authorized	Read the secret bucket with the WIF-obtained token (no key) — REQUIRE 200 + content	2026-07-23T11:46:10.0663550Z   TOKEN: ***
+authorized	Read the secret bucket with the WIF-obtained token (no key) — REQUIRE 200 + content	2026-07-23T11:46:10.0664028Z   BUCKET: ecode-wif-proof-806836-secret-data
+authorized	Read the secret bucket with the WIF-obtained token (no key) — REQUIRE 200 + content	2026-07-23T11:46:10.0664803Z   EXPECT: wif-proof-secret-content
+authorized	Read the secret bucket with the WIF-obtained token (no key) — REQUIRE 200 + content	2026-07-23T11:46:10.0665325Z ##[endgroup]
+authorized	Read the secret bucket with the WIF-obtained token (no key) — REQUIRE 200 + content	2026-07-23T11:46:10.0758554Z NONCE=wifproof-20260723T114035Z-46794
+authorized	Read the secret bucket with the WIF-obtained token (no key) — REQUIRE 200 + content	2026-07-23T11:46:10.0760594Z CREDENTIAL_FILE=/home/runner/work/vibecore/vibecore/gha-creds-87e58f397615cbb8.json (external_account/federated, NOT a key)
+authorized	Read the secret bucket with the WIF-obtained token (no key) — REQUIRE 200 + content	2026-07-23T11:46:10.0777600Z TOKEN_ACQUIRED_VIA=WIF_impersonation length=1024
+authorized	Read the secret bucket with the WIF-obtained token (no key) — REQUIRE 200 + content	2026-07-23T11:46:10.2442239Z READ_HTTP=200
+authorized	Read the secret bucket with the WIF-obtained token (no key) — REQUIRE 200 + content	2026-07-23T11:46:10.2456705Z SECRET_CONTENT=wif-proof-secret-content-1784806922
+authorized	Read the secret bucket with the WIF-obtained token (no key) — REQUIRE 200 + content	2026-07-23T11:46:10.2469083Z CONTENT_OK: secret starts with expected prefix
+authorized	Post Federate GitHub OIDC -> impersonate AUTHORIZED SA (eager token, no key)	﻿2026-07-23T11:46:10.2622244Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+authorized	Post Federate GitHub OIDC -> impersonate AUTHORIZED SA (eager token, no key)	2026-07-23T11:46:10.2624892Z Post job cleanup.
+authorized	Post Federate GitHub OIDC -> impersonate AUTHORIZED SA (eager token, no key)	2026-07-23T11:46:10.3497556Z Removed exported credentials at "/home/runner/work/vibecore/vibecore/gha-creds-87e58f397615cbb8.json".
+authorized	Complete job	﻿2026-07-23T11:46:10.3628694Z Cleaning up orphan processes
+authorized	Complete job	2026-07-23T11:46:10.4113378Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: google-github-actions/auth@v2. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+negative	Set up job	﻿2026-07-23T11:46:10.0157286Z Current runner version: '2.335.1'
+negative	Set up job	2026-07-23T11:46:10.0184312Z ##[group]Runner Image Provisioner
+negative	Set up job	2026-07-23T11:46:10.0185224Z Hosted Compute Agent
+negative	Set up job	2026-07-23T11:46:10.0186141Z Version: 20260707.563
+negative	Set up job	2026-07-23T11:46:10.0186788Z Commit: 02667638d2b423fbc733a8e32a88b44996a3ba6e
+negative	Set up job	2026-07-23T11:46:10.0187498Z Build Date: 2026-07-07T19:33:50Z
+negative	Set up job	2026-07-23T11:46:10.0188293Z Worker ID: {209a6c37-b23b-40db-ab46-bc50203430e8}
+negative	Set up job	2026-07-23T11:46:10.0189027Z Azure Region: westus
+negative	Set up job	2026-07-23T11:46:10.0189621Z ##[endgroup]
+negative	Set up job	2026-07-23T11:46:10.0191103Z ##[group]Operating System
+negative	Set up job	2026-07-23T11:46:10.0191779Z Ubuntu
+negative	Set up job	2026-07-23T11:46:10.0192417Z 24.04.4
+negative	Set up job	2026-07-23T11:46:10.0192932Z LTS
+negative	Set up job	2026-07-23T11:46:10.0193430Z ##[endgroup]
+negative	Set up job	2026-07-23T11:46:10.0194037Z ##[group]Runner Image
+negative	Set up job	2026-07-23T11:46:10.0194621Z Image: ubuntu-24.04
+negative	Set up job	2026-07-23T11:46:10.0195238Z Version: 20260714.240.1
+negative	Set up job	2026-07-23T11:46:10.0196554Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260714.240/images/ubuntu/Ubuntu2404-Readme.md
+negative	Set up job	2026-07-23T11:46:10.0198337Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260714.240
+negative	Set up job	2026-07-23T11:46:10.0199291Z ##[endgroup]
+negative	Set up job	2026-07-23T11:46:10.0200470Z ##[group]GITHUB_TOKEN Permissions
+negative	Set up job	2026-07-23T11:46:10.0202776Z Contents: read
+negative	Set up job	2026-07-23T11:46:10.0203506Z Metadata: read
+negative	Set up job	2026-07-23T11:46:10.0204094Z ##[endgroup]
+negative	Set up job	2026-07-23T11:46:10.0206784Z Secret source: Actions
+negative	Set up job	2026-07-23T11:46:10.0208241Z Prepare workflow directory
+negative	Set up job	2026-07-23T11:46:10.0557162Z Prepare all required actions
+negative	Set up job	2026-07-23T11:46:10.0599069Z Getting action download info
+negative	Set up job	2026-07-23T11:46:10.4043408Z Download action repository 'google-github-actions/auth@v2' (SHA:c200f3691d83b41bf9bbd8638997a462592937ed)
+negative	Set up job	2026-07-23T11:46:10.8788116Z Complete job name: negative
+negative	NEGATIVE — try to impersonate an UN-GRANTED SA (eager token must be DENIED)	﻿2026-07-23T11:46:10.9755197Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+negative	NEGATIVE — try to impersonate an UN-GRANTED SA (eager token must be DENIED)	2026-07-23T11:46:10.9764124Z ##[group]Run google-github-actions/auth@v2
+negative	NEGATIVE — try to impersonate an UN-GRANTED SA (eager token must be DENIED)	2026-07-23T11:46:10.9764978Z with:
+negative	NEGATIVE — try to impersonate an UN-GRANTED SA (eager token must be DENIED)	2026-07-23T11:46:10.9765734Z   project_id: ecode-wif-proof-806836
+negative	NEGATIVE — try to impersonate an UN-GRANTED SA (eager token must be DENIED)	2026-07-23T11:46:10.9766826Z   workload_identity_provider: projects/609134893637/locations/global/workloadIdentityPools/github-pool/providers/github
+negative	NEGATIVE — try to impersonate an UN-GRANTED SA (eager token must be DENIED)	2026-07-23T11:46:10.9768097Z   service_account: wif-wrong@ecode-wif-proof-806836.iam.gserviceaccount.com
+negative	NEGATIVE — try to impersonate an UN-GRANTED SA (eager token must be DENIED)	2026-07-23T11:46:10.9768884Z   token_format: access_token
+negative	NEGATIVE — try to impersonate an UN-GRANTED SA (eager token must be DENIED)	2026-07-23T11:46:10.9769417Z   create_credentials_file: true
+negative	NEGATIVE — try to impersonate an UN-GRANTED SA (eager token must be DENIED)	2026-07-23T11:46:10.9769956Z   export_environment_variables: true
+negative	NEGATIVE — try to impersonate an UN-GRANTED SA (eager token must be DENIED)	2026-07-23T11:46:10.9770520Z   universe: googleapis.com
+negative	NEGATIVE — try to impersonate an UN-GRANTED SA (eager token must be DENIED)	2026-07-23T11:46:10.9771047Z   cleanup_credentials: true
+negative	NEGATIVE — try to impersonate an UN-GRANTED SA (eager token must be DENIED)	2026-07-23T11:46:10.9771622Z   access_token_lifetime: 3600s
+negative	NEGATIVE — try to impersonate an UN-GRANTED SA (eager token must be DENIED)	2026-07-23T11:46:10.9772322Z   access_token_scopes: https://www.googleapis.com/auth/cloud-platform
+negative	NEGATIVE — try to impersonate an UN-GRANTED SA (eager token must be DENIED)	2026-07-23T11:46:10.9773081Z   id_token_include_email: false
+negative	NEGATIVE — try to impersonate an UN-GRANTED SA (eager token must be DENIED)	2026-07-23T11:46:10.9774049Z ##[endgroup]
+negative	NEGATIVE — try to impersonate an UN-GRANTED SA (eager token must be DENIED)	2026-07-23T11:46:11.3601473Z ⚠️ The "create_credentials_file" option is true, but the current GitHub workspace is empty. Did you forget to use "actions/checkout" before this step? If you do not intend to share authentication with future steps in this job, set "create_credentials_file" to false.
+negative	NEGATIVE — try to impersonate an UN-GRANTED SA (eager token must be DENIED)	2026-07-23T11:46:11.3698841Z Created credentials file at "/home/runner/work/vibecore/vibecore/gha-creds-37406aeefefb7bde.json"
+negative	NEGATIVE — try to impersonate an UN-GRANTED SA (eager token must be DENIED)	2026-07-23T11:46:11.5613942Z ##[error]google-github-actions/auth failed with: failed to generate Google Cloud OAuth 2.0 Access Token for wif-wrong@ecode-wif-proof-806836.iam.gserviceaccount.com: {
+negative	NEGATIVE — try to impersonate an UN-GRANTED SA (eager token must be DENIED)	  "error": {
+negative	NEGATIVE — try to impersonate an UN-GRANTED SA (eager token must be DENIED)	    "code": 403,
+negative	NEGATIVE — try to impersonate an UN-GRANTED SA (eager token must be DENIED)	    "message": "Permission 'iam.serviceAccounts.getAccessToken' denied on resource (or it may not exist). Remediate access with this Troubleshooter URL or share it with your administrator - https://console.cloud.google.com/iam-admin/troubleshooter/summary;errorId=CiQwMTlmOGVjYy0yNWVmLTcxNTMtYTgzZC1lNGUxMTU3ODY1ZmISAA%3D%3D .",
+negative	NEGATIVE — try to impersonate an UN-GRANTED SA (eager token must be DENIED)	    "status": "PERMISSION_DENIED",
+negative	NEGATIVE — try to impersonate an UN-GRANTED SA (eager token must be DENIED)	    "details": [
+negative	NEGATIVE — try to impersonate an UN-GRANTED SA (eager token must be DENIED)	      {
+negative	NEGATIVE — try to impersonate an UN-GRANTED SA (eager token must be DENIED)	        "@type": "type.googleapis.com/google.rpc.ErrorInfo",
+negative	NEGATIVE — try to impersonate an UN-GRANTED SA (eager token must be DENIED)	        "reason": "IAM_PERMISSION_DENIED",
+negative	NEGATIVE — try to impersonate an UN-GRANTED SA (eager token must be DENIED)	        "domain": "iam.googleapis.com",
+negative	NEGATIVE — try to impersonate an UN-GRANTED SA (eager token must be DENIED)	        "metadata": {
+negative	NEGATIVE — try to impersonate an UN-GRANTED SA (eager token must be DENIED)	          "error_info_id": "CiQwMTlmOGVjYy0yNWVmLTcxNTMtYTgzZC1lNGUxMTU3ODY1ZmISAA==",
+negative	NEGATIVE — try to impersonate an UN-GRANTED SA (eager token must be DENIED)	          "troubleshooter_url": "https://console.cloud.google.com/iam-admin/troubleshooter/summary;errorId=CiQwMTlmOGVjYy0yNWVmLTcxNTMtYTgzZC1lNGUxMTU3ODY1ZmISAA%3D%3D",
+negative	NEGATIVE — try to impersonate an UN-GRANTED SA (eager token must be DENIED)	          "permission": "iam.serviceAccounts.getAccessToken"
+negative	NEGATIVE — try to impersonate an UN-GRANTED SA (eager token must be DENIED)	        }
+negative	NEGATIVE — try to impersonate an UN-GRANTED SA (eager token must be DENIED)	      }
+negative	NEGATIVE — try to impersonate an UN-GRANTED SA (eager token must be DENIED)	    ]
+negative	NEGATIVE — try to impersonate an UN-GRANTED SA (eager token must be DENIED)	  }
+negative	NEGATIVE — try to impersonate an UN-GRANTED SA (eager token must be DENIED)	}
+negative	Report negative outcome	﻿2026-07-23T11:46:11.5786126Z ##[group]Run echo "AUTH_STEP_OUTCOME=failure"
+negative	Report negative outcome	2026-07-23T11:46:11.5786960Z [36;1mecho "AUTH_STEP_OUTCOME=failure"[0m
+negative	Report negative outcome	2026-07-23T11:46:11.5787610Z [36;1mif [ "failure" = "failure" ]; then[0m
+negative	Report negative outcome	2026-07-23T11:46:11.5788587Z [36;1m  echo "NEGATIVE_OK: impersonation of the un-granted SA was DENIED (no workloadIdentityUser binding)"[0m
+negative	Report negative outcome	2026-07-23T11:46:11.5789507Z [36;1melse[0m
+negative	Report negative outcome	2026-07-23T11:46:11.5790073Z [36;1m  echo "NEGATIVE_UNEXPECTED: auth did not fail"; exit 1[0m
+negative	Report negative outcome	2026-07-23T11:46:11.5790753Z [36;1mfi[0m
+negative	Report negative outcome	2026-07-23T11:46:11.5872474Z shell: /usr/bin/bash -e {0}
+negative	Report negative outcome	2026-07-23T11:46:11.5873099Z env:
+negative	Report negative outcome	2026-07-23T11:46:11.5874061Z   CLOUDSDK_AUTH_CREDENTIAL_FILE_OVERRIDE: /home/runner/work/vibecore/vibecore/gha-creds-37406aeefefb7bde.json
+negative	Report negative outcome	2026-07-23T11:46:11.5875975Z   GOOGLE_APPLICATION_CREDENTIALS: /home/runner/work/vibecore/vibecore/gha-creds-37406aeefefb7bde.json
+negative	Report negative outcome	2026-07-23T11:46:11.5877387Z   GOOGLE_GHA_CREDS_PATH: /home/runner/work/vibecore/vibecore/gha-creds-37406aeefefb7bde.json
+negative	Report negative outcome	2026-07-23T11:46:11.5878477Z   CLOUDSDK_CORE_PROJECT: ecode-wif-proof-806836
+negative	Report negative outcome	2026-07-23T11:46:11.5879194Z   CLOUDSDK_PROJECT: ecode-wif-proof-806836
+negative	Report negative outcome	2026-07-23T11:46:11.5879875Z   GCLOUD_PROJECT: ecode-wif-proof-806836
+negative	Report negative outcome	2026-07-23T11:46:11.5880540Z   GCP_PROJECT: ecode-wif-proof-806836
+negative	Report negative outcome	2026-07-23T11:46:11.5881211Z   GOOGLE_CLOUD_PROJECT: ecode-wif-proof-806836
+negative	Report negative outcome	2026-07-23T11:46:11.5881879Z ##[endgroup]
+negative	Report negative outcome	2026-07-23T11:46:11.5986569Z AUTH_STEP_OUTCOME=failure
+negative	Report negative outcome	2026-07-23T11:46:11.5987608Z NEGATIVE_OK: impersonation of the un-granted SA was DENIED (no workloadIdentityUser binding)
+negative	Post NEGATIVE — try to impersonate an UN-GRANTED SA (eager token must be DENIED)	﻿2026-07-23T11:46:11.6139967Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+negative	Post NEGATIVE — try to impersonate an UN-GRANTED SA (eager token must be DENIED)	2026-07-23T11:46:11.6142390Z Post job cleanup.
+negative	Post NEGATIVE — try to impersonate an UN-GRANTED SA (eager token must be DENIED)	2026-07-23T11:46:11.7022370Z Removed exported credentials at "/home/runner/work/vibecore/vibecore/gha-creds-37406aeefefb7bde.json".
+negative	Complete job	﻿2026-07-23T11:46:11.7172388Z Cleaning up orphan processes
+negative	Complete job	2026-07-23T11:46:11.7567734Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: google-github-actions/auth@v2. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/

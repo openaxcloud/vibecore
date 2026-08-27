@@ -1,7 +1,39 @@
 import { Mail } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import type { MetaFunction } from 'react-router';
 import { Form, Link, useActionData, useNavigation } from 'react-router';
 import { AuthField, AuthScreen, AuthSubmit } from '~/components/auth/AuthScreen';
-import { apiRequest, formObject, json, type EnterpriseActionArgs } from '~/lib/enterprise-api.server';
+import {
+  apiRequest,
+  formObject,
+  json,
+  type EnterpriseActionArgs,
+  type EnterpriseLoaderArgs,
+} from '~/lib/enterprise-api.server';
+import type { TranslationKey } from '~/lib/i18n/dictionary';
+import { resolveRequestLocale } from '~/lib/i18n/request-locale';
+import { translateServerMessage } from '~/lib/i18n/server';
+
+export const meta: MetaFunction<typeof loader> = ({ data }) => {
+  const language = data?.language ?? 'en';
+
+  return [
+    { title: translateServerMessage(language, 'auth.forgot.metaTitle') },
+    { name: 'description', content: translateServerMessage(language, 'auth.forgot.metaDescription') },
+  ];
+};
+
+type ForgotFeedbackCode = 'AUTH_RESET_REQUESTED' | 'AUTH_RESET_REQUEST_FAILED' | 'AUTH_RESET_REQUEST_UNAVAILABLE';
+
+const FORGOT_FEEDBACK_KEYS = {
+  AUTH_RESET_REQUESTED: 'auth.feedback.resetRequested',
+  AUTH_RESET_REQUEST_FAILED: 'auth.feedback.resetRequestFailed',
+  AUTH_RESET_REQUEST_UNAVAILABLE: 'auth.feedback.resetRequestUnavailable',
+} as const satisfies Record<ForgotFeedbackCode, TranslationKey>;
+
+export function loader({ request }: EnterpriseLoaderArgs) {
+  return json({ language: resolveRequestLocale(request).language });
+}
 
 export async function action({ request }: EnterpriseActionArgs) {
   const body = formObject(await request.formData());
@@ -18,60 +50,62 @@ export async function action({ request }: EnterpriseActionArgs) {
      * real account — leaking that information would let attackers
      * enumerate registered emails through this endpoint.
      */
-    return json({ status: 'If an account exists for that email, we just sent reset instructions.' });
+    return json({ statusCode: 'AUTH_RESET_REQUESTED' as const });
   } catch (error) {
     if (error instanceof Response) {
-      let message = 'Could not start the password reset.';
-
-      try {
-        const payload = (await error.json()) as { error?: string };
-        message = payload.error ?? message;
-      } catch {
-        message = error.statusText || message;
-      }
-
-      return json({ error: message }, { status: error.status });
+      return json({ errorCode: 'AUTH_RESET_REQUEST_FAILED' as const }, { status: error.status });
     }
 
-    return json({ error: 'Password reset service is not reachable. Please try again in a moment.' }, { status: 503 });
+    return json({ errorCode: 'AUTH_RESET_REQUEST_UNAVAILABLE' as const }, { status: 503 });
   }
 }
 
 export default function ForgotPasswordPage() {
-  const actionData = useActionData<typeof action>() as { status?: string; error?: string } | undefined;
+  const { t } = useTranslation();
+
+  const actionData = useActionData<typeof action>() as
+    | { statusCode?: ForgotFeedbackCode; errorCode?: ForgotFeedbackCode }
+    | undefined;
+
   const navigation = useNavigation();
   const isSubmitting = navigation.state === 'submitting';
+  const status = actionData?.statusCode ? t(FORGOT_FEEDBACK_KEYS[actionData.statusCode]) : undefined;
+  const error = actionData?.errorCode ? t(FORGOT_FEEDBACK_KEYS[actionData.errorCode]) : undefined;
 
   return (
     <AuthScreen
-      eyebrow="Reset your password"
-      title="Forgot your password?"
-      description="Enter the email on your account and we will send a time-limited reset link."
-      status={actionData?.status}
-      error={actionData?.error}
-      heroEyebrow="Secure recovery"
-      heroTitle="We never store your password in plain text"
-      heroBody="Reset links expire after 30 minutes and existing sessions are revoked once you choose a new password."
+      eyebrow={t('auth.forgot.eyebrow')}
+      title={t('auth.forgot.title')}
+      description={t('auth.forgot.description')}
+      status={status}
+      error={error}
+      heroEyebrow={t('auth.forgot.heroEyebrow')}
+      heroTitle={t('auth.forgot.heroTitle')}
+      heroBody={t('auth.forgot.heroBody')}
       footer={
         <>
-          Remembered it?{' '}
+          {t('auth.forgot.footerPrompt')}{' '}
           <Link to="/login" className="vc-auth-link font-semibold hover:underline">
-            Back to sign in
+            {t('auth.forgot.backToSignIn')}
           </Link>
         </>
       }
     >
       <Form method="post" className="space-y-4 sm:space-y-5">
         <AuthField
-          label="Email"
+          label={t('auth.common.email')}
           name="email"
           type="email"
           required
-          placeholder="you@company.com"
+          placeholder={t('auth.common.emailPlaceholder')}
           autoComplete="email"
           icon={<Mail className="h-4 w-4" />}
         />
-        <AuthSubmit label="Send reset link" loadingLabel="Sending..." isSubmitting={isSubmitting} />
+        <AuthSubmit
+          label={t('auth.forgot.submit')}
+          loadingLabel={t('auth.forgot.submitting')}
+          isSubmitting={isSubmitting}
+        />
       </Form>
     </AuthScreen>
   );

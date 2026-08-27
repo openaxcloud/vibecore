@@ -1,0 +1,172 @@
+{
+  "categories": {
+    "en": {
+      "quality": "Quality",
+      "productivity": "Productivity",
+      "security": "Security",
+      "data": "Data",
+      "maintenance": "Maintenance",
+      "frontend": "Frontend"
+    },
+    "fr": {
+      "quality": "Qualité",
+      "productivity": "Productivité",
+      "security": "Sécurité",
+      "data": "Données",
+      "maintenance": "Maintenance",
+      "frontend": "Interface"
+    }
+  },
+  "entries": [
+    {
+      "id": "code-review",
+      "category": "quality",
+      "defaultEnabled": true,
+      "copy": {
+        "en": {
+          "name": "Code review",
+          "description": "Review diffs for correctness, security, and performance before you ship."
+        },
+        "fr": {
+          "name": "Revue de code",
+          "description": "Analysez les diffs avant la mise en production afin d’en vérifier la fiabilité, la sécurité et les performances."
+        }
+      }
+    },
+    {
+      "id": "test-generation",
+      "category": "quality",
+      "defaultEnabled": true,
+      "copy": {
+        "en": {
+          "name": "Test generation",
+          "description": "Generate unit and integration tests for the code you are writing."
+        },
+        "fr": {
+          "name": "Génération de tests",
+          "description": "Générez des tests unitaires et d’intégration pour le code que vous écrivez."
+        }
+      }
+    },
+    {
+      "id": "debugger",
+      "category": "quality",
+      "defaultEnabled": true,
+      "copy": {
+        "en": {
+          "name": "Debugger",
+          "description": "Reproduce, isolate, and explain runtime errors and stack traces."
+        },
+        "fr": {
+          "name": "Débogueur",
+          "description": "Reproduisez, isolez et expliquez les erreurs d’exécution et les traces de pile."
+        }
+      }
+    },
+    {
+      "id": "refactor",
+      "category": "productivity",
+      "defaultEnabled": true,
+      "copy": {
+        "en": {
+          "name": "Refactor",
+          "description": "Restructure code for readability and reuse without changing behavior."
+        },
+        "fr": {
+          "name": "Refactorisation",
+          "description": "Restructurez le code pour améliorer sa lisibilité et sa réutilisation sans modifier son comportement."
+        }
+      }
+    },
+    {
+      "id": "documentation",
+      "category": "productivity",
+      "defaultEnabled": false,
+      "copy": {
+        "en": {
+          "name": "Documentation",
+          "description": "Write and maintain READMEs, API documentation, and inline comments."
+        },
+        "fr": {
+          "name": "Documentation",
+          "description": "Rédigez et maintenez les README, la documentation des API et les commentaires dans le code."
+        }
+      }
+    },
+    {
+      "id": "security-scan",
+      "category": "security",
+      "defaultEnabled": false,
+      "copy": {
+        "en": {
+          "name": "Security scan",
+          "description": "Surface dependency CVEs, secrets, and common injection risks."
+        },
+        "fr": {
+          "name": "Analyse de sécurité",
+          "description": "Détectez les CVE des dépendances, les secrets et les risques d’injection courants."
+        }
+      }
+    },
+    {
+      "id": "sql-assistant",
+      "category": "data",
+      "defaultEnabled": false,
+      "copy": {
+        "en": {
+          "name": "SQL assistant",
+          "description": "Write and explain SQL queries for the project database."
+        },
+        "fr": {
+          "name": "Assistant SQL",
+          "description": "Rédigez et expliquez des requêtes SQL pour la base de données du projet."
+        }
+      }
+    },
+    {
+      "id": "dependency-upgrade",
+      "category": "maintenance",
+      "defaultEnabled": false,
+      "copy": {
+        "en": {
+          "name": "Dependency upgrade",
+          "description": "Propose safe dependency upgrades and migrate breaking changes."
+        },
+        "fr": {
+          "name": "Mise à niveau des dépendances",
+          "description": "Proposez des mises à niveau sûres des dépendances et adaptez le code aux changements incompatibles."
+        }
+      }
+    },
+    {
+      "id": "accessibility",
+      "category": "frontend",
+      "defaultEnabled": false,
+      "copy": {
+        "en": {
+          "name": "Accessibility",
+          "description": "Audit the interface for WCAG issues and propose accessible markup."
+        },
+        "fr": {
+          "name": "Accessibilité",
+          "description": "Auditez l’interface selon les critères WCAG et proposez un balisage accessible."
+        }
+      }
+    },
+    {
+      "id": "performance",
+      "category": "quality",
+      "defaultEnabled": false,
+      "copy": {
+        "en": {
+          "name": "Performance",
+          "description": "Profile hotspots and suggest targeted optimizations."
+        },
+        "fr": {
+          "name": "Performances",
+          "description": "Profilez les points critiques et proposez des optimisations ciblées."
+        }
+      }
+    }
+  ]
+}

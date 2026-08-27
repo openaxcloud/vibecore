@@ -74,7 +74,7 @@ contracts:
     signatureResult: REFUSED_V1
   - contractId: CTR-RUNTIME-NIX
     file: RUNTIME_NIX_CONTRACT.md
-    contractVersion: 6
+    contractVersion: 7
     refusalReasonV1: "format lock incompatible + rotation inconnue"
     refusalReasonV2: "format ecode.lock et rotation/révocation des générations restent des dépendances ouvertes"
     reviewReceiptIdV2: RR-20260721-CODEX-04
@@ -88,10 +88,15 @@ contracts:
       - evidenceId: NIX-REVOKED-GENERATION-FAILED-410-AND-RESTORE-READY-200
         scope: "PORTÉE LIMITÉE (reçu RR-08) : sous-preuve fonctionnelle recevable — lock gen-2 → READY/200 ; révoquée → FAILED/410 ; restaurée → READY/200 ; pas de repli silencieux. Ne signe PAS le contrat."
     hardeningStatus: HARDENED_PENDING_REVIEW
-    anchor: "v6 (RR-08): code typé PRÉSERVÉ (describeEcodeLockFailure) + test qui EXIGE ECODE_LOCK_GENERATION_REVOKED + capture LIVE 31/07 du code littéral (409 rr08-409-revoked-code.json) ; refs .txt ; UI dé-revendiquée (appels HTTP directs). Négatif live 23/07 : révoquée→FAILED/410, restaurée→READY/200"
+    anchor: "v7 (RR-09): code typé ECODE_LOCK_GENERATION_REVOKED capturé DANS LE LOG DU DEPLOYMENT d un publish sur l image CORRIGÉE déployée (merge #57 05319065, api 05319065be) — 03/08 : ACTIVE→READY/200, REVOKED→FAILED (log deployment contient le code littéral)+URL 410, restauré→READY/200, prod==main vérifié. Artefacts docs/deploy-evidence/2026-08-03-rr09-code-in-deployment/"
     expectedReviewer: OpenAI-Codex
-    signatureResult: PENDING_REVIEW
-    openDependencies: "code littéral dans le log publish = au déploiement de cette branche (test automatisé le verrouille déjà)"
+    signatureResult: SIGNED
+    reviewer: OpenAI-Codex
+    signedAt: "2026-08-04"
+    reviewReceiptId: RR-20260804-CODEX-10
+    reviewReceiptIdV7: RR-20260804-CODEX-10
+    signedScope: "v7 (§D du reçu, verbatim) : « Réserve RR-09 levée. Artefacts : publish sur image corrigée 05319065be — ACTIVE→READY/200 ; REVOKED→FAILED ; log persistant du deployment contient littéralement ECODE_LOCK_GENERATION_REVOKED ; URL du deployment refusé → 410 ; restauration→READY/200. » Reçu COMPLET : docs/parity/incoming/REPONSE_EXPERT_V7_20260804.md (sha256 7832522b…)."
+    openDependencies: "l'api/manager prod n'interprètent pas encore NIX_STORE_GENERATIONS (durcissement post-signature, hors portée signée)"
   - contractId: CTR-PROJECT-FACTORY
     file: PROJECT_FACTORY_CONTRACT.md
     contractVersion: 1

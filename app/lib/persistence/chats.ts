@@ -4,6 +4,7 @@
 
 import type { Message } from 'ai';
 import type { IChatMetadata } from './db'; // Import IChatMetadata
+import { getPersistenceRuntimeCopy } from '~/lib/i18n/catalogs/persistence-runtime';
 
 export interface ChatMessage {
   id: string;
@@ -94,7 +95,8 @@ export async function saveChat(db: IDBDatabase, chat: Chat): Promise<void> {
      */
     transaction.oncomplete = () => resolve();
     transaction.onerror = () => reject(transaction.error);
-    transaction.onabort = () => reject(transaction.error ?? new Error('Transaction aborted'));
+    transaction.onabort = () =>
+      reject(transaction.error ?? new Error(getPersistenceRuntimeCopy()['persistence.error.transactionAborted']));
   });
 }
 
@@ -113,7 +115,8 @@ export async function deleteChat(db: IDBDatabase, id: string): Promise<void> {
     // Resolve on commit so the delete is durably committed before we report success.
     transaction.oncomplete = () => resolve();
     transaction.onerror = () => reject(transaction.error);
-    transaction.onabort = () => reject(transaction.error ?? new Error('Transaction aborted'));
+    transaction.onabort = () =>
+      reject(transaction.error ?? new Error(getPersistenceRuntimeCopy()['persistence.error.transactionAborted']));
   });
 }
 
@@ -131,6 +134,7 @@ export async function deleteAllChats(db: IDBDatabase): Promise<void> {
     // Resolve on commit so the clear is durably committed before we report success.
     transaction.oncomplete = () => resolve();
     transaction.onerror = () => reject(transaction.error);
-    transaction.onabort = () => reject(transaction.error ?? new Error('Transaction aborted'));
+    transaction.onabort = () =>
+      reject(transaction.error ?? new Error(getPersistenceRuntimeCopy()['persistence.error.transactionAborted']));
   });
 }

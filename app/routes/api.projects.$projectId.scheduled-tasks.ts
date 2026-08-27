@@ -16,6 +16,7 @@ import {
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
+import { remainingApiErrorResponse, remainingApiRouteMessage } from '~/lib/i18n/catalogs/remaining-api-routes';
 
 export async function loader({ request, params }: EnterpriseLoaderArgs) {
   const projectId = String(params.projectId);
@@ -57,7 +58,7 @@ export async function action({ request, params }: EnterpriseActionArgs) {
       method: 'POST',
       body: JSON.stringify({
         kind: 'DEPLOYMENT',
-        name: String(body.name ?? 'Scheduled job'),
+        name: String(body.name ?? remainingApiRouteMessage(request, 'scheduledJobDefaultName')),
         command: String(body.command ?? ''),
         cron: String(body.cron ?? ''),
         timezone: String(body.timezone ?? 'UTC'),
@@ -132,5 +133,7 @@ export async function action({ request, params }: EnterpriseActionArgs) {
     );
   }
 
-  throw json({ error: `Unsupported intent: ${intent || '(none)'}` }, { status: 400 });
+  throw remainingApiErrorResponse(request, 'SCHEDULED_INTENT_UNSUPPORTED', 400, {
+    values: { intent: intent || '—' },
+  });
 }

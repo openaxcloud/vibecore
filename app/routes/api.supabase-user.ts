@@ -1,4 +1,5 @@
 import { getApiKeysFromCookie } from '~/lib/api/cookies';
+import { webApiErrorResponse, webApiLocaleHeaders } from '~/lib/i18n/catalogs/web-api-routes';
 import { json } from '~/lib/json-response';
 import { withSecurity } from '~/lib/security';
 
@@ -12,7 +13,7 @@ async function supabaseUserLoader({ request }: { request: Request }) {
     const supabaseToken = apiKeys.VITE_SUPABASE_ACCESS_TOKEN;
 
     if (!supabaseToken) {
-      return json({ error: 'Supabase token not found' }, { status: 401 });
+      return webApiErrorResponse(request, 'SUPABASE_TOKEN_MISSING', 401);
     }
 
     // Make server-side request to Supabase API
@@ -26,10 +27,11 @@ async function supabaseUserLoader({ request }: { request: Request }) {
 
     if (!response.ok) {
       if (response.status === 401) {
-        return json({ error: 'Invalid Supabase token' }, { status: 401 });
+        return webApiErrorResponse(request, 'SUPABASE_TOKEN_INVALID', 401);
       }
 
-      throw new Error(`Supabase API error: ${response.status}`);
+      console.error('Supabase projects request failed:', { status: response.status });
+      throw new Error();
     }
 
     const projects = (await response.json()) as Array<{
@@ -48,26 +50,23 @@ async function supabaseUserLoader({ request }: { request: Request }) {
      */
     const user = projects.length > 0 ? { id: projects[0].organization_id } : null;
 
-    return json({
-      user,
-      projects: projects.map((project) => ({
-        id: project.id,
-        name: project.name,
-        region: project.region,
-        status: project.status,
-        organization_id: project.organization_id,
-        created_at: project.created_at,
-      })),
-    });
-  } catch (error) {
-    console.error('Error fetching Supabase user:', error);
     return json(
       {
-        error: 'Failed to fetch Supabase user information',
-        details: error instanceof Error ? error.message : String(error),
+        user,
+        projects: projects.map((project) => ({
+          id: project.id,
+          name: project.name,
+          region: project.region,
+          status: project.status,
+          organization_id: project.organization_id,
+          created_at: project.created_at,
+        })),
       },
-      { status: 500 },
+      { headers: webApiLocaleHeaders(request) },
     );
+  } catch (error) {
+    console.error('Error fetching Supabase user:', error);
+    return webApiErrorResponse(request, 'SUPABASE_USER_FAILED', 503);
   }
 }
 
@@ -89,7 +88,7 @@ async function supabaseUserAction({ request }: { request: Request }) {
     const supabaseToken = apiKeys.VITE_SUPABASE_ACCESS_TOKEN;
 
     if (!supabaseToken) {
-      return json({ error: 'Supabase token not found' }, { status: 401 });
+      return webApiErrorResponse(request, 'SUPABASE_TOKEN_MISSING', 401);
     }
 
     if (action === 'get_projects') {
@@ -103,7 +102,8 @@ async function supabaseUserAction({ request }: { request: Request }) {
       });
 
       if (!response.ok) {
-        throw new Error(`Supabase API error: ${response.status}`);
+        console.error('Supabase projects request failed:', { status: response.status });
+        throw new Error();
       }
 
       const projects = (await response.json()) as Array<{
@@ -141,7 +141,7 @@ async function supabaseUserAction({ request }: { request: Request }) {
       const projectId = formData.get('projectId');
 
       if (!projectId) {
-        return json({ error: 'Project ID is required' }, { status: 400 });
+        return webApiErrorResponse(request, 'SUPABASE_PROJECT_REQUIRED', 400);
       }
 
       /*
@@ -149,7 +149,7 @@ async function supabaseUserAction({ request }: { request: Request }) {
        * (Supabase refs are alphanumeric) to prevent path injection.
        */
       if (typeof projectId !== 'string' || !/^[a-zA-Z0-9]{1,40}$/.test(projectId)) {
-        return json({ error: 'Invalid project ID' }, { status: 400 });
+        return webApiErrorResponse(request, 'SUPABASE_PROJECT_INVALID', 400);
       }
 
       // Fetch project API keys
@@ -162,7 +162,8 @@ async function supabaseUserAction({ request }: { request: Request }) {
       });
 
       if (!response.ok) {
-        throw new Error(`Supabase API error: ${response.status}`);
+        console.error('Supabase API keys request failed:', { status: response.status });
+        throw new Error();
       }
 
       const apiKeys = (await response.json()) as Array<{
@@ -178,16 +179,10 @@ async function supabaseUserAction({ request }: { request: Request }) {
       });
     }
 
-    return json({ error: 'Invalid action' }, { status: 400 });
+    return webApiErrorResponse(request, 'SUPABASE_ACTION_INVALID', 400);
   } catch (error) {
     console.error('Error in Supabase user action:', error);
-    return json(
-      {
-        error: 'Failed to process Supabase request',
-        details: error instanceof Error ? error.message : String(error),
-      },
-      { status: 500 },
-    );
+    return webApiErrorResponse(request, 'SUPABASE_REQUEST_FAILED', 503);
   }
 }
 

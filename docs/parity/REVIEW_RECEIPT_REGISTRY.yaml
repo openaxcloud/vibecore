@@ -239,3 +239,85 @@ receipts:
     keyDefectRaised: "A2-09 : un token valide (gcloud auth print-access-token) prouve l authentification, PAS l autorisation resourcemanager.projects.get — le message combiné « not found or permission denied » ne peut jamais valoir absence vérifiée ; #52 : le guard de topologie intervient APRÈS l effacement externe irréversible (rollback DB ne restaure pas un bucket détruit) ; NIX : une preuve future après déploiement ne vaut pas une preuve présente"
     refusalReasonsLocation: "docs/parity/incoming/REPONSE_EXPERT_V6_20260802.md (§A/§C/§D verbatim) + P0_REGISTRY.reviewNote + CONTRACT_REGISTRY.refusalReasonV6"
     completeness: COMPLETE
+
+  - reviewReceiptId: RR-20260804-CODEX-10
+    reviewerType: AUTOMATED_LLM
+    reviewerIdentity: "OpenAI-Codex"
+    reviewerModelVersion: "GPT-5 (Codex)"
+    reviewedAt: "2026-08-04"
+    auditedCommits:   # têtes V7 revues (dossier V7 sha256 c56065a4…)
+      wifPr55Head: "26f1ad8451d1aa222c52486d96d634c7f03adf46"
+      purgePhysicalPr52Head: "886522b9ea46b1e63cf6e6b7b6d491e0e9c94015"
+      runtimeNixMergedMain: "05319065"
+      runtimeNixPr76Head: "450459a5"
+    inputDocuments:
+      - path: docs/parity/DOSSIER_EXPERT_V7_20260803.md
+        sha256: "c56065a413630d124a529ab65383d74eb88acd9a7cce23411387a1b32ed2a8b6"
+    responsePath: docs/parity/incoming/REPONSE_EXPERT_V7_20260804.md
+    responseHash: "sha256:7832522b03abb9c588fd6196487cd2919adcce2c08866356ea702130cf9f8a08"
+    summary: "SIGNÉS : P0-A2-09 (WIF, classification statut structuré) et CTR-RUNTIME-NIX (code typé dans le statut d'un publish sur image déployée). PR #51 : acceptation ciblée MAINTENUE (pas d'extension). PR #52 : reste REFUSÉE. Aucun autre CLOSED/SIGNED déduit."
+    decisions:   # verbatim de la directive d'Avi (2026-08-04)
+      accepted: [P0-A2-09]
+      refused: []
+      contractsAccepted: [CTR-RUNTIME-NIX]
+      contractsRefused: []
+      codeLotsAccepted: []   # PR-51-ACCOUNT-PURGE-DB-RR08-FIX : acceptation ciblée RR-09 MAINTENUE, pas d'extension
+      codeLotsRefused: [PR-52-ACCOUNT-PURGE-PHYSICAL-RR09-FIX]   # RE-REFUSÉ RR-10 avec réserve bloquante (verbatim §C du reçu)
+    integrationGreenlight: "feu vert permanent d'Avi : merger les lots signés après signature (PR #55 puis PR #76 ; PR #52 NON mergée)"
+    keyDefectRaised: "PR #52 (§C verbatim) : la garantie reste NON ATOMIQUE avec la lecture de topologie — acquirePurgeGuarantee() prend le verrou account-purge:<userId>, LIT resolveStorageTopology(tx,userId), et n acquiert le verrou du freeze-set (system-setting:membership.purgeFrozenOrgIds) qu ENSUITE ; or addMember/removeMember se synchronisent sur le verrou du freeze-set, pas sur account-purge:<userId> → course dans la fenêtre lecture→freeze → bucket sole supprimé, drift-check trop tard. Correction exigée : membership-freeze AVANT resolveStorageTopology(), tenu jusqu au commit du plan, ordre global de verrous identique partout, test concurrent déterministe sur la fenêtre, bucket org partagée jamais transmis à eraseStorage, rejeu vrai-Postgres + zéro freeze résiduel."
+    completeness: COMPLETE
+    completenessNote: "Texte brut déposé le 2026-08-04 (transmis par Avi), hash recomputable — l entrée initialement INCOMPLETE est complétée, les flips CLOSED/SIGNED sont désormais permis par la garde."
+  - reviewReceiptId: RR-20260805-CODEX-12
+    reviewerType: AUTOMATED_LLM
+    reviewerIdentity: "OpenAI-Codex"
+    reviewedAt: "2026-08-05"
+    auditedCommits:
+      purgePhysicalPr52Head: "e347b9c5"       # tête finale re-soumise (v2 per-plan)
+      purgePhysicalPr52CodeCommit: "531f2461"  # commit porteur du correctif per-plan
+    inputDocuments:
+      - path: EVIDENCE_PR52_531f2461.md   # paquet de preuve transmis au relecteur (branche PR #52)
+        sha256: "00061e74"                # préfixe annoncé par Avi
+        sha256Verification: DECLARED_NOT_RECOMPUTED
+    responsePath: null   # texte brut du reçu non transmis — enregistrement d'après la directive d'Avi du 2026-08-05
+    responseHash: null
+    summary: "PR #52 (purge physique, v2 per-plan) : reste REFUSÉE. 5 sous-réserves ACCEPTÉES (réserves RR-10/RR-11 levées) ; 3 réserves BLOQUANTES restantes. Aucun SIGNED/CLOSED, compteurs inchangés."
+    decisions:   # verbatim de la directive d'Avi (2026-08-05)
+      accepted: []
+      refused: []
+      contractsAccepted: []
+      contractsRefused: []
+      codeLotsAccepted: []
+      codeLotsRefused: [PR-52-ACCOUNT-PURGE-PHYSICAL-V2-PER-PLAN]
+    subReservesAccepted:   # réserves antérieures LEVÉES par ce reçu (portée limitée, sans signature du lot)
+      - PR52-READ-TO-FREEZE-ATOMIC
+      - PR52-PER-PLAN-FREEZE-OWNERSHIP
+      - PR52-MULTI-PLAN-RELEASE-ISOLATION
+      - PR52-PARTIAL-THAW-RECOVERY
+      - PR52-MEMBERSHIP-WRITER-COVERAGE
+    blockingReserves:   # réserves BLOQUANTES restantes (motif entre parenthèses = dimension du contrat visée)
+      - id: PR52-LIVE-LEASE-NOT-RENEWED
+        dimension: concurrency_fail_closed
+      - id: PR52-MULTIPLE-ACTIVE-PLANS-SAME-USER
+        dimension: exactly_once_physical_erasure
+      - id: PR52-RECONCILE-SUCCESS-NOT-VERIFIED
+        dimension: recovery_observability
+    completeness: INCOMPLETE
+    completenessNote: "Reçu enregistré d'après la directive d'Avi (2026-08-05) sans texte brut de l'expert — aucun flip CLOSED/SIGNED n'est demandé ni permis par cette entrée ; le sha256 du paquet de preuve est DECLARED_NOT_RECOMPUTED (préfixe seul transmis)."
+  - reviewReceiptId: RR-20260805-CODEX-STARTER-PR95
+    reviewerType: AUTOMATED_LLM
+    reviewerIdentity: "OpenAI-Codex"
+    reviewedAt: "2026-08-05"
+    auditedCommits:
+      starterPr95Head: "39be5a37fca3838b795d88ddb73ffb26a3c06006"
+    responsePath: docs/parity/incoming/REPONSE_EXPERT_STARTER_PR95_20260805.md
+    responseHash: "sha256:1aaca19e7a007335c7bd79ff019ca4f6a844a8c6f1b32fbb382753039fa947c5"
+    summary: "Pricing Starter (PR #95, entitlement hardening) SIGNÉ au SHA exact 39be5a37 — APPROVED FOR MERGE ; toutes réserves du contre-audit levées. Condition : signature liée à l'arbre exact de 39be5a37 (delta => re-revue). Mergé par merge commit 3f0a6a8bae (39be5a37 parent, ancêtre de main vérifié)."
+    decisions:
+      accepted: [P0-EX-05]
+      refused: []
+      contractsAccepted: []
+      contractsRefused: []
+      codeLotsAccepted: [PR-95-STARTER-ENTITLEMENT-HARDENING]
+      codeLotsRefused: []
+    completeness: COMPLETE
+    completenessNote: "Texte = verdict relayé verbatim par Avi le 2026-08-05 (pas la prose complète de l'expert) ; responseHash recomputable sur le fichier committé. Id distinct (…-STARTER-PR95) pour ne pas préempter la numérotation CODEX-nn de l'expert."

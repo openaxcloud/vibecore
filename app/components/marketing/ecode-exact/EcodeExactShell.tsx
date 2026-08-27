@@ -19,6 +19,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useFetcher } from 'react-router';
 import { Badge, Button, cn, Link, useMarketingNavigate, useWouterLocation } from './EcodeExactUi';
 import { publicChromeUserChoseDark, resolvePublicChromeTheme } from './ecode-public-theme';
@@ -36,6 +37,7 @@ import {
   type MarketingShellSocialId,
 } from './marketing-shell.copy';
 import { getThemeSwitcherPresentation } from './theme-switcher-presentation';
+import { LanguageSwitch } from '~/components/i18n/LanguageSwitch';
 import {
   persistAnnouncementDismissed,
   readAnnouncementDismissed,
@@ -43,7 +45,7 @@ import {
 import { CloseButton } from '~/components/ui/CloseButton';
 import { ScrollArea } from '~/components/ui/ScrollArea';
 import { SkipLink } from '~/components/ui/SkipLink';
-import type { SupportedLanguage } from '~/lib/i18n/language';
+import { normalizeSupportedLanguage, type SupportedLanguage } from '~/lib/i18n/language';
 import { applyThemeToDocument, kTheme, resolveInitialTheme, themeStore, toggleTheme } from '~/lib/stores/theme';
 import type { Theme } from '~/lib/stores/theme';
 import { readThemeCookie } from '~/lib/stores/theme-cookie';
@@ -95,6 +97,7 @@ function createFooterLinks(copy: MarketingShellCopy, section: MarketingShellFoot
 }
 
 const ECODE_PUBLIC_ROOT_FONT_SIZE = '16px';
+const ECODE_BRAND_NAME = 'E-Code';
 
 let publicThemeWasManuallyChanged = false;
 
@@ -175,25 +178,28 @@ function useHomepagePublicChrome() {
 
 export function EcodeExactPublicShell({
   children,
-  language = 'en',
+  language,
 }: {
   children: React.ReactNode;
   language?: SupportedLanguage;
 }) {
   useHomepagePublicChrome();
 
-  const copy = MARKETING_SHELL_COPY[language];
-  const direction = language === 'ar' ? 'rtl' : 'ltr';
+  const { i18n } = useTranslation();
+  const activeLanguage = language ?? normalizeSupportedLanguage(i18n.resolvedLanguage ?? i18n.language) ?? 'en';
+
+  const copy = MARKETING_SHELL_COPY[activeLanguage];
+  const direction = activeLanguage === 'ar' ? 'rtl' : 'ltr';
 
   return (
     <div
       className="min-h-screen flex flex-col bg-background text-foreground"
       data-ecode-static-shell
-      lang={language}
+      lang={activeLanguage}
       dir={direction}
     >
       <SkipLink label={copy.a11y.skipToContent} />
-      <EcodeExactPublicNavbar copy={copy} language={language} />
+      <EcodeExactPublicNavbar copy={copy} language={activeLanguage} />
       <div id="main-content" tabIndex={-1} className="flex flex-1 flex-col outline-none">
         {children}
       </div>
@@ -212,10 +218,10 @@ export function EcodeLogo({
   showText?: boolean;
 }) {
   const sizeMap = {
-    xs: { icon: 'h-6 w-6', text: 'text-base' },
-    sm: { icon: 'h-7 w-7', text: 'text-[15px]' },
-    md: { icon: 'h-9 w-9', text: 'text-xl' },
-    lg: { icon: 'h-11 w-11', text: 'text-2xl' },
+    xs: { iconClassName: 'h-6 w-6', textClassName: 'text-base' },
+    sm: { iconClassName: 'h-7 w-7', textClassName: 'text-[15px]' },
+    md: { iconClassName: 'h-9 w-9', textClassName: 'text-xl' },
+    lg: { iconClassName: 'h-11 w-11', textClassName: 'text-2xl' },
   } as const;
 
   const resolvedSize = sizeMap[size] ?? sizeMap.md;
@@ -223,7 +229,7 @@ export function EcodeLogo({
   return (
     <div dir="ltr" className={cn('flex flex-row items-center gap-2 flex-nowrap whitespace-nowrap', className)}>
       <svg
-        className={cn(resolvedSize.icon, 'shrink-0')}
+        className={cn(resolvedSize.iconClassName, 'shrink-0')}
         viewBox="0 0 40 40"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
@@ -244,18 +250,21 @@ export function EcodeLogo({
           </linearGradient>
         </defs>
       </svg>
-      {showText ? <span className={cn('font-bold', resolvedSize.text)}>E-Code</span> : null}
+      {showText ? <span className={cn('font-bold', resolvedSize.textClassName)}>{ECODE_BRAND_NAME}</span> : null}
     </div>
   );
 }
 
 export function EcodeExactPublicNavbar({
-  copy = MARKETING_SHELL_COPY.en,
-  language = 'en',
+  copy: copyOverride,
+  language: languageOverride,
 }: {
   copy?: MarketingShellCopy;
   language?: SupportedLanguage;
 } = {}) {
+  const { i18n } = useTranslation();
+  const language = languageOverride ?? normalizeSupportedLanguage(i18n.resolvedLanguage ?? i18n.language) ?? 'en';
+  const copy = copyOverride ?? MARKETING_SHELL_COPY[language];
   const navigate = useMarketingNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const productItems = createMenuItems(copy, 'product');
@@ -319,7 +328,7 @@ export function EcodeExactPublicNavbar({
   }, []);
 
   return (
-    <header className="sticky top-0 z-50 w-full">
+    <header role="banner" aria-label={copy.a11y.siteHeader} className="sticky top-0 z-50 w-full">
       {!announcementDismissed ? (
         <div
           data-ecode-announcement
@@ -329,7 +338,7 @@ export function EcodeExactPublicNavbar({
             <div className="flex min-w-0 flex-1 items-center gap-3">
               <Badge
                 variant="secondary"
-                className="border-border bg-surface-solid text-[var(--status-info-text)] dark:border-border dark:bg-surface-solid uppercase tracking-[0.2em]"
+                className="border-border bg-surface-solid text-[var(--ecode-accent-text)] dark:border-border dark:bg-surface-solid uppercase tracking-[0.2em]"
               >
                 {copy.announcement.badge}
               </Badge>
@@ -408,6 +417,7 @@ export function EcodeExactPublicNavbar({
 
             <div className="flex items-center gap-2 sm:gap-4">
               <ThemeSwitcher copy={copy} />
+              <LanguageSwitch />
               <Button
                 variant="ghost"
                 className="text-[var(--ecode-text)] dark:text-slate-200 hover:text-[var(--ecode-accent-text)] dark:hover:text-white !min-h-11 px-3 sm:px-4"
@@ -475,7 +485,7 @@ export function EcodeExactPublicNavbar({
 
             <div className="shrink-0 p-4 border-b border-border">
               <Button
-                className="w-full bg-ecode-accent hover:bg-ecode-accent text-[var(--ecode-accent-contrast)]"
+                className="w-full !min-h-11 bg-ecode-accent hover:bg-ecode-accent text-[var(--ecode-accent-contrast)]"
                 onClick={() => {
                   setMobileMenuOpen(false);
                   navigate(MARKETING_SHELL_LINKS.register.href);
@@ -485,7 +495,7 @@ export function EcodeExactPublicNavbar({
               </Button>
               <Button
                 variant="outline"
-                className="mt-2 w-full border-border text-foreground hover:bg-muted"
+                className="mt-2 w-full !min-h-11 border-border text-foreground hover:bg-muted"
                 onClick={() => {
                   setMobileMenuOpen(false);
                   navigate(MARKETING_SHELL_LINKS.login.href);
@@ -690,7 +700,7 @@ function NavPill({ href, children }: { href: string; children: React.ReactNode }
 function ThemeSwitcher({ copy }: { copy: MarketingShellCopy }) {
   const resolvedTheme = useStore(themeStore);
   const [theme, setHydratedTheme] = useState<Theme>('light');
-  const { icon } = getThemeSwitcherPresentation(theme);
+  const { icon } = getThemeSwitcherPresentation(theme, copy.theme);
   const Icon = icon === 'moon' ? Moon : Sun;
   const label = theme === 'dark' ? copy.theme.dark : copy.theme.light;
   const actionLabel = theme === 'dark' ? copy.theme.switchToLight : copy.theme.switchToDark;
@@ -721,7 +731,10 @@ function ThemeSwitcher({ copy }: { copy: MarketingShellCopy }) {
   );
 }
 
-export function EcodeExactPublicFooter({ copy = MARKETING_SHELL_COPY.en }: { copy?: MarketingShellCopy } = {}) {
+export function EcodeExactPublicFooter({ copy: copyOverride }: { copy?: MarketingShellCopy } = {}) {
+  const { i18n } = useTranslation();
+  const activeLanguage = normalizeSupportedLanguage(i18n.resolvedLanguage ?? i18n.language) ?? 'en';
+  const copy = copyOverride ?? MARKETING_SHELL_COPY[activeLanguage];
   const navigate = useMarketingNavigate();
   const productLinks = createFooterLinks(copy, 'product');
   const resourceLinks = createFooterLinks(copy, 'resources');
@@ -745,7 +758,7 @@ export function EcodeExactPublicFooter({ copy = MARKETING_SHELL_COPY.en }: { cop
       <div className="relative container-responsive py-16">
         <div className="grid gap-12 lg:grid-cols-[1.2fr_2fr]">
           <div className="space-y-6">
-            <Badge className="border-[var(--ecode-border)] bg-[var(--ecode-surface-secondary)] text-[var(--status-info-text)] dark:border-border dark:bg-surface-solid">
+            <Badge className="vc-marketing-eyebrow border-[var(--ecode-border)] bg-[var(--ecode-surface-secondary)] dark:border-border dark:bg-surface-solid">
               <Sparkles className="mr-2 h-3 w-3" aria-hidden />
               {copy.footer.eyebrow}
             </Badge>
@@ -793,7 +806,36 @@ export function EcodeExactPublicFooter({ copy = MARKETING_SHELL_COPY.en }: { cop
             </div>
           </div>
 
-          <nav aria-label={copy.a11y.footerNavigation} className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
+          {/*
+           * SCR-010 — Avi : « l'espace ENTRE les titres / colonnes du menu en pied
+           * de page est encore trop grand ». À ne pas confondre avec SCR-009, qui
+           * portait sur la chasse À L'INTÉRIEUR des titres : ici c'est la grille
+           * elle-même qui creuse le vide entre les groupes de liens.
+           *
+           * Mesuré live le 20/08 sur prod `web:73c4edc166`, aux 3 formats et dans
+           * les 2 thèmes (l'espacement ne dépend pas du thème) : `column-gap: 40px`
+           * et `row-gap: 20px` partout. Les 40px de gouttière sont l'essentiel du
+           * vide qu'Avi voit entre PRODUIT · RESSOURCES · SOCIÉTÉ · LÉGAL.
+           *
+           * La note précédente figeait `gap-x` à 10 « pour ne pas bouger
+           * l'alignement horizontal » — c'est précisément ce qu'Avi demande de
+           * revoir, donc elle est levée. `gap-x-6` (24px) resserre les gouttières
+           * sans coller les colonnes, et rend 16px de largeur à chaque colonne :
+           * moins de libellés qui passent à la ligne, donc un pied de page plus
+           * court en prime. `gap-y-3` (12px) resserre les groupes une fois les
+           * colonnes empilées (390 et 768), là où deux titres se suivaient.
+           *
+           * Les lignes de liens gardent leur hauteur tactile de 44px : ce sont des
+           * cibles de doigt, pas de l'espacement décoratif.
+           */}
+          {/*
+           * Two columns from the smallest width up. This nav carries 46 links,
+           * and a single column made the footer 3981px tall on a 390px phone —
+           * 4.7 screens of nothing but links. The 44px rows are deliberate
+           * touch targets and are preserved; only the column count changes.
+           * Measured on prod: footer 3981px -> 3179px, no label truncated.
+           */}
+          <nav aria-label={copy.a11y.footerNavigation} className="grid grid-cols-2 gap-x-6 gap-y-3 lg:grid-cols-4">
             <FooterColumn title={copy.footer.columnLabels.product} links={productLinks} />
             <div>
               <FooterColumn title={copy.footer.columnLabels.resources} links={resourceLinks} />
@@ -838,7 +880,7 @@ export function EcodeExactPublicFooter({ copy = MARKETING_SHELL_COPY.en }: { cop
                 className="flex items-center gap-3 text-[13px] text-[var(--ecode-text-secondary)] dark:text-slate-300"
                 key={assurance}
               >
-                <AssuranceIcon className="h-5 w-5 text-[var(--status-info-text)]" aria-hidden />
+                <AssuranceIcon className="h-5 w-5 text-[var(--ecode-accent-text)]" aria-hidden />
                 {assurance}
               </div>
             );
@@ -900,10 +942,29 @@ export function EcodeExactPublicFooter({ copy = MARKETING_SHELL_COPY.en }: { cop
 function FooterColumn({ title, links }: { title: string; links: readonly FooterLink[] }) {
   return (
     <div>
-      <h4 className="text-[13px] font-semibold uppercase tracking-[0.3em] text-[var(--ecode-text-muted)] dark:text-slate-400">
+      {/*
+       * SCR-009 — Avi : « l'espace des TITRES de menu dans le pied de page est
+       * trop grand ». La cause est la chasse : `tracking-[0.3em]` met 30 % de la
+       * taille de police entre CHAQUE lettre, soit ~3,9 px à 13 px — « PRODUIT »
+       * occupait ainsi presque deux fois sa largeur naturelle, et les quatre
+       * titres donnaient au pied de page un air distendu.
+       *
+       * `0.12em` garde la lecture en capitales (une chasse nulle rendrait les
+       * capitales compactes et dures à lire) tout en rendant l'espace au titre.
+       * L'écart titre → liens passe de 12 px à 8 px dans le même mouvement.
+       */}
+      <h4 className="text-[13px] font-semibold uppercase tracking-[0.12em] text-[var(--ecode-text-muted)] dark:text-slate-400">
         {title}
       </h4>
-      <ul role="list" className="mt-4 space-y-2 text-[13px]">
+      {/*
+       * AV-UX point 11 — « titres encore trop espacés » : le pas vertical réel
+       * d'une ligne de lien était 52px (rangée tactile de 44px + `space-y-2`).
+       * Les grands sites tournent autour de 32-44px. `space-y-0` supprime la
+       * marge décorative : la rangée de 44px espace déjà d'elle-même. La hauteur
+       * reste volontairement à 44px à toutes les largeurs, car `lg:` commence à
+       * 1024px — une largeur encore courante sur les tablettes tactiles.
+       */}
+      <ul role="list" className="mt-2 space-y-0 text-[13px]">
         {links.map((link) => (
           <li key={link.id}>
             <Link
@@ -933,7 +994,12 @@ function NewsletterMiniForm({ copy }: { copy: MarketingShellCopy }) {
 
   return (
     <div className="mt-8">
-      <h4 className="text-[13px] font-semibold uppercase tracking-[0.3em] text-[var(--ecode-text-muted)] dark:text-slate-400">
+      {/*
+       * SCR-009 (suite) — même chasse que les titres de colonnes (FooterColumn) :
+       * ce titre « Newsletter » vit dans la même grille de pied de page ; le
+       * laisser à 0.3em recréait exactement l'étirement corrigé juste au-dessus.
+       */}
+      <h4 className="text-[13px] font-semibold uppercase tracking-[0.12em] text-[var(--ecode-text-muted)] dark:text-slate-400">
         {copy.newsletter.title}
       </h4>
       {succeeded ? (

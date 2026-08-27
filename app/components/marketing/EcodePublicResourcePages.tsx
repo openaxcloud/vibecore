@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useMemo, useState, type ComponentType, type ReactNode } from 'react';
 import type React from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   SiAngular,
   SiAnthropic,
@@ -49,6 +50,8 @@ import {
 import { Link, useSearchParams } from 'react-router';
 import { PublicShell } from '~/components/dashboard/SaaSLayout';
 import { resolveTechToken } from '~/components/marketing/template-tech-icon';
+import { getMarketingPublicResourceCopy } from '~/lib/i18n/catalogs/marketing-public-resource';
+import { getPublicTemplateTagLabel } from '~/lib/i18n/catalogs/public-template-tags';
 import { classNames } from '~/utils/classNames';
 
 export type PublicTemplateCard = {
@@ -84,6 +87,7 @@ export type PublicCommunityPost = {
   category: string;
   categoryName: string;
   tags: string[];
+  tagLabels?: string[];
   likes: number;
   comments: number;
   views: number;
@@ -143,10 +147,41 @@ function templateProjectReturnTo(templateSlug: string) {
   return loginReturnTo(`/projects/new?template=${templateSlug}`);
 }
 
+function publicLocale(language?: string | null) {
+  return language?.toLowerCase().startsWith('fr') ? 'fr-FR' : 'en-GB';
+}
+
+function formatPublicNumber(value: number, language?: string | null) {
+  return new Intl.NumberFormat(publicLocale(language)).format(value);
+}
+
+function formatPublicDate(value: string, language?: string | null) {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat(publicLocale(language), {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  }).format(date);
+}
+
 /** How many tag filter chips to derive from the catalog (most frequent tags first). */
 const TEMPLATE_TAG_CHIP_LIMIT = 12;
 
+const communityPillarIcons = {
+  help: Rocket,
+  showcases: Sparkles,
+  challenges: Trophy,
+} as const;
+
 export function TemplatesMarketingPage({ categories, templates }: TemplatesPageProps) {
+  const { i18n } = useTranslation();
+  const language = i18n.resolvedLanguage ?? i18n.language;
+  const copy = getMarketingPublicResourceCopy(language).templates;
   const [searchParams, setSearchParams] = useSearchParams();
   const [query, setQuery] = useState(searchParams.get('q') ?? '');
   const activeTag = (searchParams.get('tag') ?? '').trim().toLowerCase();
@@ -240,11 +275,13 @@ export function TemplatesMarketingPage({ categories, templates }: TemplatesPageP
         return true;
       }
 
-      return [template.name, template.description, template.categoryName, ...template.technologies, ...template.tags]
+      const searchableTags = template.tags.flatMap((tag) => [tag, getPublicTemplateTagLabel(tag, language)]);
+
+      return [template.name, template.description, template.categoryName, ...template.technologies, ...searchableTags]
         .filter(Boolean)
         .some((value) => value.toLowerCase().includes(normalizedQuery));
     });
-  }, [templates, activeTag, normalizedQuery]);
+  }, [templates, activeTag, normalizedQuery, language]);
 
   const isFiltering = Boolean(normalizedQuery) || Boolean(activeTag);
   const noMatches = isFiltering && filteredTemplates.length === 0;
@@ -268,29 +305,29 @@ export function TemplatesMarketingPage({ categories, templates }: TemplatesPageP
     <PublicShell>
       <main className="bg-[var(--ecode-background)] text-[var(--ecode-text)]" data-public-resource-page="templates">
         <ResourceHero
-          eyebrow="Templates"
-          title="Start faster with production-ready E-Code templates"
-          description="Browse real E-Code project starters adapted into the E-Code marketing experience. Pick a foundation, open the preserved IDE, and continue with typed code, preview and deployment workflows."
-          primaryAction={{ label: 'Browse templates', to: '#featured-templates' }}
-          secondaryAction={{ label: 'Open docs', to: '/docs' }}
+          eyebrow={copy.hero.eyebrow}
+          title={copy.hero.title}
+          description={copy.hero.description}
+          primaryAction={{ label: copy.hero.primary, to: '#featured-templates' }}
+          secondaryAction={{ label: copy.hero.secondary, to: '/docs' }}
           metrics={[
-            { label: 'Official templates', value: templates.length.toString() },
-            { label: 'Categories', value: categories.length.toString() },
-            { label: 'Project-ready', value: '100%' },
+            { label: copy.hero.metrics[0], value: formatPublicNumber(templates.length, language) },
+            { label: copy.hero.metrics[1], value: formatPublicNumber(categories.length, language) },
+            { label: copy.hero.metrics[2], value: '100%' },
           ]}
           icon={<Layers className="h-5 w-5" aria-hidden />}
         />
 
         <section id="featured-templates" className="container-responsive py-16 sm:py-24">
           <SectionHeader
-            eyebrow="Template gallery"
-            title="Curated starters without the app dashboard chrome"
-            description="This is a public marketing gallery. It uses the same E-Code header and footer as the homepage, while the cards are powered by E-Code's real template catalog."
+            eyebrow={copy.gallery.eyebrow}
+            title={copy.gallery.title}
+            description={copy.gallery.description}
           />
 
           <div className="mt-8 flex flex-col gap-4">
             <label className="relative block max-w-xl">
-              <span className="sr-only">Search templates</span>
+              <span className="sr-only">{copy.searchLabel}</span>
               <Search
                 className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--ecode-text-muted)]"
                 aria-hidden
@@ -298,7 +335,7 @@ export function TemplatesMarketingPage({ categories, templates }: TemplatesPageP
               <input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search templates, stacks or tags..."
+                placeholder={copy.searchPlaceholder}
                 className="min-h-[48px] w-full rounded-md border border-[var(--ecode-border)] bg-[var(--ecode-surface)] px-11 text-[15px] text-[var(--ecode-text)] outline-none transition placeholder:text-[var(--ecode-text-muted)] focus:border-[var(--ecode-accent)]"
                 data-testid="input-search-templates"
               />
@@ -306,20 +343,20 @@ export function TemplatesMarketingPage({ categories, templates }: TemplatesPageP
                 <button
                   type="button"
                   onClick={() => setQuery('')}
-                  aria-label="Clear search"
-                  className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-[var(--ecode-text-muted)] transition hover:text-[var(--ecode-text)]"
+                  aria-label={copy.clearSearch}
+                  className="absolute right-1 top-1/2 inline-flex min-h-11 min-w-11 -translate-y-1/2 items-center justify-center rounded-full text-[var(--ecode-text-muted)] transition hover:text-[var(--ecode-text)]"
                 >
                   <X className="h-4 w-4" aria-hidden />
                 </button>
               ) : null}
             </label>
 
-            <div className="flex flex-wrap gap-2" role="group" aria-label="Filter templates by tag">
-              <TemplateTagChip label="All" active={!activeTag} onClick={() => setActiveTag(null)} />
+            <div className="flex flex-wrap gap-2" role="group" aria-label={copy.tagFilterLabel}>
+              <TemplateTagChip label={copy.all} active={!activeTag} onClick={() => setActiveTag(null)} />
               {availableTags.map((tag) => (
                 <TemplateTagChip
                   key={tag}
-                  label={tag}
+                  label={getPublicTemplateTagLabel(tag, language)}
                   active={activeTag === tag}
                   onClick={() => setActiveTag(activeTag === tag ? null : tag)}
                 />
@@ -334,10 +371,12 @@ export function TemplatesMarketingPage({ categories, templates }: TemplatesPageP
             >
               <SearchX className="mx-auto h-8 w-8 text-[var(--ecode-text-muted)]" aria-hidden />
               <h3 className="mt-4 text-lg font-bold text-[var(--ecode-text)]">
-                {normalizedQuery ? `No templates match “${query.trim()}”` : 'No templates match this tag'}
+                {normalizedQuery
+                  ? `${copy.noQueryMatchPrefix}${query.trim()}${copy.noQueryMatchSuffix}`
+                  : copy.noTagMatch}
               </h3>
               <p className="mx-auto mt-2 max-w-lg text-[13px] leading-6 text-[var(--ecode-text-secondary)]">
-                Try a different search or tag, or clear the filters to browse the full catalog.
+                {copy.noMatchDescription}
               </p>
               <div className="mt-5">
                 <button
@@ -345,7 +384,7 @@ export function TemplatesMarketingPage({ categories, templates }: TemplatesPageP
                   onClick={clearFilters}
                   className="inline-flex min-h-[44px] items-center justify-center rounded-md border border-[var(--ecode-border)] bg-transparent px-5 py-3 text-[13px] font-semibold text-[var(--ecode-text)] transition hover:border-[var(--ecode-accent)] hover:text-[var(--ecode-accent)]"
                 >
-                  Clear filters
+                  {copy.clearFilters}
                 </button>
               </div>
             </div>
@@ -353,8 +392,8 @@ export function TemplatesMarketingPage({ categories, templates }: TemplatesPageP
             <>
               {isFiltering ? (
                 <p className="mt-6 text-[13px] text-[var(--ecode-text-muted)]" aria-live="polite">
-                  {filteredTemplates.length} {filteredTemplates.length === 1 ? 'template matches' : 'templates match'}{' '}
-                  your filters.
+                  {formatPublicNumber(filteredTemplates.length, language)}{' '}
+                  {filteredTemplates.length === 1 ? copy.matchSingular : copy.matchPlural} {copy.matchSuffix}
                 </p>
               ) : null}
               <div className={classNames('grid gap-5 md:grid-cols-2 xl:grid-cols-3', isFiltering ? 'mt-5' : 'mt-10')}>
@@ -375,27 +414,22 @@ export function TemplatesMarketingPage({ categories, templates }: TemplatesPageP
           <div className="container-responsive grid gap-10 py-16 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
             <div>
               <p className="text-[13px] font-semibold uppercase tracking-[0.28em] text-[var(--ecode-accent)]">
-                Real project foundations
+                {copy.foundations.eyebrow}
               </p>
               <h2 className="mt-4 text-3xl font-bold tracking-tight text-[var(--ecode-text)] sm:text-5xl">
-                Templates stay public. Workspaces stay private.
+                {copy.foundations.title}
               </h2>
               <p className="mt-5 max-w-xl text-base leading-8 text-[var(--ecode-text-secondary)]">
-                Visitors see a marketing page. Signed-in builders continue into the IDE, where auth, files, terminal,
-                preview and deployment controls remain part of the real product.
+                {copy.foundations.description}
               </p>
               <ProductCapture
                 src="/ecode-static/assets/product/ide.png"
-                alt="E-Code IDE with file tree, editor and live preview"
-                caption="The preserved E-Code IDE your template opens into."
+                alt={copy.foundations.imageAlt}
+                caption={copy.foundations.imageCaption}
               />
             </div>
             <div className="grid gap-4 sm:grid-cols-3">
-              {[
-                ['No invented catalog', 'Cards come from existing E-Code starters.'],
-                ['No user menu', 'Public pages do not render account dropdowns.'],
-                ['Same shell', 'Header and footer match the marketing routes.'],
-              ].map(([title, body]) => (
+              {copy.foundations.assurances.map(([title, body]) => (
                 <div
                   key={title}
                   className="rounded-lg border border-[var(--ecode-border)] bg-[var(--ecode-background)] p-5"
@@ -411,11 +445,7 @@ export function TemplatesMarketingPage({ categories, templates }: TemplatesPageP
 
         {secondaryTemplates.length > 0 ? (
           <section className="container-responsive py-16 sm:py-24">
-            <SectionHeader
-              eyebrow="More starters"
-              title="More ways to start"
-              description="Additional foundations for web apps, AI agents, dashboards, APIs and mobile projects."
-            />
+            <SectionHeader eyebrow={copy.more.eyebrow} title={copy.more.title} description={copy.more.description} />
             <div className="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
               {secondaryTemplates.map((template) => (
                 <TemplateMarketingCard key={template.id} template={template} />
@@ -425,10 +455,10 @@ export function TemplatesMarketingPage({ categories, templates }: TemplatesPageP
         ) : null}
 
         <ResourceCta
-          title="Ready to turn a template into a real project?"
-          description="Open a starter, keep the generated code reviewable, and continue in the preserved E-Code IDE."
-          primary={{ label: 'Start building', to: loginReturnTo('/templates') }}
-          secondary={{ label: 'See pricing', to: '/pricing' }}
+          title={copy.cta.title}
+          description={copy.cta.description}
+          primary={{ label: copy.cta.primary, to: loginReturnTo('/templates') }}
+          secondary={{ label: copy.cta.secondary, to: '/pricing' }}
         />
       </main>
     </PublicShell>
@@ -436,6 +466,9 @@ export function TemplatesMarketingPage({ categories, templates }: TemplatesPageP
 }
 
 export function CommunityMarketingPage({ posts, categories, challenges, contributors, events }: CommunityPageProps) {
+  const { i18n } = useTranslation();
+  const language = i18n.resolvedLanguage ?? i18n.language;
+  const copy = getMarketingPublicResourceCopy(language).community;
   const [activeCategory, setActiveCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const lowerSearchQuery = searchQuery.trim().toLowerCase();
@@ -455,46 +488,30 @@ export function CommunityMarketingPage({ posts, categories, challenges, contribu
     });
   }, [activeCategory, lowerSearchQuery, posts]);
 
-  const activeChallenges = challenges.length.toString();
-  const programCount = events.length.toString();
+  const activeChallenges = formatPublicNumber(challenges.length, language);
+  const programCount = formatPublicNumber(events.length, language);
 
   return (
     <PublicShell>
       <main className="bg-[var(--ecode-background)] text-[var(--ecode-text)]" data-public-resource-page="community">
         <ResourceHero
-          eyebrow="Community"
-          title="Connect with builders shipping real E-Code projects"
-          description="Read public discussions, join challenges, follow contributors and learn the implementation patterns teams use to move from prompt to production."
-          primaryAction={{ label: 'Start a discussion', to: loginReturnTo('/community') }}
-          secondaryAction={{ label: 'Explore posts', to: '#community-feed' }}
+          eyebrow={copy.hero.eyebrow}
+          title={copy.hero.title}
+          description={copy.hero.description}
+          primaryAction={{ label: copy.hero.primary, to: loginReturnTo('/community') }}
+          secondaryAction={{ label: copy.hero.secondary, to: '#community-feed' }}
           metrics={[
-            { label: 'Public discussions', value: posts.length.toString() },
-            { label: 'Active challenges', value: activeChallenges },
-            { label: 'Upcoming programs', value: programCount },
+            { label: copy.hero.metrics[0], value: formatPublicNumber(posts.length, language) },
+            { label: copy.hero.metrics[1], value: activeChallenges },
+            { label: copy.hero.metrics[2], value: programCount },
           ]}
           icon={<Users className="h-5 w-5" aria-hidden />}
         />
 
         <section className="border-b border-[var(--ecode-border)] bg-[var(--ecode-surface)]">
           <div className="container-responsive grid gap-6 py-10 md:grid-cols-3">
-            {[
-              {
-                title: 'Launch help',
-                body: 'Ask for architecture review, deployment checks and template hardening advice.',
-                icon: Rocket,
-              },
-              {
-                title: 'Public showcases',
-                body: 'Read project breakdowns and implementation notes without opening private workspaces.',
-                icon: Sparkles,
-              },
-              {
-                title: 'Challenges',
-                body: 'Join guided builds for agents, mobile apps, dashboards and production backends.',
-                icon: Trophy,
-              },
-            ].map((item) => {
-              const Icon = item.icon;
+            {copy.pillars.map((item) => {
+              const Icon = communityPillarIcons[item.id];
 
               return (
                 <div
@@ -513,20 +530,16 @@ export function CommunityMarketingPage({ posts, categories, challenges, contribu
         <section id="community-feed" className="container-responsive py-16 sm:py-24">
           <div className="grid gap-10 xl:grid-cols-[minmax(0,1fr)_22rem]">
             <div>
-              <SectionHeader
-                eyebrow="Community feed"
-                title="Discussions, showcases and implementation help"
-                description="Browse public posts with the E-Code marketing header and footer. Replying, liking, bookmarking or posting requires sign-in and returns you to the community flow."
-              />
+              <SectionHeader eyebrow={copy.feed.eyebrow} title={copy.feed.title} description={copy.feed.description} />
 
               <div className="mt-8 grid gap-4 lg:grid-cols-[1fr_auto] lg:items-center">
                 <label className="relative block">
-                  <span className="sr-only">Search community</span>
+                  <span className="sr-only">{copy.searchLabel}</span>
                   <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--ecode-text-muted)]" />
                   <input
                     value={searchQuery}
                     onChange={(event) => setSearchQuery(event.target.value)}
-                    placeholder="Search discussions, tags or builders..."
+                    placeholder={copy.searchPlaceholder}
                     className="min-h-[48px] w-full rounded-md border border-[var(--ecode-border)] bg-[var(--ecode-surface)] px-11 text-[15px] text-[var(--ecode-text)] outline-none transition placeholder:text-[var(--ecode-text-muted)] focus:border-[var(--ecode-accent)]"
                     data-testid="input-search-community"
                   />
@@ -534,20 +547,20 @@ export function CommunityMarketingPage({ posts, categories, challenges, contribu
 
                 <MarketingLinkButton to={loginReturnTo('/community')} variant="secondary">
                   <Plus className="-ml-1 mr-2 h-4 w-4" aria-hidden />
-                  New post
+                  {copy.newPost}
                 </MarketingLinkButton>
               </div>
 
-              <div className="mt-5 flex gap-2 overflow-x-auto pb-2" aria-label="Community categories">
+              <div className="mt-5 flex gap-2 overflow-x-auto pb-2" aria-label={copy.categoryLabel}>
                 {categories.map((category) => (
                   <button
                     key={category.id}
                     type="button"
                     onClick={() => setActiveCategory(category.id)}
                     className={classNames(
-                      'inline-flex min-h-[40px] shrink-0 items-center gap-2 rounded-full border px-4 text-[13px] font-semibold transition',
+                      'inline-flex min-h-[44px] shrink-0 items-center gap-2 rounded-full border px-4 text-[13px] font-semibold transition',
                       activeCategory === category.id
-                        ? 'border-[var(--ecode-accent)] bg-[var(--ecode-accent)] text-white'
+                        ? 'border-[var(--ecode-accent)] bg-[var(--vc-action-primary-strong)] text-white'
                         : 'border-[var(--ecode-border)] bg-[var(--ecode-surface)] text-[var(--ecode-text-secondary)] hover:border-[var(--ecode-accent)] hover:text-[var(--ecode-accent)]',
                     )}
                   >
@@ -567,12 +580,12 @@ export function CommunityMarketingPage({ posts, categories, challenges, contribu
                 ) : (
                   <div className="rounded-lg border border-dashed border-[var(--ecode-border)] bg-[var(--ecode-surface)] p-8 text-center">
                     <MessageSquare className="mx-auto h-8 w-8 text-[var(--ecode-text-muted)]" aria-hidden />
-                    <h3 className="mt-4 text-lg font-bold text-[var(--ecode-text)]">No public discussions found</h3>
+                    <h3 className="mt-4 text-lg font-bold text-[var(--ecode-text)]">{copy.emptyTitle}</h3>
                     <p className="mx-auto mt-2 max-w-lg text-[13px] leading-6 text-[var(--ecode-text-secondary)]">
-                      Try a different search or open a new thread after signing in.
+                      {copy.emptyDescription}
                     </p>
                     <div className="mt-5">
-                      <MarketingLinkButton to={loginReturnTo('/community')}>Start a discussion</MarketingLinkButton>
+                      <MarketingLinkButton to={loginReturnTo('/community')}>{copy.startDiscussion}</MarketingLinkButton>
                     </div>
                   </div>
                 )}
@@ -580,18 +593,18 @@ export function CommunityMarketingPage({ posts, categories, challenges, contribu
             </div>
 
             <aside className="space-y-5 xl:sticky xl:top-28 xl:self-start">
-              <CommunitySidebarPanel title="Active challenges" icon={<Trophy className="h-4 w-4" aria-hidden />}>
+              <CommunitySidebarPanel title={copy.activeChallenges} icon={<Trophy className="h-4 w-4" aria-hidden />}>
                 <div className="space-y-4">
                   {challenges.map((challenge) => (
                     <CommunityChallengeItem key={challenge.id} challenge={challenge} />
                   ))}
                 </div>
                 <MarketingLinkButton to={loginReturnTo('/community')} variant="secondary" fullWidth>
-                  Join a challenge
+                  {copy.joinChallenge}
                 </MarketingLinkButton>
               </CommunitySidebarPanel>
 
-              <CommunitySidebarPanel title="Top contributors" icon={<Users className="h-4 w-4" aria-hidden />}>
+              <CommunitySidebarPanel title={copy.topContributors} icon={<Users className="h-4 w-4" aria-hidden />}>
                 <div className="space-y-3">
                   {contributors.map((contributor) => (
                     <CommunityContributorRow key={contributor.id} contributor={contributor} />
@@ -606,19 +619,16 @@ export function CommunityMarketingPage({ posts, categories, challenges, contribu
           <div className="container-responsive grid gap-10 py-16 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
             <div>
               <p className="text-[13px] font-semibold uppercase tracking-[0.28em] text-[var(--ecode-accent)]">
-                Events and programs
+                {copy.events.eyebrow}
               </p>
               <h2 className="mt-4 text-3xl font-bold tracking-tight text-[var(--ecode-text)] sm:text-5xl">
-                Join the public side of the builder network.
+                {copy.events.title}
               </h2>
-              <p className="mt-5 text-base leading-8 text-[var(--ecode-text-secondary)]">
-                Community content remains readable. Participation, private files and workspace controls stay behind the
-                authenticated product flow.
-              </p>
+              <p className="mt-5 text-base leading-8 text-[var(--ecode-text-secondary)]">{copy.events.description}</p>
               <ProductCapture
                 src="/ecode-static/assets/product/dashboard.png"
-                alt="E-Code project dashboard showing real workspaces and deployment status"
-                caption="The dashboard you continue into after signing in."
+                alt={copy.events.imageAlt}
+                caption={copy.events.imageCaption}
               />
             </div>
             <div className="grid gap-4 md:grid-cols-2">
@@ -629,7 +639,7 @@ export function CommunityMarketingPage({ posts, categories, challenges, contribu
                 >
                   <div className="flex items-center justify-between gap-3 text-[12px] font-semibold uppercase tracking-[0.18em] text-[var(--ecode-accent)]">
                     <Calendar className="h-4 w-4" aria-hidden />
-                    <span>{event.date}</span>
+                    <span>{formatPublicDate(event.date, language)}</span>
                   </div>
                   <h3 className="mt-4 text-lg font-bold text-[var(--ecode-text)]">{event.title}</h3>
                   <p className="mt-2 text-[13px] leading-6 text-[var(--ecode-text-secondary)]">{event.description}</p>
@@ -637,7 +647,7 @@ export function CommunityMarketingPage({ posts, categories, challenges, contribu
                     to={loginReturnTo('/community')}
                     className="mt-5 inline-flex items-center text-[13px] font-semibold text-[var(--ecode-accent)]"
                   >
-                    Register interest
+                    {copy.events.register}
                     <ArrowRight className="ml-2 h-4 w-4" aria-hidden />
                   </Link>
                 </div>
@@ -647,10 +657,10 @@ export function CommunityMarketingPage({ posts, categories, challenges, contribu
         </section>
 
         <ResourceCta
-          title="Join the conversation without opening the app dashboard."
-          description="Sign in only when you want to post, reply, bookmark, join a challenge or create a project. Public browsing stays on the marketing site."
-          primary={{ label: 'Join community', to: loginReturnTo('/community') }}
-          secondary={{ label: 'Browse templates', to: '/templates' }}
+          title={copy.cta.title}
+          description={copy.cta.description}
+          primary={{ label: copy.cta.primary, to: loginReturnTo('/community') }}
+          secondary={{ label: copy.cta.secondary, to: '/templates' }}
         />
       </main>
     </PublicShell>
@@ -801,9 +811,9 @@ function TemplateTagChip({ label, active, onClick }: { label: string; active: bo
       aria-pressed={active}
       onClick={onClick}
       className={classNames(
-        'inline-flex min-h-[40px] shrink-0 items-center gap-2 rounded-full border px-4 text-[13px] font-semibold transition',
+        'inline-flex min-h-[44px] shrink-0 items-center gap-2 rounded-full border px-4 text-[13px] font-semibold transition',
         active
-          ? 'border-[var(--ecode-accent)] bg-[var(--ecode-accent)] text-white'
+          ? 'border-[var(--ecode-accent)] bg-[var(--vc-action-primary-strong)] text-white'
           : 'border-[var(--ecode-border)] bg-[var(--ecode-surface)] text-[var(--ecode-text-secondary)] hover:border-[var(--ecode-accent)] hover:text-[var(--ecode-accent)]',
       )}
     >
@@ -813,8 +823,16 @@ function TemplateTagChip({ label, active, onClick }: { label: string; active: bo
 }
 
 function TemplateMarketingCard({ template, featured = false }: { template: PublicTemplateCard; featured?: boolean }) {
+  const { i18n } = useTranslation();
+  const copy = getMarketingPublicResourceCopy(i18n.resolvedLanguage ?? i18n.language).templates.card;
   const primaryBrand = template.technologies.map(resolveTechBrand).find(Boolean);
   const PrimaryIcon = primaryBrand?.icon ?? Code2;
+  const difficulty = template.difficulty.toLowerCase();
+
+  const difficultyLabel =
+    difficulty === 'easy' || difficulty === 'medium' || difficulty === 'hard'
+      ? copy.difficulty[difficulty]
+      : template.difficulty;
 
   return (
     <article
@@ -844,13 +862,13 @@ function TemplateMarketingCard({ template, featured = false }: { template: Publi
           </div>
         </div>
         {template.trending ? (
-          <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-[var(--ecode-accent)] px-3 py-1 text-[11px] font-semibold text-white">
+          <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-[var(--vc-action-primary-strong)] px-3 py-1 text-[11px] font-semibold text-white">
             <Zap className="h-3 w-3" aria-hidden />
-            Trending
+            {copy.trending}
           </span>
         ) : (
           <span className="rounded-full border border-[var(--ecode-border)] px-3 py-1 text-[11px] font-semibold text-[var(--ecode-text-secondary)]">
-            {template.difficulty}
+            {difficultyLabel}
           </span>
         )}
       </div>
@@ -877,19 +895,19 @@ function TemplateMarketingCard({ template, featured = false }: { template: Publi
         <div className="mb-4 flex items-center gap-4 text-[12px] text-[var(--ecode-text-muted)]">
           <span className="inline-flex items-center gap-1">
             <Sparkles className="h-4 w-4" aria-hidden />
-            Official
+            {copy.official}
           </span>
           <span className="inline-flex items-center gap-1">
             <Rocket className="h-4 w-4" aria-hidden />
-            Free
+            {copy.free}
           </span>
           <span className="inline-flex items-center gap-1">
             <Code2 className="h-4 w-4" aria-hidden />
-            IDE-ready
+            {copy.ideReady}
           </span>
         </div>
         <MarketingLinkButton to={templateProjectReturnTo(template.slug)} fullWidth>
-          Use template
+          {copy.useTemplate}
         </MarketingLinkButton>
       </div>
     </article>
@@ -897,6 +915,10 @@ function TemplateMarketingCard({ template, featured = false }: { template: Publi
 }
 
 function CommunityFeedCard({ post }: { post: PublicCommunityPost }) {
+  const { i18n } = useTranslation();
+  const language = i18n.resolvedLanguage ?? i18n.language;
+  const copy = getMarketingPublicResourceCopy(language).community.post;
+
   return (
     <article className="rounded-lg border border-[var(--ecode-border)] bg-[var(--ecode-surface)] p-5 transition hover:border-[var(--ecode-accent)]/60 hover:shadow-xl">
       <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
@@ -917,14 +939,14 @@ function CommunityFeedCard({ post }: { post: PublicCommunityPost }) {
             </span>
           </div>
           <p className="mt-2 text-[13px] text-[var(--ecode-text-muted)]">
-            by <span className="font-semibold text-[var(--ecode-text-secondary)]">{post.authorName}</span> @
-            {post.authorHandle} · <time dateTime={post.updatedAt}>{post.updatedAt.slice(0, 10)}</time>
+            {copy.by} <span className="font-semibold text-[var(--ecode-text-secondary)]">{post.authorName}</span> @
+            {post.authorHandle} · <time dateTime={post.updatedAt}>{formatPublicDate(post.updatedAt, language)}</time>
           </p>
           <p className="mt-4 text-[15px] leading-7 text-[var(--ecode-text-secondary)]">{post.summary}</p>
           <div className="mt-5 flex flex-wrap gap-2">
-            {post.tags.slice(0, 5).map((tag) => (
+            {post.tags.slice(0, 5).map((tag, index) => (
               <span key={tag} className="rounded-full border border-[var(--ecode-border)] px-3 py-1 text-[12px]">
-                {tag}
+                {post.tagLabels?.[index] ?? tag}
               </span>
             ))}
           </div>
@@ -933,17 +955,17 @@ function CommunityFeedCard({ post }: { post: PublicCommunityPost }) {
               <ActionMetric
                 href={loginReturnTo(`/community/post/${post.id}`)}
                 icon={<Heart className="h-4 w-4" aria-hidden />}
-                label="Like"
+                label={copy.like}
               />
               <ActionMetric
                 href={`/community/post/${post.id}`}
                 icon={<MessageSquare className="h-4 w-4" aria-hidden />}
-                label="Discuss"
+                label={copy.discuss}
               />
               <ActionMetric
                 href={loginReturnTo(`/community/post/${post.id}`)}
                 icon={<Bookmark className="h-4 w-4" aria-hidden />}
-                label="Save"
+                label={copy.save}
               />
             </div>
             <div className="flex flex-wrap items-center gap-3">
@@ -951,14 +973,14 @@ function CommunityFeedCard({ post }: { post: PublicCommunityPost }) {
                 to={`/community/post/${post.id}`}
                 className="inline-flex items-center text-[13px] font-semibold text-[var(--ecode-accent)]"
               >
-                Read discussion
+                {copy.read}
                 <ArrowRight className="ml-2 h-4 w-4" aria-hidden />
               </Link>
               <Link
                 to={loginReturnTo(`/community/post/${post.id}`)}
                 className="inline-flex items-center text-[13px] font-semibold text-[var(--ecode-text-secondary)] hover:text-[var(--ecode-accent)]"
               >
-                Reply
+                {copy.reply}
               </Link>
             </div>
           </div>
@@ -993,6 +1015,8 @@ function CommunitySidebarPanel({ title, icon, children }: { title: string; icon:
 }
 
 function CommunityChallengeItem({ challenge }: { challenge: PublicCommunityChallenge }) {
+  const { i18n } = useTranslation();
+  const copy = getMarketingPublicResourceCopy(i18n.resolvedLanguage ?? i18n.language).community.challenge;
   const difficultyAccent = challenge.difficulty === 'hard';
 
   return (
@@ -1007,25 +1031,25 @@ function CommunityChallengeItem({ challenge }: { challenge: PublicCommunityChall
               : 'border-[var(--ecode-border)] text-[var(--ecode-text-muted)]',
           )}
         >
-          {challenge.difficulty}
+          {copy.difficulty[challenge.difficulty]}
         </span>
       </div>
       <p className="mt-2 text-[13px] leading-6 text-[var(--ecode-text-secondary)]">{challenge.description}</p>
       <div className="mt-3 flex flex-wrap gap-3 text-[12px] text-[var(--ecode-text-muted)]">
         <span className="inline-flex items-center gap-1">
           <Layers className="h-4 w-4" aria-hidden />
-          Guided build
+          {copy.guidedBuild}
         </span>
         <span className="inline-flex items-center gap-1">
           <Target className="h-4 w-4" aria-hidden />
-          Open to all members
+          {copy.openToMembers}
         </span>
       </div>
       <Link
         to={loginReturnTo('/community')}
         className="mt-3 inline-flex text-[13px] font-semibold text-[var(--ecode-accent)]"
       >
-        Participate
+        {copy.participate}
         <ArrowRight className="ml-2 h-4 w-4" aria-hidden />
       </Link>
     </div>
@@ -1098,7 +1122,7 @@ function MarketingLinkButton({
         'inline-flex min-h-[44px] items-center justify-center rounded-md px-5 py-3 text-[13px] font-semibold transition',
         fullWidth ? 'w-full' : '',
         variant === 'primary'
-          ? 'bg-[var(--ecode-accent)] text-white hover:bg-[var(--ecode-accent-hover)]'
+          ? 'bg-[var(--vc-action-primary-strong)] text-white hover:brightness-90'
           : 'border border-[var(--ecode-border)] bg-transparent text-[var(--ecode-text)] hover:border-[var(--ecode-accent)] hover:text-[var(--ecode-accent)]',
       )}
     >

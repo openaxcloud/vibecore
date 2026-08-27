@@ -1,6 +1,7 @@
 import { CheckCircle2, ChevronRight, Clock, Cpu, Hammer, Layers, Paintbrush, Sparkles, Zap } from 'lucide-react';
 import type { ElementType } from 'react';
 import { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { SiGoogle, SiOpenai } from 'react-icons/si';
 import { toast as toastify } from 'react-toastify';
 import { Badge, Button, Card, CardContent, cn, Skeleton } from '~/components/marketing/ecode-exact/EcodeExactUi';
@@ -9,6 +10,16 @@ import {
   readPersistedModelId,
   resolvePreferredModelId,
 } from '~/components/marketing/ecode-exact/resolve-preferred-model';
+import { resolveMarketingLanguage } from '~/lib/i18n/catalogs/marketing';
+import {
+  formatExactBuildDuration,
+  formatExactControlCount,
+  formatExactRequestFailure,
+  getMarketingExactProductControlsCopy,
+  interpolateExactProductControlCopy,
+  type ExactBuildOptionId,
+  type ExactStaticModelId,
+} from '~/lib/i18n/catalogs/marketing-exact-product-controls';
 
 export type BuildMode = 'design-first' | 'full-app' | 'continue-planning';
 
@@ -33,6 +44,9 @@ export function useEcodeToast() {
 }
 
 export function useStaticTemplatesQuery<TData>() {
+  const { i18n } = useTranslation();
+  const language = i18n.resolvedLanguage ?? i18n.language;
+  const copy = getMarketingExactProductControlsCopy(language).exactLandingControls;
   const [data, setData] = useState<TData>(() => [] as unknown as TData);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -54,7 +68,9 @@ export function useStaticTemplatesQuery<TData>() {
         });
 
         if (!response.ok) {
-          throw new Error(`Template catalog request failed with ${response.status}`);
+          throw new Error(
+            formatExactRequestFailure(copy.errors.templateCatalogRequestFailed, response.status, language),
+          );
         }
 
         const payload = (await response.json()) as TData;
@@ -77,7 +93,7 @@ export function useStaticTemplatesQuery<TData>() {
     void loadTemplates();
 
     return () => controller.abort();
-  }, []);
+  }, [copy.errors.templateCatalogRequestFailed, language]);
 
   return { data, isLoading };
 }
@@ -86,6 +102,7 @@ export async function apiRequest<TResponse = unknown>(
   method: string,
   path: string,
   payload?: unknown,
+  language?: string | null,
 ): Promise<TResponse> {
   const response = await fetch(path, {
     method,
@@ -99,7 +116,15 @@ export async function apiRequest<TResponse = unknown>(
   const data = (await response.json().catch(() => ({}))) as TResponse & { error?: string };
 
   if (!response.ok) {
-    const error = new Error(data.error || response.statusText || 'Request failed') as Error & { status?: number };
+    const activeLanguage =
+      language ?? (typeof document === 'undefined' ? undefined : document.documentElement.lang || undefined);
+
+    const copy = getMarketingExactProductControlsCopy(activeLanguage).exactLandingControls;
+    const english = resolveMarketingLanguage(activeLanguage) === 'en';
+    const localizedFallback = formatExactRequestFailure(copy.errors.requestFailed, response.status, activeLanguage);
+    const message = english ? data.error || response.statusText || localizedFallback : localizedFallback;
+    const error = new Error(message) as Error & { status?: number };
+
     error.status = response.status;
     throw error;
   }
@@ -119,40 +144,54 @@ interface PublicModelsResponse {
   models?: PublicModelOption[];
 }
 
-const modelOptions: PublicModelOption[] = [
+type StaticModelOption = Omit<PublicModelOption, 'description'> & { id: ExactStaticModelId };
+
+const modelOptions: StaticModelOption[] = [
   {
     id: 'gpt-5',
     name: 'GPT-5',
     provider: 'openai',
-    description: 'Advanced reasoning model for full-stack app generation.',
     supportsStreaming: true,
   },
   {
     id: 'gemini-2.5-pro',
     name: 'Gemini 2.5 Pro',
     provider: 'gemini',
-    description: 'Large-context model for planning, code, and multimodal app work.',
     supportsStreaming: true,
   },
   {
     id: 'claude-sonnet-4',
     name: 'Claude Sonnet 4',
     provider: 'anthropic',
-    description: 'Balanced coding model for long-running implementation tasks.',
     supportsStreaming: true,
   },
 ];
 
-function normalizePublicModelOption(model: PublicModelOption): PublicModelOption | null {
+function createStaticModelOptions(language?: string | null): PublicModelOption[] {
+  const descriptions = getMarketingExactProductControlsCopy(language).exactLandingControls.models.descriptions;
+
+  return modelOptions.map((model) => ({ ...model, description: descriptions[model.id] }));
+}
+
+function normalizePublicModelOption(model: PublicModelOption, language?: string | null): PublicModelOption | null {
   if (!model.id || !model.name) {
     return null;
   }
+
+  const copy = getMarketingExactProductControlsCopy(language).exactLandingControls;
+  const knownDescription = (copy.models.descriptions as Partial<Record<string, string>>)[model.id];
+
+  const description =
+    knownDescription ??
+    (resolveMarketingLanguage(language) === 'en' && model.description
+      ? model.description
+      : interpolateExactProductControlCopy(copy.models.genericDescription, { name: model.name }));
 
   return {
     id: model.id,
     name: model.name,
     provider: model.provider || 'default',
-    description: model.description || model.name,
+    description,
     supportsStreaming: Boolean(model.supportsStreaming),
   };
 }
@@ -193,7 +232,11 @@ interface AiModelSelectorProps {
 }
 
 function AiModelSelector({ variant = 'inline', className = '', onModelChange }: AiModelSelectorProps) {
-  const [models, setModels] = useState<PublicModelOption[]>(modelOptions);
+  const { i18n } = useTranslation();
+  const language = i18n.resolvedLanguage ?? i18n.language;
+  const copy = getMarketingExactProductControlsCopy(language).exactLandingControls;
+  const fallbackModels = useMemo(() => createStaticModelOptions(language), [language]);
+  const [models, setModels] = useState<PublicModelOption[]>(() => createStaticModelOptions(language));
   const [modelsLoading, setModelsLoading] = useState(variant === 'card');
   const [modelsError, setModelsError] = useState<string | null>(null);
 
@@ -215,14 +258,20 @@ function AiModelSelector({ variant = 'inline', className = '', onModelChange }: 
       variant === 'card'
         ? resolvePreferredModelId(
             persisted,
-            modelOptions.map((model) => model.id),
+            fallbackModels.map((model) => model.id),
           )
-        : persisted || modelOptions[0]?.id || '';
+        : persisted || fallbackModels[0]?.id || '';
 
     if (resolved) {
       setSelectedModel(resolved);
     }
-  }, [variant, modelOptions]);
+  }, [fallbackModels, variant]);
+
+  useEffect(() => {
+    if (variant !== 'card') {
+      setModels(fallbackModels);
+    }
+  }, [fallbackModels, variant]);
 
   const currentModel = useMemo(
     () => models.find((model) => model.id === selectedModel) ?? null,
@@ -266,13 +315,13 @@ function AiModelSelector({ variant = 'inline', className = '', onModelChange }: 
         });
 
         if (!response.ok) {
-          throw new Error(`Model catalog request failed with ${response.status}`);
+          throw new Error(formatExactRequestFailure(copy.errors.modelCatalogRequestFailed, response.status, language));
         }
 
         const payload = (await response.json()) as PublicModelsResponse;
 
         const normalized = (payload.models ?? [])
-          .map((model) => normalizePublicModelOption(model))
+          .map((model) => normalizePublicModelOption(model, language))
           .filter((model): model is PublicModelOption => Boolean(model));
 
         /*
@@ -298,8 +347,8 @@ function AiModelSelector({ variant = 'inline', className = '', onModelChange }: 
           /*
            * Restore the returning visitor's saved preference now that we know
            * which models the live catalog actually offers. Without this the card
-           * always reopened on the disabled 'Select AI model...' placeholder and
-           * the 'Model preference saved' confirmation never showed. We only
+           * always reopened on its disabled localized placeholder and the saved
+           * preference confirmation never showed. We only
            * overwrite the current selection when nothing has been chosen yet, so
            * an in-session change made before the fetch resolved is preserved.
            */
@@ -316,8 +365,8 @@ function AiModelSelector({ variant = 'inline', className = '', onModelChange }: 
         }
       } catch (error) {
         if (!controller.signal.aborted) {
-          setModels(modelOptions);
-          setModelsError(error instanceof Error ? error.message : 'Model catalog unavailable');
+          setModels(fallbackModels);
+          setModelsError(error instanceof Error ? error.message : copy.errors.modelCatalogUnavailable);
         }
       } finally {
         if (!controller.signal.aborted) {
@@ -329,7 +378,7 @@ function AiModelSelector({ variant = 'inline', className = '', onModelChange }: 
     void loadModels();
 
     return () => controller.abort();
-  }, [variant]);
+  }, [copy.errors.modelCatalogRequestFailed, copy.errors.modelCatalogUnavailable, fallbackModels, language, variant]);
 
   if (variant === 'compactLine') {
     /*
@@ -340,15 +389,15 @@ function AiModelSelector({ variant = 'inline', className = '', onModelChange }: 
     return (
       <label className={cn('flex items-center gap-1.5 text-[13px] text-[var(--ecode-text-secondary)]', className)}>
         <Sparkles className="h-3.5 w-3.5 shrink-0 text-ecode-accent" aria-hidden />
-        <span className="shrink-0 font-medium">Model:</span>
+        <span className="shrink-0 font-medium">{copy.modelSelector.compactLabel}</span>
         <select
           value={selectedModel}
           onChange={(event) => handleModelChange(event.target.value)}
-          aria-label="AI model"
+          aria-label={copy.modelSelector.ariaLabel}
           className="min-w-0 flex-1 bg-transparent text-[16px] text-[var(--ecode-text)] outline-none"
           data-testid="select-ai-model-compact"
         >
-          <option value="">Auto</option>
+          <option value="">{copy.modelSelector.automatic}</option>
           {models.map((model) => (
             <option key={model.id} value={model.id}>
               {model.name}
@@ -371,23 +420,26 @@ function AiModelSelector({ variant = 'inline', className = '', onModelChange }: 
         <CardContent className="p-4 sm:p-6">
           <div className="space-y-3 sm:space-y-4">
             <div className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 text-orange-500 shrink-0" />
-              <h3 className="font-semibold text-[13px] sm:text-base">AI Model Selection</h3>
+              <Sparkles className="h-4 w-4 shrink-0 text-ecode-accent sm:h-5 sm:w-5" aria-hidden="true" />
+              <h3 className="min-w-0 break-words text-[13px] font-semibold sm:text-base">
+                {copy.modelSelector.cardTitle}
+              </h3>
             </div>
-            <p className="text-[10px] sm:text-[11px] text-muted-foreground">
+            <p className="break-words text-[11px] leading-relaxed text-muted-foreground">
               {modelsLoading
-                ? 'Loading available AI models for code generation...'
-                : `Choose your preferred AI model for code generation (${models.length} available)`}
+                ? copy.modelSelector.loadingDescription
+                : formatExactControlCount(models.length, copy.modelSelector.availableDescription, language)}
             </p>
             <select
               value={selectedModel}
               onChange={(event) => handleModelChange(event.target.value)}
               disabled={modelsLoading}
+              aria-label={copy.modelSelector.ariaLabel}
               className="w-full min-h-[44px] rounded-md border border-border bg-background px-3 text-base sm:text-[13px] text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ecode-accent)] disabled:cursor-wait disabled:opacity-70"
               data-testid="select-ai-model"
             >
               <option value="" disabled>
-                {modelsLoading ? 'Loading AI models...' : 'Select AI model...'}
+                {modelsLoading ? copy.modelSelector.loadingOption : copy.modelSelector.selectOption}
               </option>
               {models.map((model) => (
                 <option key={model.id} value={model.id}>
@@ -402,28 +454,30 @@ function AiModelSelector({ variant = 'inline', className = '', onModelChange }: 
                 />
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2 text-[13px] font-medium">
-                    <CurrentProviderIcon className="h-4 w-4" />
+                    <CurrentProviderIcon className="h-4 w-4 shrink-0" aria-hidden="true" />
                     {currentModel.name}
                     {currentModel.supportsStreaming ? (
-                      <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                        Stream
+                      <Badge variant="secondary" className="text-[11px] px-1.5 py-0">
+                        {copy.modelSelector.streaming}
                       </Badge>
                     ) : null}
                   </div>
-                  <p className="mt-1 text-[10px] leading-tight text-muted-foreground">{currentModel.description}</p>
+                  <p className="mt-1 break-words text-[11px] leading-relaxed text-muted-foreground">
+                    {currentModel.description}
+                  </p>
                 </div>
               </div>
             ) : null}
             {modelsError ? (
               <div className="flex items-center gap-2 text-[11px] sm:text-[13px] text-[var(--status-warning-text)]">
-                <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
-                <span>Using the static model fallback while the catalog reconnects.</span>
+                <Clock className="h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4" aria-hidden="true" />
+                <span className="min-w-0 break-words">{copy.modelSelector.fallbackWarning}</span>
               </div>
             ) : null}
             {currentModel ? (
               <div className="flex items-center gap-2 text-[11px] sm:text-[13px] text-[var(--status-success-text)]">
-                <CheckCircle2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
-                <span>Model preference saved</span>
+                <CheckCircle2 className="h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4" aria-hidden="true" />
+                <span className="min-w-0 break-words">{copy.modelSelector.preferenceSaved}</span>
               </div>
             ) : null}
           </div>
@@ -434,13 +488,14 @@ function AiModelSelector({ variant = 'inline', className = '', onModelChange }: 
 
   return (
     <div className={cn('flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2', className)}>
-      <Zap className="h-4 w-4 text-orange-500" />
+      <Zap className="h-4 w-4 shrink-0 text-ecode-accent" aria-hidden="true" />
       <select
-        value={selectedModel || modelOptions[0]?.id || ''}
+        value={selectedModel || fallbackModels[0]?.id || ''}
         onChange={(event) => handleModelChange(event.target.value)}
-        className="min-h-[36px] flex-1 bg-transparent text-[13px] outline-none"
+        aria-label={copy.modelSelector.ariaLabel}
+        className="min-h-[36px] min-w-0 flex-1 bg-transparent text-[13px] outline-none"
       >
-        {modelOptions.map((model) => (
+        {fallbackModels.map((model) => (
           <option key={model.id} value={model.id}>
             {model.name}
           </option>
@@ -460,29 +515,13 @@ interface BuildModeSelectorProps {
   projectName?: string;
 }
 
-const buildOptions = [
-  {
-    id: 'design-first' as const,
-    title: 'Start with a design',
-    description: 'See your app design first, then add functionality',
-    icon: Paintbrush,
-    badge: 'Visual First',
-    timeEstimate: '~3 minutes',
-    features: ['Quick clickable prototype', 'See UI before building', 'Iterate on design', 'Build functionality later'],
-    color: 'orange',
-  },
-  {
-    id: 'full-app' as const,
-    title: 'Build the full app',
-    description: 'Complete working application from the start',
-    icon: Hammer,
-    badge: 'Recommended',
-    timeEstimate: '~10 minutes',
-    features: ['Full-stack development', 'Working MVP immediately', 'Backend + Frontend', 'Database integration'],
-    color: 'emerald',
-    recommended: true,
-  },
-];
+const BUILD_OPTION_VISUALS: Record<
+  ExactBuildOptionId,
+  { icon: typeof Paintbrush; color: 'orange' | 'emerald'; durationMinutes: number }
+> = {
+  'design-first': { icon: Paintbrush, color: 'orange', durationMinutes: 3 },
+  'full-app': { icon: Hammer, color: 'emerald', durationMinutes: 10 },
+};
 
 function AnimatedDot({ color, delay, isActive }: { color: string; delay: number; isActive: boolean }) {
   const [visible, setVisible] = useState(false);
@@ -505,6 +544,7 @@ function AnimatedDot({ color, delay, isActive }: { color: string; delay: number;
 
   return (
     <span
+      aria-hidden="true"
       className={cn(
         'inline-block w-1.5 h-1.5 rounded-full transition-all duration-300',
         visible ? dotColors[color] || 'bg-primary' : 'bg-muted-foreground/30',
@@ -514,18 +554,18 @@ function AnimatedDot({ color, delay, isActive }: { color: string; delay: number;
   );
 }
 
-function getColorClasses(color: string, type: 'bg' | 'border' | 'text' | 'icon') {
+function getColorClasses(color: string, type: 'bg' | 'border' | 'fg' | 'icon') {
   const colors: Record<string, Record<string, string>> = {
     orange: {
       bg: 'bg-orange-50 dark:bg-muted',
       border: 'border-orange-200 dark:border-orange-800 hover:border-orange-400 dark:hover:border-orange-600',
-      text: 'text-orange-600 dark:text-orange-400',
+      fg: 'text-orange-600 dark:text-orange-400',
       icon: 'bg-orange-100 dark:bg-muted/70',
     },
     emerald: {
       bg: 'bg-emerald-50 dark:bg-muted',
       border: 'border-emerald-200 dark:border-emerald-800 hover:border-emerald-400 dark:hover:border-emerald-600',
-      text: 'text-emerald-600 dark:text-emerald-400',
+      fg: 'text-emerald-600 dark:text-emerald-400',
       icon: 'bg-emerald-100 dark:bg-muted/70',
     },
   };
@@ -540,6 +580,20 @@ export function BuildModeSelector({
   featureList = [],
   projectName,
 }: BuildModeSelectorProps) {
+  const { i18n } = useTranslation();
+  const language = i18n.resolvedLanguage ?? i18n.language;
+  const copy = getMarketingExactProductControlsCopy(language).exactLandingControls;
+
+  const buildOptions = copy.buildMode.options.map((option) => ({
+    ...option,
+    ...BUILD_OPTION_VISUALS[option.id],
+    timeEstimate: formatExactBuildDuration(
+      BUILD_OPTION_VISUALS[option.id].durationMinutes,
+      copy.buildMode.duration,
+      language,
+    ),
+  }));
+
   const [hoveredOption, setHoveredOption] = useState<BuildMode | null>(null);
   const [activeAnimations, setActiveAnimations] = useState<Record<string, boolean>>({});
 
@@ -575,6 +629,7 @@ export function BuildModeSelector({
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
       role="dialog"
       aria-modal="true"
+      aria-labelledby="build-mode-selector-title"
       data-testid="build-mode-selector-dialog"
       onClick={(event) => {
         if (event.target === event.currentTarget) {
@@ -582,38 +637,49 @@ export function BuildModeSelector({
         }
       }}
     >
-      <div className="w-full max-w-2xl overflow-hidden rounded-xl border border-border bg-background shadow-2xl">
-        <div className="px-6 pt-6 pb-4 bg-gradient-to-r from-blue-50 to-orange-50 dark:from-muted dark:to-muted/70 border-b">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                <Sparkles className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                <h2 className="text-[15px] font-semibold">How do you want to continue?</h2>
+      <div className="max-h-[calc(100dvh-2rem)] w-full max-w-2xl overflow-y-auto rounded-xl border border-border bg-background shadow-2xl">
+        <div className="border-b border-border bg-muted/60 px-4 pb-4 pt-5 sm:px-6 sm:pt-6">
+          <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0">
+              <div className="mb-2 flex min-w-0 items-center gap-2">
+                <Sparkles className="h-5 w-5 shrink-0 text-ecode-accent" aria-hidden="true" />
+                <h2 id="build-mode-selector-title" className="min-w-0 break-words text-[15px] font-semibold">
+                  {copy.buildMode.title}
+                </h2>
               </div>
-              <p className="text-[13px] text-muted-foreground">
+              <p className="break-words text-[13px] leading-relaxed text-muted-foreground">
                 {projectName ? <span className="font-medium">{projectName}: </span> : null}
-                Choose your preferred build approach
+                {copy.buildMode.approach}
               </p>
             </div>
-            <Button variant="ghost" size="sm" onClick={() => onOpenChange(false)}>
-              Close
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="w-full whitespace-normal sm:w-auto"
+              onClick={() => onOpenChange(false)}
+              aria-label={copy.buildMode.close}
+            >
+              {copy.buildMode.close}
             </Button>
           </div>
 
           {featureList.length > 0 ? (
-            <div className="mt-4 p-3 bg-muted rounded-lg">
-              <div className="flex items-center gap-2 mb-2">
-                <Layers className="h-4 w-4 text-muted-foreground" />
-                <span className="text-[11px] font-medium text-muted-foreground">Feature list created</span>
-                <Badge variant="secondary" className="text-[10px]">
-                  {featureList.length} features
+            <div className="mt-4 rounded-lg border border-border bg-background p-3">
+              <div className="flex min-w-0 flex-wrap items-center gap-2">
+                <Layers className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                <span className="min-w-0 break-words text-[11px] font-medium text-muted-foreground">
+                  {copy.buildMode.featureListCreated}
+                </span>
+                <Badge variant="secondary" className="max-w-full whitespace-normal text-[11px] leading-snug">
+                  {formatExactControlCount(featureList.length, copy.buildMode.featureCount, language)}
                 </Badge>
               </div>
             </div>
           ) : null}
         </div>
 
-        <div className="p-6 space-y-4">
+        <div className="space-y-4 p-4 sm:p-6">
           <div className="grid gap-4 md:grid-cols-2">
             {buildOptions.map((option) => {
               const Icon = option.icon;
@@ -627,57 +693,66 @@ export function BuildModeSelector({
                   onMouseEnter={() => setHoveredOption(option.id)}
                   onMouseLeave={() => setHoveredOption(null)}
                   className={cn(
-                    'relative text-left p-4 rounded-xl border-2 transition-all duration-200',
-                    'hover:shadow-lg hover:scale-[1.02]',
+                    'relative min-w-0 rounded-xl border-2 p-4 text-left transition-all duration-200',
+                    'hover:shadow-lg md:hover:scale-[1.02]',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ecode-accent)] focus-visible:ring-offset-2',
                     getColorClasses(option.color, 'border'),
                     isHovered && getColorClasses(option.color, 'bg'),
                   )}
                   data-testid={`build-option-${option.id}`}
                 >
-                  {option.recommended ? (
-                    <div className="absolute -top-2.5 right-4">
-                      <Badge
-                        className={cn(
-                          'text-[10px] px-2',
-                          getColorClasses(option.color, 'text'),
-                          'bg-emerald-100 dark:bg-emerald-900/50 border-0',
-                        )}
-                      >
-                        {option.badge}
-                      </Badge>
-                    </div>
-                  ) : null}
-
-                  <div className="flex items-start gap-3">
-                    <div
+                  <div className="mb-3 flex justify-end">
+                    <Badge
                       className={cn(
-                        'w-10 h-10 rounded-lg flex items-center justify-center shrink-0',
+                        'max-w-full whitespace-normal border-0 px-2 text-right text-[11px] leading-snug',
+                        getColorClasses(option.color, 'fg'),
                         getColorClasses(option.color, 'icon'),
                       )}
                     >
-                      <Icon className={cn('h-5 w-5', getColorClasses(option.color, 'text'))} />
+                      {option.badge}
+                    </Badge>
+                  </div>
+
+                  <div className="flex min-w-0 items-start gap-3">
+                    <div
+                      className={cn(
+                        'flex h-10 w-10 shrink-0 items-center justify-center rounded-lg',
+                        getColorClasses(option.color, 'icon'),
+                      )}
+                    >
+                      <Icon className={cn('h-5 w-5', getColorClasses(option.color, 'fg'))} aria-hidden="true" />
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-[13px]">{option.title}</h3>
-                      <p className="text-[11px] text-muted-foreground mb-3">{option.description}</p>
-                      <div className="flex items-center gap-1 mb-3">
-                        <Clock className="h-3 w-3 text-muted-foreground" />
-                        <span className="text-[11px] text-muted-foreground">{option.timeEstimate}</span>
+                    <div className="min-w-0 flex-1">
+                      <h3 className="break-words text-[13px] font-semibold leading-snug">{option.title}</h3>
+                      <p className="mb-3 break-words text-[11px] leading-relaxed text-muted-foreground">
+                        {option.description}
+                      </p>
+                      <div className="mb-3 flex min-w-0 items-center gap-1">
+                        <Clock className="h-3 w-3 shrink-0 text-muted-foreground" aria-hidden="true" />
+                        <span className="min-w-0 break-words text-[11px] text-muted-foreground">
+                          {option.timeEstimate}
+                        </span>
                       </div>
                       <ul className="space-y-1.5">
                         {option.features.map((feature, index) => (
-                          <li key={feature} className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                          <li
+                            key={`${option.id}-${index}`}
+                            className="flex min-w-0 items-start gap-2 text-[11px] leading-relaxed text-muted-foreground"
+                          >
                             <AnimatedDot
                               color={option.color}
                               delay={index * 150}
                               isActive={activeAnimations[option.id] || isHovered}
                             />
-                            <span>{feature}</span>
+                            <span className="min-w-0 break-words">{feature}</span>
                           </li>
                         ))}
                       </ul>
                     </div>
-                    <ChevronRight className={cn('h-4 w-4 transition-transform mt-1', isHovered && 'translate-x-1')} />
+                    <ChevronRight
+                      className={cn('mt-1 h-4 w-4 shrink-0 transition-transform', isHovered && 'translate-x-1')}
+                      aria-hidden="true"
+                    />
                   </div>
                 </button>
               );
@@ -687,10 +762,10 @@ export function BuildModeSelector({
           <button
             type="button"
             onClick={() => onSelectMode('continue-planning')}
-            className="w-full text-center text-[13px] text-muted-foreground hover:text-foreground transition-colors py-2"
+            className="min-h-[44px] w-full whitespace-normal rounded-md py-2 text-center text-[13px] leading-snug text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ecode-accent)]"
             data-testid="build-option-continue-planning"
           >
-            Continue refining the prompt
+            {copy.buildMode.continuePlanning}
           </button>
         </div>
       </div>

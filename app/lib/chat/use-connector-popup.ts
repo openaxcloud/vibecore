@@ -1,4 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { getClientRuntimeConnectorError } from '~/lib/i18n/catalogs/client-runtime-residual';
 
 /*
  * Shared hook for launching a connector OAuth popup and reacting to the
@@ -47,6 +49,20 @@ export interface ConnectorPopupHook {
   reset: () => void;
 }
 
+export function localizeConnectorPopupState(state: ConnectorPopupState, language?: string | null): ConnectorPopupState {
+  if (state.phase !== 'failed') {
+    return state;
+  }
+
+  return {
+    ...state,
+    result: {
+      ...state.result,
+      errorMessage: getClientRuntimeConnectorError(state.result.errorCode, state.result.provider, language),
+    },
+  };
+}
+
 function isConnectorMessage(value: unknown): value is {
   type: string;
   provider: string;
@@ -93,6 +109,8 @@ export function shouldHandleConnectorMessage(data: unknown, expectedProvider: st
 }
 
 export function useConnectorPopup(): ConnectorPopupHook {
+  const { i18n } = useTranslation();
+  const language = i18n.resolvedLanguage ?? i18n.language;
   const [state, setState] = useState<ConnectorPopupState>({ phase: 'idle' });
   const popupRef = useRef<Window | null>(null);
   const pollRef = useRef<number | null>(null);
@@ -143,7 +161,6 @@ export function useConnectorPopup(): ConnectorPopupHook {
               ok: false,
               provider: event.data.provider,
               errorCode: 'CALLBACK_PAYLOAD_INCOMPLETE',
-              errorMessage: 'The callback page did not return a userConnectionId or accountLabel.',
             },
           });
 
@@ -167,7 +184,6 @@ export function useConnectorPopup(): ConnectorPopupHook {
             ok: false,
             provider: event.data.provider,
             errorCode: event.data.errorCode,
-            errorMessage: event.data.errorMessage,
           },
         });
       }
@@ -197,7 +213,6 @@ export function useConnectorPopup(): ConnectorPopupHook {
             ok: false,
             provider: input.provider,
             errorCode: 'POPUP_BLOCKED',
-            errorMessage: 'Popup was blocked. Allow popups for this site and try again.',
           },
         });
 
@@ -216,7 +231,6 @@ export function useConnectorPopup(): ConnectorPopupHook {
                   ok: false,
                   provider: input.provider,
                   errorCode: 'POPUP_CLOSED',
-                  errorMessage: 'You closed the popup before completing the connection.',
                 },
               };
             }
@@ -235,5 +249,7 @@ export function useConnectorPopup(): ConnectorPopupHook {
     setState({ phase: 'idle' });
   }, [cleanup]);
 
-  return { state, launch, reset };
+  const localizedState = useMemo(() => localizeConnectorPopupState(state, language), [language, state]);
+
+  return { state: localizedState, launch, reset };
 }

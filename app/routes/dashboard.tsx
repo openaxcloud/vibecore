@@ -1,4 +1,5 @@
 import { Activity, Boxes, CreditCard, MailPlus, Rocket, Sparkles } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import type { MetaFunction } from 'react-router';
 import { Link, useLoaderData, useRevalidator } from 'react-router';
 import { resolveDashboardHeaderActions, shouldUseSpaNavigation } from './dashboard-nav';
@@ -17,6 +18,8 @@ import {
 } from '~/components/dashboard/SaaSLayout';
 import { projectStackLabel } from '~/lib/dashboard-project-stack';
 import { apiRequest, isForbiddenApiResponse, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
+import { userAreaEn, userAreaFr } from '~/lib/i18n/catalogs/user-area';
+import { resolveRequestLocale } from '~/lib/i18n/request-locale';
 import { formatUserAreaDateTime } from '~/lib/i18n/user-area-locale';
 import { projectLifecycle, projectLifecycleDisplayLabel } from '~/lib/project-card-presentation';
 import { projectIdePath } from '~/utils/project-url';
@@ -142,11 +145,13 @@ async function onboardingSignals(
 }
 
 export async function loader({ request }: EnterpriseLoaderArgs) {
+  const language = resolveRequestLocale(request).language;
   const orgs = await apiRequest<{ organizations: Organization[] }>(request, '/orgs');
   const organization = Array.isArray(orgs?.organizations) ? orgs.organizations[0] : undefined;
 
   if (!organization) {
     return {
+      language,
       usageSummary: { projects: 0, activeWorkspaces: 0, planName: 'Free', usageEvents: 0, aiCostCents: 0 },
       billingAccessLimited: false,
       projects: [] satisfies ProjectCard[],
@@ -182,6 +187,7 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
   const onboarding = await onboardingSignals(request, organization.id, projects.length, sortedProjects[0]);
 
   return {
+    language,
     usageSummary: {
       projects: projects.length,
 
@@ -190,7 +196,9 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
        * workspaces.active ledger, which only ever grows).
        */
       activeWorkspaces: billing.activeWorkspaces ?? 0,
-      planName: billing.plan.name,
+      planName: billingAccessLimited
+        ? (language === 'fr' ? userAreaFr : userAreaEn)['userArea.stats.unavailable']
+        : billing.plan.name,
       usageEvents: billing.usage.length,
       aiCostCents,
     },
@@ -202,12 +210,15 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
       return {
         id: project.id,
         name: project.name,
-        status: projectLifecycleDisplayLabel(lifecycle),
+        status: projectLifecycleDisplayLabel(lifecycle, language),
         lifecycle,
         deploymentCount: project.deploymentCount,
-        updated: project.updatedAt ? (formatUserAreaDateTime(project.updatedAt) ?? 'recently') : 'recently',
+        updated: project.updatedAt
+          ? (formatUserAreaDateTime(project.updatedAt, undefined, language) ??
+            (language === 'fr' ? userAreaFr : userAreaEn)['userArea.project.recently'])
+          : (language === 'fr' ? userAreaFr : userAreaEn)['userArea.project.recently'],
         updatedAtIso: project.updatedAt,
-        stack: projectStackLabel(project),
+        stack: projectStackLabel(project, language),
         sourceType: project.sourceType,
         previewImageUrl: `/api/projects/${project.id}/thumbnail`,
         ideUrl: projectIdePath({ id: project.id, slug: project.slug, organizationSlug: organization.slug }),
@@ -216,24 +227,25 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
   };
 }
 
-export const meta: MetaFunction = () => [{ title: 'Dashboard - E-Code' }];
+export const meta: MetaFunction<typeof loader> = ({ data }) => [
+  { title: (data?.language === 'fr' ? userAreaFr : userAreaEn)['dashboard.metaTitle'] },
+];
 export { UserAreaRouteErrorBoundary as ErrorBoundary } from '~/components/dashboard/UserAreaRouteError';
 
 export default function DashboardPage() {
+  const { t } = useTranslation();
   const { projects, usageSummary, billingAccessLimited, onboarding } = useLoaderData<typeof loader>();
-  const headerActions = resolveDashboardHeaderActions(projects);
+  const headerActions = resolveDashboardHeaderActions(projects, (key) => t(key));
 
   const dashboardDescription =
-    projects.length > 0
-      ? 'Projects are ordered by recent activity. Open one below or start something new with the E-Code agent.'
-      : 'Start building with the E-Code agent or choose a curated template.';
+    projects.length > 0 ? t('dashboard.withProjectsDescription') : t('dashboard.emptyDescription');
 
   const revalidator = useRevalidator();
   const retryingOnboarding = revalidator.state !== 'idle';
 
   return (
     <AppShell
-      title="Dashboard"
+      title={t('dashboard.title')}
       description={dashboardDescription}
       actions={
         <>
@@ -254,20 +266,20 @@ export default function DashboardPage() {
         <section className="grid gap-6 xl:grid-cols-[1fr_360px]">
           <div className="min-w-0">
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-semibold">Continue building</h2>
+              <h2 className="text-lg font-semibold">{t('dashboard.continueBuilding')}</h2>
               <LinkButton to="/recent-projects" variant="ghost">
-                View all
+                {t('dashboard.viewAll')}
               </LinkButton>
             </div>
             <ProjectGrid projects={projects} />
             <div className="mt-6">
               {onboarding.checksUnavailable ? (
                 retryingOnboarding ? (
-                  <AsyncPanelSkeleton label="Checking workspace setup" rows={3} compact />
+                  <AsyncPanelSkeleton label={t('dashboard.checkingSetup')} rows={3} compact />
                 ) : (
                   <AsyncPanelError
-                    title="Setup progress could not be verified"
-                    description="Your projects remain available. Deployment and invitation steps are hidden until their status can be confirmed."
+                    title={t('dashboard.setupUnavailable')}
+                    description={t('dashboard.setupUnavailableBody')}
                     onRetry={revalidator.revalidate}
                     compact
                   />
@@ -277,21 +289,23 @@ export default function DashboardPage() {
                   steps={[
                     {
                       key: 'create',
-                      title: 'Create your first app',
+                      title: t('dashboard.createFirstApp'),
                       description: onboarding.createdFirstApp
-                        ? `${onboarding.projectName ?? 'Your project'} is ready in your workspace.`
-                        : 'Describe what you want to build and the E-Code agent scaffolds a real project.',
+                        ? t('dashboard.projectReady', {
+                            name: onboarding.projectName ?? t('userArea.project.persistent'),
+                          })
+                        : t('dashboard.describeApp'),
                       done: onboarding.createdFirstApp,
-                      actionLabel: 'Create',
+                      actionLabel: t('dashboard.create'),
                       to: '/projects/new',
                       glyph: <Sparkles className="h-4 w-4" aria-hidden />,
                     },
                     {
                       key: 'deploy',
-                      title: 'Deploy it',
-                      description: 'Ship your app to a live URL from the project deployments page.',
+                      title: t('dashboard.deployIt'),
+                      description: t('dashboard.deployBody'),
                       done: onboarding.deployedFirstApp,
-                      actionLabel: 'Deploy',
+                      actionLabel: t('dashboard.deploy'),
                       to: onboarding.deployTo,
                       glyph: (
                         <span className="text-[13px] leading-none" aria-hidden>
@@ -301,10 +315,10 @@ export default function DashboardPage() {
                     },
                     {
                       key: 'invite',
-                      title: 'Invite a teammate',
-                      description: 'Bring a collaborator into your organization to build together.',
+                      title: t('dashboard.inviteTeammate'),
+                      description: t('dashboard.inviteBody'),
                       done: onboarding.invitedTeammate,
-                      actionLabel: 'Invite',
+                      actionLabel: t('dashboard.invite'),
                       to: '/invitations',
                       glyph: <MailPlus className="h-4 w-4" aria-hidden />,
                     },
@@ -315,29 +329,27 @@ export default function DashboardPage() {
           </div>
           <div className="min-w-0 space-y-6">
             <CommandPalettePreview projects={projects} />
-            <h2 className="text-lg font-semibold">Workspace readiness</h2>
+            <h2 className="text-lg font-semibold">{t('dashboard.workspaceReadiness')}</h2>
             <ActivityList
               items={[
                 {
-                  title: 'Usage available',
-                  detail: 'Project and AI usage are within your current limits.',
+                  title: t('dashboard.usageAvailable'),
+                  detail: t('dashboard.usageAvailableBody'),
                   icon: Activity,
                 },
                 {
-                  title: billingAccessLimited ? 'Billing details restricted' : 'Plan up to date',
-                  detail: billingAccessLimited
-                    ? 'Organization billing administrators can view plan and payment details.'
-                    : 'Your plan and payment status are up to date.',
+                  title: billingAccessLimited ? t('dashboard.billingRestricted') : t('dashboard.planCurrent'),
+                  detail: billingAccessLimited ? t('dashboard.billingRestrictedBody') : t('dashboard.planCurrentBody'),
                   icon: CreditCard,
                 },
                 {
-                  title: 'Workspace capacity available',
-                  detail: 'You can start another project session.',
+                  title: t('dashboard.capacityAvailable'),
+                  detail: t('dashboard.capacityAvailableBody'),
                   icon: Boxes,
                 },
                 {
-                  title: 'Ready to deploy',
-                  detail: 'Your current plan can publish projects to production.',
+                  title: t('dashboard.readyDeploy'),
+                  detail: t('dashboard.readyDeployBody'),
                   icon: Rocket,
                 },
               ]}
@@ -346,9 +358,9 @@ export default function DashboardPage() {
         </section>
         <section aria-labelledby="workspace-overview-title">
           <h2 id="workspace-overview-title" className="mb-4 text-lg font-semibold">
-            Workspace overview
+            {t('dashboard.workspaceOverview')}
           </h2>
-          <StatGrid stats={statsFromUsage(usageSummary)} />
+          <StatGrid stats={statsFromUsage(usageSummary, (key, options) => t(key, options))} />
         </section>
         <section className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
           {importOptions.map((option) => {
@@ -359,8 +371,8 @@ export default function DashboardPage() {
             const body = (
               <>
                 <Icon className="mb-3 h-5 w-5 text-bolt-elements-textTertiary" aria-hidden />
-                <h3 className="text-sm font-semibold">{option.title}</h3>
-                <p className="mt-2 text-sm text-bolt-elements-textSecondary">{option.description}</p>
+                <h3 className="text-sm font-semibold">{t(option.titleKey)}</h3>
+                <p className="mt-2 text-sm text-bolt-elements-textSecondary">{t(option.descriptionKey)}</p>
               </>
             );
 

@@ -1,5 +1,7 @@
 import { createHash } from 'node:crypto';
 import { data as json, redirect, type ActionFunctionArgs, type LoaderFunctionArgs } from 'react-router';
+import { getEnterpriseApiErrorCopy } from '~/lib/i18n/catalogs/enterprise-api-errors';
+import { localeResponseHeaders, resolveRequestLocale } from '~/lib/i18n/request-locale';
 import { json as jsonResponse } from '~/lib/json-response';
 
 const sessionCookieName = 'vc_session';
@@ -255,6 +257,20 @@ export async function apiRequest<T = unknown>(request: Request, path: string, in
   const { redirectOn401 = true, ...fetchInit } = init;
   const token = readSessionToken(request);
   const headers = new Headers(fetchInit.headers);
+
+  /*
+   * Never proxy the browser's Cookie header to the API service. It may contain
+   * unrelated first-party cookies and the raw locale cookie is unnecessary:
+   * resolve it here, then forward only the normalized language tag. This keeps
+   * the persisted/manual-cookie precedence from request-locale while limiting
+   * the backend contract to the two transactionally supported locales.
+   */
+  headers.delete('cookie');
+  headers.delete('set-cookie');
+
+  const localeResolution = resolveRequestLocale(request);
+  headers.set('accept-language', localeResolution.language === 'fr' ? 'fr' : 'en');
+  headers.set('x-vibecore-locale-source', localeResolution.source);
   headers.set('accept', 'application/json');
 
   if (fetchInit.body && !headers.has('content-type')) {
@@ -325,17 +341,25 @@ export async function apiRequest<T = unknown>(request: Request, path: string, in
      * Nothing else about the upstream response leaks through.
      */
     const retryAfter = response.headers.get('retry-after');
+    const errorHeaders = localeResponseHeaders(request, localeResolution);
+    const copy = getEnterpriseApiErrorCopy(localeResolution.language);
+
+    if (retryAfter) {
+      errorHeaders.set('retry-after', retryAfter);
+    }
+
+    const upstreamError =
+      typeof payload === 'object' && payload && typeof (payload as { error?: unknown }).error === 'string'
+        ? (payload as { error: string }).error.trim()
+        : '';
 
     throw jsonResponse(
       {
         ok: false,
-        error:
-          typeof payload === 'object' && payload
-            ? ((payload as { error?: string }).error ?? 'Request failed')
-            : String(payload),
+        error: upstreamError || copy.requestFailed,
         code: payloadCode,
       },
-      { status: response.status, headers: retryAfter ? { 'retry-after': retryAfter } : undefined },
+      { status: response.status, headers: errorHeaders },
     );
   }
 
@@ -350,9 +374,9 @@ export function isForbiddenApiResponse(error: unknown) {
   return isApiResponse(error, 403);
 }
 
-export async function apiErrorMessage(error: unknown, fallback = 'Request failed') {
+export async function apiErrorMessage(error: unknown, fallback = '') {
   if (!(error instanceof Response)) {
-    return error instanceof Error ? error.message : fallback;
+    return fallback;
   }
 
   try {
@@ -372,7 +396,12 @@ export async function firstOrganization(request: Request) {
   const organization = result.organizations[0];
 
   if (!organization) {
-    throw jsonResponse({ ok: false, error: 'No organization found for this user' }, { status: 400 });
+    const locale = resolveRequestLocale(request);
+
+    throw jsonResponse(
+      { ok: false, error: getEnterpriseApiErrorCopy(locale.language).organizationMissing },
+      { status: 400, headers: localeResponseHeaders(request, locale) },
+    );
   }
 
   return organization;

@@ -1,0 +1,44 @@
+== teardown-lib fail-closed tests (RR-08 + RR-09) ==
+[1] present_then_deleted
+  ok  - reçu OK (rc=0)
+  ok  - receipt OK
+  ok  - DELETE_REQUESTED
+  ok  - delete tenté
+[2] transient_persistent (curl 000 permanent)
+  ok  - fail-closed (rc=1)
+  ok  - delete malgré état illisible
+  ok  - delete tenté (ex.3)
+  ok  - reçu FAILED (ex.4)
+[3] transient_then_recover (retry → 200)
+  ok  - reçu OK après retry (rc=0)
+  ok  - receipt OK
+  ok  - delete tenté
+[4] notfound_structured_404 (vrai 404 NOT_FOUND)
+  ok  - reçu OK (rc=0)
+  ok  - 404 structuré
+  ok  - delete non tenté (404 structuré)
+[5] ambiguous_403 (RR-09 : jamais 'absent')
+  ok  - fail-closed (rc=1)
+  ok  - 403 ambigu → PAS NOTFOUND (RR-09)
+  ok  - delete tenté
+  ok  - reçu FAILED
+[6] exists_no_getdelete (RR-09 EXIGÉ : token valide + projet existant, sans get/delete)
+  ok  - fail-closed (rc=1)
+  ok  - delete tenté (403)
+  ok  - reçu FAILED (PAS OK)
+  ok  - aucun CLEANUP_RECEIPT=OK
+[7] ambiguous_404_no_status (404 sans statut structuré)
+  ok  - fail-closed (rc=1)
+  ok  - 404 ambigu → PAS NOTFOUND
+  ok  - reçu FAILED
+[8] delete_fails_active (delete échoue, reste ACTIF)
+  ok  - fail-closed (rc=1)
+  ok  - état ACTIVE
+  ok  - reçu FAILED sur ACTIF
+[9] auth_broken (pas de jeton)
+  ok  - fail-closed (rc=1)
+  ok  - delete tenté (auth KO → pas 'absent')
+  ok  - reçu FAILED
+
+== RÉSULTAT : PASS=31 FAIL=0 ==
+SPEC_EXIT=0

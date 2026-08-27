@@ -1,0 +1,2558 @@
+{
+  "GENERIC_REQUEST_FAILED": {
+    "en": "The request could not be completed. Please try again.",
+    "fr": "La requête n’a pas pu aboutir. Veuillez réessayer."
+  },
+  "INTERNAL_SERVER_ERROR": {
+    "en": "Internal server error",
+    "fr": "Une erreur interne est survenue. Veuillez réessayer."
+  },
+  "VALIDATION_FAILED": {
+    "en": "Validation failed",
+    "fr": "La validation a échoué."
+  },
+  "VALIDATION_VALUE_INVALID": {
+    "en": "Invalid value",
+    "fr": "Valeur invalide."
+  },
+  "VALIDATION_TYPE_INVALID": {
+    "en": "Invalid value type",
+    "fr": "Type de valeur invalide."
+  },
+  "VALIDATION_TOO_SMALL": {
+    "en": "Value must meet the minimum of {minimum}",
+    "fr": "La valeur doit respecter le minimum de {minimum}."
+  },
+  "VALIDATION_TOO_BIG": {
+    "en": "Value must not exceed the maximum of {maximum}",
+    "fr": "La valeur ne doit pas dépasser le maximum de {maximum}."
+  },
+  "VALIDATION_INVALID_FORMAT": {
+    "en": "Invalid value format",
+    "fr": "Format de valeur invalide."
+  },
+  "VALIDATION_UNRECOGNIZED_KEYS": {
+    "en": "Unrecognized field",
+    "fr": "Champ non reconnu."
+  },
+  "INTERNAL_DATABASE_URL_REQUIRED": {
+    "en": "DATABASE_URL is required. The API does not start with an in-memory store.",
+    "fr": "DATABASE_URL est requis. L’API ne démarre pas avec un stockage en mémoire."
+  },
+  "CONTACT_COMPANY_OR_TOPIC_REQUIRED": {
+    "en": "Provide a company (sales) or a topic (general contact).",
+    "fr": "Indiquez une entreprise (ventes) ou un sujet (contact général)."
+  },
+  "USER_ID_OR_EMAIL_REQUIRED": {
+    "en": "Provide a userId or email",
+    "fr": "Indiquez un userId ou une adresse e-mail."
+  },
+  "VALUE_REQUIRED": {
+    "en": "value is required",
+    "fr": "Le champ value est requis."
+  },
+  "REDACTION_SCOPE_REQUIRED": {
+    "en": "organizationId or actorUserId is required to scope the redaction",
+    "fr": "organizationId ou actorUserId est requis pour définir le périmètre de l’occultation."
+  },
+  "INTERNAL_COLLAB_HMAC_SECRET_REQUIRED": {
+    "en": "No HMAC secret configured (COLLABORATION_WS_TICKET_SECRET/JWT_SECRET/COOKIE_SECRET)",
+    "fr": "Aucun secret HMAC n’est configuré (COLLABORATION_WS_TICKET_SECRET/JWT_SECRET/COOKIE_SECRET)."
+  },
+  "INTERNAL_SHARE_HMAC_SECRET_REQUIRED": {
+    "en": "No HMAC secret configured (SHARE_LINK_SECRET/JWT_SECRET/COOKIE_SECRET)",
+    "fr": "Aucun secret HMAC n’est configuré (SHARE_LINK_SECRET/JWT_SECRET/COOKIE_SECRET)."
+  },
+  "DATABASE_SQL_SINGLE_READONLY": {
+    "en": "Only a single read-only SQL statement is allowed in the IDE query editor",
+    "fr": "Une seule instruction SQL en lecture seule est autorisée dans l’éditeur de requêtes de l’IDE."
+  },
+  "DATABASE_SQL_READONLY_ONLY": {
+    "en": "Only read-only SQL statements are allowed in the IDE query editor",
+    "fr": "Seules les instructions SQL en lecture seule sont autorisées dans l’éditeur de requêtes de l’IDE."
+  },
+  "DATABASE_SQL_WRITE_BLOCKED": {
+    "en": "Data-modifying statements are not allowed in the IDE query editor",
+    "fr": "Les instructions qui modifient les données ne sont pas autorisées dans l’éditeur de requêtes de l’IDE."
+  },
+  "DATABASE_REDIS_READONLY_ONLY": {
+    "en": "Only read-only Redis commands are allowed in the IDE query editor",
+    "fr": "Seules les commandes Redis en lecture seule sont autorisées dans l’éditeur de requêtes de l’IDE."
+  },
+  "DATABASE_CONNECTION_NOT_FOUND": {
+    "en": "Database connection not found for this project",
+    "fr": "Aucune connexion à une base de données n’a été trouvée pour ce projet."
+  },
+  "DATABASE_MONGODB_INVALID_JSON": {
+    "en": "MongoDB query must be valid JSON",
+    "fr": "La requête MongoDB doit contenir du JSON valide."
+  },
+  "PLATFORM_ADMIN_REQUIRED": {
+    "en": "Platform administrator required",
+    "fr": "Vous devez être administrateur de la plateforme."
+  },
+  "INTERNAL_AUTH_REQUIRED": {
+    "en": "Internal authentication required",
+    "fr": "Authentification interne requise."
+  },
+  "PREVIEW_AUTH_REQUIRED": {
+    "en": "Preview authentication required",
+    "fr": "Authentification requise pour l’aperçu."
+  },
+  "UNAUTHORIZED": {
+    "en": "Unauthorized",
+    "fr": "Vous devez vous authentifier."
+  },
+  "ORGANIZATION_NOT_FOUND": {
+    "en": "Organization not found",
+    "fr": "Organisation introuvable."
+  },
+  "ROLE_NOT_FOUND": {
+    "en": "Role not found",
+    "fr": "Rôle introuvable."
+  },
+  "RBAC_TARGET_OUTRANKS_CALLER": {
+    "en": "Cannot modify a member whose role outranks yours",
+    "fr": "Vous ne pouvez pas modifier un membre dont le rôle est supérieur au vôtre."
+  },
+  "PROJECT_NOT_FOUND": {
+    "en": "Project not found",
+    "fr": "Projet introuvable."
+  },
+  "PROJECT_ROLE_READ_ONLY": {
+    "en": "Read-only collaborators cannot modify this project",
+    "fr": "Les collaborateurs en lecture seule ne peuvent pas modifier ce projet."
+  },
+  "DEPLOYMENT_BUILD_TIMEOUT": {
+    "en": "Build interrupted: deployment exceeded the maximum build time and was marked failed.",
+    "fr": "Compilation interrompue : le déploiement a dépassé la durée maximale autorisée et a été marqué comme ayant échoué."
+  },
+  "INVALID_PROJECT_PATH": {
+    "en": "Invalid project path",
+    "fr": "Chemin de projet invalide."
+  },
+  "IDE_STATE_CONTENDED": {
+    "en": "IDE state is being modified too frequently; please retry",
+    "fr": "L’état de l’IDE est modifié trop fréquemment. Veuillez réessayer."
+  },
+  "WORKSPACE_NOT_FOUND": {
+    "en": "Workspace not found",
+    "fr": "Espace de travail introuvable."
+  },
+  "MCP_MARKETPLACE_UNAVAILABLE": {
+    "en": "MCP marketplace service is unavailable in this environment",
+    "fr": "Le service de la place de marché MCP n’est pas disponible dans cet environnement."
+  },
+  "ADMIN_REAUTH_REQUIRED": {
+    "en": "Recent administrator re-authentication required",
+    "fr": "Une réauthentification récente en tant qu’administrateur est requise."
+  },
+  "LAST_PLATFORM_ADMIN": {
+    "en": "Cannot remove the last platform administrator",
+    "fr": "Impossible de retirer le dernier administrateur de la plateforme."
+  },
+  "REAUTH_REQUIRED": {
+    "en": "Recent re-authentication required",
+    "fr": "Une réauthentification récente est requise."
+  },
+  "ADMIN_MFA_REQUIRED": {
+    "en": "Administrator MFA must be enabled to perform this action",
+    "fr": "L’authentification multifacteur de l’administrateur doit être activée pour effectuer cette action."
+  },
+  "ORG_SUSPENDED": {
+    "en": "Organization is suspended",
+    "fr": "L’organisation est suspendue."
+  },
+  "OIDC_JWKS_UNAVAILABLE": {
+    "en": "OIDC id_token cannot be verified: JWKS not configured",
+    "fr": "Impossible de vérifier l’id_token OIDC : JWKS n’est pas configuré."
+  },
+  "OIDC_ID_TOKEN_INVALID": {
+    "en": "OIDC id_token verification failed",
+    "fr": "La vérification de l’id_token OIDC a échoué."
+  },
+  "OAUTH_PRERESOLVED_TEST_ONLY": {
+    "en": "Pre-resolved OAuth profiles are test-only",
+    "fr": "Les profils OAuth pré-résolus sont réservés aux tests."
+  },
+  "OAUTH_CALLBACK_INPUT_REQUIRED": {
+    "en": "OAuth callback requires code or resolved profile",
+    "fr": "Le callback OAuth nécessite un code ou un profil résolu."
+  },
+  "OAUTH_TOKEN_MISSING": {
+    "en": "OAuth token response did not include an access token",
+    "fr": "La réponse du jeton OAuth ne contient aucun jeton d’accès."
+  },
+  "OAUTH_EMAIL_MISMATCH": {
+    "en": "OIDC id_token email does not match userinfo email",
+    "fr": "L’adresse e-mail de l’id_token OIDC ne correspond pas à celle de userinfo."
+  },
+  "OAUTH_EMAIL_UNVERIFIED": {
+    "en": "OAuth email is not verified",
+    "fr": "L’adresse e-mail OAuth n’est pas vérifiée."
+  },
+  "OIDC_EMAIL_VERIFICATION_UNKNOWN": {
+    "en": "OIDC email verification status is unknown",
+    "fr": "Le statut de vérification de l’adresse e-mail OIDC est inconnu."
+  },
+  "OAUTH_PROFILE_INCOMPLETE": {
+    "en": "OAuth profile is missing email or subject",
+    "fr": "Le profil OAuth ne contient ni adresse e-mail ni identifiant de sujet."
+  },
+  "SAML_ASSERTION_MISSING": {
+    "en": "SAML response is missing assertion",
+    "fr": "La réponse SAML ne contient aucune assertion."
+  },
+  "SAML_PROFILE_INCOMPLETE": {
+    "en": "SAML assertion is missing email or subject",
+    "fr": "L’assertion SAML ne contient ni adresse e-mail ni identifiant de sujet."
+  },
+  "SAML_PROVIDER_NOT_CONFIGURED": {
+    "en": "SAML provider certificate is not configured",
+    "fr": "Le certificat du fournisseur SAML n’est pas configuré."
+  },
+  "SAML_JSON_TEST_ONLY": {
+    "en": "JSON SAML assertions are test-only",
+    "fr": "Les assertions SAML au format JSON sont réservées aux tests."
+  },
+  "SAML_INVALID_ASSERTION": {
+    "en": "Invalid SAML assertion",
+    "fr": "Assertion SAML invalide."
+  },
+  "WORKSPACE_PROJECT_MISMATCH": {
+    "en": "Workspace does not belong to this project",
+    "fr": "Cet espace de travail n’appartient pas à ce projet."
+  },
+  "GIT_INITIAL_COMMIT_MESSAGE": {
+    "en": "chore: initial scaffold",
+    "fr": "chore: initial scaffold"
+  },
+  "INTERNAL_WORKSPACE_MANAGER_URL_REQUIRED": {
+    "en": "WORKSPACE_MANAGER_URL is required in production.",
+    "fr": "WORKSPACE_MANAGER_URL est requis en production."
+  },
+  "INTERNAL_WORKSPACE_MANAGER_URL_ABSOLUTE": {
+    "en": "WORKSPACE_MANAGER_URL must be an absolute URL in production.",
+    "fr": "WORKSPACE_MANAGER_URL doit être une URL absolue en production."
+  },
+  "INTERNAL_WORKSPACE_MANAGER_URL_SECURE": {
+    "en": "WORKSPACE_MANAGER_URL must use HTTPS or an internal Kubernetes service DNS URL in production.",
+    "fr": "WORKSPACE_MANAGER_URL doit utiliser HTTPS ou une URL DNS de service Kubernetes interne en production."
+  },
+  "INTERNAL_WORKSPACE_MANAGER_URL_NO_LOCALHOST": {
+    "en": "WORKSPACE_MANAGER_URL must not point to localhost in production.",
+    "fr": "WORKSPACE_MANAGER_URL ne doit pas pointer vers localhost en production."
+  },
+  "RUNTIME_WEBSOCKET_UNSUPPORTED": {
+    "en": "Unsupported runtime WebSocket implementation",
+    "fr": "Implémentation WebSocket de l’environnement d’exécution non prise en charge."
+  },
+  "AI_PATH_TRAVERSAL_BLOCKED": {
+    "en": "Path traversal is blocked",
+    "fr": "La traversée de chemin est bloquée."
+  },
+  "AI_COMMAND_CONFIRMATION_REQUIRED": {
+    "en": "Command requires explicit human confirmation",
+    "fr": "La commande nécessite une confirmation humaine explicite."
+  },
+  "WEBHOOK_PAYLOAD_TOO_LARGE": {
+    "en": "Webhook payload exceeds the maximum allowed size",
+    "fr": "La charge utile du webhook dépasse la taille maximale autorisée."
+  },
+  "CONNECTOR_USE_BACKEND_GIT": {
+    "en": "A server-side UserConnection is active; route git operations through /api/projects/:projectId/git/* instead of grabbing the token client-side.",
+    "fr": "Une UserConnection côté serveur est active ; faites passer les opérations Git par /api/projects/:projectId/git/* au lieu de récupérer le jeton côté client."
+  },
+  "INTERNAL_EMPTY_SECRET": {
+    "en": "empty secret",
+    "fr": "secret vide"
+  },
+  "WORKSPACE_RUNTIME_BAD_RESPONSE": {
+    "en": "Workspace runtime returned a malformed response",
+    "fr": "L’environnement d’exécution de l’espace de travail a renvoyé une réponse incorrecte."
+  },
+  "WORKSPACE_MANAGER_UNAVAILABLE": {
+    "en": "Workspace manager is unavailable",
+    "fr": "Le gestionnaire d’espaces de travail est indisponible."
+  },
+  "WORKSPACE_MANAGER_REQUEST_FAILED": {
+    "en": "Workspace manager request failed",
+    "fr": "La requête au gestionnaire d’espaces de travail a échoué."
+  },
+  "WORKSPACE_AGENT_CLIENT_ERROR": {
+    "en": "Workspace agent rejected the request",
+    "fr": "L’agent de l’espace de travail a refusé la requête."
+  },
+  "WORKSPACE_AGENT_REQUEST_FAILED": {
+    "en": "Workspace agent request failed",
+    "fr": "La requête adressée à l’agent de l’espace de travail a échoué."
+  },
+  "STREAM_ABORTED": {
+    "en": "Workspace agent request aborted",
+    "fr": "La requête de l’agent de l’espace de travail a été annulée."
+  },
+  "WORKSPACE_AGENT_UNAVAILABLE": {
+    "en": "Workspace agent is unavailable",
+    "fr": "L’agent de l’espace de travail est indisponible."
+  },
+  "WORKSPACE_STARTING": {
+    "en": "Workspace is starting — retrying automatically.",
+    "fr": "L’espace de travail démarre — nouvelle tentative automatique."
+  },
+  "INTERNAL_SCHEDULED_TASKS_STORE_REQUIRED": {
+    "en": "Scheduled tasks require the database-backed store",
+    "fr": "Les tâches planifiées nécessitent le stockage adossé à la base de données."
+  },
+  "AI_GATEWAY_UNAVAILABLE": {
+    "en": "AI Gateway is unavailable",
+    "fr": "La passerelle d’IA est indisponible."
+  },
+  "AI_GATEWAY_REQUEST_FAILED": {
+    "en": "AI Gateway request failed",
+    "fr": "La requête adressée à la passerelle d’IA a échoué."
+  },
+  "AI_GATEWAY_BAD_RESPONSE": {
+    "en": "AI Gateway returned a malformed response",
+    "fr": "La passerelle d’IA a renvoyé une réponse incorrecte."
+  },
+  "SNAPSHOT_STORAGE_KEY_MISSING": {
+    "en": "Snapshot archive is missing a storage key",
+    "fr": "L’archive de l’instantané ne contient aucune clé de stockage."
+  },
+  "SNAPSHOT_STORAGE_UNAVAILABLE": {
+    "en": "Snapshot archive is not available on local or durable storage",
+    "fr": "L’archive de l’instantané n’est disponible ni dans le stockage local ni dans le stockage durable."
+  },
+  "SNAPSHOT_CHECKSUM_MISMATCH": {
+    "en": "Snapshot archive checksum mismatch",
+    "fr": "La somme de contrôle de l’archive de l’instantané ne correspond pas."
+  },
+  "TERMINAL_ACCESS_DENIED": {
+    "en": "Terminal access is restricted for this project role",
+    "fr": "L’accès au terminal est restreint pour ce rôle de projet."
+  },
+  "COMMAND_BLOCKED_BY_ABUSE": {
+    "en": "Command blocked by abuse prevention policy",
+    "fr": "Commande bloquée par la politique de prévention des abus."
+  },
+  "RUNTIME_IMPORT_BAD_ZIP": {
+    "en": "Uploaded file is not a valid zip archive",
+    "fr": "Le fichier importé n’est pas une archive ZIP valide."
+  },
+  "RUNTIME_EXPORT_TOO_MANY_FILES": {
+    "en": "Workspace has too many files to export",
+    "fr": "L’espace de travail contient trop de fichiers pour être exporté."
+  },
+  "RUNTIME_EXPORT_TOO_LARGE": {
+    "en": "Workspace is too large to export",
+    "fr": "L’espace de travail est trop volumineux pour être exporté."
+  },
+  "RUNTIME_IMPORT_BAD_TARGET": {
+    "en": "Invalid targetPath",
+    "fr": "Le champ targetPath est invalide."
+  },
+  "IMPORT_UNRESOLVED_FINDINGS": {
+    "en": "Import blocked: resolve every secret finding (keep or redact) before committing.",
+    "fr": "Importation bloquée : traitez chaque secret détecté (conserver ou masquer) avant de valider."
+  },
+  "IMPORT_RESCAN_STILL_BLOCKED": {
+    "en": "Import blocked after rescan: resolve every remaining finding before committing.",
+    "fr": "Importation toujours bloquée après la nouvelle analyse : traitez chaque détection restante avant de valider."
+  },
+  "WORKSPACE_NOT_RUNNING": {
+    "en": "Workspace is not running. Click Run to start it.",
+    "fr": "L’espace de travail n’est pas démarré. Cliquez sur Exécuter pour le démarrer."
+  },
+  "WORKSPACE_AGENT_WEBSOCKET_FAILED": {
+    "en": "Workspace agent WebSocket failed",
+    "fr": "La connexion WebSocket à l’agent de l’espace de travail a échoué."
+  },
+  "USER_NOT_FOUND": {
+    "en": "User not found",
+    "fr": "Utilisateur introuvable."
+  },
+  "SIEM_TEST_EVENT": {
+    "en": "Test event from E-Code SIEM webhook configuration.",
+    "fr": "Événement de test provenant de la configuration du webhook SIEM E-Code."
+  },
+  "IMPORT_JOB_NOT_FOUND": {
+    "en": "Import job not found",
+    "fr": "Tâche d’importation introuvable."
+  },
+  "IMPORT_STAGING_GONE": {
+    "en": "Import staging expired or already committed",
+    "fr": "La zone de préparation de l’importation a expiré ou a déjà été validée."
+  },
+  "IMPORT_STAGING_EXPIRED": {
+    "en": "Import staging expired before it was committed.",
+    "fr": "La zone de préparation de l’importation a expiré avant sa validation."
+  },
+  "IMPORT_JOB_FAILED": {
+    "en": "The import could not be completed. Please try again.",
+    "fr": "L’importation n’a pas pu aboutir. Veuillez réessayer."
+  },
+  "PROJECT_SLUG_INVALID": {
+    "en": "Slug must contain at least one letter or number.",
+    "fr": "Le slug doit contenir au moins une lettre ou un chiffre."
+  },
+  "SHARE_LINK_INVALID": {
+    "en": "Share link is invalid, expired, or revoked.",
+    "fr": "Le lien de partage est invalide, expiré ou révoqué."
+  },
+  "SHARE_LINK_PROJECT_MISSING": {
+    "en": "The shared project no longer exists.",
+    "fr": "Le projet partagé n’existe plus."
+  },
+  "CHAT_SHARE_TAMPERED": {
+    "en": "Share link is invalid or has been tampered with.",
+    "fr": "Le lien de partage est invalide ou a été altéré."
+  },
+  "COLLAB_MESSAGE_TOO_LARGE": {
+    "en": "Collaboration message too large",
+    "fr": "Le message de collaboration est trop volumineux."
+  },
+  "PROJECT_NAME_MISMATCH": {
+    "en": "Project name confirmation does not match.",
+    "fr": "Le nom de projet saisi pour confirmation ne correspond pas."
+  },
+  "REMIX_JOB_NOT_FOUND": {
+    "en": "Remix job not found",
+    "fr": "Tâche de remix introuvable."
+  },
+  "THUMBNAIL_URL_INVALID": {
+    "en": "thumbnailUrl must be an https URL or a root-relative /path",
+    "fr": "thumbnailUrl doit être une URL HTTPS ou un chemin / relatif à la racine."
+  },
+  "SNAPSHOT_BEFORE_AI_CHANGE": {
+    "en": "Before AI large change",
+    "fr": "Avant une modification importante par l’IA"
+  },
+  "SNAPSHOT_NOT_FOUND": {
+    "en": "Snapshot not found",
+    "fr": "Instantané introuvable."
+  },
+  "AI_CONVERSATION_NOT_FOUND": {
+    "en": "AI conversation not found",
+    "fr": "Conversation avec l’IA introuvable."
+  },
+  "USER_SPEND_LIMIT_REACHED": {
+    "en": "You have reached your personal usage limit for this billing period.",
+    "fr": "Vous avez atteint votre plafond d’utilisation personnel pour cette période de facturation."
+  },
+  "SPEND_LIMIT_INCREMENT": {
+    "en": "Spend limits must be set in €500 increments (or €0.01 to cap at credits).",
+    "fr": "Les plafonds de dépenses doivent être définis par paliers de 500 € (ou à 0,01 € pour les limiter aux crédits)."
+  },
+  "MEMBER_NOT_FOUND": {
+    "en": "User is not a member of this organization.",
+    "fr": "Cet utilisateur ne fait pas partie de cette organisation."
+  },
+  "STRIPE_FREE_NO_CHECKOUT": {
+    "en": "Free plan has no checkout. Cancel any paid subscription via /orgs/:orgId/billing/portal to return to free.",
+    "fr": "Le forfait Gratuit ne comporte pas de paiement. Annulez tout abonnement payant via /orgs/:orgId/billing/portal pour revenir au forfait Gratuit."
+  },
+  "STRIPE_ENTERPRISE_CONTACT_SALES": {
+    "en": "Enterprise plans are not self-serve. Visit /contact-sales to start a conversation.",
+    "fr": "Les forfaits Entreprise ne sont pas disponibles en libre-service. Rendez-vous sur /contact-sales pour échanger avec notre équipe."
+  },
+  "STRIPE_NOT_CONFIGURED": {
+    "en": "Stripe is not configured",
+    "fr": "Stripe n’est pas configuré."
+  },
+  "STRIPE_SUBSCRIPTION_ALREADY_ACTIVE": {
+    "en": "Organization already has an active subscription; use the billing portal to change or resume plans.",
+    "fr": "L’organisation dispose déjà d’un abonnement actif ; utilisez le portail de facturation pour changer de forfait ou reprendre un abonnement."
+  },
+  "STRIPE_CHECKOUT_URL_MISSING": {
+    "en": "Stripe checkout session did not include a redirect URL",
+    "fr": "La session de paiement Stripe ne contient aucune URL de redirection."
+  },
+  "CREDIT_PACKS_DISABLED": {
+    "en": "Credit packs are not available yet.",
+    "fr": "Les packs de crédits ne sont pas encore disponibles."
+  },
+  "CREDIT_PACK_UNKNOWN": {
+    "en": "Unknown credit pack.",
+    "fr": "Pack de crédits inconnu."
+  },
+  "BILLING_CUSTOMER_NOT_FOUND": {
+    "en": "Billing customer not found",
+    "fr": "Compte de facturation introuvable."
+  },
+  "STRIPE_PORTAL_URL_MISSING": {
+    "en": "Stripe portal session did not include a redirect URL",
+    "fr": "La session du portail Stripe ne contient aucune URL de redirection."
+  },
+  "STRIPE_WEBHOOK_SECRET_NOT_CONFIGURED": {
+    "en": "Stripe webhook secret is not configured",
+    "fr": "Le secret du webhook Stripe n’est pas configuré."
+  },
+  "AUTHENTICATION_REQUIRED": {
+    "en": "Authentication required",
+    "fr": "Vous devez vous authentifier."
+  },
+  "MODEL_NOT_FOUND": {
+    "en": "Model not found in registry",
+    "fr": "Modèle introuvable dans le registre."
+  },
+  "PROVIDER_NOT_FOUND": {
+    "en": "Unknown provider",
+    "fr": "Fournisseur inconnu."
+  },
+  "PROVIDER_BASE_URL_BLOCKED": {
+    "en": "Base URL is not allowed",
+    "fr": "Cette URL de base n’est pas autorisée."
+  },
+  "WALLET_DELTA_NONZERO": {
+    "en": "deltaCents must be a non-zero integer",
+    "fr": "deltaCents doit être un entier différent de zéro."
+  },
+  "WALLET_REASON_REQUIRED": {
+    "en": "A reason is required for wallet adjustments — it is recorded in the audit trail.",
+    "fr": "Un motif est requis pour les ajustements du portefeuille — il est enregistré dans le journal d’audit."
+  },
+  "CREDIT_LEDGER_DATABASE_COMPUTE": {
+    "en": "Database compute",
+    "fr": "Calcul de la base de données"
+  },
+  "CREDIT_LEDGER_DATABASE_STORAGE": {
+    "en": "Database storage",
+    "fr": "Stockage de la base de données"
+  },
+  "CREDIT_LEDGER_DEPLOYMENT": {
+    "en": "Deployment {kind}",
+    "fr": "Déploiement {kind}"
+  },
+  "CREDIT_LEDGER_AGENT_CHECKPOINT": {
+    "en": "Agent checkpoint",
+    "fr": "Point de contrôle de l’agent"
+  },
+  "CREDIT_LEDGER_OVERDRAW_REVERSAL": {
+    "en": "overdraw reversal",
+    "fr": "contrepassation du dépassement de solde"
+  },
+  "CREDIT_LEDGER_ROLLOVER_CAP_EXCEEDED": {
+    "en": "Rollover cap exceeded",
+    "fr": "Plafond de report dépassé"
+  },
+  "CREDIT_LEDGER_PRIOR_GRANT_EXPIRED": {
+    "en": "Prior grant expired (no rollover)",
+    "fr": "Attribution précédente expirée (sans report)"
+  },
+  "CREDIT_LEDGER_MONTHLY_GRANT": {
+    "en": "Monthly grant for the {plan} plan",
+    "fr": "Attribution mensuelle du forfait {plan}"
+  },
+  "CREDIT_LEDGER_DAILY_GRANT": {
+    "en": "Daily grant for the {plan} plan",
+    "fr": "Attribution quotidienne du forfait {plan}"
+  },
+  "CREDIT_LEDGER_PAYG_OVERAGE": {
+    "en": "PAYG overage (billed through Stripe metered usage)",
+    "fr": "Dépassement PAYG (facturé via l’usage mesuré par Stripe)"
+  },
+  "SUPPORT_ASSIGNEE_NOT_ADMIN": {
+    "en": "Assignee must be a platform administrator",
+    "fr": "Le responsable doit être administrateur de la plateforme."
+  },
+  "USAGE_AGENT": {
+    "en": "Agent",
+    "fr": "Agent"
+  },
+  "USAGE_WORKSPACE_COMPUTE": {
+    "en": "Workspace compute",
+    "fr": "Calcul de l’espace de travail"
+  },
+  "USAGE_DEPLOYMENTS": {
+    "en": "Deployments",
+    "fr": "Déploiements"
+  },
+  "USAGE_OBJECT_STORAGE": {
+    "en": "Object storage",
+    "fr": "Stockage d’objets"
+  },
+  "USAGE_DATABASE": {
+    "en": "Database",
+    "fr": "Base de données"
+  },
+  "USAGE_UNIT_CHECKPOINTS": {
+    "en": "checkpoints",
+    "fr": "checkpoints"
+  },
+  "USAGE_UNIT_COMPUTE": {
+    "en": "compute units",
+    "fr": "unités de calcul"
+  },
+  "USAGE_UNIT_DEPLOYS": {
+    "en": "deploys",
+    "fr": "déploiements"
+  },
+  "USAGE_UNIT_GIB_MONTHS": {
+    "en": "GiB-months",
+    "fr": "Gio-mois"
+  },
+  "SNAPSHOT_OR_TIMESTAMP_REQUIRED": {
+    "en": "Provide a snapshotId or a targetTimestamp",
+    "fr": "Indiquez un snapshotId ou un targetTimestamp."
+  },
+  "OBJECT_STORAGE_KEY_OR_PREFIX_REQUIRED": {
+    "en": "Provide exactly one of key or prefix",
+    "fr": "Indiquez exactement l’un des champs key ou prefix."
+  },
+  "STATIC_DEPLOY_CANCELED_SNAPSHOT": {
+    "en": "Static deploy: deployment was canceled mid-build; snapshot discarded.",
+    "fr": "Déploiement statique : le déploiement a été annulé pendant la compilation ; l’instantané a été supprimé."
+  },
+  "DEPLOYMENT_NOT_FOUND": {
+    "en": "Deployment not found",
+    "fr": "Déploiement introuvable."
+  },
+  "DEPLOYMENT_CANCELED_BY_USER": {
+    "en": "Deployment canceled by user",
+    "fr": "Déploiement annulé par l’utilisateur."
+  },
+  "SKILL_NOT_FOUND": {
+    "en": "The requested skill was not found.",
+    "fr": "Le skill demandé est introuvable."
+  },
+  "INVALID_WORKSPACE_ID": {
+    "en": "Invalid workspace identifier",
+    "fr": "Identifiant d’espace de travail invalide."
+  },
+  "GIT_NOTHING_TO_COMMIT": {
+    "en": "No changes to commit.",
+    "fr": "Aucune modification à commit."
+  },
+  "GIT_MERGE_CONFLICT": {
+    "en": "The pull created merge conflicts that must be resolved.",
+    "fr": "Le pull a créé des conflits de fusion qui doivent être résolus."
+  },
+  "GIT_BAD_REVISION": {
+    "en": "Invalid commit",
+    "fr": "Commit invalide."
+  },
+  "GIT_PR_REQUIRES_GITHUB": {
+    "en": "Pull request creation requires a connected GitHub account. Use the Git tab to push your branch, then create the pull request on GitHub.",
+    "fr": "La création d’une pull request nécessite un compte GitHub connecté. Utilisez l’onglet Git pour pousser votre branche, puis créez la pull request sur GitHub."
+  },
+  "PROJECT_SLUG_TAKEN": {
+    "en": "A project with this URL slug already exists in this organization.",
+    "fr": "Un projet utilisant déjà ce slug d’URL existe dans cette organisation."
+  },
+  "IDE_STATE_VERSION_CONFLICT": {
+    "en": "IDE state version conflict",
+    "fr": "Conflit de version de l’état de l’IDE."
+  },
+  "IDE_STATE_NOT_FOUND": {
+    "en": "IDE state was concurrently deleted",
+    "fr": "L’état de l’IDE a été supprimé par une opération simultanée."
+  },
+  "PRESENCE_FORBIDDEN": {
+    "en": "Presence session belongs to another user",
+    "fr": "Cette session de présence appartient à un autre utilisateur."
+  },
+  "AGENT_PATCH_PROPOSAL_NOT_FOUND": {
+    "en": "Agent patch proposal not found",
+    "fr": "Proposition de correctif de l’agent introuvable."
+  },
+  "CREDIT_PACK_NOT_FOUND": {
+    "en": "Credit pack not found",
+    "fr": "Pack de crédits introuvable."
+  },
+  "SUPPORT_TICKET_NOT_FOUND": {
+    "en": "Support ticket not found",
+    "fr": "Ticket d’assistance introuvable."
+  },
+  "SCHEDULED_TASK_NOT_FOUND": {
+    "en": "Scheduled task not found",
+    "fr": "Tâche planifiée introuvable."
+  },
+  "SCHEDULED_TASK_ALREADY_RUNNING": {
+    "en": "This task is already running",
+    "fr": "Cette tâche est déjà en cours d’exécution."
+  },
+  "SCHEDULED_WORKFLOW_MISSING": {
+    "en": "The scheduled workflow no longer exists in this project.",
+    "fr": "Le workflow planifié n’existe plus dans ce projet."
+  },
+  "SCHEDULED_WORKFLOW_EMPTY": {
+    "en": "The scheduled workflow has no steps to run.",
+    "fr": "Le workflow planifié ne contient aucune étape à exécuter."
+  },
+  "SCHEDULED_TASK_NO_COMMAND": {
+    "en": "This scheduled task has no command.",
+    "fr": "Cette tâche planifiée ne contient aucune commande."
+  },
+  "INVALID_DEPLOYMENT_PATH": {
+    "en": "Invalid deployment path",
+    "fr": "Chemin de déploiement invalide."
+  },
+  "ENTERPRISE_DEPLOYMENT_REQUIRED": {
+    "en": "Custom Dockerfile deployments require the Enterprise plan",
+    "fr": "Les déploiements utilisant un Dockerfile personnalisé nécessitent l’offre Enterprise."
+  },
+  "DEPLOYMENT_COMMAND_BLOCKED": {
+    "en": "This build command is not allowed for user deployments",
+    "fr": "Cette commande de compilation n’est pas autorisée pour les déploiements utilisateur."
+  },
+  "SERVER_SNAPSHOT_AGENT_UNREACHABLE": {
+    "en": "The workspace could not be reached to capture the app.",
+    "fr": "Impossible de joindre l’espace de travail pour capturer l’application."
+  },
+  "SERVER_SNAPSHOT_PACKAGE_FAILED": {
+    "en": "The app source could not be packaged for deployment.",
+    "fr": "Le code source de l’application n’a pas pu être préparé pour le déploiement."
+  },
+  "SERVER_SNAPSHOT_READ_FAILED": {
+    "en": "The app snapshot could not be read from the workspace.",
+    "fr": "Impossible de lire l’instantané de l’application depuis l’espace de travail."
+  },
+  "SERVER_SNAPSHOT_EMPTY": {
+    "en": "The app snapshot was empty.",
+    "fr": "L’instantané de l’application est vide."
+  },
+  "SERVER_SNAPSHOT_TOO_LARGE": {
+    "en": "The app source is too large for inline transfer. Configure object storage for large server deployments.",
+    "fr": "Le code source de l’application est trop volumineux pour un transfert intégré. Configurez le stockage d’objets pour les déploiements serveur volumineux."
+  },
+  "SERVER_IMAGE_STORAGE_REQUIRED": {
+    "en": "Snapshot-image deployments require object storage.",
+    "fr": "Les déploiements par image d’instantané nécessitent un stockage d’objets."
+  },
+  "SERVER_IMAGE_STORAGE_PREPARE_FAILED": {
+    "en": "Object storage could not be prepared for the app snapshot.",
+    "fr": "Le stockage d’objets n’a pas pu être préparé pour l’instantané de l’application."
+  },
+  "SERVER_IMAGE_UPLOAD_FAILED": {
+    "en": "The app snapshot could not be captured and uploaded.",
+    "fr": "L’instantané de l’application n’a pas pu être capturé et téléversé."
+  },
+  "SERVER_REVISION_STORAGE_REQUIRED": {
+    "en": "Revision-based deployments require object storage.",
+    "fr": "Les déploiements fondés sur une révision nécessitent un stockage d’objets."
+  },
+  "SERVER_REVISION_STORAGE_PREPARE_FAILED": {
+    "en": "Object storage could not be prepared for the project revision.",
+    "fr": "Le stockage d’objets n’a pas pu être préparé pour la révision du projet."
+  },
+  "SERVER_REVISION_AGENT_UNREACHABLE": {
+    "en": "The workspace could not be reached to capture the project revision.",
+    "fr": "Impossible de joindre l’espace de travail pour capturer la révision du projet."
+  },
+  "SERVER_REVISION_UPLOAD_FAILED": {
+    "en": "The project revision could not be captured and uploaded.",
+    "fr": "La révision du projet n’a pas pu être capturée et téléversée."
+  },
+  "SERVER_REVISION_SIGN_FAILED": {
+    "en": "The secure build-transfer links could not be prepared.",
+    "fr": "Les liens sécurisés de transfert pour la compilation n’ont pas pu être préparés."
+  },
+  "SERVER_REVISION_BUILD_FAILED": {
+    "en": "The isolated build could not be completed. Check the build log.",
+    "fr": "La compilation isolée n’a pas pu aboutir. Consultez le journal de compilation."
+  },
+  "SERVER_REVISION_BUILD_TIMEOUT": {
+    "en": "The isolated build exceeded the allowed time. Check the build log.",
+    "fr": "La compilation isolée a dépassé la durée autorisée. Consultez le journal de compilation."
+  },
+  "SCHEDULE_INVALID_CRON": {
+    "en": "The cron expression is invalid.",
+    "fr": "L’expression cron est invalide."
+  },
+  "SCHEDULE_NEVER_FIRES": {
+    "en": "This schedule never runs because it has no matching date.",
+    "fr": "Cette planification ne s’exécute jamais, car aucune date ne correspond."
+  },
+  "SCHEDULE_TOO_FREQUENT": {
+    "en": "This schedule runs every {observed} minute(s), but your plan allows at most one run every {floor} minutes.",
+    "fr": "Cette planification s’exécute toutes les {observed} minute(s), mais votre offre autorise au maximum une exécution toutes les {floor} minutes."
+  },
+  "SCHEDULE_RUN_OVERLAP": {
+    "en": "Skipped: the previous run of this task was still in progress (overlap policy: FORBID).",
+    "fr": "Exécution ignorée : l’exécution précédente était toujours en cours (politique de chevauchement : FORBID)."
+  },
+  "SCHEDULE_RUN_TIMEOUT": {
+    "en": "Timed out after {seconds}s.",
+    "fr": "Délai dépassé après {seconds} s."
+  },
+  "SCHEDULE_STEP_EXIT": {
+    "en": "Step exited with code {code}.",
+    "fr": "L’étape s’est terminée avec le code {code}."
+  },
+  "SCHEDULE_RUN_INTERRUPTED": {
+    "en": "Run interrupted — the executor was restarted while this run was in progress.",
+    "fr": "Exécution interrompue : l’exécuteur a redémarré pendant son déroulement."
+  },
+  "SCHEDULE_LOG_TRUNCATED": {
+    "en": "… [truncated: {bytes} more bytes]",
+    "fr": "… [tronqué : {bytes} octets supplémentaires]"
+  },
+  "SCHEDULE_LOG_HEADER": {
+    "en": "scheduled task \"{label}\" ({kind}) — {count} step(s)",
+    "fr": "tâche planifiée « {label} » ({kind}) — {count} étape(s)"
+  },
+  "SCHEDULE_LOG_STEP_STOP": {
+    "en": "step failed with exit code {code}; stopping.",
+    "fr": "l’étape a échoué avec le code de sortie {code} ; arrêt."
+  },
+  "SCHEDULE_LOG_EXECUTION_ERROR": {
+    "en": "execution error: {error}",
+    "fr": "erreur d’exécution : {error}"
+  },
+  "SCHEDULE_KIND_DEPLOYMENT": {
+    "en": "deployment",
+    "fr": "déploiement"
+  },
+  "SCHEDULE_KIND_WORKFLOW": {
+    "en": "workflow",
+    "fr": "workflow"
+  },
+  "ROLLBACK_DISABLED": {
+    "en": "Database rollback is not enabled.",
+    "fr": "La restauration de la base de données n’est pas activée."
+  },
+  "DATABASE_PROJECT_MISSING": {
+    "en": "No database is configured for this project.",
+    "fr": "Aucune base de données n’est configurée pour ce projet."
+  },
+  "OBJECT_STORAGE_DISABLED": {
+    "en": "Object storage is not enabled.",
+    "fr": "Le stockage d’objets n’est pas activé."
+  },
+  "THUMBNAIL_NOT_FOUND": {
+    "en": "No thumbnail has been captured.",
+    "fr": "Aucune miniature n’a été capturée."
+  },
+  "ROLLBACK_PLAN_NOT_ELIGIBLE": {
+    "en": "Your plan does not include database rollback.",
+    "fr": "Votre offre n’inclut pas la restauration de la base de données."
+  },
+  "ROLLBACK_TARGET_IN_FUTURE": {
+    "en": "The restore target cannot be in the future.",
+    "fr": "La date cible de restauration ne peut pas se situer dans le futur."
+  },
+  "ROLLBACK_TARGET_TOO_OLD": {
+    "en": "The restore target is outside the {days}-day retention window.",
+    "fr": "La date cible de restauration se situe en dehors de la période de conservation de {days} jours."
+  },
+  "DEPLOY_PROVIDER_CONFIG_REQUIRED": {
+    "en": "Deploying to {provider} requires the following configuration: {missing}. Contact your administrator.",
+    "fr": "Le déploiement vers {provider} nécessite la configuration suivante : {missing}. Contactez votre administrateur."
+  },
+  "DEPLOY_PROVIDER_STATIC": {
+    "en": "Static hosting",
+    "fr": "Hébergement statique"
+  },
+  "DEPLOY_PROVIDER_SERVER": {
+    "en": "Server (Autoscale)",
+    "fr": "Serveur (mise à l’échelle automatique)"
+  },
+  "DEPLOY_SERVER_STARTING_RUNTIME": {
+    "en": "Server deploy: starting runtime for {host}",
+    "fr": "Déploiement serveur : démarrage de l’environnement d’exécution pour {host}."
+  },
+  "DEPLOY_SERVER_NIX_PIN": {
+    "en": "Server deploy: {filename} pins store generation {generation} (nixpkgs {revision})",
+    "fr": "Déploiement serveur : {filename} épingle la génération de stockage {generation} (nixpkgs {revision})."
+  },
+  "DEPLOY_SERVER_DECLARED_PLAN": {
+    "en": "Server deploy: declared (.ecode/deploy.json) — build \"{build}\", start \"{start}\"",
+    "fr": "Déploiement serveur : configuration déclarée (.ecode/deploy.json) — compilation « {build} », démarrage « {start} »."
+  },
+  "DEPLOY_SERVER_DETECTED_PLAN": {
+    "en": "Server deploy: detected {framework} — build \"{build}\", start \"{start}\"",
+    "fr": "Déploiement serveur : framework {framework} détecté — compilation « {build} », démarrage « {start} »."
+  },
+  "DEPLOY_SERVER_IMAGE_READY": {
+    "en": "Server deploy: image ready {image} in {seconds}s",
+    "fr": "Déploiement serveur : image {image} prête en {seconds} s."
+  },
+  "DEPLOY_SERVER_IMAGE_READY_WITH_SIZE": {
+    "en": "Server deploy: image ready {image} ({size} MB) in {seconds}s",
+    "fr": "Déploiement serveur : image {image} prête ({size} Mo) en {seconds} s."
+  },
+  "DEPLOY_SERVER_READY": {
+    "en": "Server deploy: ready at {url}; active replicas: {replicas}.",
+    "fr": "Déploiement serveur : prêt à l’adresse {url} ; instances actives : {replicas}."
+  },
+  "DEPLOY_SERVER_READY_LEGACY": {
+    "en": "Server deploy: ready with {replicas} replica(s) at {url}",
+    "fr": "Déploiement serveur : prêt à l’adresse {url} ; instances actives : {replicas}."
+  },
+  "DEPLOY_SERVER_READY_LEGACY_PERIOD": {
+    "en": "Server deploy: ready with {replicas} replica(s) at {url}.",
+    "fr": "Déploiement serveur : prêt à l’adresse {url} ; instances actives : {replicas}."
+  },
+  "DEPLOY_SERVER_STILL_STARTING": {
+    "en": "Server deploy: applied — still starting at {url} (this can take a few minutes on a cold node).",
+    "fr": "Déploiement serveur : appliqué — démarrage toujours en cours à l’adresse {url} (cela peut prendre quelques minutes sur un nœud froid)."
+  },
+  "DEPLOY_SERVER_FAILED": {
+    "en": "Server deploy: failed.",
+    "fr": "Échec du déploiement serveur."
+  },
+  "DEPLOY_WORKSPACE_UNREACHABLE": {
+    "en": "Workspace is starting — please retry. The build runs in your project workspace, which could not be reached in time.",
+    "fr": "L’espace de travail démarre — veuillez réessayer. La compilation s’exécute dans l’espace de travail du projet, qui n’a pas pu être joint à temps."
+  },
+  "DEPLOY_TARGET_SERVER_DETECTED": {
+    "en": "Detected a {framework} server.",
+    "fr": "Serveur {framework} détecté."
+  },
+  "DEPLOY_TARGET_STATIC_DETECTED": {
+    "en": "Static site detected (no server).",
+    "fr": "Site statique détecté (sans serveur)."
+  },
+  "DEPLOY_TARGET_UNDETERMINED": {
+    "en": "E-Code could not determine how to deploy this project. Add a start script or an index.html file, then try again.",
+    "fr": "E-Code n’a pas pu déterminer comment déployer ce projet. Ajoutez un script start ou un fichier index.html, puis réessayez."
+  },
+  "MACHINE_SIZE_UNKNOWN": {
+    "en": "Unknown machine size \"{requested}\".",
+    "fr": "Taille de machine « {requested} » inconnue."
+  },
+  "MACHINE_SIZE_PLAN_UNAVAILABLE": {
+    "en": "The {label} size is not available on the {planKey} plan.",
+    "fr": "La taille {label} n’est pas disponible avec l’offre {planKey}."
+  },
+  "MACHINE_SIZE_CAPACITY_UNAVAILABLE": {
+    "en": "The {label} size is temporarily unavailable due to capacity.",
+    "fr": "La taille {label} est temporairement indisponible en raison de la capacité actuelle."
+  },
+  "PROJECT_HOMEPAGE_PREVIEW_NO_FILES": {
+    "en": "No files yet",
+    "fr": "Aucun fichier pour le moment"
+  },
+  "PROJECT_HOMEPAGE_PREVIEW_CREATE_PROMPT": {
+    "en": "Open the E-Code IDE to create the homepage preview.",
+    "fr": "Ouvrez l’IDE E-Code pour créer l’aperçu de la page d’accueil."
+  },
+  "PROJECT_HOMEPAGE_PREVIEW_FILES_READY": {
+    "en": "Homepage files are ready in the E-Code IDE.",
+    "fr": "Les fichiers de la page d’accueil sont prêts dans l’IDE E-Code."
+  },
+  "PROJECT_HOMEPAGE_PREVIEW_SUBTITLE": {
+    "en": "Homepage preview",
+    "fr": "Aperçu de la page d’accueil"
+  },
+  "PROJECT_HOMEPAGE_PREVIEW_DETAIL": {
+    "en": "Latest project files",
+    "fr": "Derniers fichiers du projet"
+  },
+  "PROJECT_HOMEPAGE_PREVIEW_SOURCE_TYPE": {
+    "en": "E-Code project source",
+    "fr": "Source du projet E-Code"
+  },
+  "PROJECT_HOMEPAGE_PREVIEW_ARIA": {
+    "en": "{title} homepage preview",
+    "fr": "Aperçu de la page d’accueil de {title}"
+  },
+  "PROJECT_HOMEPAGE_PREVIEW_OPEN_IDE": {
+    "en": "Open in E-Code IDE",
+    "fr": "Ouvrir dans l’IDE E-Code"
+  },
+  "PROJECT_HOMEPAGE_PREVIEW_LATEST": {
+    "en": "Latest preview",
+    "fr": "Dernier aperçu"
+  },
+  "PROJECT_HOMEPAGE_PREVIEW_FILE_ONE": {
+    "en": "{count} file",
+    "fr": "{count} fichier"
+  },
+  "PROJECT_HOMEPAGE_PREVIEW_FILE_OTHER": {
+    "en": "{count} files",
+    "fr": "{count} fichiers"
+  },
+  "PROJECT_HOMEPAGE_PREVIEW_UPDATED": {
+    "en": "Updated {date}",
+    "fr": "Mis à jour le {date}"
+  },
+  "PROJECT_HOMEPAGE_PREVIEW_RECENT": {
+    "en": "recently",
+    "fr": "récemment"
+  },
+  "PROJECT_HOMEPAGE_PREVIEW_GENERATED": {
+    "en": "Generated from the current homepage files for this project.",
+    "fr": "Généré à partir des fichiers actuels de la page d’accueil de ce projet."
+  },
+  "PROJECT_STARTER_TEMPLATE_README": {
+    "en": "Created from Bolt template `{templateName}`.",
+    "fr": "Créé à partir du modèle Bolt `{templateName}`."
+  },
+  "PROJECT_STARTER_TEMPLATE_PROMPT": {
+    "en": "Created from Bolt template {templateName}.",
+    "fr": "Créé à partir du modèle Bolt {templateName}."
+  },
+  "PROJECT_STARTER_AI_DESCRIPTION": {
+    "en": "This project was created from an AI prompt. Application files are intentionally left for the IDE agent to produce as real generated output.",
+    "fr": "Ce projet a été créé à partir d’un prompt d’IA. Les fichiers de l’application sont volontairement laissés à l’agent de l’IDE afin qu’il produise un résultat réellement généré."
+  },
+  "PROJECT_STARTER_ARTIFACT_TYPE": {
+    "en": "Artifact type: {value}",
+    "fr": "Type d’artefact : {value}"
+  },
+  "PROJECT_STARTER_FRAMEWORK": {
+    "en": "Preferred framework: {value}",
+    "fr": "Framework privilégié : {value}"
+  },
+  "PROJECT_STARTER_MODEL": {
+    "en": "Requested model: {value}",
+    "fr": "Modèle demandé : {value}"
+  },
+  "PROJECT_STARTER_GENERATION_CONTEXT": {
+    "en": "Generation context:",
+    "fr": "Contexte de génération :"
+  },
+  "PROJECT_STARTER_PROMPT_LABEL": {
+    "en": "Prompt:",
+    "fr": "Prompt :"
+  },
+  "PROJECT_STARTER_BLANK_PROMPT": {
+    "en": "Start building your app with the E-Code agent.",
+    "fr": "Commencez à créer votre application avec l’agent E-Code."
+  },
+  "PROJECT_STARTER_EYEBROW": {
+    "en": "E-Code project",
+    "fr": "Projet E-Code"
+  },
+  "DEPLOY_STATIC_SNAPSHOT_STORED": {
+    "en": "Static deploy: snapshot stored at {path}",
+    "fr": "Déploiement statique : instantané stocké dans {path}."
+  },
+  "DEPLOY_STATIC_SNAPSHOT_FAILED": {
+    "en": "Static deploy: snapshot failed.",
+    "fr": "Déploiement statique : échec de la création de l’instantané."
+  },
+  "INTERNAL_NIX_GENERATION_REGISTRY_INVALID": {
+    "en": "The Nix generation registry is misconfigured.",
+    "fr": "Le registre de générations Nix est mal configuré."
+  },
+  "NIX_GENERATIONS_UNAVAILABLE": {
+    "en": "No Nix generation registry is configured.",
+    "fr": "Aucun registre de générations Nix n’est configuré."
+  },
+  "NIX_GENERATION_UNKNOWN": {
+    "en": "Unknown store generation \"{generation}\".",
+    "fr": "Génération de stockage inconnue « {generation} »."
+  },
+  "NIX_GENERATION_NONE_ACTIVE": {
+    "en": "No ACTIVE store generation is available in the registry.",
+    "fr": "Aucune génération de stockage ACTIVE n’est disponible dans le registre."
+  },
+  "SERVICE_SHUTDOWN_DEPLOYS_PAUSED": {
+    "en": "Service shutdown limit reached; deployments are paused.",
+    "fr": "La limite d’arrêt du service est atteinte ; les déploiements sont suspendus."
+  },
+  "DEPLOYMENT_IN_PROGRESS": {
+    "en": "A deployment is already in progress for this project",
+    "fr": "Un déploiement est déjà en cours pour ce projet."
+  },
+  "DEPLOYMENT_QUEUE_FAILED": {
+    "en": "Could not queue the build — please retry.",
+    "fr": "Impossible de mettre la compilation en file d’attente — veuillez réessayer."
+  },
+  "PLAN_WOULD_HAVE_NO_MODEL": {
+    "en": "Disabling this model would leave the \"{plan}\" plan with no active model",
+    "fr": "La désactivation de ce modèle laisserait l’offre « {plan} » sans modèle actif."
+  },
+  "SCHEDULED_TASK_PLAN_LIMIT": {
+    "en": "Your plan's scheduled-task limit per project is {maximum}.",
+    "fr": "Limite de tâches planifiées par projet avec votre offre : {maximum}."
+  },
+  "SCHEDULED_WORKFLOW_ID_REQUIRED": {
+    "en": "A workflowId is required.",
+    "fr": "Le champ workflowId est requis."
+  },
+  "SCHEDULED_TASK_RUN_NOT_FOUND": {
+    "en": "Scheduled task run not found",
+    "fr": "Exécution de tâche planifiée introuvable."
+  },
+  "CONNECTOR_PROVIDER_TOKEN_EXCHANGE_FAILED": {
+    "en": "We couldn’t connect this account. Please restart the connection.",
+    "fr": "Impossible de connecter ce compte. Veuillez relancer la connexion."
+  },
+  "CONNECTOR_PROVIDER_USER_INFO_FAILED": {
+    "en": "We couldn’t retrieve the connected account details. Please try again.",
+    "fr": "Impossible de récupérer les informations du compte connecté. Veuillez réessayer."
+  },
+  "CONNECTOR_PROVIDER_RESPONSE_MALFORMED": {
+    "en": "The provider response could not be processed. Please try again.",
+    "fr": "La réponse du fournisseur n’a pas pu être traitée. Veuillez réessayer."
+  },
+  "CONNECTOR_PROVIDER_UNSUPPORTED_OPERATION": {
+    "en": "This connection method is not available for this provider.",
+    "fr": "Cette méthode de connexion n’est pas disponible pour ce fournisseur."
+  },
+  "CONNECTOR_API_KEY_INVALID": {
+    "en": "This API key was rejected. Check the key and try again.",
+    "fr": "Cette clé API a été refusée. Vérifiez-la, puis réessayez."
+  },
+  "CONNECTOR_API_KEY_EXPIRED": {
+    "en": "This API key has expired. Create a new key and try again.",
+    "fr": "Cette clé API a expiré. Créez une nouvelle clé, puis réessayez."
+  },
+  "CONNECTOR_API_KEY_INSUFFICIENT_SCOPE": {
+    "en": "This API key does not have the required permissions. Update its permissions and try again.",
+    "fr": "Cette clé API ne dispose pas des autorisations requises. Mettez à jour ses autorisations, puis réessayez."
+  },
+  "CONNECTOR_PROVIDER_UNREACHABLE": {
+    "en": "The provider is temporarily unavailable. Please try again later.",
+    "fr": "Le fournisseur est temporairement indisponible. Veuillez réessayer plus tard."
+  },
+  "FETCH_FAILED": {
+    "en": "Request failed",
+    "fr": "La requête a échoué."
+  },
+  "ADMIN_HEALTH_PROBE_FAILED": {
+    "en": "Health check failed",
+    "fr": "La vérification de l’état du service a échoué."
+  },
+  "OAUTH_PROVIDER_URLS_NOT_CONFIGURED": {
+    "en": "OAuth provider {provider} is not configured (missing {tokenVariable} or {userInfoVariable})",
+    "fr": "Le fournisseur OAuth {provider} n’est pas configuré ({tokenVariable} ou {userInfoVariable} manque)."
+  },
+  "OAUTH_PROVIDER_CREDENTIALS_MISSING": {
+    "en": "OAuth provider {provider} is missing credentials (need {clientIdVariable} and {clientSecretVariable})",
+    "fr": "Les identifiants du fournisseur OAuth {provider} sont incomplets ({clientIdVariable} et {clientSecretVariable} sont requis)."
+  },
+  "SERVER_DEPLOY_BUILD_MANAGER_FAILED": {
+    "en": "The deployment build service could not run the app build.",
+    "fr": "Le service de compilation du déploiement n’a pas pu compiler l’application."
+  },
+  "SERVER_DEPLOY_MANAGER_START_FAILED": {
+    "en": "The deployment service could not start the server deployment.",
+    "fr": "Le service de déploiement n’a pas pu démarrer le déploiement serveur."
+  },
+  "CONTACT_REQUEST_EMAIL_SUBJECT": {
+    "en": "E-Code contact request - {topic} [{reference}]",
+    "fr": "Demande de contact E-Code — {topic} [{reference}]"
+  },
+  "SALES_REQUEST_EMAIL_SUBJECT": {
+    "en": "E-Code sales request - {company} [{reference}]",
+    "fr": "Demande commerciale E-Code — {company} [{reference}]"
+  },
+  "AI_CHANGES_COMMIT_MESSAGE": {
+    "en": "AI changes",
+    "fr": "Modifications par l’IA"
+  },
+  "TEMPLATE_REACT_SAAS_DESCRIPTION": {
+    "en": "a React + Vite + TypeScript SaaS starter with a landing page and a routing-ready structure",
+    "fr": "un projet SaaS de démarrage React + Vite + TypeScript avec une landing page et une structure prête pour le routage"
+  },
+  "TEMPLATE_REACT_SAAS_STEP_HERO": {
+    "en": "Update the hero copy and app name in `src/App.tsx`",
+    "fr": "Mettez à jour le texte du hero et le nom de l’application dans `src/App.tsx`"
+  },
+  "TEMPLATE_REACT_SAAS_STEP_ROUTE": {
+    "en": "Add your first page/route",
+    "fr": "Ajoutez votre première page ou route"
+  },
+  "TEMPLATE_REACT_SAAS_STEP_AUTH": {
+    "en": "Wire up auth and your data/API",
+    "fr": "Connectez l’authentification et vos données ou votre API"
+  },
+  "TEMPLATE_NEXT_DASHBOARD_DESCRIPTION": {
+    "en": "a Next.js dashboard starter with layout, navigation and example pages",
+    "fr": "un dashboard Next.js de démarrage avec une mise en page, une navigation et des pages d’exemple"
+  },
+  "TEMPLATE_NEXT_DASHBOARD_STEP_LAYOUT": {
+    "en": "Edit the dashboard layout and cards",
+    "fr": "Modifiez la mise en page et les cartes du dashboard"
+  },
+  "TEMPLATE_NEXT_DASHBOARD_STEP_PAGE": {
+    "en": "Add a new dashboard page",
+    "fr": "Ajoutez une nouvelle page au dashboard"
+  },
+  "TEMPLATE_NEXT_DASHBOARD_STEP_DATA": {
+    "en": "Connect a data source",
+    "fr": "Connectez une source de données"
+  },
+  "TEMPLATE_FASTIFY_API_DESCRIPTION": {
+    "en": "a Fastify + TypeScript API starter with example routes and validation",
+    "fr": "une API Fastify + TypeScript de démarrage avec des routes d’exemple et de la validation"
+  },
+  "TEMPLATE_FASTIFY_API_STEP_ROUTE": {
+    "en": "Add a new route/handler",
+    "fr": "Ajoutez une nouvelle route ou un nouveau handler"
+  },
+  "TEMPLATE_FASTIFY_API_STEP_SCHEMAS": {
+    "en": "Define request/response schemas",
+    "fr": "Définissez les schémas de requête et de réponse"
+  },
+  "TEMPLATE_FASTIFY_API_STEP_DATABASE": {
+    "en": "Connect a database",
+    "fr": "Connectez une base de données"
+  },
+  "TEMPLATE_AI_AGENT_DESCRIPTION": {
+    "en": "an AI agent starter wired for tool calls and streaming",
+    "fr": "un agent IA de démarrage configuré pour les appels d’outils et le streaming"
+  },
+  "TEMPLATE_AI_AGENT_STEP_TOOLS": {
+    "en": "Define your agent’s tools",
+    "fr": "Définissez les outils de votre agent"
+  },
+  "TEMPLATE_AI_AGENT_STEP_PROMPT": {
+    "en": "Adjust the system prompt",
+    "fr": "Ajustez le prompt système"
+  },
+  "TEMPLATE_AI_AGENT_STEP_PREVIEW": {
+    "en": "Try a prompt in the preview",
+    "fr": "Testez une instruction dans l’aperçu"
+  },
+  "TEMPLATE_LANDING_PAGE_DESCRIPTION": {
+    "en": "a polished landing-page starter with sections and responsive styles",
+    "fr": "une landing page soignée avec des sections et des styles responsive"
+  },
+  "TEMPLATE_LANDING_PAGE_STEP_SECTIONS": {
+    "en": "Edit the hero and feature sections",
+    "fr": "Modifiez les sections hero et fonctionnalités"
+  },
+  "TEMPLATE_LANDING_PAGE_STEP_BRAND": {
+    "en": "Swap in your brand colors and copy",
+    "fr": "Appliquez les couleurs et les textes de votre marque"
+  },
+  "TEMPLATE_LANDING_PAGE_STEP_CTA": {
+    "en": "Add a contact/CTA form",
+    "fr": "Ajoutez un formulaire de contact ou d’appel à l’action"
+  },
+  "TEMPLATE_MOBILE_DESCRIPTION": {
+    "en": "a mobile-first (Expo/React Native compatible) starter with touch-friendly navigation",
+    "fr": "un projet mobile-first compatible Expo et React Native avec une navigation tactile"
+  },
+  "TEMPLATE_MOBILE_STEP_HOME": {
+    "en": "Edit the home screen",
+    "fr": "Modifiez l’écran d’accueil"
+  },
+  "TEMPLATE_MOBILE_STEP_SCREEN": {
+    "en": "Add a new screen/tab",
+    "fr": "Ajoutez un nouvel écran ou onglet"
+  },
+  "TEMPLATE_MOBILE_STEP_DATA": {
+    "en": "Hook up your data",
+    "fr": "Connectez vos données"
+  },
+  "TEMPLATE_GENERIC_DESCRIPTION": {
+    "en": "a ready-to-run starter project",
+    "fr": "un projet de démarrage prêt à être exécuté"
+  },
+  "TEMPLATE_GENERIC_STEP_DESCRIBE": {
+    "en": "Describe the first change you want and I’ll edit the files",
+    "fr": "Décrivez la première modification souhaitée et je modifierai les fichiers"
+  },
+  "TEMPLATE_GENERIC_STEP_EDIT": {
+    "en": "Edit files directly in the editor",
+    "fr": "Modifiez directement les fichiers dans l’éditeur"
+  },
+  "TEMPLATE_GENERIC_STEP_DEPLOY": {
+    "en": "Deploy from the Deployments tab",
+    "fr": "Déployez depuis l’onglet Déploiements"
+  },
+  "TEMPLATE_WELCOME_HEADING": {
+    "en": "👋 Welcome to **{projectName}** — {description}.",
+    "fr": "👋 Bienvenue dans **{projectName}** — {description}."
+  },
+  "TEMPLATE_WELCOME_PREVIEW": {
+    "en": "The dev server starts automatically and the app appears in the **Webview** (Preview) — no clicking needed. Your files save automatically.",
+    "fr": "Le serveur de développement démarre automatiquement et l’application apparaît dans la **vue Web** (Aperçu), sans action de votre part. Vos fichiers sont enregistrés automatiquement."
+  },
+  "TEMPLATE_WELCOME_EDIT": {
+    "en": "To make changes, just describe what you want here and I’ll edit the files for you, or edit them directly in the editor on the left.",
+    "fr": "Pour effectuer des modifications, décrivez simplement ce que vous souhaitez ici et je modifierai les fichiers pour vous, ou modifiez-les directement dans l’éditeur à gauche."
+  },
+  "TEMPLATE_WELCOME_NEXT_STEPS": {
+    "en": "**Next steps:**",
+    "fr": "**Prochaines étapes :**"
+  },
+  "TEMPLATE_GETTING_STARTED_TITLE": {
+    "en": "{projectName} — getting started",
+    "fr": "{projectName} — bien démarrer"
+  },
+  "AI_TOOL_CONVERSATION_TITLE": {
+    "en": "Tool {toolName}",
+    "fr": "Outil {toolName}"
+  },
+  "DEPLOYMENT_ROLLED_BACK_TO": {
+    "en": "Rolled back to deployment {deploymentId} ({provider} buildId={buildId}, url={url})",
+    "fr": "Retour au déploiement {deploymentId} ({provider} buildId={buildId}, url={url})"
+  },
+  "DEPLOYMENT_ROLLBACK_DIGEST_REDEPLOYED": {
+    "en": "Rollback re-deployed the retained image by digest {pullRef} (revision-independent, I-REL-1; secretPolicy={secretPolicy})",
+    "fr": "Le rollback a redéployé l’image conservée par digest {pullRef} (indépendant de la révision, I-REL-1 ; secretPolicy={secretPolicy})"
+  },
+  "DEPLOYMENT_ROLLBACK_REFUSED": {
+    "en": "Rollback refused.",
+    "fr": "Le retour arrière du déploiement a été refusé."
+  },
+  "STRIPE_HEALTH_NOT_CONFIGURED": {
+    "en": "STRIPE_SECRET_KEY is not configured.",
+    "fr": "STRIPE_SECRET_KEY n’est pas configurée."
+  },
+  "STRIPE_HEALTH_LIVE_KEY_OK": {
+    "en": "Live key is valid.",
+    "fr": "La clé de production est valide."
+  },
+  "STRIPE_HEALTH_TEST_KEY_OK": {
+    "en": "Test key is valid.",
+    "fr": "La clé de test est valide."
+  },
+  "STRIPE_HEALTH_REQUEST_FAILED": {
+    "en": "Stripe could not be reached. Please try again.",
+    "fr": "Impossible de joindre Stripe. Veuillez réessayer."
+  },
+  "IP_ALLOWLIST_BLOCKED": {
+    "en": "IP address is not allowed for this organization",
+    "fr": "Cette adresse IP n’est pas autorisée pour cette organisation."
+  },
+  "API_KEY_EXPIRED": {
+    "en": "API key expired",
+    "fr": "La clé API a expiré."
+  },
+  "API_KEY_NO_USER": {
+    "en": "API key is not bound to a user",
+    "fr": "La clé API n’est associée à aucun utilisateur."
+  },
+  "USER_SUSPENDED": {
+    "en": "User is suspended",
+    "fr": "Le compte utilisateur est suspendu."
+  },
+  "API_KEY_OWNER_NOT_MEMBER": {
+    "en": "API key owner is no longer a member of the organization",
+    "fr": "Le propriétaire de la clé API n’est plus membre de l’organisation."
+  },
+  "API_KEY_SCOPE_MISSING": {
+    "en": "API key is missing the '{value1}' scope",
+    "fr": "La portée « {value1} » manque à la clé API."
+  },
+  "PLATFORM_ADMIN_MFA_REQUIRED": {
+    "en": "MFA required for platform administrators",
+    "fr": "L’authentification multifacteur est requise pour les administrateurs de la plateforme."
+  },
+  "RBAC_PERMISSION_MISSING": {
+    "en": "Missing permission: {value1}",
+    "fr": "Autorisation manquante : {value1}"
+  },
+  "RBAC_ANY_PERMISSION_MISSING": {
+    "en": "Missing one of permissions: {value1}",
+    "fr": "Au moins l’une de ces autorisations est requise : {value1}"
+  },
+  "RBAC_ROLE_PERMISSION_ESCALATION": {
+    "en": "Cannot grant a role with permissions you do not hold: {value1}",
+    "fr": "Impossible d’attribuer un rôle comportant des autorisations que vous ne détenez pas : {value1}"
+  },
+  "MEMORY_SCOPE_OWNER_REQUIRED": {
+    "en": "{value1} memory requires an organizationId or projectId",
+    "fr": "La mémoire de portée {value1} nécessite un organizationId ou un projectId."
+  },
+  "AI_COMMAND_NOT_ALLOWLISTED": {
+    "en": "AI shell command \"{value1}\" is not allow-listed",
+    "fr": "La commande shell de l’IA « {value1} » ne figure pas dans la liste d’autorisation."
+  },
+  "INTERNAL_CORS_ORIGINS_REQUIRED": {
+    "en": "Production startup blocked: API_CORS_ORIGINS must list explicit HTTPS origins (got: {value1}). Set API_CORS_ORIGINS=https://app.example.com,https://admin.example.com before boot.",
+    "fr": "Démarrage en production bloqué : API_CORS_ORIGINS doit contenir des origines HTTPS explicites (valeur reçue : {value1}). Définissez API_CORS_ORIGINS=https://app.example.com,https://admin.example.com avant le démarrage."
+  },
+  "STATIC_DEPLOY_INVALID_ID": {
+    "en": "Invalid deployment id",
+    "fr": "Identifiant de déploiement invalide."
+  },
+  "STATIC_DEPLOY_ARTIFACT_NOT_FOUND": {
+    "en": "Static deployment artifact not found",
+    "fr": "Artefact de déploiement statique introuvable."
+  },
+  "INVALID_PATH_ENCODING": {
+    "en": "Invalid path encoding",
+    "fr": "Encodage du chemin invalide."
+  },
+  "STATIC_DEPLOY_PATH_OUTSIDE": {
+    "en": "Path is outside the deployment artifact",
+    "fr": "Le chemin se trouve en dehors de l’artefact de déploiement."
+  },
+  "STATIC_DEPLOY_FILE_NOT_FOUND": {
+    "en": "File not found in deployment",
+    "fr": "Fichier introuvable dans le déploiement."
+  },
+  "AUTH_EMAIL_EXISTS": {
+    "en": "Email already registered",
+    "fr": "Cette adresse e-mail est déjà enregistrée."
+  },
+  "AUTH_INVALID_CREDENTIALS": {
+    "en": "Invalid credentials",
+    "fr": "Adresse e-mail ou mot de passe incorrect."
+  },
+  "AUTH_MFA_CODE_REQUIRED": {
+    "en": "MFA code is required",
+    "fr": "Le code MFA est requis."
+  },
+  "AUTH_INVALID_MFA_CODE": {
+    "en": "Invalid MFA code",
+    "fr": "Code MFA invalide."
+  },
+  "AUTH_SSO_REQUIRED": {
+    "en": "Your organization requires single sign-on. Please sign in through your identity provider.",
+    "fr": "Votre organisation impose l’authentification unique. Connectez-vous avec votre fournisseur d’identité."
+  },
+  "AUTH_INVALID_VERIFICATION_TOKEN": {
+    "en": "Invalid verification token",
+    "fr": "Jeton de vérification invalide."
+  },
+  "AUTH_INVALID_RESET_TOKEN": {
+    "en": "Invalid password reset token",
+    "fr": "Jeton de réinitialisation du mot de passe invalide."
+  },
+  "OAUTH_PROVIDER_UNKNOWN": {
+    "en": "Unsupported sign-in provider",
+    "fr": "Fournisseur de connexion non pris en charge."
+  },
+  "OAUTH_STATE_INVALID": {
+    "en": "Invalid or expired OAuth state",
+    "fr": "État OAuth invalide ou expiré."
+  },
+  "OAUTH_PROVIDER_DISABLED": {
+    "en": "This sign-in provider is disabled",
+    "fr": "Ce fournisseur de connexion est désactivé."
+  },
+  "OAUTH_RESOLVE_FAILED": {
+    "en": "OAuth resolve failed",
+    "fr": "La connexion OAuth a échoué."
+  },
+  "OAUTH_SESSION_FAILED": {
+    "en": "OAuth login persistence failed",
+    "fr": "La session de connexion OAuth n’a pas pu être enregistrée."
+  },
+  "OAUTH_ACCOUNT_ALREADY_LINKED": {
+    "en": "This {value1} account is already linked to another user.",
+    "fr": "Ce compte {value1} est déjà associé à un autre utilisateur."
+  },
+  "OIDC_STATE_INVALID": {
+    "en": "Invalid or expired OIDC state",
+    "fr": "État OIDC invalide ou expiré."
+  },
+  "OIDC_RESOLVE_FAILED": {
+    "en": "OIDC resolve failed",
+    "fr": "La connexion OIDC a échoué."
+  },
+  "SAML_PROVIDER_NOT_FOUND": {
+    "en": "SAML provider is not configured",
+    "fr": "Aucun fournisseur SAML n’est configuré."
+  },
+  "SAML_INVALID_SIGNATURE": {
+    "en": "Invalid SAML assertion signature",
+    "fr": "Signature de l’assertion SAML invalide."
+  },
+  "SAML_ASSERTION_REPLAYED": {
+    "en": "SAML assertion already used",
+    "fr": "Cette assertion SAML a déjà été utilisée."
+  },
+  "SAML_EMAIL_DOMAIN_UNVERIFIED": {
+    "en": "SAML assertion email domain is not a verified domain for this organization",
+    "fr": "Le domaine de l’adresse e-mail de l’assertion SAML n’est pas vérifié pour cette organisation."
+  },
+  "ADMIN_RATE_LIMITED": {
+    "en": "Too many admin requests",
+    "fr": "Trop de requêtes d’administration."
+  },
+  "RESOURCE_NOT_FOUND": {
+    "en": "Resource not found",
+    "fr": "Ressource introuvable."
+  },
+  "ACCOUNT_DELETION_CANNOT_CANCEL": {
+    "en": "The account deletion request can no longer be canceled.",
+    "fr": "La demande de suppression du compte ne peut plus être annulée."
+  },
+  "AGENT_MEMORY_NOT_FOUND": {
+    "en": "Memory not found",
+    "fr": "Mémoire introuvable."
+  },
+  "CONNECTOR_PROVIDER_UNSUPPORTED": {
+    "en": "Unsupported connector provider: {value1}",
+    "fr": "Fournisseur de connecteur non pris en charge : {value1}"
+  },
+  "CONNECTOR_API_KEY_CANNOT_START_OAUTH": {
+    "en": "Provider {value1} is an API-key connector and cannot start an OAuth flow.",
+    "fr": "Le fournisseur {value1} utilise une clé API et ne peut pas démarrer de flux OAuth."
+  },
+  "ACCOUNT_HAS_NO_ORGANIZATION": {
+    "en": "Account is not a member of any organization.",
+    "fr": "Ce compte n’est membre d’aucune organisation."
+  },
+  "CONNECTOR_OAUTH_CREDENTIALS_NOT_CONFIGURED": {
+    "en": "{value1} integration OAuth credentials are not configured on this server.",
+    "fr": "Les identifiants OAuth de l’intégration {value1} ne sont pas configurés sur ce serveur."
+  },
+  "CONNECTOR_API_KEY_CANNOT_COMPLETE_OAUTH": {
+    "en": "Provider {value1} is an API-key connector and cannot complete an OAuth callback.",
+    "fr": "Le fournisseur {value1} utilise une clé API et ne peut pas traiter de callback OAuth."
+  },
+  "CONNECTOR_OAUTH_STATE_REJECTED": {
+    "en": "OAuth state {value1}",
+    "fr": "État OAuth {value1}"
+  },
+  "OAUTH_STATE_USER_MISMATCH": {
+    "en": "OAuth state does not belong to the current user",
+    "fr": "L’état OAuth n’appartient pas à l’utilisateur actuel."
+  },
+  "CONNECTOR_OAUTH_CANNOT_USE_API_KEY": {
+    "en": "Provider {value1} is an OAuth connector and cannot be configured with an API key.",
+    "fr": "Le fournisseur {value1} utilise OAuth et ne peut pas être configuré avec une clé API."
+  },
+  "CONNECTOR_DISABLED_BY_ADMIN": {
+    "en": "The {value1} connector is disabled by an administrator.",
+    "fr": "Le connecteur {value1} a été désactivé par un administrateur."
+  },
+  "CONNECTOR_CLIENT_TOKEN_READ_UNAVAILABLE": {
+    "en": "Client token read is not available for {value1}.",
+    "fr": "La lecture du jeton côté client n’est pas disponible pour {value1}."
+  },
+  "NOT_ORGANIZATION_MEMBER": {
+    "en": "Not a member of this organization",
+    "fr": "Vous n’êtes pas membre de cette organisation."
+  },
+  "CONNECTION_NOT_FOUND": {
+    "en": "Connection not found",
+    "fr": "Connexion introuvable."
+  },
+  "RECONNECTION_ALERT_NOT_FOUND": {
+    "en": "Reconnection alert not found",
+    "fr": "Alerte de reconnexion introuvable."
+  },
+  "NOTIFICATION_NOT_FOUND": {
+    "en": "Notification not found",
+    "fr": "Notification introuvable."
+  },
+  "API_KEY_CREATE_ADMIN_SCOPE_REQUIRED": {
+    "en": "Creating API keys requires the 'admin' scope",
+    "fr": "La création de clés API nécessite la portée « admin »."
+  },
+  "API_KEY_NOT_FOUND": {
+    "en": "API key not found",
+    "fr": "Clé API introuvable."
+  },
+  "GITHUB_NOT_CONNECTED": {
+    "en": "GitHub is not connected for this account.",
+    "fr": "GitHub n’est pas connecté à ce compte."
+  },
+  "GITHUB_TOKEN_UNAVAILABLE": {
+    "en": "GitHub token unavailable",
+    "fr": "Jeton GitHub indisponible."
+  },
+  "GITHUB_TOKEN_DECRYPT_FAILED": {
+    "en": "GitHub token could not be decrypted",
+    "fr": "Le jeton GitHub n’a pas pu être déchiffré."
+  },
+  "GITHUB_TOKEN_REJECTED": {
+    "en": "GitHub rejected the stored access token",
+    "fr": "GitHub a refusé le jeton d’accès enregistré."
+  },
+  "GITHUB_REQUEST_FORBIDDEN": {
+    "en": "GitHub forbade the request (rate limit, scope, or org policy)",
+    "fr": "GitHub a interdit la requête (limite de débit, portée ou politique de l’organisation)."
+  },
+  "GITHUB_UPSTREAM_HTTP_ERROR": {
+    "en": "GitHub upstream returned HTTP {value1}",
+    "fr": "GitHub a renvoyé le statut HTTP {value1}."
+  },
+  "GITHUB_REPOSITORIES_RESPONSE_MALFORMED": {
+    "en": "GitHub returned an unexpected repos payload",
+    "fr": "GitHub a renvoyé une réponse de dépôts inattendue."
+  },
+  "PROXY_PATH_REQUIRED": {
+    "en": "path is required",
+    "fr": "Le chemin est requis."
+  },
+  "PROXY_METHOD_UNSUPPORTED": {
+    "en": "Unsupported HTTP method",
+    "fr": "Méthode HTTP non prise en charge."
+  },
+  "PROXY_PATH_MUST_BE_ABSOLUTE": {
+    "en": "path must start with /",
+    "fr": "Le chemin doit commencer par /."
+  },
+  "PROXY_PATH_INVALID": {
+    "en": "invalid path",
+    "fr": "Chemin invalide."
+  },
+  "PROXY_QUERY_VALUE_INVALID": {
+    "en": "query values must be primitive",
+    "fr": "Les valeurs de la requête doivent être primitives."
+  },
+  "GITHUB_JSON_RESPONSE_MALFORMED": {
+    "en": "GitHub returned a malformed JSON response",
+    "fr": "GitHub a renvoyé une réponse JSON incorrecte."
+  },
+  "CONNECTOR_DISABLED": {
+    "en": "The {value1} connector is disabled.",
+    "fr": "Le connecteur {value1} est désactivé."
+  },
+  "CONNECTOR_NOT_LINKED": {
+    "en": "{value1} is not connected for this account.",
+    "fr": "{value1} n’est pas connecté à ce compte."
+  },
+  "CONNECTOR_TOKEN_UNAVAILABLE": {
+    "en": "{value1} token unavailable",
+    "fr": "Jeton {value1} indisponible."
+  },
+  "CONNECTOR_TOKEN_DECRYPT_FAILED": {
+    "en": "{value1} token could not be decrypted",
+    "fr": "Le jeton {value1} n’a pas pu être déchiffré."
+  },
+  "CONNECTOR_TOKEN_REJECTED": {
+    "en": "{value1} rejected the stored access token",
+    "fr": "{value1} a refusé le jeton d’accès enregistré."
+  },
+  "CONNECTOR_REQUEST_FORBIDDEN": {
+    "en": "{value1} forbade the request (rate limit, scope, or policy)",
+    "fr": "{value1} a interdit la requête (limite de débit, portée ou politique)."
+  },
+  "CONNECTOR_UPSTREAM_HTTP_ERROR": {
+    "en": "{value1} upstream returned HTTP {value2}",
+    "fr": "{value1} a renvoyé le statut HTTP {value2}."
+  },
+  "PROXY_PATH_HOST_FORBIDDEN": {
+    "en": "path must stay on the provider host",
+    "fr": "Le chemin doit rester sur l’hôte du fournisseur."
+  },
+  "CONNECTOR_JSON_RESPONSE_MALFORMED": {
+    "en": "{value1} returned a malformed JSON response",
+    "fr": "{value1} a renvoyé une réponse JSON incorrecte."
+  },
+  "GITHUB_WEBHOOK_SECRET_NOT_CONFIGURED": {
+    "en": "GitHub webhook signing secret is not configured on this server.",
+    "fr": "Le secret de signature du webhook GitHub n’est pas configuré sur ce serveur."
+  },
+  "WEBHOOK_RAW_BODY_UNAVAILABLE": {
+    "en": "Raw body unavailable; the preParsing hook did not capture this request.",
+    "fr": "Le corps brut de la requête est indisponible ; le hook preParsing ne l’a pas capturé."
+  },
+  "GITHUB_WEBHOOK_SIGNATURE_HEADER_INVALID": {
+    "en": "Missing or malformed X-Hub-Signature-256 header.",
+    "fr": "L’en-tête X-Hub-Signature-256 est absent ou incorrect."
+  },
+  "WEBHOOK_SIGNATURE_INVALID": {
+    "en": "Webhook signature is invalid.",
+    "fr": "Signature du webhook invalide."
+  },
+  "WEBHOOK_JSON_INVALID": {
+    "en": "Webhook body is not valid JSON.",
+    "fr": "Le corps du webhook n’est pas un JSON valide."
+  },
+  "RESEND_WEBHOOK_SECRET_NOT_CONFIGURED": {
+    "en": "Resend webhook signing secret is not configured on this server.",
+    "fr": "Le secret de signature du webhook Resend n’est pas configuré sur ce serveur."
+  },
+  "RESEND_WEBHOOK_HEADERS_MISSING": {
+    "en": "Missing svix-id, svix-timestamp, or svix-signature header.",
+    "fr": "L’un des en-têtes svix-id, svix-timestamp ou svix-signature est absent."
+  },
+  "RESEND_WEBHOOK_TIMESTAMP_INVALID": {
+    "en": "Invalid svix-timestamp header.",
+    "fr": "L’en-tête svix-timestamp est invalide."
+  },
+  "WEBHOOK_TIMESTAMP_OUTSIDE_TOLERANCE": {
+    "en": "Webhook timestamp is outside the allowed tolerance.",
+    "fr": "L’horodatage du webhook se trouve hors de la tolérance autorisée."
+  },
+  "RESEND_WEBHOOK_SECRET_MALFORMED": {
+    "en": "Resend webhook signing secret is malformed.",
+    "fr": "Le secret de signature du webhook Resend est incorrect."
+  },
+  "WORKSPACE_OR_PROJECT_ID_REQUIRED": {
+    "en": "workspaceId or projectId is required",
+    "fr": "workspaceId ou projectId est requis."
+  },
+  "SERVICE_SHUTDOWN_WORKSPACE_START_PAUSED": {
+    "en": "Service shutdown limit reached; workspace start is paused.",
+    "fr": "La limite d’arrêt du service est atteinte ; le démarrage de l’espace de travail est suspendu."
+  },
+  "REGULAR_EXPRESSION_INVALID": {
+    "en": "Invalid regular expression",
+    "fr": "Expression régulière invalide."
+  },
+  "PREVIEW_PORT_INVALID": {
+    "en": "Invalid preview port",
+    "fr": "Port d’aperçu invalide."
+  },
+  "PREVIEW_PATH_INVALID": {
+    "en": "Invalid preview path",
+    "fr": "Chemin d’aperçu invalide."
+  },
+  "PREVIEW_TIMEOUT": {
+    "en": "Preview request timed out",
+    "fr": "Le délai de la requête d’aperçu a expiré."
+  },
+  "PREVIEW_UNREACHABLE": {
+    "en": "Preview is unreachable",
+    "fr": "L’aperçu est inaccessible."
+  },
+  "AUTH_SOLE_ORGANIZATION_OWNER": {
+    "en": "You are the sole owner of an organization with other members. Transfer ownership or delete the organization first.",
+    "fr": "Vous êtes l’unique propriétaire d’une organisation qui compte d’autres membres. Transférez-en la propriété ou supprimez-la d’abord."
+  },
+  "AUTH_SESSION_REFRESH_MISSING": {
+    "en": "No active session to refresh",
+    "fr": "Aucune session active à actualiser."
+  },
+  "AUTH_LINKED_PROVIDER_NOT_FOUND": {
+    "en": "No such linked provider",
+    "fr": "Fournisseur associé introuvable."
+  },
+  "AUTH_ONLY_SIGN_IN_METHOD": {
+    "en": "Cannot unlink your only sign-in method. Set a password or link another provider first.",
+    "fr": "Impossible de dissocier votre seul moyen de connexion. Définissez d’abord un mot de passe ou associez un autre fournisseur."
+  },
+  "AUTH_LOGOUT_SESSION_MISSING": {
+    "en": "No active session to log out",
+    "fr": "Aucune session active à fermer."
+  },
+  "AUTH_REAUTH_SESSION_REQUIRED": {
+    "en": "Re-auth requires an active session",
+    "fr": "La réauthentification nécessite une session active."
+  },
+  "AUTH_MFA_ALREADY_ENABLED": {
+    "en": "MFA is already enabled; disable it before re-enrolling",
+    "fr": "La MFA est déjà activée ; désactivez-la avant de procéder à une nouvelle inscription."
+  },
+  "AUTH_MFA_SETUP_NOT_STARTED": {
+    "en": "MFA setup is not started",
+    "fr": "La configuration de la MFA n’a pas été démarrée."
+  },
+  "AUTH_MFA_NOT_ENABLED": {
+    "en": "MFA is not enabled",
+    "fr": "La MFA n’est pas activée."
+  },
+  "ORGANIZATION_NAME_OR_SLUG_TAKEN": {
+    "en": "An organization with this name or slug already exists. Pick a different name.",
+    "fr": "Une organisation portant ce nom ou ce slug existe déjà. Choisissez un autre nom."
+  },
+  "ORGANIZATION_LAST_OWNER_CANNOT_DEMOTE": {
+    "en": "Cannot demote the last organization owner",
+    "fr": "Impossible de rétrograder le dernier propriétaire de l’organisation."
+  },
+  "MEMBERSHIP_NOT_FOUND": {
+    "en": "Membership not found",
+    "fr": "Adhésion introuvable."
+  },
+  "ORGANIZATION_OWNER_REQUIRED_FOR_TRANSFER": {
+    "en": "Only an organization owner can transfer ownership",
+    "fr": "Seul un propriétaire de l’organisation peut en transférer la propriété."
+  },
+  "ORGANIZATION_ALREADY_OWNER": {
+    "en": "You already own this organization",
+    "fr": "Vous êtes déjà propriétaire de cette organisation."
+  },
+  "ORGANIZATION_LAST_OWNER_CANNOT_REMOVE": {
+    "en": "Cannot remove the last organization owner",
+    "fr": "Impossible de retirer le dernier propriétaire de l’organisation."
+  },
+  "INVITATION_NOT_FOUND": {
+    "en": "Invitation not found",
+    "fr": "Invitation introuvable."
+  },
+  "INVITATION_RESEND_TOO_SOON": {
+    "en": "This invitation was resent less than a minute ago. Try again shortly.",
+    "fr": "Cette invitation a été renvoyée il y a moins d’une minute. Réessayez dans quelques instants."
+  },
+  "INVITATION_TOKEN_INVALID": {
+    "en": "Invalid invitation token",
+    "fr": "Jeton d’invitation invalide."
+  },
+  "INVITATION_EMAIL_MISMATCH": {
+    "en": "Invitation was issued to a different email",
+    "fr": "Cette invitation a été envoyée à une autre adresse e-mail."
+  },
+  "INVITATION_EMAIL_VERIFICATION_REQUIRED": {
+    "en": "Verify your email before accepting an invitation",
+    "fr": "Vérifiez votre adresse e-mail avant d’accepter une invitation."
+  },
+  "ORGANIZATION_DOMAIN_NOT_FOUND": {
+    "en": "Domain not found",
+    "fr": "Domaine introuvable."
+  },
+  "SYSTEM_ROLE_RESERVED": {
+    "en": "System roles cannot be overwritten",
+    "fr": "Les rôles système ne peuvent pas être remplacés."
+  },
+  "RBAC_PERMISSION_ESCALATION": {
+    "en": "Cannot grant permissions you do not hold: {value1}",
+    "fr": "Impossible d’accorder des autorisations que vous ne détenez pas : {value1}"
+  },
+  "ORGANIZATION_IDENTITY_PROVIDER_NOT_CONFIGURED": {
+    "en": "No {value1} provider is configured for this organization.",
+    "fr": "Aucun fournisseur {value1} n’est configuré pour cette organisation."
+  },
+  "SCIM_TOKEN_NOT_FOUND": {
+    "en": "SCIM token not found",
+    "fr": "Jeton SCIM introuvable."
+  },
+  "SIEM_WEBHOOK_NOT_FOUND": {
+    "en": "SIEM webhook not found",
+    "fr": "Webhook SIEM introuvable."
+  },
+  "SIEM_WEBHOOK_SECRET_UNREADABLE": {
+    "en": "The webhook signing secret could not be read.",
+    "fr": "Le secret de signature du webhook n’a pas pu être lu."
+  },
+  "PACKAGE_NAME_INVALID": {
+    "en": "Invalid package name(s): {value1}",
+    "fr": "Noms de paquets non valides : {value1}"
+  },
+  "IDE_STATE_MODIFIED_BY_ANOTHER_SESSION": {
+    "en": "IDE state was modified by another session",
+    "fr": "L’état de l’IDE a été modifié par une autre session."
+  },
+  "CONSENSUS_RECORD_NOT_FOUND": {
+    "en": "Consensus record not found",
+    "fr": "Enregistrement de consensus introuvable."
+  },
+  "SKILL_WORKSPACE_NOT_CREATED": {
+    "en": "This project has no workspace yet. Open the project once, then install workspace-scoped skills.",
+    "fr": "Ce projet ne dispose pas encore d’espace de travail. Ouvrez le projet une première fois, puis installez les skills associés à l’espace de travail."
+  },
+  "SKILL_GITHUB_REPOSITORY_SLUG_INVALID": {
+    "en": "ownerRepo must be a valid \"owner/repo\" GitHub slug",
+    "fr": "ownerRepo doit être un slug GitHub « owner/repo » valide."
+  },
+  "SKILL_ALREADY_INSTALLED": {
+    "en": "'{value1}' is already installed",
+    "fr": "« {value1} » est déjà installé."
+  },
+  "SKILL_PUBLIC_MANIFEST_NOT_FOUND": {
+    "en": "'{value1}' has no public SKILL.md/AGENTS.md/README.md — it may be private or not exist.",
+    "fr": "« {value1} » ne contient aucun fichier public SKILL.md, AGENTS.md ou README.md ; le dépôt est peut-être privé ou inexistant."
+  },
+  "SKILL_GITHUB_UNREACHABLE": {
+    "en": "Could not reach GitHub to read '{value1}'. Try again shortly.",
+    "fr": "Impossible de joindre GitHub pour lire « {value1} ». Réessayez dans quelques instants."
+  },
+  "SKILL_CATALOG_SUMMARY_MANIFEST_MISSING": {
+    "en": "No SKILL.md, AGENTS.md, or README.md was found in the repository; the catalog summary was used instead.",
+    "fr": "Aucun fichier SKILL.md, AGENTS.md ou README.md n’a été trouvé dans le dépôt ; le résumé du catalogue a été utilisé à la place."
+  },
+  "SKILL_CATALOG_SUMMARY_REPOSITORY_UNREACHABLE": {
+    "en": "The repository could not be reached; the catalog summary was used instead.",
+    "fr": "Le dépôt n’a pas pu être joint ; le résumé du catalogue a été utilisé à la place."
+  },
+  "SKILL_INSTALLED_FROM_REPOSITORY": {
+    "en": "Installed from {value1}",
+    "fr": "Installé depuis {value1}"
+  },
+  "SKILL_SECURITY_AUDIT_REJECTED": {
+    "en": "'{value1}' was refused by the security audit and was not installed.",
+    "fr": "« {value1} » a été refusé par l’audit de sécurité et n’a pas été installé."
+  },
+  "SKILL_REPOSITORY_SLUG_INVALID": {
+    "en": "ownerRepo must be a valid \"owner/repo\" slug",
+    "fr": "ownerRepo doit être un slug « owner/repo » valide."
+  },
+  "SKILL_NOT_INSTALLED": {
+    "en": "'{value1}' is not installed",
+    "fr": "« {value1} » n’est pas installé."
+  },
+  "SKILL_CANNOT_ENABLE": {
+    "en": "'{value1}' {value2} and cannot be enabled. Uninstall and re-install it to reconsider.",
+    "fr": "« {value1} » {value2} et ne peut pas être activé. Désinstallez-le, puis réinstallez-le pour lancer une nouvelle évaluation."
+  },
+  "SKILL_CANNOT_APPROVE": {
+    "en": "'{value1}' cannot be approved (it is revoked or was rejected by the audit).",
+    "fr": "« {value1} » ne peut pas être approuvé, car il a été révoqué ou refusé par l’audit."
+  },
+  "PROJECT_ENV_NOT_FOUND": {
+    "en": "Environment variable not found",
+    "fr": "Variable d’environnement introuvable."
+  },
+  "AUTH_SCAFFOLD_NOT_ENABLED": {
+    "en": "Add Authentication is not enabled",
+    "fr": "La fonctionnalité Ajouter l’authentification n’est pas activée."
+  },
+  "PROJECT_SECRET_NOT_FOUND": {
+    "en": "Secret not found",
+    "fr": "Secret introuvable."
+  },
+  "COLLABORATOR_NOT_ORGANIZATION_MEMBER": {
+    "en": "Collaborator must be an organization member",
+    "fr": "Le collaborateur doit être membre de l’organisation."
+  },
+  "COLLABORATOR_NOT_FOUND": {
+    "en": "Collaborator not found",
+    "fr": "Collaborateur introuvable."
+  },
+  "COLLABORATOR_PRESENCE_EVICTION_FORBIDDEN": {
+    "en": "Cannot evict another collaborator's presence",
+    "fr": "Impossible de retirer la présence d’un autre collaborateur."
+  },
+  "COLLABORATION_VIEWER_READ_ONLY": {
+    "en": "Viewer collaborators cannot edit files",
+    "fr": "Les collaborateurs disposant du rôle Lecteur ne peuvent pas modifier les fichiers."
+  },
+  "COLLABORATION_DOCUMENT_VERSION_CONFLICT": {
+    "en": "Document version conflict",
+    "fr": "Conflit de version du document."
+  },
+  "COLLABORATION_DOCUMENT_CONTENDED": {
+    "en": "Document is being edited too frequently; please retry",
+    "fr": "Le document est modifié trop fréquemment. Veuillez réessayer."
+  },
+  "SHARE_LINK_NOT_FOUND": {
+    "en": "Share link not found",
+    "fr": "Lien de partage introuvable."
+  },
+  "CHAT_SHARE_NOT_FOUND": {
+    "en": "Chat share not found",
+    "fr": "Partage de conversation introuvable."
+  },
+  "COLLABORATION_EVENT_UNSUPPORTED": {
+    "en": "Unsupported collaboration event: {value1}",
+    "fr": "Événement de collaboration non pris en charge : {value1}"
+  },
+  "REMIX_SCAN_MATERIALIZED_SECRETS": {
+    "en": "SCANNING found {value1} materialized secret value(s) in the clone",
+    "fr": "L’analyse a détecté {value1} valeur(s) de secret matérialisée(s) dans le clone."
+  },
+  "REMIX_MATERIALIZED_SECRET_BLOCKED": {
+    "en": "Remix blocked: a secret value materialized into the clone.",
+    "fr": "Remix bloqué : une valeur de secret a été matérialisée dans le clone."
+  },
+  "GALLERY_LISTING_NOT_FOUND": {
+    "en": "Listing not found",
+    "fr": "Publication introuvable."
+  },
+  "GALLERY_REMIX_NOT_ALLOWED": {
+    "en": "The author has not allowed this app to be remixed.",
+    "fr": "L’auteur n’a pas autorisé le remix de cette application."
+  },
+  "GALLERY_LICENSE_MISSING": {
+    "en": "This listing has no explicit license — remixing is closed by default.",
+    "fr": "Cette publication ne comporte aucune licence explicite ; le remix est donc désactivé par défaut."
+  },
+  "GALLERY_SOURCE_LICENSE_NO_DERIVATIVES": {
+    "en": "The source license \"{value1}\" does not grant derivative-work rights.",
+    "fr": "La licence source « {value1} » n’accorde pas le droit de créer des œuvres dérivées."
+  },
+  "GALLERY_SOURCE_LICENSE_SPDX_UNRECOGNIZED": {
+    "en": "The source license \"{value1}\" is not a recognised SPDX id that allows derivative works.",
+    "fr": "La licence source « {value1} » n’est pas un identifiant SPDX reconnu autorisant les œuvres dérivées."
+  },
+  "GALLERY_LICENSE_ACCEPTANCE_REQUIRED": {
+    "en": "Remixing requires accepting the license terms first.",
+    "fr": "Vous devez d’abord accepter les conditions de la licence pour effectuer un remix."
+  },
+  "GALLERY_SOURCE_UNAVAILABLE": {
+    "en": "Source project unavailable",
+    "fr": "Projet source indisponible."
+  },
+  "GALLERY_PINNED_RELEASE_UNAVAILABLE": {
+    "en": "Pinned release unavailable",
+    "fr": "Version épinglée indisponible."
+  },
+  "GALLERY_REMIX_LICENSE_REQUIRED": {
+    "en": "A remixable listing requires an explicit license (id + text). Default is non-remixable.",
+    "fr": "Une publication remixable nécessite une licence explicite, avec son identifiant et son texte. Par défaut, le remix est désactivé."
+  },
+  "GALLERY_REMIX_RIGHTS_CONFIRMATION_REQUIRED": {
+    "en": "A remixable listing requires explicit rights confirmation and PII policy acceptance.",
+    "fr": "Une publication remixable nécessite la confirmation explicite des droits et l’acceptation de la politique relative aux données personnelles."
+  },
+  "GALLERY_LICENSE_NO_DERIVATIVES": {
+    "en": "License \"{value1}\" does not grant derivative-work rights — it cannot be remixed.",
+    "fr": "La licence « {value1} » n’accorde pas le droit de créer des œuvres dérivées ; le remix est impossible."
+  },
+  "GALLERY_LICENSE_SPDX_UNRECOGNIZED": {
+    "en": "License \"{value1}\" is not a recognised SPDX id that allows derivative works.",
+    "fr": "La licence « {value1} » n’est pas un identifiant SPDX reconnu autorisant les œuvres dérivées."
+  },
+  "GALLERY_SOURCE_NOT_FOUND": {
+    "en": "Source project not found",
+    "fr": "Projet source introuvable."
+  },
+  "GALLERY_SNAPSHOT_PROJECT_MISMATCH": {
+    "en": "Pinned snapshot does not belong to the source project",
+    "fr": "L’instantané épinglé n’appartient pas au projet source."
+  },
+  "GALLERY_SLUG_TAKEN": {
+    "en": "A listing with that slug already exists",
+    "fr": "Une publication utilisant ce slug existe déjà."
+  },
+  "AGENT_MODE_UNAVAILABLE_FOR_PLAN": {
+    "en": "The {value1} mode is not available on the {value2} plan.",
+    "fr": "Le mode {value1} n’est pas disponible avec l’offre {value2}."
+  },
+  "AGENT_TURBO_REQUIRES_POWER": {
+    "en": "Turbo is only available in Power mode.",
+    "fr": "Turbo est disponible uniquement en mode Power."
+  },
+  "AGENT_TURBO_NOT_ENABLED": {
+    "en": "Turbo is not enabled for this organization.",
+    "fr": "Turbo n’est pas activé pour cette organisation."
+  },
+  "AGENT_HIGH_EFFORT_UNAVAILABLE_IN_LITE": {
+    "en": "High effort is not available in Lite mode.",
+    "fr": "L’effort élevé n’est pas disponible en mode Lite."
+  },
+  "AGENT_HIGH_EFFORT_UNAVAILABLE_FOR_PLAN": {
+    "en": "High effort is not available on the {value1} plan.",
+    "fr": "L’effort élevé n’est pas disponible avec l’offre {value1}."
+  },
+  "STRIPE_ANNUAL_PRICE_NOT_CONFIGURED": {
+    "en": "Annual Stripe price is not configured for this plan",
+    "fr": "Le tarif annuel Stripe n’est pas configuré pour cette offre."
+  },
+  "STRIPE_PLAN_PRICE_NOT_CONFIGURED": {
+    "en": "Stripe price is not configured for this plan",
+    "fr": "Le tarif Stripe n’est pas configuré pour cette offre."
+  },
+  "STRIPE_CREDIT_PACK_PRICE_NOT_CONFIGURED": {
+    "en": "Stripe price for {value1} pack is not configured.",
+    "fr": "Le tarif Stripe du pack {value1} n’est pas configuré."
+  },
+  "STRIPE_WEBHOOK_PAYLOAD_INVALID": {
+    "en": "Invalid Stripe webhook payload",
+    "fr": "Payload du webhook Stripe invalide."
+  },
+  "AGENT_ROUTING_CARD_INVALID": {
+    "en": "Invalid routing card",
+    "fr": "Carte de routage invalide."
+  },
+  "AGENT_ROUTING_NEGATIVE_MARGIN_CONFIRMATION_REQUIRED": {
+    "en": "Negative margin on: {value1}. Confirm explicitly to publish anyway.",
+    "fr": "Marge négative pour : {value1}. Confirmez explicitement pour publier malgré tout."
+  },
+  "STRIPE_WEBHOOK_FAILURE_NOT_FOUND": {
+    "en": "No unresolved webhook failure with this event id",
+    "fr": "Aucun échec de webhook non résolu ne correspond à cet identifiant d’événement."
+  },
+  "IMPERSONATION_SELF_FORBIDDEN": {
+    "en": "You cannot impersonate your own account.",
+    "fr": "Vous ne pouvez pas usurper votre propre compte."
+  },
+  "IMPERSONATION_ADMIN_FORBIDDEN": {
+    "en": "You cannot impersonate another platform administrator.",
+    "fr": "Vous ne pouvez pas usurper le compte d’un autre administrateur de la plateforme."
+  },
+  "IMPERSONATION_USER_SUSPENDED": {
+    "en": "The target user is suspended.",
+    "fr": "L’utilisateur ciblé est suspendu."
+  },
+  "IMPERSONATION_SESSION_MISSING": {
+    "en": "No impersonation session is active.",
+    "fr": "Aucune session d’usurpation n’est active."
+  },
+  "ABUSE_EVENT_NOT_FOUND": {
+    "en": "Abuse event not found",
+    "fr": "Événement d’abus introuvable."
+  },
+  "ABUSE_EVENT_USER_NOT_WARNABLE": {
+    "en": "No user can be warned for this abuse event.",
+    "fr": "Aucun utilisateur ne peut être averti pour cet événement d’abus."
+  },
+  "ABUSE_EVENT_USER_NOT_SUSPENDABLE": {
+    "en": "No user can be suspended for this abuse event.",
+    "fr": "Aucun utilisateur ne peut être suspendu pour cet événement d’abus."
+  },
+  "GIT_REMOTE_CONFIGURATION_UNSUPPORTED": {
+    "en": "Git remote configuration is not supported by this runtime.",
+    "fr": "La configuration du dépôt distant Git n’est pas prise en charge par cet environnement d’exécution."
+  },
+  "GIT_REMOTE_REMOVAL_UNSUPPORTED": {
+    "en": "Git remote removal is not supported by this runtime.",
+    "fr": "La suppression du dépôt distant Git n’est pas prise en charge par cet environnement d’exécution."
+  },
+  "GIT_RESTORE_UNSUPPORTED": {
+    "en": "Restore not supported",
+    "fr": "La restauration n’est pas prise en charge."
+  },
+  "GIT_MARK_RESOLVED_UNSUPPORTED": {
+    "en": "Mark resolved not supported",
+    "fr": "Le marquage comme résolu n’est pas pris en charge."
+  },
+  "DEPLOYMENT_CANNOT_CANCEL_STATUS": {
+    "en": "Deployment cannot be canceled in status {value1}",
+    "fr": "Le déploiement ne peut pas être annulé avec le statut {value1}."
+  },
+  "DEPLOYMENT_ALREADY_PRODUCTION": {
+    "en": "Deployment is already in production",
+    "fr": "Le déploiement est déjà en production."
+  },
+  "DEPLOYMENT_READY_REQUIRED_TO_PUBLISH": {
+    "en": "Only a READY deployment can be published",
+    "fr": "Seul un déploiement au statut READY peut être publié."
+  },
+  "DEPLOYMENT_REDEPLOYING_FROM": {
+    "en": "Redeploying from {value1}",
+    "fr": "Redéploiement depuis {value1}"
+  },
+  "DEPLOYMENT_ROLLBACK_TARGET_NOT_SUCCESSFUL": {
+    "en": "Can only roll back to a deployment that built successfully",
+    "fr": "Le retour à une version antérieure est possible uniquement vers un déploiement dont la compilation a réussi."
+  },
+  "DEPLOYMENT_SERVER_ROLLBACK_DISABLED": {
+    "en": "Server rollback is disabled (SERVER_DEPLOY_ROLLBACK_FROM_DIGEST=0) — refusing a URL-only rollback that would re-deploy nothing.",
+    "fr": "Le rollback serveur est désactivé (SERVER_DEPLOY_ROLLBACK_FROM_DIGEST=0) ; un rollback limité à l’URL, qui ne redéploierait rien, est refusé."
+  },
+  "ADMIN_TICKET_NOT_FOUND": {
+    "en": "Ticket not found.",
+    "fr": "Ticket introuvable."
+  },
+  "SCIM_TOKEN_INVALID": {
+    "en": "Invalid SCIM token",
+    "fr": "Jeton SCIM invalide."
+  },
+  "SCIM_EMAIL_DOMAIN_UNVERIFIED": {
+    "en": "SCIM userName email domain is not a verified domain for this organization",
+    "fr": "Le domaine de l’adresse e-mail SCIM userName n’est pas vérifié pour cette organisation."
+  },
+  "SCIM_USER_NOT_FOUND": {
+    "en": "User is not a member of this organization",
+    "fr": "L’utilisateur n’est pas membre de cette organisation."
+  },
+  "SCIM_LAST_OWNER_CANNOT_DEACTIVATE": {
+    "en": "Cannot deactivate the last organization owner",
+    "fr": "Impossible de désactiver le dernier propriétaire de l’organisation."
+  },
+  "SERVER_RUNTIME_NO_PACKAGE_JSON": {
+    "en": "No package.json found — cannot determine how to start this app. You can also declare {\"run\": \"<command>\"} in .ecode/deploy.json.",
+    "fr": "Aucun fichier package.json n’a été trouvé ; impossible de déterminer comment démarrer cette application. Vous pouvez aussi déclarer {\"run\": \"<command>\"} dans .ecode/deploy.json."
+  },
+  "SERVER_RUNTIME_INVALID_PACKAGE_JSON": {
+    "en": "package.json is not valid JSON. You can also declare {\"run\": \"<command>\"} in .ecode/deploy.json.",
+    "fr": "package.json ne contient pas de JSON valide. Vous pouvez aussi déclarer {\"run\": \"<command>\"} dans .ecode/deploy.json."
+  },
+  "SERVER_RUNTIME_NO_START_COMMAND": {
+    "en": "No server start command could be detected. Add a start script to package.json or declare {\"run\": \"<command>\"} in .ecode/deploy.json.",
+    "fr": "Aucune commande de démarrage du serveur n’a pu être détectée. Ajoutez un script start à package.json ou déclarez {\"run\": \"<command>\"} dans .ecode/deploy.json."
+  },
+  "SERVER_RUNTIME_STATIC_ONLY": {
+    "en": "This project appears to be a static app. Deploy it as a Static site, or declare {\"run\": \"<command>\"} in .ecode/deploy.json for a server deployment.",
+    "fr": "Ce projet semble être une application statique. Déployez-le en tant que site statique ou déclarez {\"run\": \"<command>\"} dans .ecode/deploy.json pour un déploiement serveur."
+  },
+  "DEPLOY_SERVER_DECLARED_CONFIG_NOTE": {
+    "en": "Run/build declared by .ecode/deploy.json.",
+    "fr": "Commandes de démarrage et de compilation déclarées dans .ecode/deploy.json."
+  },
+  "DEPLOY_LOG_QUEUED": {
+    "en": "Queued {provider} deployment for {project}",
+    "fr": "Déploiement {provider} de {project} mis en file d’attente"
+  },
+  "DEPLOY_LOG_ENVIRONMENT": {
+    "en": "Environment: {environment}",
+    "fr": "Environnement : {environment}"
+  },
+  "DEPLOY_LOG_FRAMEWORK": {
+    "en": "Framework detected: {framework}",
+    "fr": "Framework détecté : {framework}"
+  },
+  "DEPLOY_LOG_BUILD_COMMAND": {
+    "en": "Build command: {command}",
+    "fr": "Commande de compilation : {command}"
+  },
+  "DEPLOY_LOG_OUTPUT_DIRECTORY": {
+    "en": "Output directory: {directory}",
+    "fr": "Répertoire de sortie : {directory}"
+  },
+  "DEPLOY_LOG_ENVIRONMENT_VARIABLES": {
+    "en": "Environment variables: {variables}",
+    "fr": "Variables d’environnement : {variables}"
+  },
+  "DEPLOY_LOG_ENVIRONMENT_VARIABLES_NONE": {
+    "en": "Environment variables: none",
+    "fr": "Variables d’environnement : aucune"
+  },
+  "DEPLOY_LOG_INJECTED_SECRETS": {
+    "en": "Injected user-scoped secrets: {secrets}",
+    "fr": "Secrets de l’utilisateur injectés : {secrets}"
+  },
+  "DEPLOY_LOG_INJECTED_SECRETS_NONE": {
+    "en": "Injected user-scoped secrets: none",
+    "fr": "Secrets de l’utilisateur injectés : aucun"
+  },
+  "DEPLOY_LOG_CLOUD_RUN_SOURCE": {
+    "en": "Cloud Run: created source artifact from workspace",
+    "fr": "Cloud Run : artefact source créé depuis l’espace de travail"
+  },
+  "DEPLOY_LOG_CLOUD_RUN_IMAGE": {
+    "en": "Cloud Run: pushed image to isolated artifact registry",
+    "fr": "Cloud Run : image envoyée vers le registre d’artefacts isolé"
+  },
+  "DEPLOY_LOG_CLOUD_RUN_SERVICE": {
+    "en": "Cloud Run: deployed service without platform secrets",
+    "fr": "Cloud Run : service déployé sans secrets de la plateforme"
+  },
+  "DEPLOY_LOG_STATIC_EXPORT": {
+    "en": "Static export: uploaded immutable artifact bundle",
+    "fr": "Export statique : bundle d’artefacts immuable envoyé"
+  },
+  "DEPLOY_LOG_PROVIDER_CREATED": {
+    "en": "{provider}: provider deployment created through scoped integration",
+    "fr": "{provider} : déploiement du fournisseur créé via l’intégration à portée limitée"
+  },
+  "DEPLOY_LOG_READY": {
+    "en": "Deployment ready: {url}",
+    "fr": "Déploiement prêt : {url}"
+  },
+  "DEPLOY_PROVIDER_STATUS_RESPONSE": {
+    "en": "{provider}: status check responded with {status}",
+    "fr": "{provider} : la vérification du statut a renvoyé {status}"
+  },
+  "DEPLOY_PROVIDER_STATUS_FAILED": {
+    "en": "{provider}: status check failed: {detail}",
+    "fr": "{provider} : échec de la vérification du statut : {detail}"
+  },
+  "STATIC_BUILD_PROJECT_STORAGE_MISSING": {
+    "en": "Project storage directory not found at {path}.",
+    "fr": "Répertoire de stockage du projet introuvable à l’emplacement {path}."
+  },
+  "STATIC_BUILD_PACKAGE_JSON_MISSING": {
+    "en": "No package.json found in {path}. Static deploys require a buildable project.",
+    "fr": "Aucun fichier package.json n’a été trouvé dans {path}. Un déploiement statique nécessite un projet compilable."
+  },
+  "STATIC_BUILD_DIRECTORY": {
+    "en": "Static deploy: building in {path}",
+    "fr": "Déploiement statique : compilation dans {path}"
+  },
+  "STATIC_BUILD_ISOLATED_HOME": {
+    "en": "Static deploy: using isolated build home {path}",
+    "fr": "Déploiement statique : utilisation du répertoire de compilation isolé {path}"
+  },
+  "STATIC_BUILD_PACKAGE_MANAGER": {
+    "en": "Static deploy: detected {manager} (lockfile-based)",
+    "fr": "Déploiement statique : {manager} détecté à partir du lockfile"
+  },
+  "STATIC_BUILD_INSTALLING_DEPENDENCIES": {
+    "en": "Static deploy: installing dependencies ({command})",
+    "fr": "Déploiement statique : installation des dépendances ({command})"
+  },
+  "STATIC_BUILD_INSTALL_FAILED": {
+    "en": "Static deploy: dependency install failed (exit {detail}).",
+    "fr": "Déploiement statique : échec de l’installation des dépendances (sortie {detail})."
+  },
+  "STATIC_BUILD_REUSING_NODE_MODULES": {
+    "en": "Static deploy: reusing existing node_modules",
+    "fr": "Déploiement statique : réutilisation du répertoire node_modules existant"
+  },
+  "STATIC_BUILD_COMMAND_INVALID": {
+    "en": "Static deploy: invalid build command \"{command}\"",
+    "fr": "Déploiement statique : commande de compilation « {command} » invalide"
+  },
+  "STATIC_BUILD_RUNNING": {
+    "en": "Static deploy: running build ({command})",
+    "fr": "Déploiement statique : exécution de la compilation ({command})"
+  },
+  "STATIC_BUILD_FAILED": {
+    "en": "Static deploy: build failed (exit {detail}).",
+    "fr": "Déploiement statique : échec de la compilation (sortie {detail})."
+  },
+  "STATIC_BUILD_OUTPUT_ESCAPES_PROJECT": {
+    "en": "Static deploy: output directory escapes the project root ({directory}).",
+    "fr": "Déploiement statique : le répertoire de sortie se trouve hors de la racine du projet ({directory})."
+  },
+  "STATIC_BUILD_OUTPUT_MISSING": {
+    "en": "Static deploy: build succeeded but {directory}/ is missing in {path}.",
+    "fr": "Déploiement statique : la compilation a réussi, mais {directory}/ est absent de {path}."
+  },
+  "STATIC_BUILD_INDEX_MISSING": {
+    "en": "Static deploy: {directory}/index.html was not produced. Add a static entrypoint or change outputDirectory.",
+    "fr": "Déploiement statique : {directory}/index.html n’a pas été produit. Ajoutez un point d’entrée statique ou modifiez outputDirectory."
+  },
+  "STATIC_BUILD_ARTIFACT_TOO_LARGE": {
+    "en": "Static deploy: artifact ({size} MB) exceeds limit ({limit} MB).",
+    "fr": "Déploiement statique : l’artefact ({size} Mo) dépasse la limite ({limit} Mo)."
+  },
+  "STATIC_BUILD_ARTIFACT_SIZE": {
+    "en": "Static deploy: artifact size {size} KB",
+    "fr": "Déploiement statique : taille de l’artefact {size} Ko"
+  },
+  "STATIC_BUILD_SUCCEEDED": {
+    "en": "Static deploy: build succeeded, artifact at {directory}/",
+    "fr": "Déploiement statique : compilation réussie, artefact disponible dans {directory}/"
+  },
+  "WORKSPACE_BUILD_PREPARING_SANDBOX": {
+    "en": "Workspace deploy: preparing isolated build sandbox ({sandbox}); the live workspace is left untouched",
+    "fr": "Déploiement depuis l’espace de travail : préparation du bac à sable de compilation isolé ({sandbox}) ; l’espace de travail actif reste inchangé"
+  },
+  "WORKSPACE_BUILD_PREPARE_UNREACHABLE": {
+    "en": "Workspace deploy: could not reach the workspace to prepare the build sandbox ({detail}).",
+    "fr": "Déploiement depuis l’espace de travail : impossible de joindre l’espace de travail pour préparer le bac à sable de compilation ({detail})."
+  },
+  "WORKSPACE_BUILD_PREPARE_FAILED": {
+    "en": "Workspace deploy: failed to prepare the isolated build sandbox (exit {exitCode}).",
+    "fr": "Déploiement depuis l’espace de travail : échec de la préparation du bac à sable de compilation isolé (sortie {exitCode})."
+  },
+  "WORKSPACE_BUILD_DIRECTORY": {
+    "en": "Workspace deploy: building in pod (cwd {path})",
+    "fr": "Déploiement depuis l’espace de travail : compilation dans le pod (cwd {path})"
+  },
+  "WORKSPACE_BUILD_REACT_GUARD_SKIPPED": {
+    "en": "Workspace deploy: React-18 manifest guard skipped ({detail}).",
+    "fr": "Déploiement depuis l’espace de travail : contrôle du manifeste React 18 ignoré ({detail})."
+  },
+  "WORKSPACE_BUILD_INSTALLING_DEPENDENCIES": {
+    "en": "Workspace deploy: installing dependencies ({command})",
+    "fr": "Déploiement depuis l’espace de travail : installation des dépendances ({command})"
+  },
+  "WORKSPACE_BUILD_INSTALL_UNREACHABLE": {
+    "en": "Workspace deploy: could not reach the workspace to install ({detail}).",
+    "fr": "Déploiement depuis l’espace de travail : impossible de joindre l’espace de travail pour installer les dépendances ({detail})."
+  },
+  "WORKSPACE_BUILD_INSTALL_FAILED": {
+    "en": "Workspace deploy: dependency install failed (exit {detail}).",
+    "fr": "Déploiement depuis l’espace de travail : échec de l’installation des dépendances (sortie {detail})."
+  },
+  "WORKSPACE_BUILD_COMMAND_INVALID": {
+    "en": "Workspace deploy: invalid build command \"{command}\".",
+    "fr": "Déploiement depuis l’espace de travail : commande de compilation « {command} » invalide."
+  },
+  "WORKSPACE_BUILD_RUNNING": {
+    "en": "Workspace deploy: running build ({command})",
+    "fr": "Déploiement depuis l’espace de travail : exécution de la compilation ({command})"
+  },
+  "WORKSPACE_BUILD_AGENT_LOST": {
+    "en": "Workspace deploy: lost the workspace during build ({detail}).",
+    "fr": "Déploiement depuis l’espace de travail : connexion à l’espace de travail perdue pendant la compilation ({detail})."
+  },
+  "WORKSPACE_BUILD_TIMEOUT": {
+    "en": "Workspace deploy: build timed out.",
+    "fr": "Déploiement depuis l’espace de travail : délai de compilation dépassé."
+  },
+  "WORKSPACE_BUILD_FAILED": {
+    "en": "Workspace deploy: build failed (exit {exitCode}).",
+    "fr": "Déploiement depuis l’espace de travail : échec de la compilation (sortie {exitCode})."
+  },
+  "WORKSPACE_BUILD_OUTPUT_READ_FAILED": {
+    "en": "Workspace deploy: could not read {directory}/ from the workspace ({detail}).",
+    "fr": "Déploiement depuis l’espace de travail : impossible de lire {directory}/ dans l’espace de travail ({detail})."
+  },
+  "WORKSPACE_BUILD_OUTPUT_MISSING": {
+    "en": "Workspace deploy: the build produced no {directory}/ output. Check the build command and output directory.",
+    "fr": "Déploiement depuis l’espace de travail : la compilation n’a produit aucun contenu dans {directory}/. Vérifiez la commande de compilation et le répertoire de sortie."
+  },
+  "WORKSPACE_BUILD_NOT_STATIC": {
+    "en": "This project isn't a static site: the build did not produce {directory}/index.html. Full-stack apps (a Node/SSR server, an API, a database) can't be served as static files — deploy them as a server app instead, or set the output directory to your static build folder.",
+    "fr": "Ce projet n’est pas un site statique : la compilation n’a pas produit {directory}/index.html. Les applications avec interface et serveur (serveur Node/SSR, API ou base de données) ne peuvent pas être servies comme des fichiers statiques ; déployez-les comme une application serveur ou définissez le répertoire de sortie sur le dossier de compilation statique."
+  },
+  "WORKSPACE_BUILD_ARTIFACT_TOO_LARGE": {
+    "en": "Workspace deploy: artifact ({size} MB) exceeds the {limit} MB limit.",
+    "fr": "Déploiement depuis l’espace de travail : l’artefact ({size} Mo) dépasse la limite de {limit} Mo."
+  },
+  "WORKSPACE_BUILD_FILE_TOO_LARGE": {
+    "en": "Workspace deploy: {file} is {size} MB, over the {limit} MB per-file transfer limit. Split or externalize large assets, then redeploy.",
+    "fr": "Déploiement depuis l’espace de travail : {file} occupe {size} Mo et dépasse la limite de transfert de {limit} Mo par fichier. Fractionnez ou externalisez les ressources volumineuses, puis redéployez."
+  },
+  "WORKSPACE_BUILD_FILE_READ_FAILED": {
+    "en": "Workspace deploy: failed to read {file} from the workspace ({detail}).",
+    "fr": "Déploiement depuis l’espace de travail : impossible de lire {file} dans l’espace de travail ({detail})."
+  },
+  "WORKSPACE_BUILD_PATH_OUTSIDE_ARTIFACT": {
+    "en": "Workspace deploy: refusing to write outside the artifact directory ({file}).",
+    "fr": "Déploiement depuis l’espace de travail : écriture refusée en dehors du répertoire de l’artefact ({file})."
+  },
+  "WORKSPACE_BUILD_ARTIFACT_READY": {
+    "en": "Workspace deploy: pulled {count} file(s); artifact ready.",
+    "fr": "Déploiement depuis l’espace de travail : {count} fichier(s) récupéré(s) ; artefact prêt."
+  },
+  "WORKSPACE_BUILD_REACT_GUARD_REPAIRED": {
+    "en": "[prepare] [react18-guard] forced {dependencies} to {range} (React-18 client API in sources)",
+    "fr": "[préparation] [react18-guard] dépendances {dependencies} forcées à {range} (API client React 18 détectée dans les sources)"
+  },
+  "SERVER_TRANSFER_SNAPSHOT_UPLOADED": {
+    "en": "[snapshot] uploaded {bytes} bytes to object storage",
+    "fr": "[instantané] {bytes} octets envoyés vers le stockage d’objets"
+  },
+  "SERVER_TRANSFER_OBJECT_STORAGE_UNAVAILABLE": {
+    "en": "[snapshot] object-storage transfer unavailable ({detail}); using inline transfer",
+    "fr": "[instantané] transfert vers le stockage d’objets indisponible ({detail}) ; utilisation du transfert intégré"
+  },
+  "SERVER_TRANSFER_IMAGE_CONTEXT": {
+    "en": "[snapshot] image context: {bytes} bytes (deps included)",
+    "fr": "[instantané] contexte de l’image : {bytes} octets (dépendances incluses)"
+  },
+  "SERVER_TRANSFER_REVISION_ARCHIVE": {
+    "en": "[revision] {bytes} bytes sha256={sha256}",
+    "fr": "[révision] {bytes} octets sha256={sha256}"
+  },
+  "SERVER_TRANSFER_REVISION_UPLOADED": {
+    "en": "[revision] uploaded",
+    "fr": "[révision] envoyée"
+  },
+  "APP_LIMIT_EXCEEDED": {
+    "en": "Concurrent published-app limit reached ({cap}).",
+    "fr": "La limite de {cap} applications publiées simultanément est atteinte."
+  },
+  "PLAN_ACTIVE_PUBLISHED_PROJECT_LIMIT_ONE": {
+    "en": "Your plan allows one published project at a time. Upgrade your plan to publish more projects.",
+    "fr": "Votre forfait permet de publier un seul projet à la fois. Passez à un forfait supérieur pour publier d’autres projets."
+  },
+  "PLAN_ACTIVE_PUBLISHED_PROJECT_LIMIT_OTHER": {
+    "en": "Your plan allows {cap} published projects at a time. Upgrade your plan to publish more projects.",
+    "fr": "Votre forfait permet de publier {cap} projets à la fois. Passez à un forfait supérieur pour publier d’autres projets."
+  },
+  "QUOTA_EXCEEDED": {
+    "en": "Quota exceeded for {quotaKey}",
+    "fr": "Le quota {quotaKey} est dépassé."
+  },
+  "STRIPE_SIGNATURE_MISSING": {
+    "en": "Missing Stripe signature",
+    "fr": "La signature Stripe est absente."
+  },
+  "STRIPE_SIGNATURE_HEADER_INVALID": {
+    "en": "Invalid Stripe signature header",
+    "fr": "L’en-tête de signature Stripe est invalide."
+  },
+  "STRIPE_SIGNATURE_EXPIRED": {
+    "en": "Expired Stripe signature",
+    "fr": "La signature Stripe a expiré."
+  },
+  "STRIPE_SIGNATURE_INVALID": {
+    "en": "Invalid Stripe signature",
+    "fr": "La signature Stripe est invalide."
+  },
+  "STRIPE_REQUEST_FAILED": {
+    "en": "Stripe request failed: {status}",
+    "fr": "La requête Stripe a échoué (statut {status})."
+  },
+  "STRIPE_PING_FAILED": {
+    "en": "Stripe ping failed",
+    "fr": "La vérification de l’état de Stripe a échoué."
+  },
+  "STRIPE_WEBHOOK_PROCESSING_FAILED": {
+    "en": "Stripe webhook processing failed. Check the server logs for diagnostic details.",
+    "fr": "Le traitement du webhook Stripe a échoué. Consultez les journaux serveur pour obtenir le diagnostic."
+  },
+  "CAPACITY_NODE_COUNT_WARNING": {
+    "en": "Node pool \"{nodePool}\" is at {currentNodes}/{maxNodes} nodes ({percentage}% of the autoscaling max). Approaching the ceiling — consider raising the max node count.",
+    "fr": "Le pool de nœuds « {nodePool} » utilise {currentNodes}/{maxNodes} nœuds ({percentage} % du maximum d’autoscaling). Il approche de la limite ; envisagez d’augmenter le nombre maximal de nœuds."
+  },
+  "CAPACITY_NODE_COUNT_CRITICAL": {
+    "en": "Node pool \"{nodePool}\" is at {currentNodes}/{maxNodes} nodes ({percentage}% of the autoscaling max). The pool cannot scale further — raise the max node count.",
+    "fr": "Le pool de nœuds « {nodePool} » utilise {currentNodes}/{maxNodes} nœuds ({percentage} % du maximum d’autoscaling). Il ne peut plus s’étendre ; augmentez le nombre maximal de nœuds."
+  },
+  "CAPACITY_RESERVED_CPU_PRESSURE": {
+    "en": "Reserved CPU on \"{nodePool}\" is {percentage}% of allocatable — new workspaces may fail to schedule. Free idle workspaces or raise the autoscaling max.",
+    "fr": "Le CPU réservé sur « {nodePool} » atteint {percentage} % de la capacité allouable ; la planification de nouveaux espaces de travail risque d’échouer. Libérez les espaces de travail inactifs ou augmentez le maximum d’autoscaling."
+  },
+  "AGENT_MEMORY_EMBEDDING_FAILED": {
+    "en": "The embedding request failed.",
+    "fr": "La requête de vectorisation a échoué."
+  },
+  "AGENT_MEMORY_EMBEDDING_INVALID": {
+    "en": "The embedding provider returned an invalid vector.",
+    "fr": "Le fournisseur de vectorisation a renvoyé un vecteur invalide."
+  },
+  "AGENT_MEMORY_SCOPE_LIMIT_REACHED": {
+    "en": "The agent memory scope limit has been reached.",
+    "fr": "La limite de mémoire de l’agent pour ce périmètre est atteinte."
+  },
+  "MCP_ALIAS_FORMAT_INVALID": {
+    "en": "The alias may contain only letters, numbers, dashes, and underscores.",
+    "fr": "L’alias ne peut contenir que des lettres, des chiffres, des tirets et des traits de soulignement."
+  },
+  "MCP_SLUG_FORMAT_INVALID": {
+    "en": "The slug must contain only lowercase letters, numbers, and dashes.",
+    "fr": "Le slug ne peut contenir que des lettres minuscules, des chiffres et des tirets."
+  },
+  "MCP_PATCH_EMPTY": {
+    "en": "Include at least one field to update.",
+    "fr": "Indiquez au moins un champ à mettre à jour."
+  },
+  "DOMAIN_TXT_RECORD_MISSING": {
+    "en": "No TXT record was found at {host}. Add a TXT record with the value \"{expected}\", then try again after DNS propagation.",
+    "fr": "Aucun enregistrement TXT n’a été trouvé sur {host}. Ajoutez un enregistrement TXT avec la valeur « {expected} », puis réessayez après la propagation DNS."
+  },
+  "DOMAIN_DNS_LOOKUP_FAILED": {
+    "en": "The DNS lookup for {host} failed ({detail}). Try again shortly.",
+    "fr": "La recherche DNS pour {host} a échoué ({detail}). Réessayez dans quelques instants."
+  },
+  "DOMAIN_TXT_VALUE_MISMATCH": {
+    "en": "The TXT record at {host} does not match the expected verification value. {count} record(s) were found, but none matched \"{expected}\".",
+    "fr": "L’enregistrement TXT sur {host} ne correspond pas à la valeur de vérification attendue. {count} enregistrement(s) ont été trouvés, mais aucun ne correspond à « {expected} »."
+  },
+  "PROJECT_LOCK_TIMEOUT": {
+    "en": "Timed out while waiting for the project lock for {projectId}.",
+    "fr": "Le délai d’attente du verrou du projet {projectId} est dépassé."
+  },
+  "ROLLBACK_NO_MANIFEST": {
+    "en": "No release manifest recorded for this deployment target — refusing a blind rollback.",
+    "fr": "Aucun manifeste de version n’est enregistré pour cette cible de déploiement ; le retour arrière à l’aveugle est refusé."
+  },
+  "ROLLBACK_NO_PREVIOUS_MANIFEST": {
+    "en": "Only one release exists — there is no previous version to roll back to.",
+    "fr": "Une seule version existe ; aucune version précédente n’est disponible pour le retour arrière."
+  },
+  "ROLLBACK_PREVIOUS_NO_DIGEST": {
+    "en": "Previous release v{version} has no valid artifact digest — cannot deterministically restore it.",
+    "fr": "La version précédente v{version} ne possède aucune empreinte d’artefact valide ; sa restauration déterministe est impossible."
+  },
+  "ROLLBACK_ARTIFACT_DIGEST_MISMATCH": {
+    "en": "Artifact for release v{version} no longer matches its manifest digest (recomputed {recomputedDigest}, manifest {manifestDigest}) — refusing to serve a divergent rollback.",
+    "fr": "L’artefact de la version v{version} ne correspond plus à l’empreinte de son manifeste (empreinte recalculée {recomputedDigest}, manifeste {manifestDigest}) ; le retour arrière divergent est refusé."
+  },
+  "ROLLBACK_PREVIOUS_SNAPSHOT_MISSING": {
+    "en": "Previous release v{version} snapshot is missing on disk — cannot restore it. Refusing a blind rollback.",
+    "fr": "L’instantané de la version précédente v{version} est absent du disque ; sa restauration est impossible et le retour arrière à l’aveugle est refusé."
+  },
+  "ROLLBACK_STATIC_SNAPSHOT_MISSING": {
+    "en": "Static snapshot for {deploymentId} is missing on disk.",
+    "fr": "L’instantané statique du déploiement {deploymentId} est absent du disque."
+  },
+  "ROLLBACK_RESTORE_FAILED_LOG": {
+    "en": "Rollback restore failed.",
+    "fr": "La restauration du retour arrière a échoué."
+  },
+  "ROLLBACK_STATIC_SUCCESS_LOG": {
+    "en": "Rolled back to release v{version} (deployment {deploymentId}); artifact digest {artifactDigest} verified byte-identical before restore.",
+    "fr": "Retour effectué vers la version v{version} (déploiement {deploymentId}) ; l’empreinte d’artefact {artifactDigest} a été vérifiée à l’identique avant la restauration."
+  },
+  "ROLLBACK_SERVER_DISABLED": {
+    "en": "Server rollback is disabled (SERVER_DEPLOY_ROLLBACK_FROM_DIGEST=0).",
+    "fr": "Le retour arrière serveur est désactivé (SERVER_DEPLOY_ROLLBACK_FROM_DIGEST=0)."
+  },
+  "ROLLBACK_SERVER_SUCCESS_LOG": {
+    "en": "Rolled back to release v{version} by digest {pullRef} (revision-independent, I-REL-1).",
+    "fr": "Retour effectué vers la version v{version} à partir de l’empreinte {pullRef} (indépendamment de la révision, I-REL-1)."
+  },
+  "ROLLBACK_REFUSED_LOG": {
+    "en": "Server rollback refused.",
+    "fr": "Le retour arrière serveur a été refusé."
+  },
+  "ROLLBACK_UNSUPPORTED_KIND": {
+    "en": "Unsupported artifact kind '{artifactKind}' for rollback.",
+    "fr": "Le type d’artefact « {artifactKind} » n’est pas pris en charge pour un retour arrière."
+  },
+  "ROLLBACK_REQUEST_FAILED": {
+    "en": "The rollback could not be completed.",
+    "fr": "Le retour arrière n’a pas pu être effectué."
+  },
+  "APP_IMAGE_BUILD_QUEUED": {
+    "en": "[image] build {buildId} queued (context gs://{bucket}/{object})",
+    "fr": "[image] compilation {buildId} mise en file (contexte gs://{bucket}/{object})"
+  },
+  "APP_IMAGE_BUILD_STATUS": {
+    "en": "[image] build {buildId}: {status}",
+    "fr": "[image] compilation {buildId} : {status}"
+  },
+  "DEPLOY_STOP_MANAGER_REFUSED": {
+    "en": "workspace-manager refused to stop {deploymentId} (HTTP {status})",
+    "fr": "Le gestionnaire d’espaces de travail a refusé l’arrêt de {deploymentId} (HTTP {status})"
+  },
+  "DEPLOY_INVALID_ID": {
+    "en": "Invalid deployment identifier.",
+    "fr": "Identifiant de déploiement invalide."
+  },
+  "PUBLISHED_DEPLOYMENT_EXPIRED": {
+    "en": "This deployment has expired. Publish the project again to bring the address back online.",
+    "fr": "Cette publication a expiré. Republiez le projet pour remettre l’adresse en ligne."
+  },
+  "ALREADY_MEMBER": {
+    "en": "That person is already a member of this organization.",
+    "fr": "Cette personne est déjà membre de cette organisation."
+  },
+  "ALREADY_INVITED": {
+    "en": "There is already a pending invitation for that email.",
+    "fr": "Une invitation est déjà en attente pour cette adresse e-mail."
+  },
+  "ENTITLEMENT_CHECK_UNAVAILABLE": {
+    "en": "Your plan limits could not be verified right now. Try again in a moment — no deployment was created.",
+    "fr": "Impossible de vérifier les limites de votre plan pour le moment. Réessayez dans un instant — aucune publication n’a été créée."
+  },
+  "DATABASE_PROVISION_UNAVAILABLE": {
+    "en": "The managed database could not be provisioned, so nothing was created. This is usually temporary — try again in a moment.",
+    "fr": "La base de données managée n'a pas pu être provisionnée, rien n'a donc été créé. C'est généralement temporaire : réessayez dans un instant."
+  }
+}

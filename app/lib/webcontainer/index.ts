@@ -4,6 +4,7 @@ import {
   type BrowserWebContainerRuntime,
   type WebContainerLike,
 } from '@vibecore/runtime-webcontainer';
+import { clientStoresServicesText } from '~/lib/i18n/catalogs/client-stores-services';
 import { WORK_DIR, WORK_DIR_NAME } from '~/utils/constants';
 import { cleanStackTrace } from '~/utils/stacktrace';
 
@@ -43,7 +44,9 @@ function bootBrowserWebContainer() {
 
   const inspectorScript = fetch('/inspector-script.js').then((response) => {
     if (!response.ok) {
-      throw new Error(`Failed to load inspector script (${response.status})`);
+      throw new Error(
+        clientStoresServicesText('clientRuntime.webcontainer.inspectorLoadFailed', { status: response.status }),
+      );
     }
 
     return response.text();
@@ -62,7 +65,12 @@ function bootBrowserWebContainer() {
       // Handle both uncaught exceptions and unhandled promise rejections
       if (message.type === 'PREVIEW_UNCAUGHT_EXCEPTION' || message.type === 'PREVIEW_UNHANDLED_REJECTION') {
         const isPromise = message.type === 'PREVIEW_UNHANDLED_REJECTION';
-        const title = isPromise ? 'Unhandled Promise Rejection' : 'Uncaught Exception';
+
+        const title = clientStoresServicesText(
+          isPromise ? 'clientRuntime.webcontainer.unhandledRejection' : 'clientRuntime.webcontainer.uncaughtException',
+        );
+
+        const location = `${message.pathname}${message.search}${message.hash}`;
 
         /*
          * Lazy import to avoid a static webcontainer→workbench→RuntimeAdapter import
@@ -73,8 +81,12 @@ function bootBrowserWebContainer() {
           workbenchStore.actionAlert.set({
             type: 'preview',
             title,
-            description: 'message' in message ? message.message : 'Unknown error',
-            content: `Error occurred at ${message.pathname}${message.search}${message.hash}\nPort: ${message.port}\n\nStack trace:\n${cleanStackTrace(message.stack || '')}`,
+            description: clientStoresServicesText('clientRuntime.webcontainer.unknownError'),
+            content: clientStoresServicesText('clientRuntime.webcontainer.previewErrorDetails', {
+              location,
+              port: message.port,
+              stack: cleanStackTrace(message.stack || ''),
+            }),
             source: 'preview',
           });
         });

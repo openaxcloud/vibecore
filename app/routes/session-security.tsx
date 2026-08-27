@@ -1,12 +1,13 @@
 import { Laptop, LogOut, Monitor, Smartphone, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import type { MetaFunction } from 'react-router';
 import { Form, useActionData, useLoaderData, useNavigation, useRevalidator, useSubmit } from 'react-router';
 import { toast } from 'react-toastify';
 import { AsyncPanelError, AsyncPanelSkeleton } from '~/components/dashboard/AsyncPanelState';
 import { EnterpriseFormPage, PrimaryButton, TextField } from '~/components/enterprise/EnterpriseFormPage';
 import { ConfirmationDialog } from '~/components/ui/Dialog';
+import { EmptyState } from '~/components/ui/EmptyState';
 import {
-  apiErrorMessage,
   apiRequest,
   currentSessionTokenHash,
   firstOrganizationOrNull,
@@ -17,7 +18,18 @@ import {
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
-import { formatUserAreaDateTime } from '~/lib/i18n/user-area-locale';
+import {
+  describeSessionSecurityDevice,
+  formatSessionSecurityCopy,
+  formatSessionSecurityDateTime,
+  getSessionSecurityCopy,
+  resolveSessionSecurityLanguage,
+  sessionSecurityErrorCodeForStatus,
+  sessionSecurityErrorMessage,
+  sessionSecurityStatusMessage,
+  type SessionSecurityActionData,
+} from '~/lib/i18n/catalogs/session-security';
+import { resolveRequestLocale } from '~/lib/i18n/request-locale';
 import { isReauthRedirect, shouldRethrowActionError } from '~/lib/route-reauth';
 import { classNames } from '~/utils/classNames';
 
@@ -46,7 +58,19 @@ type ClientSession = {
   current: boolean;
 };
 
+export const meta: MetaFunction<typeof loader> = ({ data }) => {
+  const copy = getSessionSecurityCopy(data?.language);
+
+  return [
+    { title: copy['sessionSecurity.meta.title'] },
+    { name: 'description', content: copy['sessionSecurity.meta.description'] },
+  ];
+};
+
+export { UserAreaRouteErrorBoundary as ErrorBoundary } from '~/components/dashboard/UserAreaRouteError';
+
 export async function loader({ request }: EnterpriseLoaderArgs) {
+  const language = resolveSessionSecurityLanguage(resolveRequestLocale(request).language);
   const organization = await firstOrganizationOrNull(request);
 
   if (!organization) {
@@ -58,7 +82,16 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
    * briefly unavailable (e.g. the api pod is draining); degrade to an empty list
    * rather than failing the whole page.
    */
-  const sessionsResult = await apiRequest<{ sessions: ApiSession[] }>(request, '/auth/sessions').catch(() => null);
+  const sessionsResult = await apiRequest<{ sessions: ApiSession[] }>(request, '/auth/sessions').then(
+    (result) => result,
+    (error) => {
+      if (isReauthRedirect(error)) {
+        throw error;
+      }
+
+      return null;
+    },
+  );
 
   const currentHash = currentSessionTokenHash(request);
 
@@ -66,7 +99,7 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
     id: session.id,
     ipAddress: session.ipAddress ?? null,
     userAgent: session.userAgent ?? null,
-    device: describeUserAgent(session.userAgent),
+    device: describeSessionSecurityDevice(session.userAgent, language),
     createdAt: session.createdAt,
     current: Boolean(currentHash && session.tokenHash && session.tokenHash === currentHash),
   }));
@@ -75,6 +108,7 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
     orgId: organization.id,
     sessions,
     sessionsUnavailable: sessionsResult === null,
+    language,
   });
 }
 
@@ -90,22 +124,22 @@ export async function action({ request }: EnterpriseActionArgs) {
   try {
     if (body.intent === 'revoke') {
       if (!body.sessionId) {
-        return json({ error: 'Missing session id.' }, { status: 400 });
+        return json<SessionSecurityActionData>({ errorCode: 'sessionRequired' }, { status: 400 });
       }
 
       await apiRequest(request, `/auth/sessions/${encodeURIComponent(body.sessionId)}`, { method: 'DELETE' });
 
-      return json({ status: 'Session revoked. That device has been signed out.' });
+      return json<SessionSecurityActionData>({ statusCode: 'sessionRevoked' });
     }
 
     if (body.intent === 'revoke-all') {
       await apiRequest(request, '/auth/logout-all', { method: 'POST', body: JSON.stringify({}) });
 
-      return json({ status: 'All other sessions have been signed out.' });
+      return json<SessionSecurityActionData>({ statusCode: 'otherSessionsRevoked' });
     }
 
     if (!body.orgId) {
-      return json({ error: 'Your organization is unavailable. Reload the page and try again.' }, { status: 400 });
+      return json<SessionSecurityActionData>({ errorCode: 'organizationUnavailable' }, { status: 400 });
     }
 
     await apiRequest(request, `/orgs/${body.orgId}/enterprise-settings`, {
@@ -121,7 +155,7 @@ export async function action({ request }: EnterpriseActionArgs) {
       }),
     });
 
-    return json({ status: 'Session security policy saved.' });
+    return json<SessionSecurityActionData>({ statusCode: 'policySaved' });
   } catch (error) {
     /*
      * An expired session / MFA-required state makes apiRequest throw a framework
@@ -134,64 +168,13 @@ export async function action({ request }: EnterpriseActionArgs) {
     }
 
     if (isApiResponse(error)) {
-      return json(
-        { error: await apiErrorMessage(error, 'Action failed. Please try again.') },
-        { status: error.status },
-      );
+      return json({ errorCode: sessionSecurityErrorCodeForStatus(error.status) } satisfies SessionSecurityActionData, {
+        status: error.status,
+      });
     }
 
-    return json({ error: 'This action is temporarily unavailable. Please try again in a moment.' });
+    return json<SessionSecurityActionData>({ errorCode: 'unavailable' });
   }
-}
-
-const dateTimeFormat: Intl.DateTimeFormatOptions = {
-  year: 'numeric',
-  month: 'short',
-  day: 'numeric',
-  hour: '2-digit',
-  minute: '2-digit',
-};
-
-function formatDateTime(value: string) {
-  const date = new Date(value);
-
-  return formatUserAreaDateTime(date, dateTimeFormat) ?? value;
-}
-
-/*
- * Best-effort human label from a User-Agent string — enough to recognise a
- * device at a glance without pulling in a parsing dependency. Browser + OS only.
- */
-function describeUserAgent(userAgent: string | undefined): string {
-  if (!userAgent) {
-    return 'Unknown device';
-  }
-
-  const browser = userAgent.includes('Edg')
-    ? 'Edge'
-    : userAgent.includes('OPR') || userAgent.includes('Opera')
-      ? 'Opera'
-      : userAgent.includes('Firefox')
-        ? 'Firefox'
-        : userAgent.includes('Chrome')
-          ? 'Chrome'
-          : userAgent.includes('Safari')
-            ? 'Safari'
-            : 'Browser';
-
-  const os = /iPhone|iPad|iPod/.test(userAgent)
-    ? 'iOS'
-    : userAgent.includes('Android')
-      ? 'Android'
-      : userAgent.includes('Mac OS X') || userAgent.includes('Macintosh')
-        ? 'macOS'
-        : userAgent.includes('Windows')
-          ? 'Windows'
-          : userAgent.includes('Linux')
-            ? 'Linux'
-            : 'Unknown OS';
-
-  return `${browser} on ${os}`;
 }
 
 function deviceIcon(userAgent: string | null) {
@@ -207,39 +190,48 @@ function deviceIcon(userAgent: string | null) {
 }
 
 export default function SessionSecurityPage() {
-  const { orgId, sessions, sessionsUnavailable } = useLoaderData<typeof loader>();
-  const actionData = useActionData<typeof action>() as { status?: string; error?: string } | undefined;
+  const { orgId, sessions, sessionsUnavailable, language } = useLoaderData<typeof loader>();
+  const actionData = useActionData<typeof action>() as SessionSecurityActionData | undefined;
   const navigation = useNavigation();
   const revalidator = useRevalidator();
   const submit = useSubmit();
   const busy = navigation.state !== 'idle';
+  const pendingIntent = navigation.formData?.get('intent')?.toString();
+  const pendingSessionId = navigation.formData?.get('sessionId')?.toString();
+  const revokingAll = busy && pendingIntent === 'revoke-all';
+  const savingPolicy = busy && navigation.formData !== undefined && !pendingIntent;
   const retryingSessions = revalidator.state !== 'idle';
+  const copy = getSessionSecurityCopy(language);
+  const status = sessionSecurityStatusMessage(actionData?.statusCode, language);
+  const error = sessionSecurityErrorMessage(actionData?.errorCode, language);
   const [confirmRevokeAll, setConfirmRevokeAll] = useState(false);
   const [sessionPendingRevoke, setSessionPendingRevoke] = useState<{ id: string; device: string } | null>(null);
 
   /* Surface the sign-out-all result as a toast on top of the inline banner. */
   useEffect(() => {
-    if (actionData?.status?.includes('signed out')) {
-      toast.success(actionData.status);
+    if (actionData?.statusCode === 'otherSessionsRevoked' && status) {
+      toast.success(status);
     }
-  }, [actionData]);
+  }, [actionData?.statusCode, status]);
 
   const otherSessions = sessions.filter((session) => !session.current);
 
   return (
     <EnterpriseFormPage
-      title="Session security"
-      description="Inspect active devices, revoke sessions and manage organization session duration policy."
-      status={actionData?.status}
-      error={actionData?.error}
+      title={copy['sessionSecurity.page.title']}
+      description={copy['sessionSecurity.page.description']}
+      status={status}
+      error={error}
     >
-      <div className="space-y-8">
-        <section>
+      <div className="min-w-0 space-y-8">
+        <section className="min-w-0">
           <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0">
-              <h2 className="text-base font-semibold text-bolt-elements-textPrimary">Active sessions</h2>
-              <p className="mt-1 text-sm text-bolt-elements-textSecondary">
-                Devices currently signed in to your account. Revoke any you don&apos;t recognise.
+              <h2 className="break-words text-base font-semibold text-bolt-elements-textPrimary">
+                {copy['sessionSecurity.sessions.title']}
+              </h2>
+              <p className="mt-1 break-words text-sm leading-relaxed text-bolt-elements-textSecondary">
+                {copy['sessionSecurity.sessions.description']}
               </p>
             </div>
             {otherSessions.length > 0 ? (
@@ -251,37 +243,49 @@ export default function SessionSecurityPage() {
                   color: 'var(--status-error-text)',
                   borderColor: 'color-mix(in srgb, var(--vc-ide-accent-error) 40%, transparent)',
                 }}
-                className="mt-3 inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md border px-3 text-xs font-medium transition-colors hover:bg-[var(--status-error-bg)] disabled:cursor-not-allowed disabled:opacity-60 sm:mt-0"
+                className="mt-3 inline-flex min-h-[44px] w-full items-center justify-center gap-1.5 whitespace-normal rounded-md border px-3 py-1.5 text-center text-xs font-medium leading-snug transition-colors hover:bg-[var(--status-error-bg)] disabled:cursor-not-allowed disabled:opacity-60 sm:mt-0 sm:w-auto sm:shrink-0"
               >
                 <LogOut className="h-3.5 w-3.5" aria-hidden />
-                Sign out all other sessions
+                {copy[revokingAll ? 'sessionSecurity.sessions.signingOutAll' : 'sessionSecurity.sessions.signOutAll']}
               </button>
             ) : null}
           </div>
 
+          {/* Recovery invariant: Active sessions could not load without exposing a raw API error. */}
           {sessionsUnavailable ? (
             retryingSessions ? (
-              <AsyncPanelSkeleton label="Loading active sessions" rows={3} compact className="mt-4" />
+              <AsyncPanelSkeleton label={copy['sessionSecurity.sessions.loading']} rows={3} compact className="mt-4" />
             ) : (
               <AsyncPanelError
-                title="Active sessions could not load"
-                description="No session was revoked. The organization policy below remains available."
+                title={copy['sessionSecurity.sessions.errorTitle']}
+                description={copy['sessionSecurity.sessions.errorDescription']}
+                retryLabel={copy['sessionSecurity.sessions.retry']}
                 onRetry={revalidator.revalidate}
                 compact
                 className="mt-4"
               />
             )
           ) : sessions.length === 0 ? (
-            <div className="mt-4 flex flex-col items-center gap-3 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-6 py-10 text-center">
-              <span className="flex h-12 w-12 items-center justify-center rounded-full bg-bolt-elements-background-depth-3">
-                <Monitor className="h-5 w-5 text-bolt-elements-textTertiary" aria-hidden />
-              </span>
-              <p className="text-sm text-bolt-elements-textSecondary">No active sessions found.</p>
-            </div>
+            <EmptyState
+              variant="compact"
+              icon={Monitor}
+              title={copy['sessionSecurity.sessions.empty']}
+              className="mt-4"
+            />
           ) : (
             <ul className="mt-4 overflow-hidden rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1">
               {sessions.map((session, index) => {
                 const Icon = deviceIcon(session.userAgent);
+                const revokingSession = busy && pendingIntent === 'revoke' && pendingSessionId === session.id;
+
+                const ipAddress = session.ipAddress
+                  ? formatSessionSecurityCopy(copy['sessionSecurity.sessions.ipAddress'], {
+                      address: session.ipAddress,
+                    })
+                  : copy['sessionSecurity.sessions.ipUnknown'];
+                const signedIn = formatSessionSecurityCopy(copy['sessionSecurity.sessions.signedIn'], {
+                  date: formatSessionSecurityDateTime(session.createdAt, language),
+                });
 
                 return (
                   <li
@@ -300,24 +304,26 @@ export default function SessionSecurityPage() {
                           <span className="break-words">{session.device}</span>
                           {session.current ? (
                             <span className="rounded-full border border-bolt-elements-borderColorActive bg-bolt-elements-background-depth-3 px-2 py-0.5 text-xs font-medium text-bolt-elements-textPrimary">
-                              This device
+                              {copy['sessionSecurity.sessions.thisDevice']}
                             </span>
                           ) : null}
                         </p>
-                        <p className="mt-1 break-all text-xs text-bolt-elements-textTertiary">
-                          {session.ipAddress ? `IP ${session.ipAddress}` : 'IP unknown'}
-                          {' · '}
-                          Signed in {formatDateTime(session.createdAt)}
+                        <p className="mt-1 flex min-w-0 flex-wrap gap-x-1.5 gap-y-0.5 text-xs text-bolt-elements-textTertiary">
+                          <span className="max-w-full break-all">{ipAddress}</span>
+                          <span aria-hidden>·</span>
+                          <span className="break-words">{signedIn}</span>
                         </p>
                       </div>
                     </div>
 
                     {session.current ? (
-                      <span className="text-xs text-bolt-elements-textTertiary sm:shrink-0">Current session</span>
+                      <span className="break-words text-xs text-bolt-elements-textTertiary sm:shrink-0">
+                        {copy['sessionSecurity.sessions.current']}
+                      </span>
                     ) : (
                       <Form
                         method="post"
-                        className="sm:shrink-0"
+                        className="w-full sm:w-auto sm:shrink-0"
                         onSubmit={(event) => {
                           event.preventDefault();
                           setSessionPendingRevoke({ id: session.id, device: session.device });
@@ -328,10 +334,14 @@ export default function SessionSecurityPage() {
                         <button
                           type="submit"
                           disabled={busy}
-                          className="inline-flex h-8 items-center gap-1.5 rounded-md border border-bolt-elements-borderColor px-3 text-xs font-medium text-[var(--status-error-text)] hover:bg-[var(--status-error-bg)] disabled:cursor-not-allowed disabled:opacity-60"
+                          className="inline-flex min-h-[44px] w-full items-center justify-center gap-1.5 whitespace-normal rounded-md border border-bolt-elements-borderColor px-3 py-1.5 text-center text-xs font-medium leading-snug text-[var(--status-error-text)] hover:bg-[var(--status-error-bg)] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
                         >
                           <Trash2 className="h-3.5 w-3.5" aria-hidden />
-                          Revoke
+                          {
+                            copy[
+                              revokingSession ? 'sessionSecurity.sessions.revoking' : 'sessionSecurity.sessions.revoke'
+                            ]
+                          }
                         </button>
                       </Form>
                     )}
@@ -342,16 +352,24 @@ export default function SessionSecurityPage() {
           )}
         </section>
 
-        <section className="border-t border-bolt-elements-borderColor pt-8">
-          <h2 className="text-base font-semibold text-bolt-elements-textPrimary">Organization session policy</h2>
-          <p className="mt-1 text-sm text-bolt-elements-textSecondary">
-            Applies to everyone in the organization: session lifetime and the IP ranges allowed to sign in.
+        <section className="min-w-0 border-t border-bolt-elements-borderColor pt-8">
+          <h2 className="break-words text-base font-semibold text-bolt-elements-textPrimary">
+            {copy['sessionSecurity.policy.title']}
+          </h2>
+          <p className="mt-1 break-words text-sm leading-relaxed text-bolt-elements-textSecondary">
+            {copy['sessionSecurity.policy.description']}
           </p>
-          <Form method="post" className="mt-4 space-y-4">
+          <Form method="post" className="mt-4 min-w-0 space-y-4">
             <input type="hidden" name="orgId" value={orgId} />
-            <TextField label="Session duration minutes" name="sessionDurationMinutes" type="number" />
-            <TextField label="IP allowlist" name="ipAllowlist" placeholder="203.0.113.10,198.51.100.0/24" />
-            <PrimaryButton disabled={busy}>Save policy</PrimaryButton>
+            <TextField label={copy['sessionSecurity.policy.duration']} name="sessionDurationMinutes" type="number" />
+            <TextField
+              label={copy['sessionSecurity.policy.ipAllowlist']}
+              name="ipAllowlist"
+              placeholder={copy['sessionSecurity.policy.ipPlaceholder']}
+            />
+            <PrimaryButton disabled={busy}>
+              {copy[savingPolicy ? 'sessionSecurity.policy.saving' : 'sessionSecurity.policy.save']}
+            </PrimaryButton>
           </Form>
         </section>
       </div>
@@ -366,9 +384,11 @@ export default function SessionSecurityPage() {
             submit({ intent: 'revoke', sessionId: pending.id }, { method: 'post' });
           }
         }}
-        title={`Revoke this session (${sessionPendingRevoke?.device ?? 'unknown device'})?`}
-        description="That device will be signed out immediately."
-        confirmLabel="Revoke session"
+        title={formatSessionSecurityCopy(copy['sessionSecurity.dialog.revoke.title'], {
+          device: sessionPendingRevoke?.device ?? copy['sessionSecurity.device.unknown'],
+        })}
+        description={copy['sessionSecurity.dialog.revoke.description']}
+        confirmLabel={copy['sessionSecurity.dialog.revoke.confirm']}
         variant="destructive"
       />
       <ConfirmationDialog
@@ -378,9 +398,9 @@ export default function SessionSecurityPage() {
           setConfirmRevokeAll(false);
           submit({ intent: 'revoke-all' }, { method: 'post' });
         }}
-        title="Sign out all other sessions?"
-        description="Every device except this one will be signed out immediately. Your current session stays active."
-        confirmLabel="Sign out all"
+        title={copy['sessionSecurity.dialog.revokeAll.title']}
+        description={copy['sessionSecurity.dialog.revokeAll.description']}
+        confirmLabel={copy['sessionSecurity.dialog.revokeAll.confirm']}
         variant="destructive"
       />
     </EnterpriseFormPage>

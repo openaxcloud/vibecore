@@ -1,5 +1,6 @@
 import * as PopoverPrimitive from '@radix-ui/react-popover';
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
 import {
   computeWorkspaceFilesSignature,
@@ -22,6 +23,7 @@ import { GitProviderConnectPanel } from '~/components/git/GitProviderConnectPane
 import { GitSettingsPanel } from '~/components/git/GitSettingsPanel';
 import { GitStatusBadge, GitStatusLegend } from '~/components/git/GitStatusBadge';
 import { ConfirmationDialog } from '~/components/ui/Dialog';
+import { formatClientAstResidualCopy, getClientAstResidualCopy } from '~/lib/i18n/catalogs/client-ast-residual';
 import { useCurrentWorkspace } from '~/lib/runtime/CurrentWorkspaceContext';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { classNames } from '~/utils/classNames';
@@ -108,20 +110,22 @@ interface GitTabProps {
   projectId: string;
 }
 
-function timeAgo(value?: string) {
+type Translate = (key: string, options?: Record<string, unknown>) => string;
+
+function timeAgo(value: string | undefined, language: string, t: Translate) {
   if (!value) {
-    return 'just now';
+    return t('idePanels.git.justNow');
   }
 
   const timestamp = Date.parse(value);
 
   if (!Number.isFinite(timestamp)) {
-    return 'recorded';
+    return t('idePanels.git.recorded');
   }
 
   const seconds = Math.max(0, Math.floor((Date.now() - timestamp) / 1000));
 
-  const units: Array<[number, string]> = [
+  const units: Array<[number, Intl.RelativeTimeFormatUnit]> = [
     [60 * 60 * 24 * 365, 'year'],
     [60 * 60 * 24 * 30, 'month'],
     [60 * 60 * 24, 'day'],
@@ -129,15 +133,17 @@ function timeAgo(value?: string) {
     [60, 'minute'],
   ];
 
+  const formatter = new Intl.RelativeTimeFormat(language.startsWith('fr') ? 'fr-FR' : 'en', { numeric: 'always' });
+
   for (const [size, label] of units) {
     const count = Math.floor(seconds / size);
 
     if (count >= 1) {
-      return `${count} ${label}${count === 1 ? '' : 's'} ago`;
+      return formatter.format(-count, label);
     }
   }
 
-  return 'just now';
+  return t('idePanels.git.justNow');
 }
 
 function PanelInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
@@ -197,6 +203,8 @@ function GitBranchDropdown({
   onCheckout: (branch: string) => void;
   onCreate: (branch: string) => void;
 }) {
+  const { t, i18n } = useTranslation();
+  const astCopy = getClientAstResidualCopy(i18n.resolvedLanguage ?? i18n.language);
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [newBranch, setNewBranch] = useState('');
@@ -235,8 +243,8 @@ function GitBranchDropdown({
           disabled={busy}
           aria-label={
             detached
-              ? `Detached HEAD at commit ${branch}. Open branch actions`
-              : `Current branch ${branch}. Switch or create a branch`
+              ? t('idePanels.git.branchTriggerDetached', { branch })
+              : t('idePanels.git.branchTriggerCurrent', { branch })
           }
           className="inline-flex h-9 min-w-0 flex-1 items-center gap-2 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-2 text-sm text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3 focus:border-bolt-elements-focus focus:outline-none disabled:opacity-60"
           style={detached ? { color: 'var(--status-warning-text)' } : undefined}
@@ -249,7 +257,7 @@ function GitBranchDropdown({
             aria-hidden
           />
           <span className="min-w-0 flex-1 truncate text-left font-medium">
-            {detached ? `HEAD @ ${branch}` : branch}
+            {detached ? formatClientAstResidualCopy(astCopy['clientAst.git.detachedHead'], { branch }) : branch}
           </span>
           <span className="i-ph:caret-down shrink-0 text-xs text-bolt-elements-textSecondary" aria-hidden />
         </button>
@@ -263,17 +271,17 @@ function GitBranchDropdown({
           className="z-[10010] w-[min(300px,calc(100vw-24px))] rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-2 shadow-xl"
         >
           <label className="sr-only" htmlFor="git-branch-dropdown-filter">
-            Filter branches
+            {t('idePanels.git.filterBranches')}
           </label>
           <PanelInput
             id="git-branch-dropdown-filter"
             autoFocus
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Find a branch…"
+            placeholder={t('idePanels.git.findBranch')}
             className="w-full"
           />
-          <div className="mt-2 max-h-56 overflow-auto" role="listbox" aria-label="Branches">
+          <div className="mt-2 max-h-56 overflow-auto" role="listbox" aria-label={t('idePanels.git.branches')}>
             {filtered.length ? (
               filtered.map((item) => {
                 const isCurrent = !detached && item === branch;
@@ -313,7 +321,9 @@ function GitBranchDropdown({
                 );
               })
             ) : (
-              <div className="px-2 py-1.5 text-sm text-bolt-elements-textSecondary">No branches match.</div>
+              <div className="px-2 py-1.5 text-sm text-bolt-elements-textSecondary">
+                {t('idePanels.git.noBranchMatch')}
+              </div>
             )}
           </div>
           <div className="mt-2 border-t border-bolt-elements-borderColor pt-2">
@@ -321,7 +331,7 @@ function GitBranchDropdown({
               className="mb-1 block text-xs font-medium text-bolt-elements-textSecondary"
               htmlFor="git-branch-dropdown-new"
             >
-              New branch from {detached ? 'this commit' : branch}
+              {detached ? t('idePanels.git.newBranchFromCommit') : t('idePanels.git.newBranchFromBranch', { branch })}
             </label>
             <div className="flex gap-2">
               <PanelInput
@@ -334,7 +344,7 @@ function GitBranchDropdown({
                     submitCreate();
                   }
                 }}
-                placeholder="feature/my-branch"
+                placeholder={t('idePanels.git.branchExample')}
                 className="min-w-0 flex-1"
               />
               <button
@@ -345,7 +355,7 @@ function GitBranchDropdown({
                 className="inline-flex h-[34px] shrink-0 items-center gap-1 rounded-[6px] border border-bolt-elements-item-contentAccent/50 px-2.5 text-[13px] font-medium text-bolt-elements-item-contentAccent hover:bg-bolt-elements-background-depth-3 disabled:opacity-60"
               >
                 <span className="i-ph:plus text-sm" aria-hidden />
-                Create
+                {t('idePanels.git.create')}
               </button>
             </div>
           </div>
@@ -377,12 +387,13 @@ function GitAheadBehindBadge({
   onPush: () => void;
   onPull: () => void;
 }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
 
   const disabledReason = !hasRemote
-    ? 'No remote configured — connect one in ⚙ Git settings first.'
+    ? t('idePanels.git.noRemoteReason')
     : detached
-      ? 'Detached HEAD — create a branch before pushing or pulling.'
+      ? t('idePanels.git.detachedReason')
       : undefined;
 
   const actionButton =
@@ -394,8 +405,8 @@ function GitAheadBehindBadge({
         <button
           type="button"
           data-testid="git-ahead-behind-badge"
-          title={`${ahead} commit${ahead === 1 ? '' : 's'} to push, ${behind} to pull`}
-          aria-label={`${ahead} commits to push, ${behind} commits to pull. Open push and pull actions`}
+          title={t('idePanels.git.syncSummary', { ahead, behind })}
+          aria-label={t('idePanels.git.syncActions', { ahead, behind })}
           className="inline-flex shrink-0 items-center gap-1 rounded-full border border-bolt-elements-borderColor px-2 py-0.5 text-xs text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary"
         >
           <span className="i-ph:arrow-up text-[11px]" aria-hidden />
@@ -424,7 +435,7 @@ function GitAheadBehindBadge({
               }}
             >
               <span className="i-ph:arrow-up text-sm" aria-hidden />
-              Push {ahead > 0 ? `${ahead} commit${ahead === 1 ? '' : 's'}` : ''}
+              {ahead > 0 ? t('idePanels.git.pushCount', { count: ahead }) : t('idePanels.git.push')}
             </button>
             <button
               type="button"
@@ -437,7 +448,7 @@ function GitAheadBehindBadge({
               }}
             >
               <span className="i-ph:arrow-down text-sm" aria-hidden />
-              Pull {behind > 0 ? `${behind} commit${behind === 1 ? '' : 's'}` : ''}
+              {behind > 0 ? t('idePanels.git.pullCount', { count: behind }) : t('idePanels.git.pull')}
             </button>
             {disabledReason ? (
               <p className="px-1 text-xs leading-4 text-bolt-elements-textSecondary">{disabledReason}</p>
@@ -450,6 +461,8 @@ function GitAheadBehindBadge({
 }
 
 export function GitTab({ projectId }: GitTabProps) {
+  const { t, i18n } = useTranslation();
+  const astCopy = getClientAstResidualCopy(i18n.resolvedLanguage ?? i18n.language);
   const { currentWorkspaceId } = useCurrentWorkspace();
   const [envelope, setEnvelope] = useState<Envelope | undefined>();
   const [loading, setLoading] = useState(true);
@@ -529,6 +542,7 @@ export function GitTab({ projectId }: GitTabProps) {
   const commits = data.commits ?? [];
   const stashes = data.stashes ?? [];
   const hasRemote = Boolean(project?.gitRepositoryUrl);
+  const activeLanguage = i18n.resolvedLanguage ?? i18n.language;
 
   /*
    * Default commit author saved in Settings (⚙ → Commit author); prefills the
@@ -597,7 +611,7 @@ export function GitTab({ projectId }: GitTabProps) {
            * Preserve the previously loaded state and try again on the next tick.
            */
           if (shouldSurfaceLoadError(options?.silent)) {
-            throw new Error(payload.error?.message ?? 'Failed to load git panel');
+            throw new Error();
           }
 
           return;
@@ -637,7 +651,7 @@ export function GitTab({ projectId }: GitTabProps) {
 
         if (isErrorEnvelope) {
           if (shouldSurfaceLoadError(options?.silent)) {
-            setError(`[${payload.error!.code}] ${payload.error!.message}`);
+            setError(t('idePanels.git.loadFailed'));
           }
         } else {
           setError(undefined);
@@ -649,19 +663,17 @@ export function GitTab({ projectId }: GitTabProps) {
          * (non-degraded) status loads.
          */
         if (degraded) {
-          setDegradedNotice(
-            payload.data?.gitLoadError || 'Git status is temporarily unavailable; showing the last known changes.',
-          );
+          setDegradedNotice(t('idePanels.git.degraded'));
         } else if (!isErrorEnvelope) {
           setDegradedNotice(undefined);
         }
-      } catch (requestError) {
+      } catch {
         if (requestId !== loadRequestRef.current) {
           return;
         }
 
         if (shouldSurfaceLoadError(options?.silent)) {
-          setError(requestError instanceof Error ? requestError.message : 'Failed to load git panel');
+          setError(t('idePanels.git.loadFailed'));
         }
       } finally {
         if (!options?.silent && requestId === loadRequestRef.current) {
@@ -669,7 +681,7 @@ export function GitTab({ projectId }: GitTabProps) {
         }
       }
     },
-    [projectId, currentWorkspaceId],
+    [projectId, currentWorkspaceId, t],
   );
 
   useEffect(() => {
@@ -766,7 +778,7 @@ export function GitTab({ projectId }: GitTabProps) {
         const unserializable = findUnserializableStagedFiles(stagedFiles);
 
         if (unserializable.length) {
-          const message = `Cannot commit files whose path contains a comma: ${unserializable.join(', ')}`;
+          const message = t('idePanels.git.commaCommitError', { paths: unserializable.join(', ') });
           setError(message);
           toast.error(message);
 
@@ -789,25 +801,23 @@ export function GitTab({ projectId }: GitTabProps) {
           body: formData,
         });
 
-        const result = (await response.json().catch(() => ({}))) as { error?: string };
-
         if (!response.ok) {
-          throw new Error(result.error ?? 'Git action failed');
+          throw new Error();
         }
 
         form.reset();
         setStaged(new Set());
-        toast.success(`Git ${intent.replace(/-/g, ' ')} completed`);
+        toast.success(t('idePanels.git.actionCompleted'));
         await loadPanel({ silent: true });
-      } catch (requestError) {
-        const message = requestError instanceof Error ? requestError.message : 'Git action failed';
+      } catch {
+        const message = t('idePanels.git.actionFailed');
         setError(message);
         toast.error(message);
       } finally {
         setBusy(false);
       }
     },
-    [loadPanel, projectId, resolvedWorkspaceId, stagedFiles],
+    [loadPanel, projectId, resolvedWorkspaceId, stagedFiles, t],
   );
 
   /*
@@ -840,24 +850,22 @@ export function GitTab({ projectId }: GitTabProps) {
           body: formData,
         });
 
-        const result = (await response.json().catch(() => ({}))) as { error?: string };
-
         if (!response.ok) {
-          throw new Error(result.error ?? 'Git action failed');
+          throw new Error();
         }
 
         setStaged(new Set());
-        toast.success(`Git ${intent.replace(/-/g, ' ')} completed`);
+        toast.success(t('idePanels.git.actionCompleted'));
         await loadPanel({ silent: true });
-      } catch (requestError) {
-        const message = requestError instanceof Error ? requestError.message : 'Git action failed';
+      } catch {
+        const message = t('idePanels.git.actionFailed');
         setError(message);
         toast.error(message);
       } finally {
         setBusy(false);
       }
     },
-    [loadPanel, projectId, resolvedWorkspaceId],
+    [loadPanel, projectId, resolvedWorkspaceId, t],
   );
 
   const loadInspection = useCallback(
@@ -883,7 +891,7 @@ export function GitTab({ projectId }: GitTabProps) {
         );
 
         if (!response.ok) {
-          throw new Error(`Git inspection failed with ${response.status}`);
+          throw new Error();
         }
 
         const payload = (await response.json()) as Envelope;
@@ -898,7 +906,7 @@ export function GitTab({ projectId }: GitTabProps) {
           blame: (fileData as any).blame ?? [],
           diff: (fileData as any).diff ?? '',
         });
-      } catch (requestError) {
+      } catch {
         if (requestId !== inspectionRequestRef.current) {
           return;
         }
@@ -907,11 +915,11 @@ export function GitTab({ projectId }: GitTabProps) {
           loading: false,
           blame: [],
           diff: '',
-          error: requestError instanceof Error ? requestError.message : 'Unable to load blame and diff data.',
+          error: t('idePanels.git.inspectionFailed'),
         });
       }
     },
-    [inspectFile, projectId, resolvedWorkspaceId],
+    [inspectFile, projectId, resolvedWorkspaceId, t],
   );
 
   const loadCommit = useCallback(
@@ -936,7 +944,11 @@ export function GitTab({ projectId }: GitTabProps) {
         );
 
         if (!response.ok) {
-          throw new Error(`Commit load failed with ${response.status}`);
+          throw new Error(
+            formatClientAstResidualCopy(astCopy['clientAst.git.commitLoadFailed'], {
+              status: response.status,
+            }),
+          );
         }
 
         const payload = (await response.json()) as Envelope;
@@ -960,7 +972,7 @@ export function GitTab({ projectId }: GitTabProps) {
         setCommitDetail({ sha, files: [], diff: '', loading: false });
       }
     },
-    [projectId, resolvedWorkspaceId],
+    [astCopy, projectId, resolvedWorkspaceId],
   );
 
   const loadConflictFile = useCallback(
@@ -986,7 +998,11 @@ export function GitTab({ projectId }: GitTabProps) {
         );
 
         if (!response.ok) {
-          throw new Error(`Conflict load failed with ${response.status}`);
+          throw new Error(
+            formatClientAstResidualCopy(astCopy['clientAst.git.conflictLoadFailed'], {
+              status: response.status,
+            }),
+          );
         }
 
         const payload = (await response.json()) as Envelope;
@@ -1005,7 +1021,7 @@ export function GitTab({ projectId }: GitTabProps) {
         setMergeContent(failedConflictContentState());
       }
     },
-    [projectId, resolvedWorkspaceId],
+    [astCopy, projectId, resolvedWorkspaceId],
   );
 
   function toggleFile(filePath: string) {
@@ -1025,7 +1041,7 @@ export function GitTab({ projectId }: GitTabProps) {
   if (loading && !envelope) {
     return (
       <div className="flex h-full items-center justify-center text-sm text-bolt-elements-textSecondary">
-        Loading workspace git status...
+        {t('idePanels.git.loadingStatus')}
       </div>
     );
   }
@@ -1051,15 +1067,12 @@ export function GitTab({ projectId }: GitTabProps) {
           >
             <div className="flex items-center gap-2 font-semibold" style={{ color: 'var(--status-warning-text)' }}>
               <span className="i-ph:warning-circle text-base" aria-hidden />
-              Detached HEAD — you are on commit {branch}, not a branch.
+              {t('idePanels.git.detachedTitle', { branch })}
             </div>
-            <p className="mt-1 text-bolt-elements-textSecondary">
-              New commits made here are not on any branch and can be lost when you switch away. Create a branch from
-              this commit to keep working safely.
-            </p>
+            <p className="mt-1 text-bolt-elements-textSecondary">{t('idePanels.git.detachedBody')}</p>
             <div className="mt-2 flex flex-wrap gap-2">
               <label className="sr-only" htmlFor="git-detached-new-branch">
-                New branch name
+                {t('idePanels.git.newBranchName')}
               </label>
               <PanelInput
                 id="git-detached-new-branch"
@@ -1072,7 +1085,7 @@ export function GitTab({ projectId }: GitTabProps) {
                     void runIntent('create-branch', { branch: detachedNewBranch.trim() });
                   }
                 }}
-                placeholder="rescue/my-work"
+                placeholder={t('idePanels.git.rescueBranchExample')}
                 className="min-w-0 flex-1 sm:max-w-[260px]"
               />
               <button
@@ -1087,7 +1100,7 @@ export function GitTab({ projectId }: GitTabProps) {
                 }}
               >
                 <span className="i-ph:git-branch text-sm" aria-hidden />
-                New branch from here
+                {t('idePanels.git.newBranchHere')}
               </button>
             </div>
           </div>
@@ -1101,11 +1114,10 @@ export function GitTab({ projectId }: GitTabProps) {
           >
             <div className="flex items-center gap-2 font-semibold text-amber-600 dark:text-amber-400">
               <span className="i-ph:warning-circle text-base" aria-hidden />
-              Resolve all conflicts to complete the merge.
+              {t('idePanels.git.conflictBannerTitle')}
             </div>
             <p className="mt-1 text-bolt-elements-textSecondary">
-              {conflicts.length} file{conflicts.length > 1 ? 's' : ''} still in conflict. Complete or abort the merge
-              before other Git actions.
+              {t('idePanels.git.conflictBannerBody', { count: conflicts.length })}
             </p>
           </div>
         ) : null}
@@ -1132,7 +1144,7 @@ export function GitTab({ projectId }: GitTabProps) {
            */}
           <div className="min-w-0">
             <div className="text-[11px] font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">
-              Branch
+              {t('idePanels.git.branch')}
             </div>
             <div className="mt-1 flex min-w-0 flex-wrap items-center gap-2 text-sm text-bolt-elements-textSecondary">
               <span
@@ -1147,10 +1159,12 @@ export function GitTab({ projectId }: GitTabProps) {
                 className={classNames('truncate', detached ? undefined : 'text-bolt-elements-textPrimary')}
                 style={detached ? { color: 'var(--status-warning-text)' } : undefined}
               >
-                {detached ? `HEAD detached @ ${branch}` : branch}
+                {detached ? t('idePanels.git.detachedBranch', { branch }) : branch}
               </strong>
-              <span>{changedFiles.length} changed</span>
-              {conflicts.length ? <span className="text-red-500">{conflicts.length} conflicts</span> : null}
+              <span>{t('idePanels.git.changed', { count: changedFiles.length })}</span>
+              {conflicts.length ? (
+                <span className="text-red-500">{t('idePanels.git.conflicts', { count: conflicts.length })}</span>
+              ) : null}
               <GitAheadBehindBadge
                 ahead={status?.ahead ?? 0}
                 behind={status?.behind ?? 0}
@@ -1171,14 +1185,21 @@ export function GitTab({ projectId }: GitTabProps) {
               onCheckout={(nextBranch) => void runIntent('checkout-branch', { branch: nextBranch })}
               onCreate={(newBranch) => void runIntent('create-branch', { branch: newBranch })}
             />
+            {/*
+              44×44 minimum, comme le bouton de rafraîchissement jumeau de
+              GitBranchSyncControls : à `h-8 w-8` la cible tombait à 28×42 sur
+              iPhone, sous le seuil WCAG 2.5.5, alors que son frère le respectait
+              déjà. Deux boutons de la même fonctionnalité ne peuvent pas avoir
+              deux tailles de cible.
+            */}
             <button
               type="button"
               data-testid="git-branch-refresh"
               disabled={loading}
               onClick={() => void loadPanel()}
-              title="Refresh git status"
-              aria-label="Refresh git status"
-              className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-[6px] text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary disabled:opacity-50"
+              title={t('idePanels.git.refreshStatus')}
+              aria-label={t('idePanels.git.refreshStatus')}
+              className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-[6px] text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary disabled:opacity-50"
             >
               <span className="i-ph:arrows-clockwise text-base" aria-hidden />
             </button>
@@ -1187,10 +1208,10 @@ export function GitTab({ projectId }: GitTabProps) {
               data-testid="git-settings-toggle"
               aria-pressed={showSettings}
               onClick={() => setShowSettings((value) => !value)}
-              title="Git settings"
-              aria-label="Git settings"
+              title={t('idePanels.git.settings')}
+              aria-label={t('idePanels.git.settings')}
               className={classNames(
-                'inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-[6px] hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary',
+                'inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-[6px] hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary',
                 showSettings ? 'text-bolt-elements-item-contentAccent' : 'text-bolt-elements-textSecondary',
               )}
             >
@@ -1207,10 +1228,18 @@ export function GitTab({ projectId }: GitTabProps) {
          */}
         {!hasRemote && project?.id ? (
           <div className="rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-3">
-            <div className="mb-2 flex items-center gap-2 text-sm text-bolt-elements-textSecondary">
-              <span className="i-ph:plugs text-bolt-elements-textTertiary" aria-hidden />
-              No remote connected
-            </div>
+            {/*
+             * BUG-I18N-008 — la même phrase s'affichait DEUX FOIS d'affilée.
+             *
+             * Cette ligne rendait `idePanels.git.noRemote` (« Aucun dépôt distant
+             * connecté ») juste au-dessus de `GitProviderConnectPanel`, dont le
+             * titre `gitProvider.title` porte EXACTEMENT le même texte. Deux
+             * chaînes de catalogues différents, même phrase, l'une sous l'autre.
+             *
+             * C'est le titre du panneau qui reste : il vit dans l'encadré ambre,
+             * porte sa description et précède directement les actions. La ligne
+             * extérieure n'apportait qu'une répétition.
+             */}
             {/*
              * Connect a Git provider (GitHub/GitLab/Bitbucket OAuth or a custom
              * remote) directly in the pane — Replit-style — instead of bouncing to
@@ -1231,7 +1260,7 @@ export function GitTab({ projectId }: GitTabProps) {
               className="mt-2 inline-flex h-7 items-center gap-1 rounded-md px-1 text-xs font-medium text-bolt-elements-textTertiary hover:text-bolt-elements-textPrimary"
             >
               <span className="i-ph:gear text-sm" aria-hidden />
-              Advanced Git settings
+              {t('idePanels.git.advancedSettings')}
             </button>
           </div>
         ) : null}
@@ -1246,44 +1275,44 @@ export function GitTab({ projectId }: GitTabProps) {
             data-testid="git-remote-updates"
             className="rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2.5"
           >
-            <div className="flex items-center justify-between gap-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <span className="text-[11px] font-semibold uppercase tracking-wide text-bolt-elements-textTertiary">
-                Remote Updates
+                {t('idePanels.git.remoteUpdates')}
               </span>
-              <div className="flex items-center gap-1">
+              <div className="flex flex-wrap items-center gap-1">
                 <button
                   type="button"
                   onClick={() => setShowSettings(true)}
-                  title="Git settings"
+                  title={t('idePanels.git.settings')}
                   className="inline-flex h-7 items-center gap-1 rounded-md border border-bolt-elements-borderColor px-2 text-xs font-medium text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary"
                 >
                   <span className="i-ph:gear text-sm" aria-hidden />
-                  Settings
+                  {t('idePanels.git.settingsShort')}
                 </button>
                 <button
                   type="button"
                   data-testid="git-fetch"
                   disabled={loading}
                   onClick={() => void loadPanel()}
-                  title="Refresh and fetch"
+                  title={t('idePanels.git.refreshFetch')}
                   className="inline-flex h-7 items-center gap-1 rounded-md border border-bolt-elements-borderColor px-2 text-xs font-medium text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary disabled:opacity-50"
                 >
                   <span
                     className={classNames('i-ph:arrows-clockwise text-sm', loading && 'animate-spin')}
                     aria-hidden
                   />
-                  Fetch
+                  {t('idePanels.git.fetch')}
                 </button>
                 <button
                   type="button"
                   data-testid="git-disconnect-remote"
                   disabled={busy}
                   onClick={() => setConfirmDisconnectRemote(true)}
-                  title="Disconnect remote"
+                  title={t('idePanels.git.disconnectRemote')}
                   className="inline-flex h-7 items-center gap-1 rounded-md border border-bolt-elements-borderColor px-2 text-xs font-medium text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3 hover:text-red-500 disabled:opacity-50"
                 >
                   <span className="i-ph:plugs text-sm" aria-hidden />
-                  Disconnect
+                  {t('idePanels.git.disconnect')}
                 </button>
               </div>
             </div>
@@ -1296,9 +1325,11 @@ export function GitTab({ projectId }: GitTabProps) {
               {project.gitRepositoryUrl.replace(/^https?:\/\/[^/]+\//, '').replace(/\.git$/, '')}
             </a>
             <span className="text-xs text-bolt-elements-textTertiary">
-              origin/{branch} • upstream
-              {project.gitDefaultBranch ? ` · default ${project.gitDefaultBranch}` : ''} · last fetched{' '}
-              {timeAgo(lastLoadedAt)}
+              {t('idePanels.git.remoteTracking', { branch })}
+              {project.gitDefaultBranch
+                ? ` · ${t('idePanels.git.defaultBranch', { branch: project.gitDefaultBranch })}`
+                : ''}{' '}
+              · {t('idePanels.git.lastFetched', { time: timeAgo(lastLoadedAt, activeLanguage, t) })}
             </span>
           </div>
         ) : null}
@@ -1310,9 +1341,9 @@ export function GitTab({ projectId }: GitTabProps) {
             setConfirmDisconnectRemote(false);
             void runIntent('remove-remote');
           }}
-          title="Disconnect this Git remote?"
-          description="Your files and local history stay; only the remote link is removed from the project."
-          confirmLabel="Disconnect"
+          title={t('idePanels.git.disconnectTitle')}
+          description={t('idePanels.git.disconnectBody')}
+          confirmLabel={t('idePanels.git.disconnect')}
           variant="destructive"
         />
 
@@ -1330,12 +1361,12 @@ export function GitTab({ projectId }: GitTabProps) {
             >
               <h3 className="flex items-center gap-2 text-[13px] font-semibold text-bolt-elements-textPrimary">
                 <span className="i-ph:warning-circle text-base text-red-500" aria-hidden />
-                Discard changes?
+                {t('idePanels.git.discardTitle')}
               </h3>
               <p className="mt-2 text-sm text-bolt-elements-textSecondary">
                 {discardConfirm.all
-                  ? `This reverts all ${changedFiles.length} changed file${changedFiles.length > 1 ? 's' : ''} to the last commit. This cannot be undone.`
-                  : `This reverts ${discardConfirm.path} to the last commit. This cannot be undone.`}
+                  ? t('idePanels.git.discardAllBody', { count: changedFiles.length })
+                  : t('idePanels.git.discardFileBody', { path: discardConfirm.path })}
               </p>
               <div className="mt-4 flex justify-end gap-2">
                 <button
@@ -1343,7 +1374,7 @@ export function GitTab({ projectId }: GitTabProps) {
                   className="rounded-md border border-bolt-elements-borderColor px-3 py-1.5 text-sm font-medium text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3"
                   onClick={() => setDiscardConfirm(null)}
                 >
-                  Cancel
+                  {t('idePanels.common.cancel')}
                 </button>
                 <button
                   type="button"
@@ -1361,7 +1392,7 @@ export function GitTab({ projectId }: GitTabProps) {
                      * commit path has the same guard via findUnserializableStagedFiles.)
                      */
                     if (!target.all && target.path && pathBreaksCommaSerialization(target.path)) {
-                      const message = `Cannot discard a file whose path contains a comma: ${target.path}`;
+                      const message = t('idePanels.git.commaDiscardError', { path: target.path });
                       setDiscardConfirm(null);
                       setError(message);
                       toast.error(message);
@@ -1373,7 +1404,7 @@ export function GitTab({ projectId }: GitTabProps) {
                     void runIntent('discard', target.all || !target.path ? {} : { filePaths: target.path });
                   }}
                 >
-                  Discard {discardConfirm.all ? 'all' : 'file'}
+                  {discardConfirm.all ? t('idePanels.git.discardAll') : t('idePanels.git.discardFile')}
                 </button>
               </div>
             </div>
@@ -1397,12 +1428,10 @@ export function GitTab({ projectId }: GitTabProps) {
                   className="i-ph:clock-counter-clockwise text-base text-bolt-elements-item-contentAccent"
                   aria-hidden
                 />
-                Restore all files to this commit?
+                {t('idePanels.git.restoreTitle')}
               </h3>
               <p className="mt-2 text-sm text-bolt-elements-textSecondary">
-                This overwrites your working tree with the contents of commit{' '}
-                <code className="text-bolt-elements-item-contentAccent">{restoreConfirm.slice(0, 8)}</code>. Uncommitted
-                changes will be lost. You can review and commit afterwards.
+                {t('idePanels.git.restoreBody', { sha: restoreConfirm.slice(0, 8) })}
               </p>
               <div className="mt-4 flex justify-end gap-2">
                 <button
@@ -1410,7 +1439,7 @@ export function GitTab({ projectId }: GitTabProps) {
                   className="rounded-md border border-bolt-elements-borderColor px-3 py-1.5 text-sm font-medium text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3"
                   onClick={() => setRestoreConfirm(null)}
                 >
-                  Cancel
+                  {t('idePanels.common.cancel')}
                 </button>
                 <button
                   type="button"
@@ -1424,7 +1453,7 @@ export function GitTab({ projectId }: GitTabProps) {
                     void runIntent('restore', { sha });
                   }}
                 >
-                  Restore all
+                  {t('idePanels.git.restoreAll')}
                 </button>
               </div>
             </div>
@@ -1439,29 +1468,29 @@ export function GitTab({ projectId }: GitTabProps) {
               idPrefix="git-tab"
               onSubmit={submitAction}
               repoUrl={project?.gitRepositoryUrl}
-              lastFetched={lastLoadedAt ? timeAgo(lastLoadedAt) : undefined}
+              lastFetched={lastLoadedAt ? timeAgo(lastLoadedAt, activeLanguage, t) : undefined}
               onRefresh={() => void loadPanel()}
               loading={loading}
             />
           ) : null}
 
           <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
-            <div className="mb-3 flex items-center justify-between gap-3">
+            <div className="mb-3 flex flex-wrap items-start justify-between gap-3 sm:items-center">
               <div>
-                <h3 className="text-[13px] font-semibold text-bolt-elements-textPrimary">Working tree</h3>
-                <p className="mt-1 text-xs text-bolt-elements-textSecondary">
-                  Files changed in this workspace. Click a file to preview its diff, then stage it for commit.
-                </p>
+                <h3 className="text-[13px] font-semibold text-bolt-elements-textPrimary">
+                  {t('idePanels.git.workingTree')}
+                </h3>
+                <p className="mt-1 text-xs text-bolt-elements-textSecondary">{t('idePanels.git.workingTreeBody')}</p>
               </div>
               {changedFiles.length ? (
-                <div className="flex flex-shrink-0 items-center gap-2">
+                <div className="flex flex-shrink-0 flex-wrap items-center justify-end gap-2">
                   <button
                     type="button"
                     data-testid="git-stage-all"
                     className="rounded-md border border-bolt-elements-borderColor px-2.5 py-1 text-xs font-medium text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3"
                     onClick={() => setStaged(new Set(changedFiles.map((file) => String(file.path ?? file))))}
                   >
-                    Stage all
+                    {t('idePanels.git.stageAll')}
                   </button>
                   {staged.size ? (
                     <button
@@ -1470,7 +1499,7 @@ export function GitTab({ projectId }: GitTabProps) {
                       className="rounded-md border border-bolt-elements-borderColor px-2.5 py-1 text-xs font-medium text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3"
                       onClick={() => setStaged(new Set())}
                     >
-                      Unstage all
+                      {t('idePanels.git.unstageAll')}
                     </button>
                   ) : null}
                   <button
@@ -1480,7 +1509,7 @@ export function GitTab({ projectId }: GitTabProps) {
                     className="rounded-md border border-red-500/40 px-2.5 py-1 text-xs font-medium text-red-500 hover:bg-red-500/10 disabled:opacity-60"
                     onClick={() => setDiscardConfirm({ all: true })}
                   >
-                    Discard all
+                    {t('idePanels.git.discardAll')}
                   </button>
                 </div>
               ) : null}
@@ -1505,7 +1534,7 @@ export function GitTab({ projectId }: GitTabProps) {
                   >
                     <input
                       type="checkbox"
-                      aria-label={`Stage ${path}`}
+                      aria-label={t('idePanels.git.stageFile', { path })}
                       checked={staged.has(path)}
                       onChange={() => toggleFile(path)}
                     />
@@ -1521,12 +1550,12 @@ export function GitTab({ projectId }: GitTabProps) {
                     </button>
                     <GitStatusBadge status={file.status ?? 'M'} />
                     <span className="text-xs font-semibold text-bolt-elements-item-contentAccent">
-                      {staged.has(path) ? 'Staged' : 'Stage'}
+                      {staged.has(path) ? t('idePanels.git.staged') : t('idePanels.git.stage')}
                     </span>
                     <button
                       type="button"
-                      aria-label={`Discard changes to ${path}`}
-                      title="Discard changes"
+                      aria-label={t('idePanels.git.discardPath', { path })}
+                      title={t('idePanels.git.discardChanges')}
                       data-testid="git-discard-file"
                       disabled={busy}
                       className="i-ph:arrow-counter-clockwise flex-shrink-0 text-base text-bolt-elements-textSecondary hover:text-red-500 disabled:opacity-60"
@@ -1540,7 +1569,7 @@ export function GitTab({ projectId }: GitTabProps) {
               })
             ) : (
               <div className="rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-4 text-sm text-bolt-elements-textSecondary">
-                No changed files.
+                {t('idePanels.git.noChanges')}
               </div>
             )}
             {changedFiles.length ? <GitStatusLegend className="mt-3 bg-bolt-elements-background-depth-1" /> : null}
@@ -1550,12 +1579,9 @@ export function GitTab({ projectId }: GitTabProps) {
             <div className="rounded-lg border border-red-500/40 bg-red-500/10 p-4">
               <h3 className="mb-1 flex items-center gap-2 text-sm font-semibold text-red-500">
                 <span className="i-ph:warning text-base" aria-hidden />
-                Conflicting Files ({conflicts.length})
+                {t('idePanels.git.conflictingFiles', { count: conflicts.length })}
               </h3>
-              <p className="mb-3 text-xs text-bolt-elements-textSecondary">
-                Resolve each file (keep current/incoming, or let the agent merge both), then commit to complete the
-                merge.
-              </p>
+              <p className="mb-3 text-xs text-bolt-elements-textSecondary">{t('idePanels.git.conflictingFilesBody')}</p>
               <button
                 type="button"
                 className="mb-3 inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-semibold text-white"
@@ -1574,7 +1600,7 @@ export function GitTab({ projectId }: GitTabProps) {
                 }
               >
                 <span className="i-ph:sparkle" aria-hidden />
-                Resolve conflicts with agent
+                {t('idePanels.git.resolveWithAgent')}
               </button>
               <div className="grid gap-2">
                 {conflicts.map((conflict) => {
@@ -1595,7 +1621,7 @@ export function GitTab({ projectId }: GitTabProps) {
                           <input name="filePath" value={path} type="hidden" />
                           <input name="strategy" value="ours" type="hidden" />
                           <PanelButton disabled={busy} variant="outline">
-                            Keep current
+                            {t('idePanels.git.keepCurrent')}
                           </PanelButton>
                         </form>
                         <form onSubmit={submitAction}>
@@ -1603,7 +1629,7 @@ export function GitTab({ projectId }: GitTabProps) {
                           <input name="filePath" value={path} type="hidden" />
                           <input name="strategy" value="theirs" type="hidden" />
                           <PanelButton disabled={busy} variant="outline">
-                            Keep incoming
+                            {t('idePanels.git.keepIncoming')}
                           </PanelButton>
                         </form>
                         <button
@@ -1613,13 +1639,13 @@ export function GitTab({ projectId }: GitTabProps) {
                           className="inline-flex h-9 items-center justify-center rounded-md border border-bolt-elements-item-contentAccent/50 px-3 text-sm font-medium text-bolt-elements-item-contentAccent hover:bg-bolt-elements-background-depth-3 disabled:opacity-60"
                           onClick={() => (mergeFile === path ? setMergeFile(null) : void loadConflictFile(path))}
                         >
-                          {mergeFile === path ? 'Hide editor' : 'Resolve inline'}
+                          {mergeFile === path ? t('idePanels.git.hideEditor') : t('idePanels.git.resolveInline')}
                         </button>
                       </div>
                       {mergeFile === path ? (
                         mergeContent?.loading ? (
                           <div className="rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3 text-xs text-bolt-elements-textSecondary">
-                            Loading conflict…
+                            {t('idePanels.git.loadingConflict')}
                           </div>
                         ) : mergeContent?.error ? (
                           <div
@@ -1627,7 +1653,7 @@ export function GitTab({ projectId }: GitTabProps) {
                             role="alert"
                             className="flex flex-wrap items-center gap-3 rounded-md border border-red-500/40 bg-red-500/10 p-3 text-xs text-red-500"
                           >
-                            <span className="flex-1">{mergeContent.error}</span>
+                            <span className="flex-1">{t('idePanels.git.conflictLoadFailed')}</span>
                             <button
                               type="button"
                               data-testid="git-merge-load-retry"
@@ -1635,7 +1661,7 @@ export function GitTab({ projectId }: GitTabProps) {
                               className="inline-flex h-8 items-center justify-center rounded-md border border-red-500/40 px-3 font-medium hover:bg-red-500/10 disabled:opacity-60"
                               onClick={() => void loadConflictFile(path)}
                             >
-                              Retry
+                              {t('idePanels.common.retry')}
                             </button>
                           </div>
                         ) : (
@@ -1659,7 +1685,9 @@ export function GitTab({ projectId }: GitTabProps) {
           )}
 
           <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
-            <h3 className="mb-3 text-[13px] font-semibold text-bolt-elements-textPrimary">Staged</h3>
+            <h3 className="mb-3 text-[13px] font-semibold text-bolt-elements-textPrimary">
+              {t('idePanels.git.stagedTitle')}
+            </h3>
             {stagedFiles.length ? (
               <div className="overflow-hidden rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1">
                 {stagedFiles.map((file) => (
@@ -1668,13 +1696,13 @@ export function GitTab({ projectId }: GitTabProps) {
                     className="border-b border-bolt-elements-borderColor px-3 py-2 text-xs text-bolt-elements-textPrimary last:border-b-0"
                   >
                     <div className="truncate font-medium">{file}</div>
-                    <div className="text-bolt-elements-textSecondary">Ready for commit</div>
+                    <div className="text-bolt-elements-textSecondary">{t('idePanels.git.readyForCommit')}</div>
                   </div>
                 ))}
               </div>
             ) : (
               <div className="rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-3 text-sm text-bolt-elements-textSecondary">
-                Select files above to stage changes.
+                {t('idePanels.git.selectToStage')}
               </div>
             )}
           </div>
@@ -1685,44 +1713,45 @@ export function GitTab({ projectId }: GitTabProps) {
           >
             <input name="stagedFiles" value={stagedFiles.join(',')} type="hidden" />
             <label className="grid gap-1 text-xs font-medium text-bolt-elements-textSecondary">
-              Commit message
+              {t('idePanels.git.commitMessage')}
               <textarea
                 name="message"
                 rows={1}
                 className="min-h-[32px] rounded-[6px] border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-2.5 py-1.5 text-sm text-bolt-elements-textPrimary outline-none focus:border-bolt-elements-focus"
-                placeholder={stagedFiles.length ? `Commit ${stagedFiles.length} staged files` : 'Summary'}
+                placeholder={
+                  stagedFiles.length
+                    ? t('idePanels.git.commitStaged', { count: stagedFiles.length })
+                    : t('idePanels.git.commitSummary')
+                }
               />
             </label>
             <details className="text-xs text-bolt-elements-textSecondary">
-              <summary className="cursor-pointer">Commit as… (optional author override)</summary>
+              <summary className="cursor-pointer">{t('idePanels.git.commitAs')}</summary>
               <div className="mt-2 grid gap-2 sm:grid-cols-2">
                 <PanelInput
                   name="authorName"
                   key={`name-${commitAuthorDefault.name ?? ''}`}
                   defaultValue={commitAuthorDefault.name ?? ''}
-                  placeholder="Author name"
-                  aria-label="Commit author name"
+                  placeholder={t('idePanels.git.authorName')}
+                  aria-label={t('idePanels.git.commitAuthorName')}
                 />
                 <PanelInput
                   name="authorEmail"
                   type="email"
                   key={`email-${commitAuthorDefault.email ?? ''}`}
                   defaultValue={commitAuthorDefault.email ?? ''}
-                  placeholder="author@example.com"
-                  aria-label="Commit author email"
+                  placeholder={t('idePanels.git.authorEmailExample')}
+                  aria-label={t('idePanels.git.commitAuthorEmail')}
                 />
               </div>
-              <p className="mt-1 leading-4">
-                Both fields required to override; otherwise the repo default author is used.
-              </p>
+              <p className="mt-1 leading-4">{t('idePanels.git.authorOverrideHelp')}</p>
             </details>
             {unserializableStagedFiles.length ? (
               <p className="text-xs text-bolt-elements-icon-error" role="alert">
-                These staged paths contain a comma and cannot be committed from here yet:{' '}
-                {unserializableStagedFiles.join(', ')}
+                {t('idePanels.git.commaPathsHelp', { paths: unserializableStagedFiles.join(', ') })}
               </p>
             ) : null}
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               <PanelButton
                 type="submit"
                 name="intent"
@@ -1731,7 +1760,7 @@ export function GitTab({ projectId }: GitTabProps) {
                 className="font-semibold text-white hover:opacity-90"
                 style={{ background: 'var(--ecode-accent, #F26207)' }}
               >
-                Commit changes
+                {t('idePanels.git.commitChanges')}
               </PanelButton>
               <PanelButton
                 type="submit"
@@ -1739,15 +1768,17 @@ export function GitTab({ projectId }: GitTabProps) {
                 value="commit-push"
                 variant="outline"
                 disabled={busy || stagedFiles.length === 0 || unserializableStagedFiles.length > 0}
-                title="Commit the staged files and push to origin in one step"
+                title={t('idePanels.git.commitPushHelp')}
               >
-                Commit &amp; push
+                {t('idePanels.git.commitPush')}
               </PanelButton>
             </div>
           </form>
 
           <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
-            <h3 className="mb-3 text-[13px] font-semibold text-bolt-elements-textPrimary">Commit graph</h3>
+            <h3 className="mb-3 text-[13px] font-semibold text-bolt-elements-textPrimary">
+              {t('idePanels.git.commitGraph')}
+            </h3>
             {commits.length ? (
               <div className="grid gap-2">
                 {commits.map((commit, index) => {
@@ -1762,12 +1793,12 @@ export function GitTab({ projectId }: GitTabProps) {
                     <Fragment key={commit.sha}>
                       {aheadCount > 0 && index === 0 ? (
                         <div className="flex items-center gap-1.5 px-1 pt-1 text-[11px] font-medium uppercase tracking-wide text-bolt-elements-textTertiary">
-                          <span className="i-ph:arrow-down" aria-hidden /> Not pushed to remote
+                          <span className="i-ph:arrow-down" aria-hidden /> {t('idePanels.git.notPushed')}
                         </div>
                       ) : null}
                       {index === aheadCount ? (
                         <div className="flex items-center gap-1.5 px-1 pt-1 text-[11px] font-medium uppercase tracking-wide text-bolt-elements-textTertiary">
-                          <span className="i-ph:arrow-down" aria-hidden /> Up to date with remote
+                          <span className="i-ph:arrow-down" aria-hidden /> {t('idePanels.git.upToDate')}
                         </div>
                       ) : null}
                       <button
@@ -1791,7 +1822,7 @@ export function GitTab({ projectId }: GitTabProps) {
                         <div className="min-w-0">
                           <div className="truncate font-medium text-bolt-elements-textPrimary">{commit.message}</div>
                           <div className="truncate text-xs text-bolt-elements-textSecondary">
-                            {timeAgo(commit.date)} {commit.refs ? `- ${commit.refs}` : ''}
+                            {timeAgo(commit.date, activeLanguage, t)} {commit.refs ? `- ${commit.refs}` : ''}
                             {commit.author ? ` - ${commit.author}` : ''}
                           </div>
                         </div>
@@ -1802,7 +1833,7 @@ export function GitTab({ projectId }: GitTabProps) {
               </div>
             ) : (
               <div className="rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-4 text-sm text-bolt-elements-textSecondary">
-                No commits yet. Make your first commit.
+                {t('idePanels.git.noCommits')}
               </div>
             )}
 
@@ -1818,8 +1849,8 @@ export function GitTab({ projectId }: GitTabProps) {
                     </code>
                     <span>
                       {commitDetail.loading
-                        ? 'Loading…'
-                        : `${commitDetail.files.length} changed file${commitDetail.files.length === 1 ? '' : 's'}`}
+                        ? t('idePanels.git.loading')
+                        : t('idePanels.git.changedFiles', { count: commitDetail.files.length })}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
@@ -1830,11 +1861,11 @@ export function GitTab({ projectId }: GitTabProps) {
                       className="rounded-md border border-bolt-elements-borderColor px-2.5 py-1 text-xs font-medium text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3 disabled:opacity-60"
                       onClick={() => setRestoreConfirm(commitDetail.sha)}
                     >
-                      Restore all
+                      {t('idePanels.git.restoreAll')}
                     </button>
                     <button
                       type="button"
-                      aria-label="Close commit detail"
+                      aria-label={t('idePanels.git.closeCommitDetail')}
                       className="i-ph:x text-base text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary"
                       onClick={() => setCommitDetail(null)}
                     />
@@ -1858,11 +1889,11 @@ export function GitTab({ projectId }: GitTabProps) {
           <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
             <div className="mb-3 grid gap-2 md:grid-cols-[minmax(0,1fr)_auto]">
               <label className="grid gap-1 text-xs font-medium text-bolt-elements-textSecondary">
-                Inspect file (diff + blame)
+                {t('idePanels.git.inspectFile')}
                 <PanelInput
                   value={inspectFile}
                   onChange={(event) => setInspectFile(event.target.value)}
-                  placeholder="src/App.tsx"
+                  placeholder={t('idePanels.git.fileExample')}
                 />
               </label>
               <div className="flex items-end">
@@ -1872,7 +1903,7 @@ export function GitTab({ projectId }: GitTabProps) {
                   onClick={() => void loadInspection()}
                   disabled={!inspectFile || inspection.loading}
                 >
-                  {inspection.loading ? 'Loading...' : 'Inspect'}
+                  {inspection.loading ? t('idePanels.git.inspecting') : t('idePanels.git.inspect')}
                 </button>
               </div>
             </div>
@@ -1885,35 +1916,40 @@ export function GitTab({ projectId }: GitTabProps) {
               <GitDiffView diff={inspection.diff} blame={inspection.blame} />
             ) : (
               <div className="rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-4 text-sm text-bolt-elements-textSecondary">
-                Select a changed file or enter a path to view its diff and blame.
+                {t('idePanels.git.inspectionEmpty')}
               </div>
             )}
           </div>
           <details className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3">
             <summary className="cursor-pointer text-[13px] font-semibold text-bolt-elements-textPrimary">
-              Branch actions
+              {t('idePanels.git.branchActions')}
             </summary>
             <div className="mt-3 grid gap-3">
               <form onSubmit={submitAction} className="grid gap-2">
                 <input name="intent" value="create-branch" type="hidden" />
                 <label className="text-xs font-medium text-bolt-elements-textSecondary" htmlFor="git-tab-new-branch">
-                  Create branch
+                  {t('idePanels.git.createBranch')}
                 </label>
-                <PanelInput id="git-tab-new-branch" name="branch" placeholder="feature/billing-flow" required />
-                <PanelInput name="startPoint" defaultValue={branch} aria-label="Start point" />
+                <PanelInput
+                  id="git-tab-new-branch"
+                  name="branch"
+                  placeholder={t('idePanels.git.createBranchExample')}
+                  required
+                />
+                <PanelInput name="startPoint" defaultValue={branch} aria-label={t('idePanels.git.startPoint')} />
                 <PanelButton disabled={busy} variant="outline">
-                  Create and switch
+                  {t('idePanels.git.createSwitch')}
                 </PanelButton>
               </form>
 
               <form onSubmit={submitAction} className="grid gap-2">
                 <input name="intent" value="stash" type="hidden" />
                 <label className="text-xs font-medium text-bolt-elements-textSecondary" htmlFor="git-tab-stash-message">
-                  Stash message
+                  {t('idePanels.git.stashMessage')}
                 </label>
-                <PanelInput id="git-tab-stash-message" name="message" placeholder="WIP before rebase" />
+                <PanelInput id="git-tab-stash-message" name="message" placeholder={t('idePanels.git.stashExample')} />
                 <PanelButton disabled={busy || changedFiles.length === 0} variant="outline">
-                  Stash changes
+                  {t('idePanels.git.stashChanges')}
                 </PanelButton>
               </form>
             </div>
@@ -1921,7 +1957,7 @@ export function GitTab({ projectId }: GitTabProps) {
 
           {stashes.length ? (
             <div className="grid gap-2 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3">
-              <h3 className="text-[13px] font-semibold text-bolt-elements-textPrimary">Stashes</h3>
+              <h3 className="text-[13px] font-semibold text-bolt-elements-textPrimary">{t('idePanels.git.stashes')}</h3>
               {stashes.map((stash) => (
                 <div
                   key={stash.id}
@@ -1934,14 +1970,14 @@ export function GitTab({ projectId }: GitTabProps) {
                       <input name="intent" value="apply-stash" type="hidden" />
                       <input name="stashRef" value={stash.id} type="hidden" />
                       <PanelButton disabled={busy} variant="outline">
-                        Apply
+                        {t('idePanels.git.apply')}
                       </PanelButton>
                     </form>
                     <form onSubmit={submitAction}>
                       <input name="intent" value="pop-stash" type="hidden" />
                       <input name="stashRef" value={stash.id} type="hidden" />
                       <PanelButton disabled={busy} variant="outline">
-                        Pop
+                        {t('idePanels.git.pop')}
                       </PanelButton>
                     </form>
                   </div>
@@ -1962,30 +1998,28 @@ export function GitTab({ projectId }: GitTabProps) {
           >
             <input name="intent" value="pr" type="hidden" />
             <label className="text-xs font-medium text-bolt-elements-textSecondary" htmlFor="git-tab-pr-title">
-              Pull request title
+              {t('idePanels.git.prTitle')}
             </label>
-            <PanelInput id="git-tab-pr-title" name="title" placeholder="Project update" />
+            <PanelInput id="git-tab-pr-title" name="title" placeholder={t('idePanels.git.prTitleExample')} />
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-              <PanelInput name="sourceBranch" defaultValue={branch} aria-label="Source branch" />
+              <PanelInput name="sourceBranch" defaultValue={branch} aria-label={t('idePanels.git.sourceBranch')} />
               <PanelInput
                 name="targetBranch"
                 defaultValue={project?.gitDefaultBranch ?? 'main'}
-                aria-label="Target branch"
+                aria-label={t('idePanels.git.targetBranch')}
               />
             </div>
             <textarea
               name="body"
               className="min-h-20 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-2 text-sm text-bolt-elements-textPrimary outline-none focus:border-bolt-elements-focus"
-              placeholder="Summary, tests, rollout notes"
-              aria-label="Pull request description"
+              placeholder={t('idePanels.git.prBodyExample')}
+              aria-label={t('idePanels.git.prDescription')}
             />
             <PanelButton disabled={busy || !hasRemote} variant="outline">
-              Create GitHub PR
+              {t('idePanels.git.createPr')}
             </PanelButton>
             {!hasRemote && (
-              <p className="text-xs text-bolt-elements-textSecondary">
-                Configure a GitHub remote before creating a pull request.
-              </p>
+              <p className="text-xs text-bolt-elements-textSecondary">{t('idePanels.git.configureRemote')}</p>
             )}
           </form>
         </div>

@@ -7,6 +7,27 @@ describe('GitLabApiService', () => {
     vi.unstubAllGlobals();
   });
 
+  it('localizes authentication failures and masks the upstream payload', async () => {
+    vi.stubGlobal('navigator', { language: 'fr-FR' });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => Response.json({ message: 'invalid token secret=raw' }, { status: 401 })),
+    );
+
+    const service = new GitLabApiService('glpat-test', 'https://gitlab.example.com');
+
+    await expect(service.getUser()).rejects.toMatchObject({
+      message:
+        'Échec de l’authentification GitLab (HTTP 401). Vérifiez que votre jeton d’accès est valide et comprend les portées api et read_repository.',
+      status: 401,
+    });
+
+    await service.getUser().catch((error: Error) => {
+      expect(error.message).not.toContain('invalid token');
+      expect(error.message).not.toContain('secret=raw');
+    });
+  });
+
   it('does not log GitLab access token material while making requests', async () => {
     const fetchMock = vi.fn(async () =>
       Response.json({

@@ -1,4 +1,5 @@
 import { apiRequest, json, type EnterpriseActionArgs, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
+import { remainingApiErrorResponse } from '~/lib/i18n/catalogs/remaining-api-routes';
 
 /*
  * IDE proxy for the durable agent self-repair audit log (backend contract §9).
@@ -8,7 +9,7 @@ import { apiRequest, json, type EnterpriseActionArgs, type EnterpriseLoaderArgs 
  */
 export async function loader({ request, params }: EnterpriseLoaderArgs) {
   if (!params.projectId) {
-    return json({ ok: false, error: 'Project not found' }, { status: 404 });
+    return remainingApiErrorResponse(request, 'PROJECT_NOT_FOUND', 404, { extra: { ok: false } });
   }
 
   const url = new URL(request.url);
@@ -22,11 +23,11 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
 
 export async function action({ request, params }: EnterpriseActionArgs) {
   if (!params.projectId) {
-    return json({ ok: false, error: 'Project not found' }, { status: 404 });
+    return remainingApiErrorResponse(request, 'PROJECT_NOT_FOUND', 404, { extra: { ok: false } });
   }
 
   if (request.method !== 'POST') {
-    return json({ ok: false, error: 'Method not allowed' }, { status: 405 });
+    return remainingApiErrorResponse(request, 'METHOD_NOT_ALLOWED', 405, { extra: { ok: false } });
   }
 
   const body = await request.json().catch(() => ({}));

@@ -8,6 +8,16 @@ import { ECODE_MOBILE_MORE_ITEMS, ECODE_MOBILE_TOOLS, MOBILE_TOOL_TO_MANAGEMENT_
  */
 const MOBILE_MANAGEMENT_PANELS = [
   'overview',
+
+  /*
+   * BUG-IDE-013 (volet MOBILE). `problems` manquait à CETTE liste : la suite
+   * restait donc verte alors que le panneau était inatteignable à 390 px. Son
+   * unique point d'entrée était la pastille de la barre d'état, masquée par
+   * `.bolt-project-statusbar-mobile { display: none !important }` sous 1200 px,
+   * et il n'existait ni tuile Outils ni entrée Panneaux pour le remplacer.
+   * Un panneau non listé ici n'est gardé par rien — c'est le trou qu'il ferme.
+   */
+  'problems',
   'database',
   'object-storage',
   'packages',
