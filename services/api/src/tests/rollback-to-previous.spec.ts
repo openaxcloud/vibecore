@@ -10,6 +10,8 @@ import type { EmailProvider } from '../email.js';
 import { canonicalizeProjectManifest, projectManifestDigest } from '../project-manifest.js';
 import { TestApiStore } from './test-api-store.js';
 
+const ROLLBACK_ACTOR_USER_ID = 'rollback-test-actor';
+
 /*
  * P0-V3-08 — DETERMINISTIC static rollback-to-previous (endpoint wiring).
  *
@@ -213,6 +215,7 @@ describe('static rollback-to-previous (deterministic, fail-closed)', () => {
       .digest('hex');
     const acquired = await store.acquireRollbackOperation({
       projectId,
+      actorUserId: ROLLBACK_ACTOR_USER_ID,
       idempotencyKey,
       requestFingerprint,
       environment: 'preview',
@@ -431,6 +434,7 @@ describe('static rollback-to-previous (deterministic, fail-closed)', () => {
       .digest('hex');
     const acquired = await store.acquireRollbackOperation({
       projectId,
+      actorUserId: ROLLBACK_ACTOR_USER_ID,
       idempotencyKey,
       requestFingerprint,
       environment: 'preview',

@@ -636,6 +636,7 @@ exports.Prisma.ReleaseManifestScalarFieldEnum = {
 exports.Prisma.RollbackIdempotencyRequestScalarFieldEnum = {
   id: 'id',
   projectId: 'projectId',
+  actorUserId: 'actorUserId',
   idempotencyKey: 'idempotencyKey',
   requestFingerprint: 'requestFingerprint',
   environment: 'environment',

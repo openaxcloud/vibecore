@@ -5,6 +5,10 @@ import { hashToken } from '@vibecore/auth';
 import type { PlanKey, QuotaKey } from '@vibecore/billing';
 import { createDatabaseClient, Prisma, type DatabaseClient } from '@vibecore/database';
 import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
+import {
+  assertAccountPurgeMutationAllowed,
+  assertStateMachineNotPurged,
+} from './account-purge-state-machine-fence.js';
 import { appPublicEnglish } from './app-public-copy.js';
 import { LedgerStore } from './ledger-store.js';
 import { AccountPurgeStore, type AccountPurgeLeaseOptions } from './account-purge-store.js';
@@ -253,7 +257,49 @@ async function requireRollbackSourceManifest(
   return source;
 }
 
+/**
+ * Acquire the purge half of the global rollback lock order before checkpoint,
+ * Project, rollback-operation, deployment or release locks:
+ *
+ * actor user -> purge topology -> checkpoint -> Project -> operation/effect.
+ *
+ * Release committers that need earlier project locks call this at transaction
+ * entry, then still call requireRollbackLease after their final row lock to
+ * revalidate DB-clock ownership and the fencing token.
+ */
+export async function acquireRollbackPurgeScope(
+  tx: Prisma.TransactionClient,
+  operationId: string,
+): Promise<{ actorUserId: string | null; projectId: string; organizationId: string }> {
+  const scope = await tx.rollbackIdempotencyRequest.findUnique({
+    where: { id: operationId },
+    select: { actorUserId: true, projectId: true, project: { select: { organizationId: true } } },
+  });
+
+  if (!scope) {
+    throw rollbackOwnershipLost();
+  }
+  if (!scope.actorUserId) {
+    // Historical rows remain nullable for rolling upgrades, but an actorless
+    // lease cannot be resumed as ordinary user authority.
+    throw rollbackOwnershipLost();
+  }
+
+  await assertAccountPurgeMutationAllowed(tx, {
+    userIds: [scope.actorUserId],
+    organizationIds: [scope.project.organizationId],
+    projectIds: [scope.projectId],
+  });
+
+  return {
+    actorUserId: scope.actorUserId,
+    projectId: scope.projectId,
+    organizationId: scope.project.organizationId,
+  };
+}
+
 async function requireRollbackLease(tx: Prisma.TransactionClient, input: RollbackFenceIdentity): Promise<any> {
+  await acquireRollbackPurgeScope(tx, input.operationId);
   await tx.$queryRawUnsafe(
     'SELECT "id" FROM "RollbackIdempotencyRequest" WHERE "id" = $1 FOR UPDATE',
     input.operationId,
@@ -2217,7 +2263,17 @@ export class PrismaApiStore implements ApiStore {
     ownerToken: string;
     ttlSeconds: number;
   }) {
+    const scope = await this.prisma.projectCheckpoint.findUnique({
+      where: { id: input.checkpointId },
+      select: { projectId: true, createdByUserId: true },
+    });
+    if (!scope) return undefined;
+
     return this.prisma.$transaction(async (tx) => {
+      await assertAccountPurgeMutationAllowed(tx, {
+        userIds: [scope.createdByUserId],
+        projectIds: [scope.projectId, input.projectId],
+      });
       await tx.$executeRaw`
         SELECT pg_advisory_xact_lock(hashtextextended(${`project-checkpoint:${input.projectId}`}, 0))
       `;
@@ -2280,31 +2336,55 @@ export class PrismaApiStore implements ApiStore {
     fence: number;
     ttlSeconds: number;
   }) {
-    const rows = await this.prisma.$queryRaw<Array<{ barrierExpiresAt: Date }>>`
-      UPDATE "ProjectCheckpoint"
-      SET "barrierExpiresAt" = clock_timestamp() + make_interval(secs => ${input.ttlSeconds}),
-          "updatedAt" = clock_timestamp()
-      WHERE "id" = ${input.checkpointId}
-        AND "barrierProjectId" = "projectId"
-        AND "barrierOwnerToken" = ${input.ownerToken}
-        AND "barrierFence" = ${input.fence}
-        AND "barrierExpiresAt" > clock_timestamp()
-        AND "state" NOT IN ('CLEANED', 'MANUAL_INTERVENTION')
-      RETURNING "barrierExpiresAt"
-    `;
+    const scope = await this.prisma.projectCheckpoint.findUnique({
+      where: { id: input.checkpointId },
+      select: { projectId: true, createdByUserId: true },
+    });
+    if (!scope) return undefined;
+
+    const rows = await this.prisma.$transaction(async (tx) => {
+      await assertAccountPurgeMutationAllowed(tx, {
+        userIds: [scope.createdByUserId],
+        projectIds: [scope.projectId],
+      });
+      return tx.$queryRaw<Array<{ barrierExpiresAt: Date }>>`
+        UPDATE "ProjectCheckpoint"
+        SET "barrierExpiresAt" = clock_timestamp() + make_interval(secs => ${input.ttlSeconds}),
+            "updatedAt" = clock_timestamp()
+        WHERE "id" = ${input.checkpointId}
+          AND "barrierProjectId" = "projectId"
+          AND "barrierOwnerToken" = ${input.ownerToken}
+          AND "barrierFence" = ${input.fence}
+          AND "barrierExpiresAt" > clock_timestamp()
+          AND "state" NOT IN ('CLEANED', 'MANUAL_INTERVENTION')
+        RETURNING "barrierExpiresAt"
+      `;
+    });
 
     return rows[0]?.barrierExpiresAt.toISOString();
   }
 
   async assertProjectCheckpointBarrier(input: { checkpointId: string; ownerToken: string; fence: number }) {
-    const rows = await this.prisma.$queryRaw<Array<{ id: string }>>`
-      SELECT "id" FROM "ProjectCheckpoint"
-      WHERE "id" = ${input.checkpointId}
-        AND "barrierProjectId" = "projectId"
-        AND "barrierOwnerToken" = ${input.ownerToken}
-        AND "barrierFence" = ${input.fence}
-        AND "barrierExpiresAt" > clock_timestamp()
-    `;
+    const scope = await this.prisma.projectCheckpoint.findUnique({
+      where: { id: input.checkpointId },
+      select: { projectId: true, createdByUserId: true },
+    });
+    const rows = scope
+      ? await this.prisma.$transaction(async (tx) => {
+          await assertAccountPurgeMutationAllowed(tx, {
+            userIds: [scope.createdByUserId],
+            projectIds: [scope.projectId],
+          });
+          return tx.$queryRaw<Array<{ id: string }>>`
+            SELECT "id" FROM "ProjectCheckpoint"
+            WHERE "id" = ${input.checkpointId}
+              AND "barrierProjectId" = "projectId"
+              AND "barrierOwnerToken" = ${input.ownerToken}
+              AND "barrierFence" = ${input.fence}
+              AND "barrierExpiresAt" > clock_timestamp()
+          `;
+        })
+      : [];
 
     if (!rows[0]) {
       throw Object.assign(new Error(appPublicEnglish('CHECKPOINT_BARRIER_LOST')), {
@@ -2329,28 +2409,39 @@ export class PrismaApiStore implements ApiStore {
     };
     retainBarrier?: boolean;
   }) {
+    const scope = await this.prisma.projectCheckpoint.findUnique({
+      where: { id: input.checkpointId },
+      select: { projectId: true, createdByUserId: true },
+    });
+
     if (input.to === 'COMMITTED') {
       const manifest = JSON.stringify(input.patch?.manifest ?? null);
 
-      const rows = await this.prisma.$queryRaw<Array<{ id: string }>>`
-        UPDATE "ProjectCheckpoint"
-        SET "state" = 'COMMITTED',
-            "consistencyLevel" = ${input.patch?.consistencyLevel ?? null},
-            "manifest" = CAST(${manifest} AS jsonb),
-            "error" = NULL,
-            "expiresAt" = clock_timestamp() + make_interval(secs => ${input.patch?.retentionSeconds ?? 0}),
-            "barrierProjectId" = CASE WHEN ${input.retainBarrier === true} THEN "barrierProjectId" ELSE NULL END,
-            "barrierOwnerToken" = CASE WHEN ${input.retainBarrier === true} THEN "barrierOwnerToken" ELSE NULL END,
-            "barrierExpiresAt" = CASE WHEN ${input.retainBarrier === true} THEN "barrierExpiresAt" ELSE NULL END,
-            "updatedAt" = clock_timestamp()
-        WHERE "id" = ${input.checkpointId}
-          AND "state" = ${input.from}
-          AND "barrierProjectId" = "projectId"
-          AND "barrierOwnerToken" = ${input.ownerToken}
-          AND "barrierFence" = ${input.fence}
-          AND "barrierExpiresAt" > clock_timestamp()
-        RETURNING "id"
-      `;
+      const rows = await this.prisma.$transaction(async (tx) => {
+        await assertAccountPurgeMutationAllowed(tx, {
+          userIds: [scope?.createdByUserId],
+          projectIds: [scope?.projectId],
+        });
+        return tx.$queryRaw<Array<{ id: string }>>`
+          UPDATE "ProjectCheckpoint"
+          SET "state" = 'COMMITTED',
+              "consistencyLevel" = ${input.patch?.consistencyLevel ?? null},
+              "manifest" = CAST(${manifest} AS jsonb),
+              "error" = NULL,
+              "expiresAt" = clock_timestamp() + make_interval(secs => ${input.patch?.retentionSeconds ?? 0}),
+              "barrierProjectId" = CASE WHEN ${input.retainBarrier === true} THEN "barrierProjectId" ELSE NULL END,
+              "barrierOwnerToken" = CASE WHEN ${input.retainBarrier === true} THEN "barrierOwnerToken" ELSE NULL END,
+              "barrierExpiresAt" = CASE WHEN ${input.retainBarrier === true} THEN "barrierExpiresAt" ELSE NULL END,
+              "updatedAt" = clock_timestamp()
+          WHERE "id" = ${input.checkpointId}
+            AND "state" = ${input.from}
+            AND "barrierProjectId" = "projectId"
+            AND "barrierOwnerToken" = ${input.ownerToken}
+            AND "barrierFence" = ${input.fence}
+            AND "barrierExpiresAt" > clock_timestamp()
+          RETURNING "id"
+        `;
+      });
 
       if (!rows[0]) {
         throw Object.assign(new Error(appPublicEnglish('CHECKPOINT_BARRIER_LOST')), {
@@ -2363,6 +2454,10 @@ export class PrismaApiStore implements ApiStore {
     }
 
     await this.prisma.$transaction(async (tx) => {
+      await assertAccountPurgeMutationAllowed(tx, {
+        userIds: [scope?.createdByUserId],
+        projectIds: [scope?.projectId],
+      });
       const lease = await tx.$queryRaw<Array<{ id: string }>>`
         SELECT "id" FROM "ProjectCheckpoint"
         WHERE "id" = ${input.checkpointId}
@@ -2428,16 +2523,28 @@ export class PrismaApiStore implements ApiStore {
       expiresAt?: string;
     },
   ) {
-    await this.prisma.projectCheckpoint.update({
+    const scope = await this.prisma.projectCheckpoint.findUnique({
       where: { id },
-      data: {
-        ...(patch.state !== undefined ? { state: patch.state } : {}),
-        ...(patch.logicalBarrierId !== undefined ? { logicalBarrierId: patch.logicalBarrierId } : {}),
-        ...(patch.consistencyLevel !== undefined ? { consistencyLevel: patch.consistencyLevel } : {}),
-        ...(patch.manifest !== undefined ? { manifest: patch.manifest as object } : {}),
-        ...(patch.error !== undefined ? { error: patch.error } : {}),
-        ...(patch.expiresAt !== undefined ? { expiresAt: new Date(patch.expiresAt) } : {}),
-      },
+      select: { projectId: true, createdByUserId: true },
+    });
+    if (!scope) return;
+
+    await this.prisma.$transaction(async (tx) => {
+      await assertAccountPurgeMutationAllowed(tx, {
+        userIds: [scope.createdByUserId],
+        projectIds: [scope.projectId],
+      });
+      await tx.projectCheckpoint.update({
+        where: { id },
+        data: {
+          ...(patch.state !== undefined ? { state: patch.state } : {}),
+          ...(patch.logicalBarrierId !== undefined ? { logicalBarrierId: patch.logicalBarrierId } : {}),
+          ...(patch.consistencyLevel !== undefined ? { consistencyLevel: patch.consistencyLevel } : {}),
+          ...(patch.manifest !== undefined ? { manifest: patch.manifest as object } : {}),
+          ...(patch.error !== undefined ? { error: patch.error } : {}),
+          ...(patch.expiresAt !== undefined ? { expiresAt: new Date(patch.expiresAt) } : {}),
+        },
+      });
     });
   }
 
@@ -2504,21 +2611,40 @@ export class PrismaApiStore implements ApiStore {
     consentVersion?: string;
   }) {
     try {
-      const row = await this.prisma.remixJob.create({
-        data: {
-          sourceProjectId: input.sourceProjectId,
-          organizationId: input.organizationId,
-          actorUserId: input.actorUserId ?? null,
-          storagePolicy: input.storagePolicy,
-          idempotencyKey: input.idempotencyKey,
-          requestHash: input.requestHash,
-          storageConsentVersion: input.storageConsentVersion ?? null,
-          sourceSnapshotId: input.sourceSnapshotId ?? null,
-          sourceListingId: input.sourceListingId ?? null,
-          licenseSnapshot: (input.licenseSnapshot as Prisma.InputJsonValue | undefined) ?? undefined,
-          consentVersion: input.consentVersion ?? null,
-          state: 'PENDING',
-        },
+      const row = await this.prisma.$transaction(async (tx) => {
+        await assertAccountPurgeMutationAllowed(tx, {
+          userIds: [input.actorUserId],
+          organizationIds: [input.organizationId],
+          projectIds: [input.sourceProjectId],
+        });
+
+        const [sourceExists, organizationExists] = await Promise.all([
+          tx.project.count({ where: { id: input.sourceProjectId } }),
+          tx.organization.count({ where: { id: input.organizationId } }),
+        ]);
+        if (sourceExists !== 1 || organizationExists !== 1) {
+          throw Object.assign(new Error(appPublicEnglish('PROJECT_NOT_FOUND')), {
+            statusCode: 404,
+            code: 'PROJECT_NOT_FOUND',
+          });
+        }
+
+        return tx.remixJob.create({
+          data: {
+            sourceProjectId: input.sourceProjectId,
+            organizationId: input.organizationId,
+            actorUserId: input.actorUserId ?? null,
+            storagePolicy: input.storagePolicy,
+            idempotencyKey: input.idempotencyKey,
+            requestHash: input.requestHash,
+            storageConsentVersion: input.storageConsentVersion ?? null,
+            sourceSnapshotId: input.sourceSnapshotId ?? null,
+            sourceListingId: input.sourceListingId ?? null,
+            licenseSnapshot: (input.licenseSnapshot as Prisma.InputJsonValue | undefined) ?? undefined,
+            consentVersion: input.consentVersion ?? null,
+            state: 'PENDING',
+          },
+        });
       });
 
       return { job: mapRemixJob(row), replayed: false };
@@ -2527,28 +2653,48 @@ export class PrismaApiStore implements ApiStore {
         throw error;
       }
 
-      const existing = await this.prisma.remixJob.findUnique({
-        where: {
-          organizationId_idempotencyKey: {
-            organizationId: input.organizationId,
-            idempotencyKey: input.idempotencyKey,
-          },
-        },
-      });
-
-      if (!existing || existing.requestHash !== input.requestHash) {
-        throw Object.assign(new Error(appPublicEnglish('REMIX_IDEMPOTENCY_CONFLICT')), {
-          statusCode: 409,
-          code: 'REMIX_IDEMPOTENCY_CONFLICT',
+      return this.prisma.$transaction(async (tx) => {
+        await assertAccountPurgeMutationAllowed(tx, {
+          userIds: [input.actorUserId],
+          organizationIds: [input.organizationId],
+          projectIds: [input.sourceProjectId],
         });
-      }
+        const existing = await tx.remixJob.findUnique({
+          where: {
+            organizationId_idempotencyKey: {
+              organizationId: input.organizationId,
+              idempotencyKey: input.idempotencyKey,
+            },
+          },
+        });
 
-      return { job: mapRemixJob(existing), replayed: true };
+        if (!existing || existing.requestHash !== input.requestHash) {
+          throw Object.assign(new Error(appPublicEnglish('REMIX_IDEMPOTENCY_CONFLICT')), {
+            statusCode: 409,
+            code: 'REMIX_IDEMPOTENCY_CONFLICT',
+          });
+        }
+
+        assertStateMachineNotPurged(existing.errorCode, existing.error);
+
+        return { job: mapRemixJob(existing), replayed: true };
+      });
     }
   }
 
   async claimRemixJob(input: { id: string; organizationId: string; operationToken: string; leaseDurationMs: number }) {
+    const scope = await this.prisma.remixJob.findFirst({
+      where: { id: input.id, organizationId: input.organizationId },
+      select: { actorUserId: true, sourceProjectId: true, targetProjectId: true },
+    });
+    if (!scope) return undefined;
+
     return this.prisma.$transaction(async (tx) => {
+      await assertAccountPurgeMutationAllowed(tx, {
+        userIds: [scope.actorUserId],
+        organizationIds: [input.organizationId],
+        projectIds: [scope.sourceProjectId, scope.targetProjectId],
+      });
       await tx.$queryRawUnsafe(
         'SELECT "id" FROM "RemixJob" WHERE "id" = $1 AND "organizationId" = $2 FOR UPDATE',
         input.id,
@@ -2557,6 +2703,8 @@ export class PrismaApiStore implements ApiStore {
 
       const now = await databaseNow(tx);
       const job = await tx.remixJob.findFirst({ where: { id: input.id, organizationId: input.organizationId } });
+
+      assertStateMachineNotPurged(job?.errorCode, job?.error);
 
       if (!job || ['COMPLETED', 'FAILED'].includes(job.state)) {
         return undefined;
@@ -2592,7 +2740,18 @@ export class PrismaApiStore implements ApiStore {
     expectedVersion: number;
     leaseDurationMs: number;
   }) {
+    const scope = await this.prisma.remixJob.findFirst({
+      where: { id: input.id, organizationId: input.organizationId },
+      select: { actorUserId: true, sourceProjectId: true, targetProjectId: true },
+    });
+    if (!scope) return undefined;
+
     return this.prisma.$transaction(async (tx) => {
+      await assertAccountPurgeMutationAllowed(tx, {
+        userIds: [scope.actorUserId],
+        organizationIds: [input.organizationId],
+        projectIds: [scope.sourceProjectId, scope.targetProjectId],
+      });
       await tx.$queryRawUnsafe(
         'SELECT "id" FROM "RemixJob" WHERE "id" = $1 AND "organizationId" = $2 FOR UPDATE',
         input.id,
@@ -2611,6 +2770,8 @@ export class PrismaApiStore implements ApiStore {
           state: { notIn: ['COMPLETED', 'FAILED'] },
         },
       });
+
+      assertStateMachineNotPurged(row?.errorCode, row?.error);
 
       if (!row) {
         return undefined;
@@ -2637,7 +2798,18 @@ export class PrismaApiStore implements ApiStore {
     state: string;
     patch?: RemixJobTransitionPatch;
   }) {
+    const scope = await this.prisma.remixJob.findFirst({
+      where: { id: input.id, organizationId: input.organizationId },
+      select: { actorUserId: true, sourceProjectId: true, targetProjectId: true },
+    });
+    if (!scope) return undefined;
+
     return this.prisma.$transaction(async (tx) => {
+      await assertAccountPurgeMutationAllowed(tx, {
+        userIds: [scope.actorUserId],
+        organizationIds: [input.organizationId],
+        projectIds: [scope.sourceProjectId, scope.targetProjectId, input.patch?.targetProjectId],
+      });
       await tx.$queryRawUnsafe(
         'SELECT "id" FROM "RemixJob" WHERE "id" = $1 AND "organizationId" = $2 FOR UPDATE',
         input.id,
@@ -2657,6 +2829,8 @@ export class PrismaApiStore implements ApiStore {
         },
       });
 
+      assertStateMachineNotPurged(row?.errorCode, row?.error);
+
       if (!row) {
         return undefined;
       }
@@ -2671,18 +2845,28 @@ export class PrismaApiStore implements ApiStore {
   }
 
   async releaseRemixJobLease(input: { id: string; organizationId: string; operationToken: string }) {
-    const updated = await this.prisma.remixJob.updateMany({
-      where: { id: input.id, organizationId: input.organizationId, operationToken: input.operationToken },
-      data: { operationToken: null, operationExpiresAt: null, version: { increment: 1 } },
+    const scope = await this.prisma.remixJob.findFirst({
+      where: { id: input.id, organizationId: input.organizationId },
+      select: { actorUserId: true, sourceProjectId: true, targetProjectId: true },
     });
+    if (!scope) return undefined;
 
-    if (updated.count !== 1) {
-      return undefined;
-    }
+    return this.prisma.$transaction(async (tx) => {
+      await assertAccountPurgeMutationAllowed(tx, {
+        userIds: [scope.actorUserId],
+        organizationIds: [input.organizationId],
+        projectIds: [scope.sourceProjectId, scope.targetProjectId],
+      });
+      const updated = await tx.remixJob.updateMany({
+        where: { id: input.id, organizationId: input.organizationId, operationToken: input.operationToken },
+        data: { operationToken: null, operationExpiresAt: null, version: { increment: 1 } },
+      });
 
-    const row = await this.prisma.remixJob.findFirst({ where: { id: input.id, organizationId: input.organizationId } });
+      if (updated.count !== 1) return undefined;
 
-    return row ? mapRemixJob(row) : undefined;
+      const row = await tx.remixJob.findFirst({ where: { id: input.id, organizationId: input.organizationId } });
+      return row ? mapRemixJob(row) : undefined;
+    });
   }
 
   async createClaimedRemixProject(input: {
@@ -2693,8 +2877,17 @@ export class PrismaApiStore implements ApiStore {
     slug: string;
     manifestCloneMode?: ProjectManifestCloneMode;
   }) {
+    const scope = await this.prisma.remixJob.findFirst({
+      where: { id: input.remixJobId, organizationId: input.organizationId },
+      select: { actorUserId: true, sourceProjectId: true, targetProjectId: true },
+    });
+
     return this.prisma.$transaction(async (tx) => {
-      await this.accountPurge.assertMembershipMutable(tx, input.organizationId);
+      await assertAccountPurgeMutationAllowed(tx, {
+        userIds: [scope?.actorUserId],
+        organizationIds: [input.organizationId],
+        projectIds: [scope?.sourceProjectId, scope?.targetProjectId],
+      });
       await tx.$queryRawUnsafe(
         'SELECT "id" FROM "RemixJob" WHERE "id" = $1 AND "organizationId" = $2 FOR UPDATE',
         input.remixJobId,
@@ -2826,7 +3019,17 @@ export class PrismaApiStore implements ApiStore {
     projectId: string;
     valueEncrypted: string;
   }) {
+    const scope = await this.prisma.remixJob.findFirst({
+      where: { id: input.remixJobId, organizationId: input.organizationId },
+      select: { actorUserId: true, sourceProjectId: true, targetProjectId: true },
+    });
+
     return this.prisma.$transaction(async (tx) => {
+      await assertAccountPurgeMutationAllowed(tx, {
+        userIds: [scope?.actorUserId],
+        organizationIds: [input.organizationId],
+        projectIds: [scope?.sourceProjectId, scope?.targetProjectId, input.projectId],
+      });
       await tx.$queryRawUnsafe(
         'SELECT "id" FROM "RemixJob" WHERE "id" = $1 AND "organizationId" = $2 FOR UPDATE',
         input.remixJobId,
@@ -2900,7 +3103,17 @@ export class PrismaApiStore implements ApiStore {
     operationToken: string;
     targetProjectId: string;
   }) {
+    const scope = await this.prisma.remixJob.findFirst({
+      where: { id: input.remixJobId, organizationId: input.organizationId },
+      select: { actorUserId: true, sourceProjectId: true, targetProjectId: true },
+    });
+
     return this.prisma.$transaction(async (tx) => {
+      await assertAccountPurgeMutationAllowed(tx, {
+        userIds: [scope?.actorUserId],
+        organizationIds: [input.organizationId],
+        projectIds: [scope?.sourceProjectId, scope?.targetProjectId, input.targetProjectId],
+      });
       await tx.$queryRawUnsafe(
         'SELECT "id" FROM "RemixJob" WHERE "id" = $1 AND "organizationId" = $2 FOR UPDATE',
         input.remixJobId,
@@ -2958,7 +3171,17 @@ export class PrismaApiStore implements ApiStore {
     errorCode: string;
     error: string;
   }) {
+    const scope = await this.prisma.remixJob.findFirst({
+      where: { id: input.remixJobId, organizationId: input.organizationId },
+      select: { actorUserId: true, sourceProjectId: true, targetProjectId: true },
+    });
+
     return this.prisma.$transaction(async (tx) => {
+      await assertAccountPurgeMutationAllowed(tx, {
+        userIds: [scope?.actorUserId],
+        organizationIds: [input.organizationId],
+        projectIds: [scope?.sourceProjectId, scope?.targetProjectId],
+      });
       await tx.$queryRawUnsafe(
         'SELECT "id" FROM "RemixJob" WHERE "id" = $1 AND "organizationId" = $2 FOR UPDATE',
         input.remixJobId,
@@ -3004,8 +3227,17 @@ export class PrismaApiStore implements ApiStore {
     operationToken: string;
     targetProjectId: string;
   }) {
+    const scope = await this.prisma.remixJob.findFirst({
+      where: { id: input.remixJobId, organizationId: input.organizationId },
+      select: { actorUserId: true, sourceProjectId: true, targetProjectId: true },
+    });
+
     return this.prisma.$transaction(async (tx) => {
-      await this.accountPurge.assertProjectMutable(tx, input.targetProjectId);
+      await assertAccountPurgeMutationAllowed(tx, {
+        userIds: [scope?.actorUserId],
+        organizationIds: [input.organizationId],
+        projectIds: [scope?.sourceProjectId, scope?.targetProjectId, input.targetProjectId],
+      });
       await tx.$queryRawUnsafe(
         'SELECT "id" FROM "RemixJob" WHERE "id" = $1 AND "organizationId" = $2 FOR UPDATE',
         input.remixJobId,
@@ -3036,7 +3268,17 @@ export class PrismaApiStore implements ApiStore {
   }
 
   async finishRemixCleanup(input: { remixJobId: string; organizationId: string; operationToken: string }) {
+    const scope = await this.prisma.remixJob.findFirst({
+      where: { id: input.remixJobId, organizationId: input.organizationId },
+      select: { actorUserId: true, sourceProjectId: true, targetProjectId: true },
+    });
+
     return this.prisma.$transaction(async (tx) => {
+      await assertAccountPurgeMutationAllowed(tx, {
+        userIds: [scope?.actorUserId],
+        organizationIds: [input.organizationId],
+        projectIds: [scope?.sourceProjectId, scope?.targetProjectId],
+      });
       await tx.$queryRawUnsafe(
         'SELECT "id" FROM "RemixJob" WHERE "id" = $1 AND "organizationId" = $2 FOR UPDATE',
         input.remixJobId,
@@ -3091,6 +3333,11 @@ export class PrismaApiStore implements ApiStore {
     sourceInventory: unknown;
   }) {
     return this.prisma.$transaction(async (tx) => {
+      await assertAccountPurgeMutationAllowed(tx, {
+        userIds: [input.consentedByUserId],
+        organizationIds: [input.sourceOrganizationId, input.targetOrganizationId],
+        projectIds: [input.sourceProjectId, input.targetProjectId],
+      });
       const existing = await tx.remixStorageShare.findUnique({ where: { targetProjectId: input.targetProjectId } });
 
       if (existing) {
@@ -3126,22 +3373,31 @@ export class PrismaApiStore implements ApiStore {
   }
 
   async revokeRemixStorageShare(input: { targetProjectId: string; targetOrganizationId: string }) {
-    const updated = await this.prisma.remixStorageShare.updateMany({
-      where: {
-        targetProjectId: input.targetProjectId,
-        targetOrganizationId: input.targetOrganizationId,
-        state: 'ACTIVE',
-      },
-      data: { state: 'REVOKED', revokedAt: new Date() },
+    const scope = await this.prisma.remixStorageShare.findUnique({
+      where: { targetProjectId: input.targetProjectId },
+      select: { consentedByUserId: true, sourceProjectId: true, sourceOrganizationId: true },
     });
 
-    if (updated.count !== 1) {
-      return undefined;
-    }
+    return this.prisma.$transaction(async (tx) => {
+      await assertAccountPurgeMutationAllowed(tx, {
+        userIds: [scope?.consentedByUserId],
+        organizationIds: [scope?.sourceOrganizationId, input.targetOrganizationId],
+        projectIds: [scope?.sourceProjectId, input.targetProjectId],
+      });
+      const updated = await tx.remixStorageShare.updateMany({
+        where: {
+          targetProjectId: input.targetProjectId,
+          targetOrganizationId: input.targetOrganizationId,
+          state: 'ACTIVE',
+        },
+        data: { state: 'REVOKED', revokedAt: new Date() },
+      });
 
-    const row = await this.prisma.remixStorageShare.findUnique({ where: { targetProjectId: input.targetProjectId } });
+      if (updated.count !== 1) return undefined;
 
-    return row ? mapRemixStorageShare(row) : undefined;
+      const row = await tx.remixStorageShare.findUnique({ where: { targetProjectId: input.targetProjectId } });
+      return row ? mapRemixStorageShare(row) : undefined;
+    });
   }
 
   async deleteClaimedRemixStorageShare(input: {
@@ -3150,7 +3406,17 @@ export class PrismaApiStore implements ApiStore {
     operationToken: string;
     targetProjectId: string;
   }) {
+    const scope = await this.prisma.remixJob.findFirst({
+      where: { id: input.remixJobId, organizationId: input.organizationId },
+      select: { actorUserId: true, sourceProjectId: true, targetProjectId: true },
+    });
+
     return this.prisma.$transaction(async (tx) => {
+      await assertAccountPurgeMutationAllowed(tx, {
+        userIds: [scope?.actorUserId],
+        organizationIds: [input.organizationId],
+        projectIds: [scope?.sourceProjectId, scope?.targetProjectId, input.targetProjectId],
+      });
       await tx.$queryRawUnsafe(
         'SELECT "id" FROM "RemixJob" WHERE "id" = $1 AND "organizationId" = $2 FOR UPDATE',
         input.remixJobId,
@@ -3375,6 +3641,10 @@ export class PrismaApiStore implements ApiStore {
 
     try {
       const created = await this.prisma.$transaction(async (tx) => {
+        await assertAccountPurgeMutationAllowed(tx, {
+          userIds: [input.actorUserId],
+          organizationIds: [input.organizationId],
+        });
         const now = await databaseNow(tx);
 
         const job = await tx.importJob.create({
@@ -3425,41 +3695,50 @@ export class PrismaApiStore implements ApiStore {
         throw error;
       }
 
-      const existing = await this.prisma.importJob.findUnique({
-        where: {
-          organizationId_idempotencyKey: {
-            organizationId: input.organizationId,
-            idempotencyKey: input.idempotencyKey,
-          },
-        },
-        include: { reservation: true },
-      });
-
-      const canonical = existing
-        ? await this.prisma.ledgerReservation.findFirst({
-            where: {
-              organizationId: input.organizationId,
-              importJobId: existing.id,
-              operation: 'import',
-              currency: IMPORT_LEDGER_CURRENCY,
-            },
-          })
-        : null;
-
-      if (!existing || (!canonical && !existing.reservation) || existing.requestHash !== input.requestHash) {
-        throw Object.assign(new Error(appPublicEnglish('IMPORT_IDEMPOTENCY_CONFLICT')), {
-          statusCode: 409,
-          code: 'IMPORT_IDEMPOTENCY_CONFLICT',
+      return this.prisma.$transaction(async (tx) => {
+        await assertAccountPurgeMutationAllowed(tx, {
+          userIds: [input.actorUserId],
+          organizationIds: [input.organizationId],
         });
-      }
 
-      return {
-        job: mapImportJob(existing),
-        reservation: canonical
-          ? mapCanonicalImportReservation(canonical, existing.idempotencyKey)
-          : mapImportReservation(existing.reservation),
-        replayed: true,
-      };
+        const existing = await tx.importJob.findUnique({
+          where: {
+            organizationId_idempotencyKey: {
+              organizationId: input.organizationId,
+              idempotencyKey: input.idempotencyKey,
+            },
+          },
+          include: { reservation: true },
+        });
+
+        const canonical = existing
+          ? await tx.ledgerReservation.findFirst({
+              where: {
+                organizationId: input.organizationId,
+                importJobId: existing.id,
+                operation: 'import',
+                currency: IMPORT_LEDGER_CURRENCY,
+              },
+            })
+          : null;
+
+        if (!existing || (!canonical && !existing.reservation) || existing.requestHash !== input.requestHash) {
+          throw Object.assign(new Error(appPublicEnglish('IMPORT_IDEMPOTENCY_CONFLICT')), {
+            statusCode: 409,
+            code: 'IMPORT_IDEMPOTENCY_CONFLICT',
+          });
+        }
+
+        assertStateMachineNotPurged(undefined, existing.error);
+
+        return {
+          job: mapImportJob(existing),
+          reservation: canonical
+            ? mapCanonicalImportReservation(canonical, existing.idempotencyKey)
+            : mapImportReservation(existing.reservation),
+          replayed: true,
+        };
+      });
     }
   }
 
@@ -3507,67 +3786,55 @@ export class PrismaApiStore implements ApiStore {
     operationLeaseDurationMs?: number;
   }) {
     const operationLeaseDurationMs = input.operationLeaseDurationMs;
-
-    if (operationLeaseDurationMs !== undefined) {
-      return this.prisma.$transaction(async (tx) => {
-        await tx.$queryRawUnsafe(
-          'SELECT "id" FROM "ImportJob" WHERE "id" = $1 AND "organizationId" = $2 FOR UPDATE',
-          input.id,
-          input.organizationId,
-        );
-
-        const now = await databaseNow(tx);
-
-        const row = await tx.importJob.findFirst({
-          where: {
-            id: input.id,
-            organizationId: input.organizationId,
-            version: input.expectedVersion,
-            state: { in: input.expectedStates },
-          },
-        });
-
-        if (!row) {
-          return undefined;
-        }
-
-        return mapImportJob(
-          await tx.importJob.update({
-            where: { id: row.id },
-            data: {
-              state: input.state,
-              version: { increment: 1 },
-              ...importTransitionData(input.patch),
-              operationExpiresAt: databaseLeaseExpiry(now, operationLeaseDurationMs),
-            },
-          }),
-        );
-      });
-    }
-
-    const updated = await this.prisma.importJob.updateMany({
-      where: {
-        id: input.id,
-        organizationId: input.organizationId,
-        version: input.expectedVersion,
-        state: { in: input.expectedStates },
-      },
-      data: {
-        state: input.state,
-        version: { increment: 1 },
-        ...importTransitionData(input.patch),
-      },
+    const scope = await this.prisma.importJob.findFirst({
+      where: { id: input.id, organizationId: input.organizationId },
+      select: { actorUserId: true, targetProjectId: true },
     });
 
-    if (updated.count !== 1) {
+    if (!scope) {
       return undefined;
     }
 
-    const row = await this.prisma.importJob.findFirst({
-      where: { id: input.id, organizationId: input.organizationId },
-    });
+    return this.prisma.$transaction(async (tx) => {
+      await assertAccountPurgeMutationAllowed(tx, {
+        userIds: [scope.actorUserId],
+        organizationIds: [input.organizationId],
+        projectIds: [scope.targetProjectId, input.patch?.targetProjectId],
+      });
+      await tx.$queryRawUnsafe(
+        'SELECT "id" FROM "ImportJob" WHERE "id" = $1 AND "organizationId" = $2 FOR UPDATE',
+        input.id,
+        input.organizationId,
+      );
 
-    return row ? mapImportJob(row) : undefined;
+      const row = await tx.importJob.findFirst({
+        where: {
+          id: input.id,
+          organizationId: input.organizationId,
+          version: input.expectedVersion,
+          state: { in: input.expectedStates },
+        },
+      });
+
+      assertStateMachineNotPurged(undefined, row?.error);
+
+      if (!row) {
+        return undefined;
+      }
+
+      const now = operationLeaseDurationMs === undefined ? undefined : await databaseNow(tx);
+      return mapImportJob(
+        await tx.importJob.update({
+          where: { id: row.id },
+          data: {
+            state: input.state,
+            version: { increment: 1 },
+            ...importTransitionData(input.patch),
+            ...(now ? { operationExpiresAt: databaseLeaseExpiry(now, operationLeaseDurationMs!) } : {}),
+          },
+        }),
+      );
+    });
   }
 
   async renewImportJobLease(input: {
@@ -3577,7 +3844,18 @@ export class PrismaApiStore implements ApiStore {
     expectedStates: string[];
     leaseDurationMs: number;
   }) {
+    const scope = await this.prisma.importJob.findFirst({
+      where: { id: input.id, organizationId: input.organizationId },
+      select: { actorUserId: true, targetProjectId: true },
+    });
+    if (!scope) return undefined;
+
     return this.prisma.$transaction(async (tx) => {
+      await assertAccountPurgeMutationAllowed(tx, {
+        userIds: [scope.actorUserId],
+        organizationIds: [input.organizationId],
+        projectIds: [scope.targetProjectId],
+      });
       await tx.$queryRawUnsafe(
         'SELECT "id" FROM "ImportJob" WHERE "id" = $1 AND "organizationId" = $2 FOR UPDATE',
         input.id,
@@ -3618,7 +3896,18 @@ export class PrismaApiStore implements ApiStore {
     operationToken: string;
     expectedStates: string[];
   }) {
+    const scope = await this.prisma.importJob.findFirst({
+      where: { id: input.id, organizationId: input.organizationId },
+      select: { actorUserId: true, targetProjectId: true },
+    });
+    if (!scope) return false;
+
     return this.prisma.$transaction(async (tx) => {
+      await assertAccountPurgeMutationAllowed(tx, {
+        userIds: [scope.actorUserId],
+        organizationIds: [input.organizationId],
+        projectIds: [scope.targetProjectId],
+      });
       const now = await databaseNow(tx);
 
       const count = await tx.importJob.count({
@@ -3649,8 +3938,17 @@ export class PrismaApiStore implements ApiStore {
     initialManifest?: unknown;
     manifestCloneMode?: ProjectManifestCloneMode;
   }) {
+    const scope = await this.prisma.importJob.findFirst({
+      where: { id: input.importJobId, organizationId: input.organizationId },
+      select: { actorUserId: true, targetProjectId: true },
+    });
+
     return this.prisma.$transaction(async (tx) => {
-      await this.accountPurge.assertMembershipMutable(tx, input.organizationId);
+      await assertAccountPurgeMutationAllowed(tx, {
+        userIds: [scope?.actorUserId],
+        organizationIds: [input.organizationId],
+        projectIds: [scope?.targetProjectId],
+      });
       await tx.$queryRawUnsafe(
         'SELECT "id" FROM "ImportJob" WHERE "id" = $1 AND "organizationId" = $2 FOR UPDATE',
         input.importJobId,
@@ -3753,8 +4051,17 @@ export class PrismaApiStore implements ApiStore {
     actualCredits: number;
   }) {
     const ledger = new LedgerStore(this.prisma);
+    const scope = await this.prisma.importJob.findFirst({
+      where: { id: input.importJobId, organizationId: input.organizationId },
+      select: { actorUserId: true, targetProjectId: true },
+    });
 
     return this.prisma.$transaction(async (tx) => {
+      await assertAccountPurgeMutationAllowed(tx, {
+        userIds: [scope?.actorUserId],
+        organizationIds: [input.organizationId],
+        projectIds: [scope?.targetProjectId, input.targetProjectId],
+      });
       await tx.$queryRawUnsafe(
         'SELECT "id" FROM "ImportJob" WHERE "id" = $1 AND "organizationId" = $2 FOR UPDATE',
         input.importJobId,
@@ -3770,13 +4077,13 @@ export class PrismaApiStore implements ApiStore {
       }
 
       if (job.state === 'COMMITTED' && job.targetProjectId === input.targetProjectId) {
+        const actualAmountMinor = importCreditsToMinor(input.actualCredits);
         const canonical = await tx.ledgerReservation.findFirst({
           where: {
             importJobId: job.id,
             organizationId: input.organizationId,
             operation: 'import',
             currency: IMPORT_LEDGER_CURRENCY,
-            status: 'COMMITTED',
           },
         });
         const legacy = canonical
@@ -3785,14 +4092,57 @@ export class PrismaApiStore implements ApiStore {
               where: { importJobId: job.id, organizationId: input.organizationId, state: 'SETTLED' },
             });
 
-        return canonical || legacy
-          ? {
-              job: mapImportJob(job),
-              reservation: canonical
-                ? mapCanonicalImportReservation(canonical, job.idempotencyKey)
-                : mapImportReservation(legacy),
-            }
-          : undefined;
+        if (canonical) {
+          if (
+            canonical.status !== 'COMMITTED' ||
+            canonical.committedMinor !== actualAmountMinor ||
+            !canonical.settleTxId
+          ) {
+            throw Object.assign(new Error(appPublicEnglish('IMPORT_COMMIT_OWNERSHIP_LOST')), {
+              statusCode: 409,
+              code: 'IMPORT_COMMIT_REPLAY_MISMATCH',
+            });
+          }
+
+          const settlement = await tx.ledgerTransaction.findUnique({
+            where: { id: canonical.settleTxId },
+            select: { organizationId: true, reason: true, metadata: true },
+          });
+          const metadata =
+            settlement?.metadata && typeof settlement.metadata === 'object' && !Array.isArray(settlement.metadata)
+              ? (settlement.metadata as Record<string, unknown>)
+              : undefined;
+
+          if (
+            settlement?.organizationId !== input.organizationId ||
+            settlement.reason !== 'reservation.settle' ||
+            metadata?.reservationId !== canonical.id ||
+            metadata.committed !== actualAmountMinor.toString()
+          ) {
+            throw Object.assign(new Error(appPublicEnglish('IMPORT_COMMIT_OWNERSHIP_LOST')), {
+              statusCode: 409,
+              code: 'IMPORT_COMMIT_REPLAY_MISMATCH',
+            });
+          }
+
+          await ledger.commitReservationInTransaction(tx, {
+            reservationId: canonical.id,
+            actualAmountMinor,
+            refuseOverage: true,
+          });
+        } else if (!legacy || legacy.debitedCredits !== input.actualCredits) {
+          throw Object.assign(new Error(appPublicEnglish('IMPORT_COMMIT_OWNERSHIP_LOST')), {
+            statusCode: 409,
+            code: 'IMPORT_COMMIT_REPLAY_MISMATCH',
+          });
+        }
+
+        return {
+          job: mapImportJob(job),
+          reservation: canonical
+            ? mapCanonicalImportReservation(canonical, job.idempotencyKey)
+            : mapImportReservation(legacy!),
+        };
       }
 
       if (
@@ -3889,8 +4239,17 @@ export class PrismaApiStore implements ApiStore {
     error?: string;
   }) {
     const ledger = new LedgerStore(this.prisma);
+    const scope = await this.prisma.importJob.findFirst({
+      where: { id: input.importJobId, organizationId: input.organizationId },
+      select: { actorUserId: true, targetProjectId: true },
+    });
 
     return this.prisma.$transaction(async (tx) => {
+      await assertAccountPurgeMutationAllowed(tx, {
+        userIds: [scope?.actorUserId],
+        organizationIds: [input.organizationId],
+        projectIds: [scope?.targetProjectId],
+      });
       await tx.$queryRawUnsafe(
         'SELECT "id" FROM "ImportJob" WHERE "id" = $1 AND "organizationId" = $2 FOR UPDATE',
         input.importJobId,
@@ -3985,8 +4344,17 @@ export class PrismaApiStore implements ApiStore {
     operationToken: string;
     targetProjectId: string;
   }) {
+    const scope = await this.prisma.importJob.findFirst({
+      where: { id: input.importJobId, organizationId: input.organizationId },
+      select: { actorUserId: true, targetProjectId: true },
+    });
+
     return this.prisma.$transaction(async (tx) => {
-      await this.accountPurge.assertProjectMutable(tx, input.targetProjectId);
+      await assertAccountPurgeMutationAllowed(tx, {
+        userIds: [scope?.actorUserId],
+        organizationIds: [input.organizationId],
+        projectIds: [scope?.targetProjectId, input.targetProjectId],
+      });
       await tx.$queryRawUnsafe(
         'SELECT "id" FROM "ImportJob" WHERE "id" = $1 AND "organizationId" = $2 FOR UPDATE',
         input.importJobId,
@@ -4017,7 +4385,17 @@ export class PrismaApiStore implements ApiStore {
   }
 
   async finishImportCleanup(input: { importJobId: string; organizationId: string; operationToken: string }) {
+    const scope = await this.prisma.importJob.findFirst({
+      where: { id: input.importJobId, organizationId: input.organizationId },
+      select: { actorUserId: true, targetProjectId: true },
+    });
+
     return this.prisma.$transaction(async (tx) => {
+      await assertAccountPurgeMutationAllowed(tx, {
+        userIds: [scope?.actorUserId],
+        organizationIds: [input.organizationId],
+        projectIds: [scope?.targetProjectId],
+      });
       await tx.$queryRawUnsafe(
         'SELECT "id" FROM "ImportJob" WHERE "id" = $1 AND "organizationId" = $2 FOR UPDATE',
         input.importJobId,
@@ -4061,8 +4439,17 @@ export class PrismaApiStore implements ApiStore {
 
   async cancelImportJob(importJobId: string, organizationId: string) {
     const ledger = new LedgerStore(this.prisma);
+    const scope = await this.prisma.importJob.findFirst({
+      where: { id: importJobId, organizationId },
+      select: { actorUserId: true, targetProjectId: true },
+    });
 
     return this.prisma.$transaction(async (tx) => {
+      await assertAccountPurgeMutationAllowed(tx, {
+        userIds: [scope?.actorUserId],
+        organizationIds: [organizationId],
+        projectIds: [scope?.targetProjectId],
+      });
       await tx.$queryRawUnsafe(
         'SELECT "id" FROM "ImportJob" WHERE "id" = $1 AND "organizationId" = $2 FOR UPDATE',
         importJobId,
@@ -4147,8 +4534,15 @@ export class PrismaApiStore implements ApiStore {
      * retained only for interface compatibility with deterministic in-memory
      * tests; production never lets a fast/slow API pod choose what is expired.
      */
-    const stale = await this.prisma.$queryRaw<Array<{ id: string; targetProjectId: string | null }>>(Prisma.sql`
-      SELECT "id", "targetProjectId"
+    const stale = await this.prisma.$queryRaw<
+      Array<{
+        id: string;
+        organizationId: string;
+        actorUserId: string | null;
+        targetProjectId: string | null;
+      }>
+    >(Prisma.sql`
+      SELECT "id", "organizationId", "actorUserId", "targetProjectId"
       FROM "ImportJob"
       WHERE (
           "state" IN (
@@ -4171,6 +4565,11 @@ export class PrismaApiStore implements ApiStore {
 
     for (const candidate of stale) {
       const won = await this.prisma.$transaction(async (tx) => {
+        await assertAccountPurgeMutationAllowed(tx, {
+          userIds: [candidate.actorUserId],
+          organizationIds: [candidate.organizationId],
+          projectIds: [candidate.targetProjectId],
+        });
         /*
          * Same distributed effect lock as the writer/cleaner. Acquire it before
          * the ImportJob row lock to avoid a job-row ↔ effect-lock deadlock with
@@ -7451,6 +7850,7 @@ export class PrismaApiStore implements ApiStore {
 
   async acquireRollbackOperation(input: {
     projectId: string;
+    actorUserId: string;
     idempotencyKey: string;
     requestFingerprint: string;
     environment: string;
@@ -7468,15 +7868,26 @@ export class PrismaApiStore implements ApiStore {
       throw new TypeError('INVALID_ROLLBACK_LEASE_DURATION');
     }
 
+    const project = await this.prisma.project.findUnique({
+      where: { id: input.projectId },
+      select: { organizationId: true },
+    });
+
     return this.prisma.$transaction(async (tx) => {
+      await assertAccountPurgeMutationAllowed(tx, {
+        userIds: [input.actorUserId],
+        organizationIds: [project?.organizationId],
+        projectIds: [input.projectId],
+      });
       const operationId = `rollback_${randomUUID()}`;
 
       const inserted = await tx.$executeRaw`
         INSERT INTO "RollbackIdempotencyRequest" (
-          "id", "projectId", "idempotencyKey", "requestFingerprint", "environment",
+          "id", "projectId", "actorUserId", "idempotencyKey", "requestFingerprint", "environment",
           "status", "phase", "leaseOwner", "leaseExpiresAt", "fencingToken", "createdAt", "updatedAt"
         ) VALUES (
-          ${operationId}, ${input.projectId}, ${input.idempotencyKey}, ${input.requestFingerprint}, ${input.environment},
+          ${operationId}, ${input.projectId}, ${input.actorUserId}, ${input.idempotencyKey},
+          ${input.requestFingerprint}, ${input.environment},
           'IN_PROGRESS', 'CLAIMED', ${input.ownerToken},
           clock_timestamp() + (${Math.trunc(input.leaseDurationMs)} * INTERVAL '1 millisecond'),
           1, clock_timestamp(), clock_timestamp()
@@ -7499,7 +7910,11 @@ export class PrismaApiStore implements ApiStore {
         },
       });
 
-      if (row.requestFingerprint !== input.requestFingerprint || row.environment !== input.environment) {
+      if (
+        row.requestFingerprint !== input.requestFingerprint ||
+        row.environment !== input.environment ||
+        row.actorUserId !== input.actorUserId
+      ) {
         return { kind: 'FINGERPRINT_CONFLICT' as const, record: mapRollbackOperation(row) };
       }
 
@@ -7569,6 +7984,16 @@ export class PrismaApiStore implements ApiStore {
 
   async validateRollbackOperationLease(input: { operationId: string; ownerToken: string; fencingToken: number }) {
     return this.prisma.$transaction(async (tx) => {
+      const scope = await tx.rollbackIdempotencyRequest.findUnique({
+        where: { id: input.operationId },
+        select: { actorUserId: true, projectId: true, project: { select: { organizationId: true } } },
+      });
+      if (!scope?.actorUserId) return false;
+      await assertAccountPurgeMutationAllowed(tx, {
+        userIds: [scope.actorUserId],
+        organizationIds: [scope.project.organizationId],
+        projectIds: [scope.projectId],
+      });
       const now = await databaseNow(tx);
       return (
         (await tx.rollbackIdempotencyRequest.count({
@@ -11922,6 +12347,7 @@ function mapRollbackOperation(row: any): RollbackOperationRecord {
   return {
     id: row.id,
     projectId: row.projectId,
+    actorUserId: row.actorUserId ?? undefined,
     idempotencyKey: row.idempotencyKey,
     requestFingerprint: row.requestFingerprint,
     environment: row.environment,

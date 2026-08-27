@@ -14838,6 +14838,8 @@ export namespace Prisma {
     agentRoutingCards: number
     runtimeWebSocketTickets: number
     importJobs: number
+    remixStorageSharesConsented: number
+    rollbackOperations: number
     cloudOperations: number
     projectCheckpoints: number
     invitedOrganizationMembers: number
@@ -14882,6 +14884,8 @@ export namespace Prisma {
     agentRoutingCards?: boolean | UserCountOutputTypeCountAgentRoutingCardsArgs
     runtimeWebSocketTickets?: boolean | UserCountOutputTypeCountRuntimeWebSocketTicketsArgs
     importJobs?: boolean | UserCountOutputTypeCountImportJobsArgs
+    remixStorageSharesConsented?: boolean | UserCountOutputTypeCountRemixStorageSharesConsentedArgs
+    rollbackOperations?: boolean | UserCountOutputTypeCountRollbackOperationsArgs
     cloudOperations?: boolean | UserCountOutputTypeCountCloudOperationsArgs
     projectCheckpoints?: boolean | UserCountOutputTypeCountProjectCheckpointsArgs
     invitedOrganizationMembers?: boolean | UserCountOutputTypeCountInvitedOrganizationMembersArgs
@@ -15143,6 +15147,20 @@ export namespace Prisma {
   /**
    * UserCountOutputType without action
    */
+  export type UserCountOutputTypeCountRemixStorageSharesConsentedArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: RemixStorageShareWhereInput
+  }
+
+  /**
+   * UserCountOutputType without action
+   */
+  export type UserCountOutputTypeCountRollbackOperationsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: RollbackIdempotencyRequestWhereInput
+  }
+
+  /**
+   * UserCountOutputType without action
+   */
   export type UserCountOutputTypeCountCloudOperationsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: CloudOperationWhereInput
   }
@@ -15227,6 +15245,8 @@ export namespace Prisma {
     agentCheckpoints: number
     userSpendLimits: number
     importJobs: number
+    remixStorageSharesAsSource: number
+    remixStorageSharesAsTarget: number
     collaborationGroups: number
     resourceAccessGrants: number
   }
@@ -15264,6 +15284,8 @@ export namespace Prisma {
     agentCheckpoints?: boolean | OrganizationCountOutputTypeCountAgentCheckpointsArgs
     userSpendLimits?: boolean | OrganizationCountOutputTypeCountUserSpendLimitsArgs
     importJobs?: boolean | OrganizationCountOutputTypeCountImportJobsArgs
+    remixStorageSharesAsSource?: boolean | OrganizationCountOutputTypeCountRemixStorageSharesAsSourceArgs
+    remixStorageSharesAsTarget?: boolean | OrganizationCountOutputTypeCountRemixStorageSharesAsTargetArgs
     collaborationGroups?: boolean | OrganizationCountOutputTypeCountCollaborationGroupsArgs
     resourceAccessGrants?: boolean | OrganizationCountOutputTypeCountResourceAccessGrantsArgs
   }
@@ -15506,6 +15528,20 @@ export namespace Prisma {
   /**
    * OrganizationCountOutputType without action
    */
+  export type OrganizationCountOutputTypeCountRemixStorageSharesAsSourceArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: RemixStorageShareWhereInput
+  }
+
+  /**
+   * OrganizationCountOutputType without action
+   */
+  export type OrganizationCountOutputTypeCountRemixStorageSharesAsTargetArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: RemixStorageShareWhereInput
+  }
+
+  /**
+   * OrganizationCountOutputType without action
+   */
   export type OrganizationCountOutputTypeCountCollaborationGroupsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: CollaborationGroupWhereInput
   }
@@ -15662,6 +15698,9 @@ export namespace Prisma {
     slugRedirects: number
     runtimeWebSocketTickets: number
     importJobs: number
+    targetRemixJobs: number
+    sourceRemixShares: number
+    targetRemixShares: number
     checkpoints: number
   }
 
@@ -15694,6 +15733,9 @@ export namespace Prisma {
     slugRedirects?: boolean | ProjectCountOutputTypeCountSlugRedirectsArgs
     runtimeWebSocketTickets?: boolean | ProjectCountOutputTypeCountRuntimeWebSocketTicketsArgs
     importJobs?: boolean | ProjectCountOutputTypeCountImportJobsArgs
+    targetRemixJobs?: boolean | ProjectCountOutputTypeCountTargetRemixJobsArgs
+    sourceRemixShares?: boolean | ProjectCountOutputTypeCountSourceRemixSharesArgs
+    targetRemixShares?: boolean | ProjectCountOutputTypeCountTargetRemixSharesArgs
     checkpoints?: boolean | ProjectCountOutputTypeCountCheckpointsArgs
   }
 
@@ -15902,6 +15944,27 @@ export namespace Prisma {
    */
   export type ProjectCountOutputTypeCountImportJobsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: ImportJobWhereInput
+  }
+
+  /**
+   * ProjectCountOutputType without action
+   */
+  export type ProjectCountOutputTypeCountTargetRemixJobsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: RemixJobWhereInput
+  }
+
+  /**
+   * ProjectCountOutputType without action
+   */
+  export type ProjectCountOutputTypeCountSourceRemixSharesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: RemixStorageShareWhereInput
+  }
+
+  /**
+   * ProjectCountOutputType without action
+   */
+  export type ProjectCountOutputTypeCountTargetRemixSharesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: RemixStorageShareWhereInput
   }
 
   /**
@@ -16385,11 +16448,13 @@ export namespace Prisma {
   export type DatabaseInstanceCountOutputType = {
     snapshots: number
     restores: number
+    remixJobsAsTarget: number
   }
 
   export type DatabaseInstanceCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     snapshots?: boolean | DatabaseInstanceCountOutputTypeCountSnapshotsArgs
     restores?: boolean | DatabaseInstanceCountOutputTypeCountRestoresArgs
+    remixJobsAsTarget?: boolean | DatabaseInstanceCountOutputTypeCountRemixJobsAsTargetArgs
   }
 
   // Custom InputTypes
@@ -16415,6 +16480,13 @@ export namespace Prisma {
    */
   export type DatabaseInstanceCountOutputTypeCountRestoresArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: DatabaseRestoreWhereInput
+  }
+
+  /**
+   * DatabaseInstanceCountOutputType without action
+   */
+  export type DatabaseInstanceCountOutputTypeCountRemixJobsAsTargetArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: RemixJobWhereInput
   }
 
 
@@ -16446,6 +16518,37 @@ export namespace Prisma {
    */
   export type ScheduledTaskCountOutputTypeCountRunsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: ScheduledTaskRunWhereInput
+  }
+
+
+  /**
+   * Count Type RemixStorageShareCountOutputType
+   */
+
+  export type RemixStorageShareCountOutputType = {
+    remixJobs: number
+  }
+
+  export type RemixStorageShareCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    remixJobs?: boolean | RemixStorageShareCountOutputTypeCountRemixJobsArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * RemixStorageShareCountOutputType without action
+   */
+  export type RemixStorageShareCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RemixStorageShareCountOutputType
+     */
+    select?: RemixStorageShareCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * RemixStorageShareCountOutputType without action
+   */
+  export type RemixStorageShareCountOutputTypeCountRemixJobsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: RemixJobWhereInput
   }
 
 
@@ -17045,6 +17148,8 @@ export namespace Prisma {
     agentRoutingCards?: boolean | User$agentRoutingCardsArgs<ExtArgs>
     runtimeWebSocketTickets?: boolean | User$runtimeWebSocketTicketsArgs<ExtArgs>
     importJobs?: boolean | User$importJobsArgs<ExtArgs>
+    remixStorageSharesConsented?: boolean | User$remixStorageSharesConsentedArgs<ExtArgs>
+    rollbackOperations?: boolean | User$rollbackOperationsArgs<ExtArgs>
     cloudOperations?: boolean | User$cloudOperationsArgs<ExtArgs>
     projectCheckpoints?: boolean | User$projectCheckpointsArgs<ExtArgs>
     invitedOrganizationMembers?: boolean | User$invitedOrganizationMembersArgs<ExtArgs>
@@ -17143,6 +17248,8 @@ export namespace Prisma {
     agentRoutingCards?: boolean | User$agentRoutingCardsArgs<ExtArgs>
     runtimeWebSocketTickets?: boolean | User$runtimeWebSocketTicketsArgs<ExtArgs>
     importJobs?: boolean | User$importJobsArgs<ExtArgs>
+    remixStorageSharesConsented?: boolean | User$remixStorageSharesConsentedArgs<ExtArgs>
+    rollbackOperations?: boolean | User$rollbackOperationsArgs<ExtArgs>
     cloudOperations?: boolean | User$cloudOperationsArgs<ExtArgs>
     projectCheckpoints?: boolean | User$projectCheckpointsArgs<ExtArgs>
     invitedOrganizationMembers?: boolean | User$invitedOrganizationMembersArgs<ExtArgs>
@@ -17193,6 +17300,8 @@ export namespace Prisma {
       agentRoutingCards: Prisma.$AgentRoutingCardPayload<ExtArgs>[]
       runtimeWebSocketTickets: Prisma.$RuntimeWebSocketTicketPayload<ExtArgs>[]
       importJobs: Prisma.$ImportJobPayload<ExtArgs>[]
+      remixStorageSharesConsented: Prisma.$RemixStorageSharePayload<ExtArgs>[]
+      rollbackOperations: Prisma.$RollbackIdempotencyRequestPayload<ExtArgs>[]
       cloudOperations: Prisma.$CloudOperationPayload<ExtArgs>[]
       projectCheckpoints: Prisma.$ProjectCheckpointPayload<ExtArgs>[]
       invitedOrganizationMembers: Prisma.$OrganizationMemberPayload<ExtArgs>[]
@@ -17645,6 +17754,8 @@ export namespace Prisma {
     agentRoutingCards<T extends User$agentRoutingCardsArgs<ExtArgs> = {}>(args?: Subset<T, User$agentRoutingCardsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AgentRoutingCardPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     runtimeWebSocketTickets<T extends User$runtimeWebSocketTicketsArgs<ExtArgs> = {}>(args?: Subset<T, User$runtimeWebSocketTicketsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$RuntimeWebSocketTicketPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     importJobs<T extends User$importJobsArgs<ExtArgs> = {}>(args?: Subset<T, User$importJobsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ImportJobPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    remixStorageSharesConsented<T extends User$remixStorageSharesConsentedArgs<ExtArgs> = {}>(args?: Subset<T, User$remixStorageSharesConsentedArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$RemixStorageSharePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    rollbackOperations<T extends User$rollbackOperationsArgs<ExtArgs> = {}>(args?: Subset<T, User$rollbackOperationsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$RollbackIdempotencyRequestPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     cloudOperations<T extends User$cloudOperationsArgs<ExtArgs> = {}>(args?: Subset<T, User$cloudOperationsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CloudOperationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     projectCheckpoints<T extends User$projectCheckpointsArgs<ExtArgs> = {}>(args?: Subset<T, User$projectCheckpointsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectCheckpointPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     invitedOrganizationMembers<T extends User$invitedOrganizationMembersArgs<ExtArgs> = {}>(args?: Subset<T, User$invitedOrganizationMembersArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$OrganizationMemberPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -18920,6 +19031,54 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: ImportJobScalarFieldEnum | ImportJobScalarFieldEnum[]
+  }
+
+  /**
+   * User.remixStorageSharesConsented
+   */
+  export type User$remixStorageSharesConsentedArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RemixStorageShare
+     */
+    select?: RemixStorageShareSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RemixStorageShare
+     */
+    omit?: RemixStorageShareOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RemixStorageShareInclude<ExtArgs> | null
+    where?: RemixStorageShareWhereInput
+    orderBy?: RemixStorageShareOrderByWithRelationInput | RemixStorageShareOrderByWithRelationInput[]
+    cursor?: RemixStorageShareWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: RemixStorageShareScalarFieldEnum | RemixStorageShareScalarFieldEnum[]
+  }
+
+  /**
+   * User.rollbackOperations
+   */
+  export type User$rollbackOperationsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RollbackIdempotencyRequest
+     */
+    select?: RollbackIdempotencyRequestSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RollbackIdempotencyRequest
+     */
+    omit?: RollbackIdempotencyRequestOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RollbackIdempotencyRequestInclude<ExtArgs> | null
+    where?: RollbackIdempotencyRequestWhereInput
+    orderBy?: RollbackIdempotencyRequestOrderByWithRelationInput | RollbackIdempotencyRequestOrderByWithRelationInput[]
+    cursor?: RollbackIdempotencyRequestWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: RollbackIdempotencyRequestScalarFieldEnum | RollbackIdempotencyRequestScalarFieldEnum[]
   }
 
   /**
@@ -21533,6 +21692,8 @@ export namespace Prisma {
     agentCheckpoints?: boolean | Organization$agentCheckpointsArgs<ExtArgs>
     userSpendLimits?: boolean | Organization$userSpendLimitsArgs<ExtArgs>
     importJobs?: boolean | Organization$importJobsArgs<ExtArgs>
+    remixStorageSharesAsSource?: boolean | Organization$remixStorageSharesAsSourceArgs<ExtArgs>
+    remixStorageSharesAsTarget?: boolean | Organization$remixStorageSharesAsTargetArgs<ExtArgs>
     cloudTenant?: boolean | Organization$cloudTenantArgs<ExtArgs>
     collaborationGroups?: boolean | Organization$collaborationGroupsArgs<ExtArgs>
     resourceAccessGrants?: boolean | Organization$resourceAccessGrantsArgs<ExtArgs>
@@ -21603,6 +21764,8 @@ export namespace Prisma {
     agentCheckpoints?: boolean | Organization$agentCheckpointsArgs<ExtArgs>
     userSpendLimits?: boolean | Organization$userSpendLimitsArgs<ExtArgs>
     importJobs?: boolean | Organization$importJobsArgs<ExtArgs>
+    remixStorageSharesAsSource?: boolean | Organization$remixStorageSharesAsSourceArgs<ExtArgs>
+    remixStorageSharesAsTarget?: boolean | Organization$remixStorageSharesAsTargetArgs<ExtArgs>
     cloudTenant?: boolean | Organization$cloudTenantArgs<ExtArgs>
     collaborationGroups?: boolean | Organization$collaborationGroupsArgs<ExtArgs>
     resourceAccessGrants?: boolean | Organization$resourceAccessGrantsArgs<ExtArgs>
@@ -21649,6 +21812,8 @@ export namespace Prisma {
       agentCheckpoints: Prisma.$AgentCheckpointPayload<ExtArgs>[]
       userSpendLimits: Prisma.$UserSpendLimitPayload<ExtArgs>[]
       importJobs: Prisma.$ImportJobPayload<ExtArgs>[]
+      remixStorageSharesAsSource: Prisma.$RemixStorageSharePayload<ExtArgs>[]
+      remixStorageSharesAsTarget: Prisma.$RemixStorageSharePayload<ExtArgs>[]
       cloudTenant: Prisma.$CloudTenantPayload<ExtArgs> | null
       collaborationGroups: Prisma.$CollaborationGroupPayload<ExtArgs>[]
       resourceAccessGrants: Prisma.$ResourceAccessGrantPayload<ExtArgs>[]
@@ -22092,6 +22257,8 @@ export namespace Prisma {
     agentCheckpoints<T extends Organization$agentCheckpointsArgs<ExtArgs> = {}>(args?: Subset<T, Organization$agentCheckpointsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AgentCheckpointPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     userSpendLimits<T extends Organization$userSpendLimitsArgs<ExtArgs> = {}>(args?: Subset<T, Organization$userSpendLimitsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$UserSpendLimitPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     importJobs<T extends Organization$importJobsArgs<ExtArgs> = {}>(args?: Subset<T, Organization$importJobsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ImportJobPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    remixStorageSharesAsSource<T extends Organization$remixStorageSharesAsSourceArgs<ExtArgs> = {}>(args?: Subset<T, Organization$remixStorageSharesAsSourceArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$RemixStorageSharePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    remixStorageSharesAsTarget<T extends Organization$remixStorageSharesAsTargetArgs<ExtArgs> = {}>(args?: Subset<T, Organization$remixStorageSharesAsTargetArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$RemixStorageSharePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     cloudTenant<T extends Organization$cloudTenantArgs<ExtArgs> = {}>(args?: Subset<T, Organization$cloudTenantArgs<ExtArgs>>): Prisma__CloudTenantClient<$Result.GetResult<Prisma.$CloudTenantPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
     collaborationGroups<T extends Organization$collaborationGroupsArgs<ExtArgs> = {}>(args?: Subset<T, Organization$collaborationGroupsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CollaborationGroupPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     resourceAccessGrants<T extends Organization$resourceAccessGrantsArgs<ExtArgs> = {}>(args?: Subset<T, Organization$resourceAccessGrantsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ResourceAccessGrantPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -23345,6 +23512,54 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: ImportJobScalarFieldEnum | ImportJobScalarFieldEnum[]
+  }
+
+  /**
+   * Organization.remixStorageSharesAsSource
+   */
+  export type Organization$remixStorageSharesAsSourceArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RemixStorageShare
+     */
+    select?: RemixStorageShareSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RemixStorageShare
+     */
+    omit?: RemixStorageShareOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RemixStorageShareInclude<ExtArgs> | null
+    where?: RemixStorageShareWhereInput
+    orderBy?: RemixStorageShareOrderByWithRelationInput | RemixStorageShareOrderByWithRelationInput[]
+    cursor?: RemixStorageShareWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: RemixStorageShareScalarFieldEnum | RemixStorageShareScalarFieldEnum[]
+  }
+
+  /**
+   * Organization.remixStorageSharesAsTarget
+   */
+  export type Organization$remixStorageSharesAsTargetArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RemixStorageShare
+     */
+    select?: RemixStorageShareSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RemixStorageShare
+     */
+    omit?: RemixStorageShareOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RemixStorageShareInclude<ExtArgs> | null
+    where?: RemixStorageShareWhereInput
+    orderBy?: RemixStorageShareOrderByWithRelationInput | RemixStorageShareOrderByWithRelationInput[]
+    cursor?: RemixStorageShareWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: RemixStorageShareScalarFieldEnum | RemixStorageShareScalarFieldEnum[]
   }
 
   /**
@@ -29231,6 +29446,9 @@ export namespace Prisma {
     slugRedirects?: boolean | Project$slugRedirectsArgs<ExtArgs>
     runtimeWebSocketTickets?: boolean | Project$runtimeWebSocketTicketsArgs<ExtArgs>
     importJobs?: boolean | Project$importJobsArgs<ExtArgs>
+    targetRemixJobs?: boolean | Project$targetRemixJobsArgs<ExtArgs>
+    sourceRemixShares?: boolean | Project$sourceRemixSharesArgs<ExtArgs>
+    targetRemixShares?: boolean | Project$targetRemixSharesArgs<ExtArgs>
     cloudBinding?: boolean | Project$cloudBindingArgs<ExtArgs>
     checkpoints?: boolean | Project$checkpointsArgs<ExtArgs>
     _count?: boolean | ProjectCountOutputTypeDefaultArgs<ExtArgs>
@@ -29324,6 +29542,9 @@ export namespace Prisma {
     slugRedirects?: boolean | Project$slugRedirectsArgs<ExtArgs>
     runtimeWebSocketTickets?: boolean | Project$runtimeWebSocketTicketsArgs<ExtArgs>
     importJobs?: boolean | Project$importJobsArgs<ExtArgs>
+    targetRemixJobs?: boolean | Project$targetRemixJobsArgs<ExtArgs>
+    sourceRemixShares?: boolean | Project$sourceRemixSharesArgs<ExtArgs>
+    targetRemixShares?: boolean | Project$targetRemixSharesArgs<ExtArgs>
     cloudBinding?: boolean | Project$cloudBindingArgs<ExtArgs>
     checkpoints?: boolean | Project$checkpointsArgs<ExtArgs>
     _count?: boolean | ProjectCountOutputTypeDefaultArgs<ExtArgs>
@@ -29368,6 +29589,9 @@ export namespace Prisma {
       slugRedirects: Prisma.$ProjectSlugRedirectPayload<ExtArgs>[]
       runtimeWebSocketTickets: Prisma.$RuntimeWebSocketTicketPayload<ExtArgs>[]
       importJobs: Prisma.$ImportJobPayload<ExtArgs>[]
+      targetRemixJobs: Prisma.$RemixJobPayload<ExtArgs>[]
+      sourceRemixShares: Prisma.$RemixStorageSharePayload<ExtArgs>[]
+      targetRemixShares: Prisma.$RemixStorageSharePayload<ExtArgs>[]
       cloudBinding: Prisma.$CloudProjectBindingPayload<ExtArgs> | null
       checkpoints: Prisma.$ProjectCheckpointPayload<ExtArgs>[]
     }
@@ -29811,6 +30035,9 @@ export namespace Prisma {
     slugRedirects<T extends Project$slugRedirectsArgs<ExtArgs> = {}>(args?: Subset<T, Project$slugRedirectsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectSlugRedirectPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     runtimeWebSocketTickets<T extends Project$runtimeWebSocketTicketsArgs<ExtArgs> = {}>(args?: Subset<T, Project$runtimeWebSocketTicketsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$RuntimeWebSocketTicketPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     importJobs<T extends Project$importJobsArgs<ExtArgs> = {}>(args?: Subset<T, Project$importJobsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ImportJobPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    targetRemixJobs<T extends Project$targetRemixJobsArgs<ExtArgs> = {}>(args?: Subset<T, Project$targetRemixJobsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$RemixJobPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    sourceRemixShares<T extends Project$sourceRemixSharesArgs<ExtArgs> = {}>(args?: Subset<T, Project$sourceRemixSharesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$RemixStorageSharePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    targetRemixShares<T extends Project$targetRemixSharesArgs<ExtArgs> = {}>(args?: Subset<T, Project$targetRemixSharesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$RemixStorageSharePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     cloudBinding<T extends Project$cloudBindingArgs<ExtArgs> = {}>(args?: Subset<T, Project$cloudBindingArgs<ExtArgs>>): Prisma__CloudProjectBindingClient<$Result.GetResult<Prisma.$CloudProjectBindingPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
     checkpoints<T extends Project$checkpointsArgs<ExtArgs> = {}>(args?: Subset<T, Project$checkpointsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectCheckpointPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
@@ -30946,6 +31173,78 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: ImportJobScalarFieldEnum | ImportJobScalarFieldEnum[]
+  }
+
+  /**
+   * Project.targetRemixJobs
+   */
+  export type Project$targetRemixJobsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RemixJob
+     */
+    select?: RemixJobSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RemixJob
+     */
+    omit?: RemixJobOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RemixJobInclude<ExtArgs> | null
+    where?: RemixJobWhereInput
+    orderBy?: RemixJobOrderByWithRelationInput | RemixJobOrderByWithRelationInput[]
+    cursor?: RemixJobWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: RemixJobScalarFieldEnum | RemixJobScalarFieldEnum[]
+  }
+
+  /**
+   * Project.sourceRemixShares
+   */
+  export type Project$sourceRemixSharesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RemixStorageShare
+     */
+    select?: RemixStorageShareSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RemixStorageShare
+     */
+    omit?: RemixStorageShareOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RemixStorageShareInclude<ExtArgs> | null
+    where?: RemixStorageShareWhereInput
+    orderBy?: RemixStorageShareOrderByWithRelationInput | RemixStorageShareOrderByWithRelationInput[]
+    cursor?: RemixStorageShareWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: RemixStorageShareScalarFieldEnum | RemixStorageShareScalarFieldEnum[]
+  }
+
+  /**
+   * Project.targetRemixShares
+   */
+  export type Project$targetRemixSharesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RemixStorageShare
+     */
+    select?: RemixStorageShareSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RemixStorageShare
+     */
+    omit?: RemixStorageShareOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RemixStorageShareInclude<ExtArgs> | null
+    where?: RemixStorageShareWhereInput
+    orderBy?: RemixStorageShareOrderByWithRelationInput | RemixStorageShareOrderByWithRelationInput[]
+    cursor?: RemixStorageShareWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: RemixStorageShareScalarFieldEnum | RemixStorageShareScalarFieldEnum[]
   }
 
   /**
@@ -67663,6 +67962,7 @@ export namespace Prisma {
   export type RollbackIdempotencyRequestMinAggregateOutputType = {
     id: string | null
     projectId: string | null
+    actorUserId: string | null
     idempotencyKey: string | null
     requestFingerprint: string | null
     environment: string | null
@@ -67686,6 +67986,7 @@ export namespace Prisma {
   export type RollbackIdempotencyRequestMaxAggregateOutputType = {
     id: string | null
     projectId: string | null
+    actorUserId: string | null
     idempotencyKey: string | null
     requestFingerprint: string | null
     environment: string | null
@@ -67709,6 +68010,7 @@ export namespace Prisma {
   export type RollbackIdempotencyRequestCountAggregateOutputType = {
     id: number
     projectId: number
+    actorUserId: number
     idempotencyKey: number
     requestFingerprint: number
     environment: number
@@ -67749,6 +68051,7 @@ export namespace Prisma {
   export type RollbackIdempotencyRequestMinAggregateInputType = {
     id?: true
     projectId?: true
+    actorUserId?: true
     idempotencyKey?: true
     requestFingerprint?: true
     environment?: true
@@ -67772,6 +68075,7 @@ export namespace Prisma {
   export type RollbackIdempotencyRequestMaxAggregateInputType = {
     id?: true
     projectId?: true
+    actorUserId?: true
     idempotencyKey?: true
     requestFingerprint?: true
     environment?: true
@@ -67795,6 +68099,7 @@ export namespace Prisma {
   export type RollbackIdempotencyRequestCountAggregateInputType = {
     id?: true
     projectId?: true
+    actorUserId?: true
     idempotencyKey?: true
     requestFingerprint?: true
     environment?: true
@@ -67906,6 +68211,7 @@ export namespace Prisma {
   export type RollbackIdempotencyRequestGroupByOutputType = {
     id: string
     projectId: string
+    actorUserId: string | null
     idempotencyKey: string
     requestFingerprint: string
     environment: string
@@ -67949,6 +68255,7 @@ export namespace Prisma {
   export type RollbackIdempotencyRequestSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     projectId?: boolean
+    actorUserId?: boolean
     idempotencyKey?: boolean
     requestFingerprint?: boolean
     environment?: boolean
@@ -67969,11 +68276,13 @@ export namespace Prisma {
     createdAt?: boolean
     updatedAt?: boolean
     project?: boolean | ProjectDefaultArgs<ExtArgs>
+    actor?: boolean | RollbackIdempotencyRequest$actorArgs<ExtArgs>
   }, ExtArgs["result"]["rollbackIdempotencyRequest"]>
 
   export type RollbackIdempotencyRequestSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     projectId?: boolean
+    actorUserId?: boolean
     idempotencyKey?: boolean
     requestFingerprint?: boolean
     environment?: boolean
@@ -67994,11 +68303,13 @@ export namespace Prisma {
     createdAt?: boolean
     updatedAt?: boolean
     project?: boolean | ProjectDefaultArgs<ExtArgs>
+    actor?: boolean | RollbackIdempotencyRequest$actorArgs<ExtArgs>
   }, ExtArgs["result"]["rollbackIdempotencyRequest"]>
 
   export type RollbackIdempotencyRequestSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     projectId?: boolean
+    actorUserId?: boolean
     idempotencyKey?: boolean
     requestFingerprint?: boolean
     environment?: boolean
@@ -68019,11 +68330,13 @@ export namespace Prisma {
     createdAt?: boolean
     updatedAt?: boolean
     project?: boolean | ProjectDefaultArgs<ExtArgs>
+    actor?: boolean | RollbackIdempotencyRequest$actorArgs<ExtArgs>
   }, ExtArgs["result"]["rollbackIdempotencyRequest"]>
 
   export type RollbackIdempotencyRequestSelectScalar = {
     id?: boolean
     projectId?: boolean
+    actorUserId?: boolean
     idempotencyKey?: boolean
     requestFingerprint?: boolean
     environment?: boolean
@@ -68045,25 +68358,30 @@ export namespace Prisma {
     updatedAt?: boolean
   }
 
-  export type RollbackIdempotencyRequestOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "projectId" | "idempotencyKey" | "requestFingerprint" | "environment" | "status" | "phase" | "leaseOwner" | "leaseExpiresAt" | "fencingToken" | "effectFencingToken" | "deploymentId" | "expectedHeadVersion" | "previousManifestId" | "projectManifestDigest" | "responseStatus" | "responseContentLanguage" | "responseBody" | "completedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["rollbackIdempotencyRequest"]>
+  export type RollbackIdempotencyRequestOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "projectId" | "actorUserId" | "idempotencyKey" | "requestFingerprint" | "environment" | "status" | "phase" | "leaseOwner" | "leaseExpiresAt" | "fencingToken" | "effectFencingToken" | "deploymentId" | "expectedHeadVersion" | "previousManifestId" | "projectManifestDigest" | "responseStatus" | "responseContentLanguage" | "responseBody" | "completedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["rollbackIdempotencyRequest"]>
   export type RollbackIdempotencyRequestInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     project?: boolean | ProjectDefaultArgs<ExtArgs>
+    actor?: boolean | RollbackIdempotencyRequest$actorArgs<ExtArgs>
   }
   export type RollbackIdempotencyRequestIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     project?: boolean | ProjectDefaultArgs<ExtArgs>
+    actor?: boolean | RollbackIdempotencyRequest$actorArgs<ExtArgs>
   }
   export type RollbackIdempotencyRequestIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     project?: boolean | ProjectDefaultArgs<ExtArgs>
+    actor?: boolean | RollbackIdempotencyRequest$actorArgs<ExtArgs>
   }
 
   export type $RollbackIdempotencyRequestPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "RollbackIdempotencyRequest"
     objects: {
       project: Prisma.$ProjectPayload<ExtArgs>
+      actor: Prisma.$UserPayload<ExtArgs> | null
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
       projectId: string
+      actorUserId: string | null
       idempotencyKey: string
       requestFingerprint: string
       environment: string
@@ -68478,6 +68796,7 @@ export namespace Prisma {
   export interface Prisma__RollbackIdempotencyRequestClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
     project<T extends ProjectDefaultArgs<ExtArgs> = {}>(args?: Subset<T, ProjectDefaultArgs<ExtArgs>>): Prisma__ProjectClient<$Result.GetResult<Prisma.$ProjectPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    actor<T extends RollbackIdempotencyRequest$actorArgs<ExtArgs> = {}>(args?: Subset<T, RollbackIdempotencyRequest$actorArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -68509,6 +68828,7 @@ export namespace Prisma {
   interface RollbackIdempotencyRequestFieldRefs {
     readonly id: FieldRef<"RollbackIdempotencyRequest", 'String'>
     readonly projectId: FieldRef<"RollbackIdempotencyRequest", 'String'>
+    readonly actorUserId: FieldRef<"RollbackIdempotencyRequest", 'String'>
     readonly idempotencyKey: FieldRef<"RollbackIdempotencyRequest", 'String'>
     readonly requestFingerprint: FieldRef<"RollbackIdempotencyRequest", 'String'>
     readonly environment: FieldRef<"RollbackIdempotencyRequest", 'String'>
@@ -68926,6 +69246,25 @@ export namespace Prisma {
      * Limit how many RollbackIdempotencyRequests to delete.
      */
     limit?: number
+  }
+
+  /**
+   * RollbackIdempotencyRequest.actor
+   */
+  export type RollbackIdempotencyRequest$actorArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the User
+     */
+    select?: UserSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the User
+     */
+    omit?: UserOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: UserInclude<ExtArgs> | null
+    where?: UserWhereInput
   }
 
   /**
@@ -145557,6 +145896,7 @@ export namespace Prisma {
     project?: boolean | ProjectDefaultArgs<ExtArgs>
     snapshots?: boolean | DatabaseInstance$snapshotsArgs<ExtArgs>
     restores?: boolean | DatabaseInstance$restoresArgs<ExtArgs>
+    remixJobsAsTarget?: boolean | DatabaseInstance$remixJobsAsTargetArgs<ExtArgs>
     _count?: boolean | DatabaseInstanceCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["databaseInstance"]>
 
@@ -145621,6 +145961,7 @@ export namespace Prisma {
     project?: boolean | ProjectDefaultArgs<ExtArgs>
     snapshots?: boolean | DatabaseInstance$snapshotsArgs<ExtArgs>
     restores?: boolean | DatabaseInstance$restoresArgs<ExtArgs>
+    remixJobsAsTarget?: boolean | DatabaseInstance$remixJobsAsTargetArgs<ExtArgs>
     _count?: boolean | DatabaseInstanceCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type DatabaseInstanceIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -145636,6 +145977,7 @@ export namespace Prisma {
       project: Prisma.$ProjectPayload<ExtArgs>
       snapshots: Prisma.$DatabaseSnapshotPayload<ExtArgs>[]
       restores: Prisma.$DatabaseRestorePayload<ExtArgs>[]
+      remixJobsAsTarget: Prisma.$RemixJobPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -146050,6 +146392,7 @@ export namespace Prisma {
     project<T extends ProjectDefaultArgs<ExtArgs> = {}>(args?: Subset<T, ProjectDefaultArgs<ExtArgs>>): Prisma__ProjectClient<$Result.GetResult<Prisma.$ProjectPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
     snapshots<T extends DatabaseInstance$snapshotsArgs<ExtArgs> = {}>(args?: Subset<T, DatabaseInstance$snapshotsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DatabaseSnapshotPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     restores<T extends DatabaseInstance$restoresArgs<ExtArgs> = {}>(args?: Subset<T, DatabaseInstance$restoresArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DatabaseRestorePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    remixJobsAsTarget<T extends DatabaseInstance$remixJobsAsTargetArgs<ExtArgs> = {}>(args?: Subset<T, DatabaseInstance$remixJobsAsTargetArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$RemixJobPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -146540,6 +146883,30 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: DatabaseRestoreScalarFieldEnum | DatabaseRestoreScalarFieldEnum[]
+  }
+
+  /**
+   * DatabaseInstance.remixJobsAsTarget
+   */
+  export type DatabaseInstance$remixJobsAsTargetArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RemixJob
+     */
+    select?: RemixJobSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RemixJob
+     */
+    omit?: RemixJobOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RemixJobInclude<ExtArgs> | null
+    where?: RemixJobWhereInput
+    orderBy?: RemixJobOrderByWithRelationInput | RemixJobOrderByWithRelationInput[]
+    cursor?: RemixJobWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: RemixJobScalarFieldEnum | RemixJobScalarFieldEnum[]
   }
 
   /**
@@ -156981,6 +157348,9 @@ export namespace Prisma {
     error?: boolean
     createdAt?: boolean
     updatedAt?: boolean
+    targetProject?: boolean | RemixJob$targetProjectArgs<ExtArgs>
+    targetDatabaseInstance?: boolean | RemixJob$targetDatabaseInstanceArgs<ExtArgs>
+    storageShare?: boolean | RemixJob$storageShareArgs<ExtArgs>
   }, ExtArgs["result"]["remixJob"]>
 
   export type RemixJobSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -157017,6 +157387,9 @@ export namespace Prisma {
     error?: boolean
     createdAt?: boolean
     updatedAt?: boolean
+    targetProject?: boolean | RemixJob$targetProjectArgs<ExtArgs>
+    targetDatabaseInstance?: boolean | RemixJob$targetDatabaseInstanceArgs<ExtArgs>
+    storageShare?: boolean | RemixJob$storageShareArgs<ExtArgs>
   }, ExtArgs["result"]["remixJob"]>
 
   export type RemixJobSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -157053,6 +157426,9 @@ export namespace Prisma {
     error?: boolean
     createdAt?: boolean
     updatedAt?: boolean
+    targetProject?: boolean | RemixJob$targetProjectArgs<ExtArgs>
+    targetDatabaseInstance?: boolean | RemixJob$targetDatabaseInstanceArgs<ExtArgs>
+    storageShare?: boolean | RemixJob$storageShareArgs<ExtArgs>
   }, ExtArgs["result"]["remixJob"]>
 
   export type RemixJobSelectScalar = {
@@ -157092,10 +157468,29 @@ export namespace Prisma {
   }
 
   export type RemixJobOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "sourceProjectId" | "targetProjectId" | "organizationId" | "actorUserId" | "state" | "idempotencyKey" | "requestHash" | "version" | "operationToken" | "operationExpiresAt" | "sourceSnapshotId" | "sourceSnapshotHash" | "sourceListingId" | "detachedKeys" | "storagePolicy" | "storageConsentVersion" | "storageInventory" | "storageShareId" | "scanFindings" | "scrubbedCount" | "licenseSnapshot" | "consentVersion" | "piiFindings" | "piiMaskedCount" | "dbForked" | "sourceDatabasePin" | "targetDatabaseInstanceId" | "cleanupTerminalState" | "errorCode" | "error" | "createdAt" | "updatedAt", ExtArgs["result"]["remixJob"]>
+  export type RemixJobInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    targetProject?: boolean | RemixJob$targetProjectArgs<ExtArgs>
+    targetDatabaseInstance?: boolean | RemixJob$targetDatabaseInstanceArgs<ExtArgs>
+    storageShare?: boolean | RemixJob$storageShareArgs<ExtArgs>
+  }
+  export type RemixJobIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    targetProject?: boolean | RemixJob$targetProjectArgs<ExtArgs>
+    targetDatabaseInstance?: boolean | RemixJob$targetDatabaseInstanceArgs<ExtArgs>
+    storageShare?: boolean | RemixJob$storageShareArgs<ExtArgs>
+  }
+  export type RemixJobIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    targetProject?: boolean | RemixJob$targetProjectArgs<ExtArgs>
+    targetDatabaseInstance?: boolean | RemixJob$targetDatabaseInstanceArgs<ExtArgs>
+    storageShare?: boolean | RemixJob$storageShareArgs<ExtArgs>
+  }
 
   export type $RemixJobPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "RemixJob"
-    objects: {}
+    objects: {
+      targetProject: Prisma.$ProjectPayload<ExtArgs> | null
+      targetDatabaseInstance: Prisma.$DatabaseInstancePayload<ExtArgs> | null
+      storageShare: Prisma.$RemixStorageSharePayload<ExtArgs> | null
+    }
     scalars: $Extensions.GetPayloadResult<{
       id: string
       sourceProjectId: string
@@ -157601,6 +157996,9 @@ export namespace Prisma {
    */
   export interface Prisma__RemixJobClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
+    targetProject<T extends RemixJob$targetProjectArgs<ExtArgs> = {}>(args?: Subset<T, RemixJob$targetProjectArgs<ExtArgs>>): Prisma__ProjectClient<$Result.GetResult<Prisma.$ProjectPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    targetDatabaseInstance<T extends RemixJob$targetDatabaseInstanceArgs<ExtArgs> = {}>(args?: Subset<T, RemixJob$targetDatabaseInstanceArgs<ExtArgs>>): Prisma__DatabaseInstanceClient<$Result.GetResult<Prisma.$DatabaseInstancePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    storageShare<T extends RemixJob$storageShareArgs<ExtArgs> = {}>(args?: Subset<T, RemixJob$storageShareArgs<ExtArgs>>): Prisma__RemixStorageShareClient<$Result.GetResult<Prisma.$RemixStorageSharePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -157680,6 +158078,10 @@ export namespace Prisma {
      */
     omit?: RemixJobOmit<ExtArgs> | null
     /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RemixJobInclude<ExtArgs> | null
+    /**
      * Filter, which RemixJob to fetch.
      */
     where: RemixJobWhereUniqueInput
@@ -157698,6 +158100,10 @@ export namespace Prisma {
      */
     omit?: RemixJobOmit<ExtArgs> | null
     /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RemixJobInclude<ExtArgs> | null
+    /**
      * Filter, which RemixJob to fetch.
      */
     where: RemixJobWhereUniqueInput
@@ -157715,6 +158121,10 @@ export namespace Prisma {
      * Omit specific fields from the RemixJob
      */
     omit?: RemixJobOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RemixJobInclude<ExtArgs> | null
     /**
      * Filter, which RemixJob to fetch.
      */
@@ -157764,6 +158174,10 @@ export namespace Prisma {
      */
     omit?: RemixJobOmit<ExtArgs> | null
     /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RemixJobInclude<ExtArgs> | null
+    /**
      * Filter, which RemixJob to fetch.
      */
     where?: RemixJobWhereInput
@@ -157811,6 +158225,10 @@ export namespace Prisma {
      * Omit specific fields from the RemixJob
      */
     omit?: RemixJobOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RemixJobInclude<ExtArgs> | null
     /**
      * Filter, which RemixJobs to fetch.
      */
@@ -157860,6 +158278,10 @@ export namespace Prisma {
      */
     omit?: RemixJobOmit<ExtArgs> | null
     /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RemixJobInclude<ExtArgs> | null
+    /**
      * The data needed to create a RemixJob.
      */
     data: XOR<RemixJobCreateInput, RemixJobUncheckedCreateInput>
@@ -157893,6 +158315,10 @@ export namespace Prisma {
      */
     data: RemixJobCreateManyInput | RemixJobCreateManyInput[]
     skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RemixJobIncludeCreateManyAndReturn<ExtArgs> | null
   }
 
   /**
@@ -157907,6 +158333,10 @@ export namespace Prisma {
      * Omit specific fields from the RemixJob
      */
     omit?: RemixJobOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RemixJobInclude<ExtArgs> | null
     /**
      * The data needed to update a RemixJob.
      */
@@ -157959,6 +158389,10 @@ export namespace Prisma {
      * Limit how many RemixJobs to update.
      */
     limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RemixJobIncludeUpdateManyAndReturn<ExtArgs> | null
   }
 
   /**
@@ -157973,6 +158407,10 @@ export namespace Prisma {
      * Omit specific fields from the RemixJob
      */
     omit?: RemixJobOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RemixJobInclude<ExtArgs> | null
     /**
      * The filter to search for the RemixJob to update in case it exists.
      */
@@ -158000,6 +158438,10 @@ export namespace Prisma {
      */
     omit?: RemixJobOmit<ExtArgs> | null
     /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RemixJobInclude<ExtArgs> | null
+    /**
      * Filter which RemixJob to delete.
      */
     where: RemixJobWhereUniqueInput
@@ -158020,6 +158462,63 @@ export namespace Prisma {
   }
 
   /**
+   * RemixJob.targetProject
+   */
+  export type RemixJob$targetProjectArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Project
+     */
+    select?: ProjectSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Project
+     */
+    omit?: ProjectOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectInclude<ExtArgs> | null
+    where?: ProjectWhereInput
+  }
+
+  /**
+   * RemixJob.targetDatabaseInstance
+   */
+  export type RemixJob$targetDatabaseInstanceArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseInstance
+     */
+    select?: DatabaseInstanceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseInstance
+     */
+    omit?: DatabaseInstanceOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseInstanceInclude<ExtArgs> | null
+    where?: DatabaseInstanceWhereInput
+  }
+
+  /**
+   * RemixJob.storageShare
+   */
+  export type RemixJob$storageShareArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RemixStorageShare
+     */
+    select?: RemixStorageShareSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RemixStorageShare
+     */
+    omit?: RemixStorageShareOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RemixStorageShareInclude<ExtArgs> | null
+    where?: RemixStorageShareWhereInput
+  }
+
+  /**
    * RemixJob without action
    */
   export type RemixJobDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -158031,6 +158530,10 @@ export namespace Prisma {
      * Omit specific fields from the RemixJob
      */
     omit?: RemixJobOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RemixJobInclude<ExtArgs> | null
   }
 
 
@@ -158258,6 +158761,13 @@ export namespace Prisma {
     revokedAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
+    sourceProject?: boolean | ProjectDefaultArgs<ExtArgs>
+    targetProject?: boolean | ProjectDefaultArgs<ExtArgs>
+    sourceOrganization?: boolean | OrganizationDefaultArgs<ExtArgs>
+    targetOrganization?: boolean | OrganizationDefaultArgs<ExtArgs>
+    consentedBy?: boolean | RemixStorageShare$consentedByArgs<ExtArgs>
+    remixJobs?: boolean | RemixStorageShare$remixJobsArgs<ExtArgs>
+    _count?: boolean | RemixStorageShareCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["remixStorageShare"]>
 
   export type RemixStorageShareSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -158274,6 +158784,11 @@ export namespace Prisma {
     revokedAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
+    sourceProject?: boolean | ProjectDefaultArgs<ExtArgs>
+    targetProject?: boolean | ProjectDefaultArgs<ExtArgs>
+    sourceOrganization?: boolean | OrganizationDefaultArgs<ExtArgs>
+    targetOrganization?: boolean | OrganizationDefaultArgs<ExtArgs>
+    consentedBy?: boolean | RemixStorageShare$consentedByArgs<ExtArgs>
   }, ExtArgs["result"]["remixStorageShare"]>
 
   export type RemixStorageShareSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -158290,6 +158805,11 @@ export namespace Prisma {
     revokedAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
+    sourceProject?: boolean | ProjectDefaultArgs<ExtArgs>
+    targetProject?: boolean | ProjectDefaultArgs<ExtArgs>
+    sourceOrganization?: boolean | OrganizationDefaultArgs<ExtArgs>
+    targetOrganization?: boolean | OrganizationDefaultArgs<ExtArgs>
+    consentedBy?: boolean | RemixStorageShare$consentedByArgs<ExtArgs>
   }, ExtArgs["result"]["remixStorageShare"]>
 
   export type RemixStorageShareSelectScalar = {
@@ -158309,10 +158829,40 @@ export namespace Prisma {
   }
 
   export type RemixStorageShareOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "sourceProjectId" | "targetProjectId" | "sourceOrganizationId" | "targetOrganizationId" | "consentVersion" | "consentedByUserId" | "consentedAt" | "sourceInventory" | "state" | "revokedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["remixStorageShare"]>
+  export type RemixStorageShareInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    sourceProject?: boolean | ProjectDefaultArgs<ExtArgs>
+    targetProject?: boolean | ProjectDefaultArgs<ExtArgs>
+    sourceOrganization?: boolean | OrganizationDefaultArgs<ExtArgs>
+    targetOrganization?: boolean | OrganizationDefaultArgs<ExtArgs>
+    consentedBy?: boolean | RemixStorageShare$consentedByArgs<ExtArgs>
+    remixJobs?: boolean | RemixStorageShare$remixJobsArgs<ExtArgs>
+    _count?: boolean | RemixStorageShareCountOutputTypeDefaultArgs<ExtArgs>
+  }
+  export type RemixStorageShareIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    sourceProject?: boolean | ProjectDefaultArgs<ExtArgs>
+    targetProject?: boolean | ProjectDefaultArgs<ExtArgs>
+    sourceOrganization?: boolean | OrganizationDefaultArgs<ExtArgs>
+    targetOrganization?: boolean | OrganizationDefaultArgs<ExtArgs>
+    consentedBy?: boolean | RemixStorageShare$consentedByArgs<ExtArgs>
+  }
+  export type RemixStorageShareIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    sourceProject?: boolean | ProjectDefaultArgs<ExtArgs>
+    targetProject?: boolean | ProjectDefaultArgs<ExtArgs>
+    sourceOrganization?: boolean | OrganizationDefaultArgs<ExtArgs>
+    targetOrganization?: boolean | OrganizationDefaultArgs<ExtArgs>
+    consentedBy?: boolean | RemixStorageShare$consentedByArgs<ExtArgs>
+  }
 
   export type $RemixStorageSharePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "RemixStorageShare"
-    objects: {}
+    objects: {
+      sourceProject: Prisma.$ProjectPayload<ExtArgs>
+      targetProject: Prisma.$ProjectPayload<ExtArgs>
+      sourceOrganization: Prisma.$OrganizationPayload<ExtArgs>
+      targetOrganization: Prisma.$OrganizationPayload<ExtArgs>
+      consentedBy: Prisma.$UserPayload<ExtArgs> | null
+      remixJobs: Prisma.$RemixJobPayload<ExtArgs>[]
+    }
     scalars: $Extensions.GetPayloadResult<{
       id: string
       sourceProjectId: string
@@ -158721,6 +159271,12 @@ export namespace Prisma {
    */
   export interface Prisma__RemixStorageShareClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
+    sourceProject<T extends ProjectDefaultArgs<ExtArgs> = {}>(args?: Subset<T, ProjectDefaultArgs<ExtArgs>>): Prisma__ProjectClient<$Result.GetResult<Prisma.$ProjectPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    targetProject<T extends ProjectDefaultArgs<ExtArgs> = {}>(args?: Subset<T, ProjectDefaultArgs<ExtArgs>>): Prisma__ProjectClient<$Result.GetResult<Prisma.$ProjectPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    sourceOrganization<T extends OrganizationDefaultArgs<ExtArgs> = {}>(args?: Subset<T, OrganizationDefaultArgs<ExtArgs>>): Prisma__OrganizationClient<$Result.GetResult<Prisma.$OrganizationPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    targetOrganization<T extends OrganizationDefaultArgs<ExtArgs> = {}>(args?: Subset<T, OrganizationDefaultArgs<ExtArgs>>): Prisma__OrganizationClient<$Result.GetResult<Prisma.$OrganizationPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    consentedBy<T extends RemixStorageShare$consentedByArgs<ExtArgs> = {}>(args?: Subset<T, RemixStorageShare$consentedByArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    remixJobs<T extends RemixStorageShare$remixJobsArgs<ExtArgs> = {}>(args?: Subset<T, RemixStorageShare$remixJobsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$RemixJobPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -158780,6 +159336,10 @@ export namespace Prisma {
      */
     omit?: RemixStorageShareOmit<ExtArgs> | null
     /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RemixStorageShareInclude<ExtArgs> | null
+    /**
      * Filter, which RemixStorageShare to fetch.
      */
     where: RemixStorageShareWhereUniqueInput
@@ -158798,6 +159358,10 @@ export namespace Prisma {
      */
     omit?: RemixStorageShareOmit<ExtArgs> | null
     /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RemixStorageShareInclude<ExtArgs> | null
+    /**
      * Filter, which RemixStorageShare to fetch.
      */
     where: RemixStorageShareWhereUniqueInput
@@ -158815,6 +159379,10 @@ export namespace Prisma {
      * Omit specific fields from the RemixStorageShare
      */
     omit?: RemixStorageShareOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RemixStorageShareInclude<ExtArgs> | null
     /**
      * Filter, which RemixStorageShare to fetch.
      */
@@ -158864,6 +159432,10 @@ export namespace Prisma {
      */
     omit?: RemixStorageShareOmit<ExtArgs> | null
     /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RemixStorageShareInclude<ExtArgs> | null
+    /**
      * Filter, which RemixStorageShare to fetch.
      */
     where?: RemixStorageShareWhereInput
@@ -158911,6 +159483,10 @@ export namespace Prisma {
      * Omit specific fields from the RemixStorageShare
      */
     omit?: RemixStorageShareOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RemixStorageShareInclude<ExtArgs> | null
     /**
      * Filter, which RemixStorageShares to fetch.
      */
@@ -158960,6 +159536,10 @@ export namespace Prisma {
      */
     omit?: RemixStorageShareOmit<ExtArgs> | null
     /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RemixStorageShareInclude<ExtArgs> | null
+    /**
      * The data needed to create a RemixStorageShare.
      */
     data: XOR<RemixStorageShareCreateInput, RemixStorageShareUncheckedCreateInput>
@@ -158993,6 +159573,10 @@ export namespace Prisma {
      */
     data: RemixStorageShareCreateManyInput | RemixStorageShareCreateManyInput[]
     skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RemixStorageShareIncludeCreateManyAndReturn<ExtArgs> | null
   }
 
   /**
@@ -159007,6 +159591,10 @@ export namespace Prisma {
      * Omit specific fields from the RemixStorageShare
      */
     omit?: RemixStorageShareOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RemixStorageShareInclude<ExtArgs> | null
     /**
      * The data needed to update a RemixStorageShare.
      */
@@ -159059,6 +159647,10 @@ export namespace Prisma {
      * Limit how many RemixStorageShares to update.
      */
     limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RemixStorageShareIncludeUpdateManyAndReturn<ExtArgs> | null
   }
 
   /**
@@ -159073,6 +159665,10 @@ export namespace Prisma {
      * Omit specific fields from the RemixStorageShare
      */
     omit?: RemixStorageShareOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RemixStorageShareInclude<ExtArgs> | null
     /**
      * The filter to search for the RemixStorageShare to update in case it exists.
      */
@@ -159100,6 +159696,10 @@ export namespace Prisma {
      */
     omit?: RemixStorageShareOmit<ExtArgs> | null
     /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RemixStorageShareInclude<ExtArgs> | null
+    /**
      * Filter which RemixStorageShare to delete.
      */
     where: RemixStorageShareWhereUniqueInput
@@ -159120,6 +159720,49 @@ export namespace Prisma {
   }
 
   /**
+   * RemixStorageShare.consentedBy
+   */
+  export type RemixStorageShare$consentedByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the User
+     */
+    select?: UserSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the User
+     */
+    omit?: UserOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: UserInclude<ExtArgs> | null
+    where?: UserWhereInput
+  }
+
+  /**
+   * RemixStorageShare.remixJobs
+   */
+  export type RemixStorageShare$remixJobsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RemixJob
+     */
+    select?: RemixJobSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RemixJob
+     */
+    omit?: RemixJobOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RemixJobInclude<ExtArgs> | null
+    where?: RemixJobWhereInput
+    orderBy?: RemixJobOrderByWithRelationInput | RemixJobOrderByWithRelationInput[]
+    cursor?: RemixJobWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: RemixJobScalarFieldEnum | RemixJobScalarFieldEnum[]
+  }
+
+  /**
    * RemixStorageShare without action
    */
   export type RemixStorageShareDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -159131,6 +159774,10 @@ export namespace Prisma {
      * Omit specific fields from the RemixStorageShare
      */
     omit?: RemixStorageShareOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RemixStorageShareInclude<ExtArgs> | null
   }
 
 
@@ -190164,6 +190811,7 @@ export namespace Prisma {
   export const RollbackIdempotencyRequestScalarFieldEnum: {
     id: 'id',
     projectId: 'projectId',
+    actorUserId: 'actorUserId',
     idempotencyKey: 'idempotencyKey',
     requestFingerprint: 'requestFingerprint',
     environment: 'environment',
@@ -192626,6 +193274,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardListRelationFilter
     runtimeWebSocketTickets?: RuntimeWebSocketTicketListRelationFilter
     importJobs?: ImportJobListRelationFilter
+    remixStorageSharesConsented?: RemixStorageShareListRelationFilter
+    rollbackOperations?: RollbackIdempotencyRequestListRelationFilter
     cloudOperations?: CloudOperationListRelationFilter
     projectCheckpoints?: ProjectCheckpointListRelationFilter
     invitedOrganizationMembers?: OrganizationMemberListRelationFilter
@@ -192685,6 +193335,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardOrderByRelationAggregateInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketOrderByRelationAggregateInput
     importJobs?: ImportJobOrderByRelationAggregateInput
+    remixStorageSharesConsented?: RemixStorageShareOrderByRelationAggregateInput
+    rollbackOperations?: RollbackIdempotencyRequestOrderByRelationAggregateInput
     cloudOperations?: CloudOperationOrderByRelationAggregateInput
     projectCheckpoints?: ProjectCheckpointOrderByRelationAggregateInput
     invitedOrganizationMembers?: OrganizationMemberOrderByRelationAggregateInput
@@ -192747,6 +193399,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardListRelationFilter
     runtimeWebSocketTickets?: RuntimeWebSocketTicketListRelationFilter
     importJobs?: ImportJobListRelationFilter
+    remixStorageSharesConsented?: RemixStorageShareListRelationFilter
+    rollbackOperations?: RollbackIdempotencyRequestListRelationFilter
     cloudOperations?: CloudOperationListRelationFilter
     projectCheckpoints?: ProjectCheckpointListRelationFilter
     invitedOrganizationMembers?: OrganizationMemberListRelationFilter
@@ -192987,6 +193641,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointListRelationFilter
     userSpendLimits?: UserSpendLimitListRelationFilter
     importJobs?: ImportJobListRelationFilter
+    remixStorageSharesAsSource?: RemixStorageShareListRelationFilter
+    remixStorageSharesAsTarget?: RemixStorageShareListRelationFilter
     cloudTenant?: XOR<CloudTenantNullableScalarRelationFilter, CloudTenantWhereInput> | null
     collaborationGroups?: CollaborationGroupListRelationFilter
     resourceAccessGrants?: ResourceAccessGrantListRelationFilter
@@ -193034,6 +193690,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointOrderByRelationAggregateInput
     userSpendLimits?: UserSpendLimitOrderByRelationAggregateInput
     importJobs?: ImportJobOrderByRelationAggregateInput
+    remixStorageSharesAsSource?: RemixStorageShareOrderByRelationAggregateInput
+    remixStorageSharesAsTarget?: RemixStorageShareOrderByRelationAggregateInput
     cloudTenant?: CloudTenantOrderByWithRelationInput
     collaborationGroups?: CollaborationGroupOrderByRelationAggregateInput
     resourceAccessGrants?: ResourceAccessGrantOrderByRelationAggregateInput
@@ -193084,6 +193742,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointListRelationFilter
     userSpendLimits?: UserSpendLimitListRelationFilter
     importJobs?: ImportJobListRelationFilter
+    remixStorageSharesAsSource?: RemixStorageShareListRelationFilter
+    remixStorageSharesAsTarget?: RemixStorageShareListRelationFilter
     cloudTenant?: XOR<CloudTenantNullableScalarRelationFilter, CloudTenantWhereInput> | null
     collaborationGroups?: CollaborationGroupListRelationFilter
     resourceAccessGrants?: ResourceAccessGrantListRelationFilter
@@ -193472,6 +194132,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectListRelationFilter
     runtimeWebSocketTickets?: RuntimeWebSocketTicketListRelationFilter
     importJobs?: ImportJobListRelationFilter
+    targetRemixJobs?: RemixJobListRelationFilter
+    sourceRemixShares?: RemixStorageShareListRelationFilter
+    targetRemixShares?: RemixStorageShareListRelationFilter
     cloudBinding?: XOR<CloudProjectBindingNullableScalarRelationFilter, CloudProjectBindingWhereInput> | null
     checkpoints?: ProjectCheckpointListRelationFilter
   }
@@ -193522,6 +194185,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectOrderByRelationAggregateInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketOrderByRelationAggregateInput
     importJobs?: ImportJobOrderByRelationAggregateInput
+    targetRemixJobs?: RemixJobOrderByRelationAggregateInput
+    sourceRemixShares?: RemixStorageShareOrderByRelationAggregateInput
+    targetRemixShares?: RemixStorageShareOrderByRelationAggregateInput
     cloudBinding?: CloudProjectBindingOrderByWithRelationInput
     checkpoints?: ProjectCheckpointOrderByRelationAggregateInput
   }
@@ -193576,6 +194242,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectListRelationFilter
     runtimeWebSocketTickets?: RuntimeWebSocketTicketListRelationFilter
     importJobs?: ImportJobListRelationFilter
+    targetRemixJobs?: RemixJobListRelationFilter
+    sourceRemixShares?: RemixStorageShareListRelationFilter
+    targetRemixShares?: RemixStorageShareListRelationFilter
     cloudBinding?: XOR<CloudProjectBindingNullableScalarRelationFilter, CloudProjectBindingWhereInput> | null
     checkpoints?: ProjectCheckpointListRelationFilter
   }, "id" | "organizationId_slug">
@@ -196247,6 +196916,7 @@ export namespace Prisma {
     NOT?: RollbackIdempotencyRequestWhereInput | RollbackIdempotencyRequestWhereInput[]
     id?: StringFilter<"RollbackIdempotencyRequest"> | string
     projectId?: StringFilter<"RollbackIdempotencyRequest"> | string
+    actorUserId?: StringNullableFilter<"RollbackIdempotencyRequest"> | string | null
     idempotencyKey?: StringFilter<"RollbackIdempotencyRequest"> | string
     requestFingerprint?: StringFilter<"RollbackIdempotencyRequest"> | string
     environment?: StringFilter<"RollbackIdempotencyRequest"> | string
@@ -196267,11 +196937,13 @@ export namespace Prisma {
     createdAt?: DateTimeFilter<"RollbackIdempotencyRequest"> | Date | string
     updatedAt?: DateTimeFilter<"RollbackIdempotencyRequest"> | Date | string
     project?: XOR<ProjectScalarRelationFilter, ProjectWhereInput>
+    actor?: XOR<UserNullableScalarRelationFilter, UserWhereInput> | null
   }
 
   export type RollbackIdempotencyRequestOrderByWithRelationInput = {
     id?: SortOrder
     projectId?: SortOrder
+    actorUserId?: SortOrderInput | SortOrder
     idempotencyKey?: SortOrder
     requestFingerprint?: SortOrder
     environment?: SortOrder
@@ -196292,6 +196964,7 @@ export namespace Prisma {
     createdAt?: SortOrder
     updatedAt?: SortOrder
     project?: ProjectOrderByWithRelationInput
+    actor?: UserOrderByWithRelationInput
   }
 
   export type RollbackIdempotencyRequestWhereUniqueInput = Prisma.AtLeast<{
@@ -196302,6 +196975,7 @@ export namespace Prisma {
     OR?: RollbackIdempotencyRequestWhereInput[]
     NOT?: RollbackIdempotencyRequestWhereInput | RollbackIdempotencyRequestWhereInput[]
     projectId?: StringFilter<"RollbackIdempotencyRequest"> | string
+    actorUserId?: StringNullableFilter<"RollbackIdempotencyRequest"> | string | null
     idempotencyKey?: StringFilter<"RollbackIdempotencyRequest"> | string
     requestFingerprint?: StringFilter<"RollbackIdempotencyRequest"> | string
     environment?: StringFilter<"RollbackIdempotencyRequest"> | string
@@ -196321,11 +196995,13 @@ export namespace Prisma {
     createdAt?: DateTimeFilter<"RollbackIdempotencyRequest"> | Date | string
     updatedAt?: DateTimeFilter<"RollbackIdempotencyRequest"> | Date | string
     project?: XOR<ProjectScalarRelationFilter, ProjectWhereInput>
+    actor?: XOR<UserNullableScalarRelationFilter, UserWhereInput> | null
   }, "id" | "deploymentId" | "projectId_idempotencyKey">
 
   export type RollbackIdempotencyRequestOrderByWithAggregationInput = {
     id?: SortOrder
     projectId?: SortOrder
+    actorUserId?: SortOrderInput | SortOrder
     idempotencyKey?: SortOrder
     requestFingerprint?: SortOrder
     environment?: SortOrder
@@ -196358,6 +197034,7 @@ export namespace Prisma {
     NOT?: RollbackIdempotencyRequestScalarWhereWithAggregatesInput | RollbackIdempotencyRequestScalarWhereWithAggregatesInput[]
     id?: StringWithAggregatesFilter<"RollbackIdempotencyRequest"> | string
     projectId?: StringWithAggregatesFilter<"RollbackIdempotencyRequest"> | string
+    actorUserId?: StringNullableWithAggregatesFilter<"RollbackIdempotencyRequest"> | string | null
     idempotencyKey?: StringWithAggregatesFilter<"RollbackIdempotencyRequest"> | string
     requestFingerprint?: StringWithAggregatesFilter<"RollbackIdempotencyRequest"> | string
     environment?: StringWithAggregatesFilter<"RollbackIdempotencyRequest"> | string
@@ -201606,6 +202283,7 @@ export namespace Prisma {
     project?: XOR<ProjectScalarRelationFilter, ProjectWhereInput>
     snapshots?: DatabaseSnapshotListRelationFilter
     restores?: DatabaseRestoreListRelationFilter
+    remixJobsAsTarget?: RemixJobListRelationFilter
   }
 
   export type DatabaseInstanceOrderByWithRelationInput = {
@@ -201627,6 +202305,7 @@ export namespace Prisma {
     project?: ProjectOrderByWithRelationInput
     snapshots?: DatabaseSnapshotOrderByRelationAggregateInput
     restores?: DatabaseRestoreOrderByRelationAggregateInput
+    remixJobsAsTarget?: RemixJobOrderByRelationAggregateInput
   }
 
   export type DatabaseInstanceWhereUniqueInput = Prisma.AtLeast<{
@@ -201652,6 +202331,7 @@ export namespace Prisma {
     project?: XOR<ProjectScalarRelationFilter, ProjectWhereInput>
     snapshots?: DatabaseSnapshotListRelationFilter
     restores?: DatabaseRestoreListRelationFilter
+    remixJobsAsTarget?: RemixJobListRelationFilter
   }, "id" | "projectId_environment">
 
   export type DatabaseInstanceOrderByWithAggregationInput = {
@@ -202653,6 +203333,9 @@ export namespace Prisma {
     error?: StringNullableFilter<"RemixJob"> | string | null
     createdAt?: DateTimeFilter<"RemixJob"> | Date | string
     updatedAt?: DateTimeFilter<"RemixJob"> | Date | string
+    targetProject?: XOR<ProjectNullableScalarRelationFilter, ProjectWhereInput> | null
+    targetDatabaseInstance?: XOR<DatabaseInstanceNullableScalarRelationFilter, DatabaseInstanceWhereInput> | null
+    storageShare?: XOR<RemixStorageShareNullableScalarRelationFilter, RemixStorageShareWhereInput> | null
   }
 
   export type RemixJobOrderByWithRelationInput = {
@@ -202689,6 +203372,9 @@ export namespace Prisma {
     error?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+    targetProject?: ProjectOrderByWithRelationInput
+    targetDatabaseInstance?: DatabaseInstanceOrderByWithRelationInput
+    storageShare?: RemixStorageShareOrderByWithRelationInput
   }
 
   export type RemixJobWhereUniqueInput = Prisma.AtLeast<{
@@ -202729,6 +203415,9 @@ export namespace Prisma {
     error?: StringNullableFilter<"RemixJob"> | string | null
     createdAt?: DateTimeFilter<"RemixJob"> | Date | string
     updatedAt?: DateTimeFilter<"RemixJob"> | Date | string
+    targetProject?: XOR<ProjectNullableScalarRelationFilter, ProjectWhereInput> | null
+    targetDatabaseInstance?: XOR<DatabaseInstanceNullableScalarRelationFilter, DatabaseInstanceWhereInput> | null
+    storageShare?: XOR<RemixStorageShareNullableScalarRelationFilter, RemixStorageShareWhereInput> | null
   }, "id" | "organizationId_idempotencyKey">
 
   export type RemixJobOrderByWithAggregationInput = {
@@ -202828,6 +203517,12 @@ export namespace Prisma {
     revokedAt?: DateTimeNullableFilter<"RemixStorageShare"> | Date | string | null
     createdAt?: DateTimeFilter<"RemixStorageShare"> | Date | string
     updatedAt?: DateTimeFilter<"RemixStorageShare"> | Date | string
+    sourceProject?: XOR<ProjectScalarRelationFilter, ProjectWhereInput>
+    targetProject?: XOR<ProjectScalarRelationFilter, ProjectWhereInput>
+    sourceOrganization?: XOR<OrganizationScalarRelationFilter, OrganizationWhereInput>
+    targetOrganization?: XOR<OrganizationScalarRelationFilter, OrganizationWhereInput>
+    consentedBy?: XOR<UserNullableScalarRelationFilter, UserWhereInput> | null
+    remixJobs?: RemixJobListRelationFilter
   }
 
   export type RemixStorageShareOrderByWithRelationInput = {
@@ -202844,6 +203539,12 @@ export namespace Prisma {
     revokedAt?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+    sourceProject?: ProjectOrderByWithRelationInput
+    targetProject?: ProjectOrderByWithRelationInput
+    sourceOrganization?: OrganizationOrderByWithRelationInput
+    targetOrganization?: OrganizationOrderByWithRelationInput
+    consentedBy?: UserOrderByWithRelationInput
+    remixJobs?: RemixJobOrderByRelationAggregateInput
   }
 
   export type RemixStorageShareWhereUniqueInput = Prisma.AtLeast<{
@@ -202863,6 +203564,12 @@ export namespace Prisma {
     revokedAt?: DateTimeNullableFilter<"RemixStorageShare"> | Date | string | null
     createdAt?: DateTimeFilter<"RemixStorageShare"> | Date | string
     updatedAt?: DateTimeFilter<"RemixStorageShare"> | Date | string
+    sourceProject?: XOR<ProjectScalarRelationFilter, ProjectWhereInput>
+    targetProject?: XOR<ProjectScalarRelationFilter, ProjectWhereInput>
+    sourceOrganization?: XOR<OrganizationScalarRelationFilter, OrganizationWhereInput>
+    targetOrganization?: XOR<OrganizationScalarRelationFilter, OrganizationWhereInput>
+    consentedBy?: XOR<UserNullableScalarRelationFilter, UserWhereInput> | null
+    remixJobs?: RemixJobListRelationFilter
   }, "id" | "targetProjectId">
 
   export type RemixStorageShareOrderByWithAggregationInput = {
@@ -205353,6 +206060,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
     importJobs?: ImportJobCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutActorInput
     cloudOperations?: CloudOperationCreateNestedManyWithoutActorInput
     projectCheckpoints?: ProjectCheckpointCreateNestedManyWithoutCreatedByInput
     invitedOrganizationMembers?: OrganizationMemberCreateNestedManyWithoutInvitedByInput
@@ -205412,6 +206121,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutActorInput
     cloudOperations?: CloudOperationUncheckedCreateNestedManyWithoutActorInput
     projectCheckpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutCreatedByInput
     invitedOrganizationMembers?: OrganizationMemberUncheckedCreateNestedManyWithoutInvitedByInput
@@ -205471,6 +206182,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutActorNestedInput
     cloudOperations?: CloudOperationUpdateManyWithoutActorNestedInput
     projectCheckpoints?: ProjectCheckpointUpdateManyWithoutCreatedByNestedInput
     invitedOrganizationMembers?: OrganizationMemberUpdateManyWithoutInvitedByNestedInput
@@ -205530,6 +206243,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutActorNestedInput
     cloudOperations?: CloudOperationUncheckedUpdateManyWithoutActorNestedInput
     projectCheckpoints?: ProjectCheckpointUncheckedUpdateManyWithoutCreatedByNestedInput
     invitedOrganizationMembers?: OrganizationMemberUncheckedUpdateManyWithoutInvitedByNestedInput
@@ -205791,6 +206506,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
     importJobs?: ImportJobCreateNestedManyWithoutOrganizationInput
+    remixStorageSharesAsSource?: RemixStorageShareCreateNestedManyWithoutSourceOrganizationInput
+    remixStorageSharesAsTarget?: RemixStorageShareCreateNestedManyWithoutTargetOrganizationInput
     cloudTenant?: CloudTenantCreateNestedOneWithoutOrganizationInput
     collaborationGroups?: CollaborationGroupCreateNestedManyWithoutOrganizationInput
     resourceAccessGrants?: ResourceAccessGrantCreateNestedManyWithoutOrganizationInput
@@ -205838,6 +206555,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutOrganizationInput
+    remixStorageSharesAsSource?: RemixStorageShareUncheckedCreateNestedManyWithoutSourceOrganizationInput
+    remixStorageSharesAsTarget?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetOrganizationInput
     cloudTenant?: CloudTenantUncheckedCreateNestedOneWithoutOrganizationInput
     collaborationGroups?: CollaborationGroupUncheckedCreateNestedManyWithoutOrganizationInput
     resourceAccessGrants?: ResourceAccessGrantUncheckedCreateNestedManyWithoutOrganizationInput
@@ -205885,6 +206604,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
     importJobs?: ImportJobUpdateManyWithoutOrganizationNestedInput
+    remixStorageSharesAsSource?: RemixStorageShareUpdateManyWithoutSourceOrganizationNestedInput
+    remixStorageSharesAsTarget?: RemixStorageShareUpdateManyWithoutTargetOrganizationNestedInput
     cloudTenant?: CloudTenantUpdateOneWithoutOrganizationNestedInput
     collaborationGroups?: CollaborationGroupUpdateManyWithoutOrganizationNestedInput
     resourceAccessGrants?: ResourceAccessGrantUpdateManyWithoutOrganizationNestedInput
@@ -205932,6 +206653,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutOrganizationNestedInput
+    remixStorageSharesAsSource?: RemixStorageShareUncheckedUpdateManyWithoutSourceOrganizationNestedInput
+    remixStorageSharesAsTarget?: RemixStorageShareUncheckedUpdateManyWithoutTargetOrganizationNestedInput
     cloudTenant?: CloudTenantUncheckedUpdateOneWithoutOrganizationNestedInput
     collaborationGroups?: CollaborationGroupUncheckedUpdateManyWithoutOrganizationNestedInput
     resourceAccessGrants?: ResourceAccessGrantUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -206308,6 +207031,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
+    targetRemixJobs?: RemixJobCreateNestedManyWithoutTargetProjectInput
+    sourceRemixShares?: RemixStorageShareCreateNestedManyWithoutSourceProjectInput
+    targetRemixShares?: RemixStorageShareCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
   }
@@ -206357,6 +207083,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    targetRemixJobs?: RemixJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    sourceRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutSourceProjectInput
+    targetRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingUncheckedCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
   }
@@ -206406,6 +207135,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
+    targetRemixJobs?: RemixJobUpdateManyWithoutTargetProjectNestedInput
+    sourceRemixShares?: RemixStorageShareUpdateManyWithoutSourceProjectNestedInput
+    targetRemixShares?: RemixStorageShareUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
   }
@@ -206455,6 +207187,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    targetRemixJobs?: RemixJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    sourceRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutSourceProjectNestedInput
+    targetRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUncheckedUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
   }
@@ -209284,11 +210019,13 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     project: ProjectCreateNestedOneWithoutRollbackOperationsInput
+    actor?: UserCreateNestedOneWithoutRollbackOperationsInput
   }
 
   export type RollbackIdempotencyRequestUncheckedCreateInput = {
     id?: string
     projectId: string
+    actorUserId?: string | null
     idempotencyKey: string
     requestFingerprint: string
     environment: string
@@ -209332,11 +210069,13 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     project?: ProjectUpdateOneRequiredWithoutRollbackOperationsNestedInput
+    actor?: UserUpdateOneWithoutRollbackOperationsNestedInput
   }
 
   export type RollbackIdempotencyRequestUncheckedUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
     projectId?: StringFieldUpdateOperationsInput | string
+    actorUserId?: NullableStringFieldUpdateOperationsInput | string | null
     idempotencyKey?: StringFieldUpdateOperationsInput | string
     requestFingerprint?: StringFieldUpdateOperationsInput | string
     environment?: StringFieldUpdateOperationsInput | string
@@ -209361,6 +210100,7 @@ export namespace Prisma {
   export type RollbackIdempotencyRequestCreateManyInput = {
     id?: string
     projectId: string
+    actorUserId?: string | null
     idempotencyKey: string
     requestFingerprint: string
     environment: string
@@ -209408,6 +210148,7 @@ export namespace Prisma {
   export type RollbackIdempotencyRequestUncheckedUpdateManyInput = {
     id?: StringFieldUpdateOperationsInput | string
     projectId?: StringFieldUpdateOperationsInput | string
+    actorUserId?: NullableStringFieldUpdateOperationsInput | string | null
     idempotencyKey?: StringFieldUpdateOperationsInput | string
     requestFingerprint?: StringFieldUpdateOperationsInput | string
     environment?: StringFieldUpdateOperationsInput | string
@@ -215160,6 +215901,7 @@ export namespace Prisma {
     project: ProjectCreateNestedOneWithoutDatabaseInstancesInput
     snapshots?: DatabaseSnapshotCreateNestedManyWithoutDatabaseInstanceInput
     restores?: DatabaseRestoreCreateNestedManyWithoutDatabaseInstanceInput
+    remixJobsAsTarget?: RemixJobCreateNestedManyWithoutTargetDatabaseInstanceInput
   }
 
   export type DatabaseInstanceUncheckedCreateInput = {
@@ -215180,6 +215922,7 @@ export namespace Prisma {
     updatedAt?: Date | string
     snapshots?: DatabaseSnapshotUncheckedCreateNestedManyWithoutDatabaseInstanceInput
     restores?: DatabaseRestoreUncheckedCreateNestedManyWithoutDatabaseInstanceInput
+    remixJobsAsTarget?: RemixJobUncheckedCreateNestedManyWithoutTargetDatabaseInstanceInput
   }
 
   export type DatabaseInstanceUpdateInput = {
@@ -215200,6 +215943,7 @@ export namespace Prisma {
     project?: ProjectUpdateOneRequiredWithoutDatabaseInstancesNestedInput
     snapshots?: DatabaseSnapshotUpdateManyWithoutDatabaseInstanceNestedInput
     restores?: DatabaseRestoreUpdateManyWithoutDatabaseInstanceNestedInput
+    remixJobsAsTarget?: RemixJobUpdateManyWithoutTargetDatabaseInstanceNestedInput
   }
 
   export type DatabaseInstanceUncheckedUpdateInput = {
@@ -215220,6 +215964,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     snapshots?: DatabaseSnapshotUncheckedUpdateManyWithoutDatabaseInstanceNestedInput
     restores?: DatabaseRestoreUncheckedUpdateManyWithoutDatabaseInstanceNestedInput
+    remixJobsAsTarget?: RemixJobUncheckedUpdateManyWithoutTargetDatabaseInstanceNestedInput
   }
 
   export type DatabaseInstanceCreateManyInput = {
@@ -216375,7 +217120,6 @@ export namespace Prisma {
   export type RemixJobCreateInput = {
     id?: string
     sourceProjectId: string
-    targetProjectId?: string | null
     organizationId: string
     actorUserId?: string | null
     state?: string
@@ -216391,7 +217135,6 @@ export namespace Prisma {
     storagePolicy?: string
     storageConsentVersion?: string | null
     storageInventory?: NullableJsonNullValueInput | InputJsonValue
-    storageShareId?: string | null
     scanFindings?: NullableJsonNullValueInput | InputJsonValue
     scrubbedCount?: number
     licenseSnapshot?: NullableJsonNullValueInput | InputJsonValue
@@ -216400,12 +217143,14 @@ export namespace Prisma {
     piiMaskedCount?: number
     dbForked?: boolean
     sourceDatabasePin?: NullableJsonNullValueInput | InputJsonValue
-    targetDatabaseInstanceId?: string | null
     cleanupTerminalState?: string | null
     errorCode?: string | null
     error?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    targetProject?: ProjectCreateNestedOneWithoutTargetRemixJobsInput
+    targetDatabaseInstance?: DatabaseInstanceCreateNestedOneWithoutRemixJobsAsTargetInput
+    storageShare?: RemixStorageShareCreateNestedOneWithoutRemixJobsInput
   }
 
   export type RemixJobUncheckedCreateInput = {
@@ -216447,7 +217192,6 @@ export namespace Prisma {
   export type RemixJobUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
     sourceProjectId?: StringFieldUpdateOperationsInput | string
-    targetProjectId?: NullableStringFieldUpdateOperationsInput | string | null
     organizationId?: StringFieldUpdateOperationsInput | string
     actorUserId?: NullableStringFieldUpdateOperationsInput | string | null
     state?: StringFieldUpdateOperationsInput | string
@@ -216463,7 +217207,6 @@ export namespace Prisma {
     storagePolicy?: StringFieldUpdateOperationsInput | string
     storageConsentVersion?: NullableStringFieldUpdateOperationsInput | string | null
     storageInventory?: NullableJsonNullValueInput | InputJsonValue
-    storageShareId?: NullableStringFieldUpdateOperationsInput | string | null
     scanFindings?: NullableJsonNullValueInput | InputJsonValue
     scrubbedCount?: IntFieldUpdateOperationsInput | number
     licenseSnapshot?: NullableJsonNullValueInput | InputJsonValue
@@ -216472,12 +217215,14 @@ export namespace Prisma {
     piiMaskedCount?: IntFieldUpdateOperationsInput | number
     dbForked?: BoolFieldUpdateOperationsInput | boolean
     sourceDatabasePin?: NullableJsonNullValueInput | InputJsonValue
-    targetDatabaseInstanceId?: NullableStringFieldUpdateOperationsInput | string | null
     cleanupTerminalState?: NullableStringFieldUpdateOperationsInput | string | null
     errorCode?: NullableStringFieldUpdateOperationsInput | string | null
     error?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    targetProject?: ProjectUpdateOneWithoutTargetRemixJobsNestedInput
+    targetDatabaseInstance?: DatabaseInstanceUpdateOneWithoutRemixJobsAsTargetNestedInput
+    storageShare?: RemixStorageShareUpdateOneWithoutRemixJobsNestedInput
   }
 
   export type RemixJobUncheckedUpdateInput = {
@@ -216555,7 +217300,6 @@ export namespace Prisma {
   export type RemixJobUpdateManyMutationInput = {
     id?: StringFieldUpdateOperationsInput | string
     sourceProjectId?: StringFieldUpdateOperationsInput | string
-    targetProjectId?: NullableStringFieldUpdateOperationsInput | string | null
     organizationId?: StringFieldUpdateOperationsInput | string
     actorUserId?: NullableStringFieldUpdateOperationsInput | string | null
     state?: StringFieldUpdateOperationsInput | string
@@ -216571,7 +217315,6 @@ export namespace Prisma {
     storagePolicy?: StringFieldUpdateOperationsInput | string
     storageConsentVersion?: NullableStringFieldUpdateOperationsInput | string | null
     storageInventory?: NullableJsonNullValueInput | InputJsonValue
-    storageShareId?: NullableStringFieldUpdateOperationsInput | string | null
     scanFindings?: NullableJsonNullValueInput | InputJsonValue
     scrubbedCount?: IntFieldUpdateOperationsInput | number
     licenseSnapshot?: NullableJsonNullValueInput | InputJsonValue
@@ -216580,7 +217323,6 @@ export namespace Prisma {
     piiMaskedCount?: IntFieldUpdateOperationsInput | number
     dbForked?: BoolFieldUpdateOperationsInput | boolean
     sourceDatabasePin?: NullableJsonNullValueInput | InputJsonValue
-    targetDatabaseInstanceId?: NullableStringFieldUpdateOperationsInput | string | null
     cleanupTerminalState?: NullableStringFieldUpdateOperationsInput | string | null
     errorCode?: NullableStringFieldUpdateOperationsInput | string | null
     error?: NullableStringFieldUpdateOperationsInput | string | null
@@ -216626,18 +217368,19 @@ export namespace Prisma {
 
   export type RemixStorageShareCreateInput = {
     id?: string
-    sourceProjectId: string
-    targetProjectId: string
-    sourceOrganizationId: string
-    targetOrganizationId: string
     consentVersion: string
-    consentedByUserId?: string | null
     consentedAt?: Date | string
     sourceInventory: JsonNullValueInput | InputJsonValue
     state?: string
     revokedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    sourceProject: ProjectCreateNestedOneWithoutSourceRemixSharesInput
+    targetProject: ProjectCreateNestedOneWithoutTargetRemixSharesInput
+    sourceOrganization: OrganizationCreateNestedOneWithoutRemixStorageSharesAsSourceInput
+    targetOrganization: OrganizationCreateNestedOneWithoutRemixStorageSharesAsTargetInput
+    consentedBy?: UserCreateNestedOneWithoutRemixStorageSharesConsentedInput
+    remixJobs?: RemixJobCreateNestedManyWithoutStorageShareInput
   }
 
   export type RemixStorageShareUncheckedCreateInput = {
@@ -216654,22 +217397,24 @@ export namespace Prisma {
     revokedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    remixJobs?: RemixJobUncheckedCreateNestedManyWithoutStorageShareInput
   }
 
   export type RemixStorageShareUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
-    sourceProjectId?: StringFieldUpdateOperationsInput | string
-    targetProjectId?: StringFieldUpdateOperationsInput | string
-    sourceOrganizationId?: StringFieldUpdateOperationsInput | string
-    targetOrganizationId?: StringFieldUpdateOperationsInput | string
     consentVersion?: StringFieldUpdateOperationsInput | string
-    consentedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
     consentedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sourceInventory?: JsonNullValueInput | InputJsonValue
     state?: StringFieldUpdateOperationsInput | string
     revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    sourceProject?: ProjectUpdateOneRequiredWithoutSourceRemixSharesNestedInput
+    targetProject?: ProjectUpdateOneRequiredWithoutTargetRemixSharesNestedInput
+    sourceOrganization?: OrganizationUpdateOneRequiredWithoutRemixStorageSharesAsSourceNestedInput
+    targetOrganization?: OrganizationUpdateOneRequiredWithoutRemixStorageSharesAsTargetNestedInput
+    consentedBy?: UserUpdateOneWithoutRemixStorageSharesConsentedNestedInput
+    remixJobs?: RemixJobUpdateManyWithoutStorageShareNestedInput
   }
 
   export type RemixStorageShareUncheckedUpdateInput = {
@@ -216686,6 +217431,7 @@ export namespace Prisma {
     revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    remixJobs?: RemixJobUncheckedUpdateManyWithoutStorageShareNestedInput
   }
 
   export type RemixStorageShareCreateManyInput = {
@@ -216706,12 +217452,7 @@ export namespace Prisma {
 
   export type RemixStorageShareUpdateManyMutationInput = {
     id?: StringFieldUpdateOperationsInput | string
-    sourceProjectId?: StringFieldUpdateOperationsInput | string
-    targetProjectId?: StringFieldUpdateOperationsInput | string
-    sourceOrganizationId?: StringFieldUpdateOperationsInput | string
-    targetOrganizationId?: StringFieldUpdateOperationsInput | string
     consentVersion?: StringFieldUpdateOperationsInput | string
-    consentedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
     consentedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sourceInventory?: JsonNullValueInput | InputJsonValue
     state?: StringFieldUpdateOperationsInput | string
@@ -219723,6 +220464,18 @@ export namespace Prisma {
     none?: ImportJobWhereInput
   }
 
+  export type RemixStorageShareListRelationFilter = {
+    every?: RemixStorageShareWhereInput
+    some?: RemixStorageShareWhereInput
+    none?: RemixStorageShareWhereInput
+  }
+
+  export type RollbackIdempotencyRequestListRelationFilter = {
+    every?: RollbackIdempotencyRequestWhereInput
+    some?: RollbackIdempotencyRequestWhereInput
+    none?: RollbackIdempotencyRequestWhereInput
+  }
+
   export type CloudOperationListRelationFilter = {
     every?: CloudOperationWhereInput
     some?: CloudOperationWhereInput
@@ -219885,6 +220638,14 @@ export namespace Prisma {
   }
 
   export type ImportJobOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type RemixStorageShareOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type RollbackIdempotencyRequestOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -220614,12 +221375,6 @@ export namespace Prisma {
     none?: DeploymentWhereInput
   }
 
-  export type RollbackIdempotencyRequestListRelationFilter = {
-    every?: RollbackIdempotencyRequestWhereInput
-    some?: RollbackIdempotencyRequestWhereInput
-    none?: RollbackIdempotencyRequestWhereInput
-  }
-
   export type FileSnapshotListRelationFilter = {
     every?: FileSnapshotWhereInput
     some?: FileSnapshotWhereInput
@@ -220661,6 +221416,12 @@ export namespace Prisma {
     none?: ProjectSlugRedirectWhereInput
   }
 
+  export type RemixJobListRelationFilter = {
+    every?: RemixJobWhereInput
+    some?: RemixJobWhereInput
+    none?: RemixJobWhereInput
+  }
+
   export type CloudProjectBindingNullableScalarRelationFilter = {
     is?: CloudProjectBindingWhereInput | null
     isNot?: CloudProjectBindingWhereInput | null
@@ -220694,10 +221455,6 @@ export namespace Prisma {
     _count?: SortOrder
   }
 
-  export type RollbackIdempotencyRequestOrderByRelationAggregateInput = {
-    _count?: SortOrder
-  }
-
   export type FileSnapshotOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
@@ -220719,6 +221476,10 @@ export namespace Prisma {
   }
 
   export type ProjectSlugRedirectOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type RemixJobOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -222498,6 +223259,7 @@ export namespace Prisma {
   export type RollbackIdempotencyRequestCountOrderByAggregateInput = {
     id?: SortOrder
     projectId?: SortOrder
+    actorUserId?: SortOrder
     idempotencyKey?: SortOrder
     requestFingerprint?: SortOrder
     environment?: SortOrder
@@ -222529,6 +223291,7 @@ export namespace Prisma {
   export type RollbackIdempotencyRequestMaxOrderByAggregateInput = {
     id?: SortOrder
     projectId?: SortOrder
+    actorUserId?: SortOrder
     idempotencyKey?: SortOrder
     requestFingerprint?: SortOrder
     environment?: SortOrder
@@ -222552,6 +223315,7 @@ export namespace Prisma {
   export type RollbackIdempotencyRequestMinOrderByAggregateInput = {
     id?: SortOrder
     projectId?: SortOrder
+    actorUserId?: SortOrder
     idempotencyKey?: SortOrder
     requestFingerprint?: SortOrder
     environment?: SortOrder
@@ -226367,6 +227131,16 @@ export namespace Prisma {
     barrierFence?: SortOrder
   }
 
+  export type DatabaseInstanceNullableScalarRelationFilter = {
+    is?: DatabaseInstanceWhereInput | null
+    isNot?: DatabaseInstanceWhereInput | null
+  }
+
+  export type RemixStorageShareNullableScalarRelationFilter = {
+    is?: RemixStorageShareWhereInput | null
+    isNot?: RemixStorageShareWhereInput | null
+  }
+
   export type RemixJobOrganizationIdIdempotencyKeyCompoundUniqueInput = {
     organizationId: string
     idempotencyKey: string
@@ -228533,6 +229307,20 @@ export namespace Prisma {
     connect?: ImportJobWhereUniqueInput | ImportJobWhereUniqueInput[]
   }
 
+  export type RemixStorageShareCreateNestedManyWithoutConsentedByInput = {
+    create?: XOR<RemixStorageShareCreateWithoutConsentedByInput, RemixStorageShareUncheckedCreateWithoutConsentedByInput> | RemixStorageShareCreateWithoutConsentedByInput[] | RemixStorageShareUncheckedCreateWithoutConsentedByInput[]
+    connectOrCreate?: RemixStorageShareCreateOrConnectWithoutConsentedByInput | RemixStorageShareCreateOrConnectWithoutConsentedByInput[]
+    createMany?: RemixStorageShareCreateManyConsentedByInputEnvelope
+    connect?: RemixStorageShareWhereUniqueInput | RemixStorageShareWhereUniqueInput[]
+  }
+
+  export type RollbackIdempotencyRequestCreateNestedManyWithoutActorInput = {
+    create?: XOR<RollbackIdempotencyRequestCreateWithoutActorInput, RollbackIdempotencyRequestUncheckedCreateWithoutActorInput> | RollbackIdempotencyRequestCreateWithoutActorInput[] | RollbackIdempotencyRequestUncheckedCreateWithoutActorInput[]
+    connectOrCreate?: RollbackIdempotencyRequestCreateOrConnectWithoutActorInput | RollbackIdempotencyRequestCreateOrConnectWithoutActorInput[]
+    createMany?: RollbackIdempotencyRequestCreateManyActorInputEnvelope
+    connect?: RollbackIdempotencyRequestWhereUniqueInput | RollbackIdempotencyRequestWhereUniqueInput[]
+  }
+
   export type CloudOperationCreateNestedManyWithoutActorInput = {
     create?: XOR<CloudOperationCreateWithoutActorInput, CloudOperationUncheckedCreateWithoutActorInput> | CloudOperationCreateWithoutActorInput[] | CloudOperationUncheckedCreateWithoutActorInput[]
     connectOrCreate?: CloudOperationCreateOrConnectWithoutActorInput | CloudOperationCreateOrConnectWithoutActorInput[]
@@ -228821,6 +229609,20 @@ export namespace Prisma {
     connectOrCreate?: ImportJobCreateOrConnectWithoutActorInput | ImportJobCreateOrConnectWithoutActorInput[]
     createMany?: ImportJobCreateManyActorInputEnvelope
     connect?: ImportJobWhereUniqueInput | ImportJobWhereUniqueInput[]
+  }
+
+  export type RemixStorageShareUncheckedCreateNestedManyWithoutConsentedByInput = {
+    create?: XOR<RemixStorageShareCreateWithoutConsentedByInput, RemixStorageShareUncheckedCreateWithoutConsentedByInput> | RemixStorageShareCreateWithoutConsentedByInput[] | RemixStorageShareUncheckedCreateWithoutConsentedByInput[]
+    connectOrCreate?: RemixStorageShareCreateOrConnectWithoutConsentedByInput | RemixStorageShareCreateOrConnectWithoutConsentedByInput[]
+    createMany?: RemixStorageShareCreateManyConsentedByInputEnvelope
+    connect?: RemixStorageShareWhereUniqueInput | RemixStorageShareWhereUniqueInput[]
+  }
+
+  export type RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutActorInput = {
+    create?: XOR<RollbackIdempotencyRequestCreateWithoutActorInput, RollbackIdempotencyRequestUncheckedCreateWithoutActorInput> | RollbackIdempotencyRequestCreateWithoutActorInput[] | RollbackIdempotencyRequestUncheckedCreateWithoutActorInput[]
+    connectOrCreate?: RollbackIdempotencyRequestCreateOrConnectWithoutActorInput | RollbackIdempotencyRequestCreateOrConnectWithoutActorInput[]
+    createMany?: RollbackIdempotencyRequestCreateManyActorInputEnvelope
+    connect?: RollbackIdempotencyRequestWhereUniqueInput | RollbackIdempotencyRequestWhereUniqueInput[]
   }
 
   export type CloudOperationUncheckedCreateNestedManyWithoutActorInput = {
@@ -229372,6 +230174,34 @@ export namespace Prisma {
     update?: ImportJobUpdateWithWhereUniqueWithoutActorInput | ImportJobUpdateWithWhereUniqueWithoutActorInput[]
     updateMany?: ImportJobUpdateManyWithWhereWithoutActorInput | ImportJobUpdateManyWithWhereWithoutActorInput[]
     deleteMany?: ImportJobScalarWhereInput | ImportJobScalarWhereInput[]
+  }
+
+  export type RemixStorageShareUpdateManyWithoutConsentedByNestedInput = {
+    create?: XOR<RemixStorageShareCreateWithoutConsentedByInput, RemixStorageShareUncheckedCreateWithoutConsentedByInput> | RemixStorageShareCreateWithoutConsentedByInput[] | RemixStorageShareUncheckedCreateWithoutConsentedByInput[]
+    connectOrCreate?: RemixStorageShareCreateOrConnectWithoutConsentedByInput | RemixStorageShareCreateOrConnectWithoutConsentedByInput[]
+    upsert?: RemixStorageShareUpsertWithWhereUniqueWithoutConsentedByInput | RemixStorageShareUpsertWithWhereUniqueWithoutConsentedByInput[]
+    createMany?: RemixStorageShareCreateManyConsentedByInputEnvelope
+    set?: RemixStorageShareWhereUniqueInput | RemixStorageShareWhereUniqueInput[]
+    disconnect?: RemixStorageShareWhereUniqueInput | RemixStorageShareWhereUniqueInput[]
+    delete?: RemixStorageShareWhereUniqueInput | RemixStorageShareWhereUniqueInput[]
+    connect?: RemixStorageShareWhereUniqueInput | RemixStorageShareWhereUniqueInput[]
+    update?: RemixStorageShareUpdateWithWhereUniqueWithoutConsentedByInput | RemixStorageShareUpdateWithWhereUniqueWithoutConsentedByInput[]
+    updateMany?: RemixStorageShareUpdateManyWithWhereWithoutConsentedByInput | RemixStorageShareUpdateManyWithWhereWithoutConsentedByInput[]
+    deleteMany?: RemixStorageShareScalarWhereInput | RemixStorageShareScalarWhereInput[]
+  }
+
+  export type RollbackIdempotencyRequestUpdateManyWithoutActorNestedInput = {
+    create?: XOR<RollbackIdempotencyRequestCreateWithoutActorInput, RollbackIdempotencyRequestUncheckedCreateWithoutActorInput> | RollbackIdempotencyRequestCreateWithoutActorInput[] | RollbackIdempotencyRequestUncheckedCreateWithoutActorInput[]
+    connectOrCreate?: RollbackIdempotencyRequestCreateOrConnectWithoutActorInput | RollbackIdempotencyRequestCreateOrConnectWithoutActorInput[]
+    upsert?: RollbackIdempotencyRequestUpsertWithWhereUniqueWithoutActorInput | RollbackIdempotencyRequestUpsertWithWhereUniqueWithoutActorInput[]
+    createMany?: RollbackIdempotencyRequestCreateManyActorInputEnvelope
+    set?: RollbackIdempotencyRequestWhereUniqueInput | RollbackIdempotencyRequestWhereUniqueInput[]
+    disconnect?: RollbackIdempotencyRequestWhereUniqueInput | RollbackIdempotencyRequestWhereUniqueInput[]
+    delete?: RollbackIdempotencyRequestWhereUniqueInput | RollbackIdempotencyRequestWhereUniqueInput[]
+    connect?: RollbackIdempotencyRequestWhereUniqueInput | RollbackIdempotencyRequestWhereUniqueInput[]
+    update?: RollbackIdempotencyRequestUpdateWithWhereUniqueWithoutActorInput | RollbackIdempotencyRequestUpdateWithWhereUniqueWithoutActorInput[]
+    updateMany?: RollbackIdempotencyRequestUpdateManyWithWhereWithoutActorInput | RollbackIdempotencyRequestUpdateManyWithWhereWithoutActorInput[]
+    deleteMany?: RollbackIdempotencyRequestScalarWhereInput | RollbackIdempotencyRequestScalarWhereInput[]
   }
 
   export type CloudOperationUpdateManyWithoutActorNestedInput = {
@@ -229954,6 +230784,34 @@ export namespace Prisma {
     deleteMany?: ImportJobScalarWhereInput | ImportJobScalarWhereInput[]
   }
 
+  export type RemixStorageShareUncheckedUpdateManyWithoutConsentedByNestedInput = {
+    create?: XOR<RemixStorageShareCreateWithoutConsentedByInput, RemixStorageShareUncheckedCreateWithoutConsentedByInput> | RemixStorageShareCreateWithoutConsentedByInput[] | RemixStorageShareUncheckedCreateWithoutConsentedByInput[]
+    connectOrCreate?: RemixStorageShareCreateOrConnectWithoutConsentedByInput | RemixStorageShareCreateOrConnectWithoutConsentedByInput[]
+    upsert?: RemixStorageShareUpsertWithWhereUniqueWithoutConsentedByInput | RemixStorageShareUpsertWithWhereUniqueWithoutConsentedByInput[]
+    createMany?: RemixStorageShareCreateManyConsentedByInputEnvelope
+    set?: RemixStorageShareWhereUniqueInput | RemixStorageShareWhereUniqueInput[]
+    disconnect?: RemixStorageShareWhereUniqueInput | RemixStorageShareWhereUniqueInput[]
+    delete?: RemixStorageShareWhereUniqueInput | RemixStorageShareWhereUniqueInput[]
+    connect?: RemixStorageShareWhereUniqueInput | RemixStorageShareWhereUniqueInput[]
+    update?: RemixStorageShareUpdateWithWhereUniqueWithoutConsentedByInput | RemixStorageShareUpdateWithWhereUniqueWithoutConsentedByInput[]
+    updateMany?: RemixStorageShareUpdateManyWithWhereWithoutConsentedByInput | RemixStorageShareUpdateManyWithWhereWithoutConsentedByInput[]
+    deleteMany?: RemixStorageShareScalarWhereInput | RemixStorageShareScalarWhereInput[]
+  }
+
+  export type RollbackIdempotencyRequestUncheckedUpdateManyWithoutActorNestedInput = {
+    create?: XOR<RollbackIdempotencyRequestCreateWithoutActorInput, RollbackIdempotencyRequestUncheckedCreateWithoutActorInput> | RollbackIdempotencyRequestCreateWithoutActorInput[] | RollbackIdempotencyRequestUncheckedCreateWithoutActorInput[]
+    connectOrCreate?: RollbackIdempotencyRequestCreateOrConnectWithoutActorInput | RollbackIdempotencyRequestCreateOrConnectWithoutActorInput[]
+    upsert?: RollbackIdempotencyRequestUpsertWithWhereUniqueWithoutActorInput | RollbackIdempotencyRequestUpsertWithWhereUniqueWithoutActorInput[]
+    createMany?: RollbackIdempotencyRequestCreateManyActorInputEnvelope
+    set?: RollbackIdempotencyRequestWhereUniqueInput | RollbackIdempotencyRequestWhereUniqueInput[]
+    disconnect?: RollbackIdempotencyRequestWhereUniqueInput | RollbackIdempotencyRequestWhereUniqueInput[]
+    delete?: RollbackIdempotencyRequestWhereUniqueInput | RollbackIdempotencyRequestWhereUniqueInput[]
+    connect?: RollbackIdempotencyRequestWhereUniqueInput | RollbackIdempotencyRequestWhereUniqueInput[]
+    update?: RollbackIdempotencyRequestUpdateWithWhereUniqueWithoutActorInput | RollbackIdempotencyRequestUpdateWithWhereUniqueWithoutActorInput[]
+    updateMany?: RollbackIdempotencyRequestUpdateManyWithWhereWithoutActorInput | RollbackIdempotencyRequestUpdateManyWithWhereWithoutActorInput[]
+    deleteMany?: RollbackIdempotencyRequestScalarWhereInput | RollbackIdempotencyRequestScalarWhereInput[]
+  }
+
   export type CloudOperationUncheckedUpdateManyWithoutActorNestedInput = {
     create?: XOR<CloudOperationCreateWithoutActorInput, CloudOperationUncheckedCreateWithoutActorInput> | CloudOperationCreateWithoutActorInput[] | CloudOperationUncheckedCreateWithoutActorInput[]
     connectOrCreate?: CloudOperationCreateOrConnectWithoutActorInput | CloudOperationCreateOrConnectWithoutActorInput[]
@@ -230319,6 +231177,20 @@ export namespace Prisma {
     connect?: ImportJobWhereUniqueInput | ImportJobWhereUniqueInput[]
   }
 
+  export type RemixStorageShareCreateNestedManyWithoutSourceOrganizationInput = {
+    create?: XOR<RemixStorageShareCreateWithoutSourceOrganizationInput, RemixStorageShareUncheckedCreateWithoutSourceOrganizationInput> | RemixStorageShareCreateWithoutSourceOrganizationInput[] | RemixStorageShareUncheckedCreateWithoutSourceOrganizationInput[]
+    connectOrCreate?: RemixStorageShareCreateOrConnectWithoutSourceOrganizationInput | RemixStorageShareCreateOrConnectWithoutSourceOrganizationInput[]
+    createMany?: RemixStorageShareCreateManySourceOrganizationInputEnvelope
+    connect?: RemixStorageShareWhereUniqueInput | RemixStorageShareWhereUniqueInput[]
+  }
+
+  export type RemixStorageShareCreateNestedManyWithoutTargetOrganizationInput = {
+    create?: XOR<RemixStorageShareCreateWithoutTargetOrganizationInput, RemixStorageShareUncheckedCreateWithoutTargetOrganizationInput> | RemixStorageShareCreateWithoutTargetOrganizationInput[] | RemixStorageShareUncheckedCreateWithoutTargetOrganizationInput[]
+    connectOrCreate?: RemixStorageShareCreateOrConnectWithoutTargetOrganizationInput | RemixStorageShareCreateOrConnectWithoutTargetOrganizationInput[]
+    createMany?: RemixStorageShareCreateManyTargetOrganizationInputEnvelope
+    connect?: RemixStorageShareWhereUniqueInput | RemixStorageShareWhereUniqueInput[]
+  }
+
   export type CloudTenantCreateNestedOneWithoutOrganizationInput = {
     create?: XOR<CloudTenantCreateWithoutOrganizationInput, CloudTenantUncheckedCreateWithoutOrganizationInput>
     connectOrCreate?: CloudTenantCreateOrConnectWithoutOrganizationInput
@@ -230576,6 +231448,20 @@ export namespace Prisma {
     connectOrCreate?: ImportJobCreateOrConnectWithoutOrganizationInput | ImportJobCreateOrConnectWithoutOrganizationInput[]
     createMany?: ImportJobCreateManyOrganizationInputEnvelope
     connect?: ImportJobWhereUniqueInput | ImportJobWhereUniqueInput[]
+  }
+
+  export type RemixStorageShareUncheckedCreateNestedManyWithoutSourceOrganizationInput = {
+    create?: XOR<RemixStorageShareCreateWithoutSourceOrganizationInput, RemixStorageShareUncheckedCreateWithoutSourceOrganizationInput> | RemixStorageShareCreateWithoutSourceOrganizationInput[] | RemixStorageShareUncheckedCreateWithoutSourceOrganizationInput[]
+    connectOrCreate?: RemixStorageShareCreateOrConnectWithoutSourceOrganizationInput | RemixStorageShareCreateOrConnectWithoutSourceOrganizationInput[]
+    createMany?: RemixStorageShareCreateManySourceOrganizationInputEnvelope
+    connect?: RemixStorageShareWhereUniqueInput | RemixStorageShareWhereUniqueInput[]
+  }
+
+  export type RemixStorageShareUncheckedCreateNestedManyWithoutTargetOrganizationInput = {
+    create?: XOR<RemixStorageShareCreateWithoutTargetOrganizationInput, RemixStorageShareUncheckedCreateWithoutTargetOrganizationInput> | RemixStorageShareCreateWithoutTargetOrganizationInput[] | RemixStorageShareUncheckedCreateWithoutTargetOrganizationInput[]
+    connectOrCreate?: RemixStorageShareCreateOrConnectWithoutTargetOrganizationInput | RemixStorageShareCreateOrConnectWithoutTargetOrganizationInput[]
+    createMany?: RemixStorageShareCreateManyTargetOrganizationInputEnvelope
+    connect?: RemixStorageShareWhereUniqueInput | RemixStorageShareWhereUniqueInput[]
   }
 
   export type CloudTenantUncheckedCreateNestedOneWithoutOrganizationInput = {
@@ -231070,6 +231956,34 @@ export namespace Prisma {
     update?: ImportJobUpdateWithWhereUniqueWithoutOrganizationInput | ImportJobUpdateWithWhereUniqueWithoutOrganizationInput[]
     updateMany?: ImportJobUpdateManyWithWhereWithoutOrganizationInput | ImportJobUpdateManyWithWhereWithoutOrganizationInput[]
     deleteMany?: ImportJobScalarWhereInput | ImportJobScalarWhereInput[]
+  }
+
+  export type RemixStorageShareUpdateManyWithoutSourceOrganizationNestedInput = {
+    create?: XOR<RemixStorageShareCreateWithoutSourceOrganizationInput, RemixStorageShareUncheckedCreateWithoutSourceOrganizationInput> | RemixStorageShareCreateWithoutSourceOrganizationInput[] | RemixStorageShareUncheckedCreateWithoutSourceOrganizationInput[]
+    connectOrCreate?: RemixStorageShareCreateOrConnectWithoutSourceOrganizationInput | RemixStorageShareCreateOrConnectWithoutSourceOrganizationInput[]
+    upsert?: RemixStorageShareUpsertWithWhereUniqueWithoutSourceOrganizationInput | RemixStorageShareUpsertWithWhereUniqueWithoutSourceOrganizationInput[]
+    createMany?: RemixStorageShareCreateManySourceOrganizationInputEnvelope
+    set?: RemixStorageShareWhereUniqueInput | RemixStorageShareWhereUniqueInput[]
+    disconnect?: RemixStorageShareWhereUniqueInput | RemixStorageShareWhereUniqueInput[]
+    delete?: RemixStorageShareWhereUniqueInput | RemixStorageShareWhereUniqueInput[]
+    connect?: RemixStorageShareWhereUniqueInput | RemixStorageShareWhereUniqueInput[]
+    update?: RemixStorageShareUpdateWithWhereUniqueWithoutSourceOrganizationInput | RemixStorageShareUpdateWithWhereUniqueWithoutSourceOrganizationInput[]
+    updateMany?: RemixStorageShareUpdateManyWithWhereWithoutSourceOrganizationInput | RemixStorageShareUpdateManyWithWhereWithoutSourceOrganizationInput[]
+    deleteMany?: RemixStorageShareScalarWhereInput | RemixStorageShareScalarWhereInput[]
+  }
+
+  export type RemixStorageShareUpdateManyWithoutTargetOrganizationNestedInput = {
+    create?: XOR<RemixStorageShareCreateWithoutTargetOrganizationInput, RemixStorageShareUncheckedCreateWithoutTargetOrganizationInput> | RemixStorageShareCreateWithoutTargetOrganizationInput[] | RemixStorageShareUncheckedCreateWithoutTargetOrganizationInput[]
+    connectOrCreate?: RemixStorageShareCreateOrConnectWithoutTargetOrganizationInput | RemixStorageShareCreateOrConnectWithoutTargetOrganizationInput[]
+    upsert?: RemixStorageShareUpsertWithWhereUniqueWithoutTargetOrganizationInput | RemixStorageShareUpsertWithWhereUniqueWithoutTargetOrganizationInput[]
+    createMany?: RemixStorageShareCreateManyTargetOrganizationInputEnvelope
+    set?: RemixStorageShareWhereUniqueInput | RemixStorageShareWhereUniqueInput[]
+    disconnect?: RemixStorageShareWhereUniqueInput | RemixStorageShareWhereUniqueInput[]
+    delete?: RemixStorageShareWhereUniqueInput | RemixStorageShareWhereUniqueInput[]
+    connect?: RemixStorageShareWhereUniqueInput | RemixStorageShareWhereUniqueInput[]
+    update?: RemixStorageShareUpdateWithWhereUniqueWithoutTargetOrganizationInput | RemixStorageShareUpdateWithWhereUniqueWithoutTargetOrganizationInput[]
+    updateMany?: RemixStorageShareUpdateManyWithWhereWithoutTargetOrganizationInput | RemixStorageShareUpdateManyWithWhereWithoutTargetOrganizationInput[]
+    deleteMany?: RemixStorageShareScalarWhereInput | RemixStorageShareScalarWhereInput[]
   }
 
   export type CloudTenantUpdateOneWithoutOrganizationNestedInput = {
@@ -231582,6 +232496,34 @@ export namespace Prisma {
     update?: ImportJobUpdateWithWhereUniqueWithoutOrganizationInput | ImportJobUpdateWithWhereUniqueWithoutOrganizationInput[]
     updateMany?: ImportJobUpdateManyWithWhereWithoutOrganizationInput | ImportJobUpdateManyWithWhereWithoutOrganizationInput[]
     deleteMany?: ImportJobScalarWhereInput | ImportJobScalarWhereInput[]
+  }
+
+  export type RemixStorageShareUncheckedUpdateManyWithoutSourceOrganizationNestedInput = {
+    create?: XOR<RemixStorageShareCreateWithoutSourceOrganizationInput, RemixStorageShareUncheckedCreateWithoutSourceOrganizationInput> | RemixStorageShareCreateWithoutSourceOrganizationInput[] | RemixStorageShareUncheckedCreateWithoutSourceOrganizationInput[]
+    connectOrCreate?: RemixStorageShareCreateOrConnectWithoutSourceOrganizationInput | RemixStorageShareCreateOrConnectWithoutSourceOrganizationInput[]
+    upsert?: RemixStorageShareUpsertWithWhereUniqueWithoutSourceOrganizationInput | RemixStorageShareUpsertWithWhereUniqueWithoutSourceOrganizationInput[]
+    createMany?: RemixStorageShareCreateManySourceOrganizationInputEnvelope
+    set?: RemixStorageShareWhereUniqueInput | RemixStorageShareWhereUniqueInput[]
+    disconnect?: RemixStorageShareWhereUniqueInput | RemixStorageShareWhereUniqueInput[]
+    delete?: RemixStorageShareWhereUniqueInput | RemixStorageShareWhereUniqueInput[]
+    connect?: RemixStorageShareWhereUniqueInput | RemixStorageShareWhereUniqueInput[]
+    update?: RemixStorageShareUpdateWithWhereUniqueWithoutSourceOrganizationInput | RemixStorageShareUpdateWithWhereUniqueWithoutSourceOrganizationInput[]
+    updateMany?: RemixStorageShareUpdateManyWithWhereWithoutSourceOrganizationInput | RemixStorageShareUpdateManyWithWhereWithoutSourceOrganizationInput[]
+    deleteMany?: RemixStorageShareScalarWhereInput | RemixStorageShareScalarWhereInput[]
+  }
+
+  export type RemixStorageShareUncheckedUpdateManyWithoutTargetOrganizationNestedInput = {
+    create?: XOR<RemixStorageShareCreateWithoutTargetOrganizationInput, RemixStorageShareUncheckedCreateWithoutTargetOrganizationInput> | RemixStorageShareCreateWithoutTargetOrganizationInput[] | RemixStorageShareUncheckedCreateWithoutTargetOrganizationInput[]
+    connectOrCreate?: RemixStorageShareCreateOrConnectWithoutTargetOrganizationInput | RemixStorageShareCreateOrConnectWithoutTargetOrganizationInput[]
+    upsert?: RemixStorageShareUpsertWithWhereUniqueWithoutTargetOrganizationInput | RemixStorageShareUpsertWithWhereUniqueWithoutTargetOrganizationInput[]
+    createMany?: RemixStorageShareCreateManyTargetOrganizationInputEnvelope
+    set?: RemixStorageShareWhereUniqueInput | RemixStorageShareWhereUniqueInput[]
+    disconnect?: RemixStorageShareWhereUniqueInput | RemixStorageShareWhereUniqueInput[]
+    delete?: RemixStorageShareWhereUniqueInput | RemixStorageShareWhereUniqueInput[]
+    connect?: RemixStorageShareWhereUniqueInput | RemixStorageShareWhereUniqueInput[]
+    update?: RemixStorageShareUpdateWithWhereUniqueWithoutTargetOrganizationInput | RemixStorageShareUpdateWithWhereUniqueWithoutTargetOrganizationInput[]
+    updateMany?: RemixStorageShareUpdateManyWithWhereWithoutTargetOrganizationInput | RemixStorageShareUpdateManyWithWhereWithoutTargetOrganizationInput[]
+    deleteMany?: RemixStorageShareScalarWhereInput | RemixStorageShareScalarWhereInput[]
   }
 
   export type CloudTenantUncheckedUpdateOneWithoutOrganizationNestedInput = {
@@ -232171,6 +233113,27 @@ export namespace Prisma {
     connect?: ImportJobWhereUniqueInput | ImportJobWhereUniqueInput[]
   }
 
+  export type RemixJobCreateNestedManyWithoutTargetProjectInput = {
+    create?: XOR<RemixJobCreateWithoutTargetProjectInput, RemixJobUncheckedCreateWithoutTargetProjectInput> | RemixJobCreateWithoutTargetProjectInput[] | RemixJobUncheckedCreateWithoutTargetProjectInput[]
+    connectOrCreate?: RemixJobCreateOrConnectWithoutTargetProjectInput | RemixJobCreateOrConnectWithoutTargetProjectInput[]
+    createMany?: RemixJobCreateManyTargetProjectInputEnvelope
+    connect?: RemixJobWhereUniqueInput | RemixJobWhereUniqueInput[]
+  }
+
+  export type RemixStorageShareCreateNestedManyWithoutSourceProjectInput = {
+    create?: XOR<RemixStorageShareCreateWithoutSourceProjectInput, RemixStorageShareUncheckedCreateWithoutSourceProjectInput> | RemixStorageShareCreateWithoutSourceProjectInput[] | RemixStorageShareUncheckedCreateWithoutSourceProjectInput[]
+    connectOrCreate?: RemixStorageShareCreateOrConnectWithoutSourceProjectInput | RemixStorageShareCreateOrConnectWithoutSourceProjectInput[]
+    createMany?: RemixStorageShareCreateManySourceProjectInputEnvelope
+    connect?: RemixStorageShareWhereUniqueInput | RemixStorageShareWhereUniqueInput[]
+  }
+
+  export type RemixStorageShareCreateNestedManyWithoutTargetProjectInput = {
+    create?: XOR<RemixStorageShareCreateWithoutTargetProjectInput, RemixStorageShareUncheckedCreateWithoutTargetProjectInput> | RemixStorageShareCreateWithoutTargetProjectInput[] | RemixStorageShareUncheckedCreateWithoutTargetProjectInput[]
+    connectOrCreate?: RemixStorageShareCreateOrConnectWithoutTargetProjectInput | RemixStorageShareCreateOrConnectWithoutTargetProjectInput[]
+    createMany?: RemixStorageShareCreateManyTargetProjectInputEnvelope
+    connect?: RemixStorageShareWhereUniqueInput | RemixStorageShareWhereUniqueInput[]
+  }
+
   export type CloudProjectBindingCreateNestedOneWithoutProjectInput = {
     create?: XOR<CloudProjectBindingCreateWithoutProjectInput, CloudProjectBindingUncheckedCreateWithoutProjectInput>
     connectOrCreate?: CloudProjectBindingCreateOrConnectWithoutProjectInput
@@ -232381,6 +233344,27 @@ export namespace Prisma {
     connectOrCreate?: ImportJobCreateOrConnectWithoutTargetProjectInput | ImportJobCreateOrConnectWithoutTargetProjectInput[]
     createMany?: ImportJobCreateManyTargetProjectInputEnvelope
     connect?: ImportJobWhereUniqueInput | ImportJobWhereUniqueInput[]
+  }
+
+  export type RemixJobUncheckedCreateNestedManyWithoutTargetProjectInput = {
+    create?: XOR<RemixJobCreateWithoutTargetProjectInput, RemixJobUncheckedCreateWithoutTargetProjectInput> | RemixJobCreateWithoutTargetProjectInput[] | RemixJobUncheckedCreateWithoutTargetProjectInput[]
+    connectOrCreate?: RemixJobCreateOrConnectWithoutTargetProjectInput | RemixJobCreateOrConnectWithoutTargetProjectInput[]
+    createMany?: RemixJobCreateManyTargetProjectInputEnvelope
+    connect?: RemixJobWhereUniqueInput | RemixJobWhereUniqueInput[]
+  }
+
+  export type RemixStorageShareUncheckedCreateNestedManyWithoutSourceProjectInput = {
+    create?: XOR<RemixStorageShareCreateWithoutSourceProjectInput, RemixStorageShareUncheckedCreateWithoutSourceProjectInput> | RemixStorageShareCreateWithoutSourceProjectInput[] | RemixStorageShareUncheckedCreateWithoutSourceProjectInput[]
+    connectOrCreate?: RemixStorageShareCreateOrConnectWithoutSourceProjectInput | RemixStorageShareCreateOrConnectWithoutSourceProjectInput[]
+    createMany?: RemixStorageShareCreateManySourceProjectInputEnvelope
+    connect?: RemixStorageShareWhereUniqueInput | RemixStorageShareWhereUniqueInput[]
+  }
+
+  export type RemixStorageShareUncheckedCreateNestedManyWithoutTargetProjectInput = {
+    create?: XOR<RemixStorageShareCreateWithoutTargetProjectInput, RemixStorageShareUncheckedCreateWithoutTargetProjectInput> | RemixStorageShareCreateWithoutTargetProjectInput[] | RemixStorageShareUncheckedCreateWithoutTargetProjectInput[]
+    connectOrCreate?: RemixStorageShareCreateOrConnectWithoutTargetProjectInput | RemixStorageShareCreateOrConnectWithoutTargetProjectInput[]
+    createMany?: RemixStorageShareCreateManyTargetProjectInputEnvelope
+    connect?: RemixStorageShareWhereUniqueInput | RemixStorageShareWhereUniqueInput[]
   }
 
   export type CloudProjectBindingUncheckedCreateNestedOneWithoutProjectInput = {
@@ -232800,6 +233784,48 @@ export namespace Prisma {
     update?: ImportJobUpdateWithWhereUniqueWithoutTargetProjectInput | ImportJobUpdateWithWhereUniqueWithoutTargetProjectInput[]
     updateMany?: ImportJobUpdateManyWithWhereWithoutTargetProjectInput | ImportJobUpdateManyWithWhereWithoutTargetProjectInput[]
     deleteMany?: ImportJobScalarWhereInput | ImportJobScalarWhereInput[]
+  }
+
+  export type RemixJobUpdateManyWithoutTargetProjectNestedInput = {
+    create?: XOR<RemixJobCreateWithoutTargetProjectInput, RemixJobUncheckedCreateWithoutTargetProjectInput> | RemixJobCreateWithoutTargetProjectInput[] | RemixJobUncheckedCreateWithoutTargetProjectInput[]
+    connectOrCreate?: RemixJobCreateOrConnectWithoutTargetProjectInput | RemixJobCreateOrConnectWithoutTargetProjectInput[]
+    upsert?: RemixJobUpsertWithWhereUniqueWithoutTargetProjectInput | RemixJobUpsertWithWhereUniqueWithoutTargetProjectInput[]
+    createMany?: RemixJobCreateManyTargetProjectInputEnvelope
+    set?: RemixJobWhereUniqueInput | RemixJobWhereUniqueInput[]
+    disconnect?: RemixJobWhereUniqueInput | RemixJobWhereUniqueInput[]
+    delete?: RemixJobWhereUniqueInput | RemixJobWhereUniqueInput[]
+    connect?: RemixJobWhereUniqueInput | RemixJobWhereUniqueInput[]
+    update?: RemixJobUpdateWithWhereUniqueWithoutTargetProjectInput | RemixJobUpdateWithWhereUniqueWithoutTargetProjectInput[]
+    updateMany?: RemixJobUpdateManyWithWhereWithoutTargetProjectInput | RemixJobUpdateManyWithWhereWithoutTargetProjectInput[]
+    deleteMany?: RemixJobScalarWhereInput | RemixJobScalarWhereInput[]
+  }
+
+  export type RemixStorageShareUpdateManyWithoutSourceProjectNestedInput = {
+    create?: XOR<RemixStorageShareCreateWithoutSourceProjectInput, RemixStorageShareUncheckedCreateWithoutSourceProjectInput> | RemixStorageShareCreateWithoutSourceProjectInput[] | RemixStorageShareUncheckedCreateWithoutSourceProjectInput[]
+    connectOrCreate?: RemixStorageShareCreateOrConnectWithoutSourceProjectInput | RemixStorageShareCreateOrConnectWithoutSourceProjectInput[]
+    upsert?: RemixStorageShareUpsertWithWhereUniqueWithoutSourceProjectInput | RemixStorageShareUpsertWithWhereUniqueWithoutSourceProjectInput[]
+    createMany?: RemixStorageShareCreateManySourceProjectInputEnvelope
+    set?: RemixStorageShareWhereUniqueInput | RemixStorageShareWhereUniqueInput[]
+    disconnect?: RemixStorageShareWhereUniqueInput | RemixStorageShareWhereUniqueInput[]
+    delete?: RemixStorageShareWhereUniqueInput | RemixStorageShareWhereUniqueInput[]
+    connect?: RemixStorageShareWhereUniqueInput | RemixStorageShareWhereUniqueInput[]
+    update?: RemixStorageShareUpdateWithWhereUniqueWithoutSourceProjectInput | RemixStorageShareUpdateWithWhereUniqueWithoutSourceProjectInput[]
+    updateMany?: RemixStorageShareUpdateManyWithWhereWithoutSourceProjectInput | RemixStorageShareUpdateManyWithWhereWithoutSourceProjectInput[]
+    deleteMany?: RemixStorageShareScalarWhereInput | RemixStorageShareScalarWhereInput[]
+  }
+
+  export type RemixStorageShareUpdateManyWithoutTargetProjectNestedInput = {
+    create?: XOR<RemixStorageShareCreateWithoutTargetProjectInput, RemixStorageShareUncheckedCreateWithoutTargetProjectInput> | RemixStorageShareCreateWithoutTargetProjectInput[] | RemixStorageShareUncheckedCreateWithoutTargetProjectInput[]
+    connectOrCreate?: RemixStorageShareCreateOrConnectWithoutTargetProjectInput | RemixStorageShareCreateOrConnectWithoutTargetProjectInput[]
+    upsert?: RemixStorageShareUpsertWithWhereUniqueWithoutTargetProjectInput | RemixStorageShareUpsertWithWhereUniqueWithoutTargetProjectInput[]
+    createMany?: RemixStorageShareCreateManyTargetProjectInputEnvelope
+    set?: RemixStorageShareWhereUniqueInput | RemixStorageShareWhereUniqueInput[]
+    disconnect?: RemixStorageShareWhereUniqueInput | RemixStorageShareWhereUniqueInput[]
+    delete?: RemixStorageShareWhereUniqueInput | RemixStorageShareWhereUniqueInput[]
+    connect?: RemixStorageShareWhereUniqueInput | RemixStorageShareWhereUniqueInput[]
+    update?: RemixStorageShareUpdateWithWhereUniqueWithoutTargetProjectInput | RemixStorageShareUpdateWithWhereUniqueWithoutTargetProjectInput[]
+    updateMany?: RemixStorageShareUpdateManyWithWhereWithoutTargetProjectInput | RemixStorageShareUpdateManyWithWhereWithoutTargetProjectInput[]
+    deleteMany?: RemixStorageShareScalarWhereInput | RemixStorageShareScalarWhereInput[]
   }
 
   export type CloudProjectBindingUpdateOneWithoutProjectNestedInput = {
@@ -233222,6 +234248,48 @@ export namespace Prisma {
     update?: ImportJobUpdateWithWhereUniqueWithoutTargetProjectInput | ImportJobUpdateWithWhereUniqueWithoutTargetProjectInput[]
     updateMany?: ImportJobUpdateManyWithWhereWithoutTargetProjectInput | ImportJobUpdateManyWithWhereWithoutTargetProjectInput[]
     deleteMany?: ImportJobScalarWhereInput | ImportJobScalarWhereInput[]
+  }
+
+  export type RemixJobUncheckedUpdateManyWithoutTargetProjectNestedInput = {
+    create?: XOR<RemixJobCreateWithoutTargetProjectInput, RemixJobUncheckedCreateWithoutTargetProjectInput> | RemixJobCreateWithoutTargetProjectInput[] | RemixJobUncheckedCreateWithoutTargetProjectInput[]
+    connectOrCreate?: RemixJobCreateOrConnectWithoutTargetProjectInput | RemixJobCreateOrConnectWithoutTargetProjectInput[]
+    upsert?: RemixJobUpsertWithWhereUniqueWithoutTargetProjectInput | RemixJobUpsertWithWhereUniqueWithoutTargetProjectInput[]
+    createMany?: RemixJobCreateManyTargetProjectInputEnvelope
+    set?: RemixJobWhereUniqueInput | RemixJobWhereUniqueInput[]
+    disconnect?: RemixJobWhereUniqueInput | RemixJobWhereUniqueInput[]
+    delete?: RemixJobWhereUniqueInput | RemixJobWhereUniqueInput[]
+    connect?: RemixJobWhereUniqueInput | RemixJobWhereUniqueInput[]
+    update?: RemixJobUpdateWithWhereUniqueWithoutTargetProjectInput | RemixJobUpdateWithWhereUniqueWithoutTargetProjectInput[]
+    updateMany?: RemixJobUpdateManyWithWhereWithoutTargetProjectInput | RemixJobUpdateManyWithWhereWithoutTargetProjectInput[]
+    deleteMany?: RemixJobScalarWhereInput | RemixJobScalarWhereInput[]
+  }
+
+  export type RemixStorageShareUncheckedUpdateManyWithoutSourceProjectNestedInput = {
+    create?: XOR<RemixStorageShareCreateWithoutSourceProjectInput, RemixStorageShareUncheckedCreateWithoutSourceProjectInput> | RemixStorageShareCreateWithoutSourceProjectInput[] | RemixStorageShareUncheckedCreateWithoutSourceProjectInput[]
+    connectOrCreate?: RemixStorageShareCreateOrConnectWithoutSourceProjectInput | RemixStorageShareCreateOrConnectWithoutSourceProjectInput[]
+    upsert?: RemixStorageShareUpsertWithWhereUniqueWithoutSourceProjectInput | RemixStorageShareUpsertWithWhereUniqueWithoutSourceProjectInput[]
+    createMany?: RemixStorageShareCreateManySourceProjectInputEnvelope
+    set?: RemixStorageShareWhereUniqueInput | RemixStorageShareWhereUniqueInput[]
+    disconnect?: RemixStorageShareWhereUniqueInput | RemixStorageShareWhereUniqueInput[]
+    delete?: RemixStorageShareWhereUniqueInput | RemixStorageShareWhereUniqueInput[]
+    connect?: RemixStorageShareWhereUniqueInput | RemixStorageShareWhereUniqueInput[]
+    update?: RemixStorageShareUpdateWithWhereUniqueWithoutSourceProjectInput | RemixStorageShareUpdateWithWhereUniqueWithoutSourceProjectInput[]
+    updateMany?: RemixStorageShareUpdateManyWithWhereWithoutSourceProjectInput | RemixStorageShareUpdateManyWithWhereWithoutSourceProjectInput[]
+    deleteMany?: RemixStorageShareScalarWhereInput | RemixStorageShareScalarWhereInput[]
+  }
+
+  export type RemixStorageShareUncheckedUpdateManyWithoutTargetProjectNestedInput = {
+    create?: XOR<RemixStorageShareCreateWithoutTargetProjectInput, RemixStorageShareUncheckedCreateWithoutTargetProjectInput> | RemixStorageShareCreateWithoutTargetProjectInput[] | RemixStorageShareUncheckedCreateWithoutTargetProjectInput[]
+    connectOrCreate?: RemixStorageShareCreateOrConnectWithoutTargetProjectInput | RemixStorageShareCreateOrConnectWithoutTargetProjectInput[]
+    upsert?: RemixStorageShareUpsertWithWhereUniqueWithoutTargetProjectInput | RemixStorageShareUpsertWithWhereUniqueWithoutTargetProjectInput[]
+    createMany?: RemixStorageShareCreateManyTargetProjectInputEnvelope
+    set?: RemixStorageShareWhereUniqueInput | RemixStorageShareWhereUniqueInput[]
+    disconnect?: RemixStorageShareWhereUniqueInput | RemixStorageShareWhereUniqueInput[]
+    delete?: RemixStorageShareWhereUniqueInput | RemixStorageShareWhereUniqueInput[]
+    connect?: RemixStorageShareWhereUniqueInput | RemixStorageShareWhereUniqueInput[]
+    update?: RemixStorageShareUpdateWithWhereUniqueWithoutTargetProjectInput | RemixStorageShareUpdateWithWhereUniqueWithoutTargetProjectInput[]
+    updateMany?: RemixStorageShareUpdateManyWithWhereWithoutTargetProjectInput | RemixStorageShareUpdateManyWithWhereWithoutTargetProjectInput[]
+    deleteMany?: RemixStorageShareScalarWhereInput | RemixStorageShareScalarWhereInput[]
   }
 
   export type CloudProjectBindingUncheckedUpdateOneWithoutProjectNestedInput = {
@@ -234390,12 +235458,28 @@ export namespace Prisma {
     connect?: ProjectWhereUniqueInput
   }
 
+  export type UserCreateNestedOneWithoutRollbackOperationsInput = {
+    create?: XOR<UserCreateWithoutRollbackOperationsInput, UserUncheckedCreateWithoutRollbackOperationsInput>
+    connectOrCreate?: UserCreateOrConnectWithoutRollbackOperationsInput
+    connect?: UserWhereUniqueInput
+  }
+
   export type ProjectUpdateOneRequiredWithoutRollbackOperationsNestedInput = {
     create?: XOR<ProjectCreateWithoutRollbackOperationsInput, ProjectUncheckedCreateWithoutRollbackOperationsInput>
     connectOrCreate?: ProjectCreateOrConnectWithoutRollbackOperationsInput
     upsert?: ProjectUpsertWithoutRollbackOperationsInput
     connect?: ProjectWhereUniqueInput
     update?: XOR<XOR<ProjectUpdateToOneWithWhereWithoutRollbackOperationsInput, ProjectUpdateWithoutRollbackOperationsInput>, ProjectUncheckedUpdateWithoutRollbackOperationsInput>
+  }
+
+  export type UserUpdateOneWithoutRollbackOperationsNestedInput = {
+    create?: XOR<UserCreateWithoutRollbackOperationsInput, UserUncheckedCreateWithoutRollbackOperationsInput>
+    connectOrCreate?: UserCreateOrConnectWithoutRollbackOperationsInput
+    upsert?: UserUpsertWithoutRollbackOperationsInput
+    disconnect?: UserWhereInput | boolean
+    delete?: UserWhereInput | boolean
+    connect?: UserWhereUniqueInput
+    update?: XOR<XOR<UserUpdateToOneWithWhereWithoutRollbackOperationsInput, UserUpdateWithoutRollbackOperationsInput>, UserUncheckedUpdateWithoutRollbackOperationsInput>
   }
 
   export type OrganizationCreateNestedOneWithoutAuditLogsInput = {
@@ -236040,6 +237124,13 @@ export namespace Prisma {
     connect?: DatabaseRestoreWhereUniqueInput | DatabaseRestoreWhereUniqueInput[]
   }
 
+  export type RemixJobCreateNestedManyWithoutTargetDatabaseInstanceInput = {
+    create?: XOR<RemixJobCreateWithoutTargetDatabaseInstanceInput, RemixJobUncheckedCreateWithoutTargetDatabaseInstanceInput> | RemixJobCreateWithoutTargetDatabaseInstanceInput[] | RemixJobUncheckedCreateWithoutTargetDatabaseInstanceInput[]
+    connectOrCreate?: RemixJobCreateOrConnectWithoutTargetDatabaseInstanceInput | RemixJobCreateOrConnectWithoutTargetDatabaseInstanceInput[]
+    createMany?: RemixJobCreateManyTargetDatabaseInstanceInputEnvelope
+    connect?: RemixJobWhereUniqueInput | RemixJobWhereUniqueInput[]
+  }
+
   export type DatabaseSnapshotUncheckedCreateNestedManyWithoutDatabaseInstanceInput = {
     create?: XOR<DatabaseSnapshotCreateWithoutDatabaseInstanceInput, DatabaseSnapshotUncheckedCreateWithoutDatabaseInstanceInput> | DatabaseSnapshotCreateWithoutDatabaseInstanceInput[] | DatabaseSnapshotUncheckedCreateWithoutDatabaseInstanceInput[]
     connectOrCreate?: DatabaseSnapshotCreateOrConnectWithoutDatabaseInstanceInput | DatabaseSnapshotCreateOrConnectWithoutDatabaseInstanceInput[]
@@ -236052,6 +237143,13 @@ export namespace Prisma {
     connectOrCreate?: DatabaseRestoreCreateOrConnectWithoutDatabaseInstanceInput | DatabaseRestoreCreateOrConnectWithoutDatabaseInstanceInput[]
     createMany?: DatabaseRestoreCreateManyDatabaseInstanceInputEnvelope
     connect?: DatabaseRestoreWhereUniqueInput | DatabaseRestoreWhereUniqueInput[]
+  }
+
+  export type RemixJobUncheckedCreateNestedManyWithoutTargetDatabaseInstanceInput = {
+    create?: XOR<RemixJobCreateWithoutTargetDatabaseInstanceInput, RemixJobUncheckedCreateWithoutTargetDatabaseInstanceInput> | RemixJobCreateWithoutTargetDatabaseInstanceInput[] | RemixJobUncheckedCreateWithoutTargetDatabaseInstanceInput[]
+    connectOrCreate?: RemixJobCreateOrConnectWithoutTargetDatabaseInstanceInput | RemixJobCreateOrConnectWithoutTargetDatabaseInstanceInput[]
+    createMany?: RemixJobCreateManyTargetDatabaseInstanceInputEnvelope
+    connect?: RemixJobWhereUniqueInput | RemixJobWhereUniqueInput[]
   }
 
   export type EnumDatabaseInstanceStatusFieldUpdateOperationsInput = {
@@ -236102,6 +237200,20 @@ export namespace Prisma {
     deleteMany?: DatabaseRestoreScalarWhereInput | DatabaseRestoreScalarWhereInput[]
   }
 
+  export type RemixJobUpdateManyWithoutTargetDatabaseInstanceNestedInput = {
+    create?: XOR<RemixJobCreateWithoutTargetDatabaseInstanceInput, RemixJobUncheckedCreateWithoutTargetDatabaseInstanceInput> | RemixJobCreateWithoutTargetDatabaseInstanceInput[] | RemixJobUncheckedCreateWithoutTargetDatabaseInstanceInput[]
+    connectOrCreate?: RemixJobCreateOrConnectWithoutTargetDatabaseInstanceInput | RemixJobCreateOrConnectWithoutTargetDatabaseInstanceInput[]
+    upsert?: RemixJobUpsertWithWhereUniqueWithoutTargetDatabaseInstanceInput | RemixJobUpsertWithWhereUniqueWithoutTargetDatabaseInstanceInput[]
+    createMany?: RemixJobCreateManyTargetDatabaseInstanceInputEnvelope
+    set?: RemixJobWhereUniqueInput | RemixJobWhereUniqueInput[]
+    disconnect?: RemixJobWhereUniqueInput | RemixJobWhereUniqueInput[]
+    delete?: RemixJobWhereUniqueInput | RemixJobWhereUniqueInput[]
+    connect?: RemixJobWhereUniqueInput | RemixJobWhereUniqueInput[]
+    update?: RemixJobUpdateWithWhereUniqueWithoutTargetDatabaseInstanceInput | RemixJobUpdateWithWhereUniqueWithoutTargetDatabaseInstanceInput[]
+    updateMany?: RemixJobUpdateManyWithWhereWithoutTargetDatabaseInstanceInput | RemixJobUpdateManyWithWhereWithoutTargetDatabaseInstanceInput[]
+    deleteMany?: RemixJobScalarWhereInput | RemixJobScalarWhereInput[]
+  }
+
   export type DatabaseSnapshotUncheckedUpdateManyWithoutDatabaseInstanceNestedInput = {
     create?: XOR<DatabaseSnapshotCreateWithoutDatabaseInstanceInput, DatabaseSnapshotUncheckedCreateWithoutDatabaseInstanceInput> | DatabaseSnapshotCreateWithoutDatabaseInstanceInput[] | DatabaseSnapshotUncheckedCreateWithoutDatabaseInstanceInput[]
     connectOrCreate?: DatabaseSnapshotCreateOrConnectWithoutDatabaseInstanceInput | DatabaseSnapshotCreateOrConnectWithoutDatabaseInstanceInput[]
@@ -236128,6 +237240,20 @@ export namespace Prisma {
     update?: DatabaseRestoreUpdateWithWhereUniqueWithoutDatabaseInstanceInput | DatabaseRestoreUpdateWithWhereUniqueWithoutDatabaseInstanceInput[]
     updateMany?: DatabaseRestoreUpdateManyWithWhereWithoutDatabaseInstanceInput | DatabaseRestoreUpdateManyWithWhereWithoutDatabaseInstanceInput[]
     deleteMany?: DatabaseRestoreScalarWhereInput | DatabaseRestoreScalarWhereInput[]
+  }
+
+  export type RemixJobUncheckedUpdateManyWithoutTargetDatabaseInstanceNestedInput = {
+    create?: XOR<RemixJobCreateWithoutTargetDatabaseInstanceInput, RemixJobUncheckedCreateWithoutTargetDatabaseInstanceInput> | RemixJobCreateWithoutTargetDatabaseInstanceInput[] | RemixJobUncheckedCreateWithoutTargetDatabaseInstanceInput[]
+    connectOrCreate?: RemixJobCreateOrConnectWithoutTargetDatabaseInstanceInput | RemixJobCreateOrConnectWithoutTargetDatabaseInstanceInput[]
+    upsert?: RemixJobUpsertWithWhereUniqueWithoutTargetDatabaseInstanceInput | RemixJobUpsertWithWhereUniqueWithoutTargetDatabaseInstanceInput[]
+    createMany?: RemixJobCreateManyTargetDatabaseInstanceInputEnvelope
+    set?: RemixJobWhereUniqueInput | RemixJobWhereUniqueInput[]
+    disconnect?: RemixJobWhereUniqueInput | RemixJobWhereUniqueInput[]
+    delete?: RemixJobWhereUniqueInput | RemixJobWhereUniqueInput[]
+    connect?: RemixJobWhereUniqueInput | RemixJobWhereUniqueInput[]
+    update?: RemixJobUpdateWithWhereUniqueWithoutTargetDatabaseInstanceInput | RemixJobUpdateWithWhereUniqueWithoutTargetDatabaseInstanceInput[]
+    updateMany?: RemixJobUpdateManyWithWhereWithoutTargetDatabaseInstanceInput | RemixJobUpdateManyWithWhereWithoutTargetDatabaseInstanceInput[]
+    deleteMany?: RemixJobScalarWhereInput | RemixJobScalarWhereInput[]
   }
 
   export type DatabaseInstanceCreateNestedOneWithoutSnapshotsInput = {
@@ -236278,6 +237404,168 @@ export namespace Prisma {
     delete?: UserWhereInput | boolean
     connect?: UserWhereUniqueInput
     update?: XOR<XOR<UserUpdateToOneWithWhereWithoutProjectCheckpointsInput, UserUpdateWithoutProjectCheckpointsInput>, UserUncheckedUpdateWithoutProjectCheckpointsInput>
+  }
+
+  export type ProjectCreateNestedOneWithoutTargetRemixJobsInput = {
+    create?: XOR<ProjectCreateWithoutTargetRemixJobsInput, ProjectUncheckedCreateWithoutTargetRemixJobsInput>
+    connectOrCreate?: ProjectCreateOrConnectWithoutTargetRemixJobsInput
+    connect?: ProjectWhereUniqueInput
+  }
+
+  export type DatabaseInstanceCreateNestedOneWithoutRemixJobsAsTargetInput = {
+    create?: XOR<DatabaseInstanceCreateWithoutRemixJobsAsTargetInput, DatabaseInstanceUncheckedCreateWithoutRemixJobsAsTargetInput>
+    connectOrCreate?: DatabaseInstanceCreateOrConnectWithoutRemixJobsAsTargetInput
+    connect?: DatabaseInstanceWhereUniqueInput
+  }
+
+  export type RemixStorageShareCreateNestedOneWithoutRemixJobsInput = {
+    create?: XOR<RemixStorageShareCreateWithoutRemixJobsInput, RemixStorageShareUncheckedCreateWithoutRemixJobsInput>
+    connectOrCreate?: RemixStorageShareCreateOrConnectWithoutRemixJobsInput
+    connect?: RemixStorageShareWhereUniqueInput
+  }
+
+  export type ProjectUpdateOneWithoutTargetRemixJobsNestedInput = {
+    create?: XOR<ProjectCreateWithoutTargetRemixJobsInput, ProjectUncheckedCreateWithoutTargetRemixJobsInput>
+    connectOrCreate?: ProjectCreateOrConnectWithoutTargetRemixJobsInput
+    upsert?: ProjectUpsertWithoutTargetRemixJobsInput
+    disconnect?: ProjectWhereInput | boolean
+    delete?: ProjectWhereInput | boolean
+    connect?: ProjectWhereUniqueInput
+    update?: XOR<XOR<ProjectUpdateToOneWithWhereWithoutTargetRemixJobsInput, ProjectUpdateWithoutTargetRemixJobsInput>, ProjectUncheckedUpdateWithoutTargetRemixJobsInput>
+  }
+
+  export type DatabaseInstanceUpdateOneWithoutRemixJobsAsTargetNestedInput = {
+    create?: XOR<DatabaseInstanceCreateWithoutRemixJobsAsTargetInput, DatabaseInstanceUncheckedCreateWithoutRemixJobsAsTargetInput>
+    connectOrCreate?: DatabaseInstanceCreateOrConnectWithoutRemixJobsAsTargetInput
+    upsert?: DatabaseInstanceUpsertWithoutRemixJobsAsTargetInput
+    disconnect?: DatabaseInstanceWhereInput | boolean
+    delete?: DatabaseInstanceWhereInput | boolean
+    connect?: DatabaseInstanceWhereUniqueInput
+    update?: XOR<XOR<DatabaseInstanceUpdateToOneWithWhereWithoutRemixJobsAsTargetInput, DatabaseInstanceUpdateWithoutRemixJobsAsTargetInput>, DatabaseInstanceUncheckedUpdateWithoutRemixJobsAsTargetInput>
+  }
+
+  export type RemixStorageShareUpdateOneWithoutRemixJobsNestedInput = {
+    create?: XOR<RemixStorageShareCreateWithoutRemixJobsInput, RemixStorageShareUncheckedCreateWithoutRemixJobsInput>
+    connectOrCreate?: RemixStorageShareCreateOrConnectWithoutRemixJobsInput
+    upsert?: RemixStorageShareUpsertWithoutRemixJobsInput
+    disconnect?: RemixStorageShareWhereInput | boolean
+    delete?: RemixStorageShareWhereInput | boolean
+    connect?: RemixStorageShareWhereUniqueInput
+    update?: XOR<XOR<RemixStorageShareUpdateToOneWithWhereWithoutRemixJobsInput, RemixStorageShareUpdateWithoutRemixJobsInput>, RemixStorageShareUncheckedUpdateWithoutRemixJobsInput>
+  }
+
+  export type ProjectCreateNestedOneWithoutSourceRemixSharesInput = {
+    create?: XOR<ProjectCreateWithoutSourceRemixSharesInput, ProjectUncheckedCreateWithoutSourceRemixSharesInput>
+    connectOrCreate?: ProjectCreateOrConnectWithoutSourceRemixSharesInput
+    connect?: ProjectWhereUniqueInput
+  }
+
+  export type ProjectCreateNestedOneWithoutTargetRemixSharesInput = {
+    create?: XOR<ProjectCreateWithoutTargetRemixSharesInput, ProjectUncheckedCreateWithoutTargetRemixSharesInput>
+    connectOrCreate?: ProjectCreateOrConnectWithoutTargetRemixSharesInput
+    connect?: ProjectWhereUniqueInput
+  }
+
+  export type OrganizationCreateNestedOneWithoutRemixStorageSharesAsSourceInput = {
+    create?: XOR<OrganizationCreateWithoutRemixStorageSharesAsSourceInput, OrganizationUncheckedCreateWithoutRemixStorageSharesAsSourceInput>
+    connectOrCreate?: OrganizationCreateOrConnectWithoutRemixStorageSharesAsSourceInput
+    connect?: OrganizationWhereUniqueInput
+  }
+
+  export type OrganizationCreateNestedOneWithoutRemixStorageSharesAsTargetInput = {
+    create?: XOR<OrganizationCreateWithoutRemixStorageSharesAsTargetInput, OrganizationUncheckedCreateWithoutRemixStorageSharesAsTargetInput>
+    connectOrCreate?: OrganizationCreateOrConnectWithoutRemixStorageSharesAsTargetInput
+    connect?: OrganizationWhereUniqueInput
+  }
+
+  export type UserCreateNestedOneWithoutRemixStorageSharesConsentedInput = {
+    create?: XOR<UserCreateWithoutRemixStorageSharesConsentedInput, UserUncheckedCreateWithoutRemixStorageSharesConsentedInput>
+    connectOrCreate?: UserCreateOrConnectWithoutRemixStorageSharesConsentedInput
+    connect?: UserWhereUniqueInput
+  }
+
+  export type RemixJobCreateNestedManyWithoutStorageShareInput = {
+    create?: XOR<RemixJobCreateWithoutStorageShareInput, RemixJobUncheckedCreateWithoutStorageShareInput> | RemixJobCreateWithoutStorageShareInput[] | RemixJobUncheckedCreateWithoutStorageShareInput[]
+    connectOrCreate?: RemixJobCreateOrConnectWithoutStorageShareInput | RemixJobCreateOrConnectWithoutStorageShareInput[]
+    createMany?: RemixJobCreateManyStorageShareInputEnvelope
+    connect?: RemixJobWhereUniqueInput | RemixJobWhereUniqueInput[]
+  }
+
+  export type RemixJobUncheckedCreateNestedManyWithoutStorageShareInput = {
+    create?: XOR<RemixJobCreateWithoutStorageShareInput, RemixJobUncheckedCreateWithoutStorageShareInput> | RemixJobCreateWithoutStorageShareInput[] | RemixJobUncheckedCreateWithoutStorageShareInput[]
+    connectOrCreate?: RemixJobCreateOrConnectWithoutStorageShareInput | RemixJobCreateOrConnectWithoutStorageShareInput[]
+    createMany?: RemixJobCreateManyStorageShareInputEnvelope
+    connect?: RemixJobWhereUniqueInput | RemixJobWhereUniqueInput[]
+  }
+
+  export type ProjectUpdateOneRequiredWithoutSourceRemixSharesNestedInput = {
+    create?: XOR<ProjectCreateWithoutSourceRemixSharesInput, ProjectUncheckedCreateWithoutSourceRemixSharesInput>
+    connectOrCreate?: ProjectCreateOrConnectWithoutSourceRemixSharesInput
+    upsert?: ProjectUpsertWithoutSourceRemixSharesInput
+    connect?: ProjectWhereUniqueInput
+    update?: XOR<XOR<ProjectUpdateToOneWithWhereWithoutSourceRemixSharesInput, ProjectUpdateWithoutSourceRemixSharesInput>, ProjectUncheckedUpdateWithoutSourceRemixSharesInput>
+  }
+
+  export type ProjectUpdateOneRequiredWithoutTargetRemixSharesNestedInput = {
+    create?: XOR<ProjectCreateWithoutTargetRemixSharesInput, ProjectUncheckedCreateWithoutTargetRemixSharesInput>
+    connectOrCreate?: ProjectCreateOrConnectWithoutTargetRemixSharesInput
+    upsert?: ProjectUpsertWithoutTargetRemixSharesInput
+    connect?: ProjectWhereUniqueInput
+    update?: XOR<XOR<ProjectUpdateToOneWithWhereWithoutTargetRemixSharesInput, ProjectUpdateWithoutTargetRemixSharesInput>, ProjectUncheckedUpdateWithoutTargetRemixSharesInput>
+  }
+
+  export type OrganizationUpdateOneRequiredWithoutRemixStorageSharesAsSourceNestedInput = {
+    create?: XOR<OrganizationCreateWithoutRemixStorageSharesAsSourceInput, OrganizationUncheckedCreateWithoutRemixStorageSharesAsSourceInput>
+    connectOrCreate?: OrganizationCreateOrConnectWithoutRemixStorageSharesAsSourceInput
+    upsert?: OrganizationUpsertWithoutRemixStorageSharesAsSourceInput
+    connect?: OrganizationWhereUniqueInput
+    update?: XOR<XOR<OrganizationUpdateToOneWithWhereWithoutRemixStorageSharesAsSourceInput, OrganizationUpdateWithoutRemixStorageSharesAsSourceInput>, OrganizationUncheckedUpdateWithoutRemixStorageSharesAsSourceInput>
+  }
+
+  export type OrganizationUpdateOneRequiredWithoutRemixStorageSharesAsTargetNestedInput = {
+    create?: XOR<OrganizationCreateWithoutRemixStorageSharesAsTargetInput, OrganizationUncheckedCreateWithoutRemixStorageSharesAsTargetInput>
+    connectOrCreate?: OrganizationCreateOrConnectWithoutRemixStorageSharesAsTargetInput
+    upsert?: OrganizationUpsertWithoutRemixStorageSharesAsTargetInput
+    connect?: OrganizationWhereUniqueInput
+    update?: XOR<XOR<OrganizationUpdateToOneWithWhereWithoutRemixStorageSharesAsTargetInput, OrganizationUpdateWithoutRemixStorageSharesAsTargetInput>, OrganizationUncheckedUpdateWithoutRemixStorageSharesAsTargetInput>
+  }
+
+  export type UserUpdateOneWithoutRemixStorageSharesConsentedNestedInput = {
+    create?: XOR<UserCreateWithoutRemixStorageSharesConsentedInput, UserUncheckedCreateWithoutRemixStorageSharesConsentedInput>
+    connectOrCreate?: UserCreateOrConnectWithoutRemixStorageSharesConsentedInput
+    upsert?: UserUpsertWithoutRemixStorageSharesConsentedInput
+    disconnect?: UserWhereInput | boolean
+    delete?: UserWhereInput | boolean
+    connect?: UserWhereUniqueInput
+    update?: XOR<XOR<UserUpdateToOneWithWhereWithoutRemixStorageSharesConsentedInput, UserUpdateWithoutRemixStorageSharesConsentedInput>, UserUncheckedUpdateWithoutRemixStorageSharesConsentedInput>
+  }
+
+  export type RemixJobUpdateManyWithoutStorageShareNestedInput = {
+    create?: XOR<RemixJobCreateWithoutStorageShareInput, RemixJobUncheckedCreateWithoutStorageShareInput> | RemixJobCreateWithoutStorageShareInput[] | RemixJobUncheckedCreateWithoutStorageShareInput[]
+    connectOrCreate?: RemixJobCreateOrConnectWithoutStorageShareInput | RemixJobCreateOrConnectWithoutStorageShareInput[]
+    upsert?: RemixJobUpsertWithWhereUniqueWithoutStorageShareInput | RemixJobUpsertWithWhereUniqueWithoutStorageShareInput[]
+    createMany?: RemixJobCreateManyStorageShareInputEnvelope
+    set?: RemixJobWhereUniqueInput | RemixJobWhereUniqueInput[]
+    disconnect?: RemixJobWhereUniqueInput | RemixJobWhereUniqueInput[]
+    delete?: RemixJobWhereUniqueInput | RemixJobWhereUniqueInput[]
+    connect?: RemixJobWhereUniqueInput | RemixJobWhereUniqueInput[]
+    update?: RemixJobUpdateWithWhereUniqueWithoutStorageShareInput | RemixJobUpdateWithWhereUniqueWithoutStorageShareInput[]
+    updateMany?: RemixJobUpdateManyWithWhereWithoutStorageShareInput | RemixJobUpdateManyWithWhereWithoutStorageShareInput[]
+    deleteMany?: RemixJobScalarWhereInput | RemixJobScalarWhereInput[]
+  }
+
+  export type RemixJobUncheckedUpdateManyWithoutStorageShareNestedInput = {
+    create?: XOR<RemixJobCreateWithoutStorageShareInput, RemixJobUncheckedCreateWithoutStorageShareInput> | RemixJobCreateWithoutStorageShareInput[] | RemixJobUncheckedCreateWithoutStorageShareInput[]
+    connectOrCreate?: RemixJobCreateOrConnectWithoutStorageShareInput | RemixJobCreateOrConnectWithoutStorageShareInput[]
+    upsert?: RemixJobUpsertWithWhereUniqueWithoutStorageShareInput | RemixJobUpsertWithWhereUniqueWithoutStorageShareInput[]
+    createMany?: RemixJobCreateManyStorageShareInputEnvelope
+    set?: RemixJobWhereUniqueInput | RemixJobWhereUniqueInput[]
+    disconnect?: RemixJobWhereUniqueInput | RemixJobWhereUniqueInput[]
+    delete?: RemixJobWhereUniqueInput | RemixJobWhereUniqueInput[]
+    connect?: RemixJobWhereUniqueInput | RemixJobWhereUniqueInput[]
+    update?: RemixJobUpdateWithWhereUniqueWithoutStorageShareInput | RemixJobUpdateWithWhereUniqueWithoutStorageShareInput[]
+    updateMany?: RemixJobUpdateManyWithWhereWithoutStorageShareInput | RemixJobUpdateManyWithWhereWithoutStorageShareInput[]
+    deleteMany?: RemixJobScalarWhereInput | RemixJobScalarWhereInput[]
   }
 
   export type OrganizationCreateNestedOneWithoutImportJobsInput = {
@@ -239841,6 +241129,106 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type RemixStorageShareCreateWithoutConsentedByInput = {
+    id?: string
+    consentVersion: string
+    consentedAt?: Date | string
+    sourceInventory: JsonNullValueInput | InputJsonValue
+    state?: string
+    revokedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    sourceProject: ProjectCreateNestedOneWithoutSourceRemixSharesInput
+    targetProject: ProjectCreateNestedOneWithoutTargetRemixSharesInput
+    sourceOrganization: OrganizationCreateNestedOneWithoutRemixStorageSharesAsSourceInput
+    targetOrganization: OrganizationCreateNestedOneWithoutRemixStorageSharesAsTargetInput
+    remixJobs?: RemixJobCreateNestedManyWithoutStorageShareInput
+  }
+
+  export type RemixStorageShareUncheckedCreateWithoutConsentedByInput = {
+    id?: string
+    sourceProjectId: string
+    targetProjectId: string
+    sourceOrganizationId: string
+    targetOrganizationId: string
+    consentVersion: string
+    consentedAt?: Date | string
+    sourceInventory: JsonNullValueInput | InputJsonValue
+    state?: string
+    revokedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    remixJobs?: RemixJobUncheckedCreateNestedManyWithoutStorageShareInput
+  }
+
+  export type RemixStorageShareCreateOrConnectWithoutConsentedByInput = {
+    where: RemixStorageShareWhereUniqueInput
+    create: XOR<RemixStorageShareCreateWithoutConsentedByInput, RemixStorageShareUncheckedCreateWithoutConsentedByInput>
+  }
+
+  export type RemixStorageShareCreateManyConsentedByInputEnvelope = {
+    data: RemixStorageShareCreateManyConsentedByInput | RemixStorageShareCreateManyConsentedByInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type RollbackIdempotencyRequestCreateWithoutActorInput = {
+    id?: string
+    idempotencyKey: string
+    requestFingerprint: string
+    environment: string
+    status?: string
+    phase?: string
+    leaseOwner?: string | null
+    leaseExpiresAt?: Date | string | null
+    fencingToken?: number
+    effectFencingToken?: number | null
+    deploymentId?: string | null
+    expectedHeadVersion?: number | null
+    previousManifestId?: string | null
+    projectManifestDigest?: string | null
+    responseStatus?: number | null
+    responseContentLanguage?: string | null
+    responseBody?: NullableJsonNullValueInput | InputJsonValue
+    completedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    project: ProjectCreateNestedOneWithoutRollbackOperationsInput
+  }
+
+  export type RollbackIdempotencyRequestUncheckedCreateWithoutActorInput = {
+    id?: string
+    projectId: string
+    idempotencyKey: string
+    requestFingerprint: string
+    environment: string
+    status?: string
+    phase?: string
+    leaseOwner?: string | null
+    leaseExpiresAt?: Date | string | null
+    fencingToken?: number
+    effectFencingToken?: number | null
+    deploymentId?: string | null
+    expectedHeadVersion?: number | null
+    previousManifestId?: string | null
+    projectManifestDigest?: string | null
+    responseStatus?: number | null
+    responseContentLanguage?: string | null
+    responseBody?: NullableJsonNullValueInput | InputJsonValue
+    completedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type RollbackIdempotencyRequestCreateOrConnectWithoutActorInput = {
+    where: RollbackIdempotencyRequestWhereUniqueInput
+    create: XOR<RollbackIdempotencyRequestCreateWithoutActorInput, RollbackIdempotencyRequestUncheckedCreateWithoutActorInput>
+  }
+
+  export type RollbackIdempotencyRequestCreateManyActorInputEnvelope = {
+    data: RollbackIdempotencyRequestCreateManyActorInput | RollbackIdempotencyRequestCreateManyActorInput[]
+    skipDuplicates?: boolean
+  }
+
   export type CloudOperationCreateWithoutActorInput = {
     id?: string
     idempotencyKey: string
@@ -241291,6 +242679,85 @@ export namespace Prisma {
     updatedAt?: DateTimeFilter<"ImportJob"> | Date | string
   }
 
+  export type RemixStorageShareUpsertWithWhereUniqueWithoutConsentedByInput = {
+    where: RemixStorageShareWhereUniqueInput
+    update: XOR<RemixStorageShareUpdateWithoutConsentedByInput, RemixStorageShareUncheckedUpdateWithoutConsentedByInput>
+    create: XOR<RemixStorageShareCreateWithoutConsentedByInput, RemixStorageShareUncheckedCreateWithoutConsentedByInput>
+  }
+
+  export type RemixStorageShareUpdateWithWhereUniqueWithoutConsentedByInput = {
+    where: RemixStorageShareWhereUniqueInput
+    data: XOR<RemixStorageShareUpdateWithoutConsentedByInput, RemixStorageShareUncheckedUpdateWithoutConsentedByInput>
+  }
+
+  export type RemixStorageShareUpdateManyWithWhereWithoutConsentedByInput = {
+    where: RemixStorageShareScalarWhereInput
+    data: XOR<RemixStorageShareUpdateManyMutationInput, RemixStorageShareUncheckedUpdateManyWithoutConsentedByInput>
+  }
+
+  export type RemixStorageShareScalarWhereInput = {
+    AND?: RemixStorageShareScalarWhereInput | RemixStorageShareScalarWhereInput[]
+    OR?: RemixStorageShareScalarWhereInput[]
+    NOT?: RemixStorageShareScalarWhereInput | RemixStorageShareScalarWhereInput[]
+    id?: StringFilter<"RemixStorageShare"> | string
+    sourceProjectId?: StringFilter<"RemixStorageShare"> | string
+    targetProjectId?: StringFilter<"RemixStorageShare"> | string
+    sourceOrganizationId?: StringFilter<"RemixStorageShare"> | string
+    targetOrganizationId?: StringFilter<"RemixStorageShare"> | string
+    consentVersion?: StringFilter<"RemixStorageShare"> | string
+    consentedByUserId?: StringNullableFilter<"RemixStorageShare"> | string | null
+    consentedAt?: DateTimeFilter<"RemixStorageShare"> | Date | string
+    sourceInventory?: JsonFilter<"RemixStorageShare">
+    state?: StringFilter<"RemixStorageShare"> | string
+    revokedAt?: DateTimeNullableFilter<"RemixStorageShare"> | Date | string | null
+    createdAt?: DateTimeFilter<"RemixStorageShare"> | Date | string
+    updatedAt?: DateTimeFilter<"RemixStorageShare"> | Date | string
+  }
+
+  export type RollbackIdempotencyRequestUpsertWithWhereUniqueWithoutActorInput = {
+    where: RollbackIdempotencyRequestWhereUniqueInput
+    update: XOR<RollbackIdempotencyRequestUpdateWithoutActorInput, RollbackIdempotencyRequestUncheckedUpdateWithoutActorInput>
+    create: XOR<RollbackIdempotencyRequestCreateWithoutActorInput, RollbackIdempotencyRequestUncheckedCreateWithoutActorInput>
+  }
+
+  export type RollbackIdempotencyRequestUpdateWithWhereUniqueWithoutActorInput = {
+    where: RollbackIdempotencyRequestWhereUniqueInput
+    data: XOR<RollbackIdempotencyRequestUpdateWithoutActorInput, RollbackIdempotencyRequestUncheckedUpdateWithoutActorInput>
+  }
+
+  export type RollbackIdempotencyRequestUpdateManyWithWhereWithoutActorInput = {
+    where: RollbackIdempotencyRequestScalarWhereInput
+    data: XOR<RollbackIdempotencyRequestUpdateManyMutationInput, RollbackIdempotencyRequestUncheckedUpdateManyWithoutActorInput>
+  }
+
+  export type RollbackIdempotencyRequestScalarWhereInput = {
+    AND?: RollbackIdempotencyRequestScalarWhereInput | RollbackIdempotencyRequestScalarWhereInput[]
+    OR?: RollbackIdempotencyRequestScalarWhereInput[]
+    NOT?: RollbackIdempotencyRequestScalarWhereInput | RollbackIdempotencyRequestScalarWhereInput[]
+    id?: StringFilter<"RollbackIdempotencyRequest"> | string
+    projectId?: StringFilter<"RollbackIdempotencyRequest"> | string
+    actorUserId?: StringNullableFilter<"RollbackIdempotencyRequest"> | string | null
+    idempotencyKey?: StringFilter<"RollbackIdempotencyRequest"> | string
+    requestFingerprint?: StringFilter<"RollbackIdempotencyRequest"> | string
+    environment?: StringFilter<"RollbackIdempotencyRequest"> | string
+    status?: StringFilter<"RollbackIdempotencyRequest"> | string
+    phase?: StringFilter<"RollbackIdempotencyRequest"> | string
+    leaseOwner?: StringNullableFilter<"RollbackIdempotencyRequest"> | string | null
+    leaseExpiresAt?: DateTimeNullableFilter<"RollbackIdempotencyRequest"> | Date | string | null
+    fencingToken?: IntFilter<"RollbackIdempotencyRequest"> | number
+    effectFencingToken?: IntNullableFilter<"RollbackIdempotencyRequest"> | number | null
+    deploymentId?: StringNullableFilter<"RollbackIdempotencyRequest"> | string | null
+    expectedHeadVersion?: IntNullableFilter<"RollbackIdempotencyRequest"> | number | null
+    previousManifestId?: StringNullableFilter<"RollbackIdempotencyRequest"> | string | null
+    projectManifestDigest?: StringNullableFilter<"RollbackIdempotencyRequest"> | string | null
+    responseStatus?: IntNullableFilter<"RollbackIdempotencyRequest"> | number | null
+    responseContentLanguage?: StringNullableFilter<"RollbackIdempotencyRequest"> | string | null
+    responseBody?: JsonNullableFilter<"RollbackIdempotencyRequest">
+    completedAt?: DateTimeNullableFilter<"RollbackIdempotencyRequest"> | Date | string | null
+    createdAt?: DateTimeFilter<"RollbackIdempotencyRequest"> | Date | string
+    updatedAt?: DateTimeFilter<"RollbackIdempotencyRequest"> | Date | string
+  }
+
   export type CloudOperationUpsertWithWhereUniqueWithoutActorInput = {
     where: CloudOperationWhereUniqueInput
     update: XOR<CloudOperationUpdateWithoutActorInput, CloudOperationUncheckedUpdateWithoutActorInput>
@@ -241547,6 +243014,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
     importJobs?: ImportJobCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutActorInput
     cloudOperations?: CloudOperationCreateNestedManyWithoutActorInput
     projectCheckpoints?: ProjectCheckpointCreateNestedManyWithoutCreatedByInput
     invitedOrganizationMembers?: OrganizationMemberCreateNestedManyWithoutInvitedByInput
@@ -241605,6 +243074,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutActorInput
     cloudOperations?: CloudOperationUncheckedCreateNestedManyWithoutActorInput
     projectCheckpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutCreatedByInput
     invitedOrganizationMembers?: OrganizationMemberUncheckedCreateNestedManyWithoutInvitedByInput
@@ -241679,6 +243150,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutActorNestedInput
     cloudOperations?: CloudOperationUpdateManyWithoutActorNestedInput
     projectCheckpoints?: ProjectCheckpointUpdateManyWithoutCreatedByNestedInput
     invitedOrganizationMembers?: OrganizationMemberUpdateManyWithoutInvitedByNestedInput
@@ -241737,6 +243210,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutActorNestedInput
     cloudOperations?: CloudOperationUncheckedUpdateManyWithoutActorNestedInput
     projectCheckpoints?: ProjectCheckpointUncheckedUpdateManyWithoutCreatedByNestedInput
     invitedOrganizationMembers?: OrganizationMemberUncheckedUpdateManyWithoutInvitedByNestedInput
@@ -241795,6 +243270,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
     importJobs?: ImportJobCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutActorInput
     cloudOperations?: CloudOperationCreateNestedManyWithoutActorInput
     projectCheckpoints?: ProjectCheckpointCreateNestedManyWithoutCreatedByInput
     invitedOrganizationMembers?: OrganizationMemberCreateNestedManyWithoutInvitedByInput
@@ -241853,6 +243330,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutActorInput
     cloudOperations?: CloudOperationUncheckedCreateNestedManyWithoutActorInput
     projectCheckpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutCreatedByInput
     invitedOrganizationMembers?: OrganizationMemberUncheckedCreateNestedManyWithoutInvitedByInput
@@ -241927,6 +243406,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutActorNestedInput
     cloudOperations?: CloudOperationUpdateManyWithoutActorNestedInput
     projectCheckpoints?: ProjectCheckpointUpdateManyWithoutCreatedByNestedInput
     invitedOrganizationMembers?: OrganizationMemberUpdateManyWithoutInvitedByNestedInput
@@ -241985,6 +243466,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutActorNestedInput
     cloudOperations?: CloudOperationUncheckedUpdateManyWithoutActorNestedInput
     projectCheckpoints?: ProjectCheckpointUncheckedUpdateManyWithoutCreatedByNestedInput
     invitedOrganizationMembers?: OrganizationMemberUncheckedUpdateManyWithoutInvitedByNestedInput
@@ -242102,6 +243585,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
+    targetRemixJobs?: RemixJobCreateNestedManyWithoutTargetProjectInput
+    sourceRemixShares?: RemixStorageShareCreateNestedManyWithoutSourceProjectInput
+    targetRemixShares?: RemixStorageShareCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
   }
@@ -242150,6 +243636,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    targetRemixJobs?: RemixJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    sourceRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutSourceProjectInput
+    targetRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingUncheckedCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
   }
@@ -243158,6 +244647,90 @@ export namespace Prisma {
 
   export type ImportJobCreateManyOrganizationInputEnvelope = {
     data: ImportJobCreateManyOrganizationInput | ImportJobCreateManyOrganizationInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type RemixStorageShareCreateWithoutSourceOrganizationInput = {
+    id?: string
+    consentVersion: string
+    consentedAt?: Date | string
+    sourceInventory: JsonNullValueInput | InputJsonValue
+    state?: string
+    revokedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    sourceProject: ProjectCreateNestedOneWithoutSourceRemixSharesInput
+    targetProject: ProjectCreateNestedOneWithoutTargetRemixSharesInput
+    targetOrganization: OrganizationCreateNestedOneWithoutRemixStorageSharesAsTargetInput
+    consentedBy?: UserCreateNestedOneWithoutRemixStorageSharesConsentedInput
+    remixJobs?: RemixJobCreateNestedManyWithoutStorageShareInput
+  }
+
+  export type RemixStorageShareUncheckedCreateWithoutSourceOrganizationInput = {
+    id?: string
+    sourceProjectId: string
+    targetProjectId: string
+    targetOrganizationId: string
+    consentVersion: string
+    consentedByUserId?: string | null
+    consentedAt?: Date | string
+    sourceInventory: JsonNullValueInput | InputJsonValue
+    state?: string
+    revokedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    remixJobs?: RemixJobUncheckedCreateNestedManyWithoutStorageShareInput
+  }
+
+  export type RemixStorageShareCreateOrConnectWithoutSourceOrganizationInput = {
+    where: RemixStorageShareWhereUniqueInput
+    create: XOR<RemixStorageShareCreateWithoutSourceOrganizationInput, RemixStorageShareUncheckedCreateWithoutSourceOrganizationInput>
+  }
+
+  export type RemixStorageShareCreateManySourceOrganizationInputEnvelope = {
+    data: RemixStorageShareCreateManySourceOrganizationInput | RemixStorageShareCreateManySourceOrganizationInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type RemixStorageShareCreateWithoutTargetOrganizationInput = {
+    id?: string
+    consentVersion: string
+    consentedAt?: Date | string
+    sourceInventory: JsonNullValueInput | InputJsonValue
+    state?: string
+    revokedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    sourceProject: ProjectCreateNestedOneWithoutSourceRemixSharesInput
+    targetProject: ProjectCreateNestedOneWithoutTargetRemixSharesInput
+    sourceOrganization: OrganizationCreateNestedOneWithoutRemixStorageSharesAsSourceInput
+    consentedBy?: UserCreateNestedOneWithoutRemixStorageSharesConsentedInput
+    remixJobs?: RemixJobCreateNestedManyWithoutStorageShareInput
+  }
+
+  export type RemixStorageShareUncheckedCreateWithoutTargetOrganizationInput = {
+    id?: string
+    sourceProjectId: string
+    targetProjectId: string
+    sourceOrganizationId: string
+    consentVersion: string
+    consentedByUserId?: string | null
+    consentedAt?: Date | string
+    sourceInventory: JsonNullValueInput | InputJsonValue
+    state?: string
+    revokedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    remixJobs?: RemixJobUncheckedCreateNestedManyWithoutStorageShareInput
+  }
+
+  export type RemixStorageShareCreateOrConnectWithoutTargetOrganizationInput = {
+    where: RemixStorageShareWhereUniqueInput
+    create: XOR<RemixStorageShareCreateWithoutTargetOrganizationInput, RemixStorageShareUncheckedCreateWithoutTargetOrganizationInput>
+  }
+
+  export type RemixStorageShareCreateManyTargetOrganizationInputEnvelope = {
+    data: RemixStorageShareCreateManyTargetOrganizationInput | RemixStorageShareCreateManyTargetOrganizationInput[]
     skipDuplicates?: boolean
   }
 
@@ -244192,6 +245765,38 @@ export namespace Prisma {
     data: XOR<ImportJobUpdateManyMutationInput, ImportJobUncheckedUpdateManyWithoutOrganizationInput>
   }
 
+  export type RemixStorageShareUpsertWithWhereUniqueWithoutSourceOrganizationInput = {
+    where: RemixStorageShareWhereUniqueInput
+    update: XOR<RemixStorageShareUpdateWithoutSourceOrganizationInput, RemixStorageShareUncheckedUpdateWithoutSourceOrganizationInput>
+    create: XOR<RemixStorageShareCreateWithoutSourceOrganizationInput, RemixStorageShareUncheckedCreateWithoutSourceOrganizationInput>
+  }
+
+  export type RemixStorageShareUpdateWithWhereUniqueWithoutSourceOrganizationInput = {
+    where: RemixStorageShareWhereUniqueInput
+    data: XOR<RemixStorageShareUpdateWithoutSourceOrganizationInput, RemixStorageShareUncheckedUpdateWithoutSourceOrganizationInput>
+  }
+
+  export type RemixStorageShareUpdateManyWithWhereWithoutSourceOrganizationInput = {
+    where: RemixStorageShareScalarWhereInput
+    data: XOR<RemixStorageShareUpdateManyMutationInput, RemixStorageShareUncheckedUpdateManyWithoutSourceOrganizationInput>
+  }
+
+  export type RemixStorageShareUpsertWithWhereUniqueWithoutTargetOrganizationInput = {
+    where: RemixStorageShareWhereUniqueInput
+    update: XOR<RemixStorageShareUpdateWithoutTargetOrganizationInput, RemixStorageShareUncheckedUpdateWithoutTargetOrganizationInput>
+    create: XOR<RemixStorageShareCreateWithoutTargetOrganizationInput, RemixStorageShareUncheckedCreateWithoutTargetOrganizationInput>
+  }
+
+  export type RemixStorageShareUpdateWithWhereUniqueWithoutTargetOrganizationInput = {
+    where: RemixStorageShareWhereUniqueInput
+    data: XOR<RemixStorageShareUpdateWithoutTargetOrganizationInput, RemixStorageShareUncheckedUpdateWithoutTargetOrganizationInput>
+  }
+
+  export type RemixStorageShareUpdateManyWithWhereWithoutTargetOrganizationInput = {
+    where: RemixStorageShareScalarWhereInput
+    data: XOR<RemixStorageShareUpdateManyMutationInput, RemixStorageShareUncheckedUpdateManyWithoutTargetOrganizationInput>
+  }
+
   export type CloudTenantUpsertWithoutOrganizationInput = {
     update: XOR<CloudTenantUpdateWithoutOrganizationInput, CloudTenantUncheckedUpdateWithoutOrganizationInput>
     create: XOR<CloudTenantCreateWithoutOrganizationInput, CloudTenantUncheckedCreateWithoutOrganizationInput>
@@ -244341,6 +245946,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
     importJobs?: ImportJobCreateNestedManyWithoutOrganizationInput
+    remixStorageSharesAsSource?: RemixStorageShareCreateNestedManyWithoutSourceOrganizationInput
+    remixStorageSharesAsTarget?: RemixStorageShareCreateNestedManyWithoutTargetOrganizationInput
     cloudTenant?: CloudTenantCreateNestedOneWithoutOrganizationInput
     collaborationGroups?: CollaborationGroupCreateNestedManyWithoutOrganizationInput
     resourceAccessGrants?: ResourceAccessGrantCreateNestedManyWithoutOrganizationInput
@@ -244387,6 +245994,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutOrganizationInput
+    remixStorageSharesAsSource?: RemixStorageShareUncheckedCreateNestedManyWithoutSourceOrganizationInput
+    remixStorageSharesAsTarget?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetOrganizationInput
     cloudTenant?: CloudTenantUncheckedCreateNestedOneWithoutOrganizationInput
     collaborationGroups?: CollaborationGroupUncheckedCreateNestedManyWithoutOrganizationInput
     resourceAccessGrants?: ResourceAccessGrantUncheckedCreateNestedManyWithoutOrganizationInput
@@ -244446,6 +246055,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
     importJobs?: ImportJobCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutActorInput
     cloudOperations?: CloudOperationCreateNestedManyWithoutActorInput
     projectCheckpoints?: ProjectCheckpointCreateNestedManyWithoutCreatedByInput
     invitedOrganizationMembers?: OrganizationMemberCreateNestedManyWithoutInvitedByInput
@@ -244504,6 +246115,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutActorInput
     cloudOperations?: CloudOperationUncheckedCreateNestedManyWithoutActorInput
     projectCheckpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutCreatedByInput
     invitedOrganizationMembers?: OrganizationMemberUncheckedCreateNestedManyWithoutInvitedByInput
@@ -244568,6 +246181,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
     importJobs?: ImportJobCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutActorInput
     cloudOperations?: CloudOperationCreateNestedManyWithoutActorInput
     projectCheckpoints?: ProjectCheckpointCreateNestedManyWithoutCreatedByInput
     createdOrganizationInvites?: OrganizationInviteCreateNestedManyWithoutCreatedByInput
@@ -244626,6 +246241,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutActorInput
     cloudOperations?: CloudOperationUncheckedCreateNestedManyWithoutActorInput
     projectCheckpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutCreatedByInput
     createdOrganizationInvites?: OrganizationInviteUncheckedCreateNestedManyWithoutCreatedByInput
@@ -244736,6 +246353,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
     importJobs?: ImportJobUpdateManyWithoutOrganizationNestedInput
+    remixStorageSharesAsSource?: RemixStorageShareUpdateManyWithoutSourceOrganizationNestedInput
+    remixStorageSharesAsTarget?: RemixStorageShareUpdateManyWithoutTargetOrganizationNestedInput
     cloudTenant?: CloudTenantUpdateOneWithoutOrganizationNestedInput
     collaborationGroups?: CollaborationGroupUpdateManyWithoutOrganizationNestedInput
     resourceAccessGrants?: ResourceAccessGrantUpdateManyWithoutOrganizationNestedInput
@@ -244782,6 +246401,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutOrganizationNestedInput
+    remixStorageSharesAsSource?: RemixStorageShareUncheckedUpdateManyWithoutSourceOrganizationNestedInput
+    remixStorageSharesAsTarget?: RemixStorageShareUncheckedUpdateManyWithoutTargetOrganizationNestedInput
     cloudTenant?: CloudTenantUncheckedUpdateOneWithoutOrganizationNestedInput
     collaborationGroups?: CollaborationGroupUncheckedUpdateManyWithoutOrganizationNestedInput
     resourceAccessGrants?: ResourceAccessGrantUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -244847,6 +246468,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutActorNestedInput
     cloudOperations?: CloudOperationUpdateManyWithoutActorNestedInput
     projectCheckpoints?: ProjectCheckpointUpdateManyWithoutCreatedByNestedInput
     invitedOrganizationMembers?: OrganizationMemberUpdateManyWithoutInvitedByNestedInput
@@ -244905,6 +246528,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutActorNestedInput
     cloudOperations?: CloudOperationUncheckedUpdateManyWithoutActorNestedInput
     projectCheckpoints?: ProjectCheckpointUncheckedUpdateManyWithoutCreatedByNestedInput
     invitedOrganizationMembers?: OrganizationMemberUncheckedUpdateManyWithoutInvitedByNestedInput
@@ -244975,6 +246600,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutActorNestedInput
     cloudOperations?: CloudOperationUpdateManyWithoutActorNestedInput
     projectCheckpoints?: ProjectCheckpointUpdateManyWithoutCreatedByNestedInput
     createdOrganizationInvites?: OrganizationInviteUpdateManyWithoutCreatedByNestedInput
@@ -245033,6 +246660,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutActorNestedInput
     cloudOperations?: CloudOperationUncheckedUpdateManyWithoutActorNestedInput
     projectCheckpoints?: ProjectCheckpointUncheckedUpdateManyWithoutCreatedByNestedInput
     createdOrganizationInvites?: OrganizationInviteUncheckedUpdateManyWithoutCreatedByNestedInput
@@ -245138,6 +246767,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
     importJobs?: ImportJobCreateNestedManyWithoutOrganizationInput
+    remixStorageSharesAsSource?: RemixStorageShareCreateNestedManyWithoutSourceOrganizationInput
+    remixStorageSharesAsTarget?: RemixStorageShareCreateNestedManyWithoutTargetOrganizationInput
     cloudTenant?: CloudTenantCreateNestedOneWithoutOrganizationInput
     collaborationGroups?: CollaborationGroupCreateNestedManyWithoutOrganizationInput
     resourceAccessGrants?: ResourceAccessGrantCreateNestedManyWithoutOrganizationInput
@@ -245184,6 +246815,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutOrganizationInput
+    remixStorageSharesAsSource?: RemixStorageShareUncheckedCreateNestedManyWithoutSourceOrganizationInput
+    remixStorageSharesAsTarget?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetOrganizationInput
     cloudTenant?: CloudTenantUncheckedCreateNestedOneWithoutOrganizationInput
     collaborationGroups?: CollaborationGroupUncheckedCreateNestedManyWithoutOrganizationInput
     resourceAccessGrants?: ResourceAccessGrantUncheckedCreateNestedManyWithoutOrganizationInput
@@ -245267,6 +246900,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
     importJobs?: ImportJobCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutActorInput
     cloudOperations?: CloudOperationCreateNestedManyWithoutActorInput
     projectCheckpoints?: ProjectCheckpointCreateNestedManyWithoutCreatedByInput
     invitedOrganizationMembers?: OrganizationMemberCreateNestedManyWithoutInvitedByInput
@@ -245325,6 +246960,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutActorInput
     cloudOperations?: CloudOperationUncheckedCreateNestedManyWithoutActorInput
     projectCheckpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutCreatedByInput
     invitedOrganizationMembers?: OrganizationMemberUncheckedCreateNestedManyWithoutInvitedByInput
@@ -245390,6 +247027,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
     importJobs?: ImportJobUpdateManyWithoutOrganizationNestedInput
+    remixStorageSharesAsSource?: RemixStorageShareUpdateManyWithoutSourceOrganizationNestedInput
+    remixStorageSharesAsTarget?: RemixStorageShareUpdateManyWithoutTargetOrganizationNestedInput
     cloudTenant?: CloudTenantUpdateOneWithoutOrganizationNestedInput
     collaborationGroups?: CollaborationGroupUpdateManyWithoutOrganizationNestedInput
     resourceAccessGrants?: ResourceAccessGrantUpdateManyWithoutOrganizationNestedInput
@@ -245436,6 +247075,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutOrganizationNestedInput
+    remixStorageSharesAsSource?: RemixStorageShareUncheckedUpdateManyWithoutSourceOrganizationNestedInput
+    remixStorageSharesAsTarget?: RemixStorageShareUncheckedUpdateManyWithoutTargetOrganizationNestedInput
     cloudTenant?: CloudTenantUncheckedUpdateOneWithoutOrganizationNestedInput
     collaborationGroups?: CollaborationGroupUncheckedUpdateManyWithoutOrganizationNestedInput
     resourceAccessGrants?: ResourceAccessGrantUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -245531,6 +247172,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutActorNestedInput
     cloudOperations?: CloudOperationUpdateManyWithoutActorNestedInput
     projectCheckpoints?: ProjectCheckpointUpdateManyWithoutCreatedByNestedInput
     invitedOrganizationMembers?: OrganizationMemberUpdateManyWithoutInvitedByNestedInput
@@ -245589,6 +247232,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutActorNestedInput
     cloudOperations?: CloudOperationUncheckedUpdateManyWithoutActorNestedInput
     projectCheckpoints?: ProjectCheckpointUncheckedUpdateManyWithoutCreatedByNestedInput
     invitedOrganizationMembers?: OrganizationMemberUncheckedUpdateManyWithoutInvitedByNestedInput
@@ -245902,6 +247547,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
     importJobs?: ImportJobCreateNestedManyWithoutOrganizationInput
+    remixStorageSharesAsSource?: RemixStorageShareCreateNestedManyWithoutSourceOrganizationInput
+    remixStorageSharesAsTarget?: RemixStorageShareCreateNestedManyWithoutTargetOrganizationInput
     cloudTenant?: CloudTenantCreateNestedOneWithoutOrganizationInput
     collaborationGroups?: CollaborationGroupCreateNestedManyWithoutOrganizationInput
     resourceAccessGrants?: ResourceAccessGrantCreateNestedManyWithoutOrganizationInput
@@ -245948,6 +247595,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutOrganizationInput
+    remixStorageSharesAsSource?: RemixStorageShareUncheckedCreateNestedManyWithoutSourceOrganizationInput
+    remixStorageSharesAsTarget?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetOrganizationInput
     cloudTenant?: CloudTenantUncheckedCreateNestedOneWithoutOrganizationInput
     collaborationGroups?: CollaborationGroupUncheckedCreateNestedManyWithoutOrganizationInput
     resourceAccessGrants?: ResourceAccessGrantUncheckedCreateNestedManyWithoutOrganizationInput
@@ -246417,10 +248066,12 @@ export namespace Prisma {
     completedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    actor?: UserCreateNestedOneWithoutRollbackOperationsInput
   }
 
   export type RollbackIdempotencyRequestUncheckedCreateWithoutProjectInput = {
     id?: string
+    actorUserId?: string | null
     idempotencyKey: string
     requestFingerprint: string
     environment: string
@@ -246742,6 +248393,7 @@ export namespace Prisma {
     updatedAt?: Date | string
     snapshots?: DatabaseSnapshotCreateNestedManyWithoutDatabaseInstanceInput
     restores?: DatabaseRestoreCreateNestedManyWithoutDatabaseInstanceInput
+    remixJobsAsTarget?: RemixJobCreateNestedManyWithoutTargetDatabaseInstanceInput
   }
 
   export type DatabaseInstanceUncheckedCreateWithoutProjectInput = {
@@ -246761,6 +248413,7 @@ export namespace Prisma {
     updatedAt?: Date | string
     snapshots?: DatabaseSnapshotUncheckedCreateNestedManyWithoutDatabaseInstanceInput
     restores?: DatabaseRestoreUncheckedCreateNestedManyWithoutDatabaseInstanceInput
+    remixJobsAsTarget?: RemixJobUncheckedCreateNestedManyWithoutTargetDatabaseInstanceInput
   }
 
   export type DatabaseInstanceCreateOrConnectWithoutProjectInput = {
@@ -246957,6 +248610,170 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type RemixJobCreateWithoutTargetProjectInput = {
+    id?: string
+    sourceProjectId: string
+    organizationId: string
+    actorUserId?: string | null
+    state?: string
+    idempotencyKey?: string | null
+    requestHash?: string | null
+    version?: number
+    operationToken?: string | null
+    operationExpiresAt?: Date | string | null
+    sourceSnapshotId?: string | null
+    sourceSnapshotHash?: string | null
+    sourceListingId?: string | null
+    detachedKeys?: NullableJsonNullValueInput | InputJsonValue
+    storagePolicy?: string
+    storageConsentVersion?: string | null
+    storageInventory?: NullableJsonNullValueInput | InputJsonValue
+    scanFindings?: NullableJsonNullValueInput | InputJsonValue
+    scrubbedCount?: number
+    licenseSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    consentVersion?: string | null
+    piiFindings?: NullableJsonNullValueInput | InputJsonValue
+    piiMaskedCount?: number
+    dbForked?: boolean
+    sourceDatabasePin?: NullableJsonNullValueInput | InputJsonValue
+    cleanupTerminalState?: string | null
+    errorCode?: string | null
+    error?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    targetDatabaseInstance?: DatabaseInstanceCreateNestedOneWithoutRemixJobsAsTargetInput
+    storageShare?: RemixStorageShareCreateNestedOneWithoutRemixJobsInput
+  }
+
+  export type RemixJobUncheckedCreateWithoutTargetProjectInput = {
+    id?: string
+    sourceProjectId: string
+    organizationId: string
+    actorUserId?: string | null
+    state?: string
+    idempotencyKey?: string | null
+    requestHash?: string | null
+    version?: number
+    operationToken?: string | null
+    operationExpiresAt?: Date | string | null
+    sourceSnapshotId?: string | null
+    sourceSnapshotHash?: string | null
+    sourceListingId?: string | null
+    detachedKeys?: NullableJsonNullValueInput | InputJsonValue
+    storagePolicy?: string
+    storageConsentVersion?: string | null
+    storageInventory?: NullableJsonNullValueInput | InputJsonValue
+    storageShareId?: string | null
+    scanFindings?: NullableJsonNullValueInput | InputJsonValue
+    scrubbedCount?: number
+    licenseSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    consentVersion?: string | null
+    piiFindings?: NullableJsonNullValueInput | InputJsonValue
+    piiMaskedCount?: number
+    dbForked?: boolean
+    sourceDatabasePin?: NullableJsonNullValueInput | InputJsonValue
+    targetDatabaseInstanceId?: string | null
+    cleanupTerminalState?: string | null
+    errorCode?: string | null
+    error?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type RemixJobCreateOrConnectWithoutTargetProjectInput = {
+    where: RemixJobWhereUniqueInput
+    create: XOR<RemixJobCreateWithoutTargetProjectInput, RemixJobUncheckedCreateWithoutTargetProjectInput>
+  }
+
+  export type RemixJobCreateManyTargetProjectInputEnvelope = {
+    data: RemixJobCreateManyTargetProjectInput | RemixJobCreateManyTargetProjectInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type RemixStorageShareCreateWithoutSourceProjectInput = {
+    id?: string
+    consentVersion: string
+    consentedAt?: Date | string
+    sourceInventory: JsonNullValueInput | InputJsonValue
+    state?: string
+    revokedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    targetProject: ProjectCreateNestedOneWithoutTargetRemixSharesInput
+    sourceOrganization: OrganizationCreateNestedOneWithoutRemixStorageSharesAsSourceInput
+    targetOrganization: OrganizationCreateNestedOneWithoutRemixStorageSharesAsTargetInput
+    consentedBy?: UserCreateNestedOneWithoutRemixStorageSharesConsentedInput
+    remixJobs?: RemixJobCreateNestedManyWithoutStorageShareInput
+  }
+
+  export type RemixStorageShareUncheckedCreateWithoutSourceProjectInput = {
+    id?: string
+    targetProjectId: string
+    sourceOrganizationId: string
+    targetOrganizationId: string
+    consentVersion: string
+    consentedByUserId?: string | null
+    consentedAt?: Date | string
+    sourceInventory: JsonNullValueInput | InputJsonValue
+    state?: string
+    revokedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    remixJobs?: RemixJobUncheckedCreateNestedManyWithoutStorageShareInput
+  }
+
+  export type RemixStorageShareCreateOrConnectWithoutSourceProjectInput = {
+    where: RemixStorageShareWhereUniqueInput
+    create: XOR<RemixStorageShareCreateWithoutSourceProjectInput, RemixStorageShareUncheckedCreateWithoutSourceProjectInput>
+  }
+
+  export type RemixStorageShareCreateManySourceProjectInputEnvelope = {
+    data: RemixStorageShareCreateManySourceProjectInput | RemixStorageShareCreateManySourceProjectInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type RemixStorageShareCreateWithoutTargetProjectInput = {
+    id?: string
+    consentVersion: string
+    consentedAt?: Date | string
+    sourceInventory: JsonNullValueInput | InputJsonValue
+    state?: string
+    revokedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    sourceProject: ProjectCreateNestedOneWithoutSourceRemixSharesInput
+    sourceOrganization: OrganizationCreateNestedOneWithoutRemixStorageSharesAsSourceInput
+    targetOrganization: OrganizationCreateNestedOneWithoutRemixStorageSharesAsTargetInput
+    consentedBy?: UserCreateNestedOneWithoutRemixStorageSharesConsentedInput
+    remixJobs?: RemixJobCreateNestedManyWithoutStorageShareInput
+  }
+
+  export type RemixStorageShareUncheckedCreateWithoutTargetProjectInput = {
+    id?: string
+    sourceProjectId: string
+    sourceOrganizationId: string
+    targetOrganizationId: string
+    consentVersion: string
+    consentedByUserId?: string | null
+    consentedAt?: Date | string
+    sourceInventory: JsonNullValueInput | InputJsonValue
+    state?: string
+    revokedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    remixJobs?: RemixJobUncheckedCreateNestedManyWithoutStorageShareInput
+  }
+
+  export type RemixStorageShareCreateOrConnectWithoutTargetProjectInput = {
+    where: RemixStorageShareWhereUniqueInput
+    create: XOR<RemixStorageShareCreateWithoutTargetProjectInput, RemixStorageShareUncheckedCreateWithoutTargetProjectInput>
+  }
+
+  export type RemixStorageShareCreateManyTargetProjectInputEnvelope = {
+    data: RemixStorageShareCreateManyTargetProjectInput | RemixStorageShareCreateManyTargetProjectInput[]
+    skipDuplicates?: boolean
+  }
+
   export type CloudProjectBindingCreateWithoutProjectInput = {
     id?: string
     gcpProjectId: string
@@ -247108,6 +248925,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
     importJobs?: ImportJobUpdateManyWithoutOrganizationNestedInput
+    remixStorageSharesAsSource?: RemixStorageShareUpdateManyWithoutSourceOrganizationNestedInput
+    remixStorageSharesAsTarget?: RemixStorageShareUpdateManyWithoutTargetOrganizationNestedInput
     cloudTenant?: CloudTenantUpdateOneWithoutOrganizationNestedInput
     collaborationGroups?: CollaborationGroupUpdateManyWithoutOrganizationNestedInput
     resourceAccessGrants?: ResourceAccessGrantUpdateManyWithoutOrganizationNestedInput
@@ -247154,6 +248973,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutOrganizationNestedInput
+    remixStorageSharesAsSource?: RemixStorageShareUncheckedUpdateManyWithoutSourceOrganizationNestedInput
+    remixStorageSharesAsTarget?: RemixStorageShareUncheckedUpdateManyWithoutTargetOrganizationNestedInput
     cloudTenant?: CloudTenantUncheckedUpdateOneWithoutOrganizationNestedInput
     collaborationGroups?: CollaborationGroupUncheckedUpdateManyWithoutOrganizationNestedInput
     resourceAccessGrants?: ResourceAccessGrantUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -247479,33 +249300,6 @@ export namespace Prisma {
   export type RollbackIdempotencyRequestUpdateManyWithWhereWithoutProjectInput = {
     where: RollbackIdempotencyRequestScalarWhereInput
     data: XOR<RollbackIdempotencyRequestUpdateManyMutationInput, RollbackIdempotencyRequestUncheckedUpdateManyWithoutProjectInput>
-  }
-
-  export type RollbackIdempotencyRequestScalarWhereInput = {
-    AND?: RollbackIdempotencyRequestScalarWhereInput | RollbackIdempotencyRequestScalarWhereInput[]
-    OR?: RollbackIdempotencyRequestScalarWhereInput[]
-    NOT?: RollbackIdempotencyRequestScalarWhereInput | RollbackIdempotencyRequestScalarWhereInput[]
-    id?: StringFilter<"RollbackIdempotencyRequest"> | string
-    projectId?: StringFilter<"RollbackIdempotencyRequest"> | string
-    idempotencyKey?: StringFilter<"RollbackIdempotencyRequest"> | string
-    requestFingerprint?: StringFilter<"RollbackIdempotencyRequest"> | string
-    environment?: StringFilter<"RollbackIdempotencyRequest"> | string
-    status?: StringFilter<"RollbackIdempotencyRequest"> | string
-    phase?: StringFilter<"RollbackIdempotencyRequest"> | string
-    leaseOwner?: StringNullableFilter<"RollbackIdempotencyRequest"> | string | null
-    leaseExpiresAt?: DateTimeNullableFilter<"RollbackIdempotencyRequest"> | Date | string | null
-    fencingToken?: IntFilter<"RollbackIdempotencyRequest"> | number
-    effectFencingToken?: IntNullableFilter<"RollbackIdempotencyRequest"> | number | null
-    deploymentId?: StringNullableFilter<"RollbackIdempotencyRequest"> | string | null
-    expectedHeadVersion?: IntNullableFilter<"RollbackIdempotencyRequest"> | number | null
-    previousManifestId?: StringNullableFilter<"RollbackIdempotencyRequest"> | string | null
-    projectManifestDigest?: StringNullableFilter<"RollbackIdempotencyRequest"> | string | null
-    responseStatus?: IntNullableFilter<"RollbackIdempotencyRequest"> | number | null
-    responseContentLanguage?: StringNullableFilter<"RollbackIdempotencyRequest"> | string | null
-    responseBody?: JsonNullableFilter<"RollbackIdempotencyRequest">
-    completedAt?: DateTimeNullableFilter<"RollbackIdempotencyRequest"> | Date | string | null
-    createdAt?: DateTimeFilter<"RollbackIdempotencyRequest"> | Date | string
-    updatedAt?: DateTimeFilter<"RollbackIdempotencyRequest"> | Date | string
   }
 
   export type FileSnapshotUpsertWithWhereUniqueWithoutProjectInput = {
@@ -247864,6 +249658,93 @@ export namespace Prisma {
     data: XOR<ImportJobUpdateManyMutationInput, ImportJobUncheckedUpdateManyWithoutTargetProjectInput>
   }
 
+  export type RemixJobUpsertWithWhereUniqueWithoutTargetProjectInput = {
+    where: RemixJobWhereUniqueInput
+    update: XOR<RemixJobUpdateWithoutTargetProjectInput, RemixJobUncheckedUpdateWithoutTargetProjectInput>
+    create: XOR<RemixJobCreateWithoutTargetProjectInput, RemixJobUncheckedCreateWithoutTargetProjectInput>
+  }
+
+  export type RemixJobUpdateWithWhereUniqueWithoutTargetProjectInput = {
+    where: RemixJobWhereUniqueInput
+    data: XOR<RemixJobUpdateWithoutTargetProjectInput, RemixJobUncheckedUpdateWithoutTargetProjectInput>
+  }
+
+  export type RemixJobUpdateManyWithWhereWithoutTargetProjectInput = {
+    where: RemixJobScalarWhereInput
+    data: XOR<RemixJobUpdateManyMutationInput, RemixJobUncheckedUpdateManyWithoutTargetProjectInput>
+  }
+
+  export type RemixJobScalarWhereInput = {
+    AND?: RemixJobScalarWhereInput | RemixJobScalarWhereInput[]
+    OR?: RemixJobScalarWhereInput[]
+    NOT?: RemixJobScalarWhereInput | RemixJobScalarWhereInput[]
+    id?: StringFilter<"RemixJob"> | string
+    sourceProjectId?: StringFilter<"RemixJob"> | string
+    targetProjectId?: StringNullableFilter<"RemixJob"> | string | null
+    organizationId?: StringFilter<"RemixJob"> | string
+    actorUserId?: StringNullableFilter<"RemixJob"> | string | null
+    state?: StringFilter<"RemixJob"> | string
+    idempotencyKey?: StringNullableFilter<"RemixJob"> | string | null
+    requestHash?: StringNullableFilter<"RemixJob"> | string | null
+    version?: IntFilter<"RemixJob"> | number
+    operationToken?: StringNullableFilter<"RemixJob"> | string | null
+    operationExpiresAt?: DateTimeNullableFilter<"RemixJob"> | Date | string | null
+    sourceSnapshotId?: StringNullableFilter<"RemixJob"> | string | null
+    sourceSnapshotHash?: StringNullableFilter<"RemixJob"> | string | null
+    sourceListingId?: StringNullableFilter<"RemixJob"> | string | null
+    detachedKeys?: JsonNullableFilter<"RemixJob">
+    storagePolicy?: StringFilter<"RemixJob"> | string
+    storageConsentVersion?: StringNullableFilter<"RemixJob"> | string | null
+    storageInventory?: JsonNullableFilter<"RemixJob">
+    storageShareId?: StringNullableFilter<"RemixJob"> | string | null
+    scanFindings?: JsonNullableFilter<"RemixJob">
+    scrubbedCount?: IntFilter<"RemixJob"> | number
+    licenseSnapshot?: JsonNullableFilter<"RemixJob">
+    consentVersion?: StringNullableFilter<"RemixJob"> | string | null
+    piiFindings?: JsonNullableFilter<"RemixJob">
+    piiMaskedCount?: IntFilter<"RemixJob"> | number
+    dbForked?: BoolFilter<"RemixJob"> | boolean
+    sourceDatabasePin?: JsonNullableFilter<"RemixJob">
+    targetDatabaseInstanceId?: StringNullableFilter<"RemixJob"> | string | null
+    cleanupTerminalState?: StringNullableFilter<"RemixJob"> | string | null
+    errorCode?: StringNullableFilter<"RemixJob"> | string | null
+    error?: StringNullableFilter<"RemixJob"> | string | null
+    createdAt?: DateTimeFilter<"RemixJob"> | Date | string
+    updatedAt?: DateTimeFilter<"RemixJob"> | Date | string
+  }
+
+  export type RemixStorageShareUpsertWithWhereUniqueWithoutSourceProjectInput = {
+    where: RemixStorageShareWhereUniqueInput
+    update: XOR<RemixStorageShareUpdateWithoutSourceProjectInput, RemixStorageShareUncheckedUpdateWithoutSourceProjectInput>
+    create: XOR<RemixStorageShareCreateWithoutSourceProjectInput, RemixStorageShareUncheckedCreateWithoutSourceProjectInput>
+  }
+
+  export type RemixStorageShareUpdateWithWhereUniqueWithoutSourceProjectInput = {
+    where: RemixStorageShareWhereUniqueInput
+    data: XOR<RemixStorageShareUpdateWithoutSourceProjectInput, RemixStorageShareUncheckedUpdateWithoutSourceProjectInput>
+  }
+
+  export type RemixStorageShareUpdateManyWithWhereWithoutSourceProjectInput = {
+    where: RemixStorageShareScalarWhereInput
+    data: XOR<RemixStorageShareUpdateManyMutationInput, RemixStorageShareUncheckedUpdateManyWithoutSourceProjectInput>
+  }
+
+  export type RemixStorageShareUpsertWithWhereUniqueWithoutTargetProjectInput = {
+    where: RemixStorageShareWhereUniqueInput
+    update: XOR<RemixStorageShareUpdateWithoutTargetProjectInput, RemixStorageShareUncheckedUpdateWithoutTargetProjectInput>
+    create: XOR<RemixStorageShareCreateWithoutTargetProjectInput, RemixStorageShareUncheckedCreateWithoutTargetProjectInput>
+  }
+
+  export type RemixStorageShareUpdateWithWhereUniqueWithoutTargetProjectInput = {
+    where: RemixStorageShareWhereUniqueInput
+    data: XOR<RemixStorageShareUpdateWithoutTargetProjectInput, RemixStorageShareUncheckedUpdateWithoutTargetProjectInput>
+  }
+
+  export type RemixStorageShareUpdateManyWithWhereWithoutTargetProjectInput = {
+    where: RemixStorageShareScalarWhereInput
+    data: XOR<RemixStorageShareUpdateManyMutationInput, RemixStorageShareUncheckedUpdateManyWithoutTargetProjectInput>
+  }
+
   export type CloudProjectBindingUpsertWithoutProjectInput = {
     update: XOR<CloudProjectBindingUpdateWithoutProjectInput, CloudProjectBindingUncheckedUpdateWithoutProjectInput>
     create: XOR<CloudProjectBindingCreateWithoutProjectInput, CloudProjectBindingUncheckedCreateWithoutProjectInput>
@@ -247981,6 +249862,9 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
+    targetRemixJobs?: RemixJobCreateNestedManyWithoutTargetProjectInput
+    sourceRemixShares?: RemixStorageShareCreateNestedManyWithoutSourceProjectInput
+    targetRemixShares?: RemixStorageShareCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
   }
@@ -248029,6 +249913,9 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    targetRemixJobs?: RemixJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    sourceRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutSourceProjectInput
+    targetRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingUncheckedCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
   }
@@ -248093,6 +249980,9 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
+    targetRemixJobs?: RemixJobUpdateManyWithoutTargetProjectNestedInput
+    sourceRemixShares?: RemixStorageShareUpdateManyWithoutSourceProjectNestedInput
+    targetRemixShares?: RemixStorageShareUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
   }
@@ -248141,6 +250031,9 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    targetRemixJobs?: RemixJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    sourceRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutSourceProjectNestedInput
+    targetRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUncheckedUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
   }
@@ -248194,6 +250087,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
     importJobs?: ImportJobCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutActorInput
     cloudOperations?: CloudOperationCreateNestedManyWithoutActorInput
     projectCheckpoints?: ProjectCheckpointCreateNestedManyWithoutCreatedByInput
     invitedOrganizationMembers?: OrganizationMemberCreateNestedManyWithoutInvitedByInput
@@ -248252,6 +250147,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutActorInput
     cloudOperations?: CloudOperationUncheckedCreateNestedManyWithoutActorInput
     projectCheckpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutCreatedByInput
     invitedOrganizationMembers?: OrganizationMemberUncheckedCreateNestedManyWithoutInvitedByInput
@@ -248326,6 +250223,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutActorNestedInput
     cloudOperations?: CloudOperationUpdateManyWithoutActorNestedInput
     projectCheckpoints?: ProjectCheckpointUpdateManyWithoutCreatedByNestedInput
     invitedOrganizationMembers?: OrganizationMemberUpdateManyWithoutInvitedByNestedInput
@@ -248384,6 +250283,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutActorNestedInput
     cloudOperations?: CloudOperationUncheckedUpdateManyWithoutActorNestedInput
     projectCheckpoints?: ProjectCheckpointUncheckedUpdateManyWithoutCreatedByNestedInput
     invitedOrganizationMembers?: OrganizationMemberUncheckedUpdateManyWithoutInvitedByNestedInput
@@ -248434,6 +250335,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
     importJobs?: ImportJobCreateNestedManyWithoutOrganizationInput
+    remixStorageSharesAsSource?: RemixStorageShareCreateNestedManyWithoutSourceOrganizationInput
+    remixStorageSharesAsTarget?: RemixStorageShareCreateNestedManyWithoutTargetOrganizationInput
     cloudTenant?: CloudTenantCreateNestedOneWithoutOrganizationInput
     collaborationGroups?: CollaborationGroupCreateNestedManyWithoutOrganizationInput
     resourceAccessGrants?: ResourceAccessGrantCreateNestedManyWithoutOrganizationInput
@@ -248480,6 +250383,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutOrganizationInput
+    remixStorageSharesAsSource?: RemixStorageShareUncheckedCreateNestedManyWithoutSourceOrganizationInput
+    remixStorageSharesAsTarget?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetOrganizationInput
     cloudTenant?: CloudTenantUncheckedCreateNestedOneWithoutOrganizationInput
     collaborationGroups?: CollaborationGroupUncheckedCreateNestedManyWithoutOrganizationInput
     resourceAccessGrants?: ResourceAccessGrantUncheckedCreateNestedManyWithoutOrganizationInput
@@ -248542,6 +250447,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
     importJobs?: ImportJobUpdateManyWithoutOrganizationNestedInput
+    remixStorageSharesAsSource?: RemixStorageShareUpdateManyWithoutSourceOrganizationNestedInput
+    remixStorageSharesAsTarget?: RemixStorageShareUpdateManyWithoutTargetOrganizationNestedInput
     cloudTenant?: CloudTenantUpdateOneWithoutOrganizationNestedInput
     collaborationGroups?: CollaborationGroupUpdateManyWithoutOrganizationNestedInput
     resourceAccessGrants?: ResourceAccessGrantUpdateManyWithoutOrganizationNestedInput
@@ -248588,6 +250495,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutOrganizationNestedInput
+    remixStorageSharesAsSource?: RemixStorageShareUncheckedUpdateManyWithoutSourceOrganizationNestedInput
+    remixStorageSharesAsTarget?: RemixStorageShareUncheckedUpdateManyWithoutTargetOrganizationNestedInput
     cloudTenant?: CloudTenantUncheckedUpdateOneWithoutOrganizationNestedInput
     collaborationGroups?: CollaborationGroupUncheckedUpdateManyWithoutOrganizationNestedInput
     resourceAccessGrants?: ResourceAccessGrantUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -248637,6 +250546,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
+    targetRemixJobs?: RemixJobCreateNestedManyWithoutTargetProjectInput
+    sourceRemixShares?: RemixStorageShareCreateNestedManyWithoutSourceProjectInput
+    targetRemixShares?: RemixStorageShareCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
   }
@@ -248685,6 +250597,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    targetRemixJobs?: RemixJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    sourceRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutSourceProjectInput
+    targetRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingUncheckedCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
   }
@@ -248749,6 +250664,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
+    targetRemixJobs?: RemixJobUpdateManyWithoutTargetProjectNestedInput
+    sourceRemixShares?: RemixStorageShareUpdateManyWithoutSourceProjectNestedInput
+    targetRemixShares?: RemixStorageShareUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
   }
@@ -248797,6 +250715,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    targetRemixJobs?: RemixJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    sourceRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutSourceProjectNestedInput
+    targetRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUncheckedUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
   }
@@ -248850,6 +250771,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
     importJobs?: ImportJobCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutActorInput
     cloudOperations?: CloudOperationCreateNestedManyWithoutActorInput
     projectCheckpoints?: ProjectCheckpointCreateNestedManyWithoutCreatedByInput
     invitedOrganizationMembers?: OrganizationMemberCreateNestedManyWithoutInvitedByInput
@@ -248908,6 +250831,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutActorInput
     cloudOperations?: CloudOperationUncheckedCreateNestedManyWithoutActorInput
     projectCheckpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutCreatedByInput
     invitedOrganizationMembers?: OrganizationMemberUncheckedCreateNestedManyWithoutInvitedByInput
@@ -248963,6 +250888,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
     importJobs?: ImportJobCreateNestedManyWithoutOrganizationInput
+    remixStorageSharesAsSource?: RemixStorageShareCreateNestedManyWithoutSourceOrganizationInput
+    remixStorageSharesAsTarget?: RemixStorageShareCreateNestedManyWithoutTargetOrganizationInput
     cloudTenant?: CloudTenantCreateNestedOneWithoutOrganizationInput
     collaborationGroups?: CollaborationGroupCreateNestedManyWithoutOrganizationInput
     resourceAccessGrants?: ResourceAccessGrantCreateNestedManyWithoutOrganizationInput
@@ -249009,6 +250936,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutOrganizationInput
+    remixStorageSharesAsSource?: RemixStorageShareUncheckedCreateNestedManyWithoutSourceOrganizationInput
+    remixStorageSharesAsTarget?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetOrganizationInput
     cloudTenant?: CloudTenantUncheckedCreateNestedOneWithoutOrganizationInput
     collaborationGroups?: CollaborationGroupUncheckedCreateNestedManyWithoutOrganizationInput
     resourceAccessGrants?: ResourceAccessGrantUncheckedCreateNestedManyWithoutOrganizationInput
@@ -249063,6 +250992,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
+    targetRemixJobs?: RemixJobCreateNestedManyWithoutTargetProjectInput
+    sourceRemixShares?: RemixStorageShareCreateNestedManyWithoutSourceProjectInput
+    targetRemixShares?: RemixStorageShareCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
   }
@@ -249111,6 +251043,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    targetRemixJobs?: RemixJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    sourceRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutSourceProjectInput
+    targetRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingUncheckedCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
   }
@@ -249180,6 +251115,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutActorNestedInput
     cloudOperations?: CloudOperationUpdateManyWithoutActorNestedInput
     projectCheckpoints?: ProjectCheckpointUpdateManyWithoutCreatedByNestedInput
     invitedOrganizationMembers?: OrganizationMemberUpdateManyWithoutInvitedByNestedInput
@@ -249238,6 +251175,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutActorNestedInput
     cloudOperations?: CloudOperationUncheckedUpdateManyWithoutActorNestedInput
     projectCheckpoints?: ProjectCheckpointUncheckedUpdateManyWithoutCreatedByNestedInput
     invitedOrganizationMembers?: OrganizationMemberUncheckedUpdateManyWithoutInvitedByNestedInput
@@ -249299,6 +251238,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
     importJobs?: ImportJobUpdateManyWithoutOrganizationNestedInput
+    remixStorageSharesAsSource?: RemixStorageShareUpdateManyWithoutSourceOrganizationNestedInput
+    remixStorageSharesAsTarget?: RemixStorageShareUpdateManyWithoutTargetOrganizationNestedInput
     cloudTenant?: CloudTenantUpdateOneWithoutOrganizationNestedInput
     collaborationGroups?: CollaborationGroupUpdateManyWithoutOrganizationNestedInput
     resourceAccessGrants?: ResourceAccessGrantUpdateManyWithoutOrganizationNestedInput
@@ -249345,6 +251286,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutOrganizationNestedInput
+    remixStorageSharesAsSource?: RemixStorageShareUncheckedUpdateManyWithoutSourceOrganizationNestedInput
+    remixStorageSharesAsTarget?: RemixStorageShareUncheckedUpdateManyWithoutTargetOrganizationNestedInput
     cloudTenant?: CloudTenantUncheckedUpdateOneWithoutOrganizationNestedInput
     collaborationGroups?: CollaborationGroupUncheckedUpdateManyWithoutOrganizationNestedInput
     resourceAccessGrants?: ResourceAccessGrantUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -249405,6 +251348,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
+    targetRemixJobs?: RemixJobUpdateManyWithoutTargetProjectNestedInput
+    sourceRemixShares?: RemixStorageShareUpdateManyWithoutSourceProjectNestedInput
+    targetRemixShares?: RemixStorageShareUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
   }
@@ -249453,6 +251399,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    targetRemixJobs?: RemixJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    sourceRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutSourceProjectNestedInput
+    targetRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUncheckedUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
   }
@@ -249501,6 +251450,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
+    targetRemixJobs?: RemixJobCreateNestedManyWithoutTargetProjectInput
+    sourceRemixShares?: RemixStorageShareCreateNestedManyWithoutSourceProjectInput
+    targetRemixShares?: RemixStorageShareCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
   }
@@ -249549,6 +251501,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    targetRemixJobs?: RemixJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    sourceRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutSourceProjectInput
+    targetRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingUncheckedCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
   }
@@ -249607,6 +251562,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
     importJobs?: ImportJobCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutActorInput
     cloudOperations?: CloudOperationCreateNestedManyWithoutActorInput
     projectCheckpoints?: ProjectCheckpointCreateNestedManyWithoutCreatedByInput
     invitedOrganizationMembers?: OrganizationMemberCreateNestedManyWithoutInvitedByInput
@@ -249665,6 +251622,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutActorInput
     cloudOperations?: CloudOperationUncheckedCreateNestedManyWithoutActorInput
     projectCheckpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutCreatedByInput
     invitedOrganizationMembers?: OrganizationMemberUncheckedCreateNestedManyWithoutInvitedByInput
@@ -249734,6 +251693,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
+    targetRemixJobs?: RemixJobUpdateManyWithoutTargetProjectNestedInput
+    sourceRemixShares?: RemixStorageShareUpdateManyWithoutSourceProjectNestedInput
+    targetRemixShares?: RemixStorageShareUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
   }
@@ -249782,6 +251744,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    targetRemixJobs?: RemixJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    sourceRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutSourceProjectNestedInput
+    targetRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUncheckedUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
   }
@@ -249846,6 +251811,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutActorNestedInput
     cloudOperations?: CloudOperationUpdateManyWithoutActorNestedInput
     projectCheckpoints?: ProjectCheckpointUpdateManyWithoutCreatedByNestedInput
     invitedOrganizationMembers?: OrganizationMemberUpdateManyWithoutInvitedByNestedInput
@@ -249904,6 +251871,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutActorNestedInput
     cloudOperations?: CloudOperationUncheckedUpdateManyWithoutActorNestedInput
     projectCheckpoints?: ProjectCheckpointUncheckedUpdateManyWithoutCreatedByNestedInput
     invitedOrganizationMembers?: OrganizationMemberUncheckedUpdateManyWithoutInvitedByNestedInput
@@ -249957,6 +251926,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
+    targetRemixJobs?: RemixJobCreateNestedManyWithoutTargetProjectInput
+    sourceRemixShares?: RemixStorageShareCreateNestedManyWithoutSourceProjectInput
+    targetRemixShares?: RemixStorageShareCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
   }
@@ -250005,6 +251977,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    targetRemixJobs?: RemixJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    sourceRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutSourceProjectInput
+    targetRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingUncheckedCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
   }
@@ -250069,6 +252044,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
+    targetRemixJobs?: RemixJobUpdateManyWithoutTargetProjectNestedInput
+    sourceRemixShares?: RemixStorageShareUpdateManyWithoutSourceProjectNestedInput
+    targetRemixShares?: RemixStorageShareUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
   }
@@ -250117,6 +252095,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    targetRemixJobs?: RemixJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    sourceRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutSourceProjectNestedInput
+    targetRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUncheckedUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
   }
@@ -250165,6 +252146,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
+    targetRemixJobs?: RemixJobCreateNestedManyWithoutTargetProjectInput
+    sourceRemixShares?: RemixStorageShareCreateNestedManyWithoutSourceProjectInput
+    targetRemixShares?: RemixStorageShareCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
   }
@@ -250213,6 +252197,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    targetRemixJobs?: RemixJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    sourceRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutSourceProjectInput
+    targetRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingUncheckedCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
   }
@@ -250277,6 +252264,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
+    targetRemixJobs?: RemixJobUpdateManyWithoutTargetProjectNestedInput
+    sourceRemixShares?: RemixStorageShareUpdateManyWithoutSourceProjectNestedInput
+    targetRemixShares?: RemixStorageShareUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
   }
@@ -250325,6 +252315,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    targetRemixJobs?: RemixJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    sourceRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutSourceProjectNestedInput
+    targetRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUncheckedUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
   }
@@ -250373,6 +252366,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
+    targetRemixJobs?: RemixJobCreateNestedManyWithoutTargetProjectInput
+    sourceRemixShares?: RemixStorageShareCreateNestedManyWithoutSourceProjectInput
+    targetRemixShares?: RemixStorageShareCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
   }
@@ -250421,6 +252417,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    targetRemixJobs?: RemixJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    sourceRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutSourceProjectInput
+    targetRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingUncheckedCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
   }
@@ -250485,6 +252484,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
+    targetRemixJobs?: RemixJobUpdateManyWithoutTargetProjectNestedInput
+    sourceRemixShares?: RemixStorageShareUpdateManyWithoutSourceProjectNestedInput
+    targetRemixShares?: RemixStorageShareUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
   }
@@ -250533,6 +252535,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    targetRemixJobs?: RemixJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    sourceRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutSourceProjectNestedInput
+    targetRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUncheckedUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
   }
@@ -250581,6 +252586,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
+    targetRemixJobs?: RemixJobCreateNestedManyWithoutTargetProjectInput
+    sourceRemixShares?: RemixStorageShareCreateNestedManyWithoutSourceProjectInput
+    targetRemixShares?: RemixStorageShareCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
   }
@@ -250629,6 +252637,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    targetRemixJobs?: RemixJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    sourceRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutSourceProjectInput
+    targetRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingUncheckedCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
   }
@@ -250693,6 +252704,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
+    targetRemixJobs?: RemixJobUpdateManyWithoutTargetProjectNestedInput
+    sourceRemixShares?: RemixStorageShareUpdateManyWithoutSourceProjectNestedInput
+    targetRemixShares?: RemixStorageShareUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
   }
@@ -250741,6 +252755,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    targetRemixJobs?: RemixJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    sourceRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutSourceProjectNestedInput
+    targetRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUncheckedUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
   }
@@ -250789,6 +252806,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
+    targetRemixJobs?: RemixJobCreateNestedManyWithoutTargetProjectInput
+    sourceRemixShares?: RemixStorageShareCreateNestedManyWithoutSourceProjectInput
+    targetRemixShares?: RemixStorageShareCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
   }
@@ -250837,6 +252857,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    targetRemixJobs?: RemixJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    sourceRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutSourceProjectInput
+    targetRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingUncheckedCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
   }
@@ -250901,6 +252924,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
+    targetRemixJobs?: RemixJobUpdateManyWithoutTargetProjectNestedInput
+    sourceRemixShares?: RemixStorageShareUpdateManyWithoutSourceProjectNestedInput
+    targetRemixShares?: RemixStorageShareUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
   }
@@ -250949,6 +252975,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    targetRemixJobs?: RemixJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    sourceRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutSourceProjectNestedInput
+    targetRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUncheckedUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
   }
@@ -250997,6 +253026,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
+    targetRemixJobs?: RemixJobCreateNestedManyWithoutTargetProjectInput
+    sourceRemixShares?: RemixStorageShareCreateNestedManyWithoutSourceProjectInput
+    targetRemixShares?: RemixStorageShareCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
   }
@@ -251045,6 +253077,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    targetRemixJobs?: RemixJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    sourceRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutSourceProjectInput
+    targetRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingUncheckedCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
   }
@@ -251109,6 +253144,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
+    targetRemixJobs?: RemixJobUpdateManyWithoutTargetProjectNestedInput
+    sourceRemixShares?: RemixStorageShareUpdateManyWithoutSourceProjectNestedInput
+    targetRemixShares?: RemixStorageShareUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
   }
@@ -251157,6 +253195,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    targetRemixJobs?: RemixJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    sourceRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutSourceProjectNestedInput
+    targetRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUncheckedUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
   }
@@ -251205,6 +253246,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
+    targetRemixJobs?: RemixJobCreateNestedManyWithoutTargetProjectInput
+    sourceRemixShares?: RemixStorageShareCreateNestedManyWithoutSourceProjectInput
+    targetRemixShares?: RemixStorageShareCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
   }
@@ -251253,6 +253297,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    targetRemixJobs?: RemixJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    sourceRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutSourceProjectInput
+    targetRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingUncheckedCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
   }
@@ -251311,6 +253358,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
     importJobs?: ImportJobCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutActorInput
     cloudOperations?: CloudOperationCreateNestedManyWithoutActorInput
     projectCheckpoints?: ProjectCheckpointCreateNestedManyWithoutCreatedByInput
     invitedOrganizationMembers?: OrganizationMemberCreateNestedManyWithoutInvitedByInput
@@ -251369,6 +253418,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutActorInput
     cloudOperations?: CloudOperationUncheckedCreateNestedManyWithoutActorInput
     projectCheckpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutCreatedByInput
     invitedOrganizationMembers?: OrganizationMemberUncheckedCreateNestedManyWithoutInvitedByInput
@@ -251438,6 +253489,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
+    targetRemixJobs?: RemixJobUpdateManyWithoutTargetProjectNestedInput
+    sourceRemixShares?: RemixStorageShareUpdateManyWithoutSourceProjectNestedInput
+    targetRemixShares?: RemixStorageShareUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
   }
@@ -251486,6 +253540,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    targetRemixJobs?: RemixJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    sourceRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutSourceProjectNestedInput
+    targetRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUncheckedUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
   }
@@ -251550,6 +253607,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutActorNestedInput
     cloudOperations?: CloudOperationUpdateManyWithoutActorNestedInput
     projectCheckpoints?: ProjectCheckpointUpdateManyWithoutCreatedByNestedInput
     invitedOrganizationMembers?: OrganizationMemberUpdateManyWithoutInvitedByNestedInput
@@ -251608,6 +253667,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutActorNestedInput
     cloudOperations?: CloudOperationUncheckedUpdateManyWithoutActorNestedInput
     projectCheckpoints?: ProjectCheckpointUncheckedUpdateManyWithoutCreatedByNestedInput
     invitedOrganizationMembers?: OrganizationMemberUncheckedUpdateManyWithoutInvitedByNestedInput
@@ -251661,6 +253722,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
+    targetRemixJobs?: RemixJobCreateNestedManyWithoutTargetProjectInput
+    sourceRemixShares?: RemixStorageShareCreateNestedManyWithoutSourceProjectInput
+    targetRemixShares?: RemixStorageShareCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
   }
@@ -251709,6 +253773,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    targetRemixJobs?: RemixJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    sourceRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutSourceProjectInput
+    targetRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingUncheckedCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
   }
@@ -251767,6 +253834,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
     importJobs?: ImportJobCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutActorInput
     cloudOperations?: CloudOperationCreateNestedManyWithoutActorInput
     projectCheckpoints?: ProjectCheckpointCreateNestedManyWithoutCreatedByInput
     invitedOrganizationMembers?: OrganizationMemberCreateNestedManyWithoutInvitedByInput
@@ -251825,6 +253894,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutActorInput
     cloudOperations?: CloudOperationUncheckedCreateNestedManyWithoutActorInput
     projectCheckpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutCreatedByInput
     invitedOrganizationMembers?: OrganizationMemberUncheckedCreateNestedManyWithoutInvitedByInput
@@ -251894,6 +253965,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
+    targetRemixJobs?: RemixJobUpdateManyWithoutTargetProjectNestedInput
+    sourceRemixShares?: RemixStorageShareUpdateManyWithoutSourceProjectNestedInput
+    targetRemixShares?: RemixStorageShareUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
   }
@@ -251942,6 +254016,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    targetRemixJobs?: RemixJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    sourceRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutSourceProjectNestedInput
+    targetRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUncheckedUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
   }
@@ -252006,6 +254083,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutActorNestedInput
     cloudOperations?: CloudOperationUpdateManyWithoutActorNestedInput
     projectCheckpoints?: ProjectCheckpointUpdateManyWithoutCreatedByNestedInput
     invitedOrganizationMembers?: OrganizationMemberUpdateManyWithoutInvitedByNestedInput
@@ -252064,6 +254143,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutActorNestedInput
     cloudOperations?: CloudOperationUncheckedUpdateManyWithoutActorNestedInput
     projectCheckpoints?: ProjectCheckpointUncheckedUpdateManyWithoutCreatedByNestedInput
     invitedOrganizationMembers?: OrganizationMemberUncheckedUpdateManyWithoutInvitedByNestedInput
@@ -252117,6 +254198,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
+    targetRemixJobs?: RemixJobCreateNestedManyWithoutTargetProjectInput
+    sourceRemixShares?: RemixStorageShareCreateNestedManyWithoutSourceProjectInput
+    targetRemixShares?: RemixStorageShareCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
   }
@@ -252165,6 +254249,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    targetRemixJobs?: RemixJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    sourceRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutSourceProjectInput
+    targetRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingUncheckedCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
   }
@@ -252223,6 +254310,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
     importJobs?: ImportJobCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutActorInput
     cloudOperations?: CloudOperationCreateNestedManyWithoutActorInput
     projectCheckpoints?: ProjectCheckpointCreateNestedManyWithoutCreatedByInput
     invitedOrganizationMembers?: OrganizationMemberCreateNestedManyWithoutInvitedByInput
@@ -252281,6 +254370,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutActorInput
     cloudOperations?: CloudOperationUncheckedCreateNestedManyWithoutActorInput
     projectCheckpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutCreatedByInput
     invitedOrganizationMembers?: OrganizationMemberUncheckedCreateNestedManyWithoutInvitedByInput
@@ -252350,6 +254441,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
+    targetRemixJobs?: RemixJobUpdateManyWithoutTargetProjectNestedInput
+    sourceRemixShares?: RemixStorageShareUpdateManyWithoutSourceProjectNestedInput
+    targetRemixShares?: RemixStorageShareUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
   }
@@ -252398,6 +254492,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    targetRemixJobs?: RemixJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    sourceRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutSourceProjectNestedInput
+    targetRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUncheckedUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
   }
@@ -252462,6 +254559,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutActorNestedInput
     cloudOperations?: CloudOperationUpdateManyWithoutActorNestedInput
     projectCheckpoints?: ProjectCheckpointUpdateManyWithoutCreatedByNestedInput
     invitedOrganizationMembers?: OrganizationMemberUpdateManyWithoutInvitedByNestedInput
@@ -252520,6 +254619,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutActorNestedInput
     cloudOperations?: CloudOperationUncheckedUpdateManyWithoutActorNestedInput
     projectCheckpoints?: ProjectCheckpointUncheckedUpdateManyWithoutCreatedByNestedInput
     invitedOrganizationMembers?: OrganizationMemberUncheckedUpdateManyWithoutInvitedByNestedInput
@@ -252573,6 +254674,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
+    targetRemixJobs?: RemixJobCreateNestedManyWithoutTargetProjectInput
+    sourceRemixShares?: RemixStorageShareCreateNestedManyWithoutSourceProjectInput
+    targetRemixShares?: RemixStorageShareCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
   }
@@ -252621,6 +254725,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    targetRemixJobs?: RemixJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    sourceRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutSourceProjectInput
+    targetRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingUncheckedCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
   }
@@ -252679,6 +254786,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
     importJobs?: ImportJobCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutActorInput
     cloudOperations?: CloudOperationCreateNestedManyWithoutActorInput
     projectCheckpoints?: ProjectCheckpointCreateNestedManyWithoutCreatedByInput
     invitedOrganizationMembers?: OrganizationMemberCreateNestedManyWithoutInvitedByInput
@@ -252737,6 +254846,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutActorInput
     cloudOperations?: CloudOperationUncheckedCreateNestedManyWithoutActorInput
     projectCheckpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutCreatedByInput
     invitedOrganizationMembers?: OrganizationMemberUncheckedCreateNestedManyWithoutInvitedByInput
@@ -252806,6 +254917,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
+    targetRemixJobs?: RemixJobUpdateManyWithoutTargetProjectNestedInput
+    sourceRemixShares?: RemixStorageShareUpdateManyWithoutSourceProjectNestedInput
+    targetRemixShares?: RemixStorageShareUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
   }
@@ -252854,6 +254968,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    targetRemixJobs?: RemixJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    sourceRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutSourceProjectNestedInput
+    targetRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUncheckedUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
   }
@@ -252918,6 +255035,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutActorNestedInput
     cloudOperations?: CloudOperationUpdateManyWithoutActorNestedInput
     projectCheckpoints?: ProjectCheckpointUpdateManyWithoutCreatedByNestedInput
     invitedOrganizationMembers?: OrganizationMemberUpdateManyWithoutInvitedByNestedInput
@@ -252976,6 +255095,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutActorNestedInput
     cloudOperations?: CloudOperationUncheckedUpdateManyWithoutActorNestedInput
     projectCheckpoints?: ProjectCheckpointUncheckedUpdateManyWithoutCreatedByNestedInput
     invitedOrganizationMembers?: OrganizationMemberUncheckedUpdateManyWithoutInvitedByNestedInput
@@ -253029,6 +255150,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
+    targetRemixJobs?: RemixJobCreateNestedManyWithoutTargetProjectInput
+    sourceRemixShares?: RemixStorageShareCreateNestedManyWithoutSourceProjectInput
+    targetRemixShares?: RemixStorageShareCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
   }
@@ -253077,6 +255201,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    targetRemixJobs?: RemixJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    sourceRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutSourceProjectInput
+    targetRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingUncheckedCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
   }
@@ -253135,6 +255262,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
     importJobs?: ImportJobCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutActorInput
     cloudOperations?: CloudOperationCreateNestedManyWithoutActorInput
     projectCheckpoints?: ProjectCheckpointCreateNestedManyWithoutCreatedByInput
     invitedOrganizationMembers?: OrganizationMemberCreateNestedManyWithoutInvitedByInput
@@ -253193,6 +255322,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutActorInput
     cloudOperations?: CloudOperationUncheckedCreateNestedManyWithoutActorInput
     projectCheckpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutCreatedByInput
     invitedOrganizationMembers?: OrganizationMemberUncheckedCreateNestedManyWithoutInvitedByInput
@@ -253262,6 +255393,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
+    targetRemixJobs?: RemixJobUpdateManyWithoutTargetProjectNestedInput
+    sourceRemixShares?: RemixStorageShareUpdateManyWithoutSourceProjectNestedInput
+    targetRemixShares?: RemixStorageShareUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
   }
@@ -253310,6 +255444,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    targetRemixJobs?: RemixJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    sourceRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutSourceProjectNestedInput
+    targetRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUncheckedUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
   }
@@ -253374,6 +255511,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutActorNestedInput
     cloudOperations?: CloudOperationUpdateManyWithoutActorNestedInput
     projectCheckpoints?: ProjectCheckpointUpdateManyWithoutCreatedByNestedInput
     invitedOrganizationMembers?: OrganizationMemberUpdateManyWithoutInvitedByNestedInput
@@ -253432,6 +255571,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutActorNestedInput
     cloudOperations?: CloudOperationUncheckedUpdateManyWithoutActorNestedInput
     projectCheckpoints?: ProjectCheckpointUncheckedUpdateManyWithoutCreatedByNestedInput
     invitedOrganizationMembers?: OrganizationMemberUncheckedUpdateManyWithoutInvitedByNestedInput
@@ -253483,6 +255624,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
     importJobs?: ImportJobCreateNestedManyWithoutOrganizationInput
+    remixStorageSharesAsSource?: RemixStorageShareCreateNestedManyWithoutSourceOrganizationInput
+    remixStorageSharesAsTarget?: RemixStorageShareCreateNestedManyWithoutTargetOrganizationInput
     cloudTenant?: CloudTenantCreateNestedOneWithoutOrganizationInput
     resourceAccessGrants?: ResourceAccessGrantCreateNestedManyWithoutOrganizationInput
   }
@@ -253529,6 +255672,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutOrganizationInput
+    remixStorageSharesAsSource?: RemixStorageShareUncheckedCreateNestedManyWithoutSourceOrganizationInput
+    remixStorageSharesAsTarget?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetOrganizationInput
     cloudTenant?: CloudTenantUncheckedCreateNestedOneWithoutOrganizationInput
     resourceAccessGrants?: ResourceAccessGrantUncheckedCreateNestedManyWithoutOrganizationInput
   }
@@ -253666,6 +255811,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
     importJobs?: ImportJobUpdateManyWithoutOrganizationNestedInput
+    remixStorageSharesAsSource?: RemixStorageShareUpdateManyWithoutSourceOrganizationNestedInput
+    remixStorageSharesAsTarget?: RemixStorageShareUpdateManyWithoutTargetOrganizationNestedInput
     cloudTenant?: CloudTenantUpdateOneWithoutOrganizationNestedInput
     resourceAccessGrants?: ResourceAccessGrantUpdateManyWithoutOrganizationNestedInput
   }
@@ -253712,6 +255859,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutOrganizationNestedInput
+    remixStorageSharesAsSource?: RemixStorageShareUncheckedUpdateManyWithoutSourceOrganizationNestedInput
+    remixStorageSharesAsTarget?: RemixStorageShareUncheckedUpdateManyWithoutTargetOrganizationNestedInput
     cloudTenant?: CloudTenantUncheckedUpdateOneWithoutOrganizationNestedInput
     resourceAccessGrants?: ResourceAccessGrantUncheckedUpdateManyWithoutOrganizationNestedInput
   }
@@ -253918,6 +256067,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
     importJobs?: ImportJobCreateNestedManyWithoutOrganizationInput
+    remixStorageSharesAsSource?: RemixStorageShareCreateNestedManyWithoutSourceOrganizationInput
+    remixStorageSharesAsTarget?: RemixStorageShareCreateNestedManyWithoutTargetOrganizationInput
     cloudTenant?: CloudTenantCreateNestedOneWithoutOrganizationInput
     collaborationGroups?: CollaborationGroupCreateNestedManyWithoutOrganizationInput
   }
@@ -253964,6 +256115,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutOrganizationInput
+    remixStorageSharesAsSource?: RemixStorageShareUncheckedCreateNestedManyWithoutSourceOrganizationInput
+    remixStorageSharesAsTarget?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetOrganizationInput
     cloudTenant?: CloudTenantUncheckedCreateNestedOneWithoutOrganizationInput
     collaborationGroups?: CollaborationGroupUncheckedCreateNestedManyWithoutOrganizationInput
   }
@@ -254023,6 +256176,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
     importJobs?: ImportJobCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutActorInput
     cloudOperations?: CloudOperationCreateNestedManyWithoutActorInput
     projectCheckpoints?: ProjectCheckpointCreateNestedManyWithoutCreatedByInput
     invitedOrganizationMembers?: OrganizationMemberCreateNestedManyWithoutInvitedByInput
@@ -254081,6 +256236,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutActorInput
     cloudOperations?: CloudOperationUncheckedCreateNestedManyWithoutActorInput
     projectCheckpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutCreatedByInput
     invitedOrganizationMembers?: OrganizationMemberUncheckedCreateNestedManyWithoutInvitedByInput
@@ -254175,6 +256332,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
     importJobs?: ImportJobCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutActorInput
     cloudOperations?: CloudOperationCreateNestedManyWithoutActorInput
     projectCheckpoints?: ProjectCheckpointCreateNestedManyWithoutCreatedByInput
     invitedOrganizationMembers?: OrganizationMemberCreateNestedManyWithoutInvitedByInput
@@ -254233,6 +256392,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutActorInput
     cloudOperations?: CloudOperationUncheckedCreateNestedManyWithoutActorInput
     projectCheckpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutCreatedByInput
     invitedOrganizationMembers?: OrganizationMemberUncheckedCreateNestedManyWithoutInvitedByInput
@@ -254296,6 +256457,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
     importJobs?: ImportJobCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutActorInput
     cloudOperations?: CloudOperationCreateNestedManyWithoutActorInput
     projectCheckpoints?: ProjectCheckpointCreateNestedManyWithoutCreatedByInput
     invitedOrganizationMembers?: OrganizationMemberCreateNestedManyWithoutInvitedByInput
@@ -254354,6 +256517,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutActorInput
     cloudOperations?: CloudOperationUncheckedCreateNestedManyWithoutActorInput
     projectCheckpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutCreatedByInput
     invitedOrganizationMembers?: OrganizationMemberUncheckedCreateNestedManyWithoutInvitedByInput
@@ -254420,6 +256585,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
     importJobs?: ImportJobUpdateManyWithoutOrganizationNestedInput
+    remixStorageSharesAsSource?: RemixStorageShareUpdateManyWithoutSourceOrganizationNestedInput
+    remixStorageSharesAsTarget?: RemixStorageShareUpdateManyWithoutTargetOrganizationNestedInput
     cloudTenant?: CloudTenantUpdateOneWithoutOrganizationNestedInput
     collaborationGroups?: CollaborationGroupUpdateManyWithoutOrganizationNestedInput
   }
@@ -254466,6 +256633,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutOrganizationNestedInput
+    remixStorageSharesAsSource?: RemixStorageShareUncheckedUpdateManyWithoutSourceOrganizationNestedInput
+    remixStorageSharesAsTarget?: RemixStorageShareUncheckedUpdateManyWithoutTargetOrganizationNestedInput
     cloudTenant?: CloudTenantUncheckedUpdateOneWithoutOrganizationNestedInput
     collaborationGroups?: CollaborationGroupUncheckedUpdateManyWithoutOrganizationNestedInput
   }
@@ -254531,6 +256700,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutActorNestedInput
     cloudOperations?: CloudOperationUpdateManyWithoutActorNestedInput
     projectCheckpoints?: ProjectCheckpointUpdateManyWithoutCreatedByNestedInput
     invitedOrganizationMembers?: OrganizationMemberUpdateManyWithoutInvitedByNestedInput
@@ -254589,6 +256760,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutActorNestedInput
     cloudOperations?: CloudOperationUncheckedUpdateManyWithoutActorNestedInput
     projectCheckpoints?: ProjectCheckpointUncheckedUpdateManyWithoutCreatedByNestedInput
     invitedOrganizationMembers?: OrganizationMemberUncheckedUpdateManyWithoutInvitedByNestedInput
@@ -254695,6 +256868,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutActorNestedInput
     cloudOperations?: CloudOperationUpdateManyWithoutActorNestedInput
     projectCheckpoints?: ProjectCheckpointUpdateManyWithoutCreatedByNestedInput
     invitedOrganizationMembers?: OrganizationMemberUpdateManyWithoutInvitedByNestedInput
@@ -254753,6 +256928,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutActorNestedInput
     cloudOperations?: CloudOperationUncheckedUpdateManyWithoutActorNestedInput
     projectCheckpoints?: ProjectCheckpointUncheckedUpdateManyWithoutCreatedByNestedInput
     invitedOrganizationMembers?: OrganizationMemberUncheckedUpdateManyWithoutInvitedByNestedInput
@@ -254822,6 +256999,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutActorNestedInput
     cloudOperations?: CloudOperationUpdateManyWithoutActorNestedInput
     projectCheckpoints?: ProjectCheckpointUpdateManyWithoutCreatedByNestedInput
     invitedOrganizationMembers?: OrganizationMemberUpdateManyWithoutInvitedByNestedInput
@@ -254880,6 +257059,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutActorNestedInput
     cloudOperations?: CloudOperationUncheckedUpdateManyWithoutActorNestedInput
     projectCheckpoints?: ProjectCheckpointUncheckedUpdateManyWithoutCreatedByNestedInput
     invitedOrganizationMembers?: OrganizationMemberUncheckedUpdateManyWithoutInvitedByNestedInput
@@ -254932,6 +257113,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
+    targetRemixJobs?: RemixJobCreateNestedManyWithoutTargetProjectInput
+    sourceRemixShares?: RemixStorageShareCreateNestedManyWithoutSourceProjectInput
+    targetRemixShares?: RemixStorageShareCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
   }
@@ -254980,6 +257164,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    targetRemixJobs?: RemixJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    sourceRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutSourceProjectInput
+    targetRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingUncheckedCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
   }
@@ -255030,6 +257217,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
     importJobs?: ImportJobCreateNestedManyWithoutOrganizationInput
+    remixStorageSharesAsSource?: RemixStorageShareCreateNestedManyWithoutSourceOrganizationInput
+    remixStorageSharesAsTarget?: RemixStorageShareCreateNestedManyWithoutTargetOrganizationInput
     cloudTenant?: CloudTenantCreateNestedOneWithoutOrganizationInput
     collaborationGroups?: CollaborationGroupCreateNestedManyWithoutOrganizationInput
     resourceAccessGrants?: ResourceAccessGrantCreateNestedManyWithoutOrganizationInput
@@ -255076,6 +257265,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutOrganizationInput
+    remixStorageSharesAsSource?: RemixStorageShareUncheckedCreateNestedManyWithoutSourceOrganizationInput
+    remixStorageSharesAsTarget?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetOrganizationInput
     cloudTenant?: CloudTenantUncheckedCreateNestedOneWithoutOrganizationInput
     collaborationGroups?: CollaborationGroupUncheckedCreateNestedManyWithoutOrganizationInput
     resourceAccessGrants?: ResourceAccessGrantUncheckedCreateNestedManyWithoutOrganizationInput
@@ -255141,6 +257332,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
+    targetRemixJobs?: RemixJobUpdateManyWithoutTargetProjectNestedInput
+    sourceRemixShares?: RemixStorageShareUpdateManyWithoutSourceProjectNestedInput
+    targetRemixShares?: RemixStorageShareUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
   }
@@ -255189,6 +257383,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    targetRemixJobs?: RemixJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    sourceRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutSourceProjectNestedInput
+    targetRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUncheckedUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
   }
@@ -255245,6 +257442,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
     importJobs?: ImportJobUpdateManyWithoutOrganizationNestedInput
+    remixStorageSharesAsSource?: RemixStorageShareUpdateManyWithoutSourceOrganizationNestedInput
+    remixStorageSharesAsTarget?: RemixStorageShareUpdateManyWithoutTargetOrganizationNestedInput
     cloudTenant?: CloudTenantUpdateOneWithoutOrganizationNestedInput
     collaborationGroups?: CollaborationGroupUpdateManyWithoutOrganizationNestedInput
     resourceAccessGrants?: ResourceAccessGrantUpdateManyWithoutOrganizationNestedInput
@@ -255291,6 +257490,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutOrganizationNestedInput
+    remixStorageSharesAsSource?: RemixStorageShareUncheckedUpdateManyWithoutSourceOrganizationNestedInput
+    remixStorageSharesAsTarget?: RemixStorageShareUncheckedUpdateManyWithoutTargetOrganizationNestedInput
     cloudTenant?: CloudTenantUncheckedUpdateOneWithoutOrganizationNestedInput
     collaborationGroups?: CollaborationGroupUncheckedUpdateManyWithoutOrganizationNestedInput
     resourceAccessGrants?: ResourceAccessGrantUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -255340,6 +257541,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
+    targetRemixJobs?: RemixJobCreateNestedManyWithoutTargetProjectInput
+    sourceRemixShares?: RemixStorageShareCreateNestedManyWithoutSourceProjectInput
+    targetRemixShares?: RemixStorageShareCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
   }
@@ -255388,6 +257592,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    targetRemixJobs?: RemixJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    sourceRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutSourceProjectInput
+    targetRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingUncheckedCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
   }
@@ -255639,6 +257846,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
+    targetRemixJobs?: RemixJobUpdateManyWithoutTargetProjectNestedInput
+    sourceRemixShares?: RemixStorageShareUpdateManyWithoutSourceProjectNestedInput
+    targetRemixShares?: RemixStorageShareUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
   }
@@ -255687,6 +257897,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    targetRemixJobs?: RemixJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    sourceRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutSourceProjectNestedInput
+    targetRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUncheckedUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
   }
@@ -256197,6 +258410,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
+    targetRemixJobs?: RemixJobCreateNestedManyWithoutTargetProjectInput
+    sourceRemixShares?: RemixStorageShareCreateNestedManyWithoutSourceProjectInput
+    targetRemixShares?: RemixStorageShareCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
   }
@@ -256245,6 +258461,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    targetRemixJobs?: RemixJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    sourceRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutSourceProjectInput
+    targetRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingUncheckedCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
   }
@@ -256352,6 +258571,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
+    targetRemixJobs?: RemixJobUpdateManyWithoutTargetProjectNestedInput
+    sourceRemixShares?: RemixStorageShareUpdateManyWithoutSourceProjectNestedInput
+    targetRemixShares?: RemixStorageShareUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
   }
@@ -256400,6 +258622,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    targetRemixJobs?: RemixJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    sourceRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutSourceProjectNestedInput
+    targetRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUncheckedUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
   }
@@ -256497,6 +258722,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
+    targetRemixJobs?: RemixJobCreateNestedManyWithoutTargetProjectInput
+    sourceRemixShares?: RemixStorageShareCreateNestedManyWithoutSourceProjectInput
+    targetRemixShares?: RemixStorageShareCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
   }
@@ -256545,6 +258773,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    targetRemixJobs?: RemixJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    sourceRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutSourceProjectInput
+    targetRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingUncheckedCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
   }
@@ -256603,6 +258834,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
     importJobs?: ImportJobCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutActorInput
     cloudOperations?: CloudOperationCreateNestedManyWithoutActorInput
     projectCheckpoints?: ProjectCheckpointCreateNestedManyWithoutCreatedByInput
     invitedOrganizationMembers?: OrganizationMemberCreateNestedManyWithoutInvitedByInput
@@ -256661,6 +258894,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutActorInput
     cloudOperations?: CloudOperationUncheckedCreateNestedManyWithoutActorInput
     projectCheckpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutCreatedByInput
     invitedOrganizationMembers?: OrganizationMemberUncheckedCreateNestedManyWithoutInvitedByInput
@@ -256730,6 +258965,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
+    targetRemixJobs?: RemixJobUpdateManyWithoutTargetProjectNestedInput
+    sourceRemixShares?: RemixStorageShareUpdateManyWithoutSourceProjectNestedInput
+    targetRemixShares?: RemixStorageShareUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
   }
@@ -256778,6 +259016,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    targetRemixJobs?: RemixJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    sourceRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutSourceProjectNestedInput
+    targetRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUncheckedUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
   }
@@ -256842,6 +259083,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutActorNestedInput
     cloudOperations?: CloudOperationUpdateManyWithoutActorNestedInput
     projectCheckpoints?: ProjectCheckpointUpdateManyWithoutCreatedByNestedInput
     invitedOrganizationMembers?: OrganizationMemberUpdateManyWithoutInvitedByNestedInput
@@ -256900,6 +259143,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutActorNestedInput
     cloudOperations?: CloudOperationUncheckedUpdateManyWithoutActorNestedInput
     projectCheckpoints?: ProjectCheckpointUncheckedUpdateManyWithoutCreatedByNestedInput
     invitedOrganizationMembers?: OrganizationMemberUncheckedUpdateManyWithoutInvitedByNestedInput
@@ -256953,6 +259198,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
+    targetRemixJobs?: RemixJobCreateNestedManyWithoutTargetProjectInput
+    sourceRemixShares?: RemixStorageShareCreateNestedManyWithoutSourceProjectInput
+    targetRemixShares?: RemixStorageShareCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
   }
@@ -257001,6 +259249,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    targetRemixJobs?: RemixJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    sourceRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutSourceProjectInput
+    targetRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingUncheckedCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
   }
@@ -257065,6 +259316,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
+    targetRemixJobs?: RemixJobUpdateManyWithoutTargetProjectNestedInput
+    sourceRemixShares?: RemixStorageShareUpdateManyWithoutSourceProjectNestedInput
+    targetRemixShares?: RemixStorageShareUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
   }
@@ -257113,6 +259367,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    targetRemixJobs?: RemixJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    sourceRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutSourceProjectNestedInput
+    targetRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUncheckedUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
   }
@@ -257161,6 +259418,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
+    targetRemixJobs?: RemixJobCreateNestedManyWithoutTargetProjectInput
+    sourceRemixShares?: RemixStorageShareCreateNestedManyWithoutSourceProjectInput
+    targetRemixShares?: RemixStorageShareCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
   }
@@ -257209,6 +259469,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    targetRemixJobs?: RemixJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    sourceRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutSourceProjectInput
+    targetRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingUncheckedCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
   }
@@ -257273,6 +259536,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
+    targetRemixJobs?: RemixJobUpdateManyWithoutTargetProjectNestedInput
+    sourceRemixShares?: RemixStorageShareUpdateManyWithoutSourceProjectNestedInput
+    targetRemixShares?: RemixStorageShareUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
   }
@@ -257321,6 +259587,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    targetRemixJobs?: RemixJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    sourceRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutSourceProjectNestedInput
+    targetRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUncheckedUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
   }
@@ -257369,6 +259638,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
+    targetRemixJobs?: RemixJobCreateNestedManyWithoutTargetProjectInput
+    sourceRemixShares?: RemixStorageShareCreateNestedManyWithoutSourceProjectInput
+    targetRemixShares?: RemixStorageShareCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
   }
@@ -257417,6 +259689,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    targetRemixJobs?: RemixJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    sourceRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutSourceProjectInput
+    targetRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingUncheckedCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
   }
@@ -257496,6 +259771,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
+    targetRemixJobs?: RemixJobUpdateManyWithoutTargetProjectNestedInput
+    sourceRemixShares?: RemixStorageShareUpdateManyWithoutSourceProjectNestedInput
+    targetRemixShares?: RemixStorageShareUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
   }
@@ -257544,6 +259822,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    targetRemixJobs?: RemixJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    sourceRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutSourceProjectNestedInput
+    targetRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUncheckedUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
   }
@@ -257699,6 +259980,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
+    targetRemixJobs?: RemixJobCreateNestedManyWithoutTargetProjectInput
+    sourceRemixShares?: RemixStorageShareCreateNestedManyWithoutSourceProjectInput
+    targetRemixShares?: RemixStorageShareCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
   }
@@ -257747,6 +260031,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    targetRemixJobs?: RemixJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    sourceRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutSourceProjectInput
+    targetRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingUncheckedCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
   }
@@ -257754,6 +260041,131 @@ export namespace Prisma {
   export type ProjectCreateOrConnectWithoutRollbackOperationsInput = {
     where: ProjectWhereUniqueInput
     create: XOR<ProjectCreateWithoutRollbackOperationsInput, ProjectUncheckedCreateWithoutRollbackOperationsInput>
+  }
+
+  export type UserCreateWithoutRollbackOperationsInput = {
+    id?: string
+    email: string
+    name?: string | null
+    passwordHash?: string | null
+    emailVerifiedAt?: Date | string | null
+    mfaEnabled?: boolean
+    mfaSecretCiphertext?: string | null
+    platformAdmin?: boolean
+    language?: string | null
+    timezone?: string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    accounts?: AccountCreateNestedManyWithoutUserInput
+    sessions?: SessionCreateNestedManyWithoutUserInput
+    memberships?: OrganizationMemberCreateNestedManyWithoutUserInput
+    apiKeys?: ApiKeyCreateNestedManyWithoutUserInput
+    auditLogs?: AuditLogCreateNestedManyWithoutActorInput
+    adminAuditLogs?: AdminAuditLogCreateNestedManyWithoutActorInput
+    conversations?: AiConversationCreateNestedManyWithoutUserInput
+    supportTickets?: SupportTicketCreateNestedManyWithoutUserInput
+    oauthConnections?: OAuthConnectionCreateNestedManyWithoutUserInput
+    emailVerificationTokens?: EmailVerificationTokenCreateNestedManyWithoutUserInput
+    passwordResetTokens?: PasswordResetTokenCreateNestedManyWithoutUserInput
+    recoveryCodes?: MfaRecoveryCodeCreateNestedManyWithoutUserInput
+    projectCollaborations?: ProjectCollaboratorCreateNestedManyWithoutUserInput
+    projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
+    projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
+    galleryListings?: GalleryListingCreateNestedManyWithoutAuthorInput
+    projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
+    collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
+    collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
+    collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
+    agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
+    mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
+    mcpUserConfig?: McpUserConfigCreateNestedOneWithoutUserInput
+    agentRuns?: AgentRunCreateNestedManyWithoutUserInput
+    userConnections?: UserConnectionCreateNestedManyWithoutUserInput
+    linkedProjectConnections?: ProjectConnectionLinkCreateNestedManyWithoutLinkedByUserInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutConfiguredByUserInput
+    integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
+    notifications?: NotificationCreateNestedManyWithoutUserInput
+    aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
+    spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
+    agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
+    importJobs?: ImportJobCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareCreateNestedManyWithoutConsentedByInput
+    cloudOperations?: CloudOperationCreateNestedManyWithoutActorInput
+    projectCheckpoints?: ProjectCheckpointCreateNestedManyWithoutCreatedByInput
+    invitedOrganizationMembers?: OrganizationMemberCreateNestedManyWithoutInvitedByInput
+    createdOrganizationInvites?: OrganizationInviteCreateNestedManyWithoutCreatedByInput
+    accessGrantSubjects?: ResourceAccessGrantCreateNestedManyWithoutSubjectUserInput
+    accessGrantsCreated?: ResourceAccessGrantCreateNestedManyWithoutGrantedByInput
+    accessGrantsRevoked?: ResourceAccessGrantCreateNestedManyWithoutRevokedByInput
+  }
+
+  export type UserUncheckedCreateWithoutRollbackOperationsInput = {
+    id?: string
+    email: string
+    name?: string | null
+    passwordHash?: string | null
+    emailVerifiedAt?: Date | string | null
+    mfaEnabled?: boolean
+    mfaSecretCiphertext?: string | null
+    platformAdmin?: boolean
+    language?: string | null
+    timezone?: string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
+    sessions?: SessionUncheckedCreateNestedManyWithoutUserInput
+    memberships?: OrganizationMemberUncheckedCreateNestedManyWithoutUserInput
+    apiKeys?: ApiKeyUncheckedCreateNestedManyWithoutUserInput
+    auditLogs?: AuditLogUncheckedCreateNestedManyWithoutActorInput
+    adminAuditLogs?: AdminAuditLogUncheckedCreateNestedManyWithoutActorInput
+    conversations?: AiConversationUncheckedCreateNestedManyWithoutUserInput
+    supportTickets?: SupportTicketUncheckedCreateNestedManyWithoutUserInput
+    oauthConnections?: OAuthConnectionUncheckedCreateNestedManyWithoutUserInput
+    emailVerificationTokens?: EmailVerificationTokenUncheckedCreateNestedManyWithoutUserInput
+    passwordResetTokens?: PasswordResetTokenUncheckedCreateNestedManyWithoutUserInput
+    recoveryCodes?: MfaRecoveryCodeUncheckedCreateNestedManyWithoutUserInput
+    projectCollaborations?: ProjectCollaboratorUncheckedCreateNestedManyWithoutUserInput
+    projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
+    projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
+    galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutAuthorInput
+    projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
+    collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
+    collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
+    collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
+    agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
+    mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
+    mcpUserConfig?: McpUserConfigUncheckedCreateNestedOneWithoutUserInput
+    agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
+    userConnections?: UserConnectionUncheckedCreateNestedManyWithoutUserInput
+    linkedProjectConnections?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutLinkedByUserInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutConfiguredByUserInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
+    notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
+    aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
+    spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
+    agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedCreateNestedManyWithoutConsentedByInput
+    cloudOperations?: CloudOperationUncheckedCreateNestedManyWithoutActorInput
+    projectCheckpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutCreatedByInput
+    invitedOrganizationMembers?: OrganizationMemberUncheckedCreateNestedManyWithoutInvitedByInput
+    createdOrganizationInvites?: OrganizationInviteUncheckedCreateNestedManyWithoutCreatedByInput
+    accessGrantSubjects?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectUserInput
+    accessGrantsCreated?: ResourceAccessGrantUncheckedCreateNestedManyWithoutGrantedByInput
+    accessGrantsRevoked?: ResourceAccessGrantUncheckedCreateNestedManyWithoutRevokedByInput
+  }
+
+  export type UserCreateOrConnectWithoutRollbackOperationsInput = {
+    where: UserWhereUniqueInput
+    create: XOR<UserCreateWithoutRollbackOperationsInput, UserUncheckedCreateWithoutRollbackOperationsInput>
   }
 
   export type ProjectUpsertWithoutRollbackOperationsInput = {
@@ -257811,6 +260223,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
+    targetRemixJobs?: RemixJobUpdateManyWithoutTargetProjectNestedInput
+    sourceRemixShares?: RemixStorageShareUpdateManyWithoutSourceProjectNestedInput
+    targetRemixShares?: RemixStorageShareUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
   }
@@ -257859,8 +260274,142 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    targetRemixJobs?: RemixJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    sourceRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutSourceProjectNestedInput
+    targetRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUncheckedUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
+  }
+
+  export type UserUpsertWithoutRollbackOperationsInput = {
+    update: XOR<UserUpdateWithoutRollbackOperationsInput, UserUncheckedUpdateWithoutRollbackOperationsInput>
+    create: XOR<UserCreateWithoutRollbackOperationsInput, UserUncheckedCreateWithoutRollbackOperationsInput>
+    where?: UserWhereInput
+  }
+
+  export type UserUpdateToOneWithWhereWithoutRollbackOperationsInput = {
+    where?: UserWhereInput
+    data: XOR<UserUpdateWithoutRollbackOperationsInput, UserUncheckedUpdateWithoutRollbackOperationsInput>
+  }
+
+  export type UserUpdateWithoutRollbackOperationsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    passwordHash?: NullableStringFieldUpdateOperationsInput | string | null
+    emailVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
+    mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
+    platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    accounts?: AccountUpdateManyWithoutUserNestedInput
+    sessions?: SessionUpdateManyWithoutUserNestedInput
+    memberships?: OrganizationMemberUpdateManyWithoutUserNestedInput
+    apiKeys?: ApiKeyUpdateManyWithoutUserNestedInput
+    auditLogs?: AuditLogUpdateManyWithoutActorNestedInput
+    adminAuditLogs?: AdminAuditLogUpdateManyWithoutActorNestedInput
+    conversations?: AiConversationUpdateManyWithoutUserNestedInput
+    supportTickets?: SupportTicketUpdateManyWithoutUserNestedInput
+    oauthConnections?: OAuthConnectionUpdateManyWithoutUserNestedInput
+    emailVerificationTokens?: EmailVerificationTokenUpdateManyWithoutUserNestedInput
+    passwordResetTokens?: PasswordResetTokenUpdateManyWithoutUserNestedInput
+    recoveryCodes?: MfaRecoveryCodeUpdateManyWithoutUserNestedInput
+    projectCollaborations?: ProjectCollaboratorUpdateManyWithoutUserNestedInput
+    projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
+    projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
+    galleryListings?: GalleryListingUpdateManyWithoutAuthorNestedInput
+    projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
+    collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
+    collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
+    collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
+    agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
+    mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
+    mcpUserConfig?: McpUserConfigUpdateOneWithoutUserNestedInput
+    agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
+    userConnections?: UserConnectionUpdateManyWithoutUserNestedInput
+    linkedProjectConnections?: ProjectConnectionLinkUpdateManyWithoutLinkedByUserNestedInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutConfiguredByUserNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
+    notifications?: NotificationUpdateManyWithoutUserNestedInput
+    aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
+    spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
+    agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
+    importJobs?: ImportJobUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUpdateManyWithoutConsentedByNestedInput
+    cloudOperations?: CloudOperationUpdateManyWithoutActorNestedInput
+    projectCheckpoints?: ProjectCheckpointUpdateManyWithoutCreatedByNestedInput
+    invitedOrganizationMembers?: OrganizationMemberUpdateManyWithoutInvitedByNestedInput
+    createdOrganizationInvites?: OrganizationInviteUpdateManyWithoutCreatedByNestedInput
+    accessGrantSubjects?: ResourceAccessGrantUpdateManyWithoutSubjectUserNestedInput
+    accessGrantsCreated?: ResourceAccessGrantUpdateManyWithoutGrantedByNestedInput
+    accessGrantsRevoked?: ResourceAccessGrantUpdateManyWithoutRevokedByNestedInput
+  }
+
+  export type UserUncheckedUpdateWithoutRollbackOperationsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    passwordHash?: NullableStringFieldUpdateOperationsInput | string | null
+    emailVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
+    mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
+    platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
+    sessions?: SessionUncheckedUpdateManyWithoutUserNestedInput
+    memberships?: OrganizationMemberUncheckedUpdateManyWithoutUserNestedInput
+    apiKeys?: ApiKeyUncheckedUpdateManyWithoutUserNestedInput
+    auditLogs?: AuditLogUncheckedUpdateManyWithoutActorNestedInput
+    adminAuditLogs?: AdminAuditLogUncheckedUpdateManyWithoutActorNestedInput
+    conversations?: AiConversationUncheckedUpdateManyWithoutUserNestedInput
+    supportTickets?: SupportTicketUncheckedUpdateManyWithoutUserNestedInput
+    oauthConnections?: OAuthConnectionUncheckedUpdateManyWithoutUserNestedInput
+    emailVerificationTokens?: EmailVerificationTokenUncheckedUpdateManyWithoutUserNestedInput
+    passwordResetTokens?: PasswordResetTokenUncheckedUpdateManyWithoutUserNestedInput
+    recoveryCodes?: MfaRecoveryCodeUncheckedUpdateManyWithoutUserNestedInput
+    projectCollaborations?: ProjectCollaboratorUncheckedUpdateManyWithoutUserNestedInput
+    projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
+    projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
+    galleryListings?: GalleryListingUncheckedUpdateManyWithoutAuthorNestedInput
+    projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
+    collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
+    collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
+    collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
+    agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
+    mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
+    mcpUserConfig?: McpUserConfigUncheckedUpdateOneWithoutUserNestedInput
+    agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
+    userConnections?: UserConnectionUncheckedUpdateManyWithoutUserNestedInput
+    linkedProjectConnections?: ProjectConnectionLinkUncheckedUpdateManyWithoutLinkedByUserNestedInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutConfiguredByUserNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
+    notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
+    aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
+    spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
+    agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedUpdateManyWithoutConsentedByNestedInput
+    cloudOperations?: CloudOperationUncheckedUpdateManyWithoutActorNestedInput
+    projectCheckpoints?: ProjectCheckpointUncheckedUpdateManyWithoutCreatedByNestedInput
+    invitedOrganizationMembers?: OrganizationMemberUncheckedUpdateManyWithoutInvitedByNestedInput
+    createdOrganizationInvites?: OrganizationInviteUncheckedUpdateManyWithoutCreatedByNestedInput
+    accessGrantSubjects?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserNestedInput
+    accessGrantsCreated?: ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput
+    accessGrantsRevoked?: ResourceAccessGrantUncheckedUpdateManyWithoutRevokedByNestedInput
   }
 
   export type OrganizationCreateWithoutAuditLogsInput = {
@@ -257904,6 +260453,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
     importJobs?: ImportJobCreateNestedManyWithoutOrganizationInput
+    remixStorageSharesAsSource?: RemixStorageShareCreateNestedManyWithoutSourceOrganizationInput
+    remixStorageSharesAsTarget?: RemixStorageShareCreateNestedManyWithoutTargetOrganizationInput
     cloudTenant?: CloudTenantCreateNestedOneWithoutOrganizationInput
     collaborationGroups?: CollaborationGroupCreateNestedManyWithoutOrganizationInput
     resourceAccessGrants?: ResourceAccessGrantCreateNestedManyWithoutOrganizationInput
@@ -257950,6 +260501,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutOrganizationInput
+    remixStorageSharesAsSource?: RemixStorageShareUncheckedCreateNestedManyWithoutSourceOrganizationInput
+    remixStorageSharesAsTarget?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetOrganizationInput
     cloudTenant?: CloudTenantUncheckedCreateNestedOneWithoutOrganizationInput
     collaborationGroups?: CollaborationGroupUncheckedCreateNestedManyWithoutOrganizationInput
     resourceAccessGrants?: ResourceAccessGrantUncheckedCreateNestedManyWithoutOrganizationInput
@@ -258009,6 +260562,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
     importJobs?: ImportJobCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutActorInput
     cloudOperations?: CloudOperationCreateNestedManyWithoutActorInput
     projectCheckpoints?: ProjectCheckpointCreateNestedManyWithoutCreatedByInput
     invitedOrganizationMembers?: OrganizationMemberCreateNestedManyWithoutInvitedByInput
@@ -258067,6 +260622,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutActorInput
     cloudOperations?: CloudOperationUncheckedCreateNestedManyWithoutActorInput
     projectCheckpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutCreatedByInput
     invitedOrganizationMembers?: OrganizationMemberUncheckedCreateNestedManyWithoutInvitedByInput
@@ -258133,6 +260690,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
     importJobs?: ImportJobUpdateManyWithoutOrganizationNestedInput
+    remixStorageSharesAsSource?: RemixStorageShareUpdateManyWithoutSourceOrganizationNestedInput
+    remixStorageSharesAsTarget?: RemixStorageShareUpdateManyWithoutTargetOrganizationNestedInput
     cloudTenant?: CloudTenantUpdateOneWithoutOrganizationNestedInput
     collaborationGroups?: CollaborationGroupUpdateManyWithoutOrganizationNestedInput
     resourceAccessGrants?: ResourceAccessGrantUpdateManyWithoutOrganizationNestedInput
@@ -258179,6 +260738,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutOrganizationNestedInput
+    remixStorageSharesAsSource?: RemixStorageShareUncheckedUpdateManyWithoutSourceOrganizationNestedInput
+    remixStorageSharesAsTarget?: RemixStorageShareUncheckedUpdateManyWithoutTargetOrganizationNestedInput
     cloudTenant?: CloudTenantUncheckedUpdateOneWithoutOrganizationNestedInput
     collaborationGroups?: CollaborationGroupUncheckedUpdateManyWithoutOrganizationNestedInput
     resourceAccessGrants?: ResourceAccessGrantUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -258244,6 +260805,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutActorNestedInput
     cloudOperations?: CloudOperationUpdateManyWithoutActorNestedInput
     projectCheckpoints?: ProjectCheckpointUpdateManyWithoutCreatedByNestedInput
     invitedOrganizationMembers?: OrganizationMemberUpdateManyWithoutInvitedByNestedInput
@@ -258302,6 +260865,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutActorNestedInput
     cloudOperations?: CloudOperationUncheckedUpdateManyWithoutActorNestedInput
     projectCheckpoints?: ProjectCheckpointUncheckedUpdateManyWithoutCreatedByNestedInput
     invitedOrganizationMembers?: OrganizationMemberUncheckedUpdateManyWithoutInvitedByNestedInput
@@ -258360,6 +260925,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
     importJobs?: ImportJobCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutActorInput
     cloudOperations?: CloudOperationCreateNestedManyWithoutActorInput
     projectCheckpoints?: ProjectCheckpointCreateNestedManyWithoutCreatedByInput
     invitedOrganizationMembers?: OrganizationMemberCreateNestedManyWithoutInvitedByInput
@@ -258418,6 +260985,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutActorInput
     cloudOperations?: CloudOperationUncheckedCreateNestedManyWithoutActorInput
     projectCheckpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutCreatedByInput
     invitedOrganizationMembers?: OrganizationMemberUncheckedCreateNestedManyWithoutInvitedByInput
@@ -258492,6 +261061,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutActorNestedInput
     cloudOperations?: CloudOperationUpdateManyWithoutActorNestedInput
     projectCheckpoints?: ProjectCheckpointUpdateManyWithoutCreatedByNestedInput
     invitedOrganizationMembers?: OrganizationMemberUpdateManyWithoutInvitedByNestedInput
@@ -258550,6 +261121,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutActorNestedInput
     cloudOperations?: CloudOperationUncheckedUpdateManyWithoutActorNestedInput
     projectCheckpoints?: ProjectCheckpointUncheckedUpdateManyWithoutCreatedByNestedInput
     invitedOrganizationMembers?: OrganizationMemberUncheckedUpdateManyWithoutInvitedByNestedInput
@@ -258600,6 +261173,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
     importJobs?: ImportJobCreateNestedManyWithoutOrganizationInput
+    remixStorageSharesAsSource?: RemixStorageShareCreateNestedManyWithoutSourceOrganizationInput
+    remixStorageSharesAsTarget?: RemixStorageShareCreateNestedManyWithoutTargetOrganizationInput
     cloudTenant?: CloudTenantCreateNestedOneWithoutOrganizationInput
     collaborationGroups?: CollaborationGroupCreateNestedManyWithoutOrganizationInput
     resourceAccessGrants?: ResourceAccessGrantCreateNestedManyWithoutOrganizationInput
@@ -258646,6 +261221,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutOrganizationInput
+    remixStorageSharesAsSource?: RemixStorageShareUncheckedCreateNestedManyWithoutSourceOrganizationInput
+    remixStorageSharesAsTarget?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetOrganizationInput
     cloudTenant?: CloudTenantUncheckedCreateNestedOneWithoutOrganizationInput
     collaborationGroups?: CollaborationGroupUncheckedCreateNestedManyWithoutOrganizationInput
     resourceAccessGrants?: ResourceAccessGrantUncheckedCreateNestedManyWithoutOrganizationInput
@@ -258708,6 +261285,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
     importJobs?: ImportJobUpdateManyWithoutOrganizationNestedInput
+    remixStorageSharesAsSource?: RemixStorageShareUpdateManyWithoutSourceOrganizationNestedInput
+    remixStorageSharesAsTarget?: RemixStorageShareUpdateManyWithoutTargetOrganizationNestedInput
     cloudTenant?: CloudTenantUpdateOneWithoutOrganizationNestedInput
     collaborationGroups?: CollaborationGroupUpdateManyWithoutOrganizationNestedInput
     resourceAccessGrants?: ResourceAccessGrantUpdateManyWithoutOrganizationNestedInput
@@ -258754,6 +261333,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutOrganizationNestedInput
+    remixStorageSharesAsSource?: RemixStorageShareUncheckedUpdateManyWithoutSourceOrganizationNestedInput
+    remixStorageSharesAsTarget?: RemixStorageShareUncheckedUpdateManyWithoutTargetOrganizationNestedInput
     cloudTenant?: CloudTenantUncheckedUpdateOneWithoutOrganizationNestedInput
     collaborationGroups?: CollaborationGroupUncheckedUpdateManyWithoutOrganizationNestedInput
     resourceAccessGrants?: ResourceAccessGrantUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -258800,6 +261381,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
     importJobs?: ImportJobCreateNestedManyWithoutOrganizationInput
+    remixStorageSharesAsSource?: RemixStorageShareCreateNestedManyWithoutSourceOrganizationInput
+    remixStorageSharesAsTarget?: RemixStorageShareCreateNestedManyWithoutTargetOrganizationInput
     cloudTenant?: CloudTenantCreateNestedOneWithoutOrganizationInput
     collaborationGroups?: CollaborationGroupCreateNestedManyWithoutOrganizationInput
     resourceAccessGrants?: ResourceAccessGrantCreateNestedManyWithoutOrganizationInput
@@ -258846,6 +261429,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutOrganizationInput
+    remixStorageSharesAsSource?: RemixStorageShareUncheckedCreateNestedManyWithoutSourceOrganizationInput
+    remixStorageSharesAsTarget?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetOrganizationInput
     cloudTenant?: CloudTenantUncheckedCreateNestedOneWithoutOrganizationInput
     collaborationGroups?: CollaborationGroupUncheckedCreateNestedManyWithoutOrganizationInput
     resourceAccessGrants?: ResourceAccessGrantUncheckedCreateNestedManyWithoutOrganizationInput
@@ -258941,6 +261526,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
     importJobs?: ImportJobUpdateManyWithoutOrganizationNestedInput
+    remixStorageSharesAsSource?: RemixStorageShareUpdateManyWithoutSourceOrganizationNestedInput
+    remixStorageSharesAsTarget?: RemixStorageShareUpdateManyWithoutTargetOrganizationNestedInput
     cloudTenant?: CloudTenantUpdateOneWithoutOrganizationNestedInput
     collaborationGroups?: CollaborationGroupUpdateManyWithoutOrganizationNestedInput
     resourceAccessGrants?: ResourceAccessGrantUpdateManyWithoutOrganizationNestedInput
@@ -258987,6 +261574,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutOrganizationNestedInput
+    remixStorageSharesAsSource?: RemixStorageShareUncheckedUpdateManyWithoutSourceOrganizationNestedInput
+    remixStorageSharesAsTarget?: RemixStorageShareUncheckedUpdateManyWithoutTargetOrganizationNestedInput
     cloudTenant?: CloudTenantUncheckedUpdateOneWithoutOrganizationNestedInput
     collaborationGroups?: CollaborationGroupUncheckedUpdateManyWithoutOrganizationNestedInput
     resourceAccessGrants?: ResourceAccessGrantUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -259126,6 +261715,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
     importJobs?: ImportJobCreateNestedManyWithoutOrganizationInput
+    remixStorageSharesAsSource?: RemixStorageShareCreateNestedManyWithoutSourceOrganizationInput
+    remixStorageSharesAsTarget?: RemixStorageShareCreateNestedManyWithoutTargetOrganizationInput
     cloudTenant?: CloudTenantCreateNestedOneWithoutOrganizationInput
     collaborationGroups?: CollaborationGroupCreateNestedManyWithoutOrganizationInput
     resourceAccessGrants?: ResourceAccessGrantCreateNestedManyWithoutOrganizationInput
@@ -259172,6 +261763,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutOrganizationInput
+    remixStorageSharesAsSource?: RemixStorageShareUncheckedCreateNestedManyWithoutSourceOrganizationInput
+    remixStorageSharesAsTarget?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetOrganizationInput
     cloudTenant?: CloudTenantUncheckedCreateNestedOneWithoutOrganizationInput
     collaborationGroups?: CollaborationGroupUncheckedCreateNestedManyWithoutOrganizationInput
     resourceAccessGrants?: ResourceAccessGrantUncheckedCreateNestedManyWithoutOrganizationInput
@@ -259234,6 +261827,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
     importJobs?: ImportJobUpdateManyWithoutOrganizationNestedInput
+    remixStorageSharesAsSource?: RemixStorageShareUpdateManyWithoutSourceOrganizationNestedInput
+    remixStorageSharesAsTarget?: RemixStorageShareUpdateManyWithoutTargetOrganizationNestedInput
     cloudTenant?: CloudTenantUpdateOneWithoutOrganizationNestedInput
     collaborationGroups?: CollaborationGroupUpdateManyWithoutOrganizationNestedInput
     resourceAccessGrants?: ResourceAccessGrantUpdateManyWithoutOrganizationNestedInput
@@ -259280,6 +261875,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutOrganizationNestedInput
+    remixStorageSharesAsSource?: RemixStorageShareUncheckedUpdateManyWithoutSourceOrganizationNestedInput
+    remixStorageSharesAsTarget?: RemixStorageShareUncheckedUpdateManyWithoutTargetOrganizationNestedInput
     cloudTenant?: CloudTenantUncheckedUpdateOneWithoutOrganizationNestedInput
     collaborationGroups?: CollaborationGroupUncheckedUpdateManyWithoutOrganizationNestedInput
     resourceAccessGrants?: ResourceAccessGrantUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -259326,6 +261923,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
     importJobs?: ImportJobCreateNestedManyWithoutOrganizationInput
+    remixStorageSharesAsSource?: RemixStorageShareCreateNestedManyWithoutSourceOrganizationInput
+    remixStorageSharesAsTarget?: RemixStorageShareCreateNestedManyWithoutTargetOrganizationInput
     cloudTenant?: CloudTenantCreateNestedOneWithoutOrganizationInput
     collaborationGroups?: CollaborationGroupCreateNestedManyWithoutOrganizationInput
     resourceAccessGrants?: ResourceAccessGrantCreateNestedManyWithoutOrganizationInput
@@ -259372,6 +261971,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutOrganizationInput
+    remixStorageSharesAsSource?: RemixStorageShareUncheckedCreateNestedManyWithoutSourceOrganizationInput
+    remixStorageSharesAsTarget?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetOrganizationInput
     cloudTenant?: CloudTenantUncheckedCreateNestedOneWithoutOrganizationInput
     collaborationGroups?: CollaborationGroupUncheckedCreateNestedManyWithoutOrganizationInput
     resourceAccessGrants?: ResourceAccessGrantUncheckedCreateNestedManyWithoutOrganizationInput
@@ -259434,6 +262035,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
     importJobs?: ImportJobUpdateManyWithoutOrganizationNestedInput
+    remixStorageSharesAsSource?: RemixStorageShareUpdateManyWithoutSourceOrganizationNestedInput
+    remixStorageSharesAsTarget?: RemixStorageShareUpdateManyWithoutTargetOrganizationNestedInput
     cloudTenant?: CloudTenantUpdateOneWithoutOrganizationNestedInput
     collaborationGroups?: CollaborationGroupUpdateManyWithoutOrganizationNestedInput
     resourceAccessGrants?: ResourceAccessGrantUpdateManyWithoutOrganizationNestedInput
@@ -259480,6 +262083,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutOrganizationNestedInput
+    remixStorageSharesAsSource?: RemixStorageShareUncheckedUpdateManyWithoutSourceOrganizationNestedInput
+    remixStorageSharesAsTarget?: RemixStorageShareUncheckedUpdateManyWithoutTargetOrganizationNestedInput
     cloudTenant?: CloudTenantUncheckedUpdateOneWithoutOrganizationNestedInput
     collaborationGroups?: CollaborationGroupUncheckedUpdateManyWithoutOrganizationNestedInput
     resourceAccessGrants?: ResourceAccessGrantUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -259526,6 +262131,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
     importJobs?: ImportJobCreateNestedManyWithoutOrganizationInput
+    remixStorageSharesAsSource?: RemixStorageShareCreateNestedManyWithoutSourceOrganizationInput
+    remixStorageSharesAsTarget?: RemixStorageShareCreateNestedManyWithoutTargetOrganizationInput
     cloudTenant?: CloudTenantCreateNestedOneWithoutOrganizationInput
     collaborationGroups?: CollaborationGroupCreateNestedManyWithoutOrganizationInput
     resourceAccessGrants?: ResourceAccessGrantCreateNestedManyWithoutOrganizationInput
@@ -259572,6 +262179,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutOrganizationInput
+    remixStorageSharesAsSource?: RemixStorageShareUncheckedCreateNestedManyWithoutSourceOrganizationInput
+    remixStorageSharesAsTarget?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetOrganizationInput
     cloudTenant?: CloudTenantUncheckedCreateNestedOneWithoutOrganizationInput
     collaborationGroups?: CollaborationGroupUncheckedCreateNestedManyWithoutOrganizationInput
     resourceAccessGrants?: ResourceAccessGrantUncheckedCreateNestedManyWithoutOrganizationInput
@@ -259634,6 +262243,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
     importJobs?: ImportJobUpdateManyWithoutOrganizationNestedInput
+    remixStorageSharesAsSource?: RemixStorageShareUpdateManyWithoutSourceOrganizationNestedInput
+    remixStorageSharesAsTarget?: RemixStorageShareUpdateManyWithoutTargetOrganizationNestedInput
     cloudTenant?: CloudTenantUpdateOneWithoutOrganizationNestedInput
     collaborationGroups?: CollaborationGroupUpdateManyWithoutOrganizationNestedInput
     resourceAccessGrants?: ResourceAccessGrantUpdateManyWithoutOrganizationNestedInput
@@ -259680,6 +262291,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutOrganizationNestedInput
+    remixStorageSharesAsSource?: RemixStorageShareUncheckedUpdateManyWithoutSourceOrganizationNestedInput
+    remixStorageSharesAsTarget?: RemixStorageShareUncheckedUpdateManyWithoutTargetOrganizationNestedInput
     cloudTenant?: CloudTenantUncheckedUpdateOneWithoutOrganizationNestedInput
     collaborationGroups?: CollaborationGroupUncheckedUpdateManyWithoutOrganizationNestedInput
     resourceAccessGrants?: ResourceAccessGrantUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -259726,6 +262339,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
     importJobs?: ImportJobCreateNestedManyWithoutOrganizationInput
+    remixStorageSharesAsSource?: RemixStorageShareCreateNestedManyWithoutSourceOrganizationInput
+    remixStorageSharesAsTarget?: RemixStorageShareCreateNestedManyWithoutTargetOrganizationInput
     cloudTenant?: CloudTenantCreateNestedOneWithoutOrganizationInput
     collaborationGroups?: CollaborationGroupCreateNestedManyWithoutOrganizationInput
     resourceAccessGrants?: ResourceAccessGrantCreateNestedManyWithoutOrganizationInput
@@ -259772,6 +262387,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutOrganizationInput
+    remixStorageSharesAsSource?: RemixStorageShareUncheckedCreateNestedManyWithoutSourceOrganizationInput
+    remixStorageSharesAsTarget?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetOrganizationInput
     cloudTenant?: CloudTenantUncheckedCreateNestedOneWithoutOrganizationInput
     collaborationGroups?: CollaborationGroupUncheckedCreateNestedManyWithoutOrganizationInput
     resourceAccessGrants?: ResourceAccessGrantUncheckedCreateNestedManyWithoutOrganizationInput
@@ -259834,6 +262451,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
     importJobs?: ImportJobUpdateManyWithoutOrganizationNestedInput
+    remixStorageSharesAsSource?: RemixStorageShareUpdateManyWithoutSourceOrganizationNestedInput
+    remixStorageSharesAsTarget?: RemixStorageShareUpdateManyWithoutTargetOrganizationNestedInput
     cloudTenant?: CloudTenantUpdateOneWithoutOrganizationNestedInput
     collaborationGroups?: CollaborationGroupUpdateManyWithoutOrganizationNestedInput
     resourceAccessGrants?: ResourceAccessGrantUpdateManyWithoutOrganizationNestedInput
@@ -259880,6 +262499,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutOrganizationNestedInput
+    remixStorageSharesAsSource?: RemixStorageShareUncheckedUpdateManyWithoutSourceOrganizationNestedInput
+    remixStorageSharesAsTarget?: RemixStorageShareUncheckedUpdateManyWithoutTargetOrganizationNestedInput
     cloudTenant?: CloudTenantUncheckedUpdateOneWithoutOrganizationNestedInput
     collaborationGroups?: CollaborationGroupUncheckedUpdateManyWithoutOrganizationNestedInput
     resourceAccessGrants?: ResourceAccessGrantUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -259929,6 +262550,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
+    targetRemixJobs?: RemixJobCreateNestedManyWithoutTargetProjectInput
+    sourceRemixShares?: RemixStorageShareCreateNestedManyWithoutSourceProjectInput
+    targetRemixShares?: RemixStorageShareCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
   }
@@ -259977,6 +262601,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    targetRemixJobs?: RemixJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    sourceRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutSourceProjectInput
+    targetRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingUncheckedCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
   }
@@ -260035,6 +262662,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
     importJobs?: ImportJobCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutActorInput
     cloudOperations?: CloudOperationCreateNestedManyWithoutActorInput
     projectCheckpoints?: ProjectCheckpointCreateNestedManyWithoutCreatedByInput
     invitedOrganizationMembers?: OrganizationMemberCreateNestedManyWithoutInvitedByInput
@@ -260093,6 +262722,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutActorInput
     cloudOperations?: CloudOperationUncheckedCreateNestedManyWithoutActorInput
     projectCheckpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutCreatedByInput
     invitedOrganizationMembers?: OrganizationMemberUncheckedCreateNestedManyWithoutInvitedByInput
@@ -260190,6 +262821,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
+    targetRemixJobs?: RemixJobUpdateManyWithoutTargetProjectNestedInput
+    sourceRemixShares?: RemixStorageShareUpdateManyWithoutSourceProjectNestedInput
+    targetRemixShares?: RemixStorageShareUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
   }
@@ -260238,6 +262872,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    targetRemixJobs?: RemixJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    sourceRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutSourceProjectNestedInput
+    targetRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUncheckedUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
   }
@@ -260302,6 +262939,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutActorNestedInput
     cloudOperations?: CloudOperationUpdateManyWithoutActorNestedInput
     projectCheckpoints?: ProjectCheckpointUpdateManyWithoutCreatedByNestedInput
     invitedOrganizationMembers?: OrganizationMemberUpdateManyWithoutInvitedByNestedInput
@@ -260360,6 +262999,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutActorNestedInput
     cloudOperations?: CloudOperationUncheckedUpdateManyWithoutActorNestedInput
     projectCheckpoints?: ProjectCheckpointUncheckedUpdateManyWithoutCreatedByNestedInput
     invitedOrganizationMembers?: OrganizationMemberUncheckedUpdateManyWithoutInvitedByNestedInput
@@ -260707,6 +263348,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
     importJobs?: ImportJobCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutActorInput
     cloudOperations?: CloudOperationCreateNestedManyWithoutActorInput
     projectCheckpoints?: ProjectCheckpointCreateNestedManyWithoutCreatedByInput
     invitedOrganizationMembers?: OrganizationMemberCreateNestedManyWithoutInvitedByInput
@@ -260765,6 +263408,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutActorInput
     cloudOperations?: CloudOperationUncheckedCreateNestedManyWithoutActorInput
     projectCheckpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutCreatedByInput
     invitedOrganizationMembers?: OrganizationMemberUncheckedCreateNestedManyWithoutInvitedByInput
@@ -260839,6 +263484,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutActorNestedInput
     cloudOperations?: CloudOperationUpdateManyWithoutActorNestedInput
     projectCheckpoints?: ProjectCheckpointUpdateManyWithoutCreatedByNestedInput
     invitedOrganizationMembers?: OrganizationMemberUpdateManyWithoutInvitedByNestedInput
@@ -260897,6 +263544,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutActorNestedInput
     cloudOperations?: CloudOperationUncheckedUpdateManyWithoutActorNestedInput
     projectCheckpoints?: ProjectCheckpointUncheckedUpdateManyWithoutCreatedByNestedInput
     invitedOrganizationMembers?: OrganizationMemberUncheckedUpdateManyWithoutInvitedByNestedInput
@@ -260947,6 +263596,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
     importJobs?: ImportJobCreateNestedManyWithoutOrganizationInput
+    remixStorageSharesAsSource?: RemixStorageShareCreateNestedManyWithoutSourceOrganizationInput
+    remixStorageSharesAsTarget?: RemixStorageShareCreateNestedManyWithoutTargetOrganizationInput
     cloudTenant?: CloudTenantCreateNestedOneWithoutOrganizationInput
     collaborationGroups?: CollaborationGroupCreateNestedManyWithoutOrganizationInput
     resourceAccessGrants?: ResourceAccessGrantCreateNestedManyWithoutOrganizationInput
@@ -260993,6 +263644,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutOrganizationInput
+    remixStorageSharesAsSource?: RemixStorageShareUncheckedCreateNestedManyWithoutSourceOrganizationInput
+    remixStorageSharesAsTarget?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetOrganizationInput
     cloudTenant?: CloudTenantUncheckedCreateNestedOneWithoutOrganizationInput
     collaborationGroups?: CollaborationGroupUncheckedCreateNestedManyWithoutOrganizationInput
     resourceAccessGrants?: ResourceAccessGrantUncheckedCreateNestedManyWithoutOrganizationInput
@@ -261055,6 +263708,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
     importJobs?: ImportJobUpdateManyWithoutOrganizationNestedInput
+    remixStorageSharesAsSource?: RemixStorageShareUpdateManyWithoutSourceOrganizationNestedInput
+    remixStorageSharesAsTarget?: RemixStorageShareUpdateManyWithoutTargetOrganizationNestedInput
     cloudTenant?: CloudTenantUpdateOneWithoutOrganizationNestedInput
     collaborationGroups?: CollaborationGroupUpdateManyWithoutOrganizationNestedInput
     resourceAccessGrants?: ResourceAccessGrantUpdateManyWithoutOrganizationNestedInput
@@ -261101,6 +263756,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutOrganizationNestedInput
+    remixStorageSharesAsSource?: RemixStorageShareUncheckedUpdateManyWithoutSourceOrganizationNestedInput
+    remixStorageSharesAsTarget?: RemixStorageShareUncheckedUpdateManyWithoutTargetOrganizationNestedInput
     cloudTenant?: CloudTenantUncheckedUpdateOneWithoutOrganizationNestedInput
     collaborationGroups?: CollaborationGroupUncheckedUpdateManyWithoutOrganizationNestedInput
     resourceAccessGrants?: ResourceAccessGrantUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -261147,6 +263804,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
     importJobs?: ImportJobCreateNestedManyWithoutOrganizationInput
+    remixStorageSharesAsSource?: RemixStorageShareCreateNestedManyWithoutSourceOrganizationInput
+    remixStorageSharesAsTarget?: RemixStorageShareCreateNestedManyWithoutTargetOrganizationInput
     cloudTenant?: CloudTenantCreateNestedOneWithoutOrganizationInput
     collaborationGroups?: CollaborationGroupCreateNestedManyWithoutOrganizationInput
     resourceAccessGrants?: ResourceAccessGrantCreateNestedManyWithoutOrganizationInput
@@ -261193,6 +263852,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutOrganizationInput
+    remixStorageSharesAsSource?: RemixStorageShareUncheckedCreateNestedManyWithoutSourceOrganizationInput
+    remixStorageSharesAsTarget?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetOrganizationInput
     cloudTenant?: CloudTenantUncheckedCreateNestedOneWithoutOrganizationInput
     collaborationGroups?: CollaborationGroupUncheckedCreateNestedManyWithoutOrganizationInput
     resourceAccessGrants?: ResourceAccessGrantUncheckedCreateNestedManyWithoutOrganizationInput
@@ -261255,6 +263916,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
     importJobs?: ImportJobUpdateManyWithoutOrganizationNestedInput
+    remixStorageSharesAsSource?: RemixStorageShareUpdateManyWithoutSourceOrganizationNestedInput
+    remixStorageSharesAsTarget?: RemixStorageShareUpdateManyWithoutTargetOrganizationNestedInput
     cloudTenant?: CloudTenantUpdateOneWithoutOrganizationNestedInput
     collaborationGroups?: CollaborationGroupUpdateManyWithoutOrganizationNestedInput
     resourceAccessGrants?: ResourceAccessGrantUpdateManyWithoutOrganizationNestedInput
@@ -261301,6 +263964,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutOrganizationNestedInput
+    remixStorageSharesAsSource?: RemixStorageShareUncheckedUpdateManyWithoutSourceOrganizationNestedInput
+    remixStorageSharesAsTarget?: RemixStorageShareUncheckedUpdateManyWithoutTargetOrganizationNestedInput
     cloudTenant?: CloudTenantUncheckedUpdateOneWithoutOrganizationNestedInput
     collaborationGroups?: CollaborationGroupUncheckedUpdateManyWithoutOrganizationNestedInput
     resourceAccessGrants?: ResourceAccessGrantUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -261347,6 +264012,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
     importJobs?: ImportJobCreateNestedManyWithoutOrganizationInput
+    remixStorageSharesAsSource?: RemixStorageShareCreateNestedManyWithoutSourceOrganizationInput
+    remixStorageSharesAsTarget?: RemixStorageShareCreateNestedManyWithoutTargetOrganizationInput
     cloudTenant?: CloudTenantCreateNestedOneWithoutOrganizationInput
     collaborationGroups?: CollaborationGroupCreateNestedManyWithoutOrganizationInput
     resourceAccessGrants?: ResourceAccessGrantCreateNestedManyWithoutOrganizationInput
@@ -261393,6 +264060,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutOrganizationInput
+    remixStorageSharesAsSource?: RemixStorageShareUncheckedCreateNestedManyWithoutSourceOrganizationInput
+    remixStorageSharesAsTarget?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetOrganizationInput
     cloudTenant?: CloudTenantUncheckedCreateNestedOneWithoutOrganizationInput
     collaborationGroups?: CollaborationGroupUncheckedCreateNestedManyWithoutOrganizationInput
     resourceAccessGrants?: ResourceAccessGrantUncheckedCreateNestedManyWithoutOrganizationInput
@@ -261452,6 +264121,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
     importJobs?: ImportJobCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutActorInput
     cloudOperations?: CloudOperationCreateNestedManyWithoutActorInput
     projectCheckpoints?: ProjectCheckpointCreateNestedManyWithoutCreatedByInput
     invitedOrganizationMembers?: OrganizationMemberCreateNestedManyWithoutInvitedByInput
@@ -261510,6 +264181,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutActorInput
     cloudOperations?: CloudOperationUncheckedCreateNestedManyWithoutActorInput
     projectCheckpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutCreatedByInput
     invitedOrganizationMembers?: OrganizationMemberUncheckedCreateNestedManyWithoutInvitedByInput
@@ -261602,6 +264275,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
     importJobs?: ImportJobUpdateManyWithoutOrganizationNestedInput
+    remixStorageSharesAsSource?: RemixStorageShareUpdateManyWithoutSourceOrganizationNestedInput
+    remixStorageSharesAsTarget?: RemixStorageShareUpdateManyWithoutTargetOrganizationNestedInput
     cloudTenant?: CloudTenantUpdateOneWithoutOrganizationNestedInput
     collaborationGroups?: CollaborationGroupUpdateManyWithoutOrganizationNestedInput
     resourceAccessGrants?: ResourceAccessGrantUpdateManyWithoutOrganizationNestedInput
@@ -261648,6 +264323,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutOrganizationNestedInput
+    remixStorageSharesAsSource?: RemixStorageShareUncheckedUpdateManyWithoutSourceOrganizationNestedInput
+    remixStorageSharesAsTarget?: RemixStorageShareUncheckedUpdateManyWithoutTargetOrganizationNestedInput
     cloudTenant?: CloudTenantUncheckedUpdateOneWithoutOrganizationNestedInput
     collaborationGroups?: CollaborationGroupUncheckedUpdateManyWithoutOrganizationNestedInput
     resourceAccessGrants?: ResourceAccessGrantUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -261713,6 +264390,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutActorNestedInput
     cloudOperations?: CloudOperationUpdateManyWithoutActorNestedInput
     projectCheckpoints?: ProjectCheckpointUpdateManyWithoutCreatedByNestedInput
     invitedOrganizationMembers?: OrganizationMemberUpdateManyWithoutInvitedByNestedInput
@@ -261771,6 +264450,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutActorNestedInput
     cloudOperations?: CloudOperationUncheckedUpdateManyWithoutActorNestedInput
     projectCheckpoints?: ProjectCheckpointUncheckedUpdateManyWithoutCreatedByNestedInput
     invitedOrganizationMembers?: OrganizationMemberUncheckedUpdateManyWithoutInvitedByNestedInput
@@ -261909,6 +264590,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
     importJobs?: ImportJobCreateNestedManyWithoutOrganizationInput
+    remixStorageSharesAsSource?: RemixStorageShareCreateNestedManyWithoutSourceOrganizationInput
+    remixStorageSharesAsTarget?: RemixStorageShareCreateNestedManyWithoutTargetOrganizationInput
     cloudTenant?: CloudTenantCreateNestedOneWithoutOrganizationInput
     collaborationGroups?: CollaborationGroupCreateNestedManyWithoutOrganizationInput
     resourceAccessGrants?: ResourceAccessGrantCreateNestedManyWithoutOrganizationInput
@@ -261955,6 +264638,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutOrganizationInput
+    remixStorageSharesAsSource?: RemixStorageShareUncheckedCreateNestedManyWithoutSourceOrganizationInput
+    remixStorageSharesAsTarget?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetOrganizationInput
     cloudTenant?: CloudTenantUncheckedCreateNestedOneWithoutOrganizationInput
     collaborationGroups?: CollaborationGroupUncheckedCreateNestedManyWithoutOrganizationInput
     resourceAccessGrants?: ResourceAccessGrantUncheckedCreateNestedManyWithoutOrganizationInput
@@ -262017,6 +264702,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
     importJobs?: ImportJobUpdateManyWithoutOrganizationNestedInput
+    remixStorageSharesAsSource?: RemixStorageShareUpdateManyWithoutSourceOrganizationNestedInput
+    remixStorageSharesAsTarget?: RemixStorageShareUpdateManyWithoutTargetOrganizationNestedInput
     cloudTenant?: CloudTenantUpdateOneWithoutOrganizationNestedInput
     collaborationGroups?: CollaborationGroupUpdateManyWithoutOrganizationNestedInput
     resourceAccessGrants?: ResourceAccessGrantUpdateManyWithoutOrganizationNestedInput
@@ -262063,6 +264750,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutOrganizationNestedInput
+    remixStorageSharesAsSource?: RemixStorageShareUncheckedUpdateManyWithoutSourceOrganizationNestedInput
+    remixStorageSharesAsTarget?: RemixStorageShareUncheckedUpdateManyWithoutTargetOrganizationNestedInput
     cloudTenant?: CloudTenantUncheckedUpdateOneWithoutOrganizationNestedInput
     collaborationGroups?: CollaborationGroupUncheckedUpdateManyWithoutOrganizationNestedInput
     resourceAccessGrants?: ResourceAccessGrantUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -262117,6 +264806,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
     importJobs?: ImportJobCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutActorInput
     cloudOperations?: CloudOperationCreateNestedManyWithoutActorInput
     projectCheckpoints?: ProjectCheckpointCreateNestedManyWithoutCreatedByInput
     invitedOrganizationMembers?: OrganizationMemberCreateNestedManyWithoutInvitedByInput
@@ -262175,6 +264866,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutActorInput
     cloudOperations?: CloudOperationUncheckedCreateNestedManyWithoutActorInput
     projectCheckpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutCreatedByInput
     invitedOrganizationMembers?: OrganizationMemberUncheckedCreateNestedManyWithoutInvitedByInput
@@ -262249,6 +264942,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutActorNestedInput
     cloudOperations?: CloudOperationUpdateManyWithoutActorNestedInput
     projectCheckpoints?: ProjectCheckpointUpdateManyWithoutCreatedByNestedInput
     invitedOrganizationMembers?: OrganizationMemberUpdateManyWithoutInvitedByNestedInput
@@ -262307,6 +265002,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutActorNestedInput
     cloudOperations?: CloudOperationUncheckedUpdateManyWithoutActorNestedInput
     projectCheckpoints?: ProjectCheckpointUncheckedUpdateManyWithoutCreatedByNestedInput
     invitedOrganizationMembers?: OrganizationMemberUncheckedUpdateManyWithoutInvitedByNestedInput
@@ -262365,6 +265062,8 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     importJobs?: ImportJobCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutActorInput
     cloudOperations?: CloudOperationCreateNestedManyWithoutActorInput
     projectCheckpoints?: ProjectCheckpointCreateNestedManyWithoutCreatedByInput
     invitedOrganizationMembers?: OrganizationMemberCreateNestedManyWithoutInvitedByInput
@@ -262423,6 +265122,8 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutActorInput
     cloudOperations?: CloudOperationUncheckedCreateNestedManyWithoutActorInput
     projectCheckpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutCreatedByInput
     invitedOrganizationMembers?: OrganizationMemberUncheckedCreateNestedManyWithoutInvitedByInput
@@ -262481,6 +265182,9 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
+    targetRemixJobs?: RemixJobCreateNestedManyWithoutTargetProjectInput
+    sourceRemixShares?: RemixStorageShareCreateNestedManyWithoutSourceProjectInput
+    targetRemixShares?: RemixStorageShareCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
   }
@@ -262529,6 +265233,9 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    targetRemixJobs?: RemixJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    sourceRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutSourceProjectInput
+    targetRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingUncheckedCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
   }
@@ -262598,6 +265305,8 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     importJobs?: ImportJobUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutActorNestedInput
     cloudOperations?: CloudOperationUpdateManyWithoutActorNestedInput
     projectCheckpoints?: ProjectCheckpointUpdateManyWithoutCreatedByNestedInput
     invitedOrganizationMembers?: OrganizationMemberUpdateManyWithoutInvitedByNestedInput
@@ -262656,6 +265365,8 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutActorNestedInput
     cloudOperations?: CloudOperationUncheckedUpdateManyWithoutActorNestedInput
     projectCheckpoints?: ProjectCheckpointUncheckedUpdateManyWithoutCreatedByNestedInput
     invitedOrganizationMembers?: OrganizationMemberUncheckedUpdateManyWithoutInvitedByNestedInput
@@ -262720,6 +265431,9 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
+    targetRemixJobs?: RemixJobUpdateManyWithoutTargetProjectNestedInput
+    sourceRemixShares?: RemixStorageShareUpdateManyWithoutSourceProjectNestedInput
+    targetRemixShares?: RemixStorageShareUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
   }
@@ -262768,6 +265482,9 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    targetRemixJobs?: RemixJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    sourceRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutSourceProjectNestedInput
+    targetRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUncheckedUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
   }
@@ -262821,6 +265538,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
     importJobs?: ImportJobCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutActorInput
     cloudOperations?: CloudOperationCreateNestedManyWithoutActorInput
     projectCheckpoints?: ProjectCheckpointCreateNestedManyWithoutCreatedByInput
     invitedOrganizationMembers?: OrganizationMemberCreateNestedManyWithoutInvitedByInput
@@ -262879,6 +265598,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutActorInput
     cloudOperations?: CloudOperationUncheckedCreateNestedManyWithoutActorInput
     projectCheckpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutCreatedByInput
     invitedOrganizationMembers?: OrganizationMemberUncheckedCreateNestedManyWithoutInvitedByInput
@@ -262953,6 +265674,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutActorNestedInput
     cloudOperations?: CloudOperationUpdateManyWithoutActorNestedInput
     projectCheckpoints?: ProjectCheckpointUpdateManyWithoutCreatedByNestedInput
     invitedOrganizationMembers?: OrganizationMemberUpdateManyWithoutInvitedByNestedInput
@@ -263011,6 +265734,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutActorNestedInput
     cloudOperations?: CloudOperationUncheckedUpdateManyWithoutActorNestedInput
     projectCheckpoints?: ProjectCheckpointUncheckedUpdateManyWithoutCreatedByNestedInput
     invitedOrganizationMembers?: OrganizationMemberUncheckedUpdateManyWithoutInvitedByNestedInput
@@ -263069,6 +265794,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
     importJobs?: ImportJobCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutActorInput
     cloudOperations?: CloudOperationCreateNestedManyWithoutActorInput
     projectCheckpoints?: ProjectCheckpointCreateNestedManyWithoutCreatedByInput
     invitedOrganizationMembers?: OrganizationMemberCreateNestedManyWithoutInvitedByInput
@@ -263127,6 +265854,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutActorInput
     cloudOperations?: CloudOperationUncheckedCreateNestedManyWithoutActorInput
     projectCheckpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutCreatedByInput
     invitedOrganizationMembers?: OrganizationMemberUncheckedCreateNestedManyWithoutInvitedByInput
@@ -263201,6 +265930,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutActorNestedInput
     cloudOperations?: CloudOperationUpdateManyWithoutActorNestedInput
     projectCheckpoints?: ProjectCheckpointUpdateManyWithoutCreatedByNestedInput
     invitedOrganizationMembers?: OrganizationMemberUpdateManyWithoutInvitedByNestedInput
@@ -263259,6 +265990,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutActorNestedInput
     cloudOperations?: CloudOperationUncheckedUpdateManyWithoutActorNestedInput
     projectCheckpoints?: ProjectCheckpointUncheckedUpdateManyWithoutCreatedByNestedInput
     invitedOrganizationMembers?: OrganizationMemberUncheckedUpdateManyWithoutInvitedByNestedInput
@@ -263309,6 +266042,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
     importJobs?: ImportJobCreateNestedManyWithoutOrganizationInput
+    remixStorageSharesAsSource?: RemixStorageShareCreateNestedManyWithoutSourceOrganizationInput
+    remixStorageSharesAsTarget?: RemixStorageShareCreateNestedManyWithoutTargetOrganizationInput
     cloudTenant?: CloudTenantCreateNestedOneWithoutOrganizationInput
     collaborationGroups?: CollaborationGroupCreateNestedManyWithoutOrganizationInput
     resourceAccessGrants?: ResourceAccessGrantCreateNestedManyWithoutOrganizationInput
@@ -263355,6 +266090,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutOrganizationInput
+    remixStorageSharesAsSource?: RemixStorageShareUncheckedCreateNestedManyWithoutSourceOrganizationInput
+    remixStorageSharesAsTarget?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetOrganizationInput
     cloudTenant?: CloudTenantUncheckedCreateNestedOneWithoutOrganizationInput
     collaborationGroups?: CollaborationGroupUncheckedCreateNestedManyWithoutOrganizationInput
     resourceAccessGrants?: ResourceAccessGrantUncheckedCreateNestedManyWithoutOrganizationInput
@@ -263417,6 +266154,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
     importJobs?: ImportJobUpdateManyWithoutOrganizationNestedInput
+    remixStorageSharesAsSource?: RemixStorageShareUpdateManyWithoutSourceOrganizationNestedInput
+    remixStorageSharesAsTarget?: RemixStorageShareUpdateManyWithoutTargetOrganizationNestedInput
     cloudTenant?: CloudTenantUpdateOneWithoutOrganizationNestedInput
     collaborationGroups?: CollaborationGroupUpdateManyWithoutOrganizationNestedInput
     resourceAccessGrants?: ResourceAccessGrantUpdateManyWithoutOrganizationNestedInput
@@ -263463,6 +266202,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutOrganizationNestedInput
+    remixStorageSharesAsSource?: RemixStorageShareUncheckedUpdateManyWithoutSourceOrganizationNestedInput
+    remixStorageSharesAsTarget?: RemixStorageShareUncheckedUpdateManyWithoutTargetOrganizationNestedInput
     cloudTenant?: CloudTenantUncheckedUpdateOneWithoutOrganizationNestedInput
     collaborationGroups?: CollaborationGroupUncheckedUpdateManyWithoutOrganizationNestedInput
     resourceAccessGrants?: ResourceAccessGrantUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -263509,6 +266250,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
     importJobs?: ImportJobCreateNestedManyWithoutOrganizationInput
+    remixStorageSharesAsSource?: RemixStorageShareCreateNestedManyWithoutSourceOrganizationInput
+    remixStorageSharesAsTarget?: RemixStorageShareCreateNestedManyWithoutTargetOrganizationInput
     cloudTenant?: CloudTenantCreateNestedOneWithoutOrganizationInput
     collaborationGroups?: CollaborationGroupCreateNestedManyWithoutOrganizationInput
     resourceAccessGrants?: ResourceAccessGrantCreateNestedManyWithoutOrganizationInput
@@ -263555,6 +266298,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutOrganizationInput
+    remixStorageSharesAsSource?: RemixStorageShareUncheckedCreateNestedManyWithoutSourceOrganizationInput
+    remixStorageSharesAsTarget?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetOrganizationInput
     cloudTenant?: CloudTenantUncheckedCreateNestedOneWithoutOrganizationInput
     collaborationGroups?: CollaborationGroupUncheckedCreateNestedManyWithoutOrganizationInput
     resourceAccessGrants?: ResourceAccessGrantUncheckedCreateNestedManyWithoutOrganizationInput
@@ -263617,6 +266362,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
     importJobs?: ImportJobUpdateManyWithoutOrganizationNestedInput
+    remixStorageSharesAsSource?: RemixStorageShareUpdateManyWithoutSourceOrganizationNestedInput
+    remixStorageSharesAsTarget?: RemixStorageShareUpdateManyWithoutTargetOrganizationNestedInput
     cloudTenant?: CloudTenantUpdateOneWithoutOrganizationNestedInput
     collaborationGroups?: CollaborationGroupUpdateManyWithoutOrganizationNestedInput
     resourceAccessGrants?: ResourceAccessGrantUpdateManyWithoutOrganizationNestedInput
@@ -263663,6 +266410,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutOrganizationNestedInput
+    remixStorageSharesAsSource?: RemixStorageShareUncheckedUpdateManyWithoutSourceOrganizationNestedInput
+    remixStorageSharesAsTarget?: RemixStorageShareUncheckedUpdateManyWithoutTargetOrganizationNestedInput
     cloudTenant?: CloudTenantUncheckedUpdateOneWithoutOrganizationNestedInput
     collaborationGroups?: CollaborationGroupUncheckedUpdateManyWithoutOrganizationNestedInput
     resourceAccessGrants?: ResourceAccessGrantUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -263709,6 +266458,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
     importJobs?: ImportJobCreateNestedManyWithoutOrganizationInput
+    remixStorageSharesAsSource?: RemixStorageShareCreateNestedManyWithoutSourceOrganizationInput
+    remixStorageSharesAsTarget?: RemixStorageShareCreateNestedManyWithoutTargetOrganizationInput
     cloudTenant?: CloudTenantCreateNestedOneWithoutOrganizationInput
     collaborationGroups?: CollaborationGroupCreateNestedManyWithoutOrganizationInput
     resourceAccessGrants?: ResourceAccessGrantCreateNestedManyWithoutOrganizationInput
@@ -263755,6 +266506,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutOrganizationInput
+    remixStorageSharesAsSource?: RemixStorageShareUncheckedCreateNestedManyWithoutSourceOrganizationInput
+    remixStorageSharesAsTarget?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetOrganizationInput
     cloudTenant?: CloudTenantUncheckedCreateNestedOneWithoutOrganizationInput
     collaborationGroups?: CollaborationGroupUncheckedCreateNestedManyWithoutOrganizationInput
     resourceAccessGrants?: ResourceAccessGrantUncheckedCreateNestedManyWithoutOrganizationInput
@@ -263817,6 +266570,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
     importJobs?: ImportJobUpdateManyWithoutOrganizationNestedInput
+    remixStorageSharesAsSource?: RemixStorageShareUpdateManyWithoutSourceOrganizationNestedInput
+    remixStorageSharesAsTarget?: RemixStorageShareUpdateManyWithoutTargetOrganizationNestedInput
     cloudTenant?: CloudTenantUpdateOneWithoutOrganizationNestedInput
     collaborationGroups?: CollaborationGroupUpdateManyWithoutOrganizationNestedInput
     resourceAccessGrants?: ResourceAccessGrantUpdateManyWithoutOrganizationNestedInput
@@ -263863,6 +266618,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutOrganizationNestedInput
+    remixStorageSharesAsSource?: RemixStorageShareUncheckedUpdateManyWithoutSourceOrganizationNestedInput
+    remixStorageSharesAsTarget?: RemixStorageShareUncheckedUpdateManyWithoutTargetOrganizationNestedInput
     cloudTenant?: CloudTenantUncheckedUpdateOneWithoutOrganizationNestedInput
     collaborationGroups?: CollaborationGroupUncheckedUpdateManyWithoutOrganizationNestedInput
     resourceAccessGrants?: ResourceAccessGrantUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -263909,6 +266666,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
     importJobs?: ImportJobCreateNestedManyWithoutOrganizationInput
+    remixStorageSharesAsSource?: RemixStorageShareCreateNestedManyWithoutSourceOrganizationInput
+    remixStorageSharesAsTarget?: RemixStorageShareCreateNestedManyWithoutTargetOrganizationInput
     cloudTenant?: CloudTenantCreateNestedOneWithoutOrganizationInput
     collaborationGroups?: CollaborationGroupCreateNestedManyWithoutOrganizationInput
     resourceAccessGrants?: ResourceAccessGrantCreateNestedManyWithoutOrganizationInput
@@ -263955,6 +266714,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutOrganizationInput
+    remixStorageSharesAsSource?: RemixStorageShareUncheckedCreateNestedManyWithoutSourceOrganizationInput
+    remixStorageSharesAsTarget?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetOrganizationInput
     cloudTenant?: CloudTenantUncheckedCreateNestedOneWithoutOrganizationInput
     collaborationGroups?: CollaborationGroupUncheckedCreateNestedManyWithoutOrganizationInput
     resourceAccessGrants?: ResourceAccessGrantUncheckedCreateNestedManyWithoutOrganizationInput
@@ -264017,6 +266778,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
     importJobs?: ImportJobUpdateManyWithoutOrganizationNestedInput
+    remixStorageSharesAsSource?: RemixStorageShareUpdateManyWithoutSourceOrganizationNestedInput
+    remixStorageSharesAsTarget?: RemixStorageShareUpdateManyWithoutTargetOrganizationNestedInput
     cloudTenant?: CloudTenantUpdateOneWithoutOrganizationNestedInput
     collaborationGroups?: CollaborationGroupUpdateManyWithoutOrganizationNestedInput
     resourceAccessGrants?: ResourceAccessGrantUpdateManyWithoutOrganizationNestedInput
@@ -264063,6 +266826,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutOrganizationNestedInput
+    remixStorageSharesAsSource?: RemixStorageShareUncheckedUpdateManyWithoutSourceOrganizationNestedInput
+    remixStorageSharesAsTarget?: RemixStorageShareUncheckedUpdateManyWithoutTargetOrganizationNestedInput
     cloudTenant?: CloudTenantUncheckedUpdateOneWithoutOrganizationNestedInput
     collaborationGroups?: CollaborationGroupUncheckedUpdateManyWithoutOrganizationNestedInput
     resourceAccessGrants?: ResourceAccessGrantUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -264109,6 +266874,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
     importJobs?: ImportJobCreateNestedManyWithoutOrganizationInput
+    remixStorageSharesAsSource?: RemixStorageShareCreateNestedManyWithoutSourceOrganizationInput
+    remixStorageSharesAsTarget?: RemixStorageShareCreateNestedManyWithoutTargetOrganizationInput
     cloudTenant?: CloudTenantCreateNestedOneWithoutOrganizationInput
     collaborationGroups?: CollaborationGroupCreateNestedManyWithoutOrganizationInput
     resourceAccessGrants?: ResourceAccessGrantCreateNestedManyWithoutOrganizationInput
@@ -264155,6 +266922,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutOrganizationInput
+    remixStorageSharesAsSource?: RemixStorageShareUncheckedCreateNestedManyWithoutSourceOrganizationInput
+    remixStorageSharesAsTarget?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetOrganizationInput
     cloudTenant?: CloudTenantUncheckedCreateNestedOneWithoutOrganizationInput
     collaborationGroups?: CollaborationGroupUncheckedCreateNestedManyWithoutOrganizationInput
     resourceAccessGrants?: ResourceAccessGrantUncheckedCreateNestedManyWithoutOrganizationInput
@@ -264217,6 +266986,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
     importJobs?: ImportJobUpdateManyWithoutOrganizationNestedInput
+    remixStorageSharesAsSource?: RemixStorageShareUpdateManyWithoutSourceOrganizationNestedInput
+    remixStorageSharesAsTarget?: RemixStorageShareUpdateManyWithoutTargetOrganizationNestedInput
     cloudTenant?: CloudTenantUpdateOneWithoutOrganizationNestedInput
     collaborationGroups?: CollaborationGroupUpdateManyWithoutOrganizationNestedInput
     resourceAccessGrants?: ResourceAccessGrantUpdateManyWithoutOrganizationNestedInput
@@ -264263,6 +267034,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutOrganizationNestedInput
+    remixStorageSharesAsSource?: RemixStorageShareUncheckedUpdateManyWithoutSourceOrganizationNestedInput
+    remixStorageSharesAsTarget?: RemixStorageShareUncheckedUpdateManyWithoutTargetOrganizationNestedInput
     cloudTenant?: CloudTenantUncheckedUpdateOneWithoutOrganizationNestedInput
     collaborationGroups?: CollaborationGroupUncheckedUpdateManyWithoutOrganizationNestedInput
     resourceAccessGrants?: ResourceAccessGrantUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -264309,6 +267082,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
     importJobs?: ImportJobCreateNestedManyWithoutOrganizationInput
+    remixStorageSharesAsSource?: RemixStorageShareCreateNestedManyWithoutSourceOrganizationInput
+    remixStorageSharesAsTarget?: RemixStorageShareCreateNestedManyWithoutTargetOrganizationInput
     cloudTenant?: CloudTenantCreateNestedOneWithoutOrganizationInput
     collaborationGroups?: CollaborationGroupCreateNestedManyWithoutOrganizationInput
     resourceAccessGrants?: ResourceAccessGrantCreateNestedManyWithoutOrganizationInput
@@ -264355,6 +267130,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutOrganizationInput
+    remixStorageSharesAsSource?: RemixStorageShareUncheckedCreateNestedManyWithoutSourceOrganizationInput
+    remixStorageSharesAsTarget?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetOrganizationInput
     cloudTenant?: CloudTenantUncheckedCreateNestedOneWithoutOrganizationInput
     collaborationGroups?: CollaborationGroupUncheckedCreateNestedManyWithoutOrganizationInput
     resourceAccessGrants?: ResourceAccessGrantUncheckedCreateNestedManyWithoutOrganizationInput
@@ -264417,6 +267194,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
     importJobs?: ImportJobUpdateManyWithoutOrganizationNestedInput
+    remixStorageSharesAsSource?: RemixStorageShareUpdateManyWithoutSourceOrganizationNestedInput
+    remixStorageSharesAsTarget?: RemixStorageShareUpdateManyWithoutTargetOrganizationNestedInput
     cloudTenant?: CloudTenantUpdateOneWithoutOrganizationNestedInput
     collaborationGroups?: CollaborationGroupUpdateManyWithoutOrganizationNestedInput
     resourceAccessGrants?: ResourceAccessGrantUpdateManyWithoutOrganizationNestedInput
@@ -264463,6 +267242,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutOrganizationNestedInput
+    remixStorageSharesAsSource?: RemixStorageShareUncheckedUpdateManyWithoutSourceOrganizationNestedInput
+    remixStorageSharesAsTarget?: RemixStorageShareUncheckedUpdateManyWithoutTargetOrganizationNestedInput
     cloudTenant?: CloudTenantUncheckedUpdateOneWithoutOrganizationNestedInput
     collaborationGroups?: CollaborationGroupUncheckedUpdateManyWithoutOrganizationNestedInput
     resourceAccessGrants?: ResourceAccessGrantUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -264509,6 +267290,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
     importJobs?: ImportJobCreateNestedManyWithoutOrganizationInput
+    remixStorageSharesAsSource?: RemixStorageShareCreateNestedManyWithoutSourceOrganizationInput
+    remixStorageSharesAsTarget?: RemixStorageShareCreateNestedManyWithoutTargetOrganizationInput
     cloudTenant?: CloudTenantCreateNestedOneWithoutOrganizationInput
     collaborationGroups?: CollaborationGroupCreateNestedManyWithoutOrganizationInput
     resourceAccessGrants?: ResourceAccessGrantCreateNestedManyWithoutOrganizationInput
@@ -264555,6 +267338,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutOrganizationInput
+    remixStorageSharesAsSource?: RemixStorageShareUncheckedCreateNestedManyWithoutSourceOrganizationInput
+    remixStorageSharesAsTarget?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetOrganizationInput
     cloudTenant?: CloudTenantUncheckedCreateNestedOneWithoutOrganizationInput
     collaborationGroups?: CollaborationGroupUncheckedCreateNestedManyWithoutOrganizationInput
     resourceAccessGrants?: ResourceAccessGrantUncheckedCreateNestedManyWithoutOrganizationInput
@@ -264614,6 +267399,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
     importJobs?: ImportJobCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutActorInput
     cloudOperations?: CloudOperationCreateNestedManyWithoutActorInput
     projectCheckpoints?: ProjectCheckpointCreateNestedManyWithoutCreatedByInput
     invitedOrganizationMembers?: OrganizationMemberCreateNestedManyWithoutInvitedByInput
@@ -264672,6 +267459,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutActorInput
     cloudOperations?: CloudOperationUncheckedCreateNestedManyWithoutActorInput
     projectCheckpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutCreatedByInput
     invitedOrganizationMembers?: OrganizationMemberUncheckedCreateNestedManyWithoutInvitedByInput
@@ -264738,6 +267527,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
     importJobs?: ImportJobUpdateManyWithoutOrganizationNestedInput
+    remixStorageSharesAsSource?: RemixStorageShareUpdateManyWithoutSourceOrganizationNestedInput
+    remixStorageSharesAsTarget?: RemixStorageShareUpdateManyWithoutTargetOrganizationNestedInput
     cloudTenant?: CloudTenantUpdateOneWithoutOrganizationNestedInput
     collaborationGroups?: CollaborationGroupUpdateManyWithoutOrganizationNestedInput
     resourceAccessGrants?: ResourceAccessGrantUpdateManyWithoutOrganizationNestedInput
@@ -264784,6 +267575,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutOrganizationNestedInput
+    remixStorageSharesAsSource?: RemixStorageShareUncheckedUpdateManyWithoutSourceOrganizationNestedInput
+    remixStorageSharesAsTarget?: RemixStorageShareUncheckedUpdateManyWithoutTargetOrganizationNestedInput
     cloudTenant?: CloudTenantUncheckedUpdateOneWithoutOrganizationNestedInput
     collaborationGroups?: CollaborationGroupUncheckedUpdateManyWithoutOrganizationNestedInput
     resourceAccessGrants?: ResourceAccessGrantUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -264849,6 +267642,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutActorNestedInput
     cloudOperations?: CloudOperationUpdateManyWithoutActorNestedInput
     projectCheckpoints?: ProjectCheckpointUpdateManyWithoutCreatedByNestedInput
     invitedOrganizationMembers?: OrganizationMemberUpdateManyWithoutInvitedByNestedInput
@@ -264907,6 +267702,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutActorNestedInput
     cloudOperations?: CloudOperationUncheckedUpdateManyWithoutActorNestedInput
     projectCheckpoints?: ProjectCheckpointUncheckedUpdateManyWithoutCreatedByNestedInput
     invitedOrganizationMembers?: OrganizationMemberUncheckedUpdateManyWithoutInvitedByNestedInput
@@ -264965,6 +267762,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
     importJobs?: ImportJobCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutActorInput
     cloudOperations?: CloudOperationCreateNestedManyWithoutActorInput
     projectCheckpoints?: ProjectCheckpointCreateNestedManyWithoutCreatedByInput
     invitedOrganizationMembers?: OrganizationMemberCreateNestedManyWithoutInvitedByInput
@@ -265023,6 +267822,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutActorInput
     cloudOperations?: CloudOperationUncheckedCreateNestedManyWithoutActorInput
     projectCheckpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutCreatedByInput
     invitedOrganizationMembers?: OrganizationMemberUncheckedCreateNestedManyWithoutInvitedByInput
@@ -265097,6 +267898,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutActorNestedInput
     cloudOperations?: CloudOperationUpdateManyWithoutActorNestedInput
     projectCheckpoints?: ProjectCheckpointUpdateManyWithoutCreatedByNestedInput
     invitedOrganizationMembers?: OrganizationMemberUpdateManyWithoutInvitedByNestedInput
@@ -265155,6 +267958,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutActorNestedInput
     cloudOperations?: CloudOperationUncheckedUpdateManyWithoutActorNestedInput
     projectCheckpoints?: ProjectCheckpointUncheckedUpdateManyWithoutCreatedByNestedInput
     invitedOrganizationMembers?: OrganizationMemberUncheckedUpdateManyWithoutInvitedByNestedInput
@@ -265320,6 +268125,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
     importJobs?: ImportJobCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutActorInput
     cloudOperations?: CloudOperationCreateNestedManyWithoutActorInput
     projectCheckpoints?: ProjectCheckpointCreateNestedManyWithoutCreatedByInput
     invitedOrganizationMembers?: OrganizationMemberCreateNestedManyWithoutInvitedByInput
@@ -265378,6 +268185,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutActorInput
     cloudOperations?: CloudOperationUncheckedCreateNestedManyWithoutActorInput
     projectCheckpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutCreatedByInput
     invitedOrganizationMembers?: OrganizationMemberUncheckedCreateNestedManyWithoutInvitedByInput
@@ -265433,6 +268242,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
     importJobs?: ImportJobCreateNestedManyWithoutOrganizationInput
+    remixStorageSharesAsSource?: RemixStorageShareCreateNestedManyWithoutSourceOrganizationInput
+    remixStorageSharesAsTarget?: RemixStorageShareCreateNestedManyWithoutTargetOrganizationInput
     cloudTenant?: CloudTenantCreateNestedOneWithoutOrganizationInput
     collaborationGroups?: CollaborationGroupCreateNestedManyWithoutOrganizationInput
     resourceAccessGrants?: ResourceAccessGrantCreateNestedManyWithoutOrganizationInput
@@ -265479,6 +268290,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutOrganizationInput
+    remixStorageSharesAsSource?: RemixStorageShareUncheckedCreateNestedManyWithoutSourceOrganizationInput
+    remixStorageSharesAsTarget?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetOrganizationInput
     cloudTenant?: CloudTenantUncheckedCreateNestedOneWithoutOrganizationInput
     collaborationGroups?: CollaborationGroupUncheckedCreateNestedManyWithoutOrganizationInput
     resourceAccessGrants?: ResourceAccessGrantUncheckedCreateNestedManyWithoutOrganizationInput
@@ -265614,6 +268427,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutActorNestedInput
     cloudOperations?: CloudOperationUpdateManyWithoutActorNestedInput
     projectCheckpoints?: ProjectCheckpointUpdateManyWithoutCreatedByNestedInput
     invitedOrganizationMembers?: OrganizationMemberUpdateManyWithoutInvitedByNestedInput
@@ -265672,6 +268487,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutActorNestedInput
     cloudOperations?: CloudOperationUncheckedUpdateManyWithoutActorNestedInput
     projectCheckpoints?: ProjectCheckpointUncheckedUpdateManyWithoutCreatedByNestedInput
     invitedOrganizationMembers?: OrganizationMemberUncheckedUpdateManyWithoutInvitedByNestedInput
@@ -265733,6 +268550,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
     importJobs?: ImportJobUpdateManyWithoutOrganizationNestedInput
+    remixStorageSharesAsSource?: RemixStorageShareUpdateManyWithoutSourceOrganizationNestedInput
+    remixStorageSharesAsTarget?: RemixStorageShareUpdateManyWithoutTargetOrganizationNestedInput
     cloudTenant?: CloudTenantUpdateOneWithoutOrganizationNestedInput
     collaborationGroups?: CollaborationGroupUpdateManyWithoutOrganizationNestedInput
     resourceAccessGrants?: ResourceAccessGrantUpdateManyWithoutOrganizationNestedInput
@@ -265779,6 +268598,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutOrganizationNestedInput
+    remixStorageSharesAsSource?: RemixStorageShareUncheckedUpdateManyWithoutSourceOrganizationNestedInput
+    remixStorageSharesAsTarget?: RemixStorageShareUncheckedUpdateManyWithoutTargetOrganizationNestedInput
     cloudTenant?: CloudTenantUncheckedUpdateOneWithoutOrganizationNestedInput
     collaborationGroups?: CollaborationGroupUncheckedUpdateManyWithoutOrganizationNestedInput
     resourceAccessGrants?: ResourceAccessGrantUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -265833,6 +268654,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
     importJobs?: ImportJobCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutActorInput
     cloudOperations?: CloudOperationCreateNestedManyWithoutActorInput
     projectCheckpoints?: ProjectCheckpointCreateNestedManyWithoutCreatedByInput
     invitedOrganizationMembers?: OrganizationMemberCreateNestedManyWithoutInvitedByInput
@@ -265891,6 +268714,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutActorInput
     cloudOperations?: CloudOperationUncheckedCreateNestedManyWithoutActorInput
     projectCheckpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutCreatedByInput
     invitedOrganizationMembers?: OrganizationMemberUncheckedCreateNestedManyWithoutInvitedByInput
@@ -265965,6 +268790,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutActorNestedInput
     cloudOperations?: CloudOperationUpdateManyWithoutActorNestedInput
     projectCheckpoints?: ProjectCheckpointUpdateManyWithoutCreatedByNestedInput
     invitedOrganizationMembers?: OrganizationMemberUpdateManyWithoutInvitedByNestedInput
@@ -266023,6 +268850,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutActorNestedInput
     cloudOperations?: CloudOperationUncheckedUpdateManyWithoutActorNestedInput
     projectCheckpoints?: ProjectCheckpointUncheckedUpdateManyWithoutCreatedByNestedInput
     invitedOrganizationMembers?: OrganizationMemberUncheckedUpdateManyWithoutInvitedByNestedInput
@@ -266152,6 +268981,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
     importJobs?: ImportJobCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutActorInput
     cloudOperations?: CloudOperationCreateNestedManyWithoutActorInput
     projectCheckpoints?: ProjectCheckpointCreateNestedManyWithoutCreatedByInput
     invitedOrganizationMembers?: OrganizationMemberCreateNestedManyWithoutInvitedByInput
@@ -266210,6 +269041,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutActorInput
     cloudOperations?: CloudOperationUncheckedCreateNestedManyWithoutActorInput
     projectCheckpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutCreatedByInput
     invitedOrganizationMembers?: OrganizationMemberUncheckedCreateNestedManyWithoutInvitedByInput
@@ -266265,6 +269098,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
     importJobs?: ImportJobCreateNestedManyWithoutOrganizationInput
+    remixStorageSharesAsSource?: RemixStorageShareCreateNestedManyWithoutSourceOrganizationInput
+    remixStorageSharesAsTarget?: RemixStorageShareCreateNestedManyWithoutTargetOrganizationInput
     cloudTenant?: CloudTenantCreateNestedOneWithoutOrganizationInput
     collaborationGroups?: CollaborationGroupCreateNestedManyWithoutOrganizationInput
     resourceAccessGrants?: ResourceAccessGrantCreateNestedManyWithoutOrganizationInput
@@ -266311,6 +269146,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutOrganizationInput
+    remixStorageSharesAsSource?: RemixStorageShareUncheckedCreateNestedManyWithoutSourceOrganizationInput
+    remixStorageSharesAsTarget?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetOrganizationInput
     cloudTenant?: CloudTenantUncheckedCreateNestedOneWithoutOrganizationInput
     collaborationGroups?: CollaborationGroupUncheckedCreateNestedManyWithoutOrganizationInput
     resourceAccessGrants?: ResourceAccessGrantUncheckedCreateNestedManyWithoutOrganizationInput
@@ -266454,6 +269291,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutActorNestedInput
     cloudOperations?: CloudOperationUpdateManyWithoutActorNestedInput
     projectCheckpoints?: ProjectCheckpointUpdateManyWithoutCreatedByNestedInput
     invitedOrganizationMembers?: OrganizationMemberUpdateManyWithoutInvitedByNestedInput
@@ -266512,6 +269351,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutActorNestedInput
     cloudOperations?: CloudOperationUncheckedUpdateManyWithoutActorNestedInput
     projectCheckpoints?: ProjectCheckpointUncheckedUpdateManyWithoutCreatedByNestedInput
     invitedOrganizationMembers?: OrganizationMemberUncheckedUpdateManyWithoutInvitedByNestedInput
@@ -266573,6 +269414,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
     importJobs?: ImportJobUpdateManyWithoutOrganizationNestedInput
+    remixStorageSharesAsSource?: RemixStorageShareUpdateManyWithoutSourceOrganizationNestedInput
+    remixStorageSharesAsTarget?: RemixStorageShareUpdateManyWithoutTargetOrganizationNestedInput
     cloudTenant?: CloudTenantUpdateOneWithoutOrganizationNestedInput
     collaborationGroups?: CollaborationGroupUpdateManyWithoutOrganizationNestedInput
     resourceAccessGrants?: ResourceAccessGrantUpdateManyWithoutOrganizationNestedInput
@@ -266619,6 +269462,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutOrganizationNestedInput
+    remixStorageSharesAsSource?: RemixStorageShareUncheckedUpdateManyWithoutSourceOrganizationNestedInput
+    remixStorageSharesAsTarget?: RemixStorageShareUncheckedUpdateManyWithoutTargetOrganizationNestedInput
     cloudTenant?: CloudTenantUncheckedUpdateOneWithoutOrganizationNestedInput
     collaborationGroups?: CollaborationGroupUncheckedUpdateManyWithoutOrganizationNestedInput
     resourceAccessGrants?: ResourceAccessGrantUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -266937,6 +269782,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
     importJobs?: ImportJobCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutActorInput
     cloudOperations?: CloudOperationCreateNestedManyWithoutActorInput
     projectCheckpoints?: ProjectCheckpointCreateNestedManyWithoutCreatedByInput
     invitedOrganizationMembers?: OrganizationMemberCreateNestedManyWithoutInvitedByInput
@@ -266995,6 +269842,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutActorInput
     cloudOperations?: CloudOperationUncheckedCreateNestedManyWithoutActorInput
     projectCheckpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutCreatedByInput
     invitedOrganizationMembers?: OrganizationMemberUncheckedCreateNestedManyWithoutInvitedByInput
@@ -267156,6 +270005,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutActorNestedInput
     cloudOperations?: CloudOperationUpdateManyWithoutActorNestedInput
     projectCheckpoints?: ProjectCheckpointUpdateManyWithoutCreatedByNestedInput
     invitedOrganizationMembers?: OrganizationMemberUpdateManyWithoutInvitedByNestedInput
@@ -267214,6 +270065,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutActorNestedInput
     cloudOperations?: CloudOperationUncheckedUpdateManyWithoutActorNestedInput
     projectCheckpoints?: ProjectCheckpointUncheckedUpdateManyWithoutCreatedByNestedInput
     invitedOrganizationMembers?: OrganizationMemberUncheckedUpdateManyWithoutInvitedByNestedInput
@@ -267352,6 +270205,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
+    targetRemixJobs?: RemixJobCreateNestedManyWithoutTargetProjectInput
+    sourceRemixShares?: RemixStorageShareCreateNestedManyWithoutSourceProjectInput
+    targetRemixShares?: RemixStorageShareCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
   }
@@ -267400,6 +270256,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    targetRemixJobs?: RemixJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    sourceRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutSourceProjectInput
+    targetRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingUncheckedCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
   }
@@ -267511,6 +270370,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
     importJobs?: ImportJobCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutActorInput
     cloudOperations?: CloudOperationCreateNestedManyWithoutActorInput
     projectCheckpoints?: ProjectCheckpointCreateNestedManyWithoutCreatedByInput
     invitedOrganizationMembers?: OrganizationMemberCreateNestedManyWithoutInvitedByInput
@@ -267569,6 +270430,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutActorInput
     cloudOperations?: CloudOperationUncheckedCreateNestedManyWithoutActorInput
     projectCheckpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutCreatedByInput
     invitedOrganizationMembers?: OrganizationMemberUncheckedCreateNestedManyWithoutInvitedByInput
@@ -267638,6 +270501,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
+    targetRemixJobs?: RemixJobUpdateManyWithoutTargetProjectNestedInput
+    sourceRemixShares?: RemixStorageShareUpdateManyWithoutSourceProjectNestedInput
+    targetRemixShares?: RemixStorageShareUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
   }
@@ -267686,6 +270552,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    targetRemixJobs?: RemixJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    sourceRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutSourceProjectNestedInput
+    targetRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUncheckedUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
   }
@@ -267809,6 +270678,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutActorNestedInput
     cloudOperations?: CloudOperationUpdateManyWithoutActorNestedInput
     projectCheckpoints?: ProjectCheckpointUpdateManyWithoutCreatedByNestedInput
     invitedOrganizationMembers?: OrganizationMemberUpdateManyWithoutInvitedByNestedInput
@@ -267867,6 +270738,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutActorNestedInput
     cloudOperations?: CloudOperationUncheckedUpdateManyWithoutActorNestedInput
     projectCheckpoints?: ProjectCheckpointUncheckedUpdateManyWithoutCreatedByNestedInput
     invitedOrganizationMembers?: OrganizationMemberUncheckedUpdateManyWithoutInvitedByNestedInput
@@ -267917,6 +270790,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
     importJobs?: ImportJobCreateNestedManyWithoutOrganizationInput
+    remixStorageSharesAsSource?: RemixStorageShareCreateNestedManyWithoutSourceOrganizationInput
+    remixStorageSharesAsTarget?: RemixStorageShareCreateNestedManyWithoutTargetOrganizationInput
     cloudTenant?: CloudTenantCreateNestedOneWithoutOrganizationInput
     collaborationGroups?: CollaborationGroupCreateNestedManyWithoutOrganizationInput
     resourceAccessGrants?: ResourceAccessGrantCreateNestedManyWithoutOrganizationInput
@@ -267963,6 +270838,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutOrganizationInput
+    remixStorageSharesAsSource?: RemixStorageShareUncheckedCreateNestedManyWithoutSourceOrganizationInput
+    remixStorageSharesAsTarget?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetOrganizationInput
     cloudTenant?: CloudTenantUncheckedCreateNestedOneWithoutOrganizationInput
     collaborationGroups?: CollaborationGroupUncheckedCreateNestedManyWithoutOrganizationInput
     resourceAccessGrants?: ResourceAccessGrantUncheckedCreateNestedManyWithoutOrganizationInput
@@ -268022,6 +270899,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
     importJobs?: ImportJobCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutActorInput
     cloudOperations?: CloudOperationCreateNestedManyWithoutActorInput
     projectCheckpoints?: ProjectCheckpointCreateNestedManyWithoutCreatedByInput
     invitedOrganizationMembers?: OrganizationMemberCreateNestedManyWithoutInvitedByInput
@@ -268080,6 +270959,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutActorInput
     cloudOperations?: CloudOperationUncheckedCreateNestedManyWithoutActorInput
     projectCheckpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutCreatedByInput
     invitedOrganizationMembers?: OrganizationMemberUncheckedCreateNestedManyWithoutInvitedByInput
@@ -268204,6 +271085,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
     importJobs?: ImportJobUpdateManyWithoutOrganizationNestedInput
+    remixStorageSharesAsSource?: RemixStorageShareUpdateManyWithoutSourceOrganizationNestedInput
+    remixStorageSharesAsTarget?: RemixStorageShareUpdateManyWithoutTargetOrganizationNestedInput
     cloudTenant?: CloudTenantUpdateOneWithoutOrganizationNestedInput
     collaborationGroups?: CollaborationGroupUpdateManyWithoutOrganizationNestedInput
     resourceAccessGrants?: ResourceAccessGrantUpdateManyWithoutOrganizationNestedInput
@@ -268250,6 +271133,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutOrganizationNestedInput
+    remixStorageSharesAsSource?: RemixStorageShareUncheckedUpdateManyWithoutSourceOrganizationNestedInput
+    remixStorageSharesAsTarget?: RemixStorageShareUncheckedUpdateManyWithoutTargetOrganizationNestedInput
     cloudTenant?: CloudTenantUncheckedUpdateOneWithoutOrganizationNestedInput
     collaborationGroups?: CollaborationGroupUncheckedUpdateManyWithoutOrganizationNestedInput
     resourceAccessGrants?: ResourceAccessGrantUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -268315,6 +271200,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutActorNestedInput
     cloudOperations?: CloudOperationUpdateManyWithoutActorNestedInput
     projectCheckpoints?: ProjectCheckpointUpdateManyWithoutCreatedByNestedInput
     invitedOrganizationMembers?: OrganizationMemberUpdateManyWithoutInvitedByNestedInput
@@ -268373,6 +271260,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutActorNestedInput
     cloudOperations?: CloudOperationUncheckedUpdateManyWithoutActorNestedInput
     projectCheckpoints?: ProjectCheckpointUncheckedUpdateManyWithoutCreatedByNestedInput
     invitedOrganizationMembers?: OrganizationMemberUncheckedUpdateManyWithoutInvitedByNestedInput
@@ -268439,6 +271328,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
     importJobs?: ImportJobCreateNestedManyWithoutOrganizationInput
+    remixStorageSharesAsSource?: RemixStorageShareCreateNestedManyWithoutSourceOrganizationInput
+    remixStorageSharesAsTarget?: RemixStorageShareCreateNestedManyWithoutTargetOrganizationInput
     cloudTenant?: CloudTenantCreateNestedOneWithoutOrganizationInput
     collaborationGroups?: CollaborationGroupCreateNestedManyWithoutOrganizationInput
     resourceAccessGrants?: ResourceAccessGrantCreateNestedManyWithoutOrganizationInput
@@ -268485,6 +271376,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutOrganizationInput
+    remixStorageSharesAsSource?: RemixStorageShareUncheckedCreateNestedManyWithoutSourceOrganizationInput
+    remixStorageSharesAsTarget?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetOrganizationInput
     cloudTenant?: CloudTenantUncheckedCreateNestedOneWithoutOrganizationInput
     collaborationGroups?: CollaborationGroupUncheckedCreateNestedManyWithoutOrganizationInput
     resourceAccessGrants?: ResourceAccessGrantUncheckedCreateNestedManyWithoutOrganizationInput
@@ -268547,6 +271440,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
     importJobs?: ImportJobUpdateManyWithoutOrganizationNestedInput
+    remixStorageSharesAsSource?: RemixStorageShareUpdateManyWithoutSourceOrganizationNestedInput
+    remixStorageSharesAsTarget?: RemixStorageShareUpdateManyWithoutTargetOrganizationNestedInput
     cloudTenant?: CloudTenantUpdateOneWithoutOrganizationNestedInput
     collaborationGroups?: CollaborationGroupUpdateManyWithoutOrganizationNestedInput
     resourceAccessGrants?: ResourceAccessGrantUpdateManyWithoutOrganizationNestedInput
@@ -268593,6 +271488,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutOrganizationNestedInput
+    remixStorageSharesAsSource?: RemixStorageShareUncheckedUpdateManyWithoutSourceOrganizationNestedInput
+    remixStorageSharesAsTarget?: RemixStorageShareUncheckedUpdateManyWithoutTargetOrganizationNestedInput
     cloudTenant?: CloudTenantUncheckedUpdateOneWithoutOrganizationNestedInput
     collaborationGroups?: CollaborationGroupUncheckedUpdateManyWithoutOrganizationNestedInput
     resourceAccessGrants?: ResourceAccessGrantUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -268759,6 +271656,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
     importJobs?: ImportJobCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutActorInput
     cloudOperations?: CloudOperationCreateNestedManyWithoutActorInput
     projectCheckpoints?: ProjectCheckpointCreateNestedManyWithoutCreatedByInput
     invitedOrganizationMembers?: OrganizationMemberCreateNestedManyWithoutInvitedByInput
@@ -268817,6 +271716,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutActorInput
     cloudOperations?: CloudOperationUncheckedCreateNestedManyWithoutActorInput
     projectCheckpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutCreatedByInput
     invitedOrganizationMembers?: OrganizationMemberUncheckedCreateNestedManyWithoutInvitedByInput
@@ -268891,6 +271792,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutActorNestedInput
     cloudOperations?: CloudOperationUpdateManyWithoutActorNestedInput
     projectCheckpoints?: ProjectCheckpointUpdateManyWithoutCreatedByNestedInput
     invitedOrganizationMembers?: OrganizationMemberUpdateManyWithoutInvitedByNestedInput
@@ -268949,6 +271852,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutActorNestedInput
     cloudOperations?: CloudOperationUncheckedUpdateManyWithoutActorNestedInput
     projectCheckpoints?: ProjectCheckpointUncheckedUpdateManyWithoutCreatedByNestedInput
     invitedOrganizationMembers?: OrganizationMemberUncheckedUpdateManyWithoutInvitedByNestedInput
@@ -269007,6 +271912,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
     importJobs?: ImportJobCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutActorInput
     cloudOperations?: CloudOperationCreateNestedManyWithoutActorInput
     projectCheckpoints?: ProjectCheckpointCreateNestedManyWithoutCreatedByInput
     invitedOrganizationMembers?: OrganizationMemberCreateNestedManyWithoutInvitedByInput
@@ -269065,6 +271972,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutActorInput
     cloudOperations?: CloudOperationUncheckedCreateNestedManyWithoutActorInput
     projectCheckpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutCreatedByInput
     invitedOrganizationMembers?: OrganizationMemberUncheckedCreateNestedManyWithoutInvitedByInput
@@ -269120,6 +272029,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
     importJobs?: ImportJobCreateNestedManyWithoutOrganizationInput
+    remixStorageSharesAsSource?: RemixStorageShareCreateNestedManyWithoutSourceOrganizationInput
+    remixStorageSharesAsTarget?: RemixStorageShareCreateNestedManyWithoutTargetOrganizationInput
     cloudTenant?: CloudTenantCreateNestedOneWithoutOrganizationInput
     collaborationGroups?: CollaborationGroupCreateNestedManyWithoutOrganizationInput
     resourceAccessGrants?: ResourceAccessGrantCreateNestedManyWithoutOrganizationInput
@@ -269166,6 +272077,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutOrganizationInput
+    remixStorageSharesAsSource?: RemixStorageShareUncheckedCreateNestedManyWithoutSourceOrganizationInput
+    remixStorageSharesAsTarget?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetOrganizationInput
     cloudTenant?: CloudTenantUncheckedCreateNestedOneWithoutOrganizationInput
     collaborationGroups?: CollaborationGroupUncheckedCreateNestedManyWithoutOrganizationInput
     resourceAccessGrants?: ResourceAccessGrantUncheckedCreateNestedManyWithoutOrganizationInput
@@ -269236,6 +272149,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutActorNestedInput
     cloudOperations?: CloudOperationUpdateManyWithoutActorNestedInput
     projectCheckpoints?: ProjectCheckpointUpdateManyWithoutCreatedByNestedInput
     invitedOrganizationMembers?: OrganizationMemberUpdateManyWithoutInvitedByNestedInput
@@ -269294,6 +272209,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutActorNestedInput
     cloudOperations?: CloudOperationUncheckedUpdateManyWithoutActorNestedInput
     projectCheckpoints?: ProjectCheckpointUncheckedUpdateManyWithoutCreatedByNestedInput
     invitedOrganizationMembers?: OrganizationMemberUncheckedUpdateManyWithoutInvitedByNestedInput
@@ -269355,6 +272272,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
     importJobs?: ImportJobUpdateManyWithoutOrganizationNestedInput
+    remixStorageSharesAsSource?: RemixStorageShareUpdateManyWithoutSourceOrganizationNestedInput
+    remixStorageSharesAsTarget?: RemixStorageShareUpdateManyWithoutTargetOrganizationNestedInput
     cloudTenant?: CloudTenantUpdateOneWithoutOrganizationNestedInput
     collaborationGroups?: CollaborationGroupUpdateManyWithoutOrganizationNestedInput
     resourceAccessGrants?: ResourceAccessGrantUpdateManyWithoutOrganizationNestedInput
@@ -269401,6 +272320,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutOrganizationNestedInput
+    remixStorageSharesAsSource?: RemixStorageShareUncheckedUpdateManyWithoutSourceOrganizationNestedInput
+    remixStorageSharesAsTarget?: RemixStorageShareUncheckedUpdateManyWithoutTargetOrganizationNestedInput
     cloudTenant?: CloudTenantUncheckedUpdateOneWithoutOrganizationNestedInput
     collaborationGroups?: CollaborationGroupUncheckedUpdateManyWithoutOrganizationNestedInput
     resourceAccessGrants?: ResourceAccessGrantUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -269447,6 +272368,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
     importJobs?: ImportJobCreateNestedManyWithoutOrganizationInput
+    remixStorageSharesAsSource?: RemixStorageShareCreateNestedManyWithoutSourceOrganizationInput
+    remixStorageSharesAsTarget?: RemixStorageShareCreateNestedManyWithoutTargetOrganizationInput
     cloudTenant?: CloudTenantCreateNestedOneWithoutOrganizationInput
     collaborationGroups?: CollaborationGroupCreateNestedManyWithoutOrganizationInput
     resourceAccessGrants?: ResourceAccessGrantCreateNestedManyWithoutOrganizationInput
@@ -269493,6 +272416,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutOrganizationInput
+    remixStorageSharesAsSource?: RemixStorageShareUncheckedCreateNestedManyWithoutSourceOrganizationInput
+    remixStorageSharesAsTarget?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetOrganizationInput
     cloudTenant?: CloudTenantUncheckedCreateNestedOneWithoutOrganizationInput
     collaborationGroups?: CollaborationGroupUncheckedCreateNestedManyWithoutOrganizationInput
     resourceAccessGrants?: ResourceAccessGrantUncheckedCreateNestedManyWithoutOrganizationInput
@@ -269589,6 +272514,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
     importJobs?: ImportJobUpdateManyWithoutOrganizationNestedInput
+    remixStorageSharesAsSource?: RemixStorageShareUpdateManyWithoutSourceOrganizationNestedInput
+    remixStorageSharesAsTarget?: RemixStorageShareUpdateManyWithoutTargetOrganizationNestedInput
     cloudTenant?: CloudTenantUpdateOneWithoutOrganizationNestedInput
     collaborationGroups?: CollaborationGroupUpdateManyWithoutOrganizationNestedInput
     resourceAccessGrants?: ResourceAccessGrantUpdateManyWithoutOrganizationNestedInput
@@ -269635,6 +272562,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutOrganizationNestedInput
+    remixStorageSharesAsSource?: RemixStorageShareUncheckedUpdateManyWithoutSourceOrganizationNestedInput
+    remixStorageSharesAsTarget?: RemixStorageShareUncheckedUpdateManyWithoutTargetOrganizationNestedInput
     cloudTenant?: CloudTenantUncheckedUpdateOneWithoutOrganizationNestedInput
     collaborationGroups?: CollaborationGroupUncheckedUpdateManyWithoutOrganizationNestedInput
     resourceAccessGrants?: ResourceAccessGrantUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -269697,6 +272626,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
     importJobs?: ImportJobCreateNestedManyWithoutOrganizationInput
+    remixStorageSharesAsSource?: RemixStorageShareCreateNestedManyWithoutSourceOrganizationInput
+    remixStorageSharesAsTarget?: RemixStorageShareCreateNestedManyWithoutTargetOrganizationInput
     cloudTenant?: CloudTenantCreateNestedOneWithoutOrganizationInput
     collaborationGroups?: CollaborationGroupCreateNestedManyWithoutOrganizationInput
     resourceAccessGrants?: ResourceAccessGrantCreateNestedManyWithoutOrganizationInput
@@ -269743,6 +272674,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutOrganizationInput
+    remixStorageSharesAsSource?: RemixStorageShareUncheckedCreateNestedManyWithoutSourceOrganizationInput
+    remixStorageSharesAsTarget?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetOrganizationInput
     cloudTenant?: CloudTenantUncheckedCreateNestedOneWithoutOrganizationInput
     collaborationGroups?: CollaborationGroupUncheckedCreateNestedManyWithoutOrganizationInput
     resourceAccessGrants?: ResourceAccessGrantUncheckedCreateNestedManyWithoutOrganizationInput
@@ -269805,6 +272738,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
     importJobs?: ImportJobUpdateManyWithoutOrganizationNestedInput
+    remixStorageSharesAsSource?: RemixStorageShareUpdateManyWithoutSourceOrganizationNestedInput
+    remixStorageSharesAsTarget?: RemixStorageShareUpdateManyWithoutTargetOrganizationNestedInput
     cloudTenant?: CloudTenantUpdateOneWithoutOrganizationNestedInput
     collaborationGroups?: CollaborationGroupUpdateManyWithoutOrganizationNestedInput
     resourceAccessGrants?: ResourceAccessGrantUpdateManyWithoutOrganizationNestedInput
@@ -269851,6 +272786,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutOrganizationNestedInput
+    remixStorageSharesAsSource?: RemixStorageShareUncheckedUpdateManyWithoutSourceOrganizationNestedInput
+    remixStorageSharesAsTarget?: RemixStorageShareUncheckedUpdateManyWithoutTargetOrganizationNestedInput
     cloudTenant?: CloudTenantUncheckedUpdateOneWithoutOrganizationNestedInput
     collaborationGroups?: CollaborationGroupUncheckedUpdateManyWithoutOrganizationNestedInput
     resourceAccessGrants?: ResourceAccessGrantUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -269930,6 +272867,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
     importJobs?: ImportJobCreateNestedManyWithoutOrganizationInput
+    remixStorageSharesAsSource?: RemixStorageShareCreateNestedManyWithoutSourceOrganizationInput
+    remixStorageSharesAsTarget?: RemixStorageShareCreateNestedManyWithoutTargetOrganizationInput
     cloudTenant?: CloudTenantCreateNestedOneWithoutOrganizationInput
     collaborationGroups?: CollaborationGroupCreateNestedManyWithoutOrganizationInput
     resourceAccessGrants?: ResourceAccessGrantCreateNestedManyWithoutOrganizationInput
@@ -269976,6 +272915,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutOrganizationInput
+    remixStorageSharesAsSource?: RemixStorageShareUncheckedCreateNestedManyWithoutSourceOrganizationInput
+    remixStorageSharesAsTarget?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetOrganizationInput
     cloudTenant?: CloudTenantUncheckedCreateNestedOneWithoutOrganizationInput
     collaborationGroups?: CollaborationGroupUncheckedCreateNestedManyWithoutOrganizationInput
     resourceAccessGrants?: ResourceAccessGrantUncheckedCreateNestedManyWithoutOrganizationInput
@@ -270077,6 +273018,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
     importJobs?: ImportJobUpdateManyWithoutOrganizationNestedInput
+    remixStorageSharesAsSource?: RemixStorageShareUpdateManyWithoutSourceOrganizationNestedInput
+    remixStorageSharesAsTarget?: RemixStorageShareUpdateManyWithoutTargetOrganizationNestedInput
     cloudTenant?: CloudTenantUpdateOneWithoutOrganizationNestedInput
     collaborationGroups?: CollaborationGroupUpdateManyWithoutOrganizationNestedInput
     resourceAccessGrants?: ResourceAccessGrantUpdateManyWithoutOrganizationNestedInput
@@ -270123,6 +273066,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutOrganizationNestedInput
+    remixStorageSharesAsSource?: RemixStorageShareUncheckedUpdateManyWithoutSourceOrganizationNestedInput
+    remixStorageSharesAsTarget?: RemixStorageShareUncheckedUpdateManyWithoutTargetOrganizationNestedInput
     cloudTenant?: CloudTenantUncheckedUpdateOneWithoutOrganizationNestedInput
     collaborationGroups?: CollaborationGroupUncheckedUpdateManyWithoutOrganizationNestedInput
     resourceAccessGrants?: ResourceAccessGrantUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -270169,6 +273114,8 @@ export namespace Prisma {
     creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
     importJobs?: ImportJobCreateNestedManyWithoutOrganizationInput
+    remixStorageSharesAsSource?: RemixStorageShareCreateNestedManyWithoutSourceOrganizationInput
+    remixStorageSharesAsTarget?: RemixStorageShareCreateNestedManyWithoutTargetOrganizationInput
     cloudTenant?: CloudTenantCreateNestedOneWithoutOrganizationInput
     collaborationGroups?: CollaborationGroupCreateNestedManyWithoutOrganizationInput
     resourceAccessGrants?: ResourceAccessGrantCreateNestedManyWithoutOrganizationInput
@@ -270215,6 +273162,8 @@ export namespace Prisma {
     creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutOrganizationInput
+    remixStorageSharesAsSource?: RemixStorageShareUncheckedCreateNestedManyWithoutSourceOrganizationInput
+    remixStorageSharesAsTarget?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetOrganizationInput
     cloudTenant?: CloudTenantUncheckedCreateNestedOneWithoutOrganizationInput
     collaborationGroups?: CollaborationGroupUncheckedCreateNestedManyWithoutOrganizationInput
     resourceAccessGrants?: ResourceAccessGrantUncheckedCreateNestedManyWithoutOrganizationInput
@@ -270277,6 +273226,8 @@ export namespace Prisma {
     creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
     importJobs?: ImportJobUpdateManyWithoutOrganizationNestedInput
+    remixStorageSharesAsSource?: RemixStorageShareUpdateManyWithoutSourceOrganizationNestedInput
+    remixStorageSharesAsTarget?: RemixStorageShareUpdateManyWithoutTargetOrganizationNestedInput
     cloudTenant?: CloudTenantUpdateOneWithoutOrganizationNestedInput
     collaborationGroups?: CollaborationGroupUpdateManyWithoutOrganizationNestedInput
     resourceAccessGrants?: ResourceAccessGrantUpdateManyWithoutOrganizationNestedInput
@@ -270323,6 +273274,8 @@ export namespace Prisma {
     creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutOrganizationNestedInput
+    remixStorageSharesAsSource?: RemixStorageShareUncheckedUpdateManyWithoutSourceOrganizationNestedInput
+    remixStorageSharesAsTarget?: RemixStorageShareUncheckedUpdateManyWithoutTargetOrganizationNestedInput
     cloudTenant?: CloudTenantUncheckedUpdateOneWithoutOrganizationNestedInput
     collaborationGroups?: CollaborationGroupUncheckedUpdateManyWithoutOrganizationNestedInput
     resourceAccessGrants?: ResourceAccessGrantUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -270369,6 +273322,8 @@ export namespace Prisma {
     creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
     importJobs?: ImportJobCreateNestedManyWithoutOrganizationInput
+    remixStorageSharesAsSource?: RemixStorageShareCreateNestedManyWithoutSourceOrganizationInput
+    remixStorageSharesAsTarget?: RemixStorageShareCreateNestedManyWithoutTargetOrganizationInput
     cloudTenant?: CloudTenantCreateNestedOneWithoutOrganizationInput
     collaborationGroups?: CollaborationGroupCreateNestedManyWithoutOrganizationInput
     resourceAccessGrants?: ResourceAccessGrantCreateNestedManyWithoutOrganizationInput
@@ -270415,6 +273370,8 @@ export namespace Prisma {
     creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutOrganizationInput
+    remixStorageSharesAsSource?: RemixStorageShareUncheckedCreateNestedManyWithoutSourceOrganizationInput
+    remixStorageSharesAsTarget?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetOrganizationInput
     cloudTenant?: CloudTenantUncheckedCreateNestedOneWithoutOrganizationInput
     collaborationGroups?: CollaborationGroupUncheckedCreateNestedManyWithoutOrganizationInput
     resourceAccessGrants?: ResourceAccessGrantUncheckedCreateNestedManyWithoutOrganizationInput
@@ -270474,6 +273431,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
     importJobs?: ImportJobCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutActorInput
     cloudOperations?: CloudOperationCreateNestedManyWithoutActorInput
     projectCheckpoints?: ProjectCheckpointCreateNestedManyWithoutCreatedByInput
     invitedOrganizationMembers?: OrganizationMemberCreateNestedManyWithoutInvitedByInput
@@ -270532,6 +273491,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutActorInput
     cloudOperations?: CloudOperationUncheckedCreateNestedManyWithoutActorInput
     projectCheckpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutCreatedByInput
     invitedOrganizationMembers?: OrganizationMemberUncheckedCreateNestedManyWithoutInvitedByInput
@@ -270598,6 +273559,8 @@ export namespace Prisma {
     creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
     importJobs?: ImportJobUpdateManyWithoutOrganizationNestedInput
+    remixStorageSharesAsSource?: RemixStorageShareUpdateManyWithoutSourceOrganizationNestedInput
+    remixStorageSharesAsTarget?: RemixStorageShareUpdateManyWithoutTargetOrganizationNestedInput
     cloudTenant?: CloudTenantUpdateOneWithoutOrganizationNestedInput
     collaborationGroups?: CollaborationGroupUpdateManyWithoutOrganizationNestedInput
     resourceAccessGrants?: ResourceAccessGrantUpdateManyWithoutOrganizationNestedInput
@@ -270644,6 +273607,8 @@ export namespace Prisma {
     creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutOrganizationNestedInput
+    remixStorageSharesAsSource?: RemixStorageShareUncheckedUpdateManyWithoutSourceOrganizationNestedInput
+    remixStorageSharesAsTarget?: RemixStorageShareUncheckedUpdateManyWithoutTargetOrganizationNestedInput
     cloudTenant?: CloudTenantUncheckedUpdateOneWithoutOrganizationNestedInput
     collaborationGroups?: CollaborationGroupUncheckedUpdateManyWithoutOrganizationNestedInput
     resourceAccessGrants?: ResourceAccessGrantUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -270709,6 +273674,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutActorNestedInput
     cloudOperations?: CloudOperationUpdateManyWithoutActorNestedInput
     projectCheckpoints?: ProjectCheckpointUpdateManyWithoutCreatedByNestedInput
     invitedOrganizationMembers?: OrganizationMemberUpdateManyWithoutInvitedByNestedInput
@@ -270767,6 +273734,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutActorNestedInput
     cloudOperations?: CloudOperationUncheckedUpdateManyWithoutActorNestedInput
     projectCheckpoints?: ProjectCheckpointUncheckedUpdateManyWithoutCreatedByNestedInput
     invitedOrganizationMembers?: OrganizationMemberUncheckedUpdateManyWithoutInvitedByNestedInput
@@ -270963,6 +273932,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
+    targetRemixJobs?: RemixJobCreateNestedManyWithoutTargetProjectInput
+    sourceRemixShares?: RemixStorageShareCreateNestedManyWithoutSourceProjectInput
+    targetRemixShares?: RemixStorageShareCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
   }
@@ -271011,6 +273983,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    targetRemixJobs?: RemixJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    sourceRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutSourceProjectInput
+    targetRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingUncheckedCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
   }
@@ -271088,6 +274063,86 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type RemixJobCreateWithoutTargetDatabaseInstanceInput = {
+    id?: string
+    sourceProjectId: string
+    organizationId: string
+    actorUserId?: string | null
+    state?: string
+    idempotencyKey?: string | null
+    requestHash?: string | null
+    version?: number
+    operationToken?: string | null
+    operationExpiresAt?: Date | string | null
+    sourceSnapshotId?: string | null
+    sourceSnapshotHash?: string | null
+    sourceListingId?: string | null
+    detachedKeys?: NullableJsonNullValueInput | InputJsonValue
+    storagePolicy?: string
+    storageConsentVersion?: string | null
+    storageInventory?: NullableJsonNullValueInput | InputJsonValue
+    scanFindings?: NullableJsonNullValueInput | InputJsonValue
+    scrubbedCount?: number
+    licenseSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    consentVersion?: string | null
+    piiFindings?: NullableJsonNullValueInput | InputJsonValue
+    piiMaskedCount?: number
+    dbForked?: boolean
+    sourceDatabasePin?: NullableJsonNullValueInput | InputJsonValue
+    cleanupTerminalState?: string | null
+    errorCode?: string | null
+    error?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    targetProject?: ProjectCreateNestedOneWithoutTargetRemixJobsInput
+    storageShare?: RemixStorageShareCreateNestedOneWithoutRemixJobsInput
+  }
+
+  export type RemixJobUncheckedCreateWithoutTargetDatabaseInstanceInput = {
+    id?: string
+    sourceProjectId: string
+    targetProjectId?: string | null
+    organizationId: string
+    actorUserId?: string | null
+    state?: string
+    idempotencyKey?: string | null
+    requestHash?: string | null
+    version?: number
+    operationToken?: string | null
+    operationExpiresAt?: Date | string | null
+    sourceSnapshotId?: string | null
+    sourceSnapshotHash?: string | null
+    sourceListingId?: string | null
+    detachedKeys?: NullableJsonNullValueInput | InputJsonValue
+    storagePolicy?: string
+    storageConsentVersion?: string | null
+    storageInventory?: NullableJsonNullValueInput | InputJsonValue
+    storageShareId?: string | null
+    scanFindings?: NullableJsonNullValueInput | InputJsonValue
+    scrubbedCount?: number
+    licenseSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    consentVersion?: string | null
+    piiFindings?: NullableJsonNullValueInput | InputJsonValue
+    piiMaskedCount?: number
+    dbForked?: boolean
+    sourceDatabasePin?: NullableJsonNullValueInput | InputJsonValue
+    cleanupTerminalState?: string | null
+    errorCode?: string | null
+    error?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type RemixJobCreateOrConnectWithoutTargetDatabaseInstanceInput = {
+    where: RemixJobWhereUniqueInput
+    create: XOR<RemixJobCreateWithoutTargetDatabaseInstanceInput, RemixJobUncheckedCreateWithoutTargetDatabaseInstanceInput>
+  }
+
+  export type RemixJobCreateManyTargetDatabaseInstanceInputEnvelope = {
+    data: RemixJobCreateManyTargetDatabaseInstanceInput | RemixJobCreateManyTargetDatabaseInstanceInput[]
+    skipDuplicates?: boolean
+  }
+
   export type ProjectUpsertWithoutDatabaseInstancesInput = {
     update: XOR<ProjectUpdateWithoutDatabaseInstancesInput, ProjectUncheckedUpdateWithoutDatabaseInstancesInput>
     create: XOR<ProjectCreateWithoutDatabaseInstancesInput, ProjectUncheckedCreateWithoutDatabaseInstancesInput>
@@ -271143,6 +274198,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
+    targetRemixJobs?: RemixJobUpdateManyWithoutTargetProjectNestedInput
+    sourceRemixShares?: RemixStorageShareUpdateManyWithoutSourceProjectNestedInput
+    targetRemixShares?: RemixStorageShareUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
   }
@@ -271191,6 +274249,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    targetRemixJobs?: RemixJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    sourceRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutSourceProjectNestedInput
+    targetRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUncheckedUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
   }
@@ -271259,6 +274320,22 @@ export namespace Prisma {
     completedAt?: DateTimeNullableFilter<"DatabaseRestore"> | Date | string | null
   }
 
+  export type RemixJobUpsertWithWhereUniqueWithoutTargetDatabaseInstanceInput = {
+    where: RemixJobWhereUniqueInput
+    update: XOR<RemixJobUpdateWithoutTargetDatabaseInstanceInput, RemixJobUncheckedUpdateWithoutTargetDatabaseInstanceInput>
+    create: XOR<RemixJobCreateWithoutTargetDatabaseInstanceInput, RemixJobUncheckedCreateWithoutTargetDatabaseInstanceInput>
+  }
+
+  export type RemixJobUpdateWithWhereUniqueWithoutTargetDatabaseInstanceInput = {
+    where: RemixJobWhereUniqueInput
+    data: XOR<RemixJobUpdateWithoutTargetDatabaseInstanceInput, RemixJobUncheckedUpdateWithoutTargetDatabaseInstanceInput>
+  }
+
+  export type RemixJobUpdateManyWithWhereWithoutTargetDatabaseInstanceInput = {
+    where: RemixJobScalarWhereInput
+    data: XOR<RemixJobUpdateManyMutationInput, RemixJobUncheckedUpdateManyWithoutTargetDatabaseInstanceInput>
+  }
+
   export type DatabaseInstanceCreateWithoutSnapshotsInput = {
     id?: string
     organizationId: string
@@ -271276,6 +274353,7 @@ export namespace Prisma {
     updatedAt?: Date | string
     project: ProjectCreateNestedOneWithoutDatabaseInstancesInput
     restores?: DatabaseRestoreCreateNestedManyWithoutDatabaseInstanceInput
+    remixJobsAsTarget?: RemixJobCreateNestedManyWithoutTargetDatabaseInstanceInput
   }
 
   export type DatabaseInstanceUncheckedCreateWithoutSnapshotsInput = {
@@ -271295,6 +274373,7 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     restores?: DatabaseRestoreUncheckedCreateNestedManyWithoutDatabaseInstanceInput
+    remixJobsAsTarget?: RemixJobUncheckedCreateNestedManyWithoutTargetDatabaseInstanceInput
   }
 
   export type DatabaseInstanceCreateOrConnectWithoutSnapshotsInput = {
@@ -271330,6 +274409,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     project?: ProjectUpdateOneRequiredWithoutDatabaseInstancesNestedInput
     restores?: DatabaseRestoreUpdateManyWithoutDatabaseInstanceNestedInput
+    remixJobsAsTarget?: RemixJobUpdateManyWithoutTargetDatabaseInstanceNestedInput
   }
 
   export type DatabaseInstanceUncheckedUpdateWithoutSnapshotsInput = {
@@ -271349,6 +274429,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     restores?: DatabaseRestoreUncheckedUpdateManyWithoutDatabaseInstanceNestedInput
+    remixJobsAsTarget?: RemixJobUncheckedUpdateManyWithoutTargetDatabaseInstanceNestedInput
   }
 
   export type DatabaseInstanceCreateWithoutRestoresInput = {
@@ -271368,6 +274449,7 @@ export namespace Prisma {
     updatedAt?: Date | string
     project: ProjectCreateNestedOneWithoutDatabaseInstancesInput
     snapshots?: DatabaseSnapshotCreateNestedManyWithoutDatabaseInstanceInput
+    remixJobsAsTarget?: RemixJobCreateNestedManyWithoutTargetDatabaseInstanceInput
   }
 
   export type DatabaseInstanceUncheckedCreateWithoutRestoresInput = {
@@ -271387,6 +274469,7 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     snapshots?: DatabaseSnapshotUncheckedCreateNestedManyWithoutDatabaseInstanceInput
+    remixJobsAsTarget?: RemixJobUncheckedCreateNestedManyWithoutTargetDatabaseInstanceInput
   }
 
   export type DatabaseInstanceCreateOrConnectWithoutRestoresInput = {
@@ -271422,6 +274505,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     project?: ProjectUpdateOneRequiredWithoutDatabaseInstancesNestedInput
     snapshots?: DatabaseSnapshotUpdateManyWithoutDatabaseInstanceNestedInput
+    remixJobsAsTarget?: RemixJobUpdateManyWithoutTargetDatabaseInstanceNestedInput
   }
 
   export type DatabaseInstanceUncheckedUpdateWithoutRestoresInput = {
@@ -271441,6 +274525,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     snapshots?: DatabaseSnapshotUncheckedUpdateManyWithoutDatabaseInstanceNestedInput
+    remixJobsAsTarget?: RemixJobUncheckedUpdateManyWithoutTargetDatabaseInstanceNestedInput
   }
 
   export type ScheduledTaskRunCreateWithoutTaskInput = {
@@ -271694,6 +274779,8 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
     importJobs?: ImportJobCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutActorInput
     cloudOperations?: CloudOperationCreateNestedManyWithoutActorInput
     projectCheckpoints?: ProjectCheckpointCreateNestedManyWithoutCreatedByInput
     invitedOrganizationMembers?: OrganizationMemberCreateNestedManyWithoutInvitedByInput
@@ -271752,6 +274839,8 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutActorInput
     cloudOperations?: CloudOperationUncheckedCreateNestedManyWithoutActorInput
     projectCheckpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutCreatedByInput
     invitedOrganizationMembers?: OrganizationMemberUncheckedCreateNestedManyWithoutInvitedByInput
@@ -271826,6 +274915,8 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutActorNestedInput
     cloudOperations?: CloudOperationUpdateManyWithoutActorNestedInput
     projectCheckpoints?: ProjectCheckpointUpdateManyWithoutCreatedByNestedInput
     invitedOrganizationMembers?: OrganizationMemberUpdateManyWithoutInvitedByNestedInput
@@ -271884,6 +274975,8 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutActorNestedInput
     cloudOperations?: CloudOperationUncheckedUpdateManyWithoutActorNestedInput
     projectCheckpoints?: ProjectCheckpointUncheckedUpdateManyWithoutCreatedByNestedInput
     invitedOrganizationMembers?: OrganizationMemberUncheckedUpdateManyWithoutInvitedByNestedInput
@@ -271938,6 +275031,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
+    targetRemixJobs?: RemixJobCreateNestedManyWithoutTargetProjectInput
+    sourceRemixShares?: RemixStorageShareCreateNestedManyWithoutSourceProjectInput
+    targetRemixShares?: RemixStorageShareCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingCreateNestedOneWithoutProjectInput
   }
 
@@ -271986,6 +275082,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    targetRemixJobs?: RemixJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    sourceRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutSourceProjectInput
+    targetRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingUncheckedCreateNestedOneWithoutProjectInput
   }
 
@@ -272044,6 +275143,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
     importJobs?: ImportJobCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutActorInput
     cloudOperations?: CloudOperationCreateNestedManyWithoutActorInput
     invitedOrganizationMembers?: OrganizationMemberCreateNestedManyWithoutInvitedByInput
     createdOrganizationInvites?: OrganizationInviteCreateNestedManyWithoutCreatedByInput
@@ -272102,6 +275203,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutActorInput
     cloudOperations?: CloudOperationUncheckedCreateNestedManyWithoutActorInput
     invitedOrganizationMembers?: OrganizationMemberUncheckedCreateNestedManyWithoutInvitedByInput
     createdOrganizationInvites?: OrganizationInviteUncheckedCreateNestedManyWithoutCreatedByInput
@@ -272171,6 +275274,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
+    targetRemixJobs?: RemixJobUpdateManyWithoutTargetProjectNestedInput
+    sourceRemixShares?: RemixStorageShareUpdateManyWithoutSourceProjectNestedInput
+    targetRemixShares?: RemixStorageShareUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUpdateOneWithoutProjectNestedInput
   }
 
@@ -272219,6 +275325,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    targetRemixJobs?: RemixJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    sourceRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutSourceProjectNestedInput
+    targetRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUncheckedUpdateOneWithoutProjectNestedInput
   }
 
@@ -272283,6 +275392,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutActorNestedInput
     cloudOperations?: CloudOperationUpdateManyWithoutActorNestedInput
     invitedOrganizationMembers?: OrganizationMemberUpdateManyWithoutInvitedByNestedInput
     createdOrganizationInvites?: OrganizationInviteUpdateManyWithoutCreatedByNestedInput
@@ -272341,12 +275452,1618 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutActorNestedInput
     cloudOperations?: CloudOperationUncheckedUpdateManyWithoutActorNestedInput
     invitedOrganizationMembers?: OrganizationMemberUncheckedUpdateManyWithoutInvitedByNestedInput
     createdOrganizationInvites?: OrganizationInviteUncheckedUpdateManyWithoutCreatedByNestedInput
     accessGrantSubjects?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedUpdateManyWithoutRevokedByNestedInput
+  }
+
+  export type ProjectCreateWithoutTargetRemixJobsInput = {
+    id?: string
+    name: string
+    slug: string
+    description?: string | null
+    sourceType?: string
+    templateName?: string | null
+    gitRepositoryUrl?: string | null
+    gitDefaultBranch?: string | null
+    persistentVolumeClaim?: string | null
+    thumbnailUrl?: string | null
+    thumbnailUpdatedAt?: Date | string | null
+    deletedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    organization: OrganizationCreateNestedOneWithoutProjectsInput
+    environments?: ProjectEnvironmentCreateNestedManyWithoutProjectInput
+    envVars?: ProjectEnvVarCreateNestedManyWithoutProjectInput
+    secrets?: ProjectSecretCreateNestedManyWithoutProjectInput
+    collaborators?: ProjectCollaboratorCreateNestedManyWithoutProjectInput
+    activity?: ProjectActivityCreateNestedManyWithoutProjectInput
+    templates?: ProjectTemplateCreateNestedManyWithoutSourceProjectInput
+    galleryListings?: GalleryListingCreateNestedManyWithoutSourceProjectInput
+    workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
+    snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
+    manifestRevisions?: ProjectManifestRevisionCreateNestedManyWithoutProjectInput
+    storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
+    deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutProjectInput
+    fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
+    conversations?: AiConversationCreateNestedManyWithoutProjectInput
+    ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
+    collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutProjectInput
+    collaborationComments?: CollaborationCommentCreateNestedManyWithoutProjectInput
+    shareLinks?: ProjectShareLinkCreateNestedManyWithoutProjectInput
+    agentMemories?: AgentMemoryCreateNestedManyWithoutProjectInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
+    agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
+    connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
+    databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
+    skills?: ProjectSkillCreateNestedManyWithoutProjectInput
+    repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
+    slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
+    importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
+    sourceRemixShares?: RemixStorageShareCreateNestedManyWithoutSourceProjectInput
+    targetRemixShares?: RemixStorageShareCreateNestedManyWithoutTargetProjectInput
+    cloudBinding?: CloudProjectBindingCreateNestedOneWithoutProjectInput
+    checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
+  }
+
+  export type ProjectUncheckedCreateWithoutTargetRemixJobsInput = {
+    id?: string
+    organizationId: string
+    name: string
+    slug: string
+    description?: string | null
+    sourceType?: string
+    templateName?: string | null
+    gitRepositoryUrl?: string | null
+    gitDefaultBranch?: string | null
+    persistentVolumeClaim?: string | null
+    thumbnailUrl?: string | null
+    thumbnailUpdatedAt?: Date | string | null
+    deletedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    environments?: ProjectEnvironmentUncheckedCreateNestedManyWithoutProjectInput
+    envVars?: ProjectEnvVarUncheckedCreateNestedManyWithoutProjectInput
+    secrets?: ProjectSecretUncheckedCreateNestedManyWithoutProjectInput
+    collaborators?: ProjectCollaboratorUncheckedCreateNestedManyWithoutProjectInput
+    activity?: ProjectActivityUncheckedCreateNestedManyWithoutProjectInput
+    templates?: ProjectTemplateUncheckedCreateNestedManyWithoutSourceProjectInput
+    galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutSourceProjectInput
+    workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
+    snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
+    manifestRevisions?: ProjectManifestRevisionUncheckedCreateNestedManyWithoutProjectInput
+    storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
+    deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutProjectInput
+    fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
+    conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
+    ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
+    collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutProjectInput
+    collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutProjectInput
+    shareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutProjectInput
+    agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutProjectInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
+    agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
+    connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
+    databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
+    skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
+    repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
+    slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    sourceRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutSourceProjectInput
+    targetRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetProjectInput
+    cloudBinding?: CloudProjectBindingUncheckedCreateNestedOneWithoutProjectInput
+    checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
+  }
+
+  export type ProjectCreateOrConnectWithoutTargetRemixJobsInput = {
+    where: ProjectWhereUniqueInput
+    create: XOR<ProjectCreateWithoutTargetRemixJobsInput, ProjectUncheckedCreateWithoutTargetRemixJobsInput>
+  }
+
+  export type DatabaseInstanceCreateWithoutRemixJobsAsTargetInput = {
+    id?: string
+    organizationId: string
+    environment?: string
+    status?: $Enums.DatabaseInstanceStatus
+    engine?: string
+    region?: string | null
+    sizeBytes?: bigint | number
+    retentionDays?: number
+    pitrEnabled?: boolean
+    provisioningDeadlineAt?: Date | string | null
+    lastErrorCode?: string | null
+    lastErrorAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    project: ProjectCreateNestedOneWithoutDatabaseInstancesInput
+    snapshots?: DatabaseSnapshotCreateNestedManyWithoutDatabaseInstanceInput
+    restores?: DatabaseRestoreCreateNestedManyWithoutDatabaseInstanceInput
+  }
+
+  export type DatabaseInstanceUncheckedCreateWithoutRemixJobsAsTargetInput = {
+    id?: string
+    projectId: string
+    organizationId: string
+    environment?: string
+    status?: $Enums.DatabaseInstanceStatus
+    engine?: string
+    region?: string | null
+    sizeBytes?: bigint | number
+    retentionDays?: number
+    pitrEnabled?: boolean
+    provisioningDeadlineAt?: Date | string | null
+    lastErrorCode?: string | null
+    lastErrorAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    snapshots?: DatabaseSnapshotUncheckedCreateNestedManyWithoutDatabaseInstanceInput
+    restores?: DatabaseRestoreUncheckedCreateNestedManyWithoutDatabaseInstanceInput
+  }
+
+  export type DatabaseInstanceCreateOrConnectWithoutRemixJobsAsTargetInput = {
+    where: DatabaseInstanceWhereUniqueInput
+    create: XOR<DatabaseInstanceCreateWithoutRemixJobsAsTargetInput, DatabaseInstanceUncheckedCreateWithoutRemixJobsAsTargetInput>
+  }
+
+  export type RemixStorageShareCreateWithoutRemixJobsInput = {
+    id?: string
+    consentVersion: string
+    consentedAt?: Date | string
+    sourceInventory: JsonNullValueInput | InputJsonValue
+    state?: string
+    revokedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    sourceProject: ProjectCreateNestedOneWithoutSourceRemixSharesInput
+    targetProject: ProjectCreateNestedOneWithoutTargetRemixSharesInput
+    sourceOrganization: OrganizationCreateNestedOneWithoutRemixStorageSharesAsSourceInput
+    targetOrganization: OrganizationCreateNestedOneWithoutRemixStorageSharesAsTargetInput
+    consentedBy?: UserCreateNestedOneWithoutRemixStorageSharesConsentedInput
+  }
+
+  export type RemixStorageShareUncheckedCreateWithoutRemixJobsInput = {
+    id?: string
+    sourceProjectId: string
+    targetProjectId: string
+    sourceOrganizationId: string
+    targetOrganizationId: string
+    consentVersion: string
+    consentedByUserId?: string | null
+    consentedAt?: Date | string
+    sourceInventory: JsonNullValueInput | InputJsonValue
+    state?: string
+    revokedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type RemixStorageShareCreateOrConnectWithoutRemixJobsInput = {
+    where: RemixStorageShareWhereUniqueInput
+    create: XOR<RemixStorageShareCreateWithoutRemixJobsInput, RemixStorageShareUncheckedCreateWithoutRemixJobsInput>
+  }
+
+  export type ProjectUpsertWithoutTargetRemixJobsInput = {
+    update: XOR<ProjectUpdateWithoutTargetRemixJobsInput, ProjectUncheckedUpdateWithoutTargetRemixJobsInput>
+    create: XOR<ProjectCreateWithoutTargetRemixJobsInput, ProjectUncheckedCreateWithoutTargetRemixJobsInput>
+    where?: ProjectWhereInput
+  }
+
+  export type ProjectUpdateToOneWithWhereWithoutTargetRemixJobsInput = {
+    where?: ProjectWhereInput
+    data: XOR<ProjectUpdateWithoutTargetRemixJobsInput, ProjectUncheckedUpdateWithoutTargetRemixJobsInput>
+  }
+
+  export type ProjectUpdateWithoutTargetRemixJobsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceType?: StringFieldUpdateOperationsInput | string
+    templateName?: NullableStringFieldUpdateOperationsInput | string | null
+    gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
+    persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    organization?: OrganizationUpdateOneRequiredWithoutProjectsNestedInput
+    environments?: ProjectEnvironmentUpdateManyWithoutProjectNestedInput
+    envVars?: ProjectEnvVarUpdateManyWithoutProjectNestedInput
+    secrets?: ProjectSecretUpdateManyWithoutProjectNestedInput
+    collaborators?: ProjectCollaboratorUpdateManyWithoutProjectNestedInput
+    activity?: ProjectActivityUpdateManyWithoutProjectNestedInput
+    templates?: ProjectTemplateUpdateManyWithoutSourceProjectNestedInput
+    galleryListings?: GalleryListingUpdateManyWithoutSourceProjectNestedInput
+    workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
+    snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
+    manifestRevisions?: ProjectManifestRevisionUpdateManyWithoutProjectNestedInput
+    storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
+    deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutProjectNestedInput
+    fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
+    conversations?: AiConversationUpdateManyWithoutProjectNestedInput
+    ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
+    collaborationPresence?: CollaborationPresenceUpdateManyWithoutProjectNestedInput
+    collaborationComments?: CollaborationCommentUpdateManyWithoutProjectNestedInput
+    shareLinks?: ProjectShareLinkUpdateManyWithoutProjectNestedInput
+    agentMemories?: AgentMemoryUpdateManyWithoutProjectNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
+    agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
+    connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
+    databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
+    skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
+    repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
+    slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
+    importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
+    sourceRemixShares?: RemixStorageShareUpdateManyWithoutSourceProjectNestedInput
+    targetRemixShares?: RemixStorageShareUpdateManyWithoutTargetProjectNestedInput
+    cloudBinding?: CloudProjectBindingUpdateOneWithoutProjectNestedInput
+    checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
+  }
+
+  export type ProjectUncheckedUpdateWithoutTargetRemixJobsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceType?: StringFieldUpdateOperationsInput | string
+    templateName?: NullableStringFieldUpdateOperationsInput | string | null
+    gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
+    persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    environments?: ProjectEnvironmentUncheckedUpdateManyWithoutProjectNestedInput
+    envVars?: ProjectEnvVarUncheckedUpdateManyWithoutProjectNestedInput
+    secrets?: ProjectSecretUncheckedUpdateManyWithoutProjectNestedInput
+    collaborators?: ProjectCollaboratorUncheckedUpdateManyWithoutProjectNestedInput
+    activity?: ProjectActivityUncheckedUpdateManyWithoutProjectNestedInput
+    templates?: ProjectTemplateUncheckedUpdateManyWithoutSourceProjectNestedInput
+    galleryListings?: GalleryListingUncheckedUpdateManyWithoutSourceProjectNestedInput
+    workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
+    snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
+    manifestRevisions?: ProjectManifestRevisionUncheckedUpdateManyWithoutProjectNestedInput
+    storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
+    deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutProjectNestedInput
+    fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
+    conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
+    ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
+    collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutProjectNestedInput
+    collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutProjectNestedInput
+    shareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutProjectNestedInput
+    agentMemories?: AgentMemoryUncheckedUpdateManyWithoutProjectNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
+    agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
+    connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
+    databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
+    skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
+    repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
+    slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    sourceRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutSourceProjectNestedInput
+    targetRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutTargetProjectNestedInput
+    cloudBinding?: CloudProjectBindingUncheckedUpdateOneWithoutProjectNestedInput
+    checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
+  }
+
+  export type DatabaseInstanceUpsertWithoutRemixJobsAsTargetInput = {
+    update: XOR<DatabaseInstanceUpdateWithoutRemixJobsAsTargetInput, DatabaseInstanceUncheckedUpdateWithoutRemixJobsAsTargetInput>
+    create: XOR<DatabaseInstanceCreateWithoutRemixJobsAsTargetInput, DatabaseInstanceUncheckedCreateWithoutRemixJobsAsTargetInput>
+    where?: DatabaseInstanceWhereInput
+  }
+
+  export type DatabaseInstanceUpdateToOneWithWhereWithoutRemixJobsAsTargetInput = {
+    where?: DatabaseInstanceWhereInput
+    data: XOR<DatabaseInstanceUpdateWithoutRemixJobsAsTargetInput, DatabaseInstanceUncheckedUpdateWithoutRemixJobsAsTargetInput>
+  }
+
+  export type DatabaseInstanceUpdateWithoutRemixJobsAsTargetInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    environment?: StringFieldUpdateOperationsInput | string
+    status?: EnumDatabaseInstanceStatusFieldUpdateOperationsInput | $Enums.DatabaseInstanceStatus
+    engine?: StringFieldUpdateOperationsInput | string
+    region?: NullableStringFieldUpdateOperationsInput | string | null
+    sizeBytes?: BigIntFieldUpdateOperationsInput | bigint | number
+    retentionDays?: IntFieldUpdateOperationsInput | number
+    pitrEnabled?: BoolFieldUpdateOperationsInput | boolean
+    provisioningDeadlineAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastErrorCode?: NullableStringFieldUpdateOperationsInput | string | null
+    lastErrorAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    project?: ProjectUpdateOneRequiredWithoutDatabaseInstancesNestedInput
+    snapshots?: DatabaseSnapshotUpdateManyWithoutDatabaseInstanceNestedInput
+    restores?: DatabaseRestoreUpdateManyWithoutDatabaseInstanceNestedInput
+  }
+
+  export type DatabaseInstanceUncheckedUpdateWithoutRemixJobsAsTargetInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    environment?: StringFieldUpdateOperationsInput | string
+    status?: EnumDatabaseInstanceStatusFieldUpdateOperationsInput | $Enums.DatabaseInstanceStatus
+    engine?: StringFieldUpdateOperationsInput | string
+    region?: NullableStringFieldUpdateOperationsInput | string | null
+    sizeBytes?: BigIntFieldUpdateOperationsInput | bigint | number
+    retentionDays?: IntFieldUpdateOperationsInput | number
+    pitrEnabled?: BoolFieldUpdateOperationsInput | boolean
+    provisioningDeadlineAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastErrorCode?: NullableStringFieldUpdateOperationsInput | string | null
+    lastErrorAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    snapshots?: DatabaseSnapshotUncheckedUpdateManyWithoutDatabaseInstanceNestedInput
+    restores?: DatabaseRestoreUncheckedUpdateManyWithoutDatabaseInstanceNestedInput
+  }
+
+  export type RemixStorageShareUpsertWithoutRemixJobsInput = {
+    update: XOR<RemixStorageShareUpdateWithoutRemixJobsInput, RemixStorageShareUncheckedUpdateWithoutRemixJobsInput>
+    create: XOR<RemixStorageShareCreateWithoutRemixJobsInput, RemixStorageShareUncheckedCreateWithoutRemixJobsInput>
+    where?: RemixStorageShareWhereInput
+  }
+
+  export type RemixStorageShareUpdateToOneWithWhereWithoutRemixJobsInput = {
+    where?: RemixStorageShareWhereInput
+    data: XOR<RemixStorageShareUpdateWithoutRemixJobsInput, RemixStorageShareUncheckedUpdateWithoutRemixJobsInput>
+  }
+
+  export type RemixStorageShareUpdateWithoutRemixJobsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    consentVersion?: StringFieldUpdateOperationsInput | string
+    consentedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    sourceInventory?: JsonNullValueInput | InputJsonValue
+    state?: StringFieldUpdateOperationsInput | string
+    revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    sourceProject?: ProjectUpdateOneRequiredWithoutSourceRemixSharesNestedInput
+    targetProject?: ProjectUpdateOneRequiredWithoutTargetRemixSharesNestedInput
+    sourceOrganization?: OrganizationUpdateOneRequiredWithoutRemixStorageSharesAsSourceNestedInput
+    targetOrganization?: OrganizationUpdateOneRequiredWithoutRemixStorageSharesAsTargetNestedInput
+    consentedBy?: UserUpdateOneWithoutRemixStorageSharesConsentedNestedInput
+  }
+
+  export type RemixStorageShareUncheckedUpdateWithoutRemixJobsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sourceProjectId?: StringFieldUpdateOperationsInput | string
+    targetProjectId?: StringFieldUpdateOperationsInput | string
+    sourceOrganizationId?: StringFieldUpdateOperationsInput | string
+    targetOrganizationId?: StringFieldUpdateOperationsInput | string
+    consentVersion?: StringFieldUpdateOperationsInput | string
+    consentedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    consentedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    sourceInventory?: JsonNullValueInput | InputJsonValue
+    state?: StringFieldUpdateOperationsInput | string
+    revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProjectCreateWithoutSourceRemixSharesInput = {
+    id?: string
+    name: string
+    slug: string
+    description?: string | null
+    sourceType?: string
+    templateName?: string | null
+    gitRepositoryUrl?: string | null
+    gitDefaultBranch?: string | null
+    persistentVolumeClaim?: string | null
+    thumbnailUrl?: string | null
+    thumbnailUpdatedAt?: Date | string | null
+    deletedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    organization: OrganizationCreateNestedOneWithoutProjectsInput
+    environments?: ProjectEnvironmentCreateNestedManyWithoutProjectInput
+    envVars?: ProjectEnvVarCreateNestedManyWithoutProjectInput
+    secrets?: ProjectSecretCreateNestedManyWithoutProjectInput
+    collaborators?: ProjectCollaboratorCreateNestedManyWithoutProjectInput
+    activity?: ProjectActivityCreateNestedManyWithoutProjectInput
+    templates?: ProjectTemplateCreateNestedManyWithoutSourceProjectInput
+    galleryListings?: GalleryListingCreateNestedManyWithoutSourceProjectInput
+    workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
+    snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
+    manifestRevisions?: ProjectManifestRevisionCreateNestedManyWithoutProjectInput
+    storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
+    deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutProjectInput
+    fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
+    conversations?: AiConversationCreateNestedManyWithoutProjectInput
+    ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
+    collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutProjectInput
+    collaborationComments?: CollaborationCommentCreateNestedManyWithoutProjectInput
+    shareLinks?: ProjectShareLinkCreateNestedManyWithoutProjectInput
+    agentMemories?: AgentMemoryCreateNestedManyWithoutProjectInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
+    agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
+    connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
+    databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
+    skills?: ProjectSkillCreateNestedManyWithoutProjectInput
+    repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
+    slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
+    importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
+    targetRemixJobs?: RemixJobCreateNestedManyWithoutTargetProjectInput
+    targetRemixShares?: RemixStorageShareCreateNestedManyWithoutTargetProjectInput
+    cloudBinding?: CloudProjectBindingCreateNestedOneWithoutProjectInput
+    checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
+  }
+
+  export type ProjectUncheckedCreateWithoutSourceRemixSharesInput = {
+    id?: string
+    organizationId: string
+    name: string
+    slug: string
+    description?: string | null
+    sourceType?: string
+    templateName?: string | null
+    gitRepositoryUrl?: string | null
+    gitDefaultBranch?: string | null
+    persistentVolumeClaim?: string | null
+    thumbnailUrl?: string | null
+    thumbnailUpdatedAt?: Date | string | null
+    deletedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    environments?: ProjectEnvironmentUncheckedCreateNestedManyWithoutProjectInput
+    envVars?: ProjectEnvVarUncheckedCreateNestedManyWithoutProjectInput
+    secrets?: ProjectSecretUncheckedCreateNestedManyWithoutProjectInput
+    collaborators?: ProjectCollaboratorUncheckedCreateNestedManyWithoutProjectInput
+    activity?: ProjectActivityUncheckedCreateNestedManyWithoutProjectInput
+    templates?: ProjectTemplateUncheckedCreateNestedManyWithoutSourceProjectInput
+    galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutSourceProjectInput
+    workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
+    snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
+    manifestRevisions?: ProjectManifestRevisionUncheckedCreateNestedManyWithoutProjectInput
+    storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
+    deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutProjectInput
+    fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
+    conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
+    ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
+    collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutProjectInput
+    collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutProjectInput
+    shareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutProjectInput
+    agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutProjectInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
+    agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
+    connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
+    databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
+    skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
+    repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
+    slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    targetRemixJobs?: RemixJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    targetRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetProjectInput
+    cloudBinding?: CloudProjectBindingUncheckedCreateNestedOneWithoutProjectInput
+    checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
+  }
+
+  export type ProjectCreateOrConnectWithoutSourceRemixSharesInput = {
+    where: ProjectWhereUniqueInput
+    create: XOR<ProjectCreateWithoutSourceRemixSharesInput, ProjectUncheckedCreateWithoutSourceRemixSharesInput>
+  }
+
+  export type ProjectCreateWithoutTargetRemixSharesInput = {
+    id?: string
+    name: string
+    slug: string
+    description?: string | null
+    sourceType?: string
+    templateName?: string | null
+    gitRepositoryUrl?: string | null
+    gitDefaultBranch?: string | null
+    persistentVolumeClaim?: string | null
+    thumbnailUrl?: string | null
+    thumbnailUpdatedAt?: Date | string | null
+    deletedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    organization: OrganizationCreateNestedOneWithoutProjectsInput
+    environments?: ProjectEnvironmentCreateNestedManyWithoutProjectInput
+    envVars?: ProjectEnvVarCreateNestedManyWithoutProjectInput
+    secrets?: ProjectSecretCreateNestedManyWithoutProjectInput
+    collaborators?: ProjectCollaboratorCreateNestedManyWithoutProjectInput
+    activity?: ProjectActivityCreateNestedManyWithoutProjectInput
+    templates?: ProjectTemplateCreateNestedManyWithoutSourceProjectInput
+    galleryListings?: GalleryListingCreateNestedManyWithoutSourceProjectInput
+    workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
+    snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
+    manifestRevisions?: ProjectManifestRevisionCreateNestedManyWithoutProjectInput
+    storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
+    deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutProjectInput
+    fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
+    conversations?: AiConversationCreateNestedManyWithoutProjectInput
+    ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
+    collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutProjectInput
+    collaborationComments?: CollaborationCommentCreateNestedManyWithoutProjectInput
+    shareLinks?: ProjectShareLinkCreateNestedManyWithoutProjectInput
+    agentMemories?: AgentMemoryCreateNestedManyWithoutProjectInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
+    agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
+    connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
+    databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
+    skills?: ProjectSkillCreateNestedManyWithoutProjectInput
+    repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
+    slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
+    importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
+    targetRemixJobs?: RemixJobCreateNestedManyWithoutTargetProjectInput
+    sourceRemixShares?: RemixStorageShareCreateNestedManyWithoutSourceProjectInput
+    cloudBinding?: CloudProjectBindingCreateNestedOneWithoutProjectInput
+    checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
+  }
+
+  export type ProjectUncheckedCreateWithoutTargetRemixSharesInput = {
+    id?: string
+    organizationId: string
+    name: string
+    slug: string
+    description?: string | null
+    sourceType?: string
+    templateName?: string | null
+    gitRepositoryUrl?: string | null
+    gitDefaultBranch?: string | null
+    persistentVolumeClaim?: string | null
+    thumbnailUrl?: string | null
+    thumbnailUpdatedAt?: Date | string | null
+    deletedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    environments?: ProjectEnvironmentUncheckedCreateNestedManyWithoutProjectInput
+    envVars?: ProjectEnvVarUncheckedCreateNestedManyWithoutProjectInput
+    secrets?: ProjectSecretUncheckedCreateNestedManyWithoutProjectInput
+    collaborators?: ProjectCollaboratorUncheckedCreateNestedManyWithoutProjectInput
+    activity?: ProjectActivityUncheckedCreateNestedManyWithoutProjectInput
+    templates?: ProjectTemplateUncheckedCreateNestedManyWithoutSourceProjectInput
+    galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutSourceProjectInput
+    workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
+    snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
+    manifestRevisions?: ProjectManifestRevisionUncheckedCreateNestedManyWithoutProjectInput
+    storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
+    deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutProjectInput
+    fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
+    conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
+    ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
+    collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutProjectInput
+    collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutProjectInput
+    shareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutProjectInput
+    agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutProjectInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
+    agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
+    connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
+    databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
+    skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
+    repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
+    slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    targetRemixJobs?: RemixJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    sourceRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutSourceProjectInput
+    cloudBinding?: CloudProjectBindingUncheckedCreateNestedOneWithoutProjectInput
+    checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
+  }
+
+  export type ProjectCreateOrConnectWithoutTargetRemixSharesInput = {
+    where: ProjectWhereUniqueInput
+    create: XOR<ProjectCreateWithoutTargetRemixSharesInput, ProjectUncheckedCreateWithoutTargetRemixSharesInput>
+  }
+
+  export type OrganizationCreateWithoutRemixStorageSharesAsSourceInput = {
+    id?: string
+    slug: string
+    name: string
+    billingEmail?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    members?: OrganizationMemberCreateNestedManyWithoutOrganizationInput
+    invites?: OrganizationInviteCreateNestedManyWithoutOrganizationInput
+    projects?: ProjectCreateNestedManyWithoutOrganizationInput
+    billingCustomer?: BillingCustomerCreateNestedOneWithoutOrganizationInput
+    subscriptions?: SubscriptionCreateNestedManyWithoutOrganizationInput
+    usageEvents?: UsageEventCreateNestedManyWithoutOrganizationInput
+    quotaLedger?: QuotaLedgerCreateNestedManyWithoutOrganizationInput
+    quotaOverrides?: QuotaOverrideCreateNestedManyWithoutOrganizationInput
+    stripeEvents?: StripeEventCreateNestedManyWithoutOrganizationInput
+    aiCostLedger?: AiCostLedgerCreateNestedManyWithoutOrganizationInput
+    auditLogs?: AuditLogCreateNestedManyWithoutOrganizationInput
+    abuseEvents?: AbuseEventCreateNestedManyWithoutOrganizationInput
+    supportTickets?: SupportTicketCreateNestedManyWithoutOrganizationInput
+    featureFlags?: FeatureFlagCreateNestedManyWithoutOrganizationInput
+    apiKeys?: ApiKeyCreateNestedManyWithoutOrganizationInput
+    enterpriseSettings?: EnterpriseOrganizationSettingsCreateNestedOneWithoutOrganizationInput
+    domains?: VerifiedDomainCreateNestedManyWithoutOrganizationInput
+    ssoConfigurations?: SsoConfigurationCreateNestedManyWithoutOrganizationInput
+    scimTokens?: ScimTokenCreateNestedManyWithoutOrganizationInput
+    customRoles?: CustomRoleCreateNestedManyWithoutOrganizationInput
+    siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
+    projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
+    agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutOrganizationInput
+    mcpInstalls?: McpInstallCreateNestedManyWithoutOrganizationInput
+    agentRuns?: AgentRunCreateNestedManyWithoutOrganizationInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutOrganizationInput
+    connectorPolicies?: OrganizationConnectorPolicyCreateNestedManyWithoutOrganizationInput
+    integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutOrganizationInput
+    creditWallet?: CreditWalletCreateNestedOneWithoutOrganizationInput
+    creditLedger?: CreditLedgerCreateNestedManyWithoutOrganizationInput
+    creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
+    agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
+    userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
+    importJobs?: ImportJobCreateNestedManyWithoutOrganizationInput
+    remixStorageSharesAsTarget?: RemixStorageShareCreateNestedManyWithoutTargetOrganizationInput
+    cloudTenant?: CloudTenantCreateNestedOneWithoutOrganizationInput
+    collaborationGroups?: CollaborationGroupCreateNestedManyWithoutOrganizationInput
+    resourceAccessGrants?: ResourceAccessGrantCreateNestedManyWithoutOrganizationInput
+  }
+
+  export type OrganizationUncheckedCreateWithoutRemixStorageSharesAsSourceInput = {
+    id?: string
+    slug: string
+    name: string
+    billingEmail?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    members?: OrganizationMemberUncheckedCreateNestedManyWithoutOrganizationInput
+    invites?: OrganizationInviteUncheckedCreateNestedManyWithoutOrganizationInput
+    projects?: ProjectUncheckedCreateNestedManyWithoutOrganizationInput
+    billingCustomer?: BillingCustomerUncheckedCreateNestedOneWithoutOrganizationInput
+    subscriptions?: SubscriptionUncheckedCreateNestedManyWithoutOrganizationInput
+    usageEvents?: UsageEventUncheckedCreateNestedManyWithoutOrganizationInput
+    quotaLedger?: QuotaLedgerUncheckedCreateNestedManyWithoutOrganizationInput
+    quotaOverrides?: QuotaOverrideUncheckedCreateNestedManyWithoutOrganizationInput
+    stripeEvents?: StripeEventUncheckedCreateNestedManyWithoutOrganizationInput
+    aiCostLedger?: AiCostLedgerUncheckedCreateNestedManyWithoutOrganizationInput
+    auditLogs?: AuditLogUncheckedCreateNestedManyWithoutOrganizationInput
+    abuseEvents?: AbuseEventUncheckedCreateNestedManyWithoutOrganizationInput
+    supportTickets?: SupportTicketUncheckedCreateNestedManyWithoutOrganizationInput
+    featureFlags?: FeatureFlagUncheckedCreateNestedManyWithoutOrganizationInput
+    apiKeys?: ApiKeyUncheckedCreateNestedManyWithoutOrganizationInput
+    enterpriseSettings?: EnterpriseOrganizationSettingsUncheckedCreateNestedOneWithoutOrganizationInput
+    domains?: VerifiedDomainUncheckedCreateNestedManyWithoutOrganizationInput
+    ssoConfigurations?: SsoConfigurationUncheckedCreateNestedManyWithoutOrganizationInput
+    scimTokens?: ScimTokenUncheckedCreateNestedManyWithoutOrganizationInput
+    customRoles?: CustomRoleUncheckedCreateNestedManyWithoutOrganizationInput
+    siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
+    projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
+    agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutOrganizationInput
+    mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutOrganizationInput
+    agentRuns?: AgentRunUncheckedCreateNestedManyWithoutOrganizationInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutOrganizationInput
+    connectorPolicies?: OrganizationConnectorPolicyUncheckedCreateNestedManyWithoutOrganizationInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutOrganizationInput
+    creditWallet?: CreditWalletUncheckedCreateNestedOneWithoutOrganizationInput
+    creditLedger?: CreditLedgerUncheckedCreateNestedManyWithoutOrganizationInput
+    creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
+    agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
+    userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutOrganizationInput
+    remixStorageSharesAsTarget?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetOrganizationInput
+    cloudTenant?: CloudTenantUncheckedCreateNestedOneWithoutOrganizationInput
+    collaborationGroups?: CollaborationGroupUncheckedCreateNestedManyWithoutOrganizationInput
+    resourceAccessGrants?: ResourceAccessGrantUncheckedCreateNestedManyWithoutOrganizationInput
+  }
+
+  export type OrganizationCreateOrConnectWithoutRemixStorageSharesAsSourceInput = {
+    where: OrganizationWhereUniqueInput
+    create: XOR<OrganizationCreateWithoutRemixStorageSharesAsSourceInput, OrganizationUncheckedCreateWithoutRemixStorageSharesAsSourceInput>
+  }
+
+  export type OrganizationCreateWithoutRemixStorageSharesAsTargetInput = {
+    id?: string
+    slug: string
+    name: string
+    billingEmail?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    members?: OrganizationMemberCreateNestedManyWithoutOrganizationInput
+    invites?: OrganizationInviteCreateNestedManyWithoutOrganizationInput
+    projects?: ProjectCreateNestedManyWithoutOrganizationInput
+    billingCustomer?: BillingCustomerCreateNestedOneWithoutOrganizationInput
+    subscriptions?: SubscriptionCreateNestedManyWithoutOrganizationInput
+    usageEvents?: UsageEventCreateNestedManyWithoutOrganizationInput
+    quotaLedger?: QuotaLedgerCreateNestedManyWithoutOrganizationInput
+    quotaOverrides?: QuotaOverrideCreateNestedManyWithoutOrganizationInput
+    stripeEvents?: StripeEventCreateNestedManyWithoutOrganizationInput
+    aiCostLedger?: AiCostLedgerCreateNestedManyWithoutOrganizationInput
+    auditLogs?: AuditLogCreateNestedManyWithoutOrganizationInput
+    abuseEvents?: AbuseEventCreateNestedManyWithoutOrganizationInput
+    supportTickets?: SupportTicketCreateNestedManyWithoutOrganizationInput
+    featureFlags?: FeatureFlagCreateNestedManyWithoutOrganizationInput
+    apiKeys?: ApiKeyCreateNestedManyWithoutOrganizationInput
+    enterpriseSettings?: EnterpriseOrganizationSettingsCreateNestedOneWithoutOrganizationInput
+    domains?: VerifiedDomainCreateNestedManyWithoutOrganizationInput
+    ssoConfigurations?: SsoConfigurationCreateNestedManyWithoutOrganizationInput
+    scimTokens?: ScimTokenCreateNestedManyWithoutOrganizationInput
+    customRoles?: CustomRoleCreateNestedManyWithoutOrganizationInput
+    siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
+    projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
+    agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutOrganizationInput
+    mcpInstalls?: McpInstallCreateNestedManyWithoutOrganizationInput
+    agentRuns?: AgentRunCreateNestedManyWithoutOrganizationInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutOrganizationInput
+    connectorPolicies?: OrganizationConnectorPolicyCreateNestedManyWithoutOrganizationInput
+    integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutOrganizationInput
+    creditWallet?: CreditWalletCreateNestedOneWithoutOrganizationInput
+    creditLedger?: CreditLedgerCreateNestedManyWithoutOrganizationInput
+    creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
+    agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
+    userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
+    importJobs?: ImportJobCreateNestedManyWithoutOrganizationInput
+    remixStorageSharesAsSource?: RemixStorageShareCreateNestedManyWithoutSourceOrganizationInput
+    cloudTenant?: CloudTenantCreateNestedOneWithoutOrganizationInput
+    collaborationGroups?: CollaborationGroupCreateNestedManyWithoutOrganizationInput
+    resourceAccessGrants?: ResourceAccessGrantCreateNestedManyWithoutOrganizationInput
+  }
+
+  export type OrganizationUncheckedCreateWithoutRemixStorageSharesAsTargetInput = {
+    id?: string
+    slug: string
+    name: string
+    billingEmail?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    members?: OrganizationMemberUncheckedCreateNestedManyWithoutOrganizationInput
+    invites?: OrganizationInviteUncheckedCreateNestedManyWithoutOrganizationInput
+    projects?: ProjectUncheckedCreateNestedManyWithoutOrganizationInput
+    billingCustomer?: BillingCustomerUncheckedCreateNestedOneWithoutOrganizationInput
+    subscriptions?: SubscriptionUncheckedCreateNestedManyWithoutOrganizationInput
+    usageEvents?: UsageEventUncheckedCreateNestedManyWithoutOrganizationInput
+    quotaLedger?: QuotaLedgerUncheckedCreateNestedManyWithoutOrganizationInput
+    quotaOverrides?: QuotaOverrideUncheckedCreateNestedManyWithoutOrganizationInput
+    stripeEvents?: StripeEventUncheckedCreateNestedManyWithoutOrganizationInput
+    aiCostLedger?: AiCostLedgerUncheckedCreateNestedManyWithoutOrganizationInput
+    auditLogs?: AuditLogUncheckedCreateNestedManyWithoutOrganizationInput
+    abuseEvents?: AbuseEventUncheckedCreateNestedManyWithoutOrganizationInput
+    supportTickets?: SupportTicketUncheckedCreateNestedManyWithoutOrganizationInput
+    featureFlags?: FeatureFlagUncheckedCreateNestedManyWithoutOrganizationInput
+    apiKeys?: ApiKeyUncheckedCreateNestedManyWithoutOrganizationInput
+    enterpriseSettings?: EnterpriseOrganizationSettingsUncheckedCreateNestedOneWithoutOrganizationInput
+    domains?: VerifiedDomainUncheckedCreateNestedManyWithoutOrganizationInput
+    ssoConfigurations?: SsoConfigurationUncheckedCreateNestedManyWithoutOrganizationInput
+    scimTokens?: ScimTokenUncheckedCreateNestedManyWithoutOrganizationInput
+    customRoles?: CustomRoleUncheckedCreateNestedManyWithoutOrganizationInput
+    siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
+    projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
+    agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutOrganizationInput
+    mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutOrganizationInput
+    agentRuns?: AgentRunUncheckedCreateNestedManyWithoutOrganizationInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutOrganizationInput
+    connectorPolicies?: OrganizationConnectorPolicyUncheckedCreateNestedManyWithoutOrganizationInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutOrganizationInput
+    creditWallet?: CreditWalletUncheckedCreateNestedOneWithoutOrganizationInput
+    creditLedger?: CreditLedgerUncheckedCreateNestedManyWithoutOrganizationInput
+    creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
+    agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
+    userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutOrganizationInput
+    remixStorageSharesAsSource?: RemixStorageShareUncheckedCreateNestedManyWithoutSourceOrganizationInput
+    cloudTenant?: CloudTenantUncheckedCreateNestedOneWithoutOrganizationInput
+    collaborationGroups?: CollaborationGroupUncheckedCreateNestedManyWithoutOrganizationInput
+    resourceAccessGrants?: ResourceAccessGrantUncheckedCreateNestedManyWithoutOrganizationInput
+  }
+
+  export type OrganizationCreateOrConnectWithoutRemixStorageSharesAsTargetInput = {
+    where: OrganizationWhereUniqueInput
+    create: XOR<OrganizationCreateWithoutRemixStorageSharesAsTargetInput, OrganizationUncheckedCreateWithoutRemixStorageSharesAsTargetInput>
+  }
+
+  export type UserCreateWithoutRemixStorageSharesConsentedInput = {
+    id?: string
+    email: string
+    name?: string | null
+    passwordHash?: string | null
+    emailVerifiedAt?: Date | string | null
+    mfaEnabled?: boolean
+    mfaSecretCiphertext?: string | null
+    platformAdmin?: boolean
+    language?: string | null
+    timezone?: string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    accounts?: AccountCreateNestedManyWithoutUserInput
+    sessions?: SessionCreateNestedManyWithoutUserInput
+    memberships?: OrganizationMemberCreateNestedManyWithoutUserInput
+    apiKeys?: ApiKeyCreateNestedManyWithoutUserInput
+    auditLogs?: AuditLogCreateNestedManyWithoutActorInput
+    adminAuditLogs?: AdminAuditLogCreateNestedManyWithoutActorInput
+    conversations?: AiConversationCreateNestedManyWithoutUserInput
+    supportTickets?: SupportTicketCreateNestedManyWithoutUserInput
+    oauthConnections?: OAuthConnectionCreateNestedManyWithoutUserInput
+    emailVerificationTokens?: EmailVerificationTokenCreateNestedManyWithoutUserInput
+    passwordResetTokens?: PasswordResetTokenCreateNestedManyWithoutUserInput
+    recoveryCodes?: MfaRecoveryCodeCreateNestedManyWithoutUserInput
+    projectCollaborations?: ProjectCollaboratorCreateNestedManyWithoutUserInput
+    projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
+    projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
+    galleryListings?: GalleryListingCreateNestedManyWithoutAuthorInput
+    projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
+    collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
+    collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
+    collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
+    agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
+    mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
+    mcpUserConfig?: McpUserConfigCreateNestedOneWithoutUserInput
+    agentRuns?: AgentRunCreateNestedManyWithoutUserInput
+    userConnections?: UserConnectionCreateNestedManyWithoutUserInput
+    linkedProjectConnections?: ProjectConnectionLinkCreateNestedManyWithoutLinkedByUserInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutConfiguredByUserInput
+    integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
+    notifications?: NotificationCreateNestedManyWithoutUserInput
+    aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
+    spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
+    agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
+    importJobs?: ImportJobCreateNestedManyWithoutActorInput
+    rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutActorInput
+    cloudOperations?: CloudOperationCreateNestedManyWithoutActorInput
+    projectCheckpoints?: ProjectCheckpointCreateNestedManyWithoutCreatedByInput
+    invitedOrganizationMembers?: OrganizationMemberCreateNestedManyWithoutInvitedByInput
+    createdOrganizationInvites?: OrganizationInviteCreateNestedManyWithoutCreatedByInput
+    accessGrantSubjects?: ResourceAccessGrantCreateNestedManyWithoutSubjectUserInput
+    accessGrantsCreated?: ResourceAccessGrantCreateNestedManyWithoutGrantedByInput
+    accessGrantsRevoked?: ResourceAccessGrantCreateNestedManyWithoutRevokedByInput
+  }
+
+  export type UserUncheckedCreateWithoutRemixStorageSharesConsentedInput = {
+    id?: string
+    email: string
+    name?: string | null
+    passwordHash?: string | null
+    emailVerifiedAt?: Date | string | null
+    mfaEnabled?: boolean
+    mfaSecretCiphertext?: string | null
+    platformAdmin?: boolean
+    language?: string | null
+    timezone?: string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
+    sessions?: SessionUncheckedCreateNestedManyWithoutUserInput
+    memberships?: OrganizationMemberUncheckedCreateNestedManyWithoutUserInput
+    apiKeys?: ApiKeyUncheckedCreateNestedManyWithoutUserInput
+    auditLogs?: AuditLogUncheckedCreateNestedManyWithoutActorInput
+    adminAuditLogs?: AdminAuditLogUncheckedCreateNestedManyWithoutActorInput
+    conversations?: AiConversationUncheckedCreateNestedManyWithoutUserInput
+    supportTickets?: SupportTicketUncheckedCreateNestedManyWithoutUserInput
+    oauthConnections?: OAuthConnectionUncheckedCreateNestedManyWithoutUserInput
+    emailVerificationTokens?: EmailVerificationTokenUncheckedCreateNestedManyWithoutUserInput
+    passwordResetTokens?: PasswordResetTokenUncheckedCreateNestedManyWithoutUserInput
+    recoveryCodes?: MfaRecoveryCodeUncheckedCreateNestedManyWithoutUserInput
+    projectCollaborations?: ProjectCollaboratorUncheckedCreateNestedManyWithoutUserInput
+    projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
+    projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
+    galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutAuthorInput
+    projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
+    collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
+    collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
+    collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
+    agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
+    mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
+    mcpUserConfig?: McpUserConfigUncheckedCreateNestedOneWithoutUserInput
+    agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
+    userConnections?: UserConnectionUncheckedCreateNestedManyWithoutUserInput
+    linkedProjectConnections?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutLinkedByUserInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutConfiguredByUserInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
+    notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
+    aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
+    spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
+    agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutActorInput
+    cloudOperations?: CloudOperationUncheckedCreateNestedManyWithoutActorInput
+    projectCheckpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutCreatedByInput
+    invitedOrganizationMembers?: OrganizationMemberUncheckedCreateNestedManyWithoutInvitedByInput
+    createdOrganizationInvites?: OrganizationInviteUncheckedCreateNestedManyWithoutCreatedByInput
+    accessGrantSubjects?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectUserInput
+    accessGrantsCreated?: ResourceAccessGrantUncheckedCreateNestedManyWithoutGrantedByInput
+    accessGrantsRevoked?: ResourceAccessGrantUncheckedCreateNestedManyWithoutRevokedByInput
+  }
+
+  export type UserCreateOrConnectWithoutRemixStorageSharesConsentedInput = {
+    where: UserWhereUniqueInput
+    create: XOR<UserCreateWithoutRemixStorageSharesConsentedInput, UserUncheckedCreateWithoutRemixStorageSharesConsentedInput>
+  }
+
+  export type RemixJobCreateWithoutStorageShareInput = {
+    id?: string
+    sourceProjectId: string
+    organizationId: string
+    actorUserId?: string | null
+    state?: string
+    idempotencyKey?: string | null
+    requestHash?: string | null
+    version?: number
+    operationToken?: string | null
+    operationExpiresAt?: Date | string | null
+    sourceSnapshotId?: string | null
+    sourceSnapshotHash?: string | null
+    sourceListingId?: string | null
+    detachedKeys?: NullableJsonNullValueInput | InputJsonValue
+    storagePolicy?: string
+    storageConsentVersion?: string | null
+    storageInventory?: NullableJsonNullValueInput | InputJsonValue
+    scanFindings?: NullableJsonNullValueInput | InputJsonValue
+    scrubbedCount?: number
+    licenseSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    consentVersion?: string | null
+    piiFindings?: NullableJsonNullValueInput | InputJsonValue
+    piiMaskedCount?: number
+    dbForked?: boolean
+    sourceDatabasePin?: NullableJsonNullValueInput | InputJsonValue
+    cleanupTerminalState?: string | null
+    errorCode?: string | null
+    error?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    targetProject?: ProjectCreateNestedOneWithoutTargetRemixJobsInput
+    targetDatabaseInstance?: DatabaseInstanceCreateNestedOneWithoutRemixJobsAsTargetInput
+  }
+
+  export type RemixJobUncheckedCreateWithoutStorageShareInput = {
+    id?: string
+    sourceProjectId: string
+    targetProjectId?: string | null
+    organizationId: string
+    actorUserId?: string | null
+    state?: string
+    idempotencyKey?: string | null
+    requestHash?: string | null
+    version?: number
+    operationToken?: string | null
+    operationExpiresAt?: Date | string | null
+    sourceSnapshotId?: string | null
+    sourceSnapshotHash?: string | null
+    sourceListingId?: string | null
+    detachedKeys?: NullableJsonNullValueInput | InputJsonValue
+    storagePolicy?: string
+    storageConsentVersion?: string | null
+    storageInventory?: NullableJsonNullValueInput | InputJsonValue
+    scanFindings?: NullableJsonNullValueInput | InputJsonValue
+    scrubbedCount?: number
+    licenseSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    consentVersion?: string | null
+    piiFindings?: NullableJsonNullValueInput | InputJsonValue
+    piiMaskedCount?: number
+    dbForked?: boolean
+    sourceDatabasePin?: NullableJsonNullValueInput | InputJsonValue
+    targetDatabaseInstanceId?: string | null
+    cleanupTerminalState?: string | null
+    errorCode?: string | null
+    error?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type RemixJobCreateOrConnectWithoutStorageShareInput = {
+    where: RemixJobWhereUniqueInput
+    create: XOR<RemixJobCreateWithoutStorageShareInput, RemixJobUncheckedCreateWithoutStorageShareInput>
+  }
+
+  export type RemixJobCreateManyStorageShareInputEnvelope = {
+    data: RemixJobCreateManyStorageShareInput | RemixJobCreateManyStorageShareInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type ProjectUpsertWithoutSourceRemixSharesInput = {
+    update: XOR<ProjectUpdateWithoutSourceRemixSharesInput, ProjectUncheckedUpdateWithoutSourceRemixSharesInput>
+    create: XOR<ProjectCreateWithoutSourceRemixSharesInput, ProjectUncheckedCreateWithoutSourceRemixSharesInput>
+    where?: ProjectWhereInput
+  }
+
+  export type ProjectUpdateToOneWithWhereWithoutSourceRemixSharesInput = {
+    where?: ProjectWhereInput
+    data: XOR<ProjectUpdateWithoutSourceRemixSharesInput, ProjectUncheckedUpdateWithoutSourceRemixSharesInput>
+  }
+
+  export type ProjectUpdateWithoutSourceRemixSharesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceType?: StringFieldUpdateOperationsInput | string
+    templateName?: NullableStringFieldUpdateOperationsInput | string | null
+    gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
+    persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    organization?: OrganizationUpdateOneRequiredWithoutProjectsNestedInput
+    environments?: ProjectEnvironmentUpdateManyWithoutProjectNestedInput
+    envVars?: ProjectEnvVarUpdateManyWithoutProjectNestedInput
+    secrets?: ProjectSecretUpdateManyWithoutProjectNestedInput
+    collaborators?: ProjectCollaboratorUpdateManyWithoutProjectNestedInput
+    activity?: ProjectActivityUpdateManyWithoutProjectNestedInput
+    templates?: ProjectTemplateUpdateManyWithoutSourceProjectNestedInput
+    galleryListings?: GalleryListingUpdateManyWithoutSourceProjectNestedInput
+    workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
+    snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
+    manifestRevisions?: ProjectManifestRevisionUpdateManyWithoutProjectNestedInput
+    storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
+    deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutProjectNestedInput
+    fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
+    conversations?: AiConversationUpdateManyWithoutProjectNestedInput
+    ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
+    collaborationPresence?: CollaborationPresenceUpdateManyWithoutProjectNestedInput
+    collaborationComments?: CollaborationCommentUpdateManyWithoutProjectNestedInput
+    shareLinks?: ProjectShareLinkUpdateManyWithoutProjectNestedInput
+    agentMemories?: AgentMemoryUpdateManyWithoutProjectNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
+    agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
+    connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
+    databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
+    skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
+    repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
+    slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
+    importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
+    targetRemixJobs?: RemixJobUpdateManyWithoutTargetProjectNestedInput
+    targetRemixShares?: RemixStorageShareUpdateManyWithoutTargetProjectNestedInput
+    cloudBinding?: CloudProjectBindingUpdateOneWithoutProjectNestedInput
+    checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
+  }
+
+  export type ProjectUncheckedUpdateWithoutSourceRemixSharesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceType?: StringFieldUpdateOperationsInput | string
+    templateName?: NullableStringFieldUpdateOperationsInput | string | null
+    gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
+    persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    environments?: ProjectEnvironmentUncheckedUpdateManyWithoutProjectNestedInput
+    envVars?: ProjectEnvVarUncheckedUpdateManyWithoutProjectNestedInput
+    secrets?: ProjectSecretUncheckedUpdateManyWithoutProjectNestedInput
+    collaborators?: ProjectCollaboratorUncheckedUpdateManyWithoutProjectNestedInput
+    activity?: ProjectActivityUncheckedUpdateManyWithoutProjectNestedInput
+    templates?: ProjectTemplateUncheckedUpdateManyWithoutSourceProjectNestedInput
+    galleryListings?: GalleryListingUncheckedUpdateManyWithoutSourceProjectNestedInput
+    workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
+    snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
+    manifestRevisions?: ProjectManifestRevisionUncheckedUpdateManyWithoutProjectNestedInput
+    storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
+    deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutProjectNestedInput
+    fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
+    conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
+    ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
+    collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutProjectNestedInput
+    collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutProjectNestedInput
+    shareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutProjectNestedInput
+    agentMemories?: AgentMemoryUncheckedUpdateManyWithoutProjectNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
+    agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
+    connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
+    databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
+    skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
+    repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
+    slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    targetRemixJobs?: RemixJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    targetRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutTargetProjectNestedInput
+    cloudBinding?: CloudProjectBindingUncheckedUpdateOneWithoutProjectNestedInput
+    checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
+  }
+
+  export type ProjectUpsertWithoutTargetRemixSharesInput = {
+    update: XOR<ProjectUpdateWithoutTargetRemixSharesInput, ProjectUncheckedUpdateWithoutTargetRemixSharesInput>
+    create: XOR<ProjectCreateWithoutTargetRemixSharesInput, ProjectUncheckedCreateWithoutTargetRemixSharesInput>
+    where?: ProjectWhereInput
+  }
+
+  export type ProjectUpdateToOneWithWhereWithoutTargetRemixSharesInput = {
+    where?: ProjectWhereInput
+    data: XOR<ProjectUpdateWithoutTargetRemixSharesInput, ProjectUncheckedUpdateWithoutTargetRemixSharesInput>
+  }
+
+  export type ProjectUpdateWithoutTargetRemixSharesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceType?: StringFieldUpdateOperationsInput | string
+    templateName?: NullableStringFieldUpdateOperationsInput | string | null
+    gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
+    persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    organization?: OrganizationUpdateOneRequiredWithoutProjectsNestedInput
+    environments?: ProjectEnvironmentUpdateManyWithoutProjectNestedInput
+    envVars?: ProjectEnvVarUpdateManyWithoutProjectNestedInput
+    secrets?: ProjectSecretUpdateManyWithoutProjectNestedInput
+    collaborators?: ProjectCollaboratorUpdateManyWithoutProjectNestedInput
+    activity?: ProjectActivityUpdateManyWithoutProjectNestedInput
+    templates?: ProjectTemplateUpdateManyWithoutSourceProjectNestedInput
+    galleryListings?: GalleryListingUpdateManyWithoutSourceProjectNestedInput
+    workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
+    snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
+    manifestRevisions?: ProjectManifestRevisionUpdateManyWithoutProjectNestedInput
+    storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
+    deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutProjectNestedInput
+    fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
+    conversations?: AiConversationUpdateManyWithoutProjectNestedInput
+    ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
+    collaborationPresence?: CollaborationPresenceUpdateManyWithoutProjectNestedInput
+    collaborationComments?: CollaborationCommentUpdateManyWithoutProjectNestedInput
+    shareLinks?: ProjectShareLinkUpdateManyWithoutProjectNestedInput
+    agentMemories?: AgentMemoryUpdateManyWithoutProjectNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
+    agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
+    connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
+    databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
+    skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
+    repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
+    slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
+    importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
+    targetRemixJobs?: RemixJobUpdateManyWithoutTargetProjectNestedInput
+    sourceRemixShares?: RemixStorageShareUpdateManyWithoutSourceProjectNestedInput
+    cloudBinding?: CloudProjectBindingUpdateOneWithoutProjectNestedInput
+    checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
+  }
+
+  export type ProjectUncheckedUpdateWithoutTargetRemixSharesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceType?: StringFieldUpdateOperationsInput | string
+    templateName?: NullableStringFieldUpdateOperationsInput | string | null
+    gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
+    persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    environments?: ProjectEnvironmentUncheckedUpdateManyWithoutProjectNestedInput
+    envVars?: ProjectEnvVarUncheckedUpdateManyWithoutProjectNestedInput
+    secrets?: ProjectSecretUncheckedUpdateManyWithoutProjectNestedInput
+    collaborators?: ProjectCollaboratorUncheckedUpdateManyWithoutProjectNestedInput
+    activity?: ProjectActivityUncheckedUpdateManyWithoutProjectNestedInput
+    templates?: ProjectTemplateUncheckedUpdateManyWithoutSourceProjectNestedInput
+    galleryListings?: GalleryListingUncheckedUpdateManyWithoutSourceProjectNestedInput
+    workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
+    snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
+    manifestRevisions?: ProjectManifestRevisionUncheckedUpdateManyWithoutProjectNestedInput
+    storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
+    deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutProjectNestedInput
+    fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
+    conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
+    ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
+    collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutProjectNestedInput
+    collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutProjectNestedInput
+    shareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutProjectNestedInput
+    agentMemories?: AgentMemoryUncheckedUpdateManyWithoutProjectNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
+    agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
+    connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
+    databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
+    skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
+    repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
+    slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    targetRemixJobs?: RemixJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    sourceRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutSourceProjectNestedInput
+    cloudBinding?: CloudProjectBindingUncheckedUpdateOneWithoutProjectNestedInput
+    checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
+  }
+
+  export type OrganizationUpsertWithoutRemixStorageSharesAsSourceInput = {
+    update: XOR<OrganizationUpdateWithoutRemixStorageSharesAsSourceInput, OrganizationUncheckedUpdateWithoutRemixStorageSharesAsSourceInput>
+    create: XOR<OrganizationCreateWithoutRemixStorageSharesAsSourceInput, OrganizationUncheckedCreateWithoutRemixStorageSharesAsSourceInput>
+    where?: OrganizationWhereInput
+  }
+
+  export type OrganizationUpdateToOneWithWhereWithoutRemixStorageSharesAsSourceInput = {
+    where?: OrganizationWhereInput
+    data: XOR<OrganizationUpdateWithoutRemixStorageSharesAsSourceInput, OrganizationUncheckedUpdateWithoutRemixStorageSharesAsSourceInput>
+  }
+
+  export type OrganizationUpdateWithoutRemixStorageSharesAsSourceInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    billingEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    members?: OrganizationMemberUpdateManyWithoutOrganizationNestedInput
+    invites?: OrganizationInviteUpdateManyWithoutOrganizationNestedInput
+    projects?: ProjectUpdateManyWithoutOrganizationNestedInput
+    billingCustomer?: BillingCustomerUpdateOneWithoutOrganizationNestedInput
+    subscriptions?: SubscriptionUpdateManyWithoutOrganizationNestedInput
+    usageEvents?: UsageEventUpdateManyWithoutOrganizationNestedInput
+    quotaLedger?: QuotaLedgerUpdateManyWithoutOrganizationNestedInput
+    quotaOverrides?: QuotaOverrideUpdateManyWithoutOrganizationNestedInput
+    stripeEvents?: StripeEventUpdateManyWithoutOrganizationNestedInput
+    aiCostLedger?: AiCostLedgerUpdateManyWithoutOrganizationNestedInput
+    auditLogs?: AuditLogUpdateManyWithoutOrganizationNestedInput
+    abuseEvents?: AbuseEventUpdateManyWithoutOrganizationNestedInput
+    supportTickets?: SupportTicketUpdateManyWithoutOrganizationNestedInput
+    featureFlags?: FeatureFlagUpdateManyWithoutOrganizationNestedInput
+    apiKeys?: ApiKeyUpdateManyWithoutOrganizationNestedInput
+    enterpriseSettings?: EnterpriseOrganizationSettingsUpdateOneWithoutOrganizationNestedInput
+    domains?: VerifiedDomainUpdateManyWithoutOrganizationNestedInput
+    ssoConfigurations?: SsoConfigurationUpdateManyWithoutOrganizationNestedInput
+    scimTokens?: ScimTokenUpdateManyWithoutOrganizationNestedInput
+    customRoles?: CustomRoleUpdateManyWithoutOrganizationNestedInput
+    siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
+    projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
+    agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutOrganizationNestedInput
+    mcpInstalls?: McpInstallUpdateManyWithoutOrganizationNestedInput
+    agentRuns?: AgentRunUpdateManyWithoutOrganizationNestedInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutOrganizationNestedInput
+    connectorPolicies?: OrganizationConnectorPolicyUpdateManyWithoutOrganizationNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutOrganizationNestedInput
+    creditWallet?: CreditWalletUpdateOneWithoutOrganizationNestedInput
+    creditLedger?: CreditLedgerUpdateManyWithoutOrganizationNestedInput
+    creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
+    agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
+    userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
+    importJobs?: ImportJobUpdateManyWithoutOrganizationNestedInput
+    remixStorageSharesAsTarget?: RemixStorageShareUpdateManyWithoutTargetOrganizationNestedInput
+    cloudTenant?: CloudTenantUpdateOneWithoutOrganizationNestedInput
+    collaborationGroups?: CollaborationGroupUpdateManyWithoutOrganizationNestedInput
+    resourceAccessGrants?: ResourceAccessGrantUpdateManyWithoutOrganizationNestedInput
+  }
+
+  export type OrganizationUncheckedUpdateWithoutRemixStorageSharesAsSourceInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    billingEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    members?: OrganizationMemberUncheckedUpdateManyWithoutOrganizationNestedInput
+    invites?: OrganizationInviteUncheckedUpdateManyWithoutOrganizationNestedInput
+    projects?: ProjectUncheckedUpdateManyWithoutOrganizationNestedInput
+    billingCustomer?: BillingCustomerUncheckedUpdateOneWithoutOrganizationNestedInput
+    subscriptions?: SubscriptionUncheckedUpdateManyWithoutOrganizationNestedInput
+    usageEvents?: UsageEventUncheckedUpdateManyWithoutOrganizationNestedInput
+    quotaLedger?: QuotaLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
+    quotaOverrides?: QuotaOverrideUncheckedUpdateManyWithoutOrganizationNestedInput
+    stripeEvents?: StripeEventUncheckedUpdateManyWithoutOrganizationNestedInput
+    aiCostLedger?: AiCostLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
+    auditLogs?: AuditLogUncheckedUpdateManyWithoutOrganizationNestedInput
+    abuseEvents?: AbuseEventUncheckedUpdateManyWithoutOrganizationNestedInput
+    supportTickets?: SupportTicketUncheckedUpdateManyWithoutOrganizationNestedInput
+    featureFlags?: FeatureFlagUncheckedUpdateManyWithoutOrganizationNestedInput
+    apiKeys?: ApiKeyUncheckedUpdateManyWithoutOrganizationNestedInput
+    enterpriseSettings?: EnterpriseOrganizationSettingsUncheckedUpdateOneWithoutOrganizationNestedInput
+    domains?: VerifiedDomainUncheckedUpdateManyWithoutOrganizationNestedInput
+    ssoConfigurations?: SsoConfigurationUncheckedUpdateManyWithoutOrganizationNestedInput
+    scimTokens?: ScimTokenUncheckedUpdateManyWithoutOrganizationNestedInput
+    customRoles?: CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInput
+    siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
+    projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutOrganizationNestedInput
+    mcpInstalls?: McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentRuns?: AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutOrganizationNestedInput
+    connectorPolicies?: OrganizationConnectorPolicyUncheckedUpdateManyWithoutOrganizationNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutOrganizationNestedInput
+    creditWallet?: CreditWalletUncheckedUpdateOneWithoutOrganizationNestedInput
+    creditLedger?: CreditLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
+    creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
+    userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutOrganizationNestedInput
+    remixStorageSharesAsTarget?: RemixStorageShareUncheckedUpdateManyWithoutTargetOrganizationNestedInput
+    cloudTenant?: CloudTenantUncheckedUpdateOneWithoutOrganizationNestedInput
+    collaborationGroups?: CollaborationGroupUncheckedUpdateManyWithoutOrganizationNestedInput
+    resourceAccessGrants?: ResourceAccessGrantUncheckedUpdateManyWithoutOrganizationNestedInput
+  }
+
+  export type OrganizationUpsertWithoutRemixStorageSharesAsTargetInput = {
+    update: XOR<OrganizationUpdateWithoutRemixStorageSharesAsTargetInput, OrganizationUncheckedUpdateWithoutRemixStorageSharesAsTargetInput>
+    create: XOR<OrganizationCreateWithoutRemixStorageSharesAsTargetInput, OrganizationUncheckedCreateWithoutRemixStorageSharesAsTargetInput>
+    where?: OrganizationWhereInput
+  }
+
+  export type OrganizationUpdateToOneWithWhereWithoutRemixStorageSharesAsTargetInput = {
+    where?: OrganizationWhereInput
+    data: XOR<OrganizationUpdateWithoutRemixStorageSharesAsTargetInput, OrganizationUncheckedUpdateWithoutRemixStorageSharesAsTargetInput>
+  }
+
+  export type OrganizationUpdateWithoutRemixStorageSharesAsTargetInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    billingEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    members?: OrganizationMemberUpdateManyWithoutOrganizationNestedInput
+    invites?: OrganizationInviteUpdateManyWithoutOrganizationNestedInput
+    projects?: ProjectUpdateManyWithoutOrganizationNestedInput
+    billingCustomer?: BillingCustomerUpdateOneWithoutOrganizationNestedInput
+    subscriptions?: SubscriptionUpdateManyWithoutOrganizationNestedInput
+    usageEvents?: UsageEventUpdateManyWithoutOrganizationNestedInput
+    quotaLedger?: QuotaLedgerUpdateManyWithoutOrganizationNestedInput
+    quotaOverrides?: QuotaOverrideUpdateManyWithoutOrganizationNestedInput
+    stripeEvents?: StripeEventUpdateManyWithoutOrganizationNestedInput
+    aiCostLedger?: AiCostLedgerUpdateManyWithoutOrganizationNestedInput
+    auditLogs?: AuditLogUpdateManyWithoutOrganizationNestedInput
+    abuseEvents?: AbuseEventUpdateManyWithoutOrganizationNestedInput
+    supportTickets?: SupportTicketUpdateManyWithoutOrganizationNestedInput
+    featureFlags?: FeatureFlagUpdateManyWithoutOrganizationNestedInput
+    apiKeys?: ApiKeyUpdateManyWithoutOrganizationNestedInput
+    enterpriseSettings?: EnterpriseOrganizationSettingsUpdateOneWithoutOrganizationNestedInput
+    domains?: VerifiedDomainUpdateManyWithoutOrganizationNestedInput
+    ssoConfigurations?: SsoConfigurationUpdateManyWithoutOrganizationNestedInput
+    scimTokens?: ScimTokenUpdateManyWithoutOrganizationNestedInput
+    customRoles?: CustomRoleUpdateManyWithoutOrganizationNestedInput
+    siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
+    projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
+    agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutOrganizationNestedInput
+    mcpInstalls?: McpInstallUpdateManyWithoutOrganizationNestedInput
+    agentRuns?: AgentRunUpdateManyWithoutOrganizationNestedInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutOrganizationNestedInput
+    connectorPolicies?: OrganizationConnectorPolicyUpdateManyWithoutOrganizationNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutOrganizationNestedInput
+    creditWallet?: CreditWalletUpdateOneWithoutOrganizationNestedInput
+    creditLedger?: CreditLedgerUpdateManyWithoutOrganizationNestedInput
+    creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
+    agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
+    userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
+    importJobs?: ImportJobUpdateManyWithoutOrganizationNestedInput
+    remixStorageSharesAsSource?: RemixStorageShareUpdateManyWithoutSourceOrganizationNestedInput
+    cloudTenant?: CloudTenantUpdateOneWithoutOrganizationNestedInput
+    collaborationGroups?: CollaborationGroupUpdateManyWithoutOrganizationNestedInput
+    resourceAccessGrants?: ResourceAccessGrantUpdateManyWithoutOrganizationNestedInput
+  }
+
+  export type OrganizationUncheckedUpdateWithoutRemixStorageSharesAsTargetInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    billingEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    members?: OrganizationMemberUncheckedUpdateManyWithoutOrganizationNestedInput
+    invites?: OrganizationInviteUncheckedUpdateManyWithoutOrganizationNestedInput
+    projects?: ProjectUncheckedUpdateManyWithoutOrganizationNestedInput
+    billingCustomer?: BillingCustomerUncheckedUpdateOneWithoutOrganizationNestedInput
+    subscriptions?: SubscriptionUncheckedUpdateManyWithoutOrganizationNestedInput
+    usageEvents?: UsageEventUncheckedUpdateManyWithoutOrganizationNestedInput
+    quotaLedger?: QuotaLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
+    quotaOverrides?: QuotaOverrideUncheckedUpdateManyWithoutOrganizationNestedInput
+    stripeEvents?: StripeEventUncheckedUpdateManyWithoutOrganizationNestedInput
+    aiCostLedger?: AiCostLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
+    auditLogs?: AuditLogUncheckedUpdateManyWithoutOrganizationNestedInput
+    abuseEvents?: AbuseEventUncheckedUpdateManyWithoutOrganizationNestedInput
+    supportTickets?: SupportTicketUncheckedUpdateManyWithoutOrganizationNestedInput
+    featureFlags?: FeatureFlagUncheckedUpdateManyWithoutOrganizationNestedInput
+    apiKeys?: ApiKeyUncheckedUpdateManyWithoutOrganizationNestedInput
+    enterpriseSettings?: EnterpriseOrganizationSettingsUncheckedUpdateOneWithoutOrganizationNestedInput
+    domains?: VerifiedDomainUncheckedUpdateManyWithoutOrganizationNestedInput
+    ssoConfigurations?: SsoConfigurationUncheckedUpdateManyWithoutOrganizationNestedInput
+    scimTokens?: ScimTokenUncheckedUpdateManyWithoutOrganizationNestedInput
+    customRoles?: CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInput
+    siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
+    projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutOrganizationNestedInput
+    mcpInstalls?: McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentRuns?: AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutOrganizationNestedInput
+    connectorPolicies?: OrganizationConnectorPolicyUncheckedUpdateManyWithoutOrganizationNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutOrganizationNestedInput
+    creditWallet?: CreditWalletUncheckedUpdateOneWithoutOrganizationNestedInput
+    creditLedger?: CreditLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
+    creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
+    userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutOrganizationNestedInput
+    remixStorageSharesAsSource?: RemixStorageShareUncheckedUpdateManyWithoutSourceOrganizationNestedInput
+    cloudTenant?: CloudTenantUncheckedUpdateOneWithoutOrganizationNestedInput
+    collaborationGroups?: CollaborationGroupUncheckedUpdateManyWithoutOrganizationNestedInput
+    resourceAccessGrants?: ResourceAccessGrantUncheckedUpdateManyWithoutOrganizationNestedInput
+  }
+
+  export type UserUpsertWithoutRemixStorageSharesConsentedInput = {
+    update: XOR<UserUpdateWithoutRemixStorageSharesConsentedInput, UserUncheckedUpdateWithoutRemixStorageSharesConsentedInput>
+    create: XOR<UserCreateWithoutRemixStorageSharesConsentedInput, UserUncheckedCreateWithoutRemixStorageSharesConsentedInput>
+    where?: UserWhereInput
+  }
+
+  export type UserUpdateToOneWithWhereWithoutRemixStorageSharesConsentedInput = {
+    where?: UserWhereInput
+    data: XOR<UserUpdateWithoutRemixStorageSharesConsentedInput, UserUncheckedUpdateWithoutRemixStorageSharesConsentedInput>
+  }
+
+  export type UserUpdateWithoutRemixStorageSharesConsentedInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    passwordHash?: NullableStringFieldUpdateOperationsInput | string | null
+    emailVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
+    mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
+    platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    accounts?: AccountUpdateManyWithoutUserNestedInput
+    sessions?: SessionUpdateManyWithoutUserNestedInput
+    memberships?: OrganizationMemberUpdateManyWithoutUserNestedInput
+    apiKeys?: ApiKeyUpdateManyWithoutUserNestedInput
+    auditLogs?: AuditLogUpdateManyWithoutActorNestedInput
+    adminAuditLogs?: AdminAuditLogUpdateManyWithoutActorNestedInput
+    conversations?: AiConversationUpdateManyWithoutUserNestedInput
+    supportTickets?: SupportTicketUpdateManyWithoutUserNestedInput
+    oauthConnections?: OAuthConnectionUpdateManyWithoutUserNestedInput
+    emailVerificationTokens?: EmailVerificationTokenUpdateManyWithoutUserNestedInput
+    passwordResetTokens?: PasswordResetTokenUpdateManyWithoutUserNestedInput
+    recoveryCodes?: MfaRecoveryCodeUpdateManyWithoutUserNestedInput
+    projectCollaborations?: ProjectCollaboratorUpdateManyWithoutUserNestedInput
+    projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
+    projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
+    galleryListings?: GalleryListingUpdateManyWithoutAuthorNestedInput
+    projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
+    collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
+    collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
+    collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
+    agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
+    mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
+    mcpUserConfig?: McpUserConfigUpdateOneWithoutUserNestedInput
+    agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
+    userConnections?: UserConnectionUpdateManyWithoutUserNestedInput
+    linkedProjectConnections?: ProjectConnectionLinkUpdateManyWithoutLinkedByUserNestedInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutConfiguredByUserNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
+    notifications?: NotificationUpdateManyWithoutUserNestedInput
+    aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
+    spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
+    agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
+    importJobs?: ImportJobUpdateManyWithoutActorNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutActorNestedInput
+    cloudOperations?: CloudOperationUpdateManyWithoutActorNestedInput
+    projectCheckpoints?: ProjectCheckpointUpdateManyWithoutCreatedByNestedInput
+    invitedOrganizationMembers?: OrganizationMemberUpdateManyWithoutInvitedByNestedInput
+    createdOrganizationInvites?: OrganizationInviteUpdateManyWithoutCreatedByNestedInput
+    accessGrantSubjects?: ResourceAccessGrantUpdateManyWithoutSubjectUserNestedInput
+    accessGrantsCreated?: ResourceAccessGrantUpdateManyWithoutGrantedByNestedInput
+    accessGrantsRevoked?: ResourceAccessGrantUpdateManyWithoutRevokedByNestedInput
+  }
+
+  export type UserUncheckedUpdateWithoutRemixStorageSharesConsentedInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    passwordHash?: NullableStringFieldUpdateOperationsInput | string | null
+    emailVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
+    mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
+    platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
+    sessions?: SessionUncheckedUpdateManyWithoutUserNestedInput
+    memberships?: OrganizationMemberUncheckedUpdateManyWithoutUserNestedInput
+    apiKeys?: ApiKeyUncheckedUpdateManyWithoutUserNestedInput
+    auditLogs?: AuditLogUncheckedUpdateManyWithoutActorNestedInput
+    adminAuditLogs?: AdminAuditLogUncheckedUpdateManyWithoutActorNestedInput
+    conversations?: AiConversationUncheckedUpdateManyWithoutUserNestedInput
+    supportTickets?: SupportTicketUncheckedUpdateManyWithoutUserNestedInput
+    oauthConnections?: OAuthConnectionUncheckedUpdateManyWithoutUserNestedInput
+    emailVerificationTokens?: EmailVerificationTokenUncheckedUpdateManyWithoutUserNestedInput
+    passwordResetTokens?: PasswordResetTokenUncheckedUpdateManyWithoutUserNestedInput
+    recoveryCodes?: MfaRecoveryCodeUncheckedUpdateManyWithoutUserNestedInput
+    projectCollaborations?: ProjectCollaboratorUncheckedUpdateManyWithoutUserNestedInput
+    projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
+    projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
+    galleryListings?: GalleryListingUncheckedUpdateManyWithoutAuthorNestedInput
+    projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
+    collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
+    collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
+    collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
+    agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
+    mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
+    mcpUserConfig?: McpUserConfigUncheckedUpdateOneWithoutUserNestedInput
+    agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
+    userConnections?: UserConnectionUncheckedUpdateManyWithoutUserNestedInput
+    linkedProjectConnections?: ProjectConnectionLinkUncheckedUpdateManyWithoutLinkedByUserNestedInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutConfiguredByUserNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
+    notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
+    aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
+    spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
+    agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutActorNestedInput
+    cloudOperations?: CloudOperationUncheckedUpdateManyWithoutActorNestedInput
+    projectCheckpoints?: ProjectCheckpointUncheckedUpdateManyWithoutCreatedByNestedInput
+    invitedOrganizationMembers?: OrganizationMemberUncheckedUpdateManyWithoutInvitedByNestedInput
+    createdOrganizationInvites?: OrganizationInviteUncheckedUpdateManyWithoutCreatedByNestedInput
+    accessGrantSubjects?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserNestedInput
+    accessGrantsCreated?: ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput
+    accessGrantsRevoked?: ResourceAccessGrantUncheckedUpdateManyWithoutRevokedByNestedInput
+  }
+
+  export type RemixJobUpsertWithWhereUniqueWithoutStorageShareInput = {
+    where: RemixJobWhereUniqueInput
+    update: XOR<RemixJobUpdateWithoutStorageShareInput, RemixJobUncheckedUpdateWithoutStorageShareInput>
+    create: XOR<RemixJobCreateWithoutStorageShareInput, RemixJobUncheckedCreateWithoutStorageShareInput>
+  }
+
+  export type RemixJobUpdateWithWhereUniqueWithoutStorageShareInput = {
+    where: RemixJobWhereUniqueInput
+    data: XOR<RemixJobUpdateWithoutStorageShareInput, RemixJobUncheckedUpdateWithoutStorageShareInput>
+  }
+
+  export type RemixJobUpdateManyWithWhereWithoutStorageShareInput = {
+    where: RemixJobScalarWhereInput
+    data: XOR<RemixJobUpdateManyMutationInput, RemixJobUncheckedUpdateManyWithoutStorageShareInput>
   }
 
   export type OrganizationCreateWithoutImportJobsInput = {
@@ -272390,6 +277107,8 @@ export namespace Prisma {
     creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
+    remixStorageSharesAsSource?: RemixStorageShareCreateNestedManyWithoutSourceOrganizationInput
+    remixStorageSharesAsTarget?: RemixStorageShareCreateNestedManyWithoutTargetOrganizationInput
     cloudTenant?: CloudTenantCreateNestedOneWithoutOrganizationInput
     collaborationGroups?: CollaborationGroupCreateNestedManyWithoutOrganizationInput
     resourceAccessGrants?: ResourceAccessGrantCreateNestedManyWithoutOrganizationInput
@@ -272436,6 +277155,8 @@ export namespace Prisma {
     creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
+    remixStorageSharesAsSource?: RemixStorageShareUncheckedCreateNestedManyWithoutSourceOrganizationInput
+    remixStorageSharesAsTarget?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetOrganizationInput
     cloudTenant?: CloudTenantUncheckedCreateNestedOneWithoutOrganizationInput
     collaborationGroups?: CollaborationGroupUncheckedCreateNestedManyWithoutOrganizationInput
     resourceAccessGrants?: ResourceAccessGrantUncheckedCreateNestedManyWithoutOrganizationInput
@@ -272495,6 +277216,8 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
+    remixStorageSharesConsented?: RemixStorageShareCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutActorInput
     cloudOperations?: CloudOperationCreateNestedManyWithoutActorInput
     projectCheckpoints?: ProjectCheckpointCreateNestedManyWithoutCreatedByInput
     invitedOrganizationMembers?: OrganizationMemberCreateNestedManyWithoutInvitedByInput
@@ -272553,6 +277276,8 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutActorInput
     cloudOperations?: CloudOperationUncheckedCreateNestedManyWithoutActorInput
     projectCheckpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutCreatedByInput
     invitedOrganizationMembers?: OrganizationMemberUncheckedCreateNestedManyWithoutInvitedByInput
@@ -272611,6 +277336,9 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
+    targetRemixJobs?: RemixJobCreateNestedManyWithoutTargetProjectInput
+    sourceRemixShares?: RemixStorageShareCreateNestedManyWithoutSourceProjectInput
+    targetRemixShares?: RemixStorageShareCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
   }
@@ -272659,6 +277387,9 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
+    targetRemixJobs?: RemixJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    sourceRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutSourceProjectInput
+    targetRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingUncheckedCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
   }
@@ -272749,6 +277480,8 @@ export namespace Prisma {
     creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
+    remixStorageSharesAsSource?: RemixStorageShareUpdateManyWithoutSourceOrganizationNestedInput
+    remixStorageSharesAsTarget?: RemixStorageShareUpdateManyWithoutTargetOrganizationNestedInput
     cloudTenant?: CloudTenantUpdateOneWithoutOrganizationNestedInput
     collaborationGroups?: CollaborationGroupUpdateManyWithoutOrganizationNestedInput
     resourceAccessGrants?: ResourceAccessGrantUpdateManyWithoutOrganizationNestedInput
@@ -272795,6 +277528,8 @@ export namespace Prisma {
     creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
+    remixStorageSharesAsSource?: RemixStorageShareUncheckedUpdateManyWithoutSourceOrganizationNestedInput
+    remixStorageSharesAsTarget?: RemixStorageShareUncheckedUpdateManyWithoutTargetOrganizationNestedInput
     cloudTenant?: CloudTenantUncheckedUpdateOneWithoutOrganizationNestedInput
     collaborationGroups?: CollaborationGroupUncheckedUpdateManyWithoutOrganizationNestedInput
     resourceAccessGrants?: ResourceAccessGrantUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -272860,6 +277595,8 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutActorNestedInput
     cloudOperations?: CloudOperationUpdateManyWithoutActorNestedInput
     projectCheckpoints?: ProjectCheckpointUpdateManyWithoutCreatedByNestedInput
     invitedOrganizationMembers?: OrganizationMemberUpdateManyWithoutInvitedByNestedInput
@@ -272918,6 +277655,8 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutActorNestedInput
     cloudOperations?: CloudOperationUncheckedUpdateManyWithoutActorNestedInput
     projectCheckpoints?: ProjectCheckpointUncheckedUpdateManyWithoutCreatedByNestedInput
     invitedOrganizationMembers?: OrganizationMemberUncheckedUpdateManyWithoutInvitedByNestedInput
@@ -272982,6 +277721,9 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
+    targetRemixJobs?: RemixJobUpdateManyWithoutTargetProjectNestedInput
+    sourceRemixShares?: RemixStorageShareUpdateManyWithoutSourceProjectNestedInput
+    targetRemixShares?: RemixStorageShareUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
   }
@@ -273030,6 +277772,9 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
+    targetRemixJobs?: RemixJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    sourceRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutSourceProjectNestedInput
+    targetRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUncheckedUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
   }
@@ -273237,6 +277982,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
+    targetRemixJobs?: RemixJobCreateNestedManyWithoutTargetProjectInput
+    sourceRemixShares?: RemixStorageShareCreateNestedManyWithoutSourceProjectInput
+    targetRemixShares?: RemixStorageShareCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
   }
@@ -273285,6 +278033,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    targetRemixJobs?: RemixJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    sourceRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutSourceProjectInput
+    targetRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingUncheckedCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
   }
@@ -273343,6 +278094,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
     importJobs?: ImportJobCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutActorInput
     cloudOperations?: CloudOperationCreateNestedManyWithoutActorInput
     projectCheckpoints?: ProjectCheckpointCreateNestedManyWithoutCreatedByInput
     invitedOrganizationMembers?: OrganizationMemberCreateNestedManyWithoutInvitedByInput
@@ -273401,6 +278154,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutActorInput
     cloudOperations?: CloudOperationUncheckedCreateNestedManyWithoutActorInput
     projectCheckpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutCreatedByInput
     invitedOrganizationMembers?: OrganizationMemberUncheckedCreateNestedManyWithoutInvitedByInput
@@ -273470,6 +278225,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
+    targetRemixJobs?: RemixJobUpdateManyWithoutTargetProjectNestedInput
+    sourceRemixShares?: RemixStorageShareUpdateManyWithoutSourceProjectNestedInput
+    targetRemixShares?: RemixStorageShareUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
   }
@@ -273518,6 +278276,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    targetRemixJobs?: RemixJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    sourceRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutSourceProjectNestedInput
+    targetRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUncheckedUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
   }
@@ -273582,6 +278343,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutActorNestedInput
     cloudOperations?: CloudOperationUpdateManyWithoutActorNestedInput
     projectCheckpoints?: ProjectCheckpointUpdateManyWithoutCreatedByNestedInput
     invitedOrganizationMembers?: OrganizationMemberUpdateManyWithoutInvitedByNestedInput
@@ -273640,6 +278403,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutActorNestedInput
     cloudOperations?: CloudOperationUncheckedUpdateManyWithoutActorNestedInput
     projectCheckpoints?: ProjectCheckpointUncheckedUpdateManyWithoutCreatedByNestedInput
     invitedOrganizationMembers?: OrganizationMemberUncheckedUpdateManyWithoutInvitedByNestedInput
@@ -274307,6 +279072,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
     importJobs?: ImportJobCreateNestedManyWithoutOrganizationInput
+    remixStorageSharesAsSource?: RemixStorageShareCreateNestedManyWithoutSourceOrganizationInput
+    remixStorageSharesAsTarget?: RemixStorageShareCreateNestedManyWithoutTargetOrganizationInput
     collaborationGroups?: CollaborationGroupCreateNestedManyWithoutOrganizationInput
     resourceAccessGrants?: ResourceAccessGrantCreateNestedManyWithoutOrganizationInput
   }
@@ -274353,6 +279120,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutOrganizationInput
+    remixStorageSharesAsSource?: RemixStorageShareUncheckedCreateNestedManyWithoutSourceOrganizationInput
+    remixStorageSharesAsTarget?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetOrganizationInput
     collaborationGroups?: CollaborationGroupUncheckedCreateNestedManyWithoutOrganizationInput
     resourceAccessGrants?: ResourceAccessGrantUncheckedCreateNestedManyWithoutOrganizationInput
   }
@@ -274893,6 +279662,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
     importJobs?: ImportJobUpdateManyWithoutOrganizationNestedInput
+    remixStorageSharesAsSource?: RemixStorageShareUpdateManyWithoutSourceOrganizationNestedInput
+    remixStorageSharesAsTarget?: RemixStorageShareUpdateManyWithoutTargetOrganizationNestedInput
     collaborationGroups?: CollaborationGroupUpdateManyWithoutOrganizationNestedInput
     resourceAccessGrants?: ResourceAccessGrantUpdateManyWithoutOrganizationNestedInput
   }
@@ -274939,6 +279710,8 @@ export namespace Prisma {
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutOrganizationNestedInput
+    remixStorageSharesAsSource?: RemixStorageShareUncheckedUpdateManyWithoutSourceOrganizationNestedInput
+    remixStorageSharesAsTarget?: RemixStorageShareUncheckedUpdateManyWithoutTargetOrganizationNestedInput
     collaborationGroups?: CollaborationGroupUncheckedUpdateManyWithoutOrganizationNestedInput
     resourceAccessGrants?: ResourceAccessGrantUncheckedUpdateManyWithoutOrganizationNestedInput
   }
@@ -275330,6 +280103,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
+    targetRemixJobs?: RemixJobCreateNestedManyWithoutTargetProjectInput
+    sourceRemixShares?: RemixStorageShareCreateNestedManyWithoutSourceProjectInput
+    targetRemixShares?: RemixStorageShareCreateNestedManyWithoutTargetProjectInput
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
   }
 
@@ -275378,6 +280154,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    targetRemixJobs?: RemixJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    sourceRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutSourceProjectInput
+    targetRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetProjectInput
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
   }
 
@@ -275687,6 +280466,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
+    targetRemixJobs?: RemixJobUpdateManyWithoutTargetProjectNestedInput
+    sourceRemixShares?: RemixStorageShareUpdateManyWithoutSourceProjectNestedInput
+    targetRemixShares?: RemixStorageShareUpdateManyWithoutTargetProjectNestedInput
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
   }
 
@@ -275735,6 +280517,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    targetRemixJobs?: RemixJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    sourceRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutSourceProjectNestedInput
+    targetRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutTargetProjectNestedInput
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
   }
 
@@ -276313,6 +281098,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
     importJobs?: ImportJobCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutActorInput
     projectCheckpoints?: ProjectCheckpointCreateNestedManyWithoutCreatedByInput
     invitedOrganizationMembers?: OrganizationMemberCreateNestedManyWithoutInvitedByInput
     createdOrganizationInvites?: OrganizationInviteCreateNestedManyWithoutCreatedByInput
@@ -276371,6 +281158,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutActorInput
     projectCheckpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutCreatedByInput
     invitedOrganizationMembers?: OrganizationMemberUncheckedCreateNestedManyWithoutInvitedByInput
     createdOrganizationInvites?: OrganizationInviteUncheckedCreateNestedManyWithoutCreatedByInput
@@ -276752,6 +281541,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutActorNestedInput
     projectCheckpoints?: ProjectCheckpointUpdateManyWithoutCreatedByNestedInput
     invitedOrganizationMembers?: OrganizationMemberUpdateManyWithoutInvitedByNestedInput
     createdOrganizationInvites?: OrganizationInviteUpdateManyWithoutCreatedByNestedInput
@@ -276810,6 +281601,8 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutActorNestedInput
     projectCheckpoints?: ProjectCheckpointUncheckedUpdateManyWithoutCreatedByNestedInput
     invitedOrganizationMembers?: OrganizationMemberUncheckedUpdateManyWithoutInvitedByNestedInput
     createdOrganizationInvites?: OrganizationInviteUncheckedUpdateManyWithoutCreatedByNestedInput
@@ -278795,6 +283588,45 @@ export namespace Prisma {
     updatedAt?: Date | string
   }
 
+  export type RemixStorageShareCreateManyConsentedByInput = {
+    id?: string
+    sourceProjectId: string
+    targetProjectId: string
+    sourceOrganizationId: string
+    targetOrganizationId: string
+    consentVersion: string
+    consentedAt?: Date | string
+    sourceInventory: JsonNullValueInput | InputJsonValue
+    state?: string
+    revokedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type RollbackIdempotencyRequestCreateManyActorInput = {
+    id?: string
+    projectId: string
+    idempotencyKey: string
+    requestFingerprint: string
+    environment: string
+    status?: string
+    phase?: string
+    leaseOwner?: string | null
+    leaseExpiresAt?: Date | string | null
+    fencingToken?: number
+    effectFencingToken?: number | null
+    deploymentId?: string | null
+    expectedHeadVersion?: number | null
+    previousManifestId?: string | null
+    projectManifestDigest?: string | null
+    responseStatus?: number | null
+    responseContentLanguage?: string | null
+    responseBody?: NullableJsonNullValueInput | InputJsonValue
+    completedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
   export type CloudOperationCreateManyActorInput = {
     id?: string
     idempotencyKey: string
@@ -280155,6 +284987,125 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type RemixStorageShareUpdateWithoutConsentedByInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    consentVersion?: StringFieldUpdateOperationsInput | string
+    consentedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    sourceInventory?: JsonNullValueInput | InputJsonValue
+    state?: StringFieldUpdateOperationsInput | string
+    revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    sourceProject?: ProjectUpdateOneRequiredWithoutSourceRemixSharesNestedInput
+    targetProject?: ProjectUpdateOneRequiredWithoutTargetRemixSharesNestedInput
+    sourceOrganization?: OrganizationUpdateOneRequiredWithoutRemixStorageSharesAsSourceNestedInput
+    targetOrganization?: OrganizationUpdateOneRequiredWithoutRemixStorageSharesAsTargetNestedInput
+    remixJobs?: RemixJobUpdateManyWithoutStorageShareNestedInput
+  }
+
+  export type RemixStorageShareUncheckedUpdateWithoutConsentedByInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sourceProjectId?: StringFieldUpdateOperationsInput | string
+    targetProjectId?: StringFieldUpdateOperationsInput | string
+    sourceOrganizationId?: StringFieldUpdateOperationsInput | string
+    targetOrganizationId?: StringFieldUpdateOperationsInput | string
+    consentVersion?: StringFieldUpdateOperationsInput | string
+    consentedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    sourceInventory?: JsonNullValueInput | InputJsonValue
+    state?: StringFieldUpdateOperationsInput | string
+    revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    remixJobs?: RemixJobUncheckedUpdateManyWithoutStorageShareNestedInput
+  }
+
+  export type RemixStorageShareUncheckedUpdateManyWithoutConsentedByInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sourceProjectId?: StringFieldUpdateOperationsInput | string
+    targetProjectId?: StringFieldUpdateOperationsInput | string
+    sourceOrganizationId?: StringFieldUpdateOperationsInput | string
+    targetOrganizationId?: StringFieldUpdateOperationsInput | string
+    consentVersion?: StringFieldUpdateOperationsInput | string
+    consentedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    sourceInventory?: JsonNullValueInput | InputJsonValue
+    state?: StringFieldUpdateOperationsInput | string
+    revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type RollbackIdempotencyRequestUpdateWithoutActorInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    requestFingerprint?: StringFieldUpdateOperationsInput | string
+    environment?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    phase?: StringFieldUpdateOperationsInput | string
+    leaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
+    leaseExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fencingToken?: IntFieldUpdateOperationsInput | number
+    effectFencingToken?: NullableIntFieldUpdateOperationsInput | number | null
+    deploymentId?: NullableStringFieldUpdateOperationsInput | string | null
+    expectedHeadVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    previousManifestId?: NullableStringFieldUpdateOperationsInput | string | null
+    projectManifestDigest?: NullableStringFieldUpdateOperationsInput | string | null
+    responseStatus?: NullableIntFieldUpdateOperationsInput | number | null
+    responseContentLanguage?: NullableStringFieldUpdateOperationsInput | string | null
+    responseBody?: NullableJsonNullValueInput | InputJsonValue
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    project?: ProjectUpdateOneRequiredWithoutRollbackOperationsNestedInput
+  }
+
+  export type RollbackIdempotencyRequestUncheckedUpdateWithoutActorInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    requestFingerprint?: StringFieldUpdateOperationsInput | string
+    environment?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    phase?: StringFieldUpdateOperationsInput | string
+    leaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
+    leaseExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fencingToken?: IntFieldUpdateOperationsInput | number
+    effectFencingToken?: NullableIntFieldUpdateOperationsInput | number | null
+    deploymentId?: NullableStringFieldUpdateOperationsInput | string | null
+    expectedHeadVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    previousManifestId?: NullableStringFieldUpdateOperationsInput | string | null
+    projectManifestDigest?: NullableStringFieldUpdateOperationsInput | string | null
+    responseStatus?: NullableIntFieldUpdateOperationsInput | number | null
+    responseContentLanguage?: NullableStringFieldUpdateOperationsInput | string | null
+    responseBody?: NullableJsonNullValueInput | InputJsonValue
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type RollbackIdempotencyRequestUncheckedUpdateManyWithoutActorInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    requestFingerprint?: StringFieldUpdateOperationsInput | string
+    environment?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    phase?: StringFieldUpdateOperationsInput | string
+    leaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
+    leaseExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fencingToken?: IntFieldUpdateOperationsInput | number
+    effectFencingToken?: NullableIntFieldUpdateOperationsInput | number | null
+    deploymentId?: NullableStringFieldUpdateOperationsInput | string | null
+    expectedHeadVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    previousManifestId?: NullableStringFieldUpdateOperationsInput | string | null
+    projectManifestDigest?: NullableStringFieldUpdateOperationsInput | string | null
+    responseStatus?: NullableIntFieldUpdateOperationsInput | number | null
+    responseContentLanguage?: NullableStringFieldUpdateOperationsInput | string | null
+    responseBody?: NullableJsonNullValueInput | InputJsonValue
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type CloudOperationUpdateWithoutActorInput = {
     id?: StringFieldUpdateOperationsInput | string
     idempotencyKey?: StringFieldUpdateOperationsInput | string
@@ -280916,6 +285867,36 @@ export namespace Prisma {
     updatedAt?: Date | string
   }
 
+  export type RemixStorageShareCreateManySourceOrganizationInput = {
+    id?: string
+    sourceProjectId: string
+    targetProjectId: string
+    targetOrganizationId: string
+    consentVersion: string
+    consentedByUserId?: string | null
+    consentedAt?: Date | string
+    sourceInventory: JsonNullValueInput | InputJsonValue
+    state?: string
+    revokedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type RemixStorageShareCreateManyTargetOrganizationInput = {
+    id?: string
+    sourceProjectId: string
+    targetProjectId: string
+    sourceOrganizationId: string
+    consentVersion: string
+    consentedByUserId?: string | null
+    consentedAt?: Date | string
+    sourceInventory: JsonNullValueInput | InputJsonValue
+    state?: string
+    revokedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
   export type CollaborationGroupCreateManyOrganizationInput = {
     id?: string
     name: string
@@ -281058,6 +286039,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
+    targetRemixJobs?: RemixJobUpdateManyWithoutTargetProjectNestedInput
+    sourceRemixShares?: RemixStorageShareUpdateManyWithoutSourceProjectNestedInput
+    targetRemixShares?: RemixStorageShareUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
   }
@@ -281106,6 +286090,9 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    targetRemixJobs?: RemixJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    sourceRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutSourceProjectNestedInput
+    targetRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUncheckedUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
   }
@@ -282151,6 +287138,100 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type RemixStorageShareUpdateWithoutSourceOrganizationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    consentVersion?: StringFieldUpdateOperationsInput | string
+    consentedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    sourceInventory?: JsonNullValueInput | InputJsonValue
+    state?: StringFieldUpdateOperationsInput | string
+    revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    sourceProject?: ProjectUpdateOneRequiredWithoutSourceRemixSharesNestedInput
+    targetProject?: ProjectUpdateOneRequiredWithoutTargetRemixSharesNestedInput
+    targetOrganization?: OrganizationUpdateOneRequiredWithoutRemixStorageSharesAsTargetNestedInput
+    consentedBy?: UserUpdateOneWithoutRemixStorageSharesConsentedNestedInput
+    remixJobs?: RemixJobUpdateManyWithoutStorageShareNestedInput
+  }
+
+  export type RemixStorageShareUncheckedUpdateWithoutSourceOrganizationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sourceProjectId?: StringFieldUpdateOperationsInput | string
+    targetProjectId?: StringFieldUpdateOperationsInput | string
+    targetOrganizationId?: StringFieldUpdateOperationsInput | string
+    consentVersion?: StringFieldUpdateOperationsInput | string
+    consentedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    consentedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    sourceInventory?: JsonNullValueInput | InputJsonValue
+    state?: StringFieldUpdateOperationsInput | string
+    revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    remixJobs?: RemixJobUncheckedUpdateManyWithoutStorageShareNestedInput
+  }
+
+  export type RemixStorageShareUncheckedUpdateManyWithoutSourceOrganizationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sourceProjectId?: StringFieldUpdateOperationsInput | string
+    targetProjectId?: StringFieldUpdateOperationsInput | string
+    targetOrganizationId?: StringFieldUpdateOperationsInput | string
+    consentVersion?: StringFieldUpdateOperationsInput | string
+    consentedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    consentedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    sourceInventory?: JsonNullValueInput | InputJsonValue
+    state?: StringFieldUpdateOperationsInput | string
+    revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type RemixStorageShareUpdateWithoutTargetOrganizationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    consentVersion?: StringFieldUpdateOperationsInput | string
+    consentedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    sourceInventory?: JsonNullValueInput | InputJsonValue
+    state?: StringFieldUpdateOperationsInput | string
+    revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    sourceProject?: ProjectUpdateOneRequiredWithoutSourceRemixSharesNestedInput
+    targetProject?: ProjectUpdateOneRequiredWithoutTargetRemixSharesNestedInput
+    sourceOrganization?: OrganizationUpdateOneRequiredWithoutRemixStorageSharesAsSourceNestedInput
+    consentedBy?: UserUpdateOneWithoutRemixStorageSharesConsentedNestedInput
+    remixJobs?: RemixJobUpdateManyWithoutStorageShareNestedInput
+  }
+
+  export type RemixStorageShareUncheckedUpdateWithoutTargetOrganizationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sourceProjectId?: StringFieldUpdateOperationsInput | string
+    targetProjectId?: StringFieldUpdateOperationsInput | string
+    sourceOrganizationId?: StringFieldUpdateOperationsInput | string
+    consentVersion?: StringFieldUpdateOperationsInput | string
+    consentedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    consentedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    sourceInventory?: JsonNullValueInput | InputJsonValue
+    state?: StringFieldUpdateOperationsInput | string
+    revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    remixJobs?: RemixJobUncheckedUpdateManyWithoutStorageShareNestedInput
+  }
+
+  export type RemixStorageShareUncheckedUpdateManyWithoutTargetOrganizationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sourceProjectId?: StringFieldUpdateOperationsInput | string
+    targetProjectId?: StringFieldUpdateOperationsInput | string
+    sourceOrganizationId?: StringFieldUpdateOperationsInput | string
+    consentVersion?: StringFieldUpdateOperationsInput | string
+    consentedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    consentedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    sourceInventory?: JsonNullValueInput | InputJsonValue
+    state?: StringFieldUpdateOperationsInput | string
+    revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type CollaborationGroupUpdateWithoutOrganizationInput = {
     id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
@@ -282550,6 +287631,7 @@ export namespace Prisma {
 
   export type RollbackIdempotencyRequestCreateManyProjectInput = {
     id?: string
+    actorUserId?: string | null
     idempotencyKey: string
     requestFingerprint: string
     environment: string
@@ -282735,6 +287817,71 @@ export namespace Prisma {
     cleanupTerminalState?: string | null
     error?: string | null
     expiresAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type RemixJobCreateManyTargetProjectInput = {
+    id?: string
+    sourceProjectId: string
+    organizationId: string
+    actorUserId?: string | null
+    state?: string
+    idempotencyKey?: string | null
+    requestHash?: string | null
+    version?: number
+    operationToken?: string | null
+    operationExpiresAt?: Date | string | null
+    sourceSnapshotId?: string | null
+    sourceSnapshotHash?: string | null
+    sourceListingId?: string | null
+    detachedKeys?: NullableJsonNullValueInput | InputJsonValue
+    storagePolicy?: string
+    storageConsentVersion?: string | null
+    storageInventory?: NullableJsonNullValueInput | InputJsonValue
+    storageShareId?: string | null
+    scanFindings?: NullableJsonNullValueInput | InputJsonValue
+    scrubbedCount?: number
+    licenseSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    consentVersion?: string | null
+    piiFindings?: NullableJsonNullValueInput | InputJsonValue
+    piiMaskedCount?: number
+    dbForked?: boolean
+    sourceDatabasePin?: NullableJsonNullValueInput | InputJsonValue
+    targetDatabaseInstanceId?: string | null
+    cleanupTerminalState?: string | null
+    errorCode?: string | null
+    error?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type RemixStorageShareCreateManySourceProjectInput = {
+    id?: string
+    targetProjectId: string
+    sourceOrganizationId: string
+    targetOrganizationId: string
+    consentVersion: string
+    consentedByUserId?: string | null
+    consentedAt?: Date | string
+    sourceInventory: JsonNullValueInput | InputJsonValue
+    state?: string
+    revokedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type RemixStorageShareCreateManyTargetProjectInput = {
+    id?: string
+    sourceProjectId: string
+    sourceOrganizationId: string
+    targetOrganizationId: string
+    consentVersion: string
+    consentedByUserId?: string | null
+    consentedAt?: Date | string
+    sourceInventory: JsonNullValueInput | InputJsonValue
+    state?: string
+    revokedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -283249,10 +288396,12 @@ export namespace Prisma {
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    actor?: UserUpdateOneWithoutRollbackOperationsNestedInput
   }
 
   export type RollbackIdempotencyRequestUncheckedUpdateWithoutProjectInput = {
     id?: StringFieldUpdateOperationsInput | string
+    actorUserId?: NullableStringFieldUpdateOperationsInput | string | null
     idempotencyKey?: StringFieldUpdateOperationsInput | string
     requestFingerprint?: StringFieldUpdateOperationsInput | string
     environment?: StringFieldUpdateOperationsInput | string
@@ -283276,6 +288425,7 @@ export namespace Prisma {
 
   export type RollbackIdempotencyRequestUncheckedUpdateManyWithoutProjectInput = {
     id?: StringFieldUpdateOperationsInput | string
+    actorUserId?: NullableStringFieldUpdateOperationsInput | string | null
     idempotencyKey?: StringFieldUpdateOperationsInput | string
     requestFingerprint?: StringFieldUpdateOperationsInput | string
     environment?: StringFieldUpdateOperationsInput | string
@@ -283643,6 +288793,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     snapshots?: DatabaseSnapshotUpdateManyWithoutDatabaseInstanceNestedInput
     restores?: DatabaseRestoreUpdateManyWithoutDatabaseInstanceNestedInput
+    remixJobsAsTarget?: RemixJobUpdateManyWithoutTargetDatabaseInstanceNestedInput
   }
 
   export type DatabaseInstanceUncheckedUpdateWithoutProjectInput = {
@@ -283662,6 +288813,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     snapshots?: DatabaseSnapshotUncheckedUpdateManyWithoutDatabaseInstanceNestedInput
     restores?: DatabaseRestoreUncheckedUpdateManyWithoutDatabaseInstanceNestedInput
+    remixJobsAsTarget?: RemixJobUncheckedUpdateManyWithoutTargetDatabaseInstanceNestedInput
   }
 
   export type DatabaseInstanceUncheckedUpdateManyWithoutProjectInput = {
@@ -283877,6 +289029,205 @@ export namespace Prisma {
     cleanupTerminalState?: NullableStringFieldUpdateOperationsInput | string | null
     error?: NullableStringFieldUpdateOperationsInput | string | null
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type RemixJobUpdateWithoutTargetProjectInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sourceProjectId?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    actorUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    state?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
+    requestHash?: NullableStringFieldUpdateOperationsInput | string | null
+    version?: IntFieldUpdateOperationsInput | number
+    operationToken?: NullableStringFieldUpdateOperationsInput | string | null
+    operationExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    sourceSnapshotId?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceSnapshotHash?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceListingId?: NullableStringFieldUpdateOperationsInput | string | null
+    detachedKeys?: NullableJsonNullValueInput | InputJsonValue
+    storagePolicy?: StringFieldUpdateOperationsInput | string
+    storageConsentVersion?: NullableStringFieldUpdateOperationsInput | string | null
+    storageInventory?: NullableJsonNullValueInput | InputJsonValue
+    scanFindings?: NullableJsonNullValueInput | InputJsonValue
+    scrubbedCount?: IntFieldUpdateOperationsInput | number
+    licenseSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    consentVersion?: NullableStringFieldUpdateOperationsInput | string | null
+    piiFindings?: NullableJsonNullValueInput | InputJsonValue
+    piiMaskedCount?: IntFieldUpdateOperationsInput | number
+    dbForked?: BoolFieldUpdateOperationsInput | boolean
+    sourceDatabasePin?: NullableJsonNullValueInput | InputJsonValue
+    cleanupTerminalState?: NullableStringFieldUpdateOperationsInput | string | null
+    errorCode?: NullableStringFieldUpdateOperationsInput | string | null
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    targetDatabaseInstance?: DatabaseInstanceUpdateOneWithoutRemixJobsAsTargetNestedInput
+    storageShare?: RemixStorageShareUpdateOneWithoutRemixJobsNestedInput
+  }
+
+  export type RemixJobUncheckedUpdateWithoutTargetProjectInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sourceProjectId?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    actorUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    state?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
+    requestHash?: NullableStringFieldUpdateOperationsInput | string | null
+    version?: IntFieldUpdateOperationsInput | number
+    operationToken?: NullableStringFieldUpdateOperationsInput | string | null
+    operationExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    sourceSnapshotId?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceSnapshotHash?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceListingId?: NullableStringFieldUpdateOperationsInput | string | null
+    detachedKeys?: NullableJsonNullValueInput | InputJsonValue
+    storagePolicy?: StringFieldUpdateOperationsInput | string
+    storageConsentVersion?: NullableStringFieldUpdateOperationsInput | string | null
+    storageInventory?: NullableJsonNullValueInput | InputJsonValue
+    storageShareId?: NullableStringFieldUpdateOperationsInput | string | null
+    scanFindings?: NullableJsonNullValueInput | InputJsonValue
+    scrubbedCount?: IntFieldUpdateOperationsInput | number
+    licenseSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    consentVersion?: NullableStringFieldUpdateOperationsInput | string | null
+    piiFindings?: NullableJsonNullValueInput | InputJsonValue
+    piiMaskedCount?: IntFieldUpdateOperationsInput | number
+    dbForked?: BoolFieldUpdateOperationsInput | boolean
+    sourceDatabasePin?: NullableJsonNullValueInput | InputJsonValue
+    targetDatabaseInstanceId?: NullableStringFieldUpdateOperationsInput | string | null
+    cleanupTerminalState?: NullableStringFieldUpdateOperationsInput | string | null
+    errorCode?: NullableStringFieldUpdateOperationsInput | string | null
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type RemixJobUncheckedUpdateManyWithoutTargetProjectInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sourceProjectId?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    actorUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    state?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
+    requestHash?: NullableStringFieldUpdateOperationsInput | string | null
+    version?: IntFieldUpdateOperationsInput | number
+    operationToken?: NullableStringFieldUpdateOperationsInput | string | null
+    operationExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    sourceSnapshotId?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceSnapshotHash?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceListingId?: NullableStringFieldUpdateOperationsInput | string | null
+    detachedKeys?: NullableJsonNullValueInput | InputJsonValue
+    storagePolicy?: StringFieldUpdateOperationsInput | string
+    storageConsentVersion?: NullableStringFieldUpdateOperationsInput | string | null
+    storageInventory?: NullableJsonNullValueInput | InputJsonValue
+    storageShareId?: NullableStringFieldUpdateOperationsInput | string | null
+    scanFindings?: NullableJsonNullValueInput | InputJsonValue
+    scrubbedCount?: IntFieldUpdateOperationsInput | number
+    licenseSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    consentVersion?: NullableStringFieldUpdateOperationsInput | string | null
+    piiFindings?: NullableJsonNullValueInput | InputJsonValue
+    piiMaskedCount?: IntFieldUpdateOperationsInput | number
+    dbForked?: BoolFieldUpdateOperationsInput | boolean
+    sourceDatabasePin?: NullableJsonNullValueInput | InputJsonValue
+    targetDatabaseInstanceId?: NullableStringFieldUpdateOperationsInput | string | null
+    cleanupTerminalState?: NullableStringFieldUpdateOperationsInput | string | null
+    errorCode?: NullableStringFieldUpdateOperationsInput | string | null
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type RemixStorageShareUpdateWithoutSourceProjectInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    consentVersion?: StringFieldUpdateOperationsInput | string
+    consentedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    sourceInventory?: JsonNullValueInput | InputJsonValue
+    state?: StringFieldUpdateOperationsInput | string
+    revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    targetProject?: ProjectUpdateOneRequiredWithoutTargetRemixSharesNestedInput
+    sourceOrganization?: OrganizationUpdateOneRequiredWithoutRemixStorageSharesAsSourceNestedInput
+    targetOrganization?: OrganizationUpdateOneRequiredWithoutRemixStorageSharesAsTargetNestedInput
+    consentedBy?: UserUpdateOneWithoutRemixStorageSharesConsentedNestedInput
+    remixJobs?: RemixJobUpdateManyWithoutStorageShareNestedInput
+  }
+
+  export type RemixStorageShareUncheckedUpdateWithoutSourceProjectInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    targetProjectId?: StringFieldUpdateOperationsInput | string
+    sourceOrganizationId?: StringFieldUpdateOperationsInput | string
+    targetOrganizationId?: StringFieldUpdateOperationsInput | string
+    consentVersion?: StringFieldUpdateOperationsInput | string
+    consentedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    consentedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    sourceInventory?: JsonNullValueInput | InputJsonValue
+    state?: StringFieldUpdateOperationsInput | string
+    revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    remixJobs?: RemixJobUncheckedUpdateManyWithoutStorageShareNestedInput
+  }
+
+  export type RemixStorageShareUncheckedUpdateManyWithoutSourceProjectInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    targetProjectId?: StringFieldUpdateOperationsInput | string
+    sourceOrganizationId?: StringFieldUpdateOperationsInput | string
+    targetOrganizationId?: StringFieldUpdateOperationsInput | string
+    consentVersion?: StringFieldUpdateOperationsInput | string
+    consentedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    consentedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    sourceInventory?: JsonNullValueInput | InputJsonValue
+    state?: StringFieldUpdateOperationsInput | string
+    revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type RemixStorageShareUpdateWithoutTargetProjectInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    consentVersion?: StringFieldUpdateOperationsInput | string
+    consentedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    sourceInventory?: JsonNullValueInput | InputJsonValue
+    state?: StringFieldUpdateOperationsInput | string
+    revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    sourceProject?: ProjectUpdateOneRequiredWithoutSourceRemixSharesNestedInput
+    sourceOrganization?: OrganizationUpdateOneRequiredWithoutRemixStorageSharesAsSourceNestedInput
+    targetOrganization?: OrganizationUpdateOneRequiredWithoutRemixStorageSharesAsTargetNestedInput
+    consentedBy?: UserUpdateOneWithoutRemixStorageSharesConsentedNestedInput
+    remixJobs?: RemixJobUpdateManyWithoutStorageShareNestedInput
+  }
+
+  export type RemixStorageShareUncheckedUpdateWithoutTargetProjectInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sourceProjectId?: StringFieldUpdateOperationsInput | string
+    sourceOrganizationId?: StringFieldUpdateOperationsInput | string
+    targetOrganizationId?: StringFieldUpdateOperationsInput | string
+    consentVersion?: StringFieldUpdateOperationsInput | string
+    consentedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    consentedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    sourceInventory?: JsonNullValueInput | InputJsonValue
+    state?: StringFieldUpdateOperationsInput | string
+    revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    remixJobs?: RemixJobUncheckedUpdateManyWithoutStorageShareNestedInput
+  }
+
+  export type RemixStorageShareUncheckedUpdateManyWithoutTargetProjectInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sourceProjectId?: StringFieldUpdateOperationsInput | string
+    sourceOrganizationId?: StringFieldUpdateOperationsInput | string
+    targetOrganizationId?: StringFieldUpdateOperationsInput | string
+    consentVersion?: StringFieldUpdateOperationsInput | string
+    consentedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    consentedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    sourceInventory?: JsonNullValueInput | InputJsonValue
+    state?: StringFieldUpdateOperationsInput | string
+    revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -284919,6 +290270,41 @@ export namespace Prisma {
     completedAt?: Date | string | null
   }
 
+  export type RemixJobCreateManyTargetDatabaseInstanceInput = {
+    id?: string
+    sourceProjectId: string
+    targetProjectId?: string | null
+    organizationId: string
+    actorUserId?: string | null
+    state?: string
+    idempotencyKey?: string | null
+    requestHash?: string | null
+    version?: number
+    operationToken?: string | null
+    operationExpiresAt?: Date | string | null
+    sourceSnapshotId?: string | null
+    sourceSnapshotHash?: string | null
+    sourceListingId?: string | null
+    detachedKeys?: NullableJsonNullValueInput | InputJsonValue
+    storagePolicy?: string
+    storageConsentVersion?: string | null
+    storageInventory?: NullableJsonNullValueInput | InputJsonValue
+    storageShareId?: string | null
+    scanFindings?: NullableJsonNullValueInput | InputJsonValue
+    scrubbedCount?: number
+    licenseSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    consentVersion?: string | null
+    piiFindings?: NullableJsonNullValueInput | InputJsonValue
+    piiMaskedCount?: number
+    dbForked?: boolean
+    sourceDatabasePin?: NullableJsonNullValueInput | InputJsonValue
+    cleanupTerminalState?: string | null
+    errorCode?: string | null
+    error?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
   export type DatabaseSnapshotUpdateWithoutDatabaseInstanceInput = {
     id?: StringFieldUpdateOperationsInput | string
     kind?: StringFieldUpdateOperationsInput | string
@@ -284989,6 +290375,111 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type RemixJobUpdateWithoutTargetDatabaseInstanceInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sourceProjectId?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    actorUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    state?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
+    requestHash?: NullableStringFieldUpdateOperationsInput | string | null
+    version?: IntFieldUpdateOperationsInput | number
+    operationToken?: NullableStringFieldUpdateOperationsInput | string | null
+    operationExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    sourceSnapshotId?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceSnapshotHash?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceListingId?: NullableStringFieldUpdateOperationsInput | string | null
+    detachedKeys?: NullableJsonNullValueInput | InputJsonValue
+    storagePolicy?: StringFieldUpdateOperationsInput | string
+    storageConsentVersion?: NullableStringFieldUpdateOperationsInput | string | null
+    storageInventory?: NullableJsonNullValueInput | InputJsonValue
+    scanFindings?: NullableJsonNullValueInput | InputJsonValue
+    scrubbedCount?: IntFieldUpdateOperationsInput | number
+    licenseSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    consentVersion?: NullableStringFieldUpdateOperationsInput | string | null
+    piiFindings?: NullableJsonNullValueInput | InputJsonValue
+    piiMaskedCount?: IntFieldUpdateOperationsInput | number
+    dbForked?: BoolFieldUpdateOperationsInput | boolean
+    sourceDatabasePin?: NullableJsonNullValueInput | InputJsonValue
+    cleanupTerminalState?: NullableStringFieldUpdateOperationsInput | string | null
+    errorCode?: NullableStringFieldUpdateOperationsInput | string | null
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    targetProject?: ProjectUpdateOneWithoutTargetRemixJobsNestedInput
+    storageShare?: RemixStorageShareUpdateOneWithoutRemixJobsNestedInput
+  }
+
+  export type RemixJobUncheckedUpdateWithoutTargetDatabaseInstanceInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sourceProjectId?: StringFieldUpdateOperationsInput | string
+    targetProjectId?: NullableStringFieldUpdateOperationsInput | string | null
+    organizationId?: StringFieldUpdateOperationsInput | string
+    actorUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    state?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
+    requestHash?: NullableStringFieldUpdateOperationsInput | string | null
+    version?: IntFieldUpdateOperationsInput | number
+    operationToken?: NullableStringFieldUpdateOperationsInput | string | null
+    operationExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    sourceSnapshotId?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceSnapshotHash?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceListingId?: NullableStringFieldUpdateOperationsInput | string | null
+    detachedKeys?: NullableJsonNullValueInput | InputJsonValue
+    storagePolicy?: StringFieldUpdateOperationsInput | string
+    storageConsentVersion?: NullableStringFieldUpdateOperationsInput | string | null
+    storageInventory?: NullableJsonNullValueInput | InputJsonValue
+    storageShareId?: NullableStringFieldUpdateOperationsInput | string | null
+    scanFindings?: NullableJsonNullValueInput | InputJsonValue
+    scrubbedCount?: IntFieldUpdateOperationsInput | number
+    licenseSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    consentVersion?: NullableStringFieldUpdateOperationsInput | string | null
+    piiFindings?: NullableJsonNullValueInput | InputJsonValue
+    piiMaskedCount?: IntFieldUpdateOperationsInput | number
+    dbForked?: BoolFieldUpdateOperationsInput | boolean
+    sourceDatabasePin?: NullableJsonNullValueInput | InputJsonValue
+    cleanupTerminalState?: NullableStringFieldUpdateOperationsInput | string | null
+    errorCode?: NullableStringFieldUpdateOperationsInput | string | null
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type RemixJobUncheckedUpdateManyWithoutTargetDatabaseInstanceInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sourceProjectId?: StringFieldUpdateOperationsInput | string
+    targetProjectId?: NullableStringFieldUpdateOperationsInput | string | null
+    organizationId?: StringFieldUpdateOperationsInput | string
+    actorUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    state?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
+    requestHash?: NullableStringFieldUpdateOperationsInput | string | null
+    version?: IntFieldUpdateOperationsInput | number
+    operationToken?: NullableStringFieldUpdateOperationsInput | string | null
+    operationExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    sourceSnapshotId?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceSnapshotHash?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceListingId?: NullableStringFieldUpdateOperationsInput | string | null
+    detachedKeys?: NullableJsonNullValueInput | InputJsonValue
+    storagePolicy?: StringFieldUpdateOperationsInput | string
+    storageConsentVersion?: NullableStringFieldUpdateOperationsInput | string | null
+    storageInventory?: NullableJsonNullValueInput | InputJsonValue
+    storageShareId?: NullableStringFieldUpdateOperationsInput | string | null
+    scanFindings?: NullableJsonNullValueInput | InputJsonValue
+    scrubbedCount?: IntFieldUpdateOperationsInput | number
+    licenseSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    consentVersion?: NullableStringFieldUpdateOperationsInput | string | null
+    piiFindings?: NullableJsonNullValueInput | InputJsonValue
+    piiMaskedCount?: IntFieldUpdateOperationsInput | number
+    dbForked?: BoolFieldUpdateOperationsInput | boolean
+    sourceDatabasePin?: NullableJsonNullValueInput | InputJsonValue
+    cleanupTerminalState?: NullableStringFieldUpdateOperationsInput | string | null
+    errorCode?: NullableStringFieldUpdateOperationsInput | string | null
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type ScheduledTaskRunCreateManyTaskInput = {
@@ -285069,6 +290560,146 @@ export namespace Prisma {
     computeUnits?: NullableFloatFieldUpdateOperationsInput | number | null
     costCents?: NullableFloatFieldUpdateOperationsInput | number | null
     meteredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type RemixJobCreateManyStorageShareInput = {
+    id?: string
+    sourceProjectId: string
+    targetProjectId?: string | null
+    organizationId: string
+    actorUserId?: string | null
+    state?: string
+    idempotencyKey?: string | null
+    requestHash?: string | null
+    version?: number
+    operationToken?: string | null
+    operationExpiresAt?: Date | string | null
+    sourceSnapshotId?: string | null
+    sourceSnapshotHash?: string | null
+    sourceListingId?: string | null
+    detachedKeys?: NullableJsonNullValueInput | InputJsonValue
+    storagePolicy?: string
+    storageConsentVersion?: string | null
+    storageInventory?: NullableJsonNullValueInput | InputJsonValue
+    scanFindings?: NullableJsonNullValueInput | InputJsonValue
+    scrubbedCount?: number
+    licenseSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    consentVersion?: string | null
+    piiFindings?: NullableJsonNullValueInput | InputJsonValue
+    piiMaskedCount?: number
+    dbForked?: boolean
+    sourceDatabasePin?: NullableJsonNullValueInput | InputJsonValue
+    targetDatabaseInstanceId?: string | null
+    cleanupTerminalState?: string | null
+    errorCode?: string | null
+    error?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type RemixJobUpdateWithoutStorageShareInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sourceProjectId?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    actorUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    state?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
+    requestHash?: NullableStringFieldUpdateOperationsInput | string | null
+    version?: IntFieldUpdateOperationsInput | number
+    operationToken?: NullableStringFieldUpdateOperationsInput | string | null
+    operationExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    sourceSnapshotId?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceSnapshotHash?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceListingId?: NullableStringFieldUpdateOperationsInput | string | null
+    detachedKeys?: NullableJsonNullValueInput | InputJsonValue
+    storagePolicy?: StringFieldUpdateOperationsInput | string
+    storageConsentVersion?: NullableStringFieldUpdateOperationsInput | string | null
+    storageInventory?: NullableJsonNullValueInput | InputJsonValue
+    scanFindings?: NullableJsonNullValueInput | InputJsonValue
+    scrubbedCount?: IntFieldUpdateOperationsInput | number
+    licenseSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    consentVersion?: NullableStringFieldUpdateOperationsInput | string | null
+    piiFindings?: NullableJsonNullValueInput | InputJsonValue
+    piiMaskedCount?: IntFieldUpdateOperationsInput | number
+    dbForked?: BoolFieldUpdateOperationsInput | boolean
+    sourceDatabasePin?: NullableJsonNullValueInput | InputJsonValue
+    cleanupTerminalState?: NullableStringFieldUpdateOperationsInput | string | null
+    errorCode?: NullableStringFieldUpdateOperationsInput | string | null
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    targetProject?: ProjectUpdateOneWithoutTargetRemixJobsNestedInput
+    targetDatabaseInstance?: DatabaseInstanceUpdateOneWithoutRemixJobsAsTargetNestedInput
+  }
+
+  export type RemixJobUncheckedUpdateWithoutStorageShareInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sourceProjectId?: StringFieldUpdateOperationsInput | string
+    targetProjectId?: NullableStringFieldUpdateOperationsInput | string | null
+    organizationId?: StringFieldUpdateOperationsInput | string
+    actorUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    state?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
+    requestHash?: NullableStringFieldUpdateOperationsInput | string | null
+    version?: IntFieldUpdateOperationsInput | number
+    operationToken?: NullableStringFieldUpdateOperationsInput | string | null
+    operationExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    sourceSnapshotId?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceSnapshotHash?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceListingId?: NullableStringFieldUpdateOperationsInput | string | null
+    detachedKeys?: NullableJsonNullValueInput | InputJsonValue
+    storagePolicy?: StringFieldUpdateOperationsInput | string
+    storageConsentVersion?: NullableStringFieldUpdateOperationsInput | string | null
+    storageInventory?: NullableJsonNullValueInput | InputJsonValue
+    scanFindings?: NullableJsonNullValueInput | InputJsonValue
+    scrubbedCount?: IntFieldUpdateOperationsInput | number
+    licenseSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    consentVersion?: NullableStringFieldUpdateOperationsInput | string | null
+    piiFindings?: NullableJsonNullValueInput | InputJsonValue
+    piiMaskedCount?: IntFieldUpdateOperationsInput | number
+    dbForked?: BoolFieldUpdateOperationsInput | boolean
+    sourceDatabasePin?: NullableJsonNullValueInput | InputJsonValue
+    targetDatabaseInstanceId?: NullableStringFieldUpdateOperationsInput | string | null
+    cleanupTerminalState?: NullableStringFieldUpdateOperationsInput | string | null
+    errorCode?: NullableStringFieldUpdateOperationsInput | string | null
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type RemixJobUncheckedUpdateManyWithoutStorageShareInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sourceProjectId?: StringFieldUpdateOperationsInput | string
+    targetProjectId?: NullableStringFieldUpdateOperationsInput | string | null
+    organizationId?: StringFieldUpdateOperationsInput | string
+    actorUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    state?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
+    requestHash?: NullableStringFieldUpdateOperationsInput | string | null
+    version?: IntFieldUpdateOperationsInput | number
+    operationToken?: NullableStringFieldUpdateOperationsInput | string | null
+    operationExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    sourceSnapshotId?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceSnapshotHash?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceListingId?: NullableStringFieldUpdateOperationsInput | string | null
+    detachedKeys?: NullableJsonNullValueInput | InputJsonValue
+    storagePolicy?: StringFieldUpdateOperationsInput | string
+    storageConsentVersion?: NullableStringFieldUpdateOperationsInput | string | null
+    storageInventory?: NullableJsonNullValueInput | InputJsonValue
+    scanFindings?: NullableJsonNullValueInput | InputJsonValue
+    scrubbedCount?: IntFieldUpdateOperationsInput | number
+    licenseSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    consentVersion?: NullableStringFieldUpdateOperationsInput | string | null
+    piiFindings?: NullableJsonNullValueInput | InputJsonValue
+    piiMaskedCount?: IntFieldUpdateOperationsInput | number
+    dbForked?: BoolFieldUpdateOperationsInput | boolean
+    sourceDatabasePin?: NullableJsonNullValueInput | InputJsonValue
+    targetDatabaseInstanceId?: NullableStringFieldUpdateOperationsInput | string | null
+    cleanupTerminalState?: NullableStringFieldUpdateOperationsInput | string | null
+    errorCode?: NullableStringFieldUpdateOperationsInput | string | null
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type LedgerEntryCreateManyAccountInput = {
