@@ -720,9 +720,9 @@ export type RemixStorageShare = $Result.DefaultSelection<Prisma.$RemixStorageSha
 export type ImportJob = $Result.DefaultSelection<Prisma.$ImportJobPayload>
 /**
  * Model ImportCreditReservation
- * Durable import credit hold. The FK makes job + reservation one lifecycle;
- * SETTLED is written in the same transaction as COMMITTED, while every
- * non-committed terminal path writes COMPENSATED with a zero debit.
+ * Legacy import credit hold retained only so jobs created before migration 0095
+ * can finish or clean up during a rolling deployment. New imports use the
+ * canonical double-entry LedgerReservation/Transaction/Entry lifecycle.
  */
 export type ImportCreditReservation = $Result.DefaultSelection<Prisma.$ImportCreditReservationPayload>
 /**
@@ -155177,6 +155177,9 @@ export namespace Prisma {
       organization: Prisma.$OrganizationPayload<ExtArgs>
       actor: Prisma.$UserPayload<ExtArgs> | null
       targetProject: Prisma.$ProjectPayload<ExtArgs> | null
+      /**
+       * Rolling-upgrade compatibility only. New imports reserve through LedgerReservation.
+       */
       reservation: Prisma.$ImportCreditReservationPayload<ExtArgs> | null
     }
     scalars: $Extensions.GetPayloadResult<{

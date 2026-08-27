@@ -390,14 +390,20 @@ export class LedgerStore {
     organizationId: string,
     currency: string,
   ): Promise<ReservationAccounts> {
+    const normalizedCurrency = normalizeCurrency(currency);
+
     /*
-     * Fixed order prevents two first-use transactions from deadlocking while
-     * creating the same tenant's account set.
+     * Serialize first-use account creation across replicas. Prisma's emulated
+     * upsert can otherwise surface P2002 when two different reservation keys
+     * initialize the same tenant/currency concurrently; retrying by reservation
+     * key cannot recover because neither reservation necessarily exists yet.
      */
-    const userCredits = await this._getOrCreateAccountInTrx(trx, organizationId, 'user_credits', currency);
-    const reserved = await this._getOrCreateAccountInTrx(trx, organizationId, 'reserved', currency);
-    const revenue = await this._getOrCreateAccountInTrx(trx, organizationId, 'revenue', currency);
-    const taxPayable = await this._getOrCreateAccountInTrx(trx, organizationId, 'tax_payable', currency);
+    await trx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`ledger-accounts:${organizationId}:${normalizedCurrency}`}))`;
+
+    const userCredits = await this._getOrCreateAccountInTrx(trx, organizationId, 'user_credits', normalizedCurrency);
+    const reserved = await this._getOrCreateAccountInTrx(trx, organizationId, 'reserved', normalizedCurrency);
+    const revenue = await this._getOrCreateAccountInTrx(trx, organizationId, 'revenue', normalizedCurrency);
+    const taxPayable = await this._getOrCreateAccountInTrx(trx, organizationId, 'tax_payable', normalizedCurrency);
 
     return {
       userCreditsAccountId: userCredits.id,

@@ -87,21 +87,22 @@ runDbTests('Canonical double-entry ledger — durable proofs (real Postgres)', (
       const storeA = new LedgerStore(prismaA);
       const storeB = new LedgerStore(prismaB);
       const org = uniqueOrg();
+      const importJobId = `job-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 
       const reservation = await storeA.reserveUsage({
         organizationId: org,
-        idempotencyKey: 'import:job-1',
+        idempotencyKey: `import:${importJobId}`,
         operation: 'import',
         maxAmountMinor: 100n,
         expiresAt: HOUR(),
-        importJobId: 'job-1',
+        importJobId,
       });
       expect(reservation.created).toBe(true);
       await storeA.commitReservation({ reservationId: reservation.id, actualAmountMinor: 70n });
 
       // Independent client (own pool) = simulated restart. It shares no in-memory state.
       const readBack = await storeB.getReservation(reservation.id);
-      expect(readBack).toMatchObject({ id: reservation.id, status: 'COMMITTED', importJobId: 'job-1' });
+      expect(readBack).toMatchObject({ id: reservation.id, status: 'COMMITTED', importJobId });
       expect(readBack?.committedMinor).toBe(70n);
 
       // The ledger balances read through B prove the postings persisted too.
@@ -353,6 +354,43 @@ runDbTests('Canonical double-entry ledger — durable proofs (real Postgres)', (
           where: { id: left.id, status: 'COMMITTED', settleTxId: { not: null } },
         }),
       ).toBe(1);
+    } finally {
+      await prismaA.$disconnect();
+      await prismaB.$disconnect();
+    }
+  });
+
+  it('(7b) initializes one account set for concurrent different reservation keys', async () => {
+    const prismaA = createDatabaseClient();
+    const prismaB = createDatabaseClient();
+
+    try {
+      const org = uniqueOrg();
+      const storeA = new LedgerStore(prismaA);
+      const storeB = new LedgerStore(prismaB);
+      const [left, right] = await Promise.all([
+        storeA.reserveUsage({
+          organizationId: org,
+          idempotencyKey: 'parallel-a',
+          operation: 'import',
+          maxAmountMinor: 3n,
+          expiresInMs: 60_000,
+        }),
+        storeB.reserveUsage({
+          organizationId: org,
+          idempotencyKey: 'parallel-b',
+          operation: 'import',
+          maxAmountMinor: 4n,
+          expiresInMs: 60_000,
+        }),
+      ]);
+
+      expect(left.id).not.toBe(right.id);
+      expect(await prismaA.ledgerAccount.count({ where: { organizationId: org, currency: 'usd' } })).toBe(4);
+      expect(await prismaA.ledgerReservation.count({ where: { organizationId: org, status: 'ACTIVE' } })).toBe(2);
+      expect(
+        await prismaA.ledgerTransaction.count({ where: { organizationId: org, reason: 'reservation.reserve' } }),
+      ).toBe(2);
     } finally {
       await prismaA.$disconnect();
       await prismaB.$disconnect();

@@ -6,6 +6,7 @@ import type { PlanKey, QuotaKey } from '@vibecore/billing';
 import { createDatabaseClient, Prisma, type DatabaseClient } from '@vibecore/database';
 import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
 import { appPublicEnglish } from './app-public-copy.js';
+import { LedgerStore } from './ledger-store.js';
 import { isCommittedPromotionForTenant, SERVER_IMAGE_RELEASE_AUDIT_ACTION } from './server-image-promotion.js';
 import {
   canonicalizeProjectManifest,
@@ -333,6 +334,66 @@ function mapImportReservation(row: any): ImportCreditReservationRecord {
     reservedCredits: row.reservedCredits,
     debitedCredits: row.debitedCredits,
     state: row.state as ImportCreditReservationRecord['state'],
+    version: row.version,
+  };
+}
+
+const IMPORT_LEDGER_CURRENCY = 'credits';
+
+function importLedgerReservationKey(idempotencyKey: string): string {
+  return `import:${idempotencyKey}`;
+}
+
+function importCreditsToMinor(value: number): bigint {
+  if (!Number.isSafeInteger(value) || value < 0) {
+    throw Object.assign(new Error(appPublicEnglish('IMPORT_COMMIT_OWNERSHIP_LOST')), {
+      statusCode: 409,
+      code: 'IMPORT_CREDIT_AMOUNT_INVALID',
+    });
+  }
+
+  return BigInt(value);
+}
+
+function importCreditsFromMinor(value: bigint | null): number {
+  if (value === null || value < 0n || value > BigInt(Number.MAX_SAFE_INTEGER)) {
+    throw Object.assign(new Error(appPublicEnglish('IMPORT_COMMIT_OWNERSHIP_LOST')), {
+      statusCode: 409,
+      code: 'IMPORT_CREDIT_AMOUNT_INVALID',
+    });
+  }
+
+  return Number(value);
+}
+
+function mapCanonicalImportReservation(
+  row: {
+    status: string;
+    maxAmountMinor: bigint;
+    committedMinor: bigint | null;
+    version: number;
+    importJobId: string | null;
+    organizationId: string;
+  },
+  idempotencyKey: string,
+): ImportCreditReservationRecord {
+  if (!row.importJobId) {
+    throw Object.assign(new Error(appPublicEnglish('IMPORT_COMMIT_OWNERSHIP_LOST')), {
+      statusCode: 409,
+      code: 'IMPORT_LEDGER_LINK_MISSING',
+    });
+  }
+
+  const state: ImportCreditReservationRecord['state'] =
+    row.status === 'ACTIVE' ? 'RESERVED' : row.status === 'COMMITTED' ? 'SETTLED' : 'COMPENSATED';
+
+  return {
+    key: idempotencyKey,
+    organizationId: row.organizationId,
+    importJobId: row.importJobId,
+    reservedCredits: importCreditsFromMinor(row.maxAmountMinor),
+    debitedCredits: state === 'SETTLED' ? importCreditsFromMinor(row.committedMinor) : 0,
+    state,
     version: row.version,
   };
 }
@@ -3035,6 +3096,8 @@ export class PrismaApiStore implements ApiStore {
     requestHash: string;
     reservedCredits: number;
   }) {
+    const ledger = new LedgerStore(this.prisma);
+
     try {
       const created = await this.prisma.$transaction(async (tx) => {
         const now = await databaseNow(tx);
@@ -3056,21 +3119,29 @@ export class PrismaApiStore implements ApiStore {
             creditsReserved: true,
           },
         });
-        const reservation = await tx.importCreditReservation.create({
-          data: {
-            organizationId: input.organizationId,
-            key: input.idempotencyKey,
-            importJobId: job.id,
-            reservedCredits: input.reservedCredits,
-          },
+        const reserved = await ledger.reserveUsageInTransaction(tx, {
+          organizationId: input.organizationId,
+          userId: input.actorUserId,
+          idempotencyKey: importLedgerReservationKey(input.idempotencyKey),
+          requestHash: input.requestHash,
+          operation: 'import',
+          currency: IMPORT_LEDGER_CURRENCY,
+          maxAmountMinor: importCreditsToMinor(input.reservedCredits),
+          importJobId: job.id,
+          ...(input.expiresInMs !== undefined
+            ? { expiresInMs: input.expiresInMs }
+            : input.expiresAt
+              ? { expiresAt: input.expiresAt }
+              : {}),
         });
+        const reservation = await tx.ledgerReservation.findUniqueOrThrow({ where: { id: reserved.id } });
 
         return { job, reservation };
       });
 
       return {
         job: mapImportJob(created.job),
-        reservation: mapImportReservation(created.reservation),
+        reservation: mapCanonicalImportReservation(created.reservation, input.idempotencyKey),
         replayed: false,
       };
     } catch (error) {
@@ -3088,7 +3159,18 @@ export class PrismaApiStore implements ApiStore {
         include: { reservation: true },
       });
 
-      if (!existing || !existing.reservation || existing.requestHash !== input.requestHash) {
+      const canonical = existing
+        ? await this.prisma.ledgerReservation.findFirst({
+            where: {
+              organizationId: input.organizationId,
+              importJobId: existing.id,
+              operation: 'import',
+              currency: IMPORT_LEDGER_CURRENCY,
+            },
+          })
+        : null;
+
+      if (!existing || (!canonical && !existing.reservation) || existing.requestHash !== input.requestHash) {
         throw Object.assign(new Error(appPublicEnglish('IMPORT_IDEMPOTENCY_CONFLICT')), {
           statusCode: 409,
           code: 'IMPORT_IDEMPOTENCY_CONFLICT',
@@ -3097,7 +3179,9 @@ export class PrismaApiStore implements ApiStore {
 
       return {
         job: mapImportJob(existing),
-        reservation: mapImportReservation(existing.reservation),
+        reservation: canonical
+          ? mapCanonicalImportReservation(canonical, existing.idempotencyKey)
+          : mapImportReservation(existing.reservation),
         replayed: true,
       };
     }
@@ -3118,6 +3202,19 @@ export class PrismaApiStore implements ApiStore {
   }
 
   async getImportReservationByJob(importJobId: string, organizationId: string) {
+    const canonical = await this.prisma.ledgerReservation.findFirst({
+      where: { importJobId, organizationId, operation: 'import', currency: IMPORT_LEDGER_CURRENCY },
+    });
+
+    if (canonical) {
+      const job = await this.prisma.importJob.findFirst({
+        where: { id: importJobId, organizationId },
+        select: { idempotencyKey: true },
+      });
+
+      return job ? mapCanonicalImportReservation(canonical, job.idempotencyKey) : undefined;
+    }
+
     const row = await this.prisma.importCreditReservation.findFirst({ where: { importJobId, organizationId } });
 
     return row ? mapImportReservation(row) : undefined;
@@ -3363,6 +3460,8 @@ export class PrismaApiStore implements ApiStore {
     targetProjectId: string;
     actualCredits: number;
   }) {
+    const ledger = new LedgerStore(this.prisma);
+
     return this.prisma.$transaction(async (tx) => {
       await tx.$queryRawUnsafe(
         'SELECT "id" FROM "ImportJob" WHERE "id" = $1 AND "organizationId" = $2 FOR UPDATE',
@@ -3378,12 +3477,28 @@ export class PrismaApiStore implements ApiStore {
       }
 
       if (job.state === 'COMMITTED' && job.targetProjectId === input.targetProjectId) {
-        const existingReservation = await tx.importCreditReservation.findFirst({
-          where: { importJobId: job.id, organizationId: input.organizationId, state: 'SETTLED' },
+        const canonical = await tx.ledgerReservation.findFirst({
+          where: {
+            importJobId: job.id,
+            organizationId: input.organizationId,
+            operation: 'import',
+            currency: IMPORT_LEDGER_CURRENCY,
+            status: 'COMMITTED',
+          },
         });
+        const legacy = canonical
+          ? null
+          : await tx.importCreditReservation.findFirst({
+              where: { importJobId: job.id, organizationId: input.organizationId, state: 'SETTLED' },
+            });
 
-        return existingReservation
-          ? { job: mapImportJob(job), reservation: mapImportReservation(existingReservation) }
+        return canonical || legacy
+          ? {
+              job: mapImportJob(job),
+              reservation: canonical
+                ? mapCanonicalImportReservation(canonical, job.idempotencyKey)
+                : mapImportReservation(legacy),
+            }
           : undefined;
       }
 
@@ -3406,20 +3521,43 @@ export class PrismaApiStore implements ApiStore {
         return undefined;
       }
 
-      const settled = await tx.importCreditReservation.updateMany({
-        where: { importJobId: job.id, organizationId: input.organizationId, state: 'RESERVED' },
-        data: {
-          state: 'SETTLED',
-          debitedCredits: input.actualCredits,
-          version: { increment: 1 },
+      const canonical = await tx.ledgerReservation.findFirst({
+        where: {
+          importJobId: job.id,
+          organizationId: input.organizationId,
+          operation: 'import',
+          currency: IMPORT_LEDGER_CURRENCY,
         },
       });
+      let reservation: ImportCreditReservationRecord;
 
-      if (settled.count !== 1) {
-        throw Object.assign(new Error(appPublicEnglish('IMPORT_COMMIT_OWNERSHIP_LOST')), {
-          statusCode: 409,
-          code: 'IMPORT_RESERVATION_SETTLEMENT_FAILED',
+      if (canonical) {
+        await ledger.commitReservationInTransaction(tx, {
+          reservationId: canonical.id,
+          actualAmountMinor: importCreditsToMinor(input.actualCredits),
+          refuseOverage: true,
         });
+        const committedReservation = await tx.ledgerReservation.findUniqueOrThrow({ where: { id: canonical.id } });
+        reservation = mapCanonicalImportReservation(committedReservation, job.idempotencyKey);
+      } else {
+        const settled = await tx.importCreditReservation.updateMany({
+          where: { importJobId: job.id, organizationId: input.organizationId, state: 'RESERVED' },
+          data: {
+            state: 'SETTLED',
+            debitedCredits: input.actualCredits,
+            version: { increment: 1 },
+          },
+        });
+
+        if (settled.count !== 1) {
+          throw Object.assign(new Error(appPublicEnglish('IMPORT_COMMIT_OWNERSHIP_LOST')), {
+            statusCode: 409,
+            code: 'IMPORT_RESERVATION_SETTLEMENT_FAILED',
+          });
+        }
+        reservation = mapImportReservation(
+          await tx.importCreditReservation.findUniqueOrThrow({ where: { importJobId: job.id } }),
+        );
       }
 
       /*
@@ -3442,9 +3580,8 @@ export class PrismaApiStore implements ApiStore {
           version: { increment: 1 },
         },
       });
-      const reservation = await tx.importCreditReservation.findUniqueOrThrow({ where: { importJobId: job.id } });
 
-      return { job: mapImportJob(committed), reservation: mapImportReservation(reservation) };
+      return { job: mapImportJob(committed), reservation };
     });
   }
 
@@ -3456,6 +3593,8 @@ export class PrismaApiStore implements ApiStore {
     terminalState: 'ROLLING_BACK' | 'EXPIRED' | 'FAILED';
     error?: string;
   }) {
+    const ledger = new LedgerStore(this.prisma);
+
     return this.prisma.$transaction(async (tx) => {
       await tx.$queryRawUnsafe(
         'SELECT "id" FROM "ImportJob" WHERE "id" = $1 AND "organizationId" = $2 FOR UPDATE',
@@ -3476,19 +3615,45 @@ export class PrismaApiStore implements ApiStore {
         return undefined;
       }
 
-      const reservation = await tx.importCreditReservation.findFirst({
-        where: { importJobId: job.id, organizationId: input.organizationId },
+      const canonical = await tx.ledgerReservation.findFirst({
+        where: {
+          importJobId: job.id,
+          organizationId: input.organizationId,
+          operation: 'import',
+          currency: IMPORT_LEDGER_CURRENCY,
+        },
       });
 
-      if (reservation?.state === 'SETTLED') {
+      if (canonical?.status === 'COMMITTED') {
         return undefined;
       }
 
-      if (reservation?.state === 'RESERVED') {
-        await tx.importCreditReservation.update({
-          where: { id: reservation.id },
-          data: { state: 'COMPENSATED', debitedCredits: 0, version: { increment: 1 } },
+      if (canonical?.status === 'ACTIVE') {
+        const released = await ledger.releaseReservationInTransaction(
+          tx,
+          canonical.id,
+          input.terminalState === 'EXPIRED' ? 'timeout' : 'failure',
+          { expectedVersion: canonical.version },
+        );
+
+        if (!released.released) {
+          return undefined;
+        }
+      } else if (!canonical) {
+        const legacy = await tx.importCreditReservation.findFirst({
+          where: { importJobId: job.id, organizationId: input.organizationId },
         });
+
+        if (legacy?.state === 'SETTLED') {
+          return undefined;
+        }
+
+        if (legacy?.state === 'RESERVED') {
+          await tx.importCreditReservation.update({
+            where: { id: legacy.id },
+            data: { state: 'COMPENSATED', debitedCredits: 0, version: { increment: 1 } },
+          });
+        }
       }
 
       if (job.targetProjectId) {
@@ -3592,6 +3757,8 @@ export class PrismaApiStore implements ApiStore {
   }
 
   async cancelImportJob(importJobId: string, organizationId: string) {
+    const ledger = new LedgerStore(this.prisma);
+
     return this.prisma.$transaction(async (tx) => {
       await tx.$queryRawUnsafe(
         'SELECT "id" FROM "ImportJob" WHERE "id" = $1 AND "organizationId" = $2 FOR UPDATE',
@@ -3612,13 +3779,35 @@ export class PrismaApiStore implements ApiStore {
         return undefined;
       }
 
-      const reservation = await tx.importCreditReservation.findFirst({ where: { importJobId, organizationId } });
+      const canonical = await tx.ledgerReservation.findFirst({
+        where: { importJobId, organizationId, operation: 'import', currency: IMPORT_LEDGER_CURRENCY },
+      });
 
-      if (reservation?.state === 'RESERVED') {
-        await tx.importCreditReservation.update({
-          where: { id: reservation.id },
-          data: { state: 'COMPENSATED', debitedCredits: 0, version: { increment: 1 } },
+      if (canonical?.status === 'COMMITTED') {
+        return undefined;
+      }
+
+      if (canonical?.status === 'ACTIVE') {
+        const released = await ledger.releaseReservationInTransaction(tx, canonical.id, 'cancel', {
+          expectedVersion: canonical.version,
         });
+
+        if (!released.released) {
+          return undefined;
+        }
+      } else if (!canonical) {
+        const legacy = await tx.importCreditReservation.findFirst({ where: { importJobId, organizationId } });
+
+        if (legacy?.state === 'SETTLED') {
+          return undefined;
+        }
+
+        if (legacy?.state === 'RESERVED') {
+          await tx.importCreditReservation.update({
+            where: { id: legacy.id },
+            data: { state: 'COMPENSATED', debitedCredits: 0, version: { increment: 1 } },
+          });
+        }
       }
 
       return mapImportJob(
@@ -3673,6 +3862,7 @@ export class PrismaApiStore implements ApiStore {
       LIMIT 100
     `);
     const claimed: string[] = [];
+    const ledger = new LedgerStore(this.prisma);
 
     for (const candidate of stale) {
       const won = await this.prisma.$transaction(async (tx) => {
@@ -3709,6 +3899,47 @@ export class PrismaApiStore implements ApiStore {
           return false;
         }
 
+        const canonical = await tx.ledgerReservation.findFirst({
+          where: {
+            importJobId: job.id,
+            organizationId: job.organizationId,
+            operation: 'import',
+            currency: IMPORT_LEDGER_CURRENCY,
+          },
+        });
+
+        if (canonical?.status === 'COMMITTED') {
+          return false;
+        }
+
+        if (canonical?.status === 'ACTIVE') {
+          const released = await ledger.releaseReservationInTransaction(
+            tx,
+            canonical.id,
+            operationExpired ? 'failure' : 'timeout',
+            { expectedVersion: canonical.version },
+          );
+
+          if (!released.released) {
+            return false;
+          }
+        } else if (!canonical) {
+          const legacy = await tx.importCreditReservation.findFirst({
+            where: { importJobId: job.id, organizationId: job.organizationId },
+          });
+
+          if (legacy?.state === 'SETTLED') {
+            return false;
+          }
+
+          if (legacy?.state === 'RESERVED') {
+            await tx.importCreditReservation.update({
+              where: { id: legacy.id },
+              data: { state: 'COMPENSATED', debitedCredits: 0, version: { increment: 1 } },
+            });
+          }
+        }
+
         const token = randomUUID();
         if (job.targetProjectId) {
           await tx.project.updateMany({
@@ -3739,11 +3970,6 @@ export class PrismaApiStore implements ApiStore {
                 error: appPublicEnglish('IMPORT_STAGING_EXPIRED'),
                 version: { increment: 1 },
               },
-        });
-
-        await tx.importCreditReservation.updateMany({
-          where: { importJobId: job.id, organizationId: job.organizationId, state: 'RESERVED' },
-          data: { state: 'COMPENSATED', debitedCredits: 0, version: { increment: 1 } },
         });
 
         return true;
