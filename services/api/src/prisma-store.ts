@@ -342,7 +342,7 @@ async function requireProjectReleaseFence(
   `;
 
   if (!lease[0]) {
-    throw Object.assign(new Error('Project release barrier was lost.'), {
+    throw Object.assign(new Error(appPublicEnglish('PROJECT_RELEASE_BARRIER_LOST')), {
       code: 'PROJECT_RELEASE_BARRIER_LOST',
       statusCode: 409,
     });
@@ -351,7 +351,7 @@ async function requireProjectReleaseFence(
   const project = await tx.project.findUnique({ where: { id: projectId }, select: { organizationId: true } });
 
   if (!project || project.organizationId !== input.expectedOrganizationId) {
-    throw Object.assign(new Error('Project organization changed during release.'), {
+    throw Object.assign(new Error(appPublicEnglish('PROJECT_ORGANIZATION_CHANGED_DURING_RELEASE')), {
       code: 'PROJECT_ORGANIZATION_CHANGED_DURING_RELEASE',
       statusCode: 409,
     });
@@ -2654,7 +2654,7 @@ export class PrismaApiStore implements ApiStore {
     ttlSeconds: number;
   }): Promise<ProjectReleaseBarrierLease | undefined> {
     if (!Number.isInteger(input.ttlSeconds) || input.ttlSeconds < 10 || input.ttlSeconds > 300) {
-      throw Object.assign(new Error('Project release barrier TTL must be between 10 and 300 seconds.'), {
+      throw Object.assign(new Error(appPublicEnglish('PROJECT_RELEASE_BARRIER_TTL_INVALID')), {
         code: 'PROJECT_RELEASE_BARRIER_TTL_INVALID',
         statusCode: 400,
       });
@@ -2670,11 +2670,14 @@ export class PrismaApiStore implements ApiStore {
       });
 
       if (!project) {
-        throw Object.assign(new Error('Project not found'), { code: 'PROJECT_NOT_FOUND', statusCode: 404 });
+        throw Object.assign(new Error(appPublicEnglish('PROJECT_NOT_FOUND')), {
+          code: 'PROJECT_NOT_FOUND',
+          statusCode: 404,
+        });
       }
 
       if (project.organizationId !== input.expectedOrganizationId) {
-        throw Object.assign(new Error('Project organization changed before release.'), {
+        throw Object.assign(new Error(appPublicEnglish('PROJECT_ORGANIZATION_CHANGED_BEFORE_RELEASE')), {
           code: 'PROJECT_ORGANIZATION_CHANGED_DURING_RELEASE',
           statusCode: 409,
         });
@@ -2789,14 +2792,14 @@ export class PrismaApiStore implements ApiStore {
       ]);
 
       if (!lease[0]) {
-        throw Object.assign(new Error('Project release barrier was lost.'), {
+        throw Object.assign(new Error(appPublicEnglish('PROJECT_RELEASE_BARRIER_LOST')), {
           code: 'PROJECT_RELEASE_BARRIER_LOST',
           statusCode: 409,
         });
       }
 
       if (!project || project.organizationId !== input.expectedOrganizationId) {
-        throw Object.assign(new Error('Project organization changed during release.'), {
+        throw Object.assign(new Error(appPublicEnglish('PROJECT_ORGANIZATION_CHANGED_DURING_RELEASE')), {
           code: 'PROJECT_ORGANIZATION_CHANGED_DURING_RELEASE',
           statusCode: 409,
         });
@@ -7434,7 +7437,7 @@ export class PrismaApiStore implements ApiStore {
     canceledAt?: string;
   }) {
     if (input.accessPolicy && input.accessPolicyVersion !== undefined) {
-      throw Object.assign(new Error('A deployment cannot create and bind an access policy at the same time.'), {
+      throw Object.assign(new Error(appPublicEnglish('DEPLOYMENT_ACCESS_POLICY_INPUT_CONFLICT')), {
         code: 'DEPLOYMENT_ACCESS_POLICY_INPUT_CONFLICT',
       });
     }
@@ -7449,7 +7452,7 @@ export class PrismaApiStore implements ApiStore {
         const passwordHash = input.accessPolicy.passwordHash?.trim();
 
         if ((mode === 'PASSWORD_PROTECTED') !== Boolean(passwordHash)) {
-          throw Object.assign(new Error('Password protection requires exactly one non-empty password hash.'), {
+          throw Object.assign(new Error(appPublicEnglish('DEPLOYMENT_ACCESS_PASSWORD_HASH_INVALID')), {
             code: 'DEPLOYMENT_ACCESS_PASSWORD_INVALID',
           });
         }
@@ -7489,7 +7492,7 @@ export class PrismaApiStore implements ApiStore {
         });
 
         if (!bound) {
-          throw Object.assign(new Error('The requested deployment access policy does not exist.'), {
+          throw Object.assign(new Error(appPublicEnglish('DEPLOYMENT_ACCESS_POLICY_NOT_FOUND')), {
             code: 'DEPLOYMENT_ACCESS_POLICY_NOT_FOUND',
           });
         }
@@ -7652,7 +7655,7 @@ export class PrismaApiStore implements ApiStore {
       }
 
       if (input.expectedVersion !== undefined && deployment.accessPolicyVersion !== input.expectedVersion) {
-        throw Object.assign(new Error('The deployment access policy changed; reload before saving.'), {
+        throw Object.assign(new Error(appPublicEnglish('DEPLOYMENT_ACCESS_POLICY_VERSION_CONFLICT')), {
           statusCode: 409,
           code: 'DEPLOYMENT_ACCESS_POLICY_VERSION_CONFLICT',
         });
@@ -7662,14 +7665,14 @@ export class PrismaApiStore implements ApiStore {
       const passwordHash = input.passwordHash?.trim();
 
       if ((mode === 'PASSWORD_PROTECTED') !== Boolean(passwordHash)) {
-        throw Object.assign(new Error('Password protection requires exactly one non-empty password hash.'), {
+        throw Object.assign(new Error(appPublicEnglish('DEPLOYMENT_ACCESS_PASSWORD_HASH_INVALID')), {
           statusCode: 400,
           code: 'DEPLOYMENT_ACCESS_PASSWORD_INVALID',
         });
       }
 
       if (deployment.status === 'READY' && !input.releaseSource) {
-        throw Object.assign(new Error('A ready deployment needs a release manifest before access can change.'), {
+        throw Object.assign(new Error(appPublicEnglish('DEPLOYMENT_ACCESS_RELEASE_MANIFEST_REQUIRED')), {
           statusCode: 409,
           code: 'DEPLOYMENT_ACCESS_RELEASE_MANIFEST_REQUIRED',
         });
@@ -7681,7 +7684,7 @@ export class PrismaApiStore implements ApiStore {
           input.releaseSource.environment !== deployment.environmentName ||
           input.releaseSource.deploymentId !== deployment.id)
       ) {
-        throw Object.assign(new Error('The release manifest does not belong to this deployment.'), {
+        throw Object.assign(new Error(appPublicEnglish('DEPLOYMENT_ACCESS_RELEASE_MANIFEST_MISMATCH')), {
           statusCode: 409,
           code: 'DEPLOYMENT_ACCESS_RELEASE_MANIFEST_MISMATCH',
         });
@@ -8128,7 +8131,7 @@ export class PrismaApiStore implements ApiStore {
       ]);
 
       if (!deployment || !validDeploymentAccessPolicy(accessPolicy)) {
-        throw Object.assign(new Error('A release manifest must pin the deployment exact valid access policy.'), {
+        throw Object.assign(new Error(appPublicEnglish('RELEASE_ACCESS_POLICY_INVALID')), {
           code: 'RELEASE_ACCESS_POLICY_INVALID',
         });
       }
@@ -8759,7 +8762,7 @@ export class PrismaApiStore implements ApiStore {
       });
 
       if (!currentProjectManifest || currentProjectManifest.digest !== operation.projectManifestDigest) {
-        throw Object.assign(new Error('PROJECT_MANIFEST_CHANGED_BEFORE_PUBLISH'), {
+        throw Object.assign(new Error(appPublicEnglish('PROJECT_MANIFEST_CHANGED_BEFORE_PUBLISH')), {
           code: 'PROJECT_MANIFEST_CHANGED_BEFORE_PUBLISH',
           statusCode: 409,
         });
@@ -8986,7 +8989,7 @@ export class PrismaApiStore implements ApiStore {
         });
 
         if (!currentProjectManifest || currentProjectManifest.digest !== rollbackOperation.projectManifestDigest) {
-          throw Object.assign(new Error('PROJECT_MANIFEST_CHANGED_BEFORE_PUBLISH'), {
+          throw Object.assign(new Error(appPublicEnglish('PROJECT_MANIFEST_CHANGED_BEFORE_PUBLISH')), {
             code: 'PROJECT_MANIFEST_CHANGED_BEFORE_PUBLISH',
             statusCode: 409,
           });
@@ -9160,7 +9163,10 @@ export class PrismaApiStore implements ApiStore {
       const project = await tx.project.findUnique({ where: { id: input.projectId }, select: { id: true } });
 
       if (!project) {
-        throw Object.assign(new Error('Project not found'), { code: 'PROJECT_NOT_FOUND', statusCode: 404 });
+        throw Object.assign(new Error(appPublicEnglish('PROJECT_NOT_FOUND')), {
+          code: 'PROJECT_NOT_FOUND',
+          statusCode: 404,
+        });
       }
 
       const activeBarrier = await tx.$queryRaw<Array<{ id: string }>>`

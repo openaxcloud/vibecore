@@ -2949,23 +2949,83 @@
   },
   "PROJECT_TRANSFER_MANAGED_RESOURCES_ACTIVE": {
     "en": "This project still owns managed database, cloud, or migration resources. Move those resources with the tenant transfer workflow before transferring the project.",
-    "fr": "Ce projet possède encore des ressources gérées de base de données, de cloud ou de migration. Déplacez-les avec le workflow de transfert de tenant avant de transférer le projet."
+    "fr": "Ce projet possède encore des ressources gérées de base de données, de cloud ou de migration. Déplacez-les avec le processus de transfert d’organisation avant de transférer le projet."
+  },
+  "PROJECT_RELEASE_BARRIER_LOST": {
+    "en": "Project release barrier was lost.",
+    "fr": "Le verrou de publication du projet n’est plus détenu."
+  },
+  "PROJECT_ORGANIZATION_CHANGED_DURING_RELEASE": {
+    "en": "Project organization changed during release.",
+    "fr": "L’organisation du projet a changé pendant la publication."
+  },
+  "PROJECT_RELEASE_BARRIER_TTL_INVALID": {
+    "en": "Project release barrier TTL must be between 10 and 300 seconds.",
+    "fr": "La durée du verrou de publication du projet doit être comprise entre 10 et 300 secondes."
+  },
+  "PROJECT_ORGANIZATION_CHANGED_BEFORE_RELEASE": {
+    "en": "Project organization changed before release.",
+    "fr": "L’organisation du projet a changé avant la publication."
+  },
+  "DEPLOYMENT_ACCESS_POLICY_INPUT_CONFLICT": {
+    "en": "A deployment cannot create and bind an access policy at the same time.",
+    "fr": "Un déploiement ne peut pas créer et lier une règle d’accès simultanément."
+  },
+  "DEPLOYMENT_ACCESS_PASSWORD_HASH_INVALID": {
+    "en": "Password protection requires exactly one non-empty password hash.",
+    "fr": "La protection par mot de passe exige exactement une empreinte de mot de passe non vide."
+  },
+  "DEPLOYMENT_ACCESS_POLICY_NOT_FOUND": {
+    "en": "The requested deployment access policy does not exist.",
+    "fr": "La règle d’accès au déploiement demandée n’existe pas."
+  },
+  "DEPLOYMENT_ACCESS_POLICY_VERSION_CONFLICT": {
+    "en": "The deployment access policy changed; reload before saving.",
+    "fr": "La règle d’accès au déploiement a changé ; rechargez la page avant d’enregistrer."
+  },
+  "DEPLOYMENT_ACCESS_RELEASE_MANIFEST_REQUIRED": {
+    "en": "A ready deployment needs a release manifest before access can change.",
+    "fr": "Un déploiement prêt exige un manifeste de publication avant toute modification de l’accès."
+  },
+  "DEPLOYMENT_ACCESS_RELEASE_MANIFEST_MISMATCH": {
+    "en": "The release manifest does not belong to this deployment.",
+    "fr": "Le manifeste de publication n’appartient pas à ce déploiement."
+  },
+  "RELEASE_ACCESS_POLICY_INVALID": {
+    "en": "A release manifest must pin the deployment exact valid access policy.",
+    "fr": "Un manifeste de publication doit référencer exactement la règle d’accès valide du déploiement."
+  },
+  "DEPLOYMENT_ACCESS_PASSWORD_REQUEST_INVALID": {
+    "en": "A password is required only for password-protected deployments.",
+    "fr": "Un mot de passe est requis uniquement pour les déploiements protégés par mot de passe."
+  },
+  "DEPLOYMENT_ACCESS_ROLLOUT_NOT_ACTIVE": {
+    "en": "Protected deployment access is not activated on every serving edge yet.",
+    "fr": "L’accès protégé aux déploiements n’est pas encore activé sur tous les points de diffusion."
+  },
+  "DEPLOYMENT_ACCESS_SIGNING_UNAVAILABLE": {
+    "en": "Deployment access signing is unavailable.",
+    "fr": "La signature des accès aux déploiements est indisponible."
+  },
+  "DEPLOYMENT_ACCESS_SOURCE_POLICY_INVALID": {
+    "en": "The source deployment access policy is missing or corrupt.",
+    "fr": "La règle d’accès du déploiement source est absente ou corrompue."
   },
   "APP_IMAGE_BUILD_KMS_INVALID": {
     "en": "The Cloud Build signing key is missing or does not belong to the build project.",
-    "fr": "La clé de signature Cloud Build est absente ou n’appartient pas au projet de build."
+    "fr": "La clé de signature Cloud Build est absente ou n’appartient pas au projet de compilation."
   },
   "APP_IMAGE_BUILD_SERVICE_ACCOUNT_INVALID": {
     "en": "The dedicated Cloud Build service account is missing or does not belong to the build project.",
-    "fr": "Le compte de service Cloud Build dédié est absent ou n’appartient pas au projet de build."
+    "fr": "Le compte de service Cloud Build dédié est absent ou n’appartient pas au projet de compilation."
   },
   "CLOUD_TENANT_FACTORY_DISABLED": {
     "en": "Cloud tenant provisioning is currently disabled. Nothing was created.",
-    "fr": "Le provisionnement de tenants cloud est actuellement désactivé. Aucune ressource n’a été créée."
+    "fr": "Le provisionnement d’environnements cloud est actuellement désactivé. Aucune ressource n’a été créée."
   },
   "CLOUD_TENANT_FACTORY_NOT_CONFIGURED": {
     "en": "Cloud tenant provisioning is not configured. Nothing was created.",
-    "fr": "Le provisionnement de tenants cloud n’est pas configuré. Aucune ressource n’a été créée."
+    "fr": "Le provisionnement d’environnements cloud n’est pas configuré. Aucune ressource n’a été créée."
   },
   "SERVER_PROMOTION_BINAUTH_EVIDENCE_INVALID": {
     "en": "Binary Authorization evidence is incomplete or belongs to another image.",
@@ -2973,7 +3033,7 @@
   },
   "SERVER_PROMOTION_RETENTION_TAG_MISSING": {
     "en": "The promoted image has no immutable active retention tag.",
-    "fr": "L’image promue ne possède pas de tag de rétention actif immuable."
+    "fr": "L’image promue ne possède pas d’étiquette de rétention active immuable."
   },
   "TENANT_GUARDRAIL_UNAVAILABLE": {
     "en": "This organization’s capacity could not be verified right now. Try again in a moment — nothing was created.",

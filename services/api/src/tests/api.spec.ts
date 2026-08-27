@@ -4690,6 +4690,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
       payload: {
         provider: 'static',
         environment: 'preview',
+        // This scenario exercises the legacy public static origin. Protected
+        // deployments stay fail-closed and are covered by deployment-access.spec.ts.
+        accessMode: 'PUBLIC',
         buildCommand: 'npm run build',
         outputDirectory: 'dist',
         envVars: { SECRET_TOKEN: 'super-secret-token', PUBLIC_URL: 'https://example.test' },
