@@ -27,11 +27,21 @@ export const mobileIdeTabsEn = {
   'mobileIdeTabs.objectStorage.description': 'File storage',
   'mobileIdeTabs.settings.title': 'Settings',
   'mobileIdeTabs.settings.description': 'Project settings',
+
+  /*
+   * Frozen label: identical in EN and FR ('Shell (Terminal)'). It lives here as a
+   * real key so the mobile Tools sheet can resolve it — the entry used to carry
+   * the literal in its `titleKey`, which `t()` could not resolve, so the tab
+   * rendered the missing-key fallback "Unavailable" as its title.
+   */
+  'mobileIdeTabs.terminal.title': 'Shell (Terminal)',
   'mobileIdeTabs.terminal.description': 'Workspace shell terminal',
   'mobileIdeTabs.database.title': 'Database',
   'mobileIdeTabs.database.description': 'SQL browser',
   'mobileIdeTabs.locks.title': 'Locks',
   'mobileIdeTabs.locks.description': 'Locked files',
+  'mobileIdeTabs.problems.title': 'Problems',
+  'mobileIdeTabs.problems.description': 'Errors and warnings detected in your workspace',
   'mobileIdeTabs.debugger.title': 'Debugger',
   'mobileIdeTabs.debugger.description': 'Breakpoints and launch configs',
   'mobileIdeTabs.git.title': 'Git',
@@ -58,6 +68,8 @@ export const mobileIdeTabsEn = {
   'mobileIdeTabs.security.description': 'Security scanner',
   'mobileIdeTabs.monitoring.title': 'Monitoring',
   'mobileIdeTabs.monitoring.description': 'App metrics',
+  'mobileIdeTabs.domains.title': 'Domains',
+  'mobileIdeTabs.domains.description': 'Custom domains for your App',
   'mobileIdeTabs.ports.title': 'Ports',
   'mobileIdeTabs.ports.description': 'Forwarded ports',
   'mobileIdeTabs.env.title': 'Environment variables',
@@ -92,11 +104,16 @@ export const mobileIdeTabsFr: Record<keyof typeof mobileIdeTabsEn, string> = {
   'mobileIdeTabs.objectStorage.description': 'Stockage de fichiers',
   'mobileIdeTabs.settings.title': 'Paramètres',
   'mobileIdeTabs.settings.description': 'Paramètres du projet',
+
+  // Libellé gelé : identique en EN et FR, volontairement non traduit.
+  'mobileIdeTabs.terminal.title': 'Shell (Terminal)',
   'mobileIdeTabs.terminal.description': 'Terminal shell de l’espace de travail',
   'mobileIdeTabs.database.title': 'Base de données',
   'mobileIdeTabs.database.description': 'Explorateur SQL',
   'mobileIdeTabs.locks.title': 'Verrous',
   'mobileIdeTabs.locks.description': 'Fichiers verrouillés',
+  'mobileIdeTabs.problems.title': 'Problèmes',
+  'mobileIdeTabs.problems.description': 'Erreurs et avertissements détectés dans votre espace de travail',
   'mobileIdeTabs.debugger.title': 'Débogueur',
   'mobileIdeTabs.debugger.description': 'Points d’arrêt et configurations de lancement',
   'mobileIdeTabs.git.title': 'Git',
@@ -124,6 +141,8 @@ export const mobileIdeTabsFr: Record<keyof typeof mobileIdeTabsEn, string> = {
   'mobileIdeTabs.security.description': 'Analyseur de sécurité',
   'mobileIdeTabs.monitoring.title': 'Supervision',
   'mobileIdeTabs.monitoring.description': 'Métriques de l’application',
+  'mobileIdeTabs.domains.title': 'Domaines',
+  'mobileIdeTabs.domains.description': 'Domaines personnalisés de votre application',
   'mobileIdeTabs.ports.title': 'Ports',
   'mobileIdeTabs.ports.description': 'Ports redirigés',
   'mobileIdeTabs.env.title': 'Variables d’environnement',

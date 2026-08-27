@@ -50,6 +50,20 @@ export function flattenAgentTree(nodes: AgentTreeNode[] | undefined): WorkspaceL
 }
 
 /**
+ * Build tools write far more than errors to stderr. npm in particular sends its
+ * warnings there, so classifying the whole stream as `error` painted a working
+ * install red: a deploy log showed a wall of
+ * `[Erreur] npm warn tar TAR_ENTRY_ERROR …` lines that were merely warnings, and
+ * the one line that actually explained the failure was lost among them.
+ *
+ * Deliberately conservative: only a line that DECLARES itself a warning is
+ * downgraded. Anything else keeps `error`, so no real failure is ever softened.
+ */
+export function stderrLevel(line: string): StaticBuildLogLevel {
+  return /^\s*(?:npm\s+warn\b|warn\b|warning\b)/i.test(line) ? 'info' : 'error';
+}
+
+/**
  * Run one command in the workspace pod over the agent's `/commands/stream` WS,
  * forwarding each output line to `onLine`. Resolves (never rejects) with the
  * exit result; a dropped connection before `exit` is reported as an error so the
@@ -130,7 +144,7 @@ export function streamAgentCommand(
           emit('info', message.data);
           break;
         case 'stderr':
-          emit('error', message.data);
+          emit(stderrLevel(String(message.data ?? '')), message.data);
           break;
         case 'exit':
           finish({ exitCode: typeof message.exitCode === 'number' ? message.exitCode : null, timedOut: false });

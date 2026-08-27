@@ -677,17 +677,22 @@ export default function AI() {
                         key={prompt.id}
                         variant="outline"
                         size="sm"
-                        className="w-full h-auto min-h-9 justify-start whitespace-normal text-left"
+                        className="w-full h-auto min-h-11 justify-start whitespace-normal text-left"
                         asChild
                         data-testid={`button-prompt-${prompt.id}`}
                       >
-                        <Link href={`/agent?prompt=${encodeURIComponent(prompt.query)}`}>{prompt.label}</Link>
+                        {/*
+                         * /agent n'existe pas (ni route ni page de surface → 404 réel).
+                         * /projects/new est la seule destination qui consomme ?prompt=
+                         * (même canal que le hero de la page d'accueil).
+                         */}
+                        <Link href={`/projects/new?prompt=${encodeURIComponent(prompt.query)}`}>{prompt.label}</Link>
                       </Button>
                     ))}
                   </div>
                 </div>
                 <Button size="lg" className="w-full" asChild data-testid="button-open-agent">
-                  <Link href="/agent">
+                  <Link href="/projects/new">
                     {copy.tryIt.openAgent}
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Link>

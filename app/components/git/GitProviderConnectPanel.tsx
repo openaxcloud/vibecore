@@ -553,7 +553,7 @@ function GitHubRepoPicker({
                       {repo.full_name}
                     </span>
                     {repo.private ? (
-                      <span className="shrink-0 rounded bg-bolt-elements-background-depth-3 px-1.5 py-0.5 text-[10px] text-bolt-elements-textTertiary">
+                      <span className="shrink-0 rounded bg-bolt-elements-background-depth-3 px-1.5 py-0.5 text-[11px] text-bolt-elements-textTertiary">
                         {copy['gitProvider.repositories.private']}
                       </span>
                     ) : null}

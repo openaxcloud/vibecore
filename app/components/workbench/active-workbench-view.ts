@@ -29,7 +29,14 @@ export function resolveActiveWorkbenchView(args: {
     return 'preview';
   }
 
-  if (selectedView === 'diff') {
+  /*
+   * The diff short-circuit is scoped to the editor panel: it exists only for
+   * the mobile editor toolbar's "Review" toggle. Honoring a sticky
+   * `selectedView === 'diff'` for every panel meant that after the agent
+   * modified a file (the store force-sets currentView to 'diff'), opening the
+   * Shell/Terminal tab displayed the file diff instead of the terminal.
+   */
+  if (mobilePanel === 'editor' && selectedView === 'diff') {
     return 'diff';
   }
 

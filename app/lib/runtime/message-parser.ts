@@ -272,6 +272,37 @@ export class StreamingMessageParser {
         if (state.insideAction) {
           const closeIndex = input.indexOf(ARTIFACT_ACTION_TAG_CLOSE, i);
 
+          /*
+           * BUG-AGENT-004 — the model restarted mid-action.
+           *
+           * When generation hits the token cap inside a file, the model
+           * continues in the SAME message: prose ("Je continue la génération…")
+           * followed by a fresh <boltArtifact>/<boltAction> re-emitting the
+           * whole file. `insideAction` was still true, so all of that — prose
+           * AND literal markup — was appended as FILE CONTENT. Proven live
+           * (2026-08-15): src/App.tsx shipped with its import block twice, the
+           * sentence, and a literal `<boltAction …>` line at line 23; Vite
+           * answered 500 on it and the preview stayed blank.
+           *
+           * A new action opening before the current one ever closed means the
+           * partial is abandoned output. Drop it and reparse from the new tag —
+           * the re-emission that follows is the content the model actually
+           * meant to deliver.
+           *
+           * Caveat accepted: a file whose own content contains a literal
+           * `<boltAction` opener is cut short here. That is strictly better
+           * than the previous behaviour, which corrupted the file outright.
+           */
+          const restartIndex = input.indexOf(ARTIFACT_ACTION_TAG_OPEN, i);
+
+          if (restartIndex !== -1 && (closeIndex === -1 || restartIndex < closeIndex)) {
+            state.insideAction = false;
+            state.currentAction = { content: '' };
+            i = restartIndex;
+
+            continue;
+          }
+
           const currentAction = state.currentAction;
 
           if (closeIndex !== -1) {

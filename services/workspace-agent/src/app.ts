@@ -25,6 +25,7 @@ import {
   type WorkspaceAgentLocale,
   type WorkspaceAgentPublicError,
 } from './public-i18n.js';
+import { readResourceUsage } from './resource-usage.js';
 import { TerminalSessionManager, type TerminalSession } from './terminal-session.js';
 
 export interface WorkspaceAgentOptions {
@@ -1297,6 +1298,17 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
     return { restoredFiles: body.files.length };
   });
 
+  /*
+   * SCR-008 — source des jauges RAM / CPU / stockage de « Vue d'ensemble ».
+   * Valeurs lues dans les cgroup DU CONTENEUR : `/proc/meminfo` montrerait la
+   * mémoire de l'hôte, donc un chiffre faux et rassurant pour un pod limité.
+   */
+  app.get('/resources', async (_request, reply) => {
+    const usage = await readResourceUsage(root);
+
+    return reply.send(usage);
+  });
+
   app.get('/metrics', async (_request, reply) => {
     metrics.setGauge('active_workspaces', { workspaceId: workspaceId ?? 'local' }, 1);
     metrics.setGauge('terminal_sessions', { workspaceId: workspaceId ?? 'local' }, terminalSessions);
@@ -2130,7 +2142,23 @@ async function listTree(
  * node_modules easily exceeds the 5000-entry limit, failing the whole export)
  * and waste hundreds of MB reading files that the build reproduces anyway.
  */
-const SNAPSHOT_IGNORED_DIRS = new Set(['node_modules', '.git', '.vite', '.next', '.cache', 'dist', '.turbo']);
+const SNAPSHOT_IGNORED_DIRS = new Set([
+  'node_modules',
+  '.git',
+  '.vite',
+  '.next',
+  '.cache',
+  'dist',
+  '.turbo',
+  /*
+   * `lost+found` is not a project dir: ext4 creates it at the root of every
+   * formatted volume, so it surfaced at the top of every PVC-backed workspace.
+   * The user saw it in the file tree and then got a 400 on read (root-owned),
+   * i.e. an entry they can neither use nor open. Filtered where the tree is
+   * produced, rather than papering over the 400 downstream.
+   */
+  'lost+found',
+]);
 
 async function listSnapshotFiles(
   root: string,

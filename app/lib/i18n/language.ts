@@ -95,6 +95,40 @@ export function detectUserLanguage(): SupportedLanguage {
   return 'en';
 }
 
+/**
+ * Efface le choix explicite pour revenir à la détection automatique.
+ *
+ * Sans cela, « Automatique » ne serait pas réellement atteignable : une fois le
+ * cookie `vibecore-lang` posé, il gagne sur tout le reste — y compris sur
+ * `navigator.language` — et l'utilisateur resterait figé dans la langue choisie
+ * une fois, sans moyen de rendre la main au navigateur.
+ *
+ * Le cookie est expiré sur les deux portées possibles (hôte courant ET
+ * `.e-code.ai`), parce que `setUserLanguagePreference` pose la variante à
+ * domaine sur la production : n'en effacer qu'une laisserait l'autre décider.
+ */
+export function clearUserLanguagePreference(): void {
+  if (typeof globalThis === 'undefined') {
+    return;
+  }
+
+  if (typeof globalThis.localStorage !== 'undefined') {
+    try {
+      globalThis.localStorage.removeItem(USER_LANGUAGE_STORAGE_KEY);
+    } catch {
+      // Même raison qu'à l'écriture : le cookie reste la source qui fait foi.
+    }
+  }
+
+  if (typeof globalThis.document !== 'undefined') {
+    const secure = globalThis.location?.protocol === 'https:' ? '; Secure' : '';
+    const expire = `${USER_LANGUAGE_COOKIE}=; Path=/; Max-Age=0; SameSite=Lax`;
+
+    globalThis.document.cookie = `${expire}${secure}`;
+    globalThis.document.cookie = `${expire}; Domain=.e-code.ai${secure}`;
+  }
+}
+
 export function setUserLanguagePreference(language: SupportedLanguage): void {
   if (typeof globalThis === 'undefined') {
     return;

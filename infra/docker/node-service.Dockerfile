@@ -30,6 +30,24 @@ COPY apps ./apps
 COPY packages ./packages
 COPY services ./services
 
+# `app/` — la source de l'application web — est copiée parce que l'alias `~/*`
+# du workspace y pointe (`tsconfig` racine : baseUrl `.`, `~/* -> app/*`), et que
+# `apps/admin` s'en sert : `apps/admin/src/i18n.ts` importe
+# `~/lib/i18n/catalogs/admin` et `~/lib/i18n/language`, et son `vite.config`
+# alias `~` vers `../../app`.
+#
+# Sans cette ligne le tier `admin` était INCONSTRUCTIBLE (BUG-BUILD-002) :
+# `tsc --noEmit` échouait sur deux TS2307 « Cannot find module '~/lib/i18n/…' »
+# et cassait `pnpm build`. Le défaut ne se voyait pas en local — le dépôt entier
+# y est présent — mais seulement dans le conteneur, dont le contexte s'arrêtait à
+# apps/packages/services. Conséquence : l'image admin de production était gelée
+# (ef05fea502) pendant que les autres tiers avançaient.
+#
+# Coût : cette copie n'existe QUE dans l'étage `build`. L'étage `runtime` ne
+# reprend que `/runtime` (sortie de `pnpm deploy`), donc les images finales des
+# six services construits par ce Dockerfile ne grossissent pas.
+COPY app ./app
+
 RUN pnpm --filter "${PACKAGE_FILTER}" build
 RUN pnpm deploy --filter "${PACKAGE_FILTER}" --prod --prefer-offline /runtime
 

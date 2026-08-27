@@ -17,6 +17,23 @@ data:
   # set explicitly here so the source of truth is the chart, not the bundle.
   SAAS_API_URL: {{ .Values.platformEnv.saasApiUrl | quote }}
   API_BASE_URL: {{ .Values.platformEnv.apiBaseUrl | quote }}
+  {{- with (.Values.platformEnv.apiInternalUrl | default .Values.platformEnv.saasApiUrl) }}
+  # URL interne que le WORKER utilise pour déclencher les jobs internes
+  # (inactivity.gc, metering.objectStorage, metering.databaseStorage,
+  # database.maintenance). Ces handlers exigeaient `API_INTERNAL_URL` ou
+  # `API_URL` sans repli : la prod ne définissant ni l'une ni l'autre, ils
+  # échouaient à CHAQUE déclenchement — plus aucun métrage stockage/base, et la
+  # maintenance base à l'arrêt, pendant que les CronJobs restaient « Complete »
+  # (ils n'empilent que le job ; l'échec se produit côté worker).
+  #
+  # Le code sait désormais retomber sur SAAS_API_URL / API_BASE_URL, donc cette
+  # clé n'est plus indispensable — elle est posée en ceinture+bretelles, et
+  # rend l'intention explicite. Par défaut elle reprend `saasApiUrl`, l'URL de
+  # Service interne vérifiée joignable depuis le pod worker de production
+  # (HTTP 200 sur /health et /ready). Émise seulement si non vide : une valeur
+  # vide l'emporterait sur les suivantes côté worker.
+  API_INTERNAL_URL: {{ . | quote }}
+  {{- end }}
   # P11 auto thumbnails. SCREENSHOTTER_URL is the in-cluster screenshotter
   # service; EMPTY by default so the API's capture triggers stay inert (safe to
   # merge before the pod exists). Set it (and provision SCREENSHOTTER_SHARED_SECRET

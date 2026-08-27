@@ -155,10 +155,28 @@ function stableDiagnosticId(source: string, severity: DiagnosticSeverity, messag
 export function buildRuntimeDiagnostics({
   workspaceError,
   workspaceLogs,
+  quotaWarning,
+  quotaUpgrade,
   previewLive = false,
 }: {
   workspaceError?: string | Error | null;
   workspaceLogs: string[];
+
+  /*
+   * Quota refusal (HTTP 429 QUOTA_EXCEEDED on workspace start) and its upgrade
+   * copy. Both were computed and stored, then rendered ONLY as a bare "!" glyph
+   * on a status-bar pill plus a `title` tooltip. Measured on the audit env: a
+   * project whose workspace start was refused showed « Aucun problème détecté ·
+   * 0 erreurs · 0 avertissements » with the word "quota" absent from the whole
+   * page, while the console carried the 429. A refusal the user cannot act on
+   * is indistinguishable from a product that is simply broken, so it belongs in
+   * Problems like any other blocking condition.
+   *
+   * Unlike a cold-start blip this is NOT transient: it stays until the user
+   * frees a workspace or upgrades.
+   */
+  quotaWarning?: string | null;
+  quotaUpgrade?: string | null;
 
   /*
    * When a forwarded port is genuinely serving the app, transient cold-start
@@ -224,6 +242,10 @@ export function buildRuntimeDiagnostics({
 
   if (workspaceError) {
     addDiagnostic('error', workspaceError instanceof Error ? workspaceError.message : workspaceError);
+  }
+
+  if (quotaWarning) {
+    addDiagnostic('error', quotaWarning, quotaUpgrade ?? undefined);
   }
 
   for (const line of workspaceLogs) {

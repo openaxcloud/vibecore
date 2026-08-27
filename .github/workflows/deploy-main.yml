@@ -398,6 +398,14 @@ jobs:
       - name: Helm render test — rollback flag (blocking)
         run: node scripts/validate-helm-rollback-flag.mjs
 
+      # P11 screenshotter render test: proves the chart renders the screenshotter
+      # Deployment/Service, the chart-managed auth Secret (mounted on every pod)
+      # and the egress NetworkPolicy under the exact --set combination the
+      # upgrade below uses — BEFORE touching the release. Failing here blocks
+      # the deploy instead of burning an --atomic rollback.
+      - name: Helm render test — screenshotter (blocking)
+        run: node scripts/validate-helm-screenshotter.mjs
+
       # P104 / SEC-8: same idea as the D2 test above, for the password-activation
       # interlock — and with the default INVERTED (safe state = "0", not armed).
       # Proves the chart renders "0" by default, under values-prod.yaml, and for
@@ -587,6 +595,19 @@ jobs:
               --set "services.previewProxy.imageTag=${SHORT_SHA}"
               --set "services.aiGateway.imageTag=${SHORT_SHA}"
               --set "services.worker.imageTag=${SHORT_SHA}"
+              # P11 screenshotter (auto thumbnails). Asserted here — NOT only in
+              # values-prod.yaml — because --reuse-values ignores that file. Gated
+              # on the runtime tier so enabled=true is only ever set in a run that
+              # just pushed screenshotter:${SHORT_SHA} (never an unpublished tag →
+              # no ImagePullBackOff risk); once stored, --reuse-values carries
+              # enabled+imageTag through web-only deploys. The shared secret is
+              # chart-managed (templates/screenshotter-auth-secret.yaml), the
+              # config values are re-asserted like previewUrlTemplate above.
+              --set "services.screenshotter.enabled=true"
+              --set "services.screenshotter.imageTag=${SHORT_SHA}"
+              --set-string "platformEnv.screenshotterUrl=http://vibecore-vibecore-platform-screenshotter.vibecore.svc.cluster.local:3030"
+              --set-string "platformEnv.screenshotterAllowedHosts=preview.e-code.ai"
+              --set-string "platformEnv.screenshotterPreviewProxyUrl=http://vibecore-vibecore-platform-preview-proxy.vibecore.svc.cluster.local:3020"
             )
           fi
           if [ "${{ steps.tiers.outputs.wsagent }}" = "true" ]; then
@@ -614,6 +635,16 @@ jobs:
             kubectl -n "${HELM_NAMESPACE}" rollout status "${dep}" --timeout=5m
             echo "::endgroup::"
           done
+          # P11 screenshotter — only exists once a runtime-tier deploy has asserted
+          # services.screenshotter.enabled=true (see the helm SETS above), so check
+          # for the Deployment instead of failing a web-only deploy that predates it.
+          if kubectl -n "${HELM_NAMESPACE}" get deploy "${HELM_RELEASE}-vibecore-platform-screenshotter" >/dev/null 2>&1; then
+            echo "::group::rollout status deploy/${HELM_RELEASE}-vibecore-platform-screenshotter"
+            kubectl -n "${HELM_NAMESPACE}" rollout status "deploy/${HELM_RELEASE}-vibecore-platform-screenshotter" --timeout=5m
+            echo "::endgroup::"
+          else
+            echo "screenshotter Deployment absent (not yet enabled by a runtime-tier deploy) — skipped"
+          fi
 
       # ---- P104 / SEC-8 · phase 1 -> phase 2 barrier -------------------------
       #
