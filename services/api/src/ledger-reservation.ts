@@ -27,7 +27,12 @@ export interface ReservationAccounts {
   taxPayableAccountId?: string;
 }
 
-function entry(accountId: string, direction: 'DEBIT' | 'CREDIT', amountMinor: bigint, currency: string): LedgerEntryInput {
+function entry(
+  accountId: string,
+  direction: 'DEBIT' | 'CREDIT',
+  amountMinor: bigint,
+  currency: string,
+): LedgerEntryInput {
   return { accountId, direction, amountMinor, currency: normalizeCurrency(currency) };
 }
 
@@ -155,3 +160,46 @@ export function compensateEntries(
  * re-exported at the reservation layer so call sites read intent.
  */
 export const reverseTransactionEntries = reverseEntries;
+
+/**
+ * Build a compensation exclusively from the settlement that was actually
+ * posted. The unused-credit refund in the settlement remains untouched; only
+ * the persisted revenue/tax legs are reversed and returned to the user.
+ */
+export function deriveCompensationEntries(
+  persistedSettleEntries: Array<{
+    accountId: string;
+    direction: 'DEBIT' | 'CREDIT';
+    amountMinor: bigint;
+    currency: string;
+  }>,
+  accounts: ReservationAccounts,
+): LedgerEntryInput[] {
+  const entries: LedgerEntryInput[] = [];
+
+  let refundMinor = 0n;
+  let currency: string | undefined;
+
+  for (const persisted of persistedSettleEntries) {
+    const revenue = persisted.accountId === accounts.revenueAccountId && persisted.direction === 'CREDIT';
+
+    const tax =
+      accounts.taxPayableAccountId !== undefined &&
+      persisted.accountId === accounts.taxPayableAccountId &&
+      persisted.direction === 'CREDIT';
+
+    if (!revenue && !tax) {
+      continue;
+    }
+
+    entries.push(entry(persisted.accountId, 'DEBIT', persisted.amountMinor, persisted.currency));
+    refundMinor += persisted.amountMinor;
+    currency = persisted.currency;
+  }
+
+  if (refundMinor > 0n && currency) {
+    entries.push(entry(accounts.userCreditsAccountId, 'CREDIT', refundMinor, currency));
+  }
+
+  return entries;
+}

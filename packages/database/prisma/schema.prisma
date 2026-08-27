@@ -3003,8 +3003,13 @@ model LedgerReservation {
   userId          String?
   /// Idempotency key, unique per org: a replay returns the SAME reservation.
   idempotencyKey  String
+  /// SHA-256 of the normalized business request. Reusing the key with another
+  /// amount, tenant, user, operation, rate card or import job fails closed.
+  requestHash     String?
   operation       String
   status          LedgerReservationStatus @default(ACTIVE)
+  /// Optimistic fencing generation, incremented on every lifecycle transition.
+  version         Int                     @default(0)
   currency        String                  @default("usd")
   /// Authorized ceiling (hold, not a debit).
   maxAmountMinor  BigInt
