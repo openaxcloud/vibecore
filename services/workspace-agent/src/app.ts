@@ -25,7 +25,6 @@ import {
   type WorkspaceAgentLocale,
   type WorkspaceAgentPublicError,
 } from './public-i18n.js';
-import { readResourceUsage } from './resource-usage.js';
 import { TerminalSessionManager, type TerminalSession } from './terminal-session.js';
 import { readWorkspaceResources } from './workspace-resources.js';
 
@@ -1112,6 +1111,21 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
    * this container's own cgroup and the workspace volume's statfs. Authenticated
    * by the agent-token hook above like every other data route; the workspace
    * root is the agent's own, so a caller cannot point it at another path.
+   *
+   * SCR-008 (exigence conservée) — les valeurs viennent des cgroup DU
+   * CONTENEUR, jamais de `/proc/meminfo`, qui montrerait la mémoire de l'hôte
+   * et donc un chiffre faux et rassurant pour un pod limité. `readMemory` lit
+   * cgroup v2 puis v1 et renvoie `null` si aucun des deux n'est lisible —
+   * plutôt qu'un chiffre d'hôte trompeur.
+   *
+   * Cette route REMPLACE la `/resources` historique (readResourceUsage) : les
+   * deux avaient survécu à une fusion, Fastify refusait alors de démarrer
+   * (« Method 'GET' already declared for route '/resources' ») et les 27 tests
+   * du workspace-agent tombaient ensemble. C'est celle-ci qui est conservée,
+   * car c'est son contrat ({capturedAt, memory, cpu, storage} avec `source` et
+   * `limitBytes`) que consomme l'API — laquelle répond désormais 503 explicite
+   * quand la mesure échoue, au lieu de jauges vides qui feraient croire à une
+   * consommation nulle.
    */
   app.get('/resources', async () => readWorkspaceResources(root));
 
@@ -1305,17 +1319,6 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
     }
 
     return { restoredFiles: body.files.length };
-  });
-
-  /*
-   * SCR-008 — source des jauges RAM / CPU / stockage de « Vue d'ensemble ».
-   * Valeurs lues dans les cgroup DU CONTENEUR : `/proc/meminfo` montrerait la
-   * mémoire de l'hôte, donc un chiffre faux et rassurant pour un pod limité.
-   */
-  app.get('/resources', async (_request, reply) => {
-    const usage = await readResourceUsage(root);
-
-    return reply.send(usage);
   });
 
   app.get('/metrics', async (_request, reply) => {

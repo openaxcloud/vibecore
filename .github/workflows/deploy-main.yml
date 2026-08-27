@@ -700,34 +700,13 @@ jobs:
           # Probe from INSIDE the cluster via a throwaway pod: the api Service is
           # not reachable from the runner, and `kubectl exec` is denied to the CI
           # identity through Connect Gateway (see the D2 step's note).
-          # Deux politiques du cluster se dressent entre ce pod et l'api, et il
-          # faut satisfaire les DEUX, sans quoi la sonde n'atteint jamais
-          # l'interlock qu'elle est censee tester :
-          #
-          #   1. Le namespace applique Pod Security `restricted`. Un pod sans
-          #      securityContext est refuse a l'admission : `kubectl run` echoue
-          #      instantanement, l'affectation echoue sous `set -o pipefail`, et
-          #      l'etape meurt AVANT d'imprimer le moindre verdict.
-          #   2. `deny-all-default` + `allow-intra-namespace-platform` ne
-          #      laissent parler a l'api que les pods portant le label
-          #      `app.kubernetes.io/part-of=vibecore`. Sans le label, le pod
-          #      demarre mais curl expire, le statut est vide, et la branche ''
-          #      ci-dessous refuse d'armer.
-          #
-          # Les deux etaient silencieusement vraies : cette sonde n'avait jamais
-          # atteint l'api une seule fois. Elle ne prouvait rien tout en se
-          # lisant comme un arret de securite dur. Verifie en reel contre la
-          # production une fois les deux satisfaites : l'api deployee repond
-          # HTTP 401 a cette requete — l'interlock est bel et bien ferme.
-          PROBE_URL="http://${HELM_RELEASE}-vibecore-platform-api.${HELM_NAMESPACE}.svc:3001/projects/sec9-probe/deployments/sec9-probe/access"
-          PROBE_OVERRIDES='{"metadata":{"labels":{"app.kubernetes.io/part-of":"vibecore"}},"spec":{"securityContext":{"runAsNonRoot":true,"runAsUser":65532,"seccompProfile":{"type":"RuntimeDefault"}},"containers":[{"name":"sec9-probe","image":"curlimages/curl:8.10.1","securityContext":{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]},"runAsNonRoot":true,"seccompProfile":{"type":"RuntimeDefault"}},"command":["curl","-s","-o","/dev/null","-w","%{http_code}","-m","15","-X","POST","__PROBE_URL__","-H","content-type: application/json","-d","{\"mode\":\"password\",\"password\":\"sec9-probe-not-a-real-password\"}"]}]}}'
-          PROBE_OVERRIDES="${PROBE_OVERRIDES/__PROBE_URL__/${PROBE_URL}}"
-
           CODE="$(kubectl -n "${HELM_NAMESPACE}" run "sec9-probe-${GITHUB_RUN_ID}" \
             --rm -i --restart=Never --quiet \
             --image=curlimages/curl:8.10.1 \
-            --labels='app.kubernetes.io/part-of=vibecore' \
-            --overrides="${PROBE_OVERRIDES}" 2>/dev/null | tr -dc '0-9')"
+            --command -- curl -s -o /dev/null -w '%{http_code}' -m 15 -X POST \
+            "http://${HELM_RELEASE}-vibecore-platform-api.${HELM_NAMESPACE}.svc:3001/projects/sec9-probe/deployments/sec9-probe/access" \
+            -H 'content-type: application/json' \
+            -d '{"mode":"password","password":"sec9-probe-not-a-real-password"}' 2>/dev/null | tr -dc '0-9')"
 
           echo "deployed api answered HTTP ${CODE} to an activation attempt during phase 1"
           case "${CODE}" in
