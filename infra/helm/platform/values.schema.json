@@ -11,7 +11,12 @@
       "properties": {
         "runtime": {
           "type": "object",
-          "required": ["serverDeployRollbackFromDigest", "deploymentAccessActivationEnabled"],
+          "required": [
+            "serverDeployRollbackFromDigest",
+            "deploymentAccessActivationEnabled",
+            "reservedVmEnabled",
+            "reservedVmPayloadEncryptionKeyId"
+          ],
           "properties": {
             "serverDeployRollbackFromDigest": {
               "type": "string",
@@ -22,8 +27,28 @@
               "type": "string",
               "enum": ["0", "1"],
               "description": "P104 / SEC-8 two-phase activation interlock. '0' (chart default, fail-closed) = the api refuses to ACTIVATE deployment password protection (503 DEPLOYMENT_ACCESS_ACTIVATION_DISABLED); '1' = activation open. Enforcement of an already-protected deployment is never gated by this flag, and un-protecting (mode=public) stays allowed at '0'. Only deploy-main.yml sets '1', and only after the last pre-cutover pod is gone and its last public max-age=60 response has expired. Any other value (including '' or a bare boolean) is rejected at upgrade time."
+            },
+            "reservedVmEnabled": {
+              "type": "string",
+              "enum": ["false", "true"],
+              "description": "Operator activation gate. Enabling also requires the dedicated Secret-backed payload keyring and live node-pool capability."
+            },
+            "reservedVmPayloadEncryptionKeyId": {
+              "type": "string",
+              "pattern": "^$|^[A-Za-z0-9._:-]{1,64}$",
+              "description": "Non-secret identifier for the active Reserved VM recovery-payload key. Key material stays in the Kubernetes Secret."
             }
-          }
+          },
+          "allOf": [
+            {
+              "if": { "properties": { "reservedVmEnabled": { "const": "true" } } },
+              "then": {
+                "properties": {
+                  "reservedVmPayloadEncryptionKeyId": { "minLength": 1 }
+                }
+              }
+            }
+          ]
         }
       }
     }

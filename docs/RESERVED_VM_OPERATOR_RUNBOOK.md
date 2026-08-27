@@ -17,10 +17,11 @@ and node capacity from the Kubernetes API.
 
 Requests equal limits for every Reserved VM tier. The Deployment stays at one
 replica and is excluded from the Autoscale idle reaper and Autoscale usage
-meter. A monthly ledger reservation is settled once by the fenced operation;
-an upgrade reserves only the positive price difference. A downgrade does not
-issue an automatic refund and its lower tariff starts with the next billing
-period.
+meter. Exactly one ledger reservation may settle for each calendar-month billing
+period. The initial operation opens the first period; the recovery worker claims
+and settles every subsequent period under a DB-clock lease. An upgrade reserves
+only the positive price difference for the current period. A downgrade does not
+issue an automatic refund and its lower tariff starts with the next period.
 
 The API requires an `ACTIVE` or `TRIALING` paid subscription, a 16–128 character
 `Idempotency-Key`, and explicit acceptance of the rate-card terms returned to the
@@ -40,14 +41,30 @@ RESERVED_VM_NODE_SELECTOR_KEY=<operator-owned-label-key>
 RESERVED_VM_NODE_SELECTOR_VALUE=<operator-owned-label-value>
 RESERVED_VM_TAINT_KEY=<operator-owned-taint-key>
 RESERVED_VM_TAINT_VALUE=<operator-owned-taint-value>
+RESERVED_VM_PAYLOAD_ENCRYPTION_KEY_ID=<immutable-current-key-id>
+RESERVED_VM_PAYLOAD_ENCRYPTION_KEY=<secret-manager-current-key-32+-chars>
+RESERVED_VM_PAYLOAD_DECRYPTION_KEYS_JSON=<secret-manager-json-keyring>
 ```
+
+The encryption key and decrypt-only rotation keyring are Kubernetes Secret
+values; never place either in Helm values, a ConfigMap, logs or an API response.
+Only the active key id is non-secret. Production boot fails before accepting
+traffic when Reserved VM is enabled and the current key is missing/weak, the key
+id is invalid, or any historical keyring entry is malformed. Rotate safely by
+first adding the old current key to `RESERVED_VM_PAYLOAD_DECRYPTION_KEYS_JSON`,
+then deploying a new key id/current key. New envelopes use only the new key;
+workers can still resume old envelopes. Remove an old key only after every
+non-terminal CREATE/REDEPLOY written with that id is terminal.
 
 The selected node must carry the configured label and the configured
 `NoSchedule` taint. Workloads also use the `gvisor` RuntimeClass and tolerate its
 runtime taint. The manager's `GET /runtime-capabilities` endpoint returns enabled
 only when it can read the StorageClass and at least one matching labelled,
 tainted node. Missing configuration, RBAC denial, API failure, absent storage or
-absent capacity all keep the product disabled.
+absent capacity all keep the product disabled. Capability is tier-specific: only
+tiers whose exact CPU and memory fit the allocatable capacity of a Ready,
+uncordoned, selector/taint-matching node may be advertised. The manager repeats
+the same admission immediately before apply.
 
 ## Persistent data and in-place changes
 
@@ -63,7 +80,12 @@ retain:
 The general server-deployment stop path removes runtime manifests but never the
 Reserved VM PVC. Do not delete `reserved-data-*` claims as part of a rollout,
 rollback, retry or type change. Data deletion requires a separate, explicit
-retention/purge procedure outside this feature.
+`POST /projects/:projectId/deployments/:deploymentId/reserved-vm/decommission`
+after conversion to Autoscale, with `billing:manage`, `Idempotency-Key`, the
+current runtime version and confirmation `DELETE_RESERVED_VM_DATA`. The manager
+deletes exactly the pinned claim under the external fence, proves absence, and
+only then may the API clear the claim with CAS. Project deletion remains
+fail-closed until that proof is committed.
 
 ## Recovery and rollback
 
@@ -79,9 +101,12 @@ cannot prove rollback or cleanup, the operation deliberately stays recoverable
 and its reservation must not be released manually. Investigate Kubernetes state,
 restore the previous manifest if necessary, then resume the fenced operation.
 
-For creation, an image/build failure before Kubernetes apply is safe to fail and
-release. After apply, cleanup must be confirmed by the manager before release.
-The PVC is retained even when runtime cleanup succeeds.
+For creation, queue dispatch is an outbox-style hint: an accepted-then-failed
+BullMQ response leaves the operation pending for stable-job-id recovery; it must
+never release the hold. After Kubernetes apply, cleanup must be confirmed by the
+manager before release. If this CREATE created a new, uncommitted empty PVC, the
+failed-create cleanup deletes that exact claim under the same fence and proves
+absence before clearing it. A pre-existing/committed PVC is always retained.
 
 ## Monthly renewal and past-due recovery
 
@@ -98,14 +123,17 @@ the fencing token rejects its stale completion. If a hold itself expires before
 completion, the store releases it and creates a new fenced reservation generation
 for the same unique period. Only one generation can settle.
 
-On a declined renewal, call `failReservedVmBillingPeriod` with the configured
-grace duration. A retry never extends the original `graceEndsAt`. Once the grace
-deadline passes, `listReservedVmStopSignals` durably promotes the deployment to
-`STOP_REQUIRED` and releases the uncommitted hold. That signal means **stop
-compute only**: its `deletePersistentStorage` field is always `false`, and the
-`persistentStorageClaim` must remain attached to the retained data lifecycle.
-Do not clear the stop state or advance the period manually; repair billing and
-resume through an audited operator recovery flow.
+An inactive subscription, declined reservation, or ledger failure materializes
+a durable `PAST_DUE` period instead of retrying free compute forever. A retry
+never extends the original `graceEndsAt`. Once the grace deadline passes, the
+store durably promotes the deployment to `STOP_REQUIRED`, releases any
+uncommitted hold and exposes a fenced stop claim. The manager scales compute to
+zero, proves the observed generation and zero pods, marks the workload suspended,
+and only then may the API acknowledge `SUSPENDED`. The signal always preserves
+the PVC. Preview traffic cannot wake a suspended Reserved VM: `/activate` returns
+`RESERVED_VM_SUSPENDED` and the proxy serves a no-store, non-refreshing billing
+recovery page. Do not clear the state or advance the period manually; repair
+billing and resume through the audited paid runtime-change saga.
 
 ## Current operator limits
 
@@ -113,8 +141,9 @@ resume through an audited operator recovery flow.
   multi-replica or multi-zone HA database primitive.
 - Existing claims are never resized by a tier change. Storage expansion is an
   operator-owned procedure and requires a compatible StorageClass.
-- Backups, restore testing, regional disaster recovery and final data retention
-  remain operator responsibilities.
+- Backups, restore testing, regional disaster recovery and retention policy
+  remain operator responsibilities; explicit decommission is the product path
+  for final PVC erasure.
 - Enabling the flag does not provision a node pool or StorageClass. Capacity must
   be created and verified separately before activation.
 - This implementation was validated against manifest/unit tests and disposable

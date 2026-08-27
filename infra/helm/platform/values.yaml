@@ -109,6 +109,11 @@ platformEnv:
     # Reproducible (revision-based) server deploys: '*' or comma-separated
     # project-id allowlist; empty = off (Phase-A snapshot path unchanged).
     serverDeployRevisionProjects: ''
+    # Reserved VM is fail-closed until the dedicated node pool/operator gate is
+    # proven. The key id is non-secret; key material and the rotation keyring
+    # are mounted only from `secrets.existingSecret`.
+    reservedVmEnabled: 'false'
+    reservedVmPayloadEncryptionKeyId: ''
     # Shared RO Nix store rollout gate (candidate E): PVC name + project
     # allowlist ('*' = all). Empty = off, pod specs unchanged.
     nixStorePvc: ''
@@ -370,17 +375,17 @@ database:
     # (which does NOT merge these values.yaml keys).
     resources:
       requests:
-        cpu: "500m"
-        memory: "1Gi"
+        cpu: '500m'
+        memory: '1Gi'
       limits:
-        cpu: "2"
-        memory: "2Gi"
+        cpu: '2'
+        memory: '2Gi'
     pooler:
       instances: 2
     backup:
       enabled: false
-      bucket: ""
-      serviceAccount: ""
+      bucket: ''
+      serviceAccount: ''
       retentionDays: 7
   # workspace-manager RBAC in project-databases (templates/database-rbac.yaml).
   # DISABLED by default: the Role/RoleBinding already exist out-of-band (created at
