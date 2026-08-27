@@ -285,9 +285,32 @@ async function waitForApplicationReady(page: Page, path: string, language: 'en' 
     return;
   }
 
+  /*
+   * 3 s, et non 15. Ce n'est PAS l'assertion : la présence du sélecteur est
+   * mesurée juste après, par `languageSwitchCount`, et c'est là qu'elle est
+   * affirmée. Ceci n'est qu'une attente de disponibilité.
+   *
+   * La distinction coûtait le shard `mobile-390` en entier. La coque mobile
+   * authentifiée n'expose plus de bascule FR/EN — retrait délibéré, documenté
+   * dans app/styles/index.scss (« la langue est détectée depuis le navigateur
+   * et se règle dans Paramètres → Préférences »). Or l'exemption ci-dessus ne
+   * couvre que `/ide` et `/git`, soit 2 des 14 routes projet. Les 46 autres
+   * routes authentifiées payaient donc 15 s à chaque passage, deux fois par
+   * paire (EN puis FR), deux thèmes :
+   *
+   *     46 routes x 2 thèmes x 2 langues x 15 s = 46 minutes d'attente pure
+   *
+   * pour un budget de test de 30 minutes. Le shard ne pouvait pas finir. Il
+   * dépassait son budget en ATTENDANT un constat que l'assertion suivante
+   * enregistre de toute façon — et il le refaisait 184 fois.
+   *
+   * Réduire l'attente ne retire aucune assertion : `languageSwitchCount` reste
+   * vérifié à l'identique, et le shard rapporte enfin ce qu'il constate au
+   * lieu d'expirer avant de pouvoir le dire.
+   */
   await expect
     .soft(globalLanguageSwitch, `${path} ${language} global language switch ready`)
-    .toBeVisible({ timeout: 15_000 });
+    .toBeVisible({ timeout: 3_000 });
 }
 
 function isExpectedMissingDocumentConsole(path: string, message: ConsoleMessage): boolean {
