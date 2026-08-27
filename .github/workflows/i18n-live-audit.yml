@@ -15,7 +15,7 @@ jobs:
   live-audit:
     name: Playwright ${{ matrix.project }}
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 75
     strategy:
       # Every viewport is independent proof. Keep collecting the other three
       # result sets when one viewport exposes untranslated copy or overflow.
@@ -199,6 +199,14 @@ jobs:
           exit 1
 
       - name: Run exhaustive EN/FR live audit
+        # Plafond au niveau de l'ETAPE, pas seulement du job. Un timeout de job
+        # tue le runner : les etapes `if: always()` qui suivent (verification de
+        # la preuve, diagnostics de la pile locale, upload des artefacts) ne
+        # tournent jamais, et la panne efface son propre diagnostic. C'est ce
+        # qui a rendu `mobile-390` inanalysable pendant plusieurs jours. Un
+        # timeout d'etape, lui, echoue l'etape et laisse la suite se derouler :
+        # on recupere enfin les captures et les logs qui disent OU ca cale.
+        timeout-minutes: 45
         run: >-
           pnpm exec playwright test
           tests/e2e/i18n-french-live.spec.ts
