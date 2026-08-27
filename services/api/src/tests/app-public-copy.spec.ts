@@ -30,10 +30,14 @@ const forbiddenFrenchGlossaryResidue =
   /\b(?:preview|logs?|marketplace|snapshots?|packages?|builds?|workspace|runtime|stack|starter|typecheck|full-stack|tokens?|tags?|tenants?)\b|feature flag/iu;
 
 function withoutProtectedTechnicalIdentifiers(value: string): string {
-  return value
-    .replace(/\{[A-Za-z][A-Za-z0-9_]*\}/gu, '')
-    .replace(/\bpackage\.json\b/giu, '')
-    .replace(/\.ecode\/deploy\.json/gu, '');
+  return (
+    value
+      .replace(/\{[A-Za-z][A-Za-z0-9_]*\}/gu, '')
+      .replace(/\bpackage\.json\b/giu, '')
+      .replace(/\.ecode\/deploy\.json/gu, '')
+      // Official product name, not the generic glossary word "build".
+      .replace(/\bCloud Build\b/giu, '')
+  );
 }
 
 describe('backend application copy catalogue', () => {
@@ -213,6 +217,18 @@ describe('backend application response localization', () => {
       matched: true,
       value: '[image] compilation build-1 mise en file (contexte gs://bucket/object.tgz)',
     });
+    expect(localizeAppPublicMessage('Deployment access signing is unavailable.', 'fr')).toEqual({
+      matched: true,
+      value: 'La signature des accès aux déploiements est indisponible.',
+    });
+    expect(localizeAppPublicMessage('The source deployment access policy is missing or corrupt.', 'fr')).toEqual({
+      matched: true,
+      value: 'La règle d’accès du déploiement source est absente ou corrompue.',
+    });
+    expect(localizeAppPublicMessage('Project release barrier was lost.', 'fr')).toEqual({
+      matched: true,
+      value: 'Le verrou de publication du projet n’est plus détenu.',
+    });
   });
 
   it('renders localized template onboarding without translating project and code identifiers', () => {
@@ -317,6 +333,14 @@ describe('app.ts i18n source guard', () => {
       'durable_archive_missing',
       'checksum_mismatch',
       'manager_failed',
+      // Stable account-purge adapter failures consumed as machine codes by the
+      // retry/reconciliation state machine; they are never response copy.
+      'ACCOUNT_PURGE_PVC_CHECK_FAILED',
+      'ACCOUNT_PURGE_WORKSPACE_DELETE_FAILED',
+      'ACCOUNT_PURGE_WORKSPACE_FREEZE_FAILED',
+      'ACCOUNT_PURGE_WORKSPACE_UNFREEZE_FAILED',
+      'ACCOUNT_PURGE_WORKSPACE_RECONCILE_FAILED',
+      'ACCOUNT_PURGE_BILLING_CANCELLER_UNAVAILABLE',
       // Stable billing/policy identifiers consumed as machine data.
       'chat.completion',
       'chat.completion.{…}',
@@ -369,7 +393,25 @@ describe('credit-ledger persistence source guard', () => {
     {
       file: 'services/api/src/prisma-store.ts',
       path: prismaStorePath,
-      expected: ['PAYG overage (billed to Stripe metered usage)'],
+      expected: [
+        // Stable state-machine and deployment-access result codes. HTTP routes
+        // map them to catalogue copy; persistence must keep the codes exact.
+        'ROLLBACK_OWNERSHIP_LOST',
+        'ROLLBACK_RELEASE_MOVED',
+        'ROLLBACK_TARGET_CONFLICT',
+        'SERVER_RELEASE_ACCESS_POLICY_INVALID',
+        'SERVER_RELEASE_FENCE_CONFLICT',
+        'DEPLOYMENT_NOT_FOUND',
+        'POLICY_INVALID',
+        'POLICY_NOT_PRIVATE',
+        'POLICY_CHANGED',
+        'ACCESS_DENIED',
+        'TICKET_NOT_FOUND',
+        'TICKET_REPLAYED',
+        'TICKET_EXPIRED',
+        // Persisted platform-generated ledger reason localized at the HTTP boundary.
+        'PAYG overage (billed to Stripe metered usage)',
+      ],
     },
   ])(
     'classifies every scanner finding in $file as internal or localized persisted data',

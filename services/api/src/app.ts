@@ -37616,21 +37616,21 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       (body.accessMode !== 'PASSWORD_PROTECTED' && body.accessPassword !== undefined)
     ) {
       return reply.code(400).send({
-        error: 'A password is required only for password-protected deployments.',
+        error: appPublicCopy('DEPLOYMENT_ACCESS_PASSWORD_REQUEST_INVALID', transactionalLocaleForRequest(request)),
         code: 'DEPLOYMENT_ACCESS_PASSWORD_INVALID',
       });
     }
 
     if (body.accessMode !== 'PUBLIC' && !deploymentAccessActivationEnabled(isProduction)) {
       return reply.code(503).send({
-        error: 'Protected deployment access is not activated on every serving edge yet.',
+        error: appPublicCopy('DEPLOYMENT_ACCESS_ROLLOUT_NOT_ACTIVE', transactionalLocaleForRequest(request)),
         code: 'DEPLOYMENT_ACCESS_ROLLOUT_NOT_ACTIVE',
       });
     }
 
     if (isProduction && body.accessMode !== 'PUBLIC' && !process.env.DEPLOYMENT_ACCESS_TOKEN_SECRET?.trim()) {
       return reply.code(503).send({
-        error: 'Deployment access signing is unavailable.',
+        error: appPublicCopy('DEPLOYMENT_ACCESS_SIGNING_UNAVAILABLE', transactionalLocaleForRequest(request)),
         code: 'DEPLOYMENT_ACCESS_SIGNING_UNAVAILABLE',
       });
     }
@@ -38989,7 +38989,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     if (!sourceAccessPolicy) {
       return reply.code(409).send({
-        error: 'The source deployment access policy is missing or corrupt.',
+        error: appPublicCopy('DEPLOYMENT_ACCESS_SOURCE_POLICY_INVALID', transactionalLocaleForRequest(request)),
         code: 'DEPLOYMENT_ACCESS_POLICY_INVALID',
       });
     }
@@ -39234,7 +39234,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         if (!existingProd || existingProd.status === 'FAILED') {
           const billing = await billingState(project.organizationId).catch(() => undefined);
           const entitlement = databaseRollbackEntitlement(toCreditPlanKey(billing?.plan.key));
-          const provisioner = resolveDefaultDatabaseProvisioner();
+          const provisioner = databaseProvisioner;
 
           if (provisioner.active) {
             const acquisition = await store.acquireDatabaseProvisioning({

@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { buildApiApp, type ApiAppOptions } from '../app.js';
 import type { PromotionResult } from '../artifact-promotion.js';
+import type { DatabaseProvisioner } from '../database-provisioner.js';
 import { buildPublishedDeploymentInput, canPublishDeployment } from '../deployments.js';
 import type { EmailProvider } from '../email.js';
 import type { DeploymentRecord } from '../store.js';
@@ -151,7 +152,15 @@ describe('POST /projects/:id/deployments/:id/publish', () => {
     process.env.DB_ROLLBACK_ENABLED = 'true';
 
     try {
-      const { app, store, token, project } = await setup();
+      const provisionInstance = vi.fn(async () => ({
+        applied: true,
+        clusterName: 'db-publish-production',
+      }));
+      const databaseProvisioner = {
+        active: true,
+        provisionInstance,
+      } as unknown as DatabaseProvisioner;
+      const { app, store, token, project } = await setup({ databaseProvisioner });
       const source = await store.createDeployment({
         projectId: project.id,
         provider: 'static',
@@ -174,6 +183,10 @@ describe('POST /projects/:id/deployments/:id/publish', () => {
       const prod = await store.getDatabaseInstanceByProject(project.id, 'production');
       expect(prod?.environment).toBe('production');
       expect(await store.getDatabaseInstanceByProject(project.id, 'development')).toBeUndefined();
+      expect(provisionInstance).toHaveBeenCalledOnce();
+      expect(provisionInstance).toHaveBeenCalledWith(
+        expect.objectContaining({ projectId: project.id, environment: 'production' }),
+      );
     } finally {
       if (original === undefined) {
         delete (process.env as Record<string, string | undefined>).DB_ROLLBACK_ENABLED;
