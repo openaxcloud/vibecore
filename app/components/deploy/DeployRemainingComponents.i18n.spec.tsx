@@ -143,6 +143,19 @@ describe('DeploymentTypeSelector i18n and responsive behavior', () => {
     expect(screen.getByText('Autoscale')).toBeTruthy();
     expect(screen.queryByText('Mise à l’échelle automatique')).toBeNull();
   });
+
+  it('removes the unavailable state only after a positive Reserved VM capability proof', () => {
+    const onSelect = vi.fn();
+
+    renderWithLanguage('fr', <DeploymentTypeSelector selected="static" onSelect={onSelect} reservedVmAvailable />);
+
+    const reservedTier = screen.getByTestId('deployment-type-reserved-vm');
+
+    expect(reservedTier).toHaveProperty('disabled', false);
+    expect(screen.queryByText('Indisponible')).toBeNull();
+    fireEvent.click(reservedTier);
+    expect(onSelect).toHaveBeenCalledWith('reserved-vm');
+  });
 });
 
 describe('DeployChatAlert i18n and safe error rendering', () => {

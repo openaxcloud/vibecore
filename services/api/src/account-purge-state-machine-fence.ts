@@ -72,10 +72,7 @@ export async function assertAccountPurgeMutationAllowed(
       select: { userId: true },
     });
     if (activeUserPlan) {
-      throw purgeConflict(
-        'USER_TOPOLOGY_FROZEN_FOR_ACCOUNT_PURGE',
-        'USER_TOPOLOGY_FROZEN_FOR_ACCOUNT_PURGE',
-      );
+      throw purgeConflict('USER_TOPOLOGY_FROZEN_FOR_ACCOUNT_PURGE', 'USER_TOPOLOGY_FROZEN_FOR_ACCOUNT_PURGE');
     }
   }
 
@@ -122,10 +119,134 @@ function actorOrSoleOrganization(
 ): Prisma.RollbackIdempotencyRequestWhereInput['OR'] {
   return [
     { actorUserId: userId },
-    ...(soleOrganizationIds.length > 0
-      ? [{ project: { organizationId: { in: [...soleOrganizationIds] } } }]
-      : []),
+    ...(soleOrganizationIds.length > 0 ? [{ project: { organizationId: { in: [...soleOrganizationIds] } } }] : []),
   ];
+}
+
+async function transferSharedReservedVmAuthority(
+  tx: Prisma.TransactionClient,
+  input: { userId: string; soleOrganizationIds: readonly string[] },
+): Promise<void> {
+  const excluded = uniqueIds(input.soleOrganizationIds);
+  const [operationOrganizations, periodOrganizations] = await Promise.all([
+    tx.reservedVmOperation.findMany({
+      where: {
+        actorUserId: input.userId,
+        status: { in: ['COMPLETED', 'FAILED'] },
+        ...(excluded.length > 0 ? { organizationId: { notIn: excluded } } : {}),
+      },
+      select: { organizationId: true },
+      distinct: ['organizationId'],
+    }),
+    tx.reservedVmBillingPeriod.findMany({
+      where: {
+        actorUserId: input.userId,
+        ...(excluded.length > 0 ? { organizationId: { notIn: excluded } } : {}),
+      },
+      select: { organizationId: true },
+      distinct: ['organizationId'],
+    }),
+  ]);
+  const organizationIds = uniqueIds([
+    ...operationOrganizations.map(({ organizationId }) => organizationId),
+    ...periodOrganizations.map(({ organizationId }) => organizationId),
+  ]);
+
+  for (const organizationId of organizationIds) {
+    const activeOperation = await tx.reservedVmOperation.findFirst({
+      where: { organizationId, actorUserId: input.userId, status: { in: ['PENDING', 'APPLYING'] } },
+      select: { id: true },
+    });
+
+    if (activeOperation) {
+      /* Never transfer authority while an external effect may still be running. */
+      continue;
+    }
+
+    await tx.$queryRaw`
+      SELECT "id" FROM "OrganizationMember"
+      WHERE "organizationId" = ${organizationId}
+      ORDER BY "id" ASC
+      FOR UPDATE
+    `;
+    const replacement = await tx.organizationMember.findFirst({
+      where: {
+        organizationId,
+        userId: { not: input.userId },
+        state: 'ACTIVE',
+        AND: [
+          { role: { permissions: { some: { permission: { key: 'billing:manage' } } } } },
+          { role: { permissions: { some: { permission: { key: 'projects:write' } } } } },
+        ],
+      },
+      orderBy: [{ joinedAt: 'asc' }, { id: 'asc' }],
+      select: { userId: true },
+    });
+    await tx.$queryRaw`
+      SELECT "id" FROM "Subscription"
+      WHERE "organizationId" = ${organizationId}
+      ORDER BY "id" ASC
+      FOR UPDATE
+    `;
+    const paidSubscription = await tx.subscription.findFirst({
+      where: {
+        organizationId,
+        status: { in: ['ACTIVE', 'TRIALING'] },
+        plan: { key: { not: 'free' } },
+      },
+      select: { id: true },
+    });
+
+    if (!replacement || !paidSubscription) {
+      throw purgeConflict(
+        'ACCOUNT_PURGE_RESERVED_VM_AUTHORITY_TRANSFER_REQUIRED',
+        'ACCOUNT_PURGE_RESERVED_VM_AUTHORITY_TRANSFER_REQUIRED',
+      );
+    }
+
+    const periods = await tx.reservedVmBillingPeriod.findMany({
+      where: { organizationId, actorUserId: input.userId },
+      select: { id: true, billingReservationId: true },
+    });
+    const operations = await tx.reservedVmOperation.findMany({
+      where: { organizationId, actorUserId: input.userId, status: { in: ['COMPLETED', 'FAILED'] } },
+      select: { id: true, billingReservationId: true },
+    });
+    const reservationIds = uniqueIds([
+      ...periods.map(({ billingReservationId }) => billingReservationId),
+      ...operations.map(({ billingReservationId }) => billingReservationId),
+    ]);
+
+    await tx.reservedVmBillingPeriod.updateMany({
+      where: { organizationId, actorUserId: input.userId },
+      data: { actorUserId: replacement.userId },
+    });
+    await tx.reservedVmOperation.updateMany({
+      where: { organizationId, actorUserId: input.userId, status: { in: ['COMPLETED', 'FAILED'] } },
+      data: { actorUserId: replacement.userId },
+    });
+    if (reservationIds.length > 0) {
+      await tx.ledgerReservation.updateMany({
+        where: { id: { in: reservationIds }, userId: input.userId },
+        data: { userId: replacement.userId },
+      });
+    }
+    await tx.auditLog.create({
+      data: {
+        organizationId,
+        actorUserId: null,
+        action: 'account.purge.reserved_vm.authority.transferred',
+        resourceType: 'organization',
+        resourceId: organizationId,
+        metadata: {
+          fromUserId: input.userId,
+          toUserId: replacement.userId,
+          operationCount: operations.length,
+          billingPeriodCount: periods.length,
+        },
+      },
+    });
+  }
 }
 
 /**
@@ -137,6 +258,7 @@ export async function assertAccountPurgeStateMachinesSafeToStart(
   tx: Prisma.TransactionClient,
   input: { userId: string; soleOrganizationIds: readonly string[] },
 ): Promise<void> {
+  await transferSharedReservedVmAuthority(tx, input);
   const soleOrganizationIds = uniqueIds(input.soleOrganizationIds);
   const jobScope = [
     { actorUserId: input.userId },
@@ -148,7 +270,15 @@ export async function assertAccountPurgeStateMachinesSafeToStart(
           soleOrganizationIds,
         )}))`
       : Prisma.sql`checkpoint."createdByUserId" = ${input.userId}`;
-  const [imports, remixes, activeCheckpointRows, activeRollbackEffect] = await Promise.all([
+  const [
+    imports,
+    remixes,
+    activeCheckpointRows,
+    activeRollbackEffect,
+    activeReservedVmOperation,
+    activeReservedVmBillingPeriod,
+    soleOrganizationReservedVmRuntime,
+  ] = await Promise.all([
     tx.importJob.findMany({
       where: { OR: jobScope },
       select: { state: true, targetProjectId: true },
@@ -182,6 +312,36 @@ export async function assertAccountPurgeStateMachinesSafeToStart(
       },
       select: { id: true },
     }),
+    tx.reservedVmOperation.findFirst({
+      where: {
+        status: { in: ['PENDING', 'APPLYING'] },
+        OR: [
+          { actorUserId: input.userId },
+          ...(soleOrganizationIds.length > 0 ? [{ organizationId: { in: soleOrganizationIds } }] : []),
+        ],
+      },
+      select: { id: true },
+    }),
+    tx.reservedVmBillingPeriod.findFirst({
+      where: {
+        status: { not: 'CANCELED' },
+        deployment: { runtimeKind: 'reserved-vm' },
+        OR: [
+          { actorUserId: input.userId },
+          ...(soleOrganizationIds.length > 0 ? [{ organizationId: { in: soleOrganizationIds } }] : []),
+        ],
+      },
+      select: { id: true },
+    }),
+    soleOrganizationIds.length > 0
+      ? tx.deployment.findFirst({
+          where: {
+            runtimeKind: 'reserved-vm',
+            project: { organizationId: { in: soleOrganizationIds } },
+          },
+          select: { id: true },
+        })
+      : Promise.resolve(null),
   ]);
 
   if (activeCheckpointRows[0]) {
@@ -190,14 +350,19 @@ export async function assertAccountPurgeStateMachinesSafeToStart(
   if (activeRollbackEffect) {
     throw purgeConflict('ACCOUNT_PURGE_ROLLBACK_EFFECT_ACTIVE', 'ACCOUNT_PURGE_ROLLBACK_EFFECT_ACTIVE');
   }
+  if (activeReservedVmOperation) {
+    throw purgeConflict('ACCOUNT_PURGE_RESERVED_VM_OPERATION_ACTIVE', 'ACCOUNT_PURGE_RESERVED_VM_OPERATION_ACTIVE');
+  }
+  if (activeReservedVmBillingPeriod) {
+    throw purgeConflict('ACCOUNT_PURGE_RESERVED_VM_BILLING_ACTIVE', 'ACCOUNT_PURGE_RESERVED_VM_BILLING_ACTIVE');
+  }
+  if (soleOrganizationReservedVmRuntime) {
+    throw purgeConflict('ACCOUNT_PURGE_RESERVED_VM_RUNTIME_ACTIVE', 'ACCOUNT_PURGE_RESERVED_VM_RUNTIME_ACTIVE');
+  }
 
   const possiblyVisibleTargets = [
-    ...imports
-      .filter(({ state }) => state !== 'COMMITTED')
-      .map(({ targetProjectId }) => targetProjectId),
-    ...remixes
-      .filter(({ state }) => state !== 'COMPLETED')
-      .map(({ targetProjectId }) => targetProjectId),
+    ...imports.filter(({ state }) => state !== 'COMMITTED').map(({ targetProjectId }) => targetProjectId),
+    ...remixes.filter(({ state }) => state !== 'COMPLETED').map(({ targetProjectId }) => targetProjectId),
   ].filter((value): value is string => Boolean(value));
   if (possiblyVisibleTargets.length > 0) {
     const visibleTarget = await tx.project.findFirst({
@@ -223,6 +388,18 @@ export async function fencePurgedUserStateMachines(
 ): Promise<PurgedStateMachineFenceResult> {
   const soleOrganizationIds = uniqueIds(input.soleOrganizationIds);
   await assertAccountPurgeStateMachinesSafeToStart(tx, input);
+  /* Terminal history may outlive its actor, but no resumable authority may. */
+  await tx.reservedVmOperation.updateMany({
+    where: {
+      status: { in: ['COMPLETED', 'FAILED'] },
+      actorUserId: input.userId,
+    },
+    data: { actorUserId: null },
+  });
+  await tx.reservedVmBillingPeriod.updateMany({
+    where: { status: 'CANCELED', actorUserId: input.userId },
+    data: { actorUserId: null },
+  });
   const importJobs = await tx.importJob.findMany({
     where: {
       OR: [
@@ -261,9 +438,7 @@ export async function fencePurgedUserStateMachines(
     orderBy: { id: 'asc' },
   });
 
-  const committedImportIds = new Set(
-    importJobs.filter(({ state }) => state === 'COMMITTED').map(({ id }) => id),
-  );
+  const committedImportIds = new Set(importJobs.filter(({ state }) => state === 'COMMITTED').map(({ id }) => id));
   const corruptCommittedHold = activeReservations.find(
     ({ importJobId }) => importJobId !== null && committedImportIds.has(importJobId),
   );
@@ -428,9 +603,7 @@ export async function fencePurgedUserStateMachines(
     await tx.rollbackIdempotencyRequest.updateMany({
       where: {
         id: {
-          in: rollbackOperations
-            .filter(({ status }) => status !== 'IN_PROGRESS')
-            .map(({ id }) => id),
+          in: rollbackOperations.filter(({ status }) => status !== 'IN_PROGRESS').map(({ id }) => id),
         },
       },
       data: { actorUserId: null },
@@ -450,10 +623,7 @@ export async function fencePurgedUserStateMachines(
   const activeReservationCount = await tx.ledgerReservation.count({
     where: {
       status: 'ACTIVE',
-      OR: [
-        { userId: input.userId },
-        ...(importJobIds.length > 0 ? [{ importJobId: { in: importJobIds } }] : []),
-      ],
+      OR: [{ userId: input.userId }, ...(importJobIds.length > 0 ? [{ importJobId: { in: importJobIds } }] : [])],
     },
   });
   const activeImportCount =

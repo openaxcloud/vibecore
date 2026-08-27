@@ -83,6 +83,7 @@ import type {
   ReservedVmBillingStore,
   ReservedVmLease,
   ReservedVmOperationRecord,
+  ReservedVmStopLease,
   ReservedVmTier,
   DeploymentAccessContext,
   DeploymentAccessTicketMutationResult,
@@ -239,6 +240,19 @@ function requireReservedVmLeaseOwner(ownerToken: string): string {
   return token;
 }
 
+function requireReservedVmActor(actorUserId: string | null | undefined): string {
+  const actor = actorUserId?.trim();
+
+  if (!actor) {
+    throw Object.assign(new Error('Reserved VM user authority is missing.'), {
+      code: 'RESERVED_VM_ACTOR_REQUIRED',
+      statusCode: 409,
+    });
+  }
+
+  return actor;
+}
+
 function reservedVmBillingLeaseExpiry(now: Date, ttlMs: number): Date {
   if (!Number.isFinite(ttlMs) || ttlMs < 1_000 || ttlMs > 30 * 60_000) {
     throw Object.assign(new Error('Reserved VM billing lease duration is invalid.'), {
@@ -266,6 +280,105 @@ function reservedVmBillingFenceLost(): Error & { code: string; statusCode: numbe
     code: 'RESERVED_VM_BILLING_FENCE_LOST',
     statusCode: 409,
   });
+}
+
+async function hasPaidReservedVmEntitlement(tx: Prisma.TransactionClient, organizationId: string): Promise<boolean> {
+  /*
+   * Serialize against Stripe/webhook subscription mutations. The subsequent
+   * status+plan read and the ledger transition therefore describe one durable
+   * billing instant, not an API-side snapshot that may already be canceled.
+   */
+  await tx.$queryRaw`
+    SELECT "id" FROM "Subscription"
+    WHERE "organizationId" = ${organizationId}
+    ORDER BY "id" ASC
+    FOR UPDATE
+  `;
+  const subscription = await tx.subscription.findFirst({
+    where: {
+      organizationId,
+      status: { in: ['ACTIVE', 'TRIALING'] },
+      plan: { key: { not: 'free' } },
+    },
+    select: { id: true },
+  });
+
+  return Boolean(subscription);
+}
+
+async function markReservedVmPeriodPastDueInTransaction(
+  tx: Prisma.TransactionClient,
+  input: {
+    period: any;
+    now: Date;
+    errorCode: string;
+    errorMessage: string;
+    gracePeriodMs: number;
+  },
+): Promise<{ period: ReservedVmBillingPeriodRecord; deployment: DeploymentRecord }> {
+  const graceEndsAt = input.period.graceEndsAt ?? reservedVmGraceExpiry(input.now, input.gracePeriodMs);
+  const pastDue = await tx.reservedVmBillingPeriod.update({
+    where: { id: input.period.id },
+    data: {
+      status: 'PAST_DUE',
+      graceEndsAt,
+      leaseOwner: null,
+      leaseExpiresAt: null,
+      lastErrorCode: input.errorCode.slice(0, 120),
+      lastErrorMessage: input.errorMessage.slice(0, 1_000),
+    },
+  });
+  const updated = await tx.deployment.updateMany({
+    where: {
+      id: input.period.deploymentId,
+      runtimeKind: 'reserved-vm',
+      reservedVmNextChargeAt: input.period.periodStart,
+    },
+    data: {
+      reservedVmBillingState: 'PAST_DUE',
+      reservedVmGraceEndsAt: graceEndsAt,
+      reservedVmStopRequestedAt: null,
+    },
+  });
+
+  if (updated.count !== 1) {
+    throw Object.assign(new Error('RESERVED_VM_BILLING_CYCLE_CONFLICT'), {
+      code: 'RESERVED_VM_BILLING_CYCLE_CONFLICT',
+      statusCode: 409,
+    });
+  }
+
+  const deployment = await tx.deployment.findUniqueOrThrow({ where: { id: input.period.deploymentId } });
+  return { period: publicReservedVmBillingPeriod(pastDue), deployment: mapDeployment(deployment) };
+}
+
+async function assertProjectReservedVmDecommissioned(tx: Prisma.TransactionClient, projectId: string): Promise<void> {
+  const [runtime, operation, billingPeriod, persistentClaim] = await Promise.all([
+    tx.deployment.findFirst({
+      where: { projectId, runtimeKind: 'reserved-vm' },
+      select: { id: true },
+    }),
+    tx.reservedVmOperation.findFirst({
+      where: { projectId, status: { in: ['PENDING', 'APPLYING'] } },
+      select: { id: true },
+    }),
+    tx.reservedVmBillingPeriod.findFirst({
+      /* PAID rows are immutable history, not live compute/billing authority. */
+      where: { projectId, status: { in: ['DUE', 'PROCESSING', 'PAST_DUE', 'STOP_REQUIRED'] } },
+      select: { id: true },
+    }),
+    tx.deployment.findFirst({
+      where: { projectId, persistentStorageClaim: { not: null } },
+      select: { id: true },
+    }),
+  ]);
+
+  if (runtime || operation || billingPeriod || persistentClaim) {
+    throw Object.assign(new Error('PROJECT_RESERVED_VM_DECOMMISSION_REQUIRED'), {
+      code: 'PROJECT_RESERVED_VM_DECOMMISSION_REQUIRED',
+      statusCode: 409,
+    });
+  }
 }
 
 function reservedVmRenewalRequestHash(input: {
@@ -296,7 +409,10 @@ function reservedVmRenewalRequestHash(input: {
 
 type ExpiredReservedVmGraceRow = {
   id: string;
+  projectId: string;
   deploymentId: string;
+  organizationId: string;
+  actorUserId: string;
   periodStart: Date;
   graceEndsAt: Date;
   billingReservationId: string | null;
@@ -309,28 +425,54 @@ async function promoteExpiredReservedVmGrace(
 ): Promise<void> {
   const take = Number.isFinite(input.take) ? Math.max(1, Math.min(Math.trunc(input.take), 500)) : 100;
 
-  const rows = input.deploymentId
-    ? await tx.$queryRaw<ExpiredReservedVmGraceRow[]>`
-        SELECT p."id", p."deploymentId", p."periodStart", p."graceEndsAt", p."billingReservationId"
-        FROM "ReservedVmBillingPeriod" p
-        WHERE p."deploymentId" = ${input.deploymentId}
-          AND p."status" = 'PAST_DUE'
-          AND p."graceEndsAt" <= clock_timestamp()
-        ORDER BY p."graceEndsAt" ASC, p."id" ASC
-        FOR UPDATE SKIP LOCKED
-        LIMIT ${take}
-      `
-    : await tx.$queryRaw<ExpiredReservedVmGraceRow[]>`
-        SELECT p."id", p."deploymentId", p."periodStart", p."graceEndsAt", p."billingReservationId"
-        FROM "ReservedVmBillingPeriod" p
-        WHERE p."status" = 'PAST_DUE'
-          AND p."graceEndsAt" <= clock_timestamp()
-        ORDER BY p."graceEndsAt" ASC, p."id" ASC
-        FOR UPDATE SKIP LOCKED
-        LIMIT ${take}
-      `;
+  for (let processed = 0; processed < take; processed += 1) {
+    /* Read authority before effect-row locks to preserve the purge lock order. */
+    const preliminary = input.deploymentId
+      ? await tx.$queryRaw<ExpiredReservedVmGraceRow[]>`
+          SELECT p."id", p."projectId", p."deploymentId", p."organizationId", p."actorUserId",
+                 p."periodStart", p."graceEndsAt", p."billingReservationId"
+          FROM "ReservedVmBillingPeriod" p
+          WHERE p."deploymentId" = ${input.deploymentId}
+            AND p."status" = 'PAST_DUE'
+            AND p."graceEndsAt" <= clock_timestamp()
+            AND p."actorUserId" IS NOT NULL
+          ORDER BY p."graceEndsAt" ASC, p."id" ASC
+          LIMIT 1
+        `
+      : await tx.$queryRaw<ExpiredReservedVmGraceRow[]>`
+          SELECT p."id", p."projectId", p."deploymentId", p."organizationId", p."actorUserId",
+                 p."periodStart", p."graceEndsAt", p."billingReservationId"
+          FROM "ReservedVmBillingPeriod" p
+          WHERE p."status" = 'PAST_DUE'
+            AND p."graceEndsAt" <= clock_timestamp()
+            AND p."actorUserId" IS NOT NULL
+          ORDER BY p."graceEndsAt" ASC, p."id" ASC
+          LIMIT 1
+        `;
+    const candidate = preliminary[0];
 
-  for (const row of rows) {
+    if (!candidate) return;
+
+    const actorUserId = requireReservedVmActor(candidate.actorUserId);
+    await assertAccountPurgeMutationAllowed(tx, {
+      userIds: [actorUserId],
+      organizationIds: [candidate.organizationId],
+      projectIds: [candidate.projectId],
+    });
+    const locked = await tx.$queryRaw<ExpiredReservedVmGraceRow[]>`
+      SELECT p."id", p."projectId", p."deploymentId", p."organizationId", p."actorUserId",
+             p."periodStart", p."graceEndsAt", p."billingReservationId"
+      FROM "ReservedVmBillingPeriod" p
+      WHERE p."id" = ${candidate.id}
+        AND p."status" = 'PAST_DUE'
+        AND p."graceEndsAt" <= clock_timestamp()
+        AND p."actorUserId" = ${actorUserId}
+      FOR UPDATE SKIP LOCKED
+    `;
+    const row = locked[0];
+
+    if (!row) return;
+
     const now = await databaseNow(tx);
     const deployment = await tx.deployment.findUnique({ where: { id: row.deploymentId } });
 
@@ -474,6 +616,187 @@ export async function acquireRollbackPurgeScope(
     projectId: scope.projectId,
     organizationId: scope.project.organizationId,
   };
+}
+
+type ReservedVmCommitFence = {
+  operationId: string;
+  ownerToken: string;
+  fencingToken: number;
+  response: Record<string, unknown>;
+};
+
+async function commitReservedVmOperationInTransaction(
+  tx: Prisma.TransactionClient,
+  ledger: LedgerStore,
+  input: ReservedVmCommitFence,
+): Promise<{ operation: ReservedVmOperationRecord; deployment: DeploymentRecord }> {
+  const preliminary = await tx.reservedVmOperation.findUniqueOrThrow({ where: { id: input.operationId } });
+  const actorUserId = requireReservedVmActor(preliminary.actorUserId);
+  await assertAccountPurgeMutationAllowed(tx, {
+    userIds: [actorUserId],
+    organizationIds: [preliminary.organizationId],
+    projectIds: [preliminary.projectId],
+  });
+  await tx.$queryRaw`SELECT "id" FROM "ReservedVmOperation" WHERE "id" = ${input.operationId} FOR UPDATE`;
+  const now = await databaseNow(tx);
+  const operation = await tx.reservedVmOperation.findUniqueOrThrow({ where: { id: input.operationId } });
+
+  if (operation.status === 'COMPLETED') {
+    const deployment = await tx.deployment.findUniqueOrThrow({ where: { id: operation.deploymentId } });
+    return { operation: publicReservedVmOperation(operation), deployment: mapDeployment(deployment) };
+  }
+
+  if (
+    operation.status !== 'APPLYING' ||
+    operation.phase !== 'RUNTIME_APPLIED' ||
+    operation.leaseOwner !== input.ownerToken ||
+    operation.fencingToken !== input.fencingToken ||
+    !operation.leaseExpiresAt ||
+    operation.leaseExpiresAt <= now
+  ) {
+    throw Object.assign(new Error('Reserved VM operation ownership was lost.'), {
+      code: 'RESERVED_VM_OPERATION_FENCE_LOST',
+      statusCode: 409,
+    });
+  }
+
+  await tx.$queryRaw`SELECT "id" FROM "Deployment" WHERE "id" = ${operation.deploymentId} FOR UPDATE`;
+  const current = await tx.deployment.findUniqueOrThrow({ where: { id: operation.deploymentId } });
+
+  if (current.runtimeVersion !== operation.expectedRuntimeVersion) {
+    throw Object.assign(new Error('Deployment runtime changed concurrently.'), {
+      code: 'RESERVED_VM_RUNTIME_VERSION_CONFLICT',
+      statusCode: 409,
+    });
+  }
+
+  if (operation.billingReservationId) {
+    await ledger.commitReservationInTransaction(tx, {
+      reservationId: operation.billingReservationId,
+      actualAmountMinor: BigInt(operation.billingAmountCents),
+      refuseOverage: true,
+    });
+  }
+
+  let initialPeriodStart: Date | null = null;
+  let initialPeriodEnd: Date | null = null;
+  const startsBillingCycle =
+    operation.targetRuntimeKind === 'reserved-vm' &&
+    (operation.fromRuntimeKind !== 'reserved-vm' || current.reservedVmBillingState === 'SUSPENDED');
+
+  if (startsBillingCycle) {
+    if (
+      !operation.billingReservationId ||
+      operation.billingAmountCents !== operation.targetPriceCents ||
+      !operation.targetTier
+    ) {
+      throw Object.assign(new Error('Reserved VM initial monthly settlement is incomplete.'), {
+        code: 'RESERVED_VM_BILLING_SCHEDULE_CORRUPT',
+        statusCode: 409,
+      });
+    }
+
+    initialPeriodStart = now;
+    initialPeriodEnd = await databaseCalendarMonthAfter(tx, now);
+    await tx.reservedVmBillingPeriod.create({
+      data: {
+        projectId: operation.projectId,
+        deploymentId: operation.deploymentId,
+        organizationId: operation.organizationId,
+        actorUserId,
+        periodStart: initialPeriodStart,
+        periodEnd: initialPeriodEnd,
+        tier: operation.targetTier,
+        priceCents: operation.targetPriceCents,
+        termsVersion: operation.termsVersion,
+        rateCardVersion: operation.rateCardVersion,
+        status: 'PAID',
+        attemptCount: 1,
+        billingReservationId: operation.billingReservationId,
+        settledAt: now,
+      },
+    });
+  } else if (
+    operation.targetRuntimeKind === 'reserved-vm' &&
+    (!current.reservedVmCurrentPeriodStart || !current.reservedVmNextChargeAt || !current.reservedVmBillingState)
+  ) {
+    throw Object.assign(new Error('Reserved VM monthly schedule is missing.'), {
+      code: 'RESERVED_VM_BILLING_SCHEDULE_CORRUPT',
+      statusCode: 409,
+    });
+  }
+
+  if (operation.targetRuntimeKind === 'autoscale') {
+    const openPeriods = await tx.reservedVmBillingPeriod.findMany({
+      where: { deploymentId: current.id, status: { in: ['DUE', 'PROCESSING', 'PAST_DUE'] } },
+      select: { id: true, billingReservationId: true },
+    });
+
+    for (const period of openPeriods) {
+      if (period.billingReservationId) {
+        await ledger.releaseReservationInTransaction(tx, period.billingReservationId, 'cancel');
+      }
+    }
+    await tx.reservedVmBillingPeriod.updateMany({
+      where: { id: { in: openPeriods.map((period) => period.id) } },
+      data: { status: 'CANCELED', leaseOwner: null, leaseExpiresAt: null },
+    });
+  }
+
+  const updated = await tx.deployment.update({
+    where: { id: current.id },
+    data: {
+      runtimeKind: operation.targetRuntimeKind,
+      runtimeVersion: { increment: 1 },
+      machineSize: operation.targetMachineSize,
+      reservedVmTier: operation.targetTier,
+      reservedVmPriceCents: operation.targetRuntimeKind === 'reserved-vm' ? operation.targetPriceCents : null,
+      reservedVmTermsVersion: operation.targetRuntimeKind === 'reserved-vm' ? operation.termsVersion : null,
+      reservedVmRateCardVersion: operation.targetRuntimeKind === 'reserved-vm' ? operation.rateCardVersion : null,
+      reservedVmBillingReservationId:
+        operation.targetRuntimeKind === 'reserved-vm'
+          ? (operation.billingReservationId ?? current.reservedVmBillingReservationId)
+          : null,
+      reservedVmBillingState:
+        operation.targetRuntimeKind === 'reserved-vm'
+          ? initialPeriodStart
+            ? 'CURRENT'
+            : current.reservedVmBillingState
+          : null,
+      reservedVmCurrentPeriodStart:
+        operation.targetRuntimeKind === 'reserved-vm'
+          ? (initialPeriodStart ?? current.reservedVmCurrentPeriodStart)
+          : null,
+      reservedVmNextChargeAt:
+        operation.targetRuntimeKind === 'reserved-vm' ? (initialPeriodEnd ?? current.reservedVmNextChargeAt) : null,
+      reservedVmGraceEndsAt:
+        operation.targetRuntimeKind === 'reserved-vm'
+          ? initialPeriodStart
+            ? null
+            : current.reservedVmGraceEndsAt
+          : null,
+      reservedVmStopRequestedAt:
+        operation.targetRuntimeKind === 'reserved-vm'
+          ? initialPeriodStart
+            ? null
+            : current.reservedVmStopRequestedAt
+          : null,
+      persistentStorageClaim: current.persistentStorageClaim ?? `reserved-data-${current.id}`,
+    },
+  });
+  const completed = await tx.reservedVmOperation.update({
+    where: { id: operation.id },
+    data: {
+      status: 'COMPLETED',
+      phase: 'COMMITTED',
+      response: input.response as Prisma.InputJsonValue,
+      completedAt: now,
+      leaseOwner: null,
+      leaseExpiresAt: null,
+    },
+  });
+
+  return { operation: publicReservedVmOperation(completed), deployment: mapDeployment(updated) };
 }
 
 async function requireRollbackLease(tx: Prisma.TransactionClient, input: RollbackFenceIdentity): Promise<any> {
@@ -2035,7 +2358,12 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
   }
 
   async softDeleteProject(projectId: string) {
-    return mapProject(await this.prisma.project.update({ where: { id: projectId }, data: { deletedAt: new Date() } }));
+    return this.prisma.$transaction(async (tx) => {
+      await this.accountPurge.assertProjectMutable(tx, projectId);
+      await tx.$queryRawUnsafe('SELECT "id" FROM "Project" WHERE "id" = $1 FOR UPDATE', projectId);
+      await assertProjectReservedVmDecommissioned(tx, projectId);
+      return mapProject(await tx.project.update({ where: { id: projectId }, data: { deletedAt: new Date() } }));
+    });
   }
 
   async restoreProject(projectId: string) {
@@ -2047,6 +2375,8 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
     // so a plain delete removes the whole project graph atomically.
     return this.prisma.$transaction(async (tx) => {
       await this.accountPurge.assertProjectMutable(tx, projectId);
+      await tx.$queryRawUnsafe('SELECT "id" FROM "Project" WHERE "id" = $1 FOR UPDATE', projectId);
+      await assertProjectReservedVmDecommissioned(tx, projectId);
       return mapProject(await tx.project.delete({ where: { id: projectId } }));
     });
   }
@@ -2129,6 +2459,9 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
               activeStorageShareCount,
               readyDeploymentCount,
               releaseManifestCount,
+              reservedVmDeploymentCount,
+              reservedVmOperationCount,
+              activeReservedVmBillingPeriodCount,
             ] = await Promise.all([
               tx.databaseInstance.count({ where: { projectId: input.projectId, status: { not: 'DELETED' } } }),
               tx.cloudProjectBinding.count({ where: { projectId: input.projectId } }),
@@ -2160,6 +2493,11 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
               }),
               tx.deployment.count({ where: { projectId: input.projectId, status: 'READY' } }),
               tx.releaseManifest.count({ where: { projectId: input.projectId } }),
+              tx.deployment.count({ where: { projectId: input.projectId, runtimeKind: 'reserved-vm' } }),
+              tx.reservedVmOperation.count({ where: { projectId: input.projectId } }),
+              tx.reservedVmBillingPeriod.count({
+                where: { projectId: input.projectId, status: { not: 'CANCELED' } },
+              }),
             ]);
 
             if (
@@ -2170,7 +2508,10 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
                 activeRemixCount +
                 activeStorageShareCount +
                 readyDeploymentCount +
-                releaseManifestCount >
+                releaseManifestCount +
+                reservedVmDeploymentCount +
+                reservedVmOperationCount +
+                activeReservedVmBillingPeriodCount >
               0
             ) {
               throw Object.assign(new Error(appPublicEnglish('PROJECT_TRANSFER_MANAGED_RESOURCES_ACTIVE')), {
@@ -7298,6 +7639,7 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
     }
 
     const environment = input.environment ?? 'preview';
+    const reservedVmActorUserId = input.reservedVm ? requireReservedVmActor(input.reservedVm.actorUserId) : undefined;
 
     const ledger = new LedgerStore(this.prisma);
 
@@ -7317,7 +7659,12 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
         });
 
         if (replay) {
-          if (replay.requestHash !== input.reservedVm.requestHash || replay.kind !== 'CREATE') {
+          if (
+            replay.requestHash !== input.reservedVm.requestHash ||
+            replay.kind !== 'CREATE' ||
+            !replay.actorUserId ||
+            replay.actorUserId !== reservedVmActorUserId
+          ) {
             throw Object.assign(new Error('Reserved VM idempotency key was reused for another request.'), {
               code: 'RESERVED_VM_IDEMPOTENCY_CONFLICT',
               statusCode: 409,
@@ -7350,8 +7697,9 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
         }
 
         await assertAccountPurgeMutationAllowed(tx, {
-          userIds: [input.reservedVm.actorUserId],
+          userIds: [reservedVmActorUserId],
           organizationIds: [input.reservedVm.organizationId],
+          projectIds: [input.projectId],
         });
       }
 
@@ -7449,7 +7797,7 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
         const persistentStorageClaim = `reserved-data-${deployment.id}`;
         const reservation = await ledger.reserveUsageInTransaction(tx, {
           organizationId: input.reservedVm.organizationId,
-          userId: input.reservedVm.actorUserId,
+          userId: reservedVmActorUserId,
           idempotencyKey: `reserved-vm:${input.projectId}:${input.reservedVm.idempotencyKey}`,
           requestHash: input.reservedVm.requestHash,
           operation: 'reserved_vm_monthly',
@@ -7468,7 +7816,7 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
             projectId: input.projectId,
             deploymentId: deployment.id,
             organizationId: input.reservedVm.organizationId,
-            actorUserId: input.reservedVm.actorUserId ?? null,
+            actorUserId: reservedVmActorUserId,
             idempotencyKey: input.reservedVm.idempotencyKey,
             requestHash: input.reservedVm.requestHash,
             kind: 'CREATE',
@@ -7477,6 +7825,8 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
             targetRuntimeKind: 'reserved-vm',
             targetTier: input.reservedVm.tier,
             targetMachineSize: input.reservedVm.tier,
+            targetCpuMillicores: Math.round(RESERVED_VM_TIERS[input.reservedVm.tier].vcpu * 1_000),
+            targetMemoryMb: RESERVED_VM_TIERS[input.reservedVm.tier].ramGb * 1_024,
             targetPriceCents: input.reservedVm.monthlyPriceCents,
             billingAmountCents: input.reservedVm.monthlyPriceCents,
             termsVersion: input.reservedVm.termsVersion,
@@ -7498,18 +7848,21 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
     projectId: string;
     deploymentId: string;
     organizationId: string;
-    actorUserId?: string;
+    actorUserId: string;
     idempotencyKey: string;
     requestHash: string;
     expectedRuntimeVersion: number;
     targetRuntimeKind: DeploymentRuntimeKind;
     targetTier?: ReservedVmTier;
     targetMachineSize: string;
+    targetCpuMillicores: number;
+    targetMemoryMb: number;
     targetPriceCents: number;
     termsVersion: string;
     rateCardVersion: number;
   }): Promise<{ operation: ReservedVmOperationRecord; deployment: DeploymentRecord; replayed: boolean }> {
     const ledger = new LedgerStore(this.prisma);
+    const actorUserId = requireReservedVmActor(input.actorUserId);
 
     return this.prisma.$transaction(async (tx) => {
       await tx.$executeRawUnsafe(
@@ -7523,7 +7876,12 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
       });
 
       if (replay) {
-        if (replay.requestHash !== input.requestHash || replay.deploymentId !== input.deploymentId) {
+        if (
+          replay.requestHash !== input.requestHash ||
+          replay.deploymentId !== input.deploymentId ||
+          !replay.actorUserId ||
+          replay.actorUserId !== actorUserId
+        ) {
           throw Object.assign(new Error('Reserved VM idempotency key was reused for another request.'), {
             code: 'RESERVED_VM_IDEMPOTENCY_CONFLICT',
             statusCode: 409,
@@ -7535,8 +7893,9 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
       }
 
       await assertAccountPurgeMutationAllowed(tx, {
-        userIds: [input.actorUserId],
+        userIds: [actorUserId],
         organizationIds: [input.organizationId],
+        projectIds: [input.projectId],
       });
       await tx.$queryRaw`SELECT "id" FROM "Deployment" WHERE "id" = ${input.deploymentId} FOR UPDATE`;
       const deployment = await tx.deployment.findFirst({
@@ -7601,18 +7960,29 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
 
       if (input.targetRuntimeKind === 'reserved-vm') {
         const exactPrice = input.targetTier ? RESERVED_VM_TIERS[input.targetTier]?.centsPerMonth : undefined;
+        const exactCpu = input.targetTier ? Math.round(RESERVED_VM_TIERS[input.targetTier].vcpu * 1_000) : undefined;
+        const exactMemory = input.targetTier ? RESERVED_VM_TIERS[input.targetTier].ramGb * 1_024 : undefined;
 
         if (
           !input.targetTier ||
           exactPrice !== input.targetPriceCents ||
-          input.targetMachineSize !== input.targetTier
+          input.targetMachineSize !== input.targetTier ||
+          input.targetCpuMillicores !== exactCpu ||
+          input.targetMemoryMb !== exactMemory
         ) {
           throw Object.assign(new Error('Reserved VM tier or price confirmation is stale.'), {
             code: 'RESERVED_VM_PRICE_MISMATCH',
             statusCode: 409,
           });
         }
-      } else if (input.targetTier || input.targetPriceCents !== 0) {
+      } else if (
+        input.targetTier ||
+        input.targetPriceCents !== 0 ||
+        !Number.isSafeInteger(input.targetCpuMillicores) ||
+        input.targetCpuMillicores <= 0 ||
+        !Number.isSafeInteger(input.targetMemoryMb) ||
+        input.targetMemoryMb <= 0
+      ) {
         throw Object.assign(new Error('Autoscale cannot carry a Reserved VM tier or price.'), {
           code: 'RESERVED_VM_TARGET_INVALID',
           statusCode: 400,
@@ -7622,7 +7992,8 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
       if (
         (deployment.runtimeKind ?? 'autoscale') === input.targetRuntimeKind &&
         deployment.machineSize === input.targetMachineSize &&
-        (deployment.reservedVmTier ?? undefined) === input.targetTier
+        (deployment.reservedVmTier ?? undefined) === input.targetTier &&
+        deployment.reservedVmBillingState !== 'SUSPENDED'
       ) {
         throw Object.assign(new Error('The requested runtime configuration is already active.'), {
           code: 'RESERVED_VM_NO_CHANGE',
@@ -7632,13 +8003,15 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
 
       const billingAmountCents =
         input.targetRuntimeKind === 'reserved-vm'
-          ? Math.max(0, input.targetPriceCents - Number(deployment.reservedVmPriceCents ?? 0))
+          ? deployment.reservedVmBillingState === 'SUSPENDED'
+            ? input.targetPriceCents
+            : Math.max(0, input.targetPriceCents - Number(deployment.reservedVmPriceCents ?? 0))
           : 0;
       const billingReservation =
         billingAmountCents > 0
           ? await ledger.reserveUsageInTransaction(tx, {
               organizationId: input.organizationId,
-              userId: input.actorUserId,
+              userId: actorUserId,
               idempotencyKey: `reserved-vm:${input.projectId}:${input.idempotencyKey}`,
               requestHash: input.requestHash,
               operation: 'reserved_vm_monthly',
@@ -7653,7 +8026,7 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
           projectId: input.projectId,
           deploymentId: input.deploymentId,
           organizationId: input.organizationId,
-          actorUserId: input.actorUserId ?? null,
+          actorUserId,
           idempotencyKey: input.idempotencyKey,
           requestHash: input.requestHash,
           kind: 'CHANGE',
@@ -7662,12 +8035,310 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
           targetRuntimeKind: input.targetRuntimeKind,
           targetTier: input.targetTier ?? null,
           targetMachineSize: input.targetMachineSize,
+          targetCpuMillicores: input.targetCpuMillicores,
+          targetMemoryMb: input.targetMemoryMb,
           targetPriceCents: input.targetPriceCents,
           billingAmountCents,
           termsVersion: input.termsVersion,
           rateCardVersion: input.rateCardVersion,
           expectedRuntimeVersion: input.expectedRuntimeVersion,
           billingReservationId: billingReservation?.id ?? null,
+        },
+      });
+
+      return {
+        operation: publicReservedVmOperation(operation),
+        deployment: mapDeployment(deployment),
+        replayed: false,
+      };
+    });
+  }
+
+  async createReservedVmRedeployOperation(input: {
+    projectId: string;
+    deploymentId: string;
+    organizationId: string;
+    actorUserId: string;
+    idempotencyKey: string;
+    requestHash: string;
+    expectedRuntimeVersion: number;
+    encryptedBuildInput: { keyId: string; ciphertext: string };
+  }): Promise<{ operation: ReservedVmOperationRecord; deployment: DeploymentRecord; replayed: boolean }> {
+    const actorUserId = requireReservedVmActor(input.actorUserId);
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$executeRawUnsafe(
+        'SELECT pg_advisory_xact_lock(hashtext($1))',
+        `reserved-vm:${input.projectId}:${input.idempotencyKey}`,
+      );
+      const replay = await tx.reservedVmOperation.findUnique({
+        where: {
+          projectId_idempotencyKey: { projectId: input.projectId, idempotencyKey: input.idempotencyKey },
+        },
+      });
+
+      if (replay) {
+        if (
+          replay.kind !== 'REDEPLOY' ||
+          replay.requestHash !== input.requestHash ||
+          replay.deploymentId !== input.deploymentId ||
+          !replay.actorUserId ||
+          replay.actorUserId !== actorUserId
+        ) {
+          throw Object.assign(new Error('Reserved VM idempotency key was reused for another request.'), {
+            code: 'RESERVED_VM_IDEMPOTENCY_CONFLICT',
+            statusCode: 409,
+          });
+        }
+
+        const deployment = await tx.deployment.findUniqueOrThrow({ where: { id: replay.deploymentId } });
+        return { operation: publicReservedVmOperation(replay), deployment: mapDeployment(deployment), replayed: true };
+      }
+
+      await assertAccountPurgeMutationAllowed(tx, {
+        userIds: [actorUserId],
+        organizationIds: [input.organizationId],
+        projectIds: [input.projectId],
+      });
+      await tx.$queryRaw`SELECT "id" FROM "Deployment" WHERE "id" = ${input.deploymentId} FOR UPDATE`;
+      const deployment = await tx.deployment.findFirst({
+        where: { id: input.deploymentId, projectId: input.projectId },
+      });
+
+      if (!deployment) {
+        throw Object.assign(new Error('Deployment not found.'), { code: 'DEPLOYMENT_NOT_FOUND', statusCode: 404 });
+      }
+
+      const projectOwner = await tx.project.findUnique({
+        where: { id: input.projectId },
+        select: { organizationId: true },
+      });
+
+      if (!projectOwner || projectOwner.organizationId !== input.organizationId) {
+        throw Object.assign(new Error('Reserved VM project ownership does not match the billing tenant.'), {
+          code: 'RESERVED_VM_TENANT_FORBIDDEN',
+          statusCode: 403,
+        });
+      }
+
+      if (
+        deployment.provider !== 'server' ||
+        deployment.status !== 'READY' ||
+        deployment.runtimeKind !== 'reserved-vm' ||
+        !deployment.reservedVmTier ||
+        !deployment.reservedVmPriceCents ||
+        !deployment.reservedVmTermsVersion ||
+        !deployment.reservedVmRateCardVersion ||
+        !deployment.reservedVmBillingState ||
+        deployment.reservedVmBillingState !== 'CURRENT'
+      ) {
+        throw Object.assign(new Error('Only a current, ready Reserved VM can be redeployed in place.'), {
+          code: 'RESERVED_VM_REDEPLOY_NOT_READY',
+          statusCode: 409,
+        });
+      }
+
+      if (deployment.runtimeVersion !== input.expectedRuntimeVersion) {
+        throw Object.assign(new Error('Deployment runtime changed concurrently.'), {
+          code: 'RESERVED_VM_RUNTIME_VERSION_CONFLICT',
+          statusCode: 409,
+        });
+      }
+
+      const activeOperation = await tx.reservedVmOperation.findFirst({
+        where: { deploymentId: deployment.id, status: { in: ['PENDING', 'APPLYING'] } },
+        select: { id: true },
+      });
+
+      if (activeOperation) {
+        throw Object.assign(new Error('Another Reserved VM operation is already in progress.'), {
+          code: 'RESERVED_VM_CHANGE_IN_PROGRESS',
+          statusCode: 409,
+        });
+      }
+
+      const operation = await tx.reservedVmOperation.create({
+        data: {
+          projectId: input.projectId,
+          deploymentId: input.deploymentId,
+          organizationId: input.organizationId,
+          actorUserId,
+          idempotencyKey: input.idempotencyKey,
+          requestHash: input.requestHash,
+          kind: 'REDEPLOY',
+          fromRuntimeKind: 'reserved-vm',
+          fromTier: deployment.reservedVmTier,
+          targetRuntimeKind: 'reserved-vm',
+          targetTier: deployment.reservedVmTier,
+          targetMachineSize: deployment.machineSize,
+          targetCpuMillicores: Math.round(RESERVED_VM_TIERS[deployment.reservedVmTier as ReservedVmTier].vcpu * 1_000),
+          targetMemoryMb: RESERVED_VM_TIERS[deployment.reservedVmTier as ReservedVmTier].ramGb * 1_024,
+          targetPriceCents: deployment.reservedVmPriceCents,
+          billingAmountCents: 0,
+          termsVersion: deployment.reservedVmTermsVersion,
+          rateCardVersion: deployment.reservedVmRateCardVersion,
+          expectedRuntimeVersion: input.expectedRuntimeVersion,
+        },
+      });
+      const currentMetadata =
+        deployment.metadata && typeof deployment.metadata === 'object' && !Array.isArray(deployment.metadata)
+          ? (deployment.metadata as Record<string, unknown>)
+          : {};
+      const durableDeployment = await tx.deployment.update({
+        where: { id: deployment.id },
+        data: {
+          metadata: {
+            ...currentMetadata,
+            reservedVmOperationKey: input.idempotencyKey,
+            reservedVmRedeploy: {
+              operationId: operation.id,
+              idempotencyKey: input.idempotencyKey,
+              expectedRuntimeVersion: input.expectedRuntimeVersion,
+              encryptedBuildInput: input.encryptedBuildInput,
+            },
+          } as Prisma.InputJsonValue,
+        },
+      });
+
+      return {
+        operation: publicReservedVmOperation(operation),
+        deployment: mapDeployment(durableDeployment),
+        replayed: false,
+      };
+    });
+  }
+
+  async createReservedVmDecommissionOperation(input: {
+    projectId: string;
+    deploymentId: string;
+    organizationId: string;
+    actorUserId: string;
+    idempotencyKey: string;
+    requestHash: string;
+    expectedRuntimeVersion: number;
+    targetMachineSize: string;
+    targetCpuMillicores: number;
+    targetMemoryMb: number;
+  }): Promise<{ operation: ReservedVmOperationRecord; deployment: DeploymentRecord; replayed: boolean }> {
+    const actorUserId = requireReservedVmActor(input.actorUserId);
+
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$executeRawUnsafe(
+        'SELECT pg_advisory_xact_lock(hashtext($1))',
+        `reserved-vm:${input.projectId}:${input.idempotencyKey}`,
+      );
+      const replay = await tx.reservedVmOperation.findUnique({
+        where: {
+          projectId_idempotencyKey: { projectId: input.projectId, idempotencyKey: input.idempotencyKey },
+        },
+      });
+
+      if (replay) {
+        if (
+          replay.kind !== 'DECOMMISSION' ||
+          replay.requestHash !== input.requestHash ||
+          replay.deploymentId !== input.deploymentId ||
+          !replay.actorUserId ||
+          replay.actorUserId !== actorUserId
+        ) {
+          throw Object.assign(new Error('RESERVED_VM_IDEMPOTENCY_CONFLICT'), {
+            code: 'RESERVED_VM_IDEMPOTENCY_CONFLICT',
+            statusCode: 409,
+          });
+        }
+
+        const deployment = await tx.deployment.findUniqueOrThrow({ where: { id: replay.deploymentId } });
+        return { operation: publicReservedVmOperation(replay), deployment: mapDeployment(deployment), replayed: true };
+      }
+
+      await assertAccountPurgeMutationAllowed(tx, {
+        userIds: [actorUserId],
+        organizationIds: [input.organizationId],
+        projectIds: [input.projectId],
+      });
+      await tx.$queryRaw`SELECT "id" FROM "Deployment" WHERE "id" = ${input.deploymentId} FOR UPDATE`;
+      const deployment = await tx.deployment.findFirst({
+        where: { id: input.deploymentId, projectId: input.projectId },
+      });
+
+      if (!deployment) {
+        throw Object.assign(new Error('DEPLOYMENT_NOT_FOUND'), { code: 'DEPLOYMENT_NOT_FOUND', statusCode: 404 });
+      }
+
+      const project = await tx.project.findUnique({
+        where: { id: input.projectId },
+        select: { organizationId: true },
+      });
+
+      if (!project || project.organizationId !== input.organizationId) {
+        throw Object.assign(new Error('RESERVED_VM_TENANT_FORBIDDEN'), {
+          code: 'RESERVED_VM_TENANT_FORBIDDEN',
+          statusCode: 403,
+        });
+      }
+
+      if (
+        deployment.provider !== 'server' ||
+        deployment.status !== 'READY' ||
+        deployment.runtimeKind !== 'autoscale' ||
+        deployment.persistentStorageClaim !== `reserved-data-${deployment.id}`
+      ) {
+        throw Object.assign(new Error('RESERVED_VM_DECOMMISSION_NOT_READY'), {
+          code: 'RESERVED_VM_DECOMMISSION_NOT_READY',
+          statusCode: 409,
+        });
+      }
+
+      if (
+        deployment.runtimeVersion !== input.expectedRuntimeVersion ||
+        !Number.isSafeInteger(input.targetCpuMillicores) ||
+        input.targetCpuMillicores <= 0 ||
+        !Number.isSafeInteger(input.targetMemoryMb) ||
+        input.targetMemoryMb <= 0 ||
+        deployment.machineSize !== input.targetMachineSize
+      ) {
+        throw Object.assign(new Error('RESERVED_VM_RUNTIME_VERSION_CONFLICT'), {
+          code: 'RESERVED_VM_RUNTIME_VERSION_CONFLICT',
+          statusCode: 409,
+        });
+      }
+
+      const activeOperation = await tx.reservedVmOperation.findFirst({
+        where: { deploymentId: deployment.id, status: { in: ['PENDING', 'APPLYING'] } },
+        select: { id: true },
+      });
+      const activeBillingPeriod = await tx.reservedVmBillingPeriod.findFirst({
+        where: { deploymentId: deployment.id, status: { in: ['DUE', 'PROCESSING', 'PAST_DUE', 'STOP_REQUIRED'] } },
+        select: { id: true },
+      });
+
+      if (activeOperation || activeBillingPeriod) {
+        throw Object.assign(new Error('RESERVED_VM_DECOMMISSION_IN_PROGRESS'), {
+          code: 'RESERVED_VM_DECOMMISSION_IN_PROGRESS',
+          statusCode: 409,
+        });
+      }
+
+      const operation = await tx.reservedVmOperation.create({
+        data: {
+          projectId: input.projectId,
+          deploymentId: input.deploymentId,
+          organizationId: input.organizationId,
+          actorUserId,
+          idempotencyKey: input.idempotencyKey,
+          requestHash: input.requestHash,
+          kind: 'DECOMMISSION',
+          fromRuntimeKind: 'autoscale',
+          fromTier: null,
+          targetRuntimeKind: 'autoscale',
+          targetTier: null,
+          targetMachineSize: input.targetMachineSize,
+          targetCpuMillicores: input.targetCpuMillicores,
+          targetMemoryMb: input.targetMemoryMb,
+          targetPriceCents: 0,
+          billingAmountCents: 0,
+          termsVersion: 'reserved-vm-storage-decommission-v1',
+          rateCardVersion: 1,
+          expectedRuntimeVersion: input.expectedRuntimeVersion,
         },
       });
 
@@ -7692,7 +8363,28 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
     ownerToken: string;
     ttlMs: number;
   }): Promise<{ operation: ReservedVmLease; deployment: DeploymentRecord; acquired: boolean }> {
+    const ownerToken = requireReservedVmLeaseOwner(input.ownerToken);
     return this.prisma.$transaction(async (tx) => {
+      const preliminary = await tx.reservedVmOperation.findUnique({
+        where: {
+          projectId_idempotencyKey: { projectId: input.projectId, idempotencyKey: input.idempotencyKey },
+        },
+      });
+
+      if (!preliminary) {
+        throw Object.assign(new Error('Reserved VM operation not found.'), {
+          code: 'RESERVED_VM_OPERATION_NOT_FOUND',
+          statusCode: 404,
+        });
+      }
+
+      /* Purge locks must precede every saga/effect row lock. */
+      const actorUserId = requireReservedVmActor(preliminary.actorUserId);
+      await assertAccountPurgeMutationAllowed(tx, {
+        userIds: [actorUserId],
+        organizationIds: [preliminary.organizationId],
+        projectIds: [preliminary.projectId],
+      });
       const selected = await tx.$queryRaw<Array<{ id: string }>>`
         SELECT "id" FROM "ReservedVmOperation"
         WHERE "projectId" = ${input.projectId} AND "idempotencyKey" = ${input.idempotencyKey}
@@ -7700,12 +8392,7 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
       `;
       const id = selected[0]?.id;
 
-      if (!id) {
-        throw Object.assign(new Error('Reserved VM operation not found.'), {
-          code: 'RESERVED_VM_OPERATION_NOT_FOUND',
-          statusCode: 404,
-        });
-      }
+      if (!id) throw new Error('RESERVED_VM_OPERATION_NOT_FOUND');
 
       const now = await databaseNow(tx);
       const operation = await tx.reservedVmOperation.findUniqueOrThrow({ where: { id } });
@@ -7715,28 +8402,369 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
         return { operation: mapReservedVmOperation(operation), deployment: mapDeployment(deployment), acquired: false };
       }
 
+      if (operation.kind === 'CREATE' && operation.errorCode === 'RESERVED_VM_CANCEL_REQUESTED') {
+        return { operation: mapReservedVmOperation(operation), deployment: mapDeployment(deployment), acquired: false };
+      }
+
       if (
         operation.leaseOwner &&
-        operation.leaseOwner !== input.ownerToken &&
+        operation.leaseOwner !== ownerToken &&
         operation.leaseExpiresAt &&
         operation.leaseExpiresAt > now
       ) {
         return { operation: mapReservedVmOperation(operation), deployment: mapDeployment(deployment), acquired: false };
       }
 
+      /*
+       * External side effects need a fence that never resets when a new
+       * operation row is created. Increment the owning Deployment sequence
+       * under the same transaction/row lock and copy that value into the
+       * operation lease. A recovered lease therefore supersedes its crashed
+       * predecessor too, not only operations for later runtime versions.
+       */
+      const deploymentFence = await tx.deployment.update({
+        where: { id: operation.deploymentId },
+        data: { runtimeFencingToken: { increment: 1 } },
+        select: { runtimeFencingToken: true },
+      });
       const claimed = await tx.reservedVmOperation.update({
         where: { id: operation.id },
         data: {
           status: 'APPLYING',
           ...(operation.phase === 'RUNTIME_APPLIED' ? {} : { phase: 'LEASED' }),
-          leaseOwner: input.ownerToken,
+          leaseOwner: ownerToken,
           leaseExpiresAt: databaseLeaseExpiry(now, input.ttlMs),
-          fencingToken: { increment: 1 },
+          fencingToken: deploymentFence.runtimeFencingToken,
           errorCode: null,
           errorMessage: null,
         },
       });
       return { operation: mapReservedVmOperation(claimed), deployment: mapDeployment(deployment), acquired: true };
+    });
+  }
+
+  async acquireReservedVmCreateCancellation(input: {
+    projectId: string;
+    deploymentId: string;
+    actorUserId: string;
+    ownerToken: string;
+    ttlMs: number;
+  }): Promise<{ operation: ReservedVmLease; deployment: DeploymentRecord; acquired: boolean }> {
+    const actorUserId = requireReservedVmActor(input.actorUserId);
+    const ownerToken = requireReservedVmLeaseOwner(input.ownerToken);
+
+    return this.prisma.$transaction(async (tx) => {
+      const preliminary = await tx.reservedVmOperation.findFirst({
+        where: { projectId: input.projectId, deploymentId: input.deploymentId, kind: 'CREATE' },
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      });
+
+      if (!preliminary) {
+        throw Object.assign(new Error('RESERVED_VM_OPERATION_NOT_FOUND'), {
+          code: 'RESERVED_VM_OPERATION_NOT_FOUND',
+          statusCode: 404,
+        });
+      }
+
+      await assertAccountPurgeMutationAllowed(tx, {
+        userIds: [actorUserId, requireReservedVmActor(preliminary.actorUserId)],
+        organizationIds: [preliminary.organizationId],
+        projectIds: [preliminary.projectId],
+      });
+      await tx.$queryRaw`SELECT "id" FROM "ReservedVmOperation" WHERE "id" = ${preliminary.id} FOR UPDATE`;
+      await tx.$queryRaw`SELECT "id" FROM "Deployment" WHERE "id" = ${input.deploymentId} FOR UPDATE`;
+      const operation = await tx.reservedVmOperation.findUniqueOrThrow({ where: { id: preliminary.id } });
+      const deployment = await tx.deployment.findFirstOrThrow({
+        where: { id: input.deploymentId, projectId: input.projectId },
+      });
+      const now = await databaseNow(tx);
+
+      if (operation.status === 'FAILED' && deployment.status === 'CANCELED') {
+        return { operation: mapReservedVmOperation(operation), deployment: mapDeployment(deployment), acquired: false };
+      }
+
+      if (
+        operation.errorCode === 'RESERVED_VM_CANCEL_REQUESTED' &&
+        operation.leaseOwner &&
+        operation.leaseExpiresAt &&
+        operation.leaseExpiresAt > now
+      ) {
+        return { operation: mapReservedVmOperation(operation), deployment: mapDeployment(deployment), acquired: false };
+      }
+
+      if (
+        !['PENDING', 'APPLYING'].includes(operation.status) ||
+        !['QUEUED', 'BUILDING'].includes(deployment.status) ||
+        deployment.runtimeVersion !== operation.expectedRuntimeVersion
+      ) {
+        throw Object.assign(new Error('DEPLOYMENT_NOT_CANCELABLE'), {
+          code: 'DEPLOYMENT_NOT_CANCELABLE',
+          statusCode: 409,
+        });
+      }
+
+      const deploymentFence = await tx.deployment.update({
+        where: { id: deployment.id },
+        data: {
+          runtimeFencingToken: { increment: 1 },
+          metadata: {
+            ...((deployment.metadata as Record<string, unknown> | null) ?? {}),
+            reservedVmCancelRequestedAt: now.toISOString(),
+            reservedVmCancelRequestedBy: actorUserId,
+          } as Prisma.InputJsonValue,
+        },
+        select: { runtimeFencingToken: true },
+      });
+      const claimed = await tx.reservedVmOperation.update({
+        where: { id: operation.id },
+        data: {
+          status: 'APPLYING',
+          phase: 'LEASED',
+          leaseOwner: ownerToken,
+          leaseExpiresAt: databaseLeaseExpiry(now, input.ttlMs),
+          fencingToken: deploymentFence.runtimeFencingToken,
+          errorCode: 'RESERVED_VM_CANCEL_REQUESTED',
+          errorMessage: null,
+        },
+      });
+      const durableDeployment = await tx.deployment.findUniqueOrThrow({ where: { id: deployment.id } });
+
+      return {
+        operation: mapReservedVmOperation(claimed),
+        deployment: mapDeployment(durableDeployment),
+        acquired: true,
+      };
+    });
+  }
+
+  async claimNextReservedVmCreateCancellation(input: {
+    ownerToken: string;
+    ttlMs: number;
+  }): Promise<{ operation: ReservedVmLease; deployment: DeploymentRecord } | undefined> {
+    const ownerToken = requireReservedVmLeaseOwner(input.ownerToken);
+
+    return this.prisma.$transaction(async (tx) => {
+      const candidates = await tx.$queryRaw<Array<{ id: string }>>`
+        SELECT "id" FROM "ReservedVmOperation"
+        WHERE "kind" = 'CREATE'
+          AND "status" = 'APPLYING'
+          AND "errorCode" = 'RESERVED_VM_CANCEL_REQUESTED'
+          AND "actorUserId" IS NOT NULL
+          AND ("leaseExpiresAt" IS NULL OR "leaseExpiresAt" <= clock_timestamp())
+        ORDER BY "updatedAt" ASC, "id" ASC
+        LIMIT 1
+      `;
+      const candidateId = candidates[0]?.id;
+
+      if (!candidateId) return undefined;
+      const preliminary = await tx.reservedVmOperation.findUniqueOrThrow({ where: { id: candidateId } });
+      const actorUserId = requireReservedVmActor(preliminary.actorUserId);
+      await assertAccountPurgeMutationAllowed(tx, {
+        userIds: [actorUserId],
+        organizationIds: [preliminary.organizationId],
+        projectIds: [preliminary.projectId],
+      });
+      const selected = await tx.$queryRaw<Array<{ id: string }>>`
+        SELECT "id" FROM "ReservedVmOperation"
+        WHERE "id" = ${preliminary.id}
+          AND "kind" = 'CREATE'
+          AND "status" = 'APPLYING'
+          AND "errorCode" = 'RESERVED_VM_CANCEL_REQUESTED'
+          AND ("leaseExpiresAt" IS NULL OR "leaseExpiresAt" <= clock_timestamp())
+        FOR UPDATE SKIP LOCKED
+      `;
+
+      if (!selected[0]) return undefined;
+      const now = await databaseNow(tx);
+      await tx.$queryRaw`SELECT "id" FROM "Deployment" WHERE "id" = ${preliminary.deploymentId} FOR UPDATE`;
+      const fence = await tx.deployment.update({
+        where: { id: preliminary.deploymentId },
+        data: { runtimeFencingToken: { increment: 1 } },
+        select: { runtimeFencingToken: true },
+      });
+      const claimed = await tx.reservedVmOperation.update({
+        where: { id: preliminary.id },
+        data: {
+          leaseOwner: ownerToken,
+          leaseExpiresAt: databaseLeaseExpiry(now, input.ttlMs),
+          fencingToken: fence.runtimeFencingToken,
+        },
+      });
+      const deployment = await tx.deployment.findUniqueOrThrow({ where: { id: preliminary.deploymentId } });
+      return { operation: mapReservedVmOperation(claimed), deployment: mapDeployment(deployment) };
+    });
+  }
+
+  async claimNextRecoverableReservedVmOperation(input: {
+    ownerToken: string;
+    ttlMs: number;
+    kinds?: Array<'CREATE' | 'CHANGE' | 'REDEPLOY' | 'DECOMMISSION'>;
+  }): Promise<{ operation: ReservedVmLease; deployment: DeploymentRecord } | undefined> {
+    const ownerToken = requireReservedVmLeaseOwner(input.ownerToken);
+    const kinds: Array<'CREATE' | 'CHANGE' | 'REDEPLOY' | 'DECOMMISSION'> = [
+      ...new Set<'CREATE' | 'CHANGE' | 'REDEPLOY' | 'DECOMMISSION'>(
+        input.kinds?.length ? input.kinds : ['CHANGE', 'REDEPLOY', 'DECOMMISSION'],
+      ),
+    ];
+
+    return this.prisma.$transaction(async (tx) => {
+      const now = await databaseNow(tx);
+      const preliminary = await tx.reservedVmOperation.findFirst({
+        where: {
+          status: { in: ['PENDING', 'APPLYING'] },
+          kind: { in: kinds },
+          actorUserId: { not: null },
+          NOT: { errorCode: 'RESERVED_VM_CANCEL_REQUESTED' },
+          OR: [{ leaseExpiresAt: null }, { leaseExpiresAt: { lte: now } }],
+        },
+        orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+      });
+
+      if (!preliminary) return undefined;
+
+      /* User -> topology purge guards are acquired before the operation row. */
+      const actorUserId = requireReservedVmActor(preliminary.actorUserId);
+      await assertAccountPurgeMutationAllowed(tx, {
+        userIds: [actorUserId],
+        organizationIds: [preliminary.organizationId],
+        projectIds: [preliminary.projectId],
+      });
+      const selected = await tx.$queryRaw<Array<{ id: string }>>`
+        SELECT "id"
+        FROM "ReservedVmOperation"
+        WHERE "id" = ${preliminary.id}
+          AND "status" IN ('PENDING', 'APPLYING')
+          AND ("errorCode" IS NULL OR "errorCode" <> 'RESERVED_VM_CANCEL_REQUESTED')
+          AND ("leaseExpiresAt" IS NULL OR "leaseExpiresAt" <= clock_timestamp())
+        FOR UPDATE SKIP LOCKED
+      `;
+      const id = selected[0]?.id;
+
+      if (!id) return undefined;
+
+      const operation = await tx.reservedVmOperation.findUniqueOrThrow({ where: { id } });
+      await tx.$queryRaw`SELECT "id" FROM "Deployment" WHERE "id" = ${operation.deploymentId} FOR UPDATE`;
+      const deploymentFence = await tx.deployment.update({
+        where: { id: operation.deploymentId },
+        data: { runtimeFencingToken: { increment: 1 } },
+        select: { runtimeFencingToken: true },
+      });
+      const claimed = await tx.reservedVmOperation.update({
+        where: { id },
+        data: {
+          status: 'APPLYING',
+          ...(operation.phase === 'RUNTIME_APPLIED' ? {} : { phase: 'LEASED' }),
+          leaseOwner: ownerToken,
+          leaseExpiresAt: databaseLeaseExpiry(now, input.ttlMs),
+          fencingToken: deploymentFence.runtimeFencingToken,
+          errorCode: null,
+          errorMessage: null,
+        },
+      });
+      const deployment = await tx.deployment.findUniqueOrThrow({ where: { id: operation.deploymentId } });
+
+      return { operation: mapReservedVmOperation(claimed), deployment: mapDeployment(deployment) };
+    });
+  }
+
+  async publishReservedVmInPlace(input: {
+    projectId: string;
+    deploymentId: string;
+    organizationId: string;
+    actorUserId: string;
+    expectedRuntimeVersion: number;
+    productionUrl: string;
+    publishedAt: string;
+  }): Promise<DeploymentRecord> {
+    const actorUserId = requireReservedVmActor(input.actorUserId);
+    return this.prisma.$transaction(async (tx) => {
+      await assertAccountPurgeMutationAllowed(tx, {
+        userIds: [actorUserId],
+        organizationIds: [input.organizationId],
+        projectIds: [input.projectId],
+      });
+      await tx.$queryRaw`SELECT "id" FROM "Deployment" WHERE "id" = ${input.deploymentId} FOR UPDATE`;
+      const deployment = await tx.deployment.findFirst({
+        where: { id: input.deploymentId, projectId: input.projectId },
+      });
+
+      if (!deployment) {
+        throw Object.assign(new Error('Deployment not found.'), { code: 'DEPLOYMENT_NOT_FOUND', statusCode: 404 });
+      }
+
+      const project = await tx.project.findUnique({
+        where: { id: input.projectId },
+        select: { organizationId: true },
+      });
+
+      if (!project || project.organizationId !== input.organizationId) {
+        throw Object.assign(new Error('Reserved VM project ownership does not match the publishing tenant.'), {
+          code: 'RESERVED_VM_TENANT_FORBIDDEN',
+          statusCode: 403,
+        });
+      }
+
+      if (
+        deployment.provider !== 'server' ||
+        deployment.status !== 'READY' ||
+        deployment.runtimeKind !== 'reserved-vm'
+      ) {
+        throw Object.assign(new Error('Only a ready Reserved VM can be published in place.'), {
+          code: 'RESERVED_VM_DEPLOYMENT_NOT_READY',
+          statusCode: 409,
+        });
+      }
+
+      if (deployment.runtimeVersion !== input.expectedRuntimeVersion) {
+        throw Object.assign(new Error('Deployment runtime changed concurrently.'), {
+          code: 'RESERVED_VM_RUNTIME_VERSION_CONFLICT',
+          statusCode: 409,
+        });
+      }
+
+      const activeOperation = await tx.reservedVmOperation.findFirst({
+        where: { deploymentId: deployment.id, status: { in: ['PENDING', 'APPLYING'] } },
+        select: { id: true },
+      });
+
+      if (activeOperation) {
+        throw Object.assign(new Error('A Reserved VM operation is in progress.'), {
+          code: 'RESERVED_VM_CHANGE_IN_PROGRESS',
+          statusCode: 409,
+        });
+      }
+
+      const metadata =
+        deployment.metadata && typeof deployment.metadata === 'object' && !Array.isArray(deployment.metadata)
+          ? (deployment.metadata as Record<string, unknown>)
+          : {};
+      const updated = await tx.deployment.updateMany({
+        where: {
+          id: deployment.id,
+          projectId: input.projectId,
+          runtimeVersion: input.expectedRuntimeVersion,
+          runtimeKind: 'reserved-vm',
+          status: 'READY',
+        },
+        data: {
+          environmentName: 'production',
+          productionUrl: input.productionUrl,
+          metadata: {
+            ...metadata,
+            publishedInPlaceAt: input.publishedAt,
+            publishedFrom: deployment.id,
+          } as Prisma.InputJsonValue,
+        },
+      });
+
+      if (updated.count !== 1) {
+        throw Object.assign(new Error('Deployment runtime changed concurrently.'), {
+          code: 'RESERVED_VM_RUNTIME_VERSION_CONFLICT',
+          statusCode: 409,
+        });
+      }
+
+      return mapDeployment(await tx.deployment.findUniqueOrThrow({ where: { id: deployment.id } }));
     });
   }
 
@@ -7746,6 +8774,13 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
     fencingToken: number;
   }): Promise<boolean> {
     return this.prisma.$transaction(async (tx) => {
+      const preliminary = await tx.reservedVmOperation.findUniqueOrThrow({ where: { id: input.operationId } });
+      const actorUserId = requireReservedVmActor(preliminary.actorUserId);
+      await assertAccountPurgeMutationAllowed(tx, {
+        userIds: [actorUserId],
+        organizationIds: [preliminary.organizationId],
+        projectIds: [preliminary.projectId],
+      });
       const now = await databaseNow(tx);
       const updated = await tx.reservedVmOperation.updateMany({
         where: {
@@ -7769,7 +8804,24 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
   }): Promise<{ operation: ReservedVmOperationRecord; deployment: DeploymentRecord }> {
     const ledger = new LedgerStore(this.prisma);
 
+    return this.prisma.$transaction((tx) => commitReservedVmOperationInTransaction(tx, ledger, input));
+  }
+
+  async commitReservedVmDecommissionOperation(input: {
+    operationId: string;
+    ownerToken: string;
+    fencingToken: number;
+    deletedPersistentStorageClaim: string;
+    response: Record<string, unknown>;
+  }): Promise<{ operation: ReservedVmOperationRecord; deployment: DeploymentRecord }> {
     return this.prisma.$transaction(async (tx) => {
+      const preliminary = await tx.reservedVmOperation.findUniqueOrThrow({ where: { id: input.operationId } });
+      const actorUserId = requireReservedVmActor(preliminary.actorUserId);
+      await assertAccountPurgeMutationAllowed(tx, {
+        userIds: [actorUserId],
+        organizationIds: [preliminary.organizationId],
+        projectIds: [preliminary.projectId],
+      });
       await tx.$queryRaw`SELECT "id" FROM "ReservedVmOperation" WHERE "id" = ${input.operationId} FOR UPDATE`;
       const now = await databaseNow(tx);
       const operation = await tx.reservedVmOperation.findUniqueOrThrow({ where: { id: input.operationId } });
@@ -7780,6 +8832,7 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
       }
 
       if (
+        operation.kind !== 'DECOMMISSION' ||
         operation.status !== 'APPLYING' ||
         operation.phase !== 'RUNTIME_APPLIED' ||
         operation.leaseOwner !== input.ownerToken ||
@@ -7787,126 +8840,57 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
         !operation.leaseExpiresAt ||
         operation.leaseExpiresAt <= now
       ) {
-        throw Object.assign(new Error('Reserved VM operation ownership was lost.'), {
+        throw Object.assign(new Error('RESERVED_VM_OPERATION_FENCE_LOST'), {
           code: 'RESERVED_VM_OPERATION_FENCE_LOST',
           statusCode: 409,
         });
       }
 
       await tx.$queryRaw`SELECT "id" FROM "Deployment" WHERE "id" = ${operation.deploymentId} FOR UPDATE`;
-      const current = await tx.deployment.findUniqueOrThrow({ where: { id: operation.deploymentId } });
+      const deployment = await tx.deployment.findUniqueOrThrow({ where: { id: operation.deploymentId } });
+      const canonicalClaim = `reserved-data-${deployment.id}`;
 
-      if (current.runtimeVersion !== operation.expectedRuntimeVersion) {
-        throw Object.assign(new Error('Deployment runtime changed concurrently.'), {
+      if (
+        deployment.runtimeVersion !== operation.expectedRuntimeVersion ||
+        deployment.runtimeKind !== 'autoscale' ||
+        deployment.persistentStorageClaim !== canonicalClaim ||
+        input.deletedPersistentStorageClaim !== canonicalClaim
+      ) {
+        throw Object.assign(new Error('RESERVED_VM_RUNTIME_VERSION_CONFLICT'), {
           code: 'RESERVED_VM_RUNTIME_VERSION_CONFLICT',
           statusCode: 409,
         });
       }
 
-      if (operation.billingReservationId) {
-        await ledger.commitReservationInTransaction(tx, {
-          reservationId: operation.billingReservationId,
-          actualAmountMinor: BigInt(operation.billingAmountCents),
-          refuseOverage: true,
-        });
-      }
+      const activeBilling = await tx.reservedVmBillingPeriod.findFirst({
+        where: { deploymentId: deployment.id, status: { in: ['DUE', 'PROCESSING', 'PAST_DUE', 'STOP_REQUIRED'] } },
+        select: { id: true },
+      });
 
-      let initialPeriodStart: Date | null = null;
-      let initialPeriodEnd: Date | null = null;
-
-      if (operation.targetRuntimeKind === 'reserved-vm' && operation.fromRuntimeKind !== 'reserved-vm') {
-        if (
-          !operation.billingReservationId ||
-          operation.billingAmountCents !== operation.targetPriceCents ||
-          !operation.targetTier
-        ) {
-          throw Object.assign(new Error('Reserved VM initial monthly settlement is incomplete.'), {
-            code: 'RESERVED_VM_BILLING_SCHEDULE_CORRUPT',
-            statusCode: 409,
-          });
-        }
-
-        initialPeriodStart = now;
-        initialPeriodEnd = await databaseCalendarMonthAfter(tx, now);
-        await tx.reservedVmBillingPeriod.create({
-          data: {
-            projectId: operation.projectId,
-            deploymentId: operation.deploymentId,
-            organizationId: operation.organizationId,
-            periodStart: initialPeriodStart,
-            periodEnd: initialPeriodEnd,
-            tier: operation.targetTier,
-            priceCents: operation.targetPriceCents,
-            termsVersion: operation.termsVersion,
-            rateCardVersion: operation.rateCardVersion,
-            status: 'PAID',
-            attemptCount: 1,
-            billingReservationId: operation.billingReservationId,
-            settledAt: now,
-          },
-        });
-      } else if (
-        operation.targetRuntimeKind === 'reserved-vm' &&
-        (!current.reservedVmCurrentPeriodStart || !current.reservedVmNextChargeAt || !current.reservedVmBillingState)
-      ) {
-        throw Object.assign(new Error('Reserved VM monthly schedule is missing.'), {
-          code: 'RESERVED_VM_BILLING_SCHEDULE_CORRUPT',
+      if (activeBilling) {
+        throw Object.assign(new Error('RESERVED_VM_DECOMMISSION_IN_PROGRESS'), {
+          code: 'RESERVED_VM_DECOMMISSION_IN_PROGRESS',
           statusCode: 409,
         });
       }
 
-      if (operation.targetRuntimeKind === 'autoscale') {
-        const openPeriods = await tx.reservedVmBillingPeriod.findMany({
-          where: {
-            deploymentId: current.id,
-            status: { in: ['DUE', 'PROCESSING', 'PAST_DUE'] },
-          },
-          select: { id: true, billingReservationId: true },
-        });
+      const updated = await tx.deployment.updateMany({
+        where: {
+          id: deployment.id,
+          runtimeKind: 'autoscale',
+          runtimeVersion: operation.expectedRuntimeVersion,
+          persistentStorageClaim: canonicalClaim,
+        },
+        data: { persistentStorageClaim: null, runtimeVersion: { increment: 1 } },
+      });
 
-        for (const period of openPeriods) {
-          if (period.billingReservationId) {
-            await ledger.releaseReservationInTransaction(tx, period.billingReservationId, 'cancel');
-          }
-        }
-        await tx.reservedVmBillingPeriod.updateMany({
-          where: { id: { in: openPeriods.map((period) => period.id) } },
-          data: { status: 'CANCELED', leaseOwner: null, leaseExpiresAt: null },
+      if (updated.count !== 1) {
+        throw Object.assign(new Error('RESERVED_VM_RUNTIME_VERSION_CONFLICT'), {
+          code: 'RESERVED_VM_RUNTIME_VERSION_CONFLICT',
+          statusCode: 409,
         });
       }
 
-      const updated = await tx.deployment.update({
-        where: { id: current.id },
-        data: {
-          runtimeKind: operation.targetRuntimeKind,
-          runtimeVersion: { increment: 1 },
-          machineSize: operation.targetMachineSize,
-          reservedVmTier: operation.targetTier,
-          reservedVmPriceCents: operation.targetRuntimeKind === 'reserved-vm' ? operation.targetPriceCents : null,
-          reservedVmTermsVersion: operation.targetRuntimeKind === 'reserved-vm' ? operation.termsVersion : null,
-          reservedVmRateCardVersion: operation.targetRuntimeKind === 'reserved-vm' ? operation.rateCardVersion : null,
-          reservedVmBillingReservationId:
-            operation.targetRuntimeKind === 'reserved-vm'
-              ? (operation.billingReservationId ?? current.reservedVmBillingReservationId)
-              : null,
-          reservedVmBillingState:
-            operation.targetRuntimeKind === 'reserved-vm'
-              ? initialPeriodStart
-                ? 'CURRENT'
-                : current.reservedVmBillingState
-              : null,
-          reservedVmCurrentPeriodStart:
-            operation.targetRuntimeKind === 'reserved-vm'
-              ? (initialPeriodStart ?? current.reservedVmCurrentPeriodStart)
-              : null,
-          reservedVmNextChargeAt:
-            operation.targetRuntimeKind === 'reserved-vm' ? (initialPeriodEnd ?? current.reservedVmNextChargeAt) : null,
-          reservedVmGraceEndsAt: operation.targetRuntimeKind === 'reserved-vm' ? current.reservedVmGraceEndsAt : null,
-          reservedVmStopRequestedAt:
-            operation.targetRuntimeKind === 'reserved-vm' ? current.reservedVmStopRequestedAt : null,
-          persistentStorageClaim: current.persistentStorageClaim ?? `reserved-data-${current.id}`,
-        },
-      });
       const completed = await tx.reservedVmOperation.update({
         where: { id: operation.id },
         data: {
@@ -7918,8 +8902,118 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
           leaseExpiresAt: null,
         },
       });
+      const durableDeployment = await tx.deployment.findUniqueOrThrow({ where: { id: deployment.id } });
 
-      return { operation: publicReservedVmOperation(completed), deployment: mapDeployment(updated) };
+      return { operation: publicReservedVmOperation(completed), deployment: mapDeployment(durableDeployment) };
+    });
+  }
+
+  async commitReservedVmCreateCancellation(input: {
+    operationId: string;
+    ownerToken: string;
+    fencingToken: number;
+    deletedPersistentStorageClaim: string;
+    logs: DeploymentRecord['logs'];
+  }): Promise<{ operation: ReservedVmOperationRecord; deployment: DeploymentRecord; replayed: boolean }> {
+    const ledger = new LedgerStore(this.prisma);
+
+    return this.prisma.$transaction(async (tx) => {
+      const preliminary = await tx.reservedVmOperation.findUniqueOrThrow({ where: { id: input.operationId } });
+      const actorUserId = requireReservedVmActor(preliminary.actorUserId);
+      await assertAccountPurgeMutationAllowed(tx, {
+        userIds: [actorUserId],
+        organizationIds: [preliminary.organizationId],
+        projectIds: [preliminary.projectId],
+      });
+      await tx.$queryRaw`SELECT "id" FROM "ReservedVmOperation" WHERE "id" = ${input.operationId} FOR UPDATE`;
+      await tx.$queryRaw`SELECT "id" FROM "Deployment" WHERE "id" = ${preliminary.deploymentId} FOR UPDATE`;
+      const now = await databaseNow(tx);
+      const operation = await tx.reservedVmOperation.findUniqueOrThrow({ where: { id: input.operationId } });
+      const deployment = await tx.deployment.findUniqueOrThrow({ where: { id: operation.deploymentId } });
+
+      if (operation.status === 'FAILED' && deployment.status === 'CANCELED') {
+        return {
+          operation: publicReservedVmOperation(operation),
+          deployment: mapDeployment(deployment),
+          replayed: true,
+        };
+      }
+
+      const canonicalClaim = `reserved-data-${operation.deploymentId}`;
+
+      if (
+        operation.kind !== 'CREATE' ||
+        operation.status !== 'APPLYING' ||
+        operation.phase !== 'LEASED' ||
+        operation.errorCode !== 'RESERVED_VM_CANCEL_REQUESTED' ||
+        operation.leaseOwner !== input.ownerToken ||
+        operation.fencingToken !== input.fencingToken ||
+        !operation.leaseExpiresAt ||
+        operation.leaseExpiresAt <= now ||
+        deployment.runtimeVersion !== operation.expectedRuntimeVersion ||
+        !['QUEUED', 'BUILDING'].includes(deployment.status) ||
+        deployment.persistentStorageClaim !== canonicalClaim ||
+        input.deletedPersistentStorageClaim !== canonicalClaim
+      ) {
+        throw Object.assign(new Error('RESERVED_VM_OPERATION_FENCE_LOST'), {
+          code: 'RESERVED_VM_OPERATION_FENCE_LOST',
+          statusCode: 409,
+        });
+      }
+
+      if (operation.billingReservationId) {
+        await ledger.releaseReservationInTransaction(tx, operation.billingReservationId, 'cancel');
+      }
+
+      const metadata = ((deployment.metadata as Record<string, unknown> | null) ?? {}) as Record<string, unknown>;
+      const canceled = await tx.deployment.update({
+        where: { id: deployment.id },
+        data: {
+          status: 'CANCELED',
+          canceledAt: now,
+          finishedAt: now,
+          logs: input.logs as any,
+          runtimeKind: 'autoscale',
+          persistentStorageClaim: null,
+          reservedVmTier: null,
+          reservedVmPriceCents: null,
+          reservedVmTermsVersion: null,
+          reservedVmRateCardVersion: null,
+          reservedVmBillingReservationId: null,
+          reservedVmBillingState: null,
+          reservedVmCurrentPeriodStart: null,
+          reservedVmNextChargeAt: null,
+          reservedVmGraceEndsAt: null,
+          reservedVmStopRequestedAt: null,
+          metadata: {
+            ...metadata,
+            reservedVmCancelCompletedAt: now.toISOString(),
+          } as Prisma.InputJsonValue,
+        },
+      });
+      const failed = await tx.reservedVmOperation.update({
+        where: { id: operation.id },
+        data: {
+          status: 'FAILED',
+          phase: 'ROLLED_BACK',
+          errorCode: 'DEPLOYMENT_CANCELED_BY_USER',
+          errorMessage: 'DEPLOYMENT_CANCELED_BY_USER',
+          response: {
+            canceled: true,
+            persistentStorageClaimName: canonicalClaim,
+            persistentStorageClaimAbsent: true,
+          },
+          completedAt: now,
+          leaseOwner: null,
+          leaseExpiresAt: null,
+        },
+      });
+
+      return {
+        operation: publicReservedVmOperation(failed),
+        deployment: mapDeployment(canceled),
+        replayed: false,
+      };
     });
   }
 
@@ -7929,10 +9023,18 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
     fencingToken: number;
     errorCode: string;
     errorMessage: string;
+    createCleanup?: { deletedPersistentStorageClaim: string };
   }): Promise<ReservedVmOperationRecord> {
     const ledger = new LedgerStore(this.prisma);
 
     return this.prisma.$transaction(async (tx) => {
+      const preliminary = await tx.reservedVmOperation.findUniqueOrThrow({ where: { id: input.operationId } });
+      const actorUserId = requireReservedVmActor(preliminary.actorUserId);
+      await assertAccountPurgeMutationAllowed(tx, {
+        userIds: [actorUserId],
+        organizationIds: [preliminary.organizationId],
+        projectIds: [preliminary.projectId],
+      });
       await tx.$queryRaw`SELECT "id" FROM "ReservedVmOperation" WHERE "id" = ${input.operationId} FOR UPDATE`;
       const now = await databaseNow(tx);
       const operation = await tx.reservedVmOperation.findUniqueOrThrow({ where: { id: input.operationId } });
@@ -7958,6 +9060,48 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
         await ledger.releaseReservationInTransaction(tx, operation.billingReservationId, 'failure');
       }
 
+      if (operation.kind === 'CREATE') {
+        const canonicalClaim = `reserved-data-${operation.deploymentId}`;
+
+        if (input.createCleanup?.deletedPersistentStorageClaim !== canonicalClaim) {
+          throw Object.assign(new Error('RESERVED_VM_CREATE_CLEANUP_UNVERIFIED'), {
+            code: 'RESERVED_VM_CREATE_CLEANUP_UNVERIFIED',
+            statusCode: 409,
+          });
+        }
+
+        await tx.$queryRaw`SELECT "id" FROM "Deployment" WHERE "id" = ${operation.deploymentId} FOR UPDATE`;
+        const deployment = await tx.deployment.findUniqueOrThrow({ where: { id: operation.deploymentId } });
+
+        if (
+          deployment.runtimeVersion !== operation.expectedRuntimeVersion ||
+          deployment.persistentStorageClaim !== canonicalClaim
+        ) {
+          throw Object.assign(new Error('RESERVED_VM_RUNTIME_VERSION_CONFLICT'), {
+            code: 'RESERVED_VM_RUNTIME_VERSION_CONFLICT',
+            statusCode: 409,
+          });
+        }
+
+        await tx.deployment.update({
+          where: { id: deployment.id },
+          data: {
+            runtimeKind: 'autoscale',
+            persistentStorageClaim: null,
+            reservedVmTier: null,
+            reservedVmPriceCents: null,
+            reservedVmTermsVersion: null,
+            reservedVmRateCardVersion: null,
+            reservedVmBillingReservationId: null,
+            reservedVmBillingState: null,
+            reservedVmCurrentPeriodStart: null,
+            reservedVmNextChargeAt: null,
+            reservedVmGraceEndsAt: null,
+            reservedVmStopRequestedAt: null,
+          },
+        });
+      }
+
       const failed = await tx.reservedVmOperation.update({
         where: { id: operation.id },
         data: {
@@ -7978,22 +9122,25 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
     ownerToken: string;
     ttlMs: number;
     deploymentId?: string;
+    gracePeriodMs?: number;
   }): Promise<{ period: ReservedVmBillingPeriodLease; deployment: DeploymentRecord } | undefined> {
     const ownerToken = requireReservedVmLeaseOwner(input.ownerToken);
     const ledger = new LedgerStore(this.prisma);
+    const gracePeriodMs = input.gracePeriodMs ?? 3 * 24 * 60 * 60_000;
 
-    return this.prisma.$transaction(async (tx) => {
+    const preclaimed = await this.prisma.$transaction(async (tx) => {
       await promoteExpiredReservedVmGrace(tx, ledger, { deploymentId: input.deploymentId, take: 100 });
 
       const now = await databaseNow(tx);
 
       const retryRows = input.deploymentId
-        ? await tx.$queryRaw<Array<{ id: string }>>`
-            SELECT p."id"
+        ? await tx.$queryRaw<Array<{ id: string; projectId: string; organizationId: string; actorUserId: string }>>`
+            SELECT p."id", p."projectId", p."organizationId", p."actorUserId"
             FROM "ReservedVmBillingPeriod" p
             JOIN "Deployment" d ON d."id" = p."deploymentId"
             WHERE p."deploymentId" = ${input.deploymentId}
               AND p."status" IN ('DUE', 'PROCESSING', 'PAST_DUE')
+              AND p."actorUserId" IS NOT NULL
               AND (p."leaseExpiresAt" IS NULL OR p."leaseExpiresAt" <= clock_timestamp())
               AND (p."graceEndsAt" IS NULL OR p."graceEndsAt" > clock_timestamp())
               AND d."runtimeKind" = 'reserved-vm'
@@ -8003,14 +9150,14 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
                 WHERE o."deploymentId" = d."id" AND o."status" IN ('PENDING', 'APPLYING')
               )
             ORDER BY p."periodStart" ASC, p."id" ASC
-            FOR UPDATE OF p SKIP LOCKED
             LIMIT 1
           `
-        : await tx.$queryRaw<Array<{ id: string }>>`
-            SELECT p."id"
+        : await tx.$queryRaw<Array<{ id: string; projectId: string; organizationId: string; actorUserId: string }>>`
+            SELECT p."id", p."projectId", p."organizationId", p."actorUserId"
             FROM "ReservedVmBillingPeriod" p
             JOIN "Deployment" d ON d."id" = p."deploymentId"
             WHERE p."status" IN ('DUE', 'PROCESSING', 'PAST_DUE')
+              AND p."actorUserId" IS NOT NULL
               AND (p."leaseExpiresAt" IS NULL OR p."leaseExpiresAt" <= clock_timestamp())
               AND (p."graceEndsAt" IS NULL OR p."graceEndsAt" > clock_timestamp())
               AND d."runtimeKind" = 'reserved-vm'
@@ -8020,19 +9167,58 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
                 WHERE o."deploymentId" = d."id" AND o."status" IN ('PENDING', 'APPLYING')
               )
             ORDER BY p."periodStart" ASC, p."id" ASC
-            FOR UPDATE OF p SKIP LOCKED
             LIMIT 1
-          `;
+      `;
 
-      let period = retryRows[0]
-        ? await tx.reservedVmBillingPeriod.findUniqueOrThrow({ where: { id: retryRows[0].id } })
+      const retryCandidate = retryRows[0];
+      let retryPeriodId: string | undefined;
+
+      if (retryCandidate) {
+        const actorUserId = requireReservedVmActor(retryCandidate.actorUserId);
+        await assertAccountPurgeMutationAllowed(tx, {
+          userIds: [actorUserId],
+          organizationIds: [retryCandidate.organizationId],
+          projectIds: [retryCandidate.projectId],
+        });
+        const lockedRetry = await tx.$queryRaw<Array<{ id: string }>>`
+          SELECT p."id"
+          FROM "ReservedVmBillingPeriod" p
+          JOIN "Deployment" d ON d."id" = p."deploymentId"
+          WHERE p."id" = ${retryCandidate.id}
+            AND p."actorUserId" = ${actorUserId}
+            AND p."status" IN ('DUE', 'PROCESSING', 'PAST_DUE')
+            AND (p."leaseExpiresAt" IS NULL OR p."leaseExpiresAt" <= clock_timestamp())
+            AND (p."graceEndsAt" IS NULL OR p."graceEndsAt" > clock_timestamp())
+            AND d."runtimeKind" = 'reserved-vm'
+            AND d."reservedVmNextChargeAt" = p."periodStart"
+            AND NOT EXISTS (
+              SELECT 1 FROM "ReservedVmOperation" o
+              WHERE o."deploymentId" = d."id" AND o."status" IN ('PENDING', 'APPLYING')
+            )
+          FOR UPDATE OF p SKIP LOCKED
+        `;
+
+        if (!lockedRetry[0]) return undefined;
+        retryPeriodId = retryCandidate.id;
+      }
+
+      let period = retryPeriodId
+        ? await tx.reservedVmBillingPeriod.findUniqueOrThrow({ where: { id: retryPeriodId } })
         : undefined;
 
       if (!period) {
         const dueRows = input.deploymentId
-          ? await tx.$queryRaw<Array<{ id: string }>>`
-              SELECT d."id"
+          ? await tx.$queryRaw<Array<{ id: string; projectId: string; organizationId: string; actorUserId: string }>>`
+              SELECT d."id", d."projectId", project."organizationId", authority."actorUserId"
               FROM "Deployment" d
+              JOIN "Project" project ON project."id" = d."projectId"
+              JOIN LATERAL (
+                SELECT o."actorUserId"
+                FROM "ReservedVmOperation" o
+                WHERE o."deploymentId" = d."id" AND o."actorUserId" IS NOT NULL
+                ORDER BY o."createdAt" DESC, o."id" DESC
+                LIMIT 1
+              ) authority ON TRUE
               WHERE d."id" = ${input.deploymentId}
                 AND d."runtimeKind" = 'reserved-vm'
                 AND d."reservedVmBillingState" = 'CURRENT'
@@ -8049,12 +9235,19 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
                   SELECT 1 FROM "ReservedVmOperation" o
                   WHERE o."deploymentId" = d."id" AND o."status" IN ('PENDING', 'APPLYING')
                 )
-              FOR UPDATE OF d SKIP LOCKED
               LIMIT 1
             `
-          : await tx.$queryRaw<Array<{ id: string }>>`
-              SELECT d."id"
+          : await tx.$queryRaw<Array<{ id: string; projectId: string; organizationId: string; actorUserId: string }>>`
+              SELECT d."id", d."projectId", project."organizationId", authority."actorUserId"
               FROM "Deployment" d
+              JOIN "Project" project ON project."id" = d."projectId"
+              JOIN LATERAL (
+                SELECT o."actorUserId"
+                FROM "ReservedVmOperation" o
+                WHERE o."deploymentId" = d."id" AND o."actorUserId" IS NOT NULL
+                ORDER BY o."createdAt" DESC, o."id" DESC
+                LIMIT 1
+              ) authority ON TRUE
               WHERE d."runtimeKind" = 'reserved-vm'
                 AND d."reservedVmBillingState" = 'CURRENT'
                 AND d."reservedVmNextChargeAt" <= clock_timestamp()
@@ -8071,22 +9264,46 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
                   WHERE o."deploymentId" = d."id" AND o."status" IN ('PENDING', 'APPLYING')
                 )
               ORDER BY d."reservedVmNextChargeAt" ASC, d."id" ASC
-              FOR UPDATE OF d SKIP LOCKED
               LIMIT 1
             `;
 
-        const dueId = dueRows[0]?.id;
+        const dueCandidate = dueRows[0];
 
-        if (!dueId) {
+        if (!dueCandidate) {
           return undefined;
         }
 
-        const deployment = await tx.deployment.findUniqueOrThrow({ where: { id: dueId } });
-
-        const project = await tx.project.findUniqueOrThrow({
-          where: { id: deployment.projectId },
-          select: { organizationId: true },
+        const actorUserId = requireReservedVmActor(dueCandidate.actorUserId);
+        await assertAccountPurgeMutationAllowed(tx, {
+          userIds: [actorUserId],
+          organizationIds: [dueCandidate.organizationId],
+          projectIds: [dueCandidate.projectId],
         });
+        const lockedDue = await tx.$queryRaw<Array<{ id: string }>>`
+          SELECT d."id"
+          FROM "Deployment" d
+          WHERE d."id" = ${dueCandidate.id}
+            AND d."runtimeKind" = 'reserved-vm'
+            AND d."reservedVmBillingState" = 'CURRENT'
+            AND d."reservedVmNextChargeAt" <= clock_timestamp()
+            AND d."reservedVmTier" IS NOT NULL
+            AND d."reservedVmPriceCents" IS NOT NULL
+            AND d."reservedVmTermsVersion" IS NOT NULL
+            AND d."reservedVmRateCardVersion" IS NOT NULL
+            AND NOT EXISTS (
+              SELECT 1 FROM "ReservedVmBillingPeriod" p
+              WHERE p."deploymentId" = d."id" AND p."periodStart" = d."reservedVmNextChargeAt"
+            )
+            AND NOT EXISTS (
+              SELECT 1 FROM "ReservedVmOperation" o
+              WHERE o."deploymentId" = d."id" AND o."status" IN ('PENDING', 'APPLYING')
+            )
+          FOR UPDATE OF d SKIP LOCKED
+        `;
+
+        if (!lockedDue[0]) return undefined;
+
+        const deployment = await tx.deployment.findUniqueOrThrow({ where: { id: dueCandidate.id } });
 
         const tier = deployment.reservedVmTier as ReservedVmTier | null;
         const exactPrice = tier ? RESERVED_VM_TIERS[tier]?.centsPerMonth : undefined;
@@ -8109,7 +9326,8 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
           data: {
             projectId: deployment.projectId,
             deploymentId: deployment.id,
-            organizationId: project.organizationId,
+            organizationId: dueCandidate.organizationId,
+            actorUserId,
             periodStart: deployment.reservedVmNextChargeAt,
             periodEnd,
             tier,
@@ -8152,20 +9370,6 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
         }
       }
 
-      if (!billingReservationId) {
-        const reservation = await ledger.reserveUsageInTransaction(tx, {
-          organizationId: period.organizationId,
-          idempotencyKey: `reserved-vm-renewal:${period.deploymentId}:${period.periodStart.toISOString()}:g${reservationGeneration}`,
-          requestHash: reservedVmRenewalRequestHash(period),
-          operation: 'reserved_vm_renewal',
-          currency: 'usd',
-          maxAmountMinor: BigInt(period.priceCents),
-          rateCardVersion: period.rateCardVersion,
-          expiresInMs: RESERVED_VM_RENEWAL_RESERVATION_MS,
-        });
-        billingReservationId = reservation.id;
-      }
-
       const claimed = await tx.reservedVmBillingPeriod.update({
         where: { id: period.id },
         data: {
@@ -8185,17 +9389,138 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
 
       return { period: mapReservedVmBillingPeriod(claimed), deployment: mapDeployment(deployment) };
     });
+
+    if (!preclaimed || preclaimed.period.billingReservationId) {
+      return preclaimed;
+    }
+
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        const preliminary = await tx.reservedVmBillingPeriod.findUniqueOrThrow({
+          where: { id: preclaimed.period.id },
+        });
+        const actorUserId = requireReservedVmActor(preliminary.actorUserId);
+        await assertAccountPurgeMutationAllowed(tx, {
+          userIds: [actorUserId],
+          organizationIds: [preliminary.organizationId],
+          projectIds: [preliminary.projectId],
+        });
+        await tx.$queryRaw`SELECT "id" FROM "ReservedVmBillingPeriod" WHERE "id" = ${preliminary.id} FOR UPDATE`;
+        const now = await databaseNow(tx);
+        const period = await tx.reservedVmBillingPeriod.findUniqueOrThrow({ where: { id: preliminary.id } });
+
+        if (
+          period.status !== 'PROCESSING' ||
+          period.leaseOwner !== ownerToken ||
+          period.fencingToken !== preclaimed.period.fencingToken ||
+          !period.leaseExpiresAt ||
+          period.leaseExpiresAt <= now ||
+          period.billingReservationId
+        ) {
+          throw reservedVmBillingFenceLost();
+        }
+
+        if (!(await hasPaidReservedVmEntitlement(tx, period.organizationId))) {
+          throw Object.assign(new Error('RESERVED_VM_PAID_PLAN_REQUIRED'), {
+            code: 'RESERVED_VM_PAID_PLAN_REQUIRED',
+            statusCode: 402,
+          });
+        }
+
+        const reservation = await ledger.reserveUsageInTransaction(tx, {
+          organizationId: period.organizationId,
+          userId: actorUserId,
+          idempotencyKey: `reserved-vm-renewal:${period.deploymentId}:${period.periodStart.toISOString()}:g${period.reservationGeneration}`,
+          requestHash: reservedVmRenewalRequestHash(period),
+          operation: 'reserved_vm_renewal',
+          currency: 'usd',
+          maxAmountMinor: BigInt(period.priceCents),
+          rateCardVersion: period.rateCardVersion,
+          expiresInMs: RESERVED_VM_RENEWAL_RESERVATION_MS,
+        });
+        const attached = await tx.reservedVmBillingPeriod.updateMany({
+          where: {
+            id: period.id,
+            status: 'PROCESSING',
+            leaseOwner: ownerToken,
+            fencingToken: period.fencingToken,
+            billingReservationId: null,
+          },
+          data: { billingReservationId: reservation.id },
+        });
+
+        if (attached.count !== 1) {
+          throw reservedVmBillingFenceLost();
+        }
+
+        const durablePeriod = await tx.reservedVmBillingPeriod.findUniqueOrThrow({ where: { id: period.id } });
+        const deployment = await tx.deployment.findUniqueOrThrow({ where: { id: period.deploymentId } });
+        return { period: mapReservedVmBillingPeriod(durablePeriod), deployment: mapDeployment(deployment) };
+      });
+    } catch (error) {
+      const errorCode = (error as { code?: string }).code ?? 'RESERVED_VM_RENEWAL_RESERVATION_FAILED';
+      const errorMessage = error instanceof Error ? error.message : String(error);
+
+      return this.prisma.$transaction(async (tx) => {
+        const preliminary = await tx.reservedVmBillingPeriod.findUniqueOrThrow({
+          where: { id: preclaimed.period.id },
+        });
+        const actorUserId = requireReservedVmActor(preliminary.actorUserId);
+        await assertAccountPurgeMutationAllowed(tx, {
+          userIds: [actorUserId],
+          organizationIds: [preliminary.organizationId],
+          projectIds: [preliminary.projectId],
+        });
+        await tx.$queryRaw`SELECT "id" FROM "ReservedVmBillingPeriod" WHERE "id" = ${preliminary.id} FOR UPDATE`;
+        const now = await databaseNow(tx);
+        const period = await tx.reservedVmBillingPeriod.findUniqueOrThrow({ where: { id: preliminary.id } });
+
+        if (
+          period.status !== 'PROCESSING' ||
+          period.leaseOwner !== ownerToken ||
+          period.fencingToken !== preclaimed.period.fencingToken ||
+          !period.leaseExpiresAt ||
+          period.leaseExpiresAt <= now ||
+          period.billingReservationId
+        ) {
+          throw reservedVmBillingFenceLost();
+        }
+
+        const failed = await markReservedVmPeriodPastDueInTransaction(tx, {
+          period,
+          now,
+          errorCode,
+          errorMessage,
+          gracePeriodMs,
+        });
+        return {
+          period: mapReservedVmBillingPeriod(
+            await tx.reservedVmBillingPeriod.findUniqueOrThrow({ where: { id: failed.period.id } }),
+          ),
+          deployment: failed.deployment,
+        };
+      });
+    }
   }
 
   async commitReservedVmBillingPeriod(input: {
     periodId: string;
     ownerToken: string;
     fencingToken: number;
+    gracePeriodMs?: number;
   }): Promise<{ period: ReservedVmBillingPeriodRecord; deployment: DeploymentRecord; replayed: boolean }> {
     const ownerToken = requireReservedVmLeaseOwner(input.ownerToken);
     const ledger = new LedgerStore(this.prisma);
+    const gracePeriodMs = input.gracePeriodMs ?? 3 * 24 * 60 * 60_000;
 
     return this.prisma.$transaction(async (tx) => {
+      const preliminary = await tx.reservedVmBillingPeriod.findUniqueOrThrow({ where: { id: input.periodId } });
+      const actorUserId = requireReservedVmActor(preliminary.actorUserId);
+      await assertAccountPurgeMutationAllowed(tx, {
+        userIds: [actorUserId],
+        organizationIds: [preliminary.organizationId],
+        projectIds: [preliminary.projectId],
+      });
       await tx.$queryRaw`SELECT "id" FROM "ReservedVmBillingPeriod" WHERE "id" = ${input.periodId} FOR UPDATE`;
 
       const period = await tx.reservedVmBillingPeriod.findUniqueOrThrow({ where: { id: input.periodId } });
@@ -8234,6 +9559,18 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
           code: 'RESERVED_VM_BILLING_CYCLE_CONFLICT',
           statusCode: 409,
         });
+      }
+
+      if (!(await hasPaidReservedVmEntitlement(tx, period.organizationId))) {
+        await ledger.releaseReservationInTransaction(tx, period.billingReservationId, 'failure');
+        const failed = await markReservedVmPeriodPastDueInTransaction(tx, {
+          period,
+          now,
+          errorCode: 'RESERVED_VM_PAID_PLAN_REQUIRED',
+          errorMessage: 'RESERVED_VM_PAID_PLAN_REQUIRED',
+          gracePeriodMs,
+        });
+        return { ...failed, replayed: false };
       }
 
       await ledger.commitReservationInTransaction(tx, {
@@ -8295,6 +9632,13 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
     const ownerToken = requireReservedVmLeaseOwner(input.ownerToken);
 
     return this.prisma.$transaction(async (tx) => {
+      const preliminary = await tx.reservedVmBillingPeriod.findUniqueOrThrow({ where: { id: input.periodId } });
+      const actorUserId = requireReservedVmActor(preliminary.actorUserId);
+      await assertAccountPurgeMutationAllowed(tx, {
+        userIds: [actorUserId],
+        organizationIds: [preliminary.organizationId],
+        projectIds: [preliminary.projectId],
+      });
       await tx.$queryRaw`SELECT "id" FROM "ReservedVmBillingPeriod" WHERE "id" = ${input.periodId} FOR UPDATE`;
 
       const now = await databaseNow(tx);
@@ -8377,6 +9721,205 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
         persistentStorageClaim: period.deployment.persistentStorageClaim ?? undefined,
         deletePersistentStorage: false as const,
       }));
+    });
+  }
+
+  async claimNextReservedVmComputeStop(input: {
+    ownerToken: string;
+    ttlMs: number;
+  }): Promise<{ signal: ReservedVmStopLease; deployment: DeploymentRecord } | undefined> {
+    const ownerToken = requireReservedVmLeaseOwner(input.ownerToken);
+    const ledger = new LedgerStore(this.prisma);
+
+    return this.prisma.$transaction(async (tx) => {
+      await promoteExpiredReservedVmGrace(tx, ledger, { take: 100 });
+
+      /* Resolve actor authority before any billing/deployment effect lock. */
+      const candidates = await tx.$queryRaw<
+        Array<{
+          id: string;
+          projectId: string;
+          deploymentId: string;
+          organizationId: string;
+          actorUserId: string;
+        }>
+      >`
+        SELECT p."id", p."projectId", p."deploymentId", p."organizationId", p."actorUserId"
+        FROM "ReservedVmBillingPeriod" p
+        JOIN "Deployment" d ON d."id" = p."deploymentId"
+        WHERE p."status" = 'STOP_REQUIRED'
+          AND p."actorUserId" IS NOT NULL
+          AND (p."leaseExpiresAt" IS NULL OR p."leaseExpiresAt" <= clock_timestamp())
+          AND d."runtimeKind" = 'reserved-vm'
+          AND d."reservedVmBillingState" = 'STOP_REQUIRED'
+          AND d."reservedVmNextChargeAt" = p."periodStart"
+          AND NOT EXISTS (
+            SELECT 1 FROM "ReservedVmOperation" o
+            WHERE o."deploymentId" = d."id" AND o."status" IN ('PENDING', 'APPLYING')
+          )
+        ORDER BY p."stopRequestedAt" ASC, p."id" ASC
+        LIMIT 1
+      `;
+      const candidate = candidates[0];
+
+      if (!candidate) return undefined;
+
+      const actorUserId = requireReservedVmActor(candidate.actorUserId);
+      await assertAccountPurgeMutationAllowed(tx, {
+        userIds: [actorUserId],
+        organizationIds: [candidate.organizationId],
+        projectIds: [candidate.projectId],
+      });
+      const selected = await tx.$queryRaw<Array<{ id: string }>>`
+        SELECT p."id"
+        FROM "ReservedVmBillingPeriod" p
+        JOIN "Deployment" d ON d."id" = p."deploymentId"
+        WHERE p."id" = ${candidate.id}
+          AND p."status" = 'STOP_REQUIRED'
+          AND p."actorUserId" = ${actorUserId}
+          AND (p."leaseExpiresAt" IS NULL OR p."leaseExpiresAt" <= clock_timestamp())
+          AND d."runtimeKind" = 'reserved-vm'
+          AND d."reservedVmBillingState" = 'STOP_REQUIRED'
+          AND d."reservedVmNextChargeAt" = p."periodStart"
+          AND NOT EXISTS (
+            SELECT 1 FROM "ReservedVmOperation" o
+            WHERE o."deploymentId" = d."id" AND o."status" IN ('PENDING', 'APPLYING')
+          )
+        FOR UPDATE OF p SKIP LOCKED
+      `;
+
+      if (!selected[0]) return undefined;
+
+      await tx.$queryRaw`SELECT "id" FROM "Deployment" WHERE "id" = ${candidate.deploymentId} FOR UPDATE`;
+      const now = await databaseNow(tx);
+      const deploymentFence = await tx.deployment.update({
+        where: { id: candidate.deploymentId },
+        data: { runtimeFencingToken: { increment: 1 } },
+        select: { runtimeFencingToken: true },
+      });
+      const leaseExpiresAt = reservedVmBillingLeaseExpiry(now, input.ttlMs);
+      const period = await tx.reservedVmBillingPeriod.update({
+        where: { id: candidate.id },
+        data: {
+          leaseOwner: ownerToken,
+          leaseExpiresAt,
+          fencingToken: deploymentFence.runtimeFencingToken,
+        },
+        include: { deployment: true },
+      });
+      const requestedAt = period.stopRequestedAt;
+      const graceEndedAt = period.graceEndsAt;
+
+      if (!requestedAt || !graceEndedAt) {
+        throw Object.assign(new Error('Reserved VM stop signal is incomplete.'), {
+          code: 'RESERVED_VM_STOP_SIGNAL_CORRUPT',
+          statusCode: 409,
+        });
+      }
+
+      return {
+        signal: {
+          periodId: period.id,
+          projectId: period.projectId,
+          deploymentId: period.deploymentId,
+          organizationId: period.organizationId,
+          requestedAt: requestedAt.toISOString(),
+          graceEndedAt: graceEndedAt.toISOString(),
+          persistentStorageClaim: period.deployment.persistentStorageClaim ?? undefined,
+          deletePersistentStorage: false,
+          operationId: `reserved-vm-stop:${period.id}`,
+          ownerToken,
+          leaseExpiresAt: leaseExpiresAt.toISOString(),
+          fencingToken: deploymentFence.runtimeFencingToken,
+        },
+        deployment: mapDeployment(period.deployment),
+      };
+    });
+  }
+
+  async acknowledgeReservedVmComputeStopped(input: {
+    periodId: string;
+    deploymentId: string;
+    ownerToken: string;
+    fencingToken: number;
+  }): Promise<{ period: ReservedVmBillingPeriodRecord; deployment: DeploymentRecord; replayed: boolean }> {
+    const ownerToken = requireReservedVmLeaseOwner(input.ownerToken);
+
+    return this.prisma.$transaction(async (tx) => {
+      const preliminary = await tx.reservedVmBillingPeriod.findUniqueOrThrow({ where: { id: input.periodId } });
+      const actorUserId = requireReservedVmActor(preliminary.actorUserId);
+      await assertAccountPurgeMutationAllowed(tx, {
+        userIds: [actorUserId],
+        organizationIds: [preliminary.organizationId],
+        projectIds: [preliminary.projectId],
+      });
+      await tx.$queryRaw`SELECT "id" FROM "ReservedVmBillingPeriod" WHERE "id" = ${input.periodId} FOR UPDATE`;
+      const period = await tx.reservedVmBillingPeriod.findUniqueOrThrow({ where: { id: input.periodId } });
+
+      if (period.deploymentId !== input.deploymentId) {
+        throw Object.assign(new Error('Reserved VM stop acknowledgement does not match its deployment.'), {
+          code: 'RESERVED_VM_STOP_ACK_CONFLICT',
+          statusCode: 409,
+        });
+      }
+
+      const deployment = await tx.deployment.findUniqueOrThrow({ where: { id: input.deploymentId } });
+
+      if (period.status === 'CANCELED') {
+        return {
+          period: publicReservedVmBillingPeriod(period),
+          deployment: mapDeployment(deployment),
+          replayed: true,
+        };
+      }
+
+      const now = await databaseNow(tx);
+
+      if (
+        period.status !== 'STOP_REQUIRED' ||
+        period.leaseOwner !== ownerToken ||
+        period.fencingToken !== input.fencingToken ||
+        !period.leaseExpiresAt ||
+        period.leaseExpiresAt <= now ||
+        deployment.runtimeKind !== 'reserved-vm' ||
+        deployment.reservedVmBillingState !== 'STOP_REQUIRED' ||
+        deployment.runtimeFencingToken !== input.fencingToken
+      ) {
+        throw Object.assign(new Error('Reserved VM compute stop is no longer required.'), {
+          code: 'RESERVED_VM_STOP_ACK_CONFLICT',
+          statusCode: 409,
+        });
+      }
+
+      const metadata =
+        deployment.metadata && typeof deployment.metadata === 'object' && !Array.isArray(deployment.metadata)
+          ? (deployment.metadata as Record<string, unknown>)
+          : {};
+      const canceled = await tx.reservedVmBillingPeriod.update({
+        where: { id: period.id },
+        data: { status: 'CANCELED', leaseOwner: null, leaseExpiresAt: null },
+      });
+      const updated = await tx.deployment.update({
+        where: { id: deployment.id },
+        data: {
+          reservedVmBillingState: 'SUSPENDED',
+          reservedVmCurrentPeriodStart: null,
+          reservedVmNextChargeAt: null,
+          reservedVmGraceEndsAt: null,
+          reservedVmStopRequestedAt: null,
+          metadata: {
+            ...metadata,
+            reservedVmComputeStoppedAt: now.toISOString(),
+            reservedVmComputeStopPeriodId: period.id,
+          } as Prisma.InputJsonValue,
+        },
+      });
+
+      return {
+        period: publicReservedVmBillingPeriod(canceled),
+        deployment: mapDeployment(updated),
+        replayed: false,
+      };
     });
   }
 
@@ -9682,7 +11225,21 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
   }
 
   async commitServerImageRelease(input: ServerImageReleaseCommitInput): Promise<ServerImageReleaseCommitResult> {
+    const ledger = new LedgerStore(this.prisma);
+
     return this.prisma.$transaction(async (tx) => {
+      if (input.rollbackFence && input.reservedVmFence) {
+        throw new Error('SERVER_RELEASE_FENCE_CONFLICT');
+      }
+
+      /*
+       * This happens inside the SAME transaction as manifest append + READY.
+       * Any promotion/manifest/policy failure below rolls the ledger settlement,
+       * billing period, runtimeVersion and operation status back together.
+       */
+      const reservedCommit = input.reservedVmFence
+        ? await commitReservedVmOperationInTransaction(tx, ledger, input.reservedVmFence)
+        : undefined;
       const rollbackOperation = input.rollbackFence ? await requireRollbackLease(tx, input.rollbackFence) : undefined;
 
       const rollbackSource = rollbackOperation ? await requireRollbackSourceManifest(tx, rollbackOperation) : undefined;
@@ -9771,8 +11328,7 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
       const existing = existingRows[0];
 
       if (existing) {
-        if (
-          existingRows.length !== 1 ||
+        const releaseDiffers =
           existing.projectId !== input.projectId ||
           existing.environment !== input.environment ||
           existing.provider !== 'server' ||
@@ -9783,24 +11339,50 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
           !sameNullable(existing.configDigest, input.configDigest) ||
           !sameNullable(existing.dbMigrationPoint, input.dbMigrationPoint) ||
           (rollbackOperation && existing.version !== input.rollbackFence!.expectedHeadVersion + 1) ||
-          existing.accessPolicyVersion !== deployment.accessPolicyVersion
-        ) {
-          throw new Error(SERVER_RELEASE_MANIFEST_CONFLICT);
-        }
+          existing.accessPolicyVersion !== deployment.accessPolicyVersion;
 
-        if (deployment.status !== 'READY') {
-          throw new Error(SERVER_RELEASE_MANIFEST_WITHOUT_READY);
-        }
+        if (releaseDiffers) {
+          /*
+           * Ordinary deploy ids are immutable and therefore conflict here. A
+           * REDEPLOY intentionally appends another manifest for the same stable
+           * Reserved VM id after the previous release; only that fenced saga may
+           * continue past a different latest digest.
+           */
+          if (reservedCommit?.operation.kind !== 'REDEPLOY') {
+            throw new Error(SERVER_RELEASE_MANIFEST_CONFLICT);
+          }
+        } else {
+          if (deployment.status !== 'READY') {
+            throw new Error(SERVER_RELEASE_MANIFEST_WITHOUT_READY);
+          }
 
-        if (rollbackOperation && rollbackOperation.phase !== 'RELEASE_COMMITTED') {
-          await tx.rollbackIdempotencyRequest.update({
-            where: { id: rollbackOperation.id },
-            data: { phase: 'RELEASE_COMMITTED' },
-          });
-        }
+          if (rollbackOperation && rollbackOperation.phase !== 'RELEASE_COMMITTED') {
+            await tx.rollbackIdempotencyRequest.update({
+              where: { id: rollbackOperation.id },
+              data: { phase: 'RELEASE_COMMITTED' },
+            });
+          }
 
-        return { committed: true, deployment: mapDeployment(deployment), manifest: mapReleaseManifest(existing) };
+          return { committed: true, deployment: mapDeployment(deployment), manifest: mapReleaseManifest(existing) };
+        }
       }
+
+      if (['READY', 'FAILED', 'CANCELED'].includes(deployment.status)) {
+        if (!(deployment.status === 'READY' && reservedCommit?.operation.kind === 'REDEPLOY')) {
+          if (reservedCommit) {
+            /* Returning false would commit the Reserved settlement without a release. */
+            throw new Error(SERVER_RELEASE_MANIFEST_CONFLICT);
+          }
+
+          return { committed: false, deployment: mapDeployment(deployment) };
+        }
+      }
+
+      /*
+       * For a fresh deploy there is no manifest above. For REDEPLOY, a different
+       * latest manifest is expected and the code deliberately falls through to
+       * append the next project/environment version.
+       */
 
       if (rollbackOperation) {
         const rollbackMetadata = input.metadata as Record<string, unknown>;
@@ -9825,10 +11407,6 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
             statusCode: 409,
           });
         }
-      }
-
-      if (['READY', 'FAILED', 'CANCELED'].includes(deployment.status)) {
-        return { committed: false, deployment: mapDeployment(deployment) };
       }
 
       await tx.$executeRawUnsafe(
@@ -13498,6 +15076,8 @@ function mapReservedVmOperation(row: any): ReservedVmLease {
     targetRuntimeKind: row.targetRuntimeKind,
     targetTier: row.targetTier ?? undefined,
     targetMachineSize: row.targetMachineSize,
+    targetCpuMillicores: Number(row.targetCpuMillicores),
+    targetMemoryMb: Number(row.targetMemoryMb),
     targetPriceCents: Number(row.targetPriceCents),
     billingAmountCents: Number(row.billingAmountCents),
     termsVersion: row.termsVersion,
@@ -13525,6 +15105,7 @@ function mapReservedVmBillingPeriod(row: any): ReservedVmBillingPeriodLease {
     projectId: row.projectId,
     deploymentId: row.deploymentId,
     organizationId: row.organizationId,
+    actorUserId: row.actorUserId ?? undefined,
     periodStart: toIso(row.periodStart)!,
     periodEnd: toIso(row.periodEnd)!,
     tier: row.tier,

@@ -3,6 +3,7 @@
   "private": true,
   "type": "module",
   "dependencies": {
+    "@vibecore/billing": "workspace:*",
     "@vibecore/database": "workspace:*",
     "@vibecore/k8s-client": "workspace:*",
     "@vibecore/sandbox-runtime": "workspace:*",

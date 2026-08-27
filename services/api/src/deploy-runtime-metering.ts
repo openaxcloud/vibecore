@@ -109,6 +109,12 @@ export async function meterServerDeploymentRuntime(
           return;
         }
 
+        // Reserved VM is settled by its durable calendar-month LedgerReservations.
+        // Charging Autoscale CPU/request usage here as well would double-meter it.
+        if (fresh.runtimeKind === 'reserved-vm') {
+          return;
+        }
+
         const watermarkMs = Date.parse(runtimeWatermarkIso(fresh));
         const elapsedSeconds = Number.isNaN(watermarkMs) ? 0 : (input.nowMs - watermarkMs) / 1000;
 

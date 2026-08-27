@@ -1,5 +1,6 @@
 import { Queue } from 'bullmq';
 import { Redis } from 'ioredis';
+import { createHash } from 'node:crypto';
 
 /*
  * Durable enqueue path for static deploy builds (#26). The deploy POST persists
@@ -18,6 +19,7 @@ export interface DeployBuildJobInput {
   environment: string;
   buildCommand: string;
   outputDirectory: string;
+  framework?: string;
   timeoutSeconds: number;
   artifactSizeLimitMb?: number;
   envVars: Record<string, string>;
@@ -27,6 +29,9 @@ export interface DeployBuildJobInput {
   customDomain?: string;
   previewDeployment: boolean;
   workspaceId?: string;
+  machineSize?: string;
+  runtimeKind?: 'autoscale' | 'reserved-vm';
+  reservedVmTier?: 'shared-0.5' | 'dedicated-1' | 'dedicated-2' | 'dedicated-4';
   githubIntegration?: { repositoryUrl?: string; branch?: string };
 
   /**
@@ -40,6 +45,14 @@ export interface DeployBuildJobInput {
 export interface DeployBuildJobData {
   projectId: string;
   deploymentId: string;
+
+  /**
+   * Stable operation identity for an in-place rebuild of the same Deployment.
+   * Omitted for the original CREATE path so its historical BullMQ id is kept
+   * byte-for-byte; present for REDEPLOY so a retained completed CREATE job cannot
+   * swallow the new build.
+   */
+  operationKey?: string;
 
   /** Owner/actor id so the worker-triggered build can reach the right workspace pod. */
   userId?: string;
@@ -87,8 +100,20 @@ function getQueue(): Queue {
  * static deploy with "Could not queue the build". A '-' separator is safe (the
  * job name keeps its '.' and the deployment id is a cuid — both colon-free).
  */
-export function deployBuildJobId(deploymentId: string): string {
-  return `${DEPLOY_BUILD_JOB}-${deploymentId}`;
+export function deployBuildJobId(deploymentId: string, operationKey?: string): string {
+  const base = `${DEPLOY_BUILD_JOB}-${deploymentId}`;
+
+  if (!operationKey) {
+    return base;
+  }
+
+  /*
+   * Idempotency keys may contain ':' (valid at the API boundary, forbidden by
+   * BullMQ custom ids). Hashing also avoids leaking the caller key into Redis
+   * key names while retaining deterministic exactly-once enqueue semantics.
+   */
+  const operationDigest = createHash('sha256').update(operationKey).digest('hex').slice(0, 32);
+  return `${base}-operation-${operationDigest}`;
 }
 
 /**
@@ -100,7 +125,7 @@ export async function enqueueDeployBuildJob(data: DeployBuildJobData): Promise<s
   const queue = getQueue();
 
   const job = await queue.add(DEPLOY_BUILD_JOB, data, {
-    jobId: deployBuildJobId(data.deploymentId),
+    jobId: deployBuildJobId(data.deploymentId, data.operationKey),
     removeOnComplete: { age: 3600, count: 1000 },
     removeOnFail: { age: 24 * 3600 },
     attempts: 3,

@@ -14,21 +14,22 @@ const TYPE_ICONS: Record<DeploymentTypeId, LucideIcon> = {
 
 /**
  * Replit-style deployment-type picker. Renders one card per tier; the available
- * tier (static) is selectable, coming-soon tiers are disabled with a clear badge
- * so the menu reads like Replit's Publish dialog without pretending to deploy
- * compute tiers the backend cannot fulfil yet.
+ * capability-gated tiers stay disabled until the server proves that the current
+ * organization and cluster can fulfil them.
  */
 export function DeploymentTypeSelector({
   selected,
   onSelect,
+  reservedVmAvailable = false,
 }: {
   selected: DeploymentTypeId;
   onSelect: (id: DeploymentTypeId) => void;
+  reservedVmAvailable?: boolean;
 }) {
   const { i18n } = useTranslation();
   const language = resolveDeployRemainingLanguage(i18n.resolvedLanguage ?? i18n.language);
   const copy = getDeployRemainingCopy(language);
-  const deploymentTypes = getDeploymentTypes(language);
+  const deploymentTypes = getDeploymentTypes(language, { reservedVmAvailable });
 
   return (
     <fieldset className="grid min-w-0 gap-2 border-0 p-0">
@@ -65,20 +66,20 @@ function TypeCard({
   unavailableTitle: string;
 }) {
   const Icon = TYPE_ICONS[type.id];
-  const comingSoon = type.status === 'coming-soon';
+  const unavailable = type.status !== 'available';
 
   return (
     <button
       type="button"
-      onClick={comingSoon ? undefined : onSelect}
+      onClick={unavailable ? undefined : onSelect}
       aria-pressed={selected}
-      aria-disabled={comingSoon}
-      disabled={comingSoon}
-      title={comingSoon ? unavailableTitle : type.tagline}
+      aria-disabled={unavailable}
+      disabled={unavailable}
+      title={unavailable ? unavailableTitle : type.tagline}
       data-testid={`deployment-type-${type.id}`}
       className={classNames(
         'group flex min-h-11 min-w-0 h-full flex-col gap-1 rounded-md border p-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bolt-elements-focus focus-visible:ring-offset-2 focus-visible:ring-offset-bolt-elements-background-depth-1',
-        comingSoon
+        unavailable
           ? 'cursor-not-allowed border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 opacity-60'
           : selected
             ? 'border-bolt-elements-item-contentAccent bg-bolt-elements-background-depth-3'
@@ -94,7 +95,7 @@ function TypeCard({
           aria-hidden
         />
         <span className="min-w-0 break-words text-sm font-medium text-bolt-elements-textPrimary">{type.name}</span>
-        {comingSoon ? (
+        {unavailable ? (
           <span className="ml-auto shrink-0 rounded-full border border-bolt-elements-borderColor px-2 py-0.5 text-[11px] font-medium uppercase tracking-wide text-bolt-elements-textTertiary">
             {soonLabel}
           </span>

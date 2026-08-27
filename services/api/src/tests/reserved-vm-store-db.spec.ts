@@ -216,6 +216,8 @@ runDbTests('Reserved VM durable saga — real PostgreSQL multi-client', () => {
         targetRuntimeKind: 'reserved-vm',
         targetTier: 'dedicated-2',
         targetMachineSize: 'dedicated-2',
+        targetCpuMillicores: 2_000,
+        targetMemoryMb: 8_192,
         targetPriceCents: 8_000,
         termsVersion: TERMS,
         rateCardVersion: 1,
@@ -238,6 +240,8 @@ runDbTests('Reserved VM durable saga — real PostgreSQL multi-client', () => {
           targetRuntimeKind: 'reserved-vm',
           targetTier: 'dedicated-1',
           targetMachineSize: 'dedicated-1',
+          targetCpuMillicores: 1_000,
+          targetMemoryMb: 4_096,
           targetPriceCents: 4_000,
           termsVersion: TERMS,
           rateCardVersion: 1,
@@ -252,6 +256,8 @@ runDbTests('Reserved VM durable saga — real PostgreSQL multi-client', () => {
           expectedRuntimeVersion: initial.deployment.runtimeVersion!,
           targetRuntimeKind: 'autoscale',
           targetMachineSize: 'shared-0.5',
+          targetCpuMillicores: 500,
+          targetMemoryMb: 2_048,
           targetPriceCents: 0,
           termsVersion: TERMS,
           rateCardVersion: 1,
@@ -318,6 +324,8 @@ runDbTests('Reserved VM durable saga — real PostgreSQL multi-client', () => {
           targetRuntimeKind: 'reserved-vm',
           targetTier: 'dedicated-4',
           targetMachineSize: 'dedicated-4',
+          targetCpuMillicores: 4_000,
+          targetMemoryMb: 16_384,
           targetPriceCents: 16_000,
           termsVersion: TERMS,
           rateCardVersion: 1,
@@ -332,6 +340,8 @@ runDbTests('Reserved VM durable saga — real PostgreSQL multi-client', () => {
           expectedRuntimeVersion: afterVersion,
           targetRuntimeKind: 'autoscale',
           targetMachineSize: 'shared-0.5',
+          targetCpuMillicores: 500,
+          targetMemoryMb: 2_048,
           targetPriceCents: 0,
           termsVersion: TERMS,
           rateCardVersion: 1,
@@ -373,6 +383,8 @@ runDbTests('Reserved VM durable saga — real PostgreSQL multi-client', () => {
         expectedRuntimeVersion: afterVersion,
         targetRuntimeKind: 'autoscale',
         targetMachineSize: 'shared-0.5',
+        targetCpuMillicores: 500,
+        targetMemoryMb: 2_048,
         targetPriceCents: 0,
         termsVersion: TERMS,
         rateCardVersion: 1,
@@ -427,6 +439,7 @@ runDbTests('Reserved VM durable saga — real PostgreSQL multi-client', () => {
     const prisma = createDatabaseClient();
     let ownerOrganizationId: string | undefined;
     let attackerOrganizationId: string | undefined;
+    let actorUserId: string | undefined;
 
     try {
       const store = new PrismaApiStore(prisma);
@@ -435,6 +448,8 @@ runDbTests('Reserved VM durable saga — real PostgreSQL multi-client', () => {
       const attacker = await prisma.organization.create({
         data: { name: `Attacker ${token}`, slug: `attacker-${token}` },
       });
+      const actor = await prisma.user.create({ data: { email: `reserved-attacker-${token}@example.test` } });
+      actorUserId = actor.id;
       ownerOrganizationId = owner.id;
       attackerOrganizationId = attacker.id;
       const project = await prisma.project.create({
@@ -447,6 +462,7 @@ runDbTests('Reserved VM durable saga — real PostgreSQL multi-client', () => {
           provider: 'server',
           reservedVm: {
             organizationId: attacker.id,
+            actorUserId: actor.id,
             idempotencyKey: `cross-tenant-${token}`,
             requestHash: '9'.repeat(64),
             tier: 'shared-0.5',
@@ -465,6 +481,9 @@ runDbTests('Reserved VM durable saga — real PostgreSQL multi-client', () => {
       }
       if (attackerOrganizationId) {
         await prisma.organization.delete({ where: { id: attackerOrganizationId } }).catch(() => undefined);
+      }
+      if (actorUserId) {
+        await prisma.user.delete({ where: { id: actorUserId } }).catch(() => undefined);
       }
       await prisma.$disconnect();
     }

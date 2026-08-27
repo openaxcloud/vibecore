@@ -28,7 +28,22 @@ async function createCommittedReservedVm(input: {
   tier: ReservedVmTier;
   token: string;
 }) {
+  const plan = await input.prisma.plan.upsert({
+    where: { key: 'reserved-vm-db-paid' },
+    create: { key: 'reserved-vm-db-paid', name: 'Reserved VM DB paid', monthlyCents: 1, limits: {} },
+    update: {},
+  });
+  await input.prisma.subscription.create({
+    data: {
+      organizationId: input.organizationId,
+      planId: plan.id,
+      status: 'ACTIVE',
+    },
+  });
   const idempotencyKey = `reserved-cycle-create-${input.token}`;
+  const actor = await input.prisma.user.create({
+    data: { email: `reserved-cycle-${input.token}@example.test`, name: 'Reserved VM billing actor' },
+  });
 
   const deployment = await input.store.createDeployment({
     projectId: input.projectId,
@@ -39,6 +54,7 @@ async function createCommittedReservedVm(input: {
     machineSize: input.tier,
     reservedVm: {
       organizationId: input.organizationId,
+      actorUserId: actor.id,
       idempotencyKey,
       requestHash: 'a'.repeat(64),
       tier: input.tier,
@@ -74,7 +90,7 @@ async function createCommittedReservedVm(input: {
 
   const row = await input.prisma.deployment.findUniqueOrThrow({ where: { id: deployment.id } });
 
-  return { deployment: committed.deployment, row };
+  return { deployment: committed.deployment, row, actorUserId: actor.id };
 }
 
 async function forceCycleDue(prisma: DatabaseClient, deploymentId: string): Promise<Date> {
@@ -271,12 +287,15 @@ runDbTests('Reserved VM monthly billing cycle — real PostgreSQL multi-client',
         projectId: project.id,
         deploymentId: initial.deployment.id,
         organizationId: organization.id,
+        actorUserId: initial.actorUserId,
         idempotencyKey: downgradeKey,
         requestHash: 'b'.repeat(64),
         expectedRuntimeVersion: initial.deployment.runtimeVersion!,
         targetRuntimeKind: 'reserved-vm',
         targetTier: 'dedicated-1',
         targetMachineSize: 'dedicated-1',
+        targetCpuMillicores: 1_000,
+        targetMemoryMb: 4_096,
         targetPriceCents: 4_000,
         termsVersion: TERMS,
         rateCardVersion: 1,
@@ -457,6 +476,102 @@ runDbTests('Reserved VM monthly billing cycle — real PostgreSQL multi-client',
           where: { organizationId: organization.id, reason: 'reservation.settle' },
         }),
       ).toBe(1);
+
+      const [stopClaimA, stopClaimB] = await Promise.all([
+        storeA.claimNextReservedVmComputeStop({ ownerToken: `stop-owner-a-${token}`, ttlMs: 60_000 }),
+        storeB.claimNextReservedVmComputeStop({ ownerToken: `stop-owner-b-${token}`, ttlMs: 60_000 }),
+      ]);
+      const stopClaim = stopClaimA ?? stopClaimB;
+      expect([stopClaimA, stopClaimB].filter(Boolean)).toHaveLength(1);
+      expect(stopClaim?.signal).toMatchObject({
+        operationId: `reserved-vm-stop:${retry!.period.id}`,
+        deploymentId: initial.deployment.id,
+        deletePersistentStorage: false,
+      });
+
+      await expect(
+        storeA.acknowledgeReservedVmComputeStopped({
+          periodId: stopClaim!.signal.periodId,
+          deploymentId: stopClaim!.signal.deploymentId,
+          ownerToken: `stale-stop-owner-${token}`,
+          fencingToken: stopClaim!.signal.fencingToken,
+        }),
+      ).rejects.toMatchObject({ code: 'RESERVED_VM_STOP_ACK_CONFLICT' });
+
+      const acknowledged = await storeB.acknowledgeReservedVmComputeStopped({
+        periodId: stopClaim!.signal.periodId,
+        deploymentId: stopClaim!.signal.deploymentId,
+        ownerToken: stopClaim!.signal.ownerToken,
+        fencingToken: stopClaim!.signal.fencingToken,
+      });
+      expect(acknowledged).toMatchObject({
+        replayed: false,
+        period: { status: 'CANCELED' },
+        deployment: {
+          runtimeKind: 'reserved-vm',
+          reservedVmBillingState: 'SUSPENDED',
+          persistentStorageClaim: initial.deployment.persistentStorageClaim,
+        },
+      });
+      expect(acknowledged.deployment.reservedVmNextChargeAt).toBeUndefined();
+
+      await expect(
+        storeA.acknowledgeReservedVmComputeStopped({
+          periodId: stopClaim!.signal.periodId,
+          deploymentId: stopClaim!.signal.deploymentId,
+          ownerToken: stopClaim!.signal.ownerToken,
+          fencingToken: stopClaim!.signal.fencingToken,
+        }),
+      ).resolves.toMatchObject({ replayed: true });
+
+      const resumeKey = `reserved-resume-${token}`;
+      const resume = await storeA.createReservedVmChangeOperation({
+        projectId: project.id,
+        deploymentId: initial.deployment.id,
+        organizationId: organization.id,
+        actorUserId: initial.actorUserId,
+        idempotencyKey: resumeKey,
+        requestHash: 'c'.repeat(64),
+        expectedRuntimeVersion: acknowledged.deployment.runtimeVersion!,
+        targetRuntimeKind: 'reserved-vm',
+        targetTier: 'shared-0.5',
+        targetMachineSize: 'shared-0.5',
+        targetCpuMillicores: 500,
+        targetMemoryMb: 2_048,
+        targetPriceCents: 2_000,
+        termsVersion: TERMS,
+        rateCardVersion: 1,
+      });
+      expect(resume.operation.billingAmountCents).toBe(2_000);
+      const resumeOwner = `resume-owner-${token}`;
+      const resumeLease = await storeA.acquireReservedVmOperation({
+        projectId: project.id,
+        idempotencyKey: resumeKey,
+        ownerToken: resumeOwner,
+        ttlMs: 60_000,
+      });
+      expect(resumeLease.operation.fencingToken).toBeGreaterThan(stopClaim!.signal.fencingToken);
+      await storeA.markReservedVmRuntimeApplied({
+        operationId: resumeLease.operation.id,
+        ownerToken: resumeOwner,
+        fencingToken: resumeLease.operation.fencingToken,
+      });
+      const resumed = await storeA.commitReservedVmOperation({
+        operationId: resumeLease.operation.id,
+        ownerToken: resumeOwner,
+        fencingToken: resumeLease.operation.fencingToken,
+        response: { ready: true, resumed: true },
+      });
+      expect(resumed.deployment).toMatchObject({
+        reservedVmBillingState: 'CURRENT',
+        persistentStorageClaim: initial.deployment.persistentStorageClaim,
+      });
+      expect(resumed.deployment.reservedVmNextChargeAt).toBeTruthy();
+      expect(
+        await prismaA.ledgerTransaction.count({
+          where: { organizationId: organization.id, reason: 'reservation.settle' },
+        }),
+      ).toBe(2);
       await expect(
         storeB.claimDueReservedVmBillingPeriod({
           deploymentId: initial.deployment.id,

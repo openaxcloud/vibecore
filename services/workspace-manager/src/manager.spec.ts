@@ -18,21 +18,72 @@ import {
 class TestWorkspaceK8sClient implements WorkspaceK8sClient {
   readonly objects = new Map<string, K8sObject>();
   readonly events: string[] = [];
+  readonly resourceVersions = new Map<string, number>();
+  readonly generations = new Map<string, number>();
 
   async apply(object: K8sObject) {
-    this.objects.set(`${object.metadata.namespace ?? 'default'}:${object.kind}:${object.metadata.name}`, object);
+    const key = `${object.metadata.namespace ?? 'default'}:${object.kind}:${object.metadata.name}`;
+    const existed = this.objects.has(key);
+    this.objects.set(key, object);
+    this.resourceVersions.set(key, (this.resourceVersions.get(key) ?? (existed ? 1 : 0)) + 1);
+    if (object.kind === 'Deployment') {
+      this.generations.set(key, (this.generations.get(key) ?? (existed ? 1 : 0)) + 1);
+    }
     this.events.push(`apply:${object.kind}:${object.metadata.name}`);
 
     return object;
   }
 
+  async applyFenced(object: K8sObject, expectedResourceVersion?: string) {
+    const key = `${object.metadata.namespace ?? 'default'}:${object.kind}:${object.metadata.name}`;
+    const existing = this.objects.get(key);
+    const actualResourceVersion = this.resourceVersions.get(key) ?? (existing ? 1 : undefined);
+
+    if (
+      (!expectedResourceVersion && existing) ||
+      (expectedResourceVersion && String(actualResourceVersion) !== expectedResourceVersion)
+    ) {
+      throw Object.assign(new Error('Conflict'), { code: 409 });
+    }
+
+    await this.apply(object);
+    return (await this.get(object.kind, object.metadata.namespace ?? 'default', object.metadata.name))!;
+  }
+
   async delete(kind: string, namespace: string, name: string) {
-    this.objects.delete(`${namespace}:${kind}:${name}`);
+    const key = `${namespace}:${kind}:${name}`;
+    this.objects.delete(key);
+    this.resourceVersions.delete(key);
+    this.generations.delete(key);
     this.events.push(`delete:${kind}:${name}`);
   }
 
+  async deleteFenced(kind: string, namespace: string, name: string, expectedResourceVersion: string) {
+    const key = `${namespace}:${kind}:${name}`;
+
+    if (String(this.resourceVersions.get(key) ?? 1) !== expectedResourceVersion) {
+      throw Object.assign(new Error('Conflict'), { code: 409 });
+    }
+
+    await this.delete(kind, namespace, name);
+  }
+
   async get(kind: string, namespace: string, name: string) {
-    return this.objects.get(`${namespace}:${kind}:${name}`);
+    const key = `${namespace}:${kind}:${name}`;
+    const object = this.objects.get(key);
+
+    if (!object) {
+      return undefined;
+    }
+
+    return {
+      ...object,
+      metadata: {
+        ...object.metadata,
+        resourceVersion: String(this.resourceVersions.get(key) ?? 1),
+        ...(kind === 'Deployment' ? { generation: this.generations.get(key) ?? 1 } : {}),
+      },
+    };
   }
 
   async getPod(namespace: string, name: string) {
@@ -44,7 +95,10 @@ class TestWorkspaceK8sClient implements WorkspaceK8sClient {
 
     return {
       ...pod,
-      status: { conditions: [{ type: 'Ready', status: 'True' }] },
+      status: {
+        conditions: [{ type: 'Ready', status: 'True' }],
+        allocatable: { cpu: '4', memory: '16Gi' },
+      },
     } as K8sObject;
   }
 
@@ -1378,17 +1432,66 @@ describe('JsonWorkspaceStore corrupted registry handling', () => {
 });
 
 describe('WorkspaceManager server deployments (Replit-parity durable runtime)', () => {
+  const reservedEnv = () => {
+    vi.stubEnv('RESERVED_VM_RUNTIME_ENABLED', 'true');
+    vi.stubEnv('RESERVED_VM_STORAGE_CLASS', 'reserved-rwo');
+    vi.stubEnv('RESERVED_VM_STORAGE_GB', '50');
+    vi.stubEnv('RESERVED_VM_NODE_SELECTOR_KEY', 'vibecore.ai/capacity');
+    vi.stubEnv('RESERVED_VM_NODE_SELECTOR_VALUE', 'reserved-vm');
+    vi.stubEnv('RESERVED_VM_TAINT_KEY', 'vibecore.ai/capacity');
+    vi.stubEnv('RESERVED_VM_TAINT_VALUE', 'reserved-vm');
+  };
+
+  const seedReservedOperator = (k8s: TestWorkspaceK8sClient) => {
+    k8s.objects.set('workspaces:StorageClass:reserved-rwo', {
+      apiVersion: 'storage.k8s.io/v1',
+      kind: 'StorageClass',
+      metadata: { name: 'reserved-rwo', namespace: 'workspaces' },
+    });
+    k8s.objects.set('workspaces:Node:reserved-node-1', {
+      apiVersion: 'v1',
+      kind: 'Node',
+      metadata: {
+        name: 'reserved-node-1',
+        namespace: 'workspaces',
+        labels: { 'vibecore.ai/capacity': 'reserved-vm' },
+      },
+      spec: {
+        taints: [{ key: 'vibecore.ai/capacity', value: 'reserved-vm', effect: 'NoSchedule' }],
+      },
+      status: {
+        conditions: [{ type: 'Ready', status: 'True' }],
+        allocatable: { cpu: '4', memory: '16Gi' },
+      },
+    });
+  };
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
   // A Deployment that reports itself Ready so the readiness poll resolves.
   class ReadyDeploymentK8sClient extends TestWorkspaceK8sClient {
     override async get(kind: string, namespace: string, name: string) {
-      const object = this.objects.get(`${namespace}:${kind}:${name}`);
+      const object = await super.get(kind, namespace, name);
 
       if (!object) {
         return undefined;
       }
 
       if (kind === 'Deployment') {
-        return { ...object, status: { readyReplicas: 1, replicas: 1 } } as K8sObject;
+        const replicas = Number((object.spec as { replicas?: number } | undefined)?.replicas ?? 1);
+
+        return {
+          ...object,
+          status: {
+            availableReplicas: replicas,
+            observedGeneration: object.metadata.generation,
+            readyReplicas: replicas,
+            replicas,
+            updatedReplicas: replicas,
+          },
+        } as K8sObject;
       }
 
       return object;
@@ -1469,6 +1572,630 @@ describe('WorkspaceManager server deployments (Replit-parity durable runtime)', 
 
     expect(result.ready).toBe(false);
     expect(result.readyReplicas).toBe(0);
+  });
+
+  it('proves Reserved VM capability from live StorageClass and tainted node, fail-closed at each missing layer', async () => {
+    const k8s = new ReadyDeploymentK8sClient();
+    const manager = makeManager(k8s);
+
+    expect(await manager.reservedVmRuntimeCapability('workspaces')).toEqual({
+      enabled: false,
+      reasonCode: 'RESERVED_VM_DISABLED',
+    });
+
+    reservedEnv();
+    expect(await manager.reservedVmRuntimeCapability('workspaces')).toEqual({
+      enabled: false,
+      reasonCode: 'RESERVED_VM_STORAGE_CLASS_UNAVAILABLE',
+    });
+
+    k8s.objects.set('workspaces:StorageClass:reserved-rwo', {
+      apiVersion: 'storage.k8s.io/v1',
+      kind: 'StorageClass',
+      metadata: { name: 'reserved-rwo', namespace: 'workspaces' },
+    });
+    expect(await manager.reservedVmRuntimeCapability('workspaces')).toEqual({
+      enabled: false,
+      reasonCode: 'RESERVED_VM_NODE_POOL_UNAVAILABLE',
+    });
+
+    k8s.objects.set('workspaces:Node:reserved-node-1', {
+      apiVersion: 'v1',
+      kind: 'Node',
+      metadata: {
+        name: 'reserved-node-1',
+        namespace: 'workspaces',
+        labels: { 'vibecore.ai/capacity': 'reserved-vm' },
+      },
+      spec: {
+        unschedulable: true,
+        taints: [{ key: 'vibecore.ai/capacity', value: 'reserved-vm', effect: 'NoSchedule' }],
+      },
+      status: {
+        conditions: [{ type: 'Ready', status: 'True' }],
+        allocatable: { cpu: '4', memory: '16Gi' },
+      },
+    });
+    expect(await manager.reservedVmRuntimeCapability('workspaces')).toEqual({
+      enabled: false,
+      reasonCode: 'RESERVED_VM_NODE_POOL_UNAVAILABLE',
+    });
+
+    k8s.objects.set('workspaces:Node:reserved-node-1', {
+      apiVersion: 'v1',
+      kind: 'Node',
+      metadata: {
+        name: 'reserved-node-1',
+        namespace: 'workspaces',
+        labels: { 'vibecore.ai/capacity': 'reserved-vm' },
+      },
+      spec: {
+        taints: [{ key: 'vibecore.ai/capacity', value: 'reserved-vm', effect: 'NoSchedule' }],
+      },
+      status: {
+        conditions: [{ type: 'Ready', status: 'False' }],
+        allocatable: { cpu: '4', memory: '16Gi' },
+      },
+    });
+    expect(await manager.reservedVmRuntimeCapability('workspaces')).toEqual({
+      enabled: false,
+      reasonCode: 'RESERVED_VM_NODE_POOL_UNAVAILABLE',
+    });
+
+    k8s.objects.set('workspaces:Node:reserved-node-1', {
+      apiVersion: 'v1',
+      kind: 'Node',
+      metadata: {
+        name: 'reserved-node-1',
+        namespace: 'workspaces',
+        labels: { 'vibecore.ai/capacity': 'reserved-vm' },
+      },
+      spec: {
+        taints: [{ key: 'vibecore.ai/capacity', value: 'reserved-vm', effect: 'NoSchedule' }],
+      },
+      status: {
+        conditions: [{ type: 'Ready', status: 'True' }],
+        allocatable: { cpu: '2', memory: '8Gi' },
+      },
+    });
+    expect(await manager.reservedVmRuntimeCapability('workspaces')).toMatchObject({
+      enabled: true,
+      availableTiers: ['shared-0.5', 'dedicated-1', 'dedicated-2'],
+    });
+
+    seedReservedOperator(k8s);
+    expect(await manager.reservedVmRuntimeCapability('workspaces')).toMatchObject({
+      enabled: true,
+      storageClassName: 'reserved-rwo',
+      storageGi: 50,
+      nodeSelector: { key: 'vibecore.ai/capacity', value: 'reserved-vm' },
+      availableTiers: ['shared-0.5', 'dedicated-1', 'dedicated-2', 'dedicated-4'],
+    });
+  });
+
+  it.each([
+    ['shared-0.5', '500m', '2Gi'],
+    ['dedicated-1', '1', '4Gi'],
+    ['dedicated-2', '2', '8Gi'],
+    ['dedicated-4', '4', '16Gi'],
+  ] as const)(
+    'starts always-on tier %s with exact requests=limits and persistent storage',
+    async (tier, cpu, memory) => {
+      reservedEnv();
+      const k8s = new ReadyDeploymentK8sClient();
+      seedReservedOperator(k8s);
+      const manager = makeManager(k8s);
+      const deploymentId = `dep-${tier}`;
+
+      await manager.startServerDeployment({
+        deploymentId,
+        namespace: 'workspaces',
+        orgId: 'org1',
+        projectId: 'project1',
+        image: 'agent:test',
+        port: 3000,
+        host: `${deploymentId}.preview.e-code.ai`,
+        tlsSecretName: 'tls',
+        runtimeKind: 'reserved-vm',
+        reservedVmTier: tier,
+        operationId: `create-${deploymentId}`,
+        fencingToken: 1,
+        readyTimeoutMs: 500,
+      });
+
+      const pvc = k8s.objects.get(`workspaces:PersistentVolumeClaim:reserved-data-${deploymentId}`) as any;
+      const deployment = k8s.objects.get(`workspaces:Deployment:app-${deploymentId}`) as any;
+      const container = deployment.spec.template.spec.containers[0];
+
+      expect(pvc.spec.resources.requests.storage).toBe('50Gi');
+      expect(container.resources).toEqual({ requests: { cpu, memory }, limits: { cpu, memory } });
+      expect(deployment.metadata.labels['vibecore.ai/server-runtime-kind']).toBe('reserved-vm');
+      expect(deployment.spec.replicas).toBe(1);
+    },
+  );
+
+  it('retains and remounts the same PVC when changing from Reserved VM to Autoscale', async () => {
+    reservedEnv();
+    const k8s = new ReadyDeploymentK8sClient();
+    seedReservedOperator(k8s);
+    const manager = makeManager(k8s);
+    const common = {
+      deploymentId: 'dep-change',
+      namespace: 'workspaces',
+      orgId: 'org1',
+      projectId: 'project1',
+      image: 'agent:test',
+      port: 3000,
+      host: 'dep-change.preview.e-code.ai',
+      tlsSecretName: 'tls',
+      readyTimeoutMs: 500,
+    };
+
+    await manager.startServerDeployment({
+      ...common,
+      runtimeKind: 'reserved-vm',
+      reservedVmTier: 'dedicated-1',
+      operationId: 'create-dep-change',
+      fencingToken: 1,
+    });
+    await manager.startServerDeployment({ ...common, runtimeKind: 'autoscale', cpuRequest: '250m', cpuLimit: '1' });
+
+    const deployment = k8s.objects.get('workspaces:Deployment:app-dep-change') as any;
+    expect(k8s.objects.has('workspaces:PersistentVolumeClaim:reserved-data-dep-change')).toBe(true);
+    expect(deployment.metadata.labels['vibecore.ai/server-runtime-kind']).toBe('autoscale');
+    expect(deployment.spec.template.spec.volumes).toContainEqual({
+      name: 'app-data',
+      persistentVolumeClaim: { claimName: 'reserved-data-dep-change', readOnly: false },
+    });
+    expect(k8s.events).not.toContain('delete:PersistentVolumeClaim:reserved-data-dep-change');
+  });
+
+  it('reconfigures the existing Deployment in place without changing image, command, Service or PVC', async () => {
+    reservedEnv();
+    const k8s = new ReadyDeploymentK8sClient();
+    seedReservedOperator(k8s);
+    const manager = makeManager(k8s);
+
+    await manager.startServerDeployment({
+      deploymentId: 'dep-in-place',
+      namespace: 'workspaces',
+      image: 'registry.example/app@sha256:abc',
+      command: ['node', 'server.js'],
+      port: 3000,
+      host: 'dep-in-place.preview.e-code.ai',
+      tlsSecretName: 'tls',
+      cpuRequest: '250m',
+      cpuLimit: '1',
+      memoryRequest: '1Gi',
+      memoryLimit: '2Gi',
+      readyTimeoutMs: 500,
+    });
+    const serviceBefore = structuredClone(k8s.objects.get('workspaces:Service:app-dep-in-place'));
+
+    const result = await manager.reconfigureServerDeployment({
+      deploymentId: 'dep-in-place',
+      namespace: 'workspaces',
+      runtimeKind: 'reserved-vm',
+      reservedVmTier: 'dedicated-2',
+      operationId: 'change-dep-in-place',
+      fencingToken: 1,
+      readyTimeoutMs: 500,
+    });
+
+    const deployment = k8s.objects.get('workspaces:Deployment:app-dep-in-place') as any;
+    const container = deployment.spec.template.spec.containers[0];
+    expect(result).toMatchObject({ ready: true, persistentVolumeClaimName: 'reserved-data-dep-in-place' });
+    expect(container.image).toBe('registry.example/app@sha256:abc');
+    expect(container.command).toEqual(['node', 'server.js']);
+    expect(container.resources).toEqual({ requests: { cpu: '2', memory: '8Gi' }, limits: { cpu: '2', memory: '8Gi' } });
+    expect(k8s.objects.get('workspaces:Service:app-dep-in-place')).toEqual(serviceBefore);
+    expect(k8s.objects.has('workspaces:PersistentVolumeClaim:reserved-data-dep-in-place')).toBe(true);
+  });
+
+  it('redeploys a Reserved VM image in place under a higher fence without replacing its Service or PVC', async () => {
+    reservedEnv();
+    const k8s = new ReadyDeploymentK8sClient();
+    seedReservedOperator(k8s);
+    const manager = makeManager(k8s);
+
+    await manager.startServerDeployment({
+      deploymentId: 'dep-redeploy-in-place',
+      namespace: 'workspaces',
+      orgId: 'org-redeploy',
+      projectId: 'project-redeploy',
+      image: 'registry.example/app@sha256:old',
+      command: ['node', 'old.js'],
+      args: ['--old'],
+      port: 3000,
+      host: 'dep-redeploy-in-place.preview.e-code.ai',
+      tlsSecretName: 'tls',
+      env: { OLD_FLAG: '1' },
+      secrets: { API_TOKEN: 'secret' },
+      healthPath: '/old-health',
+      runtimeKind: 'reserved-vm',
+      reservedVmTier: 'dedicated-1',
+      operationId: 'create-redeploy-runtime',
+      fencingToken: 4,
+      readyTimeoutMs: 500,
+    });
+    const serviceBefore = structuredClone(k8s.objects.get('workspaces:Service:app-dep-redeploy-in-place'));
+    const pvcBefore = structuredClone(
+      k8s.objects.get('workspaces:PersistentVolumeClaim:reserved-data-dep-redeploy-in-place'),
+    );
+
+    const result = await manager.reconfigureServerDeployment({
+      deploymentId: 'dep-redeploy-in-place',
+      namespace: 'workspaces',
+      runtimeKind: 'reserved-vm',
+      reservedVmTier: 'dedicated-1',
+      image: 'registry.example/app@sha256:new',
+      command: ['node', 'new.js'],
+      args: ['--new'],
+      env: { NEW_FLAG: '1', PORT: '9999', PROJECT_ID: 'spoofed' },
+      healthPath: '/ready',
+      operationId: 'redeploy-runtime',
+      fencingToken: 5,
+      readyTimeoutMs: 500,
+    });
+
+    const deployment = k8s.objects.get('workspaces:Deployment:app-dep-redeploy-in-place') as any;
+    const container = deployment.spec.template.spec.containers[0];
+    expect(result).toMatchObject({
+      ready: true,
+      persistentVolumeClaimName: 'reserved-data-dep-redeploy-in-place',
+      appliedFencingToken: 5,
+    });
+    expect(container).toMatchObject({
+      image: 'registry.example/app@sha256:new',
+      command: ['node', 'new.js'],
+      args: ['--new'],
+      readinessProbe: { httpGet: { path: '/ready', port: 3000 } },
+    });
+    expect(container.env).toEqual(
+      expect.arrayContaining([
+        { name: 'PORT', value: '3000' },
+        { name: 'ECODE_DEPLOYMENT', value: '1' },
+        { name: 'PROJECT_ID', value: 'project-redeploy' },
+        { name: 'NEW_FLAG', value: '1' },
+        {
+          name: 'API_TOKEN',
+          valueFrom: { secretKeyRef: { name: 'app-secrets-dep-redeploy-in-place', key: 'API_TOKEN', optional: true } },
+        },
+      ]),
+    );
+    expect(container.env).not.toContainEqual({ name: 'PORT', value: '9999' });
+    expect(container.env).not.toContainEqual({ name: 'PROJECT_ID', value: 'spoofed' });
+    expect(k8s.objects.get('workspaces:Service:app-dep-redeploy-in-place')).toEqual(serviceBefore);
+    expect(k8s.objects.get('workspaces:PersistentVolumeClaim:reserved-data-dep-redeploy-in-place')).toMatchObject({
+      metadata: {
+        name: pvcBefore?.metadata.name,
+        labels: pvcBefore?.metadata.labels,
+        annotations: {
+          'vibecore.ai/runtime-operation-id': 'redeploy-runtime',
+          'vibecore.ai/runtime-fencing-token': '5',
+        },
+      },
+    });
+    expect(k8s.events).not.toContain('delete:Deployment:app-dep-redeploy-in-place');
+    expect(k8s.events).not.toContain('delete:PersistentVolumeClaim:reserved-data-dep-redeploy-in-place');
+  });
+
+  it('fenced-suspends a Reserved VM at zero replicas without deleting or replacing its runtime, URL or data claim', async () => {
+    reservedEnv();
+    const k8s = new ReadyDeploymentK8sClient();
+    seedReservedOperator(k8s);
+    const manager = makeManager(k8s);
+
+    await manager.startServerDeployment({
+      deploymentId: 'dep-billing-suspend',
+      namespace: 'workspaces',
+      orgId: 'org-suspend',
+      projectId: 'project-suspend',
+      image: 'registry.example/app@sha256:paid-release',
+      command: ['node', 'server.js'],
+      args: ['--paid'],
+      port: 3000,
+      host: 'dep-billing-suspend.preview.e-code.ai',
+      tlsSecretName: 'tls',
+      env: { RELEASE: 'paid' },
+      secrets: { API_TOKEN: 'secret' },
+      healthPath: '/ready',
+      runtimeKind: 'reserved-vm',
+      reservedVmTier: 'dedicated-1',
+      operationId: 'create-suspend-runtime',
+      fencingToken: 12,
+      readyTimeoutMs: 500,
+    });
+
+    const deploymentBefore = structuredClone(k8s.objects.get('workspaces:Deployment:app-dep-billing-suspend')) as any;
+    const serviceBefore = structuredClone(k8s.objects.get('workspaces:Service:app-dep-billing-suspend'));
+    const pvcBefore = structuredClone(
+      k8s.objects.get('workspaces:PersistentVolumeClaim:reserved-data-dep-billing-suspend'),
+    );
+    const eventCountBefore = k8s.events.length;
+
+    const result = await manager.suspendReservedVmDeployment({
+      deploymentId: 'dep-billing-suspend',
+      namespace: 'workspaces',
+      operationId: 'billing-stop:period-2026-08',
+      fencingToken: 14,
+      readyTimeoutMs: 500,
+    });
+
+    const deployment = k8s.objects.get('workspaces:Deployment:app-dep-billing-suspend') as any;
+    expect(result).toEqual({
+      suspended: true,
+      name: 'app-dep-billing-suspend',
+      persistentVolumeClaimName: 'reserved-data-dep-billing-suspend',
+      appliedFencingToken: 14,
+    });
+    expect(deployment.spec.replicas).toBe(0);
+    expect(deployment.spec.template.spec).toEqual(deploymentBefore.spec.template.spec);
+    expect(deployment.spec.strategy).toEqual(deploymentBefore.spec.strategy);
+    expect(deployment.metadata.labels).toEqual(deploymentBefore.metadata.labels);
+    expect(deployment.metadata.annotations).toMatchObject({
+      'vibecore.ai/runtime-operation-id': 'billing-stop:period-2026-08',
+      'vibecore.ai/runtime-fencing-token': '14',
+      'vibecore.ai/reserved-vm-suspended': 'true',
+    });
+    expect(deployment.spec.template.metadata.annotations).toMatchObject({
+      'vibecore.ai/reserved-vm-suspended': 'true',
+    });
+    expect(k8s.objects.get('workspaces:Service:app-dep-billing-suspend')).toEqual(serviceBefore);
+    expect(k8s.objects.get('workspaces:PersistentVolumeClaim:reserved-data-dep-billing-suspend')).toEqual(pvcBefore);
+    expect(k8s.events.slice(eventCountBefore)).toEqual(['apply:Deployment:app-dep-billing-suspend']);
+    expect(k8s.events.some((event) => event.startsWith('delete:'))).toBe(false);
+
+    const applyCount = k8s.events.length;
+    await manager.suspendReservedVmDeployment({
+      deploymentId: 'dep-billing-suspend',
+      namespace: 'workspaces',
+      operationId: 'billing-stop:period-2026-08',
+      fencingToken: 14,
+      readyTimeoutMs: 500,
+    });
+    expect(k8s.events).toHaveLength(applyCount);
+
+    await expect(
+      manager.suspendReservedVmDeployment({
+        deploymentId: 'dep-billing-suspend',
+        namespace: 'workspaces',
+        operationId: 'billing-stop:stale',
+        fencingToken: 13,
+        readyTimeoutMs: 500,
+      }),
+    ).rejects.toMatchObject({ code: 'RESERVED_VM_OPERATION_FENCE_LOST' });
+    expect(k8s.objects.has('workspaces:Deployment:app-dep-billing-suspend')).toBe(true);
+    expect(k8s.objects.has('workspaces:PersistentVolumeClaim:reserved-data-dep-billing-suspend')).toBe(true);
+  });
+
+  it('converts Reserved VM back to Autoscale in place while retaining the URL Service and data claim', async () => {
+    reservedEnv();
+    const k8s = new ReadyDeploymentK8sClient();
+    seedReservedOperator(k8s);
+    const manager = makeManager(k8s);
+
+    await manager.startServerDeployment({
+      deploymentId: 'dep-to-autoscale',
+      namespace: 'workspaces',
+      image: 'registry.example/app@sha256:stable',
+      command: ['node', 'server.js'],
+      port: 3000,
+      host: 'dep-to-autoscale.preview.e-code.ai',
+      tlsSecretName: 'tls',
+      runtimeKind: 'reserved-vm',
+      reservedVmTier: 'dedicated-1',
+      operationId: 'create-dep-to-autoscale',
+      fencingToken: 1,
+      readyTimeoutMs: 500,
+    });
+    const serviceBefore = structuredClone(k8s.objects.get('workspaces:Service:app-dep-to-autoscale'));
+
+    const result = await manager.reconfigureServerDeployment({
+      deploymentId: 'dep-to-autoscale',
+      namespace: 'workspaces',
+      runtimeKind: 'autoscale',
+      cpuRequest: '250m',
+      cpuLimit: '1',
+      memoryRequest: '512Mi',
+      memoryLimit: '1Gi',
+      operationId: 'change-dep-to-autoscale',
+      fencingToken: 2,
+      readyTimeoutMs: 500,
+    });
+
+    const deployment = k8s.objects.get('workspaces:Deployment:app-dep-to-autoscale') as any;
+    const podSpec = deployment.spec.template.spec;
+    const container = podSpec.containers[0];
+    expect(result).toMatchObject({ ready: true, persistentVolumeClaimName: 'reserved-data-dep-to-autoscale' });
+    expect(container.image).toBe('registry.example/app@sha256:stable');
+    expect(container.command).toEqual(['node', 'server.js']);
+    expect(container.resources).toEqual({
+      requests: { cpu: '250m', memory: '512Mi' },
+      limits: { cpu: '1', memory: '1Gi' },
+    });
+    expect(deployment.metadata.labels['vibecore.ai/server-runtime-kind']).toBe('autoscale');
+    expect(podSpec.nodeSelector).toEqual({ 'vibecore.ai/node-pool': 'sandbox' });
+    expect(k8s.objects.get('workspaces:Service:app-dep-to-autoscale')).toEqual(serviceBefore);
+    expect(k8s.objects.has('workspaces:PersistentVolumeClaim:reserved-data-dep-to-autoscale')).toBe(true);
+    expect(k8s.events).not.toContain('delete:PersistentVolumeClaim:reserved-data-dep-to-autoscale');
+  });
+
+  it('accepts monotone deployment fences across create and changes, then rejects a stale writer', async () => {
+    reservedEnv();
+    const k8s = new ReadyDeploymentK8sClient();
+    seedReservedOperator(k8s);
+    const manager = makeManager(k8s);
+    const common = {
+      deploymentId: 'dep-monotone-fence',
+      namespace: 'workspaces',
+      image: 'registry.example/app@sha256:fenced',
+      port: 3000,
+      host: 'dep-monotone-fence.preview.e-code.ai',
+      tlsSecretName: 'tls',
+      readyTimeoutMs: 500,
+    };
+
+    await manager.startServerDeployment({
+      ...common,
+      runtimeKind: 'reserved-vm',
+      reservedVmTier: 'dedicated-1',
+      operationId: 'operation-create-a',
+      fencingToken: 1,
+    });
+    await manager.reconfigureServerDeployment({
+      deploymentId: common.deploymentId,
+      namespace: common.namespace,
+      runtimeKind: 'reserved-vm',
+      reservedVmTier: 'dedicated-2',
+      operationId: 'operation-change-b',
+      fencingToken: 2,
+      readyTimeoutMs: 500,
+    });
+    await manager.reconfigureServerDeployment({
+      deploymentId: common.deploymentId,
+      namespace: common.namespace,
+      runtimeKind: 'reserved-vm',
+      reservedVmTier: 'dedicated-4',
+      operationId: 'operation-change-c',
+      fencingToken: 3,
+      readyTimeoutMs: 500,
+    });
+
+    await expect(
+      manager.reconfigureServerDeployment({
+        deploymentId: common.deploymentId,
+        namespace: common.namespace,
+        runtimeKind: 'reserved-vm',
+        reservedVmTier: 'shared-0.5',
+        operationId: 'operation-stale-a',
+        fencingToken: 2,
+        readyTimeoutMs: 500,
+      }),
+    ).rejects.toMatchObject({ code: 'RESERVED_VM_OPERATION_FENCE_LOST' });
+
+    const deployment = k8s.objects.get('workspaces:Deployment:app-dep-monotone-fence') as any;
+    expect(deployment.metadata.annotations).toMatchObject({
+      'vibecore.ai/runtime-operation-id': 'operation-change-c',
+      'vibecore.ai/runtime-fencing-token': '3',
+    });
+    expect(deployment.spec.template.spec.containers[0].resources).toEqual({
+      requests: { cpu: '4', memory: '16Gi' },
+      limits: { cpu: '4', memory: '16Gi' },
+    });
+  });
+
+  it('restores the exact previous Deployment when an in-place rollout cannot become Ready', async () => {
+    reservedEnv();
+    class RollbackReadyK8sClient extends TestWorkspaceK8sClient {
+      override async get(kind: string, namespace: string, name: string) {
+        const object = await super.get(kind, namespace, name);
+
+        if (!object || kind !== 'Deployment') {
+          return object;
+        }
+
+        if (object.metadata.labels?.['vibecore.ai/server-runtime-kind'] !== 'autoscale') {
+          return object;
+        }
+
+        return {
+          ...object,
+          status: {
+            availableReplicas: 1,
+            observedGeneration: object.metadata.generation,
+            readyReplicas: 1,
+            replicas: 1,
+            updatedReplicas: 1,
+          },
+        } as K8sObject;
+      }
+    }
+    const k8s = new RollbackReadyK8sClient();
+    seedReservedOperator(k8s);
+    const manager = makeManager(k8s);
+    const original = {
+      apiVersion: 'apps/v1',
+      kind: 'Deployment',
+      metadata: {
+        name: 'app-dep-rollback',
+        namespace: 'workspaces',
+        labels: {
+          'vibecore.ai/server-deploy': 'dep-rollback',
+          'vibecore.ai/server-runtime-kind': 'autoscale',
+        },
+      },
+      spec: {
+        replicas: 1,
+        template: {
+          metadata: { labels: { app: 'app-dep-rollback' } },
+          spec: {
+            containers: [
+              {
+                name: 'app',
+                image: 'registry.example/app@sha256:old',
+                command: ['node', 'old.js'],
+                args: ['--stable'],
+                ports: [{ containerPort: 3000, name: 'http' }],
+                env: [{ name: 'STABLE_RELEASE', value: '1' }],
+                readinessProbe: { httpGet: { path: '/stable', port: 3000 } },
+                resources: { requests: { cpu: '250m', memory: '1Gi' }, limits: { cpu: '1', memory: '2Gi' } },
+              },
+            ],
+          },
+        },
+      },
+    } as any;
+    k8s.objects.set('workspaces:Deployment:app-dep-rollback', structuredClone(original));
+
+    await expect(
+      manager.reconfigureServerDeployment({
+        deploymentId: 'dep-rollback',
+        namespace: 'workspaces',
+        runtimeKind: 'reserved-vm',
+        reservedVmTier: 'dedicated-4',
+        image: 'registry.example/app@sha256:broken',
+        command: ['node', 'broken.js'],
+        args: ['--broken'],
+        env: { BROKEN_RELEASE: '1' },
+        healthPath: '/broken',
+        operationId: 'change-dep-rollback',
+        fencingToken: 1,
+        readyTimeoutMs: 1,
+      }),
+    ).rejects.toMatchObject({ code: 'RESERVED_VM_RECONFIGURE_NOT_READY', rolledBack: true });
+
+    const rolledBack = k8s.objects.get('workspaces:Deployment:app-dep-rollback') as any;
+    const rolledBackWorkloadSpec = structuredClone(rolledBack.spec);
+    delete rolledBackWorkloadSpec.template.metadata.annotations;
+    expect(rolledBackWorkloadSpec).toEqual(original.spec);
+    expect(rolledBack.metadata.labels).toEqual(original.metadata.labels);
+    expect(rolledBack.metadata.annotations).toMatchObject({
+      'vibecore.ai/runtime-operation-id': 'change-dep-rollback',
+      'vibecore.ai/runtime-fencing-token': '1',
+    });
+    // This operation created an empty PVC and then proved the runtime rollback,
+    // so it deletes only that new claim under the same fence.
+    expect(k8s.objects.has('workspaces:PersistentVolumeClaim:reserved-data-dep-rollback')).toBe(false);
+  });
+
+  it('rejects Reserved VM before creating resources when the operator capability is inactive', async () => {
+    const k8s = new ReadyDeploymentK8sClient();
+    const manager = makeManager(k8s);
+
+    await expect(
+      manager.startServerDeployment({
+        deploymentId: 'dep-disabled',
+        namespace: 'workspaces',
+        image: 'agent:test',
+        port: 3000,
+        host: 'dep-disabled.preview.e-code.ai',
+        tlsSecretName: 'tls',
+        runtimeKind: 'reserved-vm',
+        reservedVmTier: 'shared-0.5',
+      }),
+    ).rejects.toMatchObject({ code: 'RESERVED_VM_DISABLED', statusCode: 503 });
+    expect(k8s.events).toEqual([]);
   });
 
   it('omits the Secret entirely when the deployment has no secrets', async () => {
@@ -1569,6 +2296,7 @@ describe('server-deploy scale-to-zero (Replit-parity Autoscale)', () => {
       readyReplicas?: number;
       annotations?: Record<string, string>;
       creationTimestamp?: string;
+      runtimeKind?: 'autoscale' | 'reserved-vm';
     } = {},
   ) {
     const name = `app-${deploymentId}`;
@@ -1578,7 +2306,11 @@ describe('server-deploy scale-to-zero (Replit-parity Autoscale)', () => {
       metadata: {
         name,
         namespace: 'workspaces',
-        labels: { app: name, 'vibecore.ai/server-deploy': deploymentId },
+        labels: {
+          app: name,
+          'vibecore.ai/server-deploy': deploymentId,
+          'vibecore.ai/server-runtime-kind': overrides.runtimeKind ?? 'autoscale',
+        },
         annotations: overrides.annotations,
         ...(overrides.creationTimestamp ? { creationTimestamp: overrides.creationTimestamp } : {}),
       } as any,
@@ -1621,6 +2353,53 @@ describe('server-deploy scale-to-zero (Replit-parity Autoscale)', () => {
     expect(k8s.events.some((e) => e.startsWith('scale:'))).toBe(false);
   });
 
+  it('activate() never wakes a billing-suspended Reserved VM from public traffic', async () => {
+    const k8s = new TestWorkspaceK8sClient();
+    const manager = new WorkspaceManager(
+      new TestWorkspaceStore(),
+      k8s,
+      new TestEventBus(),
+      'test-workspace-agent-secret',
+    );
+    seedServerDeploy(k8s, 'dep_reserved_suspended', {
+      replicas: 0,
+      readyReplicas: 0,
+      runtimeKind: 'reserved-vm',
+      annotations: { 'vibecore.ai/reserved-vm-suspended': 'true' },
+    });
+
+    await expect(manager.activateServerDeployment('workspaces', 'dep_reserved_suspended', 5_000)).rejects.toMatchObject(
+      { code: 'RESERVED_VM_SUSPENDED', statusCode: 402 },
+    );
+    await expect(manager.activateServerDeployment('workspaces', 'dep_reserved_suspended', 5_000)).rejects.toMatchObject(
+      { code: 'RESERVED_VM_SUSPENDED', statusCode: 402 },
+    );
+    expect(k8s.events.some((event) => event.startsWith('scale:'))).toBe(false);
+    expect(k8s.events.some((event) => event.startsWith('annotate:'))).toBe(false);
+  });
+
+  it('activate() polls an always-on Reserved VM without ever scaling it from zero', async () => {
+    const k8s = new TestWorkspaceK8sClient();
+    const manager = new WorkspaceManager(
+      new TestWorkspaceStore(),
+      k8s,
+      new TestEventBus(),
+      'test-workspace-agent-secret',
+    );
+    seedServerDeploy(k8s, 'dep_reserved_healthy', {
+      replicas: 1,
+      readyReplicas: 1,
+      runtimeKind: 'reserved-vm',
+    });
+
+    await expect(manager.activateServerDeployment('workspaces', 'dep_reserved_healthy', 5_000)).resolves.toEqual({
+      ready: true,
+      readyReplicas: 1,
+      wokeUp: false,
+    });
+    expect(k8s.events.some((event) => event.startsWith('scale:'))).toBe(false);
+  });
+
   it('activate() throws SERVER_DEPLOY_NOT_FOUND for an unknown deployment', async () => {
     const k8s = new TestWorkspaceK8sClient();
     const manager = new WorkspaceManager(
@@ -1657,6 +2436,12 @@ describe('server-deploy scale-to-zero (Replit-parity Autoscale)', () => {
     });
     // Already asleep -> skipped.
     seedServerDeploy(k8s, 'dep_zero', { replicas: 0, readyReplicas: 0 });
+    // Same idle timestamp, but paid always-on capacity is never reaped.
+    seedServerDeploy(k8s, 'dep_reserved', {
+      replicas: 1,
+      runtimeKind: 'reserved-vm',
+      annotations: { 'vibecore.ai/last-request-at': String(now - 20 * 60_000) },
+    });
 
     const slept = await manager.reapIdleServerDeployments('workspaces', 15 * 60_000);
 
@@ -1664,6 +2449,7 @@ describe('server-deploy scale-to-zero (Replit-parity Autoscale)', () => {
     expect(k8s.events).toContain('scale:Deployment:app-dep_idle:0');
     expect(k8s.events).not.toContain('scale:Deployment:app-dep_active:0');
     expect(k8s.events).not.toContain('scale:Deployment:app-dep_zero:0');
+    expect(k8s.events).not.toContain('scale:Deployment:app-dep_reserved:0');
   });
 
   it('reapIdleServerDeployments() gives a never-hit deployment its full window from creation', async () => {

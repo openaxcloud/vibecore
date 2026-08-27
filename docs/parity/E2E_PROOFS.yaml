@@ -27,6 +27,18 @@ proofs:
     traceIds: "helm rev live; runs cron réels"
     status: PROVEN
     provenAt: "2026-07-16"
+  - proofId: E2E-SCHEDULED-01
+    title: "Scheduled deployment: cron UTC → pod jetable → logs, succès et metering"
+    fixtures: { account: qa, plan: pro-override, region: europe-west9, client: api+kubectl }
+    steps: ["armer un cron UTC à T+2 min", "attendre le run schedule", "vérifier pod jetable nettoyé, logs, exit 0 et UsageEvent"]
+    expected: "tir à l'heure; SUCCESS; exitCode=0; computeUnits et costCents > 0; meteredAt posé; nextRunAt avancé"
+    evidenceId: docs/deploy-evidence/2026-07-15-phase-b/REPORT.md
+    reproofEvidenceId: docs/deploy-evidence/2026-07-16-zone-autoscale/scheduled-reproof.txt
+    screenshots: n/a
+    logs: yes
+    traceIds: "sched_31b5127… / srun_e316613… (13,853s, 180,089u, 1¢) ; repreuve sched_273460ed… / srun_1d5e9f4d… (7,725s, 100,425u, 1¢)"
+    status: PROVEN
+    provenAt: "2026-07-16"
   - proofId: E2E-AGM-A
     title: "AGM (a): mesure DOM e-code.ai — plus aucun nom de modèle (landing, création, IDE)"
     fixtures: { account: qa-agm-free1@e-code.ai, plan: free, region: europe-west9, client: web }

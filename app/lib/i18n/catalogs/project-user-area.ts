@@ -317,11 +317,14 @@ export const projectUserAreaEn = {
         detectionFailed: 'Could not detect how this app should deploy.',
         redetect: 'Re-detect',
         detected: 'Detected:',
-        serverMode: 'server deployment',
+        serverMode: 'autoscale deployment',
+        reservedMode: 'Reserved VM deployment',
         staticMode: 'static deployment',
         overridden: '(overridden)',
         serverDescription:
           'Runs your app as a managed HTTP service on a durable runtime. Build and start command are auto-detected; your project secrets (including the database URL) are injected automatically.',
+        reservedDescription:
+          'Runs one always-on managed VM with persistent storage. It keeps the same project, URL and data when you change Reserved VM tiers.',
         staticDescription: 'Builds your app and serves the output as a fast static site at a public URL.',
         environment: 'Environment',
         customDomain: 'Custom domain',
@@ -331,14 +334,54 @@ export const projectUserAreaEn = {
         unavailable: '(unavailable)',
         billing:
           'Billed only while your app is running — it sleeps automatically after 15 min without traffic and wakes on the next request. Rate card v{version}.',
+        rateCardLoading: 'Loading current compute pricing and availability…',
+        rateCardUnavailable:
+          'Compute pricing is temporarily unavailable. Server publishing is disabled to prevent an unpriced deployment.',
+        retryRateCard: 'Retry pricing',
+        reservedVm: {
+          title: 'Reserved VM',
+          available: 'Available on your plan',
+          description: 'Always on · persistent storage · one fixed monthly price',
+          tierLegend: 'Choose a Reserved VM tier',
+          sharedTier: 'Shared capacity',
+          dedicatedTier: 'Dedicated · {cpu} vCPU',
+          tierUnavailable: 'Unavailable for the current plan or cluster capacity',
+          cpuMemory: '{cpu} vCPU · {memory} GB RAM',
+          monthly: '{amount}/month',
+          confirmation:
+            'I confirm this Reserved VM reservation at {amount}/month. Billing starts when provisioning succeeds.',
+          confirmationHint:
+            'Changing the tier keeps this project’s URL and persistent data. The new monthly price must be confirmed again.',
+          paidPlanRequired: 'Reserved VM requires an active paid plan.',
+          operatorUnavailable: 'Reserved VM is not enabled for this cluster. No reservation or charge will be created.',
+          pricingInvalid: 'Reserved VM pricing could not be verified. Reload pricing before creating a reservation.',
+          upgrade: 'View paid plans',
+        },
         environmentVariables: 'Environment variables',
         environmentPlaceholder: 'PUBLIC_API_URL=https://api.example.com\nFEATURE_FLAG=on',
         advanced: 'Advanced — override the deploy mode',
         modeAuto: 'Auto (recommended) — use the detected mode',
-        modeServer: 'Server — managed HTTP service',
+        modeServer: 'Autoscale — sleeps when idle',
+        modeReservedVm: 'Reserved VM — always on with persistent storage',
         modeStatic: 'Static — built output, no server',
         publishing: 'Publishing…',
         submit: 'Publish',
+      },
+      runtime: {
+        title: 'Runtime settings',
+        description:
+          'Change this deployment in place. Its project, public URL and persistent data stay attached to the same deployment.',
+        current: 'Current: {runtime} · configuration v{version}',
+        modeLegend: 'Runtime type',
+        autoscale: 'Autoscale',
+        reservedVm: 'Reserved VM',
+        versionUnavailable:
+          'The runtime configuration version is unavailable. Refresh before changing compute to prevent overwriting a newer change.',
+        recovery:
+          'If provisioning fails, the current runtime stays active or is restored. Refresh this page before retrying a version conflict.',
+        unchanged: 'Choose a different runtime type, machine size or Reserved VM tier to save a change.',
+        save: 'Apply runtime change',
+        saving: 'Applying change…',
       },
       environments: {
         preview: 'Preview',
@@ -407,6 +450,10 @@ export const projectUserAreaEn = {
         redeployFailed: 'Failed to redeploy',
         rollbackFailed: 'Failed to roll back',
         accessFailed: 'Failed to update deployment access',
+        reservedConfirmationRequired: 'Confirm the Reserved VM monthly price before publishing.',
+        reservedPricingInvalid: 'Reserved VM pricing or terms are invalid. Reload pricing and try again.',
+        runtimeChangeInvalid: 'The runtime change is incomplete or stale. Refresh and try again.',
+        runtimeChangeFailed: 'Failed to change deployment runtime',
       },
     },
   },
@@ -728,11 +775,14 @@ export const projectUserAreaFr = {
         detectionFailed: 'Impossible de déterminer comment déployer cette application.',
         redetect: 'Relancer la détection',
         detected: 'Détecté :',
-        serverMode: 'déploiement serveur',
+        serverMode: 'déploiement avec mise à l’échelle automatique',
+        reservedMode: 'déploiement sur VM réservée',
         staticMode: 'déploiement statique',
         overridden: '(remplacé manuellement)',
         serverDescription:
           'Exécute votre application comme un service HTTP géré dans un environnement d’exécution persistant. Les commandes de compilation et de démarrage sont détectées automatiquement ; les secrets du projet, y compris l’URL de la base de données, sont injectés automatiquement.',
+        reservedDescription:
+          'Exécute une VM gérée toujours active avec un stockage persistant. Le projet, l’URL et les données restent identiques lors d’un changement d’offre VM réservée.',
         staticDescription:
           'Compile votre application et publie le résultat sous forme de site statique rapide accessible à une URL publique.',
         environment: 'Environnement',
@@ -743,14 +793,57 @@ export const projectUserAreaFr = {
         unavailable: '(indisponible)',
         billing:
           'Facturation uniquement pendant l’exécution de votre application : elle se met automatiquement en veille après 15 min sans trafic et se réveille à la requête suivante. Grille tarifaire v{version}.',
+        rateCardLoading: 'Chargement des tarifs et de la disponibilité du calcul…',
+        rateCardUnavailable:
+          'Les tarifs de calcul sont temporairement indisponibles. La publication serveur est désactivée pour éviter un déploiement sans prix vérifié.',
+        retryRateCard: 'Recharger les tarifs',
+        reservedVm: {
+          title: 'VM réservée',
+          available: 'Disponible avec votre offre',
+          description: 'Toujours active · stockage persistant · prix mensuel fixe',
+          tierLegend: 'Choisir une offre VM réservée',
+          sharedTier: 'Capacité partagée',
+          dedicatedTier: 'Dédiée · {cpu} vCPU',
+          tierUnavailable: 'Indisponible avec cette offre ou la capacité actuelle du cluster',
+          cpuMemory: '{cpu} vCPU · {memory} Go de RAM',
+          monthly: '{amount}/mois',
+          confirmation:
+            'Je confirme cette réservation de VM à {amount}/mois. La facturation commence une fois le provisionnement réussi.',
+          confirmationHint:
+            'Le changement d’offre conserve l’URL et les données persistantes de ce projet. Le nouveau prix mensuel devra être confirmé.',
+          paidPlanRequired: 'Une offre payante active est requise pour utiliser une VM réservée.',
+          operatorUnavailable:
+            'La VM réservée n’est pas activée sur ce cluster. Aucune réservation et aucun débit ne seront créés.',
+          pricingInvalid:
+            'Les tarifs de VM réservée n’ont pas pu être vérifiés. Rechargez-les avant de créer une réservation.',
+          upgrade: 'Voir les offres payantes',
+        },
         environmentVariables: 'Variables d’environnement',
         environmentPlaceholder: 'PUBLIC_API_URL=https://api.example.com\nFEATURE_FLAG=on',
         advanced: 'Avancé — remplacer le mode de déploiement',
         modeAuto: 'Automatique (recommandé) — utiliser le mode détecté',
-        modeServer: 'Serveur — service HTTP géré',
+        modeServer: 'Mise à l’échelle automatique — veille en cas d’inactivité',
+        modeReservedVm: 'VM réservée — toujours active avec stockage persistant',
         modeStatic: 'Statique — résultat compilé, sans serveur',
         publishing: 'Publication…',
         submit: 'Publier',
+      },
+      runtime: {
+        title: 'Paramètres d’exécution',
+        description:
+          'Modifiez ce déploiement sur place. Son projet, son URL publique et ses données persistantes restent liés au même déploiement.',
+        current: 'Actuel : {runtime} · configuration v{version}',
+        modeLegend: 'Type d’exécution',
+        autoscale: 'Mise à l’échelle automatique',
+        reservedVm: 'VM réservée',
+        versionUnavailable:
+          'La version de configuration est indisponible. Actualisez avant de modifier le calcul afin de ne pas remplacer une modification plus récente.',
+        recovery:
+          'Si le provisionnement échoue, l’environnement actuel reste actif ou est restauré. Actualisez cette page avant de réessayer après un conflit de version.',
+        unchanged:
+          'Choisissez un autre type d’exécution, une autre taille de machine ou une autre offre VM réservée pour enregistrer une modification.',
+        save: 'Appliquer la modification',
+        saving: 'Application de la modification…',
       },
       environments: {
         preview: 'Aperçu',
@@ -821,6 +914,12 @@ export const projectUserAreaFr = {
         redeployFailed: 'Impossible de redéployer',
         rollbackFailed: 'Impossible de rétablir ce déploiement',
         accessFailed: 'Impossible de modifier l’accès au déploiement',
+        reservedConfirmationRequired: 'Confirmez le prix mensuel de la VM réservée avant de publier.',
+        reservedPricingInvalid:
+          'Les tarifs ou conditions de la VM réservée sont invalides. Rechargez-les puis réessayez.',
+        runtimeChangeInvalid:
+          'La modification de l’environnement d’exécution est incomplète ou obsolète. Actualisez puis réessayez.',
+        runtimeChangeFailed: 'Impossible de modifier l’environnement d’exécution du déploiement',
       },
     },
   },

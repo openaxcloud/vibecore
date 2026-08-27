@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { machineSizeHourlyDollars, type DeployRateCard } from './projects.$projectId.deployments';
+import {
+  machineSizeHourlyDollars,
+  parseReservedVmSubmission,
+  type DeployRateCard,
+} from './projects.$projectId.deployments';
 
 const card: DeployRateCard = {
   version: 1,
@@ -27,6 +31,18 @@ const card: DeployRateCard = {
       reason: 'plan',
     },
   ],
+  reservedVm: {
+    enabled: false,
+    reasonCode: 'PAID_PLAN_REQUIRED',
+    paidPlanEligible: false,
+    termsVersion: 'reserved-vm-2026-08',
+    tiers: [
+      { id: 'shared-0.5', label: 'Shared 0.5', vcpu: 0.5, memoryGb: 2, monthlyPriceCents: 2_000 },
+      { id: 'dedicated-1', label: 'Dedicated 1', vcpu: 1, memoryGb: 4, monthlyPriceCents: 4_000 },
+      { id: 'dedicated-2', label: 'Dedicated 2', vcpu: 2, memoryGb: 8, monthlyPriceCents: 8_000 },
+      { id: 'dedicated-4', label: 'Dedicated 4', vcpu: 4, memoryGb: 16, monthlyPriceCents: 16_000 },
+    ],
+  },
 };
 
 describe('machineSizeHourlyDollars', () => {
@@ -41,6 +57,56 @@ describe('machineSizeHourlyDollars', () => {
   it('never renders a $0.000 price for a real size (billing is never zero)', () => {
     for (const size of card.machineSizes) {
       expect(machineSizeHourlyDollars(card, size)).not.toBe('$0.000');
+    }
+  });
+});
+
+describe('parseReservedVmSubmission', () => {
+  it('accepts explicit consent tied to one exact tier, terms revision and monthly price', () => {
+    expect(
+      parseReservedVmSubmission({
+        reservedVmConfirmation: 'on',
+        reservedVmTier: 'dedicated-2',
+        reservedVmTermsVersion: 'reserved-vm-2026-08',
+        reservedVmMonthlyPriceCents: '8000',
+      }),
+    ).toEqual({
+      ok: true,
+      value: {
+        tier: 'dedicated-2',
+        termsVersion: 'reserved-vm-2026-08',
+        monthlyPriceCents: 8_000,
+      },
+    });
+  });
+
+  it('fails closed without consent or when tier, terms, or price are tampered', () => {
+    expect(
+      parseReservedVmSubmission({
+        reservedVmTier: 'shared-0.5',
+        reservedVmTermsVersion: 'reserved-vm-2026-08',
+        reservedVmMonthlyPriceCents: '2000',
+      }),
+    ).toEqual({ ok: false, reason: 'confirmation' });
+
+    for (const fields of [
+      { reservedVmTier: 'unknown', reservedVmTermsVersion: 'reserved-vm-2026-08', reservedVmMonthlyPriceCents: '2000' },
+      { reservedVmTier: 'shared-0.5', reservedVmTermsVersion: '', reservedVmMonthlyPriceCents: '2000' },
+      {
+        reservedVmTier: 'shared-0.5',
+        reservedVmTermsVersion: 'reserved-vm-2026-08',
+        reservedVmMonthlyPriceCents: '4000',
+      },
+      {
+        reservedVmTier: 'shared-0.5',
+        reservedVmTermsVersion: 'reserved-vm-2026-08',
+        reservedVmMonthlyPriceCents: 'NaN',
+      },
+    ]) {
+      expect(parseReservedVmSubmission({ reservedVmConfirmation: 'on', ...fields })).toEqual({
+        ok: false,
+        reason: 'pricing',
+      });
     }
   });
 });
