@@ -107,11 +107,31 @@ function contrast(foreground: string, background: string) {
 }
 
 function token(selector: string, property: string) {
-  const value = BLOCKS.get(selector)?.get(property);
+  const value = resolveToken(selector, property);
 
   expect(value, `${selector} { ${property} }`).toMatch(/^#[0-9a-f]{6}$/i);
 
   return value!;
+}
+
+/*
+ * Suit les alias jusqu'à la couleur réellement rendue. Un jeton peut pointer
+ * vers un autre (`--status-success-text: var(--vc-ide-accent-success-on-tint)`)
+ * : c'est la valeur au bout de la chaîne qui atteint l'écran, donc c'est elle
+ * qu'il faut mesurer. On résout dans le bloc courant puis, à défaut, dans le
+ * bloc de base — l'ordre de la cascade.
+ */
+function resolveToken(selector: string, property: string, depth = 0): string | undefined {
+  const base = selector.replace(/^:root\[data-theme='(light|dark)'\]\s*/, '') || ':root';
+  const raw = BLOCKS.get(selector)?.get(property) ?? BLOCKS.get(base)?.get(property);
+
+  if (raw === undefined || depth > 8) {
+    return raw;
+  }
+
+  const alias = raw.trim().match(/^var\(\s*(--[\w-]+)\s*(?:,.*)?\)$/);
+
+  return alias ? resolveToken(selector, alias[1], depth + 1) : raw;
 }
 
 const AA_BODY_TEXT = 4.5;
@@ -148,6 +168,38 @@ describe('the palettes that failed the live contrast sweep now clear WCAG AA', (
 
     expect(admin).toBe(token(":root[data-theme='dark']", '--vc-ide-text-muted'));
   });
+
+  /*
+   * Chaque `--status-*-bg` est un `color-mix` de son propre texte : la couleur
+   * se pose sur sa PROPRE teinte, et c'est le cas le plus défavorable — celui
+   * que la lecture d'un jeton isolé ne montre jamais. Mesurés en clair dans
+   * l'IDE, les quatre y tombaient sous le seuil (succès 3,65:1, avertissement
+   * 4,02:1, information 4,24:1, erreur 3,78:1).
+   */
+  it.each(['success', 'warning', 'error', 'info'])(
+    'garde le texte de statut « %s » lisible sur sa propre teinte, en clair',
+    (statut) => {
+      const texte = token(":root[data-theme='light']", `--status-${statut}-text`);
+      const panneau = token(":root[data-theme='light']", '--vc-ide-bg-app');
+
+      const proportion = Number(
+        BLOCKS.get(":root[data-theme='light']")
+          ?.get(`--status-${statut}-bg`)
+          ?.match(/(\d+)%/)?.[1] ?? 0,
+      );
+
+      expect(proportion, `--status-${statut}-bg`).toBeGreaterThan(0);
+
+      const canal = (hex: string, decalage: number) => parseInt(hex.slice(decalage, decalage + 2), 16);
+
+      const melange = [1, 3, 5]
+        .map((decalage) => (canal(texte, decalage) * proportion + canal(panneau, decalage) * (100 - proportion)) / 100)
+        .map((valeur) => Math.round(valeur).toString(16).padStart(2, '0'))
+        .join('');
+
+      expect(contrast(texte, `#${melange}`)).toBeGreaterThanOrEqual(AA_BODY_TEXT);
+    },
+  );
 
   it('keeps the tertiary grey visibly quieter than the secondary text', () => {
     const background = token(":root[data-theme='dark']", '--vc-ide-bg-app');
