@@ -3319,6 +3319,8 @@ export interface ApiStore {
     idempotencyKey: string;
     requestHash: string;
     expectedRuntimeVersion: number;
+    planEntitlements: ReleasePlanEntitlementsPin;
+    projectManifestDigest: string;
 
     /** AES-GCM envelope; build values never enter Deployment JSON as plaintext. */
     encryptedBuildInput: ReservedVmEncryptedPayload;

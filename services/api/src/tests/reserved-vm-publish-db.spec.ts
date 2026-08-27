@@ -16,29 +16,30 @@ const PLAN_ENTITLEMENTS = {
   publishRegion: 'platform-default',
   publishRegions: 'all' as const,
 };
+const TARGET_PLAN_ENTITLEMENTS = { ...PLAN_ENTITLEMENTS, plan: 'core' as const };
 
 function suffix() {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
 }
 
-function promotion(organizationId: string, imageRef: string) {
+function promotion(organizationId: string, imageRef: string, digest = DIGEST) {
   return {
     promotionId: `promotion-${suffix()}`,
     sourceRepo: `europe-west9-docker.pkg.dev/build-project/build-repo/p-${suffix()}`,
-    sourceDigest: DIGEST,
+    sourceDigest: digest,
     targetRepo: imageRef,
     targetTenant: organizationId,
     retentionTag: `active-promo-${'b'.repeat(32)}`,
     attachments: ['signature', 'sbom', 'provenance'].map((type, index) => ({
       type,
       digest: `sha256:${String(index + 1).repeat(64)}`,
-      subjectDigest: DIGEST,
+      subjectDigest: digest,
       relinked: true,
     })),
     binaryAuthorizationResult: 'PASSED',
     binaryAuthorizationPolicy: 'projects/policy-project/platforms/gke/policies/release-policy',
     binaryAuthorizationPolicyEtag: 'policy-etag-reserved-publish',
-    binaryAuthorizationEvaluatedImage: `${imageRef}@${DIGEST}`,
+    binaryAuthorizationEvaluatedImage: `${imageRef}@${digest}`,
     binaryAuthorizationEvaluatedAt: '2026-08-27T10:00:00.000Z',
     state: 'PROMOTION_COMMITTED',
     preparedAt: '2026-08-27T09:59:58.000Z',
@@ -303,6 +304,35 @@ runDbTests('Reserved VM in-place publish — PostgreSQL release barrier', () => 
       ).rejects.toMatchObject({ code: 'RESERVED_VM_RELEASE_SOURCE_INVALID' });
       expect(await productionCount()).toBe(0);
 
+      const legacyUnpinnedSource = await prismaA.releaseManifest.create({
+        data: {
+          projectId: seeded.project.id,
+          deploymentId: seeded.deployment.id,
+          environment: 'preview',
+          version: 4,
+          provider: 'server',
+          artifactKind: 'server-image',
+          artifactRef: prepared.releaseSource.artifactRef,
+          artifactDigest: prepared.releaseSource.artifactDigest,
+          configDigest: prepared.releaseSource.configDigest,
+          dbMigrationPoint: prepared.releaseSource.dbMigrationPoint,
+          accessPolicyVersion: prepared.releaseSource.accessPolicyVersion,
+        },
+      });
+      await expect(
+        storeA.publishReservedVmInPlace({
+          projectId: seeded.project.id,
+          deploymentId: seeded.deployment.id,
+          organizationId: seeded.organization.id,
+          actorUserId: seeded.actor.id,
+          expectedRuntimeVersion: seeded.deployment.runtimeVersion!,
+          productionUrl: seeded.deployment.url!,
+          sourceReleaseManifestId: legacyUnpinnedSource.id,
+          releaseFence: release.fence,
+        }),
+      ).rejects.toMatchObject({ code: 'RESERVED_VM_RELEASE_SOURCE_INVALID' });
+      expect(await productionCount()).toBe(0);
+
       const [publishResult, changeResult] = await Promise.allSettled([
         storeA.publishReservedVmInPlace({
           projectId: seeded.project.id,
@@ -356,6 +386,8 @@ runDbTests('Reserved VM in-place publish — PostgreSQL release barrier', () => 
         configDigest: prepared.releaseSource.configDigest,
         dbMigrationPoint: prepared.releaseSource.dbMigrationPoint,
         accessPolicyVersion: prepared.releaseSource.accessPolicyVersion,
+        planEntitlements: PLAN_ENTITLEMENTS,
+        projectManifestDigest: seeded.manifestDigest,
       });
 
       const replay = await storeB.publishReservedVmInPlace({
@@ -369,6 +401,44 @@ runDbTests('Reserved VM in-place publish — PostgreSQL release barrier', () => 
         releaseFence: release.fence,
       });
       expect(replay.id).toBe(seeded.deployment.id);
+      expect(await productionCount()).toBe(1);
+
+      await prismaA.releaseManifest.update({
+        where: { id: productionRelease.id },
+        data: { planEntitlements: { ...PLAN_ENTITLEMENTS, publishRegion: 'eu' } },
+      });
+      await expect(
+        storeB.publishReservedVmInPlace({
+          projectId: seeded.project.id,
+          deploymentId: seeded.deployment.id,
+          organizationId: seeded.organization.id,
+          actorUserId: seeded.actor.id,
+          expectedRuntimeVersion: seeded.deployment.runtimeVersion!,
+          productionUrl: seeded.deployment.url!,
+          sourceReleaseManifestId: prepared.releaseSource.id,
+          releaseFence: release.fence,
+        }),
+      ).rejects.toMatchObject({ code: 'RESERVED_VM_RELEASE_REPLAY_CONFLICT' });
+
+      await prismaA.releaseManifest.update({
+        where: { id: productionRelease.id },
+        data: {
+          planEntitlements: PLAN_ENTITLEMENTS,
+          projectManifestDigest: `sha256:${'b'.repeat(64)}`,
+        },
+      });
+      await expect(
+        storeB.publishReservedVmInPlace({
+          projectId: seeded.project.id,
+          deploymentId: seeded.deployment.id,
+          organizationId: seeded.organization.id,
+          actorUserId: seeded.actor.id,
+          expectedRuntimeVersion: seeded.deployment.runtimeVersion!,
+          productionUrl: seeded.deployment.url!,
+          sourceReleaseManifestId: prepared.releaseSource.id,
+          releaseFence: release.fence,
+        }),
+      ).rejects.toMatchObject({ code: 'RESERVED_VM_RELEASE_REPLAY_CONFLICT' });
       expect(await productionCount()).toBe(1);
       expect((await prismaA.project.findUniqueOrThrow({ where: { id: seeded.project.id } })).organizationId).toBe(
         seeded.organization.id,
@@ -391,6 +461,185 @@ runDbTests('Reserved VM in-place publish — PostgreSQL release barrier', () => 
         await prismaA.organization.delete({ where: { id: targetOrganizationId } }).catch(() => undefined);
       }
       await Promise.allSettled([prismaA.$disconnect(), prismaB.$disconnect()]);
+    }
+  });
+
+  it('keeps redeploy pins prior until the fenced release transaction atomically commits the target pins', async () => {
+    const prisma = createDatabaseClient();
+    let organizationId: string | undefined;
+    let release: Awaited<ReturnType<typeof acquirePublishFence>> | undefined;
+
+    try {
+      const store = new PrismaApiStore(prisma);
+      const seeded = await seedReservedPreview(prisma, store, 'reserved-redeploy-pins');
+      organizationId = seeded.organization.id;
+      const targetManifest = {
+        ...seeded.manifest,
+        manifestVersion: seeded.manifest.manifestVersion + 1,
+      };
+      const targetManifestDigest = projectManifestDigest(targetManifest);
+      await store.createProjectManifestRevision({
+        projectId: seeded.project.id,
+        schemaVersion: targetManifest.schemaVersion,
+        manifestVersion: targetManifest.manifestVersion,
+        digest: targetManifestDigest,
+        manifest: targetManifest,
+        expectedDigest: seeded.manifestDigest,
+      });
+
+      const redeploy = await store.createReservedVmRedeployOperation({
+        projectId: seeded.project.id,
+        deploymentId: seeded.deployment.id,
+        organizationId: seeded.organization.id,
+        actorUserId: seeded.actor.id,
+        idempotencyKey: `redeploy-${suffix()}`,
+        requestHash: 'f'.repeat(64),
+        expectedRuntimeVersion: seeded.deployment.runtimeVersion!,
+        planEntitlements: TARGET_PLAN_ENTITLEMENTS,
+        projectManifestDigest: targetManifestDigest,
+        encryptedBuildInput: { keyId: 'reserved-redeploy-db-key', ciphertext: 'ciphertext-not-decrypted-by-store' },
+      });
+      expect(redeploy.replayed).toBe(false);
+      expect(redeploy.deployment.metadata).toMatchObject({
+        planEntitlements: PLAN_ENTITLEMENTS,
+        projectManifestDigest: seeded.manifestDigest,
+        reservedVmRedeploy: {
+          priorPlanEntitlements: PLAN_ENTITLEMENTS,
+          priorProjectManifestDigest: seeded.manifestDigest,
+          targetPlanEntitlements: TARGET_PLAN_ENTITLEMENTS,
+          targetProjectManifestDigest: targetManifestDigest,
+        },
+      });
+      expect(await prisma.releaseManifest.count({ where: { deploymentId: seeded.deployment.id } })).toBe(1);
+
+      const ownerToken = `redeploy-owner-${suffix()}`;
+      const lease = await store.acquireReservedVmOperation({
+        projectId: seeded.project.id,
+        idempotencyKey: redeploy.operation.idempotencyKey,
+        ownerToken,
+        ttlMs: 60_000,
+      });
+      expect(lease.acquired).toBe(true);
+      await expect(
+        store.markReservedVmRuntimeApplied({
+          operationId: lease.operation.id,
+          ownerToken,
+          fencingToken: lease.operation.fencingToken,
+        }),
+      ).resolves.toBe(true);
+
+      release = await acquirePublishFence(store, {
+        projectId: seeded.project.id,
+        organizationId: seeded.organization.id,
+        manifestDigest: targetManifestDigest,
+        operationId: `redeploy-release:${redeploy.operation.id}`,
+      });
+      const targetDigest = `sha256:${'9'.repeat(64)}`;
+      const targetMetadata = {
+        ...(redeploy.deployment.metadata as Record<string, unknown>),
+        planEntitlements: TARGET_PLAN_ENTITLEMENTS,
+        projectManifestDigest: targetManifestDigest,
+        serverDeploy: {
+          image: { imageRef: seeded.releaseSource.artifactRef, imageDigest: targetDigest },
+          promotion: promotion(seeded.organization.id, seeded.releaseSource.artifactRef, targetDigest),
+          releaseConfigDigest: 'config-v2',
+        },
+      };
+      const exactCommit = {
+        projectId: seeded.project.id,
+        organizationId: seeded.organization.id,
+        deploymentId: seeded.deployment.id,
+        environment: 'preview' as const,
+        artifactRef: seeded.releaseSource.artifactRef,
+        artifactDigest: targetDigest,
+        configDigest: 'config-v2',
+        dbMigrationPoint: 'migration-v2',
+        url: seeded.deployment.url!,
+        previewUrl: seeded.deployment.previewUrl,
+        metadata: targetMetadata,
+        logs: seeded.deployment.logs,
+        finishedAt: '2026-08-27T12:00:00.000Z',
+        releaseFence: release.fence,
+        reservedVmFence: {
+          operationId: lease.operation.id,
+          ownerToken,
+          fencingToken: lease.operation.fencingToken,
+          response: { ready: true, readyReplicas: 1 },
+        },
+      };
+
+      await expect(
+        store.commitServerImageRelease({
+          ...exactCommit,
+          metadata: { ...targetMetadata, planEntitlements: PLAN_ENTITLEMENTS },
+        }),
+      ).rejects.toThrow(/SERVER_RELEASE_PROMOTION_NOT_COMMITTED/u);
+      const afterRejectedCommit = await prisma.deployment.findUniqueOrThrow({ where: { id: seeded.deployment.id } });
+      expect(afterRejectedCommit).toMatchObject({
+        runtimeVersion: seeded.deployment.runtimeVersion,
+        status: 'READY',
+      });
+      expect(afterRejectedCommit.metadata).toMatchObject({
+        planEntitlements: PLAN_ENTITLEMENTS,
+        projectManifestDigest: seeded.manifestDigest,
+      });
+      expect(await prisma.releaseManifest.count({ where: { deploymentId: seeded.deployment.id } })).toBe(1);
+      expect(await store.getReservedVmOperation(seeded.project.id, redeploy.operation.idempotencyKey)).toMatchObject({
+        status: 'APPLYING',
+        phase: 'RUNTIME_APPLIED',
+      });
+
+      const committed = await store.commitServerImageRelease(exactCommit);
+      expect(committed).toMatchObject({ committed: true });
+      expect(committed.deployment).toMatchObject({
+        runtimeVersion: seeded.deployment.runtimeVersion! + 1,
+        metadata: {
+          planEntitlements: TARGET_PLAN_ENTITLEMENTS,
+          projectManifestDigest: targetManifestDigest,
+        },
+      });
+      expect(committed.manifest).toMatchObject({
+        version: 2,
+        planEntitlements: TARGET_PLAN_ENTITLEMENTS,
+        projectManifestDigest: targetManifestDigest,
+      });
+      expect(await prisma.releaseManifest.count({ where: { deploymentId: seeded.deployment.id } })).toBe(2);
+      expect(await store.getReservedVmOperation(seeded.project.id, redeploy.operation.idempotencyKey)).toMatchObject({
+        status: 'COMPLETED',
+        phase: 'COMMITTED',
+      });
+
+      const replay = await store.commitServerImageRelease(exactCommit);
+      expect(replay.manifest?.id).toBe(committed.manifest?.id);
+      expect(await prisma.releaseManifest.count({ where: { deploymentId: seeded.deployment.id } })).toBe(2);
+      await expect(
+        store.commitServerImageRelease({
+          ...exactCommit,
+          metadata: { ...targetMetadata, planEntitlements: PLAN_ENTITLEMENTS },
+        }),
+      ).rejects.toThrow(/SERVER_RELEASE_PROMOTION_NOT_COMMITTED/u);
+      expect(
+        (await prisma.deployment.findUniqueOrThrow({ where: { id: seeded.deployment.id } })).metadata,
+      ).toMatchObject({
+        planEntitlements: TARGET_PLAN_ENTITLEMENTS,
+        projectManifestDigest: targetManifestDigest,
+      });
+      expect(await prisma.releaseManifest.count({ where: { deploymentId: seeded.deployment.id } })).toBe(2);
+    } finally {
+      if (release) {
+        await new PrismaApiStore(prisma)
+          .releaseProjectReleaseBarrier({
+            checkpointId: release.lease.checkpointId,
+            projectId: release.lease.projectId,
+            ownerToken: release.lease.ownerToken,
+            fence: release.lease.fence,
+          })
+          .catch(() => false);
+      }
+      if (organizationId) {
+        await prisma.organization.delete({ where: { id: organizationId } }).catch(() => undefined);
+      }
+      await prisma.$disconnect();
     }
   });
 

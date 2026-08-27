@@ -1704,13 +1704,18 @@ async function requireReservedVmPublishCandidate(
           },
         })
       : undefined;
+    const releaseSourcePin = parseReleasePlanEntitlementsPin(releaseSource?.planEntitlements);
 
     if (
       releaseSource &&
+      releaseSourcePin &&
       committedProductionRelease &&
       releaseSource.provider === 'server' &&
       releaseSource.artifactKind === 'server-image' &&
       releaseSource.accessPolicyVersion === deployment.accessPolicyVersion &&
+      releaseSource.projectManifestDigest === input.releaseFence.expectedManifestDigest &&
+      committedProductionRelease.projectManifestDigest === releaseSource.projectManifestDigest &&
+      sameReleasePlanEntitlementsPin(committedProductionRelease.planEntitlements, releaseSourcePin) &&
       image?.imageRef === releaseSource.artifactRef &&
       image?.imageDigest === releaseSource.artifactDigest &&
       isCommittedPromotionForTenant(
@@ -1723,8 +1728,8 @@ async function requireReservedVmPublishCandidate(
       return { deployment, metadata, releaseSource, replayed: true as const };
     }
 
-    throw Object.assign(reservedVmStoreError('RESERVED_VM_DEPLOYMENT_NOT_READY'), {
-      code: 'RESERVED_VM_DEPLOYMENT_NOT_READY',
+    throw Object.assign(reservedVmStoreError('RESERVED_VM_RELEASE_REPLAY_CONFLICT'), {
+      code: 'RESERVED_VM_RELEASE_REPLAY_CONFLICT',
       statusCode: 409,
     });
   }
@@ -1738,12 +1743,15 @@ async function requireReservedVmPublishCandidate(
     },
     orderBy: { version: 'desc' },
   });
+  const releaseSourcePin = parseReleasePlanEntitlementsPin(releaseSource?.planEntitlements);
 
   if (
     !releaseSource ||
+    !releaseSourcePin ||
     releaseSource.provider !== 'server' ||
     releaseSource.artifactKind !== 'server-image' ||
     releaseSource.accessPolicyVersion !== deployment.accessPolicyVersion ||
+    releaseSource.projectManifestDigest !== input.releaseFence.expectedManifestDigest ||
     image?.imageRef !== releaseSource.artifactRef ||
     image?.imageDigest !== releaseSource.artifactDigest ||
     !isCommittedPromotionForTenant(
@@ -9394,9 +9402,20 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
     idempotencyKey: string;
     requestHash: string;
     expectedRuntimeVersion: number;
+    planEntitlements: ReleasePlanEntitlementsPin;
+    projectManifestDigest: string;
     encryptedBuildInput: { keyId: string; ciphertext: string };
   }): Promise<{ operation: ReservedVmOperationRecord; deployment: DeploymentRecord; replayed: boolean }> {
     const actorUserId = requireReservedVmActor(input.actorUserId);
+    const planEntitlements = parseReleasePlanEntitlementsPin(input.planEntitlements);
+
+    if (!planEntitlements || !PROJECT_MANIFEST_DIGEST_PATTERN.test(input.projectManifestDigest)) {
+      throw Object.assign(reservedVmStoreError('Reserved VM redeploy release pins are invalid.'), {
+        code: 'RESERVED_VM_REDEPLOY_PIN_INVALID',
+        statusCode: 409,
+      });
+    }
+
     return this.prisma.$transaction(async (tx) => {
       await tx.$executeRawUnsafe(
         'SELECT pg_advisory_xact_lock(hashtext($1))',
@@ -9409,12 +9428,16 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
       });
 
       if (replay) {
+        const replayIntent = parseReservedVmRedeployReleaseIntent(replay.response);
         if (
           replay.kind !== 'REDEPLOY' ||
           replay.requestHash !== input.requestHash ||
           replay.deploymentId !== input.deploymentId ||
           !replay.actorUserId ||
-          replay.actorUserId !== actorUserId
+          replay.actorUserId !== actorUserId ||
+          !replayIntent ||
+          !sameReleasePlanEntitlementsPin(replayIntent.targetPlanEntitlements, planEntitlements) ||
+          replayIntent.targetProjectManifestDigest !== input.projectManifestDigest
         ) {
           throw Object.assign(reservedVmStoreError('Reserved VM idempotency key was reused for another request.'), {
             code: 'RESERVED_VM_IDEMPOTENCY_CONFLICT',
@@ -9481,6 +9504,20 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
         });
       }
 
+      const currentMetadata =
+        deployment.metadata && typeof deployment.metadata === 'object' && !Array.isArray(deployment.metadata)
+          ? (deployment.metadata as Record<string, unknown>)
+          : {};
+      const priorPlanEntitlements = parseReleasePlanEntitlementsPin(currentMetadata.planEntitlements);
+      const priorProjectManifestDigest = deploymentProjectManifestDigest(currentMetadata);
+
+      if (!priorPlanEntitlements || !priorProjectManifestDigest) {
+        throw Object.assign(reservedVmStoreError('Reserved VM redeploy source release pins are invalid.'), {
+          code: 'RESERVED_VM_REDEPLOY_PIN_INVALID',
+          statusCode: 409,
+        });
+      }
+
       const activeOperation = await tx.reservedVmOperation.findFirst({
         where: { deploymentId: deployment.id, status: { in: ['PENDING', 'APPLYING'] } },
         select: { id: true },
@@ -9514,12 +9551,17 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
           termsVersion: deployment.reservedVmTermsVersion,
           rateCardVersion: deployment.reservedVmRateCardVersion,
           expectedRuntimeVersion: input.expectedRuntimeVersion,
+          response: {
+            redeployIntent: {
+              version: 1,
+              priorPlanEntitlements,
+              priorProjectManifestDigest,
+              targetPlanEntitlements: planEntitlements,
+              targetProjectManifestDigest: input.projectManifestDigest,
+            },
+          } as unknown as Prisma.InputJsonValue,
         },
       });
-      const currentMetadata =
-        deployment.metadata && typeof deployment.metadata === 'object' && !Array.isArray(deployment.metadata)
-          ? (deployment.metadata as Record<string, unknown>)
-          : {};
       const durableDeployment = await tx.deployment.update({
         where: { id: deployment.id },
         data: {
@@ -9531,8 +9573,12 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
               idempotencyKey: input.idempotencyKey,
               expectedRuntimeVersion: input.expectedRuntimeVersion,
               encryptedBuildInput: input.encryptedBuildInput,
+              priorPlanEntitlements,
+              priorProjectManifestDigest,
+              targetPlanEntitlements: planEntitlements,
+              targetProjectManifestDigest: input.projectManifestDigest,
             },
-          } as Prisma.InputJsonValue,
+          } as unknown as Prisma.InputJsonValue,
         },
       });
 
@@ -10061,6 +10107,14 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
       }
 
       const publishedAt = await databaseNow(tx);
+      const releaseSourcePin = parseReleasePlanEntitlementsPin(releaseSource.planEntitlements);
+
+      if (!releaseSourcePin || releaseSource.projectManifestDigest !== input.releaseFence.expectedManifestDigest) {
+        throw Object.assign(reservedVmStoreError('RESERVED_VM_RELEASE_SOURCE_INVALID'), {
+          code: 'RESERVED_VM_RELEASE_SOURCE_INVALID',
+          statusCode: 409,
+        });
+      }
 
       await tx.$executeRawUnsafe(
         'SELECT pg_advisory_xact_lock(hashtext($1))',
@@ -10085,6 +10139,8 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
           configDigest: releaseSource.configDigest,
           dbMigrationPoint: releaseSource.dbMigrationPoint,
           accessPolicyVersion: releaseSource.accessPolicyVersion,
+          planEntitlements: releaseSourcePin as unknown as Prisma.InputJsonValue,
+          projectManifestDigest: releaseSource.projectManifestDigest,
         },
       });
       const updated = await tx.deployment.updateMany({
@@ -12828,6 +12884,17 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
       const reservedCommit = input.reservedVmFence
         ? await commitReservedVmOperationInTransaction(tx, ledger, input.reservedVmFence)
         : undefined;
+      const reservedRedeployIntent =
+        reservedCommit?.operation.kind === 'REDEPLOY'
+          ? parseReservedVmRedeployReleaseIntent(reservedCommit.operation.response)
+          : undefined;
+
+      if (reservedCommit?.operation.kind === 'REDEPLOY' && !reservedRedeployIntent) {
+        throw Object.assign(reservedVmStoreError('Reserved VM redeploy release pins are missing or corrupt.'), {
+          code: 'RESERVED_VM_REDEPLOY_PIN_INVALID',
+          statusCode: 409,
+        });
+      }
 
       const rollbackSource = rollbackOperation ? await requireRollbackSourceManifest(tx, rollbackOperation) : undefined;
 
@@ -12856,10 +12923,22 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
       const deploymentPin = parseReleasePlanEntitlementsPin(deploymentPlanEntitlementsPin(deployment.metadata));
       const inputPin = parseReleasePlanEntitlementsPin(deploymentPlanEntitlementsPin(input.metadata));
       const rollbackSourcePin = parseReleasePlanEntitlementsPin(rollbackSource?.planEntitlements);
-      const releasePin = rollbackOperation ? rollbackSourcePin : deploymentPin;
+      const releasePin = rollbackOperation
+        ? rollbackSourcePin
+        : (reservedRedeployIntent?.targetPlanEntitlements ?? deploymentPin);
       const releaseProjectManifestDigest = rollbackOperation
         ? rollbackSource?.projectManifestDigest
-        : deploymentProjectManifestDigest(deployment.metadata);
+        : (reservedRedeployIntent?.targetProjectManifestDigest ?? deploymentProjectManifestDigest(deployment.metadata));
+      const reservedRedeploySourceMatches =
+        reservedRedeployIntent === undefined ||
+        (deploymentPin !== undefined &&
+          sameReleasePlanEntitlementsPin(deploymentPin, reservedRedeployIntent.priorPlanEntitlements) &&
+          deploymentProjectManifestDigest(deployment.metadata) === reservedRedeployIntent.priorProjectManifestDigest);
+      const reservedRedeployTargetMatches =
+        reservedRedeployIntent !== undefined &&
+        deploymentPin !== undefined &&
+        sameReleasePlanEntitlementsPin(deploymentPin, reservedRedeployIntent.targetPlanEntitlements) &&
+        deploymentProjectManifestDigest(deployment.metadata) === reservedRedeployIntent.targetProjectManifestDigest;
 
       if (
         deployment.project.organizationId !== input.organizationId ||
@@ -12873,6 +12952,7 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
         !releasePin ||
         !inputPin ||
         !sameReleasePlanEntitlementsPin(releasePin, inputPin) ||
+        (!reservedRedeploySourceMatches && !reservedRedeployTargetMatches) ||
         releaseProjectManifestDigest !== input.releaseFence.expectedManifestDigest ||
         !isCommittedPromotionForTenant(
           serverDeploy?.promotion,
@@ -12969,6 +13049,11 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
 
           return { committed: true, deployment: mapDeployment(deployment), manifest: mapReleaseManifest(existing) };
         }
+      }
+
+      if (reservedRedeployTargetMatches) {
+        /* Target metadata is only valid together with the exact manifest above. */
+        throw new Error(SERVER_RELEASE_MANIFEST_CONFLICT);
       }
 
       if (['READY', 'FAILED', 'CANCELED'].includes(deployment.status)) {
@@ -18860,6 +18945,42 @@ function publicReservedVmOperation(row: any): ReservedVmOperationRecord {
     ...operation
   } = mapReservedVmOperation(row);
   return operation;
+}
+
+function parseReservedVmRedeployReleaseIntent(value: unknown):
+  | {
+      priorPlanEntitlements: ReleasePlanEntitlementsPin;
+      priorProjectManifestDigest: string;
+      targetPlanEntitlements: ReleasePlanEntitlementsPin;
+      targetProjectManifestDigest: string;
+    }
+  | undefined {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
+  const intent = (value as { redeployIntent?: unknown }).redeployIntent;
+
+  if (!intent || typeof intent !== 'object' || Array.isArray(intent)) return undefined;
+  const candidate = intent as Record<string, unknown>;
+  const priorPlanEntitlements = parseReleasePlanEntitlementsPin(candidate.priorPlanEntitlements);
+  const targetPlanEntitlements = parseReleasePlanEntitlementsPin(candidate.targetPlanEntitlements);
+
+  if (
+    candidate.version !== 1 ||
+    !priorPlanEntitlements ||
+    !targetPlanEntitlements ||
+    typeof candidate.priorProjectManifestDigest !== 'string' ||
+    !PROJECT_MANIFEST_DIGEST_PATTERN.test(candidate.priorProjectManifestDigest) ||
+    typeof candidate.targetProjectManifestDigest !== 'string' ||
+    !PROJECT_MANIFEST_DIGEST_PATTERN.test(candidate.targetProjectManifestDigest)
+  ) {
+    return undefined;
+  }
+
+  return {
+    priorPlanEntitlements,
+    priorProjectManifestDigest: candidate.priorProjectManifestDigest,
+    targetPlanEntitlements,
+    targetProjectManifestDigest: candidate.targetProjectManifestDigest,
+  };
 }
 
 function deploymentPlanEntitlementsPin(metadata: unknown): unknown {

@@ -525,6 +525,7 @@ import {
   type ProjectRecord,
   type ProjectReleaseFence,
   type ProviderConfigRecord,
+  type ReleasePlanEntitlementsPin,
   type RollbackLeaseFence,
   type ServerImageReleaseCommitInput,
   type RuntimeWebSocketEndpoint,
@@ -4537,6 +4538,8 @@ interface ReservedVmRedeployMetadata {
   idempotencyKey: string;
   expectedRuntimeVersion: number;
   buildInput: Record<string, unknown>;
+  targetPlanEntitlements: ReleasePlanEntitlementsPin;
+  targetProjectManifestDigest: string;
 }
 
 /** Internal saga invariant; HTTP responses use the EN/FR public-copy catalogue. */
@@ -4709,6 +4712,9 @@ function readReservedVmRedeployMetadata(deployment: DeploymentRecord): ReservedV
 
   const value = candidate as Record<string, unknown>;
   const encryptedBuildInput = value.encryptedBuildInput as ReservedVmEncryptedPayload | undefined;
+  const priorPlanEntitlements = readDeploymentPlanEntitlementsPin({ planEntitlements: value.priorPlanEntitlements });
+  const targetPlanEntitlements = readDeploymentPlanEntitlementsPin({ planEntitlements: value.targetPlanEntitlements });
+  const topLevelPlanEntitlements = readDeploymentPlanEntitlementsPin(metadata);
 
   if (
     typeof value.operationId !== 'string' ||
@@ -4717,6 +4723,17 @@ function readReservedVmRedeployMetadata(deployment: DeploymentRecord): ReservedV
     !encryptedBuildInput ||
     typeof encryptedBuildInput.keyId !== 'string' ||
     typeof encryptedBuildInput.ciphertext !== 'string' ||
+    !priorPlanEntitlements ||
+    !targetPlanEntitlements ||
+    !topLevelPlanEntitlements ||
+    (JSON.stringify(priorPlanEntitlements) !== JSON.stringify(topLevelPlanEntitlements) &&
+      JSON.stringify(targetPlanEntitlements) !== JSON.stringify(topLevelPlanEntitlements)) ||
+    typeof value.priorProjectManifestDigest !== 'string' ||
+    !PROJECT_MANIFEST_DIGEST_PATTERN.test(value.priorProjectManifestDigest) ||
+    typeof value.targetProjectManifestDigest !== 'string' ||
+    !PROJECT_MANIFEST_DIGEST_PATTERN.test(value.targetProjectManifestDigest) ||
+    (metadata?.projectManifestDigest !== value.priorProjectManifestDigest &&
+      metadata?.projectManifestDigest !== value.targetProjectManifestDigest) ||
     metadata?.reservedVmOperationKey !== value.idempotencyKey
   ) {
     throw Object.assign(reservedVmInternalError('Reserved VM redeploy metadata is invalid.'), {
@@ -4732,6 +4749,8 @@ function readReservedVmRedeployMetadata(deployment: DeploymentRecord): ReservedV
     idempotencyKey: value.idempotencyKey,
     expectedRuntimeVersion: value.expectedRuntimeVersion as number,
     buildInput: buildInput as Record<string, unknown>,
+    targetPlanEntitlements,
+    targetProjectManifestDigest: value.targetProjectManifestDigest,
   };
 }
 
@@ -37784,7 +37803,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         ],
       });
     };
-    const queuedEntitlementsPin = readDeploymentPlanEntitlementsPin(queued.metadata);
+    const queuedEntitlementsPin =
+      reservedVmRedeploy?.targetPlanEntitlements ?? readDeploymentPlanEntitlementsPin(queued.metadata);
 
     if (!queuedEntitlementsPin) {
       if (isReservedVmRedeploy) {
@@ -37814,7 +37834,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * approved when the row was queued. A row without an immutable binding is
      * not safe to execute after waiting in the queue; redeploy it to bind one.
      */
-    const queuedManifestDigest = (queued.metadata as Record<string, unknown> | undefined)?.projectManifestDigest;
+    const queuedManifestDigest =
+      reservedVmRedeploy?.targetProjectManifestDigest ??
+      (queued.metadata as Record<string, unknown> | undefined)?.projectManifestDigest;
 
     let currentDigest: string | undefined;
     let failureMessage = appPublicEnglish('PROJECT_MANIFEST_CHANGED_BEFORE_DEPLOY');
@@ -38852,6 +38874,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                 : undefined;
 
             if (isReservedVmRedeploy) {
+              if (!reservedVmRedeploy) {
+                throw Object.assign(reservedVmInternalError('Reserved VM redeploy metadata is missing.'), {
+                  code: 'RESERVED_VM_REDEPLOY_METADATA_INVALID',
+                  statusCode: 409,
+                });
+              }
               if (!ok || !serverImageRequiresReleaseCommit || !reservedVmReleaseFence) {
                 throw Object.assign(
                   reservedVmInternalError('Reserved VM redeploy did not reach an atomically committable release.'),
@@ -38871,6 +38899,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                 productionUrl: queued.productionUrl,
                 metadata: {
                   ...(queued.metadata as Record<string, unknown>),
+                  planEntitlements: reservedVmRedeploy.targetPlanEntitlements,
+                  projectManifestDigest: reservedVmRedeploy.targetProjectManifestDigest,
                   serverDeploy: {
                     ...(previousServerDeploy ?? {}),
                     host,
@@ -40726,6 +40756,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         deploymentId: data.deploymentId,
         actorUserId: data.userId ?? null,
         buildInput: redeploy.buildInput,
+        planEntitlements: redeploy.targetPlanEntitlements,
+        projectManifestDigest: redeploy.targetProjectManifestDigest,
       });
 
       if (
