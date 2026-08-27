@@ -1,4 +1,5 @@
 import type { Message } from 'ai';
+import { apiChatCatalog } from '~/lib/i18n/catalogs/api-chat';
 import { readRuntimeEnv } from '~/lib/modules/llm/runtime-env';
 
 export type AgentRoleId =
@@ -196,70 +197,62 @@ const complexBuildSignals = [
 export const ECODE_AGENT_ROLES: AgentOrchestrationRole[] = [
   {
     id: 'architect',
-    title: 'Architect',
-    responsibility: 'Define system architecture, data model, API contracts, state boundaries, and integration order.',
+    title: apiChatCatalog.en.roleArchitectTitle,
+    responsibility: apiChatCatalog.en.roleArchitectResponsibility,
     output: 'Architecture notes, file structure, domain model, API/data contracts, and verification plan.',
   },
   {
     id: 'frontend',
-    title: 'Frontend',
-    responsibility:
-      'Build UI components, pages, layouts, state management, accessibility, responsive behavior, loading states, and error states.',
+    title: apiChatCatalog.en.roleFrontendTitle,
+    responsibility: apiChatCatalog.en.roleFrontendResponsibility,
     output: 'Complete typed frontend code with every visible control wired to meaningful behavior.',
   },
   {
     id: 'backend',
-    title: 'Backend',
-    responsibility:
-      'Build API routes, validation, persistence adapters, auth/session boundaries, realtime handlers, and server-side error handling.',
+    title: apiChatCatalog.en.roleBackendTitle,
+    responsibility: apiChatCatalog.en.roleBackendResponsibility,
     output: 'Complete typed backend/API implementation with validated request and response contracts.',
   },
   {
     id: 'database',
-    title: 'Database',
-    responsibility:
-      'Design durable schemas and migrations, transactional invariants, tenant-scoped queries, retention, backups, and rollback-safe data changes.',
+    title: apiChatCatalog.en.roleDatabaseTitle,
+    responsibility: apiChatCatalog.en.roleDatabaseResponsibility,
     output: 'Typed persistence changes, safe migrations, transactional tests, and data lifecycle verification.',
   },
   {
     id: 'security',
-    title: 'Security',
-    responsibility:
-      'Threat-model the change and enforce authentication, authorization, tenant isolation, secure defaults, secret handling, and auditable controls.',
+    title: apiChatCatalog.en.roleSecurityTitle,
+    responsibility: apiChatCatalog.en.roleSecurityResponsibility,
     output: 'Enforced security boundaries, negative tests, audit events, and documented operational controls.',
   },
   {
     id: 'devops',
-    title: 'DevOps',
-    responsibility:
-      'Create runtime scripts, dependency setup, environment examples, build config, and deploy configuration.',
+    title: apiChatCatalog.en.roleDevopsTitle,
+    responsibility: apiChatCatalog.en.roleDevopsResponsibility,
     output: 'Runnable package scripts, environment documentation, Docker/deploy config when relevant.',
   },
   {
     id: 'performance',
-    title: 'Performance',
-    responsibility:
-      'Profile critical paths, bound expensive work, tune caching and concurrency, and prevent regressions in latency, memory, and resource usage.',
+    title: apiChatCatalog.en.rolePerformanceTitle,
+    responsibility: apiChatCatalog.en.rolePerformanceResponsibility,
     output: 'Measured optimizations, resource bounds, and regression tests for the affected hot paths.',
   },
   {
     id: 'accessibility',
-    title: 'Accessibility',
-    responsibility:
-      'Verify WCAG AA semantics, keyboard and screen-reader behavior, responsive layouts, localization, contrast, and reduced-motion behavior.',
+    title: apiChatCatalog.en.roleAccessibilityTitle,
+    responsibility: apiChatCatalog.en.roleAccessibilityResponsibility,
     output: 'Accessible responsive UI changes with EN/FR coverage and automated or manual interaction evidence.',
   },
   {
     id: 'qa',
-    title: 'QA',
-    responsibility: 'Write critical-path tests, verify build/typecheck, inspect preview behavior, and fix failures.',
+    title: apiChatCatalog.en.roleQaTitle,
+    responsibility: apiChatCatalog.en.roleQaResponsibility,
     output: 'Automated tests plus a concise verification report tied to the implemented workflow.',
   },
   {
     id: 'reviewer',
-    title: 'Reviewer',
-    responsibility:
-      'Review cross-lane integration, contracts, failure modes, security and data boundaries, then identify and close release-blocking regressions.',
+    title: apiChatCatalog.en.roleReviewerTitle,
+    responsibility: apiChatCatalog.en.roleReviewerResponsibility,
     output:
       'Integrated review findings, corrected regressions, and a release-readiness verdict backed by verification.',
   },

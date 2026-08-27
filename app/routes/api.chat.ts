@@ -110,6 +110,7 @@ const ORCHESTRATION_FALLBACK_DIAGNOSTIC = `Sub-agent executor failed. ${ORCHESTR
 const SUMMARY_REUSE_SAME_WINDOW_REASON = 'palier-unchanged';
 const SUMMARY_SKIP_RECENT_WINDOW_REASON = 'history-within-recent-window';
 const CONTEXT_SELECTION_REUSE_REASON = 'inputs-unchanged';
+const CANONICAL_PROVIDER_USAGE_CONFLICT = 'CANONICAL_PROVIDER_USAGE_CONFLICT';
 
 function parseCookies(cookieHeader: string): Record<string, string> {
   const cookies: Record<string, string> = {};
@@ -487,7 +488,10 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
     const existing = providerCalls.get(call.callId);
 
     if (existing && JSON.stringify(existing) !== JSON.stringify(call)) {
-      throw new Error(`Conflicting provider usage receipt for ${call.callId}`);
+      throw Object.assign(new Error(CANONICAL_PROVIDER_USAGE_CONFLICT), {
+        code: CANONICAL_PROVIDER_USAGE_CONFLICT,
+        callId: call.callId,
+      });
     }
 
     providerCalls.set(call.callId, call);
