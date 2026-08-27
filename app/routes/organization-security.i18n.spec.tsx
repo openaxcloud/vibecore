@@ -7,12 +7,15 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 const apiRequestMock = vi.hoisted(() => vi.fn());
 const firstOrganizationMock = vi.hoisted(() => vi.fn());
 const revalidateMock = vi.hoisted(() => vi.fn());
+const fetcherLoadMock = vi.hoisted(() => vi.fn());
 
 const routeState = vi.hoisted(() => ({
   actionData: undefined as unknown,
   loaderData: undefined as unknown,
   navigationState: 'idle',
   revalidatorState: 'idle',
+  fetcherState: 'idle',
+  fetcherData: undefined as unknown,
 }));
 
 vi.mock('~/lib/enterprise-api.server', async (importOriginal) => {
@@ -35,6 +38,7 @@ vi.mock('react-router', async (importOriginal) => {
     useLoaderData: () => routeState.loaderData,
     useNavigation: () => ({ state: routeState.navigationState }),
     useRevalidator: () => ({ state: routeState.revalidatorState, revalidate: revalidateMock }),
+    useFetcher: () => ({ state: routeState.fetcherState, data: routeState.fetcherData, load: fetcherLoadMock }),
   };
 });
 
@@ -119,6 +123,24 @@ const frenchLoaderData = {
   },
   loadError: null,
   loadErrorKind: null,
+  capabilities: {
+    version: '2026-08-27.1',
+    plan: 'enterprise',
+    capabilities: [
+      {
+        key: 'security-center',
+        entitled: true,
+        provisioned: true,
+        state: 'ready',
+        surface: 'security-center-events',
+      },
+    ],
+  },
+  capabilitiesErrorKind: null,
+  securityEvents: [],
+  securityOpenCount: 0,
+  securityNextCursor: null,
+  securityErrorKind: null,
   language: 'fr',
 };
 
@@ -150,10 +172,13 @@ afterEach(() => {
   apiRequestMock.mockReset();
   firstOrganizationMock.mockReset();
   revalidateMock.mockReset();
+  fetcherLoadMock.mockReset();
   routeState.actionData = undefined;
   routeState.loaderData = undefined;
   routeState.navigationState = 'idle';
   routeState.revalidatorState = 'idle';
+  routeState.fetcherState = 'idle';
+  routeState.fetcherData = undefined;
 });
 
 describe('organization security i18n', () => {
@@ -275,6 +300,29 @@ describe('organization security i18n', () => {
     expect(screen.getByRole('status').textContent).toBe('Paramètres de sécurité de l’organisation enregistrés.');
   });
 
+  it('loads the next Security Center cursor through a touch-safe localized control', () => {
+    renderPage({
+      ...frenchLoaderData,
+      securityEvents: [
+        {
+          id: 'event-1',
+          action: 'security.session.revoked',
+          resourceType: 'session',
+          createdAt: '2026-08-27T12:00:00.000Z',
+          resolved: false,
+        },
+      ],
+      securityNextCursor: 'createdAt::event/id',
+    });
+
+    const loadMore = screen.getByRole('button', { name: 'Charger plus d’événements' });
+    expect(loadMore.className).toContain('min-h-[44px]');
+    fireEvent.click(loadMore);
+    expect(fetcherLoadMock).toHaveBeenCalledWith(
+      '/organization-security?securityCenter=1&cursor=createdAt%3A%3Aevent%2Fid&lang=fr',
+    );
+  });
+
   it('localizes action validation and success while preserving submitted values', async () => {
     const missingOrganization = await runAction({});
     const invalidIp = await runAction({ orgId: 'org-user-owned', ipAllowlist: 'invalid-user-entry' });
@@ -352,5 +400,133 @@ describe('organization security i18n', () => {
     expect(loaded.data.orgName).toBe('Northwind R&D');
     expect(loaded.data.loadError).toBe('Les paramètres de sécurité sont temporairement indisponibles.');
     expect(loaded.data.loadError).not.toContain('Raw backend English loader failure');
+  });
+
+  it('loads real capability and Security Center contracts without inventing unavailable surfaces', async () => {
+    firstOrganizationMock.mockResolvedValue({ id: 'org-user-owned', name: 'Northwind R&D' });
+    apiRequestMock
+      .mockResolvedValueOnce({ settings: frenchLoaderData.settings })
+      .mockResolvedValueOnce({
+        version: '2026-08-27.1',
+        plan: 'enterprise',
+        capabilities: [
+          {
+            key: 'single-tenant',
+            entitled: true,
+            provisioned: false,
+            state: 'operator-required',
+            surface: null,
+          },
+          {
+            key: 'security-center',
+            entitled: true,
+            provisioned: true,
+            state: 'ready',
+            surface: 'security-center-events',
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        events: [
+          {
+            id: 'event-1',
+            organizationId: 'org-user-owned',
+            action: 'security.session.revoked',
+            resourceType: 'session',
+            createdAt: '2026-08-27T12:00:00.000Z',
+            resolved: false,
+          },
+        ],
+        openCount: 1,
+        nextCursor: 'opaque-next-cursor',
+        limit: 25,
+      });
+
+    const loaded = (await loader({
+      request: new Request('https://e-code.ai/organization-security?lang=fr'),
+      params: {},
+      context: {},
+    })) as {
+      data: {
+        capabilities: { capabilities: Array<{ key: string; state: string }> };
+        securityEvents: Array<{ id: string }>;
+        securityOpenCount: number;
+        securityNextCursor: string | null;
+        securityErrorKind: string | null;
+      };
+    };
+
+    expect(apiRequestMock).toHaveBeenNthCalledWith(1, expect.any(Request), '/orgs/org-user-owned/enterprise-settings');
+    expect(apiRequestMock).toHaveBeenNthCalledWith(
+      2,
+      expect.any(Request),
+      '/orgs/org-user-owned/enterprise-capabilities',
+    );
+    expect(apiRequestMock).toHaveBeenNthCalledWith(
+      3,
+      expect.any(Request),
+      '/orgs/org-user-owned/security-center/events?limit=25',
+    );
+    expect(loaded.data.capabilities.capabilities).toEqual(
+      expect.arrayContaining([expect.objectContaining({ key: 'single-tenant', state: 'operator-required' })]),
+    );
+    expect(loaded.data.securityEvents).toEqual([expect.objectContaining({ id: 'event-1' })]);
+    expect(loaded.data.securityOpenCount).toBe(1);
+    expect(loaded.data.securityNextCursor).toBe('opaque-next-cursor');
+    expect(loaded.data.securityErrorKind).toBeNull();
+  });
+
+  it('does not call the Security Center feed until the capability is actually ready', async () => {
+    firstOrganizationMock.mockResolvedValue({ id: 'org-user-owned', name: 'Northwind R&D' });
+    apiRequestMock.mockResolvedValueOnce({ settings: frenchLoaderData.settings }).mockResolvedValueOnce({
+      version: '2026-08-27.1',
+      plan: 'enterprise',
+      capabilities: [
+        {
+          key: 'security-center',
+          entitled: true,
+          provisioned: false,
+          state: 'operator-required',
+          surface: null,
+        },
+      ],
+    });
+
+    const loaded = (await loader({
+      request: new Request('https://e-code.ai/organization-security'),
+      params: {},
+      context: {},
+    })) as { data: { securityEvents: unknown[]; securityErrorKind: string | null } };
+
+    expect(apiRequestMock).toHaveBeenCalledTimes(2);
+    expect(loaded.data.securityEvents).toEqual([]);
+    expect(loaded.data.securityErrorKind).toBeNull();
+  });
+
+  it('forwards opaque Security Center cursors through the resource branch without interpreting them', async () => {
+    firstOrganizationMock.mockResolvedValue({ id: 'org-user-owned', name: 'Northwind R&D' });
+    apiRequestMock.mockResolvedValueOnce({
+      events: [],
+      openCount: 0,
+      nextCursor: null,
+      limit: 25,
+    });
+
+    const loaded = (await loader({
+      request: new Request(
+        'https://e-code.ai/organization-security?securityCenter=1&cursor=createdAt%3A%3Aid%2Fopaque&lang=fr',
+      ),
+      params: {},
+      context: {},
+    })) as { data: { page: { nextCursor: string | null }; errorKind: string | null } };
+
+    expect(apiRequestMock).toHaveBeenCalledWith(
+      expect.any(Request),
+      '/orgs/org-user-owned/security-center/events?limit=25&cursor=createdAt%3A%3Aid%2Fopaque',
+    );
+    expect(loaded.data).toEqual({
+      page: { events: [], openCount: 0, nextCursor: null, limit: 25 },
+      errorKind: null,
+    });
   });
 });
