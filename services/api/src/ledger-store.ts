@@ -135,6 +135,34 @@ export interface PostTransactionInput {
   metadata?: Record<string, unknown>;
 }
 
+export interface ReserveUsageInput {
+  organizationId: string;
+  idempotencyKey: string;
+  operation: string;
+  maxAmountMinor: bigint;
+  currency?: string;
+  expiresAt?: string;
+
+  /** Prefer a duration: the deadline is then derived from PostgreSQL time. */
+  expiresInMs?: number;
+  userId?: string;
+  importJobId?: string;
+  rateCardVersion?: number;
+  hardLimitMinor?: bigint;
+
+  /** Optional upstream request digest, incorporated into replay identity. */
+  requestHash?: string;
+}
+
+export interface CommitReservationInput {
+  reservationId: string;
+  actualAmountMinor: bigint;
+  taxMinor?: bigint;
+
+  /** Billing adapters may fail closed instead of silently clamping an overage. */
+  refuseOverage?: boolean;
+}
+
 export class LedgerStore {
   constructor(private readonly _db: DatabaseClient) {}
 
@@ -424,104 +452,95 @@ export class LedgerStore {
    * limit on the org's total reserved balance BEFORE posting (I-LED-4): a reserve
    * that would breach it is refused whole, nothing posted.
    */
-  async reserveUsage(input: {
-    organizationId: string;
-    idempotencyKey: string;
-    operation: string;
-    maxAmountMinor: bigint;
-    currency?: string;
-    expiresAt?: string;
+  async reserveUsageInTransaction(
+    trx: Prisma.TransactionClient,
+    input: ReserveUsageInput,
+  ): Promise<{ id: string; status: string; created: boolean }> {
+    const currency = normalizeCurrency(input.currency ?? 'usd');
+    const request: ReservationRequest = { ...input, currency };
+    const requestHash = reservationRequestHash(request);
+    const accounts = await this._reservationAccountsInTrx(trx, input.organizationId, currency);
+    await this._lockReservationBalance(trx, accounts.reservedAccountId);
 
-    /** Prefer a duration: the deadline is then derived from PostgreSQL time. */
-    expiresInMs?: number;
-    userId?: string;
-    importJobId?: string;
-    rateCardVersion?: number;
-    hardLimitMinor?: bigint;
+    const existing = await trx.ledgerReservation.findUnique({
+      where: {
+        organizationId_idempotencyKey: {
+          organizationId: input.organizationId,
+          idempotencyKey: input.idempotencyKey,
+        },
+      },
+    });
 
-    /** Optional upstream request digest, incorporated into replay identity. */
-    requestHash?: string;
-  }): Promise<{ id: string; status: string; created: boolean }> {
+    if (existing) {
+      this._assertReservationReplayMatches(existing, request, requestHash);
+
+      if (!existing.requestHash) {
+        await trx.ledgerReservation.update({ where: { id: existing.id }, data: { requestHash } });
+      }
+
+      return { id: existing.id, status: existing.status, created: false };
+    }
+
+    const now = await databaseNow(trx);
+
+    const expiresAt =
+      input.expiresInMs !== undefined
+        ? boundedDeadline(now, input.expiresInMs)
+        : input.expiresAt
+          ? new Date(input.expiresAt)
+          : undefined;
+
+    if (!expiresAt || Number.isNaN(expiresAt.getTime())) {
+      throw new LedgerError('Reservation expiry is required', 'LEDGER_BAD_EXPIRY');
+    }
+
+    if (input.hardLimitMinor !== undefined) {
+      const rows = await trx.ledgerEntry.findMany({
+        where: { accountId: accounts.reservedAccountId, currency },
+        select: { direction: true, amountMinor: true },
+      });
+      const net = rows.reduce(
+        (total, row) => total + (row.direction === 'DEBIT' ? row.amountMinor : -row.amountMinor),
+        0n,
+      );
+      assertWithinHardLimit(-net + input.maxAmountMinor, input.hardLimitMinor, 'reservation budget');
+    }
+
+    const reservation = await trx.ledgerReservation.create({
+      data: {
+        organizationId: input.organizationId,
+        userId: input.userId ?? null,
+        idempotencyKey: input.idempotencyKey,
+        requestHash,
+        operation: input.operation,
+        currency,
+        maxAmountMinor: input.maxAmountMinor,
+        rateCardVersion: input.rateCardVersion ?? null,
+        importJobId: input.importJobId ?? null,
+        expiresAt,
+      },
+    });
+
+    const posted = await this._postEntriesInTrx(trx, {
+      organizationId: input.organizationId,
+      reason: 'reservation.reserve',
+      idempotencyKey: `reserve:${reservation.id}:v0`,
+      rateCardVersion: input.rateCardVersion,
+      entries: reserveEntries(accounts, input.maxAmountMinor, currency),
+      metadata: { reservationId: reservation.id, operation: input.operation, requestHash },
+    });
+    await trx.ledgerReservation.update({ where: { id: reservation.id }, data: { reserveTxId: posted.id } });
+
+    return { id: reservation.id, status: reservation.status, created: true };
+  }
+
+  async reserveUsage(input: ReserveUsageInput): Promise<{ id: string; status: string; created: boolean }> {
     const currency = normalizeCurrency(input.currency ?? 'usd');
     const request: ReservationRequest = { ...input, currency };
     const requestHash = reservationRequestHash(request);
 
     try {
-      return await this._db.$transaction(async (trx) => {
-        const accounts = await this._reservationAccountsInTrx(trx, input.organizationId, currency);
-        await this._lockReservationBalance(trx, accounts.reservedAccountId);
-
-        const existing = await trx.ledgerReservation.findUnique({
-          where: {
-            organizationId_idempotencyKey: {
-              organizationId: input.organizationId,
-              idempotencyKey: input.idempotencyKey,
-            },
-          },
-        });
-
-        if (existing) {
-          this._assertReservationReplayMatches(existing, request, requestHash);
-
-          if (!existing.requestHash) {
-            await trx.ledgerReservation.update({ where: { id: existing.id }, data: { requestHash } });
-          }
-
-          return { id: existing.id, status: existing.status, created: false };
-        }
-
-        const now = await databaseNow(trx);
-
-        const expiresAt =
-          input.expiresInMs !== undefined
-            ? boundedDeadline(now, input.expiresInMs)
-            : input.expiresAt
-              ? new Date(input.expiresAt)
-              : undefined;
-
-        if (!expiresAt || Number.isNaN(expiresAt.getTime())) {
-          throw new LedgerError('Reservation expiry is required', 'LEDGER_BAD_EXPIRY');
-        }
-
-        if (input.hardLimitMinor !== undefined) {
-          const rows = await trx.ledgerEntry.findMany({
-            where: { accountId: accounts.reservedAccountId, currency },
-            select: { direction: true, amountMinor: true },
-          });
-          const net = rows.reduce(
-            (total, row) => total + (row.direction === 'DEBIT' ? row.amountMinor : -row.amountMinor),
-            0n,
-          );
-          assertWithinHardLimit(-net + input.maxAmountMinor, input.hardLimitMinor, 'reservation budget');
-        }
-
-        const reservation = await trx.ledgerReservation.create({
-          data: {
-            organizationId: input.organizationId,
-            userId: input.userId ?? null,
-            idempotencyKey: input.idempotencyKey,
-            requestHash,
-            operation: input.operation,
-            currency,
-            maxAmountMinor: input.maxAmountMinor,
-            rateCardVersion: input.rateCardVersion ?? null,
-            importJobId: input.importJobId ?? null,
-            expiresAt,
-          },
-        });
-
-        const posted = await this._postEntriesInTrx(trx, {
-          organizationId: input.organizationId,
-          reason: 'reservation.reserve',
-          idempotencyKey: `reserve:${reservation.id}:v0`,
-          rateCardVersion: input.rateCardVersion,
-          entries: reserveEntries(accounts, input.maxAmountMinor, currency),
-          metadata: { reservationId: reservation.id, operation: input.operation, requestHash },
-        });
-        await trx.ledgerReservation.update({ where: { id: reservation.id }, data: { reserveTxId: posted.id } });
-
-        return { id: reservation.id, status: reservation.status, created: true };
-      });
+      return await this._db.$transaction((trx) => this.reserveUsageInTransaction(trx, input));
     } catch (error) {
       if (isUniqueViolation(error)) {
         const row = await this._db.ledgerReservation.findUniqueOrThrow({
@@ -546,81 +565,86 @@ export class LedgerStore {
    * (clamped to the ceiling) as revenue, refunds the unused remainder. Idempotent:
    * an already-committed reservation replays without a second settle.
    */
-  async commitReservation(input: {
-    reservationId: string;
-    actualAmountMinor: bigint;
-    taxMinor?: bigint;
-  }): Promise<{ committedMinor: bigint; replayed: boolean }> {
-    return this._db.$transaction(async (trx) => {
-      await trx.$queryRaw`SELECT "id" FROM "LedgerReservation" WHERE "id" = ${input.reservationId} FOR UPDATE`;
+  async commitReservationInTransaction(
+    trx: Prisma.TransactionClient,
+    input: CommitReservationInput,
+  ): Promise<{ committedMinor: bigint; replayed: boolean }> {
+    await trx.$queryRaw`SELECT "id" FROM "LedgerReservation" WHERE "id" = ${input.reservationId} FOR UPDATE`;
 
-      const reservation = await trx.ledgerReservation.findUniqueOrThrow({ where: { id: input.reservationId } });
+    const reservation = await trx.ledgerReservation.findUniqueOrThrow({ where: { id: input.reservationId } });
 
-      const committed =
-        input.actualAmountMinor > reservation.maxAmountMinor ? reservation.maxAmountMinor : input.actualAmountMinor;
+    if (input.refuseOverage && input.actualAmountMinor > reservation.maxAmountMinor) {
+      throw conflict('Reservation charge exceeds its authorized ceiling', 'LEDGER_RESERVATION_OVERAGE');
+    }
 
-      const taxMinor = input.taxMinor ?? 0n;
+    const committed =
+      input.actualAmountMinor > reservation.maxAmountMinor ? reservation.maxAmountMinor : input.actualAmountMinor;
 
-      if (reservation.status === 'COMMITTED') {
-        const settle = reservation.settleTxId
-          ? await trx.ledgerTransaction.findUnique({
-              where: { id: reservation.settleTxId },
-              select: { metadata: true },
-            })
-          : null;
-        const metadata =
-          typeof settle?.metadata === 'object' && settle.metadata !== null && !Array.isArray(settle.metadata)
-            ? (settle.metadata as Record<string, unknown>)
-            : undefined;
+    const taxMinor = input.taxMinor ?? 0n;
 
-        if (reservation.committedMinor !== committed || metadata?.tax !== taxMinor.toString()) {
-          throw conflict('Reservation commit replay differs from the settled request', 'LEDGER_COMMIT_CONFLICT');
-        }
+    if (reservation.status === 'COMMITTED') {
+      const settle = reservation.settleTxId
+        ? await trx.ledgerTransaction.findUnique({
+            where: { id: reservation.settleTxId },
+            select: { metadata: true },
+          })
+        : null;
+      const metadata =
+        typeof settle?.metadata === 'object' && settle.metadata !== null && !Array.isArray(settle.metadata)
+          ? (settle.metadata as Record<string, unknown>)
+          : undefined;
 
-        return { committedMinor: reservation.committedMinor ?? 0n, replayed: true };
+      if (reservation.committedMinor !== committed || metadata?.tax !== taxMinor.toString()) {
+        throw conflict('Reservation commit replay differs from the settled request', 'LEDGER_COMMIT_CONFLICT');
       }
 
-      if (reservation.status !== 'ACTIVE') {
-        throw new LedgerError('Reservation is not active and cannot be committed', 'LEDGER_RESERVATION_NOT_ACTIVE');
-      }
+      return { committedMinor: reservation.committedMinor ?? 0n, replayed: true };
+    }
 
-      const now = await databaseNow(trx);
+    if (reservation.status !== 'ACTIVE') {
+      throw new LedgerError('Reservation is not active and cannot be committed', 'LEDGER_RESERVATION_NOT_ACTIVE');
+    }
 
-      if (reservation.expiresAt <= now) {
-        throw conflict('Expired reservation cannot be committed', 'LEDGER_RESERVATION_EXPIRED');
-      }
+    const now = await databaseNow(trx);
 
-      const accounts = await this._reservationAccountsInTrx(trx, reservation.organizationId, reservation.currency);
-      await this._lockReservationBalance(trx, accounts.reservedAccountId);
+    if (reservation.expiresAt <= now) {
+      throw conflict('Expired reservation cannot be committed', 'LEDGER_RESERVATION_EXPIRED');
+    }
 
-      const entries = settleEntries(accounts, reservation.maxAmountMinor, committed, reservation.currency, taxMinor);
+    const accounts = await this._reservationAccountsInTrx(trx, reservation.organizationId, reservation.currency);
+    await this._lockReservationBalance(trx, accounts.reservedAccountId);
 
-      const cas = await trx.ledgerReservation.updateMany({
-        where: { id: reservation.id, status: 'ACTIVE', version: reservation.version, expiresAt: { gt: now } },
-        data: {
-          status: 'COMMITTED',
-          committedMinor: committed,
-          committedAt: now,
-          version: { increment: 1 },
-        },
-      });
+    const entries = settleEntries(accounts, reservation.maxAmountMinor, committed, reservation.currency, taxMinor);
 
-      if (cas.count !== 1) {
-        throw conflict('Reservation commit ownership was lost', 'LEDGER_RESERVATION_FENCE_LOST');
-      }
-
-      const posted = await this._postEntriesInTrx(trx, {
-        organizationId: reservation.organizationId,
-        reason: 'reservation.settle',
-        idempotencyKey: `settle:${reservation.id}:v${reservation.version}`,
-        rateCardVersion: reservation.rateCardVersion ?? undefined,
-        entries,
-        metadata: { reservationId: reservation.id, committed: committed.toString(), tax: taxMinor.toString() },
-      });
-      await trx.ledgerReservation.update({ where: { id: reservation.id }, data: { settleTxId: posted.id } });
-
-      return { committedMinor: committed, replayed: false };
+    const cas = await trx.ledgerReservation.updateMany({
+      where: { id: reservation.id, status: 'ACTIVE', version: reservation.version, expiresAt: { gt: now } },
+      data: {
+        status: 'COMMITTED',
+        committedMinor: committed,
+        committedAt: now,
+        version: { increment: 1 },
+      },
     });
+
+    if (cas.count !== 1) {
+      throw conflict('Reservation commit ownership was lost', 'LEDGER_RESERVATION_FENCE_LOST');
+    }
+
+    const posted = await this._postEntriesInTrx(trx, {
+      organizationId: reservation.organizationId,
+      reason: 'reservation.settle',
+      idempotencyKey: `settle:${reservation.id}:v${reservation.version}`,
+      rateCardVersion: reservation.rateCardVersion ?? undefined,
+      entries,
+      metadata: { reservationId: reservation.id, committed: committed.toString(), tax: taxMinor.toString() },
+    });
+    await trx.ledgerReservation.update({ where: { id: reservation.id }, data: { settleTxId: posted.id } });
+
+    return { committedMinor: committed, replayed: false };
+  }
+
+  async commitReservation(input: CommitReservationInput): Promise<{ committedMinor: bigint; replayed: boolean }> {
+    return this._db.$transaction((trx) => this.commitReservationInTransaction(trx, input));
   }
 
   /**
@@ -724,57 +748,64 @@ export class LedgerStore {
     reason: 'cancel' | 'failure' | 'timeout',
     opts: { expectedVersion?: number } = {},
   ): Promise<{ released: boolean }> {
-    return this._db.$transaction(async (trx) => {
-      await trx.$queryRaw`SELECT "id" FROM "LedgerReservation" WHERE "id" = ${reservationId} FOR UPDATE`;
+    return this._db.$transaction((trx) => this.releaseReservationInTransaction(trx, reservationId, reason, opts));
+  }
 
-      const reservation = await trx.ledgerReservation.findUniqueOrThrow({ where: { id: reservationId } });
+  async releaseReservationInTransaction(
+    trx: Prisma.TransactionClient,
+    reservationId: string,
+    reason: 'cancel' | 'failure' | 'timeout',
+    opts: { expectedVersion?: number } = {},
+  ): Promise<{ released: boolean }> {
+    await trx.$queryRaw`SELECT "id" FROM "LedgerReservation" WHERE "id" = ${reservationId} FOR UPDATE`;
 
-      if (reservation.status !== 'ACTIVE') {
-        return { released: false };
-      }
+    const reservation = await trx.ledgerReservation.findUniqueOrThrow({ where: { id: reservationId } });
 
-      if (opts.expectedVersion !== undefined && reservation.version !== opts.expectedVersion) {
-        return { released: false };
-      }
+    if (reservation.status !== 'ACTIVE') {
+      return { released: false };
+    }
 
-      const now = await databaseNow(trx);
+    if (opts.expectedVersion !== undefined && reservation.version !== opts.expectedVersion) {
+      return { released: false };
+    }
 
-      if (reason === 'timeout' && reservation.expiresAt > now) {
-        return { released: false };
-      }
+    const now = await databaseNow(trx);
 
-      const accounts = await this._reservationAccountsInTrx(trx, reservation.organizationId, reservation.currency);
-      await this._lockReservationBalance(trx, accounts.reservedAccountId);
+    if (reason === 'timeout' && reservation.expiresAt > now) {
+      return { released: false };
+    }
 
-      const cas = await trx.ledgerReservation.updateMany({
-        where: {
-          id: reservation.id,
-          status: 'ACTIVE',
-          version: reservation.version,
-          ...(reason === 'timeout' ? { expiresAt: { lte: now } } : {}),
-        },
-        data: {
-          status: reason === 'timeout' ? 'EXPIRED' : 'RELEASED',
-          releasedAt: now,
-          releaseReason: reason,
-          version: { increment: 1 },
-        },
-      });
+    const accounts = await this._reservationAccountsInTrx(trx, reservation.organizationId, reservation.currency);
+    await this._lockReservationBalance(trx, accounts.reservedAccountId);
 
-      if (cas.count !== 1) {
-        return { released: false };
-      }
-
-      await this._postEntriesInTrx(trx, {
-        organizationId: reservation.organizationId,
-        reason: `reservation.release.${reason}`,
-        idempotencyKey: `release:${reservation.id}:v${reservation.version}`,
-        entries: releaseEntries(accounts, reservation.maxAmountMinor, reservation.currency),
-        metadata: { reservationId: reservation.id, reason, version: reservation.version },
-      });
-
-      return { released: true };
+    const cas = await trx.ledgerReservation.updateMany({
+      where: {
+        id: reservation.id,
+        status: 'ACTIVE',
+        version: reservation.version,
+        ...(reason === 'timeout' ? { expiresAt: { lte: now } } : {}),
+      },
+      data: {
+        status: reason === 'timeout' ? 'EXPIRED' : 'RELEASED',
+        releasedAt: now,
+        releaseReason: reason,
+        version: { increment: 1 },
+      },
     });
+
+    if (cas.count !== 1) {
+      return { released: false };
+    }
+
+    await this._postEntriesInTrx(trx, {
+      organizationId: reservation.organizationId,
+      reason: `reservation.release.${reason}`,
+      idempotencyKey: `release:${reservation.id}:v${reservation.version}`,
+      entries: releaseEntries(accounts, reservation.maxAmountMinor, reservation.currency),
+      metadata: { reservationId: reservation.id, reason, version: reservation.version },
+    });
+
+    return { released: true };
   }
 
   /** Recover an unattached orphan without trusting an API process clock. */
