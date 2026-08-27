@@ -9390,7 +9390,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
         if (lockout && isLockedNow(lockout, Date.now())) {
           metrics.increment('auth_failures_total', { reason: 'account_locked' });
-          return reply.code(401).send({ error: 'Invalid credentials', code: 'AUTH_INVALID_CREDENTIALS' });
+          return reply
+            .code(401)
+            .send({ error: appPublicEnglish('AUTH_INVALID_CREDENTIALS'), code: 'AUTH_INVALID_CREDENTIALS' });
         }
       }
 
