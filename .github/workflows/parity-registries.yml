@@ -65,7 +65,30 @@ jobs:
           PARITY_DEPS=/tmp/parity-deps node scripts/parity/generate-counter-reconciliation.mjs
           PARITY_DEPS=/tmp/parity-deps node scripts/parity/generate-document-manifest.mjs
       - name: Fail on drift (generated ≠ committed)
-        run: git diff --exit-code docs/parity
+        run: |
+          set -euo pipefail
+          # Les champs de PROVENANCE du manifeste (generatedAt,
+          # generatedFromCommit, mergedCommit, validation.*) sont dérivés de
+          # CI_ATTESTATION.yaml, qui est roulée à CHAQUE merge sur main. Les
+          # inclure dans le drift-check couple le contenu versionné des branches
+          # à l'état courant de main : dès qu'une PR est mergée, TOUTES les
+          # autres PR ouvertes voient ce job passer au rouge, sans qu'aucune
+          # d'elles n'ait touché à docs/parity. Le seul remède était alors de
+          # régénérer le fichier sur chaque branche, à chaque merge — une taxe
+          # permanente, et un rouge dont la cause est invisible depuis la PR.
+          #
+          # Ce qui doit être vérifié est la partie SÉMANTIQUE : la liste des
+          # documents, leurs sha256, leurs schemaVersion et reviewer. Un
+          # document ajouté, retiré ou modifié sans régénération fait toujours
+          # échouer ce job — c'est l'invariant que le drift-check protège.
+          git diff --exit-code \
+            -I'^generatedAt:' \
+            -I'^generatedFromCommit:' \
+            -I'^mergedCommit:' \
+            -I'^  runId:' \
+            -I'^  runDate:' \
+            -I'^  runCommit:' \
+            -- docs/parity
       # Full registry validation (cross-refs, freshness SLA, no CLOSED-without-review,
       # no surface DONE without evidence, computed-view drift).
       - run: PARITY_DEPS=/tmp/parity-deps node scripts/parity/validate-registries.mjs
