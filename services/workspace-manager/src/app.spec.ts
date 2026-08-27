@@ -266,6 +266,129 @@ describe('workspace-manager app', () => {
     await app.close();
   });
 
+  it('preserves a proven reconfigure rollback flag across the internal HTTP boundary', async () => {
+    const runtime = manager();
+    runtime.manager.reconfigureServerDeployment = async () => {
+      throw Object.assign(new Error('RESERVED_VM_RECONFIGURE_NOT_READY'), {
+        code: 'RESERVED_VM_RECONFIGURE_NOT_READY',
+        statusCode: 503,
+        rolledBack: true,
+      });
+    };
+    const app = buildWorkspaceManagerApp(runtime.manager);
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/server-deployments/dep-rollback/reconfigure',
+      payload: {
+        runtimeKind: 'autoscale',
+        operationId: 'operation-rollback-test',
+        fencingToken: 1,
+      },
+    });
+
+    expect(response.statusCode).toBe(503);
+    expect(response.json()).toMatchObject({
+      code: 'RESERVED_VM_RECONFIGURE_NOT_READY',
+      rolledBack: true,
+    });
+
+    await app.close();
+  });
+
+  it('validates and forwards the in-place redeploy release fields', async () => {
+    const runtime = manager();
+    let received: Parameters<typeof runtime.manager.reconfigureServerDeployment>[0] | undefined;
+    runtime.manager.reconfigureServerDeployment = async (input) => {
+      received = input;
+      return {
+        ready: true,
+        readyReplicas: 1,
+        name: 'app-dep-redeploy',
+        persistentVolumeClaimName: 'reserved-data-dep-redeploy',
+        appliedFencingToken: input.fencingToken,
+      };
+    };
+    const app = buildWorkspaceManagerApp(runtime.manager);
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/server-deployments/dep-redeploy/reconfigure',
+      payload: {
+        runtimeKind: 'reserved-vm',
+        reservedVmTier: 'dedicated-1',
+        image: 'registry.example/app@sha256:new',
+        command: ['node', 'server.js'],
+        args: ['--production'],
+        env: { RELEASE: 'next' },
+        healthPath: '/ready',
+        nixGenerationRef: 'generation-2026-08',
+        operationId: 'operation-redeploy',
+        fencingToken: 9,
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(received).toMatchObject({
+      deploymentId: 'dep-redeploy',
+      runtimeKind: 'reserved-vm',
+      reservedVmTier: 'dedicated-1',
+      image: 'registry.example/app@sha256:new',
+      command: ['node', 'server.js'],
+      args: ['--production'],
+      env: { RELEASE: 'next' },
+      healthPath: '/ready',
+      nixGenerationRef: 'generation-2026-08',
+      operationId: 'operation-redeploy',
+      fencingToken: 9,
+    });
+
+    await app.close();
+  });
+
+  it('validates and forwards a fenced Reserved VM suspension', async () => {
+    process.env.WORKSPACE_RUNTIME_NAMESPACE = 'reserved-runtimes';
+    const runtime = manager();
+    let received: Parameters<typeof runtime.manager.suspendReservedVmDeployment>[0] | undefined;
+    runtime.manager.suspendReservedVmDeployment = async (input) => {
+      received = input;
+      return {
+        suspended: true,
+        name: 'app-dep-suspend',
+        persistentVolumeClaimName: 'reserved-data-dep-suspend',
+        appliedFencingToken: input.fencingToken,
+      };
+    };
+    const app = buildWorkspaceManagerApp(runtime.manager);
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/server-deployments/dep-suspend/suspend',
+      payload: {
+        operationId: 'billing-stop:period-2026-08',
+        fencingToken: 14,
+        readyTimeoutMs: 5_000,
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({
+      suspended: true,
+      name: 'app-dep-suspend',
+      persistentVolumeClaimName: 'reserved-data-dep-suspend',
+      appliedFencingToken: 14,
+    });
+    expect(received).toEqual({
+      deploymentId: 'dep-suspend',
+      namespace: 'reserved-runtimes',
+      operationId: 'billing-stop:period-2026-08',
+      fencingToken: 14,
+      readyTimeoutMs: 5_000,
+    });
+
+    await app.close();
+  });
+
   it('freezes writers and verifies every Service, Pod, Secret and PVC deletion through fenced routes', async () => {
     process.env.WORKSPACE_RUNTIME_NAMESPACE = 'prod-workspaces';
     const runtime = manager();

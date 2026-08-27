@@ -27,6 +27,10 @@ const copy = {
     internalServerError: 'An internal error occurred. Please try again.',
     previewProxyNotConfigured: 'The preview proxy is not configured.',
     previewProxyUnauthorized: 'Unauthorized preview proxy request.',
+    reservedVmTierRequired: 'Select a Reserved VM tier.',
+    reservedVmFenceRequired: 'Reserved VM operation fencing is required.',
+    reservedVmSuspended: 'This Reserved VM is suspended until billing is restored.',
+    reservedVmAlwaysOnInvariant: 'This Reserved VM cannot be awakened through the autoscale path.',
   },
   fr: {
     workspaceNotFound: 'Espace de travail introuvable.',
@@ -56,6 +60,10 @@ const copy = {
     internalServerError: 'Une erreur interne est survenue. Veuillez réessayer.',
     previewProxyNotConfigured: 'Le proxy d’aperçu n’est pas configuré.',
     previewProxyUnauthorized: 'Requête non autorisée vers le proxy d’aperçu.',
+    reservedVmTierRequired: 'Sélectionnez une offre de VM réservée.',
+    reservedVmFenceRequired: 'La protection de l’opération de VM réservée est requise.',
+    reservedVmSuspended: 'Cette VM réservée est suspendue jusqu’au rétablissement de la facturation.',
+    reservedVmAlwaysOnInvariant: 'Cette VM réservée ne peut pas être réveillée par le chemin Autoscale.',
   },
 } as const;
 

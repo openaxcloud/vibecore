@@ -1024,6 +1024,55 @@ describe('preview-proxy', () => {
       await app.close();
     });
 
+    it('serves a non-refreshing billing page and never retries a suspended Reserved VM upstream', async () => {
+      let activateCalls = 0;
+      let upstreamHits = 0;
+      const fetchImpl = (async (url: any) => {
+        const href = typeof url === 'string' ? url : (url.href ?? url.toString());
+
+        if (href.endsWith('/activate')) {
+          activateCalls += 1;
+          return new Response(JSON.stringify({ error: 'RESERVED_VM_SUSPENDED', code: 'RESERVED_VM_SUSPENDED' }), {
+            status: 402,
+            headers: { 'content-type': 'application/json' },
+          });
+        }
+
+        if (href.includes('app-clr8x9abc123')) {
+          upstreamHits += 1;
+          throw new Error('ECONNREFUSED');
+        }
+
+        return new Response('{}', { status: 200 });
+      }) as unknown as typeof fetch;
+      const app = await buildPreviewProxyApp({
+        fetchImpl,
+        previewDomain: 'preview.e-code.ai',
+        serverDeployManagerUrl: 'http://workspace-manager.test',
+      });
+
+      for (const language of ['en', 'fr']) {
+        const response = await app.inject({
+          method: 'GET',
+          url: '/',
+          headers: {
+            host: 'd-clr8x9abc123.preview.e-code.ai',
+            accept: 'text/html',
+            'accept-language': language,
+          },
+        });
+
+        expect(response.statusCode).toBe(402);
+        expect(response.headers['cache-control']).toBe('private, no-store, max-age=0');
+        expect(response.body).not.toContain('http-equiv="refresh"');
+        expect(response.body).toContain(language === 'fr' ? 'facturation' : 'billing');
+      }
+
+      expect(activateCalls).toBe(2);
+      expect(upstreamHits).toBe(2);
+      await app.close();
+    });
+
     it('does not loop: if the app is still unreachable after a wake, it serves the starting page once', async () => {
       let activateCalls = 0;
       let upstreamHits = 0;

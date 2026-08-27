@@ -92,37 +92,118 @@ const appBuildSchema = z.object({
 });
 
 /** Body for POST /server-deployments/start (Replit-parity durable runtime). */
-const serverStartSchema = z.object({
-  deploymentId: z.string().min(1),
-  orgId: z.string().optional(),
-  projectId: z.string().optional(),
-  image: z.string().min(1),
-  command: z.array(z.string()).optional(),
-  args: z.array(z.string()).optional(),
-  port: z.number().int().positive().default(3000),
-  host: z.string().min(1),
-  tlsSecretName: z.string().default('vibecore-preview-wildcard-tls'),
-  env: z.record(z.string()).optional(),
-  secrets: z.record(z.string()).optional(),
-  replicas: z.number().int().positive().optional(),
-  healthPath: z.string().optional(),
-  readyTimeoutMs: z.number().int().positive().optional(),
-  createIngress: z.boolean().optional(),
+const serverStartSchema = z
+  .object({
+    deploymentId: z.string().min(1),
+    orgId: z.string().optional(),
+    projectId: z.string().optional(),
+    image: z.string().min(1),
+    command: z.array(z.string()).optional(),
+    args: z.array(z.string()).optional(),
+    port: z.number().int().positive().default(3000),
+    host: z.string().min(1),
+    tlsSecretName: z.string().default('vibecore-preview-wildcard-tls'),
+    env: z.record(z.string()).optional(),
+    secrets: z.record(z.string()).optional(),
+    replicas: z.number().int().positive().optional(),
+    healthPath: z.string().optional(),
+    readyTimeoutMs: z.number().int().positive().optional(),
+    createIngress: z.boolean().optional(),
 
-  // Same /nix RO mount as the workspace the app was snapshotted from (see startSchema).
-  nixStorePvcName: z.string().min(1).optional(),
+    // Same /nix RO mount as the workspace the app was snapshotted from (see startSchema).
+    nixStorePvcName: z.string().min(1).optional(),
 
-  // Same ecode.lock generation pin as app-builds (CTR-RUNTIME-NIX).
-  nixGenerationRef: z.string().min(1).optional(),
+    // Same ecode.lock generation pin as app-builds (CTR-RUNTIME-NIX).
+    nixGenerationRef: z.string().min(1).optional(),
 
-  /*
-   * Machine size resources (rate-card catalogue, resolved by the api):
-   * k8s quantity strings, applied verbatim as the container requests/limits.
-   */
-  cpuRequest: z.string().min(1).optional(),
-  cpuLimit: z.string().min(1).optional(),
-  memoryRequest: z.string().min(1).optional(),
-  memoryLimit: z.string().min(1).optional(),
+    /*
+     * Machine size resources (rate-card catalogue, resolved by the api):
+     * k8s quantity strings, applied verbatim as the container requests/limits.
+     */
+    cpuRequest: z.string().min(1).optional(),
+    cpuLimit: z.string().min(1).optional(),
+    memoryRequest: z.string().min(1).optional(),
+    memoryLimit: z.string().min(1).optional(),
+    runtimeKind: z.enum(['autoscale', 'reserved-vm']).default('autoscale'),
+    reservedVmTier: z.enum(['shared-0.5', 'dedicated-1', 'dedicated-2', 'dedicated-4']).optional(),
+    operationId: z.string().min(1).max(128).optional(),
+    fencingToken: z.number().int().nonnegative().optional(),
+  })
+  .superRefine((value, context) => {
+    if (value.runtimeKind === 'reserved-vm' && !value.reservedVmTier) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['reservedVmTier'],
+        message: workspaceManagerMessage('reservedVmTierRequired', 'en'),
+      });
+    }
+    if (value.runtimeKind === 'reserved-vm' && (!value.operationId || value.fencingToken === undefined)) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['operationId'],
+        message: workspaceManagerMessage('reservedVmFenceRequired', 'en'),
+      });
+    }
+  });
+
+const serverReconfigureSchema = z
+  .object({
+    runtimeKind: z.enum(['autoscale', 'reserved-vm']),
+    reservedVmTier: z.enum(['shared-0.5', 'dedicated-1', 'dedicated-2', 'dedicated-4']).optional(),
+    image: z.string().trim().min(1).max(2048).optional(),
+    command: z.array(z.string().max(4096)).max(128).optional(),
+    args: z.array(z.string().max(4096)).max(128).optional(),
+    env: z
+      .record(z.string().max(32_768))
+      .refine((value) => Object.keys(value).length <= 256, 'At most 256 environment variables are allowed')
+      .optional(),
+    healthPath: z.string().min(1).max(2048).regex(/^\//, 'Health path must start with /').optional(),
+    nixGenerationRef: z.string().trim().min(1).max(256).optional(),
+    cpuRequest: z.string().min(1).optional(),
+    cpuLimit: z.string().min(1).optional(),
+    memoryRequest: z.string().min(1).optional(),
+    memoryLimit: z.string().min(1).optional(),
+    readyTimeoutMs: z
+      .number()
+      .int()
+      .positive()
+      .max(10 * 60_000)
+      .optional(),
+    operationId: z.string().min(1).max(128),
+    fencingToken: z.number().int().nonnegative(),
+  })
+  .superRefine((value, context) => {
+    if (value.runtimeKind === 'reserved-vm' && !value.reservedVmTier) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['reservedVmTier'],
+        message: workspaceManagerMessage('reservedVmTierRequired', 'en'),
+      });
+    }
+  });
+
+const serverSuspendSchema = z.object({
+  operationId: z.string().min(1).max(128),
+  fencingToken: z.number().int().nonnegative(),
+  readyTimeoutMs: z
+    .number()
+    .int()
+    .positive()
+    .max(10 * 60_000)
+    .optional(),
+});
+
+const serverStorageDecommissionSchema = z.object({
+  persistentVolumeClaimName: z.string().min(1).max(253),
+  operationId: z.string().min(1).max(128),
+  fencingToken: z.number().int().nonnegative(),
+  mode: z.enum(['autoscale-decommission', 'failed-create']),
+  readyTimeoutMs: z
+    .number()
+    .int()
+    .positive()
+    .max(10 * 60_000)
+    .optional(),
 });
 
 function runtimeNamespace() {
@@ -278,6 +359,9 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
     const typed = error as Error & {
       code?: string;
       publicMessageKey?: Parameters<typeof workspaceManagerMessage>[0];
+      rolledBack?: boolean;
+      persistentStorageDeleted?: boolean;
+      persistentStorageClaimName?: string;
       statusCode?: number;
     };
     const statusCode = typeof typed.statusCode === 'number' ? typed.statusCode : 500;
@@ -297,6 +381,11 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
       error: message,
       message,
       code: typed.code ?? 'WORKSPACE_MANAGER_ERROR',
+      ...(typed.rolledBack === true ? { rolledBack: true } : {}),
+      ...(typed.persistentStorageDeleted === true ? { persistentStorageDeleted: true } : {}),
+      ...(typed.persistentStorageDeleted === true && typed.persistentStorageClaimName
+        ? { persistentStorageClaimName: typed.persistentStorageClaimName }
+        : {}),
     });
   });
 
@@ -345,6 +434,15 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
   app.get('/health', async () => ({ status: 'ok' }));
 
   /*
+   * Read-only, authenticated operator proof used by the api rate card. It is
+   * deliberately live rather than env-only: an absent StorageClass or matching
+   * tainted node keeps the product fail-closed.
+   */
+  app.get('/runtime-capabilities', async () => ({
+    reservedVm: await manager.reservedVmRuntimeCapability(runtimeNamespace()),
+  }));
+
+  /*
    * The MANAGER pod's runtimeNamespace() is the single source of truth for where
    * workspace pods live. start used to trust the request-body namespace while
    * stop/delete/logs use runtimeNamespace() — if the API's and manager's
@@ -363,6 +461,27 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
    */
   app.post('/server-deployments/start', async (request) =>
     manager.startServerDeployment({ ...serverStartSchema.parse(request.body), namespace: runtimeNamespace() }),
+  );
+  app.post('/server-deployments/:deploymentId/reconfigure', async (request) =>
+    manager.reconfigureServerDeployment({
+      ...serverReconfigureSchema.parse(request.body),
+      deploymentId: (request.params as any).deploymentId,
+      namespace: runtimeNamespace(),
+    }),
+  );
+  app.post('/server-deployments/:deploymentId/suspend', async (request) =>
+    manager.suspendReservedVmDeployment({
+      ...serverSuspendSchema.parse(request.body),
+      deploymentId: (request.params as any).deploymentId,
+      namespace: runtimeNamespace(),
+    }),
+  );
+  app.post('/server-deployments/:deploymentId/decommission-storage', async (request) =>
+    manager.decommissionReservedVmStorage({
+      ...serverStorageDecommissionSchema.parse(request.body),
+      deploymentId: (request.params as any).deploymentId,
+      namespace: runtimeNamespace(),
+    }),
   );
 
   /*
@@ -403,6 +522,22 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
         return reply
           .code(404)
           .send({ error: workspaceManagerMessage('serverDeploymentNotFound', 'en'), code: 'SERVER_DEPLOY_NOT_FOUND' });
+      }
+
+      if ((error as { code?: string })?.code === 'RESERVED_VM_SUSPENDED') {
+        return reply.code(402).send({
+          error: workspaceManagerMessage('reservedVmSuspended', 'en'),
+          code: 'RESERVED_VM_SUSPENDED',
+        });
+      }
+
+      if ((error as { code?: string })?.code === 'RESERVED_VM_ALWAYS_ON_INVARIANT') {
+        return reply
+          .code(503)
+          .send({
+            error: workspaceManagerMessage('reservedVmAlwaysOnInvariant', 'en'),
+            code: 'RESERVED_VM_ALWAYS_ON_INVARIANT',
+          });
       }
 
       throw error;

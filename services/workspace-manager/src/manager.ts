@@ -2,11 +2,17 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import {
   activeNixGeneration,
+  assertWorkspaceImageAllowed,
   assertNixGenerationUsable,
   chooseNixStoreZone,
+  cpuToMillicores,
+  memoryToBytes,
+  nixStoreGuardInitContainer,
   nixGenerationRegistryFromEnv,
   parseNixStorePvcZones,
+  serverAppDeployment,
   serverDeploymentName,
+  serverAppPersistentVolumeClaim,
   workspaceAgentSecret,
   workspacePod,
   workspacePvc,
@@ -14,6 +20,7 @@ import {
   type WorkspaceK8sClient,
   type WorkspacePlan,
 } from '@vibecore/k8s-client';
+import { RESERVED_VM_TIERS, type ReservedVmTier } from '@vibecore/billing';
 import { resolveSandboxRuntime, type SandboxRuntime } from '@vibecore/sandbox-runtime';
 import { signAgentToken, type WorkspaceEvent } from '@vibecore/workspace-sdk';
 import {
@@ -34,6 +41,67 @@ export type WorkspaceStatus = 'STARTING' | 'RUNNING' | 'STOPPING' | 'STOPPED' | 
  * lastActiveAt comfortably ahead of the reaper at negligible write cost.
  */
 export const WORKSPACE_ACTIVITY_TOUCH_INTERVAL_MS = 30_000;
+
+export const RESERVED_VM_DATA_MOUNT_PATH = '/var/lib/ecode';
+
+/** Internal manager invariant; the control-plane API maps errors to public copy. */
+function reservedVmManagerError(message: string): Error {
+  return new Error(message);
+}
+
+export type ReservedVmCapabilityReasonCode =
+  | 'RESERVED_VM_DISABLED'
+  | 'RESERVED_VM_OPERATOR_CONFIG_INCOMPLETE'
+  | 'RESERVED_VM_STORAGE_SIZE_INVALID'
+  | 'RESERVED_VM_STORAGE_CLASS_UNAVAILABLE'
+  | 'RESERVED_VM_NODE_POOL_UNAVAILABLE';
+
+export type ReservedVmRuntimeCapability =
+  | { enabled: false; reasonCode: ReservedVmCapabilityReasonCode }
+  | {
+      enabled: true;
+      storageClassName: string;
+      storageGi: number;
+      nodeSelector: { key: string; value: string };
+      toleration: { key: string; value: string; effect: 'NoSchedule' };
+      /** Tiers that fit at least one live, schedulable operator node. */
+      availableTiers?: readonly ReservedVmTier[];
+    };
+
+/**
+ * Parse the operator-owned Reserved VM contract. Tenant requests never supply
+ * placement, taints or storage classes: an incomplete rollout is unavailable,
+ * not an invitation to schedule reserved workloads on the shared pool.
+ */
+export function reservedVmRuntimeCapabilityFromEnv(env: NodeJS.ProcessEnv = process.env): ReservedVmRuntimeCapability {
+  if (env.RESERVED_VM_RUNTIME_ENABLED !== 'true') {
+    return { enabled: false, reasonCode: 'RESERVED_VM_DISABLED' };
+  }
+
+  const storageClassName = env.RESERVED_VM_STORAGE_CLASS?.trim();
+  const nodeSelectorKey = env.RESERVED_VM_NODE_SELECTOR_KEY?.trim();
+  const nodeSelectorValue = env.RESERVED_VM_NODE_SELECTOR_VALUE?.trim();
+  const taintKey = env.RESERVED_VM_TAINT_KEY?.trim();
+  const taintValue = env.RESERVED_VM_TAINT_VALUE?.trim();
+
+  if (!storageClassName || !nodeSelectorKey || !nodeSelectorValue || !taintKey || !taintValue) {
+    return { enabled: false, reasonCode: 'RESERVED_VM_OPERATOR_CONFIG_INCOMPLETE' };
+  }
+
+  const storageGi = Number(env.RESERVED_VM_STORAGE_GB);
+
+  if (!Number.isInteger(storageGi) || storageGi < 1 || storageGi > 1024) {
+    return { enabled: false, reasonCode: 'RESERVED_VM_STORAGE_SIZE_INVALID' };
+  }
+
+  return {
+    enabled: true,
+    storageClassName,
+    storageGi,
+    nodeSelector: { key: nodeSelectorKey, value: nodeSelectorValue },
+    toleration: { key: taintKey, value: taintValue, effect: 'NoSchedule' },
+  };
+}
 
 export interface WorkspaceRecord {
   id: string;
@@ -506,6 +574,65 @@ export class WorkspaceManager {
      */
     readonly runtime: SandboxRuntime = resolveSandboxRuntime(k8s),
   ) {}
+
+  /**
+   * A configured flag is not proof that the operator rollout exists. Both the
+   * storage class and at least one schedulable, Ready, correctly labelled +
+   * tainted node must be observable before Reserved VM is advertised or
+   * provisioned.
+   */
+  async reservedVmRuntimeCapability(namespace: string): Promise<ReservedVmRuntimeCapability> {
+    const configured = reservedVmRuntimeCapabilityFromEnv();
+
+    if (!configured.enabled) {
+      return configured;
+    }
+
+    const storageClass = await this.k8s
+      .get('StorageClass', namespace, configured.storageClassName)
+      .catch(() => undefined);
+
+    if (!storageClass) {
+      return { enabled: false, reasonCode: 'RESERVED_VM_STORAGE_CLASS_UNAVAILABLE' };
+    }
+
+    const nodes = await this.k8s
+      .listByLabel('Node', namespace, `${configured.nodeSelector.key}=${configured.nodeSelector.value}`)
+      .catch(() => []);
+    const availableTiers = (Object.keys(RESERVED_VM_TIERS) as ReservedVmTier[]).filter((tier) =>
+      nodes.some((node) => {
+        const labels = node.metadata.labels ?? {};
+        const taints = (node.spec?.taints ?? []) as Array<{ key?: string; value?: string; effect?: string }>;
+        const unschedulable = node.spec?.unschedulable === true;
+        const conditions = (node.status?.conditions ?? []) as Array<{ type?: string; status?: string }>;
+        const ready = conditions.some((condition) => condition.type === 'Ready' && condition.status === 'True');
+        const allocatable = (node.status?.allocatable ?? {}) as { cpu?: string; memory?: string };
+        const requestedTier = RESERVED_VM_TIERS[tier];
+        const tierFits =
+          cpuToMillicores(allocatable.cpu) >= requestedTier.vcpu * 1000 &&
+          memoryToBytes(allocatable.memory) >= requestedTier.ramGb * 1024 ** 3;
+
+        return (
+          labels[configured.nodeSelector.key] === configured.nodeSelector.value &&
+          !unschedulable &&
+          ready &&
+          tierFits &&
+          taints.some(
+            (taint) =>
+              taint.key === configured.toleration.key &&
+              taint.value === configured.toleration.value &&
+              taint.effect === configured.toleration.effect,
+          )
+        );
+      }),
+    );
+
+    if (availableTiers.length === 0) {
+      return { enabled: false, reasonCode: 'RESERVED_VM_NODE_POOL_UNAVAILABLE' };
+    }
+
+    return { ...configured, availableTiers };
+  }
 
   /*
    * D3 multi-zone shared Nix store (approved 2026-07-17): the store is an
@@ -1047,61 +1174,1152 @@ export class WorkspaceManager {
     cpuLimit?: string;
     memoryRequest?: string;
     memoryLimit?: string;
-  }): Promise<{ ready: boolean; url: string; name: string; readyReplicas: number }> {
+    runtimeKind?: 'autoscale' | 'reserved-vm';
+    reservedVmTier?: ReservedVmTier;
+    operationId?: string;
+    fencingToken?: number;
+  }): Promise<{
+    ready: boolean;
+    url: string;
+    name: string;
+    readyReplicas: number;
+    appliedFencingToken?: number;
+  }> {
+    const runtimeKind = input.runtimeKind ?? 'autoscale';
+    let reservedCapability: Extract<ReservedVmRuntimeCapability, { enabled: true }> | undefined;
+
+    if (runtimeKind === 'reserved-vm') {
+      const capability = await this.reservedVmRuntimeCapability(input.namespace);
+
+      if (!capability.enabled) {
+        throw Object.assign(new Error(capability.reasonCode), {
+          code: capability.reasonCode,
+          statusCode: 503,
+        });
+      }
+
+      if (!input.reservedVmTier || !RESERVED_VM_TIERS[input.reservedVmTier]) {
+        throw Object.assign(reservedVmManagerError('RESERVED_VM_TIER_REQUIRED'), {
+          code: 'RESERVED_VM_TIER_REQUIRED',
+          statusCode: 400,
+        });
+      }
+
+      if (!capability.availableTiers?.includes(input.reservedVmTier)) {
+        throw Object.assign(reservedVmManagerError('RESERVED_VM_TIER_CAPACITY_UNAVAILABLE'), {
+          code: 'RESERVED_VM_TIER_CAPACITY_UNAVAILABLE',
+          statusCode: 503,
+        });
+      }
+
+      if (!input.operationId || !Number.isInteger(input.fencingToken) || Number(input.fencingToken) < 0) {
+        throw Object.assign(reservedVmManagerError('RESERVED_VM_OPERATION_FENCE_REQUIRED'), {
+          code: 'RESERVED_VM_OPERATION_FENCE_REQUIRED',
+          statusCode: 409,
+        });
+      }
+
+      reservedCapability = capability;
+    }
+
+    const persistentVolumeClaimName = `reserved-data-${input.deploymentId}`;
+    const existingPersistentVolume = await this.k8s
+      .get('PersistentVolumeClaim', input.namespace, persistentVolumeClaimName)
+      .catch(() => undefined);
+    let persistentVolume = existingPersistentVolume;
+    let cleanupCreatedPersistentVolume = false;
+
+    if (existingPersistentVolume) {
+      const owner = existingPersistentVolume.metadata.labels?.['vibecore.ai/server-deploy'];
+
+      if (owner !== input.deploymentId) {
+        throw Object.assign(reservedVmManagerError('RESERVED_VM_PVC_OWNERSHIP_CONFLICT'), {
+          code: 'RESERVED_VM_PVC_OWNERSHIP_CONFLICT',
+          statusCode: 409,
+        });
+      }
+
+      if (reservedCapability) {
+        const creatingOperation = existingPersistentVolume.metadata.annotations?.['vibecore.ai/runtime-operation-id'];
+
+        /*
+         * A CREATE may re-enter after its worker crashed just after creating the
+         * claim. Only that same durable operation may adopt and later clean it;
+         * an unrelated pre-existing claim could contain user data and is never
+         * silently reused or deleted.
+         */
+        if (creatingOperation !== input.operationId) {
+          throw Object.assign(reservedVmManagerError('RESERVED_VM_PVC_PREEXISTING'), {
+            code: 'RESERVED_VM_PVC_PREEXISTING',
+            statusCode: 409,
+          });
+        }
+
+        cleanupCreatedPersistentVolume = true;
+        const fenced = structuredClone(existingPersistentVolume);
+        fenced.status = undefined;
+        fenced.metadata.annotations = {
+          ...(fenced.metadata.annotations ?? {}),
+          'vibecore.ai/runtime-operation-id': input.operationId!,
+          'vibecore.ai/runtime-fencing-token': String(input.fencingToken),
+        };
+        persistentVolume = await this.#applyFencedServerDeployment(fenced, input.operationId!, input.fencingToken!);
+      }
+    } else if (reservedCapability) {
+      cleanupCreatedPersistentVolume = true;
+      persistentVolume = await this.#applyFencedServerDeployment(
+        serverAppPersistentVolumeClaim({
+          deploymentId: input.deploymentId,
+          namespace: input.namespace,
+          storageClassName: reservedCapability.storageClassName,
+          storageGi: reservedCapability.storageGi,
+          orgId: input.orgId,
+          projectId: input.projectId,
+          operationId: input.operationId,
+          fencingToken: input.fencingToken,
+        }),
+        input.operationId!,
+        input.fencingToken!,
+      );
+    }
+
     const hasSecrets = Boolean(input.secrets && Object.keys(input.secrets).length > 0);
     const secretName = `app-secrets-${input.deploymentId}`;
+    const reservedResources =
+      runtimeKind === 'reserved-vm' && input.reservedVmTier ? RESERVED_VM_TIERS[input.reservedVmTier] : undefined;
 
-    if (hasSecrets) {
-      await this.k8s.apply({
-        apiVersion: 'v1',
-        kind: 'Secret',
-        metadata: {
-          name: secretName,
+    try {
+      if (hasSecrets) {
+        await this.k8s.apply({
+          apiVersion: 'v1',
+          kind: 'Secret',
+          metadata: {
+            name: secretName,
+            namespace: input.namespace,
+            labels: { 'vibecore.ai/server-deploy': input.deploymentId },
+          },
+          type: 'Opaque',
+          stringData: input.secrets as Record<string, string>,
+        });
+      }
+
+      /*
+       * Everything Kubernetes-specific (manifests, readiness poll, teardown)
+       * lives behind the SandboxRuntime adapter — the manager only maps the
+       * product request onto the runtime contract.
+       */
+      return await this.runtime.startServerApp({
+        deploymentId: input.deploymentId,
+        namespace: input.namespace,
+        orgId: input.orgId,
+        projectId: input.projectId,
+        image: input.image,
+        command: input.command,
+        args: input.args,
+        port: input.port,
+        host: input.host,
+        tlsSecretName: input.tlsSecretName,
+        env: input.env,
+        ...(hasSecrets
+          ? {
+              secretName,
+              secretEnv: Object.fromEntries(Object.keys(input.secrets as Record<string, string>).map((k) => [k, k])),
+            }
+          : {}),
+        replicas: runtimeKind === 'reserved-vm' ? 1 : input.replicas,
+        healthPath: input.healthPath,
+        readyTimeoutMs: input.readyTimeoutMs,
+        createIngress: input.createIngress,
+
+        // Per-request opt-in wins; cluster-wide kill switch as fallback (mirrors
+        // startWorkspace). D3: the placement resolver substitutes the per-zone
+        // clone + zone pin + generation guard when the multi-zone map is set.
+        ...(await this.resolveNixStorePlacement(input.nixStorePvcName, undefined, input.nixGenerationRef)),
+        cpuRequest: reservedResources
+          ? reservedResources.vcpu < 1
+            ? `${reservedResources.vcpu * 1000}m`
+            : String(reservedResources.vcpu)
+          : input.cpuRequest,
+        cpuLimit: reservedResources
+          ? reservedResources.vcpu < 1
+            ? `${reservedResources.vcpu * 1000}m`
+            : String(reservedResources.vcpu)
+          : input.cpuLimit,
+        memoryRequest: reservedResources ? `${reservedResources.ramGb}Gi` : input.memoryRequest,
+        memoryLimit: reservedResources ? `${reservedResources.ramGb}Gi` : input.memoryLimit,
+        runtimeKind,
+        ...(persistentVolume
+          ? {
+              persistentVolumeClaimName,
+              persistentVolumeMountPath: RESERVED_VM_DATA_MOUNT_PATH,
+            }
+          : {}),
+        ...(reservedCapability
+          ? {
+              reservedNodeSelector: reservedCapability.nodeSelector,
+              reservedToleration: reservedCapability.toleration,
+            }
+          : {}),
+        operationId: input.operationId,
+        fencingToken: input.fencingToken,
+      });
+    } catch (error) {
+      if (!reservedCapability || !cleanupCreatedPersistentVolume || !input.operationId) {
+        throw error;
+      }
+
+      try {
+        await this.runtime.stopServerApp(input.namespace, input.deploymentId);
+        await this.decommissionReservedVmStorage({
+          deploymentId: input.deploymentId,
           namespace: input.namespace,
-          labels: { 'vibecore.ai/server-deploy': input.deploymentId },
-        },
-        type: 'Opaque',
-        stringData: input.secrets as Record<string, string>,
+          persistentVolumeClaimName,
+          operationId: input.operationId,
+          fencingToken: input.fencingToken!,
+          mode: 'failed-create',
+        });
+      } catch (cleanupError) {
+        throw Object.assign(reservedVmManagerError('RESERVED_VM_CREATE_CLEANUP_UNVERIFIED'), {
+          code: 'RESERVED_VM_CREATE_CLEANUP_UNVERIFIED',
+          statusCode: 503,
+          rolledBack: false,
+          cause: new AggregateError([error, cleanupError]),
+        });
+      }
+
+      throw Object.assign(new Error((error as Error).message), {
+        code: (error as { code?: string }).code ?? 'RESERVED_VM_RUNTIME_APPLY_FAILED',
+        statusCode: (error as { statusCode?: number }).statusCode ?? 503,
+        rolledBack: true,
+        persistentStorageDeleted: true,
+        persistentStorageClaimName: persistentVolumeClaimName,
+      });
+    }
+  }
+
+  /**
+   * Fenced, in-place mutation of an existing server Deployment. Runtime changes
+   * and Reserved VM redeploys share this primitive: no Service, URL or PVC is
+   * recreated, and a rollout that does not become Ready is reverted to the exact
+   * previous workload manifest before a proven failure is returned.
+   */
+  async #applyFencedServerDeployment(
+    object: Parameters<WorkspaceK8sClient['apply']>[0],
+    operationId: string,
+    fencingToken: number,
+  ) {
+    if (!this.k8s.applyFenced) {
+      throw Object.assign(reservedVmManagerError('Kubernetes fenced writes are unavailable.'), {
+        code: 'RESERVED_VM_OPERATION_FENCE_UNAVAILABLE',
+        statusCode: 503,
       });
     }
 
-    /*
-     * Everything Kubernetes-specific (manifests, readiness poll, teardown)
-     * lives behind the SandboxRuntime adapter — the manager only maps the
-     * product request onto the runtime contract.
-     */
-    return this.runtime.startServerApp({
-      deploymentId: input.deploymentId,
-      namespace: input.namespace,
-      orgId: input.orgId,
-      projectId: input.projectId,
-      image: input.image,
-      command: input.command,
-      args: input.args,
-      port: input.port,
-      host: input.host,
-      tlsSecretName: input.tlsSecretName,
-      env: input.env,
-      ...(hasSecrets
-        ? {
-            secretName,
-            secretEnv: Object.fromEntries(Object.keys(input.secrets as Record<string, string>).map((k) => [k, k])),
-          }
-        : {}),
-      replicas: input.replicas,
-      healthPath: input.healthPath,
-      readyTimeoutMs: input.readyTimeoutMs,
-      createIngress: input.createIngress,
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const current = await this.k8s.get(object.kind, object.metadata.namespace ?? 'default', object.metadata.name);
 
-      // Per-request opt-in wins; cluster-wide kill switch as fallback (mirrors
-      // startWorkspace). D3: the placement resolver substitutes the per-zone
-      // clone + zone pin + generation guard when the multi-zone map is set.
-      ...(await this.resolveNixStorePlacement(input.nixStorePvcName, undefined, input.nixGenerationRef)),
-      cpuRequest: input.cpuRequest,
-      cpuLimit: input.cpuLimit,
-      memoryRequest: input.memoryRequest,
-      memoryLimit: input.memoryLimit,
+      if (current && !current.metadata.resourceVersion) {
+        throw Object.assign(reservedVmManagerError('Kubernetes resourceVersion is unavailable for a fenced write.'), {
+          code: 'RESERVED_VM_OPERATION_FENCE_UNAVAILABLE',
+          statusCode: 503,
+        });
+      }
+
+      const currentOperationId = current?.metadata.annotations?.['vibecore.ai/runtime-operation-id'];
+      const currentFencingToken = Number(current?.metadata.annotations?.['vibecore.ai/runtime-fencing-token']);
+
+      if (
+        Number.isInteger(currentFencingToken) &&
+        (currentFencingToken > fencingToken ||
+          (currentFencingToken === fencingToken && currentOperationId && currentOperationId !== operationId))
+      ) {
+        throw Object.assign(reservedVmManagerError('A newer runtime operation owns this deployment.'), {
+          code: 'RESERVED_VM_OPERATION_FENCE_LOST',
+          statusCode: 409,
+        });
+      }
+
+      try {
+        return await this.k8s.applyFenced(object, current?.metadata.resourceVersion);
+      } catch (error) {
+        if (attempt === 2) {
+          throw Object.assign(reservedVmManagerError('Kubernetes rejected the runtime fencing precondition.'), {
+            code: 'RESERVED_VM_OPERATION_FENCE_CONFLICT',
+            statusCode: 409,
+            cause: error,
+          });
+        }
+      }
+    }
+
+    throw reservedVmManagerError('unreachable');
+  }
+
+  async #waitForFencedServerRollout(input: {
+    namespace: string;
+    deploymentId: string;
+    operationId: string;
+    fencingToken: number;
+    timeoutMs: number;
+    timeoutCode: string;
+  }): Promise<number> {
+    const deadline = Date.now() + input.timeoutMs;
+
+    for (;;) {
+      const deployment = await this.k8s
+        .get('Deployment', input.namespace, serverDeploymentName(input.deploymentId))
+        .catch(() => undefined);
+      const actualOperationId = deployment?.metadata.annotations?.['vibecore.ai/runtime-operation-id'];
+      const actualFencingToken = Number(deployment?.metadata.annotations?.['vibecore.ai/runtime-fencing-token']);
+
+      if (
+        Number.isInteger(actualFencingToken) &&
+        (actualFencingToken > input.fencingToken ||
+          (actualFencingToken === input.fencingToken && actualOperationId !== input.operationId))
+      ) {
+        throw Object.assign(reservedVmManagerError('A newer runtime operation owns this deployment.'), {
+          code: 'RESERVED_VM_OPERATION_FENCE_LOST',
+          statusCode: 409,
+        });
+      }
+
+      const generation = deployment?.metadata.generation;
+      const status = deployment?.status as
+        | {
+            availableReplicas?: number;
+            observedGeneration?: number;
+            readyReplicas?: number;
+            updatedReplicas?: number;
+          }
+        | undefined;
+      const rolloutObserved =
+        actualOperationId === input.operationId &&
+        deployment?.metadata.annotations?.['vibecore.ai/runtime-fencing-token'] === String(input.fencingToken) &&
+        Number.isInteger(generation) &&
+        Number(status?.observedGeneration ?? -1) >= Number(generation) &&
+        Number(status?.updatedReplicas ?? 0) >= 1 &&
+        Number(status?.availableReplicas ?? 0) >= 1 &&
+        Number(status?.readyReplicas ?? 0) >= 1;
+
+      if (rolloutObserved) {
+        return Number(status?.readyReplicas ?? 0);
+      }
+
+      if (Date.now() >= deadline) {
+        throw Object.assign(new Error(input.timeoutCode), { code: input.timeoutCode, statusCode: 503 });
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 250));
+    }
+  }
+
+  async #waitForFencedServerSuspension(input: {
+    namespace: string;
+    deploymentId: string;
+    operationId: string;
+    fencingToken: number;
+    timeoutMs: number;
+  }): Promise<void> {
+    const deadline = Date.now() + input.timeoutMs;
+    const name = serverDeploymentName(input.deploymentId);
+
+    for (;;) {
+      const deployment = await this.k8s.get('Deployment', input.namespace, name).catch(() => undefined);
+      const actualOperationId = deployment?.metadata.annotations?.['vibecore.ai/runtime-operation-id'];
+      const actualFencingToken = Number(deployment?.metadata.annotations?.['vibecore.ai/runtime-fencing-token']);
+
+      if (
+        Number.isInteger(actualFencingToken) &&
+        (actualFencingToken > input.fencingToken ||
+          (actualFencingToken === input.fencingToken && actualOperationId !== input.operationId))
+      ) {
+        throw Object.assign(reservedVmManagerError('A newer runtime operation owns this deployment.'), {
+          code: 'RESERVED_VM_OPERATION_FENCE_LOST',
+          statusCode: 409,
+        });
+      }
+
+      const generation = deployment?.metadata.generation;
+      const spec = deployment?.spec as { replicas?: number } | undefined;
+      const status = deployment?.status as
+        | {
+            availableReplicas?: number;
+            observedGeneration?: number;
+            readyReplicas?: number;
+            replicas?: number;
+            updatedReplicas?: number;
+          }
+        | undefined;
+      const pods = await this.k8s
+        .listByLabel('Pod', input.namespace, `vibecore.ai/server-deploy=${input.deploymentId}`)
+        .catch(() => undefined);
+      const scaleDownObserved =
+        actualOperationId === input.operationId &&
+        deployment?.metadata.annotations?.['vibecore.ai/runtime-fencing-token'] === String(input.fencingToken) &&
+        Number.isInteger(generation) &&
+        Number(status?.observedGeneration ?? -1) >= Number(generation) &&
+        Number(spec?.replicas ?? -1) === 0 &&
+        Number(status?.replicas ?? 0) === 0 &&
+        Number(status?.updatedReplicas ?? 0) === 0 &&
+        Number(status?.availableReplicas ?? 0) === 0 &&
+        Number(status?.readyReplicas ?? 0) === 0 &&
+        Array.isArray(pods) &&
+        pods.length === 0;
+
+      if (scaleDownObserved) {
+        return;
+      }
+
+      if (Date.now() >= deadline) {
+        throw Object.assign(reservedVmManagerError('Reserved VM suspension could not be proven.'), {
+          code: 'RESERVED_VM_SUSPEND_NOT_OBSERVED',
+          statusCode: 503,
+        });
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 250));
+    }
+  }
+
+  async reconfigureServerDeployment(input: {
+    deploymentId: string;
+    namespace: string;
+    runtimeKind: 'autoscale' | 'reserved-vm';
+    reservedVmTier?: ReservedVmTier;
+    cpuRequest?: string;
+    cpuLimit?: string;
+    memoryRequest?: string;
+    memoryLimit?: string;
+    image?: string;
+    command?: string[];
+    args?: string[];
+    env?: Record<string, string>;
+    healthPath?: string;
+    nixGenerationRef?: string;
+    readyTimeoutMs?: number;
+    operationId: string;
+    fencingToken: number;
+  }): Promise<{
+    ready: true;
+    readyReplicas: number;
+    name: string;
+    persistentVolumeClaimName?: string;
+    appliedFencingToken: number;
+  }> {
+    const name = serverDeploymentName(input.deploymentId);
+    const current = await this.k8s.get('Deployment', input.namespace, name);
+
+    if (!current) {
+      throw Object.assign(reservedVmManagerError('SERVER_DEPLOY_NOT_FOUND'), {
+        code: 'SERVER_DEPLOY_NOT_FOUND',
+        statusCode: 404,
+      });
+    }
+
+    const previous = structuredClone(current);
+    const next = structuredClone(current) as typeof current & {
+      spec: {
+        replicas?: number;
+        strategy?: Record<string, unknown>;
+        template: {
+          metadata?: { labels?: Record<string, string>; annotations?: Record<string, string> };
+          spec: {
+            runtimeClassName?: string;
+            nodeSelector?: Record<string, string>;
+            tolerations?: Array<Record<string, string>>;
+            containers: Array<{
+              image?: string;
+              command?: string[];
+              args?: string[];
+              env?: Array<{ name?: string; value?: string; valueFrom?: Record<string, unknown> }>;
+              ports?: Array<{ containerPort?: number; name?: string }>;
+              readinessProbe?: { httpGet?: { path?: string; port?: number | string }; [key: string]: unknown };
+              resources?: Record<string, unknown>;
+              volumeMounts?: Array<Record<string, unknown>>;
+            }>;
+            initContainers?: Array<{ name?: string; image?: string; [key: string]: unknown }>;
+            volumes?: Array<Record<string, unknown>>;
+          };
+        };
+      };
+    };
+    const container = next.spec?.template?.spec?.containers?.[0];
+
+    if (!container) {
+      throw Object.assign(reservedVmManagerError('SERVER_DEPLOY_MANIFEST_INVALID'), {
+        code: 'SERVER_DEPLOY_MANIFEST_INVALID',
+        statusCode: 409,
+      });
+    }
+
+    const claimName = `reserved-data-${input.deploymentId}`;
+    let pvc = await this.k8s.get('PersistentVolumeClaim', input.namespace, claimName).catch(() => undefined);
+    const pvcExistedBefore = Boolean(pvc);
+    const currentRuntimeKind = current.metadata.labels?.['vibecore.ai/server-runtime-kind'] ?? 'autoscale';
+    let capability: Extract<ReservedVmRuntimeCapability, { enabled: true }> | undefined;
+
+    if (input.runtimeKind === 'reserved-vm') {
+      const checked = await this.reservedVmRuntimeCapability(input.namespace);
+
+      if (!checked.enabled) {
+        throw Object.assign(new Error(checked.reasonCode), {
+          code: checked.reasonCode,
+          statusCode: 503,
+        });
+      }
+
+      if (!input.reservedVmTier || !RESERVED_VM_TIERS[input.reservedVmTier]) {
+        throw Object.assign(reservedVmManagerError('RESERVED_VM_TIER_REQUIRED'), {
+          code: 'RESERVED_VM_TIER_REQUIRED',
+          statusCode: 400,
+        });
+      }
+
+      if (!checked.availableTiers?.includes(input.reservedVmTier)) {
+        throw Object.assign(reservedVmManagerError('RESERVED_VM_TIER_CAPACITY_UNAVAILABLE'), {
+          code: 'RESERVED_VM_TIER_CAPACITY_UNAVAILABLE',
+          statusCode: 503,
+        });
+      }
+
+      capability = checked;
+
+      if (!pvc) {
+        if (currentRuntimeKind === 'reserved-vm') {
+          throw Object.assign(reservedVmManagerError('The Reserved VM data claim is missing; refusing to create a replacement.'), {
+            code: 'RESERVED_VM_PVC_NOT_FOUND',
+            statusCode: 409,
+          });
+        }
+
+        pvc = await this.#applyFencedServerDeployment(
+          serverAppPersistentVolumeClaim({
+            deploymentId: input.deploymentId,
+            namespace: input.namespace,
+            storageClassName: checked.storageClassName,
+            storageGi: checked.storageGi,
+            orgId: current.metadata.labels?.['vibecore.ai/org'],
+            projectId: current.metadata.labels?.['vibecore.ai/project'],
+            operationId: input.operationId,
+            fencingToken: input.fencingToken,
+          }),
+          input.operationId,
+          input.fencingToken,
+        );
+      }
+    }
+
+    if (pvc && pvc.metadata.labels?.['vibecore.ai/server-deploy'] !== input.deploymentId) {
+      throw Object.assign(reservedVmManagerError('RESERVED_VM_PVC_OWNERSHIP_CONFLICT'), {
+        code: 'RESERVED_VM_PVC_OWNERSHIP_CONFLICT',
+        statusCode: 409,
+      });
+    }
+
+    if (pvc && pvcExistedBefore) {
+      const fencedPvc = structuredClone(pvc);
+      fencedPvc.status = undefined;
+      fencedPvc.metadata.annotations = {
+        ...(fencedPvc.metadata.annotations ?? {}),
+        'vibecore.ai/runtime-operation-id': input.operationId,
+        'vibecore.ai/runtime-fencing-token': String(input.fencingToken),
+      };
+      pvc = await this.#applyFencedServerDeployment(fencedPvc, input.operationId, input.fencingToken);
+    }
+
+    const exactReserved =
+      input.runtimeKind === 'reserved-vm' && input.reservedVmTier ? RESERVED_VM_TIERS[input.reservedVmTier] : undefined;
+    const cpu = exactReserved
+      ? exactReserved.vcpu < 1
+        ? `${exactReserved.vcpu * 1000}m`
+        : String(exactReserved.vcpu)
+      : input.cpuRequest;
+    const memory = exactReserved ? `${exactReserved.ramGb}Gi` : input.memoryRequest;
+
+    if (!cpu || !memory || (!exactReserved && (!input.cpuLimit || !input.memoryLimit))) {
+      throw Object.assign(reservedVmManagerError('SERVER_DEPLOY_RESOURCES_REQUIRED'), {
+        code: 'SERVER_DEPLOY_RESOURCES_REQUIRED',
+        statusCode: 400,
+      });
+    }
+
+    next.metadata.labels = {
+      ...(next.metadata.labels ?? {}),
+      'vibecore.ai/server-runtime-kind': input.runtimeKind,
+    };
+    next.metadata.annotations = {
+      ...(next.metadata.annotations ?? {}),
+      'vibecore.ai/runtime-operation-id': input.operationId,
+      'vibecore.ai/runtime-fencing-token': String(input.fencingToken),
+    };
+    delete next.metadata.annotations[WorkspaceManager.RESERVED_VM_SUSPENDED_ANNOTATION];
+    next.status = undefined;
+    next.spec.replicas = 1;
+    next.spec.strategy = pvc
+      ? { type: 'Recreate' }
+      : { type: 'RollingUpdate', rollingUpdate: { maxUnavailable: 0, maxSurge: 1 } };
+    next.spec.template.metadata = {
+      ...(next.spec.template.metadata ?? {}),
+      labels: {
+        ...(next.spec.template.metadata?.labels ?? {}),
+        'vibecore.ai/server-runtime-kind': input.runtimeKind,
+      },
+      annotations: {
+        ...(next.spec.template.metadata?.annotations ?? {}),
+        'vibecore.ai/runtime-operation-id': input.operationId,
+        'vibecore.ai/runtime-fencing-token': String(input.fencingToken),
+      },
+    };
+    delete next.spec.template.metadata.annotations?.[WorkspaceManager.RESERVED_VM_SUSPENDED_ANNOTATION];
+    next.spec.template.spec.runtimeClassName = 'gvisor';
+    next.spec.template.spec.nodeSelector = capability
+      ? { [capability.nodeSelector.key]: capability.nodeSelector.value }
+      : { 'vibecore.ai/node-pool': 'sandbox' };
+    next.spec.template.spec.tolerations = capability
+      ? [
+          {
+            key: capability.toleration.key,
+            operator: 'Equal',
+            value: capability.toleration.value,
+            effect: capability.toleration.effect,
+          },
+          { key: 'sandbox.gke.io/runtime', operator: 'Equal', value: 'gvisor', effect: 'NoSchedule' },
+        ]
+      : [
+          { key: 'vibecore.ai/sandbox', operator: 'Equal', value: 'true', effect: 'NoSchedule' },
+          { key: 'sandbox.gke.io/runtime', operator: 'Equal', value: 'gvisor', effect: 'NoSchedule' },
+        ];
+    container.resources = {
+      requests: { cpu, memory },
+      limits: {
+        cpu: exactReserved ? cpu : input.cpuLimit,
+        memory: exactReserved ? memory : input.memoryLimit,
+      },
+    };
+
+    if (input.image !== undefined) {
+      assertWorkspaceImageAllowed(input.image);
+      container.image = input.image;
+
+      /* The Nix drift guard uses the app image for its shell tooling too. */
+      for (const initContainer of next.spec.template.spec.initContainers ?? []) {
+        if (initContainer.name === 'nix-store-guard') {
+          initContainer.image = input.image;
+        }
+      }
+    }
+
+    if (input.command !== undefined) {
+      container.command = [...input.command];
+    }
+
+    if (input.args !== undefined) {
+      container.args = [...input.args];
+    }
+
+    if (input.env !== undefined) {
+      const preservedSecretEnv = (container.env ?? []).filter((entry) => entry.valueFrom && entry.name);
+      const projectId = current.metadata.labels?.['vibecore.ai/project'];
+      const port =
+        container.ports?.find((entry) => entry.name === 'http')?.containerPort ?? container.ports?.[0]?.containerPort;
+
+      if (!port) {
+        throw Object.assign(reservedVmManagerError('SERVER_DEPLOY_PORT_NOT_FOUND'), {
+          code: 'SERVER_DEPLOY_MANIFEST_INVALID',
+          statusCode: 409,
+        });
+      }
+
+      /*
+       * Reuse the canonical server-manifest env filter instead of accepting
+       * tenant overrides for PORT/PROJECT_ID/agent control variables here.
+       */
+      const canonical = serverAppDeployment({
+        deploymentId: input.deploymentId,
+        namespace: input.namespace,
+        image: container.image ?? input.image ?? '',
+        port,
+        host: 'unused.invalid',
+        tlsSecretName: 'unused',
+        env: input.env,
+        projectId,
+        disableSandboxScheduling: true,
+      }) as { spec?: { template?: { spec?: { containers?: Array<{ env?: typeof container.env }> } } } };
+      const literalEnv = canonical.spec?.template?.spec?.containers?.[0]?.env ?? [];
+      const literalNames = new Set(literalEnv.map((entry) => entry.name));
+      container.env = [...literalEnv, ...preservedSecretEnv.filter((entry) => !literalNames.has(entry.name))];
+    }
+
+    if (input.healthPath !== undefined) {
+      if (!container.readinessProbe?.httpGet) {
+        throw Object.assign(reservedVmManagerError('SERVER_DEPLOY_READINESS_PROBE_NOT_FOUND'), {
+          code: 'SERVER_DEPLOY_MANIFEST_INVALID',
+          statusCode: 409,
+        });
+      }
+
+      container.readinessProbe.httpGet.path = input.healthPath;
+    }
+
+    if (input.nixGenerationRef !== undefined) {
+      const currentNixVolume = (next.spec.template.spec.volumes ?? []).find((volume) => volume.name === 'nix-store') as
+        | { persistentVolumeClaim?: { claimName?: string } }
+        | undefined;
+      const dataZone = pvc ? await this.workspaceDataZone(input.namespace, claimName) : undefined;
+      const nixPlacement = await this.resolveNixStorePlacement(
+        currentNixVolume?.persistentVolumeClaim?.claimName,
+        dataZone,
+        input.nixGenerationRef,
+      );
+
+      if (!nixPlacement.nixStorePvcName) {
+        throw Object.assign(reservedVmManagerError('The requested Nix generation has no runtime volume.'), {
+          code: 'NIX_STORE_GENERATION_UNAVAILABLE',
+          statusCode: 503,
+        });
+      }
+
+      container.volumeMounts = [
+        ...(container.volumeMounts ?? []).filter((mount) => mount.name !== 'nix-store'),
+        { name: 'nix-store', mountPath: '/nix', readOnly: true },
+      ];
+      next.spec.template.spec.volumes = [
+        ...(next.spec.template.spec.volumes ?? []).filter((volume) => volume.name !== 'nix-store'),
+        {
+          name: 'nix-store',
+          persistentVolumeClaim: { claimName: nixPlacement.nixStorePvcName, readOnly: true },
+        },
+      ];
+      next.spec.template.spec.nodeSelector = {
+        ...(next.spec.template.spec.nodeSelector ?? {}),
+        ...(nixPlacement.nixStoreZone
+          ? { 'topology.kubernetes.io/zone': nixPlacement.nixStoreZone }
+          : { 'topology.kubernetes.io/zone': undefined }),
+      } as Record<string, string>;
+      if (!nixPlacement.nixStoreZone) {
+        delete next.spec.template.spec.nodeSelector['topology.kubernetes.io/zone'];
+      }
+
+      const otherInitContainers = (next.spec.template.spec.initContainers ?? []).filter(
+        (initContainer) => initContainer.name !== 'nix-store-guard',
+      );
+      next.spec.template.spec.initContainers = nixPlacement.nixStoreGenerationHash
+        ? [
+            ...otherInitContainers,
+            nixStoreGuardInitContainer(container.image ?? input.image ?? '', nixPlacement.nixStoreGenerationHash),
+          ]
+        : otherInitContainers;
+    }
+
+    if (pvc) {
+      container.volumeMounts = [
+        ...(container.volumeMounts ?? []).filter((mount) => mount.name !== 'app-data'),
+        { name: 'app-data', mountPath: RESERVED_VM_DATA_MOUNT_PATH, readOnly: false },
+      ];
+      next.spec.template.spec.volumes = [
+        ...(next.spec.template.spec.volumes ?? []).filter((volume) => volume.name !== 'app-data'),
+        { name: 'app-data', persistentVolumeClaim: { claimName, readOnly: false } },
+      ];
+    }
+
+    const timeoutMs = Math.max(1, Math.min(input.readyTimeoutMs ?? 200_000, 10 * 60_000));
+
+    try {
+      await this.#applyFencedServerDeployment(next, input.operationId, input.fencingToken);
+      const readyReplicas = await this.#waitForFencedServerRollout({
+        namespace: input.namespace,
+        deploymentId: input.deploymentId,
+        operationId: input.operationId,
+        fencingToken: input.fencingToken,
+        timeoutMs,
+        timeoutCode: 'RESERVED_VM_RECONFIGURE_NOT_READY',
+      });
+
+      return {
+        ready: true,
+        readyReplicas,
+        name,
+        ...(pvc ? { persistentVolumeClaimName: claimName } : {}),
+        appliedFencingToken: input.fencingToken,
+      };
+    } catch (error) {
+      const live = await this.k8s.get('Deployment', input.namespace, name).catch(() => undefined);
+      const stillOwnsFence =
+        live?.metadata.annotations?.['vibecore.ai/runtime-operation-id'] === input.operationId &&
+        live?.metadata.annotations?.['vibecore.ai/runtime-fencing-token'] === String(input.fencingToken);
+
+      if (!stillOwnsFence) {
+        throw Object.assign(new Error((error as Error).message), {
+          code: (error as { code?: string }).code ?? 'RESERVED_VM_RECONFIGURE_UNCERTAIN',
+          statusCode: (error as { statusCode?: number }).statusCode ?? 503,
+          rolledBack: false,
+        });
+      }
+
+      const rollback = structuredClone(previous) as typeof previous & {
+        spec?: { template?: { metadata?: { annotations?: Record<string, string> } } };
+      };
+      rollback.status = undefined;
+      rollback.metadata.annotations = {
+        ...(rollback.metadata.annotations ?? {}),
+        'vibecore.ai/runtime-operation-id': input.operationId,
+        'vibecore.ai/runtime-fencing-token': String(input.fencingToken),
+      };
+      if (rollback.spec?.template) {
+        rollback.spec.template.metadata = {
+          ...(rollback.spec.template.metadata ?? {}),
+          annotations: {
+            ...(rollback.spec.template.metadata?.annotations ?? {}),
+            'vibecore.ai/runtime-operation-id': input.operationId,
+            'vibecore.ai/runtime-fencing-token': String(input.fencingToken),
+          },
+        };
+      }
+
+      try {
+        await this.#applyFencedServerDeployment(rollback, input.operationId, input.fencingToken);
+        await this.#waitForFencedServerRollout({
+          namespace: input.namespace,
+          deploymentId: input.deploymentId,
+          operationId: input.operationId,
+          fencingToken: input.fencingToken,
+          timeoutMs,
+          timeoutCode: 'RESERVED_VM_ROLLBACK_NOT_READY',
+        });
+
+        if (!pvcExistedBefore && pvc) {
+          if (!this.k8s.deleteFenced) {
+            throw Object.assign(reservedVmManagerError('Kubernetes fenced deletes are unavailable.'), {
+              code: 'RESERVED_VM_PVC_CLEANUP_UNVERIFIED',
+            });
+          }
+
+          const livePvc = await this.k8s.get('PersistentVolumeClaim', input.namespace, claimName);
+          const ownsPvcFence =
+            livePvc?.metadata.labels?.['vibecore.ai/server-deploy'] === input.deploymentId &&
+            livePvc.metadata.annotations?.['vibecore.ai/runtime-operation-id'] === input.operationId &&
+            livePvc.metadata.annotations?.['vibecore.ai/runtime-fencing-token'] === String(input.fencingToken);
+
+          if (!livePvc?.metadata.resourceVersion || !ownsPvcFence) {
+            throw Object.assign(reservedVmManagerError('The new Reserved VM PVC fence is no longer owned.'), {
+              code: 'RESERVED_VM_PVC_CLEANUP_UNVERIFIED',
+            });
+          }
+
+          await this.k8s.deleteFenced(
+            'PersistentVolumeClaim',
+            input.namespace,
+            claimName,
+            livePvc.metadata.resourceVersion,
+          );
+
+          if (await this.k8s.get('PersistentVolumeClaim', input.namespace, claimName).catch(() => undefined)) {
+            throw Object.assign(reservedVmManagerError('The new Reserved VM PVC still exists after rollback.'), {
+              code: 'RESERVED_VM_PVC_CLEANUP_UNVERIFIED',
+            });
+          }
+        }
+      } catch (rollbackError) {
+        throw Object.assign(reservedVmManagerError('Reserved VM rollback could not be proven.'), {
+          code: 'RESERVED_VM_ROLLBACK_UNVERIFIED',
+          statusCode: 503,
+          rolledBack: false,
+          cause: new AggregateError([error, rollbackError]),
+        });
+      }
+
+      throw Object.assign(new Error((error as Error).message), {
+        code: (error as { code?: string }).code ?? 'RESERVED_VM_RECONFIGURE_FAILED',
+        statusCode: (error as { statusCode?: number }).statusCode ?? 503,
+        rolledBack: true,
+      });
+    }
+  }
+
+  /**
+   * Strict billing suspension for a Reserved VM. Only the existing Deployment
+   * is fenced and scaled to zero: its Service, URL, image/spec and data claim
+   * remain in place so a later paid reconfigure can resume the same runtime.
+   */
+  async suspendReservedVmDeployment(input: {
+    deploymentId: string;
+    namespace: string;
+    operationId: string;
+    fencingToken: number;
+    readyTimeoutMs?: number;
+  }): Promise<{
+    suspended: true;
+    name: string;
+    persistentVolumeClaimName: string;
+    appliedFencingToken: number;
+  }> {
+    const name = serverDeploymentName(input.deploymentId);
+    const current = await this.k8s.get('Deployment', input.namespace, name);
+
+    if (!current) {
+      throw Object.assign(reservedVmManagerError('SERVER_DEPLOY_NOT_FOUND'), {
+        code: 'SERVER_DEPLOY_NOT_FOUND',
+        statusCode: 404,
+      });
+    }
+
+    if (current.metadata.labels?.['vibecore.ai/server-runtime-kind'] !== 'reserved-vm') {
+      throw Object.assign(reservedVmManagerError('Only Reserved VM runtimes can be billing-suspended.'), {
+        code: 'RESERVED_VM_RUNTIME_REQUIRED',
+        statusCode: 409,
+      });
+    }
+
+    const claimName = `reserved-data-${input.deploymentId}`;
+    const pvc = await this.k8s.get('PersistentVolumeClaim', input.namespace, claimName).catch(() => undefined);
+
+    if (!pvc) {
+      throw Object.assign(reservedVmManagerError('The Reserved VM data claim is missing; refusing an unverified suspension.'), {
+        code: 'RESERVED_VM_PVC_NOT_FOUND',
+        statusCode: 409,
+      });
+    }
+
+    if (pvc.metadata.labels?.['vibecore.ai/server-deploy'] !== input.deploymentId) {
+      throw Object.assign(reservedVmManagerError('RESERVED_VM_PVC_OWNERSHIP_CONFLICT'), {
+        code: 'RESERVED_VM_PVC_OWNERSHIP_CONFLICT',
+        statusCode: 409,
+      });
+    }
+
+    const timeoutMs = Math.max(1, Math.min(input.readyTimeoutMs ?? 200_000, 10 * 60_000));
+    const next = structuredClone(current) as typeof current & {
+      spec: {
+        replicas?: number;
+        template?: { metadata?: { annotations?: Record<string, string> } };
+      };
+    };
+    next.status = undefined;
+    next.metadata.annotations = {
+      ...(next.metadata.annotations ?? {}),
+      'vibecore.ai/runtime-operation-id': input.operationId,
+      'vibecore.ai/runtime-fencing-token': String(input.fencingToken),
+      [WorkspaceManager.RESERVED_VM_SUSPENDED_ANNOTATION]: 'true',
+    };
+    next.spec.replicas = 0;
+    if (next.spec.template) {
+      next.spec.template.metadata = {
+        ...(next.spec.template.metadata ?? {}),
+        annotations: {
+          ...(next.spec.template.metadata?.annotations ?? {}),
+          'vibecore.ai/runtime-operation-id': input.operationId,
+          'vibecore.ai/runtime-fencing-token': String(input.fencingToken),
+          [WorkspaceManager.RESERVED_VM_SUSPENDED_ANNOTATION]: 'true',
+        },
+      };
+    }
+
+    const alreadyApplied =
+      (current.spec as { replicas?: number } | undefined)?.replicas === 0 &&
+      current.metadata.annotations?.['vibecore.ai/runtime-operation-id'] === input.operationId &&
+      current.metadata.annotations?.['vibecore.ai/runtime-fencing-token'] === String(input.fencingToken) &&
+      current.metadata.annotations?.[WorkspaceManager.RESERVED_VM_SUSPENDED_ANNOTATION] === 'true';
+
+    if (!alreadyApplied) {
+      await this.#applyFencedServerDeployment(next, input.operationId, input.fencingToken);
+    }
+
+    await this.#waitForFencedServerSuspension({
+      namespace: input.namespace,
+      deploymentId: input.deploymentId,
+      operationId: input.operationId,
+      fencingToken: input.fencingToken,
+      timeoutMs,
     });
+
+    return {
+      suspended: true,
+      name,
+      persistentVolumeClaimName: claimName,
+      appliedFencingToken: input.fencingToken,
+    };
+  }
+
+  /**
+   * Destructive Reserved VM data decommission. This is intentionally separate
+   * from runtime conversion and failure rollback: a normal Reserved→Autoscale
+   * transition keeps the claim and its data. The caller must own a durable DB
+   * fence and name the one canonical claim it intends to erase.
+   */
+  async decommissionReservedVmStorage(input: {
+    deploymentId: string;
+    namespace: string;
+    persistentVolumeClaimName: string;
+    operationId: string;
+    fencingToken: number;
+    mode: 'autoscale-decommission' | 'failed-create';
+    readyTimeoutMs?: number;
+  }): Promise<{
+    decommissioned: true;
+    persistentVolumeClaimName: string;
+    persistentVolumeClaimAbsent: true;
+    appliedFencingToken: number;
+  }> {
+    const claimName = `reserved-data-${input.deploymentId}`;
+
+    if (input.persistentVolumeClaimName !== claimName) {
+      throw Object.assign(reservedVmManagerError('RESERVED_VM_PVC_TARGET_INVALID'), {
+        code: 'RESERVED_VM_PVC_TARGET_INVALID',
+        statusCode: 409,
+      });
+    }
+
+    const name = serverDeploymentName(input.deploymentId);
+    const deployment = await this.k8s.get('Deployment', input.namespace, name).catch(() => undefined);
+
+    if (input.mode === 'failed-create') {
+      if (deployment) {
+        throw Object.assign(reservedVmManagerError('RESERVED_VM_CREATE_COMPUTE_REMAINS'), {
+          code: 'RESERVED_VM_CREATE_COMPUTE_REMAINS',
+          statusCode: 503,
+        });
+      }
+    } else {
+      if (!deployment) {
+        throw Object.assign(reservedVmManagerError('SERVER_DEPLOY_NOT_FOUND'), {
+          code: 'SERVER_DEPLOY_NOT_FOUND',
+          statusCode: 404,
+        });
+      }
+
+      if (deployment.metadata.labels?.['vibecore.ai/server-runtime-kind'] !== 'autoscale') {
+        throw Object.assign(reservedVmManagerError('RESERVED_VM_DECOMMISSION_REQUIRES_AUTOSCALE'), {
+          code: 'RESERVED_VM_DECOMMISSION_REQUIRES_AUTOSCALE',
+          statusCode: 409,
+        });
+      }
+
+      const next = structuredClone(deployment) as typeof deployment & {
+        spec: {
+          replicas?: number;
+          strategy?: Record<string, unknown>;
+          template?: {
+            metadata?: { annotations?: Record<string, string> };
+            spec?: {
+              containers?: Array<{ volumeMounts?: Array<{ name?: string; [key: string]: unknown }> }>;
+              volumes?: Array<{ name?: string; [key: string]: unknown }>;
+            };
+          };
+        };
+      };
+      const container = next.spec?.template?.spec?.containers?.[0];
+
+      if (!container || !next.spec?.template?.spec) {
+        throw Object.assign(reservedVmManagerError('SERVER_DEPLOY_MANIFEST_INVALID'), {
+          code: 'SERVER_DEPLOY_MANIFEST_INVALID',
+          statusCode: 409,
+        });
+      }
+
+      container.volumeMounts = (container.volumeMounts ?? []).filter((mount) => mount.name !== 'app-data');
+      next.spec.template.spec.volumes = (next.spec.template.spec.volumes ?? []).filter(
+        (volume) => volume.name !== 'app-data',
+      );
+      next.spec.strategy = { type: 'RollingUpdate', rollingUpdate: { maxUnavailable: 0, maxSurge: 1 } };
+      next.status = undefined;
+      next.metadata.annotations = {
+        ...(next.metadata.annotations ?? {}),
+        'vibecore.ai/runtime-operation-id': input.operationId,
+        'vibecore.ai/runtime-fencing-token': String(input.fencingToken),
+      };
+      next.spec.template.metadata = {
+        ...(next.spec.template.metadata ?? {}),
+        annotations: {
+          ...(next.spec.template.metadata?.annotations ?? {}),
+          'vibecore.ai/runtime-operation-id': input.operationId,
+          'vibecore.ai/runtime-fencing-token': String(input.fencingToken),
+        },
+      };
+      delete next.spec.template.metadata.annotations?.[WorkspaceManager.RESERVED_VM_SUSPENDED_ANNOTATION];
+
+      await this.#applyFencedServerDeployment(next, input.operationId, input.fencingToken);
+      const timeoutMs = Math.max(1, Math.min(input.readyTimeoutMs ?? 200_000, 10 * 60_000));
+
+      if ((next.spec.replicas ?? 1) === 0) {
+        await this.#waitForFencedServerSuspension({
+          namespace: input.namespace,
+          deploymentId: input.deploymentId,
+          operationId: input.operationId,
+          fencingToken: input.fencingToken,
+          timeoutMs,
+        });
+      } else {
+        await this.#waitForFencedServerRollout({
+          namespace: input.namespace,
+          deploymentId: input.deploymentId,
+          operationId: input.operationId,
+          fencingToken: input.fencingToken,
+          timeoutMs,
+          timeoutCode: 'RESERVED_VM_DECOMMISSION_ROLLOUT_NOT_READY',
+        });
+      }
+    }
+
+    let pvc = await this.k8s.get('PersistentVolumeClaim', input.namespace, claimName).catch(() => undefined);
+
+    if (!pvc) {
+      return {
+        decommissioned: true,
+        persistentVolumeClaimName: claimName,
+        persistentVolumeClaimAbsent: true,
+        appliedFencingToken: input.fencingToken,
+      };
+    }
+
+    if (pvc.metadata.labels?.['vibecore.ai/server-deploy'] !== input.deploymentId) {
+      throw Object.assign(reservedVmManagerError('RESERVED_VM_PVC_OWNERSHIP_CONFLICT'), {
+        code: 'RESERVED_VM_PVC_OWNERSHIP_CONFLICT',
+        statusCode: 409,
+      });
+    }
+
+    if (input.mode === 'failed-create') {
+      const creatingOperation = pvc.metadata.annotations?.['vibecore.ai/runtime-operation-id'];
+
+      if (creatingOperation !== input.operationId) {
+        throw Object.assign(reservedVmManagerError('RESERVED_VM_PVC_CLEANUP_UNVERIFIED'), {
+          code: 'RESERVED_VM_PVC_CLEANUP_UNVERIFIED',
+          statusCode: 409,
+        });
+      }
+    }
+
+    const fencedPvc = structuredClone(pvc);
+    fencedPvc.status = undefined;
+    fencedPvc.metadata.annotations = {
+      ...(fencedPvc.metadata.annotations ?? {}),
+      'vibecore.ai/runtime-operation-id': input.operationId,
+      'vibecore.ai/runtime-fencing-token': String(input.fencingToken),
+    };
+    pvc = await this.#applyFencedServerDeployment(fencedPvc, input.operationId, input.fencingToken);
+
+    if (!this.k8s.deleteFenced || !pvc.metadata.resourceVersion) {
+      throw Object.assign(reservedVmManagerError('RESERVED_VM_PVC_CLEANUP_UNVERIFIED'), {
+        code: 'RESERVED_VM_PVC_CLEANUP_UNVERIFIED',
+        statusCode: 503,
+      });
+    }
+
+    await this.k8s.deleteFenced('PersistentVolumeClaim', input.namespace, claimName, pvc.metadata.resourceVersion);
+
+    if (await this.k8s.get('PersistentVolumeClaim', input.namespace, claimName).catch(() => undefined)) {
+      throw Object.assign(reservedVmManagerError('RESERVED_VM_PVC_CLEANUP_UNVERIFIED'), {
+        code: 'RESERVED_VM_PVC_CLEANUP_UNVERIFIED',
+        statusCode: 503,
+      });
+    }
+
+    return {
+      decommissioned: true,
+      persistentVolumeClaimName: claimName,
+      persistentVolumeClaimAbsent: true,
+      appliedFencingToken: input.fencingToken,
+    };
   }
 
   async getServerDeploymentStatus(
@@ -1158,6 +2376,7 @@ export class WorkspaceManager {
    * preview-proxy on live traffic, throttled) drives the idle decision.
    */
   static readonly LAST_REQUEST_ANNOTATION = 'vibecore.ai/last-request-at';
+  static readonly RESERVED_VM_SUSPENDED_ANNOTATION = 'vibecore.ai/reserved-vm-suspended';
 
   /*
    * Cumulative proxied-request counter (billing: $1.20/M requests). The proxy
@@ -1185,7 +2404,11 @@ export class WorkspaceManager {
     const name = serverDeploymentName(deploymentId);
 
     const dep = (await this.k8s.get('Deployment', namespace, name).catch(() => undefined)) as
-      | { spec?: { replicas?: number }; status?: { readyReplicas?: number } }
+      | {
+          metadata?: { labels?: Record<string, string>; annotations?: Record<string, string> };
+          spec?: { replicas?: number };
+          status?: { readyReplicas?: number };
+        }
       | undefined;
 
     if (!dep) {
@@ -1194,18 +2417,42 @@ export class WorkspaceManager {
       });
     }
 
+    const alreadyReady = (dep.status?.readyReplicas ?? 0) >= 1;
+    const desiredReplicas = dep.spec?.replicas ?? 0;
+    const runtimeKind = dep.metadata?.labels?.['vibecore.ai/server-runtime-kind'] ?? 'autoscale';
+
+    if (runtimeKind === 'reserved-vm') {
+      if (dep.metadata?.annotations?.[WorkspaceManager.RESERVED_VM_SUSPENDED_ANNOTATION] === 'true') {
+        throw Object.assign(reservedVmManagerError('RESERVED_VM_SUSPENDED'), {
+          code: 'RESERVED_VM_SUSPENDED',
+          statusCode: 402,
+        });
+      }
+
+      if (desiredReplicas !== 1) {
+        throw Object.assign(reservedVmManagerError('RESERVED_VM_ALWAYS_ON_INVARIANT'), {
+          code: 'RESERVED_VM_ALWAYS_ON_INVARIANT',
+          statusCode: 503,
+        });
+      }
+
+      if (alreadyReady) {
+        return { ready: true, readyReplicas: dep.status?.readyReplicas ?? 0, wokeUp: false };
+      }
+
+      const ready = await this.#pollServerDeploymentReady(namespace, deploymentId, readyTimeoutMs);
+      const status = await this.getServerDeploymentStatus(namespace, deploymentId);
+      return { ready, readyReplicas: status.readyReplicas, wokeUp: false };
+    }
+
     // Best-effort activity stamp so the idle sweep doesn't race a just-woken app back to 0.
     await this.k8s
       .annotate('Deployment', namespace, name, WorkspaceManager.LAST_REQUEST_ANNOTATION, String(Date.now()))
       .catch(() => undefined);
 
-    const alreadyReady = (dep.status?.readyReplicas ?? 0) >= 1;
-
     if (alreadyReady) {
       return { ready: true, readyReplicas: dep.status?.readyReplicas ?? 0, wokeUp: false };
     }
-
-    const desiredReplicas = dep.spec?.replicas ?? 0;
 
     if (desiredReplicas < 1) {
       await this.k8s.scale('Deployment', namespace, name, 1);
@@ -1323,6 +2570,12 @@ export class WorkspaceManager {
         const deploymentId = meta?.labels?.['vibecore.ai/server-deploy'];
 
         if (!meta?.name || !deploymentId) {
+          continue;
+        }
+
+        // Reserved VM is paid always-on capacity: it must never enter the
+        // Autoscale reaper, even when it has not received traffic.
+        if (meta.labels?.['vibecore.ai/server-runtime-kind'] === 'reserved-vm') {
           continue;
         }
 
