@@ -1,6 +1,6 @@
 import { hashPassword } from '@vibecore/auth';
 import { encryptJson } from '@vibecore/security';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { buildApiApp } from '../app.js';
 import type { EmailProvider } from '../email.js';
@@ -11,6 +11,11 @@ import type {
   SignedUrlResult,
   UploadUrlResult,
 } from '../object-storage.js';
+import {
+  readProjectManifestSnapshotPin,
+  verifyStoredProjectManifestRevision,
+  type ProjectManifest,
+} from '../project-manifest.js';
 import type { ProjectFile, ProjectStorage } from '../project-storage.js';
 import { REMIX_STORAGE_CONSENT_VERSION } from '../remix-pipeline.js';
 import { TestApiStore } from './test-api-store.js';
@@ -23,12 +28,18 @@ class QuietEmailProvider implements EmailProvider {
 class MemoryProjectStorage implements ProjectStorage {
   readonly files = new Map<string, Map<string, string>>();
   readonly snapshots = new Map<string, ProjectFile[]>();
+  snapshotGate: Promise<void> | null = null;
+  corruptNextWrite = false;
 
   async writeFiles(projectId: string, files: Array<{ path: string; content: string }>) {
     const bucket = this.files.get(projectId) ?? new Map<string, string>();
 
     for (const file of files) {
       bucket.set(file.path, file.content);
+    }
+    if (this.corruptNextWrite && files[0]) {
+      this.corruptNextWrite = false;
+      bucket.set(files[0].path, `${files[0].content}\n// injected target corruption`);
     }
     this.files.set(projectId, bucket);
 
@@ -62,6 +73,7 @@ class MemoryProjectStorage implements ProjectStorage {
   }
   async deleteObject() {}
   async createSnapshot(input: { projectId: string; files: ProjectFile[]; storageKey?: string }) {
+    if (this.snapshotGate) await this.snapshotGate;
     const storageKey = input.storageKey ?? `snapshots/${input.projectId}/snapshot.zip`;
     this.snapshots.set(
       storageKey,
@@ -75,6 +87,15 @@ class MemoryProjectStorage implements ProjectStorage {
   async restoreSnapshot() {
     return [];
   }
+}
+
+async function waitForSourceBarrier(store: TestApiStore, projectId: string) {
+  for (let attempt = 0; attempt < 100; attempt += 1) {
+    const barrier = await store.getActiveCheckpointBarrier(projectId);
+    if (barrier) return barrier;
+    await new Promise((resolve) => setTimeout(resolve, 5));
+  }
+  throw new Error('source barrier did not become observable');
 }
 
 class MemoryObjectStorage implements ObjectStorage {
@@ -436,5 +457,137 @@ describe('POST /projects/:id/remix — secure fork, secret never enters the clon
       if (previousEnabled === undefined) delete process.env.OBJECT_STORAGE_ENABLED;
       else process.env.OBJECT_STORAGE_ENABLED = previousEnabled;
     }
+  });
+});
+
+describe('POST /projects/:id/duplicate — exact source pin and hidden atomic target', () => {
+  it('holds one barrier across files + manifest and clones the pinned revision even when latest advances', async () => {
+    const { app, store, projectStorage, org, source } = await setup();
+    const initialResponse = await app.inject({
+      method: 'GET',
+      url: `/projects/${source.id}/manifest`,
+      headers: auth('remix-token'),
+    });
+    const initial = initialResponse.json() as { manifest: ProjectManifest; digest: string };
+    const nextManifest: ProjectManifest = {
+      ...initial.manifest,
+      manifestVersion: initial.manifest.manifestVersion + 1,
+      scopes: ['source:advanced-after-pin'],
+    };
+
+    let releaseSnapshot!: () => void;
+    projectStorage.snapshotGate = new Promise<void>((resolve) => {
+      releaseSnapshot = resolve;
+    });
+    let targetClaimStarted!: () => void;
+    const targetClaimReached = new Promise<void>((resolve) => {
+      targetClaimStarted = resolve;
+    });
+    let releaseTargetClaim!: () => void;
+    const targetClaimGate = new Promise<void>((resolve) => {
+      releaseTargetClaim = resolve;
+    });
+    const createTarget = store.createClaimedRemixProject.bind(store);
+    vi.spyOn(store, 'createClaimedRemixProject').mockImplementationOnce(async (input) => {
+      targetClaimStarted();
+      await targetClaimGate;
+      return createTarget(input);
+    });
+
+    const duplicate = app.inject({
+      method: 'POST',
+      url: `/projects/${source.id}/duplicate`,
+      headers: { ...auth('remix-token'), 'idempotency-key': 'duplicate-exact-source-pin' },
+      payload: { name: 'Exact duplicate', slug: 'exact-duplicate' },
+    });
+
+    const barrier = await waitForSourceBarrier(store, source.id);
+    expect(barrier.barrierId).toMatch(/^remix_pin_/);
+    expect(await store.listProjects(org.id)).toEqual([expect.objectContaining({ id: source.id })]);
+
+    const fileMutationWhilePinned = await app.inject({
+      method: 'POST',
+      url: `/projects/${source.id}/files/import/zip`,
+      headers: auth('remix-token'),
+      payload: { zipBase64: 'UEsFBgAAAAAAAAAAAAAAAAAAAAAAAA==' },
+    });
+    expect(fileMutationWhilePinned.statusCode).toBe(423);
+    expect(fileMutationWhilePinned.json().code).toBe('CHECKPOINT_BARRIER_ACTIVE');
+    const manifestMutationWhilePinned = await app.inject({
+      method: 'PUT',
+      url: `/projects/${source.id}/manifest`,
+      headers: auth('remix-token'),
+      payload: { expectedDigest: initial.digest, manifest: nextManifest },
+    });
+    expect(manifestMutationWhilePinned.statusCode).toBe(423);
+    expect(manifestMutationWhilePinned.json().code).toBe('CHECKPOINT_BARRIER_ACTIVE');
+
+    releaseSnapshot();
+    projectStorage.snapshotGate = null;
+    await targetClaimReached;
+
+    /* The immutable source snapshot now exists and the barrier is released, but
+     * the target row does not. Advance both live surfaces before target creation:
+     * a latest-read implementation would incorrectly clone manifest v2/files v2. */
+    const advanced = await app.inject({
+      method: 'PUT',
+      url: `/projects/${source.id}/manifest`,
+      headers: auth('remix-token'),
+      payload: { expectedDigest: initial.digest, manifest: nextManifest },
+    });
+    expect(advanced.statusCode).toBe(200);
+    await projectStorage.writeFiles(source.id, [
+      { path: 'src/app.ts', content: 'console.log("changed after exact pin");\n' },
+    ]);
+    releaseTargetClaim();
+
+    const response = await duplicate;
+    expect(response.statusCode).toBe(201);
+    const targetId = response.json().project.id as string;
+    const sourceSnapshotId = response.json().duplicate.sourceSnapshotId as string;
+    const snapshot = await store.getSnapshot(sourceSnapshotId);
+    expect(snapshot).toBeDefined();
+    expect(snapshot?.manifest).toMatchObject({ sourceBarrierId: barrier.barrierId, captureVersion: 1 });
+    const snapshotPin = readProjectManifestSnapshotPin(snapshot!.manifest, source.id);
+    expect(snapshotPin).toMatchObject({ manifestVersion: 1, digest: initial.digest });
+
+    const targetRevision = await store.getLatestProjectManifest(targetId);
+    const targetManifest = verifyStoredProjectManifestRevision(targetRevision!, targetId);
+    expect(targetManifest).toMatchObject({ manifestVersion: 1, scopes: initial.manifest.scopes });
+    expect(targetManifest.scopes).not.toContain('source:advanced-after-pin');
+    const targetFiles = await projectStorage.listFiles(targetId);
+    expect(targetFiles.find((file) => file.path === 'src/app.ts')?.content).toBe('console.log("hello");\n');
+    expect(targetFiles.find((file) => file.path === '.env')?.content).toContain(SECRET_VALUE);
+    expect(targetFiles.find((file) => file.path === '.env')?.content).toContain(ENV_VALUE);
+    expect((await projectStorage.listFiles(source.id)).find((file) => file.path === 'src/app.ts')?.content).toContain(
+      'changed after exact pin',
+    );
+    expect((await store.getLatestProjectManifest(source.id))?.manifestVersion).toBe(2);
+  });
+
+  it('fails closed on target digest corruption and removes every partial target surface', async () => {
+    const { app, store, projectStorage, org, source } = await setup();
+    const sourceBefore = await projectStorage.listFiles(source.id);
+    projectStorage.corruptNextWrite = true;
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/projects/${source.id}/duplicate`,
+      headers: { ...auth('remix-token'), 'idempotency-key': 'duplicate-corrupt-target' },
+      payload: { name: 'Corrupt duplicate', slug: 'corrupt-duplicate' },
+    });
+
+    expect(response.statusCode).toBe(409);
+    expect(response.json()).toMatchObject({ code: 'REMIX_TARGET_DIGEST_MISMATCH' });
+    expect(response.json()).not.toHaveProperty('project');
+    expect(await store.listProjects(org.id)).toEqual([expect.objectContaining({ id: source.id })]);
+    expect(store.projects.size).toBe(1);
+    expect([...store.projectManifestRevisions.keys()]).toEqual([source.id]);
+    expect([...projectStorage.files.keys()]).toEqual([source.id]);
+    expect((await projectStorage.listFiles(source.id)).map(({ path, content }) => ({ path, content }))).toEqual(
+      sourceBefore.map(({ path, content }) => ({ path, content })),
+    );
+    const failedJob = [...store.remixJobs.values()].find((job) => job.id === response.json().duplicateJobId);
+    expect(failedJob).toMatchObject({ state: 'FAILED', targetProjectId: undefined });
   });
 });

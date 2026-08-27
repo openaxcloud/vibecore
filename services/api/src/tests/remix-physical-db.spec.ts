@@ -52,12 +52,17 @@ class MemoryProjectStorage implements ProjectStorage {
     this.files.delete(projectId);
   }
 
-  async createSnapshot(input: { projectId: string; files: ProjectFile[] }): Promise<StoredArchive> {
+  async createSnapshot(input: {
+    projectId: string;
+    files: ProjectFile[];
+    storageKey?: string;
+  }): Promise<StoredArchive> {
+    const storageKey = input.storageKey ?? `snapshot:${input.projectId}`;
     this.files.set(
-      `snapshot:${input.projectId}`,
+      storageKey,
       input.files.map((file) => ({ ...file })),
     );
-    return { storageKey: `snapshot:${input.projectId}`, byteLength: 1, createdAt: new Date().toISOString() };
+    return { storageKey, byteLength: 1, createdAt: new Date().toISOString() };
   }
 
   async getSnapshotFiles(storageKey: string) {
@@ -210,11 +215,20 @@ function serviceDeps(
       files: ProjectFile[];
     }) => {
       const snapshotId = `snapshot:${sourceProjectId}:${remixJobId}`;
-      projectStorage.files.set(
-        snapshotId,
-        files.map((file) => ({ ...file })),
-      );
-      return { snapshotId, snapshotHash: remixFileSnapshotHash(files) };
+      const snapshotHash = remixFileSnapshotHash(files);
+      const archive = await projectStorage.createSnapshot({
+        projectId: sourceProjectId,
+        files,
+        storageKey: snapshotId,
+      });
+      const snapshot = await store.createSnapshot({
+        id: snapshotId,
+        projectId: sourceProjectId,
+        manifest: { snapshotHash, testCapture: true },
+        storageKey: archive.storageKey,
+        byteLength: archive.byteLength,
+      });
+      return { snapshotId: snapshot.id, snapshotHash };
     },
     loadSourceSnapshot: (snapshotId: string) => projectStorage.listFiles(snapshotId),
     persistTargetManifest: async () => undefined,
@@ -373,6 +387,16 @@ runDbTests('physical remix — real PostgreSQL multi-client CAS and compensation
         leaseDurationMs: 60_000,
       });
       expect(claimed).toBeDefined();
+      const sourceSnapshot = await storeA.createSnapshot({
+        projectId: source.id,
+        manifest: { snapshotHash: remixFileSnapshotHash([]), testCapture: true },
+        storageKey: `snapshot:finalize:${suffix}`,
+        byteLength: 0,
+      });
+      await prismaA.remixJob.update({
+        where: { id: created.job.id },
+        data: { sourceSnapshotId: sourceSnapshot.id },
+      });
       const target = await storeA.createClaimedRemixProject({
         remixJobId: created.job.id,
         organizationId: organization.id,
