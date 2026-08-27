@@ -2,6 +2,7 @@ import { lstat, readdir, rm } from 'node:fs/promises';
 import { isAbsolute, join, relative, resolve, sep } from 'node:path';
 
 import type { PurgeClassReport, PurgeEffectDescriptor, PurgeLeaseContext } from './account-purge.js';
+import { appPublicEnglish } from './app-public-copy.js';
 import { projectStorageRoot, staticDeploymentStorageRoot } from './deployments.js';
 import { SECONDARY_WORKSPACES_DIR, withProjectLock } from './project-storage.js';
 import { withStaticDeploymentStorageLock } from './static-deployment-storage-lock.js';
@@ -60,7 +61,7 @@ interface LocalPathEffect {
 
 function assertSafeId(value: string, kind: string): void {
   if (!SAFE_STORAGE_ID.test(value)) {
-    throw Object.assign(new Error(`ACCOUNT_PURGE_INVALID_${kind.toUpperCase()}_ID`), {
+    throw Object.assign(new Error(appPublicEnglish('ACCOUNT_PURGE_STORAGE_ID_INVALID')), {
       code: `ACCOUNT_PURGE_INVALID_${kind.toUpperCase()}_ID`,
     });
   }
@@ -72,7 +73,7 @@ function childPath(root: string, ...segments: string[]): string {
   const rel = relative(absoluteRoot, target);
 
   if (!rel || rel.startsWith(`..${sep}`) || rel === '..' || isAbsolute(rel)) {
-    throw Object.assign(new Error('ACCOUNT_PURGE_LOCAL_PATH_OUTSIDE_ROOT'), {
+    throw Object.assign(new Error(appPublicEnglish('ACCOUNT_PURGE_LOCAL_PATH_OUTSIDE_ROOT')), {
       code: 'ACCOUNT_PURGE_LOCAL_PATH_OUTSIDE_ROOT',
     });
   }
@@ -87,7 +88,7 @@ function normalizeSnapshotObject(input: LocalSnapshotObjectInventory, objectsRoo
   const expectedPrefix = `snapshots/${input.projectId}/`;
 
   if (!normalized.startsWith(expectedPrefix) || normalized.includes('/../') || normalized.endsWith('/..')) {
-    throw Object.assign(new Error('ACCOUNT_PURGE_LOCAL_SNAPSHOT_KEY_OUTSIDE_PROJECT'), {
+    throw Object.assign(new Error(appPublicEnglish('ACCOUNT_PURGE_LOCAL_SNAPSHOT_KEY_OUTSIDE_PROJECT')), {
       code: 'ACCOUNT_PURGE_LOCAL_SNAPSHOT_KEY_OUTSIDE_PROJECT',
     });
   }
@@ -142,7 +143,7 @@ async function erasePath(effect: LocalPathEffect, lease: PurgeLeaseContext): Pro
         await rm(effect.target, { recursive: true, force: true, maxRetries: 8, retryDelay: 125 });
 
         if (await pathExists(effect.target)) {
-          throw Object.assign(new Error('ACCOUNT_PURGE_LOCAL_STORAGE_VERIFICATION_FAILED'), {
+          throw Object.assign(new Error(appPublicEnglish('ACCOUNT_PURGE_LOCAL_STORAGE_VERIFICATION_FAILED')), {
             code: 'ACCOUNT_PURGE_LOCAL_STORAGE_VERIFICATION_FAILED',
           });
         }
@@ -277,7 +278,7 @@ export async function eraseLocalAccountStorage(
 
   for (const snapshot of inventory.snapshotObjects) {
     if (!ownedProjects.has(snapshot.projectId)) {
-      throw Object.assign(new Error('ACCOUNT_PURGE_LOCAL_SNAPSHOT_PROJECT_NOT_OWNED'), {
+      throw Object.assign(new Error(appPublicEnglish('ACCOUNT_PURGE_LOCAL_SNAPSHOT_PROJECT_NOT_OWNED')), {
         code: 'ACCOUNT_PURGE_LOCAL_SNAPSHOT_PROJECT_NOT_OWNED',
       });
     }

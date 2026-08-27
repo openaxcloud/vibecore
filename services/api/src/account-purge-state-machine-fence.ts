@@ -1,8 +1,11 @@
 import { Prisma, type DatabaseClient } from '@vibecore/database';
 
+import { appPublicEnglish, type AppPublicCopyKey } from './app-public-copy.js';
 import { LedgerStore } from './ledger-store.js';
 
 const TOPOLOGY_LOCK = 'account-purge:topology';
+const ACCOUNT_PURGE_COMPLETED_CODE = 'ACCOUNT_PURGE_COMPLETED';
+const ACCOUNT_PURGE_COMPLETED_ERROR = appPublicEnglish('ACCOUNT_PURGE_COMPLETED');
 const ACTIVE_PURGE_STATUS = 'ACTIVE';
 const MEMBERSHIP_RESOURCE = 'membership';
 const PROJECT_RESOURCES = ['objectStorage', 'projectTopology'] as const;
@@ -22,13 +25,17 @@ function uniqueIds(values: readonly (string | null | undefined)[] | undefined): 
   return [...new Set((values ?? []).filter((value): value is string => Boolean(value)))].sort();
 }
 
-function purgeConflict(message: string, code: string): Error {
-  return Object.assign(new Error(message), { code, statusCode: 409 });
+function purgeConflict(code: AppPublicCopyKey): Error {
+  return Object.assign(new Error(appPublicEnglish(code)), { code, statusCode: 409 });
 }
 
 export function assertStateMachineNotPurged(errorCode?: string | null, error?: string | null): void {
-  if (errorCode === 'ACCOUNT_PURGE_COMPLETED' || error === 'ACCOUNT_PURGE_COMPLETED') {
-    throw purgeConflict('ACCOUNT_PURGE_COMPLETED', 'ACCOUNT_PURGE_COMPLETED');
+  if (
+    errorCode === ACCOUNT_PURGE_COMPLETED_CODE ||
+    error === ACCOUNT_PURGE_COMPLETED_CODE ||
+    error === ACCOUNT_PURGE_COMPLETED_ERROR
+  ) {
+    throw purgeConflict('ACCOUNT_PURGE_COMPLETED');
   }
 }
 
@@ -64,7 +71,7 @@ export async function assertAccountPurgeMutationAllowed(
       select: { userId: true },
     });
     if (receipt) {
-      throw purgeConflict('ACCOUNT_PURGE_COMPLETED', 'ACCOUNT_PURGE_COMPLETED');
+      throw purgeConflict('ACCOUNT_PURGE_COMPLETED');
     }
 
     const activeUserPlan = await tx.purgePlan.findFirst({
@@ -72,10 +79,7 @@ export async function assertAccountPurgeMutationAllowed(
       select: { userId: true },
     });
     if (activeUserPlan) {
-      throw purgeConflict(
-        'USER_TOPOLOGY_FROZEN_FOR_ACCOUNT_PURGE',
-        'USER_TOPOLOGY_FROZEN_FOR_ACCOUNT_PURGE',
-      );
+      throw purgeConflict('USER_TOPOLOGY_FROZEN_FOR_ACCOUNT_PURGE');
     }
   }
 
@@ -89,7 +93,7 @@ export async function assertAccountPurgeMutationAllowed(
       select: { id: true },
     });
     if (membershipFreeze) {
-      throw purgeConflict('MEMBERSHIP_FROZEN_FOR_ACCOUNT_PURGE', 'MEMBERSHIP_FROZEN_FOR_ACCOUNT_PURGE');
+      throw purgeConflict('MEMBERSHIP_FROZEN_FOR_ACCOUNT_PURGE');
     }
   }
 
@@ -103,7 +107,7 @@ export async function assertAccountPurgeMutationAllowed(
       select: { id: true },
     });
     if (projectFreeze) {
-      throw purgeConflict('PROJECT_FROZEN_FOR_ACCOUNT_PURGE', 'PROJECT_FROZEN_FOR_ACCOUNT_PURGE');
+      throw purgeConflict('PROJECT_FROZEN_FOR_ACCOUNT_PURGE');
     }
   }
 }
@@ -122,9 +126,7 @@ function actorOrSoleOrganization(
 ): Prisma.RollbackIdempotencyRequestWhereInput['OR'] {
   return [
     { actorUserId: userId },
-    ...(soleOrganizationIds.length > 0
-      ? [{ project: { organizationId: { in: [...soleOrganizationIds] } } }]
-      : []),
+    ...(soleOrganizationIds.length > 0 ? [{ project: { organizationId: { in: [...soleOrganizationIds] } } }] : []),
   ];
 }
 
@@ -185,19 +187,15 @@ export async function assertAccountPurgeStateMachinesSafeToStart(
   ]);
 
   if (activeCheckpointRows[0]) {
-    throw purgeConflict('ACCOUNT_PURGE_CHECKPOINT_ACTIVE', 'ACCOUNT_PURGE_CHECKPOINT_ACTIVE');
+    throw purgeConflict('ACCOUNT_PURGE_CHECKPOINT_ACTIVE');
   }
   if (activeRollbackEffect) {
-    throw purgeConflict('ACCOUNT_PURGE_ROLLBACK_EFFECT_ACTIVE', 'ACCOUNT_PURGE_ROLLBACK_EFFECT_ACTIVE');
+    throw purgeConflict('ACCOUNT_PURGE_ROLLBACK_EFFECT_ACTIVE');
   }
 
   const possiblyVisibleTargets = [
-    ...imports
-      .filter(({ state }) => state !== 'COMMITTED')
-      .map(({ targetProjectId }) => targetProjectId),
-    ...remixes
-      .filter(({ state }) => state !== 'COMPLETED')
-      .map(({ targetProjectId }) => targetProjectId),
+    ...imports.filter(({ state }) => state !== 'COMMITTED').map(({ targetProjectId }) => targetProjectId),
+    ...remixes.filter(({ state }) => state !== 'COMPLETED').map(({ targetProjectId }) => targetProjectId),
   ].filter((value): value is string => Boolean(value));
   if (possiblyVisibleTargets.length > 0) {
     const visibleTarget = await tx.project.findFirst({
@@ -205,7 +203,7 @@ export async function assertAccountPurgeStateMachinesSafeToStart(
       select: { id: true },
     });
     if (visibleTarget) {
-      throw purgeConflict('ACCOUNT_PURGE_STATE_MACHINE_TARGET_VISIBLE', 'ACCOUNT_PURGE_STATE_MACHINE_TARGET_VISIBLE');
+      throw purgeConflict('ACCOUNT_PURGE_STATE_MACHINE_TARGET_VISIBLE');
     }
   }
 }
@@ -261,14 +259,12 @@ export async function fencePurgedUserStateMachines(
     orderBy: { id: 'asc' },
   });
 
-  const committedImportIds = new Set(
-    importJobs.filter(({ state }) => state === 'COMMITTED').map(({ id }) => id),
-  );
+  const committedImportIds = new Set(importJobs.filter(({ state }) => state === 'COMMITTED').map(({ id }) => id));
   const corruptCommittedHold = activeReservations.find(
     ({ importJobId }) => importJobId !== null && committedImportIds.has(importJobId),
   );
   if (corruptCommittedHold) {
-    throw purgeConflict('ACCOUNT_PURGE_IMPORT_LEDGER_STATE_INVALID', 'ACCOUNT_PURGE_IMPORT_LEDGER_STATE_INVALID');
+    throw purgeConflict('ACCOUNT_PURGE_IMPORT_LEDGER_STATE_INVALID');
   }
 
   for (const reservation of activeReservations) {
@@ -276,7 +272,7 @@ export async function fencePurgedUserStateMachines(
       expectedVersion: reservation.version,
     });
     if (!released.released) {
-      throw purgeConflict('ACCOUNT_PURGE_RESERVATION_FENCE_LOST', 'ACCOUNT_PURGE_RESERVATION_FENCE_LOST');
+      throw purgeConflict('ACCOUNT_PURGE_RESERVATION_FENCE_LOST');
     }
     reservationsReleased += 1;
   }
@@ -314,7 +310,7 @@ export async function fencePurgedUserStateMachines(
       where: { id: { in: importIdsToFence } },
       data: {
         state: 'FAILED',
-        error: 'ACCOUNT_PURGE_COMPLETED',
+        error: appPublicEnglish('ACCOUNT_PURGE_COMPLETED'),
         version: { increment: 1 },
       },
     });
@@ -323,7 +319,7 @@ export async function fencePurgedUserStateMachines(
   if (purgeMarkedImportIds.length > 0) {
     await tx.importJob.updateMany({
       where: { id: { in: purgeMarkedImportIds } },
-      data: { error: 'ACCOUNT_PURGE_COMPLETED' },
+      data: { error: appPublicEnglish('ACCOUNT_PURGE_COMPLETED') },
     });
   }
 
@@ -363,7 +359,7 @@ export async function fencePurgedUserStateMachines(
       data: {
         state: 'FAILED',
         errorCode: 'ACCOUNT_PURGE_COMPLETED',
-        error: 'ACCOUNT_PURGE_COMPLETED',
+        error: appPublicEnglish('ACCOUNT_PURGE_COMPLETED'),
         version: { increment: 1 },
       },
     });
@@ -372,7 +368,7 @@ export async function fencePurgedUserStateMachines(
   if (purgeMarkedRemixIds.length > 0) {
     await tx.remixJob.updateMany({
       where: { id: { in: purgeMarkedRemixIds } },
-      data: { errorCode: 'ACCOUNT_PURGE_COMPLETED', error: 'ACCOUNT_PURGE_COMPLETED' },
+      data: { errorCode: 'ACCOUNT_PURGE_COMPLETED', error: appPublicEnglish('ACCOUNT_PURGE_COMPLETED') },
     });
   }
 
@@ -388,7 +384,7 @@ export async function fencePurgedUserStateMachines(
       : [];
   const rollbackFenceTime = databaseTimeRows[0]?.now;
   if (rollbackOperationsToFence.length > 0 && !rollbackFenceTime) {
-    throw purgeConflict('DATABASE_TIME_UNAVAILABLE', 'DATABASE_TIME_UNAVAILABLE');
+    throw purgeConflict('DATABASE_TIME_UNAVAILABLE');
   }
   const rollbackDeploymentIds = rollbackOperationsToFence
     .filter(({ phase }) => phase === 'DEPLOYMENT_CREATED')
@@ -428,9 +424,7 @@ export async function fencePurgedUserStateMachines(
     await tx.rollbackIdempotencyRequest.updateMany({
       where: {
         id: {
-          in: rollbackOperations
-            .filter(({ status }) => status !== 'IN_PROGRESS')
-            .map(({ id }) => id),
+          in: rollbackOperations.filter(({ status }) => status !== 'IN_PROGRESS').map(({ id }) => id),
         },
       },
       data: { actorUserId: null },
@@ -450,10 +444,7 @@ export async function fencePurgedUserStateMachines(
   const activeReservationCount = await tx.ledgerReservation.count({
     where: {
       status: 'ACTIVE',
-      OR: [
-        { userId: input.userId },
-        ...(importJobIds.length > 0 ? [{ importJobId: { in: importJobIds } }] : []),
-      ],
+      OR: [{ userId: input.userId }, ...(importJobIds.length > 0 ? [{ importJobId: { in: importJobIds } }] : [])],
     },
   });
   const activeImportCount =
@@ -482,7 +473,7 @@ export async function fencePurgedUserStateMachines(
   });
 
   if (activeReservationCount > 0 || activeImportCount > 0 || activeRemixCount > 0 || activeRollbackCount > 0) {
-    throw purgeConflict('ACCOUNT_PURGE_STATE_MACHINE_FENCE_INCOMPLETE', 'ACCOUNT_PURGE_STATE_MACHINE_FENCE_INCOMPLETE');
+    throw purgeConflict('ACCOUNT_PURGE_STATE_MACHINE_FENCE_INCOMPLETE');
   }
 
   return {

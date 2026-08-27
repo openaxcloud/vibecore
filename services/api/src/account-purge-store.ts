@@ -1,6 +1,10 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { Prisma, type DatabaseClient } from '@vibecore/database';
 import {
+  assertAccountPurgeStateMachinesSafeToStart,
+  fencePurgedUserStateMachines,
+} from './account-purge-state-machine-fence.js';
+import {
   anonymizedEmail,
   anonymizedOrgSlug,
   buildErasureProof,
@@ -13,10 +17,7 @@ import {
   type PurgeStorageInventory,
   type PurgeUserAccountResult,
 } from './account-purge.js';
-import {
-  assertAccountPurgeStateMachinesSafeToStart,
-  fencePurgedUserStateMachines,
-} from './account-purge-state-machine-fence.js';
+import { appPublicEnglish } from './app-public-copy.js';
 import { DELETION_GRACE_PERIOD_DAYS, FINANCIAL_RETENTION_DAYS } from './data-deletion.js';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -29,6 +30,8 @@ const PLAN_ACTIVE = 'ACTIVE';
 const PLAN_FAILED = 'FAILED';
 const PLAN_ABANDONED = 'ABANDONED';
 const PLAN_COMPLETED = 'COMPLETED';
+const CANCELLATION_NOT_REQUESTED = 'not_requested' as const;
+const CANCELLATION_NOT_CANCELLABLE = 'not_cancellable' as const;
 const ACTIVE_SUBSCRIPTION_STATES = ['TRIALING', 'ACTIVE', 'PAST_DUE', 'UNPAID'] as const;
 
 type ActiveSubscriptionStatus = (typeof ACTIVE_SUBSCRIPTION_STATES)[number];
@@ -185,7 +188,7 @@ export class AccountPurgeStore {
     const value = rows[0]?.databaseNow;
 
     if (!(value instanceof Date)) {
-      throw Object.assign(new Error('ACCOUNT_PURGE_DATABASE_TIME_UNAVAILABLE'), {
+      throw Object.assign(new Error(appPublicEnglish('DATABASE_TIME_UNAVAILABLE')), {
         code: 'ACCOUNT_PURGE_DATABASE_TIME_UNAVAILABLE',
       });
     }
@@ -243,7 +246,7 @@ export class AccountPurgeStore {
           select: { id: true },
         });
         if (frozen) {
-          throw Object.assign(new Error('OBJECT_STORAGE_PURGE_FROZEN'), {
+          throw Object.assign(new Error(appPublicEnglish('OBJECT_STORAGE_PURGE_FROZEN')), {
             code: 'OBJECT_STORAGE_PURGE_FROZEN',
             statusCode: 409,
           });
@@ -413,14 +416,18 @@ export class AccountPurgeStore {
       const databaseNow = await this.databaseNow(tx);
       const user = await tx.user.findUnique({ where: { id: userId } });
 
-      if (!user) throw Object.assign(new Error('USER_NOT_FOUND'), { code: 'USER_NOT_FOUND', statusCode: 404 });
+      if (!user)
+        throw Object.assign(new Error(appPublicEnglish('USER_NOT_FOUND')), { code: 'USER_NOT_FOUND', statusCode: 404 });
 
       const existing = deletionPreference(user.preferences);
       const existingRequestedAt = validDate(existing?.requestedAt);
       const existingPurgedAt = validDate(existing?.purgedAt);
 
       if (existingPurgedAt) {
-        throw Object.assign(new Error('ACCOUNT_ALREADY_PURGED'), { code: 'ACCOUNT_ALREADY_PURGED', statusCode: 409 });
+        throw Object.assign(new Error(appPublicEnglish('ACCOUNT_ALREADY_PURGED')), {
+          code: 'ACCOUNT_ALREADY_PURGED',
+          statusCode: 409,
+        });
       }
 
       const requestedAt = existingRequestedAt ?? databaseNow;
@@ -452,20 +459,20 @@ export class AccountPurgeStore {
       const active = plans[0];
 
       if (active?.status === PLAN_ACTIVE) {
-        throw Object.assign(new Error('ACCOUNT_PURGE_ALREADY_STARTED'), {
+        throw Object.assign(new Error(appPublicEnglish('ACCOUNT_PURGE_ALREADY_STARTED')), {
           code: 'ACCOUNT_PURGE_ALREADY_STARTED',
           statusCode: 409,
         });
       }
 
       const user = await tx.user.findUnique({ where: { id: userId } });
-      if (!user) return { cancelled: false, reason: 'not_requested' };
+      if (!user) return { cancelled: false, reason: CANCELLATION_NOT_REQUESTED };
       const request = deletionPreference(user.preferences);
       const requestedAt = validDate(request?.requestedAt);
 
-      if (!requestedAt) return { cancelled: false, reason: 'not_requested' };
+      if (!requestedAt) return { cancelled: false, reason: CANCELLATION_NOT_REQUESTED };
       if (request?.purgedAt || databaseNow.getTime() >= requestedAt.getTime() + DELETION_GRACE_PERIOD_DAYS * DAY_MS) {
-        return { cancelled: false, reason: 'not_cancellable' };
+        return { cancelled: false, reason: CANCELLATION_NOT_CANCELLABLE };
       }
 
       await tx.user.update({
@@ -502,7 +509,7 @@ export class AccountPurgeStore {
       where: { userId: { in: [...new Set(userIds)] }, status: PLAN_ACTIVE },
     });
     if (active > 0) {
-      throw Object.assign(new Error('USER_TOPOLOGY_FROZEN_FOR_ACCOUNT_PURGE'), {
+      throw Object.assign(new Error(appPublicEnglish('USER_TOPOLOGY_FROZEN_FOR_ACCOUNT_PURGE')), {
         code: 'USER_TOPOLOGY_FROZEN_FOR_ACCOUNT_PURGE',
         statusCode: 409,
       });
@@ -525,7 +532,7 @@ export class AccountPurgeStore {
       where: { resourceType: MEMBERSHIP_RESOURCE, resourceId: organizationId, plan: { status: PLAN_ACTIVE } },
     });
     if (count > 0) {
-      throw Object.assign(new Error('MEMBERSHIP_FROZEN_FOR_ACCOUNT_PURGE'), {
+      throw Object.assign(new Error(appPublicEnglish('MEMBERSHIP_FROZEN_FOR_ACCOUNT_PURGE')), {
         code: 'MEMBERSHIP_FROZEN_FOR_ACCOUNT_PURGE',
         statusCode: 409,
       });
@@ -547,7 +554,7 @@ export class AccountPurgeStore {
       },
     });
     if (count > 0) {
-      throw Object.assign(new Error('PROJECT_FROZEN_FOR_ACCOUNT_PURGE'), {
+      throw Object.assign(new Error(appPublicEnglish('PROJECT_FROZEN_FOR_ACCOUNT_PURGE')), {
         code: 'PROJECT_FROZEN_FOR_ACCOUNT_PURGE',
         statusCode: 409,
       });
@@ -585,7 +592,7 @@ export class AccountPurgeStore {
     );
 
     if (rows[0]?.planned === true || subjectWorkspacePlanned) {
-      throw Object.assign(new Error('PROJECT_STORAGE_FENCED_FOR_ACCOUNT_PURGE'), {
+      throw Object.assign(new Error(appPublicEnglish('PROJECT_STORAGE_FENCED_FOR_ACCOUNT_PURGE')), {
         code: 'PROJECT_STORAGE_FENCED_FOR_ACCOUNT_PURGE',
         statusCode: 409,
       });
@@ -607,7 +614,7 @@ export class AccountPurgeStore {
 
       if (purgedAt) {
         if (!receipt) {
-          throw Object.assign(new Error('ACCOUNT_PURGE_RECEIPT_MISSING'), {
+          throw Object.assign(new Error(appPublicEnglish('ACCOUNT_PURGE_RECEIPT_MISSING')), {
             code: 'ACCOUNT_PURGE_RECEIPT_MISSING',
           });
         }
@@ -641,7 +648,7 @@ export class AccountPurgeStore {
         : 0;
 
       if (cloudProjectBindingCount > 0) {
-        throw Object.assign(new Error('ACCOUNT_PURGE_CLOUD_PROJECT_BINDING_ACTIVE'), {
+        throw Object.assign(new Error(appPublicEnglish('ACCOUNT_PURGE_CLOUD_PROJECT_BINDING_ACTIVE')), {
           code: 'ACCOUNT_PURGE_CLOUD_PROJECT_BINDING_ACTIVE',
           statusCode: 409,
         });
@@ -667,7 +674,7 @@ export class AccountPurgeStore {
       }
 
       if (existing?.status === PLAN_ACTIVE && existing.leaseExpiresAt > leaseDatabaseNow) {
-        throw Object.assign(new Error('ACCOUNT_PURGE_ALREADY_ACTIVE'), {
+        throw Object.assign(new Error(appPublicEnglish('ACCOUNT_PURGE_ALREADY_ACTIVE')), {
           code: 'ACCOUNT_PURGE_ALREADY_ACTIVE',
           statusCode: 409,
         });
@@ -764,7 +771,9 @@ export class AccountPurgeStore {
     const plan = rows[0];
 
     if (!plan || plan.status !== PLAN_ACTIVE || plan.leaseExpiresAt <= plan.databaseNow) {
-      throw Object.assign(new Error('ACCOUNT_PURGE_LEASE_LOST'), { code: 'ACCOUNT_PURGE_LEASE_LOST' });
+      throw Object.assign(new Error(appPublicEnglish('ACCOUNT_PURGE_LEASE_LOST')), {
+        code: 'ACCOUNT_PURGE_LEASE_LOST',
+      });
     }
     return plan;
   }
@@ -781,7 +790,9 @@ export class AccountPurgeStore {
       PLAN_ACTIVE,
     );
     if (rows[0]?.valid !== true) {
-      throw Object.assign(new Error('ACCOUNT_PURGE_LEASE_LOST'), { code: 'ACCOUNT_PURGE_LEASE_LOST' });
+      throw Object.assign(new Error(appPublicEnglish('ACCOUNT_PURGE_LEASE_LOST')), {
+        code: 'ACCOUNT_PURGE_LEASE_LOST',
+      });
     }
   }
 
@@ -859,12 +870,12 @@ export class AccountPurgeStore {
 
         if (existing?.status === 'SUCCEEDED') {
           if (existing.resourceType !== descriptor.resourceType || existing.resourceId !== descriptor.resourceId) {
-            throw Object.assign(new Error('ACCOUNT_PURGE_EFFECT_DESCRIPTOR_MISMATCH'), {
+            throw Object.assign(new Error(appPublicEnglish('ACCOUNT_PURGE_EFFECT_DESCRIPTOR_MISMATCH')), {
               code: 'ACCOUNT_PURGE_EFFECT_DESCRIPTOR_MISMATCH',
             });
           }
           if (!existing.receipt || typeof existing.receipt !== 'object' || Array.isArray(existing.receipt)) {
-            throw Object.assign(new Error('ACCOUNT_PURGE_EFFECT_RECEIPT_CORRUPT'), {
+            throw Object.assign(new Error(appPublicEnglish('ACCOUNT_PURGE_EFFECT_RECEIPT_CORRUPT')), {
               code: 'ACCOUNT_PURGE_EFFECT_RECEIPT_CORRUPT',
             });
           }
@@ -921,7 +932,8 @@ export class AccountPurgeStore {
       { timeout: 180_000, maxWait: 20_000 },
     );
 
-    if (!outcome.ok) throw Object.assign(new Error(outcome.code), { code: outcome.code });
+    if (!outcome.ok)
+      throw Object.assign(new Error(appPublicEnglish('ACCOUNT_PURGE_EFFECT_FAILED')), { code: outcome.code });
     return { executed: outcome.executed, receipt: outcome.receipt };
   }
 
@@ -999,7 +1011,9 @@ export class AccountPurgeStore {
       ownerToken: guarantee.ownerToken,
       validate: async () => {
         if (heartbeat.lost())
-          throw Object.assign(new Error('ACCOUNT_PURGE_LEASE_LOST'), { code: 'ACCOUNT_PURGE_LEASE_LOST' });
+          throw Object.assign(new Error(appPublicEnglish('ACCOUNT_PURGE_LEASE_LOST')), {
+            code: 'ACCOUNT_PURGE_LEASE_LOST',
+          });
         try {
           await this.validate(guarantee);
         } catch (error) {
@@ -1017,7 +1031,7 @@ export class AccountPurgeStore {
       for (const subscription of guarantee.billingSubscriptions) {
         if (!subscription.externalId) continue;
         if (!deps.cancelExternalBilling) {
-          throw Object.assign(new Error('ACCOUNT_PURGE_BILLING_CANCELLER_UNAVAILABLE'), {
+          throw Object.assign(new Error(appPublicEnglish('ACCOUNT_PURGE_BILLING_CANCELLER_UNAVAILABLE')), {
             code: 'ACCOUNT_PURGE_BILLING_CANCELLER_UNAVAILABLE',
           });
         }
@@ -1034,7 +1048,7 @@ export class AccountPurgeStore {
               `account-purge-${guarantee.planId}-${subscription.id}`,
             );
             if (receipt.canceled !== true) {
-              throw Object.assign(new Error('ACCOUNT_PURGE_BILLING_CESSATION_UNVERIFIED'), {
+              throw Object.assign(new Error(appPublicEnglish('ACCOUNT_PURGE_BILLING_CESSATION_UNVERIFIED')), {
                 code: 'ACCOUNT_PURGE_BILLING_CESSATION_UNVERIFIED',
               });
             }
@@ -1043,7 +1057,7 @@ export class AccountPurgeStore {
         );
 
         if (execution.receipt.canceled !== true) {
-          throw Object.assign(new Error('ACCOUNT_PURGE_BILLING_CESSATION_UNVERIFIED'), {
+          throw Object.assign(new Error(appPublicEnglish('ACCOUNT_PURGE_BILLING_CESSATION_UNVERIFIED')), {
             code: 'ACCOUNT_PURGE_BILLING_CESSATION_UNVERIFIED',
           });
         }
@@ -1060,7 +1074,7 @@ export class AccountPurgeStore {
       );
 
       if (!physical?.verified) {
-        throw Object.assign(new Error('ACCOUNT_PURGE_PHYSICAL_INCOMPLETE'), {
+        throw Object.assign(new Error(appPublicEnglish('ACCOUNT_PURGE_PHYSICAL_INCOMPLETE')), {
           code: 'ACCOUNT_PURGE_PHYSICAL_INCOMPLETE',
         });
       }
@@ -1114,7 +1128,9 @@ export class AccountPurgeStore {
 
         const topology = await this.resolveTopology(tx, guarantee.userId);
         if (topology.fingerprint !== guarantee.fingerprint) {
-          throw Object.assign(new Error('ACCOUNT_PURGE_TOPOLOGY_DRIFT'), { code: 'ACCOUNT_PURGE_TOPOLOGY_DRIFT' });
+          throw Object.assign(new Error(appPublicEnglish('ACCOUNT_PURGE_TOPOLOGY_DRIFT')), {
+            code: 'ACCOUNT_PURGE_TOPOLOGY_DRIFT',
+          });
         }
 
         const userId = guarantee.userId;
@@ -1272,7 +1288,7 @@ export class AccountPurgeStore {
         classes.push({
           dataClass: 'audit_logs',
           action: 'anonymized',
-          reason: 'append_only_redacted_never_deleted',
+          reason: appPublicEnglish('ACCOUNT_PURGE_RETENTION_AUDIT'),
           models: {
             AuditLog: auditRedacted.count,
             AdminAuditLog: adminAuditRedacted.count,
@@ -1292,7 +1308,7 @@ export class AccountPurgeStore {
         classes.push({
           dataClass: 'communications',
           action: 'anonymized',
-          reason: 'delivery_events_retained_for_deliverability_pii_scrubbed',
+          reason: appPublicEnglish('ACCOUNT_PURGE_RETENTION_DELIVERY'),
           models: { EmailDeliveryEvent: emailEventsAnonymized.count },
         });
 
@@ -1300,15 +1316,15 @@ export class AccountPurgeStore {
         // selector depends on SupportTicket.userId still identifying the subject.
         const ticketThreadBodies = await tx.ticketMessage.updateMany({
           where: { ticket: { userId } },
-          data: { body: '[redacted]' },
+          data: { body: appPublicEnglish('ACCOUNT_PURGE_REDACTED_VALUE') },
         });
         const authoredMessages = await tx.ticketMessage.updateMany({
           where: { authorUserId: userId },
-          data: { body: '[redacted]', authorUserId: null },
+          data: { body: appPublicEnglish('ACCOUNT_PURGE_REDACTED_VALUE'), authorUserId: null },
         });
         const ticketSubjects = await tx.supportTicket.updateMany({
           where: { userId },
-          data: { subject: '[redacted]', metadata: redactionMarker },
+          data: { subject: appPublicEnglish('ACCOUNT_PURGE_REDACTED_VALUE'), metadata: redactionMarker },
         });
         const snapshotLabels = await tx.projectSnapshot.updateMany({
           where: { createdByUserId: userId },
@@ -1317,7 +1333,7 @@ export class AccountPurgeStore {
         classes.push({
           dataClass: 'free_form_pii',
           action: 'anonymized',
-          reason: 'free_form_content_scrubbed_before_detach',
+          reason: appPublicEnglish('ACCOUNT_PURGE_RETENTION_FREE_FORM'),
           models: {
             SupportTicketSubject: ticketSubjects.count,
             TicketMessageBodyInThread: ticketThreadBodies.count,
@@ -1346,7 +1362,7 @@ export class AccountPurgeStore {
         classes.push({
           dataClass: 'user_references',
           action: 'anonymized',
-          reason: 'retained_rows_detached_from_user',
+          reason: appPublicEnglish('ACCOUNT_PURGE_RETENTION_USER_REFERENCES'),
           models: {
             UsageEvent: usageRefs.count,
             AgentCallLog: callRefs.count,
@@ -1370,7 +1386,7 @@ export class AccountPurgeStore {
         classes.push({
           dataClass: 'organizations',
           action: 'anonymized',
-          reason: 'retained_as_anchor_for_financial_records',
+          reason: appPublicEnglish('ACCOUNT_PURGE_RETENTION_FINANCIAL_ANCHOR'),
           models: { Organization: organizationsAnonymized },
         });
 
@@ -1421,7 +1437,7 @@ export class AccountPurgeStore {
         classes.push({
           dataClass: 'financial_records',
           action: 'retained',
-          reason: 'financial_retention_7y_fail_closed',
+          reason: appPublicEnglish('ACCOUNT_PURGE_RETENTION_FINANCIAL_7Y'),
           models: { ...retainedFinancial, ExpiredRowsErased: expiredRowsErased },
         });
 
@@ -1429,7 +1445,7 @@ export class AccountPurgeStore {
         classes.push({
           dataClass: 'ledger',
           action: 'retained',
-          reason: 'ledger_immutable_posted_entries',
+          reason: appPublicEnglish('ACCOUNT_PURGE_RETENTION_LEDGER'),
           models: { LedgerTransaction: ledgerTransactions },
         });
         const sharedProjects = sharedOrgIds.length
@@ -1438,7 +1454,7 @@ export class AccountPurgeStore {
         classes.push({
           dataClass: 'shared_org_content',
           action: 'retained',
-          reason: 'shared_organization_belongs_to_other_members',
+          reason: appPublicEnglish('ACCOUNT_PURGE_RETENTION_SHARED_ORG'),
           models: { Project: sharedProjects },
         });
 
@@ -1463,7 +1479,7 @@ export class AccountPurgeStore {
         classes.push({
           dataClass: 'profile',
           action: 'anonymized',
-          reason: 'tombstone_carries_purgedAt',
+          reason: appPublicEnglish('ACCOUNT_PURGE_RETENTION_TOMBSTONE'),
           models: { User: 1 },
         });
 
@@ -1510,18 +1526,18 @@ export class AccountPurgeStore {
           if (entry.action === 'deleted') entry.remainingAfterPurge = verify[entry.dataClass] ?? 0;
         const leftovers = Object.entries(verify).filter(([, count]) => count > 0);
         if (leftovers.length) {
-          throw Object.assign(
-            new Error(
-              `ACCOUNT_PURGE_VERIFICATION_FAILED:${leftovers.map(([key, count]) => `${key}=${count}`).join(',')}`,
-            ),
-            { code: 'ACCOUNT_PURGE_VERIFICATION_FAILED' },
-          );
+          const detail = leftovers.map(([key, count]) => `${key}=${count}`).join(',');
+          throw Object.assign(new Error(appPublicEnglish('ACCOUNT_PURGE_VERIFICATION_FAILED', { detail })), {
+            code: 'ACCOUNT_PURGE_VERIFICATION_FAILED',
+          });
         }
 
         classes.push(...physicalClasses);
         const proof = buildErasureProof({ userId, requestedAt: requestedAt.toISOString(), purgedAt: nowIso, classes });
         if (!proof.verifiedZeroRemaining)
-          throw Object.assign(new Error('ACCOUNT_PURGE_PROOF_UNVERIFIED'), { code: 'ACCOUNT_PURGE_PROOF_UNVERIFIED' });
+          throw Object.assign(new Error(appPublicEnglish('ACCOUNT_PURGE_PROOF_UNVERIFIED')), {
+            code: 'ACCOUNT_PURGE_PROOF_UNVERIFIED',
+          });
 
         await tx.purgeReceipt.create({
           data: { userId, planId: guarantee.planId, purgedAt: now, proof: proof as unknown as Prisma.InputJsonValue },

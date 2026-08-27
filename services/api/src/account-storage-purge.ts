@@ -23,6 +23,7 @@
  * stamping the account `purged`. Idempotent, so the worker can safely retry.
  */
 import type { PurgeClassReport, PurgeLeaseContext } from './account-purge.js';
+import { appPublicEnglish } from './app-public-copy.js';
 
 /** Object-storage operations the erasure needs (a subset of ObjectStorage). */
 export interface ObjectStorageErasurePort {
@@ -141,7 +142,7 @@ async function eraseBucket(
         const bucketStillExists = await port.bucketExists(projectId);
         const objectsRemaining = bucketStillExists ? (await port.listObjects(projectId)).objects.length : 0;
         if (bucketStillExists || objectsRemaining > 0) {
-          throw Object.assign(new Error('ACCOUNT_PURGE_GCS_VERIFICATION_FAILED'), {
+          throw Object.assign(new Error(appPublicEnglish('ACCOUNT_PURGE_GCS_VERIFICATION_FAILED')), {
             code: 'ACCOUNT_PURGE_GCS_VERIFICATION_FAILED',
           });
         }

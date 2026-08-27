@@ -12,6 +12,8 @@
  * the /internal/account-purge route records it to the AdminAuditLog.
  */
 
+import { appPublicEnglish } from './app-public-copy.js';
+
 /** How a data class was handled by the purge. */
 export type PurgeAction = 'deleted' | 'anonymized' | 'retained';
 
@@ -206,7 +208,7 @@ export function buildErasureProof(input: {
     .filter((entry) => entry.action === 'retained')
     .map((entry) => ({
       dataClass: entry.dataClass,
-      reason: entry.reason ?? 'unspecified_retention',
+      reason: entry.reason ?? appPublicEnglish('ACCOUNT_PURGE_RETENTION_UNSPECIFIED'),
       rows: Object.values(entry.models).reduce((sum, count) => sum + count, 0),
     }));
 

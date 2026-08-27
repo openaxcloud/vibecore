@@ -1611,6 +1611,182 @@
     "en": "Account purge execution is not authorized. Enable it, confirm it explicitly, and configure the server-side subject allowlist.",
     "fr": "L’exécution de la purge de compte n’est pas autorisée. Activez-la, confirmez-la explicitement et configurez la liste serveur des comptes autorisés."
   },
+  "ACCOUNT_PURGE_STORAGE_ID_INVALID": {
+    "en": "An account-purge storage identifier is invalid.",
+    "fr": "Un identifiant de stockage de purge de compte est invalide."
+  },
+  "ACCOUNT_PURGE_LOCAL_PATH_OUTSIDE_ROOT": {
+    "en": "Account purge refused a local path outside the managed storage root.",
+    "fr": "La purge du compte a refusé un chemin local situé hors de la racine de stockage gérée."
+  },
+  "ACCOUNT_PURGE_LOCAL_SNAPSHOT_KEY_OUTSIDE_PROJECT": {
+    "en": "Account purge refused a snapshot key outside its project namespace.",
+    "fr": "La purge du compte a refusé une clé d’instantané située hors de l’espace de noms de son projet."
+  },
+  "ACCOUNT_PURGE_LOCAL_STORAGE_VERIFICATION_FAILED": {
+    "en": "Local account storage could not be proven absent after deletion.",
+    "fr": "L’absence du stockage local du compte n’a pas pu être prouvée après sa suppression."
+  },
+  "ACCOUNT_PURGE_LOCAL_SNAPSHOT_PROJECT_NOT_OWNED": {
+    "en": "Account purge refused a snapshot whose project is not owned by the account.",
+    "fr": "La purge du compte a refusé un instantané dont le projet n’appartient pas au compte."
+  },
+  "ACCOUNT_PURGE_COMPLETED": {
+    "en": "Account deletion has completed; this operation can no longer be changed.",
+    "fr": "La suppression du compte est terminée ; cette opération ne peut plus être modifiée."
+  },
+  "ACCOUNT_PURGE_CHECKPOINT_ACTIVE": {
+    "en": "Account purge is blocked while a project checkpoint or its write barrier remains active.",
+    "fr": "La purge du compte est bloquée tant qu’un point de contrôle de projet ou sa barrière d’écriture reste actif."
+  },
+  "ACCOUNT_PURGE_ROLLBACK_EFFECT_ACTIVE": {
+    "en": "Account purge is blocked while a rollback effect remains active.",
+    "fr": "La purge du compte est bloquée tant qu’un effet de retour arrière reste actif."
+  },
+  "ACCOUNT_PURGE_STATE_MACHINE_TARGET_VISIBLE": {
+    "en": "Account purge refused a partial state-machine target that is still visible.",
+    "fr": "La purge du compte a refusé une cible partielle de machine d’état qui reste visible."
+  },
+  "ACCOUNT_PURGE_IMPORT_LEDGER_STATE_INVALID": {
+    "en": "Account purge found an import reservation in an invalid ledger state.",
+    "fr": "La purge du compte a trouvé une réservation d’import dans un état comptable invalide."
+  },
+  "ACCOUNT_PURGE_RESERVATION_FENCE_LOST": {
+    "en": "Account purge lost ownership while releasing an active reservation.",
+    "fr": "La purge du compte a perdu la propriété lors de la libération d’une réservation active."
+  },
+  "ACCOUNT_PURGE_STATE_MACHINE_FENCE_INCOMPLETE": {
+    "en": "Account purge could not prove every state machine safely fenced.",
+    "fr": "La purge du compte n’a pas pu prouver que toutes les machines d’état étaient correctement verrouillées."
+  },
+  "OBJECT_STORAGE_PURGE_FROZEN": {
+    "en": "Object storage is frozen while account deletion is in progress.",
+    "fr": "Le stockage d’objets est gelé pendant la suppression du compte."
+  },
+  "ACCOUNT_ALREADY_PURGED": {
+    "en": "This account has already been purged.",
+    "fr": "Ce compte a déjà été purgé."
+  },
+  "ACCOUNT_PURGE_ALREADY_STARTED": {
+    "en": "Account purge has already started and can no longer be canceled.",
+    "fr": "La purge du compte a déjà commencé et ne peut plus être annulée."
+  },
+  "USER_TOPOLOGY_FROZEN_FOR_ACCOUNT_PURGE": {
+    "en": "Account topology is frozen while account deletion is in progress.",
+    "fr": "La topologie du compte est gelée pendant sa suppression."
+  },
+  "MEMBERSHIP_FROZEN_FOR_ACCOUNT_PURGE": {
+    "en": "Organization membership is frozen while account deletion is in progress.",
+    "fr": "L’appartenance à l’organisation est gelée pendant la suppression du compte."
+  },
+  "PROJECT_FROZEN_FOR_ACCOUNT_PURGE": {
+    "en": "This project is frozen while account deletion is in progress.",
+    "fr": "Ce projet est gelé pendant la suppression du compte."
+  },
+  "PROJECT_STORAGE_FENCED_FOR_ACCOUNT_PURGE": {
+    "en": "Project storage is locked while account deletion is in progress.",
+    "fr": "Le stockage du projet est verrouillé pendant la suppression du compte."
+  },
+  "ACCOUNT_PURGE_RECEIPT_MISSING": {
+    "en": "The verified account-purge receipt is missing.",
+    "fr": "Le reçu vérifié de purge du compte est absent."
+  },
+  "ACCOUNT_PURGE_CLOUD_PROJECT_BINDING_ACTIVE": {
+    "en": "Account purge is blocked while a managed cloud project binding remains active.",
+    "fr": "La purge du compte est bloquée tant qu’une liaison de projet cloud géré reste active."
+  },
+  "ACCOUNT_PURGE_ALREADY_ACTIVE": {
+    "en": "Another account-purge executor is already active.",
+    "fr": "Un autre exécuteur de purge de compte est déjà actif."
+  },
+  "ACCOUNT_PURGE_LEASE_LOST": {
+    "en": "The account-purge executor lost its lease.",
+    "fr": "L’exécuteur de purge du compte a perdu son bail."
+  },
+  "ACCOUNT_PURGE_EFFECT_DESCRIPTOR_MISMATCH": {
+    "en": "A persisted account-purge effect does not match its requested resource.",
+    "fr": "Un effet de purge du compte enregistré ne correspond pas à la ressource demandée."
+  },
+  "ACCOUNT_PURGE_EFFECT_RECEIPT_CORRUPT": {
+    "en": "A persisted account-purge effect receipt failed integrity validation.",
+    "fr": "Le contrôle d’intégrité d’un reçu d’effet de purge du compte a échoué."
+  },
+  "ACCOUNT_PURGE_EFFECT_FAILED": {
+    "en": "An account-purge provider effect failed and will be retried safely.",
+    "fr": "Un effet fournisseur de purge du compte a échoué et sera réessayé en toute sécurité."
+  },
+  "ACCOUNT_PURGE_BILLING_CANCELLER_UNAVAILABLE": {
+    "en": "Billing cancellation is unavailable, so account purge was stopped.",
+    "fr": "L’annulation de la facturation est indisponible ; la purge du compte a donc été interrompue."
+  },
+  "ACCOUNT_PURGE_BILLING_CESSATION_UNVERIFIED": {
+    "en": "Billing cessation could not be verified, so account purge was stopped.",
+    "fr": "L’arrêt de la facturation n’a pas pu être vérifié ; la purge du compte a donc été interrompue."
+  },
+  "ACCOUNT_PURGE_PHYSICAL_INCOMPLETE": {
+    "en": "Physical account data could not be proven absent after deletion.",
+    "fr": "L’absence des données physiques du compte n’a pas pu être prouvée après leur suppression."
+  },
+  "ACCOUNT_PURGE_TOPOLOGY_DRIFT": {
+    "en": "Account ownership changed after purge planning; create a new purge plan.",
+    "fr": "La propriété des ressources du compte a changé après la planification ; créez un nouveau plan de purge."
+  },
+  "ACCOUNT_PURGE_VERIFICATION_FAILED": {
+    "en": "Account purge verification found remaining data: {detail}",
+    "fr": "La vérification de la purge du compte a trouvé des données restantes : {detail}"
+  },
+  "ACCOUNT_PURGE_PROOF_UNVERIFIED": {
+    "en": "The account erasure proof could not be verified.",
+    "fr": "La preuve d’effacement du compte n’a pas pu être vérifiée."
+  },
+  "ACCOUNT_PURGE_GCS_VERIFICATION_FAILED": {
+    "en": "Cloud object storage could not be proven absent after deletion.",
+    "fr": "L’absence du stockage d’objets cloud n’a pas pu être prouvée après sa suppression."
+  },
+  "ACCOUNT_PURGE_REDACTED_VALUE": {
+    "en": "[redacted]",
+    "fr": "[expurgé]"
+  },
+  "ACCOUNT_PURGE_RETENTION_AUDIT": {
+    "en": "Append-only audit records retained with identifying fields redacted.",
+    "fr": "Journaux d’audit append-only conservés après expurgation des champs d’identification."
+  },
+  "ACCOUNT_PURGE_RETENTION_DELIVERY": {
+    "en": "Delivery events retained for deliverability with personal data scrubbed.",
+    "fr": "Événements de distribution conservés pour la délivrabilité après suppression des données personnelles."
+  },
+  "ACCOUNT_PURGE_RETENTION_FREE_FORM": {
+    "en": "Free-form content scrubbed before its user reference was detached.",
+    "fr": "Contenu libre expurgé avant le détachement de sa référence utilisateur."
+  },
+  "ACCOUNT_PURGE_RETENTION_USER_REFERENCES": {
+    "en": "Retained rows detached from the deleted account.",
+    "fr": "Lignes conservées détachées du compte supprimé."
+  },
+  "ACCOUNT_PURGE_RETENTION_FINANCIAL_ANCHOR": {
+    "en": "Organization retained as an anonymized anchor for financial records.",
+    "fr": "Organisation conservée comme ancre anonymisée pour les documents financiers."
+  },
+  "ACCOUNT_PURGE_RETENTION_FINANCIAL_7Y": {
+    "en": "Financial records retained for seven years under the fail-closed retention policy.",
+    "fr": "Documents financiers conservés sept ans selon la politique de conservation restrictive."
+  },
+  "ACCOUNT_PURGE_RETENTION_LEDGER": {
+    "en": "Immutable posted ledger entries retained.",
+    "fr": "Écritures comptables validées immuables conservées."
+  },
+  "ACCOUNT_PURGE_RETENTION_SHARED_ORG": {
+    "en": "Shared organization content retained because it belongs to other members.",
+    "fr": "Contenu de l’organisation partagée conservé, car il appartient à d’autres membres."
+  },
+  "ACCOUNT_PURGE_RETENTION_TOMBSTONE": {
+    "en": "An anonymized tombstone retaining the purge timestamp was kept.",
+    "fr": "Un marqueur anonymisé conservant l’horodatage de purge a été gardé."
+  },
+  "ACCOUNT_PURGE_RETENTION_UNSPECIFIED": {
+    "en": "Retention reason was not specified.",
+    "fr": "Le motif de conservation n’a pas été précisé."
+  },
   "SESSION_ACCOUNT_PURGE_FENCED": {
     "en": "This account can no longer create or use sessions because account deletion has started.",
     "fr": "Ce compte ne peut plus créer ni utiliser de sessions, car sa suppression a commencé."
