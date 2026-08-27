@@ -14,9 +14,8 @@ import { join } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
-import { IDE_MANAGEMENT_PANELS } from '~/lib/ide/panel-registry';
-
 import { GENERIC_PANEL_ICON, PANEL_ICONS, panelIcon } from './panel-meta';
+import { IDE_MANAGEMENT_PANELS } from '~/lib/ide/panel-registry';
 
 const baseChatSource = readFileSync(join(__dirname, '..', 'chat', 'BaseChat.tsx'), 'utf8');
 
@@ -42,14 +41,7 @@ function extractBlock(startMarker: string, endMarker: string): string {
   return baseChatCode.slice(start, end);
 }
 
-const declaredPanels = [
-  'editor',
-  'preview',
-  'files',
-  'search',
-  'locks',
-  ...IDE_MANAGEMENT_PANELS,
-];
+const declaredPanels = ['editor', 'preview', 'files', 'search', 'locks', ...IDE_MANAGEMENT_PANELS];
 
 describe('UNIF-05 — registre unique PANEL_ICONS', () => {
   it('couvre chaque panneau déclaré, sans repli générique', () => {
