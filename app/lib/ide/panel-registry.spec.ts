@@ -104,6 +104,7 @@ describe('registre des panneaux IDE', () => {
    */
   it('couvre toutes les clés d’onglets mobiles déclarées dans BaseChat', () => {
     const source = fs.readFileSync(path.join(process.cwd(), 'app/components/chat/BaseChat.tsx'), 'utf8');
+
     const block = source.match(
       /const ECODE_MOBILE_TAB_META_BASE: Record<string, \{ id: string; name: string; icon: string \}> = \{([\s\S]*?)\n\};/,
     );

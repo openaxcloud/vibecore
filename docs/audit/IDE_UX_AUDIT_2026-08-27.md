@@ -66,10 +66,13 @@ Mesures : panneau Agent `339 × 851 px` ; bloc composer `303 × **368 px**` (y 5
 
 **Correction** (cible ≈ 120-140 px au repos, façon Claude) : une seule rangée de contrôles (modèle + mode fusionnés dans un menu compact), textarea auto-grow 1→8 lignes, prix et baseline déplacés en infobulle du menu modèle, actions secondaires sous « … ».
 
-### P1-5 — Pas de bouton « descendre en bas » dans le transcript (demande d'Avi)
+### P1-5 — ~~Pas de bouton « descendre en bas »~~ → **CONSTAT RETIRÉ** (faux négatif de ma part)
 
-Recherche DOM exhaustive sur les boutons du panneau Agent : **aucun** contrôle de retour en bas. Sur une conversation longue, on remonte à la main.
-**Correction** : bouton flottant ancré en bas à droite de la zone de transcript, affiché dès que `scrollHeight - scrollTop - clientHeight > 120`, avec compteur de nouveaux messages pendant que l'agent écrit.
+Le composant **existe** : `ScrollToBottom` (`app/components/chat/BaseChat.tsx:7189`), rendu en dernier enfant du transcript, `position: sticky; bottom: 12px` (`app/styles/index.scss:7012`), affiché dès que `isAtBottom` est faux.
+
+Ma recherche initiale filtrait les libellés sur `bas|bottom|descendre|latest` ; le libellé réel est « Faites défiler jusqu'au dernier message » — aucun de ces mots. Et au moment du test, le transcript n'était pas défilable (`scrollHeight` 787 vs `clientHeight` 773, soit 14 px de dépassement), donc le bouton n'avait aucune raison d'exister.
+
+**Réserve, à trancher avec une vraie conversation longue** : après avoir rendu le conteneur défilable de force (383 px de contenu dans 180 px de fenêtre) et l'avoir remonté en haut (`scrollTop = 0`), le bouton est resté absent du DOM. Ce peut être un artefact de ma manipulation (la bibliothèque `use-stick-to-bottom` recalcule `isAtBottom` sur ses propres mesures). **Non conclu** : à retester sur un transcript réellement long avant d'affirmer quoi que ce soit.
 
 ### P1-6 — La rangée de suggestions est coupée net
 
@@ -106,6 +109,14 @@ Le panneau **Git** affiche une seule ligne de texte gris centrée dans un vide d
 **Correction** : router tous les panneaux vers `PanelLoading`.
 
 ---
+
+## Corrections apportées à ce rapport après vérification
+
+| Constat initial | Vérification | Statut |
+|---|---|---|
+| P1-5 « aucun bouton descendre en bas » | Le composant `ScrollToBottom` existe et est conditionnel à `isAtBottom` ; mon filtre de libellé et un transcript non défilable m'avaient trompé | **Retiré** (réserve à retester) |
+| « doublon `'problems'` dans `IDE_MANAGEMENT_PANELS` » (signalé en revue) | Tableau désassemblé sans les commentaires : **une seule** entrée. La seconde occurrence est dans le commentaire (`openBottomTerminal('problems')`) | **Non fondé**, test de garde ajouté |
+| « thème hybride clair/sombre » (suspecté en cours d'audit) | Styles calculés : toutes les surfaces sont sombres. Les captures pleine page renvoyaient un frame périmé | **Faux positif écarté** |
 
 ## Suite du lot 2 (non encore fait)
 
