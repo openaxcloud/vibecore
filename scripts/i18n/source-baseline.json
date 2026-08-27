@@ -3,7 +3,7 @@
   "scannerVersion": 3,
   "generatedAt": "2026-08-05T06:13:34.052Z",
   "sourceRevision": "working-tree",
-  "knownFindingCount": 145,
+  "knownFindingCount": 153,
   "fileBudgets": {
     "app/components/chat/BaseChat.tsx": {
       "count": 16,
@@ -21,13 +21,25 @@
       "count": 60,
       "digest": "6bb4c8e498eed2a926d1e8ef8ef7573f6ee125f15949d59d06ca6d7f3932fef3"
     },
+    "app/routes/solutions.$slug.tsx": {
+      "count": 4,
+      "digest": "4528dcf74385f9fbe937ddfcbd25cdf45a6cb686467d3b1d06b365a68fc95a92"
+    },
     "app/routes/solutions._index.tsx": {
       "count": 4,
       "digest": "2c9d3de793b8b09abee2cfbc2bc27e2b690e3d04629fc774fbc7d6972b94c162"
     },
-    "app/routes/solutions.$slug.tsx": {
-      "count": 4,
-      "digest": "4528dcf74385f9fbe937ddfcbd25cdf45a6cb686467d3b1d06b365a68fc95a92"
+    "services/api/src/app.ts": {
+      "count": 1,
+      "digest": "d1bf4ca6e41f3556f37be7e8c120d859bc3b66869d18fd78798d0554f85d311b"
+    },
+    "services/api/src/database-provisioner.ts": {
+      "count": 1,
+      "digest": "3367ab1d18f425845374004cd7a24af21c642a78a43c25702b8e00f8a243414d"
+    },
+    "services/api/src/deployment-access.ts": {
+      "count": 6,
+      "digest": "02f00fb61255a00a57834b0c949b9019014f781c5ea8066d9be262f374964c85"
     }
   }
 }
