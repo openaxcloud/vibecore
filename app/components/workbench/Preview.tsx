@@ -25,7 +25,9 @@ import { PortDropdown } from './PortDropdown';
 import { ScreenshotSelector } from './ScreenshotSelector';
 import { evaluatePreviewReadyEdge, resolvePreviewAddress, type PreviewReadyEdgeState } from './preview-address';
 import {
+  beginPreviewFrameReload,
   decidePreviewLoadOutcome,
+  shouldHoldPreviewLoadingOverlay,
   shouldReloadPreviewOnReadyEdge,
   shouldRunPreviewBootLoop,
   MAX_PREVIEW_BOOT_ATTEMPTS,
@@ -835,11 +837,21 @@ export const Preview = memo(
           .slice(-4),
       [workspaceLogs],
     );
-    const shouldShowPreviewLoadingOverlay = Boolean(
-      activePreview &&
-        iframeUrl &&
-        (activePreview.ready === false || !previewFrameLoaded || loadedPreviewUrl !== iframeUrl),
-    );
+
+    /*
+     * BUG-UX-PREVIEW-OVERLAY-LAG: `serving` (HTTP answers + live process, the
+     * server-side probe) beats a lagging aggregate `ready`, so the overlay
+     * drops as soon as the port actually serves and the frame has loaded —
+     * instead of sitting on "Starting dev server" over a rendered app.
+     */
+    const shouldShowPreviewLoadingOverlay = shouldHoldPreviewLoadingOverlay({
+      hasActivePreview: Boolean(activePreview),
+      hasIframeUrl: Boolean(iframeUrl),
+      ready: activePreview?.ready,
+      serving: activePreview?.serving,
+      frameLoaded: previewFrameLoaded,
+      loadedUrlMatches: loadedPreviewUrl === iframeUrl,
+    });
 
     /*
      * Reopen resume vs cold rebuild. When the workspace pod is genuinely running
@@ -1146,18 +1158,15 @@ export const Preview = memo(
           return;
         }
 
-        try {
-          iframe.contentWindow?.location.reload();
-        } catch {
-          /*
-           * Cross-origin previews block contentWindow.location.reload(). A bare
-           * `iframe.src = currentSrc` does NOT force a fresh navigation when the
-           * frame is parked on a chrome-error page (e.g. it loaded a transient
-           * 502 while the dev server was still starting) — the browser keeps the
-           * error. Bounce through about:blank so the next assignment is always a
-           * new navigation that picks up the now-healthy server.
-           */
-          iframe.src = 'about:blank';
+        /*
+         * BUG-A (live 23/08): a same-origin reload() of a frame parked on
+         * about:blank "succeeds" silently and leaves the Webview blank — the
+         * forced about:blank → target bounce is the only reload that always
+         * works. beginPreviewFrameReload keeps the same-origin fast path for a
+         * genuinely-loaded page and forces a real navigation everywhere else
+         * (cross-origin frame, blank frame, missing contentWindow).
+         */
+        if (beginPreviewFrameReload(iframe) === 'force-navigation') {
           window.setTimeout(() => {
             if (iframeRef.current) {
               iframeRef.current.src = target;
@@ -2302,6 +2311,7 @@ export const Preview = memo(
         const decision = decidePreviewLoadOutcome({
           attempt: previewLoadRetryRef.current,
           ready: activePreview?.ready,
+          serving: activePreview?.serving,
           erroredLoad: false,
         });
         previewLoadRetryRef.current = decision.nextAttempt;
@@ -2352,7 +2362,7 @@ export const Preview = memo(
         setIsStartingPreview(false);
         setPreviewStatus(t('idePanels.preview.rendered'));
       },
-      [activePreview?.ready, reloadPreview, visiblePreviewUrl, t],
+      [activePreview?.ready, activePreview?.serving, reloadPreview, visiblePreviewUrl, t],
     );
 
     const handlePreviewFrameError = useCallback(() => {
@@ -2366,6 +2376,7 @@ export const Preview = memo(
       const decision = decidePreviewLoadOutcome({
         attempt: previewLoadRetryRef.current,
         ready: activePreview?.ready,
+        serving: activePreview?.serving,
         erroredLoad: true,
       });
       previewLoadRetryRef.current = decision.nextAttempt;
@@ -2386,7 +2397,7 @@ export const Preview = memo(
         setPreviewRunFailed(true);
         setIsStartingPreview(false);
       }
-    }, [activePreview?.ready, reloadPreview, t]);
+    }, [activePreview?.ready, activePreview?.serving, reloadPreview, t]);
 
     const previewViewportWidth = isDeviceModeOn
       ? showDeviceFrameInPreview

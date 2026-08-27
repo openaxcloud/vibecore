@@ -44,4 +44,11 @@ describe('E-Code public marketing shell honesty and touch targets', () => {
      */
     expect(source).toContain('var(--ecode-accent-text)');
   });
+
+  it('keeps the mobile/tablet drawer CTAs at least 44px tall', () => {
+    expect(source).toContain(
+      'className="w-full !min-h-11 bg-ecode-accent hover:bg-ecode-accent text-[var(--ecode-accent-contrast)]"',
+    );
+    expect(source).toContain('className="mt-2 w-full !min-h-11 border-border text-foreground hover:bg-muted"');
+  });
 });

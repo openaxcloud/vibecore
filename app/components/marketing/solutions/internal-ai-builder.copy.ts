@@ -25,7 +25,6 @@ export const INTERNAL_AI_BUILDER_COPY = {
       microcopy:
         'Start from the internal task your team repeats every week. Source files, the running interface, and proposed access rules remain visible while the tool evolves.',
     },
-    languageSwitch: { label: 'Choose the Internal AI Builder page language', english: 'English', french: 'Français' },
     demo: {
       badge: 'Fictional demo data',
       brand: 'PeopleOps Assistant',
@@ -280,11 +279,6 @@ export const INTERNAL_AI_BUILDER_COPY = {
       },
       microcopy:
         'Partez de la tâche interne répétée chaque semaine. Les fichiers source, l’interface active et les règles d’accès proposées restent visibles à mesure que l’outil évolue.',
-    },
-    languageSwitch: {
-      label: 'Choisir la langue de la page Générateur d’IA interne',
-      english: 'English',
-      french: 'Français',
     },
     demo: {
       badge: 'Données fictives',

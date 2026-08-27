@@ -118,6 +118,114 @@ function getBrowserStorage(): Storage | null {
   }
 }
 
+/*
+ * BUG-UX-TOUR-REAPPEARS: localStorage alone was the only persistence, so the
+ * tour came back on every page/project open whenever the cache could not hold
+ * the verdict — quota-saturated or private-mode storage (setItem throws and is
+ * swallowed), storage evicted by the browser, or simply another device. The
+ * dismissal/completion is now ALSO stored in the signed-in user's server
+ * preferences blob (`/api/user/preferences`, key `productTour`, shallow-merged
+ * server-side), and the component asks the server before auto-opening.
+ * localStorage remains the fast local cache; unauthenticated/offline sessions
+ * keep the previous localStorage-only behavior.
+ */
+export const PRODUCT_TOUR_PREFERENCE_KEY = 'productTour';
+
+const USER_PREFERENCES_ENDPOINT = '/api/user/preferences';
+
+function canReachServer(): boolean {
+  return typeof globalThis.window !== 'undefined' && typeof globalThis.fetch === 'function';
+}
+
+function parseServerProgress(value: unknown): PersistedProductTourProgress | undefined {
+  const parsed = value as { version?: unknown; status?: unknown; step?: unknown } | undefined;
+
+  if (!parsed || parsed.version !== 1 || typeof parsed.status !== 'string') {
+    return undefined;
+  }
+
+  const status = parsed.status as ProductTourStatus;
+
+  if (!PERSISTED_STATUSES.has(status)) {
+    return undefined;
+  }
+
+  return { status: status as PersistedProductTourProgress['status'], step: clampStep(parsed.step) };
+}
+
+/*
+ * Fetch the persisted verdict at most once per page load (every SaaSLayout mount
+ * shares the promise). Resolves `undefined` when the user has no stored value,
+ * is unauthenticated (401), or the backend is unreachable — the caller then
+ * falls back to the localStorage verdict.
+ */
+let serverProgressPromise: Promise<PersistedProductTourProgress | undefined> | undefined;
+
+export function fetchProductTourProgressFromServer(): Promise<PersistedProductTourProgress | undefined> {
+  if (serverProgressPromise) {
+    return serverProgressPromise;
+  }
+
+  if (!canReachServer()) {
+    serverProgressPromise = Promise.resolve(undefined);
+
+    return serverProgressPromise;
+  }
+
+  serverProgressPromise = globalThis
+    .fetch(USER_PREFERENCES_ENDPOINT, { headers: { accept: 'application/json' } })
+    .then((response) => (response.ok ? response.json() : undefined))
+    .then((payload) =>
+      parseServerProgress(
+        (payload as { preferences?: Record<string, unknown> } | undefined)?.preferences?.[PRODUCT_TOUR_PREFERENCE_KEY],
+      ),
+    )
+    .catch(() => undefined);
+
+  return serverProgressPromise;
+}
+
+/**
+ * Best-effort push of the verdict into the server preferences blob. Never
+ * throws — a 401 / offline session is a no-op and localStorage remains the
+ * local source of truth.
+ */
+export function pushProductTourProgressToServer(progress: PersistedProductTourProgress): void {
+  // Later mounts in the same page load must see the fresh verdict, not a stale fetch.
+  serverProgressPromise = Promise.resolve(progress);
+
+  if (!canReachServer()) {
+    return;
+  }
+
+  try {
+    void globalThis
+      .fetch(USER_PREFERENCES_ENDPOINT, {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ preferences: { [PRODUCT_TOUR_PREFERENCE_KEY]: { version: 1, ...progress } } }),
+      })
+      .catch(() => undefined);
+  } catch {
+    // Offline / no backend account — keep the localStorage value.
+  }
+}
+
+/*
+ * Verdict serveur DÉJÀ connu pour ce chargement de page, sans jamais déclencher
+ * de requête. Un tour refusé puis remonté dans la même page doit rester fermé
+ * même sans session et même si localStorage est saturé — c'est ce mémo qui le
+ * garantit, pas le réseau.
+ */
+function peekMemoizedServerProgress(): Promise<PersistedProductTourProgress | undefined> | undefined {
+  return serverProgressPromise;
+}
+
+/** Test-only: drop the memoized server fetch so each case starts clean. */
+export function __resetProductTourServerCache(): void {
+  serverProgressPromise = undefined;
+}
+
 function isVisibleTarget(element: HTMLElement): boolean {
   const styles = window.getComputedStyle(element);
   const rect = element.getBoundingClientRect();
@@ -148,7 +256,16 @@ function findVisibleTarget(target: string, fallbackTarget?: string): HTMLElement
   );
 }
 
-export function ProductTour({ restartToken }: { restartToken: number }) {
+/*
+ * `serverSync` = « une session authentifiée existe ». `/api/user/preferences`
+ * répond 401 pour un visiteur anonyme, et le NAVIGATEUR journalise ce 401 —
+ * `response.ok ? … : undefined` ne peut pas l'en empêcher. Or `AppShell` monte
+ * ce composant sur des pages volontairement publiques (`/invitations/accept`
+ * via `EnterpriseFormPage`, les coques d'erreur de `root`), où l'audit live
+ * EN/FR rejette toute erreur de console. Sans session : localStorage seul,
+ * AUCUNE requête — ni au montage, ni à la sortie du tour.
+ */
+export function ProductTour({ restartToken, serverSync = false }: { restartToken: number; serverSync?: boolean }) {
   const { i18n } = useTranslation();
   const language = i18n.resolvedLanguage ?? i18n.language;
   const copy = getProductTourCopy(language);
@@ -163,9 +280,50 @@ export function ProductTour({ restartToken }: { restartToken: number }) {
     const progress = readProductTourProgress(getBrowserStorage());
 
     setStepIndex(progress.step);
-    setOpen(progress.status === 'new' || progress.status === 'in_progress');
     setReady(true);
-  }, []);
+
+    // A local verdict is definitive: never auto-reopen a dismissed/completed tour.
+    if (progress.status === 'dismissed' || progress.status === 'completed') {
+      return undefined;
+    }
+
+    /*
+     * No local verdict (or an in-progress one): ask the backend before opening,
+     * so a dismissal recorded on another device — or recorded while localStorage
+     * was full/unavailable — keeps the tour closed (BUG-UX-TOUR-REAPPEARS).
+     */
+    let cancelled = false;
+
+    const memoized = peekMemoizedServerProgress();
+
+    if (!serverSync && !memoized) {
+      // Pas de session et rien en mémoire : verdict local, et AUCUNE requête.
+      setOpen(true);
+
+      return undefined;
+    }
+
+    void (serverSync ? fetchProductTourProgressFromServer() : memoized!).then((serverProgress) => {
+      if (cancelled) {
+        return;
+      }
+
+      if (serverProgress && (serverProgress.status === 'dismissed' || serverProgress.status === 'completed')) {
+        // Heal the local cache so the next open doesn't need the network.
+        persistProductTourProgress(getBrowserStorage(), serverProgress);
+        setOpen(false);
+
+        return;
+      }
+
+      setStepIndex((current) => serverProgress?.step ?? current);
+      setOpen(true);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [serverSync]);
 
   useEffect(() => {
     if (!ready || restartToken === 0) {
@@ -209,9 +367,16 @@ export function ProductTour({ restartToken }: { restartToken: number }) {
   }, [open, ready, step]);
 
   const dismiss = useCallback(() => {
-    persistProductTourProgress(getBrowserStorage(), { status: 'dismissed', step: stepIndex });
+    const progress = { status: 'dismissed', step: stepIndex } as const;
+
+    persistProductTourProgress(getBrowserStorage(), progress);
+
+    if (serverSync) {
+      pushProductTourProgressToServer(progress);
+    }
+
     setOpen(false);
-  }, [stepIndex]);
+  }, [serverSync, stepIndex]);
 
   useEffect(() => {
     if (!open) {
@@ -237,7 +402,14 @@ export function ProductTour({ restartToken }: { restartToken: number }) {
   const isLastStep = stepIndex === PRODUCT_TOUR_STEPS.length - 1;
 
   const complete = () => {
-    persistProductTourProgress(getBrowserStorage(), { status: 'completed', step: 0 });
+    const progress = { status: 'completed', step: 0 } as const;
+
+    persistProductTourProgress(getBrowserStorage(), progress);
+
+    if (serverSync) {
+      pushProductTourProgressToServer(progress);
+    }
+
     setOpen(false);
   };
 

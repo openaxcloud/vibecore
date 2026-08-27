@@ -152,11 +152,36 @@ describe('BaseChat strengthened-AST catalog', () => {
      *    affiché et la mise en page ne changent pas — l'élément reste le même,
      *    aux mêmes classes, et des règles CSS de spécificité supérieure
      *    neutralisent les styles génériques de bouton de l'en-tête.
+     * 4. bug remonté par Avi (BUG-IDE-PANEL-REPROVISION-RELOAD-001, « ouvrir
+     *    certains panneaux recharge tout l'IDE ») — le Workbench mobile passe
+     *    en keep-alive : une fois ouvert il reste monté et n'est que masqué
+     *    (`.bolt-workbench-mobile-keepalive[data-active='false']`, visibility)
+     *    quand Agent/gestion/locks est actif, au lieu d'être démonté puis
+     *    remonté à froid à chaque retour (Suspense plein écran + relance de la
+     *    boucle de démarrage de la Preview → re-provisionnement du pod).
+     *    L'onglet Terminal (ShellPanel), l'en-tête et le dock sont inchangés :
+     *    seule la stratégie de montage du conteneur workbench change, dans la
+     *    même région de source. Voir mobile-workbench-keepalive.ts.
+     *
+     * 5. bug remonté par Avi (BUG-MOB-PALETTE-KEYBOARD-001, « ouvrir un panneau
+     *    depuis la palette Commandes ne bascule pas la vue / la palette
+     *    reste », iPhone ~390 px) — le champ de recherche de la palette passe
+     *    de `autoFocus` inconditionnel à `autoFocus={commandPaletteAutoFocus}`.
+     *    Sur un appareil PUREMENT tactile, l'auto-focus levait le clavier
+     *    logiciel dès l'ouverture : il masque la moitié basse de la liste (la
+     *    feuille est en `position: fixed` ancrée au viewport de MISE EN PAGE,
+     *    que le clavier ne réduit pas) et, à sa fermeture, la mise en page se
+     *    ré-étale entre le toucher et le `click`, qui atterrit alors sur une
+     *    autre cible. Un pointeur fin (souris, trackpad — y compris tablette
+     *    avec clavier, cas voulu par SCR-006) garde l'auto-focus à l'identique.
+     *    Aucun texte, aucune classe, aucun élément ne change : seule la valeur
+     *    d'un attribut de comportement devient conditionnelle. Voir
+     *    `~/lib/command-palette-focus`.
      *
      * Toute évolution du hash hors d'une demande explicite du propriétaire
      * signale une dérive de mise en page à refuser.
      */
-    expect(frozenHash).toBe('7e69efa83ed1122db5602affe66bb2a7532ea007e8ccf87d260970288a8fb05a');
+    expect(frozenHash).toBe('509abbb9f97fb6ddf80c54d7dbc7736a2220db0386b7eea05486ba5f7d2cd15e');
     expect(outsideFrozen).toEqual([]);
 
     // The mobile header/dock labels are now localized via t(); no raw English remains.

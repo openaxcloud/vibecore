@@ -32,7 +32,8 @@ export function LegalArticle({
       <main className="flex-1">
         <div className="container-responsive py-responsive">
           <div className="max-w-4xl mx-auto">
-            <h1 className="text-4xl font-bold mb-8">{title}</h1>
+            {/* Échelle h1 de la famille légale : responsive (24→48px), pas un 36px figé à 390. */}
+            <h1 className="break-words text-responsive-2xl font-bold mb-8">{title}</h1>
 
             <div className="prose prose-gray dark:prose-invert max-w-none space-y-8">
               <section>

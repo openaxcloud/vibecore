@@ -105,7 +105,7 @@ export function AuthScreen({
           </div>
 
           <div className="mb-5 sm:mb-7">
-            <div className="vc-auth-eyebrow mb-3 inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.4px] sm:mb-4 sm:text-[11px]">
+            <div className="vc-auth-eyebrow mb-3 inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.4px] sm:mb-4">
               <Sparkles className="h-3.5 w-3.5" />
               {eyebrow}
             </div>

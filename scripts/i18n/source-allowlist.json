@@ -1404,6 +1404,24 @@
       "justification": "This is the canonical persisted PAYG_CHARGE reason. Both credit-ledger HTTP boundaries recognize the kind/value pair and return locale catalogue copy; it is never rendered raw in French.",
       "owner": "billing-and-i18n",
       "expiresOn": "2027-08-05"
+    },
+    {
+      "id": "workspace-reseed-walk-budget-diagnostics",
+      "path": "app/lib/runtime/workspace-reseed.ts",
+      "rule": "error-message",
+      "textPattern": "^workspace-reseed: pod tree (?:deeper|larger) than the walk budget$",
+      "justification": "These two Errors are internal walk-budget sentinels thrown by collectPodTree and caught inside clearProjectTreeForReseed, which logs them to the console and falls back to the historical full clear. No caller receives them and no message crosses a UI boundary.",
+      "owner": "runtime-platform-and-i18n",
+      "expiresOn": "2027-08-24"
+    },
+    {
+      "id": "agent-patch-flood-guard-halt-reasons",
+      "path": "app/lib/stores/agent-patch-flood-guard.ts",
+      "rule": "visible-object-copy",
+      "textPattern": "^(?:repeated-failures|per-file-limit|global-limit)$",
+      "justification": "These are machine discriminants on the guard's verdict object (`reason:`), never rendered: no component reads `reason`, and the halt notice shown to the user comes from the workbenchRuntime.patch.* catalogue in both locales.",
+      "owner": "runtime-platform-and-i18n",
+      "expiresOn": "2027-08-24"
     }
   ]
 }
