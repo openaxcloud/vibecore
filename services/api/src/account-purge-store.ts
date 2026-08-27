@@ -13,6 +13,10 @@ import {
   type PurgeStorageInventory,
   type PurgeUserAccountResult,
 } from './account-purge.js';
+import {
+  assertAccountPurgeStateMachinesSafeToStart,
+  fencePurgedUserStateMachines,
+} from './account-purge-state-machine-fence.js';
 import { DELETION_GRACE_PERIOD_DAYS, FINANCIAL_RETENTION_DAYS } from './data-deletion.js';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -536,6 +540,10 @@ export class AccountPurgeStore {
       if (databaseNow < purgeDueAt) return { outcome: 'not_due' as const, purgeDueAt: purgeDueAt.toISOString() };
 
       const topology = await this.resolveTopology(tx, userId);
+      await assertAccountPurgeStateMachinesSafeToStart(tx, {
+        userId,
+        soleOrganizationIds: topology.soleOrgIds,
+      });
       for (const projectId of [...topology.bucketProjectIds].sort()) {
         await this.lockObjectStorageProject(tx, projectId);
       }
@@ -547,12 +555,16 @@ export class AccountPurgeStore {
         userId,
       );
       const existing = rows[0];
+      // Topology/state-machine preflight can be intentionally expensive. Start
+      // the provider lease from a fresh PostgreSQL clock after that work, not
+      // from the deletion-policy timestamp read at transaction entry.
+      const leaseDatabaseNow = await this.databaseNow(tx);
 
       if (existing?.status === PLAN_COMPLETED && receipt) {
         return { outcome: 'already_purged' as const, planId: existing.id, purgedAt: receipt.purgedAt.toISOString() };
       }
 
-      if (existing?.status === PLAN_ACTIVE && existing.leaseExpiresAt > databaseNow) {
+      if (existing?.status === PLAN_ACTIVE && existing.leaseExpiresAt > leaseDatabaseNow) {
         throw Object.assign(new Error('ACCOUNT_PURGE_ALREADY_ACTIVE'), {
           code: 'ACCOUNT_PURGE_ALREADY_ACTIVE',
           statusCode: 409,
@@ -560,7 +572,7 @@ export class AccountPurgeStore {
       }
 
       const ownerToken = randomUUID();
-      const leaseExpiresAt = new Date(databaseNow.getTime() + this.lease.ttlMs);
+      const leaseExpiresAt = new Date(leaseDatabaseNow.getTime() + this.lease.ttlMs);
       const inventory = {
         bucketProjectIds: topology.bucketProjectIds,
         workspaceProjectIds: topology.workspaceProjectIds,
@@ -996,6 +1008,11 @@ export class AccountPurgeStore {
         const nowIso = now.toISOString();
         const { soleOrgIds, sharedOrgIds } = topology;
         const classes: PurgeClassReport[] = [];
+
+        await fencePurgedUserStateMachines(this.prisma, tx, {
+          userId,
+          soleOrganizationIds: soleOrgIds,
+        });
 
         // An impersonation session belongs operationally to both the target
         // (`userId`) and the administrator (`impersonatedBy`). Purging either

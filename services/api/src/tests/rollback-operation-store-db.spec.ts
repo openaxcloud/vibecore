@@ -37,6 +37,9 @@ function suffix() {
 async function seedStaticHistory(store: PrismaApiStore, label: string) {
   const unique = suffix();
 
+  const actor = await store.prisma.user.create({
+    data: { email: `rollback-${label}-${unique}@example.test` },
+  });
   const organization = await store.prisma.organization.create({
     data: { name: `Rollback ${label} ${unique}`, slug: `rollback-${label}-${unique}` },
   });
@@ -94,7 +97,7 @@ async function seedStaticHistory(store: PrismaApiStore, label: string) {
     accessPolicyVersion: current.accessPolicyVersion,
   });
 
-  return { organization, project, previous, current, sourceManifest, manifestDigest };
+  return { actor, organization, project, previous, current, sourceManifest, manifestDigest };
 }
 
 function rollbackMetadata(input: { operationId: string; projectManifestDigest: string; sourceDeploymentId: string }) {
@@ -126,6 +129,7 @@ runDbTests('rollback operation — real PostgreSQL clock, lease, and release CAS
 
       const input = {
         projectId: seeded.project.id,
+        actorUserId: seeded.actor.id,
         idempotencyKey: `same-${suffix()}`,
         requestFingerprint: FINGERPRINT,
         environment: 'preview',
@@ -260,9 +264,68 @@ runDbTests('rollback operation — real PostgreSQL clock, lease, and release CAS
       if (seeded) {
         await prismaA.releaseManifest.deleteMany({ where: { projectId: seeded.project.id } }).catch(() => undefined);
         await prismaA.organization.delete({ where: { id: seeded.organization.id } }).catch(() => undefined);
+        await prismaA.user.delete({ where: { id: seeded.actor.id } }).catch(() => undefined);
       }
 
       await Promise.allSettled([prismaA.$disconnect(), prismaB.$disconnect()]);
+    }
+  });
+
+  it('fails closed on a historical actorless rollback row', async () => {
+    const prisma = createDatabaseClient();
+    const store = new PrismaApiStore(prisma);
+    let seeded: Awaited<ReturnType<typeof seedStaticHistory>> | undefined;
+
+    try {
+      seeded = await seedStaticHistory(store, 'actorless');
+      const acquired = await store.acquireRollbackOperation({
+        projectId: seeded.project.id,
+        actorUserId: seeded.actor.id,
+        idempotencyKey: `actorless-${suffix()}`,
+        requestFingerprint: FINGERPRINT,
+        environment: 'preview',
+        ownerToken: 'legacy-owner',
+        leaseDurationMs: 30_000,
+      });
+      expect(acquired.kind).toBe('ACQUIRED');
+      await prisma.rollbackIdempotencyRequest.update({
+        where: { id: acquired.record.id },
+        data: { actorUserId: null },
+      });
+
+      await expect(
+        store.renewRollbackOperationLease({
+          operationId: acquired.record.id,
+          ownerToken: 'legacy-owner',
+          fencingToken: 1,
+          leaseDurationMs: 30_000,
+        }),
+      ).rejects.toMatchObject({ code: 'ROLLBACK_OWNERSHIP_LOST' });
+      await expect(
+        store.validateRollbackOperationLease({
+          operationId: acquired.record.id,
+          ownerToken: 'legacy-owner',
+          fencingToken: 1,
+        }),
+      ).resolves.toBe(false);
+      await expect(
+        store.acquireRollbackOperation({
+          projectId: seeded.project.id,
+          actorUserId: seeded.actor.id,
+          idempotencyKey: acquired.record.idempotencyKey,
+          requestFingerprint: FINGERPRINT,
+          environment: 'preview',
+          ownerToken: 'new-owner',
+          leaseDurationMs: 30_000,
+        }),
+      ).resolves.toMatchObject({ kind: 'FINGERPRINT_CONFLICT' });
+    } finally {
+      if (seeded) {
+        await prisma.releaseManifest.deleteMany({ where: { projectId: seeded.project.id } }).catch(() => undefined);
+        await prisma.organization.delete({ where: { id: seeded.organization.id } }).catch(() => undefined);
+        await prisma.user.delete({ where: { id: seeded.actor.id } }).catch(() => undefined);
+      }
+      await prisma.$disconnect();
     }
   });
 
@@ -280,6 +343,7 @@ runDbTests('rollback operation — real PostgreSQL clock, lease, and release CAS
       const prepare = async (store: PrismaApiStore, key: string, ownerToken: string, deploymentId: string) => {
         const acquired = await store.acquireRollbackOperation({
           projectId: seeded!.project.id,
+          actorUserId: seeded!.actor.id,
           idempotencyKey: key,
           requestFingerprint: FINGERPRINT,
           environment: 'preview',
@@ -382,6 +446,7 @@ runDbTests('rollback operation — real PostgreSQL clock, lease, and release CAS
       await expect(
         winnerStore.acquireRollbackOperation({
           projectId: seeded.project.id,
+          actorUserId: seeded.actor.id,
           idempotencyKey: winner.key,
           requestFingerprint: FINGERPRINT,
           environment: 'preview',
@@ -396,6 +461,7 @@ runDbTests('rollback operation — real PostgreSQL clock, lease, and release CAS
       if (seeded) {
         await prismaA.releaseManifest.deleteMany({ where: { projectId: seeded.project.id } }).catch(() => undefined);
         await prismaA.organization.delete({ where: { id: seeded.organization.id } }).catch(() => undefined);
+        await prismaA.user.delete({ where: { id: seeded.actor.id } }).catch(() => undefined);
       }
 
       await Promise.allSettled([prismaA.$disconnect(), prismaB.$disconnect()]);

@@ -39570,6 +39570,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     let acquisition = await store.acquireRollbackOperation({
       projectId: project.id,
+      actorUserId: request.currentUser!.id,
       idempotencyKey,
       requestFingerprint,
       environment,
@@ -39583,6 +39584,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       await new Promise((resolve) => setTimeout(resolve, Math.min(remainingMs, acquisitionDelayMs + jitterMs)));
       acquisition = await store.acquireRollbackOperation({
         projectId: project.id,
+        actorUserId: request.currentUser!.id,
         idempotencyKey,
         requestFingerprint,
         environment,

@@ -131,6 +131,8 @@ model User {
   agentRoutingCards           AgentRoutingCard[]             @relation("AgentRoutingCardAuthor")
   runtimeWebSocketTickets     RuntimeWebSocketTicket[]
   importJobs                  ImportJob[]                    @relation("ImportJobActor")
+  remixStorageSharesConsented RemixStorageShare[]            @relation("RemixStorageShareConsentedBy")
+  rollbackOperations          RollbackIdempotencyRequest[]   @relation("RollbackOperationActor")
   cloudOperations             CloudOperation[]
   projectCheckpoints          ProjectCheckpoint[]            @relation("ProjectCheckpointCreator")
   invitedOrganizationMembers  OrganizationMember[]           @relation("OrganizationMemberInviter")
@@ -215,6 +217,8 @@ model Organization {
   agentCheckpoints           AgentCheckpoint[]
   userSpendLimits            UserSpendLimit[]
   importJobs                 ImportJob[]
+  remixStorageSharesAsSource RemixStorageShare[]             @relation("RemixStorageShareSourceOrganization")
+  remixStorageSharesAsTarget RemixStorageShare[]             @relation("RemixStorageShareTargetOrganization")
   cloudTenant                CloudTenant?
   collaborationGroups        CollaborationGroup[]
   resourceAccessGrants       ResourceAccessGrant[]
@@ -332,6 +336,9 @@ model Project {
   slugRedirects           ProjectSlugRedirect[]
   runtimeWebSocketTickets RuntimeWebSocketTicket[]
   importJobs              ImportJob[]                  @relation("ImportJobTarget")
+  targetRemixJobs         RemixJob[]                   @relation("RemixJobTarget")
+  sourceRemixShares       RemixStorageShare[]          @relation("RemixStorageShareSourceProject")
+  targetRemixShares       RemixStorageShare[]          @relation("RemixStorageShareTargetProject")
   cloudBinding            CloudProjectBinding?
   checkpoints             ProjectCheckpoint[]
 
@@ -1027,6 +1034,7 @@ model ReleaseManifest {
 model RollbackIdempotencyRequest {
   id                      String    @id @default(cuid())
   projectId               String
+  actorUserId             String?
   idempotencyKey          String
   requestFingerprint      String
   environment             String
@@ -1047,8 +1055,10 @@ model RollbackIdempotencyRequest {
   createdAt               DateTime  @default(now())
   updatedAt               DateTime  @updatedAt
   project                 Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  actor                   User?     @relation("RollbackOperationActor", fields: [actorUserId], references: [id], onDelete: SetNull)
 
   @@unique([projectId, idempotencyKey])
+  @@index([actorUserId, status])
   @@index([status, leaseExpiresAt])
   @@index([projectId, environment, status])
   @@index([previousManifestId])
@@ -2438,6 +2448,7 @@ model DatabaseInstance {
   project                Project                @relation(fields: [projectId], references: [id], onDelete: Cascade)
   snapshots              DatabaseSnapshot[]
   restores               DatabaseRestore[]
+  remixJobsAsTarget      RemixJob[]             @relation("RemixJobTargetDatabase")
 
   @@unique([projectId, environment])
   @@index([organizationId])
@@ -2812,6 +2823,9 @@ model RemixJob {
   error                    String?
   createdAt                DateTime  @default(now())
   updatedAt                DateTime  @updatedAt
+  targetProject            Project?           @relation("RemixJobTarget", fields: [targetProjectId], references: [id], onDelete: SetNull)
+  targetDatabaseInstance   DatabaseInstance?  @relation("RemixJobTargetDatabase", fields: [targetDatabaseInstanceId], references: [id], onDelete: SetNull)
+  storageShare             RemixStorageShare? @relation("RemixJobStorageShare", fields: [storageShareId], references: [id], onDelete: SetNull)
 
   @@unique([organizationId, idempotencyKey])
   @@index([sourceProjectId])
@@ -2837,6 +2851,12 @@ model RemixStorageShare {
   revokedAt            DateTime?
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
+  sourceProject        Project      @relation("RemixStorageShareSourceProject", fields: [sourceProjectId], references: [id], onDelete: Cascade)
+  targetProject        Project      @relation("RemixStorageShareTargetProject", fields: [targetProjectId], references: [id], onDelete: Cascade)
+  sourceOrganization   Organization @relation("RemixStorageShareSourceOrganization", fields: [sourceOrganizationId], references: [id], onDelete: Cascade)
+  targetOrganization   Organization @relation("RemixStorageShareTargetOrganization", fields: [targetOrganizationId], references: [id], onDelete: Cascade)
+  consentedBy          User?        @relation("RemixStorageShareConsentedBy", fields: [consentedByUserId], references: [id], onDelete: SetNull)
+  remixJobs            RemixJob[]   @relation("RemixJobStorageShare")
 
   @@index([sourceProjectId])
   @@index([sourceOrganizationId])

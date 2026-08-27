@@ -173,6 +173,29 @@ runDbTests('durable import staging — real PostgreSQL multi-client CAS', () => 
         committedMinor: 1n,
         version: 1,
       });
+      await expect(
+        winnerStore.finalizeImportCommit({
+          importJobId: job.id,
+          organizationId: organization.id,
+          operationToken: winnerToken,
+          targetProjectId: project.id,
+          actualCredits: 1,
+        }),
+      ).resolves.toMatchObject({ job: { state: 'COMMITTED' }, reservation: { debitedCredits: 1 } });
+      await expect(
+        winnerStore.finalizeImportCommit({
+          importJobId: job.id,
+          organizationId: organization.id,
+          operationToken: winnerToken,
+          targetProjectId: project.id,
+          actualCredits: 0,
+        }),
+      ).rejects.toMatchObject({ code: 'IMPORT_COMMIT_REPLAY_MISMATCH', statusCode: 409 });
+      expect(
+        await prismaA.ledgerTransaction.count({
+          where: { organizationId: organization.id, reason: 'reservation.settle' },
+        }),
+      ).toBe(1);
       const nulls = await prismaA.$queryRawUnsafe<Array<{ staged: boolean; preview: boolean }>>(
         'SELECT "stagedFiles" IS NULL AS staged, "connectorPreview" IS NULL AS preview FROM "ImportJob" WHERE "id" = $1',
         job.id,

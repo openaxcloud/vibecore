@@ -5,6 +5,7 @@ import { TestApiStore } from './test-api-store.js';
 const FINGERPRINT = 'a'.repeat(64);
 const PROJECT_MANIFEST_DIGEST = `sha256:${'b'.repeat(64)}`;
 const ARTIFACT_DIGEST = `sha256:${'c'.repeat(64)}`;
+const ACTOR_USER_ID = 'rollback-actor';
 
 describe('durable rollback operation — lease, fencing, and frozen target', () => {
   it('serializes one key, rejects a changed fingerprint, and replays the persisted response', async () => {
@@ -12,6 +13,7 @@ describe('durable rollback operation — lease, fencing, and frozen target', () 
 
     const first = await store.acquireRollbackOperation({
       projectId: 'project-a',
+      actorUserId: ACTOR_USER_ID,
       idempotencyKey: 'same-key',
       requestFingerprint: FINGERPRINT,
       environment: 'preview',
@@ -23,6 +25,7 @@ describe('durable rollback operation — lease, fencing, and frozen target', () 
     await expect(
       store.acquireRollbackOperation({
         projectId: 'project-a',
+        actorUserId: ACTOR_USER_ID,
         idempotencyKey: 'same-key',
         requestFingerprint: FINGERPRINT,
         environment: 'preview',
@@ -34,6 +37,7 @@ describe('durable rollback operation — lease, fencing, and frozen target', () 
     await expect(
       store.acquireRollbackOperation({
         projectId: 'project-a',
+        actorUserId: ACTOR_USER_ID,
         idempotencyKey: 'same-key',
         requestFingerprint: 'd'.repeat(64),
         environment: 'production',
@@ -54,6 +58,7 @@ describe('durable rollback operation — lease, fencing, and frozen target', () 
     await expect(
       store.acquireRollbackOperation({
         projectId: 'project-a',
+        actorUserId: ACTOR_USER_ID,
         idempotencyKey: 'same-key',
         requestFingerprint: FINGERPRINT,
         environment: 'preview',
@@ -71,6 +76,7 @@ describe('durable rollback operation — lease, fencing, and frozen target', () 
 
     const first = await store.acquireRollbackOperation({
       projectId: 'project-fence',
+      actorUserId: ACTOR_USER_ID,
       idempotencyKey: 'fenced-key',
       requestFingerprint: FINGERPRINT,
       environment: 'preview',
@@ -84,6 +90,7 @@ describe('durable rollback operation — lease, fencing, and frozen target', () 
 
     const recovered = await store.acquireRollbackOperation({
       projectId: 'project-fence',
+      actorUserId: ACTOR_USER_ID,
       idempotencyKey: 'fenced-key',
       requestFingerprint: FINGERPRINT,
       environment: 'preview',
@@ -106,6 +113,50 @@ describe('durable rollback operation — lease, fencing, and frozen target', () 
         fencingToken: 1,
       }),
     ).resolves.toBe(false);
+  });
+
+  it('fails closed instead of resuming a historical actorless lease', async () => {
+    const store = new TestApiStore();
+    const acquired = await store.acquireRollbackOperation({
+      projectId: 'project-legacy-actorless',
+      actorUserId: ACTOR_USER_ID,
+      idempotencyKey: 'legacy-actorless-key',
+      requestFingerprint: FINGERPRINT,
+      environment: 'preview',
+      ownerToken: 'legacy-owner',
+      leaseDurationMs: 30_000,
+    });
+    store.rollbackOperations.set('project-legacy-actorless:legacy-actorless-key', {
+      ...acquired.record,
+      actorUserId: undefined,
+    });
+
+    await expect(
+      store.renewRollbackOperationLease({
+        operationId: acquired.record.id,
+        ownerToken: 'legacy-owner',
+        fencingToken: 1,
+        leaseDurationMs: 30_000,
+      }),
+    ).rejects.toMatchObject({ code: 'ROLLBACK_OWNERSHIP_LOST' });
+    await expect(
+      store.validateRollbackOperationLease({
+        operationId: acquired.record.id,
+        ownerToken: 'legacy-owner',
+        fencingToken: 1,
+      }),
+    ).resolves.toBe(false);
+    await expect(
+      store.acquireRollbackOperation({
+        projectId: 'project-legacy-actorless',
+        actorUserId: ACTOR_USER_ID,
+        idempotencyKey: 'legacy-actorless-key',
+        requestFingerprint: FINGERPRINT,
+        environment: 'preview',
+        ownerToken: 'new-owner',
+        leaseDurationMs: 30_000,
+      }),
+    ).resolves.toMatchObject({ kind: 'FINGERPRINT_CONFLICT' });
   });
 
   it('atomically fails a pre-effect deployment before persisting an error response', async () => {
@@ -149,6 +200,7 @@ describe('durable rollback operation — lease, fencing, and frozen target', () 
 
     const acquired = await store.acquireRollbackOperation({
       projectId: 'project-pre-effect',
+      actorUserId: ACTOR_USER_ID,
       idempotencyKey: 'pre-effect-key',
       requestFingerprint: FINGERPRINT,
       environment: 'preview',
@@ -197,6 +249,7 @@ describe('durable rollback operation — lease, fencing, and frozen target', () 
     await expect(
       store.acquireRollbackOperation({
         projectId: 'project-pre-effect',
+        actorUserId: ACTOR_USER_ID,
         idempotencyKey: 'pre-effect-key',
         requestFingerprint: FINGERPRINT,
         environment: 'preview',
@@ -248,6 +301,7 @@ describe('durable rollback operation — lease, fencing, and frozen target', () 
 
     const acquired = await store.acquireRollbackOperation({
       projectId: 'project-target',
+      actorUserId: ACTOR_USER_ID,
       idempotencyKey: 'target-key',
       requestFingerprint: FINGERPRINT,
       environment: 'preview',

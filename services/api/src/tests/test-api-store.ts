@@ -223,6 +223,8 @@ export class TestApiStore implements ApiStore {
   readonly systemSettings = new Map<string, SystemSettingRecord>();
   readonly purgeReceipts = new Map<string, { planId: string; purgedAt: string; proof: ErasureProof }>();
   readonly purgeEffects = new Map<string, Record<string, unknown>>();
+  readonly purgeFrozenUsers = new Set<string>();
+  readonly purgeFrozenOrganizations = new Set<string>();
   readonly purgeFrozenProjects = new Set<string>();
   readonly emailVerifications = new Map<
     string,
@@ -315,6 +317,46 @@ export class TestApiStore implements ApiStore {
     );
 
     return run;
+  }
+
+  private _assertAccountPurgeMutationAllowed(scope: {
+    userIds?: Array<string | null | undefined>;
+    organizationIds?: Array<string | null | undefined>;
+    projectIds?: Array<string | null | undefined>;
+  }) {
+    const userIds = [...new Set(scope.userIds?.filter((value): value is string => Boolean(value)) ?? [])];
+    const organizationIds = [
+      ...new Set(scope.organizationIds?.filter((value): value is string => Boolean(value)) ?? []),
+    ];
+    const projectIds = [...new Set(scope.projectIds?.filter((value): value is string => Boolean(value)) ?? [])];
+
+    if (userIds.some((userId) => this.purgeReceipts.has(userId))) {
+      throw Object.assign(new Error('ACCOUNT_PURGE_COMPLETED'), { code: 'ACCOUNT_PURGE_COMPLETED', statusCode: 409 });
+    }
+    if (userIds.some((userId) => this.purgeFrozenUsers.has(userId))) {
+      throw Object.assign(new Error('USER_TOPOLOGY_FROZEN_FOR_ACCOUNT_PURGE'), {
+        code: 'USER_TOPOLOGY_FROZEN_FOR_ACCOUNT_PURGE',
+        statusCode: 409,
+      });
+    }
+    if (organizationIds.some((organizationId) => this.purgeFrozenOrganizations.has(organizationId))) {
+      throw Object.assign(new Error('MEMBERSHIP_FROZEN_FOR_ACCOUNT_PURGE'), {
+        code: 'MEMBERSHIP_FROZEN_FOR_ACCOUNT_PURGE',
+        statusCode: 409,
+      });
+    }
+    if (projectIds.some((projectId) => this.purgeFrozenProjects.has(projectId))) {
+      throw Object.assign(new Error('PROJECT_FROZEN_FOR_ACCOUNT_PURGE'), {
+        code: 'PROJECT_FROZEN_FOR_ACCOUNT_PURGE',
+        statusCode: 409,
+      });
+    }
+  }
+
+  private _assertStateMachineNotPurged(errorCode?: string, error?: string) {
+    if (errorCode === 'ACCOUNT_PURGE_COMPLETED' || error === 'ACCOUNT_PURGE_COMPLETED') {
+      throw Object.assign(new Error('ACCOUNT_PURGE_COMPLETED'), { code: 'ACCOUNT_PURGE_COMPLETED', statusCode: 409 });
+    }
   }
 
   async createUser(input: {
@@ -467,7 +509,78 @@ export class TestApiStore implements ApiStore {
 
       const planId = `purge-${input.userId}`;
       const ownerToken = `owner-${input.userId}`;
-      for (const projectId of preview.inventory!.bucketProjectIds) this.purgeFrozenProjects.add(projectId);
+      const subjectOrgIds = [...this.memberships.values()]
+        .filter((membership) => membership.userId === input.userId && membership.state === 'ACTIVE')
+        .map((membership) => membership.organizationId);
+      const soleOrgIds = subjectOrgIds.filter(
+        (organizationId) =>
+          [...this.memberships.values()].filter(
+            (membership) => membership.organizationId === organizationId && membership.state === 'ACTIVE',
+          ).length === 1,
+      );
+      const activeCheckpoint = [...this.projectCheckpoints.values()].find((checkpoint) => {
+        const project = this.projects.get(checkpoint.projectId);
+        return (
+          (!['COMMITTED', 'CLEANED', 'MANUAL_INTERVENTION', 'RELEASE_BARRIER'].includes(checkpoint.state) ||
+            Boolean(
+              checkpoint.barrierProjectId &&
+                checkpoint.barrierExpiresAt &&
+                Date.parse(checkpoint.barrierExpiresAt) > Date.now(),
+            )) &&
+          (checkpoint.createdByUserId === input.userId || Boolean(project && soleOrgIds.includes(project.organizationId)))
+        );
+      });
+      if (activeCheckpoint) {
+        throw Object.assign(new Error('ACCOUNT_PURGE_CHECKPOINT_ACTIVE'), {
+          code: 'ACCOUNT_PURGE_CHECKPOINT_ACTIVE',
+          statusCode: 409,
+        });
+      }
+      const activeRollbackEffect = [...this.rollbackOperations.values()].find((operation) => {
+        const project = this.projects.get(operation.projectId);
+        return (
+          operation.status === 'IN_PROGRESS' &&
+          operation.phase === 'EFFECT_STARTED' &&
+          (operation.actorUserId === input.userId || Boolean(project && soleOrgIds.includes(project.organizationId)))
+        );
+      });
+      if (activeRollbackEffect) {
+        throw Object.assign(new Error('ACCOUNT_PURGE_ROLLBACK_EFFECT_ACTIVE'), {
+          code: 'ACCOUNT_PURGE_ROLLBACK_EFFECT_ACTIVE',
+          statusCode: 409,
+        });
+      }
+      const visibleStateMachineTarget = [
+        ...[...this.importJobs.values()]
+          .filter(
+            (job) =>
+              job.state !== 'COMMITTED' &&
+              (job.actorUserId === input.userId || soleOrgIds.includes(job.organizationId)),
+          )
+          .map((job) => job.targetProjectId),
+        ...[...this.remixJobs.values()]
+          .filter(
+            (job) =>
+              job.state !== 'COMPLETED' &&
+              (job.actorUserId === input.userId || soleOrgIds.includes(job.organizationId)),
+          )
+          .map((job) => job.targetProjectId),
+      ].find((projectId) => {
+        const project = projectId ? this.projects.get(projectId) : undefined;
+        return Boolean(project && !project.deletedAt);
+      });
+      if (visibleStateMachineTarget) {
+        throw Object.assign(new Error('ACCOUNT_PURGE_STATE_MACHINE_TARGET_VISIBLE'), {
+          code: 'ACCOUNT_PURGE_STATE_MACHINE_TARGET_VISIBLE',
+          statusCode: 409,
+        });
+      }
+      const frozenProjectIds = [
+        ...new Set([...preview.inventory!.bucketProjectIds, ...preview.inventory!.workspaceProjectIds]),
+      ];
+      this.purgeFrozenUsers.add(input.userId);
+      for (const organizationId of subjectOrgIds) this.purgeFrozenOrganizations.add(organizationId);
+      for (const projectId of frozenProjectIds) this.purgeFrozenProjects.add(projectId);
       const lease = {
         planId,
         ownerToken,
@@ -484,15 +597,6 @@ export class TestApiStore implements ApiStore {
           return { executed: true, receipt };
         },
       };
-      const subjectOrgIds = [...this.memberships.values()]
-        .filter((membership) => membership.userId === input.userId && membership.state === 'ACTIVE')
-        .map((membership) => membership.organizationId);
-      const soleOrgIds = subjectOrgIds.filter(
-        (organizationId) =>
-          [...this.memberships.values()].filter(
-            (membership) => membership.organizationId === organizationId && membership.state === 'ACTIVE',
-          ).length === 1,
-      );
       const activeSubscriptions = [...this.subscriptions.values()].filter(
         (subscription) =>
           soleOrgIds.includes(subscription.organizationId) &&
@@ -528,6 +632,98 @@ export class TestApiStore implements ApiStore {
         const user = this.users.get(input.userId)!;
         const requestedAt = (user.preferences!.accountDeletion as { requestedAt: string }).requestedAt;
         const purgedAt = now();
+
+        for (const job of this.importJobs.values()) {
+          if (job.actorUserId !== input.userId && !soleOrgIds.includes(job.organizationId)) continue;
+          const reservation = this.importReservations.get(job.id);
+          if (job.state === 'COMMITTED' && reservation?.state === 'RESERVED') {
+            throw Object.assign(new Error('ACCOUNT_PURGE_IMPORT_LEDGER_STATE_INVALID'), {
+              code: 'ACCOUNT_PURGE_IMPORT_LEDGER_STATE_INVALID',
+              statusCode: 409,
+            });
+          }
+          if (reservation?.state === 'RESERVED') {
+            reservation.state = 'COMPENSATED';
+            reservation.debitedCredits = 0;
+            reservation.version += 1;
+          }
+          if (!['COMMITTED', 'ROLLING_BACK', 'EXPIRED', 'CANCELLED', 'FAILED'].includes(job.state)) {
+            job.state = 'FAILED';
+            job.version += 1;
+          }
+          const target = job.state !== 'COMMITTED' && job.targetProjectId ? this.projects.get(job.targetProjectId) : undefined;
+          if (target?.deletedAt) {
+            this.projects.delete(target.id);
+            this.projectManifestRevisions.delete(target.id);
+            this.projectIdeStates.delete(target.id);
+            job.targetProjectId = undefined;
+          }
+          if (job.state !== 'COMMITTED') job.error = 'ACCOUNT_PURGE_COMPLETED';
+          job.actorUserId = undefined;
+          job.stagedFiles = undefined;
+          job.connectorPreview = undefined;
+          job.operationToken = undefined;
+          job.operationExpiresAt = undefined;
+          job.cleanupTerminalState = undefined;
+          job.updatedAt = purgedAt;
+        }
+
+        for (const job of this.remixJobs.values()) {
+          if (job.actorUserId !== input.userId && !soleOrgIds.includes(job.organizationId)) continue;
+          if (!['COMPLETED', 'FAILED'].includes(job.state)) {
+            job.state = 'FAILED';
+            job.version += 1;
+          }
+          const target = job.state !== 'COMPLETED' && job.targetProjectId ? this.projects.get(job.targetProjectId) : undefined;
+          if (target?.deletedAt) {
+            this.projects.delete(target.id);
+            this.projectManifestRevisions.delete(target.id);
+            this.projectIdeStates.delete(target.id);
+            job.targetProjectId = undefined;
+          }
+          if (job.state !== 'COMPLETED') {
+            job.errorCode = 'ACCOUNT_PURGE_COMPLETED';
+            job.error = 'ACCOUNT_PURGE_COMPLETED';
+          }
+          job.actorUserId = undefined;
+          job.operationToken = undefined;
+          job.operationExpiresAt = undefined;
+          job.cleanupTerminalState = undefined;
+          job.updatedAt = purgedAt;
+        }
+
+        for (const operation of this.rollbackOperations.values()) {
+          const project = this.projects.get(operation.projectId);
+          if (
+            operation.actorUserId !== input.userId &&
+            !(project && soleOrgIds.includes(project.organizationId))
+          ) {
+            continue;
+          }
+          if (operation.status === 'IN_PROGRESS') {
+            if (operation.phase === 'DEPLOYMENT_CREATED' && operation.deploymentId) {
+              const deployment = this.deployments.get(operation.deploymentId);
+              if (deployment && !['READY', 'FAILED', 'CANCELED'].includes(deployment.status)) {
+                deployment.status = 'FAILED';
+                deployment.url = undefined;
+                deployment.previewUrl = undefined;
+                deployment.productionUrl = undefined;
+                deployment.finishedAt = purgedAt;
+                deployment.updatedAt = purgedAt;
+              }
+            }
+            operation.status = 'COMPLETED';
+            operation.leaseOwner = undefined;
+            operation.leaseExpiresAt = undefined;
+            operation.responseStatus = 410;
+            operation.responseContentLanguage = 'en';
+            operation.responseBody = { code: 'ACCOUNT_PURGE_COMPLETED' };
+            operation.completedAt = purgedAt;
+            operation.updatedAt = purgedAt;
+          }
+          operation.actorUserId = undefined;
+        }
+
         for (const [tokenHash, session] of this.sessions)
           if (session.userId === input.userId) this.sessions.delete(tokenHash);
         let deletedDeploymentAccessTickets = 0;
@@ -568,14 +764,19 @@ export class TestApiStore implements ApiStore {
         await this.mutateSystemSettingIds('account.pendingDeletionUserIds', { remove: input.userId });
         return { outcome: 'purged', planId, proof };
       } finally {
-        for (const projectId of preview.inventory!.bucketProjectIds) this.purgeFrozenProjects.delete(projectId);
+        this.purgeFrozenUsers.delete(input.userId);
+        for (const organizationId of subjectOrgIds) this.purgeFrozenOrganizations.delete(organizationId);
+        for (const projectId of frozenProjectIds) this.purgeFrozenProjects.delete(projectId);
         await deps.releaseWorkspaceBarrier?.(preview.inventory!, planId, ownerToken);
       }
     });
   }
 
   async reconcilePurgeFreezes() {
-    const reconciled = this.purgeFrozenProjects.size;
+    const reconciled =
+      this.purgeFrozenUsers.size + this.purgeFrozenOrganizations.size + this.purgeFrozenProjects.size;
+    this.purgeFrozenUsers.clear();
+    this.purgeFrozenOrganizations.clear();
     this.purgeFrozenProjects.clear();
     return { scanned: reconciled, reconciled, planIds: [] as string[] };
   }
@@ -3970,8 +4171,15 @@ export class TestApiStore implements ApiStore {
   private _requireRollbackLease(input: Omit<RollbackLeaseFence, 'expectedHeadVersion'>) {
     const operation = [...this.rollbackOperations.values()].find((candidate) => candidate.id === input.operationId);
 
+    this._assertAccountPurgeMutationAllowed({
+      userIds: [operation?.actorUserId],
+      organizationIds: [operation ? this.projects.get(operation.projectId)?.organizationId : undefined],
+      projectIds: [operation?.projectId],
+    });
+
     if (
       !operation ||
+      !operation.actorUserId ||
       operation.status !== 'IN_PROGRESS' ||
       operation.leaseOwner !== input.ownerToken ||
       operation.fencingToken !== input.fencingToken ||
@@ -4004,6 +4212,7 @@ export class TestApiStore implements ApiStore {
 
   async acquireRollbackOperation(input: {
     projectId: string;
+    actorUserId: string;
     idempotencyKey: string;
     requestFingerprint: string;
     environment: string;
@@ -4014,6 +4223,11 @@ export class TestApiStore implements ApiStore {
     record: RollbackOperationRecord;
   }> {
     return this.withSerializedMutation(`rollback-operation:${input.projectId}:${input.idempotencyKey}`, async () => {
+      this._assertAccountPurgeMutationAllowed({
+        userIds: [input.actorUserId],
+        organizationIds: [this.projects.get(input.projectId)?.organizationId],
+        projectIds: [input.projectId],
+      });
       const mapKey = this._rollbackOperationKey(input.projectId, input.idempotencyKey);
       const existing = this.rollbackOperations.get(mapKey);
 
@@ -4023,6 +4237,7 @@ export class TestApiStore implements ApiStore {
         const record: RollbackOperationRecord = {
           id: id('rollback'),
           projectId: input.projectId,
+          actorUserId: input.actorUserId,
           idempotencyKey: input.idempotencyKey,
           requestFingerprint: input.requestFingerprint,
           environment: input.environment,
@@ -4039,7 +4254,11 @@ export class TestApiStore implements ApiStore {
         return { kind: 'ACQUIRED' as const, record };
       }
 
-      if (existing.requestFingerprint !== input.requestFingerprint || existing.environment !== input.environment) {
+      if (
+        existing.requestFingerprint !== input.requestFingerprint ||
+        existing.environment !== input.environment ||
+        existing.actorUserId !== input.actorUserId
+      ) {
         return { kind: 'FINGERPRINT_CONFLICT' as const, record: existing };
       }
 
@@ -4854,6 +5073,11 @@ export class TestApiStore implements ApiStore {
     ownerToken: string;
     ttlSeconds: number;
   }) {
+    const checkpoint = this.projectCheckpoints.get(input.checkpointId);
+    this._assertAccountPurgeMutationAllowed({
+      userIds: [checkpoint?.createdByUserId],
+      projectIds: [checkpoint?.projectId, input.projectId],
+    });
     const at = Date.now();
 
     for (const candidate of this.projectCheckpoints.values()) {
@@ -4905,6 +5129,10 @@ export class TestApiStore implements ApiStore {
     ttlSeconds: number;
   }) {
     const row = this.projectCheckpoints.get(input.checkpointId);
+    this._assertAccountPurgeMutationAllowed({
+      userIds: [row?.createdByUserId],
+      projectIds: [row?.projectId],
+    });
 
     if (
       !row ||
@@ -4923,6 +5151,10 @@ export class TestApiStore implements ApiStore {
 
   async assertProjectCheckpointBarrier(input: { checkpointId: string; ownerToken: string; fence: number }) {
     const row = this.projectCheckpoints.get(input.checkpointId);
+    this._assertAccountPurgeMutationAllowed({
+      userIds: [row?.createdByUserId],
+      projectIds: [row?.projectId],
+    });
 
     if (
       !row ||
@@ -4992,6 +5224,10 @@ export class TestApiStore implements ApiStore {
 
   async updateProjectCheckpoint(idv: string, patch: Record<string, unknown>) {
     const row = this.projectCheckpoints.get(idv);
+    this._assertAccountPurgeMutationAllowed({
+      userIds: [row?.createdByUserId],
+      projectIds: [row?.projectId],
+    });
 
     if (row) {
       Object.assign(row, patch);
@@ -5037,11 +5273,17 @@ export class TestApiStore implements ApiStore {
     licenseSnapshot?: unknown;
     consentVersion?: string;
   }) {
+    this._assertAccountPurgeMutationAllowed({
+      userIds: [input.actorUserId],
+      organizationIds: [input.organizationId],
+      projectIds: [input.sourceProjectId],
+    });
     const existing = [...this.remixJobs.values()].find(
       (job) => job.organizationId === input.organizationId && job.idempotencyKey === input.idempotencyKey,
     );
 
     if (existing) {
+      this._assertStateMachineNotPurged(existing.errorCode, existing.error);
       if (existing.requestHash !== input.requestHash) {
         throw Object.assign(new Error('Idempotency key already used for another remix request'), {
           statusCode: 409,
@@ -5082,6 +5324,11 @@ export class TestApiStore implements ApiStore {
 
   async claimRemixJob(input: { id: string; organizationId: string; operationToken: string; leaseDurationMs: number }) {
     const row = this.remixJobs.get(input.id);
+    this._assertAccountPurgeMutationAllowed({
+      userIds: [row?.actorUserId],
+      organizationIds: [input.organizationId],
+      projectIds: [row?.sourceProjectId, row?.targetProjectId],
+    });
 
     if (!row || row.organizationId !== input.organizationId || ['COMPLETED', 'FAILED'].includes(row.state)) {
       return undefined;
@@ -5114,6 +5361,11 @@ export class TestApiStore implements ApiStore {
     leaseDurationMs: number;
   }) {
     const row = this.remixJobs.get(input.id);
+    this._assertAccountPurgeMutationAllowed({
+      userIds: [row?.actorUserId],
+      organizationIds: [input.organizationId],
+      projectIds: [row?.sourceProjectId, row?.targetProjectId],
+    });
 
     if (
       !row ||
@@ -5144,6 +5396,11 @@ export class TestApiStore implements ApiStore {
     patch?: RemixJobTransitionPatch;
   }) {
     const row = this.remixJobs.get(input.id);
+    this._assertAccountPurgeMutationAllowed({
+      userIds: [row?.actorUserId],
+      organizationIds: [input.organizationId],
+      projectIds: [row?.sourceProjectId, row?.targetProjectId, input.patch?.targetProjectId],
+    });
 
     if (
       !row ||
@@ -5164,6 +5421,11 @@ export class TestApiStore implements ApiStore {
 
   async releaseRemixJobLease(input: { id: string; organizationId: string; operationToken: string }) {
     const row = this.remixJobs.get(input.id);
+    this._assertAccountPurgeMutationAllowed({
+      userIds: [row?.actorUserId],
+      organizationIds: [input.organizationId],
+      projectIds: [row?.sourceProjectId, row?.targetProjectId],
+    });
 
     if (!row || row.organizationId !== input.organizationId || row.operationToken !== input.operationToken) {
       return undefined;
@@ -5186,6 +5448,11 @@ export class TestApiStore implements ApiStore {
     manifestCloneMode?: ProjectManifestCloneMode;
   }) {
     const job = this.remixJobs.get(input.remixJobId);
+    this._assertAccountPurgeMutationAllowed({
+      userIds: [job?.actorUserId],
+      organizationIds: [input.organizationId],
+      projectIds: [job?.sourceProjectId, job?.targetProjectId],
+    });
 
     if (
       !job ||
@@ -5282,6 +5549,11 @@ export class TestApiStore implements ApiStore {
   }) {
     const job = this.remixJobs.get(input.remixJobId);
     const instance = this.databaseInstances.get(input.databaseInstanceId);
+    this._assertAccountPurgeMutationAllowed({
+      userIds: [job?.actorUserId],
+      organizationIds: [input.organizationId],
+      projectIds: [job?.sourceProjectId, job?.targetProjectId, input.projectId],
+    });
 
     if (
       !job ||
@@ -5319,6 +5591,11 @@ export class TestApiStore implements ApiStore {
   }) {
     const job = this.remixJobs.get(input.remixJobId);
     const project = this.projects.get(input.targetProjectId);
+    this._assertAccountPurgeMutationAllowed({
+      userIds: [job?.actorUserId],
+      organizationIds: [input.organizationId],
+      projectIds: [job?.sourceProjectId, job?.targetProjectId, input.targetProjectId],
+    });
 
     if (
       !job ||
@@ -5350,6 +5627,11 @@ export class TestApiStore implements ApiStore {
     error: string;
   }) {
     const job = this.remixJobs.get(input.remixJobId);
+    this._assertAccountPurgeMutationAllowed({
+      userIds: [job?.actorUserId],
+      organizationIds: [input.organizationId],
+      projectIds: [job?.sourceProjectId, job?.targetProjectId],
+    });
 
     if (!job || job.organizationId !== input.organizationId || job.state === 'COMPLETED') {
       return undefined;
@@ -5376,6 +5658,11 @@ export class TestApiStore implements ApiStore {
     targetProjectId: string;
   }) {
     const job = this.remixJobs.get(input.remixJobId);
+    this._assertAccountPurgeMutationAllowed({
+      userIds: [job?.actorUserId],
+      organizationIds: [input.organizationId],
+      projectIds: [job?.sourceProjectId, job?.targetProjectId, input.targetProjectId],
+    });
 
     if (!job || job.state !== 'CLEANUP_PENDING' || job.operationToken !== input.operationToken) {
       return false;
@@ -5391,6 +5678,11 @@ export class TestApiStore implements ApiStore {
 
   async finishRemixCleanup(input: { remixJobId: string; organizationId: string; operationToken: string }) {
     const job = this.remixJobs.get(input.remixJobId);
+    this._assertAccountPurgeMutationAllowed({
+      userIds: [job?.actorUserId],
+      organizationIds: [input.organizationId],
+      projectIds: [job?.sourceProjectId, job?.targetProjectId],
+    });
 
     if (!job || job.state !== 'CLEANUP_PENDING' || job.operationToken !== input.operationToken || job.targetProjectId) {
       return undefined;
@@ -5422,6 +5714,11 @@ export class TestApiStore implements ApiStore {
     consentedByUserId?: string;
     sourceInventory: unknown;
   }) {
+    this._assertAccountPurgeMutationAllowed({
+      userIds: [input.consentedByUserId],
+      organizationIds: [input.sourceOrganizationId, input.targetOrganizationId],
+      projectIds: [input.sourceProjectId, input.targetProjectId],
+    });
     const existing = this.remixStorageShares.get(input.targetProjectId);
 
     if (existing) {
@@ -5446,6 +5743,11 @@ export class TestApiStore implements ApiStore {
 
   async revokeRemixStorageShare(input: { targetProjectId: string; targetOrganizationId: string }) {
     const share = this.remixStorageShares.get(input.targetProjectId);
+    this._assertAccountPurgeMutationAllowed({
+      userIds: [share?.consentedByUserId],
+      organizationIds: [share?.sourceOrganizationId, input.targetOrganizationId],
+      projectIds: [share?.sourceProjectId, input.targetProjectId],
+    });
 
     if (!share || share.targetOrganizationId !== input.targetOrganizationId || share.state !== 'ACTIVE') {
       return undefined;
@@ -5468,6 +5770,11 @@ export class TestApiStore implements ApiStore {
     targetProjectId: string;
   }) {
     const job = this.remixJobs.get(input.remixJobId);
+    this._assertAccountPurgeMutationAllowed({
+      userIds: [job?.actorUserId],
+      organizationIds: [input.organizationId],
+      projectIds: [job?.sourceProjectId, job?.targetProjectId, input.targetProjectId],
+    });
 
     if (
       !job ||
@@ -5629,11 +5936,16 @@ export class TestApiStore implements ApiStore {
     requestHash: string;
     reservedCredits: number;
   }) {
+    this._assertAccountPurgeMutationAllowed({
+      userIds: [input.actorUserId],
+      organizationIds: [input.organizationId],
+    });
     const existing = [...this.importJobs.values()].find(
       (job) => job.organizationId === input.organizationId && job.idempotencyKey === input.idempotencyKey,
     );
 
     if (existing) {
+      this._assertStateMachineNotPurged(undefined, existing.error);
       if (existing.requestHash !== input.requestHash) {
         throw Object.assign(new Error('This import idempotency key is already bound to another request.'), {
           statusCode: 409,
@@ -5707,6 +6019,12 @@ export class TestApiStore implements ApiStore {
     operationLeaseDurationMs?: number;
   }) {
     const row = this.importJobs.get(input.id);
+    this._assertStateMachineNotPurged(undefined, row?.error);
+    this._assertAccountPurgeMutationAllowed({
+      userIds: [row?.actorUserId],
+      organizationIds: [input.organizationId],
+      projectIds: [row?.targetProjectId, input.patch?.targetProjectId],
+    });
 
     if (
       !row ||
@@ -5757,6 +6075,11 @@ export class TestApiStore implements ApiStore {
     leaseDurationMs: number;
   }) {
     const row = this.importJobs.get(input.id);
+    this._assertAccountPurgeMutationAllowed({
+      userIds: [row?.actorUserId],
+      organizationIds: [input.organizationId],
+      projectIds: [row?.targetProjectId],
+    });
 
     if (
       !row ||
@@ -5783,6 +6106,11 @@ export class TestApiStore implements ApiStore {
     expectedStates: string[];
   }) {
     const row = this.importJobs.get(input.id);
+    this._assertAccountPurgeMutationAllowed({
+      userIds: [row?.actorUserId],
+      organizationIds: [input.organizationId],
+      projectIds: [row?.targetProjectId],
+    });
     return Boolean(
       row &&
         row.organizationId === input.organizationId &&
@@ -5808,6 +6136,11 @@ export class TestApiStore implements ApiStore {
     manifestCloneMode?: ProjectManifestCloneMode;
   }) {
     const job = this.importJobs.get(input.importJobId);
+    this._assertAccountPurgeMutationAllowed({
+      userIds: [job?.actorUserId],
+      organizationIds: [input.organizationId],
+      projectIds: [job?.targetProjectId],
+    });
 
     if (
       !job ||
@@ -5888,6 +6221,26 @@ export class TestApiStore implements ApiStore {
   }) {
     const job = this.importJobs.get(input.importJobId);
     const reservation = this.importReservations.get(input.importJobId);
+    this._assertAccountPurgeMutationAllowed({
+      userIds: [job?.actorUserId],
+      organizationIds: [input.organizationId],
+      projectIds: [job?.targetProjectId, input.targetProjectId],
+    });
+
+    if (
+      job?.organizationId === input.organizationId &&
+      job.state === 'COMMITTED' &&
+      job.targetProjectId === input.targetProjectId
+    ) {
+      if (reservation?.state !== 'SETTLED' || reservation.debitedCredits !== input.actualCredits) {
+        throw Object.assign(new Error('Import commit replay differs from the durable settlement.'), {
+          statusCode: 409,
+          code: 'IMPORT_COMMIT_REPLAY_MISMATCH',
+        });
+      }
+
+      return { job, reservation };
+    }
 
     if (
       !job ||
@@ -5939,6 +6292,11 @@ export class TestApiStore implements ApiStore {
   }) {
     const job = this.importJobs.get(input.importJobId);
     const reservation = this.importReservations.get(input.importJobId);
+    this._assertAccountPurgeMutationAllowed({
+      userIds: [job?.actorUserId],
+      organizationIds: [input.organizationId],
+      projectIds: [job?.targetProjectId],
+    });
 
     const otherOwnerActive =
       job?.operationToken &&
@@ -5995,6 +6353,11 @@ export class TestApiStore implements ApiStore {
     targetProjectId: string;
   }) {
     const job = this.importJobs.get(input.importJobId);
+    this._assertAccountPurgeMutationAllowed({
+      userIds: [job?.actorUserId],
+      organizationIds: [input.organizationId],
+      projectIds: [job?.targetProjectId, input.targetProjectId],
+    });
 
     if (
       !job ||
@@ -6024,6 +6387,11 @@ export class TestApiStore implements ApiStore {
 
   async finishImportCleanup(input: { importJobId: string; organizationId: string; operationToken: string }) {
     const job = this.importJobs.get(input.importJobId);
+    this._assertAccountPurgeMutationAllowed({
+      userIds: [job?.actorUserId],
+      organizationIds: [input.organizationId],
+      projectIds: [job?.targetProjectId],
+    });
 
     if (
       !job ||
@@ -6053,6 +6421,11 @@ export class TestApiStore implements ApiStore {
 
   async cancelImportJob(importJobId: string, organizationId: string) {
     const job = this.importJobs.get(importJobId);
+    this._assertAccountPurgeMutationAllowed({
+      userIds: [job?.actorUserId],
+      organizationIds: [organizationId],
+      projectIds: [job?.targetProjectId],
+    });
 
     if (!job || job.organizationId !== organizationId) {
       return undefined;
@@ -6095,6 +6468,11 @@ export class TestApiStore implements ApiStore {
     const ids: string[] = [];
 
     for (const row of this.importJobs.values()) {
+      this._assertAccountPurgeMutationAllowed({
+        userIds: [row.actorUserId],
+        organizationIds: [row.organizationId],
+        projectIds: [row.targetProjectId],
+      });
       const operationExpired = row.operationExpiresAt && new Date(row.operationExpiresAt).getTime() < now;
       const stagingExpired = row.expiresAt && new Date(row.expiresAt).getTime() < now;
 

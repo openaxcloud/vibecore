@@ -688,6 +688,7 @@ export type RollbackOperationPhase =
 export interface RollbackOperationRecord {
   id: string;
   projectId: string;
+  actorUserId?: string;
   idempotencyKey: string;
   requestFingerprint: string;
   environment: string;
@@ -2980,6 +2981,7 @@ export interface ApiStore {
    */
   acquireRollbackOperation(input: {
     projectId: string;
+    actorUserId: string;
     idempotencyKey: string;
     requestFingerprint: string;
     environment: string;
