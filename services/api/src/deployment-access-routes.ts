@@ -3,6 +3,7 @@ import type { PermissionKey } from '@vibecore/rbac';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 
+import { appPublicCopy, appPublicEnglish, type AppPublicCopyKey } from './app-public-copy.js';
 import {
   ACCESS_EXCHANGE_TICKET_TTL_SECONDS,
   DEPLOYMENT_ACCESS_MODES,
@@ -17,6 +18,7 @@ import {
   verifyDeploymentAccessCookie,
 } from './deployment-access.js';
 import type { ApiStore, ProjectRecord, ReleaseManifestRecord } from './store.js';
+import { resolveTransactionalLocale } from './transactional-i18n.js';
 
 type ProjectAuthorizer = (
   request: FastifyRequest,
@@ -60,11 +62,19 @@ const updatePolicySchema = z
   })
   .superRefine((value, context) => {
     if (value.mode === 'PASSWORD_PROTECTED' && !value.password) {
-      context.addIssue({ code: z.ZodIssueCode.custom, path: ['password'], message: 'A password is required.' });
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['password'],
+        message: appPublicEnglish('DEPLOYMENT_ACCESS_PASSWORD_REQUIRED'),
+      });
     }
 
     if (value.mode !== 'PASSWORD_PROTECTED' && value.password !== undefined) {
-      context.addIssue({ code: z.ZodIssueCode.custom, path: ['password'], message: 'Password is not allowed.' });
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['password'],
+        message: appPublicEnglish('DEPLOYMENT_ACCESS_PASSWORD_FORBIDDEN'),
+      });
     }
   });
 
@@ -85,7 +95,7 @@ function parse<T>(schema: z.ZodType<T>, value: unknown): T {
     return result.data;
   }
 
-  throw Object.assign(new Error('Invalid deployment access request.'), {
+  throw Object.assign(new Error(appPublicEnglish('DEPLOYMENT_ACCESS_VALIDATION_FAILED')), {
     statusCode: 400,
     code: 'DEPLOYMENT_ACCESS_VALIDATION_FAILED',
     details: result.error.flatten(),
@@ -130,6 +140,38 @@ function setNoStore(reply: FastifyReply): void {
   reply.header('cache-control', 'private, no-store, max-age=0');
   reply.header('pragma', 'no-cache');
   reply.header('vary', 'Cookie');
+}
+
+function requestAccessLocale(request: FastifyRequest) {
+  const cookieHeader = typeof request.headers.cookie === 'string' ? request.headers.cookie : '';
+
+  const cookies = new Map(
+    cookieHeader
+      .split(';')
+      .map((entry) => entry.trim().split('='))
+      .filter((entry): entry is [string, string] => entry.length >= 2)
+      .map(([name, ...value]) => [name, value.join('=')]),
+  );
+
+  return resolveTransactionalLocale({
+    preferredLanguage: cookies.get('vibecore-lang') ?? cookies.get('vibecore-auto-lang'),
+    acceptLanguage: request.headers['accept-language'],
+  });
+}
+
+function sendAccessError(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  status: number,
+  key: AppPublicCopyKey,
+  code: string,
+) {
+  const locale = requestAccessLocale(request);
+  setNoStore(reply);
+  reply.header('content-language', locale);
+  reply.header('vary', 'Cookie, Accept-Language');
+
+  return reply.code(status).send({ error: appPublicCopy(key, locale), code });
 }
 
 function accessCookie(
@@ -239,7 +281,7 @@ export async function registerDeploymentAccessRoutes(
     const deployment = await store.getDeployment(project.id, deploymentId);
 
     if (!deployment) {
-      return reply.code(404).send({ error: 'Deployment not found.', code: 'DEPLOYMENT_NOT_FOUND' });
+      return sendAccessError(request, reply, 404, 'DEPLOYMENT_NOT_FOUND', 'DEPLOYMENT_NOT_FOUND');
     }
 
     const membership = request.currentUser
@@ -271,30 +313,39 @@ export async function registerDeploymentAccessRoutes(
         : undefined;
 
       if (!membership || (membership.roleKey !== 'owner' && membership.roleKey !== 'admin')) {
-        return reply.code(403).send({
-          error: 'Only workspace owners and admins can manage deployment access.',
-          code: 'DEPLOYMENT_ACCESS_ADMIN_REQUIRED',
-        });
+        return sendAccessError(
+          request,
+          reply,
+          403,
+          'DEPLOYMENT_ACCESS_ADMIN_REQUIRED',
+          'DEPLOYMENT_ACCESS_ADMIN_REQUIRED',
+        );
       }
 
       if (body.mode !== 'PUBLIC' && !deploymentAccessActivationEnabled(isProduction)) {
-        return reply.code(503).send({
-          error: 'Protected deployment access is not activated on every serving edge yet.',
-          code: 'DEPLOYMENT_ACCESS_ROLLOUT_NOT_ACTIVE',
-        });
+        return sendAccessError(
+          request,
+          reply,
+          503,
+          'DEPLOYMENT_ACCESS_ROLLOUT_NOT_ACTIVE',
+          'DEPLOYMENT_ACCESS_ROLLOUT_NOT_ACTIVE',
+        );
       }
 
       if (body.mode !== 'PUBLIC' && !primaryAccessSecret()) {
-        return reply.code(503).send({
-          error: 'Deployment access signing is unavailable.',
-          code: 'DEPLOYMENT_ACCESS_SIGNING_UNAVAILABLE',
-        });
+        return sendAccessError(
+          request,
+          reply,
+          503,
+          'DEPLOYMENT_ACCESS_SIGNING_UNAVAILABLE',
+          'DEPLOYMENT_ACCESS_SIGNING_UNAVAILABLE',
+        );
       }
 
       const deployment = await store.getDeployment(project.id, deploymentId);
 
       if (!deployment) {
-        return reply.code(404).send({ error: 'Deployment not found.', code: 'DEPLOYMENT_NOT_FOUND' });
+        return sendAccessError(request, reply, 404, 'DEPLOYMENT_NOT_FOUND', 'DEPLOYMENT_NOT_FOUND');
       }
 
       const releaseSource =
@@ -312,7 +363,7 @@ export async function registerDeploymentAccessRoutes(
       });
 
       if (!policy) {
-        return reply.code(404).send({ error: 'Deployment not found.', code: 'DEPLOYMENT_NOT_FOUND' });
+        return sendAccessError(request, reply, 404, 'DEPLOYMENT_NOT_FOUND', 'DEPLOYMENT_NOT_FOUND');
       }
 
       await options.audit(request, {
@@ -335,13 +386,13 @@ export async function registerDeploymentAccessRoutes(
       const { deploymentId } = parse(deploymentParamsSchema, request.params);
 
       if (!request.currentUser) {
-        return reply.code(401).send({ error: 'Authentication required.', code: 'AUTH_REQUIRED' });
+        return sendAccessError(request, reply, 401, 'AUTHENTICATION_REQUIRED', 'AUTH_REQUIRED');
       }
 
       const context = await store.getDeploymentAccessContext(deploymentId);
 
       if (!context || context.projectDeletedAt || context.deploymentStatus !== 'READY') {
-        return reply.code(404).send({ error: 'Deployment not found.', code: 'DEPLOYMENT_NOT_FOUND' });
+        return sendAccessError(request, reply, 404, 'DEPLOYMENT_NOT_FOUND', 'DEPLOYMENT_NOT_FOUND');
       }
 
       const deployment = await store.getDeployment(context.projectId, deploymentId);
@@ -351,10 +402,13 @@ export async function registerDeploymentAccessRoutes(
         : undefined;
 
       if (!origin) {
-        return reply.code(409).send({
-          error: 'The deployment dedicated origin is unavailable.',
-          code: 'DEPLOYMENT_ACCESS_ORIGIN_INVALID',
-        });
+        return sendAccessError(
+          request,
+          reply,
+          409,
+          'DEPLOYMENT_ACCESS_ORIGIN_INVALID',
+          'DEPLOYMENT_ACCESS_ORIGIN_INVALID',
+        );
       }
 
       const rawTicket = createOpaqueToken('dep_access');
@@ -368,10 +422,13 @@ export async function registerDeploymentAccessRoutes(
 
       if (!issued.ok) {
         const denied = issued.reason === 'ACCESS_DENIED';
-        return reply.code(denied ? 403 : issued.reason === 'DEPLOYMENT_NOT_FOUND' ? 404 : 409).send({
-          error: denied ? 'You do not have access to this deployment.' : 'Deployment access is unavailable.',
-          code: `DEPLOYMENT_ACCESS_${issued.reason}`,
-        });
+        return sendAccessError(
+          request,
+          reply,
+          denied ? 403 : issued.reason === 'DEPLOYMENT_NOT_FOUND' ? 404 : 409,
+          denied ? 'DEPLOYMENT_ACCESS_DENIED' : 'DEPLOYMENT_ACCESS_UNAVAILABLE',
+          `DEPLOYMENT_ACCESS_${issued.reason}`,
+        );
       }
 
       setNoStore(reply);
@@ -468,11 +525,17 @@ export async function registerDeploymentAccessRoutes(
         !context.policy.passwordHash ||
         !secret
       ) {
-        return reply.code(423).send({ error: 'Deployment access is locked.', code: 'DEPLOYMENT_ACCESS_LOCKED' });
+        return sendAccessError(request, reply, 423, 'DEPLOYMENT_ACCESS_LOCKED', 'DEPLOYMENT_ACCESS_LOCKED');
       }
 
       if (!verifyPassword(body.password, context.policy.passwordHash)) {
-        return reply.code(401).send({ error: 'Incorrect password.', code: 'DEPLOYMENT_ACCESS_PASSWORD_INVALID' });
+        return sendAccessError(
+          request,
+          reply,
+          401,
+          'DEPLOYMENT_ACCESS_PASSWORD_INVALID',
+          'DEPLOYMENT_ACCESS_PASSWORD_INVALID',
+        );
       }
 
       accessCookie(reply, {
@@ -509,10 +572,13 @@ export async function registerDeploymentAccessRoutes(
       if (!result.ok || !secret) {
         const replay = !result.ok && result.reason === 'TICKET_REPLAYED';
 
-        return reply.code(replay ? 409 : 401).send({
-          error: 'This access exchange is invalid or expired.',
-          code: !result.ok ? `DEPLOYMENT_ACCESS_${result.reason}` : 'DEPLOYMENT_ACCESS_SIGNING_UNAVAILABLE',
-        });
+        return sendAccessError(
+          request,
+          reply,
+          replay ? 409 : 401,
+          'DEPLOYMENT_ACCESS_EXCHANGE_INVALID',
+          !result.ok ? `DEPLOYMENT_ACCESS_${result.reason}` : 'DEPLOYMENT_ACCESS_SIGNING_UNAVAILABLE',
+        );
       }
 
       accessCookie(reply, {

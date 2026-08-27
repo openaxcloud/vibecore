@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { appPublicEnglish } from './app-public-copy.js';
 import type { ApiStore, ProjectReleaseBarrierLease, ProjectReleaseFence } from './store.js';
 
 const DEFAULT_RELEASE_BARRIER_TTL_SECONDS = 60;
@@ -36,6 +37,7 @@ export async function withProjectReleaseBarrier<T>(
   const ttlSeconds = input.ttlSeconds ?? DEFAULT_RELEASE_BARRIER_TTL_SECONDS;
   const heartbeatMs = input.heartbeatMs ?? DEFAULT_RELEASE_BARRIER_HEARTBEAT_MS;
   const ownerToken = randomUUID();
+
   const lease = await store.acquireProjectReleaseBarrier({
     projectId: input.projectId,
     expectedOrganizationId: input.expectedOrganizationId,
@@ -46,7 +48,7 @@ export async function withProjectReleaseBarrier<T>(
   });
 
   if (!lease) {
-    throw Object.assign(new Error('A project checkpoint or release is already active.'), {
+    throw Object.assign(new Error(appPublicEnglish('CHECKPOINT_BARRIER_ACTIVE_MESSAGE')), {
       code: 'CHECKPOINT_BARRIER_ACTIVE',
       statusCode: 423,
     });
@@ -54,6 +56,7 @@ export async function withProjectReleaseBarrier<T>(
 
   let lost: unknown;
   let renewing = false;
+
   const fence: ProjectReleaseFence = {
     checkpointId: lease.checkpointId,
     ownerToken: lease.ownerToken,
@@ -62,7 +65,9 @@ export async function withProjectReleaseBarrier<T>(
     expectedManifestDigest: input.expectedManifestDigest,
   };
   const assert = async () => {
-    if (lost) throw lost;
+    if (lost) {
+      throw lost;
+    }
 
     try {
       await store.assertProjectReleaseBarrier({
@@ -80,7 +85,10 @@ export async function withProjectReleaseBarrier<T>(
   };
 
   const heartbeat = setInterval(() => {
-    if (renewing || lost) return;
+    if (renewing || lost) {
+      return;
+    }
+
     renewing = true;
     void store
       .renewProjectCheckpointBarrier({
@@ -91,7 +99,7 @@ export async function withProjectReleaseBarrier<T>(
       })
       .then((expiresAt) => {
         if (!expiresAt) {
-          lost = Object.assign(new Error('Project release barrier was lost.'), {
+          lost = Object.assign(new Error(appPublicEnglish('PROJECT_RELEASE_BARRIER_LOST')), {
             code: 'PROJECT_RELEASE_BARRIER_LOST',
             statusCode: 409,
           });
@@ -108,8 +116,10 @@ export async function withProjectReleaseBarrier<T>(
 
   try {
     await assert();
+
     const result = await effect({ lease, fence, assert });
     await assert();
+
     return result;
   } finally {
     clearInterval(heartbeat);

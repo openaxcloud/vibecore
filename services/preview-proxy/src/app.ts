@@ -30,6 +30,7 @@ import { REPORTER_SCRIPT } from './reporter-script.js';
  * upstream bodies would let a large response OOM the proxy.
  */
 const MAX_INJECT_BYTES = 4 * 1024 * 1024;
+const DEPLOYMENT_ACCESS_CONFIG_ERROR = 'PREVIEW_DEPLOYMENT_ACCESS_CONFIG_REQUIRED';
 
 /*
  * Auto-refreshing holding page served for the iframe's top-level navigation when
@@ -586,7 +587,13 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
   }
 
   if (enforceDeploymentAccess && (!apiBaseUrl || !proxySharedSecret)) {
-    throw new Error('DEPLOYMENT_ACCESS_ENFORCEMENT requires API_BASE_URL and PREVIEW_PROXY_SHARED_SECRET.');
+    throw Object.assign(new Error(DEPLOYMENT_ACCESS_CONFIG_ERROR), {
+      code: 'PREVIEW_DEPLOYMENT_ACCESS_CONFIG_REQUIRED',
+      missing: [
+        !apiBaseUrl ? 'API_BASE_URL' : undefined,
+        !proxySharedSecret ? 'PREVIEW_PROXY_SHARED_SECRET' : undefined,
+      ].filter((value): value is string => Boolean(value)),
+    });
   }
 
   /* Is this workspace's port marked private? Fail-open on any lookup error. */

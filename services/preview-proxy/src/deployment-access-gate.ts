@@ -113,6 +113,7 @@ function gateCopy(request: FastifyRequest) {
         lockedTitle: 'Accès temporairement indisponible',
         lockedBody: 'Le contrôle d’accès ne peut pas être vérifié. Aucun contenu de l’application n’a été servi.',
         retry: 'Réessayer',
+        bodyTooLarge: 'La demande d’accès dépasse la taille autorisée.',
       }
     : {
         passwordEyebrow: 'Protected access',
@@ -129,6 +130,7 @@ function gateCopy(request: FastifyRequest) {
         lockedTitle: 'Access temporarily unavailable',
         lockedBody: 'Access could not be verified. No application content was served.',
         retry: 'Try again',
+        bodyTooLarge: 'The access request exceeds the allowed size.',
       };
 }
 
@@ -240,7 +242,10 @@ export async function readBoundedGateBody(request: FastifyRequest): Promise<URLS
     size += buffer.length;
 
     if (size > MAX_GATE_BODY_BYTES) {
-      throw Object.assign(new Error('Gate request body too large.'), { statusCode: 413 });
+      throw Object.assign(new Error(gateCopy(request).bodyTooLarge), {
+        code: 'DEPLOYMENT_ACCESS_BODY_TOO_LARGE',
+        statusCode: 413,
+      });
     }
 
     chunks.push(buffer);

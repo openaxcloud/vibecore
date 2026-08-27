@@ -401,10 +401,12 @@ describe('deployment access API', () => {
       const response = await app.inject({
         method: 'POST',
         url: `/deployment-access/${lookalike.id}/ticket`,
-        headers: { authorization: 'Bearer owner-access-token' },
+        headers: { authorization: 'Bearer owner-access-token', 'accept-language': 'fr-FR, en;q=0.5' },
       });
       expect(response.statusCode).toBe(409);
       expect(response.json().code).toBe('DEPLOYMENT_ACCESS_ORIGIN_INVALID');
+      expect(response.json().error).toBe('L’adresse dédiée du déploiement est indisponible.');
+      expect(response.headers['content-language']).toBe('fr');
     } finally {
       await app.close();
     }

@@ -3175,6 +3175,50 @@
     "en": "A password is required only for password-protected deployments.",
     "fr": "Un mot de passe est requis uniquement pour les déploiements protégés par mot de passe."
   },
+  "DEPLOYMENT_ACCESS_PASSWORD_REQUIRED": {
+    "en": "A password is required.",
+    "fr": "Un mot de passe est requis."
+  },
+  "DEPLOYMENT_ACCESS_PASSWORD_FORBIDDEN": {
+    "en": "A password is not allowed for this access mode.",
+    "fr": "Aucun mot de passe n’est autorisé pour ce mode d’accès."
+  },
+  "DEPLOYMENT_ACCESS_VALIDATION_FAILED": {
+    "en": "The deployment access request is invalid.",
+    "fr": "La demande d’accès au déploiement est invalide."
+  },
+  "DEPLOYMENT_ACCESS_ADMIN_REQUIRED": {
+    "en": "Only workspace owners and administrators can manage deployment access.",
+    "fr": "Seuls les propriétaires et les administrateurs de l’espace de travail peuvent gérer l’accès au déploiement."
+  },
+  "DEPLOYMENT_ACCESS_ORIGIN_INVALID": {
+    "en": "The dedicated deployment address is unavailable.",
+    "fr": "L’adresse dédiée du déploiement est indisponible."
+  },
+  "DEPLOYMENT_ACCESS_DENIED": {
+    "en": "You do not have access to this deployment.",
+    "fr": "Vous n’avez pas accès à ce déploiement."
+  },
+  "DEPLOYMENT_ACCESS_UNAVAILABLE": {
+    "en": "Deployment access is unavailable.",
+    "fr": "L’accès au déploiement est indisponible."
+  },
+  "DEPLOYMENT_ACCESS_LOCKED": {
+    "en": "Deployment access is locked.",
+    "fr": "L’accès au déploiement est verrouillé."
+  },
+  "DEPLOYMENT_ACCESS_PASSWORD_INVALID": {
+    "en": "The password is incorrect.",
+    "fr": "Le mot de passe est incorrect."
+  },
+  "DEPLOYMENT_ACCESS_EXCHANGE_INVALID": {
+    "en": "This access exchange is invalid or expired.",
+    "fr": "Cet échange d’accès est invalide ou a expiré."
+  },
+  "STATIC_DEPLOYMENT_ID_INVALID": {
+    "en": "The static deployment identifier is invalid.",
+    "fr": "L’identifiant du déploiement statique est invalide."
+  },
   "DEPLOYMENT_ACCESS_ROLLOUT_NOT_ACTIVE": {
     "en": "Protected deployment access is not activated on every serving edge yet.",
     "fr": "L’accès protégé aux déploiements n’est pas encore activé sur tous les points de diffusion."
