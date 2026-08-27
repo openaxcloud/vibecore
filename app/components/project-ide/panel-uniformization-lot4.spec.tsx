@@ -94,10 +94,22 @@ describe('UNIF lot 4 — point 1 : boutons restants → PanelButton', () => {
 
 describe('UNIF lot 4 — point 2 : UNE famille de statuts', () => {
   it('les tokens --status-*-text sont des alias de --vc-ide-accent-* (clair ET sombre)', () => {
-    const errorAliases = indexScssSource.match(/--status-error-text: var\(--vc-ide-accent-error\);/g) ?? [];
-    const warningAliases = indexScssSource.match(/--status-warning-text: var\(--vc-ide-accent-warning\);/g) ?? [];
-    const successAliases = indexScssSource.match(/--status-success-text: var\(--vc-ide-accent-success\);/g) ?? [];
-    const infoAliases = indexScssSource.match(/--status-info-text: var\(--vc-ide-accent-action\);/g) ?? [];
+    /*
+     * `-on-tint` accepté en plus du canonique nu : c'est une variante de la MÊME
+     * famille, introduite parce que le texte de statut se pose sur sa propre
+     * teinte (`--status-*-bg` = color-mix 14-16 % du texte), où les canoniques
+     * clairs tombaient sous AA. L'invariant que ce test protège — un alias de
+     * `--vc-ide-accent-*`, jamais une valeur en dur — est inchangé.
+     */
+    const alias = (statut: string, famille: string) =>
+      indexScssSource.match(
+        new RegExp(`--status-${statut}-text: var\\(--vc-ide-accent-${famille}(?:-on-tint)?\\);`, 'g'),
+      ) ?? [];
+
+    const errorAliases = alias('error', 'error');
+    const warningAliases = alias('warning', 'warning');
+    const successAliases = alias('success', 'success');
+    const infoAliases = alias('info', 'action');
 
     // Un alias par bloc de thème (sombre :root + clair :root[data-theme='light']).
     expect(errorAliases.length).toBe(2);
