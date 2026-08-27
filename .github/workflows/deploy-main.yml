@@ -114,7 +114,7 @@ jobs:
           ref: ${{ steps.target.outputs.target_sha }}
           fetch-depth: 0
 
-      - name: Verify checkout identity and main ancestry
+      - name: Verify checkout identity and non-stale main target
         env:
           TARGET_SHA: ${{ steps.target.outputs.target_sha }}
         run: |
@@ -126,10 +126,7 @@ jobs:
           fi
 
           git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main
-          if ! git merge-base --is-ancestor "${TARGET_SHA}" refs/remotes/origin/main; then
-            echo "::error::target ${TARGET_SHA} is not an ancestor of origin/main" >&2
-            exit 1
-          fi
+          bash scripts/verify-deploy-target.sh "${TARGET_SHA}" refs/remotes/origin/main
 
       - uses: actions/setup-node@v4
         with:
@@ -141,6 +138,7 @@ jobs:
           TARGET_SHA: ${{ steps.target.outputs.target_sha }}
         run: |
           set -euo pipefail
+          node --test scripts/verify-deploy-target.node-test.mjs
           node --test scripts/wait-for-required-workflows.node-test.mjs
           node scripts/wait-for-required-workflows.mjs \
             --sha "${TARGET_SHA}" \
