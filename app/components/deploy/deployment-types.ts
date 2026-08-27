@@ -9,15 +9,14 @@ import {
  *
  * E-Code's managed deploy backend fulfils three tiers: `static` builds served at
  * `/static-deployments/<id>/`, `autoscale` managed HTTP services routed through
- * the preview proxy, and `scheduled` commands executed on a cron schedule with
- * persisted run history. Reserved VM mirrors Replit's dedicated-compute offering
- * but has no provisioning runtime yet, so it remains "coming soon" rather than
- * being faked. Keeping the taxonomy here as one source of truth lets the Publish
- * UI show the full menu while enabling only what the backend can fulfil.
+ * the preview proxy, `reserved-vm` always-on services when the operator reports
+ * that capability, and `scheduled` commands with persisted run history. The
+ * capability is fail-closed: callers must pass a positive server proof before
+ * Reserved VM becomes selectable.
  */
 export type DeploymentTypeId = 'static' | 'autoscale' | 'reserved-vm' | 'scheduled';
 
-export type DeploymentTypeStatus = 'available' | 'coming-soon';
+export type DeploymentTypeStatus = 'available' | 'capability-gated';
 
 export interface DeploymentType {
   id: DeploymentTypeId;
@@ -36,8 +35,8 @@ export interface DeploymentType {
   bestFor: string;
 
   /**
-   * For coming-soon tiers: what is still required to ship it, split into work
-   * that is code-only vs work that needs cluster/infra provisioning (operator).
+   * For capability-gated tiers: operator prerequisites explaining why the
+   * current environment cannot safely activate the tier.
    */
   requires?: { code: string[]; infra: string[] };
 }
@@ -79,13 +78,17 @@ const DEPLOYMENT_TYPE_COPY_KEYS: Readonly<Record<DeploymentTypeId, DeploymentTyp
 const DEPLOYMENT_TYPE_STATUS: Readonly<Record<DeploymentTypeId, DeploymentTypeStatus>> = {
   static: 'available',
   autoscale: 'available',
-  'reserved-vm': 'coming-soon',
+  'reserved-vm': 'capability-gated',
   scheduled: 'available',
 };
 
 const DEPLOYMENT_TYPE_IDS: readonly DeploymentTypeId[] = ['static', 'autoscale', 'reserved-vm', 'scheduled'];
 
-function createDeploymentType(id: DeploymentTypeId, copy: DeployRemainingCopy): DeploymentType {
+function createDeploymentType(
+  id: DeploymentTypeId,
+  copy: DeployRemainingCopy,
+  capabilities: Readonly<{ reservedVmAvailable?: boolean }>,
+): DeploymentType {
   const keys = DEPLOYMENT_TYPE_COPY_KEYS[id];
 
   const base = {
@@ -93,11 +96,11 @@ function createDeploymentType(id: DeploymentTypeId, copy: DeployRemainingCopy): 
     name: copy[keys.name],
     tagline: copy[keys.tagline],
     description: copy[keys.detailKey],
-    status: DEPLOYMENT_TYPE_STATUS[id],
+    status: id === 'reserved-vm' && capabilities.reservedVmAvailable ? 'available' : DEPLOYMENT_TYPE_STATUS[id],
     bestFor: copy[keys.bestFor],
   } satisfies DeploymentType;
 
-  if (id !== 'reserved-vm') {
+  if (id !== 'reserved-vm' || capabilities.reservedVmAvailable) {
     return base;
   }
 
@@ -117,10 +120,13 @@ function createDeploymentType(id: DeploymentTypeId, copy: DeployRemainingCopy): 
   };
 }
 
-export function getDeploymentTypes(language?: string | null): readonly DeploymentType[] {
+export function getDeploymentTypes(
+  language?: string | null,
+  capabilities: Readonly<{ reservedVmAvailable?: boolean }> = {},
+): readonly DeploymentType[] {
   const copy = getDeployRemainingCopy(language);
 
-  return DEPLOYMENT_TYPE_IDS.map((id) => createDeploymentType(id, copy));
+  return DEPLOYMENT_TYPE_IDS.map((id) => createDeploymentType(id, copy, capabilities));
 }
 
 /** Backward-compatible English data for non-React callers. */
@@ -130,8 +136,11 @@ export function getDeploymentType(id: string, language?: string | null): Deploym
   return getDeploymentTypes(language).find((type) => type.id === id);
 }
 
-export function isDeploymentTypeAvailable(id: string): boolean {
-  return getDeploymentType(id)?.status === 'available';
+export function isDeploymentTypeAvailable(
+  id: string,
+  capabilities: Readonly<{ reservedVmAvailable?: boolean }> = {},
+): boolean {
+  return getDeploymentTypes('en', capabilities).find((type) => type.id === id)?.status === 'available';
 }
 
 /** The default selection shown when the Publish panel opens. */

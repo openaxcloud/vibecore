@@ -17,6 +17,7 @@ describe('deployment-types', () => {
     expect(isDeploymentTypeAvailable('scheduled')).toBe(true);
 
     expect(isDeploymentTypeAvailable('reserved-vm')).toBe(false);
+    expect(isDeploymentTypeAvailable('reserved-vm', { reservedVmAvailable: true })).toBe(true);
   });
 
   it('defaults to the static deployment tier', () => {
@@ -24,9 +25,9 @@ describe('deployment-types', () => {
     expect(isDeploymentTypeAvailable(DEFAULT_DEPLOYMENT_TYPE)).toBe(true);
   });
 
-  it('every coming-soon tier documents its code + infra requirements', () => {
+  it('every capability-gated tier documents its operator requirements', () => {
     for (const type of DEPLOYMENT_TYPES) {
-      if (type.status === 'coming-soon') {
+      if (type.status === 'capability-gated') {
         expect(type.requires?.infra.length, `${type.id} needs infra reqs`).toBeGreaterThan(0);
         expect(type.requires?.code.length, `${type.id} needs code reqs`).toBeGreaterThan(0);
       } else {

@@ -97,7 +97,7 @@ describe('project creation and deployment catalogs', () => {
     const english = flattenStrings(projectUserAreaEn);
     const french = flattenStrings(projectUserAreaFr);
 
-    expect(english.size).toBe(246);
+    expect(english.size).toBe(304);
     expect([...french.keys()].sort()).toEqual([...english.keys()].sort());
 
     for (const [key, englishValue] of english) {
