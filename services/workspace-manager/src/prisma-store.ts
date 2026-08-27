@@ -1,9 +1,21 @@
-import type { DatabaseClient } from '@vibecore/database';
+import { Prisma, type DatabaseClient } from '@vibecore/database';
 import type { WorkspacePlan } from '@vibecore/k8s-client';
 
-import type { WorkspaceRecord, WorkspaceStatus, WorkspaceStore } from './manager.js';
+import type {
+  WorkspacePurgeEffectDescriptor,
+  WorkspacePurgeLease,
+  WorkspaceRecord,
+  WorkspaceStatus,
+  WorkspaceStore,
+} from './manager.js';
 
 const KNOWN_PLANS: ReadonlySet<WorkspacePlan> = new Set(['free', 'pro', 'team', 'enterprise']);
+
+function purgeErrorCode(error: unknown): string {
+  const code = (error as { code?: unknown } | null)?.code;
+  if (typeof code === 'string' && /^[A-Z0-9_]{1,100}$/.test(code)) return code;
+  return 'WORKSPACE_PURGE_EFFECT_FAILED';
+}
 
 function toPlan(value: unknown): WorkspacePlan {
   if (typeof value === 'string' && KNOWN_PLANS.has(value as WorkspacePlan)) {
@@ -45,6 +57,10 @@ interface PrismaRuntimeRow {
   createdAt: Date;
   lastActiveAt: Date;
   lastMeteredAt: Date | null;
+  purgeFrozen: boolean;
+  purgePlanId: string | null;
+  purgeFenceToken: string | null;
+  purgeFrozenAt: Date | null;
 }
 
 function rowToRecord(row: PrismaRuntimeRow): WorkspaceRecord {
@@ -62,6 +78,10 @@ function rowToRecord(row: PrismaRuntimeRow): WorkspaceRecord {
     lastActiveAt: row.lastActiveAt.toISOString(),
     ...(row.error ? { error: row.error } : {}),
     ...(row.lastMeteredAt ? { lastMeteredAt: row.lastMeteredAt.toISOString() } : {}),
+    purgeFrozen: row.purgeFrozen,
+    ...(row.purgePlanId !== null ? { purgePlanId: row.purgePlanId } : {}),
+    ...(row.purgeFenceToken !== null ? { purgeFenceToken: row.purgeFenceToken } : {}),
+    ...(row.purgeFrozenAt ? { purgeFrozenAt: row.purgeFrozenAt.toISOString() } : {}),
   };
 }
 
@@ -101,6 +121,13 @@ function patchToData(patch: Partial<WorkspaceRecord>): Record<string, unknown> {
   if (Object.prototype.hasOwnProperty.call(patch, 'error')) {
     data.error = patch.error ?? null;
   }
+  if (patch.purgeFrozen !== undefined) data.purgeFrozen = patch.purgeFrozen;
+  if (Object.prototype.hasOwnProperty.call(patch, 'purgePlanId')) data.purgePlanId = patch.purgePlanId ?? null;
+  if (Object.prototype.hasOwnProperty.call(patch, 'purgeFenceToken'))
+    data.purgeFenceToken = patch.purgeFenceToken ?? null;
+  if (Object.prototype.hasOwnProperty.call(patch, 'purgeFrozenAt')) {
+    data.purgeFrozenAt = patch.purgeFrozenAt ? new Date(patch.purgeFrozenAt) : null;
+  }
 
   return data;
 }
@@ -124,6 +151,19 @@ function patchToData(patch: Partial<WorkspaceRecord>): Record<string, unknown> {
 export class PrismaWorkspaceStore implements WorkspaceStore {
   constructor(private readonly prisma: DatabaseClient) {}
 
+  private async databaseNow(tx: Prisma.TransactionClient): Promise<Date> {
+    const rows = await tx.$queryRawUnsafe<Array<{ databaseNow: Date }>>(
+      `SELECT date_trunc('milliseconds', clock_timestamp()) AS "databaseNow"`,
+    );
+    const databaseNow = rows[0]?.databaseNow;
+    if (!(databaseNow instanceof Date)) {
+      throw Object.assign(new Error('WORKSPACE_PURGE_DATABASE_TIME_UNAVAILABLE'), {
+        code: 'WORKSPACE_PURGE_DATABASE_TIME_UNAVAILABLE',
+      });
+    }
+    return databaseNow;
+  }
+
   async create(input: Omit<WorkspaceRecord, 'createdAt' | 'lastActiveAt'>): Promise<WorkspaceRecord> {
     const now = new Date();
     const created = (await this.prisma.workspaceRuntime.create({
@@ -138,6 +178,10 @@ export class PrismaWorkspaceStore implements WorkspaceStore {
         serviceName: input.serviceName,
         agentTokenSecretName: input.agentTokenSecretName,
         error: input.error ?? null,
+        purgeFrozen: input.purgeFrozen ?? false,
+        purgePlanId: input.purgePlanId ?? null,
+        purgeFenceToken: input.purgeFenceToken ?? null,
+        purgeFrozenAt: input.purgeFrozenAt ? new Date(input.purgeFrozenAt) : null,
         createdAt: now,
         lastActiveAt: now,
       },
@@ -180,6 +224,7 @@ export class PrismaWorkspaceStore implements WorkspaceStore {
     const rows = (await this.prisma.workspaceRuntime.updateManyAndReturn({
       where: {
         id: workspaceId,
+        purgeFrozen: false,
         status: expected.status,
         lastActiveAt: new Date(expected.lastActiveAt),
       },
@@ -202,6 +247,259 @@ export class PrismaWorkspaceStore implements WorkspaceStore {
     });
 
     return result.count === 1;
+  }
+
+  async executeProvisionEffect<T>(workspaceId: string, effect: () => Promise<T>): Promise<T> {
+    return this.prisma.$transaction(
+      async (tx) => {
+        await tx.$queryRawUnsafe('SELECT id FROM "WorkspaceRuntime" WHERE id = $1 FOR UPDATE', workspaceId);
+        const workspace = await tx.workspaceRuntime.findUnique({ where: { id: workspaceId } });
+        if (!workspace || workspace.purgeFrozen) {
+          throw Object.assign(new Error('WORKSPACE_PURGE_FROZEN'), {
+            code: 'WORKSPACE_PURGE_FROZEN',
+            statusCode: 409,
+          });
+        }
+        return effect();
+      },
+      { timeout: 180_000, maxWait: 20_000 },
+    );
+  }
+
+  private async lockLivePurgePlan(tx: Prisma.TransactionClient, lease: WorkspacePurgeLease): Promise<Date> {
+    const rows = await tx.$queryRawUnsafe<Array<{ leaseExpiresAt: Date; databaseNow: Date; status: string }>>(
+      `WITH target AS MATERIALIZED (
+         SELECT id, status, "leaseExpiresAt" FROM "PurgePlan"
+          WHERE id = $1 AND "ownerToken" = $2 FOR UPDATE
+       ), lease_clock AS MATERIALIZED (
+         SELECT date_trunc('milliseconds', clock_timestamp()) AS "databaseNow" FROM target
+       )
+       SELECT target.status, target."leaseExpiresAt", lease_clock."databaseNow"
+         FROM target CROSS JOIN lease_clock`,
+      lease.planId,
+      lease.ownerToken,
+    );
+    const plan = rows[0];
+    if (!plan || plan.status !== 'ACTIVE' || plan.leaseExpiresAt <= plan.databaseNow) {
+      throw Object.assign(new Error('WORKSPACE_PURGE_LEASE_INVALID'), { code: 'WORKSPACE_PURGE_LEASE_INVALID' });
+    }
+    return plan.databaseNow;
+  }
+
+  async acquirePurgeFence(workspaceId: string, lease: WorkspacePurgeLease): Promise<WorkspaceRecord> {
+    return this.prisma.$transaction(async (tx) => {
+      const databaseNow = await this.lockLivePurgePlan(tx, lease);
+      const existing = await tx.workspaceRuntime.findUnique({ where: { id: workspaceId } });
+      if (
+        existing?.purgeFrozen &&
+        (existing.purgePlanId !== lease.planId || existing.purgeFenceToken !== lease.ownerToken)
+      ) {
+        throw Object.assign(new Error('WORKSPACE_PURGE_FENCE_OWNED'), {
+          code: 'WORKSPACE_PURGE_FENCE_OWNED',
+          statusCode: 409,
+        });
+      }
+      const row = existing
+        ? await tx.workspaceRuntime.update({
+            where: { id: workspaceId },
+            data: {
+              purgeFrozen: true,
+              purgePlanId: lease.planId,
+              purgeFenceToken: lease.ownerToken,
+              purgeFrozenAt: databaseNow,
+            },
+          })
+        : await tx.workspaceRuntime.create({
+            data: {
+              id: workspaceId,
+              orgId: '',
+              projectId: '',
+              plan: 'free',
+              status: 'STOPPED',
+              pvcName: `pvc-${workspaceId}`,
+              podName: `workspace-${workspaceId}`,
+              serviceName: `workspace-${workspaceId}`,
+              agentTokenSecretName: `agent-token-${workspaceId}`,
+              purgeFrozen: true,
+              purgePlanId: lease.planId,
+              purgeFenceToken: lease.ownerToken,
+              purgeFrozenAt: databaseNow,
+              createdAt: databaseNow,
+              lastActiveAt: databaseNow,
+            },
+          });
+      return rowToRecord(row as PrismaRuntimeRow);
+    });
+  }
+
+  async releasePurgeFence(workspaceId: string, lease: WorkspacePurgeLease): Promise<boolean> {
+    const result = await this.prisma.workspaceRuntime.updateMany({
+      where: {
+        id: workspaceId,
+        purgeFrozen: true,
+        purgePlanId: lease.planId,
+        purgeFenceToken: lease.ownerToken,
+      },
+      data: { purgeFrozen: false, purgePlanId: null, purgeFenceToken: null, purgeFrozenAt: null },
+    });
+    return result.count === 1;
+  }
+
+  async completePurgeState(
+    workspaceId: string,
+    lease: WorkspacePurgeLease,
+    status: Extract<WorkspaceStatus, 'STOPPED' | 'DELETED'>,
+  ): Promise<WorkspaceRecord> {
+    return this.prisma.$transaction(async (tx) => {
+      await this.lockLivePurgePlan(tx, lease);
+      const rows = await tx.workspaceRuntime.updateManyAndReturn({
+        where: {
+          id: workspaceId,
+          purgeFrozen: true,
+          purgePlanId: lease.planId,
+          purgeFenceToken: lease.ownerToken,
+        },
+        data: { status, error: null },
+      });
+      const row = rows[0];
+      if (!row) {
+        throw Object.assign(new Error('WORKSPACE_PURGE_FENCE_LOST'), { code: 'WORKSPACE_PURGE_FENCE_LOST' });
+      }
+      return rowToRecord(row as PrismaRuntimeRow);
+    });
+  }
+
+  async executePurgeEffect<T extends Record<string, unknown>>(
+    workspaceId: string,
+    lease: WorkspacePurgeLease,
+    descriptor: WorkspacePurgeEffectDescriptor,
+    effect: () => Promise<T>,
+  ): Promise<{ executed: boolean; receipt: T }> {
+    const outcome = await this.prisma.$transaction(
+      async (tx) => {
+        const startedAt = await this.lockLivePurgePlan(tx, lease);
+        const workspace = await tx.workspaceRuntime.findUnique({ where: { id: workspaceId } });
+        if (
+          !workspace?.purgeFrozen ||
+          workspace.purgePlanId !== lease.planId ||
+          workspace.purgeFenceToken !== lease.ownerToken
+        ) {
+          throw Object.assign(new Error('WORKSPACE_PURGE_FENCE_LOST'), { code: 'WORKSPACE_PURGE_FENCE_LOST' });
+        }
+
+        const existing = await tx.purgeEffect.findUnique({
+          where: { planId_effectKey: { planId: lease.planId, effectKey: descriptor.key } },
+        });
+        if (existing?.status === 'SUCCEEDED') {
+          if (existing.resourceType !== descriptor.resourceType || existing.resourceId !== descriptor.resourceId) {
+            throw Object.assign(new Error('WORKSPACE_PURGE_EFFECT_DESCRIPTOR_MISMATCH'), {
+              code: 'WORKSPACE_PURGE_EFFECT_DESCRIPTOR_MISMATCH',
+            });
+          }
+          if (!existing.receipt || typeof existing.receipt !== 'object' || Array.isArray(existing.receipt)) {
+            throw Object.assign(new Error('WORKSPACE_PURGE_EFFECT_RECEIPT_CORRUPT'), {
+              code: 'WORKSPACE_PURGE_EFFECT_RECEIPT_CORRUPT',
+            });
+          }
+          return { ok: true as const, executed: false, receipt: existing.receipt as T };
+        }
+
+        await tx.purgeEffect.upsert({
+          where: { planId_effectKey: { planId: lease.planId, effectKey: descriptor.key } },
+          create: {
+            planId: lease.planId,
+            effectKey: descriptor.key,
+            resourceType: descriptor.resourceType,
+            resourceId: descriptor.resourceId,
+            status: 'RUNNING',
+            attempt: 1,
+            startedAt,
+          },
+          update: {
+            resourceType: descriptor.resourceType,
+            resourceId: descriptor.resourceId,
+            status: 'RUNNING',
+            attempt: { increment: 1 },
+            receipt: Prisma.DbNull,
+            lastErrorCode: null,
+            startedAt,
+            completedAt: null,
+          },
+        });
+
+        try {
+          const receipt = await effect();
+          const completedAt = await this.databaseNow(tx);
+          await tx.purgeEffect.update({
+            where: { planId_effectKey: { planId: lease.planId, effectKey: descriptor.key } },
+            data: {
+              status: 'SUCCEEDED',
+              receipt: receipt as Prisma.InputJsonValue,
+              lastErrorCode: null,
+              completedAt,
+            },
+          });
+          return { ok: true as const, executed: true, receipt };
+        } catch (error) {
+          const code = purgeErrorCode(error);
+          const completedAt = await this.databaseNow(tx).catch(() => startedAt);
+          await tx.purgeEffect.update({
+            where: { planId_effectKey: { planId: lease.planId, effectKey: descriptor.key } },
+            data: { status: 'FAILED', lastErrorCode: code, completedAt },
+          });
+          return { ok: false as const, code };
+        }
+      },
+      { timeout: 180_000, maxWait: 20_000 },
+    );
+
+    if (!outcome.ok) throw Object.assign(new Error(outcome.code), { code: outcome.code });
+    return { executed: outcome.executed, receipt: outcome.receipt };
+  }
+
+  async reconcilePurgeFences(take = 500): Promise<{ scanned: number; reconciled: number; workspaceIds: string[] }> {
+    const candidates = await this.prisma.workspaceRuntime.findMany({
+      where: { purgeFrozen: true },
+      select: { id: true, purgePlanId: true, purgeFenceToken: true },
+      take: Math.max(1, Math.min(take, 500)),
+      orderBy: { purgeFrozenAt: 'asc' },
+    });
+    const workspaceIds: string[] = [];
+
+    for (const candidate of candidates) {
+      const released = await this.prisma.$transaction(async (tx) => {
+        let live = false;
+        if (candidate.purgePlanId && candidate.purgeFenceToken) {
+          const rows = await tx.$queryRawUnsafe<Array<{ live: boolean }>>(
+            `WITH target AS MATERIALIZED (
+               SELECT status, "leaseExpiresAt" FROM "PurgePlan"
+                WHERE id = $1 AND "ownerToken" = $2 FOR UPDATE
+             ), lease_clock AS MATERIALIZED (
+               SELECT date_trunc('milliseconds', clock_timestamp()) AS ts FROM target
+             )
+             SELECT target.status = 'ACTIVE' AND target."leaseExpiresAt" > lease_clock.ts AS live
+               FROM target CROSS JOIN lease_clock`,
+            candidate.purgePlanId,
+            candidate.purgeFenceToken,
+          );
+          live = rows[0]?.live === true;
+        }
+        if (live) return false;
+        const result = await tx.workspaceRuntime.updateMany({
+          where: {
+            id: candidate.id,
+            purgeFrozen: true,
+            purgePlanId: candidate.purgePlanId,
+            purgeFenceToken: candidate.purgeFenceToken,
+          },
+          data: { purgeFrozen: false, purgePlanId: null, purgeFenceToken: null, purgeFrozenAt: null },
+        });
+        return result.count === 1;
+      });
+      if (released) workspaceIds.push(candidate.id);
+    }
+
+    return { scanned: candidates.length, reconciled: workspaceIds.length, workspaceIds };
   }
 
   async get(workspaceId: string): Promise<WorkspaceRecord | undefined> {

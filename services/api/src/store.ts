@@ -2,6 +2,7 @@ import { redactAuditMetadata, type AuditEvent } from '@vibecore/audit';
 import { hashToken } from '@vibecore/auth';
 import type { PlanKey, QuotaKey } from '@vibecore/billing';
 import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
+import type { AccountPurgePreview, PurgeStorageDeps, PurgeUserAccountResult } from './account-purge.js';
 
 export interface UserRecord {
   id: string;
@@ -1567,6 +1568,25 @@ export interface ApiStore {
     preferences?: Record<string, unknown> | null;
   }): Promise<UserRecord>;
   deleteUser(userId: string): Promise<boolean>;
+  previewAccountPurge(userId: string): Promise<AccountPurgePreview>;
+  requestAccountDeletion(userId: string): Promise<{
+    requestedAt: string;
+    purgeDueAt: string;
+    alreadyRequested: boolean;
+  }>;
+  cancelAccountDeletion(userId: string): Promise<{
+    cancelled: boolean;
+    reason?: 'not_requested' | 'not_cancellable';
+  }>;
+  purgeUserAccount(
+    input: { userId: string; correlationId?: string },
+    deps: PurgeStorageDeps,
+  ): Promise<PurgeUserAccountResult>;
+  reconcilePurgeFreezes(): Promise<{ scanned: number; reconciled: number; planIds: string[] }>;
+  isObjectStorageProjectPurgeFrozen(projectId: string): Promise<boolean>;
+  withObjectStorageProjectMutation<T>(projectId: string, effect: () => Promise<T>): Promise<T>;
+  withObjectStorageProjectMutations<T>(projectIds: string[], effect: () => Promise<T>): Promise<T>;
+  hasPurgeReceipt(userId: string): Promise<boolean>;
   findUserByEmail(email: string): Promise<UserRecord | undefined>;
   findUserById(id: string): Promise<UserRecord | undefined>;
   /**

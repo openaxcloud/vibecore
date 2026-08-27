@@ -85,6 +85,50 @@ describe('self-serve account deletion routes', () => {
     expect(second.json().requestedAt).toBe(firstAt);
   });
 
+  it('blocks subscription and credit-pack checkout while deletion is pending', async () => {
+    const { app, store, user } = await setup();
+    const organization = await store.createOrganization({
+      name: 'Deletion billing freeze',
+      slug: 'deletion-billing-freeze',
+      ownerUserId: user.id,
+    });
+    await app.inject({ method: 'POST', url: '/account/deletion', headers: auth('user-token') });
+
+    const subscriptionCheckout = await app.inject({
+      method: 'POST',
+      url: `/orgs/${organization.id}/billing/checkout`,
+      headers: auth('user-token'),
+      payload: {
+        planKey: 'free',
+        successUrl: 'https://app.example.test/success',
+        cancelUrl: 'https://app.example.test/cancel',
+      },
+    });
+    const creditCheckout = await app.inject({
+      method: 'POST',
+      url: `/orgs/${organization.id}/credits/packs/checkout`,
+      headers: auth('user-token'),
+      payload: {
+        packId: 'credits-100',
+        successUrl: 'https://app.example.test/success',
+        cancelUrl: 'https://app.example.test/cancel',
+      },
+    });
+    const billingPortal = await app.inject({
+      method: 'POST',
+      url: `/orgs/${organization.id}/billing/portal`,
+      headers: auth('user-token'),
+      payload: { returnUrl: 'https://app.example.test/billing' },
+    });
+
+    expect(subscriptionCheckout.statusCode).toBe(409);
+    expect(subscriptionCheckout.json()).toMatchObject({ code: 'ACCOUNT_DELETION_BILLING_FROZEN' });
+    expect(creditCheckout.statusCode).toBe(409);
+    expect(creditCheckout.json()).toMatchObject({ code: 'ACCOUNT_DELETION_BILLING_FROZEN' });
+    expect(billingPortal.statusCode).toBe(409);
+    expect(billingPortal.json()).toMatchObject({ code: 'ACCOUNT_DELETION_BILLING_FROZEN' });
+  });
+
   it('cancels within the grace period and clears the index', async () => {
     const { app, store, user } = await setup();
     await app.inject({ method: 'POST', url: '/account/deletion', headers: auth('user-token') });

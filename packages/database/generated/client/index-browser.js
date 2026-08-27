@@ -1164,6 +1164,10 @@ exports.Prisma.WorkspaceRuntimeScalarFieldEnum = {
   createdAt: 'createdAt',
   lastActiveAt: 'lastActiveAt',
   lastMeteredAt: 'lastMeteredAt',
+  purgeFrozen: 'purgeFrozen',
+  purgePlanId: 'purgePlanId',
+  purgeFenceToken: 'purgeFenceToken',
+  purgeFrozenAt: 'purgeFrozenAt',
   updatedAt: 'updatedAt'
 };
 
@@ -1974,6 +1978,57 @@ exports.Prisma.PlatformIamImpersonationAuditScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
+exports.Prisma.PurgePlanScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  ownerToken: 'ownerToken',
+  status: 'status',
+  version: 'version',
+  leaseExpiresAt: 'leaseExpiresAt',
+  requestedAt: 'requestedAt',
+  purgeDueAt: 'purgeDueAt',
+  topologyFingerprint: 'topologyFingerprint',
+  inventory: 'inventory',
+  correlationId: 'correlationId',
+  lastErrorCode: 'lastErrorCode',
+  startedAt: 'startedAt',
+  completedAt: 'completedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.PurgeFreezeScalarFieldEnum = {
+  id: 'id',
+  planId: 'planId',
+  resourceType: 'resourceType',
+  resourceId: 'resourceId',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.PurgeEffectScalarFieldEnum = {
+  id: 'id',
+  planId: 'planId',
+  effectKey: 'effectKey',
+  resourceType: 'resourceType',
+  resourceId: 'resourceId',
+  status: 'status',
+  attempt: 'attempt',
+  receipt: 'receipt',
+  lastErrorCode: 'lastErrorCode',
+  startedAt: 'startedAt',
+  completedAt: 'completedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.PurgeReceiptScalarFieldEnum = {
+  userId: 'userId',
+  planId: 'planId',
+  purgedAt: 'purgedAt',
+  proof: 'proof',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -2428,7 +2483,11 @@ exports.Prisma.ModelName = {
   CloudTenantTransfer: 'CloudTenantTransfer',
   CloudTeardownRecord: 'CloudTeardownRecord',
   PlatformIamIdentity: 'PlatformIamIdentity',
-  PlatformIamImpersonationAudit: 'PlatformIamImpersonationAudit'
+  PlatformIamImpersonationAudit: 'PlatformIamImpersonationAudit',
+  PurgePlan: 'PurgePlan',
+  PurgeFreeze: 'PurgeFreeze',
+  PurgeEffect: 'PurgeEffect',
+  PurgeReceipt: 'PurgeReceipt'
 };
 
 /**

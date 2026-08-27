@@ -7,6 +7,8 @@ import { createDatabaseClient, Prisma, type DatabaseClient } from '@vibecore/dat
 import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
 import { appPublicEnglish } from './app-public-copy.js';
 import { LedgerStore } from './ledger-store.js';
+import { AccountPurgeStore, type AccountPurgeLeaseOptions } from './account-purge-store.js';
+import type { PurgeStorageDeps } from './account-purge.js';
 import { isCommittedPromotionForTenant, SERVER_IMAGE_RELEASE_AUDIT_ACTION } from './server-image-promotion.js';
 import {
   canonicalizeProjectManifest,
@@ -657,7 +659,15 @@ export class PrismaApiStore implements ApiStore {
      * Node resolver in production.
      */
     private readonly resolveTxt: (hostname: string) => Promise<string[][]> = dnsPromises.resolveTxt,
+    private readonly accountPurgeLease?: AccountPurgeLeaseOptions,
   ) {}
+
+  #accountPurge?: AccountPurgeStore;
+
+  private get accountPurge(): AccountPurgeStore {
+    this.#accountPurge ??= new AccountPurgeStore(this.prisma, this.accountPurgeLease);
+    return this.#accountPurge;
+  }
 
   async ping(): Promise<void> {
     // Trivial round-trip to confirm the database connection is live.
@@ -822,6 +832,42 @@ export class PrismaApiStore implements ApiStore {
 
       throw error;
     }
+  }
+
+  previewAccountPurge(userId: string) {
+    return this.accountPurge.preview(userId);
+  }
+
+  requestAccountDeletion(userId: string) {
+    return this.accountPurge.requestDeletion(userId);
+  }
+
+  cancelAccountDeletion(userId: string) {
+    return this.accountPurge.cancelDeletion(userId);
+  }
+
+  purgeUserAccount(input: { userId: string; correlationId?: string }, deps: PurgeStorageDeps) {
+    return this.accountPurge.purge(input, deps);
+  }
+
+  reconcilePurgeFreezes() {
+    return this.accountPurge.reconcile();
+  }
+
+  isObjectStorageProjectPurgeFrozen(projectId: string) {
+    return this.accountPurge.isObjectStorageFrozen(projectId);
+  }
+
+  withObjectStorageProjectMutation<T>(projectId: string, effect: () => Promise<T>) {
+    return this.accountPurge.withObjectStorageMutation(projectId, effect);
+  }
+
+  withObjectStorageProjectMutations<T>(projectIds: string[], effect: () => Promise<T>) {
+    return this.accountPurge.withObjectStorageMutations(projectIds, effect);
+  }
+
+  hasPurgeReceipt(userId: string) {
+    return this.accountPurge.hasReceipt(userId);
   }
 
   async findUserByEmail(email: string) {
@@ -1164,12 +1210,15 @@ export class PrismaApiStore implements ApiStore {
   async createOrganization(input: { name: string; slug: string; ownerUserId: string }) {
     const ownerRole = await this.ensureRole('owner');
 
-    const organization = await this.prisma.organization.create({
-      data: {
-        name: input.name,
-        slug: input.slug || slugify(input.name),
-        members: { create: { userId: input.ownerUserId, roleId: ownerRole.id } },
-      },
+    const organization = await this.prisma.$transaction(async (tx) => {
+      await this.accountPurge.assertUserTopologyMutable(tx, input.ownerUserId);
+      return tx.organization.create({
+        data: {
+          name: input.name,
+          slug: input.slug || slugify(input.name),
+          members: { create: { userId: input.ownerUserId, roleId: ownerRole.id } },
+        },
+      });
     });
 
     return mapOrganization(organization);
@@ -1198,21 +1247,24 @@ export class PrismaApiStore implements ApiStore {
   async addMember(input: { organizationId: string; userId: string; roleKey: string; invitedByUserId?: string }) {
     const role = await this.ensureRole(input.roleKey);
 
-    const membership = await this.prisma.organizationMember.upsert({
-      where: { organizationId_userId: { organizationId: input.organizationId, userId: input.userId } },
-      create: {
-        organizationId: input.organizationId,
-        userId: input.userId,
-        roleId: role.id,
-        state: 'ACTIVE',
-        invitedByUserId: input.invitedByUserId,
-      },
-      update: {
-        roleId: role.id,
-        state: 'ACTIVE',
-        ...(input.invitedByUserId ? { invitedByUserId: input.invitedByUserId } : {}),
-      },
-      include: { role: true },
+    const membership = await this.prisma.$transaction(async (tx) => {
+      await this.accountPurge.assertMembershipMutable(tx, input.organizationId, [input.userId]);
+      return tx.organizationMember.upsert({
+        where: { organizationId_userId: { organizationId: input.organizationId, userId: input.userId } },
+        create: {
+          organizationId: input.organizationId,
+          userId: input.userId,
+          roleId: role.id,
+          state: 'ACTIVE',
+          invitedByUserId: input.invitedByUserId,
+        },
+        update: {
+          roleId: role.id,
+          state: 'ACTIVE',
+          ...(input.invitedByUserId ? { invitedByUserId: input.invitedByUserId } : {}),
+        },
+        include: { role: true },
+      });
     });
 
     return mapMembership(membership);
@@ -1251,6 +1303,7 @@ export class PrismaApiStore implements ApiStore {
      * no cleanup failure is swallowed and no partially-revoked state commits.
      */
     const removed = await this.prisma.$transaction(async (tx) => {
+      await this.accountPurge.assertMembershipMutable(tx, organizationId, [userId]);
       await tx.projectConnectionLink.updateMany({
         where: {
           unlinkedAt: null,
@@ -1304,6 +1357,7 @@ export class PrismaApiStore implements ApiStore {
 
       try {
         return await this.prisma.$transaction(async (tx) => {
+          await this.accountPurge.assertMembershipMutable(tx, input.organizationId);
           const project = await tx.project.create({
             data: {
               organizationId: input.organizationId,
@@ -1626,7 +1680,10 @@ export class PrismaApiStore implements ApiStore {
   async hardDeleteProject(projectId: string) {
     // Every child relation declares onDelete: Cascade (AiConversation: SetNull),
     // so a plain delete removes the whole project graph atomically.
-    return mapProject(await this.prisma.project.delete({ where: { id: projectId } }));
+    return this.prisma.$transaction(async (tx) => {
+      await this.accountPurge.assertProjectMutable(tx, projectId);
+      return mapProject(await tx.project.delete({ where: { id: projectId } }));
+    });
   }
 
   async transferProject(input: { projectId: string; targetOrganizationId: string; actorUserId?: string }) {
@@ -1667,6 +1724,9 @@ export class PrismaApiStore implements ApiStore {
             if (locked.organizationId === input.targetOrganizationId) {
               return mapProject(locked);
             }
+
+            await this.accountPurge.assertProjectMutable(tx, input.projectId);
+            await this.accountPurge.assertMembershipMutable(tx, input.targetOrganizationId);
 
             const checkpointBarrier = await tx.projectCheckpoint.findFirst({
               where: {
@@ -2464,6 +2524,7 @@ export class PrismaApiStore implements ApiStore {
     manifestCloneMode?: ProjectManifestCloneMode;
   }) {
     return this.prisma.$transaction(async (tx) => {
+      await this.accountPurge.assertMembershipMutable(tx, input.organizationId);
       await tx.$queryRawUnsafe(
         'SELECT "id" FROM "RemixJob" WHERE "id" = $1 AND "organizationId" = $2 FOR UPDATE',
         input.remixJobId,
@@ -2758,6 +2819,7 @@ export class PrismaApiStore implements ApiStore {
     targetProjectId: string;
   }) {
     return this.prisma.$transaction(async (tx) => {
+      await this.accountPurge.assertProjectMutable(tx, input.targetProjectId);
       await tx.$queryRawUnsafe(
         'SELECT "id" FROM "RemixJob" WHERE "id" = $1 AND "organizationId" = $2 FOR UPDATE',
         input.remixJobId,
@@ -3365,6 +3427,7 @@ export class PrismaApiStore implements ApiStore {
     manifestCloneMode?: ProjectManifestCloneMode;
   }) {
     return this.prisma.$transaction(async (tx) => {
+      await this.accountPurge.assertMembershipMutable(tx, input.organizationId);
       await tx.$queryRawUnsafe(
         'SELECT "id" FROM "ImportJob" WHERE "id" = $1 AND "organizationId" = $2 FOR UPDATE',
         input.importJobId,
@@ -3692,6 +3755,7 @@ export class PrismaApiStore implements ApiStore {
     targetProjectId: string;
   }) {
     return this.prisma.$transaction(async (tx) => {
+      await this.accountPurge.assertProjectMutable(tx, input.targetProjectId);
       await tx.$queryRawUnsafe(
         'SELECT "id" FROM "ImportJob" WHERE "id" = $1 AND "organizationId" = $2 FOR UPDATE',
         input.importJobId,
@@ -4004,18 +4068,21 @@ export class PrismaApiStore implements ApiStore {
   }
 
   async addProjectCollaborator(input: { projectId: string; userId: string; roleKey: string; expiresAt?: Date | null }) {
-    return mapProjectCollaborator(
-      await this.prisma.projectCollaborator.upsert({
-        where: { projectId_userId: { projectId: input.projectId, userId: input.userId } },
-        create: {
-          projectId: input.projectId,
-          userId: input.userId,
-          roleKey: input.roleKey,
-          expiresAt: input.expiresAt ?? null,
-        },
-        update: { roleKey: input.roleKey, expiresAt: input.expiresAt ?? null },
-      }),
-    );
+    return this.prisma.$transaction(async (tx) => {
+      await this.accountPurge.assertProjectMutable(tx, input.projectId, [input.userId]);
+      return mapProjectCollaborator(
+        await tx.projectCollaborator.upsert({
+          where: { projectId_userId: { projectId: input.projectId, userId: input.userId } },
+          create: {
+            projectId: input.projectId,
+            userId: input.userId,
+            roleKey: input.roleKey,
+            expiresAt: input.expiresAt ?? null,
+          },
+          update: { roleKey: input.roleKey, expiresAt: input.expiresAt ?? null },
+        }),
+      );
+    });
   }
 
   async listProjectCollaborators(projectId: string) {
@@ -4023,8 +4090,11 @@ export class PrismaApiStore implements ApiStore {
   }
 
   async removeProjectCollaborator(input: { projectId: string; userId: string }): Promise<boolean> {
-    const result = await this.prisma.projectCollaborator.deleteMany({
-      where: { projectId: input.projectId, userId: input.userId },
+    const result = await this.prisma.$transaction(async (tx) => {
+      await this.accountPurge.assertProjectMutable(tx, input.projectId, [input.userId]);
+      return tx.projectCollaborator.deleteMany({
+        where: { projectId: input.projectId, userId: input.userId },
+      });
     });
 
     return result.count > 0;
@@ -4402,6 +4472,12 @@ export class PrismaApiStore implements ApiStore {
     requestHash: string;
   }) {
     return this.prisma.$transaction(async (tx) => {
+      await this.accountPurge.assertMembershipMutable(
+        tx,
+        input.organizationId,
+        input.subjectType === 'USER' && input.subjectUserId ? [input.subjectUserId] : [],
+      );
+
       /*
        * Project transfer takes this same row FOR UPDATE. Lock and revalidate the
        * tenant before any idempotency replay or insert so a grant cannot read
@@ -4435,7 +4511,6 @@ export class PrismaApiStore implements ApiStore {
             : { ok: false as const, reason: COLLABORATION_REASON.idempotencyConflict };
         }
       }
-
       /*
        * PostgreSQL cannot use CURRENT_TIMESTAMP in a partial-index predicate.
        * Close any expired predecessor with the database clock before attempting
@@ -4579,20 +4654,29 @@ export class PrismaApiStore implements ApiStore {
   }
 
   async acceptResourceAccessGrant(input: { grantId: string; subjectUserId: string; consentVersion: string }) {
-    const accepted = await this.prisma.$queryRaw<any[]>`
-      UPDATE "ResourceAccessGrant"
-      SET "status" = 'ACTIVE',
-          "acceptedAt" = CURRENT_TIMESTAMP,
-          "consentVersion" = ${input.consentVersion},
-          "updatedAt" = CURRENT_TIMESTAMP
-      WHERE "id" = ${input.grantId}
-        AND "subjectType" = 'USER'
-        AND "subjectUserId" = ${input.subjectUserId}
-        AND "status" = 'PENDING_CONSENT'
-        AND "revokedAt" IS NULL
-        AND "expiresAt" > CURRENT_TIMESTAMP
-      RETURNING *
-    `;
+    const accepted = await this.prisma.$transaction(async (tx) => {
+      const grant = await tx.resourceAccessGrant.findUnique({
+        where: { id: input.grantId },
+        select: { organizationId: true },
+      });
+      if (!grant) return [];
+      await this.accountPurge.assertMembershipMutable(tx, grant.organizationId, [input.subjectUserId]);
+
+      return tx.$queryRaw<any[]>`
+        UPDATE "ResourceAccessGrant"
+        SET "status" = 'ACTIVE',
+            "acceptedAt" = CURRENT_TIMESTAMP,
+            "consentVersion" = ${input.consentVersion},
+            "updatedAt" = CURRENT_TIMESTAMP
+        WHERE "id" = ${input.grantId}
+          AND "subjectType" = 'USER'
+          AND "subjectUserId" = ${input.subjectUserId}
+          AND "status" = 'PENDING_CONSENT'
+          AND "revokedAt" IS NULL
+          AND "expiresAt" > CURRENT_TIMESTAMP
+        RETURNING *
+      `;
+    });
 
     if (accepted.length === 1) {
       return { ok: true as const, grant: mapResourceAccessGrant(accepted[0]) };
@@ -4602,20 +4686,29 @@ export class PrismaApiStore implements ApiStore {
   }
 
   async rejectResourceAccessGrant(input: { grantId: string; subjectUserId: string; reason: string }) {
-    const rejected = await this.prisma.$queryRaw<any[]>`
-      UPDATE "ResourceAccessGrant"
-      SET "status" = 'REVOKED',
-          "revokedAt" = CURRENT_TIMESTAMP,
-          "revokedByUserId" = ${input.subjectUserId},
-          "revocationReason" = ${input.reason},
-          "updatedAt" = CURRENT_TIMESTAMP
-      WHERE "id" = ${input.grantId}
-        AND "subjectType" = 'USER'
-        AND "subjectUserId" = ${input.subjectUserId}
-        AND "status" = 'PENDING_CONSENT'
-        AND "revokedAt" IS NULL
-      RETURNING *
-    `;
+    const rejected = await this.prisma.$transaction(async (tx) => {
+      const grant = await tx.resourceAccessGrant.findUnique({
+        where: { id: input.grantId },
+        select: { organizationId: true },
+      });
+      if (!grant) return [];
+      await this.accountPurge.assertMembershipMutable(tx, grant.organizationId, [input.subjectUserId]);
+
+      return tx.$queryRaw<any[]>`
+        UPDATE "ResourceAccessGrant"
+        SET "status" = 'REVOKED',
+            "revokedAt" = CURRENT_TIMESTAMP,
+            "revokedByUserId" = ${input.subjectUserId},
+            "revocationReason" = ${input.reason},
+            "updatedAt" = CURRENT_TIMESTAMP
+        WHERE "id" = ${input.grantId}
+          AND "subjectType" = 'USER'
+          AND "subjectUserId" = ${input.subjectUserId}
+          AND "status" = 'PENDING_CONSENT'
+          AND "revokedAt" IS NULL
+        RETURNING *
+      `;
+    });
 
     if (rejected.length === 1) {
       return { ok: true as const, grant: mapResourceAccessGrant(rejected[0]) };
@@ -4630,18 +4723,30 @@ export class PrismaApiStore implements ApiStore {
     revokedByUserId: string;
     reason: string;
   }) {
-    const revoked = await this.prisma.$queryRaw<any[]>`
-      UPDATE "ResourceAccessGrant"
-      SET "status" = 'REVOKED',
-          "revokedAt" = CURRENT_TIMESTAMP,
-          "revokedByUserId" = ${input.revokedByUserId},
-          "revocationReason" = ${input.reason},
-          "updatedAt" = CURRENT_TIMESTAMP
-      WHERE "id" = ${input.grantId}
-        AND "organizationId" = ${input.organizationId}
-        AND "status" <> 'REVOKED'
-      RETURNING *
-    `;
+    const revoked = await this.prisma.$transaction(async (tx) => {
+      const grant = await tx.resourceAccessGrant.findUnique({
+        where: { id: input.grantId },
+        select: { subjectType: true, subjectUserId: true },
+      });
+      await this.accountPurge.assertMembershipMutable(
+        tx,
+        input.organizationId,
+        grant?.subjectType === 'USER' && grant.subjectUserId ? [grant.subjectUserId] : [],
+      );
+
+      return tx.$queryRaw<any[]>`
+        UPDATE "ResourceAccessGrant"
+        SET "status" = 'REVOKED',
+            "revokedAt" = CURRENT_TIMESTAMP,
+            "revokedByUserId" = ${input.revokedByUserId},
+            "revocationReason" = ${input.reason},
+            "updatedAt" = CURRENT_TIMESTAMP
+        WHERE "id" = ${input.grantId}
+          AND "organizationId" = ${input.organizationId}
+          AND "status" <> 'REVOKED'
+        RETURNING *
+      `;
+    });
 
     return revoked.length === 1
       ? { ok: true as const, grant: mapResourceAccessGrant(revoked[0]) }
@@ -8986,41 +9091,57 @@ export class PrismaApiStore implements ApiStore {
       ...(input.lastStripeEventAt ? { lastStripeEventAt: input.lastStripeEventAt } : {}),
     };
 
-    /*
-     * Common path: Stripe carries the subscription id (externalId). Use a real
-     * upsert keyed on the externalId unique constraint so two concurrent webhook
-     * deliveries can't both miss a find-then-create and insert duplicate rows.
-     */
-    if (input.externalId) {
-      return mapSubscription(
-        await this.prisma.subscription.upsert({
+    return this.prisma.$transaction(async (tx) => {
+      /*
+       * Subscription webhooks are topology mutations for account erasure: a
+       * newly ACTIVE row after inventory capture could otherwise recreate live
+       * billing for a purged sole-owner. The shared purge topology lock makes
+       * this write linearise before capture or fail closed while its freeze is
+       * active (Stripe will retry the webhook).
+       */
+      await this.accountPurge.assertMembershipMutable(tx, input.organizationId);
+
+      /*
+       * Common path: Stripe carries the subscription id (externalId). Use a real
+       * upsert keyed on the externalId unique constraint so two concurrent webhook
+       * deliveries can't both miss a find-then-create and insert duplicate rows.
+       */
+      if (input.externalId) {
+        const existingExternal = await tx.subscription.findUnique({
           where: { externalId: input.externalId },
-          create: data,
-          update: data,
-          include: { plan: true },
-        }),
-      );
-    }
+          select: { organizationId: true },
+        });
+        if (existingExternal && existingExternal.organizationId !== input.organizationId) {
+          await this.accountPurge.assertMembershipMutable(tx, existingExternal.organizationId);
+        }
+        return mapSubscription(
+          await tx.subscription.upsert({
+            where: { externalId: input.externalId },
+            create: data,
+            update: data,
+            include: { plan: true },
+          }),
+        );
+      }
 
-    /*
-     * Fallback (rare): no external id to key on, so the best we can do is
-     * update the most recent row for the org or create one. There's no unique
-     * constraint to make this atomic, but this branch only runs for events that
-     * arrive without a subscription id.
-     */
-    const existing = await this.prisma.subscription.findFirst({
-      where: { organizationId: input.organizationId },
-      include: { plan: true },
-      orderBy: { createdAt: 'desc' },
+      /*
+       * Fallback (rare): no external id to key on. The purge topology lock now
+       * also serializes this find-then-write branch against destructive capture.
+       */
+      const existing = await tx.subscription.findFirst({
+        where: { organizationId: input.organizationId },
+        include: { plan: true },
+        orderBy: { createdAt: 'desc' },
+      });
+
+      if (existing) {
+        return mapSubscription(
+          await tx.subscription.update({ where: { id: existing.id }, data, include: { plan: true } }),
+        );
+      }
+
+      return mapSubscription(await tx.subscription.create({ data, include: { plan: true } }));
     });
-
-    if (existing) {
-      return mapSubscription(
-        await this.prisma.subscription.update({ where: { id: existing.id }, data, include: { plan: true } }),
-      );
-    }
-
-    return mapSubscription(await this.prisma.subscription.create({ data, include: { plan: true } }));
   }
 
   async getSubscription(organizationId: string) {

@@ -1603,6 +1603,14 @@
     "en": "The account deletion request can no longer be canceled.",
     "fr": "La demande de suppression du compte ne peut plus être annulée."
   },
+  "ACCOUNT_DELETION_BILLING_FROZEN": {
+    "en": "Billing purchases are disabled while account deletion is pending or in progress.",
+    "fr": "Les achats sont désactivés pendant qu’une suppression de compte est en attente ou en cours."
+  },
+  "ACCOUNT_PURGE_EXECUTION_NOT_AUTHORIZED": {
+    "en": "Account purge execution is not authorized. Enable it, confirm it explicitly, and configure the server-side subject allowlist.",
+    "fr": "L’exécution de la purge de compte n’est pas autorisée. Activez-la, confirmez-la explicitement et configurez la liste serveur des comptes autorisés."
+  },
   "AGENT_MEMORY_NOT_FOUND": {
     "en": "Memory not found",
     "fr": "Mémoire introuvable."

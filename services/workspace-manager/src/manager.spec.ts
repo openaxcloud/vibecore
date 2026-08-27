@@ -91,6 +91,7 @@ class TestWorkspaceK8sClient implements WorkspaceK8sClient {
 
 class TestWorkspaceStore implements WorkspaceStore {
   readonly workspaces = new Map<string, WorkspaceRecord>();
+  readonly purgeEffects = new Map<string, Record<string, unknown>>();
 
   async create(input: Omit<WorkspaceRecord, 'createdAt' | 'lastActiveAt'>) {
     const now = new Date().toISOString();
@@ -152,6 +153,102 @@ class TestWorkspaceStore implements WorkspaceStore {
     this.workspaces.set(workspaceId, { ...existing, lastMeteredAt: next });
 
     return true;
+  }
+
+  async listByProject(projectId: string) {
+    return [...this.workspaces.values()].filter((workspace) => workspace.projectId === projectId);
+  }
+
+  async executeProvisionEffect<T>(workspaceId: string, effect: () => Promise<T>) {
+    if (this.workspaces.get(workspaceId)?.purgeFrozen) throw new Error('WORKSPACE_PURGE_FROZEN');
+    return effect();
+  }
+
+  async acquirePurgeFence(workspaceId: string, lease: { planId: string; ownerToken: string }) {
+    const existing = this.workspaces.get(workspaceId);
+    const now = new Date().toISOString();
+    const workspace = existing ?? {
+      id: workspaceId,
+      orgId: '',
+      projectId: '',
+      plan: 'free' as const,
+      status: 'STOPPED' as const,
+      pvcName: `pvc-${workspaceId}`,
+      podName: `workspace-${workspaceId}`,
+      serviceName: `workspace-${workspaceId}`,
+      agentTokenSecretName: `agent-token-${workspaceId}`,
+      createdAt: now,
+      lastActiveAt: now,
+    };
+    const frozen = {
+      ...workspace,
+      purgeFrozen: true,
+      purgePlanId: lease.planId,
+      purgeFenceToken: lease.ownerToken,
+      purgeFrozenAt: now,
+    };
+    this.workspaces.set(workspaceId, frozen);
+    return frozen;
+  }
+
+  async releasePurgeFence(workspaceId: string, lease: { planId: string; ownerToken: string }) {
+    const workspace = this.workspaces.get(workspaceId);
+    if (
+      !workspace?.purgeFrozen ||
+      workspace.purgePlanId !== lease.planId ||
+      workspace.purgeFenceToken !== lease.ownerToken
+    )
+      return false;
+    this.workspaces.set(workspaceId, {
+      ...workspace,
+      purgeFrozen: false,
+      purgePlanId: undefined,
+      purgeFenceToken: undefined,
+      purgeFrozenAt: undefined,
+    });
+    return true;
+  }
+
+  async completePurgeState(
+    workspaceId: string,
+    lease: { planId: string; ownerToken: string },
+    status: 'STOPPED' | 'DELETED',
+  ) {
+    const workspace = this.workspaces.get(workspaceId);
+    if (
+      !workspace?.purgeFrozen ||
+      workspace.purgePlanId !== lease.planId ||
+      workspace.purgeFenceToken !== lease.ownerToken
+    )
+      throw new Error('WORKSPACE_PURGE_FENCE_LOST');
+    const updated = { ...workspace, status, error: undefined };
+    this.workspaces.set(workspaceId, updated);
+    return updated;
+  }
+
+  async executePurgeEffect<T extends Record<string, unknown>>(
+    workspaceId: string,
+    lease: { planId: string; ownerToken: string },
+    descriptor: { key: string },
+    effect: () => Promise<T>,
+  ) {
+    const workspace = this.workspaces.get(workspaceId);
+    if (
+      !workspace?.purgeFrozen ||
+      workspace.purgePlanId !== lease.planId ||
+      workspace.purgeFenceToken !== lease.ownerToken
+    )
+      throw new Error('WORKSPACE_PURGE_FENCE_LOST');
+    const key = `${lease.planId}:${descriptor.key}`;
+    const existing = this.purgeEffects.get(key) as T | undefined;
+    if (existing) return { executed: false, receipt: existing };
+    const receipt = await effect();
+    this.purgeEffects.set(key, receipt);
+    return { executed: true, receipt };
+  }
+
+  async reconcilePurgeFences() {
+    return { scanned: 0, reconciled: 0, workspaceIds: [] as string[] };
   }
 }
 

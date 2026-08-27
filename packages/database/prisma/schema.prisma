@@ -287,12 +287,12 @@ model RolePermission {
 }
 
 model Project {
-  id                      String                   @id @default(cuid())
+  id                      String                    @id @default(cuid())
   organizationId          String
   name                    String
   slug                    String
   description             String?
-  sourceType              String                   @default("blank")
+  sourceType              String                    @default("blank")
   templateName            String?
   gitRepositoryUrl        String?
   gitDefaultBranch        String?
@@ -300,16 +300,16 @@ model Project {
   thumbnailUrl            String?
   thumbnailUpdatedAt      DateTime?
   deletedAt               DateTime?
-  createdAt               DateTime                 @default(now())
-  updatedAt               DateTime                 @updatedAt
-  organization            Organization             @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdAt               DateTime                  @default(now())
+  updatedAt               DateTime                  @updatedAt
+  organization            Organization              @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   environments            ProjectEnvironment[]
   envVars                 ProjectEnvVar[]
   secrets                 ProjectSecret[]
   collaborators           ProjectCollaborator[]
   activity                ProjectActivity[]
-  templates               ProjectTemplate[]        @relation("ProjectTemplates")
-  galleryListings         GalleryListing[]         @relation("ProjectGalleryListings")
+  templates               ProjectTemplate[]         @relation("ProjectTemplates")
+  galleryListings         GalleryListing[]          @relation("ProjectGalleryListings")
   workspaces              Workspace[]
   snapshots               ProjectSnapshot[]
   manifestRevisions       ProjectManifestRevision[]
@@ -330,7 +330,7 @@ model Project {
   repairEvents            AgentRepairEvent[]
   slugRedirects           ProjectSlugRedirect[]
   runtimeWebSocketTickets RuntimeWebSocketTicket[]
-  importJobs              ImportJob[]              @relation("ImportJobTarget")
+  importJobs              ImportJob[]               @relation("ImportJobTarget")
   cloudBinding            CloudProjectBinding?
   checkpoints             ProjectCheckpoint[]
 
@@ -1867,11 +1867,19 @@ model WorkspaceRuntime {
   // createdAt) to lastActiveAt on stop, then advances this marker — idempotent
   // across manager restarts. Null until first metered.
   lastMeteredAt        DateTime?
+  /// Durable account-purge barrier. A runtime can be (re)provisioned only when
+  /// this flag is false. The plan id + per-attempt token fence every release.
+  purgeFrozen          Boolean   @default(false)
+  purgePlanId          String?
+  purgeFenceToken      String?
+  purgeFrozenAt        DateTime?
   updatedAt            DateTime  @updatedAt
+  purgePlan            PurgePlan? @relation(fields: [purgePlanId], references: [id], onDelete: SetNull)
 
   @@index([orgId])
   @@index([projectId])
   @@index([status, lastActiveAt])
+  @@index([purgePlanId, purgeFrozen])
 }
 
 // --- Integrations panel: connector catalog, user-scoped connections,
@@ -2414,22 +2422,22 @@ model DatabaseRestore {
 /// The SQL itself stays in project storage; only the immutable name/hash plan is
 /// persisted so recovery can reconcile the target without retaining user SQL.
 model DBMigrationExecution {
-  id                       String   @id @default(cuid())
+  id                       String    @id @default(cuid())
   projectId                String
   organizationId           String
   environment              String
-  state                    String   @default("LOCK_ACQUIRED")
+  state                    String    @default("LOCK_ACQUIRED")
   idempotencyKey           String
   requestHash              String
-  activeLock               String?  @unique
+  activeLock               String?   @unique
   ownerToken               String?
-  version                  Int      @default(0)
+  version                  Int       @default(0)
   leaseExpiresAt           DateTime?
-  attempt                  Int      @default(1)
+  attempt                  Int       @default(1)
   plan                     Json
   statementsSha256         String
-  statementCount           Int      @default(0)
-  appliedStatements        Int      @default(0)
+  statementCount           Int       @default(0)
+  appliedStatements        Int       @default(0)
   backwardCompatible       Boolean
   forwardCompatible        Boolean
   backupId                 String?
@@ -2438,10 +2446,10 @@ model DBMigrationExecution {
   deploymentId             String?
   createdByUserId          String?
   errorCode                String?
-  startedAt                DateTime @default(now())
+  startedAt                DateTime  @default(now())
   completedAt              DateTime?
-  createdAt                DateTime @default(now())
-  updatedAt                DateTime @updatedAt
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
 
   @@unique([projectId, idempotencyKey])
   @@index([projectId, environment, state])
@@ -2614,37 +2622,37 @@ model AgentCallLog {
 /// seulement une fois TOUT vérifié sous la même barrière. Rien à voir avec
 /// AgentCheckpoint (facturation par requête agent).
 model ProjectCheckpoint {
-  id               String    @id @default(cuid())
-  projectId        String
-  state            String    @default("PREPARING")
-  logicalBarrierId String?
+  id                String    @id @default(cuid())
+  projectId         String
+  state             String    @default("PREPARING")
+  logicalBarrierId  String?
   /// crash-consistent | UNKNOWN. `application-consistent` is NOT emitted: it
   /// would require quiescing the in-pod writers (dev server, terminal, agent),
   /// which the API-level barrier cannot reach. See CHECKPOINT_CONTRACT §Cohérence.
-  consistencyLevel String?
+  consistencyLevel  String?
   /// { components: [{componentKind, snapshotId, hash, verified, …}], restoreCompatibility, dependenciesDeclared }
-  manifest         Json?
-  error            String?
-  expiresAt        DateTime?
-  createdByUserId  String?
+  manifest          Json?
+  error             String?
+  expiresAt         DateTime?
+  createdByUserId   String?
   /// Stable retry identity. A repeated key is accepted only when requestHash
   /// matches; a different request with the same key is refused.
-  idempotencyKey   String?   @unique
-  requestHash      String?
+  idempotencyKey    String?   @unique
+  requestHash       String?
   /// Non-null only while this row owns the one active barrier for its project.
   /// The unique constraint is the durable per-project singleton; an expired
   /// owner is cleared under the same project lock before a successor acquires.
-  barrierProjectId String?   @unique
+  barrierProjectId  String?   @unique
   barrierOwnerToken String?
-  barrierFence     Int       @default(0)
+  barrierFence      Int       @default(0)
   /// Barrier lease deadline. The write barrier is read from THIS COLUMN, not from
   /// process memory: the API runs 2..6 replicas (values-prod.yaml), so an
   /// in-process barrier is invisible to the other replicas and freezes nothing.
   /// A past/NULL value means thawed — expiry IS the guaranteed thaw, even if the
   /// process holding the checkpoint dies mid-flight.
-  barrierExpiresAt DateTime?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  barrierExpiresAt  DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
   project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   createdBy User?   @relation("ProjectCheckpointCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
@@ -3447,4 +3455,85 @@ model PlatformIamImpersonationAudit {
   identity PlatformIamIdentity @relation(fields: [identityId], references: [id], onDelete: Restrict)
 
   @@index([identityId, createdAt])
+}
+
+/// Durable, resumable execution plan for one account purge. The row deliberately
+/// has no User foreign key: the receipt and effect history must outlive the
+/// subject's anonymisation. Only one plan can ever target a subject.
+model PurgePlan {
+  id                  String        @id @default(cuid())
+  userId              String        @unique
+  ownerToken          String        @unique
+  status              String        @default("ACTIVE")
+  version             Int           @default(0)
+  leaseExpiresAt      DateTime
+  requestedAt         DateTime
+  purgeDueAt          DateTime
+  topologyFingerprint String
+  inventory           Json
+  correlationId       String?
+  lastErrorCode       String?
+  startedAt           DateTime      @default(now())
+  completedAt         DateTime?
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+  freezes             PurgeFreeze[]
+  effects             PurgeEffect[]
+  receipt             PurgeReceipt?
+  workspaceRuntimes   WorkspaceRuntime[]
+
+  @@index([status, leaseExpiresAt])
+  @@index([correlationId])
+}
+
+/// Per-plan ownership of topology freezes. A resource remains frozen while any
+/// active plan owns a row for it; releasing one plan never thaws another.
+model PurgeFreeze {
+  id           String    @id @default(cuid())
+  planId       String
+  resourceType String
+  resourceId   String
+  createdAt    DateTime  @default(now())
+  plan         PurgePlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@unique([resourceType, resourceId, planId])
+  @@index([resourceType, resourceId])
+  @@index([planId])
+}
+
+/// Durable idempotency receipt for every physical side effect. A succeeded key
+/// is never executed twice by a resumed/reclaimed plan; failed effects retain a
+/// bounded diagnostic and can be retried safely.
+model PurgeEffect {
+  id            String    @id @default(cuid())
+  planId        String
+  effectKey     String
+  resourceType  String
+  resourceId    String
+  status        String    @default("PENDING")
+  attempt       Int       @default(0)
+  receipt       Json?
+  lastErrorCode String?
+  startedAt     DateTime?
+  completedAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  plan          PurgePlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@unique([planId, effectKey])
+  @@index([planId, status])
+  @@index([resourceType, resourceId])
+}
+
+/// Immutable proof written in the same transaction as the account tombstone.
+/// Queue removal is allowed only after this row exists.
+model PurgeReceipt {
+  userId    String    @id
+  planId    String    @unique
+  purgedAt  DateTime
+  proof     Json
+  createdAt DateTime  @default(now())
+  plan      PurgePlan @relation(fields: [planId], references: [id], onDelete: Restrict)
+
+  @@index([purgedAt])
 }
