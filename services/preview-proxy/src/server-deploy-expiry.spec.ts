@@ -27,7 +27,15 @@ const APP_BODY = 'CONTENU APPLICATIF SERVEUR';
  *
  * `appHits` est la mesure décisive : elle dit si du trafic a atteint le workload.
  */
-function makeFetch(options: { servingState?: string; apiFails?: boolean }) {
+function makeFetch(options: {
+  servingState?: string;
+  apiFails?: boolean;
+  badgeRequired?: boolean;
+  omitEntitlementsPin?: boolean;
+  appContentType?: string;
+  omitAppContentType?: boolean;
+  appStatus?: number;
+}) {
   const appHits: string[] = [];
   const apiHits: string[] = [];
 
@@ -41,16 +49,32 @@ function makeFetch(options: { servingState?: string; apiFails?: boolean }) {
         throw new Error('API injoignable');
       }
 
-      return new Response(JSON.stringify({ state: options.servingState ?? 'live' }), {
-        status: 200,
-        headers: { 'content-type': 'application/json' },
-      });
+      return new Response(
+        JSON.stringify({
+          state: options.servingState ?? 'live',
+          ...(options.omitEntitlementsPin
+            ? {}
+            : {
+                planEntitlements: {
+                  version: '2026-08-27.1',
+                  badgeRequired: options.badgeRequired ?? false,
+                },
+              }),
+        }),
+        {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        },
+      );
     }
 
     // Tout le reste = l'amont applicatif (le workload déployé).
     appHits.push(url);
 
-    return new Response(APP_BODY, { status: 200, headers: { 'content-type': 'text/plain' } });
+    return new Response(APP_BODY, {
+      status: options.appStatus ?? 200,
+      headers: options.omitAppContentType ? undefined : { 'content-type': options.appContentType ?? 'text/plain' },
+    });
   });
 
   return { impl: impl as unknown as typeof fetch, appHits, apiHits };
@@ -60,6 +84,7 @@ async function buildProxy(fetchImpl: typeof fetch, extra: Record<string, unknown
   return buildPreviewProxyApp({
     previewDomain: PREVIEW_DOMAIN,
     apiBaseUrl: 'http://api.internal',
+    proxySharedSecret: 'published-frame-test-secret',
     serverDeployUpstreamTemplate: 'http://app-{deploymentId}.workspaces.svc.cluster.local',
     fetchImpl,
     ...extra,
@@ -134,6 +159,152 @@ describe('TEST POSITIF — extinction réelle du chemin SERVER', () => {
       expect(response.statusCode).toBe(200);
       expect(response.body).toContain(APP_BODY);
       expect(appHits.length).toBeGreaterThan(0);
+    } finally {
+      await proxy.close();
+    }
+  });
+
+  it('compose le badge Starter hors du DOM applicatif, localisé et responsive', async () => {
+    const { impl, appHits } = makeFetch({
+      servingState: 'live',
+      badgeRequired: true,
+      appContentType: 'text/html; charset=utf-8',
+    });
+    const proxy = await buildProxy(impl);
+
+    try {
+      const response = await proxy.inject({
+        method: 'GET',
+        url: '/',
+        headers: { host: DEPLOY_HOST, 'accept-language': 'fr-FR', 'sec-fetch-dest': 'document' },
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(response.body).not.toContain(APP_BODY);
+      expect(response.body).toContain('data-vibecore-published-badge');
+      expect(response.body).toContain('Créé avec E-Code');
+      expect(response.body).toContain('@media(max-width:480px)');
+      expect(response.body).toContain('min-height:44px');
+      expect(response.body).toContain('rel="noopener noreferrer"');
+      expect(response.body).toContain('<iframe');
+      expect(response.body).toContain('sandbox="allow-downloads');
+      expect(response.body).toContain('vc-loading');
+      expect(response.body).toContain('Chargement de l’application publiée');
+      expect(appHits).toHaveLength(0);
+
+      const rawSource = /<iframe[^>]+src="([^"]+)"/.exec(response.body)?.[1]?.replaceAll('&amp;', '&');
+      expect(rawSource).toBeTruthy();
+      const rawUrl = new URL(rawSource!);
+      expect(rawUrl.hostname).toBe(`rd-${DEPLOY_ID}.${PREVIEW_DOMAIN}`);
+
+      const raw = await proxy.inject({
+        method: 'GET',
+        url: `${rawUrl.pathname}${rawUrl.search}`,
+        headers: { host: rawUrl.host, 'sec-fetch-dest': 'iframe' },
+      });
+      expect(raw.statusCode).toBe(200);
+      expect(raw.body).toBe(APP_BODY);
+      expect(appHits).toHaveLength(1);
+
+      // Even with a valid signed frame URL, a copied direct navigation never
+      // becomes a badge-free public origin.
+      const bypass = await proxy.inject({
+        method: 'GET',
+        url: `${rawUrl.pathname}${rawUrl.search}`,
+        headers: { host: rawUrl.host, 'sec-fetch-dest': 'document' },
+      });
+      expect(bypass.statusCode).toBe(404);
+    } finally {
+      await proxy.close();
+    }
+  });
+
+  it.each([
+    ['XHTML', 'application/xhtml+xml', 200, false],
+    ['SVG', 'image/svg+xml', 200, false],
+    ['HTML latin-1', 'text/html; charset=iso-8859-1', 200, false],
+    ['MIME absent', undefined, 200, true],
+    ['404', 'text/html; charset=utf-8', 404, false],
+    ['500', 'text/html; charset=utf-8', 500, false],
+  ])('sert le shell avant workload pour une navigation Starter %s', async (_label, contentType, status, omitMime) => {
+    const { impl, appHits } = makeFetch({
+      servingState: 'live',
+      badgeRequired: true,
+      appContentType: contentType,
+      appStatus: status,
+      omitAppContentType: omitMime,
+    });
+    const proxy = await buildProxy(impl);
+    try {
+      const shell = await proxy.inject({
+        method: 'GET',
+        url: '/anything',
+        headers: { host: DEPLOY_HOST, 'sec-fetch-dest': 'document' },
+      });
+      expect(shell.statusCode).toBe(200);
+      expect(shell.body).toContain('data-vibecore-published-badge');
+      expect(appHits).toHaveLength(0);
+
+      const source = /<iframe[^>]+src="([^"]+)"/.exec(shell.body)?.[1]?.replaceAll('&amp;', '&');
+      const rawUrl = new URL(source!);
+      const raw = await proxy.inject({
+        method: 'GET',
+        url: `${rawUrl.pathname}${rawUrl.search}`,
+        headers: { host: rawUrl.host, 'sec-fetch-dest': 'iframe' },
+      });
+      expect(raw.statusCode).toBe(status);
+      expect(raw.body).toBe(APP_BODY);
+      expect(appHits).toHaveLength(1);
+    } finally {
+      await proxy.close();
+    }
+  });
+
+  it.each([
+    ['HEAD document', 'HEAD', 'document'],
+    ['script asset', 'GET', 'script'],
+  ])('ne remplace pas %s par le shell badge', async (_label, method, destination) => {
+    const { impl, appHits } = makeFetch({ servingState: 'live', badgeRequired: true, appContentType: 'text/html' });
+    const proxy = await buildProxy(impl);
+    try {
+      const response = await proxy.inject({
+        method,
+        url: '/asset.js',
+        headers: { host: DEPLOY_HOST, 'sec-fetch-dest': destination, accept: 'text/html' },
+      });
+      expect(response.body).not.toContain('data-vibecore-published-badge');
+      expect(appHits).toHaveLength(1);
+    } finally {
+      await proxy.close();
+    }
+  });
+
+  it('ne retire le badge que lorsque le pin exact le permet', async () => {
+    const { impl } = makeFetch({
+      servingState: 'live',
+      badgeRequired: false,
+      appContentType: 'text/html; charset=utf-8',
+    });
+    const proxy = await buildProxy(impl);
+
+    try {
+      const response = await proxy.inject({ method: 'GET', url: '/', headers: { host: DEPLOY_HOST } });
+      expect(response.statusCode).toBe(200);
+      expect(response.body).not.toContain('data-vibecore-published-badge');
+    } finally {
+      await proxy.close();
+    }
+  });
+
+  it('refuse le workload si le control-plane ne fournit pas le pin exact', async () => {
+    const { impl, appHits } = makeFetch({ servingState: 'live', omitEntitlementsPin: true });
+    const proxy = await buildProxy(impl);
+
+    try {
+      const response = await proxy.inject({ method: 'GET', url: '/', headers: { host: DEPLOY_HOST } });
+      expect(response.statusCode).toBe(503);
+      expect(response.json()).toMatchObject({ code: 'PUBLICATION_STATE_UNAVAILABLE' });
+      expect(appHits).toHaveLength(0);
     } finally {
       await proxy.close();
     }

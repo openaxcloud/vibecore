@@ -21,6 +21,49 @@ export const deploymentProviders = [
   'docker',
 ] as const;
 
+function configuredRegions(value: string | undefined): string[] {
+  return [
+    ...new Set(
+      (value ?? '')
+        .split(',')
+        .map((region) => region.trim().toLowerCase())
+        .filter((region) => /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(region)),
+    ),
+  ].sort();
+}
+
+/** Regions the concrete provider adapter is configured to accept. */
+export function providerSupportedPublishRegions(
+  provider: (typeof deploymentProviders)[number],
+  env: Record<string, string | undefined> = process.env as Record<string, string | undefined>,
+): string[] {
+  if (provider === 'google-cloud-run') {
+    return configuredRegions(env.CLOUD_RUN_SUPPORTED_REGIONS ?? env.CLOUD_RUN_REGION);
+  }
+  if (provider === 'docker') {
+    return configuredRegions(env.DOCKER_SUPPORTED_REGIONS ?? env.DOCKER_REGION);
+  }
+  if (provider === 'server') {
+    // The manager currently has no verified region placement primitive. Keep
+    // the only truthful choice until node affinity + status proof are wired.
+    return ['platform-default'];
+  }
+  // Static and managed edge providers deploy to their real global edge surface.
+  return ['global'];
+}
+
+/**
+ * Only these two providers are served through a platform-controlled edge that
+ * can compose a non-removable badge. Hook providers remain operator-required
+ * until their adapters can attest the pinned publication policy. Egress
+ * telemetry is a separate admission boundary and is not claimed here.
+ */
+export function providerHasAuthoritativePlanEdge(
+  provider: (typeof deploymentProviders)[number],
+): provider is 'server' | 'static' {
+  return provider === 'server' || provider === 'static';
+}
+
 /*
  * The subset of providers for which triggerProviderRollback() actually performs
  * an async follow-up call (so the rollback row must start QUEUED and transition
@@ -60,6 +103,13 @@ export const createDeploymentSchema = z.object({
   injectSecrets: z.array(z.string().min(1).max(120)).default([]),
   accessMode: z.enum(DEPLOYMENT_ACCESS_MODES).optional(),
   accessPassword: z.string().min(10).max(256).optional(),
+  publishRegion: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .regex(/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/)
+    .optional(),
+  removeBrandingBadge: z.boolean().default(false),
 
   /*
    * Machine size for server deploys (rate-card key, e.g. 'dedicated-1').
@@ -271,9 +321,10 @@ interface HookSpec {
 function buildHookSpec(
   provider: (typeof deploymentProviders)[number],
   env: Record<string, string | undefined>,
+  options: { publishRegion?: string } = {},
 ): HookSpec | undefined {
   const now = new Date().toISOString();
-  const baseBody = { source: 'vibecore', deployedAt: now };
+  const baseBody = { source: 'vibecore', deployedAt: now, publishRegion: options.publishRegion };
 
   if (provider === 'vercel' && env.VERCEL_DEPLOY_HOOK_URL) {
     return {
@@ -309,7 +360,10 @@ function buildHookSpec(
         'content-type': 'application/json',
         'x-github-api-version': '2022-11-28',
       },
-      body: JSON.stringify({ ref, inputs: { source: 'vibecore', deployedAt: now } }),
+      body: JSON.stringify({
+        ref,
+        inputs: { source: 'vibecore', deployedAt: now, publishRegion: options.publishRegion },
+      }),
     };
   }
 
@@ -322,7 +376,7 @@ function buildHookSpec(
       },
       body: JSON.stringify({
         source: { branchName: env.CLOUD_RUN_SOURCE_BRANCH || 'main' },
-        substitutions: { _SOURCE: 'vibecore', _DEPLOYED_AT: now },
+        substitutions: { _SOURCE: 'vibecore', _DEPLOYED_AT: now, _REGION: options.publishRegion },
       }),
     };
   }
@@ -340,6 +394,7 @@ function buildHookSpec(
           _SOURCE: 'vibecore',
           _DEPLOYED_AT: now,
           _DOCKER_REGISTRY: env.DOCKER_REGISTRY_URL || 'gcr.io',
+          _REGION: options.publishRegion,
         },
       }),
     };
@@ -468,8 +523,9 @@ export async function triggerProviderDeployHook(
   provider: (typeof deploymentProviders)[number],
   fetchImpl: typeof fetch = fetch,
   env: Record<string, string | undefined> = process.env as Record<string, string | undefined>,
+  options: { publishRegion?: string } = {},
 ): Promise<ProviderHookResult | undefined> {
-  const spec = buildHookSpec(provider, env);
+  const spec = buildHookSpec(provider, env, options);
 
   if (!spec) {
     return undefined;

@@ -1019,6 +1019,11 @@ model ReleaseManifest {
   // this exact version rather than inheriting a later/less restrictive mode.
   accessPolicyVersion Int @default(1)
 
+  // P1-COV-05: immutable, versioned plan authority. Nullable only for legacy
+  // rows created before 0099; all new publish/rollback paths reject null.
+  planEntitlements      Json?
+  projectManifestDigest String?
+
   createdAt DateTime @default(now())
 
   @@unique([projectId, environment, version])
@@ -2759,18 +2764,18 @@ model ProjectCheckpoint {
 /// holds ONLY secret/env KEYS (references) — never a value. `scanFindings`
 /// records materialized-secret hits (key + location, never the value).
 model RemixJob {
-  id                       String    @id @default(cuid())
+  id                       String             @id @default(cuid())
   sourceProjectId          String
   targetProjectId          String?
   organizationId           String
   actorUserId              String?
-  state                    String    @default("PENDING")
+  state                    String             @default("PENDING")
   /// Tenant-scoped retry key. Legacy rows may be null; every new API job has one.
   idempotencyKey           String?
   /// SHA-256 of the non-secret, authorization-relevant request shape.
   requestHash              String?
   /// Optimistic-concurrency fence for state/ownership transitions.
-  version                  Int       @default(0)
+  version                  Int                @default(0)
   /// Fencing token and renewable lease held by the current executor.
   operationToken           String?
   operationExpiresAt       DateTime?
@@ -2786,7 +2791,7 @@ model RemixJob {
   /// { secretKeys: string[], envVarKeys: string[] } — references only.
   detachedKeys             Json?
   /// DETACH | CLONE | SHARE_WITH_CONSENT
-  storagePolicy            String    @default("DETACH")
+  storagePolicy            String             @default("DETACH")
   /// Versioned explicit consent for SHARE_WITH_CONSENT; null for other policies.
   storageConsentVersion    String?
   /// Redacted per-object source/target verification facts (key,size,generation,hash).
@@ -2796,7 +2801,7 @@ model RemixJob {
   /// SecretScanFinding[] { path, secretKey, line } — never the value.
   scanFindings             Json?
   /// Count of value-lines scrubbed out of the clone during CLONING.
-  scrubbedCount            Int       @default(0)
+  scrubbedCount            Int                @default(0)
   /// VERSIONED license captured at remix time from the source listing —
   /// { licenseId, licenseTextSha256, sourceListingId, capturedAt }. Immutable on
   /// the job: later edits to the listing's license never rewrite what THIS remix
@@ -2809,9 +2814,9 @@ model RemixJob {
   /// PiiFinding[] { path, kind, line } — kind of PII masked, never the value.
   piiFindings              Json?
   /// Count of PII spans masked out of the clone during SOURCE_SANITIZED.
-  piiMaskedCount           Int       @default(0)
+  piiMaskedCount           Int                @default(0)
   /// Honest marker: was a physical isolated DB provisioned, or deferred?
-  dbForked                 Boolean   @default(false)
+  dbForked                 Boolean            @default(false)
   /// { instanceId, environment, targetTime, lsn? } — never a connection URI.
   sourceDatabasePin        Json?
   /// Target DatabaseInstance row while the isolated CNPG recovery is running.
@@ -2821,8 +2826,8 @@ model RemixJob {
   /// Stable public code; `error` remains a redacted user-facing message.
   errorCode                String?
   error                    String?
-  createdAt                DateTime  @default(now())
-  updatedAt                DateTime  @updatedAt
+  createdAt                DateTime           @default(now())
+  updatedAt                DateTime           @updatedAt
   targetProject            Project?           @relation("RemixJobTarget", fields: [targetProjectId], references: [id], onDelete: SetNull)
   targetDatabaseInstance   DatabaseInstance?  @relation("RemixJobTargetDatabase", fields: [targetDatabaseInstanceId], references: [id], onDelete: SetNull)
   storageShare             RemixStorageShare? @relation("RemixJobStorageShare", fields: [storageShareId], references: [id], onDelete: SetNull)
@@ -2838,19 +2843,19 @@ model RemixJob {
 /// bucket is never inferred from project lineage: without this durable,
 /// versioned consent row, a target project cannot read source objects.
 model RemixStorageShare {
-  id                   String    @id @default(cuid())
+  id                   String       @id @default(cuid())
   sourceProjectId      String
-  targetProjectId      String    @unique
+  targetProjectId      String       @unique
   sourceOrganizationId String
   targetOrganizationId String
   consentVersion       String
   consentedByUserId    String?
-  consentedAt          DateTime  @default(now())
+  consentedAt          DateTime     @default(now())
   sourceInventory      Json
-  state                String    @default("ACTIVE")
+  state                String       @default("ACTIVE")
   revokedAt            DateTime?
-  createdAt            DateTime  @default(now())
-  updatedAt            DateTime  @updatedAt
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
   sourceProject        Project      @relation("RemixStorageShareSourceProject", fields: [sourceProjectId], references: [id], onDelete: Cascade)
   targetProject        Project      @relation("RemixStorageShareTargetProject", fields: [targetProjectId], references: [id], onDelete: Cascade)
   sourceOrganization   Organization @relation("RemixStorageShareSourceOrganization", fields: [sourceOrganizationId], references: [id], onDelete: Cascade)

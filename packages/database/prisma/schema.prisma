@@ -1019,6 +1019,11 @@ model ReleaseManifest {
   // this exact version rather than inheriting a later/less restrictive mode.
   accessPolicyVersion Int @default(1)
 
+  // P1-COV-05: immutable, versioned plan authority. Nullable only for legacy
+  // rows created before 0099; all new publish/rollback paths reject null.
+  planEntitlements Json?
+  projectManifestDigest String?
+
   createdAt DateTime @default(now())
 
   @@unique([projectId, environment, version])

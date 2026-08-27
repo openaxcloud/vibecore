@@ -1222,15 +1222,25 @@ describe('sanitizePreviewFramingHeader', () => {
  */
 describe('preview-proxy — framing headers are scoped to the IDE preview surface', () => {
   const framingUpstream = () =>
-    (async () =>
-      new Response('<!doctype html><html><head></head><body><div id="root">app</div></body></html>', {
+    (async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes('/serving-state')) {
+        return Response.json({
+          state: 'live',
+          planEntitlements: { version: '2026-08-27.1', badgeRequired: false },
+        });
+      }
+      return new Response('<!doctype html><html><head></head><body><div id="root">app</div></body></html>', {
         status: 200,
         headers: {
           'content-type': 'text/html; charset=utf-8',
           'x-frame-options': 'SAMEORIGIN',
           'content-security-policy': "default-src 'self'; frame-ancestors 'self'",
+          'x-vibecore-plan-entitlements-version': '2026-08-27.1',
+          'x-vibecore-published-badge-required': '0',
         },
-      })) as unknown as typeof fetch;
+      });
+    }) as unknown as typeof fetch;
 
   it('IDE preview (/p/:workspaceId/:port): strips framing headers so the IDE can frame the dev server', async () => {
     const app = await buildPreviewProxyApp({ fetchImpl: framingUpstream(), resolveAgent: async () => fakeAgent });
@@ -1254,7 +1264,11 @@ describe('preview-proxy — framing headers are scoped to the IDE preview surfac
   });
 
   it('PUBLISHED server deploy (d-<id>): keeps X-Frame-Options and frame-ancestors untouched', async () => {
-    const app = await buildPreviewProxyApp({ fetchImpl: framingUpstream(), previewDomain: 'preview.e-code.ai' });
+    const app = await buildPreviewProxyApp({
+      fetchImpl: framingUpstream(),
+      previewDomain: 'preview.e-code.ai',
+      apiBaseUrl: 'http://api.test',
+    });
 
     const response = await app.inject({
       method: 'GET',

@@ -1,8 +1,8 @@
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 
 import { redactAuditMetadata, type AuditEvent } from '@vibecore/audit';
 import { hashToken } from '@vibecore/auth';
-import type { PlanKey, QuotaKey } from '@vibecore/billing';
+import type { PlanKey, QuotaKey, QuotaOverrideKey } from '@vibecore/billing';
 import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
 import { appPublicEnglish } from '../app-public-copy.js';
 import {
@@ -24,17 +24,19 @@ import {
   projectManifestSnapshotPin,
   projectManifestForClone,
   projectManifestDigest,
+  PROJECT_MANIFEST_DIGEST_PATTERN,
   readProjectManifestSnapshotPin,
   verifyStoredProjectManifestRevision,
   type ProjectManifest,
   type ProjectManifestCloneMode,
 } from '../project-manifest.js';
 import { isCommittedPromotionForTenant, SERVER_IMAGE_RELEASE_AUDIT_ACTION } from '../server-image-promotion.js';
-import { DEFAULT_ENV_VAR_SCOPE } from '../store.js';
+import { DEFAULT_ENV_VAR_SCOPE, parseReleasePlanEntitlementsPin, sameReleasePlanEntitlementsPin } from '../store.js';
 import type {
   EnvVarScope,
   AbuseEventRecord,
   SecurityEventResolutionRecord,
+  SecurityAuditEventPage,
   AgentPatchProposalRecord,
   AgentPatchProposalStatus,
   AgentRepairEventRecord,
@@ -49,6 +51,9 @@ import type {
   ApiKeyScope,
   ApiStore,
   AiCostLedgerRecord,
+  CanonicalAiUsageBatchInput,
+  CanonicalAiClassifierRouting,
+  CanonicalAiClassifierRoutingSelection,
   AiConversationRecord,
   AiMessageRecord,
   IntegrationFeatureRequestRecord,
@@ -84,12 +89,15 @@ import type {
   DeploymentAccessContext,
   DeploymentAccessTicketMutationResult,
   ReleaseManifestRecord,
+  ReleasePlanEntitlementsPin,
   RollbackDeploymentCreateInput,
   RollbackLeaseFence,
   RollbackOperationRecord,
   ServerImageReleaseCommitInput,
   ServerImageReleaseCommitResult,
   StaticRollbackReleaseCommitInput,
+  StaticReleaseCommitInput,
+  StaticReleaseCommitResult,
   DomainVerificationRecord,
   EmailDeliveryEventRecord,
   EnterpriseSettingsRecord,
@@ -156,6 +164,17 @@ function id(prefix: string) {
 
 function now() {
   return new Date().toISOString();
+}
+
+function canonicalClassifierCostMillicents(
+  routing: CanonicalAiClassifierRouting,
+  inputTokens: number,
+  outputTokens: number,
+): number {
+  const numerator =
+    BigInt(inputTokens) * BigInt(routing.costInMillicentsPerM) +
+    BigInt(outputTokens) * BigInt(routing.costOutMillicentsPerM);
+  return Number((numerator + 500_000n) / 1_000_000n);
 }
 
 function sameNullable(left: string | undefined, right: string | undefined) {
@@ -274,6 +293,59 @@ export class TestApiStore implements ApiStore {
   readonly creditPacks = new Map<string, CreditPackRecord>();
   readonly agentCheckpoints = new Map<string, AgentCheckpointRecord>();
   readonly userSpendLimits = new Map<string, UserSpendLimitRecord>();
+  failCanonicalUserSpendCommits = false;
+  failCanonicalReconciliationOnce = false;
+  readonly canonicalUserSpendReservations = new Map<
+    string,
+    {
+      id: string;
+      organizationId: string;
+      userId: string;
+      idempotencyKey: string;
+      requestHash: string;
+      maxAmountCents: number;
+      committedCents?: number;
+      usageRequestHash?: string;
+      aiCostLedgerId?: string;
+      aiCostLedgerIds?: string[];
+      batchRequestHash?: string;
+      batchBilledCents?: number;
+      recoveredAtCeiling?: boolean;
+      claimedAt?: string;
+      claimOwnerId?: string;
+      claimLeaseExpiresAt?: string;
+      executionToken?: string;
+      startedRequestHash?: string;
+      startedRequestId?: string;
+      startedProjectId?: string;
+      startedAt?: string;
+      settleAfter?: string;
+      platformUsageRequestHash?: string;
+      platformAiCostLedgerId?: string;
+      platformOutcome?: 'hard' | 'easy';
+      platformRecoveredAtCeiling?: boolean;
+      platformIntentRequestHash?: string;
+      platformIntentStartedAt?: string;
+      platformIntentSettleAfter?: string;
+      platformIntentCallId?: string;
+      platformIntentProvider?: string;
+      platformIntentModel?: string;
+      platformIntentMaxInputTokens?: number;
+      platformIntentMaxOutputTokens?: number;
+      platformIntentMaxCostCents?: number;
+      platformIntentRouting?: CanonicalAiClassifierRouting;
+      platformAgentCallLogId?: string;
+      manualRecoveryAt?: string;
+      manualRecoveryReason?: string;
+      reconcileFailureAttempts?: number;
+      reconcileFailureReason?: string;
+      reconcileLastAttemptAt?: string;
+      reconcileNextRetryAt?: string;
+      expiresAt: string;
+      periodStart: string;
+      status: 'ACTIVE' | 'COMMITTED' | 'RELEASED' | 'EXPIRED';
+    }
+  >();
   readonly providerConfigs = new Map<string, ProviderConfigRecord>();
   readonly modelConfigs = new Map<string, ModelConfigRecord>();
   readonly billingCustomers = new Map<string, BillingCustomerRecord>();
@@ -285,9 +357,19 @@ export class TestApiStore implements ApiStore {
   readonly emailDeliveryEvents: EmailDeliveryEventRecord[] = [];
   readonly auditLogs: Array<AuditEvent & { id: string; createdAt: string }> = [];
   readonly adminAuditLogs: AdminAuditLogRecord[] = [];
+  /** Injectable authoritative clock used by expiry-sensitive store contracts. */
+  databaseClockNowMs: number | undefined;
 
   async ping(): Promise<void> {
     // In-memory store is always reachable.
+  }
+
+  async getDatabaseClock() {
+    const current = new Date(this.databaseClockNowMs ?? Date.now());
+    return {
+      now: current.toISOString(),
+      monthStart: new Date(Date.UTC(current.getUTCFullYear(), current.getUTCMonth(), 1)).toISOString(),
+    };
   }
 
   /**
@@ -1843,6 +1925,98 @@ export class TestApiStore implements ApiStore {
 
   async listProjectCollaborators(projectId: string) {
     return [...this.projectCollaborators.values()].filter((collaborator) => collaborator.projectId === projectId);
+  }
+
+  async getActiveProjectCollaborator(projectId: string, userId: string) {
+    const nowMs = Date.now();
+    return [...this.projectCollaborators.values()].find(
+      (collaborator) =>
+        collaborator.projectId === projectId &&
+        collaborator.userId === userId &&
+        (!collaborator.expiresAt || new Date(collaborator.expiresAt).getTime() > nowMs),
+    );
+  }
+
+  async listActiveOrganizationViewerUserIds(organizationId: string, options?: { excludeGroupId?: string }) {
+    const nowMs = Date.now();
+    const projectIds = new Set(
+      [...this.projects.values()]
+        .filter((project) => project.organizationId === organizationId && !project.deletedAt)
+        .map((project) => project.id),
+    );
+    const audience = new Set(
+      [...this.projectCollaborators.values()]
+        .filter(
+          (collaborator) =>
+            projectIds.has(collaborator.projectId) &&
+            (collaborator.roleKey === 'viewer' || collaborator.roleKey === 'guest') &&
+            (!collaborator.expiresAt || new Date(collaborator.expiresAt).getTime() > nowMs),
+        )
+        .map((collaborator) => collaborator.userId),
+    );
+
+    const activeReadOnlyGrants = [...this.resourceAccessGrants.values()].filter(
+      (grant) =>
+        grant.organizationId === organizationId &&
+        grant.resourceType === 'PROJECT' &&
+        projectIds.has(grant.resourceId) &&
+        (grant.roleKey === 'viewer' || grant.roleKey === 'guest') &&
+        grant.status === 'ACTIVE' &&
+        !grant.revokedAt &&
+        new Date(grant.expiresAt).getTime() > nowMs,
+    );
+
+    for (const grant of activeReadOnlyGrants) {
+      if (grant.subjectType === 'USER' && grant.subjectUserId) {
+        audience.add(grant.subjectUserId);
+        continue;
+      }
+      if (
+        grant.subjectType !== 'GROUP' ||
+        !grant.subjectGroupId ||
+        grant.subjectGroupId === options?.excludeGroupId ||
+        this.collaborationGroups.get(grant.subjectGroupId)?.deletedAt
+      ) {
+        continue;
+      }
+
+      for (const member of this.collaborationGroupMembers.values()) {
+        const membership = this.memberships.get(member.membershipId);
+        if (
+          member.organizationId === organizationId &&
+          member.groupId === grant.subjectGroupId &&
+          membership?.state === 'ACTIVE'
+        ) {
+          audience.add(membership.userId);
+        }
+      }
+    }
+
+    return [...audience].sort();
+  }
+
+  async groupHasActiveReadOnlyProjectGrant(organizationId: string, groupId: string) {
+    const nowMs = Date.now();
+    const group = this.collaborationGroups.get(groupId);
+    if (!group || group.organizationId !== organizationId || group.deletedAt) return false;
+
+    return [...this.resourceAccessGrants.values()].some(
+      (grant) =>
+        grant.organizationId === organizationId &&
+        grant.subjectType === 'GROUP' &&
+        grant.subjectGroupId === groupId &&
+        grant.resourceType === 'PROJECT' &&
+        (grant.roleKey === 'viewer' || grant.roleKey === 'guest') &&
+        grant.status === 'ACTIVE' &&
+        !grant.revokedAt &&
+        new Date(grant.expiresAt).getTime() > nowMs &&
+        Boolean(
+          [...this.projects.values()].find(
+            (project) =>
+              project.id === grant.resourceId && project.organizationId === organizationId && !project.deletedAt,
+          ),
+        ),
+    );
   }
 
   async removeProjectCollaborator(input: { projectId: string; userId: string }) {
@@ -3878,6 +4052,7 @@ export class TestApiStore implements ApiStore {
       environmentName: (deployment as any).environment,
       organizationId: project?.organizationId,
       planKey: subscription?.status === 'ACTIVE' ? subscription.planKey : undefined,
+      metadata: deployment.metadata,
     };
   }
 
@@ -3949,7 +4124,10 @@ export class TestApiStore implements ApiStore {
       input.releaseSource &&
       (input.releaseSource.projectId !== deployment.projectId ||
         input.releaseSource.environment !== deployment.environment ||
-        input.releaseSource.deploymentId !== deployment.id)
+        input.releaseSource.deploymentId !== deployment.id ||
+        !parseReleasePlanEntitlementsPin(input.releaseSource.planEntitlements) ||
+        !input.releaseSource.projectManifestDigest ||
+        !PROJECT_MANIFEST_DIGEST_PATTERN.test(input.releaseSource.projectManifestDigest))
     ) {
       throw Object.assign(new Error('DEPLOYMENT_ACCESS_RELEASE_MANIFEST_MISMATCH'), {
         statusCode: 409,
@@ -4214,8 +4392,14 @@ export class TestApiStore implements ApiStore {
     configDigest?: string;
     dbMigrationPoint?: string;
     accessPolicyVersion: number;
+    planEntitlements: ReleasePlanEntitlementsPin;
+    projectManifestDigest: string;
   }): Promise<ReleaseManifestRecord> {
     const deployment = this.deployments.get(input.deploymentId);
+    const planEntitlements = parseReleasePlanEntitlementsPin(input.planEntitlements);
+    const deploymentPlanEntitlements = parseReleasePlanEntitlementsPin(
+      (deployment?.metadata as { planEntitlements?: unknown } | undefined)?.planEntitlements,
+    );
     const policy = this.deploymentAccessPolicies.find(
       (candidate) =>
         candidate.projectId === input.projectId &&
@@ -4228,7 +4412,12 @@ export class TestApiStore implements ApiStore {
       deployment.projectId !== input.projectId ||
       deployment.environment !== input.environment ||
       deployment.accessPolicyVersion !== input.accessPolicyVersion ||
-      !policy
+      !policy ||
+      !planEntitlements ||
+      !sameReleasePlanEntitlementsPin(planEntitlements, deploymentPlanEntitlements) ||
+      !PROJECT_MANIFEST_DIGEST_PATTERN.test(input.projectManifestDigest) ||
+      (deployment.metadata as { projectManifestDigest?: unknown } | undefined)?.projectManifestDigest !==
+        input.projectManifestDigest
     ) {
       throw Object.assign(new Error('A release manifest must pin the deployment exact valid access policy.'), {
         code: 'RELEASE_ACCESS_POLICY_INVALID',
@@ -4249,6 +4438,8 @@ export class TestApiStore implements ApiStore {
       configDigest: input.configDigest,
       dbMigrationPoint: input.dbMigrationPoint,
       accessPolicyVersion: input.accessPolicyVersion,
+      planEntitlements,
+      projectManifestDigest: input.projectManifestDigest,
       createdAt: new Date().toISOString(),
     };
     this.releaseManifests.push(row);
@@ -4696,12 +4887,116 @@ export class TestApiStore implements ApiStore {
     return completed;
   }
 
+  async commitStaticRelease(input: StaticReleaseCommitInput): Promise<StaticReleaseCommitResult> {
+    return this.withSerializedMutation(`release-manifest:${input.projectId}:${input.environment}`, async () => {
+      await this.assertProjectReleaseBarrier({ projectId: input.projectId, ...input.releaseFence });
+      const deployment = this.deployments.get(input.deploymentId);
+      const project = this.projects.get(input.projectId);
+
+      if (!deployment || !project || deployment.projectId !== input.projectId) {
+        throw new Error(`Deployment not found: ${input.deploymentId}`);
+      }
+
+      const queuedPin = parseReleasePlanEntitlementsPin(
+        (deployment.metadata as { planEntitlements?: unknown } | undefined)?.planEntitlements,
+      );
+      const committedPin = parseReleasePlanEntitlementsPin(input.metadata.planEntitlements);
+      const policy = this.deploymentAccessPolicies.find(
+        (candidate) =>
+          candidate.projectId === input.projectId &&
+          candidate.environment === input.environment &&
+          candidate.version === input.accessPolicyVersion,
+      );
+
+      if (
+        project.organizationId !== input.releaseFence.expectedOrganizationId ||
+        deployment.provider !== 'static' ||
+        deployment.environment !== input.environment ||
+        deployment.accessPolicyVersion !== input.accessPolicyVersion ||
+        input.artifactRef !== `static-deployments/${input.deploymentId}` ||
+        input.metadata.projectManifestDigest !== input.releaseFence.expectedManifestDigest ||
+        !policy ||
+        !queuedPin ||
+        !committedPin ||
+        !sameReleasePlanEntitlementsPin(queuedPin, committedPin)
+      ) {
+        throw new Error('STATIC_RELEASE_COMMIT_CONFLICT');
+      }
+
+      const existingRows = this.releaseManifests.filter((manifest) => manifest.deploymentId === deployment.id);
+      const existing = existingRows[0];
+
+      if (existing) {
+        if (
+          existingRows.length !== 1 ||
+          existing.projectId !== input.projectId ||
+          existing.environment !== input.environment ||
+          existing.provider !== 'static' ||
+          existing.artifactKind !== 'static-snapshot' ||
+          existing.artifactRef !== input.artifactRef ||
+          existing.artifactDigest !== input.artifactDigest ||
+          !sameNullable(existing.storeGeneration, input.storeGeneration) ||
+          !sameNullable(existing.configDigest, input.configDigest) ||
+          !sameNullable(existing.dbMigrationPoint, input.dbMigrationPoint) ||
+          existing.accessPolicyVersion !== input.accessPolicyVersion ||
+          !sameReleasePlanEntitlementsPin(existing.planEntitlements, committedPin) ||
+          existing.projectManifestDigest !== input.releaseFence.expectedManifestDigest ||
+          deployment.status !== 'READY'
+        ) {
+          throw new Error('STATIC_RELEASE_MANIFEST_CONFLICT');
+        }
+
+        return { committed: true, deployment, manifest: existing };
+      }
+
+      if (['READY', 'FAILED', 'CANCELED'].includes(deployment.status)) {
+        return { committed: false, deployment };
+      }
+
+      const latestVersion = this.releaseManifests
+        .filter((manifest) => manifest.projectId === input.projectId && manifest.environment === input.environment)
+        .reduce((max, manifest) => Math.max(max, manifest.version), 0);
+      const manifest = await this.createReleaseManifest({
+        projectId: input.projectId,
+        deploymentId: input.deploymentId,
+        environment: input.environment,
+        version: latestVersion + 1,
+        provider: 'static',
+        artifactKind: 'static-snapshot',
+        artifactRef: input.artifactRef,
+        artifactDigest: input.artifactDigest,
+        ...(input.storeGeneration ? { storeGeneration: input.storeGeneration } : {}),
+        ...(input.configDigest ? { configDigest: input.configDigest } : {}),
+        ...(input.dbMigrationPoint ? { dbMigrationPoint: input.dbMigrationPoint } : {}),
+        accessPolicyVersion: input.accessPolicyVersion,
+        planEntitlements: committedPin,
+        projectManifestDigest: input.releaseFence.expectedManifestDigest,
+      });
+      const ready: DeploymentRecord = {
+        ...deployment,
+        status: 'READY',
+        url: input.url,
+        previewUrl: input.previewUrl,
+        productionUrl: input.productionUrl,
+        metadata: input.metadata,
+        logs: input.logs,
+        finishedAt: input.finishedAt,
+        updatedAt: now(),
+      };
+      this.deployments.set(ready.id, ready);
+
+      return { committed: true, deployment: ready, manifest };
+    });
+  }
+
   async commitStaticRollbackRelease(input: StaticRollbackReleaseCommitInput) {
     return this.withSerializedMutation(`release-manifest:${input.projectId}:${input.environment}`, async () => {
       await this.assertProjectReleaseBarrier({ projectId: input.projectId, ...input.releaseFence });
       const operation = this._requireRollbackLease(input);
       const source = this._requireRollbackSource(operation);
       const deployment = this.deployments.get(input.deploymentId);
+      const sourcePin = parseReleasePlanEntitlementsPin(source.planEntitlements);
+      const rollbackPin = parseReleasePlanEntitlementsPin(input.metadata.planEntitlements);
 
       if (
         !deployment ||
@@ -4719,7 +5014,11 @@ export class TestApiStore implements ApiStore {
         input.artifactRef !== `static-deployments/${input.deploymentId}` ||
         !sameNullable(source.storeGeneration, input.storeGeneration) ||
         !sameNullable(source.configDigest, input.configDigest) ||
-        !sameNullable(source.dbMigrationPoint, input.dbMigrationPoint)
+        !sameNullable(source.dbMigrationPoint, input.dbMigrationPoint) ||
+        !sourcePin ||
+        !rollbackPin ||
+        !sameReleasePlanEntitlementsPin(sourcePin, rollbackPin) ||
+        source.projectManifestDigest !== input.releaseFence.expectedManifestDigest
       ) {
         throw new Error('STATIC_ROLLBACK_RELEASE_CONFLICT');
       }
@@ -4752,6 +5051,8 @@ export class TestApiStore implements ApiStore {
           !sameNullable(existing.configDigest, input.configDigest) ||
           !sameNullable(existing.dbMigrationPoint, input.dbMigrationPoint) ||
           existing.accessPolicyVersion !== input.accessPolicyVersion ||
+          !sameReleasePlanEntitlementsPin(existing.planEntitlements, sourcePin) ||
+          existing.projectManifestDigest !== source.projectManifestDigest ||
           deployment.status !== 'READY'
         ) {
           throw new Error('STATIC_ROLLBACK_RELEASE_CONFLICT');
@@ -4800,6 +5101,8 @@ export class TestApiStore implements ApiStore {
         ...(input.configDigest ? { configDigest: input.configDigest } : {}),
         ...(input.dbMigrationPoint ? { dbMigrationPoint: input.dbMigrationPoint } : {}),
         accessPolicyVersion: input.accessPolicyVersion,
+        planEntitlements: sourcePin,
+        projectManifestDigest: source.projectManifestDigest,
       });
       const ready = await this.updateDeployment(input.projectId, input.deploymentId, {
         status: 'READY',
@@ -4844,6 +5147,15 @@ export class TestApiStore implements ApiStore {
       const rollbackOperationId = (deployment.metadata as Record<string, unknown> | undefined)?.rollbackOperationId;
       const rollbackOperation = input.rollbackFence ? this._requireRollbackLease(input.rollbackFence) : undefined;
       const rollbackSource = rollbackOperation ? this._requireRollbackSource(rollbackOperation) : undefined;
+      const deploymentPin = parseReleasePlanEntitlementsPin(
+        (deployment.metadata as { planEntitlements?: unknown } | undefined)?.planEntitlements,
+      );
+      const inputPin = parseReleasePlanEntitlementsPin(input.metadata.planEntitlements);
+      const rollbackSourcePin = parseReleasePlanEntitlementsPin(rollbackSource?.planEntitlements);
+      const releasePin = rollbackOperation ? rollbackSourcePin : deploymentPin;
+      const releaseProjectManifestDigest = rollbackOperation
+        ? rollbackSource?.projectManifestDigest
+        : (deployment.metadata as { projectManifestDigest?: unknown } | undefined)?.projectManifestDigest;
 
       if (
         !project ||
@@ -4854,6 +5166,10 @@ export class TestApiStore implements ApiStore {
         deployment.environment !== input.environment ||
         image?.imageRef !== input.artifactRef ||
         image?.imageDigest !== input.artifactDigest ||
+        !releasePin ||
+        !inputPin ||
+        !sameReleasePlanEntitlementsPin(releasePin, inputPin) ||
+        releaseProjectManifestDigest !== input.releaseFence.expectedManifestDigest ||
         !isCommittedPromotionForTenant(
           serverDeploy?.promotion,
           project.organizationId,
@@ -4878,6 +5194,7 @@ export class TestApiStore implements ApiStore {
             rollbackSource.provider !== 'server' ||
             rollbackSource.artifactRef !== input.artifactRef ||
             rollbackSource.artifactDigest !== input.artifactDigest ||
+            !rollbackSourcePin ||
             !sameNullable(rollbackSource.storeGeneration, input.storeGeneration) ||
             !sameNullable(rollbackSource.configDigest, input.configDigest) ||
             !sameNullable(rollbackSource.dbMigrationPoint, input.dbMigrationPoint)))
@@ -4901,7 +5218,9 @@ export class TestApiStore implements ApiStore {
           !sameNullable(existing.configDigest, input.configDigest) ||
           !sameNullable(existing.dbMigrationPoint, input.dbMigrationPoint) ||
           (rollbackOperation && existing.version !== input.rollbackFence!.expectedHeadVersion + 1) ||
-          existing.accessPolicyVersion !== deployment.accessPolicyVersion
+          existing.accessPolicyVersion !== deployment.accessPolicyVersion ||
+          !sameReleasePlanEntitlementsPin(existing.planEntitlements, releasePin) ||
+          existing.projectManifestDigest !== releaseProjectManifestDigest
         ) {
           throw new Error('SERVER_RELEASE_MANIFEST_CONFLICT');
         }
@@ -4960,6 +5279,8 @@ export class TestApiStore implements ApiStore {
         configDigest: input.configDigest,
         dbMigrationPoint: input.dbMigrationPoint,
         accessPolicyVersion: deployment.accessPolicyVersion,
+        planEntitlements: releasePin,
+        projectManifestDigest: releaseProjectManifestDigest as string,
         createdAt: now(),
       };
       const ready: DeploymentRecord = {
@@ -5146,6 +5467,11 @@ export class TestApiStore implements ApiStore {
   async getActiveAgentRoutingCard(): Promise<{ version: number; data: unknown } | undefined> {
     const active = this.agentRoutingCards.filter((card) => card.active).sort((a, b) => b.version - a.version)[0];
     return active ? { version: active.version, data: active.data } : undefined;
+  }
+
+  async getAgentRoutingCard(version: number): Promise<{ version: number; data: unknown } | undefined> {
+    const card = this.agentRoutingCards.find((candidate) => candidate.version === version);
+    return card ? { version: card.version, data: card.data } : undefined;
   }
 
   projectCheckpoints = new Map<
@@ -8151,6 +8477,921 @@ export class TestApiStore implements ApiStore {
     return [...this.userSpendLimits.values()].filter((r) => r.organizationId === organizationId);
   }
 
+  async reserveCanonicalUserSpend(input: {
+    organizationId: string;
+    userId: string;
+    projectId: string;
+    idempotencyKey: string;
+    maxAmountCents: number;
+    periodStart?: string;
+    expiresInMs: number;
+    requestHash: string;
+    enforceUserSpendLimit: boolean;
+  }) {
+    return this.withSerializedMutation(`ledger-user-spend:${input.organizationId}:${input.userId}`, async () => {
+      this._assertAccountPurgeMutationAllowed({
+        userIds: [input.userId],
+        organizationIds: [input.organizationId],
+        projectIds: [input.projectId],
+      });
+      const existing = [...this.canonicalUserSpendReservations.values()].find(
+        (reservation) =>
+          reservation.organizationId === input.organizationId && reservation.idempotencyKey === input.idempotencyKey,
+      );
+      if (existing) {
+        if (
+          existing.userId !== input.userId ||
+          existing.requestHash !== input.requestHash ||
+          existing.maxAmountCents !== input.maxAmountCents ||
+          existing.periodStart !== (input.periodStart ?? '')
+        ) {
+          throw Object.assign(new Error(), { code: 'LEDGER_IDEMPOTENCY_CONFLICT' });
+        }
+        const nowMs = this.databaseClockNowMs ?? Date.now();
+        if (existing.status === 'ACTIVE' && Date.parse(existing.expiresAt) <= nowMs) {
+          existing.expiresAt = new Date(nowMs + input.expiresInMs).toISOString();
+        }
+        if (
+          existing.status === 'EXPIRED' &&
+          !existing.startedAt &&
+          !existing.batchRequestHash &&
+          !(existing.platformIntentStartedAt && !existing.platformAiCostLedgerId)
+        ) {
+          const limit = input.enforceUserSpendLimit
+            ? this.userSpendLimits.get(`${input.organizationId}:${input.userId}`)
+            : undefined;
+          const claimed = [...this.canonicalUserSpendReservations.values()]
+            .filter(
+              (reservation) =>
+                reservation.id !== existing.id &&
+                reservation.organizationId === input.organizationId &&
+                reservation.userId === input.userId &&
+                reservation.periodStart === (input.periodStart ?? '') &&
+                (reservation.status === 'ACTIVE' || reservation.status === 'COMMITTED'),
+            )
+            .reduce(
+              (sum, reservation) =>
+                sum +
+                (reservation.status === 'COMMITTED' ? (reservation.committedCents ?? 0) : reservation.maxAmountCents),
+              0,
+            );
+          if (limit && claimed + existing.maxAmountCents > limit.limitCents) {
+            throw Object.assign(new Error(), { code: 'USER_SPEND_LIMIT_REACHED', statusCode: 429 });
+          }
+          existing.status = 'ACTIVE';
+          existing.expiresAt = new Date(nowMs + input.expiresInMs).toISOString();
+        }
+        return { id: existing.id, status: existing.status, created: false };
+      }
+
+      const limit = input.enforceUserSpendLimit
+        ? this.userSpendLimits.get(`${input.organizationId}:${input.userId}`)
+        : undefined;
+      const claimed = [...this.canonicalUserSpendReservations.values()]
+        .filter(
+          (reservation) =>
+            reservation.organizationId === input.organizationId &&
+            reservation.userId === input.userId &&
+            reservation.periodStart === (input.periodStart ?? '') &&
+            (reservation.status === 'ACTIVE' || reservation.status === 'COMMITTED'),
+        )
+        .reduce(
+          (sum, reservation) =>
+            sum + (reservation.status === 'COMMITTED' ? (reservation.committedCents ?? 0) : reservation.maxAmountCents),
+          0,
+        );
+      if (limit && claimed + input.maxAmountCents > limit.limitCents) {
+        throw Object.assign(new Error(), { code: 'USER_SPEND_LIMIT_REACHED', statusCode: 429 });
+      }
+
+      const reservation = {
+        id: id('ledger-reservation'),
+        organizationId: input.organizationId,
+        userId: input.userId,
+        idempotencyKey: input.idempotencyKey,
+        requestHash: input.requestHash,
+        maxAmountCents: input.maxAmountCents,
+        expiresAt: new Date((this.databaseClockNowMs ?? Date.now()) + input.expiresInMs).toISOString(),
+        periodStart: input.periodStart ?? '',
+        status: 'ACTIVE' as const,
+      };
+      this.canonicalUserSpendReservations.set(reservation.id, reservation);
+      return { id: reservation.id, status: reservation.status, created: true };
+    });
+  }
+
+  async claimCanonicalAiExecution(input: {
+    reservationId: string;
+    organizationId: string;
+    userId: string;
+    projectId: string;
+    requestId: string;
+    claimOwnerId: string;
+    claimLeaseMs: number;
+  }) {
+    const reservation = this.canonicalUserSpendReservations.get(input.reservationId);
+    if (!reservation || reservation.organizationId !== input.organizationId || reservation.userId !== input.userId) {
+      throw Object.assign(new Error(), { code: 'LEDGER_RESERVATION_SCOPE_MISMATCH' });
+    }
+    return this.withSerializedMutation(
+      `ledger-user-spend:${reservation.organizationId}:${reservation.userId}`,
+      async () => {
+        this._assertAccountPurgeMutationAllowed({
+          userIds: [input.userId],
+          organizationIds: [input.organizationId],
+          projectIds: [input.projectId],
+        });
+        const requestHash = createHash('sha256')
+          .update(
+            JSON.stringify({
+              version: 1,
+              reservationId: input.reservationId,
+              organizationId: input.organizationId,
+              userId: input.userId,
+              projectId: input.projectId,
+              requestId: input.requestId,
+            }),
+          )
+          .digest('hex');
+        const nowMs = this.databaseClockNowMs ?? Date.now();
+        if (reservation.startedRequestHash) {
+          if (reservation.startedRequestHash !== requestHash || !reservation.claimedAt) {
+            throw Object.assign(new Error(), { code: 'LEDGER_AI_START_CONFLICT', statusCode: 409 });
+          }
+          if (!reservation.executionToken || !reservation.claimOwnerId || !reservation.claimLeaseExpiresAt) {
+            throw Object.assign(new Error(), { code: 'LEDGER_AI_START_CORRUPT' });
+          }
+          const sameTransportAttempt = reservation.claimOwnerId === input.claimOwnerId;
+          const providerIrreversible =
+            Boolean(reservation.startedAt) ||
+            Boolean(reservation.platformIntentStartedAt && !reservation.platformAiCostLedgerId) ||
+            Boolean(reservation.batchRequestHash);
+          const platformReceipt = reservation.platformAiCostLedgerId
+            ? {
+                state: reservation.platformRecoveredAtCeiling ? ('recovered' as const) : ('exact' as const),
+                ...(reservation.platformOutcome ? { outcome: reservation.platformOutcome } : {}),
+              }
+            : undefined;
+          if (sameTransportAttempt || providerIrreversible || Date.parse(reservation.claimLeaseExpiresAt) > nowMs) {
+            return {
+              claimedAt: reservation.claimedAt,
+              leaseExpiresAt: reservation.claimLeaseExpiresAt,
+              executionToken: reservation.executionToken,
+              replayed: !sameTransportAttempt,
+              reservationStatus: reservation.status,
+              ...(platformReceipt ? { platformReceipt } : {}),
+            };
+          }
+          if (reservation.status !== 'ACTIVE') {
+            throw Object.assign(new Error(), { code: 'LEDGER_RESERVATION_NOT_ACTIVE' });
+          }
+          reservation.claimOwnerId = input.claimOwnerId;
+          reservation.executionToken = randomUUID();
+          reservation.claimedAt = new Date(nowMs).toISOString();
+          reservation.claimLeaseExpiresAt = new Date(nowMs + input.claimLeaseMs).toISOString();
+          return {
+            claimedAt: reservation.claimedAt,
+            leaseExpiresAt: reservation.claimLeaseExpiresAt,
+            executionToken: reservation.executionToken,
+            replayed: false,
+            reservationStatus: reservation.status,
+            ...(platformReceipt ? { platformReceipt } : {}),
+          };
+        }
+        if (reservation.status !== 'ACTIVE') {
+          throw Object.assign(new Error(), { code: 'LEDGER_RESERVATION_NOT_ACTIVE' });
+        }
+        const startedAtMs = nowMs;
+        reservation.startedRequestHash = requestHash;
+        reservation.startedRequestId = input.requestId;
+        reservation.startedProjectId = input.projectId;
+        reservation.claimedAt = new Date(startedAtMs).toISOString();
+        reservation.claimOwnerId = input.claimOwnerId;
+        reservation.executionToken = randomUUID();
+        reservation.claimLeaseExpiresAt = new Date(startedAtMs + input.claimLeaseMs).toISOString();
+        return {
+          claimedAt: reservation.claimedAt,
+          leaseExpiresAt: reservation.claimLeaseExpiresAt,
+          executionToken: reservation.executionToken,
+          replayed: false,
+          reservationStatus: reservation.status,
+        };
+      },
+    );
+  }
+
+  async markCanonicalUserSpendStarted(input: {
+    reservationId: string;
+    organizationId: string;
+    userId: string;
+    projectId: string;
+    requestId: string;
+    executionToken: string;
+    reconcileAfterMs: number;
+  }) {
+    const reservation = this.canonicalUserSpendReservations.get(input.reservationId);
+    if (!reservation || reservation.organizationId !== input.organizationId || reservation.userId !== input.userId) {
+      throw Object.assign(new Error(), { code: 'LEDGER_RESERVATION_SCOPE_MISMATCH' });
+    }
+    return this.withSerializedMutation(
+      `ledger-user-spend:${reservation.organizationId}:${reservation.userId}`,
+      async () => {
+        if (
+          reservation.startedRequestId !== input.requestId ||
+          reservation.startedProjectId !== input.projectId ||
+          !reservation.claimedAt ||
+          reservation.executionToken !== input.executionToken
+        ) {
+          throw Object.assign(new Error(), { code: 'LEDGER_AI_EXECUTION_CLAIM_REQUIRED' });
+        }
+        if (reservation.startedAt) {
+          return { startedAt: reservation.startedAt, replayed: true };
+        }
+        if (reservation.status !== 'ACTIVE') {
+          throw Object.assign(new Error(), { code: 'LEDGER_RESERVATION_NOT_ACTIVE' });
+        }
+        const startedAtMs = this.databaseClockNowMs ?? Date.now();
+        reservation.startedAt = new Date(startedAtMs).toISOString();
+        reservation.settleAfter = new Date(startedAtMs + input.reconcileAfterMs).toISOString();
+        reservation.expiresAt = new Date(
+          Math.max(Date.parse(reservation.expiresAt), startedAtMs + input.reconcileAfterMs + 15 * 60_000),
+        ).toISOString();
+        return { startedAt: reservation.startedAt, replayed: false };
+      },
+    );
+  }
+
+  async markCanonicalPlatformAiUsageStarted(input: {
+    reservationId: string;
+    organizationId: string;
+    userId: string;
+    requestId: string;
+    executionToken: string;
+    projectId: string;
+    callId: string;
+    provider: string;
+    model: string;
+    maxInputTokens: number;
+    maxOutputTokens: number;
+    maxCostCents: number;
+    agentRouting: CanonicalAiClassifierRouting;
+    reconcileAfterMs: number;
+  }) {
+    const reservation = this.canonicalUserSpendReservations.get(input.reservationId);
+    if (!reservation || reservation.organizationId !== input.organizationId || reservation.userId !== input.userId) {
+      throw Object.assign(new Error(), { code: 'LEDGER_RESERVATION_SCOPE_MISMATCH' });
+    }
+    return this.withSerializedMutation(
+      `ledger-user-spend:${reservation.organizationId}:${reservation.userId}`,
+      async () => {
+        if (
+          reservation.startedRequestId !== input.requestId ||
+          reservation.startedProjectId !== input.projectId ||
+          reservation.executionToken !== input.executionToken ||
+          !reservation.claimedAt
+        ) {
+          throw Object.assign(new Error(), { code: 'LEDGER_AI_EXECUTION_CLAIM_REQUIRED' });
+        }
+        const requestHash = createHash('sha256')
+          .update(JSON.stringify({ version: 1, ...input }))
+          .digest('hex');
+        if (reservation.platformIntentRequestHash) {
+          if (reservation.platformIntentRequestHash !== requestHash || !reservation.platformIntentStartedAt) {
+            throw Object.assign(new Error(), { code: 'LEDGER_PLATFORM_USAGE_CONFLICT', statusCode: 409 });
+          }
+          return { startedAt: reservation.platformIntentStartedAt, replayed: true };
+        }
+        if (reservation.status !== 'ACTIVE') {
+          throw Object.assign(new Error(), { code: 'LEDGER_RESERVATION_NOT_ACTIVE' });
+        }
+        const nowMs = this.databaseClockNowMs ?? Date.now();
+        reservation.platformIntentRequestHash = requestHash;
+        reservation.platformIntentStartedAt = new Date(nowMs).toISOString();
+        reservation.platformIntentSettleAfter = new Date(nowMs + input.reconcileAfterMs).toISOString();
+        reservation.platformIntentCallId = input.callId;
+        reservation.platformIntentProvider = input.provider;
+        reservation.platformIntentModel = input.model;
+        reservation.platformIntentMaxInputTokens = input.maxInputTokens;
+        reservation.platformIntentMaxOutputTokens = input.maxOutputTokens;
+        reservation.platformIntentMaxCostCents = input.maxCostCents;
+        reservation.platformIntentRouting = input.agentRouting;
+        return { startedAt: reservation.platformIntentStartedAt, replayed: false };
+      },
+    );
+  }
+
+  async recordCanonicalPlatformAiUsage(input: {
+    reservationId: string;
+    organizationId: string;
+    userId: string;
+    requestId: string;
+    executionToken: string;
+    projectId: string;
+    call: CanonicalAiUsageBatchInput['calls'][number];
+    outcome: 'hard' | 'easy';
+    agentRouting: CanonicalAiClassifierRoutingSelection & { escalated: boolean };
+  }) {
+    const reservation = this.canonicalUserSpendReservations.get(input.reservationId);
+    if (
+      !reservation ||
+      reservation.organizationId !== input.organizationId ||
+      reservation.userId !== input.userId ||
+      input.call.billedToUser !== false
+    ) {
+      throw Object.assign(new Error(), { code: 'LEDGER_PLATFORM_USAGE_INVALID' });
+    }
+    return this.withSerializedMutation(
+      `ledger-user-spend:${reservation.organizationId}:${reservation.userId}`,
+      async () => {
+        if (
+          reservation.startedRequestId !== input.requestId ||
+          reservation.startedProjectId !== input.projectId ||
+          reservation.executionToken !== input.executionToken ||
+          !reservation.claimedAt
+        ) {
+          throw Object.assign(new Error(), { code: 'LEDGER_AI_EXECUTION_CLAIM_REQUIRED' });
+        }
+        if (
+          !reservation.platformIntentRequestHash ||
+          reservation.platformIntentCallId !== input.call.callId ||
+          reservation.platformIntentProvider !== input.call.provider ||
+          reservation.platformIntentModel !== input.call.model ||
+          !reservation.platformIntentRouting ||
+          reservation.platformIntentRouting.mode !== input.agentRouting.mode ||
+          reservation.platformIntentRouting.highEffort !== input.agentRouting.highEffort ||
+          reservation.platformIntentRouting.turbo !== input.agentRouting.turbo ||
+          reservation.platformIntentRouting.lineKey !== input.agentRouting.lineKey ||
+          reservation.platformIntentRouting.routingCardVersion !== input.agentRouting.routingCardVersion ||
+          reservation.platformIntentRouting.source !== input.agentRouting.source ||
+          input.agentRouting.escalated !== (input.outcome === 'hard') ||
+          input.call.inputTokens > (reservation.platformIntentMaxInputTokens ?? -1) ||
+          input.call.outputTokens > (reservation.platformIntentMaxOutputTokens ?? -1) ||
+          input.call.costCents > (reservation.platformIntentMaxCostCents ?? -1)
+        ) {
+          throw Object.assign(new Error(), { code: 'LEDGER_PLATFORM_USAGE_START_REQUIRED' });
+        }
+        const requestHash = createHash('sha256')
+          .update(JSON.stringify({ version: 1, ...input }))
+          .digest('hex');
+        if (reservation.platformUsageRequestHash) {
+          if (reservation.platformUsageRequestHash !== requestHash || !reservation.platformAiCostLedgerId) {
+            throw Object.assign(new Error(), { code: 'LEDGER_PLATFORM_USAGE_CONFLICT', statusCode: 409 });
+          }
+          const usage = this.aiCostLedger.get(reservation.platformAiCostLedgerId);
+          if (!usage) {
+            throw Object.assign(new Error(), { code: 'LEDGER_PLATFORM_USAGE_CORRUPT' });
+          }
+          return { usage, replayed: true };
+        }
+        const usage = await this.recordAiCost({
+          organizationId: input.organizationId,
+          projectId: input.projectId,
+          conversationId: input.call.conversationId,
+          messageId: input.call.messageId,
+          provider: input.call.provider,
+          model: input.call.model,
+          inputTokens: input.call.inputTokens,
+          outputTokens: input.call.outputTokens,
+          costCents: input.call.costCents,
+          reason: `${input.call.reason}.platform.${input.call.kind}.${input.call.callId}`,
+        });
+        reservation.platformUsageRequestHash = requestHash;
+        reservation.platformAiCostLedgerId = usage.id;
+        reservation.platformOutcome = input.outcome;
+        const agentCallLogId = `canonical-classifier-${reservation.platformIntentRequestHash}`;
+        const agentCostMillicents = canonicalClassifierCostMillicents(
+          reservation.platformIntentRouting,
+          input.call.inputTokens,
+          input.call.outputTokens,
+        );
+        this.agentCalls.push({
+          id: agentCallLogId,
+          createdAt: now(),
+          userId: input.userId,
+          organizationId: input.organizationId,
+          projectId: input.projectId,
+          mode: input.agentRouting.mode,
+          highEffort: input.agentRouting.highEffort,
+          escalated: input.outcome === 'hard',
+          turbo: input.agentRouting.turbo,
+          lineKey: 'classifier',
+          provider: input.call.provider,
+          model: input.call.model,
+          tokensIn: input.call.inputTokens,
+          tokensOut: input.call.outputTokens,
+          costMillicents: agentCostMillicents,
+          creditCents: 0,
+          marginMillicents: -agentCostMillicents,
+          billedToUser: false,
+          routingCardVersion: input.agentRouting.routingCardVersion,
+          source: input.agentRouting.source,
+        });
+        reservation.platformAgentCallLogId = agentCallLogId;
+        return { usage, replayed: false };
+      },
+    );
+  }
+
+  async commitCanonicalUserSpendBatch(input: CanonicalAiUsageBatchInput) {
+    const reservation = this.canonicalUserSpendReservations.get(input.reservationId);
+    if (
+      !reservation ||
+      reservation.organizationId !== input.organizationId ||
+      reservation.userId !== input.userId ||
+      reservation.executionToken !== input.executionToken
+    ) {
+      throw Object.assign(new Error(), { code: 'LEDGER_RESERVATION_SCOPE_MISMATCH' });
+    }
+    return this.withSerializedMutation(
+      `ledger-user-spend:${reservation.organizationId}:${reservation.userId}`,
+      async () => {
+        this._assertAccountPurgeMutationAllowed({
+          userIds: [input.userId],
+          organizationIds: [input.organizationId],
+          projectIds: [input.projectId],
+        });
+        if (
+          reservation.startedRequestId !== input.requestId ||
+          reservation.startedProjectId !== input.projectId ||
+          !reservation.startedAt
+        ) {
+          throw Object.assign(new Error(), { code: 'LEDGER_AI_START_REQUIRED' });
+        }
+        if (
+          input.calls.length < 1 ||
+          input.calls.length > 32 ||
+          new Set(input.calls.map((call) => call.callId)).size !== input.calls.length
+        ) {
+          throw Object.assign(new Error(), { code: 'LEDGER_COMMIT_AMOUNT_INVALID' });
+        }
+        const requestHash = createHash('sha256')
+          .update(
+            JSON.stringify({
+              version: 1,
+              reservationId: input.reservationId,
+              organizationId: input.organizationId,
+              userId: input.userId,
+              requestId: input.requestId,
+              executionToken: input.executionToken,
+              projectId: input.projectId,
+              calls: input.calls.map((call) => ({
+                callId: call.callId,
+                kind: call.kind,
+                billedToUser: call.billedToUser !== false,
+                projectId: call.projectId,
+                ...(call.conversationId ? { conversationId: call.conversationId } : {}),
+                ...(call.messageId ? { messageId: call.messageId } : {}),
+                provider: call.provider,
+                model: call.model,
+                inputTokens: call.inputTokens,
+                outputTokens: call.outputTokens,
+                costCents: call.costCents,
+                reason: call.reason,
+              })),
+            }),
+          )
+          .digest('hex');
+        let usages = reservation.aiCostLedgerIds?.map((costId) => this.aiCostLedger.get(costId));
+        if (reservation.batchRequestHash) {
+          if (
+            reservation.batchRequestHash !== requestHash ||
+            !usages ||
+            usages.length !== input.calls.length ||
+            usages.some((usage) => !usage)
+          ) {
+            throw Object.assign(new Error(), { code: 'LEDGER_COMMIT_CONFLICT', statusCode: 409 });
+          }
+        } else {
+          usages = [];
+          for (const call of input.calls) {
+            usages.push(
+              await this.recordAiCost({
+                organizationId: input.organizationId,
+                projectId: call.projectId,
+                conversationId: call.conversationId,
+                messageId: call.messageId,
+                provider: call.provider,
+                model: call.model,
+                inputTokens: call.inputTokens,
+                outputTokens: call.outputTokens,
+                costCents: call.costCents,
+                reason: `${call.reason}.${call.kind}.${call.callId}`.slice(0, 240),
+              }),
+            );
+          }
+          const inputTokens = input.calls.reduce(
+            (sum, call) => sum + (call.billedToUser === false ? 0 : call.inputTokens),
+            0,
+          );
+          const outputTokens = input.calls.reduce(
+            (sum, call) => sum + (call.billedToUser === false ? 0 : call.outputTokens),
+            0,
+          );
+          await this.recordUsageEvent({
+            organizationId: input.organizationId,
+            userId: input.userId,
+            type: 'ai.messages',
+            quantity: 1,
+            metadata: { canonicalReservationId: input.reservationId, requestHash },
+          });
+          await this.recordUsageEvent({
+            organizationId: input.organizationId,
+            userId: input.userId,
+            type: 'ai.inputTokens',
+            quantity: inputTokens,
+            metadata: { canonicalReservationId: input.reservationId, requestHash },
+          });
+          await this.recordUsageEvent({
+            organizationId: input.organizationId,
+            userId: input.userId,
+            type: 'ai.outputTokens',
+            quantity: outputTokens,
+            metadata: { canonicalReservationId: input.reservationId, requestHash },
+          });
+          reservation.batchRequestHash = requestHash;
+          reservation.batchBilledCents = input.calls.reduce(
+            (sum, call) => sum + (call.billedToUser === false ? 0 : call.costCents),
+            0,
+          );
+          reservation.aiCostLedgerIds = usages.map((usage) => usage!.id);
+        }
+        if (this.failCanonicalUserSpendCommits) {
+          throw Object.assign(new Error(), { code: 'LEDGER_SETTLEMENT_INJECTED_FAILURE' });
+        }
+        const totalCents = input.calls.reduce(
+          (sum, call) => sum + (call.billedToUser === false ? 0 : call.costCents),
+          0,
+        );
+        if (!Number.isSafeInteger(totalCents) || totalCents > reservation.maxAmountCents) {
+          throw Object.assign(new Error(), { code: 'LEDGER_RESERVATION_OVERAGE' });
+        }
+        if (reservation.status === 'COMMITTED') {
+          if (reservation.committedCents !== totalCents) {
+            throw Object.assign(new Error(), { code: 'LEDGER_COMMIT_CONFLICT' });
+          }
+          return { committedCents: totalCents, replayed: true, usages: usages as AiCostLedgerRecord[] };
+        }
+        if (reservation.status !== 'ACTIVE') {
+          throw Object.assign(new Error(), { code: 'LEDGER_RESERVATION_NOT_ACTIVE' });
+        }
+        reservation.status = 'COMMITTED';
+        reservation.committedCents = totalCents;
+        return { committedCents: totalCents, replayed: false, usages: usages as AiCostLedgerRecord[] };
+      },
+    );
+  }
+
+  async reconcileCanonicalUserSpend(options: { take?: number } = {}) {
+    const take = Math.max(1, Math.min(options.take ?? 100, 500));
+    const databaseNowMs = this.databaseClockNowMs ?? Date.now();
+    const candidates = [...this.canonicalUserSpendReservations.values()]
+      .filter((reservation) => {
+        const platformSettleAfterRaw = reservation.platformIntentSettleAfter ?? '';
+        const platformSettleAfter = Date.parse(platformSettleAfterRaw);
+        const platformDeadlineCanonical =
+          Number.isFinite(platformSettleAfter) &&
+          new Date(platformSettleAfter).toISOString() === platformSettleAfterRaw;
+        const executionSettleAfterRaw = reservation.settleAfter ?? '';
+        const executionSettleAfter = Date.parse(executionSettleAfterRaw);
+        const executionDeadlineCanonical =
+          Number.isFinite(executionSettleAfter) &&
+          new Date(executionSettleAfter).toISOString() === executionSettleAfterRaw;
+        const reconcileNextRetryAtRaw = reservation.reconcileNextRetryAt ?? '';
+        const reconcileNextRetryAt = Date.parse(reconcileNextRetryAtRaw);
+        const retryDeadlineCanonical =
+          Number.isFinite(reconcileNextRetryAt) &&
+          new Date(reconcileNextRetryAt).toISOString() === reconcileNextRetryAtRaw;
+        const platformDue =
+          Boolean(reservation.platformIntentStartedAt) &&
+          !reservation.platformAiCostLedgerId &&
+          (!platformDeadlineCanonical || platformSettleAfter <= databaseNowMs);
+        const executionDue =
+          Boolean(reservation.startedAt) &&
+          (Boolean(reservation.batchRequestHash) ||
+            !executionDeadlineCanonical ||
+            executionSettleAfter <= databaseNowMs);
+
+        return (
+          !reservation.manualRecoveryAt &&
+          (!reservation.reconcileNextRetryAt || !retryDeadlineCanonical || reconcileNextRetryAt <= databaseNowMs) &&
+          (reservation.status === 'COMMITTED'
+            ? platformDue
+            : (reservation.status === 'ACTIVE' || reservation.status === 'EXPIRED') && (platformDue || executionDue))
+        );
+      })
+      .slice(0, take);
+    let settled = 0;
+    let recoveredAtCeiling = 0;
+    let recoveredPlatformAtCeiling = 0;
+    let manualRecovery = 0;
+    let retryableFailures = 0;
+    const reservationIds: string[] = [];
+
+    for (const reservation of candidates) {
+      await this.withSerializedMutation(
+        `ledger-user-spend:${reservation.organizationId}:${reservation.userId}`,
+        async () => {
+          const quarantine = (reason: string) => {
+            reservation.manualRecoveryAt = new Date(databaseNowMs).toISOString();
+            reservation.manualRecoveryReason = reason;
+            manualRecovery += 1;
+          };
+
+          if (reservation.reconcileNextRetryAt) {
+            const retryAtMs = Date.parse(reservation.reconcileNextRetryAt);
+
+            if (!Number.isFinite(retryAtMs) || new Date(retryAtMs).toISOString() !== reservation.reconcileNextRetryAt) {
+              quarantine('CANONICAL_AI_RETRY_DEADLINE_CORRUPT');
+              return;
+            }
+            if (retryAtMs > databaseNowMs) {
+              return;
+            }
+          }
+
+          if (this.failCanonicalReconciliationOnce) {
+            this.failCanonicalReconciliationOnce = false;
+            const attempts = Math.min((reservation.reconcileFailureAttempts ?? 0) + 1, 16);
+            reservation.reconcileFailureAttempts = attempts;
+            reservation.reconcileFailureReason = 'LEDGER_SETTLEMENT_INJECTED_FAILURE';
+            reservation.reconcileLastAttemptAt = new Date(databaseNowMs).toISOString();
+            reservation.reconcileNextRetryAt = new Date(
+              databaseNowMs + Math.min(5 * 60_000, 5_000 * 2 ** Math.min(attempts - 1, 6)),
+            ).toISOString();
+            retryableFailures += 1;
+            return;
+          }
+
+          if (!reservation.startedProjectId || !reservation.startedRequestId) {
+            quarantine('CANONICAL_AI_EXECUTION_CORRUPT');
+            return;
+          }
+          this._assertAccountPurgeMutationAllowed({
+            userIds: [reservation.userId],
+            organizationIds: [reservation.organizationId],
+            projectIds: [reservation.startedProjectId],
+          });
+          if (reservation.platformIntentStartedAt && !reservation.platformAiCostLedgerId) {
+            const platformSettleAfterRaw = reservation.platformIntentSettleAfter ?? '';
+            const platformSettleAfter = Date.parse(platformSettleAfterRaw);
+
+            if (
+              !Number.isFinite(platformSettleAfter) ||
+              new Date(platformSettleAfter).toISOString() !== platformSettleAfterRaw
+            ) {
+              quarantine('CANONICAL_AI_PLATFORM_SETTLE_AFTER_CORRUPT');
+              return;
+            }
+            if (platformSettleAfter > databaseNowMs) {
+              return;
+            }
+            if (
+              !reservation.platformIntentCallId ||
+              !reservation.platformIntentProvider ||
+              !reservation.platformIntentModel ||
+              reservation.platformIntentMaxInputTokens === undefined ||
+              reservation.platformIntentMaxOutputTokens === undefined ||
+              reservation.platformIntentMaxCostCents === undefined ||
+              !reservation.platformIntentRouting
+            ) {
+              quarantine('CANONICAL_AI_PLATFORM_INTENT_CORRUPT');
+              return;
+            }
+            const platformCost = await this.recordAiCost({
+              organizationId: reservation.organizationId,
+              projectId: reservation.startedProjectId,
+              provider: reservation.platformIntentProvider,
+              model: reservation.platformIntentModel,
+              inputTokens: reservation.platformIntentMaxInputTokens,
+              outputTokens: reservation.platformIntentMaxOutputTokens,
+              costCents: reservation.platformIntentMaxCostCents,
+              reason: `chat.completion.operator.classifier.${reservation.platformIntentCallId}.crash-recovery-max`,
+            });
+            reservation.platformAiCostLedgerId = platformCost.id;
+            const agentCallLogId = `canonical-classifier-${reservation.platformIntentRequestHash}`;
+            const agentCostMillicents = canonicalClassifierCostMillicents(
+              reservation.platformIntentRouting,
+              reservation.platformIntentMaxInputTokens,
+              reservation.platformIntentMaxOutputTokens,
+            );
+            this.agentCalls.push({
+              id: agentCallLogId,
+              createdAt: now(),
+              userId: reservation.userId,
+              organizationId: reservation.organizationId,
+              projectId: reservation.startedProjectId,
+              mode: reservation.platformIntentRouting.mode,
+              highEffort: reservation.platformIntentRouting.highEffort,
+              escalated: true,
+              turbo: reservation.platformIntentRouting.turbo,
+              lineKey: 'classifier',
+              provider: reservation.platformIntentProvider,
+              model: reservation.platformIntentModel,
+              tokensIn: reservation.platformIntentMaxInputTokens,
+              tokensOut: reservation.platformIntentMaxOutputTokens,
+              costMillicents: agentCostMillicents,
+              creditCents: 0,
+              marginMillicents: -agentCostMillicents,
+              billedToUser: false,
+              routingCardVersion: reservation.platformIntentRouting.routingCardVersion,
+              source: `${reservation.platformIntentRouting.source}.crash-recovery-max`,
+            });
+            reservation.platformAgentCallLogId = agentCallLogId;
+            reservation.platformUsageRequestHash = reservation.platformIntentRequestHash;
+            reservation.platformRecoveredAtCeiling = true;
+            recoveredPlatformAtCeiling += 1;
+            if (!reservation.startedAt) {
+              reservationIds.push(reservation.id);
+              return;
+            }
+          }
+          if (!reservation.startedAt) {
+            return;
+          }
+          if (reservation.status === 'COMMITTED') {
+            return;
+          }
+          const executionSettleAfterRaw = reservation.settleAfter ?? '';
+          const executionSettleAfter = Date.parse(executionSettleAfterRaw);
+
+          if (
+            !reservation.batchRequestHash &&
+            (!Number.isFinite(executionSettleAfter) ||
+              new Date(executionSettleAfter).toISOString() !== executionSettleAfterRaw)
+          ) {
+            quarantine('CANONICAL_AI_SETTLE_AFTER_CORRUPT');
+            return;
+          }
+          if (!reservation.batchRequestHash && executionSettleAfter > databaseNowMs) {
+            return;
+          }
+          if (reservation.status !== 'ACTIVE' && reservation.status !== 'EXPIRED') {
+            quarantine('CANONICAL_AI_RESERVATION_STATUS_INVALID');
+            return;
+          }
+          if (reservation.status === 'EXPIRED') {
+            reservation.status = 'ACTIVE';
+            reservation.expiresAt = new Date(databaseNowMs + 15 * 60_000).toISOString();
+          }
+          let totalCents: number;
+          if (reservation.aiCostLedgerIds?.length) {
+            const costs = reservation.aiCostLedgerIds.map((costId) => this.aiCostLedger.get(costId));
+            if (costs.some((cost) => !cost)) {
+              quarantine('CANONICAL_AI_USAGE_RECEIPT_CORRUPT');
+              return;
+            }
+            totalCents = reservation.batchBilledCents ?? costs.reduce((sum, cost) => sum + cost!.costCents, 0);
+          } else {
+            totalCents = reservation.maxAmountCents;
+            const cost = await this.recordAiCost({
+              organizationId: reservation.organizationId,
+              projectId: reservation.startedProjectId,
+              provider: 'unknown',
+              model: 'crash-recovery',
+              inputTokens: 0,
+              outputTokens: 0,
+              costCents: totalCents,
+              reason: 'chat.completion.crash-recovery-max',
+            });
+            reservation.aiCostLedgerIds = [cost.id];
+            reservation.batchRequestHash = createHash('sha256')
+              .update(`canonical-ai-crash-recovery:${reservation.id}:${reservation.startedRequestId}:${totalCents}`)
+              .digest('hex');
+            reservation.recoveredAtCeiling = true;
+            await this.recordUsageEvent({
+              organizationId: reservation.organizationId,
+              userId: reservation.userId,
+              type: 'ai.messages',
+              quantity: 1,
+              metadata: { canonicalReservationId: reservation.id, recoveredAtCeiling: true },
+            });
+            recoveredAtCeiling += 1;
+          }
+          if (totalCents > reservation.maxAmountCents) {
+            quarantine('CANONICAL_AI_RESERVATION_AMOUNT_CORRUPT');
+            return;
+          }
+          reservation.status = 'COMMITTED';
+          reservation.committedCents = totalCents;
+          reservation.reconcileFailureAttempts = undefined;
+          reservation.reconcileFailureReason = undefined;
+          reservation.reconcileLastAttemptAt = undefined;
+          reservation.reconcileNextRetryAt = undefined;
+          settled += 1;
+          reservationIds.push(reservation.id);
+        },
+      );
+    }
+    return {
+      scanned: candidates.length,
+      settled,
+      recoveredAtCeiling,
+      recoveredPlatformAtCeiling,
+      manualRecovery,
+      retryableFailures,
+      reservationIds,
+    };
+  }
+
+  async commitCanonicalUserSpend(input: {
+    reservationId: string;
+    organizationId: string;
+    userId: string;
+    actualAmountCents?: number;
+    usage: {
+      projectId: string;
+      conversationId?: string;
+      messageId?: string;
+      provider: string;
+      model: string;
+      inputTokens: number;
+      outputTokens: number;
+      costCents: number;
+      reason: string;
+    };
+  }) {
+    const reservation = this.canonicalUserSpendReservations.get(input.reservationId);
+    if (!reservation || reservation.organizationId !== input.organizationId || reservation.userId !== input.userId) {
+      throw Object.assign(new Error(), { code: 'LEDGER_RESERVATION_NOT_FOUND' });
+    }
+    return this.withSerializedMutation(
+      `ledger-user-spend:${reservation.organizationId}:${reservation.userId}`,
+      async () => {
+        this._assertAccountPurgeMutationAllowed({
+          userIds: [input.userId],
+          organizationIds: [input.organizationId],
+          projectIds: [input.usage.projectId],
+        });
+        const usageRequestHash = createHash('sha256')
+          .update(
+            JSON.stringify({
+              reservationId: input.reservationId,
+              organizationId: input.organizationId,
+              userId: input.userId,
+              ...input.usage,
+            }),
+          )
+          .digest('hex');
+        let usage = reservation.aiCostLedgerId ? this.aiCostLedger.get(reservation.aiCostLedgerId) : undefined;
+        if (reservation.usageRequestHash) {
+          if (reservation.usageRequestHash !== usageRequestHash || !usage) {
+            throw Object.assign(new Error(), { code: 'LEDGER_COMMIT_CONFLICT' });
+          }
+        } else {
+          usage = await this.recordAiCost({ organizationId: input.organizationId, ...input.usage });
+          reservation.usageRequestHash = usageRequestHash;
+          reservation.aiCostLedgerId = usage.id;
+        }
+
+        if (this.failCanonicalUserSpendCommits) {
+          throw Object.assign(new Error(), { code: 'LEDGER_SETTLEMENT_INJECTED_FAILURE' });
+        }
+        if (input.actualAmountCents === undefined) {
+          throw Object.assign(new Error(), { code: 'LEDGER_USAGE_UNPRICED' });
+        }
+        if (reservation.status === 'COMMITTED') {
+          if (reservation.committedCents !== input.actualAmountCents) {
+            throw Object.assign(new Error(), { code: 'LEDGER_COMMIT_CONFLICT' });
+          }
+          return { committedCents: reservation.committedCents, replayed: true, usage: usage! };
+        }
+        if (reservation.status !== 'ACTIVE' || input.actualAmountCents > reservation.maxAmountCents) {
+          throw Object.assign(new Error(), { code: 'LEDGER_RESERVATION_OVERAGE' });
+        }
+        reservation.status = 'COMMITTED';
+        reservation.committedCents = input.actualAmountCents;
+        return { committedCents: input.actualAmountCents, replayed: false, usage: usage! };
+      },
+    );
+  }
+
+  async releaseCanonicalUserSpend(reservationId: string) {
+    const reservation = this.canonicalUserSpendReservations.get(reservationId);
+    if (!reservation || reservation.status !== 'ACTIVE') {
+      return { released: false };
+    }
+    reservation.status = 'RELEASED';
+    return { released: true };
+  }
+
+  async reapExpiredLedgerReservations() {
+    const databaseNowMs = this.databaseClockNowMs ?? Date.now();
+    const reaped: string[] = [];
+    for (const reservation of this.canonicalUserSpendReservations.values()) {
+      if (
+        reservation.status === 'ACTIVE' &&
+        Date.parse(reservation.expiresAt) <= databaseNowMs &&
+        !reservation.startedAt &&
+        !reservation.batchRequestHash &&
+        !(reservation.platformIntentStartedAt && !reservation.platformAiCostLedgerId)
+      ) {
+        reservation.status = 'EXPIRED';
+        reaped.push(reservation.id);
+      }
+    }
+    return reaped.slice(0, 100);
+  }
+
   async sumUserSpendSince(organizationId: string, userId: string, sinceMs: number): Promise<number> {
     let total = 0;
 
@@ -8687,6 +9928,7 @@ export class TestApiStore implements ApiStore {
       organizationId: input.organizationId,
       planId: plan.id,
       planKey: input.planKey,
+      planMonthlyCents: plan.monthlyCents,
       externalId: input.externalId ?? existing?.externalId,
       status: input.status,
       cancelAtPeriodEnd: input.cancelAtPeriodEnd ?? false,
@@ -8702,7 +9944,16 @@ export class TestApiStore implements ApiStore {
   }
 
   async getSubscription(organizationId: string) {
-    return [...this.subscriptions.values()].find((subscription) => subscription.organizationId === organizationId);
+    const subscription = [...this.subscriptions.values()].find(
+      (candidate) => candidate.organizationId === organizationId,
+    );
+    if (!subscription) {
+      return undefined;
+    }
+    return {
+      ...subscription,
+      planMonthlyCents: this.billingPlans.get(subscription.planKey)?.monthlyCents ?? -1,
+    };
   }
 
   async listAdminSubscriptions() {
@@ -8734,6 +9985,18 @@ export class TestApiStore implements ApiStore {
     return [...this.usageEvents.values()].filter((event) => event.organizationId === organizationId);
   }
 
+  async findUsageEventByReference(input: { organizationId: string; type: string; reference: string; since: Date }) {
+    return [...this.usageEvents.values()].find((event) => {
+      const metadata = event.metadata as { reference?: unknown } | null | undefined;
+      return (
+        event.organizationId === input.organizationId &&
+        event.type === input.type &&
+        metadata?.reference === input.reference &&
+        new Date(event.createdAt).getTime() >= input.since.getTime()
+      );
+    });
+  }
+
   async hasUsageEventSince(organizationId: string, type: string, sinceMs: number) {
     return [...this.usageEvents.values()].some(
       (event) =>
@@ -8756,7 +10019,7 @@ export class TestApiStore implements ApiStore {
 
   async createQuotaOverride(input: {
     organizationId: string;
-    key: QuotaKey;
+    key: QuotaOverrideKey;
     limit: number;
     reason: string;
     createdByUserId?: string;
@@ -8777,15 +10040,20 @@ export class TestApiStore implements ApiStore {
     return [...this.quotaOverrides.values()].filter((override) => override.organizationId === organizationId);
   }
 
-  async getQuotaOverride(organizationId: string, key: QuotaKey) {
+  async getQuotaOverride(organizationId: string, key: QuotaOverrideKey) {
+    const databaseNow = this.databaseClockNowMs ?? Date.now();
     return [...this.quotaOverrides.values()]
       .filter(
         (override) =>
           override.organizationId === organizationId &&
           override.key === key &&
-          (!override.expiresAt || new Date(override.expiresAt).getTime() > Date.now()),
+          (!override.expiresAt || new Date(override.expiresAt).getTime() > databaseNow),
       )
-      .at(-1);
+      .sort((left, right) =>
+        left.createdAt === right.createdAt
+          ? right.id.localeCompare(left.id)
+          : right.createdAt.localeCompare(left.createdAt),
+      )[0];
   }
 
   async recordStripeEvent(input: { id: string; organizationId?: string; type: string; payload: unknown }) {
@@ -8939,6 +10207,46 @@ export class TestApiStore implements ApiStore {
     return this.auditLogs.filter(
       (event) => event.action.startsWith('auth.') || event.action.includes('security') || event.action.includes('mfa'),
     );
+  }
+
+  async listOrganizationSecurityAuditEventsPage(input: {
+    organizationId: string;
+    limit: number;
+    cursor?: { createdAt: string; id: string };
+  }): Promise<SecurityAuditEventPage> {
+    const limit = Math.max(1, Math.min(input.limit, 100));
+    const rows = this.auditLogs
+      .filter(
+        (event) =>
+          event.organizationId === input.organizationId &&
+          (event.action.startsWith('auth.') || event.action.includes('security') || event.action.includes('mfa')),
+      )
+      .slice()
+      .sort((left, right) => right.createdAt.localeCompare(left.createdAt) || right.id.localeCompare(left.id));
+    const afterCursor = input.cursor
+      ? rows.filter(
+          (event) =>
+            event.createdAt < input.cursor!.createdAt ||
+            (event.createdAt === input.cursor!.createdAt && event.id < input.cursor!.id),
+        )
+      : rows;
+    const pageRows = afterCursor.slice(0, limit);
+    const events = pageRows.map((event) => {
+      const resolution = this.securityEventResolutions.get(event.id);
+      return {
+        ...event,
+        resolved: resolution?.resolved ?? false,
+        note: resolution?.note,
+        resolvedAt: resolution?.resolvedAt,
+      };
+    });
+    const openCount = rows.filter((event) => !this.securityEventResolutions.get(event.id)?.resolved).length;
+    const last = pageRows.at(-1);
+    return {
+      events,
+      openCount,
+      nextCursor: afterCursor.length > limit && last ? { createdAt: last.createdAt, id: last.id } : undefined,
+    };
   }
 
   async listAdminUsers() {

@@ -197,6 +197,10 @@ kubectl rollout restart deployment -n vibecore \
   --selector app.kubernetes.io/part-of=vibecore
 ```
 
+Generate `INTERNAL_API_SHARED_SECRET` and `WORKSPACE_MANAGER_SHARED_SECRET`
+with at least 32 UTF-8 bytes. The web SSR tier uses this proof for canonical AI
+mutations; the API deliberately rejects missing, short or browser-only proofs.
+
 ---
 
 ## Verification

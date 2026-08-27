@@ -543,6 +543,46 @@
     "en": "You have reached your personal usage limit for this billing period.",
     "fr": "Vous avez atteint votre plafond d’utilisation personnel pour cette période de facturation."
   },
+  "USER_SPEND_LIMIT_ENTERPRISE_REQUIRED": {
+    "en": "Per-user spend limits require an Enterprise plan.",
+    "fr": "Les limites de dépenses par utilisateur nécessitent un forfait Enterprise."
+  },
+  "ENTERPRISE_CAPABILITY_OPERATOR_REQUIRED": {
+    "en": "This Enterprise capability requires explicit operator provisioning before it can be used.",
+    "fr": "Cette capacité Enterprise nécessite un provisionnement explicite par un opérateur avant de pouvoir être utilisée."
+  },
+  "PUBLISH_BADGE_REQUIRED": {
+    "en": "Starter publications must display the E-Code badge.",
+    "fr": "Les publications Starter doivent afficher le badge E-Code."
+  },
+  "PUBLISH_BADGE_LABEL": {
+    "en": "Built with E-Code",
+    "fr": "Créé avec E-Code"
+  },
+  "PUBLISH_REGION_UNAVAILABLE": {
+    "en": "The selected region is not available for this deployment provider.",
+    "fr": "La région sélectionnée n’est pas disponible pour ce fournisseur de déploiement."
+  },
+  "PUBLISH_REGION_PLAN_RESTRICTED": {
+    "en": "Your plan supports only the default publication region.",
+    "fr": "Votre forfait prend uniquement en charge la région de publication par défaut."
+  },
+  "PUBLISH_REGION_OPERATOR_REQUIRED": {
+    "en": "This publication region requires Enterprise operator provisioning.",
+    "fr": "Cette région de publication nécessite un provisionnement opérateur Enterprise."
+  },
+  "PUBLISH_ENTITLEMENTS_PIN_MISSING": {
+    "en": "The release has no valid publication entitlement policy and cannot be served or rolled back.",
+    "fr": "La version ne possède aucune politique d’autorisation de publication valide et ne peut être servie ni restaurée."
+  },
+  "PUBLISH_PROVIDER_PLAN_EDGE_REQUIRED": {
+    "en": "This provider cannot yet enforce publication badge and traffic-metering policy. Use the Static or Server provider.",
+    "fr": "Ce fournisseur ne peut pas encore appliquer la politique de badge de publication et de mesure du trafic. Utilisez le fournisseur Statique ou Serveur."
+  },
+  "METERING_REFERENCE_CONFLICT": {
+    "en": "This metering reference was already used for a different usage claim.",
+    "fr": "Cette référence de mesure a déjà été utilisée pour une déclaration d’usage différente."
+  },
   "SPEND_LIMIT_INCREMENT": {
     "en": "Spend limits must be set in €500 increments (or €0.01 to cap at credits).",
     "fr": "Les plafonds de dépenses doivent être définis par paliers de 500 € (ou à 0,01 € pour les limiter aux crédits)."
@@ -2758,6 +2798,14 @@
   "ENTITLEMENT_CHECK_UNAVAILABLE": {
     "en": "Your plan limits could not be verified right now. Try again in a moment — no deployment was created.",
     "fr": "Impossible de vérifier les limites de votre plan pour le moment. Réessayez dans un instant — aucune publication n’a été créée."
+  },
+  "PLAN_ENTITLEMENT_CHECK_UNAVAILABLE": {
+    "en": "Your plan permissions could not be verified right now. Try again in a moment; no access was granted.",
+    "fr": "Impossible de vérifier les autorisations de votre offre pour le moment. Réessayez dans un instant ; aucun accès n’a été accordé."
+  },
+  "PLAN_VIEWER_LIMIT_REACHED": {
+    "en": "Your plan allows {value1} active read-only viewer(s). Remove a viewer or change plans before granting another one.",
+    "fr": "Votre offre autorise {value1} accès en lecture seule actif(s). Retirez un accès ou changez d’offre avant d’en accorder un autre."
   },
   "DATABASE_PROVISION_UNAVAILABLE": {
     "en": "The managed database could not be provisioned, so nothing was created. This is usually temporary — try again in a moment.",

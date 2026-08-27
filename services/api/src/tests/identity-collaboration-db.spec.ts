@@ -1,5 +1,6 @@
 import { createDatabaseClient } from '@vibecore/database';
 import { describe, expect, it } from 'vitest';
+import { mutateReadOnlyViewerAccessWithEntitlements } from '../plan-entitlements-service.js';
 import { PrismaApiStore } from '../prisma-store.js';
 
 const runDbTests = process.env.DATABASE_URL ? describe : describe.skip;
@@ -277,6 +278,111 @@ runDbTests('P0-EX-07 identity collaboration — durable Postgres guarantees', ()
       expect(
         await prismaA.organizationMember.count({ where: { organizationId: organization.id, userId: member.id } }),
       ).toBe(0);
+    } finally {
+      await Promise.allSettled([prismaA.$disconnect(), prismaB.$disconnect()]);
+    }
+  });
+
+  it('atomically refuses a GROUP audience crossing Pro 50 across independent clients', async () => {
+    const prismaA = createDatabaseClient();
+    const prismaB = createDatabaseClient();
+
+    try {
+      const marker = suffix();
+      const owner = await prismaA.user.create({ data: { email: `viewer-owner-${marker}@example.com` } });
+      const organization = await prismaA.organization.create({
+        data: { name: 'Viewer cap DB tenant', slug: `viewer-cap-${marker}` },
+      });
+      const role = await prismaA.role.create({
+        data: { key: `viewer-cap-member-${marker}`, name: 'Viewer cap member' },
+      });
+      const project = await prismaA.project.create({
+        data: { organizationId: organization.id, name: 'Viewer cap project', slug: `viewer-cap-${marker}` },
+      });
+      const users = await Promise.all(
+        Array.from({ length: 51 }, (_, index) =>
+          prismaA.user.create({ data: { email: `viewer-cap-${index}-${marker}@example.com` } }),
+        ),
+      );
+      await prismaA.organizationMember.createMany({
+        data: users.map((user) => ({ organizationId: organization.id, userId: user.id, roleId: role.id })),
+      });
+      await prismaA.projectCollaborator.createMany({
+        data: users.slice(0, 49).map((user) => ({ projectId: project.id, userId: user.id, roleKey: 'guest' })),
+      });
+
+      const storeA = new PrismaApiStore(prismaA);
+      const storeB = new PrismaApiStore(prismaB);
+      await storeA.upsertBillingPlan({ key: 'pro', name: 'Pro', monthlyCents: 10_000, limits: {} });
+      await storeA.upsertSubscription({ organizationId: organization.id, planKey: 'pro', status: 'ACTIVE' });
+      const group = await storeA.createCollaborationGroup({
+        organizationId: organization.id,
+        name: 'Capped readers',
+        source: 'MANUAL',
+      });
+      const grant = await mutateReadOnlyViewerAccessWithEntitlements({
+        store: storeA,
+        organizationId: organization.id,
+        prospectiveUserIds: [],
+        mutation: () =>
+          storeA.createResourceAccessGrant({
+            organizationId: organization.id,
+            subjectType: 'GROUP',
+            subjectGroupId: group.id,
+            resourceType: 'PROJECT',
+            resourceId: project.id,
+            roleKey: 'viewer',
+            status: 'ACTIVE',
+            expiresAt: futureExpiry(),
+            acceptedAt: new Date(),
+            consentVersion: 'organization-membership-v1',
+            grantedByUserId: owner.id,
+            requestHash: `group-viewers-${marker}`,
+          }),
+      });
+      expect(grant.allowed).toBe(true);
+
+      const replacement = await mutateReadOnlyViewerAccessWithEntitlements({
+        store: storeA,
+        organizationId: organization.id,
+        excludeGroupId: group.id,
+        prospectiveUserIds: [users[49]!.id, users[50]!.id],
+        mutation: () =>
+          storeA.replaceCollaborationGroupMembers({
+            organizationId: organization.id,
+            groupId: group.id,
+            userIds: [users[49]!.id, users[50]!.id],
+            writer: 'MANUAL',
+          }),
+      });
+      expect(replacement).toMatchObject({ allowed: false, limit: 50, activeViewers: 49, requestedViewers: 51 });
+
+      const addLastSlot = (store: PrismaApiStore, userId: string) =>
+        mutateReadOnlyViewerAccessWithEntitlements({
+          store,
+          organizationId: organization.id,
+          prospectiveUserIds: [userId],
+          mutation: () =>
+            store.addCollaborationGroupMember({
+              organizationId: organization.id,
+              groupId: group.id,
+              userId,
+              writer: 'MANUAL',
+            }),
+        });
+      const contenders = await Promise.all([
+        addLastSlot(storeA, users[49]!.id),
+        addLastSlot(storeB, users[50]!.id),
+      ]);
+
+      expect(contenders.filter((result) => result.allowed)).toHaveLength(1);
+      expect(contenders.filter((result) => !result.allowed)).toHaveLength(1);
+      await expect(storeB.listActiveOrganizationViewerUserIds(organization.id)).resolves.toHaveLength(50);
+      expect(
+        await prismaA.collaborationGroupMember.count({
+          where: { organizationId: organization.id, groupId: group.id },
+        }),
+      ).toBe(1);
     } finally {
       await Promise.allSettled([prismaA.$disconnect(), prismaB.$disconnect()]);
     }

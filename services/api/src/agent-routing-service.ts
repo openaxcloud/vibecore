@@ -81,6 +81,27 @@ export async function getActiveAgentRoutingCard(
 }
 
 /**
+ * Resolve an immutable historical card for a durable provider-intent replay.
+ * Unlike the active-card helper this never substitutes a different version.
+ * The built-in card is a valid historical fallback only when the table is
+ * empty and the requested version exactly matches that built-in document.
+ */
+export async function getAgentRoutingCardByVersion(
+  store: Pick<ApiStore, 'getAgentRoutingCard'>,
+  version: number,
+): Promise<AgentRoutingCard | undefined> {
+  const row = await store.getAgentRoutingCard(version);
+  if (!row) {
+    return version === BUILTIN_AGENT_ROUTING_CARD.version ? BUILTIN_AGENT_ROUTING_CARD : undefined;
+  }
+  const parsed = agentRoutingCardSchema.safeParse(row.data);
+  if (!parsed.success || parsed.data.version !== row.version || row.version !== version) {
+    return undefined;
+  }
+  return parsed.data as AgentRoutingCard;
+}
+
+/**
  * Boot seed: insert the built-in card as version 1 when the table is empty.
  * Idempotent and non-destructive — an existing history is never touched, so
  * admin edits always survive restarts.

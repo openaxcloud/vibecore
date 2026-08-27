@@ -3,6 +3,7 @@ import { mkdtemp, mkdir, rm, writeFile, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { PLAN_ENTITLEMENTS_VERSION } from '@vibecore/billing';
 import { buildApiApp } from '../app.js';
 import { computeStaticSnapshotDigest, staticDeploymentSnapshotDir } from '../deployments.js';
 import type { EmailProvider } from '../email.js';
@@ -23,6 +24,14 @@ import { TestApiStore } from './test-api-store.js';
 class QuietEmailProvider implements EmailProvider {
   async send() {}
 }
+
+const RELEASE_PLAN_ENTITLEMENTS = {
+  version: PLAN_ENTITLEMENTS_VERSION,
+  plan: 'pro' as const,
+  badgeRequired: false,
+  publishRegion: 'platform-default',
+  publishRegions: 'all' as const,
+};
 
 describe('static rollback-to-previous (deterministic, fail-closed)', () => {
   const prev = process.env.STATIC_DEPLOY_STORAGE_DIR;
@@ -68,12 +77,22 @@ describe('static rollback-to-previous (deterministic, fail-closed)', () => {
 
   /** Materialise a static deployment: a READY row, its on-disk snapshot, and its manifest. */
   async function publishStatic(store: TestApiStore, projectId: string, version: number, marker: string) {
+    const projectManifest = await store.getLatestProjectManifest(projectId);
+
+    if (!projectManifest) {
+      throw new Error('TEST_PROJECT_MANIFEST_MISSING');
+    }
+
     const deployment = await store.createDeployment({
       projectId,
       provider: 'static',
       environment: 'preview',
       status: 'READY',
       url: 'https://example.test/placeholder',
+      metadata: {
+        planEntitlements: RELEASE_PLAN_ENTITLEMENTS,
+        projectManifestDigest: projectManifest.digest,
+      },
     });
 
     const dir = staticDeploymentSnapshotDir(deployment.id);
@@ -92,9 +111,11 @@ describe('static rollback-to-previous (deterministic, fail-closed)', () => {
       artifactDigest,
       configDigest: 'sha256:' + '0'.repeat(64),
       accessPolicyVersion: 1,
+      planEntitlements: RELEASE_PLAN_ENTITLEMENTS,
+      projectManifestDigest: projectManifest.digest,
     });
 
-    return { deployment, artifactDigest };
+    return { deployment, artifactDigest, projectManifestDigest: projectManifest.digest };
   }
 
   it('restores the previous version bytes into a new READY deployment', async () => {
@@ -134,6 +155,34 @@ describe('static rollback-to-previous (deterministic, fail-closed)', () => {
     const releases = await store.listReleaseManifests(projectId, 'preview');
     expect(releases[0].version).toBe(3);
     expect(releases[0].deploymentId).toBe(body.deployment.id);
+  });
+
+  it('restores from immutable plan/project pins after the source Deployment row is pruned', async () => {
+    const { app, store, auth, projectId } = await setup();
+    const v1 = await publishStatic(store, projectId, 1, 'PRUNABLE VERSION');
+    await publishStatic(store, projectId, 2, 'CURRENT VERSION');
+
+    store.deployments.delete(v1.deployment.id);
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/deployments/rollback-to-previous`,
+      headers: {
+        authorization: `Bearer ${auth.token}`,
+        'idempotency-key': 'static-pruned-source',
+      },
+      payload: { environment: 'preview' },
+    });
+
+    expect(response.statusCode).toBe(201);
+    const body = response.json() as { deployment: { id: string; metadata?: Record<string, unknown> } };
+    expect(body.deployment.metadata).toMatchObject({ planEntitlements: RELEASE_PLAN_ENTITLEMENTS });
+    const releases = await store.listReleaseManifests(projectId, 'preview');
+    expect(releases[0]).toMatchObject({
+      deploymentId: body.deployment.id,
+      planEntitlements: RELEASE_PLAN_ENTITLEMENTS,
+      projectManifestDigest: v1.projectManifestDigest,
+    });
   });
 
   it('requires an idempotency key before creating any rollback authority or deployment', async () => {
@@ -204,7 +253,10 @@ describe('static rollback-to-previous (deterministic, fail-closed)', () => {
     const projectManifest = await store.getLatestProjectManifest(projectId);
     expect(projectManifest).toBeDefined();
     await store.updateDeployment(projectId, previous.deployment.id, {
-      metadata: { projectManifestDigest: projectManifest!.digest },
+      metadata: {
+        planEntitlements: RELEASE_PLAN_ENTITLEMENTS,
+        projectManifestDigest: projectManifest!.digest,
+      },
     });
 
     const idempotencyKey = 'static-committed-before-response';
@@ -235,6 +287,7 @@ describe('static rollback-to-previous (deterministic, fail-closed)', () => {
       projectManifestDigest: projectManifest!.digest,
     });
     const metadata = {
+      planEntitlements: RELEASE_PLAN_ENTITLEMENTS,
       rollbackToPrevious: true,
       rollbackOperationId: operation.id,
       projectManifestDigest: projectManifest!.digest,
@@ -408,6 +461,8 @@ describe('static rollback-to-previous (deterministic, fail-closed)', () => {
       artifactRef: `static-deployments/${current.deployment.id}`,
       artifactDigest: current.artifactDigest,
       accessPolicyVersion: current.deployment.accessPolicyVersion,
+      planEntitlements: RELEASE_PLAN_ENTITLEMENTS,
+      projectManifestDigest: current.projectManifestDigest,
     });
     store.release();
 

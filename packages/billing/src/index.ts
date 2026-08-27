@@ -9,6 +9,7 @@ export * from './agent-routing.js';
 export * from './starter-entitlements.js';
 export * from './starter-rate-card.js';
 export * from './agent-routing-i18n.js';
+export * from './plan-entitlements.js';
 
 /*
  * Pinned Stripe API version. Sent on every request so the request/webhook
@@ -43,6 +44,9 @@ export type QuotaKey =
   | 'team.members'
   | 'terminals.concurrent'
   | 'api.rateLimitPerMinute';
+
+/** Operator overrides include policy controls that are not metered plan quotas. */
+export type QuotaOverrideKey = QuotaKey | 'entitlement.parallelAgents';
 
 export type PlanLimits = Record<QuotaKey, number>;
 
@@ -371,7 +375,7 @@ export const creditPlanCatalog: CreditBillingPlan[] = [
     dailyCreditCents: 0,
     collaborators: UNLIMITED,
     viewers: UNLIMITED,
-    parallelAgents: 50,
+    parallelAgents: 10,
     dbRollbackDays: 28,
     badgeRemovable: true,
     publishRegions: 'custom',

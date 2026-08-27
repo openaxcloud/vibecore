@@ -187,6 +187,11 @@ kubectl create secret generic vibecore-platform-secrets \
 shred -u "$TMP" 2>/dev/null || rm -f "$TMP"
 ```
 
+`INTERNAL_API_SHARED_SECRET` (or the `WORKSPACE_MANAGER_SHARED_SECRET`
+fallback) must contain at least 32 UTF-8 bytes. Canonical AI quota,
+execution, receipt and provider-metric mutations fail closed when this service
+proof is missing or too short; never expose it to browser bundles.
+
 ### Activate verified server-image promotion (currently OFF)
 
 Do not add `ARTIFACT_PROMOTION_CONFIG_JSON` to the map above, or set

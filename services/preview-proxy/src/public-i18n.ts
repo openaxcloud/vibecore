@@ -14,6 +14,11 @@ export const previewProxyEn = {
   SERVER_DEPLOY_UPSTREAM_ERROR: 'The deployment service is unavailable. Please try again.',
   PUBLISHED_DEPLOYMENT_EXPIRED: 'This publication has expired. Publish the project again to bring its address back online.',
   PUBLICATION_STATE_UNAVAILABLE: 'This publication’s state could not be verified. Please try again in a moment.',
+  PUBLISH_BADGE_LABEL: 'Built with E-Code',
+  publishedFrameTitle: 'Published application',
+  publishedFrameLoading: 'Loading the published application…',
+  publishedFrameError: 'The published application is taking longer than expected to load.',
+  publishedFrameRetry: 'Retry',
   PREVIEW_PORT_INVALID: 'The preview port is invalid.',
   PREVIEW_TENANT_FORBIDDEN: 'You do not have access to this preview.',
   PREVIEW_AGENT_NOT_FOUND: 'The workspace preview is not reachable yet. Please try again.',
@@ -38,6 +43,11 @@ export type PreviewProxyErrorCode = Exclude<
   | 'deploymentNotLiveBody'
   | 'privatePortTitle'
   | 'privatePortBody'
+  | 'PUBLISH_BADGE_LABEL'
+  | 'publishedFrameTitle'
+  | 'publishedFrameLoading'
+  | 'publishedFrameError'
+  | 'publishedFrameRetry'
 >;
 export type PreviewProxyCopy = Readonly<Record<PreviewProxyCopyKey, string>>;
 
@@ -56,6 +66,11 @@ export const previewProxyFr: PreviewProxyCopy = {
     'Cette publication a expiré. Republiez le projet pour remettre l’adresse en ligne.',
   PUBLICATION_STATE_UNAVAILABLE:
     'Impossible de vérifier l’état de cette publication. Réessayez dans un instant.',
+  PUBLISH_BADGE_LABEL: 'Créé avec E-Code',
+  publishedFrameTitle: 'Application publiée',
+  publishedFrameLoading: 'Chargement de l’application publiée…',
+  publishedFrameError: 'Le chargement de l’application publiée prend plus de temps que prévu.',
+  publishedFrameRetry: 'Réessayer',
   PREVIEW_PORT_INVALID: 'Le port d’aperçu est invalide.',
   PREVIEW_TENANT_FORBIDDEN: 'Vous n’avez pas accès à cet aperçu.',
   PREVIEW_AGENT_NOT_FOUND: 'L’aperçu de l’espace de travail est encore inaccessible. Veuillez réessayer.',

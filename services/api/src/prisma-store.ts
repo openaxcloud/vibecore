@@ -1,8 +1,8 @@
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { promises as dnsPromises } from 'node:dns';
 import { redactAuditMetadata, type AuditEvent } from '@vibecore/audit';
 import { hashToken } from '@vibecore/auth';
-import type { PlanKey, QuotaKey } from '@vibecore/billing';
+import type { PlanKey, QuotaKey, QuotaOverrideKey } from '@vibecore/billing';
 import { createDatabaseClient, Prisma, type DatabaseClient } from '@vibecore/database';
 import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
 import { assertAccountPurgeMutationAllowed, assertStateMachineNotPurged } from './account-purge-state-machine-fence.js';
@@ -21,6 +21,7 @@ import {
   projectManifestSnapshotPin,
   projectManifestForClone,
   projectManifestDigest,
+  PROJECT_MANIFEST_DIGEST_PATTERN,
   readProjectManifestSnapshotPin,
   verifyStoredProjectManifestRevision,
   type ProjectManifest,
@@ -29,10 +30,17 @@ import {
 import { isCommittedPromotionForTenant, SERVER_IMAGE_RELEASE_AUDIT_ACTION } from './server-image-promotion.js';
 import { lockProjectAfterPurgeTopology, lockProjectMutation } from './project-mutation-lock.js';
 import { slugify } from './slugify.js';
-import { API_KEY_SCOPES, DEFAULT_ENV_VAR_SCOPE, ENV_VAR_SCOPES } from './store.js';
+import {
+  API_KEY_SCOPES,
+  DEFAULT_ENV_VAR_SCOPE,
+  ENV_VAR_SCOPES,
+  parseReleasePlanEntitlementsPin,
+  sameReleasePlanEntitlementsPin,
+} from './store.js';
 import type {
   AbuseEventRecord,
   SecurityEventResolutionRecord,
+  SecurityAuditEventPage,
   AgentPatchProposalRecord,
   AgentRepairEventRecord,
   AgentRepairOutcome,
@@ -46,6 +54,10 @@ import type {
   ApiKeyScope,
   ApiStore,
   AiCostLedgerRecord,
+  CanonicalAiUsageInput,
+  CanonicalAiUsageBatchInput,
+  CanonicalAiClassifierRouting,
+  CanonicalAiClassifierRoutingSelection,
   AiConversationRecord,
   IntegrationFeatureRequestRecord,
   ImportCreditReservationRecord,
@@ -80,12 +92,15 @@ import type {
   DeploymentAccessContext,
   DeploymentAccessTicketMutationResult,
   ReleaseManifestRecord,
+  ReleasePlanEntitlementsPin,
   RollbackDeploymentCreateInput,
   RollbackLeaseFence,
   RollbackOperationRecord,
   ServerImageReleaseCommitInput,
   ServerImageReleaseCommitResult,
   StaticRollbackReleaseCommitInput,
+  StaticReleaseCommitInput,
+  StaticReleaseCommitResult,
   DomainVerificationRecord,
   EmailDeliveryEventRecord,
   EnterpriseSettingsRecord,
@@ -147,6 +162,672 @@ import type {
   RecordSkillAuditInput,
 } from './store.js';
 import { countActiveModerationStrikes } from './strike-system.js';
+
+const CANONICAL_AI_USAGE_VERSION = 1 as const;
+
+function recordObject(value: unknown): Record<string, unknown> | undefined {
+  return value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : undefined;
+}
+
+function canonicalAiClassifierRoutingSelection(value: unknown): CanonicalAiClassifierRoutingSelection | undefined {
+  const routing = recordObject(value);
+  if (
+    !routing ||
+    !['lite', 'economy', 'power'].includes(String(routing.mode)) ||
+    typeof routing.highEffort !== 'boolean' ||
+    typeof routing.turbo !== 'boolean' ||
+    routing.lineKey !== 'classifier' ||
+    typeof routing.routingCardVersion !== 'number' ||
+    !Number.isSafeInteger(routing.routingCardVersion) ||
+    routing.routingCardVersion < 1 ||
+    typeof routing.source !== 'string' ||
+    routing.source.length < 1
+  ) {
+    return undefined;
+  }
+  return {
+    mode: routing.mode as CanonicalAiClassifierRoutingSelection['mode'],
+    highEffort: routing.highEffort,
+    turbo: routing.turbo,
+    lineKey: 'classifier',
+    routingCardVersion: routing.routingCardVersion,
+    source: routing.source,
+  };
+}
+
+function canonicalAiClassifierRouting(value: unknown): CanonicalAiClassifierRouting | undefined {
+  const routing = recordObject(value);
+  const selection = canonicalAiClassifierRoutingSelection(value);
+  if (
+    !routing ||
+    !selection ||
+    typeof routing.costInMillicentsPerM !== 'number' ||
+    !Number.isSafeInteger(routing.costInMillicentsPerM) ||
+    routing.costInMillicentsPerM < 0 ||
+    typeof routing.costOutMillicentsPerM !== 'number' ||
+    !Number.isSafeInteger(routing.costOutMillicentsPerM) ||
+    routing.costOutMillicentsPerM < 0
+  ) {
+    return undefined;
+  }
+  return {
+    ...selection,
+    costInMillicentsPerM: routing.costInMillicentsPerM,
+    costOutMillicentsPerM: routing.costOutMillicentsPerM,
+  };
+}
+
+function canonicalAiClassifierCostMillicents(
+  routing: CanonicalAiClassifierRouting,
+  inputTokens: number,
+  outputTokens: number,
+): number | undefined {
+  if (
+    !Number.isSafeInteger(inputTokens) ||
+    inputTokens < 0 ||
+    !Number.isSafeInteger(outputTokens) ||
+    outputTokens < 0
+  ) {
+    return undefined;
+  }
+  const numerator =
+    BigInt(inputTokens) * BigInt(routing.costInMillicentsPerM) +
+    BigInt(outputTokens) * BigInt(routing.costOutMillicentsPerM);
+  const rounded = (numerator + 500_000n) / 1_000_000n;
+  return rounded <= BigInt(2_147_483_647) ? Number(rounded) : undefined;
+}
+
+async function databaseJsonFingerprint(tx: Prisma.TransactionClient, value: unknown): Promise<string> {
+  const serialized = JSON.stringify(value);
+  const [row] = await tx.$queryRaw<Array<{ fingerprint: string }>>(Prisma.sql`
+    SELECT md5((${serialized}::jsonb)::text) AS "fingerprint"
+  `);
+  if (!row?.fingerprint) {
+    throw Object.assign(new Error(), { code: 'DATABASE_JSON_FINGERPRINT_UNAVAILABLE' });
+  }
+  return row.fingerprint;
+}
+
+function canonicalAiPlatformReceiptIndex(
+  receipt: Record<string, unknown>,
+  contentFingerprint: string,
+): Record<string, unknown> {
+  return {
+    kind: 'platform',
+    identityHash: receipt.identityHash,
+    requestHash: receipt.requestHash,
+    intentRequestHash: receipt.intentRequestHash,
+    executionToken: receipt.executionToken,
+    costLedgerId: receipt.costLedgerId,
+    agentCallLogId: receipt.agentCallLogId,
+    agentCostMillicents: receipt.agentCostMillicents,
+    inputTokens: receipt.inputTokens,
+    outputTokens: receipt.outputTokens,
+    costCents: receipt.costCents,
+    recoveredAtCeiling: receipt.recoveredAtCeiling,
+    outcome: receipt.outcome ?? null,
+    contentFingerprint,
+  };
+}
+
+function canonicalAiBatchReceiptIndex(
+  receipt: Record<string, unknown>,
+  contentFingerprint: string,
+): Record<string, unknown> {
+  return {
+    kind: 'batch',
+    receiptHash: receipt.receiptHash,
+    requestHash: receipt.requestHash,
+    totalCents: receipt.totalCents,
+    costLedgerIds: receipt.costLedgerIds,
+    usageEventIds: receipt.usageEventIds,
+    calls: receipt.calls,
+    contentFingerprint,
+  };
+}
+
+function canonicalAiBatchHash(input: CanonicalAiUsageBatchInput): string {
+  return createHash('sha256')
+    .update(
+      JSON.stringify({
+        version: CANONICAL_AI_USAGE_VERSION,
+        reservationId: input.reservationId,
+        organizationId: input.organizationId,
+        userId: input.userId,
+        requestId: input.requestId,
+        executionToken: input.executionToken,
+        projectId: input.projectId,
+        calls: input.calls.map((call) => ({
+          callId: call.callId,
+          kind: call.kind,
+          billedToUser: call.billedToUser !== false,
+          projectId: call.projectId,
+          ...(call.conversationId ? { conversationId: call.conversationId } : {}),
+          ...(call.messageId ? { messageId: call.messageId } : {}),
+          provider: call.provider,
+          model: call.model,
+          inputTokens: call.inputTokens,
+          outputTokens: call.outputTokens,
+          costCents: call.costCents,
+          reason: call.reason,
+        })),
+      }),
+    )
+    .digest('hex');
+}
+
+function canonicalAiExecutionHash(input: {
+  reservationId: string;
+  organizationId: string;
+  userId: string;
+  projectId: string;
+  requestId: string;
+}): string {
+  return createHash('sha256')
+    .update(
+      JSON.stringify({
+        version: CANONICAL_AI_USAGE_VERSION,
+        reservationId: input.reservationId,
+        organizationId: input.organizationId,
+        userId: input.userId,
+        projectId: input.projectId,
+        requestId: input.requestId,
+      }),
+    )
+    .digest('hex');
+}
+
+function canonicalAiPlatformIntentHash(input: {
+  reservationId: string;
+  organizationId: string;
+  userId: string;
+  requestId: string;
+  executionToken: string;
+  projectId: string;
+  callId: string;
+  provider: string;
+  model: string;
+  maxInputTokens: number;
+  maxOutputTokens: number;
+  maxCostCents: number;
+  agentRouting: CanonicalAiClassifierRouting;
+}): string {
+  return createHash('sha256')
+    .update(
+      JSON.stringify({
+        version: CANONICAL_AI_USAGE_VERSION,
+        reservationId: input.reservationId,
+        organizationId: input.organizationId,
+        userId: input.userId,
+        requestId: input.requestId,
+        executionToken: input.executionToken,
+        projectId: input.projectId,
+        callId: input.callId,
+        provider: input.provider,
+        model: input.model,
+        maxInputTokens: input.maxInputTokens,
+        maxOutputTokens: input.maxOutputTokens,
+        maxCostCents: input.maxCostCents,
+        agentRouting: {
+          mode: input.agentRouting.mode,
+          highEffort: input.agentRouting.highEffort,
+          turbo: input.agentRouting.turbo,
+          lineKey: 'classifier',
+          routingCardVersion: input.agentRouting.routingCardVersion,
+          source: input.agentRouting.source,
+          costInMillicentsPerM: input.agentRouting.costInMillicentsPerM,
+          costOutMillicentsPerM: input.agentRouting.costOutMillicentsPerM,
+        },
+      }),
+    )
+    .digest('hex');
+}
+
+function canonicalAiPlatformReceiptIdentityHash(input: {
+  reservationId: string;
+  organizationId: string;
+  userId: string;
+  requestId: string;
+  executionToken: string;
+  projectId: string;
+  callId: string;
+  intentRequestHash: string;
+  requestHash: string;
+  provider: string;
+  model: string;
+  inputTokens: number;
+  outputTokens: number;
+  costLedgerId: string;
+  agentCallLogId: string;
+  agentCostMillicents: number;
+  costCents: number;
+  outcome?: 'hard' | 'easy';
+  recoveredAtCeiling: boolean;
+}): string {
+  return createHash('sha256')
+    .update(
+      JSON.stringify({
+        version: CANONICAL_AI_USAGE_VERSION,
+        reservationId: input.reservationId,
+        organizationId: input.organizationId,
+        userId: input.userId,
+        requestId: input.requestId,
+        executionToken: input.executionToken,
+        projectId: input.projectId,
+        callId: input.callId,
+        intentRequestHash: input.intentRequestHash,
+        requestHash: input.requestHash,
+        provider: input.provider,
+        model: input.model,
+        inputTokens: input.inputTokens,
+        outputTokens: input.outputTokens,
+        costLedgerId: input.costLedgerId,
+        agentCallLogId: input.agentCallLogId,
+        agentCostMillicents: input.agentCostMillicents,
+        costCents: input.costCents,
+        outcome: input.outcome ?? null,
+        recoveredAtCeiling: input.recoveredAtCeiling,
+      }),
+    )
+    .digest('hex');
+}
+
+function canonicalAiBatchReceiptIdentityHash(input: {
+  reservationId: string;
+  organizationId: string;
+  userId: string;
+  requestId: string;
+  executionToken: string;
+  projectId: string;
+  requestHash: string;
+  totalCents: number;
+  costLedgerIds: string[];
+  usageEventIds: string[];
+  calls: Array<Record<string, unknown>>;
+}): string {
+  return createHash('sha256')
+    .update(
+      JSON.stringify({
+        version: CANONICAL_AI_USAGE_VERSION,
+        reservationId: input.reservationId,
+        organizationId: input.organizationId,
+        userId: input.userId,
+        requestId: input.requestId,
+        executionToken: input.executionToken,
+        projectId: input.projectId,
+        requestHash: input.requestHash,
+        totalCents: input.totalCents,
+        costLedgerIds: input.costLedgerIds,
+        usageEventIds: input.usageEventIds,
+        calls: input.calls.map((call) => ({
+          callId: call.callId,
+          kind: call.kind,
+          billedToUser: call.billedToUser,
+          projectId: call.projectId,
+          ...(typeof call.conversationId === 'string' ? { conversationId: call.conversationId } : {}),
+          ...(typeof call.messageId === 'string' ? { messageId: call.messageId } : {}),
+          provider: call.provider,
+          model: call.model,
+          inputTokens: call.inputTokens,
+          outputTokens: call.outputTokens,
+          costCents: call.costCents,
+          reason: call.reason,
+          costLedgerId: call.costLedgerId,
+        })),
+      }),
+    )
+    .digest('hex');
+}
+
+async function validateCanonicalPlatformReceipt(
+  tx: Prisma.TransactionClient,
+  input: {
+    reservationId: string;
+    organizationId: string;
+    userId: string;
+    execution: Record<string, unknown>;
+    intent: Record<string, unknown> | undefined;
+    receipt: Record<string, unknown>;
+  },
+): Promise<{ valid: true; recovered: boolean; outcome?: 'hard' | 'easy' } | { valid: false }> {
+  const { execution, intent, receipt } = input;
+  const requestId = typeof execution.requestId === 'string' ? execution.requestId : '';
+  // A completed platform-classifier receipt belongs to the immutable claim
+  // generation that created its intent. A later user-provider claim may rotate
+  // canonicalAiExecution.executionToken after its lease expires; rebinding the
+  // classifier receipt to that new token would either destroy its audit proof
+  // or incorrectly quarantine an otherwise exact receipt.
+  const executionToken = typeof intent?.executionToken === 'string' ? intent.executionToken : '';
+  const projectId = typeof execution.projectId === 'string' ? execution.projectId : '';
+  const callId = typeof intent?.callId === 'string' ? intent.callId : '';
+  const provider = typeof intent?.provider === 'string' ? intent.provider : '';
+  const model = typeof intent?.model === 'string' ? intent.model : '';
+  const maxInputTokens = intent?.maxInputTokens;
+  const maxOutputTokens = intent?.maxOutputTokens;
+  const maxCostCents = intent?.maxCostCents;
+  const agentRouting = canonicalAiClassifierRouting(intent?.agentRouting);
+  if (
+    !intent ||
+    intent.version !== CANONICAL_AI_USAGE_VERSION ||
+    intent.requestId !== requestId ||
+    intent.executionToken !== executionToken ||
+    intent.projectId !== projectId ||
+    !callId ||
+    !provider ||
+    !model ||
+    typeof maxInputTokens !== 'number' ||
+    !Number.isSafeInteger(maxInputTokens) ||
+    maxInputTokens < 0 ||
+    typeof maxOutputTokens !== 'number' ||
+    !Number.isSafeInteger(maxOutputTokens) ||
+    maxOutputTokens < 0 ||
+    typeof maxCostCents !== 'number' ||
+    !Number.isSafeInteger(maxCostCents) ||
+    maxCostCents < 0 ||
+    !agentRouting ||
+    intent.requestHash !==
+      canonicalAiPlatformIntentHash({
+        reservationId: input.reservationId,
+        organizationId: input.organizationId,
+        userId: input.userId,
+        requestId,
+        executionToken,
+        projectId,
+        callId,
+        provider,
+        model,
+        maxInputTokens,
+        maxOutputTokens,
+        maxCostCents,
+        agentRouting,
+      })
+  ) {
+    return { valid: false };
+  }
+
+  const recovered = receipt.recoveredAtCeiling === true;
+  const outcome = receipt.outcome === 'hard' || receipt.outcome === 'easy' ? receipt.outcome : undefined;
+  const costLedgerId = typeof receipt.costLedgerId === 'string' ? receipt.costLedgerId : '';
+  const agentCallLogId = typeof receipt.agentCallLogId === 'string' ? receipt.agentCallLogId : '';
+  const agentCostMillicents = receipt.agentCostMillicents;
+  const costCents = receipt.costCents;
+  const inputTokens = receipt.inputTokens;
+  const outputTokens = receipt.outputTokens;
+  const intentRequestHash = typeof intent.requestHash === 'string' ? intent.requestHash : '';
+  if (
+    receipt.version !== CANONICAL_AI_USAGE_VERSION ||
+    receipt.requestId !== requestId ||
+    receipt.executionToken !== executionToken ||
+    receipt.projectId !== projectId ||
+    receipt.callId !== callId ||
+    receipt.intentRequestHash !== intentRequestHash ||
+    typeof receipt.requestHash !== 'string' ||
+    !/^[a-f0-9]{64}$/.test(receipt.requestHash) ||
+    receipt.provider !== provider ||
+    receipt.model !== model ||
+    typeof inputTokens !== 'number' ||
+    !Number.isSafeInteger(inputTokens) ||
+    inputTokens < 0 ||
+    inputTokens > maxInputTokens ||
+    typeof outputTokens !== 'number' ||
+    !Number.isSafeInteger(outputTokens) ||
+    outputTokens < 0 ||
+    outputTokens > maxOutputTokens ||
+    !costLedgerId ||
+    !agentCallLogId ||
+    typeof agentCostMillicents !== 'number' ||
+    !Number.isSafeInteger(agentCostMillicents) ||
+    agentCostMillicents < 0 ||
+    agentCostMillicents !== canonicalAiClassifierCostMillicents(agentRouting, inputTokens, outputTokens) ||
+    typeof costCents !== 'number' ||
+    !Number.isSafeInteger(costCents) ||
+    costCents < 0 ||
+    costCents > maxCostCents ||
+    (!recovered && !outcome) ||
+    (recovered &&
+      (outcome !== undefined ||
+        inputTokens !== maxInputTokens ||
+        outputTokens !== maxOutputTokens ||
+        costCents !== maxCostCents)) ||
+    receipt.identityHash !==
+      canonicalAiPlatformReceiptIdentityHash({
+        reservationId: input.reservationId,
+        organizationId: input.organizationId,
+        userId: input.userId,
+        requestId,
+        executionToken,
+        projectId,
+        callId,
+        intentRequestHash,
+        requestHash: receipt.requestHash,
+        provider,
+        model,
+        inputTokens,
+        outputTokens,
+        costLedgerId,
+        agentCallLogId,
+        agentCostMillicents,
+        costCents,
+        ...(outcome ? { outcome } : {}),
+        recoveredAtCeiling: recovered,
+      })
+  ) {
+    return { valid: false };
+  }
+
+  const cost = await tx.aiCostLedger.findUnique({ where: { id: costLedgerId } });
+  const agentCall = await tx.agentCallLog.findUnique({ where: { id: agentCallLogId } });
+  if (
+    !cost ||
+    cost.organizationId !== input.organizationId ||
+    cost.projectId !== projectId ||
+    cost.provider !== provider ||
+    cost.model !== model ||
+    cost.conversationId !== null ||
+    cost.messageId !== null ||
+    cost.inputTokens !== inputTokens ||
+    cost.outputTokens !== outputTokens ||
+    cost.costCents !== costCents ||
+    cost.reason !==
+      (recovered
+        ? `chat.completion.operator.classifier.${callId}.crash-recovery-max`.slice(0, 240)
+        : `chat.completion.operator.platform.classifier.${callId}`.slice(0, 240)) ||
+    !agentCall ||
+    agentCall.userId !== input.userId ||
+    agentCall.organizationId !== input.organizationId ||
+    agentCall.projectId !== projectId ||
+    agentCall.mode !== agentRouting.mode ||
+    agentCall.highEffort !== agentRouting.highEffort ||
+    agentCall.escalated !== (recovered ? true : outcome === 'hard') ||
+    agentCall.turbo !== agentRouting.turbo ||
+    agentCall.lineKey !== 'classifier' ||
+    agentCall.provider !== provider ||
+    agentCall.model !== model ||
+    agentCall.tokensIn !== inputTokens ||
+    agentCall.tokensOut !== outputTokens ||
+    agentCall.costMillicents !== agentCostMillicents ||
+    agentCall.creditCents !== 0 ||
+    agentCall.marginMillicents !== -agentCostMillicents ||
+    agentCall.billedToUser !== false ||
+    agentCall.routingCardVersion !== agentRouting.routingCardVersion ||
+    agentCall.source !== (recovered ? `${agentRouting.source}.crash-recovery-max` : agentRouting.source)
+  ) {
+    return { valid: false };
+  }
+
+  return { valid: true, recovered, ...(outcome ? { outcome } : {}) };
+}
+
+async function validateCanonicalBatchReceipt(
+  tx: Prisma.TransactionClient,
+  input: {
+    reservationId: string;
+    organizationId: string;
+    userId: string;
+    executionToken: string;
+    requestId: string;
+    projectId: string;
+    receipt: Record<string, unknown>;
+  },
+): Promise<
+  { valid: true; costs: Awaited<ReturnType<Prisma.TransactionClient['aiCostLedger']['findMany']>> } | { valid: false }
+> {
+  const { receipt } = input;
+  const costLedgerIds = Array.isArray(receipt.costLedgerIds)
+    ? receipt.costLedgerIds.filter((id): id is string => typeof id === 'string')
+    : [];
+  const usageEventIds = Array.isArray(receipt.usageEventIds)
+    ? receipt.usageEventIds.filter((id): id is string => typeof id === 'string')
+    : [];
+  const rawCalls = Array.isArray(receipt.calls)
+    ? receipt.calls.map((call) => recordObject(call)).filter((call): call is Record<string, unknown> => Boolean(call))
+    : [];
+  const allowedKinds = new Set(['planner', 'agent-lane', 'summary', 'context', 'main', 'classifier', 'crash-recovery']);
+  if (
+    receipt.version !== CANONICAL_AI_USAGE_VERSION ||
+    receipt.reservationId !== input.reservationId ||
+    receipt.organizationId !== input.organizationId ||
+    receipt.userId !== input.userId ||
+    receipt.requestId !== input.requestId ||
+    receipt.executionToken !== input.executionToken ||
+    receipt.projectId !== input.projectId ||
+    typeof receipt.requestHash !== 'string' ||
+    !/^[a-f0-9]{64}$/.test(receipt.requestHash) ||
+    typeof receipt.totalCents !== 'number' ||
+    !Number.isSafeInteger(receipt.totalCents) ||
+    receipt.totalCents < 0 ||
+    costLedgerIds.length === 0 ||
+    new Set(costLedgerIds).size !== costLedgerIds.length ||
+    usageEventIds.length !== 3 ||
+    new Set(usageEventIds).size !== usageEventIds.length ||
+    rawCalls.length !== costLedgerIds.length ||
+    new Set(rawCalls.map((call) => call.callId)).size !== rawCalls.length ||
+    new Set(rawCalls.map((call) => call.costLedgerId)).size !== rawCalls.length ||
+    rawCalls.some((call) => !costLedgerIds.includes(String(call.costLedgerId))) ||
+    rawCalls.some(
+      (call) =>
+        typeof call.callId !== 'string' ||
+        !allowedKinds.has(String(call.kind)) ||
+        typeof call.billedToUser !== 'boolean' ||
+        call.projectId !== input.projectId ||
+        (call.conversationId !== undefined && typeof call.conversationId !== 'string') ||
+        (call.messageId !== undefined && typeof call.messageId !== 'string') ||
+        typeof call.provider !== 'string' ||
+        typeof call.model !== 'string' ||
+        typeof call.inputTokens !== 'number' ||
+        !Number.isSafeInteger(call.inputTokens) ||
+        call.inputTokens < 0 ||
+        typeof call.outputTokens !== 'number' ||
+        !Number.isSafeInteger(call.outputTokens) ||
+        call.outputTokens < 0 ||
+        typeof call.costCents !== 'number' ||
+        !Number.isSafeInteger(call.costCents) ||
+        call.costCents < 0 ||
+        typeof call.reason !== 'string' ||
+        typeof call.costLedgerId !== 'string',
+    )
+  ) {
+    return { valid: false };
+  }
+
+  const calls = rawCalls.map((call) => ({
+    callId: call.callId as string,
+    kind: call.kind as CanonicalAiUsageInput['kind'],
+    billedToUser: call.billedToUser as boolean,
+    projectId: call.projectId as string,
+    ...(typeof call.conversationId === 'string' ? { conversationId: call.conversationId } : {}),
+    ...(typeof call.messageId === 'string' ? { messageId: call.messageId } : {}),
+    provider: call.provider as string,
+    model: call.model as string,
+    inputTokens: call.inputTokens as number,
+    outputTokens: call.outputTokens as number,
+    costCents: call.costCents as number,
+    reason: call.reason as string,
+  }));
+  const requestHash = canonicalAiBatchHash({
+    reservationId: input.reservationId,
+    organizationId: input.organizationId,
+    userId: input.userId,
+    requestId: input.requestId,
+    executionToken: input.executionToken,
+    projectId: input.projectId,
+    calls,
+  });
+  if (receipt.requestHash !== requestHash) {
+    return { valid: false };
+  }
+
+  const receiptHash = canonicalAiBatchReceiptIdentityHash({
+    reservationId: input.reservationId,
+    organizationId: input.organizationId,
+    userId: input.userId,
+    requestId: input.requestId,
+    executionToken: input.executionToken,
+    projectId: input.projectId,
+    requestHash,
+    totalCents: receipt.totalCents,
+    costLedgerIds,
+    usageEventIds,
+    calls: rawCalls,
+  });
+  if (receipt.receiptHash !== receiptHash) {
+    return { valid: false };
+  }
+
+  const costs = await tx.aiCostLedger.findMany({ where: { id: { in: costLedgerIds } } });
+  const costById = new Map(costs.map((cost) => [cost.id, cost]));
+  const billedTotal = rawCalls.reduce(
+    (sum, call) => sum + (call.billedToUser === false ? 0 : (call.costCents as number)),
+    0,
+  );
+  if (
+    costs.length !== costLedgerIds.length ||
+    billedTotal !== receipt.totalCents ||
+    rawCalls.some((call) => {
+      const cost = costById.get(call.costLedgerId as string);
+      return (
+        !cost ||
+        cost.organizationId !== input.organizationId ||
+        cost.projectId !== input.projectId ||
+        cost.conversationId !== (call.conversationId ?? null) ||
+        cost.messageId !== (call.messageId ?? null) ||
+        cost.provider !== call.provider ||
+        cost.model !== call.model ||
+        cost.inputTokens !== call.inputTokens ||
+        cost.outputTokens !== call.outputTokens ||
+        cost.costCents !== call.costCents ||
+        cost.reason !== `${String(call.reason)}.${String(call.kind)}.${String(call.callId)}`.slice(0, 240)
+      );
+    })
+  ) {
+    return { valid: false };
+  }
+
+  const usageEvents = await tx.usageEvent.findMany({ where: { id: { in: usageEventIds } } });
+  const expectedQuantities = new Map([
+    ['ai.messages', 1],
+    ['ai.inputTokens', calls.reduce((sum, call) => sum + (call.billedToUser === false ? 0 : call.inputTokens), 0)],
+    ['ai.outputTokens', calls.reduce((sum, call) => sum + (call.billedToUser === false ? 0 : call.outputTokens), 0)],
+  ]);
+  if (
+    usageEvents.length !== 3 ||
+    usageEvents.some((event) => {
+      const metadata = recordObject(event.metadata);
+      return (
+        event.organizationId !== input.organizationId ||
+        event.userId !== input.userId ||
+        event.quantity !== expectedQuantities.get(event.type) ||
+        metadata?.canonicalReservationId !== input.reservationId ||
+        metadata?.requestHash !== requestHash
+      );
+    }) ||
+    new Set(usageEvents.map((event) => event.type)).size !== 3
+  ) {
+    return { valid: false };
+  }
+
+  return { valid: true, costs };
+}
 
 const SERVER_RELEASE_PROMOTION_NOT_COMMITTED = 'SERVER_RELEASE_PROMOTION_NOT_COMMITTED';
 const SERVER_RELEASE_MANIFEST_CONFLICT = 'SERVER_RELEASE_MANIFEST_CONFLICT';
@@ -890,6 +1571,16 @@ export class PrismaApiStore implements ApiStore {
   async ping(): Promise<void> {
     // Trivial round-trip to confirm the database connection is live.
     await this.prisma.$queryRaw`SELECT 1`;
+  }
+
+  async getDatabaseClock() {
+    const [row] = await this.prisma.$queryRaw<Array<{ now: Date; monthStart: Date }>>`
+      SELECT clock_timestamp() AS "now", date_trunc('month', clock_timestamp()) AS "monthStart"
+    `;
+    if (!row) {
+      throw new Error(appPublicEnglish('DATABASE_TIME_UNAVAILABLE'));
+    }
+    return { now: row.now.toISOString(), monthStart: row.monthStart.toISOString() };
   }
 
   async withSerializedMutation<T>(
@@ -5054,6 +5745,107 @@ export class PrismaApiStore implements ApiStore {
     return (await this.prisma.projectCollaborator.findMany({ where: { projectId } })).map(mapProjectCollaborator);
   }
 
+  async getActiveProjectCollaborator(projectId: string, userId: string) {
+    const rows = await this.prisma.$queryRaw<any[]>`
+      SELECT collaborator.*
+        FROM "ProjectCollaborator" AS collaborator
+       WHERE collaborator."projectId" = ${projectId}
+         AND collaborator."userId" = ${userId}
+         AND (collaborator."expiresAt" IS NULL OR collaborator."expiresAt" > NOW())
+       LIMIT 1
+    `;
+    return rows[0] ? mapProjectCollaborator(rows[0]) : undefined;
+  }
+
+  async listActiveOrganizationViewerUserIds(organizationId: string, options?: { excludeGroupId?: string }) {
+    const rows = await this.prisma.$queryRaw<Array<{ userId: string }>>`
+      SELECT DISTINCT audience."userId"
+        FROM (
+          SELECT collaborator."userId" AS "userId"
+            FROM "ProjectCollaborator" AS collaborator
+            JOIN "Project" AS project ON project.id = collaborator."projectId"
+           WHERE project."organizationId" = ${organizationId}
+             AND project."deletedAt" IS NULL
+             AND collaborator."roleKey" IN ('viewer', 'guest')
+             AND (collaborator."expiresAt" IS NULL OR collaborator."expiresAt" > CURRENT_TIMESTAMP)
+
+          UNION ALL
+
+          SELECT access_grant."subjectUserId" AS "userId"
+            FROM "ResourceAccessGrant" AS access_grant
+            JOIN "Project" AS project
+              ON access_grant."resourceType" = 'PROJECT'
+             AND project.id = access_grant."resourceId"
+           WHERE access_grant."organizationId" = ${organizationId}
+             AND project."organizationId" = ${organizationId}
+             AND project."deletedAt" IS NULL
+             AND access_grant."subjectType" = 'USER'
+             AND access_grant."roleKey" IN ('viewer', 'guest')
+             AND access_grant."status" = 'ACTIVE'
+             AND access_grant."revokedAt" IS NULL
+             AND access_grant."expiresAt" > CURRENT_TIMESTAMP
+
+          UNION ALL
+
+          SELECT membership."userId" AS "userId"
+            FROM "ResourceAccessGrant" AS access_grant
+            JOIN "Project" AS project
+              ON access_grant."resourceType" = 'PROJECT'
+             AND project.id = access_grant."resourceId"
+            JOIN "CollaborationGroup" AS collaboration_group
+              ON collaboration_group."organizationId" = access_grant."organizationId"
+             AND collaboration_group.id = access_grant."subjectGroupId"
+            JOIN "CollaborationGroupMember" AS group_member
+              ON group_member."organizationId" = collaboration_group."organizationId"
+             AND group_member."groupId" = collaboration_group.id
+            JOIN "OrganizationMember" AS membership
+              ON membership."organizationId" = group_member."organizationId"
+             AND membership.id = group_member."membershipId"
+           WHERE access_grant."organizationId" = ${organizationId}
+             AND project."organizationId" = ${organizationId}
+             AND project."deletedAt" IS NULL
+             AND access_grant."subjectType" = 'GROUP'
+             AND access_grant."roleKey" IN ('viewer', 'guest')
+             AND access_grant."status" = 'ACTIVE'
+             AND access_grant."revokedAt" IS NULL
+             AND access_grant."expiresAt" > CURRENT_TIMESTAMP
+             AND collaboration_group."deletedAt" IS NULL
+             AND membership."state" = 'ACTIVE'
+             AND (${options?.excludeGroupId ?? null}::text IS NULL
+                  OR collaboration_group.id <> ${options?.excludeGroupId ?? null})
+        ) AS audience
+       WHERE audience."userId" IS NOT NULL
+       ORDER BY audience."userId" ASC
+    `;
+    return rows.map((row) => row.userId);
+  }
+
+  async groupHasActiveReadOnlyProjectGrant(organizationId: string, groupId: string) {
+    const rows = await this.prisma.$queryRaw<Array<{ exists: boolean }>>`
+      SELECT EXISTS (
+        SELECT 1
+          FROM "ResourceAccessGrant" AS access_grant
+          JOIN "Project" AS project
+            ON access_grant."resourceType" = 'PROJECT'
+           AND project.id = access_grant."resourceId"
+          JOIN "CollaborationGroup" AS collaboration_group
+            ON collaboration_group."organizationId" = access_grant."organizationId"
+           AND collaboration_group.id = access_grant."subjectGroupId"
+         WHERE access_grant."organizationId" = ${organizationId}
+           AND access_grant."subjectType" = 'GROUP'
+           AND access_grant."subjectGroupId" = ${groupId}
+           AND access_grant."roleKey" IN ('viewer', 'guest')
+           AND access_grant."status" = 'ACTIVE'
+           AND access_grant."revokedAt" IS NULL
+           AND access_grant."expiresAt" > CURRENT_TIMESTAMP
+           AND project."organizationId" = ${organizationId}
+           AND project."deletedAt" IS NULL
+           AND collaboration_group."deletedAt" IS NULL
+      ) AS "exists"
+    `;
+    return rows[0]?.exists === true;
+  }
+
   async removeProjectCollaborator(input: { projectId: string; userId: string }): Promise<boolean> {
     const result = await this.prisma.$transaction(async (tx) => {
       await this.accountPurge.assertProjectMutable(tx, input.projectId, [input.userId]);
@@ -7543,6 +8335,7 @@ export class PrismaApiStore implements ApiStore {
         status: true,
         createdAt: true,
         environmentName: true,
+        metadata: true,
 
         /*
          * L'org et son abonnement sont nécessaires ICI : l'extinction à 30 jours
@@ -7582,6 +8375,7 @@ export class PrismaApiStore implements ApiStore {
       environmentName: deployment.environmentName ?? undefined,
       organizationId: deployment.project?.organizationId,
       planKey: subscription?.status === 'ACTIVE' ? subscription.plan?.key : undefined,
+      metadata: deployment.metadata,
     };
   }
 
@@ -7682,7 +8476,10 @@ export class PrismaApiStore implements ApiStore {
         input.releaseSource &&
         (input.releaseSource.projectId !== deployment.projectId ||
           input.releaseSource.environment !== deployment.environmentName ||
-          input.releaseSource.deploymentId !== deployment.id)
+          input.releaseSource.deploymentId !== deployment.id ||
+          !parseReleasePlanEntitlementsPin(input.releaseSource.planEntitlements) ||
+          !input.releaseSource.projectManifestDigest ||
+          !PROJECT_MANIFEST_DIGEST_PATTERN.test(input.releaseSource.projectManifestDigest))
       ) {
         throw Object.assign(new Error(appPublicEnglish('DEPLOYMENT_ACCESS_RELEASE_MANIFEST_MISMATCH')), {
           statusCode: 409,
@@ -7740,6 +8537,8 @@ export class PrismaApiStore implements ApiStore {
             configDigest: input.releaseSource.configDigest ?? null,
             dbMigrationPoint: input.releaseSource.dbMigrationPoint ?? null,
             accessPolicyVersion: nextPolicyVersion,
+            planEntitlements: input.releaseSource.planEntitlements as unknown as Prisma.InputJsonValue,
+            projectManifestDigest: input.releaseSource.projectManifestDigest,
           },
         });
       }
@@ -8107,8 +8906,11 @@ export class PrismaApiStore implements ApiStore {
     configDigest?: string;
     dbMigrationPoint?: string;
     accessPolicyVersion: number;
+    planEntitlements: ReleasePlanEntitlementsPin;
+    projectManifestDigest: string;
   }) {
     return this.prisma.$transaction(async (tx) => {
+      const planEntitlements = parseReleasePlanEntitlementsPin(input.planEntitlements);
       const [deployment, accessPolicy] = await Promise.all([
         tx.deployment.findFirst({
           where: {
@@ -8117,7 +8919,7 @@ export class PrismaApiStore implements ApiStore {
             environmentName: input.environment,
             accessPolicyVersion: input.accessPolicyVersion,
           },
-          select: { id: true },
+          select: { id: true, metadata: true },
         }),
         tx.deploymentAccessPolicy.findUnique({
           where: {
@@ -8130,7 +8932,14 @@ export class PrismaApiStore implements ApiStore {
         }),
       ]);
 
-      if (!deployment || !validDeploymentAccessPolicy(accessPolicy)) {
+      if (
+        !deployment ||
+        !validDeploymentAccessPolicy(accessPolicy) ||
+        !planEntitlements ||
+        !sameReleasePlanEntitlementsPin(deploymentPlanEntitlementsPin(deployment.metadata), planEntitlements) ||
+        !PROJECT_MANIFEST_DIGEST_PATTERN.test(input.projectManifestDigest) ||
+        deploymentProjectManifestDigest(deployment.metadata) !== input.projectManifestDigest
+      ) {
         throw Object.assign(new Error(appPublicEnglish('RELEASE_ACCESS_POLICY_INVALID')), {
           code: 'RELEASE_ACCESS_POLICY_INVALID',
         });
@@ -8151,6 +8960,8 @@ export class PrismaApiStore implements ApiStore {
             configDigest: input.configDigest ?? null,
             dbMigrationPoint: input.dbMigrationPoint ?? null,
             accessPolicyVersion: input.accessPolicyVersion,
+            planEntitlements: planEntitlements as unknown as Prisma.InputJsonValue,
+            projectManifestDigest: input.projectManifestDigest,
           },
         }),
       );
@@ -8651,6 +9462,151 @@ export class PrismaApiStore implements ApiStore {
     });
   }
 
+  async commitStaticRelease(input: StaticReleaseCommitInput): Promise<StaticReleaseCommitResult> {
+    return this.prisma.$transaction(async (tx) => {
+      await this.accountPurge.assertProjectMutable(tx, input.projectId);
+      await lockProjectMutation(tx, input.projectId);
+      await requireProjectReleaseFence(tx, input.projectId, input.releaseFence);
+
+      await tx.$queryRawUnsafe(
+        'SELECT "id" FROM "Deployment" WHERE "id" = $1 AND "projectId" = $2 FOR UPDATE',
+        input.deploymentId,
+        input.projectId,
+      );
+
+      const deployment = await tx.deployment.findFirstOrThrow({
+        where: { id: input.deploymentId, projectId: input.projectId },
+        include: { project: { select: { organizationId: true } } },
+      });
+      const queuedPin = parseReleasePlanEntitlementsPin(deploymentPlanEntitlementsPin(deployment.metadata));
+      const committedPin = parseReleasePlanEntitlementsPin(deploymentPlanEntitlementsPin(input.metadata));
+
+      if (
+        deployment.project.organizationId !== input.releaseFence.expectedOrganizationId ||
+        deployment.provider !== 'static' ||
+        deployment.environmentName !== input.environment ||
+        deployment.accessPolicyVersion !== input.accessPolicyVersion ||
+        input.artifactRef !== `static-deployments/${input.deploymentId}` ||
+        input.metadata.projectManifestDigest !== input.releaseFence.expectedManifestDigest ||
+        !queuedPin ||
+        !committedPin ||
+        !sameReleasePlanEntitlementsPin(queuedPin, committedPin)
+      ) {
+        throw Object.assign(new Error(appPublicEnglish('PUBLISH_ENTITLEMENTS_PIN_MISSING')), {
+          code: 'STATIC_RELEASE_COMMIT_CONFLICT',
+          statusCode: 409,
+        });
+      }
+
+      const accessPolicy = await tx.deploymentAccessPolicy.findUnique({
+        where: {
+          projectId_environment_version: {
+            projectId: input.projectId,
+            environment: input.environment,
+            version: input.accessPolicyVersion,
+          },
+        },
+      });
+
+      if (!validDeploymentAccessPolicy(accessPolicy)) {
+        throw Object.assign(new Error(appPublicEnglish('RELEASE_ACCESS_POLICY_INVALID')), {
+          code: 'RELEASE_ACCESS_POLICY_INVALID',
+        });
+      }
+
+      const existingRows = await tx.releaseManifest.findMany({
+        where: { deploymentId: input.deploymentId },
+        orderBy: { version: 'desc' },
+        take: 2,
+      });
+      const existing = existingRows[0];
+
+      if (existing) {
+        if (
+          existingRows.length !== 1 ||
+          existing.projectId !== input.projectId ||
+          existing.environment !== input.environment ||
+          existing.provider !== 'static' ||
+          existing.artifactKind !== 'static-snapshot' ||
+          existing.artifactRef !== input.artifactRef ||
+          existing.artifactDigest !== input.artifactDigest ||
+          !sameNullable(existing.storeGeneration, input.storeGeneration) ||
+          !sameNullable(existing.configDigest, input.configDigest) ||
+          !sameNullable(existing.dbMigrationPoint, input.dbMigrationPoint) ||
+          existing.accessPolicyVersion !== input.accessPolicyVersion ||
+          !sameReleasePlanEntitlementsPin(existing.planEntitlements, committedPin) ||
+          existing.projectManifestDigest !== input.releaseFence.expectedManifestDigest ||
+          deployment.status !== 'READY'
+        ) {
+          throw Object.assign(new Error('STATIC_RELEASE_MANIFEST_CONFLICT'), {
+            code: 'STATIC_RELEASE_MANIFEST_CONFLICT',
+          });
+        }
+
+        return { committed: true, deployment: mapDeployment(deployment), manifest: mapReleaseManifest(existing) };
+      }
+
+      if (['READY', 'FAILED', 'CANCELED'].includes(deployment.status)) {
+        return { committed: false, deployment: mapDeployment(deployment) };
+      }
+
+      await tx.$executeRawUnsafe(
+        'SELECT pg_advisory_xact_lock(hashtext($1))',
+        `release-manifest:${input.projectId}:${input.environment}`,
+      );
+
+      const latest = await tx.releaseManifest.findFirst({
+        where: { projectId: input.projectId, environment: input.environment },
+        orderBy: { version: 'desc' },
+        select: { version: true },
+      });
+      const manifest = await tx.releaseManifest.create({
+        data: {
+          projectId: input.projectId,
+          deploymentId: input.deploymentId,
+          environment: input.environment,
+          version: (latest?.version ?? 0) + 1,
+          provider: 'static',
+          artifactKind: 'static-snapshot',
+          artifactRef: input.artifactRef,
+          artifactDigest: input.artifactDigest,
+          storeGeneration: input.storeGeneration ?? null,
+          configDigest: input.configDigest ?? null,
+          dbMigrationPoint: input.dbMigrationPoint ?? null,
+          accessPolicyVersion: input.accessPolicyVersion,
+          planEntitlements: committedPin as unknown as Prisma.InputJsonValue,
+          projectManifestDigest: input.releaseFence.expectedManifestDigest,
+        },
+      });
+      const transitioned = await tx.deployment.updateMany({
+        where: {
+          id: input.deploymentId,
+          projectId: input.projectId,
+          status: { notIn: ['READY', 'FAILED', 'CANCELED'] as any },
+        },
+        data: {
+          status: 'READY',
+          url: input.url,
+          previewUrl: input.previewUrl ?? null,
+          productionUrl: input.productionUrl ?? null,
+          metadata: input.metadata as Prisma.InputJsonValue,
+          logs: input.logs as unknown as Prisma.InputJsonValue,
+          finishedAt: new Date(input.finishedAt),
+        },
+      });
+
+      if (transitioned.count !== 1) {
+        throw Object.assign(new Error('STATIC_RELEASE_COMMIT_CONFLICT'), {
+          code: 'STATIC_RELEASE_COMMIT_CONFLICT',
+        });
+      }
+
+      const ready = await tx.deployment.findUniqueOrThrow({ where: { id: input.deploymentId } });
+
+      return { committed: true, deployment: mapDeployment(ready), manifest: mapReleaseManifest(manifest) };
+    });
+  }
+
   async commitStaticRollbackRelease(input: StaticRollbackReleaseCommitInput) {
     return this.prisma.$transaction(async (tx) => {
       /* Common release order: actor -> topology -> checkpoint -> Project -> rollback/deployment/manifest. */
@@ -8660,6 +9616,8 @@ export class PrismaApiStore implements ApiStore {
 
       const operation = await requireRollbackLease(tx, input);
       const source = await requireRollbackSourceManifest(tx, operation);
+      const sourcePin = parseReleasePlanEntitlementsPin(source.planEntitlements);
+      const rollbackPin = parseReleasePlanEntitlementsPin(deploymentPlanEntitlementsPin(input.metadata));
 
       if (
         operation.projectId !== input.projectId ||
@@ -8676,7 +9634,11 @@ export class PrismaApiStore implements ApiStore {
         input.artifactRef !== `static-deployments/${input.deploymentId}` ||
         !sameNullable(source.storeGeneration, input.storeGeneration) ||
         !sameNullable(source.configDigest, input.configDigest) ||
-        !sameNullable(source.dbMigrationPoint, input.dbMigrationPoint)
+        !sameNullable(source.dbMigrationPoint, input.dbMigrationPoint) ||
+        !sourcePin ||
+        !rollbackPin ||
+        !sameReleasePlanEntitlementsPin(sourcePin, rollbackPin) ||
+        source.projectManifestDigest !== input.releaseFence.expectedManifestDigest
       ) {
         throw rollbackConflict('STATIC_ROLLBACK_RELEASE_CONFLICT');
       }
@@ -8725,6 +9687,8 @@ export class PrismaApiStore implements ApiStore {
           !sameNullable(existing.configDigest, input.configDigest) ||
           !sameNullable(existing.dbMigrationPoint, input.dbMigrationPoint) ||
           existing.accessPolicyVersion !== input.accessPolicyVersion ||
+          !sameReleasePlanEntitlementsPin(existing.planEntitlements, sourcePin) ||
+          existing.projectManifestDigest !== source.projectManifestDigest ||
           deployment.status !== 'READY'
         ) {
           throw rollbackConflict('STATIC_ROLLBACK_RELEASE_CONFLICT');
@@ -8804,6 +9768,8 @@ export class PrismaApiStore implements ApiStore {
           configDigest: input.configDigest ?? null,
           dbMigrationPoint: input.dbMigrationPoint ?? null,
           accessPolicyVersion: input.accessPolicyVersion,
+          planEntitlements: sourcePin as unknown as Prisma.InputJsonValue,
+          projectManifestDigest: source.projectManifestDigest,
         },
       });
       const transitioned = await tx.deployment.updateMany({
@@ -8875,6 +9841,13 @@ export class PrismaApiStore implements ApiStore {
 
       const image = serverDeploy?.image as Record<string, unknown> | undefined;
       const rollbackOperationId = (deployment.metadata as Record<string, unknown> | null)?.rollbackOperationId;
+      const deploymentPin = parseReleasePlanEntitlementsPin(deploymentPlanEntitlementsPin(deployment.metadata));
+      const inputPin = parseReleasePlanEntitlementsPin(deploymentPlanEntitlementsPin(input.metadata));
+      const rollbackSourcePin = parseReleasePlanEntitlementsPin(rollbackSource?.planEntitlements);
+      const releasePin = rollbackOperation ? rollbackSourcePin : deploymentPin;
+      const releaseProjectManifestDigest = rollbackOperation
+        ? rollbackSource?.projectManifestDigest
+        : deploymentProjectManifestDigest(deployment.metadata);
 
       if (
         deployment.project.organizationId !== input.organizationId ||
@@ -8885,6 +9858,10 @@ export class PrismaApiStore implements ApiStore {
         deployment.environmentName !== input.environment ||
         image?.imageRef !== input.artifactRef ||
         image?.imageDigest !== input.artifactDigest ||
+        !releasePin ||
+        !inputPin ||
+        !sameReleasePlanEntitlementsPin(releasePin, inputPin) ||
+        releaseProjectManifestDigest !== input.releaseFence.expectedManifestDigest ||
         !isCommittedPromotionForTenant(
           serverDeploy?.promotion,
           deployment.project.organizationId,
@@ -8924,6 +9901,7 @@ export class PrismaApiStore implements ApiStore {
             rollbackSource.provider !== 'server' ||
             rollbackSource.artifactRef !== input.artifactRef ||
             rollbackSource.artifactDigest !== input.artifactDigest ||
+            !rollbackSourcePin ||
             !sameNullable(rollbackSource.storeGeneration, input.storeGeneration) ||
             !sameNullable(rollbackSource.configDigest, input.configDigest) ||
             !sameNullable(rollbackSource.dbMigrationPoint, input.dbMigrationPoint)))
@@ -8952,7 +9930,9 @@ export class PrismaApiStore implements ApiStore {
           !sameNullable(existing.configDigest, input.configDigest) ||
           !sameNullable(existing.dbMigrationPoint, input.dbMigrationPoint) ||
           (rollbackOperation && existing.version !== input.rollbackFence!.expectedHeadVersion + 1) ||
-          existing.accessPolicyVersion !== deployment.accessPolicyVersion
+          existing.accessPolicyVersion !== deployment.accessPolicyVersion ||
+          !sameReleasePlanEntitlementsPin(existing.planEntitlements, releasePin) ||
+          existing.projectManifestDigest !== releaseProjectManifestDigest
         ) {
           throw new Error(SERVER_RELEASE_MANIFEST_CONFLICT);
         }
@@ -9035,6 +10015,8 @@ export class PrismaApiStore implements ApiStore {
           configDigest: input.configDigest ?? null,
           dbMigrationPoint: input.dbMigrationPoint ?? null,
           accessPolicyVersion: deployment.accessPolicyVersion,
+          planEntitlements: releasePin as unknown as Prisma.InputJsonValue,
+          projectManifestDigest: releaseProjectManifestDigest,
         },
       });
       await tx.adminAuditLog.create({
@@ -9232,6 +10214,15 @@ export class PrismaApiStore implements ApiStore {
     const card = await this.prisma.agentRoutingCard.findFirst({
       where: { active: true },
       orderBy: { version: 'desc' },
+      select: { version: true, data: true },
+    });
+
+    return card ? { version: card.version, data: card.data as unknown } : undefined;
+  }
+
+  async getAgentRoutingCard(version: number) {
+    const card = await this.prisma.agentRoutingCard.findUnique({
+      where: { version },
       select: { version: true, data: true },
     });
 
@@ -10874,10 +11865,13 @@ export class PrismaApiStore implements ApiStore {
   }
 
   async setUserSpendLimit(input: { organizationId: string; userId: string; limitCents: number }) {
-    const row = await this.prisma.userSpendLimit.upsert({
-      where: { organizationId_userId: { organizationId: input.organizationId, userId: input.userId } },
-      update: { limitCents: input.limitCents },
-      create: { organizationId: input.organizationId, userId: input.userId, limitCents: input.limitCents },
+    const row = await this.prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`ledger-user-spend:${input.organizationId}:${input.userId}`}))`;
+      return tx.userSpendLimit.upsert({
+        where: { organizationId_userId: { organizationId: input.organizationId, userId: input.userId } },
+        update: { limitCents: input.limitCents },
+        create: { organizationId: input.organizationId, userId: input.userId, limitCents: input.limitCents },
+      });
     });
     return {
       id: row.id,
@@ -10890,7 +11884,10 @@ export class PrismaApiStore implements ApiStore {
   }
 
   async clearUserSpendLimit(organizationId: string, userId: string) {
-    await this.prisma.userSpendLimit.deleteMany({ where: { organizationId, userId } });
+    await this.prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`ledger-user-spend:${organizationId}:${userId}`}))`;
+      await tx.userSpendLimit.deleteMany({ where: { organizationId, userId } });
+    });
   }
 
   async listUserSpendLimits(organizationId: string) {
@@ -10906,6 +11903,1942 @@ export class PrismaApiStore implements ApiStore {
       createdAt: row.createdAt.toISOString(),
       updatedAt: row.updatedAt.toISOString(),
     }));
+  }
+
+  async reserveCanonicalUserSpend(input: {
+    organizationId: string;
+    userId: string;
+    projectId: string;
+    idempotencyKey: string;
+    maxAmountCents: number;
+    periodStart?: string;
+    expiresInMs: number;
+    requestHash: string;
+    enforceUserSpendLimit: boolean;
+  }) {
+    if (!Number.isSafeInteger(input.maxAmountCents) || input.maxAmountCents < 1) {
+      throw Object.assign(new Error(), { code: 'LEDGER_RESERVATION_AMOUNT_INVALID' });
+    }
+    return this.prisma.$transaction(async (tx) => {
+      await assertAccountPurgeMutationAllowed(tx, {
+        userIds: [input.userId],
+        organizationIds: [input.organizationId],
+        projectIds: [input.projectId],
+      });
+      return new LedgerStore(this.prisma).reserveUsageInTransaction(tx, {
+        organizationId: input.organizationId,
+        userId: input.userId,
+        idempotencyKey: input.idempotencyKey,
+        operation: 'ai.chat',
+        currency: 'usd',
+        maxAmountMinor: BigInt(input.maxAmountCents),
+        expiresInMs: input.expiresInMs,
+        enforceUserSpendLimit: input.enforceUserSpendLimit,
+        userSpendPeriodStart: input.enforceUserSpendLimit ? input.periodStart : undefined,
+        requestHash: input.requestHash,
+        reviveReleasedReplay: true,
+      });
+    });
+  }
+
+  async claimCanonicalAiExecution(input: {
+    reservationId: string;
+    organizationId: string;
+    userId: string;
+    projectId: string;
+    requestId: string;
+    claimOwnerId: string;
+    claimLeaseMs: number;
+  }) {
+    if (
+      !input.projectId ||
+      !input.requestId ||
+      !input.claimOwnerId ||
+      !Number.isSafeInteger(input.claimLeaseMs) ||
+      input.claimLeaseMs < 15_000 ||
+      input.claimLeaseMs > 5 * 60_000
+    ) {
+      throw Object.assign(new Error(), { code: 'LEDGER_AI_START_INVALID' });
+    }
+    const requestHash = canonicalAiExecutionHash(input);
+
+    return this.prisma.$transaction(async (tx) => {
+      await assertAccountPurgeMutationAllowed(tx, {
+        userIds: [input.userId],
+        organizationIds: [input.organizationId],
+        projectIds: [input.projectId],
+      });
+      await tx.$queryRaw`SELECT "id" FROM "LedgerReservation" WHERE "id" = ${input.reservationId} FOR UPDATE`;
+      const reservation = await tx.ledgerReservation.findUnique({ where: { id: input.reservationId } });
+      if (
+        !reservation ||
+        reservation.organizationId !== input.organizationId ||
+        reservation.userId !== input.userId ||
+        reservation.operation !== 'ai.chat'
+      ) {
+        throw Object.assign(new Error(), { code: 'LEDGER_RESERVATION_SCOPE_MISMATCH' });
+      }
+      const metadata = recordObject(reservation.metadata) ?? {};
+      const existing = recordObject(metadata.canonicalAiExecution);
+      const platformIntent = recordObject(metadata.canonicalAiPlatformIntent);
+      const platformUsage = recordObject(metadata.canonicalAiPlatformUsage);
+      let platformReceipt: { state: 'exact' | 'recovered'; outcome?: 'hard' | 'easy' } | undefined;
+      const [clock] = await tx.$queryRaw<Array<{ now: Date }>>`SELECT clock_timestamp() AS "now"`;
+      if (!clock) {
+        throw Object.assign(new Error(), { code: 'DATABASE_TIME_UNAVAILABLE' });
+      }
+      if (existing) {
+        if (existing.version !== CANONICAL_AI_USAGE_VERSION || existing.requestHash !== requestHash) {
+          throw Object.assign(new Error(), { code: 'LEDGER_AI_START_CONFLICT', statusCode: 409 });
+        }
+        if (
+          typeof existing.claimedAt !== 'string' ||
+          typeof existing.leaseExpiresAt !== 'string' ||
+          typeof existing.executionToken !== 'string' ||
+          typeof existing.claimOwnerId !== 'string'
+        ) {
+          throw Object.assign(new Error(), { code: 'LEDGER_AI_START_CORRUPT' });
+        }
+        if (platformUsage) {
+          const validation = await validateCanonicalPlatformReceipt(tx, {
+            reservationId: reservation.id,
+            organizationId: reservation.organizationId,
+            userId: reservation.userId!,
+            execution: existing,
+            intent: platformIntent,
+            receipt: platformUsage,
+          });
+          if (!validation.valid) {
+            throw Object.assign(new Error(), { code: 'LEDGER_PLATFORM_USAGE_CORRUPT' });
+          }
+          platformReceipt = {
+            state: validation.recovered ? 'recovered' : 'exact',
+            ...(validation.outcome ? { outcome: validation.outcome } : {}),
+          };
+        }
+        const sameTransportAttempt = existing.claimOwnerId === input.claimOwnerId;
+        const leaseExpiresAtMs = Date.parse(existing.leaseExpiresAt);
+        const providerIrreversible =
+          existing.state === 'started' ||
+          existing.state === 'received' ||
+          existing.state === 'settled' ||
+          Boolean(platformIntent && !platformUsage) ||
+          Boolean(recordObject(metadata.canonicalAiUsageBatch));
+        if (sameTransportAttempt || providerIrreversible || leaseExpiresAtMs > clock.now.getTime()) {
+          return {
+            claimedAt: existing.claimedAt,
+            leaseExpiresAt: existing.leaseExpiresAt,
+            executionToken: existing.executionToken,
+            replayed: !sameTransportAttempt,
+            reservationStatus: reservation.status,
+            ...(platformReceipt ? { platformReceipt } : {}),
+          };
+        }
+        if (reservation.status !== 'ACTIVE') {
+          throw Object.assign(new Error(), { code: 'LEDGER_RESERVATION_NOT_ACTIVE' });
+        }
+        const executionToken = randomUUID();
+        const leaseExpiresAt = new Date(clock.now.getTime() + input.claimLeaseMs).toISOString();
+        await tx.ledgerReservation.update({
+          where: { id: reservation.id },
+          data: {
+            metadata: {
+              ...metadata,
+              canonicalAiExecution: {
+                ...existing,
+                state: 'claimed',
+                claimOwnerId: input.claimOwnerId,
+                executionToken,
+                claimedAt: clock.now.toISOString(),
+                leaseExpiresAt,
+              },
+            } as Prisma.InputJsonValue,
+          },
+        });
+        return {
+          claimedAt: clock.now.toISOString(),
+          leaseExpiresAt,
+          executionToken,
+          replayed: false,
+          reservationStatus: reservation.status,
+          ...(platformReceipt ? { platformReceipt } : {}),
+        };
+      }
+      if (platformUsage) {
+        throw Object.assign(new Error(), { code: 'LEDGER_PLATFORM_USAGE_CORRUPT' });
+      }
+      if (reservation.status !== 'ACTIVE') {
+        throw Object.assign(new Error(), { code: 'LEDGER_RESERVATION_NOT_ACTIVE' });
+      }
+      const executionToken = randomUUID();
+      const leaseExpiresAt = new Date(clock.now.getTime() + input.claimLeaseMs).toISOString();
+      await tx.ledgerReservation.update({
+        where: { id: reservation.id },
+        data: {
+          metadata: {
+            ...metadata,
+            canonicalAiExecution: {
+              version: CANONICAL_AI_USAGE_VERSION,
+              state: 'claimed',
+              requestHash,
+              requestId: input.requestId,
+              projectId: input.projectId,
+              claimOwnerId: input.claimOwnerId,
+              executionToken,
+              claimedAt: clock.now.toISOString(),
+              leaseExpiresAt,
+            },
+          } as Prisma.InputJsonValue,
+        },
+      });
+      return {
+        claimedAt: clock.now.toISOString(),
+        leaseExpiresAt,
+        executionToken,
+        replayed: false,
+        reservationStatus: reservation.status,
+      };
+    });
+  }
+
+  async markCanonicalUserSpendStarted(input: {
+    reservationId: string;
+    organizationId: string;
+    userId: string;
+    projectId: string;
+    requestId: string;
+    executionToken: string;
+    reconcileAfterMs: number;
+  }) {
+    if (
+      !input.projectId ||
+      !input.requestId ||
+      !Number.isSafeInteger(input.reconcileAfterMs) ||
+      input.reconcileAfterMs < 60_000 ||
+      input.reconcileAfterMs > 24 * 60 * 60_000
+    ) {
+      throw Object.assign(new Error(), { code: 'LEDGER_AI_START_INVALID' });
+    }
+    const requestHash = canonicalAiExecutionHash(input);
+    return this.prisma.$transaction(async (tx) => {
+      await assertAccountPurgeMutationAllowed(tx, {
+        userIds: [input.userId],
+        organizationIds: [input.organizationId],
+        projectIds: [input.projectId],
+      });
+      await tx.$queryRaw`SELECT "id" FROM "LedgerReservation" WHERE "id" = ${input.reservationId} FOR UPDATE`;
+      const reservation = await tx.ledgerReservation.findUnique({ where: { id: input.reservationId } });
+      if (
+        !reservation ||
+        reservation.organizationId !== input.organizationId ||
+        reservation.userId !== input.userId ||
+        reservation.operation !== 'ai.chat'
+      ) {
+        throw Object.assign(new Error(), { code: 'LEDGER_RESERVATION_SCOPE_MISMATCH' });
+      }
+      const metadata = recordObject(reservation.metadata) ?? {};
+      const execution = recordObject(metadata.canonicalAiExecution);
+      if (
+        !execution ||
+        execution.version !== CANONICAL_AI_USAGE_VERSION ||
+        execution.requestHash !== requestHash ||
+        execution.requestId !== input.requestId ||
+        execution.projectId !== input.projectId ||
+        execution.executionToken !== input.executionToken
+      ) {
+        throw Object.assign(new Error(), { code: 'LEDGER_AI_EXECUTION_CLAIM_REQUIRED' });
+      }
+      if (typeof execution.startedAt === 'string') {
+        return { startedAt: execution.startedAt, replayed: true };
+      }
+      if (execution.state !== 'claimed' || reservation.status !== 'ACTIVE') {
+        throw Object.assign(new Error(), { code: 'LEDGER_RESERVATION_NOT_ACTIVE' });
+      }
+      const [clock] = await tx.$queryRaw<Array<{ now: Date }>>`SELECT clock_timestamp() AS "now"`;
+      if (!clock) {
+        throw Object.assign(new Error(), { code: 'DATABASE_TIME_UNAVAILABLE' });
+      }
+      const settleAfter = new Date(clock.now.getTime() + input.reconcileAfterMs);
+      const protectedExpiry = new Date(settleAfter.getTime() + 15 * 60_000);
+      await tx.ledgerReservation.update({
+        where: { id: reservation.id },
+        data: {
+          expiresAt: reservation.expiresAt > protectedExpiry ? reservation.expiresAt : protectedExpiry,
+          metadata: {
+            ...metadata,
+            canonicalAiExecution: {
+              ...execution,
+              state: 'started',
+              startedAt: clock.now.toISOString(),
+              settleAfter: settleAfter.toISOString(),
+            },
+          } as Prisma.InputJsonValue,
+        },
+      });
+      return { startedAt: clock.now.toISOString(), replayed: false };
+    });
+  }
+
+  async markCanonicalPlatformAiUsageStarted(input: {
+    reservationId: string;
+    organizationId: string;
+    userId: string;
+    requestId: string;
+    executionToken: string;
+    projectId: string;
+    callId: string;
+    provider: string;
+    model: string;
+    maxInputTokens: number;
+    maxOutputTokens: number;
+    maxCostCents: number;
+    agentRouting: CanonicalAiClassifierRouting;
+    reconcileAfterMs: number;
+  }) {
+    if (
+      !input.callId ||
+      !input.provider ||
+      !input.model ||
+      !Number.isSafeInteger(input.maxInputTokens) ||
+      input.maxInputTokens < 0 ||
+      !Number.isSafeInteger(input.maxOutputTokens) ||
+      input.maxOutputTokens < 0 ||
+      !Number.isSafeInteger(input.maxCostCents) ||
+      input.maxCostCents < 0 ||
+      !canonicalAiClassifierRouting(input.agentRouting) ||
+      !Number.isSafeInteger(input.reconcileAfterMs) ||
+      input.reconcileAfterMs < 60_000 ||
+      input.reconcileAfterMs > 60 * 60_000
+    ) {
+      throw Object.assign(new Error(), { code: 'LEDGER_PLATFORM_USAGE_INVALID' });
+    }
+    const requestHash = canonicalAiPlatformIntentHash(input);
+    return this.prisma.$transaction(async (tx) => {
+      await assertAccountPurgeMutationAllowed(tx, {
+        userIds: [input.userId],
+        organizationIds: [input.organizationId],
+        projectIds: [input.projectId],
+      });
+      await tx.$queryRaw`SELECT "id" FROM "LedgerReservation" WHERE "id" = ${input.reservationId} FOR UPDATE`;
+      const reservation = await tx.ledgerReservation.findUnique({ where: { id: input.reservationId } });
+      if (
+        !reservation ||
+        reservation.organizationId !== input.organizationId ||
+        reservation.userId !== input.userId ||
+        reservation.operation !== 'ai.chat'
+      ) {
+        throw Object.assign(new Error(), { code: 'LEDGER_RESERVATION_SCOPE_MISMATCH' });
+      }
+      const metadata = recordObject(reservation.metadata) ?? {};
+      const execution = recordObject(metadata.canonicalAiExecution);
+      if (
+        !execution ||
+        execution.requestId !== input.requestId ||
+        execution.projectId !== input.projectId ||
+        execution.executionToken !== input.executionToken
+      ) {
+        throw Object.assign(new Error(), { code: 'LEDGER_AI_EXECUTION_CLAIM_REQUIRED' });
+      }
+      const existing = recordObject(metadata.canonicalAiPlatformIntent);
+      if (existing) {
+        if (existing.version !== CANONICAL_AI_USAGE_VERSION || existing.requestHash !== requestHash) {
+          throw Object.assign(new Error(), { code: 'LEDGER_PLATFORM_USAGE_CONFLICT', statusCode: 409 });
+        }
+        if (typeof existing.startedAt !== 'string') {
+          throw Object.assign(new Error(), { code: 'LEDGER_PLATFORM_USAGE_CORRUPT' });
+        }
+        return { startedAt: existing.startedAt, replayed: true };
+      }
+      if (reservation.status !== 'ACTIVE') {
+        throw Object.assign(new Error(), { code: 'LEDGER_RESERVATION_NOT_ACTIVE' });
+      }
+      const [clock] = await tx.$queryRaw<Array<{ now: Date }>>`SELECT clock_timestamp() AS "now"`;
+      if (!clock) {
+        throw Object.assign(new Error(), { code: 'DATABASE_TIME_UNAVAILABLE' });
+      }
+      await tx.ledgerReservation.update({
+        where: { id: reservation.id },
+        data: {
+          metadata: {
+            ...metadata,
+            canonicalAiPlatformIntent: {
+              version: CANONICAL_AI_USAGE_VERSION,
+              requestHash,
+              requestId: input.requestId,
+              executionToken: input.executionToken,
+              projectId: input.projectId,
+              callId: input.callId,
+              provider: input.provider,
+              model: input.model,
+              maxInputTokens: input.maxInputTokens,
+              maxOutputTokens: input.maxOutputTokens,
+              maxCostCents: input.maxCostCents,
+              agentRouting: {
+                mode: input.agentRouting.mode,
+                highEffort: input.agentRouting.highEffort,
+                turbo: input.agentRouting.turbo,
+                lineKey: 'classifier',
+                routingCardVersion: input.agentRouting.routingCardVersion,
+                source: input.agentRouting.source,
+                costInMillicentsPerM: input.agentRouting.costInMillicentsPerM,
+                costOutMillicentsPerM: input.agentRouting.costOutMillicentsPerM,
+              },
+              startedAt: clock.now.toISOString(),
+              settleAfter: new Date(clock.now.getTime() + input.reconcileAfterMs).toISOString(),
+            },
+          } as Prisma.InputJsonValue,
+        },
+      });
+      return { startedAt: clock.now.toISOString(), replayed: false };
+    });
+  }
+
+  async recordCanonicalPlatformAiUsage(input: {
+    reservationId: string;
+    organizationId: string;
+    userId: string;
+    requestId: string;
+    executionToken: string;
+    projectId: string;
+    call: CanonicalAiUsageBatchInput['calls'][number];
+    outcome: 'hard' | 'easy';
+    agentRouting: CanonicalAiClassifierRoutingSelection & { escalated: boolean };
+  }) {
+    if (
+      input.call.billedToUser !== false ||
+      (input.outcome !== 'hard' && input.outcome !== 'easy') ||
+      input.call.projectId !== input.projectId ||
+      !input.call.callId ||
+      !input.call.provider ||
+      !input.call.model ||
+      !Number.isSafeInteger(input.call.inputTokens) ||
+      input.call.inputTokens < 0 ||
+      !Number.isSafeInteger(input.call.outputTokens) ||
+      input.call.outputTokens < 0 ||
+      !Number.isSafeInteger(input.call.costCents) ||
+      input.call.costCents < 0 ||
+      input.call.costCents > 2_147_483 ||
+      !canonicalAiClassifierRoutingSelection(input.agentRouting) ||
+      input.agentRouting.escalated !== (input.outcome === 'hard')
+    ) {
+      throw Object.assign(new Error(), { code: 'LEDGER_PLATFORM_USAGE_INVALID' });
+    }
+    const requestHash = createHash('sha256')
+      .update(
+        JSON.stringify({
+          version: CANONICAL_AI_USAGE_VERSION,
+          reservationId: input.reservationId,
+          organizationId: input.organizationId,
+          userId: input.userId,
+          requestId: input.requestId,
+          executionToken: input.executionToken,
+          projectId: input.projectId,
+          call: input.call,
+          outcome: input.outcome,
+        }),
+      )
+      .digest('hex');
+    return this.prisma.$transaction(async (tx) => {
+      await assertAccountPurgeMutationAllowed(tx, {
+        userIds: [input.userId],
+        organizationIds: [input.organizationId],
+        projectIds: [input.projectId],
+      });
+      await tx.$queryRaw`SELECT "id" FROM "LedgerReservation" WHERE "id" = ${input.reservationId} FOR UPDATE`;
+      const reservation = await tx.ledgerReservation.findUnique({ where: { id: input.reservationId } });
+      if (
+        !reservation ||
+        reservation.organizationId !== input.organizationId ||
+        reservation.userId !== input.userId ||
+        reservation.operation !== 'ai.chat'
+      ) {
+        throw Object.assign(new Error(), { code: 'LEDGER_RESERVATION_SCOPE_MISMATCH' });
+      }
+      const metadata = recordObject(reservation.metadata) ?? {};
+      const execution = recordObject(metadata.canonicalAiExecution);
+      if (
+        !execution ||
+        execution.requestId !== input.requestId ||
+        execution.projectId !== input.projectId ||
+        execution.executionToken !== input.executionToken
+      ) {
+        throw Object.assign(new Error(), { code: 'LEDGER_AI_EXECUTION_CLAIM_REQUIRED' });
+      }
+      const intent = recordObject(metadata.canonicalAiPlatformIntent);
+      const intentRouting = canonicalAiClassifierRouting(intent?.agentRouting);
+      if (
+        !intent ||
+        intent.requestId !== input.requestId ||
+        intent.projectId !== input.projectId ||
+        intent.callId !== input.call.callId ||
+        intent.provider !== input.call.provider ||
+        intent.model !== input.call.model ||
+        intent.executionToken !== input.executionToken ||
+        !intentRouting ||
+        intentRouting.mode !== input.agentRouting.mode ||
+        intentRouting.highEffort !== input.agentRouting.highEffort ||
+        intentRouting.turbo !== input.agentRouting.turbo ||
+        intentRouting.routingCardVersion !== input.agentRouting.routingCardVersion ||
+        intentRouting.source !== input.agentRouting.source ||
+        typeof intent.maxInputTokens !== 'number' ||
+        !Number.isSafeInteger(intent.maxInputTokens) ||
+        input.call.inputTokens > Number(intent.maxInputTokens) ||
+        typeof intent.maxOutputTokens !== 'number' ||
+        !Number.isSafeInteger(intent.maxOutputTokens) ||
+        input.call.outputTokens > Number(intent.maxOutputTokens) ||
+        typeof intent.maxCostCents !== 'number' ||
+        !Number.isSafeInteger(intent.maxCostCents) ||
+        input.call.costCents > Number(intent.maxCostCents)
+      ) {
+        throw Object.assign(new Error(), { code: 'LEDGER_PLATFORM_USAGE_START_REQUIRED' });
+      }
+      const existing = recordObject(metadata.canonicalAiPlatformUsage);
+      if (existing) {
+        if (existing.recoveredAtCeiling !== true && existing.requestHash !== requestHash) {
+          throw Object.assign(new Error(), { code: 'LEDGER_PLATFORM_USAGE_CONFLICT', statusCode: 409 });
+        }
+        const validation = await validateCanonicalPlatformReceipt(tx, {
+          reservationId: reservation.id,
+          organizationId: reservation.organizationId,
+          userId: input.userId,
+          execution,
+          intent,
+          receipt: existing,
+        });
+        if (!validation.valid || typeof existing.costLedgerId !== 'string') {
+          throw Object.assign(new Error(), { code: 'LEDGER_PLATFORM_USAGE_CORRUPT' });
+        }
+        const usage = await tx.aiCostLedger.findUnique({ where: { id: existing.costLedgerId } });
+        if (!usage || usage.organizationId !== input.organizationId || usage.projectId !== input.projectId) {
+          throw Object.assign(new Error(), { code: 'LEDGER_PLATFORM_USAGE_CORRUPT' });
+        }
+        return { usage: mapAiCostLedger(usage), replayed: true };
+      }
+      if (reservation.status !== 'ACTIVE') {
+        throw Object.assign(new Error(), { code: 'LEDGER_RESERVATION_NOT_ACTIVE' });
+      }
+      const usage = await tx.aiCostLedger.create({
+        data: {
+          organizationId: input.organizationId,
+          projectId: input.projectId,
+          conversationId: input.call.conversationId,
+          messageId: input.call.messageId,
+          provider: input.call.provider,
+          model: input.call.model,
+          inputTokens: input.call.inputTokens,
+          outputTokens: input.call.outputTokens,
+          costCents: input.call.costCents,
+          reason: `${input.call.reason}.platform.${input.call.kind}.${input.call.callId}`.slice(0, 240),
+        },
+      });
+      const intentRequestHash = String(intent.requestHash);
+      const agentCallLogId = `canonical-classifier-${intentRequestHash}`;
+      const agentCostMillicents = canonicalAiClassifierCostMillicents(
+        intentRouting,
+        input.call.inputTokens,
+        input.call.outputTokens,
+      );
+      if (agentCostMillicents === undefined) {
+        throw Object.assign(new Error(), { code: 'LEDGER_PLATFORM_USAGE_INVALID' });
+      }
+      await tx.agentCallLog.create({
+        data: {
+          id: agentCallLogId,
+          userId: input.userId,
+          organizationId: input.organizationId,
+          projectId: input.projectId,
+          mode: intentRouting.mode,
+          highEffort: intentRouting.highEffort,
+          escalated: input.outcome === 'hard',
+          turbo: intentRouting.turbo,
+          lineKey: 'classifier',
+          provider: input.call.provider,
+          model: input.call.model,
+          tokensIn: input.call.inputTokens,
+          tokensOut: input.call.outputTokens,
+          costMillicents: agentCostMillicents,
+          creditCents: 0,
+          marginMillicents: -agentCostMillicents,
+          billedToUser: false,
+          routingCardVersion: intentRouting.routingCardVersion,
+          source: intentRouting.source,
+        },
+      });
+      const platformReceipt = {
+        version: CANONICAL_AI_USAGE_VERSION,
+        requestHash,
+        requestId: input.requestId,
+        executionToken: input.executionToken,
+        projectId: input.projectId,
+        callId: input.call.callId,
+        intentRequestHash,
+        provider: input.call.provider,
+        model: input.call.model,
+        inputTokens: input.call.inputTokens,
+        outputTokens: input.call.outputTokens,
+        costLedgerId: usage.id,
+        agentCallLogId,
+        agentCostMillicents,
+        costCents: input.call.costCents,
+        outcome: input.outcome,
+        recoveredAtCeiling: false,
+        identityHash: canonicalAiPlatformReceiptIdentityHash({
+          reservationId: reservation.id,
+          organizationId: reservation.organizationId,
+          userId: input.userId,
+          requestId: input.requestId,
+          executionToken: input.executionToken,
+          projectId: input.projectId,
+          callId: input.call.callId,
+          intentRequestHash,
+          requestHash,
+          provider: input.call.provider,
+          model: input.call.model,
+          inputTokens: input.call.inputTokens,
+          outputTokens: input.call.outputTokens,
+          costLedgerId: usage.id,
+          agentCallLogId,
+          agentCostMillicents,
+          costCents: input.call.costCents,
+          outcome: input.outcome,
+          recoveredAtCeiling: false,
+        }),
+      };
+      const platformContentFingerprint = await databaseJsonFingerprint(tx, platformReceipt);
+      await tx.ledgerReservation.update({
+        where: { id: reservation.id },
+        data: {
+          metadata: {
+            ...metadata,
+            canonicalAiPlatformUsage: platformReceipt,
+            canonicalAiReceiptIndex: {
+              ...(recordObject(metadata.canonicalAiReceiptIndex) ?? {}),
+              version: CANONICAL_AI_USAGE_VERSION,
+              platform: canonicalAiPlatformReceiptIndex(platformReceipt, platformContentFingerprint),
+            },
+          } as Prisma.InputJsonValue,
+        },
+      });
+      return { usage: mapAiCostLedger(usage), replayed: false };
+    });
+  }
+
+  async commitCanonicalUserSpendBatch(input: CanonicalAiUsageBatchInput) {
+    if (
+      !input.requestId ||
+      !input.executionToken ||
+      !input.projectId ||
+      input.calls.length < 1 ||
+      input.calls.length > 32 ||
+      new Set(input.calls.map((call) => call.callId)).size !== input.calls.length ||
+      input.calls.some(
+        (call) =>
+          call.projectId !== input.projectId ||
+          !call.callId ||
+          !call.provider ||
+          !call.model ||
+          !call.reason ||
+          !Number.isSafeInteger(call.inputTokens) ||
+          call.inputTokens < 0 ||
+          !Number.isSafeInteger(call.outputTokens) ||
+          call.outputTokens < 0 ||
+          !Number.isSafeInteger(call.costCents) ||
+          call.costCents < 0,
+      )
+    ) {
+      throw Object.assign(new Error(), { code: 'LEDGER_COMMIT_AMOUNT_INVALID' });
+    }
+    const totalCents = input.calls.reduce((sum, call) => sum + (call.billedToUser === false ? 0 : call.costCents), 0);
+    if (!Number.isSafeInteger(totalCents)) {
+      throw Object.assign(new Error(), { code: 'LEDGER_COMMIT_AMOUNT_INVALID' });
+    }
+    const requestHash = canonicalAiBatchHash(input);
+
+    const usages = await this.prisma.$transaction(async (tx) => {
+      await assertAccountPurgeMutationAllowed(tx, {
+        userIds: [input.userId],
+        organizationIds: [input.organizationId],
+        projectIds: [input.projectId],
+      });
+      await tx.$queryRaw`SELECT "id" FROM "LedgerReservation" WHERE "id" = ${input.reservationId} FOR UPDATE`;
+      const reservation = await tx.ledgerReservation.findUnique({ where: { id: input.reservationId } });
+      if (
+        !reservation ||
+        reservation.organizationId !== input.organizationId ||
+        reservation.userId !== input.userId ||
+        reservation.operation !== 'ai.chat'
+      ) {
+        throw Object.assign(new Error(), { code: 'LEDGER_RESERVATION_SCOPE_MISMATCH' });
+      }
+      const metadata = recordObject(reservation.metadata) ?? {};
+      const execution = recordObject(metadata.canonicalAiExecution);
+      if (
+        !execution ||
+        execution.version !== CANONICAL_AI_USAGE_VERSION ||
+        execution.requestId !== input.requestId ||
+        execution.projectId !== input.projectId ||
+        execution.executionToken !== input.executionToken ||
+        (execution.state !== 'started' && execution.state !== 'received') ||
+        typeof execution.startedAt !== 'string'
+      ) {
+        throw Object.assign(new Error(), { code: 'LEDGER_AI_START_REQUIRED' });
+      }
+      const receipt = recordObject(metadata.canonicalAiUsageBatch);
+      if (receipt) {
+        if (receipt.version !== CANONICAL_AI_USAGE_VERSION || receipt.requestHash !== requestHash) {
+          throw Object.assign(new Error(), { code: 'LEDGER_COMMIT_CONFLICT', statusCode: 409 });
+        }
+        const validation = await validateCanonicalBatchReceipt(tx, {
+          reservationId: reservation.id,
+          organizationId: reservation.organizationId,
+          userId: input.userId,
+          executionToken: input.executionToken,
+          requestId: input.requestId,
+          projectId: input.projectId,
+          receipt,
+        });
+        if (!validation.valid) {
+          throw Object.assign(new Error(), { code: 'LEDGER_USAGE_RECEIPT_CORRUPT' });
+        }
+        const ids = Array.isArray(receipt.costLedgerIds)
+          ? receipt.costLedgerIds.filter((id): id is string => typeof id === 'string')
+          : [];
+        const byId = new Map(validation.costs.map((row) => [row.id, row]));
+        const ordered = ids.map((id) => byId.get(id));
+        return ordered.map((row) => mapAiCostLedger(row!));
+      }
+
+      const recorded: Awaited<ReturnType<typeof tx.aiCostLedger.create>>[] = [];
+      for (const call of input.calls) {
+        recorded.push(
+          await tx.aiCostLedger.create({
+            data: {
+              organizationId: input.organizationId,
+              projectId: call.projectId,
+              conversationId: call.conversationId,
+              messageId: call.messageId,
+              provider: call.provider,
+              model: call.model,
+              inputTokens: call.inputTokens,
+              outputTokens: call.outputTokens,
+              costCents: call.costCents,
+              reason: `${call.reason}.${call.kind}.${call.callId}`.slice(0, 240),
+            },
+          }),
+        );
+      }
+      const usageEvents = await Promise.all([
+        tx.usageEvent.create({
+          data: {
+            organizationId: input.organizationId,
+            userId: input.userId,
+            type: 'ai.messages',
+            quantity: 1,
+            metadata: { canonicalReservationId: input.reservationId, requestHash },
+          },
+        }),
+        tx.usageEvent.create({
+          data: {
+            organizationId: input.organizationId,
+            userId: input.userId,
+            type: 'ai.inputTokens',
+            quantity: input.calls.reduce((sum, call) => sum + (call.billedToUser === false ? 0 : call.inputTokens), 0),
+            metadata: { canonicalReservationId: input.reservationId, requestHash },
+          },
+        }),
+        tx.usageEvent.create({
+          data: {
+            organizationId: input.organizationId,
+            userId: input.userId,
+            type: 'ai.outputTokens',
+            quantity: input.calls.reduce((sum, call) => sum + (call.billedToUser === false ? 0 : call.outputTokens), 0),
+            metadata: { canonicalReservationId: input.reservationId, requestHash },
+          },
+        }),
+      ]);
+      const receiptCalls = input.calls.map((call, index) => ({
+        callId: call.callId,
+        kind: call.kind,
+        billedToUser: call.billedToUser !== false,
+        projectId: call.projectId,
+        ...(call.conversationId ? { conversationId: call.conversationId } : {}),
+        ...(call.messageId ? { messageId: call.messageId } : {}),
+        provider: call.provider,
+        model: call.model,
+        inputTokens: call.inputTokens,
+        outputTokens: call.outputTokens,
+        costCents: call.costCents,
+        reason: call.reason,
+        costLedgerId: recorded[index]!.id,
+      }));
+      const costLedgerIds = recorded.map((row) => row.id);
+      const usageEventIds = usageEvents.map((row) => row.id);
+      const receiptBase = {
+        version: CANONICAL_AI_USAGE_VERSION,
+        reservationId: reservation.id,
+        organizationId: reservation.organizationId,
+        userId: input.userId,
+        requestHash,
+        requestId: input.requestId,
+        executionToken: input.executionToken,
+        projectId: input.projectId,
+        totalCents,
+        costLedgerIds,
+        usageEventIds,
+        calls: receiptCalls,
+      };
+      const batchReceipt = {
+        ...receiptBase,
+        receiptHash: canonicalAiBatchReceiptIdentityHash(receiptBase),
+      };
+      const batchContentFingerprint = await databaseJsonFingerprint(tx, batchReceipt);
+      await tx.ledgerReservation.update({
+        where: { id: reservation.id },
+        data: {
+          metadata: {
+            ...metadata,
+            canonicalAiExecution: { ...execution, state: 'received' },
+            canonicalAiUsageBatch: batchReceipt,
+            canonicalAiReceiptIndex: {
+              ...(recordObject(metadata.canonicalAiReceiptIndex) ?? {}),
+              version: CANONICAL_AI_USAGE_VERSION,
+              batch: canonicalAiBatchReceiptIndex(batchReceipt, batchContentFingerprint),
+            },
+          } as Prisma.InputJsonValue,
+        },
+      });
+      return recorded.map(mapAiCostLedger);
+    });
+
+    const ledger = new LedgerStore(this.prisma);
+    const result = await this.prisma.$transaction(async (tx) => {
+      await assertAccountPurgeMutationAllowed(tx, {
+        userIds: [input.userId],
+        organizationIds: [input.organizationId],
+        projectIds: [input.projectId],
+      });
+      return ledger.commitReservationInTransaction(tx, {
+        reservationId: input.reservationId,
+        actualAmountMinor: BigInt(totalCents),
+        refuseOverage: true,
+      });
+    });
+    return { committedCents: Number(result.committedMinor), replayed: result.replayed, usages };
+  }
+
+  async reconcileCanonicalUserSpend(options: { take?: number } = {}) {
+    const take = Math.max(1, Math.min(options.take ?? 100, 500));
+    const candidates = await this.prisma.$queryRaw<Array<{ id: string }>>(Prisma.sql`
+      WITH candidate_state AS (
+        SELECT r.*,
+          COALESCE(
+            jsonb_typeof(r."metadata"->'canonicalAiPlatformUsage') = 'object'
+            AND r."metadata"->'canonicalAiPlatformUsage'->>'version' = ${String(CANONICAL_AI_USAGE_VERSION)}
+            AND r."metadata"->'canonicalAiPlatformUsage'->>'requestId' =
+              r."metadata"->'canonicalAiExecution'->>'requestId'
+            AND r."metadata"->'canonicalAiPlatformUsage'->>'executionToken' =
+              r."metadata"->'canonicalAiPlatformIntent'->>'executionToken'
+            AND r."metadata"->'canonicalAiPlatformUsage'->>'projectId' =
+              r."metadata"->'canonicalAiExecution'->>'projectId'
+            AND r."metadata"->'canonicalAiPlatformUsage'->>'callId' =
+              r."metadata"->'canonicalAiPlatformIntent'->>'callId'
+            AND r."metadata"->'canonicalAiPlatformUsage'->>'intentRequestHash' =
+              r."metadata"->'canonicalAiPlatformIntent'->>'requestHash'
+            AND r."metadata"->'canonicalAiPlatformUsage'->>'provider' =
+              r."metadata"->'canonicalAiPlatformIntent'->>'provider'
+            AND r."metadata"->'canonicalAiPlatformUsage'->>'model' =
+              r."metadata"->'canonicalAiPlatformIntent'->>'model'
+            AND (r."metadata"->'canonicalAiPlatformUsage'->>'requestHash') ~ '^[a-f0-9]{64}$'
+            AND (r."metadata"->'canonicalAiPlatformUsage'->>'identityHash') ~ '^[a-f0-9]{64}$'
+            AND jsonb_typeof(r."metadata"->'canonicalAiReceiptIndex'->'platform') = 'object'
+            AND r."metadata"->'canonicalAiReceiptIndex'->>'version' = ${String(CANONICAL_AI_USAGE_VERSION)}
+            AND r."metadata"->'canonicalAiReceiptIndex'->'platform'->>'kind' = 'platform'
+            AND r."metadata"->'canonicalAiReceiptIndex'->'platform'->>'identityHash' =
+              r."metadata"->'canonicalAiPlatformUsage'->>'identityHash'
+            AND r."metadata"->'canonicalAiReceiptIndex'->'platform'->>'requestHash' =
+              r."metadata"->'canonicalAiPlatformUsage'->>'requestHash'
+            AND r."metadata"->'canonicalAiReceiptIndex'->'platform'->>'costLedgerId' =
+              r."metadata"->'canonicalAiPlatformUsage'->>'costLedgerId'
+            AND r."metadata"->'canonicalAiReceiptIndex'->'platform'->>'agentCallLogId' =
+              r."metadata"->'canonicalAiPlatformUsage'->>'agentCallLogId'
+            AND r."metadata"->'canonicalAiReceiptIndex'->'platform'->>'executionToken' =
+              r."metadata"->'canonicalAiPlatformUsage'->>'executionToken'
+            AND r."metadata"->'canonicalAiReceiptIndex'->'platform'->>'intentRequestHash' =
+              r."metadata"->'canonicalAiPlatformUsage'->>'intentRequestHash'
+            AND r."metadata"->'canonicalAiReceiptIndex'->'platform'->'inputTokens' =
+              r."metadata"->'canonicalAiPlatformUsage'->'inputTokens'
+            AND r."metadata"->'canonicalAiReceiptIndex'->'platform'->'outputTokens' =
+              r."metadata"->'canonicalAiPlatformUsage'->'outputTokens'
+            AND r."metadata"->'canonicalAiReceiptIndex'->'platform'->'costCents' =
+              r."metadata"->'canonicalAiPlatformUsage'->'costCents'
+            AND r."metadata"->'canonicalAiReceiptIndex'->'platform'->'agentCostMillicents' =
+              r."metadata"->'canonicalAiPlatformUsage'->'agentCostMillicents'
+            AND r."metadata"->'canonicalAiReceiptIndex'->'platform'->'recoveredAtCeiling' =
+              r."metadata"->'canonicalAiPlatformUsage'->'recoveredAtCeiling'
+            AND COALESCE(r."metadata"->'canonicalAiReceiptIndex'->'platform'->'outcome', 'null'::jsonb) =
+              COALESCE(r."metadata"->'canonicalAiPlatformUsage'->'outcome', 'null'::jsonb)
+            AND r."metadata"->'canonicalAiReceiptIndex'->'platform'->>'contentFingerprint' =
+              md5((r."metadata"->'canonicalAiPlatformUsage')::text)
+            AND jsonb_typeof(r."metadata"->'canonicalAiPlatformUsage'->'inputTokens') = 'number'
+            AND jsonb_typeof(r."metadata"->'canonicalAiPlatformUsage'->'outputTokens') = 'number'
+            AND jsonb_typeof(r."metadata"->'canonicalAiPlatformUsage'->'costCents') = 'number'
+            AND jsonb_typeof(r."metadata"->'canonicalAiPlatformUsage'->'agentCostMillicents') = 'number'
+            AND COALESCE(r."metadata"->'canonicalAiPlatformUsage'->>'costLedgerId', '') <> ''
+            AND COALESCE(r."metadata"->'canonicalAiPlatformUsage'->>'agentCallLogId', '') <> ''
+            AND (
+              (
+                r."metadata"->'canonicalAiPlatformUsage'->>'recoveredAtCeiling' = 'true'
+                AND NOT (r."metadata"->'canonicalAiPlatformUsage' ? 'outcome')
+              )
+              OR (
+                r."metadata"->'canonicalAiPlatformUsage'->>'recoveredAtCeiling' = 'false'
+                AND r."metadata"->'canonicalAiPlatformUsage'->>'outcome' IN ('hard', 'easy')
+              )
+            )
+            AND EXISTS (
+              SELECT 1
+              FROM "AiCostLedger" c
+              WHERE c."id" = r."metadata"->'canonicalAiPlatformUsage'->>'costLedgerId'
+                AND c."organizationId" = r."organizationId"
+                AND c."projectId" = r."metadata"->'canonicalAiExecution'->>'projectId'
+                AND c."provider" = r."metadata"->'canonicalAiPlatformUsage'->>'provider'
+                AND c."model" = r."metadata"->'canonicalAiPlatformUsage'->>'model'
+                AND c."conversationId" IS NULL
+                AND c."messageId" IS NULL
+                AND to_jsonb(c."inputTokens") = r."metadata"->'canonicalAiPlatformUsage'->'inputTokens'
+                AND to_jsonb(c."outputTokens") = r."metadata"->'canonicalAiPlatformUsage'->'outputTokens'
+                AND to_jsonb(c."costCents") = r."metadata"->'canonicalAiPlatformUsage'->'costCents'
+                AND c."reason" = CASE
+                  WHEN r."metadata"->'canonicalAiPlatformUsage'->>'recoveredAtCeiling' = 'true'
+                    THEN left(
+                      'chat.completion.operator.classifier.' ||
+                        (r."metadata"->'canonicalAiPlatformUsage'->>'callId') || '.crash-recovery-max',
+                      240
+                    )
+                  ELSE left(
+                    'chat.completion.operator.platform.classifier.' ||
+                      (r."metadata"->'canonicalAiPlatformUsage'->>'callId'),
+                    240
+                  )
+                END
+            )
+            AND EXISTS (
+              SELECT 1
+              FROM "AgentCallLog" a
+              WHERE a."id" = r."metadata"->'canonicalAiPlatformUsage'->>'agentCallLogId'
+                AND a."userId" = r."userId"
+                AND a."organizationId" = r."organizationId"
+                AND a."projectId" = r."metadata"->'canonicalAiExecution'->>'projectId'
+                AND a."mode" = r."metadata"->'canonicalAiPlatformIntent'->'agentRouting'->>'mode'
+                AND to_jsonb(a."highEffort") =
+                  r."metadata"->'canonicalAiPlatformIntent'->'agentRouting'->'highEffort'
+                AND to_jsonb(a."turbo") =
+                  r."metadata"->'canonicalAiPlatformIntent'->'agentRouting'->'turbo'
+                AND a."lineKey" = 'classifier'
+                AND a."provider" = r."metadata"->'canonicalAiPlatformUsage'->>'provider'
+                AND a."model" = r."metadata"->'canonicalAiPlatformUsage'->>'model'
+                AND to_jsonb(a."tokensIn") = r."metadata"->'canonicalAiPlatformUsage'->'inputTokens'
+                AND to_jsonb(a."tokensOut") = r."metadata"->'canonicalAiPlatformUsage'->'outputTokens'
+                AND a."costMillicents"::numeric =
+                  (r."metadata"->'canonicalAiPlatformUsage'->>'agentCostMillicents')::numeric
+                AND a."creditCents" = 0
+                AND a."marginMillicents"::numeric =
+                  -((r."metadata"->'canonicalAiPlatformUsage'->>'agentCostMillicents')::numeric)
+                AND a."billedToUser" = false
+                AND to_jsonb(a."routingCardVersion") =
+                  r."metadata"->'canonicalAiPlatformIntent'->'agentRouting'->'routingCardVersion'
+                AND a."source" = CASE
+                  WHEN r."metadata"->'canonicalAiPlatformUsage'->>'recoveredAtCeiling' = 'true'
+                    THEN (r."metadata"->'canonicalAiPlatformIntent'->'agentRouting'->>'source') ||
+                      '.crash-recovery-max'
+                  ELSE r."metadata"->'canonicalAiPlatformIntent'->'agentRouting'->>'source'
+                END
+                AND a."escalated" = CASE
+                  WHEN r."metadata"->'canonicalAiPlatformUsage'->>'recoveredAtCeiling' = 'true' THEN true
+                  ELSE r."metadata"->'canonicalAiPlatformUsage'->>'outcome' = 'hard'
+                END
+            ),
+            false
+          ) AS platform_receipt_structurally_valid,
+          COALESCE(
+            jsonb_typeof(r."metadata"->'canonicalAiUsageBatch') = 'object'
+            AND r."metadata"->'canonicalAiUsageBatch'->>'version' = ${String(CANONICAL_AI_USAGE_VERSION)}
+            AND r."metadata"->'canonicalAiUsageBatch'->>'reservationId' = r."id"
+            AND r."metadata"->'canonicalAiUsageBatch'->>'organizationId' = r."organizationId"
+            AND r."metadata"->'canonicalAiUsageBatch'->>'userId' = r."userId"
+            AND r."metadata"->'canonicalAiUsageBatch'->>'requestId' =
+              r."metadata"->'canonicalAiExecution'->>'requestId'
+            AND r."metadata"->'canonicalAiUsageBatch'->>'executionToken' =
+              r."metadata"->'canonicalAiExecution'->>'executionToken'
+            AND r."metadata"->'canonicalAiUsageBatch'->>'projectId' =
+              r."metadata"->'canonicalAiExecution'->>'projectId'
+            AND (r."metadata"->'canonicalAiUsageBatch'->>'requestHash') ~ '^[a-f0-9]{64}$'
+            AND (r."metadata"->'canonicalAiUsageBatch'->>'receiptHash') ~ '^[a-f0-9]{64}$'
+            AND jsonb_typeof(r."metadata"->'canonicalAiReceiptIndex'->'batch') = 'object'
+            AND r."metadata"->'canonicalAiReceiptIndex'->>'version' = ${String(CANONICAL_AI_USAGE_VERSION)}
+            AND r."metadata"->'canonicalAiReceiptIndex'->'batch'->>'kind' = 'batch'
+            AND r."metadata"->'canonicalAiReceiptIndex'->'batch'->>'receiptHash' =
+              r."metadata"->'canonicalAiUsageBatch'->>'receiptHash'
+            AND r."metadata"->'canonicalAiReceiptIndex'->'batch'->'costLedgerIds' =
+              r."metadata"->'canonicalAiUsageBatch'->'costLedgerIds'
+            AND r."metadata"->'canonicalAiReceiptIndex'->'batch'->'usageEventIds' =
+              r."metadata"->'canonicalAiUsageBatch'->'usageEventIds'
+            AND r."metadata"->'canonicalAiReceiptIndex'->'batch'->>'requestHash' =
+              r."metadata"->'canonicalAiUsageBatch'->>'requestHash'
+            AND r."metadata"->'canonicalAiReceiptIndex'->'batch'->'totalCents' =
+              r."metadata"->'canonicalAiUsageBatch'->'totalCents'
+            AND r."metadata"->'canonicalAiReceiptIndex'->'batch'->'calls' =
+              r."metadata"->'canonicalAiUsageBatch'->'calls'
+            AND r."metadata"->'canonicalAiReceiptIndex'->'batch'->>'contentFingerprint' =
+              md5((r."metadata"->'canonicalAiUsageBatch')::text)
+            AND jsonb_typeof(r."metadata"->'canonicalAiUsageBatch'->'totalCents') = 'number'
+            AND jsonb_typeof(r."metadata"->'canonicalAiUsageBatch'->'costLedgerIds') = 'array'
+            AND jsonb_array_length(
+              CASE
+                WHEN jsonb_typeof(r."metadata"->'canonicalAiUsageBatch'->'costLedgerIds') = 'array'
+                THEN r."metadata"->'canonicalAiUsageBatch'->'costLedgerIds'
+                ELSE '[]'::jsonb
+              END
+            ) > 0
+            AND jsonb_typeof(r."metadata"->'canonicalAiUsageBatch'->'usageEventIds') = 'array'
+            AND jsonb_array_length(
+              CASE
+                WHEN jsonb_typeof(r."metadata"->'canonicalAiUsageBatch'->'usageEventIds') = 'array'
+                THEN r."metadata"->'canonicalAiUsageBatch'->'usageEventIds'
+                ELSE '[]'::jsonb
+              END
+            ) = 3
+            AND jsonb_typeof(r."metadata"->'canonicalAiUsageBatch'->'calls') = 'array'
+            AND jsonb_array_length(
+              CASE
+                WHEN jsonb_typeof(r."metadata"->'canonicalAiUsageBatch'->'calls') = 'array'
+                THEN r."metadata"->'canonicalAiUsageBatch'->'calls'
+                ELSE '[]'::jsonb
+              END
+            ) = jsonb_array_length(
+              CASE
+                WHEN jsonb_typeof(r."metadata"->'canonicalAiUsageBatch'->'costLedgerIds') = 'array'
+                THEN r."metadata"->'canonicalAiUsageBatch'->'costLedgerIds'
+                ELSE '[]'::jsonb
+              END
+            )
+            AND (
+              SELECT count(DISTINCT value)
+              FROM jsonb_array_elements_text(
+                CASE
+                  WHEN jsonb_typeof(r."metadata"->'canonicalAiUsageBatch'->'costLedgerIds') = 'array'
+                  THEN r."metadata"->'canonicalAiUsageBatch'->'costLedgerIds'
+                  ELSE '[]'::jsonb
+                END
+              ) AS cost_id(value)
+            ) = jsonb_array_length(r."metadata"->'canonicalAiUsageBatch'->'costLedgerIds')
+            AND (
+              SELECT count(DISTINCT value)
+              FROM jsonb_array_elements_text(
+                CASE
+                  WHEN jsonb_typeof(r."metadata"->'canonicalAiUsageBatch'->'usageEventIds') = 'array'
+                  THEN r."metadata"->'canonicalAiUsageBatch'->'usageEventIds'
+                  ELSE '[]'::jsonb
+                END
+              ) AS event_id(value)
+            ) = 3
+            AND NOT EXISTS (
+              SELECT 1
+              FROM jsonb_array_elements(
+                CASE
+                  WHEN jsonb_typeof(r."metadata"->'canonicalAiUsageBatch'->'calls') = 'array'
+                  THEN r."metadata"->'canonicalAiUsageBatch'->'calls'
+                  ELSE '[]'::jsonb
+                END
+              ) AS receipt_call(call)
+              WHERE jsonb_typeof(call) <> 'object'
+                OR jsonb_typeof(call->'billedToUser') <> 'boolean'
+                OR jsonb_typeof(call->'inputTokens') <> 'number'
+                OR jsonb_typeof(call->'outputTokens') <> 'number'
+                OR jsonb_typeof(call->'costCents') <> 'number'
+                OR COALESCE(call->>'callId', '') = ''
+                OR COALESCE(call->>'kind', '') NOT IN
+                  ('planner', 'agent-lane', 'summary', 'context', 'main', 'classifier', 'crash-recovery')
+                OR call->>'projectId' <> r."metadata"->'canonicalAiExecution'->>'projectId'
+                OR COALESCE(call->>'provider', '') = ''
+                OR COALESCE(call->>'model', '') = ''
+                OR COALESCE(call->>'reason', '') = ''
+                OR COALESCE(call->>'costLedgerId', '') = ''
+                OR NOT EXISTS (
+                  SELECT 1
+                  FROM "AiCostLedger" c
+                  WHERE c."id" = call->>'costLedgerId'
+                    AND c."organizationId" = r."organizationId"
+                    AND c."projectId" = call->>'projectId'
+                    AND COALESCE(to_jsonb(c."conversationId"), 'null'::jsonb) =
+                      COALESCE(call->'conversationId', 'null'::jsonb)
+                    AND COALESCE(to_jsonb(c."messageId"), 'null'::jsonb) =
+                      COALESCE(call->'messageId', 'null'::jsonb)
+                    AND c."provider" = call->>'provider'
+                    AND c."model" = call->>'model'
+                    AND to_jsonb(c."inputTokens") = call->'inputTokens'
+                    AND to_jsonb(c."outputTokens") = call->'outputTokens'
+                    AND to_jsonb(c."costCents") = call->'costCents'
+                    AND c."reason" = left(
+                      (call->>'reason') || '.' || (call->>'kind') || '.' || (call->>'callId'),
+                      240
+                    )
+                )
+            )
+            AND (
+              SELECT count(*)
+              FROM "AiCostLedger" c
+              WHERE c."id" IN (
+                SELECT value
+                FROM jsonb_array_elements_text(
+                  r."metadata"->'canonicalAiUsageBatch'->'costLedgerIds'
+                ) AS cost_id(value)
+              )
+            ) = jsonb_array_length(r."metadata"->'canonicalAiUsageBatch'->'costLedgerIds')
+            AND NOT EXISTS (
+              SELECT 1
+              FROM jsonb_array_elements_text(
+                CASE
+                  WHEN jsonb_typeof(r."metadata"->'canonicalAiUsageBatch'->'usageEventIds') = 'array'
+                  THEN r."metadata"->'canonicalAiUsageBatch'->'usageEventIds'
+                  ELSE '[]'::jsonb
+                END
+              ) AS receipt_event(event_id)
+              WHERE NOT EXISTS (
+                SELECT 1
+                FROM "UsageEvent" u
+                WHERE u."id" = receipt_event.event_id
+                  AND u."organizationId" = r."organizationId"
+                  AND u."userId" = r."userId"
+                  AND u."type" IN ('ai.messages', 'ai.inputTokens', 'ai.outputTokens')
+                  AND u."quantity"::numeric = CASE u."type"
+                    WHEN 'ai.messages' THEN 1::numeric
+                    WHEN 'ai.inputTokens' THEN COALESCE((
+                      SELECT sum(
+                        CASE
+                          WHEN call->>'billedToUser' = 'true'
+                            AND jsonb_typeof(call->'inputTokens') = 'number'
+                            AND (call->>'inputTokens') ~ '^[0-9]+$'
+                          THEN (call->>'inputTokens')::numeric
+                          ELSE 0::numeric
+                        END
+                      )
+                      FROM jsonb_array_elements(r."metadata"->'canonicalAiUsageBatch'->'calls') AS c(call)
+                    ), 0::numeric)
+                    WHEN 'ai.outputTokens' THEN COALESCE((
+                      SELECT sum(
+                        CASE
+                          WHEN call->>'billedToUser' = 'true'
+                            AND jsonb_typeof(call->'outputTokens') = 'number'
+                            AND (call->>'outputTokens') ~ '^[0-9]+$'
+                          THEN (call->>'outputTokens')::numeric
+                          ELSE 0::numeric
+                        END
+                      )
+                      FROM jsonb_array_elements(r."metadata"->'canonicalAiUsageBatch'->'calls') AS c(call)
+                    ), 0::numeric)
+                  END
+                  AND u."metadata"->>'canonicalReservationId' = r."id"
+                  AND u."metadata"->>'requestHash' =
+                    r."metadata"->'canonicalAiUsageBatch'->>'requestHash'
+              )
+            )
+            AND (
+              SELECT count(DISTINCT u."type")
+              FROM "UsageEvent" u
+              WHERE u."id" IN (
+                SELECT value
+                FROM jsonb_array_elements_text(
+                  r."metadata"->'canonicalAiUsageBatch'->'usageEventIds'
+                ) AS event_id(value)
+              )
+            ) = 3,
+            false
+          ) AS batch_receipt_structurally_valid
+        FROM "LedgerReservation" r
+        WHERE r."operation" = 'ai.chat'
+      )
+      SELECT "id"
+      FROM candidate_state
+      WHERE NOT COALESCE(jsonb_typeof("metadata"->'canonicalAiManualRecovery') = 'object', false)
+        AND CASE
+          WHEN COALESCE(jsonb_typeof("metadata"->'canonicalAiReconcileFailure'->'nextRetryAt') = 'string', false)
+            AND ("metadata"->'canonicalAiReconcileFailure'->>'nextRetryAt') ~
+              '^[0-9]{4}-(0[1-9]|1[0-2])-([0-2][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]\\.[0-9]{3}Z$'
+          THEN "metadata"->'canonicalAiReconcileFailure'->>'nextRetryAt' <=
+            to_char(clock_timestamp() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
+          ELSE TRUE
+        END
+        AND (
+          (
+            "status" IN ('ACTIVE', 'EXPIRED')
+            AND (
+              COALESCE(jsonb_typeof("metadata"->'canonicalAiUsageBatch') = 'object', false)
+              OR (
+                COALESCE(jsonb_typeof("metadata"->'canonicalAiPlatformIntent') = 'object', false)
+                AND (
+                  (
+                    NOT COALESCE(jsonb_typeof("metadata"->'canonicalAiPlatformUsage') = 'object', false)
+                    AND CASE
+                      WHEN COALESCE(jsonb_typeof("metadata"->'canonicalAiPlatformIntent'->'settleAfter') = 'string', false)
+                        AND ("metadata"->'canonicalAiPlatformIntent'->>'settleAfter') ~
+                          '^[0-9]{4}-(0[1-9]|1[0-2])-([0-2][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]\\.[0-9]{3}Z$'
+                      THEN "metadata"->'canonicalAiPlatformIntent'->>'settleAfter' <=
+                        to_char(clock_timestamp() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
+                      ELSE TRUE
+                    END
+                  )
+                  OR NOT platform_receipt_structurally_valid
+                )
+              )
+              OR (
+                COALESCE("metadata"->'canonicalAiExecution'->>'state' IN ('started', 'received'), false)
+                AND CASE
+                  WHEN COALESCE(jsonb_typeof("metadata"->'canonicalAiExecution'->'settleAfter') = 'string', false)
+                    AND ("metadata"->'canonicalAiExecution'->>'settleAfter') ~
+                      '^[0-9]{4}-(0[1-9]|1[0-2])-([0-2][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]\\.[0-9]{3}Z$'
+                  THEN "metadata"->'canonicalAiExecution'->>'settleAfter' <=
+                    to_char(clock_timestamp() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
+                  ELSE TRUE
+                END
+              )
+            )
+          )
+          OR (
+            "status" = 'COMMITTED'
+            AND (
+              (
+                COALESCE(jsonb_typeof("metadata"->'canonicalAiPlatformIntent') = 'object', false)
+                AND (
+                  (
+                    NOT COALESCE(jsonb_typeof("metadata"->'canonicalAiPlatformUsage') = 'object', false)
+                    AND CASE
+                      WHEN COALESCE(jsonb_typeof("metadata"->'canonicalAiPlatformIntent'->'settleAfter') = 'string', false)
+                        AND ("metadata"->'canonicalAiPlatformIntent'->>'settleAfter') ~
+                          '^[0-9]{4}-(0[1-9]|1[0-2])-([0-2][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]\\.[0-9]{3}Z$'
+                      THEN "metadata"->'canonicalAiPlatformIntent'->>'settleAfter' <=
+                        to_char(clock_timestamp() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
+                      ELSE TRUE
+                    END
+                  )
+                  OR NOT platform_receipt_structurally_valid
+                )
+              )
+              OR (
+                COALESCE(jsonb_typeof("metadata"->'canonicalAiUsageBatch') = 'object', false)
+                AND NOT batch_receipt_structurally_valid
+              )
+            )
+          )
+        )
+      ORDER BY "updatedAt" ASC, "id" ASC
+      LIMIT ${take}
+    `);
+    const databaseNowMs = Date.parse((await this.getDatabaseClock()).now);
+    let settled = 0;
+    let recoveredAtCeiling = 0;
+    let recoveredPlatformAtCeiling = 0;
+    let manualRecovery = 0;
+    let retryableFailures = 0;
+    const reservationIds: string[] = [];
+
+    for (const candidate of candidates) {
+      try {
+        const result = await this.prisma.$transaction(async (tx) => {
+          const scope = await tx.ledgerReservation.findUnique({
+            where: { id: candidate.id },
+            select: { organizationId: true, userId: true, operation: true, metadata: true },
+          });
+          if (!scope || scope.operation !== 'ai.chat') {
+            return 'skip' as const;
+          }
+          const scopeExecution = recordObject((recordObject(scope.metadata) ?? {}).canonicalAiExecution);
+          const scopeProjectId = typeof scopeExecution?.projectId === 'string' ? scopeExecution.projectId : undefined;
+          await assertAccountPurgeMutationAllowed(tx, {
+            userIds: [scope.userId ?? undefined],
+            organizationIds: [scope.organizationId],
+            projectIds: [scopeProjectId],
+          });
+          const ledger = new LedgerStore(this.prisma);
+          await ledger.lockReservationBalanceInTransaction(tx, candidate.id);
+          await tx.$queryRaw`SELECT "id" FROM "LedgerReservation" WHERE "id" = ${candidate.id} FOR UPDATE`;
+          const reservation = await tx.ledgerReservation.findUnique({ where: { id: candidate.id } });
+          if (!reservation || reservation.operation !== 'ai.chat') {
+            return 'skip' as const;
+          }
+          const metadata = recordObject(reservation.metadata) ?? {};
+          const execution = recordObject(metadata.canonicalAiExecution);
+          if (
+            reservation.organizationId !== scope.organizationId ||
+            reservation.userId !== scope.userId ||
+            (typeof execution?.projectId === 'string' ? execution.projectId : undefined) !== scopeProjectId
+          ) {
+            throw Object.assign(new Error(), { code: 'CANONICAL_AI_RECONCILE_SCOPE_CHANGED' });
+          }
+          const metadataWithoutRetryFailure = () => {
+            const clean = { ...metadata };
+            delete clean.canonicalAiReconcileFailure;
+            return clean;
+          };
+          const quarantine = async (reason: string) => {
+            const [clock] = await tx.$queryRaw<Array<{ now: Date }>>`SELECT clock_timestamp() AS "now"`;
+
+            if (!clock) {
+              throw Object.assign(new Error(), { code: 'DATABASE_TIME_UNAVAILABLE' });
+            }
+
+            await tx.ledgerReservation.update({
+              where: { id: reservation.id },
+              data: {
+                metadata: {
+                  ...metadata,
+                  canonicalAiManualRecovery: {
+                    version: CANONICAL_AI_USAGE_VERSION,
+                    reason,
+                    quarantinedAt: clock.now.toISOString(),
+                  },
+                } as Prisma.InputJsonValue,
+              },
+            });
+
+            return 'manual' as const;
+          };
+          const retryFailure = recordObject(metadata.canonicalAiReconcileFailure);
+
+          if (retryFailure) {
+            const retryAtRaw = typeof retryFailure.nextRetryAt === 'string' ? retryFailure.nextRetryAt : '';
+            const retryAtMs = Date.parse(retryAtRaw);
+
+            if (!Number.isFinite(retryAtMs) || new Date(retryAtMs).toISOString() !== retryAtRaw) {
+              return quarantine('CANONICAL_AI_RETRY_DEADLINE_CORRUPT');
+            }
+            if (retryAtMs > databaseNowMs) {
+              return 'skip' as const;
+            }
+          }
+          const existingBatch = recordObject(metadata.canonicalAiUsageBatch);
+          if (
+            !execution ||
+            execution.version !== CANONICAL_AI_USAGE_VERSION ||
+            execution.requestHash !==
+              canonicalAiExecutionHash({
+                reservationId: reservation.id,
+                organizationId: reservation.organizationId,
+                userId: reservation.userId ?? '',
+                requestId: typeof execution.requestId === 'string' ? execution.requestId : '',
+                projectId: typeof execution.projectId === 'string' ? execution.projectId : '',
+              }) ||
+            typeof execution.requestId !== 'string' ||
+            typeof execution.projectId !== 'string' ||
+            typeof execution.executionToken !== 'string' ||
+            execution.executionToken.length === 0 ||
+            !reservation.userId
+          ) {
+            return quarantine('CANONICAL_AI_EXECUTION_CORRUPT');
+          }
+          const platformIntent = recordObject(metadata.canonicalAiPlatformIntent);
+          const platformReceipt = recordObject(metadata.canonicalAiPlatformUsage);
+          if (platformReceipt) {
+            const validation = await validateCanonicalPlatformReceipt(tx, {
+              reservationId: reservation.id,
+              organizationId: reservation.organizationId,
+              userId: reservation.userId,
+              execution,
+              intent: platformIntent,
+              receipt: platformReceipt,
+            });
+            if (!validation.valid) {
+              return quarantine('CANONICAL_AI_PLATFORM_RECEIPT_CORRUPT');
+            }
+          }
+          if (platformIntent && !platformReceipt) {
+            const platformSettleAfterRaw =
+              typeof platformIntent.settleAfter === 'string' ? platformIntent.settleAfter : '';
+            const platformSettleAfterMs = Date.parse(platformSettleAfterRaw);
+            if (
+              !Number.isFinite(platformSettleAfterMs) ||
+              new Date(platformSettleAfterMs).toISOString() !== platformSettleAfterRaw
+            ) {
+              return quarantine('CANONICAL_AI_PLATFORM_SETTLE_AFTER_CORRUPT');
+            }
+            if (platformSettleAfterMs > databaseNowMs) {
+              return 'skip' as const;
+            }
+            const callId = typeof platformIntent.callId === 'string' ? platformIntent.callId : undefined;
+            const provider = typeof platformIntent.provider === 'string' ? platformIntent.provider : undefined;
+            const model = typeof platformIntent.model === 'string' ? platformIntent.model : undefined;
+            const maxInputTokens = platformIntent.maxInputTokens;
+            const maxOutputTokens = platformIntent.maxOutputTokens;
+            const maxCostCents = platformIntent.maxCostCents;
+            const agentRouting = canonicalAiClassifierRouting(platformIntent.agentRouting);
+            if (
+              platformIntent.version !== CANONICAL_AI_USAGE_VERSION ||
+              platformIntent.requestId !== execution.requestId ||
+              platformIntent.projectId !== execution.projectId ||
+              platformIntent.executionToken !== execution.executionToken ||
+              !callId ||
+              !provider ||
+              !model ||
+              typeof maxInputTokens !== 'number' ||
+              !Number.isSafeInteger(maxInputTokens) ||
+              Number(maxInputTokens) < 0 ||
+              typeof maxOutputTokens !== 'number' ||
+              !Number.isSafeInteger(maxOutputTokens) ||
+              Number(maxOutputTokens) < 0 ||
+              typeof maxCostCents !== 'number' ||
+              !Number.isSafeInteger(maxCostCents) ||
+              Number(maxCostCents) < 0 ||
+              !agentRouting ||
+              platformIntent.requestHash !==
+                canonicalAiPlatformIntentHash({
+                  reservationId: reservation.id,
+                  organizationId: reservation.organizationId,
+                  userId: reservation.userId,
+                  requestId: execution.requestId,
+                  executionToken: execution.executionToken,
+                  projectId: execution.projectId,
+                  callId,
+                  provider,
+                  model,
+                  maxInputTokens: Number(maxInputTokens),
+                  maxOutputTokens: Number(maxOutputTokens),
+                  maxCostCents: Number(maxCostCents),
+                  agentRouting,
+                })
+            ) {
+              return quarantine('CANONICAL_AI_PLATFORM_INTENT_CORRUPT');
+            }
+            const cost = await tx.aiCostLedger.create({
+              data: {
+                organizationId: reservation.organizationId,
+                projectId: execution.projectId,
+                provider,
+                model,
+                inputTokens: Number(maxInputTokens),
+                outputTokens: Number(maxOutputTokens),
+                costCents: Number(maxCostCents),
+                reason: `chat.completion.operator.classifier.${callId}.crash-recovery-max`.slice(0, 240),
+              },
+            });
+            const [platformClock] = await tx.$queryRaw<Array<{ now: Date }>>`SELECT clock_timestamp() AS "now"`;
+            if (!platformClock) {
+              throw Object.assign(new Error(), { code: 'DATABASE_TIME_UNAVAILABLE' });
+            }
+            const recoveredRequestHash = String(platformIntent.requestHash);
+            const agentCallLogId = `canonical-classifier-${recoveredRequestHash}`;
+            const agentCostMillicents = canonicalAiClassifierCostMillicents(
+              agentRouting,
+              Number(maxInputTokens),
+              Number(maxOutputTokens),
+            );
+            if (agentCostMillicents === undefined) {
+              return quarantine('CANONICAL_AI_PLATFORM_ROUTING_COST_CORRUPT');
+            }
+            await tx.agentCallLog.create({
+              data: {
+                id: agentCallLogId,
+                userId: reservation.userId,
+                organizationId: reservation.organizationId,
+                projectId: execution.projectId,
+                mode: agentRouting.mode,
+                highEffort: agentRouting.highEffort,
+                escalated: true,
+                turbo: agentRouting.turbo,
+                lineKey: 'classifier',
+                provider,
+                model,
+                tokensIn: Number(maxInputTokens),
+                tokensOut: Number(maxOutputTokens),
+                costMillicents: agentCostMillicents,
+                creditCents: 0,
+                marginMillicents: -agentCostMillicents,
+                billedToUser: false,
+                routingCardVersion: agentRouting.routingCardVersion,
+                source: `${agentRouting.source}.crash-recovery-max`,
+              },
+            });
+            const recoveredPlatformReceipt = {
+              version: CANONICAL_AI_USAGE_VERSION,
+              requestHash: recoveredRequestHash,
+              requestId: execution.requestId,
+              executionToken: execution.executionToken,
+              projectId: execution.projectId,
+              callId,
+              intentRequestHash: recoveredRequestHash,
+              provider,
+              model,
+              inputTokens: Number(maxInputTokens),
+              outputTokens: Number(maxOutputTokens),
+              costLedgerId: cost.id,
+              agentCallLogId,
+              agentCostMillicents,
+              costCents: Number(maxCostCents),
+              recoveredAtCeiling: true,
+              recoveredAt: platformClock.now.toISOString(),
+              identityHash: canonicalAiPlatformReceiptIdentityHash({
+                reservationId: reservation.id,
+                organizationId: reservation.organizationId,
+                userId: reservation.userId,
+                requestId: execution.requestId,
+                executionToken: execution.executionToken,
+                projectId: execution.projectId,
+                callId,
+                intentRequestHash: recoveredRequestHash,
+                requestHash: recoveredRequestHash,
+                provider,
+                model,
+                inputTokens: Number(maxInputTokens),
+                outputTokens: Number(maxOutputTokens),
+                costLedgerId: cost.id,
+                agentCallLogId,
+                agentCostMillicents,
+                costCents: Number(maxCostCents),
+                recoveredAtCeiling: true,
+              }),
+            };
+            const platformContentFingerprint = await databaseJsonFingerprint(tx, recoveredPlatformReceipt);
+            await tx.ledgerReservation.update({
+              where: { id: reservation.id },
+              data: {
+                metadata: {
+                  ...metadataWithoutRetryFailure(),
+                  canonicalAiPlatformUsage: recoveredPlatformReceipt,
+                  canonicalAiReceiptIndex: {
+                    ...(recordObject(metadata.canonicalAiReceiptIndex) ?? {}),
+                    version: CANONICAL_AI_USAGE_VERSION,
+                    platform: canonicalAiPlatformReceiptIndex(recoveredPlatformReceipt, platformContentFingerprint),
+                  },
+                } as Prisma.InputJsonValue,
+              },
+            });
+            return 'platform-recovered' as const;
+          }
+          if (existingBatch) {
+            const validation = await validateCanonicalBatchReceipt(tx, {
+              reservationId: reservation.id,
+              organizationId: reservation.organizationId,
+              userId: reservation.userId,
+              executionToken: execution.executionToken,
+              requestId: execution.requestId,
+              projectId: execution.projectId,
+              receipt: existingBatch,
+            });
+            if (!validation.valid) {
+              return quarantine('CANONICAL_AI_USAGE_RECEIPT_CORRUPT');
+            }
+          }
+          if (reservation.status === 'COMMITTED') {
+            // Rolling deployments can encounter exact receipts written before
+            // the lightweight receipt index existed. Validate the durable
+            // receipt and every referenced row first, then backfill the index
+            // atomically so healthy old rows cannot occupy every future LIMIT
+            // window. Invalid receipts are quarantined above instead.
+            const receiptIndex: Record<string, unknown> = {
+              ...(recordObject(metadata.canonicalAiReceiptIndex) ?? {}),
+              version: CANONICAL_AI_USAGE_VERSION,
+            };
+            if (platformReceipt) {
+              receiptIndex.platform = canonicalAiPlatformReceiptIndex(
+                platformReceipt,
+                await databaseJsonFingerprint(tx, platformReceipt),
+              );
+            }
+            if (existingBatch) {
+              receiptIndex.batch = canonicalAiBatchReceiptIndex(
+                existingBatch,
+                await databaseJsonFingerprint(tx, existingBatch),
+              );
+            }
+            await tx.ledgerReservation.update({
+              where: { id: reservation.id },
+              data: {
+                metadata: {
+                  ...metadataWithoutRetryFailure(),
+                  canonicalAiReceiptIndex: receiptIndex,
+                } as Prisma.InputJsonValue,
+              },
+            });
+            return 'skip' as const;
+          }
+          if (execution.state === 'claimed') {
+            return 'skip' as const;
+          }
+          const settleAfterRaw = typeof execution.settleAfter === 'string' ? execution.settleAfter : '';
+          const settleAfterMs = Date.parse(settleAfterRaw);
+          if (!existingBatch) {
+            if (!Number.isFinite(settleAfterMs) || new Date(settleAfterMs).toISOString() !== settleAfterRaw) {
+              return quarantine('CANONICAL_AI_SETTLE_AFTER_CORRUPT');
+            }
+            if (settleAfterMs > databaseNowMs) {
+              return 'skip' as const;
+            }
+          }
+          if (reservation.status !== 'ACTIVE' && reservation.status !== 'EXPIRED') {
+            return quarantine('CANONICAL_AI_RESERVATION_STATUS_INVALID');
+          }
+
+          let totalCents: number;
+          let batch = existingBatch;
+          let recovered = false;
+          if (batch) {
+            totalCents = typeof batch.totalCents === 'number' ? batch.totalCents : Number.NaN;
+          } else {
+            totalCents = Number(reservation.maxAmountMinor);
+            if (!Number.isSafeInteger(totalCents) || totalCents < 0) {
+              return quarantine('CANONICAL_AI_RESERVATION_AMOUNT_CORRUPT');
+            }
+            const recoveryCall: CanonicalAiUsageInput = {
+              callId: 'crash-recovery',
+              kind: 'crash-recovery',
+              billedToUser: true,
+              projectId: execution.projectId,
+              provider: 'unknown',
+              model: 'crash-recovery',
+              inputTokens: 0,
+              outputTokens: 0,
+              costCents: totalCents,
+              reason: 'chat.completion',
+            };
+            const requestHash = canonicalAiBatchHash({
+              reservationId: reservation.id,
+              organizationId: reservation.organizationId,
+              userId: reservation.userId,
+              requestId: execution.requestId,
+              executionToken: execution.executionToken,
+              projectId: execution.projectId,
+              calls: [recoveryCall],
+            });
+            const cost = await tx.aiCostLedger.create({
+              data: {
+                organizationId: reservation.organizationId,
+                projectId: execution.projectId,
+                provider: 'unknown',
+                model: 'crash-recovery',
+                inputTokens: 0,
+                outputTokens: 0,
+                costCents: totalCents,
+                reason: `${recoveryCall.reason}.${recoveryCall.kind}.${recoveryCall.callId}`,
+              },
+            });
+            const usageEvents = await Promise.all(
+              [
+                { type: 'ai.messages', quantity: 1 },
+                { type: 'ai.inputTokens', quantity: 0 },
+                { type: 'ai.outputTokens', quantity: 0 },
+              ].map(({ type, quantity }) =>
+                tx.usageEvent.create({
+                  data: {
+                    organizationId: reservation.organizationId,
+                    userId: reservation.userId,
+                    type,
+                    quantity,
+                    metadata: { canonicalReservationId: reservation.id, requestHash, recoveredAtCeiling: true },
+                  },
+                }),
+              ),
+            );
+            const recoveryReceiptBase = {
+              version: CANONICAL_AI_USAGE_VERSION,
+              reservationId: reservation.id,
+              organizationId: reservation.organizationId,
+              userId: reservation.userId,
+              requestHash,
+              requestId: execution.requestId,
+              executionToken: execution.executionToken,
+              projectId: execution.projectId,
+              totalCents,
+              costLedgerIds: [cost.id],
+              usageEventIds: usageEvents.map((event) => event.id),
+              calls: [
+                {
+                  ...recoveryCall,
+                  costLedgerId: cost.id,
+                },
+              ],
+            };
+            batch = {
+              ...recoveryReceiptBase,
+              recoveredAtCeiling: true,
+              receiptHash: canonicalAiBatchReceiptIdentityHash(recoveryReceiptBase),
+            };
+            recovered = true;
+          }
+
+          const [clock] = await tx.$queryRaw<Array<{ now: Date }>>`SELECT clock_timestamp() AS "now"`;
+          if (!clock) {
+            throw Object.assign(new Error(), { code: 'DATABASE_TIME_UNAVAILABLE' });
+          }
+          if (reservation.status === 'EXPIRED' || reservation.expiresAt <= clock.now) {
+            await tx.ledgerReservation.update({
+              where: { id: reservation.id },
+              data: { status: 'ACTIVE', expiresAt: new Date(clock.now.getTime() + 15 * 60_000) },
+            });
+          }
+          await ledger.commitReservationInTransaction(tx, {
+            reservationId: reservation.id,
+            actualAmountMinor: BigInt(totalCents),
+            refuseOverage: true,
+          });
+          await tx.ledgerReservation.update({
+            where: { id: reservation.id },
+            data: {
+              metadata: {
+                ...metadataWithoutRetryFailure(),
+                canonicalAiExecution: { ...execution, state: 'settled', settledAt: clock.now.toISOString() },
+                canonicalAiUsageBatch: batch,
+                ...(batch
+                  ? {
+                      canonicalAiReceiptIndex: {
+                        ...(recordObject(metadata.canonicalAiReceiptIndex) ?? {}),
+                        version: CANONICAL_AI_USAGE_VERSION,
+                        batch: canonicalAiBatchReceiptIndex(batch, await databaseJsonFingerprint(tx, batch)),
+                      },
+                    }
+                  : {}),
+              } as Prisma.InputJsonValue,
+            },
+          });
+          return recovered ? ('recovered' as const) : ('settled' as const);
+        });
+
+        if (result === 'settled' || result === 'recovered') {
+          settled += 1;
+          reservationIds.push(candidate.id);
+          if (result === 'recovered') {
+            recoveredAtCeiling += 1;
+          }
+        } else if (result === 'platform-recovered') {
+          recoveredPlatformAtCeiling += 1;
+          reservationIds.push(candidate.id);
+        } else if (result === 'manual') {
+          manualRecovery += 1;
+        }
+      } catch (error) {
+        retryableFailures += 1;
+        const reason =
+          typeof error === 'object' && error !== null && 'code' in error
+            ? String((error as { code: unknown }).code).slice(0, 120)
+            : 'CANONICAL_AI_RECONCILE_EXCEPTION';
+
+        await this.prisma
+          .$transaction(async (tx) => {
+            const scope = await tx.ledgerReservation.findUnique({
+              where: { id: candidate.id },
+              select: { organizationId: true, userId: true, operation: true, metadata: true },
+            });
+            if (!scope || scope.operation !== 'ai.chat') {
+              return;
+            }
+            const scopeExecution = recordObject((recordObject(scope.metadata) ?? {}).canonicalAiExecution);
+            await assertAccountPurgeMutationAllowed(tx, {
+              userIds: [scope.userId ?? undefined],
+              organizationIds: [scope.organizationId],
+              projectIds: [typeof scopeExecution?.projectId === 'string' ? scopeExecution.projectId : undefined],
+            });
+            await tx.$queryRaw`SELECT "id" FROM "LedgerReservation" WHERE "id" = ${candidate.id} FOR UPDATE`;
+            const reservation = await tx.ledgerReservation.findUnique({ where: { id: candidate.id } });
+
+            if (!reservation || reservation.operation !== 'ai.chat') {
+              return;
+            }
+
+            const metadata = recordObject(reservation.metadata) ?? {};
+
+            if (recordObject(metadata.canonicalAiManualRecovery)) {
+              return;
+            }
+
+            const [clock] = await tx.$queryRaw<Array<{ now: Date }>>`SELECT clock_timestamp() AS "now"`;
+
+            if (!clock) {
+              throw Object.assign(new Error(), { code: 'DATABASE_TIME_UNAVAILABLE' });
+            }
+
+            const previousFailure = recordObject(metadata.canonicalAiReconcileFailure);
+            const attempts =
+              typeof previousFailure?.attempts === 'number' &&
+              Number.isSafeInteger(previousFailure.attempts) &&
+              previousFailure.attempts >= 0
+                ? Math.min(previousFailure.attempts + 1, 16)
+                : 1;
+            const retryDelayMs = Math.min(5 * 60_000, 5_000 * 2 ** Math.min(attempts - 1, 6));
+            await tx.ledgerReservation.update({
+              where: { id: reservation.id },
+              data: {
+                metadata: {
+                  ...metadata,
+                  canonicalAiReconcileFailure: {
+                    version: CANONICAL_AI_USAGE_VERSION,
+                    attempts,
+                    reason,
+                    lastAttemptAt: clock.now.toISOString(),
+                    nextRetryAt: new Date(clock.now.getTime() + retryDelayMs).toISOString(),
+                  },
+                } as Prisma.InputJsonValue,
+              },
+            });
+          })
+          .catch(() => undefined);
+      }
+    }
+
+    return {
+      scanned: candidates.length,
+      settled,
+      recoveredAtCeiling,
+      recoveredPlatformAtCeiling,
+      manualRecovery,
+      retryableFailures,
+      reservationIds,
+    };
+  }
+
+  async commitCanonicalUserSpend(input: {
+    reservationId: string;
+    organizationId: string;
+    userId: string;
+    actualAmountCents?: number;
+    usage: {
+      projectId: string;
+      conversationId?: string;
+      messageId?: string;
+      provider: string;
+      model: string;
+      inputTokens: number;
+      outputTokens: number;
+      costCents: number;
+      reason: string;
+    };
+  }) {
+    if (
+      (input.actualAmountCents !== undefined &&
+        (!Number.isSafeInteger(input.actualAmountCents) || input.actualAmountCents < 0)) ||
+      (input.actualAmountCents !== undefined && input.usage.costCents !== input.actualAmountCents) ||
+      !Number.isSafeInteger(input.usage.inputTokens) ||
+      input.usage.inputTokens < 0 ||
+      !Number.isSafeInteger(input.usage.outputTokens) ||
+      input.usage.outputTokens < 0 ||
+      !input.usage.projectId ||
+      !input.usage.provider ||
+      !input.usage.model ||
+      !input.usage.reason
+    ) {
+      throw Object.assign(new Error(), { code: 'LEDGER_COMMIT_AMOUNT_INVALID' });
+    }
+
+    const usageRequestHash = createHash('sha256')
+      .update(
+        JSON.stringify({
+          reservationId: input.reservationId,
+          organizationId: input.organizationId,
+          userId: input.userId,
+          ...input.usage,
+        }),
+      )
+      .digest('hex');
+
+    /*
+     * Persist the provider's ACTUAL usage before attempting settlement. This
+     * transaction is idempotent through the reservation row receipt, so a
+     * process crash or ledger/purge conflict never loses already-consumed usage
+     * and a retry never duplicates AiCostLedger.
+     */
+    const usage = await this.prisma.$transaction(async (tx) => {
+      await assertAccountPurgeMutationAllowed(tx, {
+        userIds: [input.userId],
+        organizationIds: [input.organizationId],
+        projectIds: [input.usage.projectId],
+      });
+      await tx.$queryRaw`SELECT "id" FROM "LedgerReservation" WHERE "id" = ${input.reservationId} FOR UPDATE`;
+      const reservation = await tx.ledgerReservation.findUnique({ where: { id: input.reservationId } });
+      if (
+        !reservation ||
+        reservation.organizationId !== input.organizationId ||
+        reservation.userId !== input.userId ||
+        reservation.operation !== 'ai.chat'
+      ) {
+        throw Object.assign(new Error(), { code: 'LEDGER_RESERVATION_SCOPE_MISMATCH' });
+      }
+
+      const metadata =
+        reservation.metadata && typeof reservation.metadata === 'object' && !Array.isArray(reservation.metadata)
+          ? (reservation.metadata as Record<string, unknown>)
+          : {};
+      const receipt =
+        metadata.canonicalAiUsage &&
+        typeof metadata.canonicalAiUsage === 'object' &&
+        !Array.isArray(metadata.canonicalAiUsage)
+          ? (metadata.canonicalAiUsage as { requestHash?: unknown; costLedgerId?: unknown })
+          : undefined;
+
+      if (receipt) {
+        if (receipt.requestHash !== usageRequestHash || typeof receipt.costLedgerId !== 'string') {
+          throw Object.assign(new Error(), { code: 'LEDGER_COMMIT_CONFLICT', statusCode: 409 });
+        }
+        const existing = await tx.aiCostLedger.findUnique({ where: { id: receipt.costLedgerId } });
+        if (!existing) {
+          throw Object.assign(new Error(), { code: 'LEDGER_USAGE_RECEIPT_CORRUPT' });
+        }
+        return mapAiCostLedger(existing);
+      }
+
+      const recorded = await tx.aiCostLedger.create({
+        data: { organizationId: input.organizationId, ...input.usage },
+      });
+      await tx.ledgerReservation.update({
+        where: { id: reservation.id },
+        data: {
+          metadata: {
+            ...metadata,
+            canonicalAiUsage: {
+              version: 1,
+              requestHash: usageRequestHash,
+              costLedgerId: recorded.id,
+            },
+          } as Prisma.InputJsonValue,
+        },
+      });
+      return mapAiCostLedger(recorded);
+    });
+
+    const ledger = new LedgerStore(this.prisma);
+    if (input.actualAmountCents === undefined) {
+      throw Object.assign(new Error(), { code: 'LEDGER_USAGE_UNPRICED' });
+    }
+    const result = await this.prisma.$transaction(async (tx) => {
+      /* Purge scope and settlement share this exact transaction and lock order. */
+      await assertAccountPurgeMutationAllowed(tx, {
+        userIds: [input.userId],
+        organizationIds: [input.organizationId],
+        projectIds: [input.usage.projectId],
+      });
+      const scoped = await tx.ledgerReservation.findFirst({
+        where: {
+          id: input.reservationId,
+          organizationId: input.organizationId,
+          userId: input.userId,
+          operation: 'ai.chat',
+        },
+        select: { id: true },
+      });
+      if (!scoped) {
+        throw Object.assign(new Error(), { code: 'LEDGER_RESERVATION_SCOPE_MISMATCH' });
+      }
+      return ledger.commitReservationInTransaction(tx, {
+        reservationId: input.reservationId,
+        actualAmountMinor: BigInt(input.actualAmountCents ?? input.usage.costCents),
+        refuseOverage: true,
+      });
+    });
+    return { committedCents: Number(result.committedMinor), replayed: result.replayed, usage };
+  }
+
+  async releaseCanonicalUserSpend(reservationId: string) {
+    return new LedgerStore(this.prisma).releaseReservation(reservationId, 'failure');
+  }
+
+  async reapExpiredLedgerReservations() {
+    return new LedgerStore(this.prisma).reapExpiredReservations();
   }
 
   async sumUserSpendSince(organizationId: string, userId: string, sinceMs: number): Promise<number> {
@@ -11639,6 +14572,20 @@ export class PrismaApiStore implements ApiStore {
     ).map(mapUsageEvent);
   }
 
+  async findUsageEventByReference(input: { organizationId: string; type: string; reference: string; since: Date }) {
+    const rows = await this.prisma.$queryRaw<any[]>`
+      SELECT *
+        FROM "UsageEvent"
+       WHERE "organizationId" = ${input.organizationId}
+         AND "type" = ${input.type}
+         AND "createdAt" >= ${input.since}
+         AND metadata ->> 'reference' = ${input.reference}
+       ORDER BY "createdAt" DESC
+       LIMIT 1
+    `;
+    return rows[0] ? mapUsageEvent(rows[0]) : undefined;
+  }
+
   async sumUsage(organizationId: string, type: string, since?: Date) {
     const result = await this.prisma.usageEvent.aggregate({
       where: { organizationId, type, ...(since ? { createdAt: { gte: since } } : {}) },
@@ -11649,7 +14596,7 @@ export class PrismaApiStore implements ApiStore {
 
   async createQuotaOverride(input: {
     organizationId: string;
-    key: QuotaKey;
+    key: QuotaOverrideKey;
     limit: number;
     reason: string;
     createdByUserId?: string;
@@ -11664,11 +14611,28 @@ export class PrismaApiStore implements ApiStore {
     ).map(mapQuotaOverride);
   }
 
-  async getQuotaOverride(organizationId: string, key: QuotaKey) {
-    const override = await this.prisma.quotaOverride.findFirst({
-      where: { organizationId, key, OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }] },
-      orderBy: { createdAt: 'desc' },
-    });
+  async getQuotaOverride(organizationId: string, key: QuotaOverrideKey) {
+    const [override] = await this.prisma.$queryRaw<
+      Array<{
+        id: string;
+        organizationId: string;
+        key: string;
+        limit: number;
+        reason: string;
+        createdByUserId: string | null;
+        expiresAt: Date | null;
+        createdAt: Date;
+      }>
+    >`
+      SELECT "id", "organizationId", "key", "limit", "reason",
+             "createdByUserId", "expiresAt", "createdAt"
+      FROM "QuotaOverride"
+      WHERE "organizationId" = ${organizationId}
+        AND "key" = ${key}
+        AND ("expiresAt" IS NULL OR "expiresAt" > clock_timestamp())
+      ORDER BY "createdAt" DESC, "id" DESC
+      LIMIT 1
+    `;
     return override ? mapQuotaOverride(override) : undefined;
   }
 
@@ -12089,6 +15053,81 @@ export class PrismaApiStore implements ApiStore {
         ipAddress: event.ipAddress ?? undefined,
         createdAt: toIso(event.createdAt)!,
       }));
+  }
+
+  async listOrganizationSecurityAuditEventsPage(input: {
+    organizationId: string;
+    limit: number;
+    cursor?: { createdAt: string; id: string };
+  }): Promise<SecurityAuditEventPage> {
+    const limit = Math.max(1, Math.min(input.limit, 100));
+    const securityAction = {
+      OR: [{ action: { startsWith: 'auth.' } }, { action: { contains: 'security' } }, { action: { contains: 'mfa' } }],
+    } satisfies Prisma.AuditLogWhereInput;
+    const cursorDate = input.cursor ? new Date(input.cursor.createdAt) : undefined;
+    if (cursorDate && Number.isNaN(cursorDate.getTime())) {
+      throw Object.assign(new Error(), { code: 'SECURITY_EVENT_CURSOR_INVALID', statusCode: 400 });
+    }
+    const cursorFilter =
+      cursorDate && input.cursor
+        ? {
+            OR: [{ createdAt: { lt: cursorDate } }, { createdAt: cursorDate, id: { lt: input.cursor.id } }],
+          }
+        : undefined;
+    const rows = await this.prisma.auditLog.findMany({
+      where: {
+        organizationId: input.organizationId,
+        AND: [securityAction, ...(cursorFilter ? [cursorFilter] : [])],
+      },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: limit + 1,
+    });
+    const pageRows = rows.slice(0, limit);
+    const resolutions = pageRows.length
+      ? await this.prisma.securityEventResolution.findMany({
+          where: { auditLogId: { in: pageRows.map((row) => row.id) } },
+        })
+      : [];
+    const resolutionByAuditId = new Map(resolutions.map((row) => [row.auditLogId, row]));
+    const [open] = await this.prisma.$queryRaw<Array<{ count: bigint }>>(Prisma.sql`
+      SELECT COUNT(*)::bigint AS "count"
+      FROM "AuditLog" AS audit
+      WHERE audit."organizationId" = ${input.organizationId}
+        AND (
+          audit."action" LIKE 'auth.%'
+          OR audit."action" LIKE '%security%'
+          OR audit."action" LIKE '%mfa%'
+        )
+        AND NOT EXISTS (
+          SELECT 1
+          FROM "SecurityEventResolution" AS resolution
+          WHERE resolution."auditLogId" = audit."id"
+            AND resolution."resolved" = true
+        )
+    `);
+    const events = pageRows.map((event) => {
+      const resolution = resolutionByAuditId.get(event.id);
+      return {
+        id: event.id,
+        organizationId: event.organizationId ?? undefined,
+        actorUserId: event.actorUserId ?? undefined,
+        action: event.action,
+        resourceType: event.resourceType,
+        resourceId: event.resourceId ?? undefined,
+        metadata: (event.metadata as Record<string, unknown> | null) ?? undefined,
+        ipAddress: event.ipAddress ?? undefined,
+        createdAt: toIso(event.createdAt)!,
+        resolved: resolution?.resolved ?? false,
+        note: resolution?.note ?? undefined,
+        resolvedAt: resolution ? toIso(resolution.resolvedAt) : undefined,
+      };
+    });
+    const last = pageRows.at(-1);
+    return {
+      events,
+      openCount: Number(open?.count ?? 0n),
+      nextCursor: rows.length > limit && last ? { createdAt: toIso(last.createdAt)!, id: last.id } : undefined,
+    };
   }
 
   async listSecurityEventResolutions() {
@@ -12687,7 +15726,26 @@ function mapDeployment(deployment: any): DeploymentRecord {
   };
 }
 
+function deploymentPlanEntitlementsPin(metadata: unknown): unknown {
+  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) {
+    return undefined;
+  }
+
+  return (metadata as { planEntitlements?: unknown }).planEntitlements;
+}
+
+function deploymentProjectManifestDigest(metadata: unknown): string | undefined {
+  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) {
+    return undefined;
+  }
+
+  const digest = (metadata as { projectManifestDigest?: unknown }).projectManifestDigest;
+  return typeof digest === 'string' && PROJECT_MANIFEST_DIGEST_PATTERN.test(digest) ? digest : undefined;
+}
+
 function mapReleaseManifest(row: any): ReleaseManifestRecord {
+  const planEntitlements = parseReleasePlanEntitlementsPin(row.planEntitlements);
+
   return {
     id: row.id,
     projectId: row.projectId,
@@ -12702,6 +15760,11 @@ function mapReleaseManifest(row: any): ReleaseManifestRecord {
     configDigest: row.configDigest ?? undefined,
     dbMigrationPoint: row.dbMigrationPoint ?? undefined,
     accessPolicyVersion: Number(row.accessPolicyVersion ?? 0),
+    planEntitlements,
+    projectManifestDigest:
+      typeof row.projectManifestDigest === 'string' && PROJECT_MANIFEST_DIGEST_PATTERN.test(row.projectManifestDigest)
+        ? row.projectManifestDigest
+        : undefined,
     createdAt: toIso(row.createdAt)!,
   };
 }
@@ -13255,6 +16318,10 @@ function mapSubscription(subscription: any): SubscriptionRecord {
     organizationId: subscription.organizationId,
     planId: subscription.planId,
     planKey: subscription.plan?.key ?? 'free',
+    planMonthlyCents:
+      Number.isSafeInteger(subscription.plan?.monthlyCents) && subscription.plan.monthlyCents >= 0
+        ? subscription.plan.monthlyCents
+        : -1,
     externalId: subscription.externalId ?? undefined,
     status: subscription.status,
     cancelAtPeriodEnd: subscription.cancelAtPeriodEnd,

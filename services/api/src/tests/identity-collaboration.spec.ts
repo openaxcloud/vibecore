@@ -40,6 +40,12 @@ describe('P0-EX-07 identity collaboration', () => {
     const store = new TestApiStore();
     const app = await appWith({ store });
     const owner = await register(app, 'owner@example.com', 'Owner Org');
+    await store.upsertBillingPlan({ key: 'pro', name: 'Pro', monthlyCents: 10_000, limits: {} });
+    await store.upsertSubscription({
+      organizationId: owner.organization.id,
+      planKey: 'pro',
+      status: 'ACTIVE',
+    });
     const projectResponse = await app.inject({
       method: 'POST',
       url: `/orgs/${owner.organization.id}/projects`,
@@ -64,6 +70,65 @@ describe('P0-EX-07 identity collaboration', () => {
 
     expect(anonymous.statusCode).toBe(401);
     expect(crossTenant.statusCode).toBe(404);
+  });
+
+  it('serializes USER/GROUP read-only admission and refuses a group expansion from 50 to 51', async () => {
+    const { app, store, owner, projectId } = await setup();
+    const users = await Promise.all(
+      Array.from({ length: 51 }, async (_, index) => {
+        const user = await store.createUser({
+          email: `plan-viewer-${index}-${crypto.randomUUID()}@example.test`,
+          passwordHash: 'hash',
+        });
+        await store.addMember({
+          organizationId: owner.organization.id,
+          userId: user.id,
+          roleKey: 'member',
+        });
+        return user;
+      }),
+    );
+
+    for (const user of users.slice(0, 49)) {
+      await store.addProjectCollaborator({ projectId, userId: user.id, roleKey: 'guest' });
+    }
+
+    const createdGroup = await app.inject({
+      method: 'POST',
+      url: `/orgs/${owner.organization.id}/groups`,
+      headers: auth(owner.token),
+      payload: { name: 'Read-only audience' },
+    });
+    expect(createdGroup.statusCode).toBe(201);
+    const groupId = (createdGroup.json() as { group: { id: string } }).group.id;
+
+    const groupGrant = await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/access-grants`,
+      headers: { ...auth(owner.token), 'idempotency-key': 'plan-group-viewers' },
+      payload: {
+        subjectType: 'GROUP',
+        subjectGroupId: groupId,
+        roleKey: 'viewer',
+        expiresInHours: 24,
+      },
+    });
+    expect(groupGrant.statusCode).toBe(201);
+
+    const addMember = (userId: string) =>
+      app.inject({
+        method: 'POST',
+        url: `/orgs/${owner.organization.id}/groups/${groupId}/members`,
+        headers: auth(owner.token),
+        payload: { userId },
+      });
+    const contenders = await Promise.all([addMember(users[49]!.id), addMember(users[50]!.id)]);
+
+    expect(contenders.map((response) => response.statusCode).sort()).toEqual([201, 403]);
+    expect(contenders.find((response) => response.statusCode === 403)?.json()).toMatchObject({
+      code: 'PLAN_VIEWER_LIMIT_REACHED',
+    });
+    await expect(store.listActiveOrganizationViewerUserIds(owner.organization.id)).resolves.toHaveLength(50);
   });
 
   it('requires explicit guest consent, clamps outsiders read-only, and revocation cuts the next request', async () => {
