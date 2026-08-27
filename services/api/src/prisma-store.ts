@@ -173,6 +173,7 @@ import type {
 import { countActiveModerationStrikes } from './strike-system.js';
 
 const CANONICAL_AI_USAGE_VERSION = 1 as const;
+const CANONICAL_CHAT_COMPLETION_REASON = 'chat.completion';
 
 function recordObject(value: unknown): Record<string, unknown> | undefined {
   return value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : undefined;
@@ -841,6 +842,8 @@ async function validateCanonicalBatchReceipt(
 const SERVER_RELEASE_PROMOTION_NOT_COMMITTED = 'SERVER_RELEASE_PROMOTION_NOT_COMMITTED';
 const SERVER_RELEASE_MANIFEST_CONFLICT = 'SERVER_RELEASE_MANIFEST_CONFLICT';
 const SERVER_RELEASE_MANIFEST_WITHOUT_READY = 'SERVER_RELEASE_MANIFEST_WITHOUT_READY';
+const STATIC_RELEASE_MANIFEST_CONFLICT = 'STATIC_RELEASE_MANIFEST_CONFLICT';
+const STATIC_RELEASE_COMMIT_CONFLICT = 'STATIC_RELEASE_COMMIT_CONFLICT';
 
 /** Internal store invariant; route handlers own localized public error copy. */
 function reservedVmStoreError(message: string): Error {
@@ -1264,6 +1267,18 @@ function sameNullable(left: string | null | undefined, right: string | null | un
   return (left ?? null) === (right ?? null);
 }
 
+function clearTenantScopedIdeCapabilities(state: unknown): unknown {
+  if (!state || typeof state !== 'object' || Array.isArray(state)) return state;
+  const root = state as Record<string, unknown>;
+  const collaboration =
+    root.collaboration && typeof root.collaboration === 'object' && !Array.isArray(root.collaboration)
+      ? (root.collaboration as Record<string, unknown>)
+      : undefined;
+
+  if (!collaboration) return state;
+  return { ...root, collaboration: { ...collaboration, terminalPermissions: {} } };
+}
+
 async function requireRollbackSourceManifest(
   tx: Prisma.TransactionClient,
   operation: {
@@ -1503,7 +1518,12 @@ async function commitReservedVmOperationInTransaction(
     data: {
       status: 'COMPLETED',
       phase: 'COMMITTED',
-      response: input.response as Prisma.InputJsonValue,
+      response: {
+        ...(operation.response && typeof operation.response === 'object' && !Array.isArray(operation.response)
+          ? (operation.response as Record<string, unknown>)
+          : {}),
+        ...input.response,
+      } as Prisma.InputJsonValue,
       completedAt: now,
       leaseOwner: null,
       leaseExpiresAt: null,
@@ -2284,6 +2304,35 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
   private get accountPurge(): AccountPurgeStore {
     this.#accountPurge ??= new AccountPurgeStore(this.prisma, this.accountPurgeLease);
     return this.#accountPurge;
+  }
+
+  /**
+   * Linearize every durable project-scoped mutation with project transfer. The
+   * stale route authorization supplies the tenant it authorized; after the
+   * global topology -> checkpoint -> Project lock order is acquired, the row is
+   * re-read and a transfer is rejected rather than mutating the new tenant.
+   */
+  private async lockProjectTenantMutation(
+    tx: Prisma.TransactionClient,
+    input: {
+      projectId: string;
+      expectedOrganizationId: string;
+      subjectUserIds?: string[];
+    },
+  ): Promise<void> {
+    await this.accountPurge.assertProjectMutable(tx, input.projectId, input.subjectUserIds);
+    await lockProjectAfterPurgeTopology(tx, input.projectId);
+    const project = await tx.project.findUnique({
+      where: { id: input.projectId },
+      select: { organizationId: true, deletedAt: true },
+    });
+
+    if (!project || project.deletedAt || project.organizationId !== input.expectedOrganizationId) {
+      throw Object.assign(new Error(appPublicEnglish('PROJECT_ORGANIZATION_CHANGED_DURING_MUTATION')), {
+        code: 'PROJECT_ORGANIZATION_CHANGED_DURING_MUTATION',
+        statusCode: 409,
+      });
+    }
   }
 
   async ping(): Promise<void> {
@@ -3498,6 +3547,8 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
             releaseManifestCount,
             nonTerminalReservedVmOperationCount,
             activeReservedVmBillingPeriodCount,
+            activeWorkspaceCount,
+            retainedWorkspaceRuntimeCount,
           ] = await Promise.all([
             tx.databaseInstance.count({ where: { projectId: input.projectId, status: { not: 'DELETED' } } }),
             tx.cloudProjectBinding.count({ where: { projectId: input.projectId } }),
@@ -3542,6 +3593,13 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
             tx.reservedVmBillingPeriod.count({
               where: { projectId: input.projectId, status: { not: 'CANCELED' } },
             }),
+            tx.workspace.count({
+              where: { projectId: input.projectId, status: { in: ['PENDING', 'STARTING', 'RUNNING'] } },
+            }),
+            /* STOPPED/FAILED runtimes still own PVC/data and remain source-tenant resources. */
+            tx.workspaceRuntime.count({
+              where: { projectId: input.projectId, status: { not: 'DELETED' } },
+            }),
           ]);
 
           if (
@@ -3554,7 +3612,9 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
               liveDeploymentCount +
               releaseManifestCount +
               nonTerminalReservedVmOperationCount +
-              activeReservedVmBillingPeriodCount >
+              activeReservedVmBillingPeriodCount +
+              activeWorkspaceCount +
+              retainedWorkspaceRuntimeCount >
             0
           ) {
             throw Object.assign(new Error(appPublicEnglish('PROJECT_TRANSFER_MANAGED_RESOURCES_ACTIVE')), {
@@ -3605,6 +3665,20 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
            * target org re-shares as needed.
            */
           await tx.chatShare.deleteMany({ where: { projectId: input.projectId } });
+
+          /* Presence is source-tenant PII; never expose stale sessions to the target tenant. */
+          await tx.collaborationPresence.deleteMany({ where: { projectId: input.projectId } });
+
+          const ideState = await tx.projectIdeState.findUnique({ where: { projectId: input.projectId } });
+          if (ideState) {
+            await tx.projectIdeState.update({
+              where: { projectId: input.projectId },
+              data: {
+                state: clearTenantScopedIdeCapabilities(ideState.state) as Prisma.InputJsonValue,
+                version: { increment: 1 },
+              },
+            });
+          }
 
           const revokedAt = await databaseNow(tx);
           await tx.resourceAccessGrant.updateMany({
@@ -5799,6 +5873,8 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
     operationToken: string;
     targetProjectId: string;
     actualCredits: number;
+    projectIdeState?: unknown;
+    updatedByUserId?: string;
   }) {
     const ledger = new LedgerStore(this.prisma);
     const scope = await this.prisma.importJob.findFirst({
@@ -5956,10 +6032,28 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
       }
 
       /*
-       * Reveal in the same transaction as SETTLED + COMMITTED. Updating an
-       * already-visible legacy partial target is intentionally supported during
-       * rolling upgrades; all targets created by this release start hidden.
+       * Persist the verified file manifest and reveal in the same transaction as
+       * SETTLED + COMMITTED. The target remains soft-deleted while connector and
+       * storage effects run, so the normal project-mutation fence intentionally
+       * rejects it; writing here keeps an incomplete target from ever becoming
+       * visible. Updating an already-visible legacy partial target remains
+       * supported during rolling upgrades.
        */
+      if (input.projectIdeState !== undefined) {
+        await tx.projectIdeState.upsert({
+          where: { projectId: target.id },
+          create: {
+            projectId: target.id,
+            state: input.projectIdeState as Prisma.InputJsonValue,
+            updatedByUserId: input.updatedByUserId,
+          },
+          update: {
+            state: input.projectIdeState as Prisma.InputJsonValue,
+            updatedByUserId: input.updatedByUserId,
+            version: { increment: 1 },
+          },
+        });
+      }
       await tx.project.update({ where: { id: target.id }, data: { deletedAt: null } });
 
       const committed = await tx.importJob.update({
@@ -6458,9 +6552,19 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
     return deleted.count > 0 ? mapSecret(existing) : undefined;
   }
 
-  async addProjectCollaborator(input: { projectId: string; userId: string; roleKey: string; expiresAt?: Date | null }) {
+  async addProjectCollaborator(input: {
+    projectId: string;
+    expectedOrganizationId: string;
+    userId: string;
+    roleKey: string;
+    expiresAt?: Date | null;
+  }) {
     return this.prisma.$transaction(async (tx) => {
-      await this.accountPurge.assertProjectMutable(tx, input.projectId, [input.userId]);
+      await this.lockProjectTenantMutation(tx, {
+        projectId: input.projectId,
+        expectedOrganizationId: input.expectedOrganizationId,
+        subjectUserIds: [input.userId],
+      });
       return mapProjectCollaborator(
         await tx.projectCollaborator.upsert({
           where: { projectId_userId: { projectId: input.projectId, userId: input.userId } },
@@ -6581,9 +6685,17 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
     return rows[0]?.exists === true;
   }
 
-  async removeProjectCollaborator(input: { projectId: string; userId: string }): Promise<boolean> {
+  async removeProjectCollaborator(input: {
+    projectId: string;
+    expectedOrganizationId: string;
+    userId: string;
+  }): Promise<boolean> {
     const result = await this.prisma.$transaction(async (tx) => {
-      await this.accountPurge.assertProjectMutable(tx, input.projectId, [input.userId]);
+      await this.lockProjectTenantMutation(tx, {
+        projectId: input.projectId,
+        expectedOrganizationId: input.expectedOrganizationId,
+        subjectUserIds: [input.userId],
+      });
       return tx.projectCollaborator.deleteMany({
         where: { projectId: input.projectId, userId: input.userId },
       });
@@ -7410,59 +7522,68 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
 
   async upsertProjectIdeState(input: {
     projectId: string;
+    expectedOrganizationId: string;
     state: unknown;
     updatedByUserId?: string;
     expectedVersion?: number;
   }) {
-    if (input.expectedVersion !== undefined) {
-      /*
-       * Atomic optimistic-concurrency write: only succeed if the row's version
-       * still equals what the caller read. The handler's separate
-       * read-then-version-check was not atomic, so two concurrent writers who
-       * both passed the check would both increment and last-write-wins clobbered
-       * one. A conditional updateMany closes that race — count===0 means another
-       * writer won, which the caller surfaces as 412.
-       */
-      const result = await this.prisma.projectIdeState.updateMany({
-        where: { projectId: input.projectId, version: input.expectedVersion },
-        data: {
-          state: input.state as any,
-          updatedByUserId: input.updatedByUserId,
-          version: { increment: 1 },
-        },
+    return this.prisma.$transaction(async (tx) => {
+      await this.lockProjectTenantMutation(tx, {
+        projectId: input.projectId,
+        expectedOrganizationId: input.expectedOrganizationId,
+        subjectUserIds: input.updatedByUserId ? [input.updatedByUserId] : undefined,
       });
 
-      if (result.count === 0) {
-        throw Object.assign(new Error(appPublicEnglish('IDE_STATE_VERSION_CONFLICT')), {
-          code: 'IDE_STATE_VERSION_CONFLICT',
+      if (input.expectedVersion !== undefined) {
+        /*
+         * Atomic optimistic-concurrency write: only succeed if the row's version
+         * still equals what the caller read. The handler's separate
+         * read-then-version-check was not atomic, so two concurrent writers who
+         * both passed the check would both increment and last-write-wins clobbered
+         * one. A conditional updateMany closes that race — count===0 means another
+         * writer won, which the caller surfaces as 412.
+         */
+        const result = await tx.projectIdeState.updateMany({
+          where: { projectId: input.projectId, version: input.expectedVersion },
+          data: {
+            state: input.state as any,
+            updatedByUserId: input.updatedByUserId,
+            version: { increment: 1 },
+          },
         });
+
+        if (result.count === 0) {
+          throw Object.assign(new Error(appPublicEnglish('IDE_STATE_VERSION_CONFLICT')), {
+            code: 'IDE_STATE_VERSION_CONFLICT',
+          });
+        }
+
+        const updated = await tx.projectIdeState.findUnique({ where: { projectId: input.projectId } });
+
+        if (!updated) {
+          // The row was deleted/archived between the updateMany and this read.
+          throw Object.assign(new Error(appPublicEnglish('IDE_STATE_NOT_FOUND')), { code: 'IDE_STATE_NOT_FOUND' });
+        }
+
+        return mapProjectIdeState(updated);
       }
 
-      const updated = await this.prisma.projectIdeState.findUnique({ where: { projectId: input.projectId } });
-
-      if (!updated) {
-        // The row was deleted/archived between the updateMany and this read.
-        throw Object.assign(new Error(appPublicEnglish('IDE_STATE_NOT_FOUND')), { code: 'IDE_STATE_NOT_FOUND' });
-      }
-
-      return mapProjectIdeState(updated);
-    }
-
-    return mapProjectIdeState(
-      await this.prisma.projectIdeState.upsert({
-        where: { projectId: input.projectId },
-        create: {
-          projectId: input.projectId,
-          state: input.state as any,
-          updatedByUserId: input.updatedByUserId,
-        },
-        update: {
-          state: input.state as any,
-          updatedByUserId: input.updatedByUserId,
-          version: { increment: 1 },
-        },
-      }),
-    );
+      return mapProjectIdeState(
+        await tx.projectIdeState.upsert({
+          where: { projectId: input.projectId },
+          create: {
+            projectId: input.projectId,
+            state: input.state as any,
+            updatedByUserId: input.updatedByUserId,
+          },
+          update: {
+            state: input.state as any,
+            updatedByUserId: input.updatedByUserId,
+            version: { increment: 1 },
+          },
+        }),
+      );
+    });
   }
 
   async getWorkspaceIdeState(workspaceId: string) {
@@ -7472,65 +7593,106 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
 
   async upsertWorkspaceIdeState(input: {
     workspaceId: string;
+    expectedProjectId: string;
+    expectedOrganizationId: string;
     state: unknown;
     updatedByUserId?: string;
     expectedVersion?: number;
   }) {
-    if (input.expectedVersion !== undefined) {
-      // Atomic optimistic-concurrency write — see upsertProjectIdeState.
-      const result = await this.prisma.workspaceIdeState.updateMany({
-        where: { workspaceId: input.workspaceId, version: input.expectedVersion },
-        data: {
-          state: input.state as any,
-          updatedByUserId: input.updatedByUserId,
-          version: { increment: 1 },
-        },
+    return this.prisma.$transaction(async (tx) => {
+      await this.lockProjectTenantMutation(tx, {
+        projectId: input.expectedProjectId,
+        expectedOrganizationId: input.expectedOrganizationId,
+        subjectUserIds: input.updatedByUserId ? [input.updatedByUserId] : undefined,
       });
-
-      if (result.count === 0) {
-        throw Object.assign(new Error(appPublicEnglish('IDE_STATE_VERSION_CONFLICT')), {
-          code: 'IDE_STATE_VERSION_CONFLICT',
+      const workspace = await tx.workspace.findUnique({
+        where: { id: input.workspaceId },
+        select: { projectId: true },
+      });
+      if (!workspace || workspace.projectId !== input.expectedProjectId) {
+        throw Object.assign(new Error(appPublicEnglish('PROJECT_ORGANIZATION_CHANGED_DURING_MUTATION')), {
+          code: 'PROJECT_ORGANIZATION_CHANGED_DURING_MUTATION',
+          statusCode: 409,
         });
       }
 
-      const updated = await this.prisma.workspaceIdeState.findUnique({ where: { workspaceId: input.workspaceId } });
+      if (input.expectedVersion !== undefined) {
+        // Atomic optimistic-concurrency write — see upsertProjectIdeState.
+        const result = await tx.workspaceIdeState.updateMany({
+          where: { workspaceId: input.workspaceId, version: input.expectedVersion },
+          data: {
+            state: input.state as any,
+            updatedByUserId: input.updatedByUserId,
+            version: { increment: 1 },
+          },
+        });
 
-      if (!updated) {
-        // The row was deleted/archived between the updateMany and this read.
-        throw Object.assign(new Error(appPublicEnglish('IDE_STATE_NOT_FOUND')), { code: 'IDE_STATE_NOT_FOUND' });
+        if (result.count === 0) {
+          throw Object.assign(new Error(appPublicEnglish('IDE_STATE_VERSION_CONFLICT')), {
+            code: 'IDE_STATE_VERSION_CONFLICT',
+          });
+        }
+
+        const updated = await tx.workspaceIdeState.findUnique({ where: { workspaceId: input.workspaceId } });
+
+        if (!updated) {
+          // The row was deleted/archived between the updateMany and this read.
+          throw Object.assign(new Error(appPublicEnglish('IDE_STATE_NOT_FOUND')), { code: 'IDE_STATE_NOT_FOUND' });
+        }
+
+        return mapWorkspaceIdeState(updated);
       }
 
-      return mapWorkspaceIdeState(updated);
-    }
-
-    return mapWorkspaceIdeState(
-      await this.prisma.workspaceIdeState.upsert({
-        where: { workspaceId: input.workspaceId },
-        create: {
-          workspaceId: input.workspaceId,
-          state: input.state as any,
-          updatedByUserId: input.updatedByUserId,
-        },
-        update: {
-          state: input.state as any,
-          updatedByUserId: input.updatedByUserId,
-          version: { increment: 1 },
-        },
-      }),
-    );
+      return mapWorkspaceIdeState(
+        await tx.workspaceIdeState.upsert({
+          where: { workspaceId: input.workspaceId },
+          create: {
+            workspaceId: input.workspaceId,
+            state: input.state as any,
+            updatedByUserId: input.updatedByUserId,
+          },
+          update: {
+            state: input.state as any,
+            updatedByUserId: input.updatedByUserId,
+            version: { increment: 1 },
+          },
+        }),
+      );
+    });
   }
 
-  async updateWorkspaceGitRepositoryUrl(input: { workspaceId: string; gitRepositoryUrl: string | null }) {
-    return mapWorkspace(
-      await this.prisma.workspace.update({
-        where: { id: input.workspaceId },
-        data: { gitRepositoryUrl: input.gitRepositoryUrl },
-      }),
-    );
+  async updateWorkspaceGitRepositoryUrl(input: {
+    workspaceId: string;
+    expectedProjectId: string;
+    expectedOrganizationId: string;
+    gitRepositoryUrl: string | null;
+  }) {
+    return this.prisma.$transaction(async (tx) => {
+      await this.lockProjectTenantMutation(tx, {
+        projectId: input.expectedProjectId,
+        expectedOrganizationId: input.expectedOrganizationId,
+      });
+      const workspace = await tx.workspace.findUnique({ where: { id: input.workspaceId } });
+
+      if (!workspace || workspace.projectId !== input.expectedProjectId) {
+        throw Object.assign(new Error(appPublicEnglish('PROJECT_ORGANIZATION_CHANGED_DURING_MUTATION')), {
+          code: 'PROJECT_ORGANIZATION_CHANGED_DURING_MUTATION',
+          statusCode: 409,
+        });
+      }
+
+      return mapWorkspace(
+        await tx.workspace.update({
+          where: { id: input.workspaceId },
+          data: { gitRepositoryUrl: input.gitRepositoryUrl },
+        }),
+      );
+    });
   }
 
   async upsertCollaborationPresence(input: {
     projectId: string;
+    expectedOrganizationId: string;
     userId: string;
     sessionId: string;
     status?: CollaborationPresenceRecord['status'];
@@ -7547,55 +7709,67 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
      * cursor/file/terminalAccess as broadcast to the room. Reject when an
      * existing row for this (projectId, sessionId) belongs to a different user.
      */
-    const existingPresence = await this.prisma.collaborationPresence.findUnique({
-      where: { projectId_sessionId: { projectId: input.projectId, sessionId: input.sessionId } },
-      select: { userId: true },
-    });
-
-    if (existingPresence && existingPresence.userId !== input.userId) {
-      throw Object.assign(new Error(appPublicEnglish('PRESENCE_FORBIDDEN')), {
-        statusCode: 403,
-        code: 'PRESENCE_FORBIDDEN',
+    return this.prisma.$transaction(async (tx) => {
+      await this.lockProjectTenantMutation(tx, {
+        projectId: input.projectId,
+        expectedOrganizationId: input.expectedOrganizationId,
+        subjectUserIds: [input.userId],
       });
-    }
-
-    return mapCollaborationPresence(
-      await this.prisma.collaborationPresence.upsert({
+      const existingPresence = await tx.collaborationPresence.findUnique({
         where: { projectId_sessionId: { projectId: input.projectId, sessionId: input.sessionId } },
-        create: {
-          projectId: input.projectId,
-          userId: input.userId,
-          sessionId: input.sessionId,
-          status: input.status ?? 'online',
-          filePath: input.filePath,
-          cursor: input.cursor as any,
-          selection: input.selection as any,
-          mode: input.mode ?? 'editing',
-          terminalAccess: input.terminalAccess ?? false,
-        },
+        select: { userId: true },
+      });
 
-        /*
-         * Field-selective update: only overwrite fields the caller actually
-         * provided. A routine presence heartbeat omits terminalAccess/cursor/
-         * selection/filePath, and blindly writing `?? false`/undefined would
-         * revoke just-granted terminal access and null out another client's
-         * cursor/file. status/mode always carry schema defaults so they're safe
-         * to set unconditionally.
-         */
-        update: {
-          status: input.status ?? 'online',
-          mode: input.mode ?? 'editing',
-          ...(input.filePath !== undefined ? { filePath: input.filePath } : {}),
-          ...(input.cursor !== undefined ? { cursor: input.cursor as any } : {}),
-          ...(input.selection !== undefined ? { selection: input.selection as any } : {}),
-          ...(input.terminalAccess !== undefined ? { terminalAccess: input.terminalAccess } : {}),
-        },
-      }),
-    );
+      if (existingPresence && existingPresence.userId !== input.userId) {
+        throw Object.assign(new Error(appPublicEnglish('PRESENCE_FORBIDDEN')), {
+          statusCode: 403,
+          code: 'PRESENCE_FORBIDDEN',
+        });
+      }
+
+      return mapCollaborationPresence(
+        await tx.collaborationPresence.upsert({
+          where: { projectId_sessionId: { projectId: input.projectId, sessionId: input.sessionId } },
+          create: {
+            projectId: input.projectId,
+            userId: input.userId,
+            sessionId: input.sessionId,
+            status: input.status ?? 'online',
+            filePath: input.filePath,
+            cursor: input.cursor as any,
+            selection: input.selection as any,
+            mode: input.mode ?? 'editing',
+            terminalAccess: input.terminalAccess ?? false,
+          },
+
+          /*
+           * Field-selective update: only overwrite fields the caller actually
+           * provided. A routine presence heartbeat omits terminalAccess/cursor/
+           * selection/filePath, and blindly writing `?? false`/undefined would
+           * revoke just-granted terminal access and null out another client's
+           * cursor/file. status/mode always carry schema defaults so they're safe
+           * to set unconditionally.
+           */
+          update: {
+            status: input.status ?? 'online',
+            mode: input.mode ?? 'editing',
+            ...(input.filePath !== undefined ? { filePath: input.filePath } : {}),
+            ...(input.cursor !== undefined ? { cursor: input.cursor as any } : {}),
+            ...(input.selection !== undefined ? { selection: input.selection as any } : {}),
+            ...(input.terminalAccess !== undefined ? { terminalAccess: input.terminalAccess } : {}),
+          },
+        }),
+      );
+    });
   }
 
-  async removeCollaborationPresence(projectId: string, sessionId: string) {
-    const deleted = await this.prisma.collaborationPresence.deleteMany({ where: { projectId, sessionId } });
+  async removeCollaborationPresence(input: { projectId: string; expectedOrganizationId: string; sessionId: string }) {
+    const deleted = await this.prisma.$transaction(async (tx) => {
+      await this.lockProjectTenantMutation(tx, input);
+      return tx.collaborationPresence.deleteMany({
+        where: { projectId: input.projectId, sessionId: input.sessionId },
+      });
+    });
     return deleted.count > 0;
   }
 
@@ -7607,17 +7781,32 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
 
   async createCollaborationComment(input: {
     projectId: string;
+    expectedOrganizationId: string;
     userId: string;
     filePath?: string;
     line?: number;
     selection?: unknown;
     body: string;
   }) {
-    return mapCollaborationComment(
-      await this.prisma.collaborationComment.create({
-        data: { ...input, selection: (input.selection ?? undefined) as any },
-      }),
-    );
+    return this.prisma.$transaction(async (tx) => {
+      await this.lockProjectTenantMutation(tx, {
+        projectId: input.projectId,
+        expectedOrganizationId: input.expectedOrganizationId,
+        subjectUserIds: [input.userId],
+      });
+      return mapCollaborationComment(
+        await tx.collaborationComment.create({
+          data: {
+            projectId: input.projectId,
+            userId: input.userId,
+            filePath: input.filePath,
+            line: input.line,
+            selection: (input.selection ?? undefined) as any,
+            body: input.body,
+          },
+        }),
+      );
+    });
   }
 
   async listCollaborationComments(projectId: string) {
@@ -7628,12 +7817,30 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
 
   async createProjectShareLink(input: {
     projectId: string;
+    expectedOrganizationId: string;
     tokenHash: string;
     roleKey: ProjectShareLinkRecord['roleKey'];
     expiresAt: Date;
     createdByUserId?: string;
   }) {
-    return mapProjectShareLink(await this.prisma.projectShareLink.create({ data: input }));
+    return this.prisma.$transaction(async (tx) => {
+      await this.lockProjectTenantMutation(tx, {
+        projectId: input.projectId,
+        expectedOrganizationId: input.expectedOrganizationId,
+        subjectUserIds: input.createdByUserId ? [input.createdByUserId] : undefined,
+      });
+      return mapProjectShareLink(
+        await tx.projectShareLink.create({
+          data: {
+            projectId: input.projectId,
+            tokenHash: input.tokenHash,
+            roleKey: input.roleKey,
+            expiresAt: input.expiresAt,
+            createdByUserId: input.createdByUserId,
+          },
+        }),
+      );
+    });
   }
 
   async listProjectShareLinks(projectId: string) {
@@ -7652,39 +7859,95 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
     return mapProjectShareLink(link);
   }
 
-  async revokeProjectShareLink(input: { projectId: string; id: string }) {
-    const result = await this.prisma.projectShareLink.updateMany({
-      where: { id: input.id, projectId: input.projectId, revokedAt: null },
-      data: { revokedAt: new Date() },
+  async revokeProjectShareLink(input: { projectId: string; expectedOrganizationId: string; id: string }) {
+    const result = await this.prisma.$transaction(async (tx) => {
+      await this.lockProjectTenantMutation(tx, input);
+      return tx.projectShareLink.updateMany({
+        where: { id: input.id, projectId: input.projectId, revokedAt: null },
+        data: { revokedAt: await databaseNow(tx) },
+      });
     });
 
     return result.count > 0;
+  }
+
+  async redeemProjectShareLink(input: {
+    projectId: string;
+    expectedOrganizationId: string;
+    shareLinkId: string;
+    tokenHash: string;
+    expectedRoleKey: ProjectShareLinkRecord['roleKey'];
+    expectedExpiresAt: Date;
+    userId: string;
+  }) {
+    return this.prisma.$transaction(async (tx) => {
+      await this.lockProjectTenantMutation(tx, {
+        projectId: input.projectId,
+        expectedOrganizationId: input.expectedOrganizationId,
+        subjectUserIds: [input.userId],
+      });
+      const rows = await tx.$queryRaw<any[]>`
+        SELECT link.*
+          FROM "ProjectShareLink" AS link
+         WHERE link."id" = ${input.shareLinkId}
+           AND link."projectId" = ${input.projectId}
+           AND link."tokenHash" = ${input.tokenHash}
+           AND link."roleKey" = ${input.expectedRoleKey}
+           AND link."expiresAt" = ${input.expectedExpiresAt}
+           AND link."revokedAt" IS NULL
+           AND link."expiresAt" > clock_timestamp()
+         FOR UPDATE
+      `;
+      const link = rows[0];
+      if (!link) return undefined;
+
+      return mapProjectCollaborator(
+        await tx.projectCollaborator.upsert({
+          where: { projectId_userId: { projectId: input.projectId, userId: input.userId } },
+          create: {
+            projectId: input.projectId,
+            userId: input.userId,
+            roleKey: link.roleKey,
+            expiresAt: link.expiresAt,
+          },
+          update: { roleKey: link.roleKey, expiresAt: link.expiresAt },
+        }),
+      );
+    });
   }
 
   async createChatShare(input: {
     tokenHash: string;
     conversationId: string;
     projectId: string;
+    expectedOrganizationId: string;
     authorUserId: string;
     title?: string;
     payload: unknown;
     allowFork?: boolean;
     expiresAt?: Date;
   }) {
-    return mapChatShare(
-      await this.prisma.chatShare.create({
-        data: {
-          tokenHash: input.tokenHash,
-          conversationId: input.conversationId,
-          projectId: input.projectId,
-          authorUserId: input.authorUserId,
-          title: input.title,
-          payloadJson: input.payload as Prisma.InputJsonValue,
-          allowFork: input.allowFork ?? false,
-          expiresAt: input.expiresAt,
-        },
-      }),
-    );
+    return this.prisma.$transaction(async (tx) => {
+      await this.lockProjectTenantMutation(tx, {
+        projectId: input.projectId,
+        expectedOrganizationId: input.expectedOrganizationId,
+        subjectUserIds: [input.authorUserId],
+      });
+      return mapChatShare(
+        await tx.chatShare.create({
+          data: {
+            tokenHash: input.tokenHash,
+            conversationId: input.conversationId,
+            projectId: input.projectId,
+            authorUserId: input.authorUserId,
+            title: input.title,
+            payloadJson: input.payload as Prisma.InputJsonValue,
+            allowFork: input.allowFork ?? false,
+            expiresAt: input.expiresAt,
+          },
+        }),
+      );
+    });
   }
 
   async findChatShareByTokenHash(tokenHash: string) {
@@ -7703,15 +7966,27 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
     );
   }
 
-  async revokeChatShare(input: { id: string; authorUserId?: string; projectId?: string }) {
-    const result = await this.prisma.chatShare.updateMany({
-      where: {
-        id: input.id,
-        revokedAt: null,
-        ...(input.authorUserId ? { authorUserId: input.authorUserId } : {}),
-        ...(input.projectId ? { projectId: input.projectId } : {}),
-      },
-      data: { revokedAt: new Date() },
+  async revokeChatShare(input: {
+    id: string;
+    projectId: string;
+    expectedOrganizationId: string;
+    authorUserId?: string;
+  }) {
+    const result = await this.prisma.$transaction(async (tx) => {
+      await this.lockProjectTenantMutation(tx, {
+        projectId: input.projectId,
+        expectedOrganizationId: input.expectedOrganizationId,
+        ...(input.authorUserId ? { subjectUserIds: [input.authorUserId] } : {}),
+      });
+      return tx.chatShare.updateMany({
+        where: {
+          id: input.id,
+          projectId: input.projectId,
+          revokedAt: null,
+          ...(input.authorUserId ? { authorUserId: input.authorUserId } : {}),
+        },
+        data: { revokedAt: new Date() },
+      });
     });
 
     return result.count > 0;
@@ -8114,6 +8389,7 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
   async createWorkspace(input: {
     id?: string;
     projectId: string;
+    expectedOrganizationId: string;
     name: string;
     runtimeMode: string;
     environment?: string;
@@ -8127,7 +8403,11 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
      * so a crash between them can never leave a row with a null gitPath.
      */
     const updated = await this.prisma.$transaction(async (tx) => {
-      const { initialStatus, ...data } = input;
+      await this.lockProjectTenantMutation(tx, {
+        projectId: input.projectId,
+        expectedOrganizationId: input.expectedOrganizationId,
+      });
+      const { initialStatus, expectedOrganizationId: _expectedOrganizationId, ...data } = input;
 
       const created = await tx.workspace.create({
         data: { ...data, status: initialStatus ?? 'PENDING' },
@@ -12591,8 +12871,8 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
           existing.projectManifestDigest !== input.releaseFence.expectedManifestDigest ||
           deployment.status !== 'READY'
         ) {
-          throw Object.assign(new Error('STATIC_RELEASE_MANIFEST_CONFLICT'), {
-            code: 'STATIC_RELEASE_MANIFEST_CONFLICT',
+          throw Object.assign(new Error(STATIC_RELEASE_MANIFEST_CONFLICT), {
+            code: STATIC_RELEASE_MANIFEST_CONFLICT,
           });
         }
 
@@ -12649,8 +12929,8 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
       });
 
       if (transitioned.count !== 1) {
-        throw Object.assign(new Error('STATIC_RELEASE_COMMIT_CONFLICT'), {
-          code: 'STATIC_RELEASE_COMMIT_CONFLICT',
+        throw Object.assign(new Error(STATIC_RELEASE_COMMIT_CONFLICT), {
+          code: STATIC_RELEASE_COMMIT_CONFLICT,
         });
       }
 
@@ -16615,7 +16895,7 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
               inputTokens: 0,
               outputTokens: 0,
               costCents: totalCents,
-              reason: 'chat.completion',
+              reason: CANONICAL_CHAT_COMPLETION_REASON,
             };
             const requestHash = canonicalAiBatchHash({
               reservationId: reservation.id,
@@ -18091,10 +18371,31 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
     );
   }
 
-  async updateWorkspaceStatus(input: { workspaceId: string; status: WorkspaceRecord['status'] }) {
-    return mapWorkspace(
-      await this.prisma.workspace.update({ where: { id: input.workspaceId }, data: { status: input.status } }),
-    );
+  async updateWorkspaceStatus(input: {
+    workspaceId: string;
+    expectedProjectId: string;
+    expectedOrganizationId: string;
+    status: WorkspaceRecord['status'];
+  }) {
+    return this.prisma.$transaction(async (tx) => {
+      await this.lockProjectTenantMutation(tx, {
+        projectId: input.expectedProjectId,
+        expectedOrganizationId: input.expectedOrganizationId,
+      });
+      const workspace = await tx.workspace.findUnique({
+        where: { id: input.workspaceId },
+        select: { projectId: true },
+      });
+      if (!workspace || workspace.projectId !== input.expectedProjectId) {
+        throw Object.assign(new Error(appPublicEnglish('PROJECT_ORGANIZATION_CHANGED_DURING_MUTATION')), {
+          code: 'PROJECT_ORGANIZATION_CHANGED_DURING_MUTATION',
+          statusCode: 409,
+        });
+      }
+      return mapWorkspace(
+        await tx.workspace.update({ where: { id: input.workspaceId }, data: { status: input.status } }),
+      );
+    });
   }
 
   async updateSupportTicket(input: { ticketId: string; status: SupportTicketRecord['status']; response?: string }) {

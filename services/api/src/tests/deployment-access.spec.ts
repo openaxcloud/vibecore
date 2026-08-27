@@ -354,7 +354,12 @@ describe('deployment access API', () => {
       });
       expect(invitePolicy.statusCode).toBe(200);
 
-      await store.addProjectCollaborator({ projectId: project.id, userId: member.id, roleKey: 'viewer' });
+      await store.addProjectCollaborator({
+        projectId: project.id,
+        expectedOrganizationId: organizationId,
+        userId: member.id,
+        roleKey: 'viewer',
+      });
 
       const collaboratorTicket = await app.inject({
         method: 'POST',
@@ -363,7 +368,11 @@ describe('deployment access API', () => {
       });
       expect(collaboratorTicket.statusCode).toBe(200);
 
-      await store.removeProjectCollaborator({ projectId: project.id, userId: member.id });
+      await store.removeProjectCollaborator({
+        projectId: project.id,
+        expectedOrganizationId: organizationId,
+        userId: member.id,
+      });
 
       const revokedCollaborator = await app.inject({
         method: 'POST',

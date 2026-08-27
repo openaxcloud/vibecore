@@ -14,6 +14,7 @@ import type {
   FeatureFlagRecord,
   ProjectCollaboratorRecord,
   ProjectRecord,
+  ProjectShareLinkRecord,
   ReleasePlanEntitlementsPin,
 } from './store.js';
 import { parseReleasePlanEntitlementsPin } from './store.js';
@@ -58,13 +59,15 @@ function explicitCapabilityFlags(flags: readonly FeatureFlagRecord[]): Enterpris
 }
 
 function explicitCustomRegions(flags: readonly FeatureFlagRecord[]): string[] {
-  return [...new Set(
-    flags
-      .filter(isFullyEnabled)
-      .filter((flag) => flag.key.startsWith(CUSTOM_PUBLISH_REGION_FLAG_PREFIX))
-      .map((flag) => normalizeRegion(flag.key.slice(CUSTOM_PUBLISH_REGION_FLAG_PREFIX.length)))
-      .filter((region): region is string => region !== null),
-  )].sort();
+  return [
+    ...new Set(
+      flags
+        .filter(isFullyEnabled)
+        .filter((flag) => flag.key.startsWith(CUSTOM_PUBLISH_REGION_FLAG_PREFIX))
+        .map((flag) => normalizeRegion(flag.key.slice(CUSTOM_PUBLISH_REGION_FLAG_PREFIX.length)))
+        .filter((region): region is string => region !== null),
+    ),
+  ].sort();
 }
 
 /**
@@ -166,17 +169,13 @@ export async function mutateReadOnlyViewerAccessWithEntitlements<T>(input: {
   store: ApiStore;
   organizationId: string;
   /** `null` means the mutation does not currently touch a read-only grant edge. */
-  prospectiveUserIds:
-    | readonly string[]
-    | (() => Promise<readonly string[] | null>);
+  prospectiveUserIds: readonly string[] | (() => Promise<readonly string[] | null>);
   excludeGroupId?: string;
   mutation: () => Promise<T>;
 }): Promise<ReadOnlyViewerMutationResult<T>> {
   return input.store.withSerializedMutation(`plan-viewers:${input.organizationId}`, async () => {
     const prospectiveUserIds =
-      typeof input.prospectiveUserIds === 'function'
-        ? await input.prospectiveUserIds()
-        : input.prospectiveUserIds;
+      typeof input.prospectiveUserIds === 'function' ? await input.prospectiveUserIds() : input.prospectiveUserIds;
 
     if (prospectiveUserIds === null) {
       return { allowed: true, value: await input.mutation() };
@@ -200,10 +199,7 @@ export async function mutateReadOnlyViewerAccessWithEntitlements<T>(input: {
 
       // A downgrade can leave a tenant temporarily above its new limit. Permit
       // removals/no-ops, but never let any mutation expand that audience.
-      if (
-        postMutationUserIds.size > entitlements.viewers &&
-        postMutationUserIds.size > currentViewerUserIds.length
-      ) {
+      if (postMutationUserIds.size > entitlements.viewers && postMutationUserIds.size > currentViewerUserIds.length) {
         return {
           allowed: false,
           limit: entitlements.viewers,
@@ -250,6 +246,7 @@ export async function addProjectCollaboratorWithEntitlements(input: {
     mutation: () =>
       input.store.addProjectCollaborator({
         projectId: input.project.id,
+        expectedOrganizationId: input.project.organizationId,
         userId: input.userId,
         roleKey: input.roleKey,
         expiresAt: input.expiresAt,
@@ -264,6 +261,38 @@ export async function addProjectCollaboratorWithEntitlements(input: {
         activeViewers: claim.activeViewers,
         entitlements: claim.entitlements,
       };
+}
+
+/**
+ * Reclaim a bearer link while the same org viewer lock used for direct grants
+ * is held. The store revalidates the link and tenant under the project transfer
+ * fence before it writes, so a stale source-tenant token cannot cross a move.
+ */
+export async function redeemProjectShareLinkWithEntitlements(input: {
+  store: ApiStore;
+  project: ProjectRecord;
+  link: ProjectShareLinkRecord;
+  userId: string;
+}): Promise<ReadOnlyViewerMutationResult<ProjectCollaboratorRecord | undefined>> {
+  return mutateReadOnlyViewerAccessWithEntitlements({
+    store: input.store,
+    organizationId: input.project.organizationId,
+    prospectiveUserIds: async () => {
+      if (!isReadOnlyProjectRole(input.link.roleKey)) return [];
+      const existing = await input.store.getActiveProjectCollaborator(input.project.id, input.userId);
+      return existing ? [] : [input.userId];
+    },
+    mutation: () =>
+      input.store.redeemProjectShareLink({
+        projectId: input.project.id,
+        expectedOrganizationId: input.project.organizationId,
+        shareLinkId: input.link.id,
+        tokenHash: input.link.tokenHash,
+        expectedRoleKey: input.link.roleKey,
+        expectedExpiresAt: new Date(input.link.expiresAt),
+        userId: input.userId,
+      }),
+  });
 }
 
 export type ViewerLinkEntitlementResult =
@@ -334,10 +363,7 @@ export function resolveDeploymentPlanEntitlementsPin(input: {
     throw Object.assign(new Error(), { code: 'PUBLISH_REGION_PLAN_RESTRICTED' });
   }
 
-  if (
-    input.entitlements.publishRegions === 'custom' &&
-    !input.entitlements.customPublishRegions.includes(requested)
-  ) {
+  if (input.entitlements.publishRegions === 'custom' && !input.entitlements.customPublishRegions.includes(requested)) {
     throw Object.assign(new Error(), { code: 'PUBLISH_REGION_OPERATOR_REQUIRED' });
   }
 
@@ -472,11 +498,7 @@ export async function claimPlanEgressAllowance(input: {
 
     const entitlements = await resolveOrganizationEntitlements(input.store, input.organizationId);
 
-    const previouslyObservedMib = await input.store.sumUsage(
-      input.organizationId,
-      PLAN_EGRESS_USAGE_TYPE,
-      periodStart,
-    );
+    const previouslyObservedMib = await input.store.sumUsage(input.organizationId, PLAN_EGRESS_USAGE_TYPE, periodStart);
     const split = splitEgressAllowance({
       previouslyObservedMib,
       newlyObservedMib,

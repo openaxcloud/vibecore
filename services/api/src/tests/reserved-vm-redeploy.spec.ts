@@ -122,6 +122,7 @@ async function setup(options: ApiAppOptions = {}) {
   });
   const workspace = await store.createWorkspace({
     projectId: project.id,
+    expectedOrganizationId: organization.id,
     name: 'Development',
     runtimeMode: 'docker',
     initialStatus: 'RUNNING',
@@ -292,6 +293,17 @@ describe('Reserved VM durable in-place redeploy', () => {
       },
     });
     const seeded = await seedCurrentReservedVm(runtime);
+    await runtime.store.upsertBillingPlan({
+      key: 'pro',
+      name: 'Legacy Pro',
+      monthlyCents: 2_900,
+      limits: {},
+    });
+    await runtime.store.upsertSubscription({
+      organizationId: runtime.organization.id,
+      planKey: 'pro',
+      status: 'ACTIVE',
+    });
     seeded.deployment.buildCommand = buildCommandSentinel;
     pipeline.runAppImageBuild.mockResolvedValue({
       ok: true,
@@ -359,14 +371,25 @@ describe('Reserved VM durable in-place redeploy', () => {
       userId: runtime.user.id,
     });
 
-    const durableRedeploy = (
-      (await runtime.store.getDeployment(runtime.project.id, seeded.deployment.id))?.metadata as
-        | { reservedVmRedeploy?: { encryptedBuildInput?: { keyId?: string; ciphertext?: string } } }
-        | undefined
-    )?.reservedVmRedeploy;
-    expect(durableRedeploy?.encryptedBuildInput?.keyId).toBe(oldKeyId);
-    expect(durableRedeploy?.encryptedBuildInput?.ciphertext).toEqual(expect.any(String));
-    expect(JSON.stringify(durableRedeploy?.encryptedBuildInput)).not.toContain(buildCommandSentinel);
+    const durableMetadata = (await runtime.store.getDeployment(runtime.project.id, seeded.deployment.id))?.metadata as
+      | {
+          planEntitlements?: unknown;
+          reservedVmRedeploy?: {
+            encryptedBuildInput?: { keyId?: string; ciphertext?: string };
+            targetPlanEntitlements?: unknown;
+          };
+        }
+      | undefined;
+    expect(durableMetadata?.planEntitlements).toEqual(PLAN_ENTITLEMENTS);
+    expect(durableMetadata?.reservedVmRedeploy?.targetPlanEntitlements).toMatchObject({
+      plan: 'core',
+      badgeRequired: false,
+    });
+    expect(durableMetadata?.reservedVmRedeploy?.encryptedBuildInput?.keyId).toBe(oldKeyId);
+    expect(durableMetadata?.reservedVmRedeploy?.encryptedBuildInput?.ciphertext).toEqual(expect.any(String));
+    expect(JSON.stringify(durableMetadata?.reservedVmRedeploy?.encryptedBuildInput)).not.toContain(
+      buildCommandSentinel,
+    );
 
     /* Rotate writers before a different worker resumes the durable old envelope. */
     process.env.RESERVED_VM_PAYLOAD_ENCRYPTION_KEY_ID = newKeyId;
@@ -380,7 +403,7 @@ describe('Reserved VM durable in-place redeploy', () => {
       payload: runtime.queuedJobs[0],
     });
 
-    expect(built.statusCode).toBe(200);
+    expect(built.statusCode, built.body).toBe(200);
     expect(starts).toBe(0);
     expect(stops).toBe(0);
     expect(reconfigureBodies).toHaveLength(1);
@@ -411,18 +434,38 @@ describe('Reserved VM durable in-place redeploy', () => {
       persistentStorageClaim: seeded.deployment.persistentStorageClaim,
     });
     expect(((persisted?.metadata as any)?.serverDeploy?.image as any)?.imageDigest).toBe(nextDigest);
+    expect((persisted?.metadata as any)?.planEntitlements).toMatchObject({ plan: 'core', badgeRequired: false });
     expect(runtime.store.releaseManifests).toHaveLength(2);
     expect(runtime.store.releaseManifests.map((manifest) => manifest.deploymentId)).toEqual([
       seeded.deployment.id,
       seeded.deployment.id,
     ]);
-    expect(runtime.store.releaseManifests.at(-1)).toMatchObject({ version: 2, artifactDigest: nextDigest });
+    expect(runtime.store.releaseManifests.at(-1)).toMatchObject({
+      version: 2,
+      artifactDigest: nextDigest,
+      planEntitlements: { plan: 'core', badgeRequired: false },
+    });
     expect(await runtime.store.getReservedVmOperation(runtime.project.id, idempotencyKey)).toMatchObject({
       kind: 'REDEPLOY',
       status: 'COMPLETED',
       phase: 'COMMITTED',
       billingAmountCents: 0,
     });
+
+    await runtime.store.upsertBillingPlan({
+      key: 'pro',
+      name: 'Pro',
+      monthlyCents: 10_000,
+      limits: {},
+    });
+    await runtime.store.upsertSubscription({
+      organizationId: runtime.organization.id,
+      planKey: 'pro',
+      status: 'ACTIVE',
+    });
+    const divergentReplay = await runtime.app.inject(request);
+    expect(divergentReplay.statusCode).toBe(409);
+    expect(divergentReplay.json().code).toBe('RESERVED_VM_IDEMPOTENCY_CONFLICT');
 
     await runtime.app.close();
   });
@@ -508,7 +551,7 @@ describe('Reserved VM durable in-place redeploy', () => {
       payload: runtime.queuedJobs[0],
     });
 
-    expect(built.statusCode).toBe(200);
+    expect(built.statusCode, built.body).toBe(200);
     expect(starts).toBe(0);
     expect(stops).toBe(0);
     expect(reconfigures).toBe(1);
@@ -523,6 +566,7 @@ describe('Reserved VM durable in-place redeploy', () => {
       reservedVmBillingState: 'CURRENT',
     });
     expect(((persisted?.metadata as any)?.serverDeploy?.image as any)?.imageDigest).toBe(seeded.oldDigest);
+    expect((persisted?.metadata as any)?.planEntitlements).toEqual(PLAN_ENTITLEMENTS);
     expect(runtime.store.releaseManifests).toHaveLength(1);
     expect(runtime.store.releaseManifests[0]).toMatchObject({ artifactDigest: seeded.oldDigest, version: 1 });
     expect(await runtime.store.getReservedVmOperation(runtime.project.id, idempotencyKey)).toMatchObject({

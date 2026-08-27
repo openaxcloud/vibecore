@@ -58,7 +58,12 @@ describe('project collaborator role enforcement', () => {
     // Org role 'member' grants projects:write at the org level...
     await store.addMember({ organizationId: owner.organization.id, userId: viewer.user.id, roleKey: 'member' });
     // ...but the per-project collaborator role is read-only.
-    await store.addProjectCollaborator({ projectId, userId: viewer.user.id, roleKey: 'viewer' });
+    await store.addProjectCollaborator({
+      projectId,
+      expectedOrganizationId: owner.organization.id,
+      userId: viewer.user.id,
+      roleKey: 'viewer',
+    });
 
     const write = await app.inject({
       method: 'PATCH',
@@ -86,7 +91,12 @@ describe('project collaborator role enforcement', () => {
     const editor = await register(app, 'editor@example.com', 'Editor Org');
 
     await store.addMember({ organizationId: owner.organization.id, userId: editor.user.id, roleKey: 'member' });
-    await store.addProjectCollaborator({ projectId, userId: editor.user.id, roleKey: 'editor' });
+    await store.addProjectCollaborator({
+      projectId,
+      expectedOrganizationId: owner.organization.id,
+      userId: editor.user.id,
+      roleKey: 'editor',
+    });
 
     const write = await app.inject({
       method: 'PATCH',
@@ -117,7 +127,12 @@ describe('project collaborator role enforcement', () => {
     const { store, app, owner, projectId } = await setup();
     // `outsider` belongs only to their own org, never to the project's org.
     const outsider = await register(app, 'outsider@example.com', 'Outsider Org');
-    await store.addProjectCollaborator({ projectId, userId: outsider.user.id, roleKey: 'editor' });
+    await store.addProjectCollaborator({
+      projectId,
+      expectedOrganizationId: owner.organization.id,
+      userId: outsider.user.id,
+      roleKey: 'editor',
+    });
 
     const read = await app.inject({
       method: 'GET',
@@ -140,7 +155,12 @@ describe('project collaborator role enforcement', () => {
   it('keeps a collaborator-only viewer read-only', async () => {
     const { store, app, owner, projectId } = await setup();
     const outsider = await register(app, 'outside-viewer@example.com', 'Outside Viewer Org');
-    await store.addProjectCollaborator({ projectId, userId: outsider.user.id, roleKey: 'viewer' });
+    await store.addProjectCollaborator({
+      projectId,
+      expectedOrganizationId: owner.organization.id,
+      userId: outsider.user.id,
+      roleKey: 'viewer',
+    });
 
     const read = await app.inject({
       method: 'GET',

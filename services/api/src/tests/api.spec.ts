@@ -3896,6 +3896,8 @@ describe('SaaS API', () => {
     const member = await register(app, { email: 'collab-member@example.com' });
     const viewer = await register(app, { email: 'collab-viewer@example.com' });
     const outsider = await register(app, { email: 'collab-outsider@example.com' });
+    await store.upsertBillingPlan({ key: 'team', name: 'Legacy Team', monthlyCents: 9_900, limits: {} });
+    await store.upsertSubscription({ organizationId: owner.organization.id, planKey: 'team', status: 'ACTIVE' });
     await store.addMember({ organizationId: owner.organization.id, userId: member.user.id, roleKey: 'member' });
     await store.addMember({ organizationId: owner.organization.id, userId: viewer.user.id, roleKey: 'viewer' });
 
@@ -4206,7 +4208,7 @@ describe('SaaS API', () => {
       headers: { authorization: `Bearer ${auth.token}` },
       payload: { name: 'Zip Project', zipBase64 },
     });
-    expect(imported.statusCode).toBe(201);
+    expect(imported.statusCode, imported.body).toBe(201);
     expect(imported.json().files.map((file: { path: string }) => file.path)).toContain('src/index.ts');
 
     const exported = await app.inject({
@@ -4252,6 +4254,7 @@ describe('SaaS API', () => {
     const projectId = project.json().project.id as string;
     await store.upsertProjectIdeState({
       projectId,
+      expectedOrganizationId: auth.organization.id,
       updatedByUserId: auth.user.id,
       state: {
         chat: {
@@ -4872,36 +4875,36 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
       process.env.CLOUD_RUN_REGION = 'us-central1';
 
       const deployHookFetch = vi.fn(async (input: Parameters<typeof fetch>[0]) => {
-          const url = String(input);
+        const url = String(input);
 
-          if (url === 'https://deploy-hooks.test/vercel') {
-            return new Response(
-              JSON.stringify({
-                job: {
-                  id: 'job_vercel_1',
-                  url: 'https://deployable-app.vercel.vibecore.local',
+        if (url === 'https://deploy-hooks.test/vercel') {
+          return new Response(
+            JSON.stringify({
+              job: {
+                id: 'job_vercel_1',
+                url: 'https://deployable-app.vercel.vibecore.local',
+              },
+            }),
+            { status: 201, headers: { 'content-type': 'application/json' } },
+          );
+        }
+
+        if (url === 'https://deploy-hooks.test/cloud-run') {
+          return new Response(
+            JSON.stringify({
+              metadata: {
+                build: {
+                  id: 'build_cloud_run_1',
+                  results: { images: [{ name: 'gcr.io/vibecore/deployable-app' }] },
                 },
-              }),
-              { status: 201, headers: { 'content-type': 'application/json' } },
-            );
-          }
+              },
+            }),
+            { status: 200, headers: { 'content-type': 'application/json' } },
+          );
+        }
 
-          if (url === 'https://deploy-hooks.test/cloud-run') {
-            return new Response(
-              JSON.stringify({
-                metadata: {
-                  build: {
-                    id: 'build_cloud_run_1',
-                    results: { images: [{ name: 'gcr.io/vibecore/deployable-app' }] },
-                  },
-                },
-              }),
-              { status: 200, headers: { 'content-type': 'application/json' } },
-            );
-          }
-
-          throw new Error(`Unexpected deploy hook request: ${url}`);
-        });
+        throw new Error(`Unexpected deploy hook request: ${url}`);
+      });
       vi.stubGlobal('fetch', deployHookFetch);
 
       const vercel = await app.inject({
@@ -5174,7 +5177,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
       headers: { authorization: `Bearer ${auth.token}` },
       payload: { repositoryUrl: 'https://github.com/acme/app', branch: 'main' },
     });
-    expect(imported.statusCode).toBe(201);
+    expect(imported.statusCode, imported.body).toBe(201);
 
     const projectId = imported.json().project.id as string;
 
@@ -6925,7 +6928,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     expect(costs[0].inputTokens).toBe(10_000);
     expect(costs[0].outputTokens).toBe(2_000);
     expect(costs[0].costCents).toBe(6);
-    expect(costs[0].reason).toBe('chat.completion.bolt-chat');
+    expect(costs[0].reason).toBe('chat.completion.bolt-chat.main.main');
 
     await app.close();
   });
@@ -7025,7 +7028,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
 
     // free plan is managed-mode → BYOK disallowed
     expect(body.byok.allowed).toBe(false);
-    expect(body.byok.plan).toBe('free');
+    expect(body.byok.plan).toBe('starter');
     expect(body.byok.reason).toBe('managed-mode-plan');
 
     await app.close();
@@ -7062,7 +7065,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
 
     const body = check.json();
     expect(body.byok.allowed).toBe(true);
-    expect(body.byok.plan).toBe('team');
+    expect(body.byok.plan).toBe('pro');
     expect(body.byok.reason).toBe('plan-allows-byok');
 
     await app.close();

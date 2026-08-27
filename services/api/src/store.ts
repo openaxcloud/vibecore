@@ -2668,13 +2668,15 @@ export interface ApiStore {
     manifestCloneMode?: 'COPY' | 'DETACH_EXTERNALS';
   }): Promise<ProjectRecord>;
 
-  /** Atomically publish COMMITTED and SETTLED, disposing Json staging/preview. */
+  /** Atomically persist the verified IDE manifest, publish COMMITTED/SETTLED, and reveal the target. */
   finalizeImportCommit(input: {
     importJobId: string;
     organizationId: string;
     operationToken: string;
     targetProjectId: string;
     actualCredits: number;
+    projectIdeState?: unknown;
+    updatedByUserId?: string;
   }): Promise<{ job: ImportJobRecord; reservation: ImportCreditReservationRecord } | undefined>;
 
   /** Move an owned/claimed job to durable cleanup and compensate in one tx. */
@@ -2717,6 +2719,7 @@ export interface ApiStore {
   deleteProjectSecret(projectId: string, key: string): Promise<ProjectSecretRecord | undefined>;
   addProjectCollaborator(input: {
     projectId: string;
+    expectedOrganizationId: string;
     userId: string;
     roleKey: string;
     expiresAt?: Date | null;
@@ -2733,7 +2736,11 @@ export interface ApiStore {
   listActiveOrganizationViewerUserIds(organizationId: string, options?: { excludeGroupId?: string }): Promise<string[]>;
   /** Whether this live group currently confers guest/viewer access to any live project. */
   groupHasActiveReadOnlyProjectGrant(organizationId: string, groupId: string): Promise<boolean>;
-  removeProjectCollaborator(input: { projectId: string; userId: string }): Promise<boolean>;
+  removeProjectCollaborator(input: {
+    projectId: string;
+    expectedOrganizationId: string;
+    userId: string;
+  }): Promise<boolean>;
   createCollaborationGroup(input: {
     organizationId: string;
     name: string;
@@ -2853,6 +2860,7 @@ export interface ApiStore {
   getProjectIdeState(projectId: string): Promise<ProjectIdeStateRecord | undefined>;
   upsertProjectIdeState(input: {
     projectId: string;
+    expectedOrganizationId: string;
     state: unknown;
     updatedByUserId?: string;
     expectedVersion?: number;
@@ -2867,16 +2875,21 @@ export interface ApiStore {
   getWorkspaceIdeState(workspaceId: string): Promise<WorkspaceIdeStateRecord | undefined>;
   upsertWorkspaceIdeState(input: {
     workspaceId: string;
+    expectedProjectId: string;
+    expectedOrganizationId: string;
     state: unknown;
     updatedByUserId?: string;
     expectedVersion?: number;
   }): Promise<WorkspaceIdeStateRecord>;
   updateWorkspaceGitRepositoryUrl(input: {
     workspaceId: string;
+    expectedProjectId: string;
+    expectedOrganizationId: string;
     gitRepositoryUrl: string | null;
   }): Promise<WorkspaceRecord>;
   upsertCollaborationPresence(input: {
     projectId: string;
+    expectedOrganizationId: string;
     userId: string;
     sessionId: string;
     status?: CollaborationPresenceRecord['status'];
@@ -2886,10 +2899,15 @@ export interface ApiStore {
     mode?: CollaborationPresenceRecord['mode'];
     terminalAccess?: boolean;
   }): Promise<CollaborationPresenceRecord>;
-  removeCollaborationPresence(projectId: string, sessionId: string): Promise<boolean>;
+  removeCollaborationPresence(input: {
+    projectId: string;
+    expectedOrganizationId: string;
+    sessionId: string;
+  }): Promise<boolean>;
   listCollaborationPresence(projectId: string): Promise<CollaborationPresenceRecord[]>;
   createCollaborationComment(input: {
     projectId: string;
+    expectedOrganizationId: string;
     userId: string;
     filePath?: string;
     line?: number;
@@ -2899,6 +2917,7 @@ export interface ApiStore {
   listCollaborationComments(projectId: string): Promise<CollaborationCommentRecord[]>;
   createProjectShareLink(input: {
     projectId: string;
+    expectedOrganizationId: string;
     tokenHash: string;
     roleKey: ProjectShareLinkRecord['roleKey'];
     expiresAt: Date;
@@ -2914,7 +2933,22 @@ export interface ApiStore {
   findProjectShareLinkByToken(token: string): Promise<ProjectShareLinkRecord | undefined>;
 
   /** Revoke a project share link (sets revokedAt). Returns false if not found / already revoked. */
-  revokeProjectShareLink(input: { projectId: string; id: string }): Promise<boolean>;
+  revokeProjectShareLink(input: { projectId: string; expectedOrganizationId: string; id: string }): Promise<boolean>;
+
+  /**
+   * Revalidate an unexpired bearer link and grant its pinned role under the
+   * same topology/checkpoint/Project critical section. This closes both link
+   * revocation and tenant-transfer races between token lookup and admission.
+   */
+  redeemProjectShareLink(input: {
+    projectId: string;
+    expectedOrganizationId: string;
+    shareLinkId: string;
+    tokenHash: string;
+    expectedRoleKey: ProjectShareLinkRecord['roleKey'];
+    expectedExpiresAt: Date;
+    userId: string;
+  }): Promise<ProjectCollaboratorRecord | undefined>;
 
   /**
    * Persist a shared conversation snapshot. The caller supplies the sha256
@@ -2924,6 +2958,7 @@ export interface ApiStore {
     tokenHash: string;
     conversationId: string;
     projectId: string;
+    expectedOrganizationId: string;
     authorUserId: string;
     title?: string;
     payload: unknown;
@@ -2941,7 +2976,12 @@ export interface ApiStore {
   listChatShares(projectId: string): Promise<ChatShareRecord[]>;
 
   /** Revoke a chat share (sets revokedAt). Returns false if not found / already revoked. */
-  revokeChatShare(input: { id: string; authorUserId?: string; projectId?: string }): Promise<boolean>;
+  revokeChatShare(input: {
+    id: string;
+    projectId: string;
+    expectedOrganizationId: string;
+    authorUserId?: string;
+  }): Promise<boolean>;
   upsertAgentPatchProposal(input: {
     id: string;
     projectId: string;
@@ -3044,6 +3084,7 @@ export interface ApiStore {
   createWorkspace(input: {
     id?: string;
     projectId: string;
+    expectedOrganizationId: string;
     name: string;
     runtimeMode: string;
     environment?: string;
@@ -4477,7 +4518,12 @@ export interface ApiStore {
   listAdminSupportTickets(): Promise<SupportTicketRecord[]>;
   listAdminUsageEvents(): Promise<UsageEventRecord[]>;
   listAdminAiCosts(): Promise<AiCostLedgerRecord[]>;
-  updateWorkspaceStatus(input: { workspaceId: string; status: WorkspaceRecord['status'] }): Promise<WorkspaceRecord>;
+  updateWorkspaceStatus(input: {
+    workspaceId: string;
+    expectedProjectId: string;
+    expectedOrganizationId: string;
+    status: WorkspaceRecord['status'];
+  }): Promise<WorkspaceRecord>;
   updateSupportTicket(input: {
     ticketId: string;
     status: SupportTicketRecord['status'];

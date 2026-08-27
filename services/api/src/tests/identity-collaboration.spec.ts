@@ -90,7 +90,12 @@ describe('P0-EX-07 identity collaboration', () => {
     );
 
     for (const user of users.slice(0, 49)) {
-      await store.addProjectCollaborator({ projectId, userId: user.id, roleKey: 'guest' });
+      await store.addProjectCollaborator({
+        projectId,
+        expectedOrganizationId: owner.organization.id,
+        userId: user.id,
+        roleKey: 'guest',
+      });
     }
 
     const createdGroup = await app.inject({
@@ -288,7 +293,12 @@ describe('P0-EX-07 identity collaboration', () => {
     expect(write.statusCode).toBe(200);
 
     /* An explicit legacy read-only collaborator edge is a deny ceiling. */
-    await store.addProjectCollaborator({ projectId, userId: member.user.id, roleKey: 'viewer' });
+    await store.addProjectCollaborator({
+      projectId,
+      expectedOrganizationId: owner.organization.id,
+      userId: member.user.id,
+      roleKey: 'viewer',
+    });
     const cappedWrite = await app.inject({
       method: 'PATCH',
       url: `/projects/${projectId}/settings`,
@@ -297,7 +307,11 @@ describe('P0-EX-07 identity collaboration', () => {
     });
     expect(cappedWrite.statusCode).toBe(403);
     expect(cappedWrite.json()).toMatchObject({ code: 'PROJECT_ROLE_READ_ONLY' });
-    await store.removeProjectCollaborator({ projectId, userId: member.user.id });
+    await store.removeProjectCollaborator({
+      projectId,
+      expectedOrganizationId: owner.organization.id,
+      userId: member.user.id,
+    });
 
     await app.inject({
       method: 'DELETE',
@@ -516,6 +530,110 @@ describe('P0-EX-07 identity collaboration', () => {
       await expect(closed).resolves.toEqual(expect.any(Number));
     } finally {
       socket.close();
+      await app.close();
+    }
+  });
+
+  it('does not deliver target-tenant collaboration events to a socket joined before project transfer', async () => {
+    const { app, store, owner, projectId } = await setup();
+    const targetOwner = await register(app, 'socket-target-owner@example.com', 'Socket Target Org');
+    const sourceTicket = await app.inject({
+      method: 'GET',
+      url: `/projects/${projectId}/collaboration/ws-ticket?sessionId=source-before-transfer`,
+      headers: auth(owner.token),
+    });
+    expect(sourceTicket.statusCode).toBe(200);
+    const address = await app.listen({ port: 0, host: '127.0.0.1' });
+    const sourceSocket = new WebSocket(
+      `${address.replace(/^http/, 'ws')}/projects/${projectId}/collaboration/ws?ticket=${encodeURIComponent(
+        sourceTicket.json().ticket,
+      )}&sessionId=source-before-transfer`,
+    );
+    const sourceMessages: Array<Record<string, unknown>> = [];
+    sourceSocket.addEventListener('message', (event) => {
+      sourceMessages.push(JSON.parse(String(event.data)) as Record<string, unknown>);
+    });
+
+    let targetSocket: WebSocket | undefined;
+    try {
+      await new Promise<void>((resolve, reject) => {
+        const timeout = setTimeout(() => reject(new Error('Source collaboration socket did not become ready')), 2_000);
+        sourceSocket.addEventListener('message', (event) => {
+          const payload = JSON.parse(String(event.data)) as Record<string, unknown>;
+          if (payload.type === 'collaboration.ready') {
+            clearTimeout(timeout);
+            resolve();
+          }
+        });
+        sourceSocket.addEventListener('error', () => {
+          clearTimeout(timeout);
+          reject(new Error('Source collaboration socket failed before ready'));
+        });
+      });
+
+      await expect(
+        store.transferProject({
+          projectId,
+          targetOrganizationId: targetOwner.organization.id,
+          actorUserId: owner.user.id,
+        }),
+      ).resolves.toMatchObject({ organizationId: targetOwner.organization.id });
+
+      const targetTicket = await app.inject({
+        method: 'GET',
+        url: `/projects/${projectId}/collaboration/ws-ticket?sessionId=target-after-transfer`,
+        headers: auth(targetOwner.token),
+      });
+      expect(targetTicket.statusCode).toBe(200);
+      targetSocket = new WebSocket(
+        `${address.replace(/^http/, 'ws')}/projects/${projectId}/collaboration/ws?ticket=${encodeURIComponent(
+          targetTicket.json().ticket,
+        )}&sessionId=target-after-transfer`,
+      );
+      await new Promise<void>((resolve, reject) => {
+        const timeout = setTimeout(() => reject(new Error('Target collaboration socket did not become ready')), 2_000);
+        targetSocket!.addEventListener('message', (event) => {
+          const payload = JSON.parse(String(event.data)) as Record<string, unknown>;
+          if (payload.type === 'collaboration.ready') {
+            clearTimeout(timeout);
+            resolve();
+          }
+        });
+        targetSocket!.addEventListener('error', () => {
+          clearTimeout(timeout);
+          reject(new Error('Target collaboration socket failed before ready'));
+        });
+      });
+
+      const targetComment = new Promise<Record<string, unknown>>((resolve, reject) => {
+        const timeout = setTimeout(() => reject(new Error('Target collaboration event was not delivered')), 2_000);
+        targetSocket!.addEventListener('message', (event) => {
+          const payload = JSON.parse(String(event.data)) as Record<string, unknown>;
+          if (payload.type === 'comment.create') {
+            clearTimeout(timeout);
+            resolve(payload);
+          }
+        });
+      });
+      const created = await app.inject({
+        method: 'POST',
+        url: `/projects/${projectId}/collaboration/comments`,
+        headers: auth(targetOwner.token),
+        payload: { body: 'target tenant only' },
+      });
+      expect(created.statusCode, created.body).toBe(201);
+      await expect(targetComment).resolves.toMatchObject({ type: 'comment.create' });
+      await new Promise((resolve) => setTimeout(resolve, 25));
+      expect(
+        sourceMessages.some(
+          (message) =>
+            message.type === 'comment.create' &&
+            (message.comment as { body?: string } | undefined)?.body === 'target tenant only',
+        ),
+      ).toBe(false);
+    } finally {
+      sourceSocket.close();
+      targetSocket?.close();
       await app.close();
     }
   });

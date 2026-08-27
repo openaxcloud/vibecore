@@ -192,6 +192,54 @@ function publicReservedVmOperation(operation: ReservedVmLease): ReservedVmOperat
   return record;
 }
 
+function parseReservedVmRedeployReleaseIntent(value: unknown):
+  | {
+      priorPlanEntitlements: ReleasePlanEntitlementsPin;
+      priorProjectManifestDigest: string;
+      targetPlanEntitlements: ReleasePlanEntitlementsPin;
+      targetProjectManifestDigest: string;
+    }
+  | undefined {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
+  const intent = (value as { redeployIntent?: unknown }).redeployIntent;
+
+  if (!intent || typeof intent !== 'object' || Array.isArray(intent)) return undefined;
+  const candidate = intent as Record<string, unknown>;
+  const priorPlanEntitlements = parseReleasePlanEntitlementsPin(candidate.priorPlanEntitlements);
+  const targetPlanEntitlements = parseReleasePlanEntitlementsPin(candidate.targetPlanEntitlements);
+
+  if (
+    candidate.version !== 1 ||
+    !priorPlanEntitlements ||
+    !targetPlanEntitlements ||
+    typeof candidate.priorProjectManifestDigest !== 'string' ||
+    !PROJECT_MANIFEST_DIGEST_PATTERN.test(candidate.priorProjectManifestDigest) ||
+    typeof candidate.targetProjectManifestDigest !== 'string' ||
+    !PROJECT_MANIFEST_DIGEST_PATTERN.test(candidate.targetProjectManifestDigest)
+  ) {
+    return undefined;
+  }
+
+  return {
+    priorPlanEntitlements,
+    priorProjectManifestDigest: candidate.priorProjectManifestDigest,
+    targetPlanEntitlements,
+    targetProjectManifestDigest: candidate.targetProjectManifestDigest,
+  };
+}
+
+function clearTenantScopedIdeCapabilities(state: unknown): unknown {
+  if (!state || typeof state !== 'object' || Array.isArray(state)) return state;
+  const root = state as Record<string, unknown>;
+  const collaboration =
+    root.collaboration && typeof root.collaboration === 'object' && !Array.isArray(root.collaboration)
+      ? (root.collaboration as Record<string, unknown>)
+      : undefined;
+
+  if (!collaboration) return state;
+  return { ...root, collaboration: { ...collaboration, terminalPermissions: {} } };
+}
+
 function slugify(value: string) {
   return value
     .toLowerCase()
@@ -1756,6 +1804,10 @@ export class TestApiStore implements ApiStore {
       const hasNonTerminalReservedVmOperation = [...this.reservedVmOperations.values()].some(
         (operation) => operation.projectId === project.id && !['COMPLETED', 'FAILED'].includes(operation.status),
       );
+      const hasActiveWorkspace = [...this.workspaces.values()].some(
+        (workspace) =>
+          workspace.projectId === project.id && ['PENDING', 'STARTING', 'RUNNING'].includes(workspace.status),
+      );
 
       const hasReleaseManifest = this.releaseManifests.some((manifest) => manifest.projectId === project.id);
 
@@ -1767,6 +1819,7 @@ export class TestApiStore implements ApiStore {
         hasActiveStorageShare ||
         hasLiveDeployment ||
         hasNonTerminalReservedVmOperation ||
+        hasActiveWorkspace ||
         hasReleaseManifest ||
         this.cloudProjectBindingProjectIds.has(project.id)
       ) {
@@ -1804,6 +1857,28 @@ export class TestApiStore implements ApiStore {
             updatedAt: now(),
           });
         }
+      }
+
+      for (const [collaboratorId, collaborator] of this.projectCollaborators) {
+        if (collaborator.projectId === project.id) this.projectCollaborators.delete(collaboratorId);
+      }
+      for (const [shareLinkId, shareLink] of this.projectShareLinks) {
+        if (shareLink.projectId === project.id) this.projectShareLinks.delete(shareLinkId);
+      }
+      for (const [tokenHash, share] of this.chatShares) {
+        if (share.projectId === project.id) this.chatShares.delete(tokenHash);
+      }
+      for (const [presenceId, presence] of this.collaborationPresence) {
+        if (presence.projectId === project.id) this.collaborationPresence.delete(presenceId);
+      }
+      const ideState = this.projectIdeStates.get(project.id);
+      if (ideState) {
+        this.projectIdeStates.set(project.id, {
+          ...ideState,
+          state: clearTenantScopedIdeCapabilities(ideState.state),
+          version: ideState.version + 1,
+          updatedAt: now(),
+        });
       }
 
       project.organizationId = input.targetOrganizationId;
@@ -1943,7 +2018,25 @@ export class TestApiStore implements ApiStore {
     return existing;
   }
 
-  async addProjectCollaborator(input: { projectId: string; userId: string; roleKey: string; expiresAt?: Date | null }) {
+  private assertProjectTenantMutation(projectId: string, expectedOrganizationId: string) {
+    const project = this.projects.get(projectId);
+    if (!project || project.deletedAt || project.organizationId !== expectedOrganizationId) {
+      throw Object.assign(new Error(appPublicEnglish('PROJECT_ORGANIZATION_CHANGED_DURING_MUTATION')), {
+        code: 'PROJECT_ORGANIZATION_CHANGED_DURING_MUTATION',
+        statusCode: 409,
+      });
+    }
+    return project;
+  }
+
+  async addProjectCollaborator(input: {
+    projectId: string;
+    expectedOrganizationId: string;
+    userId: string;
+    roleKey: string;
+    expiresAt?: Date | null;
+  }) {
+    this.assertProjectTenantMutation(input.projectId, input.expectedOrganizationId);
     const expiresAt = input.expiresAt ? input.expiresAt.toISOString() : undefined;
 
     const existing = [...this.projectCollaborators.values()].find(
@@ -2066,7 +2159,8 @@ export class TestApiStore implements ApiStore {
     );
   }
 
-  async removeProjectCollaborator(input: { projectId: string; userId: string }) {
+  async removeProjectCollaborator(input: { projectId: string; expectedOrganizationId: string; userId: string }) {
+    this.assertProjectTenantMutation(input.projectId, input.expectedOrganizationId);
     const existing = [...this.projectCollaborators.values()].find(
       (collaborator) => collaborator.projectId === input.projectId && collaborator.userId === input.userId,
     );
@@ -2715,8 +2809,21 @@ export class TestApiStore implements ApiStore {
     return this.projectIdeStates.get(projectId);
   }
 
-  async upsertProjectIdeState(input: { projectId: string; state: unknown; updatedByUserId?: string }) {
+  async upsertProjectIdeState(input: {
+    projectId: string;
+    expectedOrganizationId: string;
+    state: unknown;
+    updatedByUserId?: string;
+    expectedVersion?: number;
+  }) {
+    this.assertProjectTenantMutation(input.projectId, input.expectedOrganizationId);
     const existing = this.projectIdeStates.get(input.projectId);
+
+    if (input.expectedVersion !== undefined && existing?.version !== input.expectedVersion) {
+      throw Object.assign(new Error(appPublicEnglish('IDE_STATE_VERSION_CONFLICT')), {
+        code: 'IDE_STATE_VERSION_CONFLICT',
+      });
+    }
 
     const record: ProjectIdeStateRecord = {
       projectId: input.projectId,
@@ -2735,8 +2842,29 @@ export class TestApiStore implements ApiStore {
     return this.workspaceIdeStates.get(workspaceId);
   }
 
-  async upsertWorkspaceIdeState(input: { workspaceId: string; state: unknown; updatedByUserId?: string }) {
+  async upsertWorkspaceIdeState(input: {
+    workspaceId: string;
+    expectedProjectId: string;
+    expectedOrganizationId: string;
+    state: unknown;
+    updatedByUserId?: string;
+    expectedVersion?: number;
+  }) {
+    const workspace = this.workspaces.get(input.workspaceId);
+    if (!workspace || workspace.projectId !== input.expectedProjectId) {
+      throw Object.assign(new Error(appPublicEnglish('PROJECT_ORGANIZATION_CHANGED_DURING_MUTATION')), {
+        code: 'PROJECT_ORGANIZATION_CHANGED_DURING_MUTATION',
+        statusCode: 409,
+      });
+    }
+    this.assertProjectTenantMutation(input.expectedProjectId, input.expectedOrganizationId);
     const existing = this.workspaceIdeStates.get(input.workspaceId);
+
+    if (input.expectedVersion !== undefined && existing?.version !== input.expectedVersion) {
+      throw Object.assign(new Error(appPublicEnglish('IDE_STATE_VERSION_CONFLICT')), {
+        code: 'IDE_STATE_VERSION_CONFLICT',
+      });
+    }
 
     const record: WorkspaceIdeStateRecord = {
       workspaceId: input.workspaceId,
@@ -2751,12 +2879,21 @@ export class TestApiStore implements ApiStore {
     return record;
   }
 
-  async updateWorkspaceGitRepositoryUrl(input: { workspaceId: string; gitRepositoryUrl: string | null }) {
+  async updateWorkspaceGitRepositoryUrl(input: {
+    workspaceId: string;
+    expectedProjectId: string;
+    expectedOrganizationId: string;
+    gitRepositoryUrl: string | null;
+  }) {
     const workspace = this.workspaces.get(input.workspaceId);
 
-    if (!workspace) {
-      throw Object.assign(new Error('Workspace not found'), { statusCode: 404, code: 'WORKSPACE_NOT_FOUND' });
+    if (!workspace || workspace.projectId !== input.expectedProjectId) {
+      throw Object.assign(new Error(appPublicEnglish('PROJECT_ORGANIZATION_CHANGED_DURING_MUTATION')), {
+        statusCode: 409,
+        code: 'PROJECT_ORGANIZATION_CHANGED_DURING_MUTATION',
+      });
     }
+    this.assertProjectTenantMutation(input.expectedProjectId, input.expectedOrganizationId);
 
     const updated: WorkspaceRecord = {
       ...workspace,
@@ -2769,6 +2906,7 @@ export class TestApiStore implements ApiStore {
 
   async upsertCollaborationPresence(input: {
     projectId: string;
+    expectedOrganizationId: string;
     userId: string;
     sessionId: string;
     status?: CollaborationPresenceRecord['status'];
@@ -2778,6 +2916,7 @@ export class TestApiStore implements ApiStore {
     mode?: CollaborationPresenceRecord['mode'];
     terminalAccess?: boolean;
   }) {
+    this.assertProjectTenantMutation(input.projectId, input.expectedOrganizationId);
     const existing = [...this.collaborationPresence.values()].find(
       (presence) => presence.projectId === input.projectId && presence.sessionId === input.sessionId,
     );
@@ -2809,9 +2948,10 @@ export class TestApiStore implements ApiStore {
     return record;
   }
 
-  async removeCollaborationPresence(projectId: string, sessionId: string) {
+  async removeCollaborationPresence(input: { projectId: string; expectedOrganizationId: string; sessionId: string }) {
+    this.assertProjectTenantMutation(input.projectId, input.expectedOrganizationId);
     const existing = [...this.collaborationPresence.values()].find(
-      (presence) => presence.projectId === projectId && presence.sessionId === sessionId,
+      (presence) => presence.projectId === input.projectId && presence.sessionId === input.sessionId,
     );
 
     if (!existing) {
@@ -2829,13 +2969,24 @@ export class TestApiStore implements ApiStore {
 
   async createCollaborationComment(input: {
     projectId: string;
+    expectedOrganizationId: string;
     userId: string;
     filePath?: string;
     line?: number;
     selection?: unknown;
     body: string;
   }) {
-    const comment: CollaborationCommentRecord = { id: id('comment'), ...input, createdAt: now() };
+    this.assertProjectTenantMutation(input.projectId, input.expectedOrganizationId);
+    const comment: CollaborationCommentRecord = {
+      id: id('comment'),
+      projectId: input.projectId,
+      userId: input.userId,
+      filePath: input.filePath,
+      line: input.line,
+      selection: input.selection,
+      body: input.body,
+      createdAt: now(),
+    };
     this.collaborationComments.set(comment.id, comment);
 
     return comment;
@@ -2847,11 +2998,13 @@ export class TestApiStore implements ApiStore {
 
   async createProjectShareLink(input: {
     projectId: string;
+    expectedOrganizationId: string;
     tokenHash: string;
     roleKey: ProjectShareLinkRecord['roleKey'];
     expiresAt: Date;
     createdByUserId?: string;
   }) {
+    this.assertProjectTenantMutation(input.projectId, input.expectedOrganizationId);
     const link: ProjectShareLinkRecord = {
       id: id('share'),
       projectId: input.projectId,
@@ -2881,7 +3034,8 @@ export class TestApiStore implements ApiStore {
     return link;
   }
 
-  async revokeProjectShareLink(input: { projectId: string; id: string }) {
+  async revokeProjectShareLink(input: { projectId: string; expectedOrganizationId: string; id: string }) {
+    this.assertProjectTenantMutation(input.projectId, input.expectedOrganizationId);
     const link = this.projectShareLinks.get(input.id);
 
     if (!link || link.projectId !== input.projectId || link.revokedAt) {
@@ -2893,16 +3047,53 @@ export class TestApiStore implements ApiStore {
     return true;
   }
 
+  async redeemProjectShareLink(input: {
+    projectId: string;
+    expectedOrganizationId: string;
+    shareLinkId: string;
+    tokenHash: string;
+    expectedRoleKey: ProjectShareLinkRecord['roleKey'];
+    expectedExpiresAt: Date;
+    userId: string;
+  }) {
+    this.assertProjectTenantMutation(input.projectId, input.expectedOrganizationId);
+    const link = this.projectShareLinks.get(input.shareLinkId);
+    if (
+      !link ||
+      link.projectId !== input.projectId ||
+      link.tokenHash !== input.tokenHash ||
+      link.roleKey !== input.expectedRoleKey ||
+      link.expiresAt !== input.expectedExpiresAt.toISOString() ||
+      link.revokedAt ||
+      new Date(link.expiresAt).getTime() <= Date.now()
+    ) {
+      return undefined;
+    }
+
+    const existing = await this.getActiveProjectCollaborator(input.projectId, input.userId);
+    if (existing) return existing;
+
+    return this.addProjectCollaborator({
+      projectId: input.projectId,
+      expectedOrganizationId: input.expectedOrganizationId,
+      userId: input.userId,
+      roleKey: link.roleKey,
+      expiresAt: new Date(link.expiresAt),
+    });
+  }
+
   async createChatShare(input: {
     tokenHash: string;
     conversationId: string;
     projectId: string;
+    expectedOrganizationId: string;
     authorUserId: string;
     title?: string;
     payload: unknown;
     allowFork?: boolean;
     expiresAt?: Date;
   }) {
+    this.assertProjectTenantMutation(input.projectId, input.expectedOrganizationId);
     const share: ChatShareRecord = {
       id: id('cshare'),
       tokenHash: input.tokenHash,
@@ -2934,13 +3125,19 @@ export class TestApiStore implements ApiStore {
     return [...this.chatShares.values()].filter((share) => share.projectId === projectId);
   }
 
-  async revokeChatShare(input: { id: string; authorUserId?: string; projectId?: string }) {
+  async revokeChatShare(input: {
+    id: string;
+    projectId: string;
+    expectedOrganizationId: string;
+    authorUserId?: string;
+  }) {
+    this.assertProjectTenantMutation(input.projectId, input.expectedOrganizationId);
     for (const [key, share] of this.chatShares.entries()) {
       if (
         share.id === input.id &&
         !share.revokedAt &&
         (!input.authorUserId || share.authorUserId === input.authorUserId) &&
-        (!input.projectId || share.projectId === input.projectId)
+        share.projectId === input.projectId
       ) {
         this.chatShares.set(key, { ...share, revokedAt: now() });
         return true;
@@ -3257,11 +3454,13 @@ export class TestApiStore implements ApiStore {
   async createWorkspace(input: {
     id?: string;
     projectId: string;
+    expectedOrganizationId: string;
     name: string;
     runtimeMode: string;
     environment?: string;
     initialStatus?: WorkspaceRecord['status'];
   }) {
+    this.assertProjectTenantMutation(input.projectId, input.expectedOrganizationId);
     const workspaceId = input.id ?? id('workspace');
 
     const workspace: WorkspaceRecord = {
@@ -4235,20 +4434,33 @@ export class TestApiStore implements ApiStore {
     idempotencyKey: string;
     requestHash: string;
     expectedRuntimeVersion: number;
+    planEntitlements: ReleasePlanEntitlementsPin;
+    projectManifestDigest: string;
     encryptedBuildInput: { keyId: string; ciphertext: string };
   }) {
     const key = `${input.projectId}:${input.idempotencyKey}`;
     const replay = this.reservedVmOperations.get(key);
     const deployment = await this.getDeployment(input.projectId, input.deploymentId);
+    const planEntitlements = parseReleasePlanEntitlementsPin(input.planEntitlements);
 
     if (!deployment) throw new Error('DEPLOYMENT_NOT_FOUND');
+    if (!planEntitlements || !PROJECT_MANIFEST_DIGEST_PATTERN.test(input.projectManifestDigest)) {
+      throw Object.assign(new Error('RESERVED_VM_REDEPLOY_PIN_INVALID'), {
+        code: 'RESERVED_VM_REDEPLOY_PIN_INVALID',
+        statusCode: 409,
+      });
+    }
     if (replay) {
+      const replayIntent = parseReservedVmRedeployReleaseIntent(replay.response);
       if (
         replay.kind !== 'REDEPLOY' ||
         replay.requestHash !== input.requestHash ||
         replay.deploymentId !== input.deploymentId ||
         !replay.actorUserId ||
-        replay.actorUserId !== input.actorUserId
+        replay.actorUserId !== input.actorUserId ||
+        !replayIntent ||
+        !sameReleasePlanEntitlementsPin(replayIntent.targetPlanEntitlements, planEntitlements) ||
+        replayIntent.targetProjectManifestDigest !== input.projectManifestDigest
       ) {
         throw Object.assign(new Error('RESERVED_VM_IDEMPOTENCY_CONFLICT'), {
           code: 'RESERVED_VM_IDEMPOTENCY_CONFLICT',
@@ -4273,6 +4485,21 @@ export class TestApiStore implements ApiStore {
     if ((deployment.runtimeVersion ?? 0) !== input.expectedRuntimeVersion) {
       throw Object.assign(new Error('RESERVED_VM_RUNTIME_VERSION_CONFLICT'), {
         code: 'RESERVED_VM_RUNTIME_VERSION_CONFLICT',
+        statusCode: 409,
+      });
+    }
+    const priorPlanEntitlements = parseReleasePlanEntitlementsPin(
+      (deployment.metadata as { planEntitlements?: unknown } | undefined)?.planEntitlements,
+    );
+    const priorProjectManifestDigest = (deployment.metadata as { projectManifestDigest?: unknown } | undefined)
+      ?.projectManifestDigest;
+    if (
+      !priorPlanEntitlements ||
+      typeof priorProjectManifestDigest !== 'string' ||
+      !PROJECT_MANIFEST_DIGEST_PATTERN.test(priorProjectManifestDigest)
+    ) {
+      throw Object.assign(new Error('RESERVED_VM_REDEPLOY_PIN_INVALID'), {
+        code: 'RESERVED_VM_REDEPLOY_PIN_INVALID',
         statusCode: 409,
       });
     }
@@ -4311,6 +4538,15 @@ export class TestApiStore implements ApiStore {
       termsVersion: deployment.reservedVmTermsVersion ?? 'reserved-vm-monthly-v1',
       rateCardVersion: deployment.reservedVmRateCardVersion,
       expectedRuntimeVersion: input.expectedRuntimeVersion,
+      response: {
+        redeployIntent: {
+          version: 1,
+          priorPlanEntitlements,
+          priorProjectManifestDigest,
+          targetPlanEntitlements: planEntitlements,
+          targetProjectManifestDigest: input.projectManifestDigest,
+        },
+      },
       fencingToken: 0,
       createdAt: timestamp,
       updatedAt: timestamp,
@@ -4325,6 +4561,10 @@ export class TestApiStore implements ApiStore {
           idempotencyKey: input.idempotencyKey,
           expectedRuntimeVersion: input.expectedRuntimeVersion,
           encryptedBuildInput: input.encryptedBuildInput,
+          priorPlanEntitlements,
+          priorProjectManifestDigest,
+          targetPlanEntitlements: planEntitlements,
+          targetProjectManifestDigest: input.projectManifestDigest,
         },
       },
       updatedAt: now(),
@@ -4669,14 +4909,19 @@ export class TestApiStore implements ApiStore {
               manifest.accessPolicyVersion === releaseSource.accessPolicyVersion,
           )
         : undefined;
+      const releaseSourcePin = parseReleasePlanEntitlementsPin(releaseSource?.planEntitlements);
 
       if (
         metadata.publishedFromReleaseManifestId === sourceReleaseManifestId &&
         releaseSource &&
+        releaseSourcePin &&
         committedProductionRelease &&
         releaseSource.provider === 'server' &&
         releaseSource.artifactKind === 'server-image' &&
         releaseSource.accessPolicyVersion === deployment.accessPolicyVersion &&
+        releaseSource.projectManifestDigest === input.releaseFence.expectedManifestDigest &&
+        committedProductionRelease.projectManifestDigest === releaseSource.projectManifestDigest &&
+        sameReleasePlanEntitlementsPin(committedProductionRelease.planEntitlements, releaseSourcePin) &&
         image?.imageRef === releaseSource.artifactRef &&
         image?.imageDigest === releaseSource.artifactDigest &&
         isCommittedPromotionForTenant(
@@ -4689,8 +4934,8 @@ export class TestApiStore implements ApiStore {
         return { deployment, releaseSource, replayed: true };
       }
 
-      throw Object.assign(new Error('RESERVED_VM_DEPLOYMENT_NOT_READY'), {
-        code: 'RESERVED_VM_DEPLOYMENT_NOT_READY',
+      throw Object.assign(new Error('RESERVED_VM_RELEASE_REPLAY_CONFLICT'), {
+        code: 'RESERVED_VM_RELEASE_REPLAY_CONFLICT',
         statusCode: 409,
       });
     }
@@ -4720,12 +4965,15 @@ export class TestApiStore implements ApiStore {
           (!sourceReleaseManifestId || manifest.id === sourceReleaseManifestId),
       )
       .sort((left, right) => right.version - left.version)[0];
+    const releaseSourcePin = parseReleasePlanEntitlementsPin(releaseSource?.planEntitlements);
 
     if (
       !releaseSource ||
+      !releaseSourcePin ||
       releaseSource.provider !== 'server' ||
       releaseSource.artifactKind !== 'server-image' ||
       releaseSource.accessPolicyVersion !== deployment.accessPolicyVersion ||
+      releaseSource.projectManifestDigest !== input.releaseFence.expectedManifestDigest ||
       image?.imageRef !== releaseSource.artifactRef ||
       image?.imageDigest !== releaseSource.artifactDigest ||
       !isCommittedPromotionForTenant(
@@ -4884,7 +5132,7 @@ export class TestApiStore implements ApiStore {
       ...operation,
       status: 'COMPLETED',
       phase: 'COMMITTED',
-      response: input.response,
+      response: { ...(operation.response ?? {}), ...input.response },
       completedAt: now(),
       leaseOwner: undefined,
       leaseExpiresAt: undefined,
@@ -6238,11 +6486,16 @@ export class TestApiStore implements ApiStore {
             (operation) => operation.id === input.reservedVmFence?.operationId,
           )
         : undefined;
+      const reservedRedeployIntent =
+        reservedOperation?.kind === 'REDEPLOY'
+          ? parseReservedVmRedeployReleaseIntent(reservedOperation.response)
+          : undefined;
 
       if (
         input.reservedVmFence &&
         (!reservedOperation ||
           reservedOperation.deploymentId !== input.deploymentId ||
+          (reservedOperation.kind === 'REDEPLOY' && !reservedRedeployIntent) ||
           (reservedOperation.status !== 'COMPLETED' &&
             (reservedOperation.status !== 'APPLYING' ||
               reservedOperation.phase !== 'RUNTIME_APPLIED' ||
@@ -6257,10 +6510,25 @@ export class TestApiStore implements ApiStore {
       );
       const inputPin = parseReleasePlanEntitlementsPin(input.metadata.planEntitlements);
       const rollbackSourcePin = parseReleasePlanEntitlementsPin(rollbackSource?.planEntitlements);
-      const releasePin = rollbackOperation ? rollbackSourcePin : deploymentPin;
+      const releasePin = rollbackOperation
+        ? rollbackSourcePin
+        : (reservedRedeployIntent?.targetPlanEntitlements ?? deploymentPin);
       const releaseProjectManifestDigest = rollbackOperation
         ? rollbackSource?.projectManifestDigest
-        : (deployment.metadata as { projectManifestDigest?: unknown } | undefined)?.projectManifestDigest;
+        : (reservedRedeployIntent?.targetProjectManifestDigest ??
+          (deployment.metadata as { projectManifestDigest?: unknown } | undefined)?.projectManifestDigest);
+      const deploymentProjectManifestDigest = (deployment.metadata as { projectManifestDigest?: unknown } | undefined)
+        ?.projectManifestDigest;
+      const reservedRedeploySourceMatches =
+        reservedRedeployIntent === undefined ||
+        (deploymentPin !== undefined &&
+          sameReleasePlanEntitlementsPin(deploymentPin, reservedRedeployIntent.priorPlanEntitlements) &&
+          deploymentProjectManifestDigest === reservedRedeployIntent.priorProjectManifestDigest);
+      const reservedRedeployTargetMatches =
+        reservedRedeployIntent !== undefined &&
+        deploymentPin !== undefined &&
+        sameReleasePlanEntitlementsPin(deploymentPin, reservedRedeployIntent.targetPlanEntitlements) &&
+        deploymentProjectManifestDigest === reservedRedeployIntent.targetProjectManifestDigest;
 
       if (
         !project ||
@@ -6274,6 +6542,7 @@ export class TestApiStore implements ApiStore {
         !releasePin ||
         !inputPin ||
         !sameReleasePlanEntitlementsPin(releasePin, inputPin) ||
+        (!reservedRedeploySourceMatches && !reservedRedeployTargetMatches) ||
         releaseProjectManifestDigest !== input.releaseFence.expectedManifestDigest ||
         !isCommittedPromotionForTenant(
           serverDeploy?.promotion,
@@ -6352,6 +6621,10 @@ export class TestApiStore implements ApiStore {
 
           return { committed: true, deployment, manifest: existing };
         }
+      }
+
+      if (reservedRedeployTargetMatches) {
+        throw new Error('SERVER_RELEASE_MANIFEST_CONFLICT');
       }
 
       if (
@@ -7961,6 +8234,8 @@ export class TestApiStore implements ApiStore {
     operationToken: string;
     targetProjectId: string;
     actualCredits: number;
+    projectIdeState?: unknown;
+    updatedByUserId?: string;
   }) {
     const job = this.importJobs.get(input.importJobId);
     const reservation = this.importReservations.get(input.importJobId);
@@ -8008,6 +8283,17 @@ export class TestApiStore implements ApiStore {
     reservation.state = 'SETTLED';
     reservation.debitedCredits = input.actualCredits;
     reservation.version += 1;
+    if (input.projectIdeState !== undefined) {
+      const existingIdeState = this.projectIdeStates.get(target.id);
+      this.projectIdeStates.set(target.id, {
+        projectId: target.id,
+        state: input.projectIdeState,
+        version: existingIdeState ? existingIdeState.version + 1 : 1,
+        updatedByUserId: input.updatedByUserId,
+        updatedAt: now(),
+        createdAt: existingIdeState?.createdAt ?? now(),
+      });
+    }
     target.deletedAt = undefined;
     target.updatedAt = now();
     Object.assign(job, {
@@ -11435,12 +11721,18 @@ export class TestApiStore implements ApiStore {
     return [...this.aiCostLedger.values()];
   }
 
-  async updateWorkspaceStatus(input: { workspaceId: string; status: WorkspaceRecord['status'] }) {
+  async updateWorkspaceStatus(input: {
+    workspaceId: string;
+    expectedProjectId: string;
+    expectedOrganizationId: string;
+    status: WorkspaceRecord['status'];
+  }) {
     const workspace = this.workspaces.get(input.workspaceId);
 
-    if (!workspace) {
+    if (!workspace || workspace.projectId !== input.expectedProjectId) {
       throw Object.assign(new Error('Workspace not found'), { statusCode: 404, code: 'WORKSPACE_NOT_FOUND' });
     }
+    this.assertProjectTenantMutation(input.expectedProjectId, input.expectedOrganizationId);
 
     workspace.status = input.status;
 

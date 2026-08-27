@@ -31,7 +31,18 @@ async function setup() {
     expiresAt: new Date(Date.now() + 3600_000),
   });
 
-  return { app, store, admin, adminSession };
+  const organization = await store.createOrganization({
+    name: 'Admin previews',
+    slug: `admin-previews-${admin.id}`,
+    ownerUserId: admin.id,
+  });
+  const project = await store.createProject({
+    organizationId: organization.id,
+    name: 'Admin previews',
+    slug: `admin-previews-${admin.id}`,
+  });
+
+  return { app, store, admin, adminSession, organization, project };
 }
 
 /*
@@ -113,9 +124,14 @@ describe('F25 admin previews — default TTL', () => {
   });
 
   it('derives each preview expiry from createdAt + the default TTL', async () => {
-    const { app, store } = await setup();
+    const { app, store, organization, project } = await setup();
     await store.setSystemSetting({ key: 'preview.defaultTtlMinutes', value: 60 });
-    const workspace = await store.createWorkspace({ projectId: 'project_x', name: 'ws', runtimeMode: 'remote' });
+    const workspace = await store.createWorkspace({
+      projectId: project.id,
+      expectedOrganizationId: organization.id,
+      name: 'ws',
+      runtimeMode: 'remote',
+    });
 
     const res = await app.inject({ method: 'GET', url: '/admin/previews', headers: auth('admin-token') });
     expect(res.statusCode).toBe(200);
@@ -156,10 +172,20 @@ describe('F25 admin previews — kill endpoint', () => {
   });
 
   it('calls the real terminate path, stops the workspace, and audits (admin + reauth)', async () => {
-    const { app, store, adminSession } = await setup();
+    const { app, store, adminSession, organization, project } = await setup();
     await store.markSessionReauthenticated(adminSession.id);
-    const workspace = await store.createWorkspace({ projectId: 'project_x', name: 'ws', runtimeMode: 'remote' });
-    await store.updateWorkspaceStatus({ workspaceId: workspace.id, status: 'RUNNING' });
+    const workspace = await store.createWorkspace({
+      projectId: project.id,
+      expectedOrganizationId: organization.id,
+      name: 'ws',
+      runtimeMode: 'remote',
+    });
+    await store.updateWorkspaceStatus({
+      workspaceId: workspace.id,
+      expectedProjectId: project.id,
+      expectedOrganizationId: organization.id,
+      status: 'RUNNING',
+    });
 
     await withMockManager(async (calls) => {
       const res = await app.inject({

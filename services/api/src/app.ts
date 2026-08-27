@@ -495,6 +495,7 @@ import {
   ENTERPRISE_CAPABILITIES,
   isEnterpriseCapabilityProvisioned,
   readDeploymentPlanEntitlementsPin,
+  redeemProjectShareLinkWithEntitlements,
   resolveDeploymentPlanEntitlementsPin,
   resolveOrganizationEntitlements,
 } from './plan-entitlements-service.js';
@@ -759,6 +760,10 @@ const allPermissionKeys = new Set(Object.values(rolePermissions).flat() as Permi
  * upper-bound guidance.
  */
 const PASSWORD_MAX_LENGTH = 128;
+const STATIC_RELEASE_ARTIFACT_DIGEST_MISSING = 'STATIC_RELEASE_ARTIFACT_DIGEST_MISSING';
+const AI_USAGE_RECONCILIATION_FAILED = 'AI_USAGE_RECONCILIATION_FAILED';
+const LEDGER_RESERVATION_REAP_FAILED = 'LEDGER_RESERVATION_REAP_FAILED';
+const PLATFORM_CHAT_COMPLETION_REASON = 'chat.completion.operator';
 
 const registerSchema = z.object({
   email: z.string().email().max(254),
@@ -5245,6 +5250,7 @@ function collaborationDocuments(state?: ProjectIdeStateRecord) {
 async function mutateProjectIdeState(
   store: ApiStore,
   projectId: string,
+  expectedOrganizationId: string,
   updatedByUserId: string | undefined,
   build: (ctx: ReturnType<typeof collaborationDocuments>, existing?: ProjectIdeStateRecord) => unknown,
 ): Promise<ProjectIdeStateRecord> {
@@ -5255,6 +5261,7 @@ async function mutateProjectIdeState(
     try {
       return await store.upsertProjectIdeState({
         projectId,
+        expectedOrganizationId,
         updatedByUserId,
         state: nextState,
         expectedVersion: existingState?.version,
@@ -5418,6 +5425,7 @@ async function syncProjectStorageWithFileManifest(
 async function persistProjectFileManifest(
   store: ApiStore,
   projectId: string,
+  expectedOrganizationId: string,
   files: Array<{ path: string; content: string }>,
   updatedByUserId?: string,
   options: { clearRecoveredChatFiles?: boolean } = {},
@@ -5431,7 +5439,7 @@ async function persistProjectFileManifest(
    * (authz-affecting) that committed inside the read/write window. mutate
    * re-reads + re-merges under the optimistic-concurrency version check.
    */
-  await mutateProjectIdeState(store, projectId, updatedByUserId, (_ctx, existing) =>
+  await mutateProjectIdeState(store, projectId, expectedOrganizationId, updatedByUserId, (_ctx, existing) =>
     mergeProjectIdeState(existing?.state, {
       files: projectFileManifestState(files),
       ...(options.clearRecoveredChatFiles ? { chat: { clearMessages: true, messages: [] } } : {}),
@@ -5611,6 +5619,24 @@ async function requireWorkspace(
   await requireProject(request, store, workspace.projectId, permission);
 
   return workspace;
+}
+
+async function requireCurrentWorkspaceTenantScope(store: ApiStore, workspaceId: string) {
+  const workspace = await store.getWorkspace(workspaceId);
+  if (!workspace) {
+    throw Object.assign(new Error(appPublicEnglish('WORKSPACE_NOT_FOUND')), {
+      statusCode: 404,
+      code: 'WORKSPACE_NOT_FOUND',
+    });
+  }
+  const project = await store.getProject(workspace.projectId);
+  if (!project || project.deletedAt) {
+    throw Object.assign(new Error(appPublicEnglish('PROJECT_NOT_FOUND')), {
+      statusCode: 404,
+      code: 'PROJECT_NOT_FOUND',
+    });
+  }
+  return { workspace, project };
 }
 
 async function requireAnyOrgPermission(request: any, store: ApiStore, permission: PermissionKey) {
@@ -9273,6 +9299,7 @@ function readableFromWebStream(stream: ReadableStream<Uint8Array>) {
 }
 
 type CollaborationSocket = ReturnType<typeof normalizeRuntimeApiWebSocket>;
+type CollaborationRoomScope = { projectId: string; organizationId: string };
 
 function createCollaborationBroker() {
   const rooms = new Map<string, Set<CollaborationSocket>>();
@@ -9309,7 +9336,7 @@ function createCollaborationBroker() {
     publisher.connect().catch(() => undefined);
     subscriber.connect().catch(() => undefined);
     subscriber.on('message', (channel, payload) => {
-      const projectId = channel.slice(`${channelPrefix}:`.length);
+      const collaborationRoomKey = channel.slice(`${channelPrefix}:`.length);
 
       /*
        * Every node (including the publisher) receives its own publishes back over
@@ -9331,16 +9358,20 @@ function createCollaborationBroker() {
         return;
       }
 
-      broadcastLocal(projectId, envelope.message);
+      broadcastLocal(collaborationRoomKey, envelope.message);
     });
   }
 
-  function channel(projectId: string) {
-    return `${channelPrefix}:${projectId}`;
+  function roomKey(scope: CollaborationRoomScope) {
+    return `${scope.organizationId}:${scope.projectId}`;
   }
 
-  function broadcastLocal(projectId: string, message: string, except?: CollaborationSocket) {
-    const room = rooms.get(projectId);
+  function channel(scope: CollaborationRoomScope) {
+    return `${channelPrefix}:${roomKey(scope)}`;
+  }
+
+  function broadcastLocal(collaborationRoomKey: string, message: string, except?: CollaborationSocket) {
+    const room = rooms.get(collaborationRoomKey);
 
     if (!room) {
       return;
@@ -9366,34 +9397,36 @@ function createCollaborationBroker() {
   }
 
   return {
-    join(projectId: string, socket: CollaborationSocket) {
-      if (!rooms.has(projectId)) {
-        rooms.set(projectId, new Set());
-        subscriber?.subscribe(channel(projectId)).catch(() => undefined);
+    join(scope: CollaborationRoomScope, socket: CollaborationSocket) {
+      const collaborationRoomKey = roomKey(scope);
+      if (!rooms.has(collaborationRoomKey)) {
+        rooms.set(collaborationRoomKey, new Set());
+        subscriber?.subscribe(channel(scope)).catch(() => undefined);
       }
 
-      rooms.get(projectId)!.add(socket);
+      rooms.get(collaborationRoomKey)!.add(socket);
     },
-    leave(projectId: string, socket: CollaborationSocket) {
-      rooms.get(projectId)?.delete(socket);
+    leave(scope: CollaborationRoomScope, socket: CollaborationSocket) {
+      const collaborationRoomKey = roomKey(scope);
+      rooms.get(collaborationRoomKey)?.delete(socket);
 
-      if (!rooms.get(projectId)?.size) {
-        rooms.delete(projectId);
-        subscriber?.unsubscribe(channel(projectId)).catch(() => undefined);
+      if (!rooms.get(collaborationRoomKey)?.size) {
+        rooms.delete(collaborationRoomKey);
+        subscriber?.unsubscribe(channel(scope)).catch(() => undefined);
       }
     },
-    publish(projectId: string, payload: unknown, except?: CollaborationSocket) {
+    publish(scope: CollaborationRoomScope, payload: unknown, except?: CollaborationSocket) {
       const message = JSON.stringify({
         ...((payload as Record<string, unknown>) ?? {}),
         timestamp: new Date().toISOString(),
       });
-      broadcastLocal(projectId, message, except);
+      broadcastLocal(roomKey(scope), message, except);
 
       /*
        * Wrap in a node-tagged envelope so the subscriber can drop our own
        * loopback (see the subscriber handler) instead of double-delivering.
        */
-      publisher?.publish(channel(projectId), JSON.stringify({ nodeId, message })).catch(() => undefined);
+      publisher?.publish(channel(scope), JSON.stringify({ nodeId, message })).catch(() => undefined);
     },
     async close() {
       await Promise.allSettled([publisher?.quit(), subscriber?.quit()].filter(Boolean) as Array<Promise<unknown>>);
@@ -9430,6 +9463,7 @@ async function recordAbuseSignal(
     organizationId?: string;
     userId?: string;
     workspaceId?: string;
+    projectId?: string;
     type: string;
     severity: string;
     reason: string;
@@ -9458,8 +9492,20 @@ async function recordAbuseSignal(
     },
   });
 
-  if (input.workspaceId && ['stop_workspace', 'suspend_org'].includes(input.action)) {
-    await store.updateWorkspaceStatus({ workspaceId: input.workspaceId, status: 'STOPPED' }).catch(() => undefined);
+  if (
+    input.workspaceId &&
+    input.projectId &&
+    input.organizationId &&
+    ['stop_workspace', 'suspend_org'].includes(input.action)
+  ) {
+    await store
+      .updateWorkspaceStatus({
+        workspaceId: input.workspaceId,
+        expectedProjectId: input.projectId,
+        expectedOrganizationId: input.organizationId,
+        status: 'STOPPED',
+      })
+      .catch(() => undefined);
   }
 
   if (input.action === 'suspend_org' && input.organizationId) {
@@ -15728,7 +15774,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    */
   const provisionWorkspaceOnDemand = async (
     request: any,
-    authorized: { workspaceId: string; projectId: string; organizationId?: string },
+    authorized: { workspaceId: string; projectId: string; organizationId: string },
   ) => {
     const [projectEnvVars, projectSecrets] = await Promise.all([
       store.listProjectEnvVars(authorized.projectId),
@@ -15743,7 +15789,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       method: 'POST',
       body: JSON.stringify({
         namespace: runtimeNamespace(),
-        orgId: authorized.organizationId ?? 'unknown-org',
+        orgId: authorized.organizationId,
         projectId: authorized.projectId,
         workspaceId: authorized.workspaceId,
         userId: request.currentUser?.id,
@@ -15762,7 +15808,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }).catch(() => undefined);
 
     await store
-      .updateWorkspaceStatus({ workspaceId: authorized.workspaceId, status: 'STARTING' })
+      .updateWorkspaceStatus({
+        workspaceId: authorized.workspaceId,
+        expectedProjectId: authorized.projectId,
+        expectedOrganizationId: authorized.organizationId,
+        status: 'STARTING',
+      })
       .catch(() => undefined);
 
     emitLifecycle(authorized.workspaceId, 'STARTING', 'provision');
@@ -15771,7 +15822,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   // Ensure the workspace agent is reachable, provisioning + waiting if needed.
   const ensureWorkspaceReachable = async (
     request: any,
-    authorized: { workspaceId: string; projectId: string; organizationId?: string },
+    authorized: { workspaceId: string; projectId: string; organizationId: string },
     budgetMs = COLD_START_REACH_BUDGET_MS,
   ): Promise<void> => {
     if (await probeAgentHealth(authorized.workspaceId)) {
@@ -15815,7 +15866,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    */
   const agentMutateEnsuring = async <T = unknown>(
     request: any,
-    authorized: { workspaceId: string; projectId: string; organizationId?: string },
+    authorized: { workspaceId: string; projectId: string; organizationId: string },
     path: string,
     init: RequestInit = {},
   ): Promise<T> => {
@@ -16219,9 +16270,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     if (workspace) {
       const record = await requireWorkspace(request, store, workspaceId, permission);
-      const project = await store.getProject(record.projectId);
+      const project = await requireProject(request, store, record.projectId, permission);
 
-      return { workspaceId: record.id, projectId: record.projectId, organizationId: project?.organizationId };
+      return { workspaceId: record.id, projectId: record.projectId, organizationId: project.organizationId };
     }
 
     const project = await requireProject(request, store, workspaceId, permission);
@@ -16260,6 +16311,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return await store.createWorkspace({
         id: workspaceId,
         projectId: project.id,
+        expectedOrganizationId: project.organizationId,
         name: `${project.name} runtime`,
         runtimeMode: 'remote-kubernetes',
       });
@@ -16660,9 +16712,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return existing;
     }
 
+    const project = await store.getProject(projectId);
+    if (!project || project.deletedAt) {
+      throw Object.assign(new Error(appPublicEnglish('PROJECT_NOT_FOUND')), {
+        code: 'PROJECT_NOT_FOUND',
+        statusCode: 404,
+      });
+    }
+
     // A project whose workspace row was never created still deserves its cron.
     return store.createWorkspace({
       projectId,
+      expectedOrganizationId: project.organizationId,
       name: 'Scheduled',
       runtimeMode: process.env.WORKSPACE_DEFAULT_RUNTIME_MODE ?? 'docker',
 
@@ -18009,6 +18070,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           organizationId: project.organizationId,
           userId: request.currentUser!.id,
           workspaceId,
+          projectId: project.id,
           type: signal.type,
           severity: signal.severity,
           reason: signal.reason,
@@ -18144,7 +18206,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         }
 
         if (shouldStop) {
-          await store.updateWorkspaceStatus({ workspaceId: workspace.id, status: 'STOPPED' }).catch(() => undefined);
+          await store
+            .updateWorkspaceStatus({
+              workspaceId: workspace.id,
+              expectedProjectId: workspace.projectId,
+              expectedOrganizationId: organizationId,
+              status: 'STOPPED',
+            })
+            .catch(() => undefined);
         }
       }),
     );
@@ -18244,7 +18313,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        * lock is released.
        */
       if (!currentlyActive && !['PENDING', 'STARTING', 'RUNNING'].includes(record.status as string)) {
-        await store.updateWorkspaceStatus({ workspaceId: record.id, status: 'STARTING' });
+        await store.updateWorkspaceStatus({
+          workspaceId: record.id,
+          expectedProjectId: authorized.projectId,
+          expectedOrganizationId: authorized.organizationId,
+          status: 'STARTING',
+        });
       }
 
       return record;
@@ -18337,7 +18411,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
       if (!transientProvisioning) {
         await store
-          .updateWorkspaceStatus({ workspaceId: authorized.workspaceId, status: 'FAILED' })
+          .updateWorkspaceStatus({
+            workspaceId: authorized.workspaceId,
+            expectedProjectId: authorized.projectId,
+            expectedOrganizationId: authorized.organizationId,
+            status: 'FAILED',
+          })
           .catch(() => undefined);
         throw error;
       }
@@ -18384,7 +18463,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      */
     if (startFailed) {
       await store
-        .updateWorkspaceStatus({ workspaceId: authorized.workspaceId, status: 'FAILED' })
+        .updateWorkspaceStatus({
+          workspaceId: authorized.workspaceId,
+          expectedProjectId: authorized.projectId,
+          expectedOrganizationId: authorized.organizationId,
+          status: 'FAILED',
+        })
         .catch(() => undefined);
 
       if (diagnosticsDb) {
@@ -18398,11 +18482,21 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        * or retain an active-workspace quota slot while no agent is routable.
        */
       await store
-        .updateWorkspaceStatus({ workspaceId: authorized.workspaceId, status: 'STOPPED' })
+        .updateWorkspaceStatus({
+          workspaceId: authorized.workspaceId,
+          expectedProjectId: authorized.projectId,
+          expectedOrganizationId: authorized.organizationId,
+          status: 'STOPPED',
+        })
         .catch(() => undefined);
     } else {
       await store
-        .updateWorkspaceStatus({ workspaceId: authorized.workspaceId, status: 'RUNNING' })
+        .updateWorkspaceStatus({
+          workspaceId: authorized.workspaceId,
+          expectedProjectId: authorized.projectId,
+          expectedOrganizationId: authorized.organizationId,
+          status: 'RUNNING',
+        })
         .catch(() => undefined);
 
       emitLifecycle(authorized.workspaceId, 'RUNNING', 'agent.reachable');
@@ -18462,7 +18556,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * does this, the user-facing stop route previously did not.
      */
     await store
-      .updateWorkspaceStatus({ workspaceId: authorized.workspaceId, status: 'STOPPED' })
+      .updateWorkspaceStatus({
+        workspaceId: authorized.workspaceId,
+        expectedProjectId: authorized.projectId,
+        expectedOrganizationId: authorized.organizationId,
+        status: 'STOPPED',
+      })
       .catch(() => undefined);
 
     await audit(request, store, {
@@ -18529,7 +18628,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
          * restart below reconciles to RUNNING/FAILED; the catch resets on error.
          */
         if (!currentlyActive) {
-          await store.updateWorkspaceStatus({ workspaceId: authorized.workspaceId, status: 'STARTING' });
+          await store.updateWorkspaceStatus({
+            workspaceId: authorized.workspaceId,
+            expectedProjectId: authorized.projectId,
+            expectedOrganizationId: authorized.organizationId,
+            status: 'STARTING',
+          });
           restartClaimedActiveSlot = true;
         }
       });
@@ -18622,7 +18726,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        */
       if (restartOrgId && restartClaimedActiveSlot) {
         await store
-          .updateWorkspaceStatus({ workspaceId: authorized.workspaceId, status: 'FAILED' })
+          .updateWorkspaceStatus({
+            workspaceId: authorized.workspaceId,
+            expectedProjectId: authorized.projectId,
+            expectedOrganizationId: authorized.organizationId,
+            status: 'FAILED',
+          })
           .catch(() => undefined);
       }
 
@@ -18645,11 +18754,21 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      */
     if (managerWorkspace?.status === 'FAILED') {
       await store
-        .updateWorkspaceStatus({ workspaceId: authorized.workspaceId, status: 'FAILED' })
+        .updateWorkspaceStatus({
+          workspaceId: authorized.workspaceId,
+          expectedProjectId: authorized.projectId,
+          expectedOrganizationId: authorized.organizationId,
+          status: 'FAILED',
+        })
         .catch(() => undefined);
     } else {
       await store
-        .updateWorkspaceStatus({ workspaceId: authorized.workspaceId, status: 'RUNNING' })
+        .updateWorkspaceStatus({
+          workspaceId: authorized.workspaceId,
+          expectedProjectId: authorized.projectId,
+          expectedOrganizationId: authorized.organizationId,
+          status: 'RUNNING',
+        })
         .catch(() => undefined);
 
       // Restart can reprovision onto a fresh pod; reseed it from persisted if empty.
@@ -18715,6 +18834,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       await store
         .updateWorkspaceStatus({
           workspaceId: authorized.workspaceId,
+          expectedProjectId: authorized.projectId,
+          expectedOrganizationId: authorized.organizationId,
           status: managerStatus === 'failed' ? 'FAILED' : 'STOPPED',
         })
         .catch(() => undefined);
@@ -18727,7 +18848,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        * emitLifecycle is idempotent — repeated polls collapse to a no-op.
        */
       await store
-        .updateWorkspaceStatus({ workspaceId: authorized.workspaceId, status: 'RUNNING' })
+        .updateWorkspaceStatus({
+          workspaceId: authorized.workspaceId,
+          expectedProjectId: authorized.projectId,
+          expectedOrganizationId: authorized.organizationId,
+          status: 'RUNNING',
+        })
         .catch(() => undefined);
 
       emitLifecycle(authorized.workspaceId, 'RUNNING', 'status.running');
@@ -19053,6 +19179,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         organizationId: authorized.organizationId,
         userId: request.currentUser!.id,
         workspaceId: authorized.workspaceId,
+        projectId: authorized.projectId,
         type: signal.type,
         severity: signal.severity,
         reason: signal.reason,
@@ -22423,7 +22550,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       project.id,
       starterFiles({ sourceType: 'blank', name: project.name, locale: transactionalLocaleForRequest(request) }),
     );
-    await persistProjectFileManifest(store, project.id, files, request.currentUser!.id);
+    await persistProjectFileManifest(store, project.id, project.organizationId, files, request.currentUser!.id);
     await commitInitialScaffold(gitProvider, project.id);
     await recordUsage(request, orgId, 'projects.count');
     await store.recordProjectActivity({
@@ -22544,7 +22671,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     });
 
     const files = await projectStorage.writeFiles(project.id, templateFiles);
-    await persistProjectFileManifest(store, project.id, files, request.currentUser!.id);
+    await persistProjectFileManifest(store, project.id, project.organizationId, files, request.currentUser!.id);
     await commitInitialScaffold(gitProvider, project.id);
     await recordUsage(request, orgId, 'projects.count');
 
@@ -22623,7 +22750,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         locale,
       }),
     );
-    await persistProjectFileManifest(store, project.id, files, request.currentUser!.id);
+    await persistProjectFileManifest(store, project.id, project.organizationId, files, request.currentUser!.id);
 
     /*
      * Carry the generation prompt OUT of the delivered files
@@ -22633,7 +22760,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * `memory.chat?.pendingPrompt` to auto-run the first generation — so the
      * prompt→app flow is preserved without shipping the prompt to the customer.
      */
-    await mutateProjectIdeState(store, project.id, request.currentUser!.id, (_ctx, existing) =>
+    await mutateProjectIdeState(store, project.id, project.organizationId, request.currentUser!.id, (_ctx, existing) =>
       mergeProjectIdeState(existing?.state, {
         chat: {
           pendingPrompt: {
@@ -23619,7 +23746,6 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
               'IMPORT_TARGET_DIGEST_MISMATCH',
             );
           }
-          await persistProjectFileManifest(store, project.id, verifiedFiles, request.currentUser!.id);
           await operationLeaseManager!.guard();
 
           return store.finalizeImportCommit({
@@ -23628,6 +23754,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             operationToken: operationToken!,
             targetProjectId: project.id,
             actualCredits: estimateImportReservation(targetFiles.length),
+            projectIdeState: mergeProjectIdeState(undefined, {
+              files: projectFileManifestState(verifiedFiles),
+            }),
+            updatedByUserId: request.currentUser!.id,
           });
         },
         { transactionTimeoutMs: 2 * 60 * 60_000 },
@@ -24377,6 +24507,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         organizationId: authorized.organizationId,
         userId: request.currentUser!.id,
         workspaceId: authorized.workspaceId,
+        projectId: authorized.projectId,
         type: signal.type,
         severity: signal.severity,
         reason: signal.reason,
@@ -24523,6 +24654,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     try {
       ideState = await store.upsertProjectIdeState({
         projectId: project.id,
+        expectedOrganizationId: project.organizationId,
         state,
         updatedByUserId: request.currentUser!.id,
         expectedVersion,
@@ -24594,6 +24726,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(workspaceParams, request.params).workspaceId,
       'projects:write',
     );
+    const workspaceProject = await requireProject(request, store, workspace.projectId, 'projects:write');
 
     const body = parse(projectIdeStateSchema, request.body ?? {});
     const existingState = await store.getWorkspaceIdeState(workspace.id);
@@ -24630,6 +24763,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     try {
       ideState = await store.upsertWorkspaceIdeState({
         workspaceId: workspace.id,
+        expectedProjectId: workspace.projectId,
+        expectedOrganizationId: workspaceProject.organizationId,
         state,
         updatedByUserId: request.currentUser!.id,
         expectedVersion,
@@ -25486,7 +25621,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const files = await projectStorage.importZip(project.id, body.zipBase64, {
       replaceExisting: body.replaceExisting === true,
     });
-    await persistProjectFileManifest(store, project.id, files, request.currentUser!.id, {
+    await persistProjectFileManifest(store, project.id, project.organizationId, files, request.currentUser!.id, {
       clearRecoveredChatFiles: body.replaceExisting === true,
     });
 
@@ -25983,6 +26118,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         roleKey: body.roleKey,
       });
     } catch (error) {
+      if ((error as { code?: string } | undefined)?.code === 'PROJECT_ORGANIZATION_CHANGED_DURING_MUTATION') {
+        return reply.code(409).send({
+          error: appPublicEnglish('PROJECT_ORGANIZATION_CHANGED_DURING_MUTATION'),
+          code: 'PROJECT_ORGANIZATION_CHANGED_DURING_MUTATION',
+        });
+      }
       request.log.warn(
         { err: error, organizationId: project.organizationId },
         'project viewer entitlement lookup failed',
@@ -26033,7 +26174,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      */
     await requireOrg(request, store, project.organizationId, 'members:manage');
 
-    const removed = await store.removeProjectCollaborator({ projectId: project.id, userId: params.userId });
+    const removed = await store.withSerializedMutation(`plan-viewers:${project.organizationId}`, () =>
+      store.removeProjectCollaborator({
+        projectId: project.id,
+        expectedOrganizationId: project.organizationId,
+        userId: params.userId,
+      }),
+    );
 
     if (!removed) {
       return reply
@@ -26100,6 +26247,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const presence = await store.upsertCollaborationPresence({
       projectId: project.id,
+      expectedOrganizationId: project.organizationId,
       userId: request.currentUser!.id,
       sessionId: body.sessionId,
       status: body.status,
@@ -26109,7 +26257,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       mode: isReadOnlyProjectRole(role) ? 'read-only' : body.mode,
       terminalAccess: isReadOnlyProjectRole(role) ? false : body.terminalAccess,
     });
-    collaborationBroker.publish(project.id, { type: 'presence.update', presence });
+    collaborationBroker.publish(
+      { projectId: project.id, organizationId: project.organizationId },
+      { type: 'presence.update', presence },
+    );
 
     return { presence };
   });
@@ -26150,8 +26301,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       }
     }
 
-    const removed = await store.removeCollaborationPresence(project.id, sessionId);
-    collaborationBroker.publish(project.id, { type: 'presence.leave', sessionId });
+    const removed = await store.removeCollaborationPresence({
+      projectId: project.id,
+      expectedOrganizationId: project.organizationId,
+      sessionId,
+    });
+    collaborationBroker.publish(
+      { projectId: project.id, organizationId: project.organizationId },
+      { type: 'presence.leave', sessionId },
+    );
 
     return { removed };
   });
@@ -26167,6 +26325,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const comment = await store.createCollaborationComment({
       projectId: project.id,
+      expectedOrganizationId: project.organizationId,
       userId: request.currentUser!.id,
       filePath: normalizeProjectPath(body.filePath),
       line: body.line,
@@ -26186,7 +26345,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       resourceId: project.id,
       metadata: { commentId: comment.id, filePath: comment.filePath },
     });
-    collaborationBroker.publish(project.id, { type: 'comment.create', comment });
+    collaborationBroker.publish(
+      { projectId: project.id, organizationId: project.organizationId },
+      { type: 'comment.create', comment },
+    );
 
     return reply.code(201).send({ comment });
   });
@@ -26257,6 +26419,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       try {
         ideState = await store.upsertProjectIdeState({
           projectId: project.id,
+          expectedOrganizationId: project.organizationId,
           updatedByUserId: request.currentUser!.id,
           state: {
             ...root,
@@ -26305,7 +26468,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       resourceId: project.id,
       metadata: { filePath, version: document.version },
     });
-    collaborationBroker.publish(project.id, { type: 'document.sync', document });
+    collaborationBroker.publish(
+      { projectId: project.id, organizationId: project.organizationId },
+      { type: 'document.sync', document },
+    );
 
     return { document, ideState };
   });
@@ -26326,6 +26492,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const ideState = await mutateProjectIdeState(
       store,
       project.id,
+      project.organizationId,
       request.currentUser!.id,
       ({ root, collaboration }) => {
         const terminalPermissions =
@@ -26350,7 +26517,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       );
 
       if (presence) {
-        await store.upsertCollaborationPresence({ ...presence, terminalAccess: body.allowed });
+        await store.upsertCollaborationPresence({
+          ...presence,
+          expectedOrganizationId: project.organizationId,
+          terminalAccess: body.allowed,
+        });
       }
     }
 
@@ -26367,15 +26538,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       resourceId: project.id,
       metadata: { userId: body.userId, allowed: body.allowed },
     });
-    collaborationBroker.publish(project.id, {
-      /*
-       * Client's event union expects `terminal_permission.update`; the old
-       * `terminal.permission` fell through applyEvent's catch-all and was dropped.
-       */
-      type: 'terminal_permission.update',
-      userId: body.userId,
-      allowed: body.allowed,
-    });
+    collaborationBroker.publish(
+      { projectId: project.id, organizationId: project.organizationId },
+      {
+        /*
+         * Client's event union expects `terminal_permission.update`; the old
+         * `terminal.permission` fell through applyEvent's catch-all and was dropped.
+         */
+        type: 'terminal_permission.update',
+        userId: body.userId,
+        allowed: body.allowed,
+      },
+    );
 
     return { terminalPermissions: collaborationDocuments(ideState).collaboration.terminalPermissions ?? {}, ideState };
   });
@@ -26424,6 +26598,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const link = await store.createProjectShareLink({
       projectId: project.id,
+      expectedOrganizationId: project.organizationId,
       tokenHash: hashToken(token),
       roleKey,
       expiresAt: new Date(Date.now() + expiresInMinutes * 60_000),
@@ -26462,7 +26637,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     );
 
     const { id } = parse(z.object({ id: z.string().min(1) }), request.params);
-    const revoked = await store.revokeProjectShareLink({ projectId: project.id, id });
+    const revoked = await store.withSerializedMutation(`plan-viewers:${project.organizationId}`, () =>
+      store.revokeProjectShareLink({
+        projectId: project.id,
+        expectedOrganizationId: project.organizationId,
+        id,
+      }),
+    );
 
     if (!revoked) {
       return reply.code(404).send({ error: appPublicEnglish('SHARE_LINK_NOT_FOUND'), code: 'SHARE_LINK_NOT_FOUND' });
@@ -26511,50 +26692,53 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     const userId = request.currentUser!.id;
-    // Active expiry is evaluated by PostgreSQL NOW(), not an API-pod clock.
+    // This observation only drives the response flag; the store revalidates the
+    // link, tenant and active collaborator with the PostgreSQL clock before write.
     const alreadyCollaborator = await store.getActiveProjectCollaborator(project.id, userId);
-
-    let redeemed = false;
-
-    if (!alreadyCollaborator) {
-      /*
-       * Inherit the share link's expiry so a TIME-LIMITED link doesn't grant
-       * PERMANENT access. projectCollaborationRole ignores expired grants.
-       */
-      let claim;
-      try {
-        claim = await addProjectCollaboratorWithEntitlements({
-          store,
-          project,
-          userId,
-          roleKey: link.roleKey,
-          expiresAt: link.expiresAt ? new Date(link.expiresAt) : null,
-        });
-      } catch (error) {
-        request.log.warn(
-          { err: error, organizationId: project.organizationId },
-          'share-link redemption entitlement lookup failed',
-        );
-        return reply.code(503).send({
+    let claim;
+    try {
+      claim = await redeemProjectShareLinkWithEntitlements({ store, project, link, userId });
+    } catch (error) {
+      if ((error as { code?: string } | undefined)?.code === 'PROJECT_ORGANIZATION_CHANGED_DURING_MUTATION') {
+        return reply.code(409).send({
           error: {
-            code: 'PLAN_ENTITLEMENT_CHECK_UNAVAILABLE',
-            message: appPublicEnglish('PLAN_ENTITLEMENT_CHECK_UNAVAILABLE'),
-            retryable: true,
+            code: 'PROJECT_ORGANIZATION_CHANGED_DURING_MUTATION',
+            message: appPublicEnglish('PROJECT_ORGANIZATION_CHANGED_DURING_MUTATION'),
           },
         });
       }
-      if (!claim.allowed) {
-        return reply.code(403).send({
-          error: {
-            code: 'PLAN_VIEWER_LIMIT_REACHED',
-            message: appPublicEnglish('PLAN_VIEWER_LIMIT_REACHED', { value1: claim.limit }),
-            limit: claim.limit,
-            activeViewers: claim.activeViewers,
-            plan: claim.entitlements.plan,
-            entitlementsVersion: claim.entitlements.version,
-          },
-        });
-      }
+      request.log.warn(
+        { err: error, organizationId: project.organizationId },
+        'share-link redemption entitlement lookup failed',
+      );
+      return reply.code(503).send({
+        error: {
+          code: 'PLAN_ENTITLEMENT_CHECK_UNAVAILABLE',
+          message: appPublicEnglish('PLAN_ENTITLEMENT_CHECK_UNAVAILABLE'),
+          retryable: true,
+        },
+      });
+    }
+    if (!claim.allowed) {
+      return reply.code(403).send({
+        error: {
+          code: 'PLAN_VIEWER_LIMIT_REACHED',
+          message: appPublicEnglish('PLAN_VIEWER_LIMIT_REACHED', { value1: claim.limit }),
+          limit: claim.limit,
+          activeViewers: claim.activeViewers,
+          plan: claim.entitlements.plan,
+          entitlementsVersion: claim.entitlements.version,
+        },
+      });
+    }
+    if (!claim.value) {
+      return reply.code(404).send({
+        error: { code: 'SHARE_LINK_INVALID', message: appPublicEnglish('SHARE_LINK_INVALID') },
+      });
+    }
+
+    const redeemed = !alreadyCollaborator;
+    if (redeemed) {
       await store.recordProjectActivity({
         projectId: project.id,
         actorUserId: userId,
@@ -26568,7 +26752,6 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         resourceId: project.id,
         metadata: { roleKey: link.roleKey },
       });
-      redeemed = true;
     }
 
     return {
@@ -26598,7 +26781,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * Require projects:write so a read-only (viewer) collaborator can't mint a
      * public share of a project they can only read.
      */
-    await requireProject(request, store, body.projectId, 'projects:write');
+    const project = await requireProject(request, store, body.projectId, 'projects:write');
 
     const userId = request.currentUser!.id;
     const createdAt = new Date();
@@ -26619,6 +26802,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       tokenHash: hashToken(raw),
       conversationId: body.conversationId,
       projectId: body.projectId,
+      expectedOrganizationId: project.organizationId,
       authorUserId: userId,
       title: body.title,
       payload,
@@ -26647,7 +26831,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     );
 
     const { id } = parse(z.object({ id: z.string().min(1) }), request.params);
-    const revoked = await store.revokeChatShare({ id, projectId: project.id });
+    const revoked = await store.revokeChatShare({
+      id,
+      projectId: project.id,
+      expectedOrganizationId: project.organizationId,
+    });
 
     if (!revoked) {
       return reply.code(404).send({ error: appPublicEnglish('CHAT_SHARE_NOT_FOUND'), code: 'CHAT_SHARE_NOT_FOUND' });
@@ -26749,6 +26937,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const ideState = await mutateProjectIdeState(
       store,
       project.id,
+      project.organizationId,
       request.currentUser!.id,
       ({ root, collaboration }) => ({
         ...root,
@@ -26761,7 +26950,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       action: 'project.collaboration.ai_conversation.share',
       metadata: aiConversation,
     });
-    collaborationBroker.publish(project.id, { type: 'ai_conversation.share', aiConversation });
+    collaborationBroker.publish(
+      { projectId: project.id, organizationId: project.organizationId },
+      { type: 'ai_conversation.share', aiConversation },
+    );
 
     return { aiConversation, ideState };
   });
@@ -26804,11 +26996,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const presence = await store.upsertCollaborationPresence({
       projectId: project.id,
+      expectedOrganizationId: project.organizationId,
       userId: request.currentUser!.id,
       sessionId,
       status: 'online',
     });
-    collaborationBroker.join(project.id, client);
+    const collaborationScope = { projectId: project.id, organizationId: project.organizationId };
+    collaborationBroker.join(collaborationScope, client);
 
     const presenceOwnerKey = `${project.id}:${sessionId}`;
     collaborationPresenceOwners.set(presenceOwnerKey, client);
@@ -26843,7 +27037,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             clearInterval(keepAlive);
           }
 
-          collaborationBroker.leave(project.id, client);
+          collaborationBroker.leave(collaborationScope, client);
 
           /*
            * Only retire the presence row if THIS socket still owns it. A reconnect
@@ -26872,8 +27066,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             return;
           }
 
-          await store.removeCollaborationPresence(project.id, sessionId);
-          collaborationBroker.publish(project.id, { type: 'presence.leave', sessionId }, client);
+          await store.removeCollaborationPresence({
+            projectId: project.id,
+            expectedOrganizationId: project.organizationId,
+            sessionId,
+          });
+          collaborationBroker.publish(collaborationScope, { type: 'presence.leave', sessionId }, client);
         } catch (error) {
           request.log?.warn?.(
             { err: error, projectId: project.id, sessionId },
@@ -26883,7 +27081,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       })();
     });
 
-    collaborationBroker.publish(project.id, { type: 'presence.join', presence }, client);
+    collaborationBroker.publish(collaborationScope, { type: 'presence.join', presence }, client);
     client.send(
       JSON.stringify({
         type: 'collaboration.ready',
@@ -26954,6 +27152,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
           const updated = await store.upsertCollaborationPresence({
             projectId: project.id,
+            expectedOrganizationId: project.organizationId,
             userId: request.currentUser!.id,
             sessionId,
             status: body.status,
@@ -26964,7 +27163,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             terminalAccess: isReadOnlyProjectRole(role) ? false : body.terminalAccess,
           });
           ownPresenceUpdatedAt = updated.updatedAt;
-          collaborationBroker.publish(project.id, { type: 'presence.update', presence: updated }, client);
+          collaborationBroker.publish(collaborationScope, { type: 'presence.update', presence: updated }, client);
 
           return;
         }
@@ -26974,6 +27173,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
           const comment = await store.createCollaborationComment({
             projectId: project.id,
+            expectedOrganizationId: project.organizationId,
             userId: request.currentUser!.id,
             filePath: normalizeProjectPath(body.filePath),
             line: body.line,
@@ -26998,7 +27198,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             resourceId: project.id,
             metadata: { commentId: comment.id, filePath: comment.filePath },
           });
-          collaborationBroker.publish(project.id, { type: 'comment.create', comment }, client);
+          collaborationBroker.publish(collaborationScope, { type: 'comment.create', comment }, client);
 
           return;
         }
@@ -28521,7 +28721,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           return getSnapshotFiles(snapshot);
         },
         persistTargetManifest: (projectId, files, actorUserId) =>
-          persistProjectFileManifest(store, projectId, files, actorUserId),
+          persistProjectFileManifest(store, projectId, params.targetOrganizationId, files, actorUserId),
         recordCompleted: async ({ job, targetProject }) => {
           await audit(params.request, store, {
             organizationId: targetProject.organizationId,
@@ -29373,6 +29573,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
       return store.createWorkspace({
         projectId: project.id,
+        expectedOrganizationId: project.organizationId,
         name: body.name,
         runtimeMode: body.runtimeMode ?? 'remote-kubernetes',
       });
@@ -29702,7 +29903,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     });
 
     const restored = await projectStorage.restoreSnapshot({ projectId: project.id, files: snapshotFiles });
-    await persistProjectFileManifest(store, project.id, restored, request.currentUser!.id, {
+    await persistProjectFileManifest(store, project.id, project.organizationId, restored, request.currentUser!.id, {
       clearRecoveredChatFiles: true,
     });
 
@@ -30354,7 +30555,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           conversationId: undefined,
           messageId: undefined,
           costCents: priced.costCents,
-          reason: 'chat.completion.operator',
+          reason: PLATFORM_CHAT_COMPLETION_REASON,
         },
         outcome: body.outcome,
         agentRouting: {
@@ -32595,6 +32796,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     await requireRecentAdminReauth(request);
 
     const { workspaceId } = parse(adminWorkspaceParams, request.params);
+    const scope = await requireCurrentWorkspaceTenantScope(store, workspaceId);
 
     try {
       await managerRequest(`/workspaces/${workspaceId}/stop`, { method: 'POST' });
@@ -32604,7 +32806,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       }
     }
 
-    const workspace = await store.updateWorkspaceStatus({ workspaceId, status: 'STOPPED' });
+    const workspace = await store.updateWorkspaceStatus({
+      workspaceId,
+      expectedProjectId: scope.project.id,
+      expectedOrganizationId: scope.project.organizationId,
+      status: 'STOPPED',
+    });
     await recordAdminAction(request, store, { action: 'admin.preview.kill', metadata: { workspaceId } });
 
     const ttlMinutes = await resolveDefaultPreviewTtlMinutes();
@@ -35448,6 +35655,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     await requireRecentAdminReauth(request);
 
     const { workspaceId } = parse(adminWorkspaceParams, request.params);
+    const scope = await requireCurrentWorkspaceTenantScope(store, workspaceId);
 
     /*
      * Actually stop the pod via the manager, not just flip the DB row. The old
@@ -35463,7 +35671,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       }
     }
 
-    const workspace = await store.updateWorkspaceStatus({ workspaceId, status: 'STOPPED' });
+    const workspace = await store.updateWorkspaceStatus({
+      workspaceId,
+      expectedProjectId: scope.project.id,
+      expectedOrganizationId: scope.project.organizationId,
+      status: 'STOPPED',
+    });
     await recordAdminAction(request, store, { action: 'admin.workspace.stop', metadata: { workspaceId } });
 
     return { workspace };
@@ -35482,15 +35695,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * consumed the org's active-workspace quota. Resolve the same plan / env /
      * secrets the user restart sends so the pod is provisioned correctly.
      */
-    const record = await store.getWorkspace(workspaceId);
-
-    if (!record) {
-      return reply.code(404).send({ error: appPublicEnglish('WORKSPACE_NOT_FOUND'), code: 'WORKSPACE_NOT_FOUND' });
-    }
-
-    const project = await store.getProject(record.projectId);
-    const orgId = project?.organizationId;
-    const state = orgId ? await billingState(orgId) : undefined;
+    const { workspace: record, project } = await requireCurrentWorkspaceTenantScope(store, workspaceId);
+    const orgId = project.organizationId;
+    const state = await billingState(orgId);
 
     const [projectEnvVars, projectSecrets] = await Promise.all([
       store.listProjectEnvVars(record.projectId),
@@ -35526,14 +35733,26 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         }),
       });
     } catch (restartError) {
-      await store.updateWorkspaceStatus({ workspaceId, status: 'FAILED' }).catch(() => undefined);
+      await store
+        .updateWorkspaceStatus({
+          workspaceId,
+          expectedProjectId: record.projectId,
+          expectedOrganizationId: orgId,
+          status: 'FAILED',
+        })
+        .catch(() => undefined);
       throw restartError;
     }
 
     const status =
       managerWorkspace?.status === 'FAILED' ? 'FAILED' : managerWorkspace?.status === 'STOPPED' ? 'STOPPED' : 'RUNNING';
 
-    const workspace = await store.updateWorkspaceStatus({ workspaceId, status });
+    const workspace = await store.updateWorkspaceStatus({
+      workspaceId,
+      expectedProjectId: record.projectId,
+      expectedOrganizationId: orgId,
+      status,
+    });
     await recordAdminAction(request, store, { action: 'admin.workspace.restart', metadata: { workspaceId, status } });
 
     return { workspace };
@@ -35544,6 +35763,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     await requireRecentAdminReauth(request);
 
     const { workspaceId } = parse(adminWorkspaceParams, request.params);
+    const scope = await requireCurrentWorkspaceTenantScope(store, workspaceId);
 
     /*
      * Actually reclaim the pod + PVC via the manager, not just flip the DB row to
@@ -35559,7 +35779,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       }
     }
 
-    const workspace = await store.updateWorkspaceStatus({ workspaceId, status: 'STOPPED' });
+    const workspace = await store.updateWorkspaceStatus({
+      workspaceId,
+      expectedProjectId: scope.project.id,
+      expectedOrganizationId: scope.project.organizationId,
+      status: 'STOPPED',
+    });
     await recordAdminAction(request, store, { action: 'admin.workspace.delete', metadata: { workspaceId } });
 
     return { workspace, deleted: true };
@@ -36201,6 +36426,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     if (workspaceId) {
       updatedWorkspace = await store.updateWorkspaceGitRepositoryUrl({
         workspaceId,
+        expectedProjectId: project.id,
+        expectedOrganizationId: project.organizationId,
         gitRepositoryUrl: body.remoteUrl,
       });
     }
@@ -36263,7 +36490,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     let updatedWorkspace: WorkspaceRecord | undefined;
 
     if (workspaceId) {
-      updatedWorkspace = await store.updateWorkspaceGitRepositoryUrl({ workspaceId, gitRepositoryUrl: null });
+      updatedWorkspace = await store.updateWorkspaceGitRepositoryUrl({
+        workspaceId,
+        expectedProjectId: project.id,
+        expectedOrganizationId: project.organizationId,
+        gitRepositoryUrl: null,
+      });
     }
 
     const updatedProject = workspaceId
@@ -39224,7 +39456,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                   staticArtifactDigest = await computeStaticSnapshotDigest(queued.id);
 
                   if (!staticArtifactDigest) {
-                    throw new Error('STATIC_RELEASE_ARTIFACT_DIGEST_MISSING');
+                    throw new Error(STATIC_RELEASE_ARTIFACT_DIGEST_MISSING);
                   }
                 }
               } catch (error) {
@@ -39327,7 +39559,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
           if (body.provider === 'static' && status === 'READY') {
             if (!resolvedUrl || !finishedAt || !staticArtifactDigest) {
-              throw new Error('STATIC_RELEASE_ARTIFACT_DIGEST_MISSING');
+              throw new Error(STATIC_RELEASE_ARTIFACT_DIGEST_MISSING);
             }
 
             const committed = await store.commitStaticRelease({
@@ -41354,7 +41586,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      */
     let aiUsageReconciliation:
       | Awaited<ReturnType<ApiStore['reconcileCanonicalUserSpend']>>
-      | { error: 'AI_USAGE_RECONCILIATION_FAILED' };
+      | { error: typeof AI_USAGE_RECONCILIATION_FAILED };
     try {
       aiUsageReconciliation = await store.reconcileCanonicalUserSpend({ take: 100 });
       metrics.increment('ai_usage_reconciliation_runs_total', { outcome: 'success' });
@@ -41375,7 +41607,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         metrics.increment('ai_usage_reconciliation_retryable_total', {}, aiUsageReconciliation.retryableFailures);
       }
     } catch (error) {
-      aiUsageReconciliation = { error: 'AI_USAGE_RECONCILIATION_FAILED' };
+      aiUsageReconciliation = { error: AI_USAGE_RECONCILIATION_FAILED };
       metrics.increment('ai_usage_reconciliation_runs_total', { outcome: 'error' });
       request.log.error({ err: error }, 'canonical AI usage reconciliation sweep failed');
     }
@@ -41386,7 +41618,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * unresolved provider latches under the same row lock, so an overlapping
      * worker can never free a reservation between provider start and recovery.
      */
-    let expiredLedgerReservations: string[] | { error: 'LEDGER_RESERVATION_REAP_FAILED' };
+    let expiredLedgerReservations: string[] | { error: typeof LEDGER_RESERVATION_REAP_FAILED };
     try {
       expiredLedgerReservations = await store.reapExpiredLedgerReservations();
       metrics.increment('ledger_reservation_reap_runs_total', { outcome: 'success' });
@@ -41394,7 +41626,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         metrics.increment('ledger_reservations_expired_total', {}, expiredLedgerReservations.length);
       }
     } catch (error) {
-      expiredLedgerReservations = { error: 'LEDGER_RESERVATION_REAP_FAILED' };
+      expiredLedgerReservations = { error: LEDGER_RESERVATION_REAP_FAILED };
       metrics.increment('ledger_reservation_reap_runs_total', { outcome: 'error' });
       request.log.error({ err: error }, 'expired ledger reservation sweep failed');
     }
@@ -42981,6 +43213,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             );
             prodWorkspace = await store.createWorkspace({
               projectId: project.id,
+              expectedOrganizationId: project.organizationId,
               name: 'Production',
               runtimeMode: devTemplate?.runtimeMode ?? 'docker',
               environment: 'production',
@@ -43220,6 +43453,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         deploymentId: source.id,
         actorUserId: request.currentUser?.id ?? null,
         buildInput: { ...buildInput },
+        planEntitlements: redeployEntitlementsPin,
+        projectManifestDigest: redeployProjectManifest.digest,
       });
 
       await ensureTenantAdmission(
@@ -43243,6 +43478,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         idempotencyKey,
         requestHash,
         expectedRuntimeVersion: source.runtimeVersion ?? 0,
+        planEntitlements: redeployEntitlementsPin,
+        projectManifestDigest: redeployProjectManifest.digest,
         encryptedBuildInput: encryptReservedVmBuildInput({ ...buildInput }),
       });
 
@@ -43509,7 +43746,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             staticArtifactDigest = await computeStaticSnapshotDigest(redeploy.id);
 
             if (!staticArtifactDigest) {
-              throw new Error('STATIC_RELEASE_ARTIFACT_DIGEST_MISSING');
+              throw new Error(STATIC_RELEASE_ARTIFACT_DIGEST_MISSING);
             }
           }
         } catch (error) {
@@ -43597,7 +43834,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
           if (source.provider === 'static' && redeployStatus === 'READY') {
             if (!resolvedUrl || !finishedAt || !staticArtifactDigest) {
-              throw new Error('STATIC_RELEASE_ARTIFACT_DIGEST_MISSING');
+              throw new Error(STATIC_RELEASE_ARTIFACT_DIGEST_MISSING);
             }
 
             const committed = await store.commitStaticRelease({

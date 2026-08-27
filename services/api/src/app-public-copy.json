@@ -3188,8 +3188,8 @@
     "fr": "Ce déploiement a été construit depuis un ancien manifeste de projet et ne peut pas être publié, redéployé ni restauré. Lancez un nouveau déploiement depuis le manifeste actuel."
   },
   "PROJECT_TRANSFER_MANAGED_RESOURCES_ACTIVE": {
-    "en": "This project still owns managed database, cloud, or migration resources. Move those resources with the tenant transfer workflow before transferring the project.",
-    "fr": "Ce projet possède encore des ressources gérées de base de données, de cloud ou de migration. Déplacez-les avec le processus de transfert d’organisation avant de transférer le projet."
+    "en": "This project still owns active workspace, runtime, database, cloud, or migration resources. Tear them down or move them with the tenant transfer workflow before transferring the project.",
+    "fr": "Ce projet possède encore des espaces de travail, environnements d’exécution, bases de données, ressources cloud ou migrations actifs. Supprimez-les ou déplacez-les avec le processus de transfert d’organisation avant de transférer le projet."
   },
   "PROJECT_RELEASE_BARRIER_LOST": {
     "en": "Project release barrier was lost.",
@@ -3198,6 +3198,10 @@
   "PROJECT_ORGANIZATION_CHANGED_DURING_RELEASE": {
     "en": "Project organization changed during release.",
     "fr": "L’organisation du projet a changé pendant la publication."
+  },
+  "PROJECT_ORGANIZATION_CHANGED_DURING_MUTATION": {
+    "en": "The project changed organizations while the operation was in progress. Reload the project and try again.",
+    "fr": "Le projet a changé d’organisation pendant l’opération. Rechargez le projet puis réessayez."
   },
   "PROJECT_RELEASE_BARRIER_TTL_INVALID": {
     "en": "Project release barrier TTL must be between 10 and 300 seconds.",

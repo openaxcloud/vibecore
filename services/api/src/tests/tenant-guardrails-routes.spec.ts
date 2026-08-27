@@ -284,6 +284,7 @@ describe('tenant guardrails — route-level negative proofs', () => {
     const project = await store.createProject({ organizationId: org.id, name: 'Restart', slug: 'restart' });
     const workspace = await store.createWorkspace({
       projectId: project.id,
+      expectedOrganizationId: org.id,
       name: 'Running workspace',
       runtimeMode: 'remote-kubernetes',
       initialStatus: 'RUNNING',
@@ -313,6 +314,7 @@ describe('tenant guardrails — route-level negative proofs', () => {
     const project = await store.createProject({ organizationId: org.id, name: 'Reopen', slug: 'reopen' });
     const workspace = await store.createWorkspace({
       projectId: project.id,
+      expectedOrganizationId: org.id,
       name: 'Running runtime',
       runtimeMode: 'remote-kubernetes',
       initialStatus: 'RUNNING',
