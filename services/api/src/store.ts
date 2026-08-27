@@ -668,7 +668,11 @@ export interface DeploymentRecord {
 
 export type ReservedVmTier = 'shared-0.5' | 'dedicated-1' | 'dedicated-2' | 'dedicated-4';
 export type DeploymentRuntimeKind = 'autoscale' | 'reserved-vm';
-export type ReservedVmBillingState = 'CURRENT' | 'PAST_DUE' | 'STOP_REQUIRED';
+export interface ReservedVmEncryptedPayload {
+  keyId: string;
+  ciphertext: string;
+}
+export type ReservedVmBillingState = 'CURRENT' | 'PAST_DUE' | 'STOP_REQUIRED' | 'SUSPENDED';
 
 export interface ReservedVmOperationRecord {
   id: string;
@@ -678,7 +682,7 @@ export interface ReservedVmOperationRecord {
   actorUserId?: string;
   idempotencyKey: string;
   requestHash: string;
-  kind: 'CREATE' | 'CHANGE';
+  kind: 'CREATE' | 'CHANGE' | 'REDEPLOY' | 'DECOMMISSION';
   status: 'PENDING' | 'APPLYING' | 'COMPLETED' | 'FAILED';
   phase: 'RESERVED' | 'LEASED' | 'RUNTIME_APPLIED' | 'COMMITTED' | 'ROLLED_BACK';
   fromRuntimeKind?: DeploymentRuntimeKind;
@@ -686,6 +690,8 @@ export interface ReservedVmOperationRecord {
   targetRuntimeKind: DeploymentRuntimeKind;
   targetTier?: ReservedVmTier;
   targetMachineSize: string;
+  targetCpuMillicores: number;
+  targetMemoryMb: number;
   targetPriceCents: number;
   billingAmountCents: number;
   termsVersion: string;
@@ -709,7 +715,7 @@ export interface ReservedVmLease extends ReservedVmOperationRecord {
 
 export interface ReservedVmBillingRequest {
   organizationId: string;
-  actorUserId?: string;
+  actorUserId: string;
   idempotencyKey: string;
   requestHash: string;
   tier: ReservedVmTier;
@@ -725,6 +731,7 @@ export interface ReservedVmBillingPeriodRecord {
   projectId: string;
   deploymentId: string;
   organizationId: string;
+  actorUserId?: string;
   periodStart: string;
   periodEnd: string;
   tier: ReservedVmTier;
@@ -764,6 +771,14 @@ export interface ReservedVmStopSignal {
   deletePersistentStorage: false;
 }
 
+export interface ReservedVmStopLease extends ReservedVmStopSignal {
+  /** Internal external-effect authority; never serialize to user clients. */
+  operationId: string;
+  ownerToken: string;
+  leaseExpiresAt: string;
+  fencingToken: number;
+}
+
 /**
  * Operator-only Reserved VM renewal contract. Keeping this separate from
  * ApiStore prevents a user-facing in-memory implementation from silently
@@ -774,11 +789,13 @@ export interface ReservedVmBillingStore {
     ownerToken: string;
     ttlMs: number;
     deploymentId?: string;
+    gracePeriodMs?: number;
   }): Promise<{ period: ReservedVmBillingPeriodLease; deployment: DeploymentRecord } | undefined>;
   commitReservedVmBillingPeriod(input: {
     periodId: string;
     ownerToken: string;
     fencingToken: number;
+    gracePeriodMs?: number;
   }): Promise<{ period: ReservedVmBillingPeriodRecord; deployment: DeploymentRecord; replayed: boolean }>;
   failReservedVmBillingPeriod(input: {
     periodId: string;
@@ -789,6 +806,16 @@ export interface ReservedVmBillingStore {
     gracePeriodMs: number;
   }): Promise<{ period: ReservedVmBillingPeriodRecord; deployment: DeploymentRecord }>;
   listReservedVmStopSignals(take?: number): Promise<ReservedVmStopSignal[]>;
+  claimNextReservedVmComputeStop(input: {
+    ownerToken: string;
+    ttlMs: number;
+  }): Promise<{ signal: ReservedVmStopLease; deployment: DeploymentRecord } | undefined>;
+  acknowledgeReservedVmComputeStopped(input: {
+    periodId: string;
+    deploymentId: string;
+    ownerToken: string;
+    fencingToken: number;
+  }): Promise<{ period: ReservedVmBillingPeriodRecord; deployment: DeploymentRecord; replayed: boolean }>;
 }
 
 /**
@@ -963,6 +990,17 @@ export interface ServerImageReleaseCommitInput {
 
   /** Required for rollback-owned deployments; omitted by ordinary publishes. */
   rollbackFence?: RollbackLeaseFence;
+
+  /**
+   * When a promoted image belongs to a Reserved VM saga, release publication,
+   * runtime CAS and the initial/delta ledger settlement commit atomically.
+   */
+  reservedVmFence?: {
+    operationId: string;
+    ownerToken: string;
+    fencingToken: number;
+    response: Record<string, unknown>;
+  };
 }
 
 export interface ServerImageReleaseCommitResult {
@@ -3092,16 +3130,42 @@ export interface ApiStore {
     projectId: string;
     deploymentId: string;
     organizationId: string;
-    actorUserId?: string;
+    actorUserId: string;
     idempotencyKey: string;
     requestHash: string;
     expectedRuntimeVersion: number;
     targetRuntimeKind: DeploymentRuntimeKind;
     targetTier?: ReservedVmTier;
     targetMachineSize: string;
+    targetCpuMillicores: number;
+    targetMemoryMb: number;
     targetPriceCents: number;
     termsVersion: string;
     rateCardVersion: number;
+  }): Promise<{ operation: ReservedVmOperationRecord; deployment: DeploymentRecord; replayed: boolean }>;
+  createReservedVmRedeployOperation(input: {
+    projectId: string;
+    deploymentId: string;
+    organizationId: string;
+    actorUserId: string;
+    idempotencyKey: string;
+    requestHash: string;
+    expectedRuntimeVersion: number;
+
+    /** AES-GCM envelope; build values never enter Deployment JSON as plaintext. */
+    encryptedBuildInput: ReservedVmEncryptedPayload;
+  }): Promise<{ operation: ReservedVmOperationRecord; deployment: DeploymentRecord; replayed: boolean }>;
+  createReservedVmDecommissionOperation(input: {
+    projectId: string;
+    deploymentId: string;
+    organizationId: string;
+    actorUserId: string;
+    idempotencyKey: string;
+    requestHash: string;
+    expectedRuntimeVersion: number;
+    targetMachineSize: string;
+    targetCpuMillicores: number;
+    targetMemoryMb: number;
   }): Promise<{ operation: ReservedVmOperationRecord; deployment: DeploymentRecord; replayed: boolean }>;
   getReservedVmOperation(projectId: string, idempotencyKey: string): Promise<ReservedVmOperationRecord | undefined>;
   acquireReservedVmOperation(input: {
@@ -3110,6 +3174,40 @@ export interface ApiStore {
     ownerToken: string;
     ttlMs: number;
   }): Promise<{ operation: ReservedVmLease; deployment: DeploymentRecord; acquired: boolean }>;
+  acquireReservedVmCreateCancellation(input: {
+    projectId: string;
+    deploymentId: string;
+    actorUserId: string;
+    ownerToken: string;
+    ttlMs: number;
+  }): Promise<{ operation: ReservedVmLease; deployment: DeploymentRecord; acquired: boolean }>;
+  claimNextReservedVmCreateCancellation(input: {
+    ownerToken: string;
+    ttlMs: number;
+  }): Promise<{ operation: ReservedVmLease; deployment: DeploymentRecord } | undefined>;
+  claimNextRecoverableReservedVmOperation(input: {
+    ownerToken: string;
+    ttlMs: number;
+    kinds?: Array<'CREATE' | 'CHANGE' | 'REDEPLOY' | 'DECOMMISSION'>;
+  }): Promise<{ operation: ReservedVmLease; deployment: DeploymentRecord } | undefined>;
+  prepareReservedVmPublish(input: {
+    projectId: string;
+    deploymentId: string;
+    organizationId: string;
+    actorUserId: string;
+    expectedRuntimeVersion: number;
+    releaseFence: ProjectReleaseFence;
+  }): Promise<{ deployment: DeploymentRecord; releaseSource: ReleaseManifestRecord }>;
+  publishReservedVmInPlace(input: {
+    projectId: string;
+    deploymentId: string;
+    organizationId: string;
+    actorUserId: string;
+    expectedRuntimeVersion: number;
+    productionUrl: string;
+    sourceReleaseManifestId: string;
+    releaseFence: ProjectReleaseFence;
+  }): Promise<DeploymentRecord>;
   markReservedVmRuntimeApplied(input: {
     operationId: string;
     ownerToken: string;
@@ -3121,12 +3219,29 @@ export interface ApiStore {
     fencingToken: number;
     response: Record<string, unknown>;
   }): Promise<{ operation: ReservedVmOperationRecord; deployment: DeploymentRecord }>;
+  commitReservedVmDecommissionOperation(input: {
+    operationId: string;
+    ownerToken: string;
+    fencingToken: number;
+    deletedPersistentStorageClaim: string;
+    response: Record<string, unknown>;
+  }): Promise<{ operation: ReservedVmOperationRecord; deployment: DeploymentRecord }>;
+  commitReservedVmCreateCancellation(input: {
+    operationId: string;
+    ownerToken: string;
+    fencingToken: number;
+    deletedPersistentStorageClaim: string;
+    logs: DeploymentRecord['logs'];
+  }): Promise<{ operation: ReservedVmOperationRecord; deployment: DeploymentRecord; replayed: boolean }>;
   failReservedVmOperation(input: {
     operationId: string;
     ownerToken: string;
     fencingToken: number;
     errorCode: string;
     errorMessage: string;
+    createCleanup?: {
+      deletedPersistentStorageClaim: string;
+    };
   }): Promise<ReservedVmOperationRecord>;
   getDeployment(projectId: string, deploymentId: string): Promise<DeploymentRecord | undefined>;
   getDeploymentOwnerStatus(deploymentId: string): Promise<

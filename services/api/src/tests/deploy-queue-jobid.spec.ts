@@ -25,4 +25,16 @@ describe('deployBuildJobId', () => {
   it('embeds the deployment id so the reaper/worker can trace it back', () => {
     expect(deployBuildJobId('cmrcxkn0r000r0mdbcdda7eca')).toContain('cmrcxkn0r000r0mdbcdda7eca');
   });
+
+  it('gives REDEPLOY a stable id distinct from a retained CREATE job for the same deployment', () => {
+    const createJob = deployBuildJobId('dep-reserved');
+    const firstRedeploy = deployBuildJobId('dep-reserved', 'reserved:redeploy.operation-0001');
+    const replay = deployBuildJobId('dep-reserved', 'reserved:redeploy.operation-0001');
+    const nextRedeploy = deployBuildJobId('dep-reserved', 'reserved:redeploy.operation-0002');
+
+    expect(firstRedeploy).toBe(replay);
+    expect(firstRedeploy).not.toBe(createJob);
+    expect(nextRedeploy).not.toBe(firstRedeploy);
+    expect(firstRedeploy).not.toContain(':');
+  });
 });

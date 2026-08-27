@@ -48,6 +48,18 @@ export async function reapStaleDeployments(
   const deploymentIds: string[] = [];
 
   for (const deployment of stale) {
+    /*
+     * Reserved VM builds are durable sagas with a billing hold, external fence,
+     * and PVC cleanup contract. A generic FAILED status write would strand all
+     * three, so their dedicated recovery/cancellation loops own terminalization.
+     */
+    if (
+      deployment.runtimeKind === 'reserved-vm' ||
+      Boolean((deployment.metadata as Record<string, unknown> | undefined)?.reservedVmCreate)
+    ) {
+      continue;
+    }
+
     try {
       const updated = await store.updateDeployment(deployment.projectId, deployment.id, {
         status: 'FAILED',

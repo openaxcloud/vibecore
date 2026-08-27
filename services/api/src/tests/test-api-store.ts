@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 
 import { redactAuditMetadata, type AuditEvent } from '@vibecore/audit';
 import { hashToken } from '@vibecore/auth';
-import type { PlanKey, QuotaKey } from '@vibecore/billing';
+import { RESERVED_VM_TIERS, type PlanKey, type QuotaKey } from '@vibecore/billing';
 import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
 import { appPublicEnglish } from '../app-public-copy.js';
 import {
@@ -81,6 +81,11 @@ import type {
   CollaborationPresenceRecord,
   CustomRoleRecord,
   DeploymentRecord,
+  DeploymentRuntimeKind,
+  ReservedVmBillingRequest,
+  ReservedVmLease,
+  ReservedVmOperationRecord,
+  ReservedVmTier,
   DeploymentAccessContext,
   DeploymentAccessTicketMutationResult,
   ReleaseManifestRecord,
@@ -99,6 +104,7 @@ import type {
   ResourceAccessGrantRecord,
   OAuthConnectionRecord,
   ProjectConnectionLinkRecord,
+  ProjectReleaseFence,
   ReconnectionAlertRecord,
   UserConnectionRecord,
   UserConnectionStatus,
@@ -162,6 +168,11 @@ function sameNullable(left: string | undefined, right: string | undefined) {
   return (left ?? null) === (right ?? null);
 }
 
+function publicReservedVmOperation(operation: ReservedVmLease): ReservedVmOperationRecord {
+  const { leaseOwner: _owner, leaseExpiresAt: _expiry, fencingToken: _fence, ...record } = operation;
+  return record;
+}
+
 function slugify(value: string) {
   return value
     .toLowerCase()
@@ -203,6 +214,8 @@ export class TestApiStore implements ApiStore {
   readonly agentPatchProposals = new Map<string, AgentPatchProposalRecord>();
   readonly projectTemplates = new Map<string, ProjectTemplateRecord>();
   readonly deployments = new Map<string, DeploymentRecord>();
+  readonly reservedVmOperations = new Map<string, ReservedVmLease>();
+  readonly reservedVmRuntimeFences = new Map<string, number>();
   readonly deploymentAccessPolicies: DeploymentAccessPolicyRecord[] = [];
   readonly deploymentAccessExchangeTickets = new Map<
     string,
@@ -1568,6 +1581,21 @@ export class TestApiStore implements ApiStore {
   }
 
   async softDeleteProject(projectId: string) {
+    if (
+      [...this.deployments.values()].some(
+        (deployment) =>
+          deployment.projectId === projectId &&
+          (deployment.runtimeKind === 'reserved-vm' || Boolean(deployment.persistentStorageClaim)),
+      ) ||
+      [...this.reservedVmOperations.values()].some(
+        (operation) => operation.projectId === projectId && ['PENDING', 'APPLYING'].includes(operation.status),
+      )
+    ) {
+      throw Object.assign(new Error('PROJECT_RESERVED_VM_DECOMMISSION_REQUIRED'), {
+        code: 'PROJECT_RESERVED_VM_DECOMMISSION_REQUIRED',
+        statusCode: 409,
+      });
+    }
     const project = await this.updateProject({ projectId });
     project.deletedAt = now();
     project.updatedAt = now();
@@ -1584,6 +1612,21 @@ export class TestApiStore implements ApiStore {
   }
 
   async hardDeleteProject(projectId: string) {
+    if (
+      [...this.deployments.values()].some(
+        (deployment) =>
+          deployment.projectId === projectId &&
+          (deployment.runtimeKind === 'reserved-vm' || Boolean(deployment.persistentStorageClaim)),
+      ) ||
+      [...this.reservedVmOperations.values()].some(
+        (operation) => operation.projectId === projectId && ['PENDING', 'APPLYING'].includes(operation.status),
+      )
+    ) {
+      throw Object.assign(new Error('PROJECT_RESERVED_VM_DECOMMISSION_REQUIRED'), {
+        code: 'PROJECT_RESERVED_VM_DECOMMISSION_REQUIRED',
+        statusCode: 409,
+      });
+    }
     const project = await this.updateProject({ projectId });
     this.projects.delete(projectId);
     this.projectManifestRevisions.delete(projectId);
@@ -1628,6 +1671,9 @@ export class TestApiStore implements ApiStore {
       const hasLiveDeployment = [...this.deployments.values()].some(
         (deployment) => deployment.projectId === project.id && !['FAILED', 'CANCELED'].includes(deployment.status),
       );
+      const hasNonTerminalReservedVmOperation = [...this.reservedVmOperations.values()].some(
+        (operation) => operation.projectId === project.id && !['COMPLETED', 'FAILED'].includes(operation.status),
+      );
 
       const hasReleaseManifest = this.releaseManifests.some((manifest) => manifest.projectId === project.id);
 
@@ -1638,6 +1684,7 @@ export class TestApiStore implements ApiStore {
         hasActiveRemix ||
         hasActiveStorageShare ||
         hasLiveDeployment ||
+        hasNonTerminalReservedVmOperation ||
         hasReleaseManifest ||
         this.cloudProjectBindingProjectIds.has(project.id)
       ) {
@@ -3758,12 +3805,28 @@ export class TestApiStore implements ApiStore {
     rolledBackFromId?: string;
     parentDeploymentId?: string;
     machineSize?: string;
+    reservedVm?: ReservedVmBillingRequest;
     accessPolicy?: { mode: DeploymentAccessMode; passwordHash?: string; createdByUserId?: string };
     accessPolicyVersion?: number;
     startedAt?: string;
     finishedAt?: string;
     canceledAt?: string;
   }) {
+    if (input.reservedVm) {
+      const operationKey = `${input.projectId}:${input.reservedVm.idempotencyKey}`;
+      const replay = this.reservedVmOperations.get(operationKey);
+
+      if (replay) {
+        if (replay.requestHash !== input.reservedVm.requestHash || replay.kind !== 'CREATE') {
+          throw Object.assign(new Error('RESERVED_VM_IDEMPOTENCY_CONFLICT'), {
+            code: 'RESERVED_VM_IDEMPOTENCY_CONFLICT',
+            statusCode: 409,
+          });
+        }
+        return this.deployments.get(replay.deploymentId)!;
+      }
+    }
+
     const environment = input.environment ?? 'preview';
 
     let accessPolicyVersion = input.accessPolicyVersion;
@@ -3842,6 +3905,13 @@ export class TestApiStore implements ApiStore {
       rolledBackFromId: input.rolledBackFromId,
       parentDeploymentId: input.parentDeploymentId,
       machineSize: input.machineSize,
+      runtimeKind: input.reservedVm ? 'reserved-vm' : 'autoscale',
+      runtimeVersion: 0,
+      reservedVmTier: input.reservedVm?.tier,
+      reservedVmPriceCents: input.reservedVm?.monthlyPriceCents,
+      reservedVmTermsVersion: input.reservedVm?.termsVersion,
+      reservedVmRateCardVersion: input.reservedVm?.rateCardVersion,
+      persistentStorageClaim: input.reservedVm ? `reserved-data-pending` : undefined,
       accessPolicyVersion,
       startedAt: input.startedAt,
       finishedAt: input.finishedAt,
@@ -3849,7 +3919,39 @@ export class TestApiStore implements ApiStore {
       createdAt: now(),
       updatedAt: now(),
     };
+    if (input.reservedVm) {
+      deployment.persistentStorageClaim = `reserved-data-${deployment.id}`;
+      const timestamp = now();
+      const operation: ReservedVmLease = {
+        id: id('reserved_operation'),
+        projectId: input.projectId,
+        deploymentId: deployment.id,
+        organizationId: input.reservedVm.organizationId,
+        actorUserId: input.reservedVm.actorUserId,
+        idempotencyKey: input.reservedVm.idempotencyKey,
+        requestHash: input.reservedVm.requestHash,
+        kind: 'CREATE',
+        status: 'PENDING',
+        phase: 'RESERVED',
+        targetRuntimeKind: 'reserved-vm',
+        targetTier: input.reservedVm.tier,
+        targetMachineSize: input.reservedVm.tier,
+        targetCpuMillicores: Math.round(RESERVED_VM_TIERS[input.reservedVm.tier].vcpu * 1_000),
+        targetMemoryMb: RESERVED_VM_TIERS[input.reservedVm.tier].ramGb * 1_024,
+        targetPriceCents: input.reservedVm.monthlyPriceCents,
+        billingAmountCents: input.reservedVm.monthlyPriceCents,
+        termsVersion: input.reservedVm.termsVersion,
+        rateCardVersion: input.reservedVm.rateCardVersion,
+        expectedRuntimeVersion: 0,
+        billingReservationId: id('ledger_reservation'),
+        fencingToken: 0,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      };
+      this.reservedVmOperations.set(`${input.projectId}:${input.reservedVm.idempotencyKey}`, operation);
+    }
     this.deployments.set(deployment.id, deployment);
+    this.reservedVmRuntimeFences.set(deployment.id, 0);
 
     return deployment;
   }
@@ -3857,6 +3959,948 @@ export class TestApiStore implements ApiStore {
   async getDeployment(projectId: string, deploymentId: string) {
     const deployment = this.deployments.get(deploymentId);
     return deployment?.projectId === projectId ? deployment : undefined;
+  }
+
+  async createReservedVmChangeOperation(input: {
+    projectId: string;
+    deploymentId: string;
+    organizationId: string;
+    actorUserId: string;
+    idempotencyKey: string;
+    requestHash: string;
+    expectedRuntimeVersion: number;
+    targetRuntimeKind: DeploymentRuntimeKind;
+    targetTier?: ReservedVmTier;
+    targetMachineSize: string;
+    targetCpuMillicores: number;
+    targetMemoryMb: number;
+    targetPriceCents: number;
+    termsVersion: string;
+    rateCardVersion: number;
+  }) {
+    const key = `${input.projectId}:${input.idempotencyKey}`;
+    const replay = this.reservedVmOperations.get(key);
+    const deployment = await this.getDeployment(input.projectId, input.deploymentId);
+
+    if (!deployment) throw new Error('DEPLOYMENT_NOT_FOUND');
+    if (replay) {
+      if (
+        replay.requestHash !== input.requestHash ||
+        replay.deploymentId !== input.deploymentId ||
+        !replay.actorUserId ||
+        replay.actorUserId !== input.actorUserId
+      ) {
+        throw Object.assign(new Error('RESERVED_VM_IDEMPOTENCY_CONFLICT'), {
+          code: 'RESERVED_VM_IDEMPOTENCY_CONFLICT',
+          statusCode: 409,
+        });
+      }
+      return { operation: publicReservedVmOperation(replay), deployment, replayed: true };
+    }
+    this._assertNoActiveProjectReleaseBarrier(input.projectId);
+    if ((deployment.runtimeVersion ?? 0) !== input.expectedRuntimeVersion) {
+      throw Object.assign(new Error('RESERVED_VM_RUNTIME_VERSION_CONFLICT'), {
+        code: 'RESERVED_VM_RUNTIME_VERSION_CONFLICT',
+        statusCode: 409,
+      });
+    }
+    if (
+      [...this.reservedVmOperations.values()].some(
+        (operation) => operation.deploymentId === deployment.id && ['PENDING', 'APPLYING'].includes(operation.status),
+      )
+    ) {
+      throw Object.assign(new Error('RESERVED_VM_CHANGE_IN_PROGRESS'), {
+        code: 'RESERVED_VM_CHANGE_IN_PROGRESS',
+        statusCode: 409,
+      });
+    }
+
+    const timestamp = now();
+    const operation: ReservedVmLease = {
+      id: id('reserved_operation'),
+      projectId: input.projectId,
+      deploymentId: input.deploymentId,
+      organizationId: input.organizationId,
+      actorUserId: input.actorUserId,
+      idempotencyKey: input.idempotencyKey,
+      requestHash: input.requestHash,
+      kind: 'CHANGE',
+      status: 'PENDING',
+      phase: 'RESERVED',
+      fromRuntimeKind: deployment.runtimeKind ?? 'autoscale',
+      fromTier: deployment.reservedVmTier,
+      targetRuntimeKind: input.targetRuntimeKind,
+      targetTier: input.targetTier,
+      targetMachineSize: input.targetMachineSize,
+      targetCpuMillicores: input.targetCpuMillicores,
+      targetMemoryMb: input.targetMemoryMb,
+      targetPriceCents: input.targetPriceCents,
+      billingAmountCents:
+        input.targetRuntimeKind === 'reserved-vm'
+          ? deployment.reservedVmBillingState === 'SUSPENDED'
+            ? input.targetPriceCents
+            : Math.max(0, input.targetPriceCents - (deployment.reservedVmPriceCents ?? 0))
+          : 0,
+      termsVersion: input.termsVersion,
+      rateCardVersion: input.rateCardVersion,
+      expectedRuntimeVersion: input.expectedRuntimeVersion,
+      billingReservationId: input.targetRuntimeKind === 'reserved-vm' ? id('ledger_reservation') : undefined,
+      fencingToken: 0,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    };
+    this.reservedVmOperations.set(key, operation);
+    return { operation: publicReservedVmOperation(operation), deployment, replayed: false };
+  }
+
+  async createReservedVmRedeployOperation(input: {
+    projectId: string;
+    deploymentId: string;
+    organizationId: string;
+    actorUserId: string;
+    idempotencyKey: string;
+    requestHash: string;
+    expectedRuntimeVersion: number;
+    encryptedBuildInput: { keyId: string; ciphertext: string };
+  }) {
+    const key = `${input.projectId}:${input.idempotencyKey}`;
+    const replay = this.reservedVmOperations.get(key);
+    const deployment = await this.getDeployment(input.projectId, input.deploymentId);
+
+    if (!deployment) throw new Error('DEPLOYMENT_NOT_FOUND');
+    if (replay) {
+      if (
+        replay.kind !== 'REDEPLOY' ||
+        replay.requestHash !== input.requestHash ||
+        replay.deploymentId !== input.deploymentId ||
+        !replay.actorUserId ||
+        replay.actorUserId !== input.actorUserId
+      ) {
+        throw Object.assign(new Error('RESERVED_VM_IDEMPOTENCY_CONFLICT'), {
+          code: 'RESERVED_VM_IDEMPOTENCY_CONFLICT',
+          statusCode: 409,
+        });
+      }
+      return { operation: publicReservedVmOperation(replay), deployment, replayed: true };
+    }
+    this._assertNoActiveProjectReleaseBarrier(input.projectId);
+    if (
+      deployment.provider !== 'server' ||
+      deployment.status !== 'READY' ||
+      deployment.runtimeKind !== 'reserved-vm' ||
+      deployment.reservedVmBillingState === 'PAST_DUE' ||
+      deployment.reservedVmBillingState === 'STOP_REQUIRED'
+    ) {
+      throw Object.assign(new Error('RESERVED_VM_REDEPLOY_NOT_READY'), {
+        code: 'RESERVED_VM_REDEPLOY_NOT_READY',
+        statusCode: 409,
+      });
+    }
+    if ((deployment.runtimeVersion ?? 0) !== input.expectedRuntimeVersion) {
+      throw Object.assign(new Error('RESERVED_VM_RUNTIME_VERSION_CONFLICT'), {
+        code: 'RESERVED_VM_RUNTIME_VERSION_CONFLICT',
+        statusCode: 409,
+      });
+    }
+    if (
+      [...this.reservedVmOperations.values()].some(
+        (operation) => operation.deploymentId === deployment.id && ['PENDING', 'APPLYING'].includes(operation.status),
+      )
+    ) {
+      throw Object.assign(new Error('RESERVED_VM_CHANGE_IN_PROGRESS'), {
+        code: 'RESERVED_VM_CHANGE_IN_PROGRESS',
+        statusCode: 409,
+      });
+    }
+
+    const timestamp = now();
+    const operation: ReservedVmLease = {
+      id: id('reserved_operation'),
+      projectId: input.projectId,
+      deploymentId: input.deploymentId,
+      organizationId: input.organizationId,
+      actorUserId: input.actorUserId,
+      idempotencyKey: input.idempotencyKey,
+      requestHash: input.requestHash,
+      kind: 'REDEPLOY',
+      status: 'PENDING',
+      phase: 'RESERVED',
+      fromRuntimeKind: 'reserved-vm',
+      fromTier: deployment.reservedVmTier,
+      targetRuntimeKind: 'reserved-vm',
+      targetTier: deployment.reservedVmTier,
+      targetMachineSize: deployment.machineSize ?? deployment.reservedVmTier ?? 'shared-0.5',
+      targetCpuMillicores: Math.round(RESERVED_VM_TIERS[deployment.reservedVmTier ?? 'shared-0.5'].vcpu * 1_000),
+      targetMemoryMb: RESERVED_VM_TIERS[deployment.reservedVmTier ?? 'shared-0.5'].ramGb * 1_024,
+      targetPriceCents: deployment.reservedVmPriceCents ?? 0,
+      billingAmountCents: 0,
+      termsVersion: deployment.reservedVmTermsVersion ?? 'reserved-vm-monthly-v1',
+      rateCardVersion: deployment.reservedVmRateCardVersion,
+      expectedRuntimeVersion: input.expectedRuntimeVersion,
+      fencingToken: 0,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    };
+    const updatedDeployment: DeploymentRecord = {
+      ...deployment,
+      metadata: {
+        ...((deployment.metadata ?? {}) as Record<string, unknown>),
+        reservedVmOperationKey: input.idempotencyKey,
+        reservedVmRedeploy: {
+          operationId: operation.id,
+          idempotencyKey: input.idempotencyKey,
+          expectedRuntimeVersion: input.expectedRuntimeVersion,
+          encryptedBuildInput: input.encryptedBuildInput,
+        },
+      },
+      updatedAt: now(),
+    };
+    this.reservedVmOperations.set(key, operation);
+    this.deployments.set(deployment.id, updatedDeployment);
+
+    return { operation: publicReservedVmOperation(operation), deployment: updatedDeployment, replayed: false };
+  }
+
+  async createReservedVmDecommissionOperation(input: {
+    projectId: string;
+    deploymentId: string;
+    organizationId: string;
+    actorUserId: string;
+    idempotencyKey: string;
+    requestHash: string;
+    expectedRuntimeVersion: number;
+    targetMachineSize: string;
+    targetCpuMillicores: number;
+    targetMemoryMb: number;
+  }) {
+    const key = `${input.projectId}:${input.idempotencyKey}`;
+    const replay = this.reservedVmOperations.get(key);
+    const deployment = await this.getDeployment(input.projectId, input.deploymentId);
+
+    if (!deployment) throw new Error('DEPLOYMENT_NOT_FOUND');
+    if (replay) {
+      if (
+        replay.kind !== 'DECOMMISSION' ||
+        replay.requestHash !== input.requestHash ||
+        replay.deploymentId !== input.deploymentId ||
+        replay.actorUserId !== input.actorUserId
+      ) {
+        throw Object.assign(new Error('RESERVED_VM_IDEMPOTENCY_CONFLICT'), {
+          code: 'RESERVED_VM_IDEMPOTENCY_CONFLICT',
+          statusCode: 409,
+        });
+      }
+      return { operation: publicReservedVmOperation(replay), deployment, replayed: true };
+    }
+    this._assertNoActiveProjectReleaseBarrier(input.projectId);
+    if (
+      deployment.provider !== 'server' ||
+      deployment.status !== 'READY' ||
+      deployment.runtimeKind !== 'autoscale' ||
+      deployment.persistentStorageClaim !== `reserved-data-${deployment.id}`
+    ) {
+      throw Object.assign(new Error('RESERVED_VM_DECOMMISSION_NOT_READY'), {
+        code: 'RESERVED_VM_DECOMMISSION_NOT_READY',
+        statusCode: 409,
+      });
+    }
+    if ((deployment.runtimeVersion ?? 0) !== input.expectedRuntimeVersion) {
+      throw Object.assign(new Error('RESERVED_VM_RUNTIME_VERSION_CONFLICT'), {
+        code: 'RESERVED_VM_RUNTIME_VERSION_CONFLICT',
+        statusCode: 409,
+      });
+    }
+    if (
+      [...this.reservedVmOperations.values()].some(
+        (operation) => operation.deploymentId === deployment.id && ['PENDING', 'APPLYING'].includes(operation.status),
+      )
+    ) {
+      throw Object.assign(new Error('RESERVED_VM_DECOMMISSION_IN_PROGRESS'), {
+        code: 'RESERVED_VM_DECOMMISSION_IN_PROGRESS',
+        statusCode: 409,
+      });
+    }
+
+    const timestamp = now();
+    const operation: ReservedVmLease = {
+      id: id('reserved_operation'),
+      projectId: input.projectId,
+      deploymentId: input.deploymentId,
+      organizationId: input.organizationId,
+      actorUserId: input.actorUserId,
+      idempotencyKey: input.idempotencyKey,
+      requestHash: input.requestHash,
+      kind: 'DECOMMISSION',
+      status: 'PENDING',
+      phase: 'RESERVED',
+      fromRuntimeKind: 'autoscale',
+      targetRuntimeKind: 'autoscale',
+      targetMachineSize: input.targetMachineSize,
+      targetCpuMillicores: input.targetCpuMillicores,
+      targetMemoryMb: input.targetMemoryMb,
+      targetPriceCents: 0,
+      billingAmountCents: 0,
+      termsVersion: 'reserved-vm-storage-decommission-v1',
+      rateCardVersion: 1,
+      expectedRuntimeVersion: input.expectedRuntimeVersion,
+      fencingToken: 0,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    };
+    this.reservedVmOperations.set(key, operation);
+    return { operation: publicReservedVmOperation(operation), deployment, replayed: false };
+  }
+
+  async getReservedVmOperation(projectId: string, idempotencyKey: string) {
+    const operation = this.reservedVmOperations.get(`${projectId}:${idempotencyKey}`);
+    return operation ? publicReservedVmOperation(operation) : undefined;
+  }
+
+  async acquireReservedVmOperation(input: {
+    projectId: string;
+    idempotencyKey: string;
+    ownerToken: string;
+    ttlMs: number;
+  }) {
+    const key = `${input.projectId}:${input.idempotencyKey}`;
+    const operation = this.reservedVmOperations.get(key);
+
+    if (!operation) throw new Error('RESERVED_VM_OPERATION_NOT_FOUND');
+    const deployment = this.deployments.get(operation.deploymentId)!;
+    if (operation.status === 'COMPLETED' || operation.status === 'FAILED') {
+      return { operation, deployment, acquired: false };
+    }
+    if (operation.kind === 'CREATE' && operation.errorCode === 'RESERVED_VM_CANCEL_REQUESTED') {
+      return { operation, deployment, acquired: false };
+    }
+    if (
+      operation.leaseOwner &&
+      operation.leaseOwner !== input.ownerToken &&
+      operation.leaseExpiresAt &&
+      Date.parse(operation.leaseExpiresAt) > Date.now()
+    ) {
+      return { operation, deployment, acquired: false };
+    }
+    const runtimeFence = (this.reservedVmRuntimeFences.get(operation.deploymentId) ?? 0) + 1;
+    this.reservedVmRuntimeFences.set(operation.deploymentId, runtimeFence);
+    const claimed: ReservedVmLease = {
+      ...operation,
+      status: 'APPLYING',
+      phase: operation.phase === 'RUNTIME_APPLIED' ? 'RUNTIME_APPLIED' : 'LEASED',
+      leaseOwner: input.ownerToken,
+      leaseExpiresAt: new Date(Date.now() + input.ttlMs).toISOString(),
+      fencingToken: runtimeFence,
+      updatedAt: now(),
+    };
+    this.reservedVmOperations.set(key, claimed);
+    return { operation: claimed, deployment, acquired: true };
+  }
+
+  async acquireReservedVmCreateCancellation(input: {
+    projectId: string;
+    deploymentId: string;
+    actorUserId: string;
+    ownerToken: string;
+    ttlMs: number;
+  }) {
+    const entry = [...this.reservedVmOperations.entries()].find(
+      ([, operation]) =>
+        operation.projectId === input.projectId &&
+        operation.deploymentId === input.deploymentId &&
+        operation.kind === 'CREATE',
+    );
+    if (!entry) throw new Error('RESERVED_VM_OPERATION_NOT_FOUND');
+    const [key, operation] = entry;
+    const deployment = this.deployments.get(input.deploymentId)!;
+
+    if (operation.status === 'FAILED' && deployment.status === 'CANCELED') {
+      return { operation, deployment, acquired: false };
+    }
+    if (
+      operation.errorCode === 'RESERVED_VM_CANCEL_REQUESTED' &&
+      operation.leaseOwner &&
+      operation.leaseExpiresAt &&
+      Date.parse(operation.leaseExpiresAt) > Date.now()
+    ) {
+      return { operation, deployment, acquired: false };
+    }
+    if (
+      !['PENDING', 'APPLYING'].includes(operation.status) ||
+      !['QUEUED', 'BUILDING'].includes(deployment.status) ||
+      (deployment.runtimeVersion ?? 0) !== operation.expectedRuntimeVersion
+    ) {
+      throw Object.assign(new Error('DEPLOYMENT_NOT_CANCELABLE'), {
+        code: 'DEPLOYMENT_NOT_CANCELABLE',
+        statusCode: 409,
+      });
+    }
+
+    const runtimeFence = (this.reservedVmRuntimeFences.get(operation.deploymentId) ?? 0) + 1;
+    this.reservedVmRuntimeFences.set(operation.deploymentId, runtimeFence);
+    const claimed: ReservedVmLease = {
+      ...operation,
+      status: 'APPLYING',
+      phase: 'LEASED',
+      leaseOwner: input.ownerToken,
+      leaseExpiresAt: new Date(Date.now() + input.ttlMs).toISOString(),
+      fencingToken: runtimeFence,
+      errorCode: 'RESERVED_VM_CANCEL_REQUESTED',
+      errorMessage: undefined,
+      updatedAt: now(),
+    };
+    const updatedDeployment: DeploymentRecord = {
+      ...deployment,
+      metadata: {
+        ...((deployment.metadata ?? {}) as Record<string, unknown>),
+        reservedVmCancelRequestedAt: now(),
+        reservedVmCancelRequestedBy: input.actorUserId,
+      },
+      updatedAt: now(),
+    };
+    this.reservedVmOperations.set(key, claimed);
+    this.deployments.set(deployment.id, updatedDeployment);
+    return { operation: claimed, deployment: updatedDeployment, acquired: true };
+  }
+
+  async claimNextReservedVmCreateCancellation(input: { ownerToken: string; ttlMs: number }) {
+    const entry = [...this.reservedVmOperations.entries()]
+      .filter(
+        ([, operation]) =>
+          operation.kind === 'CREATE' &&
+          operation.status === 'APPLYING' &&
+          operation.errorCode === 'RESERVED_VM_CANCEL_REQUESTED' &&
+          (!operation.leaseExpiresAt || Date.parse(operation.leaseExpiresAt) <= Date.now()),
+      )
+      .sort((left, right) => left[1].updatedAt.localeCompare(right[1].updatedAt))[0];
+
+    if (!entry) return undefined;
+    const [key, operation] = entry;
+    const deployment = this.deployments.get(operation.deploymentId)!;
+    const runtimeFence = (this.reservedVmRuntimeFences.get(operation.deploymentId) ?? 0) + 1;
+    this.reservedVmRuntimeFences.set(operation.deploymentId, runtimeFence);
+    const claimed: ReservedVmLease = {
+      ...operation,
+      leaseOwner: input.ownerToken,
+      leaseExpiresAt: new Date(Date.now() + input.ttlMs).toISOString(),
+      fencingToken: runtimeFence,
+      updatedAt: now(),
+    };
+    this.reservedVmOperations.set(key, claimed);
+    return { operation: claimed, deployment };
+  }
+
+  async claimNextRecoverableReservedVmOperation(input: {
+    ownerToken: string;
+    ttlMs: number;
+    kinds?: Array<'CREATE' | 'CHANGE' | 'REDEPLOY' | 'DECOMMISSION'>;
+  }) {
+    const kinds = new Set(input.kinds?.length ? input.kinds : ['CHANGE', 'REDEPLOY', 'DECOMMISSION']);
+    const entry = [...this.reservedVmOperations.entries()]
+      .filter(
+        ([, operation]) =>
+          kinds.has(operation.kind as 'CREATE' | 'CHANGE' | 'REDEPLOY' | 'DECOMMISSION') &&
+          operation.errorCode !== 'RESERVED_VM_CANCEL_REQUESTED' &&
+          ['PENDING', 'APPLYING'].includes(operation.status) &&
+          (!operation.leaseExpiresAt || Date.parse(operation.leaseExpiresAt) <= Date.now()),
+      )
+      .sort((left, right) => left[1].createdAt.localeCompare(right[1].createdAt))[0];
+
+    if (!entry) return undefined;
+
+    const [key, operation] = entry;
+    const deployment = this.deployments.get(operation.deploymentId)!;
+    const runtimeFence = (this.reservedVmRuntimeFences.get(operation.deploymentId) ?? 0) + 1;
+    this.reservedVmRuntimeFences.set(operation.deploymentId, runtimeFence);
+    const claimed: ReservedVmLease = {
+      ...operation,
+      status: 'APPLYING',
+      phase: operation.phase === 'RUNTIME_APPLIED' ? 'RUNTIME_APPLIED' : 'LEASED',
+      leaseOwner: input.ownerToken,
+      leaseExpiresAt: new Date(Date.now() + input.ttlMs).toISOString(),
+      fencingToken: runtimeFence,
+      updatedAt: now(),
+    };
+    this.reservedVmOperations.set(key, claimed);
+
+    return { operation: claimed, deployment };
+  }
+
+  private _assertNoActiveProjectReleaseBarrier(projectId: string): void {
+    const active = [...this.projectCheckpoints.values()].some(
+      (checkpoint) =>
+        checkpoint.barrierProjectId === projectId &&
+        checkpoint.barrierExpiresAt &&
+        Date.parse(checkpoint.barrierExpiresAt) > Date.now(),
+    );
+
+    if (active) {
+      throw Object.assign(new Error('CHECKPOINT_BARRIER_ACTIVE'), {
+        code: 'CHECKPOINT_BARRIER_ACTIVE',
+        statusCode: 423,
+      });
+    }
+  }
+
+  private _reservedVmPublishCandidate(
+    input: {
+      projectId: string;
+      deploymentId: string;
+      organizationId: string;
+      expectedRuntimeVersion: number;
+      releaseFence: ProjectReleaseFence;
+    },
+    sourceReleaseManifestId?: string,
+  ): { deployment: DeploymentRecord; releaseSource: ReleaseManifestRecord; replayed: boolean } {
+    const deployment = this.deployments.get(input.deploymentId);
+    const project = this.projects.get(input.projectId);
+    const metadata = (deployment?.metadata ?? {}) as Record<string, unknown>;
+    const serverDeploy = metadata.serverDeploy as Record<string, unknown> | undefined;
+    const image = serverDeploy?.image as Record<string, unknown> | undefined;
+
+    if (!deployment || deployment.projectId !== input.projectId) throw new Error('DEPLOYMENT_NOT_FOUND');
+    if (!project || project.organizationId !== input.organizationId) {
+      throw Object.assign(new Error('RESERVED_VM_TENANT_FORBIDDEN'), {
+        code: 'RESERVED_VM_TENANT_FORBIDDEN',
+        statusCode: 403,
+      });
+    }
+    if (
+      deployment.runtimeKind !== 'reserved-vm' ||
+      deployment.provider !== 'server' ||
+      deployment.status !== 'READY' ||
+      deployment.reservedVmBillingState !== 'CURRENT' ||
+      metadata.projectManifestDigest !== input.releaseFence.expectedManifestDigest
+    ) {
+      throw Object.assign(new Error('RESERVED_VM_DEPLOYMENT_NOT_READY'), {
+        code: 'RESERVED_VM_DEPLOYMENT_NOT_READY',
+        statusCode: 409,
+      });
+    }
+
+    if (deployment.environment === 'production') {
+      const releaseSource = this.releaseManifests.find(
+        (manifest) =>
+          manifest.id === sourceReleaseManifestId &&
+          manifest.projectId === input.projectId &&
+          manifest.deploymentId === input.deploymentId,
+      );
+      const committedProductionRelease = releaseSource
+        ? this.releaseManifests.find(
+            (manifest) =>
+              manifest.projectId === input.projectId &&
+              manifest.deploymentId === input.deploymentId &&
+              manifest.environment === 'production' &&
+              manifest.artifactRef === releaseSource.artifactRef &&
+              manifest.artifactDigest === releaseSource.artifactDigest &&
+              manifest.accessPolicyVersion === releaseSource.accessPolicyVersion,
+          )
+        : undefined;
+
+      if (
+        metadata.publishedFromReleaseManifestId === sourceReleaseManifestId &&
+        releaseSource &&
+        committedProductionRelease &&
+        releaseSource.provider === 'server' &&
+        releaseSource.artifactKind === 'server-image' &&
+        releaseSource.accessPolicyVersion === deployment.accessPolicyVersion &&
+        image?.imageRef === releaseSource.artifactRef &&
+        image?.imageDigest === releaseSource.artifactDigest &&
+        isCommittedPromotionForTenant(
+          serverDeploy?.promotion,
+          input.organizationId,
+          releaseSource.artifactDigest,
+          releaseSource.artifactRef,
+        )
+      ) {
+        return { deployment, releaseSource, replayed: true };
+      }
+
+      throw Object.assign(new Error('RESERVED_VM_DEPLOYMENT_NOT_READY'), {
+        code: 'RESERVED_VM_DEPLOYMENT_NOT_READY',
+        statusCode: 409,
+      });
+    }
+    if ((deployment.runtimeVersion ?? 0) !== input.expectedRuntimeVersion) {
+      throw Object.assign(new Error('RESERVED_VM_RUNTIME_VERSION_CONFLICT'), {
+        code: 'RESERVED_VM_RUNTIME_VERSION_CONFLICT',
+        statusCode: 409,
+      });
+    }
+    if (
+      [...this.reservedVmOperations.values()].some(
+        (operation) => operation.deploymentId === deployment.id && ['PENDING', 'APPLYING'].includes(operation.status),
+      )
+    ) {
+      throw Object.assign(new Error('RESERVED_VM_CHANGE_IN_PROGRESS'), {
+        code: 'RESERVED_VM_CHANGE_IN_PROGRESS',
+        statusCode: 409,
+      });
+    }
+
+    const releaseSource = this.releaseManifests
+      .filter(
+        (manifest) =>
+          manifest.projectId === input.projectId &&
+          manifest.deploymentId === input.deploymentId &&
+          manifest.environment === deployment.environment &&
+          (!sourceReleaseManifestId || manifest.id === sourceReleaseManifestId),
+      )
+      .sort((left, right) => right.version - left.version)[0];
+
+    if (
+      !releaseSource ||
+      releaseSource.provider !== 'server' ||
+      releaseSource.artifactKind !== 'server-image' ||
+      releaseSource.accessPolicyVersion !== deployment.accessPolicyVersion ||
+      image?.imageRef !== releaseSource.artifactRef ||
+      image?.imageDigest !== releaseSource.artifactDigest ||
+      !isCommittedPromotionForTenant(
+        serverDeploy?.promotion,
+        input.organizationId,
+        releaseSource.artifactDigest,
+        releaseSource.artifactRef,
+      )
+    ) {
+      throw Object.assign(new Error('RESERVED_VM_RELEASE_SOURCE_INVALID'), {
+        code: 'RESERVED_VM_RELEASE_SOURCE_INVALID',
+        statusCode: 409,
+      });
+    }
+
+    return { deployment, releaseSource, replayed: false };
+  }
+
+  async prepareReservedVmPublish(input: {
+    projectId: string;
+    deploymentId: string;
+    organizationId: string;
+    actorUserId: string;
+    expectedRuntimeVersion: number;
+    releaseFence: ProjectReleaseFence;
+  }) {
+    await this.assertProjectReleaseBarrier({ projectId: input.projectId, ...input.releaseFence });
+    return this._reservedVmPublishCandidate(input);
+  }
+
+  async publishReservedVmInPlace(input: {
+    projectId: string;
+    deploymentId: string;
+    organizationId: string;
+    actorUserId: string;
+    expectedRuntimeVersion: number;
+    productionUrl: string;
+    sourceReleaseManifestId: string;
+    releaseFence: ProjectReleaseFence;
+  }) {
+    await this.assertProjectReleaseBarrier({ projectId: input.projectId, ...input.releaseFence });
+    const { deployment, releaseSource, replayed } = this._reservedVmPublishCandidate(
+      input,
+      input.sourceReleaseManifestId,
+    );
+
+    if (replayed) return deployment;
+
+    const updated: DeploymentRecord = {
+      ...deployment,
+      environment: 'production',
+      productionUrl: input.productionUrl,
+      metadata: {
+        ...((deployment.metadata ?? {}) as Record<string, unknown>),
+        publishedInPlaceAt: now(),
+        publishedFrom: deployment.id,
+        publishedFromReleaseManifestId: releaseSource.id,
+      },
+      updatedAt: now(),
+    };
+    const latestVersion = this.releaseManifests
+      .filter((manifest) => manifest.projectId === input.projectId && manifest.environment === 'production')
+      .reduce((version, manifest) => Math.max(version, manifest.version), 0);
+    this.releaseManifests.push({
+      ...releaseSource,
+      id: id('release_manifest'),
+      environment: 'production',
+      version: latestVersion + 1,
+      createdAt: now(),
+    });
+    this.deployments.set(deployment.id, updated);
+    return updated;
+  }
+
+  async markReservedVmRuntimeApplied(input: { operationId: string; ownerToken: string; fencingToken: number }) {
+    const entry = [...this.reservedVmOperations.entries()].find(([, operation]) => operation.id === input.operationId);
+    if (!entry) return false;
+    const [key, operation] = entry;
+    if (
+      operation.status !== 'APPLYING' ||
+      operation.leaseOwner !== input.ownerToken ||
+      operation.fencingToken !== input.fencingToken ||
+      !operation.leaseExpiresAt ||
+      Date.parse(operation.leaseExpiresAt) <= Date.now()
+    ) {
+      return false;
+    }
+    this.reservedVmOperations.set(key, { ...operation, phase: 'RUNTIME_APPLIED', updatedAt: now() });
+    return true;
+  }
+
+  async commitReservedVmOperation(input: {
+    operationId: string;
+    ownerToken: string;
+    fencingToken: number;
+    response: Record<string, unknown>;
+  }) {
+    const entry = [...this.reservedVmOperations.entries()].find(([, operation]) => operation.id === input.operationId);
+    if (!entry) throw new Error('RESERVED_VM_OPERATION_NOT_FOUND');
+    const [key, operation] = entry;
+    const deployment = this.deployments.get(operation.deploymentId)!;
+    if (operation.status === 'COMPLETED') {
+      return { operation: publicReservedVmOperation(operation), deployment };
+    }
+    if (
+      operation.status !== 'APPLYING' ||
+      operation.phase !== 'RUNTIME_APPLIED' ||
+      operation.leaseOwner !== input.ownerToken ||
+      operation.fencingToken !== input.fencingToken
+    ) {
+      throw new Error('RESERVED_VM_OPERATION_FENCE_LOST');
+    }
+    const startsBillingCycle =
+      operation.targetRuntimeKind === 'reserved-vm' &&
+      (operation.fromRuntimeKind !== 'reserved-vm' || deployment.reservedVmBillingState === 'SUSPENDED');
+    const periodStart = startsBillingCycle ? now() : deployment.reservedVmCurrentPeriodStart;
+    const periodEnd = startsBillingCycle
+      ? new Date(Date.parse(periodStart!) + 31 * 24 * 60 * 60_000).toISOString()
+      : deployment.reservedVmNextChargeAt;
+    const updatedDeployment: DeploymentRecord = {
+      ...deployment,
+      runtimeKind: operation.targetRuntimeKind,
+      runtimeVersion: (deployment.runtimeVersion ?? 0) + 1,
+      machineSize: operation.targetMachineSize,
+      reservedVmTier: operation.targetTier,
+      reservedVmPriceCents: operation.targetRuntimeKind === 'reserved-vm' ? operation.targetPriceCents : undefined,
+      reservedVmTermsVersion: operation.targetRuntimeKind === 'reserved-vm' ? operation.termsVersion : undefined,
+      reservedVmRateCardVersion:
+        operation.targetRuntimeKind === 'reserved-vm'
+          ? (operation.rateCardVersion ?? deployment.reservedVmRateCardVersion)
+          : undefined,
+      reservedVmBillingReservationId:
+        operation.targetRuntimeKind === 'reserved-vm'
+          ? (operation.billingReservationId ?? deployment.reservedVmBillingReservationId)
+          : undefined,
+      reservedVmBillingState:
+        operation.targetRuntimeKind === 'reserved-vm'
+          ? startsBillingCycle
+            ? 'CURRENT'
+            : deployment.reservedVmBillingState
+          : undefined,
+      reservedVmCurrentPeriodStart: operation.targetRuntimeKind === 'reserved-vm' ? periodStart : undefined,
+      reservedVmNextChargeAt: operation.targetRuntimeKind === 'reserved-vm' ? periodEnd : undefined,
+      reservedVmGraceEndsAt:
+        operation.targetRuntimeKind === 'reserved-vm' && !startsBillingCycle
+          ? deployment.reservedVmGraceEndsAt
+          : undefined,
+      reservedVmStopRequestedAt:
+        operation.targetRuntimeKind === 'reserved-vm' && !startsBillingCycle
+          ? deployment.reservedVmStopRequestedAt
+          : undefined,
+      persistentStorageClaim: deployment.persistentStorageClaim ?? `reserved-data-${deployment.id}`,
+      updatedAt: now(),
+    };
+    const completed: ReservedVmLease = {
+      ...operation,
+      status: 'COMPLETED',
+      phase: 'COMMITTED',
+      response: input.response,
+      completedAt: now(),
+      leaseOwner: undefined,
+      leaseExpiresAt: undefined,
+      updatedAt: now(),
+    };
+    this.deployments.set(deployment.id, updatedDeployment);
+    this.reservedVmOperations.set(key, completed);
+    return { operation: publicReservedVmOperation(completed), deployment: updatedDeployment };
+  }
+
+  async commitReservedVmDecommissionOperation(input: {
+    operationId: string;
+    ownerToken: string;
+    fencingToken: number;
+    deletedPersistentStorageClaim: string;
+    response: Record<string, unknown>;
+  }) {
+    const entry = [...this.reservedVmOperations.entries()].find(([, operation]) => operation.id === input.operationId);
+    if (!entry) throw new Error('RESERVED_VM_OPERATION_NOT_FOUND');
+    const [key, operation] = entry;
+    const deployment = this.deployments.get(operation.deploymentId)!;
+
+    if (operation.status === 'COMPLETED') {
+      return { operation: publicReservedVmOperation(operation), deployment };
+    }
+    if (
+      operation.kind !== 'DECOMMISSION' ||
+      operation.status !== 'APPLYING' ||
+      operation.phase !== 'RUNTIME_APPLIED' ||
+      operation.leaseOwner !== input.ownerToken ||
+      operation.fencingToken !== input.fencingToken ||
+      (deployment.runtimeVersion ?? 0) !== operation.expectedRuntimeVersion ||
+      deployment.runtimeKind !== 'autoscale' ||
+      deployment.persistentStorageClaim !== input.deletedPersistentStorageClaim ||
+      input.deletedPersistentStorageClaim !== `reserved-data-${deployment.id}`
+    ) {
+      throw new Error('RESERVED_VM_OPERATION_FENCE_LOST');
+    }
+
+    const updatedDeployment: DeploymentRecord = {
+      ...deployment,
+      persistentStorageClaim: undefined,
+      runtimeVersion: (deployment.runtimeVersion ?? 0) + 1,
+      updatedAt: now(),
+    };
+    const completed: ReservedVmLease = {
+      ...operation,
+      status: 'COMPLETED',
+      phase: 'COMMITTED',
+      response: input.response,
+      completedAt: now(),
+      leaseOwner: undefined,
+      leaseExpiresAt: undefined,
+      updatedAt: now(),
+    };
+    this.deployments.set(deployment.id, updatedDeployment);
+    this.reservedVmOperations.set(key, completed);
+    return { operation: publicReservedVmOperation(completed), deployment: updatedDeployment };
+  }
+
+  async commitReservedVmCreateCancellation(input: {
+    operationId: string;
+    ownerToken: string;
+    fencingToken: number;
+    deletedPersistentStorageClaim: string;
+    logs: DeploymentRecord['logs'];
+  }) {
+    const entry = [...this.reservedVmOperations.entries()].find(([, operation]) => operation.id === input.operationId);
+    if (!entry) throw new Error('RESERVED_VM_OPERATION_NOT_FOUND');
+    const [key, operation] = entry;
+    const deployment = this.deployments.get(operation.deploymentId)!;
+
+    if (operation.status === 'FAILED' && deployment.status === 'CANCELED') {
+      return { operation: publicReservedVmOperation(operation), deployment, replayed: true };
+    }
+    if (
+      operation.kind !== 'CREATE' ||
+      operation.status !== 'APPLYING' ||
+      operation.phase !== 'LEASED' ||
+      operation.errorCode !== 'RESERVED_VM_CANCEL_REQUESTED' ||
+      operation.leaseOwner !== input.ownerToken ||
+      operation.fencingToken !== input.fencingToken ||
+      deployment.persistentStorageClaim !== input.deletedPersistentStorageClaim ||
+      input.deletedPersistentStorageClaim !== `reserved-data-${deployment.id}`
+    ) {
+      throw new Error('RESERVED_VM_OPERATION_FENCE_LOST');
+    }
+
+    const canceledDeployment: DeploymentRecord = {
+      ...deployment,
+      status: 'CANCELED',
+      canceledAt: now(),
+      finishedAt: now(),
+      logs: input.logs,
+      runtimeKind: 'autoscale',
+      persistentStorageClaim: undefined,
+      reservedVmTier: undefined,
+      reservedVmPriceCents: undefined,
+      reservedVmTermsVersion: undefined,
+      reservedVmRateCardVersion: undefined,
+      reservedVmBillingReservationId: undefined,
+      reservedVmBillingState: undefined,
+      reservedVmCurrentPeriodStart: undefined,
+      reservedVmNextChargeAt: undefined,
+      reservedVmGraceEndsAt: undefined,
+      reservedVmStopRequestedAt: undefined,
+      updatedAt: now(),
+    };
+    const failed: ReservedVmLease = {
+      ...operation,
+      status: 'FAILED',
+      phase: 'ROLLED_BACK',
+      errorCode: 'DEPLOYMENT_CANCELED_BY_USER',
+      errorMessage: 'DEPLOYMENT_CANCELED_BY_USER',
+      response: {
+        canceled: true,
+        persistentStorageClaimName: input.deletedPersistentStorageClaim,
+        persistentStorageClaimAbsent: true,
+      },
+      completedAt: now(),
+      leaseOwner: undefined,
+      leaseExpiresAt: undefined,
+      updatedAt: now(),
+    };
+    this.deployments.set(deployment.id, canceledDeployment);
+    this.reservedVmOperations.set(key, failed);
+    return { operation: publicReservedVmOperation(failed), deployment: canceledDeployment, replayed: false };
+  }
+
+  async failReservedVmOperation(input: {
+    operationId: string;
+    ownerToken: string;
+    fencingToken: number;
+    errorCode: string;
+    errorMessage: string;
+    createCleanup?: { deletedPersistentStorageClaim: string };
+  }) {
+    const entry = [...this.reservedVmOperations.entries()].find(([, operation]) => operation.id === input.operationId);
+    if (!entry) throw new Error('RESERVED_VM_OPERATION_NOT_FOUND');
+    const [key, operation] = entry;
+    if (operation.status === 'FAILED') return publicReservedVmOperation(operation);
+    if (
+      operation.status !== 'APPLYING' ||
+      operation.leaseOwner !== input.ownerToken ||
+      operation.fencingToken !== input.fencingToken
+    ) {
+      throw new Error('RESERVED_VM_OPERATION_FENCE_LOST');
+    }
+
+    if (operation.kind === 'CREATE') {
+      const deployment = this.deployments.get(operation.deploymentId)!;
+      const canonicalClaim = `reserved-data-${operation.deploymentId}`;
+
+      if (
+        input.createCleanup?.deletedPersistentStorageClaim !== canonicalClaim ||
+        deployment.persistentStorageClaim !== canonicalClaim
+      ) {
+        throw new Error('RESERVED_VM_CREATE_CLEANUP_UNVERIFIED');
+      }
+
+      this.deployments.set(deployment.id, {
+        ...deployment,
+        runtimeKind: 'autoscale',
+        persistentStorageClaim: undefined,
+        reservedVmTier: undefined,
+        reservedVmPriceCents: undefined,
+        reservedVmTermsVersion: undefined,
+        reservedVmRateCardVersion: undefined,
+        reservedVmBillingReservationId: undefined,
+        reservedVmBillingState: undefined,
+        reservedVmCurrentPeriodStart: undefined,
+        reservedVmNextChargeAt: undefined,
+        reservedVmGraceEndsAt: undefined,
+        reservedVmStopRequestedAt: undefined,
+        updatedAt: now(),
+      });
+    }
+    const failed: ReservedVmLease = {
+      ...operation,
+      status: 'FAILED',
+      phase: 'ROLLED_BACK',
+      errorCode: input.errorCode,
+      errorMessage: input.errorMessage,
+      completedAt: now(),
+      leaseOwner: undefined,
+      leaseExpiresAt: undefined,
+      updatedAt: now(),
+    };
+    this.reservedVmOperations.set(key, failed);
+    return publicReservedVmOperation(failed);
   }
 
   async getDeploymentOwnerStatus(deploymentId: string) {
@@ -4356,6 +5400,27 @@ export class TestApiStore implements ApiStore {
       const existing = this.rollbackOperations.get(mapKey);
 
       if (!existing) {
+        const rollbackManifests = this.releaseManifests
+          .filter((manifest) => manifest.projectId === input.projectId && manifest.environment === input.environment)
+          .sort((left, right) => right.version - left.version)
+          .slice(0, 2);
+        const rollbackDeployments = rollbackManifests
+          .map((manifest) => this.deployments.get(manifest.deploymentId))
+          .filter((deployment): deployment is DeploymentRecord => Boolean(deployment));
+
+        if (
+          rollbackDeployments.some(
+            (deployment) =>
+              deployment.runtimeKind === 'reserved-vm' ||
+              Boolean(deployment.reservedVmTier) ||
+              Boolean(deployment.persistentStorageClaim),
+          )
+        ) {
+          throw Object.assign(new Error(appPublicEnglish('RESERVED_VM_ROLLBACK_UNPINNED')), {
+            code: 'RESERVED_VM_ROLLBACK_UNPINNED',
+            statusCode: 409,
+          });
+        }
         const timestamp = now();
 
         const record: RollbackOperationRecord = {
@@ -4837,18 +5902,23 @@ export class TestApiStore implements ApiStore {
 
   async commitServerImageRelease(input: ServerImageReleaseCommitInput): Promise<ServerImageReleaseCommitResult> {
     return this.withSerializedMutation(`release-manifest:${input.projectId}:${input.environment}`, async () => {
+      if (input.rollbackFence && input.reservedVmFence) {
+        throw new Error('SERVER_RELEASE_FENCE_CONFLICT');
+      }
+
       await this.assertProjectReleaseBarrier({ projectId: input.projectId, ...input.releaseFence });
-      const deployment = this.deployments.get(input.deploymentId);
+      let deployment = this.deployments.get(input.deploymentId);
 
       if (!deployment || deployment.projectId !== input.projectId) {
         throw new Error(`Deployment not found: ${input.deploymentId}`);
       }
+      const accessPolicyVersion = deployment.accessPolicyVersion;
 
       const accessPolicy = this.deploymentAccessPolicies.find(
         (candidate) =>
           candidate.projectId === input.projectId &&
           candidate.environment === input.environment &&
-          candidate.version === deployment.accessPolicyVersion,
+          candidate.version === accessPolicyVersion,
       );
 
       if (!accessPolicy) {
@@ -4861,6 +5931,24 @@ export class TestApiStore implements ApiStore {
       const rollbackOperationId = (deployment.metadata as Record<string, unknown> | undefined)?.rollbackOperationId;
       const rollbackOperation = input.rollbackFence ? this._requireRollbackLease(input.rollbackFence) : undefined;
       const rollbackSource = rollbackOperation ? this._requireRollbackSource(rollbackOperation) : undefined;
+      const reservedOperation = input.reservedVmFence
+        ? [...this.reservedVmOperations.values()].find(
+            (operation) => operation.id === input.reservedVmFence?.operationId,
+          )
+        : undefined;
+
+      if (
+        input.reservedVmFence &&
+        (!reservedOperation ||
+          reservedOperation.deploymentId !== input.deploymentId ||
+          (reservedOperation.status !== 'COMPLETED' &&
+            (reservedOperation.status !== 'APPLYING' ||
+              reservedOperation.phase !== 'RUNTIME_APPLIED' ||
+              reservedOperation.leaseOwner !== input.reservedVmFence.ownerToken ||
+              reservedOperation.fencingToken !== input.reservedVmFence.fencingToken)))
+      ) {
+        throw new Error('RESERVED_VM_OPERATION_FENCE_LOST');
+      }
 
       if (
         !project ||
@@ -4902,12 +5990,13 @@ export class TestApiStore implements ApiStore {
         throw new Error('ROLLBACK_OWNERSHIP_LOST');
       }
 
-      const existingRows = this.releaseManifests.filter((manifest) => manifest.deploymentId === input.deploymentId);
+      const existingRows = this.releaseManifests
+        .filter((manifest) => manifest.deploymentId === input.deploymentId)
+        .sort((left, right) => right.version - left.version);
       const existing = existingRows[0];
 
       if (existing) {
-        if (
-          existingRows.length !== 1 ||
+        const releaseDiffers =
           existing.projectId !== input.projectId ||
           existing.environment !== input.environment ||
           existing.provider !== 'server' ||
@@ -4918,24 +6007,32 @@ export class TestApiStore implements ApiStore {
           !sameNullable(existing.configDigest, input.configDigest) ||
           !sameNullable(existing.dbMigrationPoint, input.dbMigrationPoint) ||
           (rollbackOperation && existing.version !== input.rollbackFence!.expectedHeadVersion + 1) ||
-          existing.accessPolicyVersion !== deployment.accessPolicyVersion
-        ) {
-          throw new Error('SERVER_RELEASE_MANIFEST_CONFLICT');
-        }
+          existing.accessPolicyVersion !== deployment.accessPolicyVersion;
 
-        if (deployment.status !== 'READY') {
-          throw new Error('SERVER_RELEASE_MANIFEST_WITHOUT_READY');
-        }
+        if (releaseDiffers) {
+          if (reservedOperation?.kind !== 'REDEPLOY') {
+            throw new Error('SERVER_RELEASE_MANIFEST_CONFLICT');
+          }
+        } else {
+          if (deployment.status !== 'READY') {
+            throw new Error('SERVER_RELEASE_MANIFEST_WITHOUT_READY');
+          }
 
-        if (rollbackOperation) {
-          const updated = { ...rollbackOperation, phase: 'RELEASE_COMMITTED' as const, updatedAt: now() };
-          this.rollbackOperations.set(
-            this._rollbackOperationKey(rollbackOperation.projectId, rollbackOperation.idempotencyKey),
-            updated,
-          );
-        }
+          if (input.reservedVmFence && reservedOperation?.status !== 'COMPLETED') {
+            const committed = await this.commitReservedVmOperation(input.reservedVmFence);
+            deployment = committed.deployment;
+          }
 
-        return { committed: true, deployment, manifest: existing };
+          if (rollbackOperation) {
+            const updated = { ...rollbackOperation, phase: 'RELEASE_COMMITTED' as const, updatedAt: now() };
+            this.rollbackOperations.set(
+              this._rollbackOperationKey(rollbackOperation.projectId, rollbackOperation.idempotencyKey),
+              updated,
+            );
+          }
+
+          return { committed: true, deployment, manifest: existing };
+        }
       }
 
       if (
@@ -4948,7 +6045,13 @@ export class TestApiStore implements ApiStore {
       }
 
       if (['READY', 'FAILED', 'CANCELED'].includes(deployment.status)) {
-        return { committed: false, deployment };
+        if (!(deployment.status === 'READY' && reservedOperation?.kind === 'REDEPLOY')) {
+          if (reservedOperation) {
+            throw new Error('SERVER_RELEASE_MANIFEST_CONFLICT');
+          }
+
+          return { committed: false, deployment };
+        }
       }
 
       const latestVersion = this.releaseManifests
@@ -4979,6 +6082,11 @@ export class TestApiStore implements ApiStore {
         accessPolicyVersion: deployment.accessPolicyVersion,
         createdAt: now(),
       };
+      if (input.reservedVmFence && reservedOperation?.status !== 'COMPLETED') {
+        const committed = await this.commitReservedVmOperation(input.reservedVmFence);
+        deployment = committed.deployment;
+      }
+
       const ready: DeploymentRecord = {
         ...deployment,
         status: 'READY',
