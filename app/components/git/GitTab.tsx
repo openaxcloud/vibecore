@@ -1114,7 +1114,7 @@ export function GitTab({ projectId }: GitTabProps) {
             role="alert"
             data-testid="git-merge-conflict-banner"
           >
-            <div className="flex items-center gap-2 font-semibold text-amber-600 dark:text-amber-400">
+            <div className="flex items-center gap-2 font-semibold text-amber-800 dark:text-amber-400">
               <span className="i-ph:warning-circle text-base" aria-hidden />
               {t('idePanels.git.conflictBannerTitle')}
             </div>
