@@ -465,6 +465,86 @@ describe('server deployment runtime templates', () => {
     ]);
   });
 
+  it('Reserved VM pins exact resources and operator placement while mounting its stable writable PVC', async () => {
+    const { serverAppDeployment } = await import('./index');
+    const dep = serverAppDeployment({
+      ...input,
+      runtimeKind: 'reserved-vm',
+      persistentVolumeClaimName: 'reserved-data-dep123',
+      persistentVolumeMountPath: '/var/lib/ecode',
+      reservedNodeSelector: { key: 'vibecore.ai/capacity', value: 'reserved-vm' },
+      reservedToleration: { key: 'vibecore.ai/capacity', value: 'reserved-vm', effect: 'NoSchedule' },
+      operationId: 'operation-create-a',
+      fencingToken: 1,
+      cpuRequest: '2',
+      cpuLimit: '2',
+      memoryRequest: '8Gi',
+      memoryLimit: '8Gi',
+    }) as any;
+    const pod = dep.spec.template.spec;
+    const container = pod.containers[0];
+
+    expect(dep.spec.replicas).toBe(1);
+    expect(dep.spec.strategy).toEqual({ type: 'Recreate' });
+    expect(dep.metadata.annotations).toEqual({
+      'vibecore.ai/runtime-operation-id': 'operation-create-a',
+      'vibecore.ai/runtime-fencing-token': '1',
+    });
+    expect(dep.metadata.labels['vibecore.ai/server-runtime-kind']).toBe('reserved-vm');
+    expect(pod.nodeSelector).toEqual({ 'vibecore.ai/capacity': 'reserved-vm' });
+    expect(pod.tolerations).toEqual(
+      expect.arrayContaining([
+        {
+          key: 'vibecore.ai/capacity',
+          operator: 'Equal',
+          value: 'reserved-vm',
+          effect: 'NoSchedule',
+        },
+      ]),
+    );
+    expect(container.resources).toEqual({ requests: { cpu: '2', memory: '8Gi' }, limits: { cpu: '2', memory: '8Gi' } });
+    expect(container.volumeMounts).toContainEqual({ name: 'app-data', mountPath: '/var/lib/ecode', readOnly: false });
+    expect(pod.volumes).toContainEqual({
+      name: 'app-data',
+      persistentVolumeClaim: { claimName: 'reserved-data-dep123', readOnly: false },
+    });
+  });
+
+  it('Reserved VM fails closed when operator placement or persistent storage is missing', async () => {
+    const { serverAppDeployment } = await import('./index');
+
+    expect(() => serverAppDeployment({ ...input, runtimeKind: 'reserved-vm' })).toThrow(
+      'RESERVED_VM_OPERATOR_CAPABILITY_REQUIRED',
+    );
+  });
+
+  it('builds a stable RWO Reserved VM claim and rejects unsafe sizes', async () => {
+    const { serverAppPersistentVolumeClaim } = await import('./index');
+    const pvc = serverAppPersistentVolumeClaim({
+      deploymentId: 'dep123',
+      namespace: 'vibecore-workspaces',
+      storageClassName: 'reserved-rwo',
+      storageGi: 50,
+      orgId: 'org1',
+      projectId: 'proj1',
+    }) as any;
+
+    expect(pvc.metadata.name).toBe('reserved-data-dep123');
+    expect(pvc.spec).toEqual({
+      accessModes: ['ReadWriteOnce'],
+      storageClassName: 'reserved-rwo',
+      resources: { requests: { storage: '50Gi' } },
+    });
+    expect(() =>
+      serverAppPersistentVolumeClaim({
+        deploymentId: 'dep123',
+        namespace: 'vibecore-workspaces',
+        storageClassName: 'reserved-rwo',
+        storageGi: 0,
+      }),
+    ).toThrow('RESERVED_VM_STORAGE_SIZE_INVALID');
+  });
+
   it('serverAppService exposes port 80 → the app targetPort', async () => {
     const { serverAppService } = await import('./index');
     const svc = serverAppService(input) as any;

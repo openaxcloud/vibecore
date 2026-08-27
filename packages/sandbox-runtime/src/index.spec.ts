@@ -8,6 +8,11 @@ function fakeK8s(overrides: Partial<WorkspaceK8sClient> = {}, applied: K8sObject
       applied.push(object);
       return object;
     }),
+    applyFenced: vi.fn(async (object: K8sObject) => {
+      applied.push(object);
+      return object;
+    }),
+    deleteFenced: vi.fn(async () => undefined),
     delete: vi.fn(async () => undefined),
     get: vi.fn(async () => ({ status: { readyReplicas: 1, replicas: 1 } }) as unknown as K8sObject),
     getPod: vi.fn(async () => undefined),
@@ -67,19 +72,82 @@ describe('GvisorPodRuntime', () => {
     expect(applied.map((o) => (o as any).kind)).toEqual(['Deployment', 'Service', 'Ingress']);
   });
 
-  it('stopServerApp tears down all four resources best-effort', async () => {
-    const k8s = fakeK8s({ delete: vi.fn(async () => undefined) });
+  it('proves the fenced Reserved VM rollout generation before reporting readiness', async () => {
+    const applied: K8sObject[] = [];
+    let deployment: K8sObject | undefined;
+    const k8s = fakeK8s(
+      {
+        applyFenced: vi.fn(async (object: K8sObject) => {
+          deployment = {
+            ...object,
+            metadata: { ...object.metadata, resourceVersion: '2', generation: 7 },
+            status: {
+              observedGeneration: 7,
+              updatedReplicas: 1,
+              availableReplicas: 1,
+              readyReplicas: 1,
+              replicas: 1,
+            },
+          };
+          applied.push(object);
+          return deployment;
+        }),
+        get: vi.fn(async (kind: string) => (kind === 'Deployment' ? deployment : undefined)),
+      },
+      applied,
+    );
+    const runtime = new GvisorPodRuntime(k8s, 1);
+
+    const result = await runtime.startServerApp({
+      ...spec,
+      runtimeKind: 'reserved-vm',
+      persistentVolumeClaimName: 'reserved-data-dep1',
+      reservedNodeSelector: { key: 'vibecore.ai/capacity', value: 'reserved-vm' },
+      reservedToleration: { key: 'vibecore.ai/capacity', value: 'reserved-vm', effect: 'NoSchedule' },
+      operationId: 'operation-create-a',
+      fencingToken: 1,
+    });
+
+    expect(result).toMatchObject({ ready: true, appliedFencingToken: 1 });
+    expect(deployment?.metadata.annotations).toMatchObject({
+      'vibecore.ai/runtime-operation-id': 'operation-create-a',
+      'vibecore.ai/runtime-fencing-token': '1',
+    });
+  });
+
+  it('stopServerApp tears down all four resources and proves they are absent', async () => {
+    const k8s = fakeK8s({ delete: vi.fn(async () => undefined), get: vi.fn(async () => undefined) });
     const runtime = new GvisorPodRuntime(k8s);
 
     await runtime.stopServerApp('workspaces', 'dep1');
 
     const kinds = (k8s.delete as ReturnType<typeof vi.fn>).mock.calls.map((c) => `${c[0]}:${c[2]}`);
-    expect(kinds).toEqual([
-      'Ingress:app-dep1',
-      'Service:app-dep1',
-      'Deployment:app-dep1',
-      'Secret:app-secrets-dep1',
-    ]);
+    expect(kinds).toEqual(['Ingress:app-dep1', 'Service:app-dep1', 'Deployment:app-dep1', 'Secret:app-secrets-dep1']);
+    expect(k8s.get).toHaveBeenCalledTimes(4);
+  });
+
+  it('fails closed when teardown leaves a resource or its absence cannot be read', async () => {
+    const remaining = new GvisorPodRuntime(
+      fakeK8s({
+        get: vi.fn(async (kind: string) =>
+          kind === 'Deployment' ? ({ metadata: { name: 'app-dep1' } } as K8sObject) : undefined,
+        ),
+      }),
+    );
+    await expect(remaining.stopServerApp('workspaces', 'dep1')).rejects.toMatchObject({
+      code: 'SERVER_DEPLOY_CLEANUP_UNVERIFIED',
+    });
+
+    const unreadable = new GvisorPodRuntime(
+      fakeK8s({
+        get: vi.fn(async () => {
+          throw new Error('Kubernetes read forbidden');
+        }),
+      }),
+    );
+    await expect(unreadable.stopServerApp('workspaces', 'dep1')).rejects.toMatchObject({
+      code: 'SERVER_DEPLOY_CLEANUP_UNVERIFIED',
+    });
   });
 
   it('serverAppStatus maps a missing Deployment to exists:false', async () => {

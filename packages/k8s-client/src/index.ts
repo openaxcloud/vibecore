@@ -32,6 +32,11 @@ export * from './ecode-lock.js';
 
 const execFile = promisify(execFileCallback);
 
+/** Keep control-plane invariant codes out of end-user copy extraction. */
+function reservedVmK8sError(message: string): Error {
+  return new Error(message);
+}
+
 /*
  * Plain `kubectl` does NOT auto-use a pod's service-account credentials: with no
  * kubeconfig it falls back to the default server `http://localhost:8080` and every
@@ -341,7 +346,14 @@ export interface WorkspaceResourceLimits {
 export interface K8sObject {
   apiVersion: string;
   kind: string;
-  metadata: { name: string; namespace?: string; labels?: Record<string, string>; annotations?: Record<string, string> };
+  metadata: {
+    name: string;
+    namespace?: string;
+    labels?: Record<string, string>;
+    annotations?: Record<string, string>;
+    resourceVersion?: string;
+    generation?: number;
+  };
   spec?: Record<string, unknown>;
   data?: Record<string, string>;
   stringData?: Record<string, string>;
@@ -359,6 +371,15 @@ export interface K8sObject {
 
 export interface WorkspaceK8sClient {
   apply(object: K8sObject): Promise<K8sObject>;
+  /**
+   * Kubernetes-CAS write used by externally fenced control-plane operations.
+   * `expectedResourceVersion` absent means create-only; present means replace
+   * only that exact version. A conflict is surfaced to the caller, never
+   * silently retried as an unconditional apply.
+   */
+  applyFenced?(object: K8sObject, expectedResourceVersion?: string): Promise<K8sObject>;
+  /** Delete only the exact Kubernetes version previously inspected. */
+  deleteFenced?(kind: string, namespace: string, name: string, expectedResourceVersion: string): Promise<void>;
   delete(kind: string, namespace: string, name: string): Promise<void>;
   get(kind: string, namespace: string, name: string): Promise<K8sObject | undefined>;
   getPod(namespace: string, name: string): Promise<K8sObject | undefined>;
@@ -877,6 +898,20 @@ export interface ServerRuntimeInput {
   cpuLimit?: string;
   memoryRequest?: string;
   memoryLimit?: string;
+  /** Product lifecycle: autoscale may sleep; reserved-vm must stay at one replica. */
+  runtimeKind?: 'autoscale' | 'reserved-vm';
+
+  /** Stable writable data volume retained across image/tier changes. */
+  persistentVolumeClaimName?: string;
+  persistentVolumeMountPath?: string;
+
+  /** Operator-owned placement for Reserved VM nodes. Never sourced from tenants. */
+  reservedNodeSelector?: { key: string; value: string };
+  reservedToleration?: { key: string; value: string; effect: 'NoSchedule' };
+
+  /** DB-leased operation fence mirrored into Kubernetes for stale-worker rejection. */
+  operationId?: string;
+  fencingToken?: number;
   /** Readiness path on the app port (default '/'). */
   healthPath?: string;
   /** Disable gVisor scheduling (tests / non-sandbox clusters). */
@@ -902,10 +937,13 @@ export function serverDeploymentName(deploymentId: string): string {
   return `app-${deploymentId}`;
 }
 
-function serverLabels(input: Pick<ServerRuntimeInput, 'deploymentId' | 'orgId' | 'projectId'>) {
+function serverLabels(input: Pick<ServerRuntimeInput, 'deploymentId' | 'orgId' | 'projectId' | 'runtimeKind'>) {
+  const runtimeKind = input.runtimeKind === 'reserved-vm' ? 'reserved-vm' : 'autoscale';
+
   return {
     app: serverDeploymentName(input.deploymentId),
     'vibecore.ai/server-deploy': input.deploymentId,
+    'vibecore.ai/server-runtime-kind': runtimeKind,
     ...(input.orgId ? { 'vibecore.ai/org': input.orgId } : {}),
     ...(input.projectId ? { 'vibecore.ai/project': input.projectId } : {}),
   };
@@ -946,40 +984,112 @@ export function serverAppDeployment(input: ServerRuntimeInput): K8sObject {
 
   const sandbox = !input.disableSandboxScheduling && process.env.WORKSPACE_DISABLE_SANDBOX_SCHEDULING !== '1';
   const selector = serverLabels(input);
+  const reserved = input.runtimeKind === 'reserved-vm';
+  const runtimeOperationAnnotations: Record<string, string> =
+    input.operationId && Number.isInteger(input.fencingToken) && Number(input.fencingToken) >= 0
+      ? {
+          'vibecore.ai/runtime-operation-id': input.operationId,
+          'vibecore.ai/runtime-fencing-token': String(input.fencingToken),
+        }
+      : {};
+
+  if (reserved && (!input.reservedNodeSelector || !input.reservedToleration || !input.persistentVolumeClaimName)) {
+    throw reservedVmK8sError('RESERVED_VM_OPERATOR_CAPABILITY_REQUIRED');
+  }
+
+  const volumeMounts = [
+    ...(input.nixStorePvcName ? [{ name: 'nix-store', mountPath: '/nix', readOnly: true }] : []),
+    ...(input.persistentVolumeClaimName
+      ? [
+          {
+            name: 'app-data',
+            mountPath: input.persistentVolumeMountPath ?? '/var/lib/ecode',
+            readOnly: false,
+          },
+        ]
+      : []),
+  ];
+  const volumes = [
+    ...(input.nixStorePvcName
+      ? [{ name: 'nix-store', persistentVolumeClaim: { claimName: input.nixStorePvcName, readOnly: true } }]
+      : []),
+    ...(input.persistentVolumeClaimName
+      ? [
+          {
+            name: 'app-data',
+            persistentVolumeClaim: { claimName: input.persistentVolumeClaimName, readOnly: false },
+          },
+        ]
+      : []),
+  ];
 
   return {
     apiVersion: 'apps/v1',
     kind: 'Deployment',
-    metadata: { name: serverDeploymentName(input.deploymentId), namespace: input.namespace, labels: selector },
+    metadata: {
+      name: serverDeploymentName(input.deploymentId),
+      namespace: input.namespace,
+      labels: selector,
+      ...(Object.keys(runtimeOperationAnnotations).length > 0 ? { annotations: runtimeOperationAnnotations } : {}),
+    },
     spec: {
       replicas: input.replicas ?? 1,
       selector: { matchLabels: { app: selector.app } },
-      // Zero-downtime rolling update (durable, unlike the workspace Pod).
-      strategy: { type: 'RollingUpdate', rollingUpdate: { maxUnavailable: 0, maxSurge: 1 } },
+      /*
+       * A stable Reserved VM PVC is ReadWriteOnce. A surge pod can land on a
+       * different node and deadlock the rollout on a multi-attach error, so a
+       * PVC-backed app must stop the old pod before starting its replacement.
+       * Stateless Autoscale apps retain the zero-downtime rolling strategy.
+       */
+      strategy: input.persistentVolumeClaimName
+        ? { type: 'Recreate' }
+        : { type: 'RollingUpdate', rollingUpdate: { maxUnavailable: 0, maxSurge: 1 } },
       template: {
-        metadata: { labels: selector },
+        metadata: {
+          labels: selector,
+          ...(Object.keys(runtimeOperationAnnotations).length > 0 ? { annotations: runtimeOperationAnnotations } : {}),
+        },
         spec: {
           hostNetwork: false,
           hostPID: false,
           hostIPC: false,
-          ...(sandbox
+          ...(reserved
             ? {
                 runtimeClassName: 'gvisor',
                 nodeSelector: {
-                  'vibecore.ai/node-pool': 'sandbox',
-                  // D3 multi-zone: pin to the zone of the mounted store clone.
+                  [input.reservedNodeSelector!.key]: input.reservedNodeSelector!.value,
                   ...(input.nixStorePvcName && input.nixStoreZone
                     ? { 'topology.kubernetes.io/zone': input.nixStoreZone }
                     : {}),
                 },
                 tolerations: [
-                  { key: 'vibecore.ai/sandbox', operator: 'Equal', value: 'true', effect: 'NoSchedule' },
+                  {
+                    key: input.reservedToleration!.key,
+                    operator: 'Equal',
+                    value: input.reservedToleration!.value,
+                    effect: input.reservedToleration!.effect,
+                  },
                   { key: 'sandbox.gke.io/runtime', operator: 'Equal', value: 'gvisor', effect: 'NoSchedule' },
                 ],
               }
-            : input.nixStorePvcName && input.nixStoreZone
-              ? { nodeSelector: { 'topology.kubernetes.io/zone': input.nixStoreZone } }
-              : {}),
+            : sandbox
+              ? {
+                  runtimeClassName: 'gvisor',
+                  nodeSelector: {
+                    'vibecore.ai/node-pool': 'sandbox',
+                    // D3 multi-zone: pin to the zone of the mounted store clone.
+                    ...(input.nixStorePvcName && input.nixStoreZone
+                      ? { 'topology.kubernetes.io/zone': input.nixStoreZone }
+                      : {}),
+                  },
+                  tolerations: [
+                    { key: 'vibecore.ai/sandbox', operator: 'Equal', value: 'true', effect: 'NoSchedule' },
+                    { key: 'sandbox.gke.io/runtime', operator: 'Equal', value: 'gvisor', effect: 'NoSchedule' },
+                  ],
+                }
+              : input.nixStorePvcName && input.nixStoreZone
+                ? { nodeSelector: { 'topology.kubernetes.io/zone': input.nixStoreZone } }
+                : {}),
           // D3 drift guard: wrong-generation clone ⇒ init fails ⇒ pod blocked.
           ...(input.nixStorePvcName && input.nixStoreGenerationHash
             ? { initContainers: [nixStoreGuardInitContainer(input.image, input.nixStoreGenerationHash)] }
@@ -1001,9 +1111,7 @@ export function serverAppDeployment(input: ServerRuntimeInput): K8sObject {
               ports: [{ containerPort: input.port, name: 'http' }],
               env: serverEnvVars(input),
               // Same kill switch as workspacePod: no nix PVC ⇒ no volumeMounts key at all.
-              ...(input.nixStorePvcName
-                ? { volumeMounts: [{ name: 'nix-store', mountPath: '/nix', readOnly: true }] }
-                : {}),
+              ...(volumeMounts.length ? { volumeMounts } : {}),
               resources: {
                 requests: { cpu: input.cpuRequest ?? '250m', memory: input.memoryRequest ?? '512Mi' },
                 limits: { cpu: input.cpuLimit ?? '1', memory: input.memoryLimit ?? '1Gi' },
@@ -1049,15 +1157,53 @@ export function serverAppDeployment(input: ServerRuntimeInput): K8sObject {
             },
           ],
           // Kill switch mirrors the volumeMounts above — absent unless opted in.
-          ...(input.nixStorePvcName
-            ? {
-                volumes: [
-                  { name: 'nix-store', persistentVolumeClaim: { claimName: input.nixStorePvcName, readOnly: true } },
-                ],
-              }
-            : {}),
+          ...(volumes.length ? { volumes } : {}),
         },
       },
+    },
+  };
+}
+
+/** Stable writable claim for one Reserved VM deployment. Existing claims are never resized or deleted by apply. */
+export function serverAppPersistentVolumeClaim(input: {
+  deploymentId: string;
+  namespace: string;
+  storageClassName: string;
+  storageGi: number;
+  orgId?: string;
+  projectId?: string;
+  operationId?: string;
+  fencingToken?: number;
+}): K8sObject {
+  if (!Number.isInteger(input.storageGi) || input.storageGi < 1 || input.storageGi > 1024) {
+    throw reservedVmK8sError('RESERVED_VM_STORAGE_SIZE_INVALID');
+  }
+
+  return {
+    apiVersion: 'v1',
+    kind: 'PersistentVolumeClaim',
+    metadata: {
+      name: `reserved-data-${input.deploymentId}`,
+      namespace: input.namespace,
+      ...(input.operationId && Number.isInteger(input.fencingToken)
+        ? {
+            annotations: {
+              'vibecore.ai/runtime-operation-id': input.operationId,
+              'vibecore.ai/runtime-fencing-token': String(input.fencingToken),
+            },
+          }
+        : {}),
+      labels: {
+        'vibecore.ai/server-deploy': input.deploymentId,
+        'vibecore.ai/server-runtime-kind': 'reserved-vm',
+        ...(input.orgId ? { 'vibecore.ai/org': input.orgId } : {}),
+        ...(input.projectId ? { 'vibecore.ai/project': input.projectId } : {}),
+      },
+    },
+    spec: {
+      accessModes: ['ReadWriteOnce'],
+      storageClassName: input.storageClassName,
+      resources: { requests: { storage: `${input.storageGi}Gi` } },
     },
   };
 }
@@ -1346,6 +1492,39 @@ export class KubectlWorkspaceK8sClient implements WorkspaceK8sClient {
     }
   }
 
+  async applyFenced(object: K8sObject, expectedResourceVersion?: string) {
+    const dir = await mkdtemp(join(tmpdir(), 'vibecore-k8s-fenced-'));
+    const manifest = join(dir, 'object.json');
+    const fencedObject: K8sObject = expectedResourceVersion
+      ? { ...object, metadata: { ...object.metadata, resourceVersion: expectedResourceVersion } }
+      : { ...object, metadata: { ...object.metadata, resourceVersion: undefined } };
+
+    try {
+      await writeFile(manifest, JSON.stringify(fencedObject));
+      await execFile(
+        this.kubectl,
+        [
+          ...this.configArgs,
+          expectedResourceVersion ? 'replace' : 'create',
+          '-f',
+          manifest,
+          `--request-timeout=${KUBECTL_REQUEST_TIMEOUT}`,
+        ],
+        { timeout: KUBECTL_TIMEOUT_MS },
+      );
+
+      const persisted = await this.get(object.kind, object.metadata.namespace ?? 'default', object.metadata.name);
+
+      if (!persisted) {
+        throw reservedVmK8sError(`Fenced ${object.kind}/${object.metadata.name} write was not observable`);
+      }
+
+      return persisted;
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  }
+
   async delete(kind: string, namespace: string, name: string) {
     await execFile(
       this.kubectl,
@@ -1357,6 +1536,23 @@ export class KubectlWorkspaceK8sClient implements WorkspaceK8sClient {
         '-n',
         namespace,
         '--ignore-not-found=true',
+        `--request-timeout=${KUBECTL_REQUEST_TIMEOUT}`,
+      ],
+      { timeout: KUBECTL_TIMEOUT_MS },
+    );
+  }
+
+  async deleteFenced(kind: string, namespace: string, name: string, expectedResourceVersion: string) {
+    await execFile(
+      this.kubectl,
+      [
+        ...this.configArgs,
+        'delete',
+        kind,
+        name,
+        '-n',
+        namespace,
+        `--resource-version=${expectedResourceVersion}`,
         `--request-timeout=${KUBECTL_REQUEST_TIMEOUT}`,
       ],
       { timeout: KUBECTL_TIMEOUT_MS },

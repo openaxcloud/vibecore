@@ -11,8 +11,10 @@ export const previewProxyEn = {
   SERVER_DEPLOY_PATH_INVALID: 'The server deployment path is invalid.',
   SERVER_DEPLOY_UPSTREAM_TIMEOUT: 'The deployment service timed out.',
   SERVER_DEPLOY_NOT_LIVE: 'This deployment is not live because its last publish failed or it was deleted.',
+  RESERVED_VM_SUSPENDED: 'This Reserved VM is suspended until its billing issue is resolved.',
   SERVER_DEPLOY_UPSTREAM_ERROR: 'The deployment service is unavailable. Please try again.',
-  PUBLISHED_DEPLOYMENT_EXPIRED: 'This publication has expired. Publish the project again to bring its address back online.',
+  PUBLISHED_DEPLOYMENT_EXPIRED:
+    'This publication has expired. Publish the project again to bring its address back online.',
   PUBLICATION_STATE_UNAVAILABLE: 'This publication’s state could not be verified. Please try again in a moment.',
   PREVIEW_PORT_INVALID: 'The preview port is invalid.',
   PREVIEW_TENANT_FORBIDDEN: 'You do not have access to this preview.',
@@ -25,6 +27,9 @@ export const previewProxyEn = {
   deploymentNotLiveTitle: 'This deployment is not live',
   deploymentNotLiveBody:
     'Its last publish failed or it was deleted. Publish the project again to bring it back online.',
+  reservedVmSuspendedTitle: 'This Reserved VM is suspended',
+  reservedVmSuspendedBody:
+    'Open deployment settings, resolve billing, then explicitly resume this Reserved VM. Public traffic cannot restart it.',
   privatePortTitle: 'This port is private',
   privatePortBody: 'Sign in to the workspace owner’s account to view this preview.',
 } as const;
@@ -36,6 +41,8 @@ export type PreviewProxyErrorCode = Exclude<
   | 'startingBody'
   | 'deploymentNotLiveTitle'
   | 'deploymentNotLiveBody'
+  | 'reservedVmSuspendedTitle'
+  | 'reservedVmSuspendedBody'
   | 'privatePortTitle'
   | 'privatePortBody'
 >;
@@ -51,11 +58,10 @@ export const previewProxyFr: PreviewProxyCopy = {
   SERVER_DEPLOY_UPSTREAM_TIMEOUT: 'Le délai du service de déploiement a expiré.',
   SERVER_DEPLOY_NOT_LIVE:
     'Ce déploiement n’est pas en ligne, car sa dernière publication a échoué ou il a été supprimé.',
+  RESERVED_VM_SUSPENDED: 'Cette VM réservée est suspendue jusqu’à la résolution du problème de facturation.',
   SERVER_DEPLOY_UPSTREAM_ERROR: 'Le service de déploiement est indisponible. Veuillez réessayer.',
-  PUBLISHED_DEPLOYMENT_EXPIRED:
-    'Cette publication a expiré. Republiez le projet pour remettre l’adresse en ligne.',
-  PUBLICATION_STATE_UNAVAILABLE:
-    'Impossible de vérifier l’état de cette publication. Réessayez dans un instant.',
+  PUBLISHED_DEPLOYMENT_EXPIRED: 'Cette publication a expiré. Republiez le projet pour remettre l’adresse en ligne.',
+  PUBLICATION_STATE_UNAVAILABLE: 'Impossible de vérifier l’état de cette publication. Réessayez dans un instant.',
   PREVIEW_PORT_INVALID: 'Le port d’aperçu est invalide.',
   PREVIEW_TENANT_FORBIDDEN: 'Vous n’avez pas accès à cet aperçu.',
   PREVIEW_AGENT_NOT_FOUND: 'L’aperçu de l’espace de travail est encore inaccessible. Veuillez réessayer.',
@@ -67,6 +73,9 @@ export const previewProxyFr: PreviewProxyCopy = {
   deploymentNotLiveTitle: 'Ce déploiement n’est pas en ligne',
   deploymentNotLiveBody:
     'Sa dernière publication a échoué ou il a été supprimé. Publiez de nouveau le projet pour le remettre en ligne.',
+  reservedVmSuspendedTitle: 'Cette VM réservée est suspendue',
+  reservedVmSuspendedBody:
+    'Ouvrez les paramètres de déploiement, réglez la facturation, puis reprenez explicitement cette VM réservée. Le trafic public ne peut pas la redémarrer.',
   privatePortTitle: 'Ce port est privé',
   privatePortBody: 'Connectez-vous au compte du propriétaire de l’espace de travail pour afficher cet aperçu.',
 };
@@ -153,7 +162,7 @@ export function sendPreviewProxyError(
   return reply.code(status).send({ error: copy[code], code });
 }
 
-type PreviewHtmlKind = 'starting' | 'deployment-not-live' | 'private-port';
+type PreviewHtmlKind = 'starting' | 'deployment-not-live' | 'reserved-vm-suspended' | 'private-port';
 
 export function previewProxyHtml(request: FastifyRequest, kind: PreviewHtmlKind): string {
   const language = resolvePreviewProxyLanguage(request.headers);
@@ -163,12 +172,16 @@ export function previewProxyHtml(request: FastifyRequest, kind: PreviewHtmlKind)
     ? copy.startingTitle
     : kind === 'deployment-not-live'
       ? copy.deploymentNotLiveTitle
-      : copy.privatePortTitle;
+      : kind === 'reserved-vm-suspended'
+        ? copy.reservedVmSuspendedTitle
+        : copy.privatePortTitle;
   const body = isStarting
     ? copy.startingBody
     : kind === 'deployment-not-live'
       ? copy.deploymentNotLiveBody
-      : copy.privatePortBody;
+      : kind === 'reserved-vm-suspended'
+        ? copy.reservedVmSuspendedBody
+        : copy.privatePortBody;
   const refresh = isStarting ? '<meta http-equiv="refresh" content="2">' : '';
   const indicator = isStarting
     ? '<div class="s"></div>'

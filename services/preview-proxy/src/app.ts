@@ -1091,7 +1091,7 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
     }
   };
 
-  const wakeServerDeploy = async (deploymentId: string): Promise<'ready' | 'starting' | 'gone'> => {
+  const wakeServerDeploy = async (deploymentId: string): Promise<'ready' | 'starting' | 'gone' | 'suspended'> => {
     if (!serverDeployManagerUrl) {
       return 'starting';
     }
@@ -1120,6 +1120,12 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
 
       if (response.status === 404) {
         return 'gone';
+      }
+
+      if (response.status === 402) {
+        const body = (await response.json().catch(() => ({}))) as { code?: string };
+
+        if (body.code === 'RESERVED_VM_SUSPENDED') return 'suspended';
       }
 
       if (!response.ok) {
@@ -1513,6 +1519,20 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
           }
 
           return sendPreviewProxyError(request, reply, 410, 'SERVER_DEPLOY_NOT_LIVE');
+        }
+
+        if (woke === 'suspended') {
+          if (wantsHtmlDocument(request)) {
+            applyPreviewProxyLocale(reply, request);
+
+            return reply
+              .code(402)
+              .type('text/html')
+              .header('cache-control', 'private, no-store, max-age=0')
+              .send(previewProxyHtml(request, 'reserved-vm-suspended'));
+          }
+
+          return sendPreviewProxyError(request, reply, 402, 'RESERVED_VM_SUSPENDED');
         }
 
         /*
