@@ -235,6 +235,16 @@ export type ReleaseManifest = $Result.DefaultSelection<Prisma.$ReleaseManifestPa
  */
 export type RollbackIdempotencyRequest = $Result.DefaultSelection<Prisma.$RollbackIdempotencyRequestPayload>
 /**
+ * Model DeploymentAccessPolicy
+ * 
+ */
+export type DeploymentAccessPolicy = $Result.DefaultSelection<Prisma.$DeploymentAccessPolicyPayload>
+/**
+ * Model DeploymentAccessExchangeTicket
+ * 
+ */
+export type DeploymentAccessExchangeTicket = $Result.DefaultSelection<Prisma.$DeploymentAccessExchangeTicketPayload>
+/**
  * Model RateCard
  * 
  */
@@ -1959,6 +1969,26 @@ export class PrismaClient<
   get rollbackIdempotencyRequest(): Prisma.RollbackIdempotencyRequestDelegate<ExtArgs, ClientOptions>;
 
   /**
+   * `prisma.deploymentAccessPolicy`: Exposes CRUD operations for the **DeploymentAccessPolicy** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more DeploymentAccessPolicies
+    * const deploymentAccessPolicies = await prisma.deploymentAccessPolicy.findMany()
+    * ```
+    */
+  get deploymentAccessPolicy(): Prisma.DeploymentAccessPolicyDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.deploymentAccessExchangeTicket`: Exposes CRUD operations for the **DeploymentAccessExchangeTicket** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more DeploymentAccessExchangeTickets
+    * const deploymentAccessExchangeTickets = await prisma.deploymentAccessExchangeTicket.findMany()
+    * ```
+    */
+  get deploymentAccessExchangeTicket(): Prisma.DeploymentAccessExchangeTicketDelegate<ExtArgs, ClientOptions>;
+
+  /**
    * `prisma.rateCard`: Exposes CRUD operations for the **RateCard** model.
     * Example usage:
     * ```ts
@@ -3454,6 +3484,8 @@ export namespace Prisma {
     DeploymentEnvironment: 'DeploymentEnvironment',
     ReleaseManifest: 'ReleaseManifest',
     RollbackIdempotencyRequest: 'RollbackIdempotencyRequest',
+    DeploymentAccessPolicy: 'DeploymentAccessPolicy',
+    DeploymentAccessExchangeTicket: 'DeploymentAccessExchangeTicket',
     RateCard: 'RateCard',
     AuditLog: 'AuditLog',
     SecurityEventResolution: 'SecurityEventResolution',
@@ -3571,7 +3603,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "projectSlugRedirect" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "installedSkill" | "skillAuditEvent" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "collaborationGroup" | "collaborationGroupMember" | "resourceAccessGrant" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectManifestRevision" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "releaseManifest" | "rollbackIdempotencyRequest" | "rateCard" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "providerRequestMetric" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "runtimeWebSocketTicket" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "mcpGlobalPolicy" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore" | "dBMigrationExecution" | "scheduledTask" | "scheduledTaskRun" | "agentRoutingCard" | "agentCallLog" | "projectCheckpoint" | "remixJob" | "remixStorageShare" | "importJob" | "importCreditReservation" | "galleryListing" | "ledgerAccount" | "ledgerTransaction" | "ledgerEntry" | "ledgerReservation" | "ledgerFxRate" | "ledgerReconciliationRun" | "previewReadinessBeacon" | "workspaceLifecycleEvent" | "workspacePostMortem" | "cloudTenant" | "cloudProjectBinding" | "cloudProjectFactoryEvent" | "cloudOperation" | "cloudOperationEvent" | "cloudTenantTransfer" | "cloudTeardownRecord" | "platformIamIdentity" | "platformIamImpersonationAudit" | "purgePlan" | "purgeFreeze" | "purgeEffect" | "purgeReceipt"
+      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "projectSlugRedirect" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "installedSkill" | "skillAuditEvent" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "collaborationGroup" | "collaborationGroupMember" | "resourceAccessGrant" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectManifestRevision" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "releaseManifest" | "rollbackIdempotencyRequest" | "deploymentAccessPolicy" | "deploymentAccessExchangeTicket" | "rateCard" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "providerRequestMetric" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "runtimeWebSocketTicket" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "mcpGlobalPolicy" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore" | "dBMigrationExecution" | "scheduledTask" | "scheduledTaskRun" | "agentRoutingCard" | "agentCallLog" | "projectCheckpoint" | "remixJob" | "remixStorageShare" | "importJob" | "importCreditReservation" | "galleryListing" | "ledgerAccount" | "ledgerTransaction" | "ledgerEntry" | "ledgerReservation" | "ledgerFxRate" | "ledgerReconciliationRun" | "previewReadinessBeacon" | "workspaceLifecycleEvent" | "workspacePostMortem" | "cloudTenant" | "cloudProjectBinding" | "cloudProjectFactoryEvent" | "cloudOperation" | "cloudOperationEvent" | "cloudTenantTransfer" | "cloudTeardownRecord" | "platformIamIdentity" | "platformIamImpersonationAudit" | "purgePlan" | "purgeFreeze" | "purgeEffect" | "purgeReceipt"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -6738,6 +6770,154 @@ export namespace Prisma {
           count: {
             args: Prisma.RollbackIdempotencyRequestCountArgs<ExtArgs>
             result: $Utils.Optional<RollbackIdempotencyRequestCountAggregateOutputType> | number
+          }
+        }
+      }
+      DeploymentAccessPolicy: {
+        payload: Prisma.$DeploymentAccessPolicyPayload<ExtArgs>
+        fields: Prisma.DeploymentAccessPolicyFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.DeploymentAccessPolicyFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DeploymentAccessPolicyPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.DeploymentAccessPolicyFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DeploymentAccessPolicyPayload>
+          }
+          findFirst: {
+            args: Prisma.DeploymentAccessPolicyFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DeploymentAccessPolicyPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.DeploymentAccessPolicyFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DeploymentAccessPolicyPayload>
+          }
+          findMany: {
+            args: Prisma.DeploymentAccessPolicyFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DeploymentAccessPolicyPayload>[]
+          }
+          create: {
+            args: Prisma.DeploymentAccessPolicyCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DeploymentAccessPolicyPayload>
+          }
+          createMany: {
+            args: Prisma.DeploymentAccessPolicyCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.DeploymentAccessPolicyCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DeploymentAccessPolicyPayload>[]
+          }
+          delete: {
+            args: Prisma.DeploymentAccessPolicyDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DeploymentAccessPolicyPayload>
+          }
+          update: {
+            args: Prisma.DeploymentAccessPolicyUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DeploymentAccessPolicyPayload>
+          }
+          deleteMany: {
+            args: Prisma.DeploymentAccessPolicyDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.DeploymentAccessPolicyUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.DeploymentAccessPolicyUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DeploymentAccessPolicyPayload>[]
+          }
+          upsert: {
+            args: Prisma.DeploymentAccessPolicyUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DeploymentAccessPolicyPayload>
+          }
+          aggregate: {
+            args: Prisma.DeploymentAccessPolicyAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateDeploymentAccessPolicy>
+          }
+          groupBy: {
+            args: Prisma.DeploymentAccessPolicyGroupByArgs<ExtArgs>
+            result: $Utils.Optional<DeploymentAccessPolicyGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.DeploymentAccessPolicyCountArgs<ExtArgs>
+            result: $Utils.Optional<DeploymentAccessPolicyCountAggregateOutputType> | number
+          }
+        }
+      }
+      DeploymentAccessExchangeTicket: {
+        payload: Prisma.$DeploymentAccessExchangeTicketPayload<ExtArgs>
+        fields: Prisma.DeploymentAccessExchangeTicketFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.DeploymentAccessExchangeTicketFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DeploymentAccessExchangeTicketPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.DeploymentAccessExchangeTicketFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DeploymentAccessExchangeTicketPayload>
+          }
+          findFirst: {
+            args: Prisma.DeploymentAccessExchangeTicketFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DeploymentAccessExchangeTicketPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.DeploymentAccessExchangeTicketFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DeploymentAccessExchangeTicketPayload>
+          }
+          findMany: {
+            args: Prisma.DeploymentAccessExchangeTicketFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DeploymentAccessExchangeTicketPayload>[]
+          }
+          create: {
+            args: Prisma.DeploymentAccessExchangeTicketCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DeploymentAccessExchangeTicketPayload>
+          }
+          createMany: {
+            args: Prisma.DeploymentAccessExchangeTicketCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.DeploymentAccessExchangeTicketCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DeploymentAccessExchangeTicketPayload>[]
+          }
+          delete: {
+            args: Prisma.DeploymentAccessExchangeTicketDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DeploymentAccessExchangeTicketPayload>
+          }
+          update: {
+            args: Prisma.DeploymentAccessExchangeTicketUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DeploymentAccessExchangeTicketPayload>
+          }
+          deleteMany: {
+            args: Prisma.DeploymentAccessExchangeTicketDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.DeploymentAccessExchangeTicketUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.DeploymentAccessExchangeTicketUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DeploymentAccessExchangeTicketPayload>[]
+          }
+          upsert: {
+            args: Prisma.DeploymentAccessExchangeTicketUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DeploymentAccessExchangeTicketPayload>
+          }
+          aggregate: {
+            args: Prisma.DeploymentAccessExchangeTicketAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateDeploymentAccessExchangeTicket>
+          }
+          groupBy: {
+            args: Prisma.DeploymentAccessExchangeTicketGroupByArgs<ExtArgs>
+            result: $Utils.Optional<DeploymentAccessExchangeTicketGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.DeploymentAccessExchangeTicketCountArgs<ExtArgs>
+            result: $Utils.Optional<DeploymentAccessExchangeTicketCountAggregateOutputType> | number
           }
         }
       }
@@ -14440,6 +14620,8 @@ export namespace Prisma {
     deploymentEnvironment?: DeploymentEnvironmentOmit
     releaseManifest?: ReleaseManifestOmit
     rollbackIdempotencyRequest?: RollbackIdempotencyRequestOmit
+    deploymentAccessPolicy?: DeploymentAccessPolicyOmit
+    deploymentAccessExchangeTicket?: DeploymentAccessExchangeTicketOmit
     rateCard?: RateCardOmit
     auditLog?: AuditLogOmit
     securityEventResolution?: SecurityEventResolutionOmit
@@ -63852,8 +64034,18 @@ export namespace Prisma {
 
   export type AggregateDeployment = {
     _count: DeploymentCountAggregateOutputType | null
+    _avg: DeploymentAvgAggregateOutputType | null
+    _sum: DeploymentSumAggregateOutputType | null
     _min: DeploymentMinAggregateOutputType | null
     _max: DeploymentMaxAggregateOutputType | null
+  }
+
+  export type DeploymentAvgAggregateOutputType = {
+    accessPolicyVersion: number | null
+  }
+
+  export type DeploymentSumAggregateOutputType = {
+    accessPolicyVersion: number | null
   }
 
   export type DeploymentMinAggregateOutputType = {
@@ -63877,6 +64069,7 @@ export namespace Prisma {
     parentDeploymentId: string | null
     lastMeteredAt: Date | null
     machineSize: string | null
+    accessPolicyVersion: number | null
     startedAt: Date | null
     finishedAt: Date | null
     canceledAt: Date | null
@@ -63905,6 +64098,7 @@ export namespace Prisma {
     parentDeploymentId: string | null
     lastMeteredAt: Date | null
     machineSize: string | null
+    accessPolicyVersion: number | null
     startedAt: Date | null
     finishedAt: Date | null
     canceledAt: Date | null
@@ -63935,6 +64129,7 @@ export namespace Prisma {
     parentDeploymentId: number
     lastMeteredAt: number
     machineSize: number
+    accessPolicyVersion: number
     startedAt: number
     finishedAt: number
     canceledAt: number
@@ -63943,6 +64138,14 @@ export namespace Prisma {
     _all: number
   }
 
+
+  export type DeploymentAvgAggregateInputType = {
+    accessPolicyVersion?: true
+  }
+
+  export type DeploymentSumAggregateInputType = {
+    accessPolicyVersion?: true
+  }
 
   export type DeploymentMinAggregateInputType = {
     id?: true
@@ -63965,6 +64168,7 @@ export namespace Prisma {
     parentDeploymentId?: true
     lastMeteredAt?: true
     machineSize?: true
+    accessPolicyVersion?: true
     startedAt?: true
     finishedAt?: true
     canceledAt?: true
@@ -63993,6 +64197,7 @@ export namespace Prisma {
     parentDeploymentId?: true
     lastMeteredAt?: true
     machineSize?: true
+    accessPolicyVersion?: true
     startedAt?: true
     finishedAt?: true
     canceledAt?: true
@@ -64023,6 +64228,7 @@ export namespace Prisma {
     parentDeploymentId?: true
     lastMeteredAt?: true
     machineSize?: true
+    accessPolicyVersion?: true
     startedAt?: true
     finishedAt?: true
     canceledAt?: true
@@ -64069,6 +64275,18 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
      * 
+     * Select which fields to average
+    **/
+    _avg?: DeploymentAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: DeploymentSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
      * Select which fields to find the minimum value
     **/
     _min?: DeploymentMinAggregateInputType
@@ -64099,6 +64317,8 @@ export namespace Prisma {
     take?: number
     skip?: number
     _count?: DeploymentCountAggregateInputType | true
+    _avg?: DeploymentAvgAggregateInputType
+    _sum?: DeploymentSumAggregateInputType
     _min?: DeploymentMinAggregateInputType
     _max?: DeploymentMaxAggregateInputType
   }
@@ -64126,12 +64346,15 @@ export namespace Prisma {
     parentDeploymentId: string | null
     lastMeteredAt: Date | null
     machineSize: string
+    accessPolicyVersion: number
     startedAt: Date | null
     finishedAt: Date | null
     canceledAt: Date | null
     createdAt: Date
     updatedAt: Date
     _count: DeploymentCountAggregateOutputType | null
+    _avg: DeploymentAvgAggregateOutputType | null
+    _sum: DeploymentSumAggregateOutputType | null
     _min: DeploymentMinAggregateOutputType | null
     _max: DeploymentMaxAggregateOutputType | null
   }
@@ -64173,6 +64396,7 @@ export namespace Prisma {
     parentDeploymentId?: boolean
     lastMeteredAt?: boolean
     machineSize?: boolean
+    accessPolicyVersion?: boolean
     startedAt?: boolean
     finishedAt?: boolean
     canceledAt?: boolean
@@ -64205,6 +64429,7 @@ export namespace Prisma {
     parentDeploymentId?: boolean
     lastMeteredAt?: boolean
     machineSize?: boolean
+    accessPolicyVersion?: boolean
     startedAt?: boolean
     finishedAt?: boolean
     canceledAt?: boolean
@@ -64237,6 +64462,7 @@ export namespace Prisma {
     parentDeploymentId?: boolean
     lastMeteredAt?: boolean
     machineSize?: boolean
+    accessPolicyVersion?: boolean
     startedAt?: boolean
     finishedAt?: boolean
     canceledAt?: boolean
@@ -64269,6 +64495,7 @@ export namespace Prisma {
     parentDeploymentId?: boolean
     lastMeteredAt?: boolean
     machineSize?: boolean
+    accessPolicyVersion?: boolean
     startedAt?: boolean
     finishedAt?: boolean
     canceledAt?: boolean
@@ -64276,7 +64503,7 @@ export namespace Prisma {
     updatedAt?: boolean
   }
 
-  export type DeploymentOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "projectId" | "workspaceId" | "environmentId" | "environmentName" | "status" | "provider" | "url" | "previewUrl" | "productionUrl" | "framework" | "buildCommand" | "outputDirectory" | "branch" | "commitSha" | "customDomain" | "logs" | "metadata" | "rolledBackFromId" | "parentDeploymentId" | "lastMeteredAt" | "machineSize" | "startedAt" | "finishedAt" | "canceledAt" | "createdAt" | "updatedAt", ExtArgs["result"]["deployment"]>
+  export type DeploymentOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "projectId" | "workspaceId" | "environmentId" | "environmentName" | "status" | "provider" | "url" | "previewUrl" | "productionUrl" | "framework" | "buildCommand" | "outputDirectory" | "branch" | "commitSha" | "customDomain" | "logs" | "metadata" | "rolledBackFromId" | "parentDeploymentId" | "lastMeteredAt" | "machineSize" | "accessPolicyVersion" | "startedAt" | "finishedAt" | "canceledAt" | "createdAt" | "updatedAt", ExtArgs["result"]["deployment"]>
   export type DeploymentInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     project?: boolean | ProjectDefaultArgs<ExtArgs>
     environment?: boolean | Deployment$environmentArgs<ExtArgs>
@@ -64319,6 +64546,7 @@ export namespace Prisma {
       parentDeploymentId: string | null
       lastMeteredAt: Date | null
       machineSize: string
+      accessPolicyVersion: number
       startedAt: Date | null
       finishedAt: Date | null
       canceledAt: Date | null
@@ -64771,6 +64999,7 @@ export namespace Prisma {
     readonly parentDeploymentId: FieldRef<"Deployment", 'String'>
     readonly lastMeteredAt: FieldRef<"Deployment", 'DateTime'>
     readonly machineSize: FieldRef<"Deployment", 'String'>
+    readonly accessPolicyVersion: FieldRef<"Deployment", 'Int'>
     readonly startedAt: FieldRef<"Deployment", 'DateTime'>
     readonly finishedAt: FieldRef<"Deployment", 'DateTime'>
     readonly canceledAt: FieldRef<"Deployment", 'DateTime'>
@@ -66264,10 +66493,12 @@ export namespace Prisma {
 
   export type ReleaseManifestAvgAggregateOutputType = {
     version: number | null
+    accessPolicyVersion: number | null
   }
 
   export type ReleaseManifestSumAggregateOutputType = {
     version: number | null
+    accessPolicyVersion: number | null
   }
 
   export type ReleaseManifestMinAggregateOutputType = {
@@ -66283,6 +66514,7 @@ export namespace Prisma {
     storeGeneration: string | null
     configDigest: string | null
     dbMigrationPoint: string | null
+    accessPolicyVersion: number | null
     createdAt: Date | null
   }
 
@@ -66299,6 +66531,7 @@ export namespace Prisma {
     storeGeneration: string | null
     configDigest: string | null
     dbMigrationPoint: string | null
+    accessPolicyVersion: number | null
     createdAt: Date | null
   }
 
@@ -66315,6 +66548,7 @@ export namespace Prisma {
     storeGeneration: number
     configDigest: number
     dbMigrationPoint: number
+    accessPolicyVersion: number
     createdAt: number
     _all: number
   }
@@ -66322,10 +66556,12 @@ export namespace Prisma {
 
   export type ReleaseManifestAvgAggregateInputType = {
     version?: true
+    accessPolicyVersion?: true
   }
 
   export type ReleaseManifestSumAggregateInputType = {
     version?: true
+    accessPolicyVersion?: true
   }
 
   export type ReleaseManifestMinAggregateInputType = {
@@ -66341,6 +66577,7 @@ export namespace Prisma {
     storeGeneration?: true
     configDigest?: true
     dbMigrationPoint?: true
+    accessPolicyVersion?: true
     createdAt?: true
   }
 
@@ -66357,6 +66594,7 @@ export namespace Prisma {
     storeGeneration?: true
     configDigest?: true
     dbMigrationPoint?: true
+    accessPolicyVersion?: true
     createdAt?: true
   }
 
@@ -66373,6 +66611,7 @@ export namespace Prisma {
     storeGeneration?: true
     configDigest?: true
     dbMigrationPoint?: true
+    accessPolicyVersion?: true
     createdAt?: true
     _all?: true
   }
@@ -66476,6 +66715,7 @@ export namespace Prisma {
     storeGeneration: string | null
     configDigest: string | null
     dbMigrationPoint: string | null
+    accessPolicyVersion: number
     createdAt: Date
     _count: ReleaseManifestCountAggregateOutputType | null
     _avg: ReleaseManifestAvgAggregateOutputType | null
@@ -66511,6 +66751,7 @@ export namespace Prisma {
     storeGeneration?: boolean
     configDigest?: boolean
     dbMigrationPoint?: boolean
+    accessPolicyVersion?: boolean
     createdAt?: boolean
   }, ExtArgs["result"]["releaseManifest"]>
 
@@ -66527,6 +66768,7 @@ export namespace Prisma {
     storeGeneration?: boolean
     configDigest?: boolean
     dbMigrationPoint?: boolean
+    accessPolicyVersion?: boolean
     createdAt?: boolean
   }, ExtArgs["result"]["releaseManifest"]>
 
@@ -66543,6 +66785,7 @@ export namespace Prisma {
     storeGeneration?: boolean
     configDigest?: boolean
     dbMigrationPoint?: boolean
+    accessPolicyVersion?: boolean
     createdAt?: boolean
   }, ExtArgs["result"]["releaseManifest"]>
 
@@ -66559,10 +66802,11 @@ export namespace Prisma {
     storeGeneration?: boolean
     configDigest?: boolean
     dbMigrationPoint?: boolean
+    accessPolicyVersion?: boolean
     createdAt?: boolean
   }
 
-  export type ReleaseManifestOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "projectId" | "deploymentId" | "environment" | "version" | "provider" | "artifactKind" | "artifactRef" | "artifactDigest" | "storeGeneration" | "configDigest" | "dbMigrationPoint" | "createdAt", ExtArgs["result"]["releaseManifest"]>
+  export type ReleaseManifestOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "projectId" | "deploymentId" | "environment" | "version" | "provider" | "artifactKind" | "artifactRef" | "artifactDigest" | "storeGeneration" | "configDigest" | "dbMigrationPoint" | "accessPolicyVersion" | "createdAt", ExtArgs["result"]["releaseManifest"]>
 
   export type $ReleaseManifestPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "ReleaseManifest"
@@ -66580,6 +66824,7 @@ export namespace Prisma {
       storeGeneration: string | null
       configDigest: string | null
       dbMigrationPoint: string | null
+      accessPolicyVersion: number
       createdAt: Date
     }, ExtArgs["result"]["releaseManifest"]>
     composites: {}
@@ -67016,6 +67261,7 @@ export namespace Prisma {
     readonly storeGeneration: FieldRef<"ReleaseManifest", 'String'>
     readonly configDigest: FieldRef<"ReleaseManifest", 'String'>
     readonly dbMigrationPoint: FieldRef<"ReleaseManifest", 'String'>
+    readonly accessPolicyVersion: FieldRef<"ReleaseManifest", 'Int'>
     readonly createdAt: FieldRef<"ReleaseManifest", 'DateTime'>
   }
     
@@ -68698,6 +68944,2178 @@ export namespace Prisma {
      * Choose, which related nodes to fetch as well
      */
     include?: RollbackIdempotencyRequestInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model DeploymentAccessPolicy
+   */
+
+  export type AggregateDeploymentAccessPolicy = {
+    _count: DeploymentAccessPolicyCountAggregateOutputType | null
+    _avg: DeploymentAccessPolicyAvgAggregateOutputType | null
+    _sum: DeploymentAccessPolicySumAggregateOutputType | null
+    _min: DeploymentAccessPolicyMinAggregateOutputType | null
+    _max: DeploymentAccessPolicyMaxAggregateOutputType | null
+  }
+
+  export type DeploymentAccessPolicyAvgAggregateOutputType = {
+    version: number | null
+  }
+
+  export type DeploymentAccessPolicySumAggregateOutputType = {
+    version: number | null
+  }
+
+  export type DeploymentAccessPolicyMinAggregateOutputType = {
+    id: string | null
+    projectId: string | null
+    environment: string | null
+    version: number | null
+    mode: string | null
+    revision: string | null
+    passwordHash: string | null
+    createdByUserId: string | null
+    createdAt: Date | null
+  }
+
+  export type DeploymentAccessPolicyMaxAggregateOutputType = {
+    id: string | null
+    projectId: string | null
+    environment: string | null
+    version: number | null
+    mode: string | null
+    revision: string | null
+    passwordHash: string | null
+    createdByUserId: string | null
+    createdAt: Date | null
+  }
+
+  export type DeploymentAccessPolicyCountAggregateOutputType = {
+    id: number
+    projectId: number
+    environment: number
+    version: number
+    mode: number
+    revision: number
+    passwordHash: number
+    createdByUserId: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type DeploymentAccessPolicyAvgAggregateInputType = {
+    version?: true
+  }
+
+  export type DeploymentAccessPolicySumAggregateInputType = {
+    version?: true
+  }
+
+  export type DeploymentAccessPolicyMinAggregateInputType = {
+    id?: true
+    projectId?: true
+    environment?: true
+    version?: true
+    mode?: true
+    revision?: true
+    passwordHash?: true
+    createdByUserId?: true
+    createdAt?: true
+  }
+
+  export type DeploymentAccessPolicyMaxAggregateInputType = {
+    id?: true
+    projectId?: true
+    environment?: true
+    version?: true
+    mode?: true
+    revision?: true
+    passwordHash?: true
+    createdByUserId?: true
+    createdAt?: true
+  }
+
+  export type DeploymentAccessPolicyCountAggregateInputType = {
+    id?: true
+    projectId?: true
+    environment?: true
+    version?: true
+    mode?: true
+    revision?: true
+    passwordHash?: true
+    createdByUserId?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type DeploymentAccessPolicyAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which DeploymentAccessPolicy to aggregate.
+     */
+    where?: DeploymentAccessPolicyWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DeploymentAccessPolicies to fetch.
+     */
+    orderBy?: DeploymentAccessPolicyOrderByWithRelationInput | DeploymentAccessPolicyOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: DeploymentAccessPolicyWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DeploymentAccessPolicies from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DeploymentAccessPolicies.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned DeploymentAccessPolicies
+    **/
+    _count?: true | DeploymentAccessPolicyCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: DeploymentAccessPolicyAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: DeploymentAccessPolicySumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: DeploymentAccessPolicyMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: DeploymentAccessPolicyMaxAggregateInputType
+  }
+
+  export type GetDeploymentAccessPolicyAggregateType<T extends DeploymentAccessPolicyAggregateArgs> = {
+        [P in keyof T & keyof AggregateDeploymentAccessPolicy]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateDeploymentAccessPolicy[P]>
+      : GetScalarType<T[P], AggregateDeploymentAccessPolicy[P]>
+  }
+
+
+
+
+  export type DeploymentAccessPolicyGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: DeploymentAccessPolicyWhereInput
+    orderBy?: DeploymentAccessPolicyOrderByWithAggregationInput | DeploymentAccessPolicyOrderByWithAggregationInput[]
+    by: DeploymentAccessPolicyScalarFieldEnum[] | DeploymentAccessPolicyScalarFieldEnum
+    having?: DeploymentAccessPolicyScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: DeploymentAccessPolicyCountAggregateInputType | true
+    _avg?: DeploymentAccessPolicyAvgAggregateInputType
+    _sum?: DeploymentAccessPolicySumAggregateInputType
+    _min?: DeploymentAccessPolicyMinAggregateInputType
+    _max?: DeploymentAccessPolicyMaxAggregateInputType
+  }
+
+  export type DeploymentAccessPolicyGroupByOutputType = {
+    id: string
+    projectId: string
+    environment: string
+    version: number
+    mode: string
+    revision: string
+    passwordHash: string | null
+    createdByUserId: string | null
+    createdAt: Date
+    _count: DeploymentAccessPolicyCountAggregateOutputType | null
+    _avg: DeploymentAccessPolicyAvgAggregateOutputType | null
+    _sum: DeploymentAccessPolicySumAggregateOutputType | null
+    _min: DeploymentAccessPolicyMinAggregateOutputType | null
+    _max: DeploymentAccessPolicyMaxAggregateOutputType | null
+  }
+
+  type GetDeploymentAccessPolicyGroupByPayload<T extends DeploymentAccessPolicyGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<DeploymentAccessPolicyGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof DeploymentAccessPolicyGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], DeploymentAccessPolicyGroupByOutputType[P]>
+            : GetScalarType<T[P], DeploymentAccessPolicyGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type DeploymentAccessPolicySelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    projectId?: boolean
+    environment?: boolean
+    version?: boolean
+    mode?: boolean
+    revision?: boolean
+    passwordHash?: boolean
+    createdByUserId?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["deploymentAccessPolicy"]>
+
+  export type DeploymentAccessPolicySelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    projectId?: boolean
+    environment?: boolean
+    version?: boolean
+    mode?: boolean
+    revision?: boolean
+    passwordHash?: boolean
+    createdByUserId?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["deploymentAccessPolicy"]>
+
+  export type DeploymentAccessPolicySelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    projectId?: boolean
+    environment?: boolean
+    version?: boolean
+    mode?: boolean
+    revision?: boolean
+    passwordHash?: boolean
+    createdByUserId?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["deploymentAccessPolicy"]>
+
+  export type DeploymentAccessPolicySelectScalar = {
+    id?: boolean
+    projectId?: boolean
+    environment?: boolean
+    version?: boolean
+    mode?: boolean
+    revision?: boolean
+    passwordHash?: boolean
+    createdByUserId?: boolean
+    createdAt?: boolean
+  }
+
+  export type DeploymentAccessPolicyOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "projectId" | "environment" | "version" | "mode" | "revision" | "passwordHash" | "createdByUserId" | "createdAt", ExtArgs["result"]["deploymentAccessPolicy"]>
+
+  export type $DeploymentAccessPolicyPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "DeploymentAccessPolicy"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      projectId: string
+      environment: string
+      version: number
+      mode: string
+      revision: string
+      passwordHash: string | null
+      createdByUserId: string | null
+      createdAt: Date
+    }, ExtArgs["result"]["deploymentAccessPolicy"]>
+    composites: {}
+  }
+
+  type DeploymentAccessPolicyGetPayload<S extends boolean | null | undefined | DeploymentAccessPolicyDefaultArgs> = $Result.GetResult<Prisma.$DeploymentAccessPolicyPayload, S>
+
+  type DeploymentAccessPolicyCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<DeploymentAccessPolicyFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: DeploymentAccessPolicyCountAggregateInputType | true
+    }
+
+  export interface DeploymentAccessPolicyDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['DeploymentAccessPolicy'], meta: { name: 'DeploymentAccessPolicy' } }
+    /**
+     * Find zero or one DeploymentAccessPolicy that matches the filter.
+     * @param {DeploymentAccessPolicyFindUniqueArgs} args - Arguments to find a DeploymentAccessPolicy
+     * @example
+     * // Get one DeploymentAccessPolicy
+     * const deploymentAccessPolicy = await prisma.deploymentAccessPolicy.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends DeploymentAccessPolicyFindUniqueArgs>(args: SelectSubset<T, DeploymentAccessPolicyFindUniqueArgs<ExtArgs>>): Prisma__DeploymentAccessPolicyClient<$Result.GetResult<Prisma.$DeploymentAccessPolicyPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one DeploymentAccessPolicy that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {DeploymentAccessPolicyFindUniqueOrThrowArgs} args - Arguments to find a DeploymentAccessPolicy
+     * @example
+     * // Get one DeploymentAccessPolicy
+     * const deploymentAccessPolicy = await prisma.deploymentAccessPolicy.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends DeploymentAccessPolicyFindUniqueOrThrowArgs>(args: SelectSubset<T, DeploymentAccessPolicyFindUniqueOrThrowArgs<ExtArgs>>): Prisma__DeploymentAccessPolicyClient<$Result.GetResult<Prisma.$DeploymentAccessPolicyPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first DeploymentAccessPolicy that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DeploymentAccessPolicyFindFirstArgs} args - Arguments to find a DeploymentAccessPolicy
+     * @example
+     * // Get one DeploymentAccessPolicy
+     * const deploymentAccessPolicy = await prisma.deploymentAccessPolicy.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends DeploymentAccessPolicyFindFirstArgs>(args?: SelectSubset<T, DeploymentAccessPolicyFindFirstArgs<ExtArgs>>): Prisma__DeploymentAccessPolicyClient<$Result.GetResult<Prisma.$DeploymentAccessPolicyPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first DeploymentAccessPolicy that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DeploymentAccessPolicyFindFirstOrThrowArgs} args - Arguments to find a DeploymentAccessPolicy
+     * @example
+     * // Get one DeploymentAccessPolicy
+     * const deploymentAccessPolicy = await prisma.deploymentAccessPolicy.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends DeploymentAccessPolicyFindFirstOrThrowArgs>(args?: SelectSubset<T, DeploymentAccessPolicyFindFirstOrThrowArgs<ExtArgs>>): Prisma__DeploymentAccessPolicyClient<$Result.GetResult<Prisma.$DeploymentAccessPolicyPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more DeploymentAccessPolicies that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DeploymentAccessPolicyFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all DeploymentAccessPolicies
+     * const deploymentAccessPolicies = await prisma.deploymentAccessPolicy.findMany()
+     * 
+     * // Get first 10 DeploymentAccessPolicies
+     * const deploymentAccessPolicies = await prisma.deploymentAccessPolicy.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const deploymentAccessPolicyWithIdOnly = await prisma.deploymentAccessPolicy.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends DeploymentAccessPolicyFindManyArgs>(args?: SelectSubset<T, DeploymentAccessPolicyFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DeploymentAccessPolicyPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a DeploymentAccessPolicy.
+     * @param {DeploymentAccessPolicyCreateArgs} args - Arguments to create a DeploymentAccessPolicy.
+     * @example
+     * // Create one DeploymentAccessPolicy
+     * const DeploymentAccessPolicy = await prisma.deploymentAccessPolicy.create({
+     *   data: {
+     *     // ... data to create a DeploymentAccessPolicy
+     *   }
+     * })
+     * 
+     */
+    create<T extends DeploymentAccessPolicyCreateArgs>(args: SelectSubset<T, DeploymentAccessPolicyCreateArgs<ExtArgs>>): Prisma__DeploymentAccessPolicyClient<$Result.GetResult<Prisma.$DeploymentAccessPolicyPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many DeploymentAccessPolicies.
+     * @param {DeploymentAccessPolicyCreateManyArgs} args - Arguments to create many DeploymentAccessPolicies.
+     * @example
+     * // Create many DeploymentAccessPolicies
+     * const deploymentAccessPolicy = await prisma.deploymentAccessPolicy.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends DeploymentAccessPolicyCreateManyArgs>(args?: SelectSubset<T, DeploymentAccessPolicyCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many DeploymentAccessPolicies and returns the data saved in the database.
+     * @param {DeploymentAccessPolicyCreateManyAndReturnArgs} args - Arguments to create many DeploymentAccessPolicies.
+     * @example
+     * // Create many DeploymentAccessPolicies
+     * const deploymentAccessPolicy = await prisma.deploymentAccessPolicy.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many DeploymentAccessPolicies and only return the `id`
+     * const deploymentAccessPolicyWithIdOnly = await prisma.deploymentAccessPolicy.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends DeploymentAccessPolicyCreateManyAndReturnArgs>(args?: SelectSubset<T, DeploymentAccessPolicyCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DeploymentAccessPolicyPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a DeploymentAccessPolicy.
+     * @param {DeploymentAccessPolicyDeleteArgs} args - Arguments to delete one DeploymentAccessPolicy.
+     * @example
+     * // Delete one DeploymentAccessPolicy
+     * const DeploymentAccessPolicy = await prisma.deploymentAccessPolicy.delete({
+     *   where: {
+     *     // ... filter to delete one DeploymentAccessPolicy
+     *   }
+     * })
+     * 
+     */
+    delete<T extends DeploymentAccessPolicyDeleteArgs>(args: SelectSubset<T, DeploymentAccessPolicyDeleteArgs<ExtArgs>>): Prisma__DeploymentAccessPolicyClient<$Result.GetResult<Prisma.$DeploymentAccessPolicyPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one DeploymentAccessPolicy.
+     * @param {DeploymentAccessPolicyUpdateArgs} args - Arguments to update one DeploymentAccessPolicy.
+     * @example
+     * // Update one DeploymentAccessPolicy
+     * const deploymentAccessPolicy = await prisma.deploymentAccessPolicy.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends DeploymentAccessPolicyUpdateArgs>(args: SelectSubset<T, DeploymentAccessPolicyUpdateArgs<ExtArgs>>): Prisma__DeploymentAccessPolicyClient<$Result.GetResult<Prisma.$DeploymentAccessPolicyPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more DeploymentAccessPolicies.
+     * @param {DeploymentAccessPolicyDeleteManyArgs} args - Arguments to filter DeploymentAccessPolicies to delete.
+     * @example
+     * // Delete a few DeploymentAccessPolicies
+     * const { count } = await prisma.deploymentAccessPolicy.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends DeploymentAccessPolicyDeleteManyArgs>(args?: SelectSubset<T, DeploymentAccessPolicyDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more DeploymentAccessPolicies.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DeploymentAccessPolicyUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many DeploymentAccessPolicies
+     * const deploymentAccessPolicy = await prisma.deploymentAccessPolicy.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends DeploymentAccessPolicyUpdateManyArgs>(args: SelectSubset<T, DeploymentAccessPolicyUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more DeploymentAccessPolicies and returns the data updated in the database.
+     * @param {DeploymentAccessPolicyUpdateManyAndReturnArgs} args - Arguments to update many DeploymentAccessPolicies.
+     * @example
+     * // Update many DeploymentAccessPolicies
+     * const deploymentAccessPolicy = await prisma.deploymentAccessPolicy.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more DeploymentAccessPolicies and only return the `id`
+     * const deploymentAccessPolicyWithIdOnly = await prisma.deploymentAccessPolicy.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends DeploymentAccessPolicyUpdateManyAndReturnArgs>(args: SelectSubset<T, DeploymentAccessPolicyUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DeploymentAccessPolicyPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one DeploymentAccessPolicy.
+     * @param {DeploymentAccessPolicyUpsertArgs} args - Arguments to update or create a DeploymentAccessPolicy.
+     * @example
+     * // Update or create a DeploymentAccessPolicy
+     * const deploymentAccessPolicy = await prisma.deploymentAccessPolicy.upsert({
+     *   create: {
+     *     // ... data to create a DeploymentAccessPolicy
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the DeploymentAccessPolicy we want to update
+     *   }
+     * })
+     */
+    upsert<T extends DeploymentAccessPolicyUpsertArgs>(args: SelectSubset<T, DeploymentAccessPolicyUpsertArgs<ExtArgs>>): Prisma__DeploymentAccessPolicyClient<$Result.GetResult<Prisma.$DeploymentAccessPolicyPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of DeploymentAccessPolicies.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DeploymentAccessPolicyCountArgs} args - Arguments to filter DeploymentAccessPolicies to count.
+     * @example
+     * // Count the number of DeploymentAccessPolicies
+     * const count = await prisma.deploymentAccessPolicy.count({
+     *   where: {
+     *     // ... the filter for the DeploymentAccessPolicies we want to count
+     *   }
+     * })
+    **/
+    count<T extends DeploymentAccessPolicyCountArgs>(
+      args?: Subset<T, DeploymentAccessPolicyCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], DeploymentAccessPolicyCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a DeploymentAccessPolicy.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DeploymentAccessPolicyAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends DeploymentAccessPolicyAggregateArgs>(args: Subset<T, DeploymentAccessPolicyAggregateArgs>): Prisma.PrismaPromise<GetDeploymentAccessPolicyAggregateType<T>>
+
+    /**
+     * Group by DeploymentAccessPolicy.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DeploymentAccessPolicyGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends DeploymentAccessPolicyGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: DeploymentAccessPolicyGroupByArgs['orderBy'] }
+        : { orderBy?: DeploymentAccessPolicyGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, DeploymentAccessPolicyGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetDeploymentAccessPolicyGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the DeploymentAccessPolicy model
+   */
+  readonly fields: DeploymentAccessPolicyFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for DeploymentAccessPolicy.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__DeploymentAccessPolicyClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the DeploymentAccessPolicy model
+   */
+  interface DeploymentAccessPolicyFieldRefs {
+    readonly id: FieldRef<"DeploymentAccessPolicy", 'String'>
+    readonly projectId: FieldRef<"DeploymentAccessPolicy", 'String'>
+    readonly environment: FieldRef<"DeploymentAccessPolicy", 'String'>
+    readonly version: FieldRef<"DeploymentAccessPolicy", 'Int'>
+    readonly mode: FieldRef<"DeploymentAccessPolicy", 'String'>
+    readonly revision: FieldRef<"DeploymentAccessPolicy", 'String'>
+    readonly passwordHash: FieldRef<"DeploymentAccessPolicy", 'String'>
+    readonly createdByUserId: FieldRef<"DeploymentAccessPolicy", 'String'>
+    readonly createdAt: FieldRef<"DeploymentAccessPolicy", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * DeploymentAccessPolicy findUnique
+   */
+  export type DeploymentAccessPolicyFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DeploymentAccessPolicy
+     */
+    select?: DeploymentAccessPolicySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DeploymentAccessPolicy
+     */
+    omit?: DeploymentAccessPolicyOmit<ExtArgs> | null
+    /**
+     * Filter, which DeploymentAccessPolicy to fetch.
+     */
+    where: DeploymentAccessPolicyWhereUniqueInput
+  }
+
+  /**
+   * DeploymentAccessPolicy findUniqueOrThrow
+   */
+  export type DeploymentAccessPolicyFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DeploymentAccessPolicy
+     */
+    select?: DeploymentAccessPolicySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DeploymentAccessPolicy
+     */
+    omit?: DeploymentAccessPolicyOmit<ExtArgs> | null
+    /**
+     * Filter, which DeploymentAccessPolicy to fetch.
+     */
+    where: DeploymentAccessPolicyWhereUniqueInput
+  }
+
+  /**
+   * DeploymentAccessPolicy findFirst
+   */
+  export type DeploymentAccessPolicyFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DeploymentAccessPolicy
+     */
+    select?: DeploymentAccessPolicySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DeploymentAccessPolicy
+     */
+    omit?: DeploymentAccessPolicyOmit<ExtArgs> | null
+    /**
+     * Filter, which DeploymentAccessPolicy to fetch.
+     */
+    where?: DeploymentAccessPolicyWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DeploymentAccessPolicies to fetch.
+     */
+    orderBy?: DeploymentAccessPolicyOrderByWithRelationInput | DeploymentAccessPolicyOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for DeploymentAccessPolicies.
+     */
+    cursor?: DeploymentAccessPolicyWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DeploymentAccessPolicies from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DeploymentAccessPolicies.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of DeploymentAccessPolicies.
+     */
+    distinct?: DeploymentAccessPolicyScalarFieldEnum | DeploymentAccessPolicyScalarFieldEnum[]
+  }
+
+  /**
+   * DeploymentAccessPolicy findFirstOrThrow
+   */
+  export type DeploymentAccessPolicyFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DeploymentAccessPolicy
+     */
+    select?: DeploymentAccessPolicySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DeploymentAccessPolicy
+     */
+    omit?: DeploymentAccessPolicyOmit<ExtArgs> | null
+    /**
+     * Filter, which DeploymentAccessPolicy to fetch.
+     */
+    where?: DeploymentAccessPolicyWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DeploymentAccessPolicies to fetch.
+     */
+    orderBy?: DeploymentAccessPolicyOrderByWithRelationInput | DeploymentAccessPolicyOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for DeploymentAccessPolicies.
+     */
+    cursor?: DeploymentAccessPolicyWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DeploymentAccessPolicies from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DeploymentAccessPolicies.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of DeploymentAccessPolicies.
+     */
+    distinct?: DeploymentAccessPolicyScalarFieldEnum | DeploymentAccessPolicyScalarFieldEnum[]
+  }
+
+  /**
+   * DeploymentAccessPolicy findMany
+   */
+  export type DeploymentAccessPolicyFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DeploymentAccessPolicy
+     */
+    select?: DeploymentAccessPolicySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DeploymentAccessPolicy
+     */
+    omit?: DeploymentAccessPolicyOmit<ExtArgs> | null
+    /**
+     * Filter, which DeploymentAccessPolicies to fetch.
+     */
+    where?: DeploymentAccessPolicyWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DeploymentAccessPolicies to fetch.
+     */
+    orderBy?: DeploymentAccessPolicyOrderByWithRelationInput | DeploymentAccessPolicyOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing DeploymentAccessPolicies.
+     */
+    cursor?: DeploymentAccessPolicyWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DeploymentAccessPolicies from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DeploymentAccessPolicies.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of DeploymentAccessPolicies.
+     */
+    distinct?: DeploymentAccessPolicyScalarFieldEnum | DeploymentAccessPolicyScalarFieldEnum[]
+  }
+
+  /**
+   * DeploymentAccessPolicy create
+   */
+  export type DeploymentAccessPolicyCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DeploymentAccessPolicy
+     */
+    select?: DeploymentAccessPolicySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DeploymentAccessPolicy
+     */
+    omit?: DeploymentAccessPolicyOmit<ExtArgs> | null
+    /**
+     * The data needed to create a DeploymentAccessPolicy.
+     */
+    data: XOR<DeploymentAccessPolicyCreateInput, DeploymentAccessPolicyUncheckedCreateInput>
+  }
+
+  /**
+   * DeploymentAccessPolicy createMany
+   */
+  export type DeploymentAccessPolicyCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many DeploymentAccessPolicies.
+     */
+    data: DeploymentAccessPolicyCreateManyInput | DeploymentAccessPolicyCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * DeploymentAccessPolicy createManyAndReturn
+   */
+  export type DeploymentAccessPolicyCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DeploymentAccessPolicy
+     */
+    select?: DeploymentAccessPolicySelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the DeploymentAccessPolicy
+     */
+    omit?: DeploymentAccessPolicyOmit<ExtArgs> | null
+    /**
+     * The data used to create many DeploymentAccessPolicies.
+     */
+    data: DeploymentAccessPolicyCreateManyInput | DeploymentAccessPolicyCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * DeploymentAccessPolicy update
+   */
+  export type DeploymentAccessPolicyUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DeploymentAccessPolicy
+     */
+    select?: DeploymentAccessPolicySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DeploymentAccessPolicy
+     */
+    omit?: DeploymentAccessPolicyOmit<ExtArgs> | null
+    /**
+     * The data needed to update a DeploymentAccessPolicy.
+     */
+    data: XOR<DeploymentAccessPolicyUpdateInput, DeploymentAccessPolicyUncheckedUpdateInput>
+    /**
+     * Choose, which DeploymentAccessPolicy to update.
+     */
+    where: DeploymentAccessPolicyWhereUniqueInput
+  }
+
+  /**
+   * DeploymentAccessPolicy updateMany
+   */
+  export type DeploymentAccessPolicyUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update DeploymentAccessPolicies.
+     */
+    data: XOR<DeploymentAccessPolicyUpdateManyMutationInput, DeploymentAccessPolicyUncheckedUpdateManyInput>
+    /**
+     * Filter which DeploymentAccessPolicies to update
+     */
+    where?: DeploymentAccessPolicyWhereInput
+    /**
+     * Limit how many DeploymentAccessPolicies to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * DeploymentAccessPolicy updateManyAndReturn
+   */
+  export type DeploymentAccessPolicyUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DeploymentAccessPolicy
+     */
+    select?: DeploymentAccessPolicySelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the DeploymentAccessPolicy
+     */
+    omit?: DeploymentAccessPolicyOmit<ExtArgs> | null
+    /**
+     * The data used to update DeploymentAccessPolicies.
+     */
+    data: XOR<DeploymentAccessPolicyUpdateManyMutationInput, DeploymentAccessPolicyUncheckedUpdateManyInput>
+    /**
+     * Filter which DeploymentAccessPolicies to update
+     */
+    where?: DeploymentAccessPolicyWhereInput
+    /**
+     * Limit how many DeploymentAccessPolicies to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * DeploymentAccessPolicy upsert
+   */
+  export type DeploymentAccessPolicyUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DeploymentAccessPolicy
+     */
+    select?: DeploymentAccessPolicySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DeploymentAccessPolicy
+     */
+    omit?: DeploymentAccessPolicyOmit<ExtArgs> | null
+    /**
+     * The filter to search for the DeploymentAccessPolicy to update in case it exists.
+     */
+    where: DeploymentAccessPolicyWhereUniqueInput
+    /**
+     * In case the DeploymentAccessPolicy found by the `where` argument doesn't exist, create a new DeploymentAccessPolicy with this data.
+     */
+    create: XOR<DeploymentAccessPolicyCreateInput, DeploymentAccessPolicyUncheckedCreateInput>
+    /**
+     * In case the DeploymentAccessPolicy was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<DeploymentAccessPolicyUpdateInput, DeploymentAccessPolicyUncheckedUpdateInput>
+  }
+
+  /**
+   * DeploymentAccessPolicy delete
+   */
+  export type DeploymentAccessPolicyDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DeploymentAccessPolicy
+     */
+    select?: DeploymentAccessPolicySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DeploymentAccessPolicy
+     */
+    omit?: DeploymentAccessPolicyOmit<ExtArgs> | null
+    /**
+     * Filter which DeploymentAccessPolicy to delete.
+     */
+    where: DeploymentAccessPolicyWhereUniqueInput
+  }
+
+  /**
+   * DeploymentAccessPolicy deleteMany
+   */
+  export type DeploymentAccessPolicyDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which DeploymentAccessPolicies to delete
+     */
+    where?: DeploymentAccessPolicyWhereInput
+    /**
+     * Limit how many DeploymentAccessPolicies to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * DeploymentAccessPolicy without action
+   */
+  export type DeploymentAccessPolicyDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DeploymentAccessPolicy
+     */
+    select?: DeploymentAccessPolicySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DeploymentAccessPolicy
+     */
+    omit?: DeploymentAccessPolicyOmit<ExtArgs> | null
+  }
+
+
+  /**
+   * Model DeploymentAccessExchangeTicket
+   */
+
+  export type AggregateDeploymentAccessExchangeTicket = {
+    _count: DeploymentAccessExchangeTicketCountAggregateOutputType | null
+    _avg: DeploymentAccessExchangeTicketAvgAggregateOutputType | null
+    _sum: DeploymentAccessExchangeTicketSumAggregateOutputType | null
+    _min: DeploymentAccessExchangeTicketMinAggregateOutputType | null
+    _max: DeploymentAccessExchangeTicketMaxAggregateOutputType | null
+  }
+
+  export type DeploymentAccessExchangeTicketAvgAggregateOutputType = {
+    policyVersion: number | null
+  }
+
+  export type DeploymentAccessExchangeTicketSumAggregateOutputType = {
+    policyVersion: number | null
+  }
+
+  export type DeploymentAccessExchangeTicketMinAggregateOutputType = {
+    id: string | null
+    deploymentId: string | null
+    userId: string | null
+    policyVersion: number | null
+    policyRevision: string | null
+    tokenHash: string | null
+    expiresAt: Date | null
+    consumedAt: Date | null
+    createdAt: Date | null
+  }
+
+  export type DeploymentAccessExchangeTicketMaxAggregateOutputType = {
+    id: string | null
+    deploymentId: string | null
+    userId: string | null
+    policyVersion: number | null
+    policyRevision: string | null
+    tokenHash: string | null
+    expiresAt: Date | null
+    consumedAt: Date | null
+    createdAt: Date | null
+  }
+
+  export type DeploymentAccessExchangeTicketCountAggregateOutputType = {
+    id: number
+    deploymentId: number
+    userId: number
+    policyVersion: number
+    policyRevision: number
+    tokenHash: number
+    expiresAt: number
+    consumedAt: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type DeploymentAccessExchangeTicketAvgAggregateInputType = {
+    policyVersion?: true
+  }
+
+  export type DeploymentAccessExchangeTicketSumAggregateInputType = {
+    policyVersion?: true
+  }
+
+  export type DeploymentAccessExchangeTicketMinAggregateInputType = {
+    id?: true
+    deploymentId?: true
+    userId?: true
+    policyVersion?: true
+    policyRevision?: true
+    tokenHash?: true
+    expiresAt?: true
+    consumedAt?: true
+    createdAt?: true
+  }
+
+  export type DeploymentAccessExchangeTicketMaxAggregateInputType = {
+    id?: true
+    deploymentId?: true
+    userId?: true
+    policyVersion?: true
+    policyRevision?: true
+    tokenHash?: true
+    expiresAt?: true
+    consumedAt?: true
+    createdAt?: true
+  }
+
+  export type DeploymentAccessExchangeTicketCountAggregateInputType = {
+    id?: true
+    deploymentId?: true
+    userId?: true
+    policyVersion?: true
+    policyRevision?: true
+    tokenHash?: true
+    expiresAt?: true
+    consumedAt?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type DeploymentAccessExchangeTicketAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which DeploymentAccessExchangeTicket to aggregate.
+     */
+    where?: DeploymentAccessExchangeTicketWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DeploymentAccessExchangeTickets to fetch.
+     */
+    orderBy?: DeploymentAccessExchangeTicketOrderByWithRelationInput | DeploymentAccessExchangeTicketOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: DeploymentAccessExchangeTicketWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DeploymentAccessExchangeTickets from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DeploymentAccessExchangeTickets.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned DeploymentAccessExchangeTickets
+    **/
+    _count?: true | DeploymentAccessExchangeTicketCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: DeploymentAccessExchangeTicketAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: DeploymentAccessExchangeTicketSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: DeploymentAccessExchangeTicketMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: DeploymentAccessExchangeTicketMaxAggregateInputType
+  }
+
+  export type GetDeploymentAccessExchangeTicketAggregateType<T extends DeploymentAccessExchangeTicketAggregateArgs> = {
+        [P in keyof T & keyof AggregateDeploymentAccessExchangeTicket]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateDeploymentAccessExchangeTicket[P]>
+      : GetScalarType<T[P], AggregateDeploymentAccessExchangeTicket[P]>
+  }
+
+
+
+
+  export type DeploymentAccessExchangeTicketGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: DeploymentAccessExchangeTicketWhereInput
+    orderBy?: DeploymentAccessExchangeTicketOrderByWithAggregationInput | DeploymentAccessExchangeTicketOrderByWithAggregationInput[]
+    by: DeploymentAccessExchangeTicketScalarFieldEnum[] | DeploymentAccessExchangeTicketScalarFieldEnum
+    having?: DeploymentAccessExchangeTicketScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: DeploymentAccessExchangeTicketCountAggregateInputType | true
+    _avg?: DeploymentAccessExchangeTicketAvgAggregateInputType
+    _sum?: DeploymentAccessExchangeTicketSumAggregateInputType
+    _min?: DeploymentAccessExchangeTicketMinAggregateInputType
+    _max?: DeploymentAccessExchangeTicketMaxAggregateInputType
+  }
+
+  export type DeploymentAccessExchangeTicketGroupByOutputType = {
+    id: string
+    deploymentId: string
+    userId: string
+    policyVersion: number
+    policyRevision: string
+    tokenHash: string
+    expiresAt: Date
+    consumedAt: Date | null
+    createdAt: Date
+    _count: DeploymentAccessExchangeTicketCountAggregateOutputType | null
+    _avg: DeploymentAccessExchangeTicketAvgAggregateOutputType | null
+    _sum: DeploymentAccessExchangeTicketSumAggregateOutputType | null
+    _min: DeploymentAccessExchangeTicketMinAggregateOutputType | null
+    _max: DeploymentAccessExchangeTicketMaxAggregateOutputType | null
+  }
+
+  type GetDeploymentAccessExchangeTicketGroupByPayload<T extends DeploymentAccessExchangeTicketGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<DeploymentAccessExchangeTicketGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof DeploymentAccessExchangeTicketGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], DeploymentAccessExchangeTicketGroupByOutputType[P]>
+            : GetScalarType<T[P], DeploymentAccessExchangeTicketGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type DeploymentAccessExchangeTicketSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    deploymentId?: boolean
+    userId?: boolean
+    policyVersion?: boolean
+    policyRevision?: boolean
+    tokenHash?: boolean
+    expiresAt?: boolean
+    consumedAt?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["deploymentAccessExchangeTicket"]>
+
+  export type DeploymentAccessExchangeTicketSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    deploymentId?: boolean
+    userId?: boolean
+    policyVersion?: boolean
+    policyRevision?: boolean
+    tokenHash?: boolean
+    expiresAt?: boolean
+    consumedAt?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["deploymentAccessExchangeTicket"]>
+
+  export type DeploymentAccessExchangeTicketSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    deploymentId?: boolean
+    userId?: boolean
+    policyVersion?: boolean
+    policyRevision?: boolean
+    tokenHash?: boolean
+    expiresAt?: boolean
+    consumedAt?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["deploymentAccessExchangeTicket"]>
+
+  export type DeploymentAccessExchangeTicketSelectScalar = {
+    id?: boolean
+    deploymentId?: boolean
+    userId?: boolean
+    policyVersion?: boolean
+    policyRevision?: boolean
+    tokenHash?: boolean
+    expiresAt?: boolean
+    consumedAt?: boolean
+    createdAt?: boolean
+  }
+
+  export type DeploymentAccessExchangeTicketOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "deploymentId" | "userId" | "policyVersion" | "policyRevision" | "tokenHash" | "expiresAt" | "consumedAt" | "createdAt", ExtArgs["result"]["deploymentAccessExchangeTicket"]>
+
+  export type $DeploymentAccessExchangeTicketPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "DeploymentAccessExchangeTicket"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      deploymentId: string
+      userId: string
+      policyVersion: number
+      policyRevision: string
+      tokenHash: string
+      expiresAt: Date
+      consumedAt: Date | null
+      createdAt: Date
+    }, ExtArgs["result"]["deploymentAccessExchangeTicket"]>
+    composites: {}
+  }
+
+  type DeploymentAccessExchangeTicketGetPayload<S extends boolean | null | undefined | DeploymentAccessExchangeTicketDefaultArgs> = $Result.GetResult<Prisma.$DeploymentAccessExchangeTicketPayload, S>
+
+  type DeploymentAccessExchangeTicketCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<DeploymentAccessExchangeTicketFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: DeploymentAccessExchangeTicketCountAggregateInputType | true
+    }
+
+  export interface DeploymentAccessExchangeTicketDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['DeploymentAccessExchangeTicket'], meta: { name: 'DeploymentAccessExchangeTicket' } }
+    /**
+     * Find zero or one DeploymentAccessExchangeTicket that matches the filter.
+     * @param {DeploymentAccessExchangeTicketFindUniqueArgs} args - Arguments to find a DeploymentAccessExchangeTicket
+     * @example
+     * // Get one DeploymentAccessExchangeTicket
+     * const deploymentAccessExchangeTicket = await prisma.deploymentAccessExchangeTicket.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends DeploymentAccessExchangeTicketFindUniqueArgs>(args: SelectSubset<T, DeploymentAccessExchangeTicketFindUniqueArgs<ExtArgs>>): Prisma__DeploymentAccessExchangeTicketClient<$Result.GetResult<Prisma.$DeploymentAccessExchangeTicketPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one DeploymentAccessExchangeTicket that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {DeploymentAccessExchangeTicketFindUniqueOrThrowArgs} args - Arguments to find a DeploymentAccessExchangeTicket
+     * @example
+     * // Get one DeploymentAccessExchangeTicket
+     * const deploymentAccessExchangeTicket = await prisma.deploymentAccessExchangeTicket.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends DeploymentAccessExchangeTicketFindUniqueOrThrowArgs>(args: SelectSubset<T, DeploymentAccessExchangeTicketFindUniqueOrThrowArgs<ExtArgs>>): Prisma__DeploymentAccessExchangeTicketClient<$Result.GetResult<Prisma.$DeploymentAccessExchangeTicketPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first DeploymentAccessExchangeTicket that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DeploymentAccessExchangeTicketFindFirstArgs} args - Arguments to find a DeploymentAccessExchangeTicket
+     * @example
+     * // Get one DeploymentAccessExchangeTicket
+     * const deploymentAccessExchangeTicket = await prisma.deploymentAccessExchangeTicket.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends DeploymentAccessExchangeTicketFindFirstArgs>(args?: SelectSubset<T, DeploymentAccessExchangeTicketFindFirstArgs<ExtArgs>>): Prisma__DeploymentAccessExchangeTicketClient<$Result.GetResult<Prisma.$DeploymentAccessExchangeTicketPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first DeploymentAccessExchangeTicket that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DeploymentAccessExchangeTicketFindFirstOrThrowArgs} args - Arguments to find a DeploymentAccessExchangeTicket
+     * @example
+     * // Get one DeploymentAccessExchangeTicket
+     * const deploymentAccessExchangeTicket = await prisma.deploymentAccessExchangeTicket.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends DeploymentAccessExchangeTicketFindFirstOrThrowArgs>(args?: SelectSubset<T, DeploymentAccessExchangeTicketFindFirstOrThrowArgs<ExtArgs>>): Prisma__DeploymentAccessExchangeTicketClient<$Result.GetResult<Prisma.$DeploymentAccessExchangeTicketPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more DeploymentAccessExchangeTickets that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DeploymentAccessExchangeTicketFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all DeploymentAccessExchangeTickets
+     * const deploymentAccessExchangeTickets = await prisma.deploymentAccessExchangeTicket.findMany()
+     * 
+     * // Get first 10 DeploymentAccessExchangeTickets
+     * const deploymentAccessExchangeTickets = await prisma.deploymentAccessExchangeTicket.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const deploymentAccessExchangeTicketWithIdOnly = await prisma.deploymentAccessExchangeTicket.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends DeploymentAccessExchangeTicketFindManyArgs>(args?: SelectSubset<T, DeploymentAccessExchangeTicketFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DeploymentAccessExchangeTicketPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a DeploymentAccessExchangeTicket.
+     * @param {DeploymentAccessExchangeTicketCreateArgs} args - Arguments to create a DeploymentAccessExchangeTicket.
+     * @example
+     * // Create one DeploymentAccessExchangeTicket
+     * const DeploymentAccessExchangeTicket = await prisma.deploymentAccessExchangeTicket.create({
+     *   data: {
+     *     // ... data to create a DeploymentAccessExchangeTicket
+     *   }
+     * })
+     * 
+     */
+    create<T extends DeploymentAccessExchangeTicketCreateArgs>(args: SelectSubset<T, DeploymentAccessExchangeTicketCreateArgs<ExtArgs>>): Prisma__DeploymentAccessExchangeTicketClient<$Result.GetResult<Prisma.$DeploymentAccessExchangeTicketPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many DeploymentAccessExchangeTickets.
+     * @param {DeploymentAccessExchangeTicketCreateManyArgs} args - Arguments to create many DeploymentAccessExchangeTickets.
+     * @example
+     * // Create many DeploymentAccessExchangeTickets
+     * const deploymentAccessExchangeTicket = await prisma.deploymentAccessExchangeTicket.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends DeploymentAccessExchangeTicketCreateManyArgs>(args?: SelectSubset<T, DeploymentAccessExchangeTicketCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many DeploymentAccessExchangeTickets and returns the data saved in the database.
+     * @param {DeploymentAccessExchangeTicketCreateManyAndReturnArgs} args - Arguments to create many DeploymentAccessExchangeTickets.
+     * @example
+     * // Create many DeploymentAccessExchangeTickets
+     * const deploymentAccessExchangeTicket = await prisma.deploymentAccessExchangeTicket.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many DeploymentAccessExchangeTickets and only return the `id`
+     * const deploymentAccessExchangeTicketWithIdOnly = await prisma.deploymentAccessExchangeTicket.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends DeploymentAccessExchangeTicketCreateManyAndReturnArgs>(args?: SelectSubset<T, DeploymentAccessExchangeTicketCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DeploymentAccessExchangeTicketPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a DeploymentAccessExchangeTicket.
+     * @param {DeploymentAccessExchangeTicketDeleteArgs} args - Arguments to delete one DeploymentAccessExchangeTicket.
+     * @example
+     * // Delete one DeploymentAccessExchangeTicket
+     * const DeploymentAccessExchangeTicket = await prisma.deploymentAccessExchangeTicket.delete({
+     *   where: {
+     *     // ... filter to delete one DeploymentAccessExchangeTicket
+     *   }
+     * })
+     * 
+     */
+    delete<T extends DeploymentAccessExchangeTicketDeleteArgs>(args: SelectSubset<T, DeploymentAccessExchangeTicketDeleteArgs<ExtArgs>>): Prisma__DeploymentAccessExchangeTicketClient<$Result.GetResult<Prisma.$DeploymentAccessExchangeTicketPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one DeploymentAccessExchangeTicket.
+     * @param {DeploymentAccessExchangeTicketUpdateArgs} args - Arguments to update one DeploymentAccessExchangeTicket.
+     * @example
+     * // Update one DeploymentAccessExchangeTicket
+     * const deploymentAccessExchangeTicket = await prisma.deploymentAccessExchangeTicket.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends DeploymentAccessExchangeTicketUpdateArgs>(args: SelectSubset<T, DeploymentAccessExchangeTicketUpdateArgs<ExtArgs>>): Prisma__DeploymentAccessExchangeTicketClient<$Result.GetResult<Prisma.$DeploymentAccessExchangeTicketPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more DeploymentAccessExchangeTickets.
+     * @param {DeploymentAccessExchangeTicketDeleteManyArgs} args - Arguments to filter DeploymentAccessExchangeTickets to delete.
+     * @example
+     * // Delete a few DeploymentAccessExchangeTickets
+     * const { count } = await prisma.deploymentAccessExchangeTicket.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends DeploymentAccessExchangeTicketDeleteManyArgs>(args?: SelectSubset<T, DeploymentAccessExchangeTicketDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more DeploymentAccessExchangeTickets.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DeploymentAccessExchangeTicketUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many DeploymentAccessExchangeTickets
+     * const deploymentAccessExchangeTicket = await prisma.deploymentAccessExchangeTicket.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends DeploymentAccessExchangeTicketUpdateManyArgs>(args: SelectSubset<T, DeploymentAccessExchangeTicketUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more DeploymentAccessExchangeTickets and returns the data updated in the database.
+     * @param {DeploymentAccessExchangeTicketUpdateManyAndReturnArgs} args - Arguments to update many DeploymentAccessExchangeTickets.
+     * @example
+     * // Update many DeploymentAccessExchangeTickets
+     * const deploymentAccessExchangeTicket = await prisma.deploymentAccessExchangeTicket.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more DeploymentAccessExchangeTickets and only return the `id`
+     * const deploymentAccessExchangeTicketWithIdOnly = await prisma.deploymentAccessExchangeTicket.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends DeploymentAccessExchangeTicketUpdateManyAndReturnArgs>(args: SelectSubset<T, DeploymentAccessExchangeTicketUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DeploymentAccessExchangeTicketPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one DeploymentAccessExchangeTicket.
+     * @param {DeploymentAccessExchangeTicketUpsertArgs} args - Arguments to update or create a DeploymentAccessExchangeTicket.
+     * @example
+     * // Update or create a DeploymentAccessExchangeTicket
+     * const deploymentAccessExchangeTicket = await prisma.deploymentAccessExchangeTicket.upsert({
+     *   create: {
+     *     // ... data to create a DeploymentAccessExchangeTicket
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the DeploymentAccessExchangeTicket we want to update
+     *   }
+     * })
+     */
+    upsert<T extends DeploymentAccessExchangeTicketUpsertArgs>(args: SelectSubset<T, DeploymentAccessExchangeTicketUpsertArgs<ExtArgs>>): Prisma__DeploymentAccessExchangeTicketClient<$Result.GetResult<Prisma.$DeploymentAccessExchangeTicketPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of DeploymentAccessExchangeTickets.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DeploymentAccessExchangeTicketCountArgs} args - Arguments to filter DeploymentAccessExchangeTickets to count.
+     * @example
+     * // Count the number of DeploymentAccessExchangeTickets
+     * const count = await prisma.deploymentAccessExchangeTicket.count({
+     *   where: {
+     *     // ... the filter for the DeploymentAccessExchangeTickets we want to count
+     *   }
+     * })
+    **/
+    count<T extends DeploymentAccessExchangeTicketCountArgs>(
+      args?: Subset<T, DeploymentAccessExchangeTicketCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], DeploymentAccessExchangeTicketCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a DeploymentAccessExchangeTicket.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DeploymentAccessExchangeTicketAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends DeploymentAccessExchangeTicketAggregateArgs>(args: Subset<T, DeploymentAccessExchangeTicketAggregateArgs>): Prisma.PrismaPromise<GetDeploymentAccessExchangeTicketAggregateType<T>>
+
+    /**
+     * Group by DeploymentAccessExchangeTicket.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DeploymentAccessExchangeTicketGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends DeploymentAccessExchangeTicketGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: DeploymentAccessExchangeTicketGroupByArgs['orderBy'] }
+        : { orderBy?: DeploymentAccessExchangeTicketGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, DeploymentAccessExchangeTicketGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetDeploymentAccessExchangeTicketGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the DeploymentAccessExchangeTicket model
+   */
+  readonly fields: DeploymentAccessExchangeTicketFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for DeploymentAccessExchangeTicket.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__DeploymentAccessExchangeTicketClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the DeploymentAccessExchangeTicket model
+   */
+  interface DeploymentAccessExchangeTicketFieldRefs {
+    readonly id: FieldRef<"DeploymentAccessExchangeTicket", 'String'>
+    readonly deploymentId: FieldRef<"DeploymentAccessExchangeTicket", 'String'>
+    readonly userId: FieldRef<"DeploymentAccessExchangeTicket", 'String'>
+    readonly policyVersion: FieldRef<"DeploymentAccessExchangeTicket", 'Int'>
+    readonly policyRevision: FieldRef<"DeploymentAccessExchangeTicket", 'String'>
+    readonly tokenHash: FieldRef<"DeploymentAccessExchangeTicket", 'String'>
+    readonly expiresAt: FieldRef<"DeploymentAccessExchangeTicket", 'DateTime'>
+    readonly consumedAt: FieldRef<"DeploymentAccessExchangeTicket", 'DateTime'>
+    readonly createdAt: FieldRef<"DeploymentAccessExchangeTicket", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * DeploymentAccessExchangeTicket findUnique
+   */
+  export type DeploymentAccessExchangeTicketFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DeploymentAccessExchangeTicket
+     */
+    select?: DeploymentAccessExchangeTicketSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DeploymentAccessExchangeTicket
+     */
+    omit?: DeploymentAccessExchangeTicketOmit<ExtArgs> | null
+    /**
+     * Filter, which DeploymentAccessExchangeTicket to fetch.
+     */
+    where: DeploymentAccessExchangeTicketWhereUniqueInput
+  }
+
+  /**
+   * DeploymentAccessExchangeTicket findUniqueOrThrow
+   */
+  export type DeploymentAccessExchangeTicketFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DeploymentAccessExchangeTicket
+     */
+    select?: DeploymentAccessExchangeTicketSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DeploymentAccessExchangeTicket
+     */
+    omit?: DeploymentAccessExchangeTicketOmit<ExtArgs> | null
+    /**
+     * Filter, which DeploymentAccessExchangeTicket to fetch.
+     */
+    where: DeploymentAccessExchangeTicketWhereUniqueInput
+  }
+
+  /**
+   * DeploymentAccessExchangeTicket findFirst
+   */
+  export type DeploymentAccessExchangeTicketFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DeploymentAccessExchangeTicket
+     */
+    select?: DeploymentAccessExchangeTicketSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DeploymentAccessExchangeTicket
+     */
+    omit?: DeploymentAccessExchangeTicketOmit<ExtArgs> | null
+    /**
+     * Filter, which DeploymentAccessExchangeTicket to fetch.
+     */
+    where?: DeploymentAccessExchangeTicketWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DeploymentAccessExchangeTickets to fetch.
+     */
+    orderBy?: DeploymentAccessExchangeTicketOrderByWithRelationInput | DeploymentAccessExchangeTicketOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for DeploymentAccessExchangeTickets.
+     */
+    cursor?: DeploymentAccessExchangeTicketWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DeploymentAccessExchangeTickets from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DeploymentAccessExchangeTickets.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of DeploymentAccessExchangeTickets.
+     */
+    distinct?: DeploymentAccessExchangeTicketScalarFieldEnum | DeploymentAccessExchangeTicketScalarFieldEnum[]
+  }
+
+  /**
+   * DeploymentAccessExchangeTicket findFirstOrThrow
+   */
+  export type DeploymentAccessExchangeTicketFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DeploymentAccessExchangeTicket
+     */
+    select?: DeploymentAccessExchangeTicketSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DeploymentAccessExchangeTicket
+     */
+    omit?: DeploymentAccessExchangeTicketOmit<ExtArgs> | null
+    /**
+     * Filter, which DeploymentAccessExchangeTicket to fetch.
+     */
+    where?: DeploymentAccessExchangeTicketWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DeploymentAccessExchangeTickets to fetch.
+     */
+    orderBy?: DeploymentAccessExchangeTicketOrderByWithRelationInput | DeploymentAccessExchangeTicketOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for DeploymentAccessExchangeTickets.
+     */
+    cursor?: DeploymentAccessExchangeTicketWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DeploymentAccessExchangeTickets from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DeploymentAccessExchangeTickets.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of DeploymentAccessExchangeTickets.
+     */
+    distinct?: DeploymentAccessExchangeTicketScalarFieldEnum | DeploymentAccessExchangeTicketScalarFieldEnum[]
+  }
+
+  /**
+   * DeploymentAccessExchangeTicket findMany
+   */
+  export type DeploymentAccessExchangeTicketFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DeploymentAccessExchangeTicket
+     */
+    select?: DeploymentAccessExchangeTicketSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DeploymentAccessExchangeTicket
+     */
+    omit?: DeploymentAccessExchangeTicketOmit<ExtArgs> | null
+    /**
+     * Filter, which DeploymentAccessExchangeTickets to fetch.
+     */
+    where?: DeploymentAccessExchangeTicketWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DeploymentAccessExchangeTickets to fetch.
+     */
+    orderBy?: DeploymentAccessExchangeTicketOrderByWithRelationInput | DeploymentAccessExchangeTicketOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing DeploymentAccessExchangeTickets.
+     */
+    cursor?: DeploymentAccessExchangeTicketWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DeploymentAccessExchangeTickets from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DeploymentAccessExchangeTickets.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of DeploymentAccessExchangeTickets.
+     */
+    distinct?: DeploymentAccessExchangeTicketScalarFieldEnum | DeploymentAccessExchangeTicketScalarFieldEnum[]
+  }
+
+  /**
+   * DeploymentAccessExchangeTicket create
+   */
+  export type DeploymentAccessExchangeTicketCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DeploymentAccessExchangeTicket
+     */
+    select?: DeploymentAccessExchangeTicketSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DeploymentAccessExchangeTicket
+     */
+    omit?: DeploymentAccessExchangeTicketOmit<ExtArgs> | null
+    /**
+     * The data needed to create a DeploymentAccessExchangeTicket.
+     */
+    data: XOR<DeploymentAccessExchangeTicketCreateInput, DeploymentAccessExchangeTicketUncheckedCreateInput>
+  }
+
+  /**
+   * DeploymentAccessExchangeTicket createMany
+   */
+  export type DeploymentAccessExchangeTicketCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many DeploymentAccessExchangeTickets.
+     */
+    data: DeploymentAccessExchangeTicketCreateManyInput | DeploymentAccessExchangeTicketCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * DeploymentAccessExchangeTicket createManyAndReturn
+   */
+  export type DeploymentAccessExchangeTicketCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DeploymentAccessExchangeTicket
+     */
+    select?: DeploymentAccessExchangeTicketSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the DeploymentAccessExchangeTicket
+     */
+    omit?: DeploymentAccessExchangeTicketOmit<ExtArgs> | null
+    /**
+     * The data used to create many DeploymentAccessExchangeTickets.
+     */
+    data: DeploymentAccessExchangeTicketCreateManyInput | DeploymentAccessExchangeTicketCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * DeploymentAccessExchangeTicket update
+   */
+  export type DeploymentAccessExchangeTicketUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DeploymentAccessExchangeTicket
+     */
+    select?: DeploymentAccessExchangeTicketSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DeploymentAccessExchangeTicket
+     */
+    omit?: DeploymentAccessExchangeTicketOmit<ExtArgs> | null
+    /**
+     * The data needed to update a DeploymentAccessExchangeTicket.
+     */
+    data: XOR<DeploymentAccessExchangeTicketUpdateInput, DeploymentAccessExchangeTicketUncheckedUpdateInput>
+    /**
+     * Choose, which DeploymentAccessExchangeTicket to update.
+     */
+    where: DeploymentAccessExchangeTicketWhereUniqueInput
+  }
+
+  /**
+   * DeploymentAccessExchangeTicket updateMany
+   */
+  export type DeploymentAccessExchangeTicketUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update DeploymentAccessExchangeTickets.
+     */
+    data: XOR<DeploymentAccessExchangeTicketUpdateManyMutationInput, DeploymentAccessExchangeTicketUncheckedUpdateManyInput>
+    /**
+     * Filter which DeploymentAccessExchangeTickets to update
+     */
+    where?: DeploymentAccessExchangeTicketWhereInput
+    /**
+     * Limit how many DeploymentAccessExchangeTickets to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * DeploymentAccessExchangeTicket updateManyAndReturn
+   */
+  export type DeploymentAccessExchangeTicketUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DeploymentAccessExchangeTicket
+     */
+    select?: DeploymentAccessExchangeTicketSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the DeploymentAccessExchangeTicket
+     */
+    omit?: DeploymentAccessExchangeTicketOmit<ExtArgs> | null
+    /**
+     * The data used to update DeploymentAccessExchangeTickets.
+     */
+    data: XOR<DeploymentAccessExchangeTicketUpdateManyMutationInput, DeploymentAccessExchangeTicketUncheckedUpdateManyInput>
+    /**
+     * Filter which DeploymentAccessExchangeTickets to update
+     */
+    where?: DeploymentAccessExchangeTicketWhereInput
+    /**
+     * Limit how many DeploymentAccessExchangeTickets to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * DeploymentAccessExchangeTicket upsert
+   */
+  export type DeploymentAccessExchangeTicketUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DeploymentAccessExchangeTicket
+     */
+    select?: DeploymentAccessExchangeTicketSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DeploymentAccessExchangeTicket
+     */
+    omit?: DeploymentAccessExchangeTicketOmit<ExtArgs> | null
+    /**
+     * The filter to search for the DeploymentAccessExchangeTicket to update in case it exists.
+     */
+    where: DeploymentAccessExchangeTicketWhereUniqueInput
+    /**
+     * In case the DeploymentAccessExchangeTicket found by the `where` argument doesn't exist, create a new DeploymentAccessExchangeTicket with this data.
+     */
+    create: XOR<DeploymentAccessExchangeTicketCreateInput, DeploymentAccessExchangeTicketUncheckedCreateInput>
+    /**
+     * In case the DeploymentAccessExchangeTicket was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<DeploymentAccessExchangeTicketUpdateInput, DeploymentAccessExchangeTicketUncheckedUpdateInput>
+  }
+
+  /**
+   * DeploymentAccessExchangeTicket delete
+   */
+  export type DeploymentAccessExchangeTicketDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DeploymentAccessExchangeTicket
+     */
+    select?: DeploymentAccessExchangeTicketSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DeploymentAccessExchangeTicket
+     */
+    omit?: DeploymentAccessExchangeTicketOmit<ExtArgs> | null
+    /**
+     * Filter which DeploymentAccessExchangeTicket to delete.
+     */
+    where: DeploymentAccessExchangeTicketWhereUniqueInput
+  }
+
+  /**
+   * DeploymentAccessExchangeTicket deleteMany
+   */
+  export type DeploymentAccessExchangeTicketDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which DeploymentAccessExchangeTickets to delete
+     */
+    where?: DeploymentAccessExchangeTicketWhereInput
+    /**
+     * Limit how many DeploymentAccessExchangeTickets to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * DeploymentAccessExchangeTicket without action
+   */
+  export type DeploymentAccessExchangeTicketDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DeploymentAccessExchangeTicket
+     */
+    select?: DeploymentAccessExchangeTicketSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DeploymentAccessExchangeTicket
+     */
+    omit?: DeploymentAccessExchangeTicketOmit<ExtArgs> | null
   }
 
 
@@ -187704,6 +190122,7 @@ export namespace Prisma {
     parentDeploymentId: 'parentDeploymentId',
     lastMeteredAt: 'lastMeteredAt',
     machineSize: 'machineSize',
+    accessPolicyVersion: 'accessPolicyVersion',
     startedAt: 'startedAt',
     finishedAt: 'finishedAt',
     canceledAt: 'canceledAt',
@@ -187735,6 +190154,7 @@ export namespace Prisma {
     storeGeneration: 'storeGeneration',
     configDigest: 'configDigest',
     dbMigrationPoint: 'dbMigrationPoint',
+    accessPolicyVersion: 'accessPolicyVersion',
     createdAt: 'createdAt'
   };
 
@@ -187766,6 +190186,36 @@ export namespace Prisma {
   };
 
   export type RollbackIdempotencyRequestScalarFieldEnum = (typeof RollbackIdempotencyRequestScalarFieldEnum)[keyof typeof RollbackIdempotencyRequestScalarFieldEnum]
+
+
+  export const DeploymentAccessPolicyScalarFieldEnum: {
+    id: 'id',
+    projectId: 'projectId',
+    environment: 'environment',
+    version: 'version',
+    mode: 'mode',
+    revision: 'revision',
+    passwordHash: 'passwordHash',
+    createdByUserId: 'createdByUserId',
+    createdAt: 'createdAt'
+  };
+
+  export type DeploymentAccessPolicyScalarFieldEnum = (typeof DeploymentAccessPolicyScalarFieldEnum)[keyof typeof DeploymentAccessPolicyScalarFieldEnum]
+
+
+  export const DeploymentAccessExchangeTicketScalarFieldEnum: {
+    id: 'id',
+    deploymentId: 'deploymentId',
+    userId: 'userId',
+    policyVersion: 'policyVersion',
+    policyRevision: 'policyRevision',
+    tokenHash: 'tokenHash',
+    expiresAt: 'expiresAt',
+    consumedAt: 'consumedAt',
+    createdAt: 'createdAt'
+  };
+
+  export type DeploymentAccessExchangeTicketScalarFieldEnum = (typeof DeploymentAccessExchangeTicketScalarFieldEnum)[keyof typeof DeploymentAccessExchangeTicketScalarFieldEnum]
 
 
   export const RateCardScalarFieldEnum: {
@@ -193502,6 +195952,7 @@ export namespace Prisma {
     parentDeploymentId?: StringNullableFilter<"Deployment"> | string | null
     lastMeteredAt?: DateTimeNullableFilter<"Deployment"> | Date | string | null
     machineSize?: StringFilter<"Deployment"> | string
+    accessPolicyVersion?: IntFilter<"Deployment"> | number
     startedAt?: DateTimeNullableFilter<"Deployment"> | Date | string | null
     finishedAt?: DateTimeNullableFilter<"Deployment"> | Date | string | null
     canceledAt?: DateTimeNullableFilter<"Deployment"> | Date | string | null
@@ -193534,6 +195985,7 @@ export namespace Prisma {
     parentDeploymentId?: SortOrderInput | SortOrder
     lastMeteredAt?: SortOrderInput | SortOrder
     machineSize?: SortOrder
+    accessPolicyVersion?: SortOrder
     startedAt?: SortOrderInput | SortOrder
     finishedAt?: SortOrderInput | SortOrder
     canceledAt?: SortOrderInput | SortOrder
@@ -193569,6 +196021,7 @@ export namespace Prisma {
     parentDeploymentId?: StringNullableFilter<"Deployment"> | string | null
     lastMeteredAt?: DateTimeNullableFilter<"Deployment"> | Date | string | null
     machineSize?: StringFilter<"Deployment"> | string
+    accessPolicyVersion?: IntFilter<"Deployment"> | number
     startedAt?: DateTimeNullableFilter<"Deployment"> | Date | string | null
     finishedAt?: DateTimeNullableFilter<"Deployment"> | Date | string | null
     canceledAt?: DateTimeNullableFilter<"Deployment"> | Date | string | null
@@ -193601,14 +196054,17 @@ export namespace Prisma {
     parentDeploymentId?: SortOrderInput | SortOrder
     lastMeteredAt?: SortOrderInput | SortOrder
     machineSize?: SortOrder
+    accessPolicyVersion?: SortOrder
     startedAt?: SortOrderInput | SortOrder
     finishedAt?: SortOrderInput | SortOrder
     canceledAt?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: DeploymentCountOrderByAggregateInput
+    _avg?: DeploymentAvgOrderByAggregateInput
     _max?: DeploymentMaxOrderByAggregateInput
     _min?: DeploymentMinOrderByAggregateInput
+    _sum?: DeploymentSumOrderByAggregateInput
   }
 
   export type DeploymentScalarWhereWithAggregatesInput = {
@@ -193637,6 +196093,7 @@ export namespace Prisma {
     parentDeploymentId?: StringNullableWithAggregatesFilter<"Deployment"> | string | null
     lastMeteredAt?: DateTimeNullableWithAggregatesFilter<"Deployment"> | Date | string | null
     machineSize?: StringWithAggregatesFilter<"Deployment"> | string
+    accessPolicyVersion?: IntWithAggregatesFilter<"Deployment"> | number
     startedAt?: DateTimeNullableWithAggregatesFilter<"Deployment"> | Date | string | null
     finishedAt?: DateTimeNullableWithAggregatesFilter<"Deployment"> | Date | string | null
     canceledAt?: DateTimeNullableWithAggregatesFilter<"Deployment"> | Date | string | null
@@ -193700,6 +196157,7 @@ export namespace Prisma {
     storeGeneration?: StringNullableFilter<"ReleaseManifest"> | string | null
     configDigest?: StringNullableFilter<"ReleaseManifest"> | string | null
     dbMigrationPoint?: StringNullableFilter<"ReleaseManifest"> | string | null
+    accessPolicyVersion?: IntFilter<"ReleaseManifest"> | number
     createdAt?: DateTimeFilter<"ReleaseManifest"> | Date | string
   }
 
@@ -193716,6 +196174,7 @@ export namespace Prisma {
     storeGeneration?: SortOrderInput | SortOrder
     configDigest?: SortOrderInput | SortOrder
     dbMigrationPoint?: SortOrderInput | SortOrder
+    accessPolicyVersion?: SortOrder
     createdAt?: SortOrder
   }
 
@@ -193736,6 +196195,7 @@ export namespace Prisma {
     storeGeneration?: StringNullableFilter<"ReleaseManifest"> | string | null
     configDigest?: StringNullableFilter<"ReleaseManifest"> | string | null
     dbMigrationPoint?: StringNullableFilter<"ReleaseManifest"> | string | null
+    accessPolicyVersion?: IntFilter<"ReleaseManifest"> | number
     createdAt?: DateTimeFilter<"ReleaseManifest"> | Date | string
   }, "id" | "projectId_environment_version">
 
@@ -193752,6 +196212,7 @@ export namespace Prisma {
     storeGeneration?: SortOrderInput | SortOrder
     configDigest?: SortOrderInput | SortOrder
     dbMigrationPoint?: SortOrderInput | SortOrder
+    accessPolicyVersion?: SortOrder
     createdAt?: SortOrder
     _count?: ReleaseManifestCountOrderByAggregateInput
     _avg?: ReleaseManifestAvgOrderByAggregateInput
@@ -193776,6 +196237,7 @@ export namespace Prisma {
     storeGeneration?: StringNullableWithAggregatesFilter<"ReleaseManifest"> | string | null
     configDigest?: StringNullableWithAggregatesFilter<"ReleaseManifest"> | string | null
     dbMigrationPoint?: StringNullableWithAggregatesFilter<"ReleaseManifest"> | string | null
+    accessPolicyVersion?: IntWithAggregatesFilter<"ReleaseManifest"> | number
     createdAt?: DateTimeWithAggregatesFilter<"ReleaseManifest"> | Date | string
   }
 
@@ -193915,6 +196377,155 @@ export namespace Prisma {
     completedAt?: DateTimeNullableWithAggregatesFilter<"RollbackIdempotencyRequest"> | Date | string | null
     createdAt?: DateTimeWithAggregatesFilter<"RollbackIdempotencyRequest"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"RollbackIdempotencyRequest"> | Date | string
+  }
+
+  export type DeploymentAccessPolicyWhereInput = {
+    AND?: DeploymentAccessPolicyWhereInput | DeploymentAccessPolicyWhereInput[]
+    OR?: DeploymentAccessPolicyWhereInput[]
+    NOT?: DeploymentAccessPolicyWhereInput | DeploymentAccessPolicyWhereInput[]
+    id?: StringFilter<"DeploymentAccessPolicy"> | string
+    projectId?: StringFilter<"DeploymentAccessPolicy"> | string
+    environment?: StringFilter<"DeploymentAccessPolicy"> | string
+    version?: IntFilter<"DeploymentAccessPolicy"> | number
+    mode?: StringFilter<"DeploymentAccessPolicy"> | string
+    revision?: StringFilter<"DeploymentAccessPolicy"> | string
+    passwordHash?: StringNullableFilter<"DeploymentAccessPolicy"> | string | null
+    createdByUserId?: StringNullableFilter<"DeploymentAccessPolicy"> | string | null
+    createdAt?: DateTimeFilter<"DeploymentAccessPolicy"> | Date | string
+  }
+
+  export type DeploymentAccessPolicyOrderByWithRelationInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    environment?: SortOrder
+    version?: SortOrder
+    mode?: SortOrder
+    revision?: SortOrder
+    passwordHash?: SortOrderInput | SortOrder
+    createdByUserId?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type DeploymentAccessPolicyWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    revision?: string
+    projectId_environment_version?: DeploymentAccessPolicyProjectIdEnvironmentVersionCompoundUniqueInput
+    AND?: DeploymentAccessPolicyWhereInput | DeploymentAccessPolicyWhereInput[]
+    OR?: DeploymentAccessPolicyWhereInput[]
+    NOT?: DeploymentAccessPolicyWhereInput | DeploymentAccessPolicyWhereInput[]
+    projectId?: StringFilter<"DeploymentAccessPolicy"> | string
+    environment?: StringFilter<"DeploymentAccessPolicy"> | string
+    version?: IntFilter<"DeploymentAccessPolicy"> | number
+    mode?: StringFilter<"DeploymentAccessPolicy"> | string
+    passwordHash?: StringNullableFilter<"DeploymentAccessPolicy"> | string | null
+    createdByUserId?: StringNullableFilter<"DeploymentAccessPolicy"> | string | null
+    createdAt?: DateTimeFilter<"DeploymentAccessPolicy"> | Date | string
+  }, "id" | "revision" | "projectId_environment_version">
+
+  export type DeploymentAccessPolicyOrderByWithAggregationInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    environment?: SortOrder
+    version?: SortOrder
+    mode?: SortOrder
+    revision?: SortOrder
+    passwordHash?: SortOrderInput | SortOrder
+    createdByUserId?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    _count?: DeploymentAccessPolicyCountOrderByAggregateInput
+    _avg?: DeploymentAccessPolicyAvgOrderByAggregateInput
+    _max?: DeploymentAccessPolicyMaxOrderByAggregateInput
+    _min?: DeploymentAccessPolicyMinOrderByAggregateInput
+    _sum?: DeploymentAccessPolicySumOrderByAggregateInput
+  }
+
+  export type DeploymentAccessPolicyScalarWhereWithAggregatesInput = {
+    AND?: DeploymentAccessPolicyScalarWhereWithAggregatesInput | DeploymentAccessPolicyScalarWhereWithAggregatesInput[]
+    OR?: DeploymentAccessPolicyScalarWhereWithAggregatesInput[]
+    NOT?: DeploymentAccessPolicyScalarWhereWithAggregatesInput | DeploymentAccessPolicyScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"DeploymentAccessPolicy"> | string
+    projectId?: StringWithAggregatesFilter<"DeploymentAccessPolicy"> | string
+    environment?: StringWithAggregatesFilter<"DeploymentAccessPolicy"> | string
+    version?: IntWithAggregatesFilter<"DeploymentAccessPolicy"> | number
+    mode?: StringWithAggregatesFilter<"DeploymentAccessPolicy"> | string
+    revision?: StringWithAggregatesFilter<"DeploymentAccessPolicy"> | string
+    passwordHash?: StringNullableWithAggregatesFilter<"DeploymentAccessPolicy"> | string | null
+    createdByUserId?: StringNullableWithAggregatesFilter<"DeploymentAccessPolicy"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"DeploymentAccessPolicy"> | Date | string
+  }
+
+  export type DeploymentAccessExchangeTicketWhereInput = {
+    AND?: DeploymentAccessExchangeTicketWhereInput | DeploymentAccessExchangeTicketWhereInput[]
+    OR?: DeploymentAccessExchangeTicketWhereInput[]
+    NOT?: DeploymentAccessExchangeTicketWhereInput | DeploymentAccessExchangeTicketWhereInput[]
+    id?: StringFilter<"DeploymentAccessExchangeTicket"> | string
+    deploymentId?: StringFilter<"DeploymentAccessExchangeTicket"> | string
+    userId?: StringFilter<"DeploymentAccessExchangeTicket"> | string
+    policyVersion?: IntFilter<"DeploymentAccessExchangeTicket"> | number
+    policyRevision?: StringFilter<"DeploymentAccessExchangeTicket"> | string
+    tokenHash?: StringFilter<"DeploymentAccessExchangeTicket"> | string
+    expiresAt?: DateTimeFilter<"DeploymentAccessExchangeTicket"> | Date | string
+    consumedAt?: DateTimeNullableFilter<"DeploymentAccessExchangeTicket"> | Date | string | null
+    createdAt?: DateTimeFilter<"DeploymentAccessExchangeTicket"> | Date | string
+  }
+
+  export type DeploymentAccessExchangeTicketOrderByWithRelationInput = {
+    id?: SortOrder
+    deploymentId?: SortOrder
+    userId?: SortOrder
+    policyVersion?: SortOrder
+    policyRevision?: SortOrder
+    tokenHash?: SortOrder
+    expiresAt?: SortOrder
+    consumedAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type DeploymentAccessExchangeTicketWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    tokenHash?: string
+    AND?: DeploymentAccessExchangeTicketWhereInput | DeploymentAccessExchangeTicketWhereInput[]
+    OR?: DeploymentAccessExchangeTicketWhereInput[]
+    NOT?: DeploymentAccessExchangeTicketWhereInput | DeploymentAccessExchangeTicketWhereInput[]
+    deploymentId?: StringFilter<"DeploymentAccessExchangeTicket"> | string
+    userId?: StringFilter<"DeploymentAccessExchangeTicket"> | string
+    policyVersion?: IntFilter<"DeploymentAccessExchangeTicket"> | number
+    policyRevision?: StringFilter<"DeploymentAccessExchangeTicket"> | string
+    expiresAt?: DateTimeFilter<"DeploymentAccessExchangeTicket"> | Date | string
+    consumedAt?: DateTimeNullableFilter<"DeploymentAccessExchangeTicket"> | Date | string | null
+    createdAt?: DateTimeFilter<"DeploymentAccessExchangeTicket"> | Date | string
+  }, "id" | "tokenHash">
+
+  export type DeploymentAccessExchangeTicketOrderByWithAggregationInput = {
+    id?: SortOrder
+    deploymentId?: SortOrder
+    userId?: SortOrder
+    policyVersion?: SortOrder
+    policyRevision?: SortOrder
+    tokenHash?: SortOrder
+    expiresAt?: SortOrder
+    consumedAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    _count?: DeploymentAccessExchangeTicketCountOrderByAggregateInput
+    _avg?: DeploymentAccessExchangeTicketAvgOrderByAggregateInput
+    _max?: DeploymentAccessExchangeTicketMaxOrderByAggregateInput
+    _min?: DeploymentAccessExchangeTicketMinOrderByAggregateInput
+    _sum?: DeploymentAccessExchangeTicketSumOrderByAggregateInput
+  }
+
+  export type DeploymentAccessExchangeTicketScalarWhereWithAggregatesInput = {
+    AND?: DeploymentAccessExchangeTicketScalarWhereWithAggregatesInput | DeploymentAccessExchangeTicketScalarWhereWithAggregatesInput[]
+    OR?: DeploymentAccessExchangeTicketScalarWhereWithAggregatesInput[]
+    NOT?: DeploymentAccessExchangeTicketScalarWhereWithAggregatesInput | DeploymentAccessExchangeTicketScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"DeploymentAccessExchangeTicket"> | string
+    deploymentId?: StringWithAggregatesFilter<"DeploymentAccessExchangeTicket"> | string
+    userId?: StringWithAggregatesFilter<"DeploymentAccessExchangeTicket"> | string
+    policyVersion?: IntWithAggregatesFilter<"DeploymentAccessExchangeTicket"> | number
+    policyRevision?: StringWithAggregatesFilter<"DeploymentAccessExchangeTicket"> | string
+    tokenHash?: StringWithAggregatesFilter<"DeploymentAccessExchangeTicket"> | string
+    expiresAt?: DateTimeWithAggregatesFilter<"DeploymentAccessExchangeTicket"> | Date | string
+    consumedAt?: DateTimeNullableWithAggregatesFilter<"DeploymentAccessExchangeTicket"> | Date | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"DeploymentAccessExchangeTicket"> | Date | string
   }
 
   export type RateCardWhereInput = {
@@ -206299,6 +208910,7 @@ export namespace Prisma {
     parentDeploymentId?: string | null
     lastMeteredAt?: Date | string | null
     machineSize?: string
+    accessPolicyVersion?: number
     startedAt?: Date | string | null
     finishedAt?: Date | string | null
     canceledAt?: Date | string | null
@@ -206331,6 +208943,7 @@ export namespace Prisma {
     parentDeploymentId?: string | null
     lastMeteredAt?: Date | string | null
     machineSize?: string
+    accessPolicyVersion?: number
     startedAt?: Date | string | null
     finishedAt?: Date | string | null
     canceledAt?: Date | string | null
@@ -206359,6 +208972,7 @@ export namespace Prisma {
     parentDeploymentId?: NullableStringFieldUpdateOperationsInput | string | null
     lastMeteredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     machineSize?: StringFieldUpdateOperationsInput | string
+    accessPolicyVersion?: IntFieldUpdateOperationsInput | number
     startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     finishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     canceledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -206391,6 +209005,7 @@ export namespace Prisma {
     parentDeploymentId?: NullableStringFieldUpdateOperationsInput | string | null
     lastMeteredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     machineSize?: StringFieldUpdateOperationsInput | string
+    accessPolicyVersion?: IntFieldUpdateOperationsInput | number
     startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     finishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     canceledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -206421,6 +209036,7 @@ export namespace Prisma {
     parentDeploymentId?: string | null
     lastMeteredAt?: Date | string | null
     machineSize?: string
+    accessPolicyVersion?: number
     startedAt?: Date | string | null
     finishedAt?: Date | string | null
     canceledAt?: Date | string | null
@@ -206449,6 +209065,7 @@ export namespace Prisma {
     parentDeploymentId?: NullableStringFieldUpdateOperationsInput | string | null
     lastMeteredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     machineSize?: StringFieldUpdateOperationsInput | string
+    accessPolicyVersion?: IntFieldUpdateOperationsInput | number
     startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     finishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     canceledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -206479,6 +209096,7 @@ export namespace Prisma {
     parentDeploymentId?: NullableStringFieldUpdateOperationsInput | string | null
     lastMeteredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     machineSize?: StringFieldUpdateOperationsInput | string
+    accessPolicyVersion?: IntFieldUpdateOperationsInput | number
     startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     finishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     canceledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -206538,6 +209156,7 @@ export namespace Prisma {
     storeGeneration?: string | null
     configDigest?: string | null
     dbMigrationPoint?: string | null
+    accessPolicyVersion?: number
     createdAt?: Date | string
   }
 
@@ -206554,6 +209173,7 @@ export namespace Prisma {
     storeGeneration?: string | null
     configDigest?: string | null
     dbMigrationPoint?: string | null
+    accessPolicyVersion?: number
     createdAt?: Date | string
   }
 
@@ -206570,6 +209190,7 @@ export namespace Prisma {
     storeGeneration?: NullableStringFieldUpdateOperationsInput | string | null
     configDigest?: NullableStringFieldUpdateOperationsInput | string | null
     dbMigrationPoint?: NullableStringFieldUpdateOperationsInput | string | null
+    accessPolicyVersion?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -206586,6 +209207,7 @@ export namespace Prisma {
     storeGeneration?: NullableStringFieldUpdateOperationsInput | string | null
     configDigest?: NullableStringFieldUpdateOperationsInput | string | null
     dbMigrationPoint?: NullableStringFieldUpdateOperationsInput | string | null
+    accessPolicyVersion?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -206602,6 +209224,7 @@ export namespace Prisma {
     storeGeneration?: string | null
     configDigest?: string | null
     dbMigrationPoint?: string | null
+    accessPolicyVersion?: number
     createdAt?: Date | string
   }
 
@@ -206618,6 +209241,7 @@ export namespace Prisma {
     storeGeneration?: NullableStringFieldUpdateOperationsInput | string | null
     configDigest?: NullableStringFieldUpdateOperationsInput | string | null
     dbMigrationPoint?: NullableStringFieldUpdateOperationsInput | string | null
+    accessPolicyVersion?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -206634,6 +209258,7 @@ export namespace Prisma {
     storeGeneration?: NullableStringFieldUpdateOperationsInput | string | null
     configDigest?: NullableStringFieldUpdateOperationsInput | string | null
     dbMigrationPoint?: NullableStringFieldUpdateOperationsInput | string | null
+    accessPolicyVersion?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -206802,6 +209427,174 @@ export namespace Prisma {
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DeploymentAccessPolicyCreateInput = {
+    id?: string
+    projectId: string
+    environment: string
+    version: number
+    mode: string
+    revision: string
+    passwordHash?: string | null
+    createdByUserId?: string | null
+    createdAt?: Date | string
+  }
+
+  export type DeploymentAccessPolicyUncheckedCreateInput = {
+    id?: string
+    projectId: string
+    environment: string
+    version: number
+    mode: string
+    revision: string
+    passwordHash?: string | null
+    createdByUserId?: string | null
+    createdAt?: Date | string
+  }
+
+  export type DeploymentAccessPolicyUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    environment?: StringFieldUpdateOperationsInput | string
+    version?: IntFieldUpdateOperationsInput | number
+    mode?: StringFieldUpdateOperationsInput | string
+    revision?: StringFieldUpdateOperationsInput | string
+    passwordHash?: NullableStringFieldUpdateOperationsInput | string | null
+    createdByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DeploymentAccessPolicyUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    environment?: StringFieldUpdateOperationsInput | string
+    version?: IntFieldUpdateOperationsInput | number
+    mode?: StringFieldUpdateOperationsInput | string
+    revision?: StringFieldUpdateOperationsInput | string
+    passwordHash?: NullableStringFieldUpdateOperationsInput | string | null
+    createdByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DeploymentAccessPolicyCreateManyInput = {
+    id?: string
+    projectId: string
+    environment: string
+    version: number
+    mode: string
+    revision: string
+    passwordHash?: string | null
+    createdByUserId?: string | null
+    createdAt?: Date | string
+  }
+
+  export type DeploymentAccessPolicyUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    environment?: StringFieldUpdateOperationsInput | string
+    version?: IntFieldUpdateOperationsInput | number
+    mode?: StringFieldUpdateOperationsInput | string
+    revision?: StringFieldUpdateOperationsInput | string
+    passwordHash?: NullableStringFieldUpdateOperationsInput | string | null
+    createdByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DeploymentAccessPolicyUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    environment?: StringFieldUpdateOperationsInput | string
+    version?: IntFieldUpdateOperationsInput | number
+    mode?: StringFieldUpdateOperationsInput | string
+    revision?: StringFieldUpdateOperationsInput | string
+    passwordHash?: NullableStringFieldUpdateOperationsInput | string | null
+    createdByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DeploymentAccessExchangeTicketCreateInput = {
+    id?: string
+    deploymentId: string
+    userId: string
+    policyVersion: number
+    policyRevision: string
+    tokenHash: string
+    expiresAt: Date | string
+    consumedAt?: Date | string | null
+    createdAt?: Date | string
+  }
+
+  export type DeploymentAccessExchangeTicketUncheckedCreateInput = {
+    id?: string
+    deploymentId: string
+    userId: string
+    policyVersion: number
+    policyRevision: string
+    tokenHash: string
+    expiresAt: Date | string
+    consumedAt?: Date | string | null
+    createdAt?: Date | string
+  }
+
+  export type DeploymentAccessExchangeTicketUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    deploymentId?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    policyVersion?: IntFieldUpdateOperationsInput | number
+    policyRevision?: StringFieldUpdateOperationsInput | string
+    tokenHash?: StringFieldUpdateOperationsInput | string
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    consumedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DeploymentAccessExchangeTicketUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    deploymentId?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    policyVersion?: IntFieldUpdateOperationsInput | number
+    policyRevision?: StringFieldUpdateOperationsInput | string
+    tokenHash?: StringFieldUpdateOperationsInput | string
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    consumedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DeploymentAccessExchangeTicketCreateManyInput = {
+    id?: string
+    deploymentId: string
+    userId: string
+    policyVersion: number
+    policyRevision: string
+    tokenHash: string
+    expiresAt: Date | string
+    consumedAt?: Date | string | null
+    createdAt?: Date | string
+  }
+
+  export type DeploymentAccessExchangeTicketUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    deploymentId?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    policyVersion?: IntFieldUpdateOperationsInput | number
+    policyRevision?: StringFieldUpdateOperationsInput | string
+    tokenHash?: StringFieldUpdateOperationsInput | string
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    consumedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DeploymentAccessExchangeTicketUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    deploymentId?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    policyVersion?: IntFieldUpdateOperationsInput | number
+    policyRevision?: StringFieldUpdateOperationsInput | string
+    tokenHash?: StringFieldUpdateOperationsInput | string
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    consumedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type RateCardCreateInput = {
@@ -219531,11 +222324,16 @@ export namespace Prisma {
     parentDeploymentId?: SortOrder
     lastMeteredAt?: SortOrder
     machineSize?: SortOrder
+    accessPolicyVersion?: SortOrder
     startedAt?: SortOrder
     finishedAt?: SortOrder
     canceledAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+  }
+
+  export type DeploymentAvgOrderByAggregateInput = {
+    accessPolicyVersion?: SortOrder
   }
 
   export type DeploymentMaxOrderByAggregateInput = {
@@ -219559,6 +222357,7 @@ export namespace Prisma {
     parentDeploymentId?: SortOrder
     lastMeteredAt?: SortOrder
     machineSize?: SortOrder
+    accessPolicyVersion?: SortOrder
     startedAt?: SortOrder
     finishedAt?: SortOrder
     canceledAt?: SortOrder
@@ -219587,11 +222386,16 @@ export namespace Prisma {
     parentDeploymentId?: SortOrder
     lastMeteredAt?: SortOrder
     machineSize?: SortOrder
+    accessPolicyVersion?: SortOrder
     startedAt?: SortOrder
     finishedAt?: SortOrder
     canceledAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+  }
+
+  export type DeploymentSumOrderByAggregateInput = {
+    accessPolicyVersion?: SortOrder
   }
 
   export type EnumDeploymentStatusWithAggregatesFilter<$PrismaModel = never> = {
@@ -219638,11 +222442,13 @@ export namespace Prisma {
     storeGeneration?: SortOrder
     configDigest?: SortOrder
     dbMigrationPoint?: SortOrder
+    accessPolicyVersion?: SortOrder
     createdAt?: SortOrder
   }
 
   export type ReleaseManifestAvgOrderByAggregateInput = {
     version?: SortOrder
+    accessPolicyVersion?: SortOrder
   }
 
   export type ReleaseManifestMaxOrderByAggregateInput = {
@@ -219658,6 +222464,7 @@ export namespace Prisma {
     storeGeneration?: SortOrder
     configDigest?: SortOrder
     dbMigrationPoint?: SortOrder
+    accessPolicyVersion?: SortOrder
     createdAt?: SortOrder
   }
 
@@ -219674,11 +222481,13 @@ export namespace Prisma {
     storeGeneration?: SortOrder
     configDigest?: SortOrder
     dbMigrationPoint?: SortOrder
+    accessPolicyVersion?: SortOrder
     createdAt?: SortOrder
   }
 
   export type ReleaseManifestSumOrderByAggregateInput = {
     version?: SortOrder
+    accessPolicyVersion?: SortOrder
   }
 
   export type RollbackIdempotencyRequestProjectIdIdempotencyKeyCompoundUniqueInput = {
@@ -219768,6 +222577,100 @@ export namespace Prisma {
     effectFencingToken?: SortOrder
     expectedHeadVersion?: SortOrder
     responseStatus?: SortOrder
+  }
+
+  export type DeploymentAccessPolicyProjectIdEnvironmentVersionCompoundUniqueInput = {
+    projectId: string
+    environment: string
+    version: number
+  }
+
+  export type DeploymentAccessPolicyCountOrderByAggregateInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    environment?: SortOrder
+    version?: SortOrder
+    mode?: SortOrder
+    revision?: SortOrder
+    passwordHash?: SortOrder
+    createdByUserId?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type DeploymentAccessPolicyAvgOrderByAggregateInput = {
+    version?: SortOrder
+  }
+
+  export type DeploymentAccessPolicyMaxOrderByAggregateInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    environment?: SortOrder
+    version?: SortOrder
+    mode?: SortOrder
+    revision?: SortOrder
+    passwordHash?: SortOrder
+    createdByUserId?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type DeploymentAccessPolicyMinOrderByAggregateInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    environment?: SortOrder
+    version?: SortOrder
+    mode?: SortOrder
+    revision?: SortOrder
+    passwordHash?: SortOrder
+    createdByUserId?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type DeploymentAccessPolicySumOrderByAggregateInput = {
+    version?: SortOrder
+  }
+
+  export type DeploymentAccessExchangeTicketCountOrderByAggregateInput = {
+    id?: SortOrder
+    deploymentId?: SortOrder
+    userId?: SortOrder
+    policyVersion?: SortOrder
+    policyRevision?: SortOrder
+    tokenHash?: SortOrder
+    expiresAt?: SortOrder
+    consumedAt?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type DeploymentAccessExchangeTicketAvgOrderByAggregateInput = {
+    policyVersion?: SortOrder
+  }
+
+  export type DeploymentAccessExchangeTicketMaxOrderByAggregateInput = {
+    id?: SortOrder
+    deploymentId?: SortOrder
+    userId?: SortOrder
+    policyVersion?: SortOrder
+    policyRevision?: SortOrder
+    tokenHash?: SortOrder
+    expiresAt?: SortOrder
+    consumedAt?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type DeploymentAccessExchangeTicketMinOrderByAggregateInput = {
+    id?: SortOrder
+    deploymentId?: SortOrder
+    userId?: SortOrder
+    policyVersion?: SortOrder
+    policyRevision?: SortOrder
+    tokenHash?: SortOrder
+    expiresAt?: SortOrder
+    consumedAt?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type DeploymentAccessExchangeTicketSumOrderByAggregateInput = {
+    policyVersion?: SortOrder
   }
 
   export type RateCardCountOrderByAggregateInput = {
@@ -243444,6 +246347,7 @@ export namespace Prisma {
     parentDeploymentId?: string | null
     lastMeteredAt?: Date | string | null
     machineSize?: string
+    accessPolicyVersion?: number
     startedAt?: Date | string | null
     finishedAt?: Date | string | null
     canceledAt?: Date | string | null
@@ -243474,6 +246378,7 @@ export namespace Prisma {
     parentDeploymentId?: string | null
     lastMeteredAt?: Date | string | null
     machineSize?: string
+    accessPolicyVersion?: number
     startedAt?: Date | string | null
     finishedAt?: Date | string | null
     canceledAt?: Date | string | null
@@ -244552,6 +247457,7 @@ export namespace Prisma {
     parentDeploymentId?: StringNullableFilter<"Deployment"> | string | null
     lastMeteredAt?: DateTimeNullableFilter<"Deployment"> | Date | string | null
     machineSize?: StringFilter<"Deployment"> | string
+    accessPolicyVersion?: IntFilter<"Deployment"> | number
     startedAt?: DateTimeNullableFilter<"Deployment"> | Date | string | null
     finishedAt?: DateTimeNullableFilter<"Deployment"> | Date | string | null
     canceledAt?: DateTimeNullableFilter<"Deployment"> | Date | string | null
@@ -254684,6 +257590,7 @@ export namespace Prisma {
     parentDeploymentId?: string | null
     lastMeteredAt?: Date | string | null
     machineSize?: string
+    accessPolicyVersion?: number
     startedAt?: Date | string | null
     finishedAt?: Date | string | null
     canceledAt?: Date | string | null
@@ -254714,6 +257621,7 @@ export namespace Prisma {
     parentDeploymentId?: string | null
     lastMeteredAt?: Date | string | null
     machineSize?: string
+    accessPolicyVersion?: number
     startedAt?: Date | string | null
     finishedAt?: Date | string | null
     canceledAt?: Date | string | null
@@ -279632,6 +282540,7 @@ export namespace Prisma {
     parentDeploymentId?: string | null
     lastMeteredAt?: Date | string | null
     machineSize?: string
+    accessPolicyVersion?: number
     startedAt?: Date | string | null
     finishedAt?: Date | string | null
     canceledAt?: Date | string | null
@@ -280250,6 +283159,7 @@ export namespace Prisma {
     parentDeploymentId?: NullableStringFieldUpdateOperationsInput | string | null
     lastMeteredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     machineSize?: StringFieldUpdateOperationsInput | string
+    accessPolicyVersion?: IntFieldUpdateOperationsInput | number
     startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     finishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     canceledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -280280,6 +283190,7 @@ export namespace Prisma {
     parentDeploymentId?: NullableStringFieldUpdateOperationsInput | string | null
     lastMeteredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     machineSize?: StringFieldUpdateOperationsInput | string
+    accessPolicyVersion?: IntFieldUpdateOperationsInput | number
     startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     finishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     canceledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -280309,6 +283220,7 @@ export namespace Prisma {
     parentDeploymentId?: NullableStringFieldUpdateOperationsInput | string | null
     lastMeteredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     machineSize?: StringFieldUpdateOperationsInput | string
+    accessPolicyVersion?: IntFieldUpdateOperationsInput | number
     startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     finishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     canceledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -281369,6 +284281,7 @@ export namespace Prisma {
     parentDeploymentId?: string | null
     lastMeteredAt?: Date | string | null
     machineSize?: string
+    accessPolicyVersion?: number
     startedAt?: Date | string | null
     finishedAt?: Date | string | null
     canceledAt?: Date | string | null
@@ -281397,6 +284310,7 @@ export namespace Prisma {
     parentDeploymentId?: NullableStringFieldUpdateOperationsInput | string | null
     lastMeteredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     machineSize?: StringFieldUpdateOperationsInput | string
+    accessPolicyVersion?: IntFieldUpdateOperationsInput | number
     startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     finishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     canceledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -281427,6 +284341,7 @@ export namespace Prisma {
     parentDeploymentId?: NullableStringFieldUpdateOperationsInput | string | null
     lastMeteredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     machineSize?: StringFieldUpdateOperationsInput | string
+    accessPolicyVersion?: IntFieldUpdateOperationsInput | number
     startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     finishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     canceledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -281456,6 +284371,7 @@ export namespace Prisma {
     parentDeploymentId?: NullableStringFieldUpdateOperationsInput | string | null
     lastMeteredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     machineSize?: StringFieldUpdateOperationsInput | string
+    accessPolicyVersion?: IntFieldUpdateOperationsInput | number
     startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     finishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     canceledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null

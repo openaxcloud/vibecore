@@ -603,6 +603,7 @@ exports.Prisma.DeploymentScalarFieldEnum = {
   parentDeploymentId: 'parentDeploymentId',
   lastMeteredAt: 'lastMeteredAt',
   machineSize: 'machineSize',
+  accessPolicyVersion: 'accessPolicyVersion',
   startedAt: 'startedAt',
   finishedAt: 'finishedAt',
   canceledAt: 'canceledAt',
@@ -628,6 +629,7 @@ exports.Prisma.ReleaseManifestScalarFieldEnum = {
   storeGeneration: 'storeGeneration',
   configDigest: 'configDigest',
   dbMigrationPoint: 'dbMigrationPoint',
+  accessPolicyVersion: 'accessPolicyVersion',
   createdAt: 'createdAt'
 };
 
@@ -653,6 +655,30 @@ exports.Prisma.RollbackIdempotencyRequestScalarFieldEnum = {
   completedAt: 'completedAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
+};
+
+exports.Prisma.DeploymentAccessPolicyScalarFieldEnum = {
+  id: 'id',
+  projectId: 'projectId',
+  environment: 'environment',
+  version: 'version',
+  mode: 'mode',
+  revision: 'revision',
+  passwordHash: 'passwordHash',
+  createdByUserId: 'createdByUserId',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.DeploymentAccessExchangeTicketScalarFieldEnum = {
+  id: 'id',
+  deploymentId: 'deploymentId',
+  userId: 'userId',
+  policyVersion: 'policyVersion',
+  policyRevision: 'policyRevision',
+  tokenHash: 'tokenHash',
+  expiresAt: 'expiresAt',
+  consumedAt: 'consumedAt',
+  createdAt: 'createdAt'
 };
 
 exports.Prisma.RateCardScalarFieldEnum = {
@@ -2411,6 +2437,8 @@ exports.Prisma.ModelName = {
   DeploymentEnvironment: 'DeploymentEnvironment',
   ReleaseManifest: 'ReleaseManifest',
   RollbackIdempotencyRequest: 'RollbackIdempotencyRequest',
+  DeploymentAccessPolicy: 'DeploymentAccessPolicy',
+  DeploymentAccessExchangeTicket: 'DeploymentAccessExchangeTicket',
   RateCard: 'RateCard',
   AuditLog: 'AuditLog',
   SecurityEventResolution: 'SecurityEventResolution',

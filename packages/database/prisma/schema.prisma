@@ -287,12 +287,12 @@ model RolePermission {
 }
 
 model Project {
-  id                      String                    @id @default(cuid())
+  id                      String                       @id @default(cuid())
   organizationId          String
   name                    String
   slug                    String
   description             String?
-  sourceType              String                    @default("blank")
+  sourceType              String                       @default("blank")
   templateName            String?
   gitRepositoryUrl        String?
   gitDefaultBranch        String?
@@ -300,16 +300,16 @@ model Project {
   thumbnailUrl            String?
   thumbnailUpdatedAt      DateTime?
   deletedAt               DateTime?
-  createdAt               DateTime                  @default(now())
-  updatedAt               DateTime                  @updatedAt
-  organization            Organization              @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdAt               DateTime                     @default(now())
+  updatedAt               DateTime                     @updatedAt
+  organization            Organization                 @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   environments            ProjectEnvironment[]
   envVars                 ProjectEnvVar[]
   secrets                 ProjectSecret[]
   collaborators           ProjectCollaborator[]
   activity                ProjectActivity[]
-  templates               ProjectTemplate[]         @relation("ProjectTemplates")
-  galleryListings         GalleryListing[]          @relation("ProjectGalleryListings")
+  templates               ProjectTemplate[]            @relation("ProjectTemplates")
+  galleryListings         GalleryListing[]             @relation("ProjectGalleryListings")
   workspaces              Workspace[]
   snapshots               ProjectSnapshot[]
   manifestRevisions       ProjectManifestRevision[]
@@ -331,7 +331,7 @@ model Project {
   repairEvents            AgentRepairEvent[]
   slugRedirects           ProjectSlugRedirect[]
   runtimeWebSocketTickets RuntimeWebSocketTicket[]
-  importJobs              ImportJob[]               @relation("ImportJobTarget")
+  importJobs              ImportJob[]                  @relation("ImportJobTarget")
   cloudBinding            CloudProjectBinding?
   checkpoints             ProjectCheckpoint[]
 
@@ -922,43 +922,47 @@ model ProjectStorageObject {
 }
 
 model Deployment {
-  id                 String                 @id @default(cuid())
-  projectId          String
-  workspaceId        String?
-  environmentId      String?
-  environmentName    String                 @default("preview")
-  status             DeploymentStatus       @default(QUEUED)
-  provider           String
-  url                String?
-  previewUrl         String?
-  productionUrl      String?
-  framework          String?
-  buildCommand       String?
-  outputDirectory    String?
-  branch             String?
-  commitSha          String?
-  customDomain       String?
-  logs               Json                   @default("[]")
-  metadata           Json                   @default("{}")
-  rolledBackFromId   String?
+  id                  String                 @id @default(cuid())
+  projectId           String
+  workspaceId         String?
+  environmentId       String?
+  environmentName     String                 @default("preview")
+  status              DeploymentStatus       @default(QUEUED)
+  provider            String
+  url                 String?
+  previewUrl          String?
+  productionUrl       String?
+  framework           String?
+  buildCommand        String?
+  outputDirectory     String?
+  branch              String?
+  commitSha           String?
+  customDomain        String?
+  logs                Json                   @default("[]")
+  metadata            Json                   @default("{}")
+  rolledBackFromId    String?
   // P2d dev/prod split: when a preview/staging deployment is published to
   // production, the new production deployment links back to its source here.
-  parentDeploymentId String?
+  parentDeploymentId  String?
   // Replit-parity deploy metering idempotency marker: set once the deployment is
   // metered (mirrors WorkspaceRuntime.lastMeteredAt) so a re-reconcile never
   // double-charges. Dormant/SHADOW until BILLING_CREDITS_ENABLED. See metering-service.ts.
-  lastMeteredAt      DateTime?
+  lastMeteredAt       DateTime?
   // Machine size the user picked at publish (rate-card key, e.g. 'dedicated-1').
   // Applied verbatim as the runtime pod's requests==limits and used to price
   // compute metering — the machine you picked is the machine you pay for.
-  machineSize        String                 @default("shared-0.5")
-  startedAt          DateTime?
-  finishedAt         DateTime?
-  canceledAt         DateTime?
-  createdAt          DateTime               @default(now())
-  updatedAt          DateTime               @updatedAt
-  project            Project                @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  environment        DeploymentEnvironment? @relation(fields: [environmentId], references: [id])
+  machineSize         String                 @default("shared-0.5")
+  // Exact immutable DeploymentAccessPolicy version enforced by both s-* and
+  // d-* edge paths. The database default exists only for rolling compatibility;
+  // the edge resolves the matching policy row and denies when it is absent.
+  accessPolicyVersion Int                    @default(1)
+  startedAt           DateTime?
+  finishedAt          DateTime?
+  canceledAt          DateTime?
+  createdAt           DateTime               @default(now())
+  updatedAt           DateTime               @updatedAt
+  project             Project                @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  environment         DeploymentEnvironment? @relation(fields: [environmentId], references: [id])
 
   @@index([projectId])
   @@index([projectId, workspaceId])
@@ -1004,6 +1008,10 @@ model ReleaseManifest {
   configDigest     String?
   dbMigrationPoint String?
 
+  // I-AUTH-1: the access policy is part of release identity. Rollback restores
+  // this exact version rather than inheriting a later/less restrictive mode.
+  accessPolicyVersion Int @default(1)
+
   createdAt DateTime @default(now())
 
   @@unique([projectId, environment, version])
@@ -1044,6 +1052,40 @@ model RollbackIdempotencyRequest {
   @@index([status, leaseExpiresAt])
   @@index([projectId, environment, status])
   @@index([previousManifestId])
+}
+
+// Immutable, monotonic access policy history per project/environment. A change
+// inserts a new row and atomically advances Deployment.accessPolicyVersion.
+model DeploymentAccessPolicy {
+  id              String   @id @default(cuid())
+  projectId       String
+  environment     String
+  version         Int
+  mode            String
+  revision        String   @unique
+  passwordHash    String?
+  createdByUserId String?
+  createdAt       DateTime @default(now())
+
+  @@unique([projectId, environment, version])
+  @@index([projectId, environment, createdAt])
+}
+
+// One-shot capability used to move an already-authorized identity from the web
+// origin to a dedicated deployment origin. Only tokenHash is persisted.
+model DeploymentAccessExchangeTicket {
+  id             String    @id @default(cuid())
+  deploymentId   String
+  userId         String
+  policyVersion  Int
+  policyRevision String
+  tokenHash      String    @unique
+  expiresAt      DateTime
+  consumedAt     DateTime?
+  createdAt      DateTime  @default(now())
+
+  @@index([deploymentId, expiresAt])
+  @@index([userId, expiresAt])
 }
 
 // Versioned Rate Card: the priced catalogue (machine sizes, compute-unit and
@@ -1886,7 +1928,7 @@ model ConsensusRecord {
 /// is effectively the canonical state shared between workspace-manager
 /// replicas — replacing the file-backed JsonWorkspaceStore.
 model WorkspaceRuntime {
-  id                   String    @id
+  id                   String     @id
   orgId                String
   projectId            String
   plan                 Json
@@ -1896,8 +1938,8 @@ model WorkspaceRuntime {
   serviceName          String
   agentTokenSecretName String
   error                String?
-  createdAt            DateTime  @default(now())
-  lastActiveAt         DateTime  @default(now())
+  createdAt            DateTime   @default(now())
+  lastActiveAt         DateTime   @default(now())
   // Last time this runtime's active compute was metered to the billing usage
   // ledger (P4 metering emitter). The GC meters the window from here (or
   // createdAt) to lastActiveAt on stop, then advances this marker — idempotent
@@ -1905,11 +1947,11 @@ model WorkspaceRuntime {
   lastMeteredAt        DateTime?
   /// Durable account-purge barrier. A runtime can be (re)provisioned only when
   /// this flag is false. The plan id + per-attempt token fence every release.
-  purgeFrozen          Boolean   @default(false)
+  purgeFrozen          Boolean    @default(false)
   purgePlanId          String?
   purgeFenceToken      String?
   purgeFrozenAt        DateTime?
-  updatedAt            DateTime  @updatedAt
+  updatedAt            DateTime   @updatedAt
   purgePlan            PurgePlan? @relation(fields: [purgePlanId], references: [id], onDelete: SetNull)
 
   @@index([orgId])
@@ -3497,11 +3539,11 @@ model PlatformIamImpersonationAudit {
 /// has no User foreign key: the receipt and effect history must outlive the
 /// subject's anonymisation. Only one plan can ever target a subject.
 model PurgePlan {
-  id                  String        @id @default(cuid())
-  userId              String        @unique
-  ownerToken          String        @unique
-  status              String        @default("ACTIVE")
-  version             Int           @default(0)
+  id                  String             @id @default(cuid())
+  userId              String             @unique
+  ownerToken          String             @unique
+  status              String             @default("ACTIVE")
+  version             Int                @default(0)
   leaseExpiresAt      DateTime
   requestedAt         DateTime
   purgeDueAt          DateTime
@@ -3509,10 +3551,10 @@ model PurgePlan {
   inventory           Json
   correlationId       String?
   lastErrorCode       String?
-  startedAt           DateTime      @default(now())
+  startedAt           DateTime           @default(now())
   completedAt         DateTime?
-  createdAt           DateTime      @default(now())
-  updatedAt           DateTime      @updatedAt
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
   freezes             PurgeFreeze[]
   effects             PurgeEffect[]
   receipt             PurgeReceipt?

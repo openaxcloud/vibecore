@@ -1,4 +1,4 @@
-import { Check, Copy, Globe, QrCode } from 'lucide-react';
+import { Check, Copy, Globe, LockKeyhole, QrCode, ShieldCheck, Users } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { QRCode } from 'react-qrcode-logo';
@@ -13,6 +13,11 @@ export interface OverviewDeployment {
   framework?: string;
   createdAt?: string;
   finishedAt?: string;
+  accessPolicy?: {
+    mode: 'PUBLIC' | 'PASSWORD_PROTECTED' | 'WORKSPACE_ONLY' | 'INVITE_ONLY';
+    version: number;
+  };
+  accessPolicyState?: 'ACTIVE' | 'LOCKED';
 }
 
 /**
@@ -70,6 +75,20 @@ export function DeploymentOverview({
   const status = deploymentStatus(deployment.status, t);
   const environment = deploymentEnvironment(deployment.environment, t);
   const finishedAt = formatDeploymentTime(deployment.finishedAt, i18n.resolvedLanguage ?? i18n.language);
+  const accessMode = deployment.accessPolicy?.mode ?? 'INVITE_ONLY';
+
+  const accessPresentation =
+    deployment.accessPolicyState === 'LOCKED'
+      ? { label: t('idePanels.deployment.accessLocked'), icon: ShieldCheck }
+      : accessMode === 'PUBLIC'
+        ? { label: t('idePanels.deployment.public'), icon: Globe }
+        : accessMode === 'PASSWORD_PROTECTED'
+          ? { label: t('idePanels.deployment.passwordProtected'), icon: LockKeyhole }
+          : accessMode === 'WORKSPACE_ONLY'
+            ? { label: t('idePanels.deployment.workspaceOnly'), icon: Users }
+            : { label: t('idePanels.deployment.inviteOnly'), icon: ShieldCheck };
+
+  const AccessIcon = accessPresentation.icon;
 
   return (
     <dl className="grid gap-px overflow-hidden rounded-md border border-bolt-elements-borderColor bg-bolt-elements-borderColor">
@@ -82,8 +101,11 @@ export function DeploymentOverview({
       </Row>
       <Row label={t('idePanels.deployment.visibility')}>
         <span className="inline-flex items-center gap-1.5">
-          <Globe className="h-3.5 w-3.5 text-bolt-elements-textTertiary" aria-hidden />
-          {t('idePanels.deployment.public')}
+          <AccessIcon className="h-3.5 w-3.5 text-bolt-elements-textTertiary" aria-hidden />
+          {accessPresentation.label}
+          {deployment.accessPolicy?.version ? (
+            <span className="text-xs text-bolt-elements-textTertiary">· v{deployment.accessPolicy.version}</span>
+          ) : null}
         </span>
       </Row>
       <Row label={t('idePanels.deployment.domain')}>

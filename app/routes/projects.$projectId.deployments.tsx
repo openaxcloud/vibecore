@@ -8,12 +8,14 @@ import {
   Copy,
   History,
   Loader2,
+  LockKeyhole,
   RotateCcw,
   Rocket,
   Settings,
   ShieldCheck,
   TerminalSquare,
   Timer,
+  Users,
   type LucideIcon,
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
@@ -67,6 +69,7 @@ import { isReauthRedirect } from '~/lib/route-reauth';
 import { classNames } from '~/utils/classNames';
 
 type DeploymentLog = { timestamp: string; level: 'info' | 'warn' | 'error'; message: string };
+type DeploymentAccessMode = 'PUBLIC' | 'PASSWORD_PROTECTED' | 'WORKSPACE_ONLY' | 'INVITE_ONLY';
 type Deployment = {
   id: string;
   provider: string;
@@ -80,6 +83,14 @@ type Deployment = {
   commitSha?: string;
   customDomain?: string;
   logs: DeploymentLog[];
+  accessPolicy?: {
+    mode: DeploymentAccessMode;
+    version: number;
+    revision: string;
+    createdAt: string | null;
+  };
+  accessPolicyState?: 'ACTIVE' | 'LOCKED';
+  accessPolicyCanManage?: boolean;
 
   /** Set when this row was created by rolling back to a previous deployment. */
   rolledBackFromId?: string;
@@ -268,6 +279,8 @@ export const action = (args: EnterpriseActionArgs) =>
 
             // Server deploys: rate-card machine size picked in the publish card.
             machineSize: body.machineSize || undefined,
+            accessMode: body.accessMode || 'INVITE_ONLY',
+            accessPassword: body.accessMode === 'PASSWORD_PROTECTED' ? body.accessPassword || undefined : undefined,
           }),
         });
       } catch (error) {
@@ -334,6 +347,26 @@ export const action = (args: EnterpriseActionArgs) =>
 
       return redirect(`/projects/${projectId}/deployments${redirectQuery}`);
     },
+    access: async ({ request, projectId, body }) => {
+      try {
+        const expectedVersion = Number(body.expectedVersion);
+        await apiRequest(request, `/projects/${projectId}/deployments/${body.deploymentId}/access`, {
+          method: 'PUT',
+          body: JSON.stringify({
+            mode: body.accessMode,
+            ...(body.accessMode === 'PASSWORD_PROTECTED' ? { password: body.accessPassword } : {}),
+            ...(Number.isInteger(expectedVersion) && expectedVersion > 0 ? { expectedVersion } : {}),
+          }),
+        });
+      } catch (error) {
+        if (isReauthRedirect(error)) {
+          throw error;
+        }
+
+        return json({ error: await localizedDeploymentApiError(error, request, 'accessFailed') });
+      }
+      return json({ success: getProjectDeploymentsCopy(resolveRequestLocale(request).language).access.saved });
+    },
   });
 
 function useProjectDeploymentsLocale(): {
@@ -355,7 +388,7 @@ export default function ProjectDeploymentsPage() {
    */
   const { project, data } = useLoaderData() as { project: { id: string }; data: DeploymentsData };
   const { copy } = useProjectDeploymentsLocale();
-  const actionData = useActionData<{ error?: string }>();
+  const actionData = useActionData<{ error?: string; success?: string }>();
   const navigation = useNavigation();
   const revalidator = useRevalidator();
   const busy = navigation.state !== 'idle';
@@ -433,6 +466,14 @@ export default function ProjectDeploymentsPage() {
           {actionData.error}
         </div>
       ) : null}
+      {actionData?.success ? (
+        <div
+          role="status"
+          className="mb-6 rounded-md border border-[var(--status-success-border)] bg-[var(--status-success-bg)] px-4 py-3 text-sm text-[var(--status-success-text)]"
+        >
+          {actionData.success}
+        </div>
+      ) : null}
       <DeploySubNav
         active={view}
         onSelect={setView}
@@ -448,7 +489,10 @@ export default function ProjectDeploymentsPage() {
       {view === 'logs' ? <DeployLogsView deployment={latest} building={building} /> : null}
       {view === 'domains' ? <DeployDomainsView deployment={latest} /> : null}
       {view === 'manage' ? (
-        <DeployHistory deployments={data.deployments} busy={busy} workspaceId={workspaceId} />
+        <div className="mt-4 grid gap-5">
+          <DeploymentAccessCard deployment={latest} busy={busy} />
+          <DeployHistory deployments={data.deployments} busy={busy} workspaceId={workspaceId} />
+        </div>
       ) : null}
 
       {view === 'overview' ? (
@@ -530,6 +574,7 @@ function DeployPublishCard({
   const detectFetcher = useFetcher<{ detected: DeployDetect }>();
   const rateCardFetcher = useFetcher<{ rateCard: DeployRateCard | null }>();
   const [override, setOverride] = useState<'auto' | 'server' | 'static'>('auto');
+  const [accessMode, setAccessMode] = useState<DeploymentAccessMode>('INVITE_ONLY');
 
   const detectHref = `/projects/${projectId}/deployments?detect=1${
     workspaceId ? `&workspace=${encodeURIComponent(workspaceId)}` : ''
@@ -612,6 +657,46 @@ function DeployPublishCard({
           {effectiveMode === 'server' ? copy.publish.serverDescription : copy.publish.staticDescription}
         </p>
 
+        <div className="grid gap-2 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-4">
+          <label className="grid gap-2 text-xs font-medium uppercase tracking-[0.04em] text-bolt-elements-textTertiary">
+            {copy.access.label}
+            <select
+              className="min-h-11 w-full rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-3 text-sm normal-case tracking-normal text-bolt-elements-textPrimary outline-none focus:border-bolt-elements-focus"
+              name="accessMode"
+              value={accessMode}
+              onChange={(event) => setAccessMode(event.currentTarget.value as DeploymentAccessMode)}
+            >
+              <option value="PUBLIC">{copy.access.modes.public.label}</option>
+              <option value="PASSWORD_PROTECTED">{copy.access.modes.password.label}</option>
+              <option value="WORKSPACE_ONLY">{copy.access.modes.workspace.label}</option>
+              <option value="INVITE_ONLY">{copy.access.modes.invite.label}</option>
+            </select>
+          </label>
+          <p className="text-xs leading-5 text-bolt-elements-textSecondary">
+            {accessMode === 'PUBLIC'
+              ? copy.access.modes.public.description
+              : accessMode === 'PASSWORD_PROTECTED'
+                ? copy.access.modes.password.description
+                : accessMode === 'WORKSPACE_ONLY'
+                  ? copy.access.modes.workspace.description
+                  : copy.access.modes.invite.description}
+          </p>
+          {accessMode === 'PASSWORD_PROTECTED' ? (
+            <label className="grid gap-2 text-xs font-medium uppercase tracking-[0.04em] text-bolt-elements-textTertiary">
+              {copy.access.password}
+              <input
+                className="min-h-11 w-full rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-3 text-sm normal-case tracking-normal text-bolt-elements-textPrimary outline-none focus:border-bolt-elements-focus"
+                name="accessPassword"
+                type="password"
+                minLength={10}
+                maxLength={256}
+                autoComplete="new-password"
+                required
+              />
+            </label>
+          ) : null}
+        </div>
+
         <div className="grid gap-3 sm:grid-cols-2">
           <Field as="select" label={copy.publish.environment} name="environment" defaultValue="preview">
             <option value="preview">{copy.environments.preview}</option>
@@ -689,7 +774,7 @@ function DeployPublishCard({
           </div>
         </details>
 
-        <Button type="submit" disabled={!canPublish} className="gap-2">
+        <Button type="submit" disabled={!canPublish} className="min-h-11 gap-2">
           <Rocket className="h-4 w-4" aria-hidden />
           {busy || building ? copy.publish.publishing : copy.publish.submit}
         </Button>
@@ -708,7 +793,7 @@ function DeployActionButton({
     <button
       {...props}
       className={classNames(
-        'inline-flex h-[32px] items-center gap-1.5 rounded-[6px] px-3 text-[13.3px] font-medium disabled:opacity-60',
+        'inline-flex min-h-11 items-center gap-1.5 rounded-[6px] px-3 text-[13.3px] font-medium disabled:opacity-60',
         primary
           ? 'font-semibold text-white hover:opacity-90'
           : 'border border-bolt-elements-borderColor text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3',
@@ -816,6 +901,137 @@ function DeployDomainsView({ deployment }: { deployment?: Deployment }) {
       </div>
       <p className="text-[12px] text-bolt-elements-textTertiary">{copy.domains.guidance}</p>
     </div>
+  );
+}
+
+/** Real policy management for the latest release; owner/admin only server-side. */
+function DeploymentAccessCard({ deployment, busy }: { deployment?: Deployment; busy: boolean }) {
+  const { copy } = useProjectDeploymentsLocale();
+  const [mode, setMode] = useState<DeploymentAccessMode>(deployment?.accessPolicy?.mode ?? 'INVITE_ONLY');
+
+  useEffect(() => {
+    setMode(deployment?.accessPolicy?.mode ?? 'INVITE_ONLY');
+  }, [deployment?.id, deployment?.accessPolicy?.mode, deployment?.accessPolicy?.version]);
+
+  if (!deployment) {
+    return (
+      <section className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5">
+        <h2 className="text-sm font-semibold text-bolt-elements-textPrimary">{copy.access.title}</h2>
+        <p className="mt-2 text-xs text-bolt-elements-textSecondary">{copy.access.noDeployment}</p>
+      </section>
+    );
+  }
+
+  const options: Array<{
+    value: DeploymentAccessMode;
+    label: string;
+    description: string;
+    icon: LucideIcon;
+  }> = [
+    { value: 'PUBLIC', icon: Globe2, ...copy.access.modes.public },
+    { value: 'PASSWORD_PROTECTED', icon: LockKeyhole, ...copy.access.modes.password },
+    { value: 'WORKSPACE_ONLY', icon: Users, ...copy.access.modes.workspace },
+    { value: 'INVITE_ONLY', icon: ShieldCheck, ...copy.access.modes.invite },
+  ];
+
+  const canManage = deployment.accessPolicyCanManage === true;
+
+  return (
+    <section className="overflow-hidden rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-md">
+      <div className="border-b border-bolt-elements-borderColor px-5 py-4 sm:flex sm:items-start sm:justify-between sm:gap-5">
+        <div>
+          <h2 className="text-sm font-semibold text-bolt-elements-textPrimary">{copy.access.title}</h2>
+          <p className="mt-1 max-w-2xl text-xs leading-5 text-bolt-elements-textSecondary">{copy.access.description}</p>
+        </div>
+        <span className="mt-3 inline-flex min-h-7 items-center rounded-full border border-bolt-elements-borderColor px-2.5 text-[11px] font-medium text-bolt-elements-textSecondary sm:mt-0">
+          {copy.access.version.replace('{version}', String(deployment.accessPolicy?.version ?? 0))}
+        </span>
+      </div>
+
+      <Form method="post" className="grid gap-5 p-5">
+        <input type="hidden" name="intent" value="access" />
+        <input type="hidden" name="deploymentId" value={deployment.id} />
+        <input type="hidden" name="expectedVersion" value={deployment.accessPolicy?.version ?? ''} />
+
+        {deployment.accessPolicyState === 'LOCKED' ? (
+          <div
+            role="alert"
+            className="rounded-md border border-[var(--status-warning-border)] bg-[var(--status-warning-bg)] px-4 py-3 text-xs leading-5 text-[var(--status-warning-text)]"
+          >
+            {copy.access.locked}
+          </div>
+        ) : null}
+
+        <fieldset disabled={!canManage || busy} className="grid gap-3 sm:grid-cols-2">
+          <legend className="sr-only">{copy.access.label}</legend>
+          {options.map((option) => {
+            const Icon = option.icon;
+            const selected = mode === option.value;
+
+            return (
+              <label
+                key={option.value}
+                className={classNames(
+                  'flex min-h-[88px] cursor-pointer gap-3 rounded-lg border p-3.5 transition-colors focus-within:ring-2 focus-within:ring-bolt-elements-focus',
+                  selected
+                    ? 'border-bolt-elements-focus bg-bolt-elements-background-depth-1'
+                    : 'border-bolt-elements-borderColor hover:bg-bolt-elements-background-depth-3',
+                  !canManage ? 'cursor-not-allowed opacity-70' : '',
+                )}
+              >
+                <input
+                  className="mt-1 h-4 w-4 shrink-0 accent-bolt-elements-focus"
+                  type="radio"
+                  name="accessMode"
+                  value={option.value}
+                  checked={selected}
+                  onChange={() => setMode(option.value)}
+                />
+                <span className="min-w-0">
+                  <span className="flex items-center gap-2 text-sm font-semibold text-bolt-elements-textPrimary">
+                    <Icon className="h-4 w-4 text-bolt-elements-textTertiary" aria-hidden /> {option.label}
+                  </span>
+                  <span className="mt-1 block text-xs leading-5 text-bolt-elements-textSecondary">
+                    {option.description}
+                  </span>
+                </span>
+              </label>
+            );
+          })}
+        </fieldset>
+
+        {mode === 'PASSWORD_PROTECTED' ? (
+          <label className="grid max-w-xl gap-2 text-xs font-medium uppercase tracking-[0.04em] text-bolt-elements-textTertiary">
+            {copy.access.password}
+            <input
+              className="min-h-11 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 text-sm normal-case tracking-normal text-bolt-elements-textPrimary outline-none focus:border-bolt-elements-focus"
+              name="accessPassword"
+              type="password"
+              minLength={10}
+              maxLength={256}
+              autoComplete="new-password"
+              required
+              disabled={!canManage || busy}
+              placeholder={copy.access.passwordPlaceholder}
+            />
+          </label>
+        ) : null}
+
+        <div className="flex flex-col-reverse gap-3 border-t border-bolt-elements-borderColor pt-4 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-xs leading-5 text-bolt-elements-textTertiary">
+            {canManage ? copy.access.rotation : copy.access.adminOnly}
+          </p>
+          <Button type="submit" disabled={!canManage || busy} className="min-h-11 shrink-0 gap-2">
+            {busy ? (
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+            ) : (
+              <ShieldCheck className="h-4 w-4" aria-hidden />
+            )}
+            {busy ? copy.access.saving : copy.access.save}
+          </Button>
+        </div>
+      </Form>
+    </section>
   );
 }
 
@@ -1187,12 +1403,12 @@ function Field({
           defaultValue={defaultValue}
         />
       ) : as === 'select' ? (
-        <select className={`${className} h-10 normal-case tracking-normal`} name={name} defaultValue={defaultValue}>
+        <select className={`${className} min-h-11 normal-case tracking-normal`} name={name} defaultValue={defaultValue}>
           {children}
         </select>
       ) : (
         <input
-          className={`${className} h-10 normal-case tracking-normal`}
+          className={`${className} min-h-11 normal-case tracking-normal`}
           name={name}
           placeholder={placeholder}
           defaultValue={defaultValue}

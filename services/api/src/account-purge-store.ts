@@ -1013,6 +1013,7 @@ export class AccountPurgeStore {
         const emailTokens = await tx.emailVerificationToken.deleteMany({ where: { userId } });
         const resetTokens = await tx.passwordResetToken.deleteMany({ where: { userId } });
         const recoveryCodes = await tx.mfaRecoveryCode.deleteMany({ where: { userId } });
+        const deploymentAccessTickets = await tx.deploymentAccessExchangeTicket.deleteMany({ where: { userId } });
         classes.push({
           dataClass: 'auth_tokens',
           action: 'deleted',
@@ -1020,6 +1021,7 @@ export class AccountPurgeStore {
             EmailVerificationToken: emailTokens.count,
             PasswordResetToken: resetTokens.count,
             MfaRecoveryCode: recoveryCodes.count,
+            DeploymentAccessExchangeTicket: deploymentAccessTickets.count,
           },
         });
 
@@ -1342,7 +1344,8 @@ export class AccountPurgeStore {
           auth_tokens:
             (await tx.emailVerificationToken.count({ where: { userId } })) +
             (await tx.passwordResetToken.count({ where: { userId } })) +
-            (await tx.mfaRecoveryCode.count({ where: { userId } })),
+            (await tx.mfaRecoveryCode.count({ where: { userId } })) +
+            (await tx.deploymentAccessExchangeTicket.count({ where: { userId } })),
           api_keys: await tx.apiKey.count({ where: { userId } }),
           connected_accounts:
             (await tx.account.count({ where: { userId } })) +

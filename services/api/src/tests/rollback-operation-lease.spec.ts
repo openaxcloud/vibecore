@@ -110,26 +110,41 @@ describe('durable rollback operation — lease, fencing, and frozen target', () 
 
   it('atomically fails a pre-effect deployment before persisting an error response', async () => {
     const store = new TestApiStore();
+    const sourceDeployment = await store.createDeployment({
+      projectId: 'project-pre-effect',
+      provider: 'static',
+      environment: 'preview',
+      status: 'READY',
+    });
+    const currentDeployment = await store.createDeployment({
+      projectId: 'project-pre-effect',
+      provider: 'static',
+      environment: 'preview',
+      status: 'READY',
+      accessPolicyVersion: sourceDeployment.accessPolicyVersion,
+    });
 
     const source = await store.createReleaseManifest({
       projectId: 'project-pre-effect',
-      deploymentId: 'deployment-source',
+      deploymentId: sourceDeployment.id,
       environment: 'preview',
       version: 1,
       provider: 'static',
       artifactKind: 'static-snapshot',
-      artifactRef: 'static-deployments/deployment-source',
+      artifactRef: `static-deployments/${sourceDeployment.id}`,
       artifactDigest: ARTIFACT_DIGEST,
+      accessPolicyVersion: sourceDeployment.accessPolicyVersion,
     });
     await store.createReleaseManifest({
       projectId: 'project-pre-effect',
-      deploymentId: 'deployment-current',
+      deploymentId: currentDeployment.id,
       environment: 'preview',
       version: 2,
       provider: 'static',
       artifactKind: 'static-snapshot',
-      artifactRef: 'static-deployments/deployment-current',
+      artifactRef: `static-deployments/${currentDeployment.id}`,
       artifactDigest: `sha256:${'d'.repeat(64)}`,
+      accessPolicyVersion: currentDeployment.accessPolicyVersion,
     });
 
     const acquired = await store.acquireRollbackOperation({
@@ -157,6 +172,7 @@ describe('durable rollback operation — lease, fencing, and frozen target', () 
         provider: 'static',
         environment: 'preview',
         status: 'QUEUED',
+        accessPolicyVersion: source.accessPolicyVersion,
         rolledBackFromId: source.deploymentId,
         metadata: {
           rollbackOperationId: operation.id,
@@ -192,27 +208,42 @@ describe('durable rollback operation — lease, fencing, and frozen target', () 
 
   it('freezes the source/head and refuses corrupt bytes or a terminal deployment', async () => {
     const store = new TestApiStore();
+    const sourceDeployment = await store.createDeployment({
+      projectId: 'project-target',
+      provider: 'static',
+      environment: 'preview',
+      status: 'READY',
+    });
+    const currentDeployment = await store.createDeployment({
+      projectId: 'project-target',
+      provider: 'static',
+      environment: 'preview',
+      status: 'READY',
+      accessPolicyVersion: sourceDeployment.accessPolicyVersion,
+    });
 
     const source = await store.createReleaseManifest({
       projectId: 'project-target',
-      deploymentId: 'deployment-source',
+      deploymentId: sourceDeployment.id,
       environment: 'preview',
       version: 1,
       provider: 'static',
       artifactKind: 'static-snapshot',
-      artifactRef: 'static-deployments/deployment-source',
+      artifactRef: `static-deployments/${sourceDeployment.id}`,
       artifactDigest: ARTIFACT_DIGEST,
       configDigest: `sha256:${'e'.repeat(64)}`,
+      accessPolicyVersion: sourceDeployment.accessPolicyVersion,
     });
     await store.createReleaseManifest({
       projectId: 'project-target',
-      deploymentId: 'deployment-current',
+      deploymentId: currentDeployment.id,
       environment: 'preview',
       version: 2,
       provider: 'static',
       artifactKind: 'static-snapshot',
-      artifactRef: 'static-deployments/deployment-current',
+      artifactRef: `static-deployments/${currentDeployment.id}`,
       artifactDigest: `sha256:${'f'.repeat(64)}`,
+      accessPolicyVersion: currentDeployment.accessPolicyVersion,
     });
 
     const acquired = await store.acquireRollbackOperation({
@@ -237,7 +268,7 @@ describe('durable rollback operation — lease, fencing, and frozen target', () 
       rollbackOperationId: operation.id,
       projectManifestDigest: PROJECT_MANIFEST_DIGEST,
       restoredFromVersion: 1,
-      restoredFromDeploymentId: 'deployment-source',
+      restoredFromDeploymentId: source.deploymentId,
       supersededVersion: 2,
     };
     await store.ensureRollbackDeployment({
@@ -248,7 +279,8 @@ describe('durable rollback operation — lease, fencing, and frozen target', () 
         provider: 'static',
         environment: 'preview',
         status: 'QUEUED',
-        rolledBackFromId: 'deployment-source',
+        accessPolicyVersion: source.accessPolicyVersion,
+        rolledBackFromId: source.deploymentId,
         metadata,
       },
     });
@@ -281,6 +313,7 @@ describe('durable rollback operation — lease, fencing, and frozen target', () 
         artifactRef: 'static-deployments/deployment-rollback',
         artifactDigest,
         configDigest: `sha256:${'e'.repeat(64)}`,
+        accessPolicyVersion: source.accessPolicyVersion,
         url: 'https://rollback.example.test',
         metadata,
         logs: [],

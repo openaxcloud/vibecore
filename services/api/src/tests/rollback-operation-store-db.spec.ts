@@ -61,12 +61,14 @@ async function seedStaticHistory(store: PrismaApiStore, label: string) {
     provider: 'static',
     environment: 'preview',
     status: 'READY',
+    accessPolicy: { mode: 'PUBLIC' },
   });
   const current = await store.createDeployment({
     projectId: project.id,
     provider: 'static',
     environment: 'preview',
     status: 'READY',
+    accessPolicyVersion: previous.accessPolicyVersion,
   });
   const sourceManifest = await store.createReleaseManifest({
     projectId: project.id,
@@ -78,6 +80,7 @@ async function seedStaticHistory(store: PrismaApiStore, label: string) {
     artifactRef: `static-deployments/${previous.id}`,
     artifactDigest: SOURCE_DIGEST,
     configDigest: CONFIG_DIGEST,
+    accessPolicyVersion: previous.accessPolicyVersion,
   });
   await store.createReleaseManifest({
     projectId: project.id,
@@ -88,6 +91,7 @@ async function seedStaticHistory(store: PrismaApiStore, label: string) {
     artifactKind: 'static-snapshot',
     artifactRef: `static-deployments/${current.id}`,
     artifactDigest: `sha256:${'d'.repeat(64)}`,
+    accessPolicyVersion: current.accessPolicyVersion,
   });
 
   return { organization, project, previous, current, sourceManifest, manifestDigest };
@@ -168,6 +172,7 @@ runDbTests('rollback operation — real PostgreSQL clock, lease, and release CAS
           provider: 'static',
           environment: 'preview',
           status: 'QUEUED',
+          accessPolicyVersion: seeded.sourceManifest.accessPolicyVersion,
           rolledBackFromId: seeded.previous.id,
           metadata,
         },
@@ -213,6 +218,7 @@ runDbTests('rollback operation — real PostgreSQL clock, lease, and release CAS
         artifactRef: `static-deployments/${operation.deploymentId}`,
         artifactDigest: SOURCE_DIGEST,
         configDigest: CONFIG_DIGEST,
+        accessPolicyVersion: seeded.sourceManifest.accessPolicyVersion,
         url: 'https://rollback.example.test',
         metadata,
         logs: [],
@@ -304,6 +310,7 @@ runDbTests('rollback operation — real PostgreSQL clock, lease, and release CAS
             provider: 'static',
             environment: 'preview',
             status: 'QUEUED',
+            accessPolicyVersion: seeded!.sourceManifest.accessPolicyVersion,
             rolledBackFromId: seeded!.previous.id,
             metadata,
           },
@@ -330,6 +337,7 @@ runDbTests('rollback operation — real PostgreSQL clock, lease, and release CAS
             artifactRef: `static-deployments/${deploymentId}`,
             artifactDigest: SOURCE_DIGEST,
             configDigest: CONFIG_DIGEST,
+            accessPolicyVersion: seeded!.sourceManifest.accessPolicyVersion,
             url: `https://${deploymentId}.example.test`,
             metadata,
             logs: [],

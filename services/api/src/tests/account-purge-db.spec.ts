@@ -89,7 +89,7 @@ runDbTests('account purge — PostgreSQL multi-client fencing', () => {
       );
 
       await entered.promise;
-      await prismaB.$queryRawUnsafe('SELECT pg_sleep(0.2)');
+      await new Promise((resolve) => setTimeout(resolve, 200));
       const reconcile = storeB.reconcilePurgeFreezes().then((result) => {
         reconcileResolvedDuringEffect = effectActive;
         return result;

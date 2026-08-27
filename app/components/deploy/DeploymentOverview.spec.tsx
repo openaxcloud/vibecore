@@ -26,7 +26,12 @@ describe('DeploymentOverview', () => {
   it('renders Production label→value rows for a deployment', () => {
     renderWithLocale(
       <DeploymentOverview
-        deployment={{ status: 'READY', environment: 'production', url: 'https://api.e-code.ai/static-deployments/d1/' }}
+        deployment={{
+          status: 'READY',
+          environment: 'production',
+          url: 'https://api.e-code.ai/static-deployments/d1/',
+          accessPolicy: { mode: 'PUBLIC', version: 1 },
+        }}
         deploymentTypeId="static"
       />,
     );

@@ -62,6 +62,7 @@ runDbTests('server-image release — durable Postgres linearization', () => {
         provider: 'server',
         environment: 'preview',
         status: 'BUILDING',
+        accessPolicy: { mode: 'INVITE_ONLY' },
         metadata: { serverDeploy: { image: { imageRef, imageDigest: DIGEST }, promotion } },
       });
       const input: ServerImageReleaseCommitInput = {

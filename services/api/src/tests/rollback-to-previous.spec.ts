@@ -90,6 +90,7 @@ describe('static rollback-to-previous (deterministic, fail-closed)', () => {
       artifactRef: `static-deployments/${deployment.id}`,
       artifactDigest,
       configDigest: 'sha256:' + '0'.repeat(64),
+      accessPolicyVersion: 1,
     });
 
     return { deployment, artifactDigest };
@@ -248,6 +249,7 @@ describe('static rollback-to-previous (deterministic, fail-closed)', () => {
         provider: 'static',
         environment: 'preview',
         status: 'QUEUED',
+        accessPolicyVersion: sourceManifest.accessPolicyVersion,
         rolledBackFromId: previous.deployment.id,
         metadata,
       },
@@ -269,6 +271,7 @@ describe('static rollback-to-previous (deterministic, fail-closed)', () => {
       artifactRef: `static-deployments/${deploymentId}`,
       artifactDigest: previous.artifactDigest,
       ...(sourceManifest.configDigest ? { configDigest: sourceManifest.configDigest } : {}),
+      accessPolicyVersion: sourceManifest.accessPolicyVersion,
       url: 'https://rollback.example.test',
       metadata,
       logs: [],
@@ -395,6 +398,7 @@ describe('static rollback-to-previous (deterministic, fail-closed)', () => {
       artifactKind: 'static-snapshot',
       artifactRef: `static-deployments/${current.deployment.id}`,
       artifactDigest: current.artifactDigest,
+      accessPolicyVersion: current.deployment.accessPolicyVersion,
     });
     store.release();
 
@@ -458,6 +462,7 @@ describe('static rollback-to-previous (deterministic, fail-closed)', () => {
         provider: 'static',
         environment: 'preview',
         status: 'QUEUED',
+        accessPolicyVersion: previous.deployment.accessPolicyVersion,
         rolledBackFromId: previous.deployment.id,
         metadata: {
           rollbackToPrevious: true,

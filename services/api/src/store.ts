@@ -3,6 +3,7 @@ import { hashToken } from '@vibecore/auth';
 import type { PlanKey, QuotaKey } from '@vibecore/billing';
 import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
 import type { AccountPurgePreview, PurgeStorageDeps, PurgeUserAccountResult } from './account-purge.js';
+import type { DeploymentAccessMode, DeploymentAccessPolicyRecord } from './deployment-access.js';
 
 export interface UserRecord {
   id: string;
@@ -35,6 +36,7 @@ export interface UserRecord {
    * on update so partial saves never clobber unrelated keys.
    */
   preferences?: Record<string, unknown>;
+
   /** Last activity timestamp (throttled). Drives inactivity GC (P8). */
   lastActiveAt?: string;
   createdAt: string;
@@ -50,6 +52,7 @@ export interface SessionRecord {
   userAgent?: string;
   revokedAt?: string;
   lastReauthAt?: string;
+
   /** Set when an admin is impersonating another user; value = admin's user id. */
   impersonatedBy?: string;
 }
@@ -60,10 +63,13 @@ export interface RuntimeWebSocketTicketRecord {
   id: string;
   tokenHash: string;
   userId: string;
+
   /** Exact :workspaceId URL segment the browser must present. */
   workspaceId: string;
+
   /** Authoritative project resolved during ticket issuance. */
   projectId: string;
+
   /** Authoritative runtime workspace resolved during ticket issuance. */
   resolvedWorkspaceId: string;
   endpoint: RuntimeWebSocketEndpoint;
@@ -90,6 +96,7 @@ export interface MembershipRecord {
   state: 'ACTIVE' | 'SUSPENDED';
   invitedByUserId?: string;
   joinedAt: string;
+
   /**
    * Human-readable identity of the member, populated by listMembers (which joins
    * the user row). Undefined on the single-record add/get paths that don't join.
@@ -161,6 +168,7 @@ export interface ImportJobRecord {
   redactedCount: number;
   creditsReserved: boolean;
   version: number;
+
   /** Internal fencing fields. HTTP handlers must never return these. */
   operationToken?: string;
   operationExpiresAt?: string;
@@ -214,6 +222,7 @@ export interface RemixJobRecord {
   piiMaskedCount: number;
   sourceDatabasePin?: unknown;
   targetDatabaseInstanceId?: string;
+
   /** Internal fencing fields. HTTP handlers must never return these. */
   operationToken?: string;
   operationExpiresAt?: string;
@@ -280,6 +289,7 @@ export interface WorkspaceRecord {
    * should fall back to Project.gitRepositoryUrl when this is undefined.
    */
   gitRepositoryUrl?: string;
+
   /** P2d dev/prod split: 'development' (default) or 'production' (publish checkout). */
   environment?: string;
   createdAt: string;
@@ -294,6 +304,7 @@ export interface SnapshotRecord {
   storageKey?: string;
   byteLength?: number;
   createdByUserId?: string;
+
   /**
    * AI conversation this snapshot belongs to, when it was taken as a
    * "before-ai-change" snapshot during a tool call. NULL for manual/legacy rows.
@@ -301,6 +312,7 @@ export interface SnapshotRecord {
    * snapshot representing the state before that turn — never by array position.
    */
   conversationId?: string;
+
   /**
    * Assistant-turn ordinal within {@link conversationId} at the time the snapshot
    * was taken. The first snapshot of a turn shares the smallest createdAt.
@@ -319,23 +331,31 @@ export interface GalleryListingRecord {
   status: string;
   featured: boolean;
   sourceProjectId: string;
+
   /** Immutable ProjectSnapshot id the clone reproduces. */
   sourceSnapshotId: string;
   authorName: string;
   authorUserId?: string;
   appUrl?: string;
+
   /** Card preview image (real rendered screenshot): root-relative asset or https URL. */
   thumbnailUrl?: string;
+
   /** Curation gate: false = view-only listing, remix refused (P0-V3-05). */
   remixAllowed: boolean;
+
   /** Declared license id (e.g. SPDX "MIT"); undefined = none declared. */
   licenseId?: string;
+
   /** Versioned license text snapshot captured at curation. */
   licenseText?: string;
+
   /** sha256 pin of licenseText — what a RemixJob records as accepted. */
   licenseTextSha256?: string;
+
   /** Author's explicit versioned PII consent; undefined = PII masked on remix. */
   piiConsentVersion?: string;
+
   /**
    * Trace auditable des confirmations exigées à la curation (P0-V3-05,
    * réserve #8) : quand, et par quel admin. undefined = jamais confirmé.
@@ -361,12 +381,15 @@ export interface ProjectStorageObjectRecord {
   createdAt: string;
 }
 
-/** Managed Postgres database for a project (Replit "Database" tab). Phase-1
- *  scaffold for point-in-time rollback — see database-rollback-service.ts. */
+/**
+ * Managed Postgres database for a project (Replit "Database" tab). Phase-1
+ *  scaffold for point-in-time rollback — see database-rollback-service.ts.
+ */
 export interface DatabaseInstanceRecord {
   id: string;
   projectId: string;
   organizationId: string;
+
   /** P2d dev/prod split — which environment this instance backs. */
   environment: 'development' | 'production';
   status: 'PROVISIONING' | 'ACTIVE' | 'SUSPENDED' | 'FAILED' | 'DELETED';
@@ -607,12 +630,18 @@ export interface DeploymentRecord {
   logs: Array<{ timestamp: string; level: 'info' | 'warn' | 'error'; message: string }>;
   metadata?: Record<string, unknown>;
   rolledBackFromId?: string;
+
   /** P2d: source deployment a production deployment was published from. */
   parentDeploymentId?: string;
+
   /** Replit-parity deploy metering idempotency marker (ISO); set once metered. */
   lastMeteredAt?: string;
+
   /** Rate-card machine size key picked at publish (server deploys). */
   machineSize?: string;
+
+  /** Exact immutable policy version enforced at both dedicated origins. */
+  accessPolicyVersion: number;
   startedAt?: string;
   finishedAt?: string;
   canceledAt?: string;
@@ -638,6 +667,7 @@ export interface ReleaseManifestRecord {
   storeGeneration?: string;
   configDigest?: string;
   dbMigrationPoint?: string;
+  accessPolicyVersion: number;
   createdAt: string;
 }
 
@@ -694,6 +724,7 @@ export interface RollbackDeploymentCreateInput {
   provider: string;
   environment: DeploymentRecord['environment'];
   status: DeploymentRecord['status'];
+  accessPolicyVersion: number;
   rolledBackFromId: string;
   metadata: Record<string, unknown>;
 }
@@ -708,11 +739,37 @@ export interface StaticRollbackReleaseCommitInput extends RollbackLeaseFence {
   storeGeneration?: string;
   configDigest?: string;
   dbMigrationPoint?: string;
+  accessPolicyVersion: number;
   url: string;
   metadata: Record<string, unknown>;
   logs: DeploymentRecord['logs'];
   finishedAt: string;
 }
+
+export interface DeploymentAccessContext {
+  deploymentId: string;
+  projectId: string;
+  organizationId: string;
+  environment: string;
+  deploymentStatus: DeploymentRecord['status'];
+  projectDeletedAt?: string;
+  policy?: DeploymentAccessPolicyRecord;
+}
+
+export type DeploymentAccessTicketMutationResult =
+  | { ok: true; policy: DeploymentAccessPolicyRecord; userId: string; expiresAt: string }
+  | {
+      ok: false;
+      reason:
+        | 'DEPLOYMENT_NOT_FOUND'
+        | 'POLICY_INVALID'
+        | 'POLICY_NOT_PRIVATE'
+        | 'ACCESS_DENIED'
+        | 'TICKET_NOT_FOUND'
+        | 'TICKET_EXPIRED'
+        | 'TICKET_REPLAYED'
+        | 'POLICY_CHANGED';
+    };
 
 /**
  * Atomic READY + ReleaseManifest commit for a promoted server image. The store
@@ -817,8 +874,10 @@ export interface AbuseEventRecord {
   type: string;
   severity: string;
   createdAt: string;
+
   /** Resolution state (F22): stored in metadata. */
   resolved?: boolean;
+
   /** Disposition applied by an operator: 'dismissed' | 'warned' | 'suspended'. */
   disposition?: string;
   resolvedAt?: string;
@@ -839,6 +898,7 @@ export type AiMessageFeedbackVote = 'up' | 'down';
 export interface AiMessageFeedbackRecord {
   id: string;
   userId: string;
+
   /**
    * Client-side chat message id. Standalone chats keep their transcript in
    * browser IndexedDB and never persist an AiMessage row, so this is a plain
@@ -886,8 +946,10 @@ export interface EnterpriseSettingsRecord {
   requireMfaForAdmins: boolean;
   dataRetentionDays: number;
   legalHoldEnabled: boolean;
+
   /** When true, non-owner members must sign in via SSO once the grace window elapses. */
   ssoEnforced: boolean;
+
   /** ISO timestamp the enforcement clock started; the 7-day grace is measured from here. Null when not enforced. */
   ssoEnforcedAt?: string | null;
   updatedAt: string;
@@ -1050,6 +1112,7 @@ export interface ReconnectionAlertRecord {
   detectedAt: string;
   resolvedAt?: string;
   notifiedAt?: string;
+
   /** Denormalised from the related UserConnection for the user-facing list. */
   provider: string;
   externalAccountLabel: string;
@@ -1127,8 +1190,10 @@ export interface CreditWalletRecord {
   budgetCapCents?: number;
   serviceShutdownCents?: number;
   autoTopupCents?: number;
+
   /** Usage-based spend-alert de-dup: highest rung (50/80/100) sent this period. */
   lastSpendAlertPct?: number;
+
   /** Start of the period the last spend alert was sent for (ISO). */
   lastSpendAlertPeriodStart?: string;
   createdAt: string;
@@ -1205,6 +1270,7 @@ export interface ProviderConfigRecord {
 export interface ModelConfigRecord {
   id: string;
   providerConfigId: string;
+
   /** Denormalized provider key for convenience (from the parent ProviderConfig). */
   provider?: string;
   modelId: string;
@@ -1442,6 +1508,7 @@ export interface InstalledSkillRecord {
   installedByUserId: string | null;
   createdAt: string;
   updatedAt: string;
+
   // RPL-SK-001.3/.4 provenance + audit + revoke.
   origin: string;
   contentHash: string | null;
@@ -1464,6 +1531,7 @@ export interface InstallSkillInput {
   instructions: string;
   homepageUrl?: string | null;
   installedByUserId?: string | null;
+
   // RPL-SK-001 install-time provenance + audit outcome.
   origin?: string;
   enabled?: boolean;
@@ -1516,6 +1584,7 @@ export interface BillingPlanRecord {
   limits: Record<string, number>;
   stripeProductId?: string;
   stripePriceId?: string;
+
   // Replit-parity: distinct monthly/annual price ids (annual = discounted).
   stripePriceMonthlyId?: string;
   stripePriceAnnualId?: string;
@@ -1666,6 +1735,7 @@ export interface ApiStore {
   hasPurgeReceipt(userId: string): Promise<boolean>;
   findUserByEmail(email: string): Promise<UserRecord | undefined>;
   findUserById(id: string): Promise<UserRecord | undefined>;
+
   /**
    * Stamp a user's lastActiveAt (P8 inactivity GC). Caller throttles; the write
    * is best-effort. Returns the new timestamp (ISO) or null if the user is gone.
@@ -1687,6 +1757,7 @@ export interface ApiStore {
     expiresAt: Date;
     ipAddress?: string;
     userAgent?: string;
+
     /** Admin user id when this is an impersonation session (P8). */
     impersonatedBy?: string;
   }): Promise<SessionRecord>;
@@ -1702,9 +1773,11 @@ export interface ApiStore {
     projectId: string;
     resolvedWorkspaceId: string;
     endpoint: RuntimeWebSocketEndpoint;
+
     /** Relative lifetime; the durable store evaluates it from its own clock. */
     ttlMs: number;
   }): Promise<RuntimeWebSocketTicketRecord>;
+
   /**
    * Atomically claim a live ticket bound to the exact workspace + endpoint.
    * Exactly one concurrent caller can receive the row; expiry and replay fail
@@ -1744,8 +1817,10 @@ export interface ApiStore {
     templateName?: string;
     gitRepositoryUrl?: string;
     gitDefaultBranch?: string;
+
     /** Internal clone seed. Runtime-validated before the project transaction commits. */
     initialManifest?: unknown;
+
     /** Secure remixes strip tenant-bound refs; ordinary duplicates preserve them. */
     manifestCloneMode?: 'COPY' | 'DETACH_EXTERNALS';
   }): Promise<ProjectRecord>;
@@ -1801,8 +1876,10 @@ export interface ApiStore {
     pagePath?: string;
   }): Promise<ContactRequestRecord>;
   countProjects(organizationId: string, options?: { since?: Date }): Promise<number>;
+
   /** Active moderation strikes across every current organization member. */
   countOrganizationActiveStrikes(organizationId: string, nowMs: number): Promise<number>;
+
   /**
    * Authoritative count used for tenant demotion. Implementations must inspect
    * every high/critical event in the window; a display-list `take` cap is not a
@@ -1827,8 +1904,10 @@ export interface ApiStore {
     projectId: string;
     name: string;
     slug: string;
+
     /** Target org for the clone. Defaults to the source project's org. */
     organizationId?: string;
+
     /** Secure remix boundary: never carry source resource/entitlement refs. */
     manifestCloneMode?: 'COPY' | 'DETACH_EXTERNALS';
   }): Promise<ProjectRecord>;
@@ -1854,6 +1933,7 @@ export interface ApiStore {
   upsertProjectSecret(input: { projectId: string; key: string; valueEncrypted: string }): Promise<ProjectSecretRecord>;
   listProjectSecrets(projectId: string): Promise<Array<Omit<ProjectSecretRecord, 'valueEncrypted'>>>;
   getProjectSecret(projectId: string, key: string): Promise<ProjectSecretRecord | undefined>;
+
   /** Checkpoint PROJET coordonné (plan §15). */
   /** Shared authority for timestamps used in cross-replica leases/manifests. */
   getDatabaseTime(): Promise<string>;
@@ -1899,6 +1979,7 @@ export interface ApiStore {
       expiresAt?: string;
       retentionSeconds?: number;
     };
+
     /** Keep the same fenced barrier for an immediately-following restore. */
     retainBarrier?: boolean;
   }): Promise<void>;
@@ -1914,6 +1995,7 @@ export interface ApiStore {
       expiresAt?: string;
     },
   ): Promise<void>;
+
   /**
    * The write barrier in force for a project, read from the DATABASE so every
    * API replica observes it (an in-process barrier freezes only its own pod).
@@ -1947,15 +2029,20 @@ export interface ApiStore {
     idempotencyKey: string;
     requestHash: string;
     storageConsentVersion?: string;
+
     /** Immutable release pin (ProjectSnapshot id) the clone reproduces. */
     sourceSnapshotId?: string;
+
     /** The gallery listing the remix was launched from (provenance). */
     sourceListingId?: string;
+
     /** Versioned license captured at remix time (immutable on the job). */
     licenseSnapshot?: unknown;
+
     /** Consent-text version the remixer explicitly accepted. */
     consentVersion?: string;
   }): Promise<{ job: RemixJobRecord; replayed: boolean }>;
+
   /** Acquire/steal an expired execution lease via CAS. */
   claimRemixJob(input: {
     id: string;
@@ -2046,6 +2133,7 @@ export interface ApiStore {
     operationToken: string;
     targetProjectId: string;
   }): Promise<boolean>;
+
   /** Create a curated Gallery listing (TPL-02). Not self-service — curator/seed. */
   createGalleryListing(input: {
     slug: string;
@@ -2066,6 +2154,7 @@ export interface ApiStore {
     licenseText?: string;
     licenseTextSha256?: string;
     piiConsentVersion?: string;
+
     /** Trace auditable des confirmations de curation (P0-V3-05, réserve #8). */
     rightsConfirmedAt?: Date;
     rightsConfirmedBy?: string;
@@ -2073,6 +2162,7 @@ export interface ApiStore {
     piiPolicyAcceptedBy?: string;
     publishedAt?: string;
   }): Promise<GalleryListingRecord>;
+
   /** Browse published listings, filtered by category / free-text / featured. */
   listGalleryListings(opts?: {
     status?: string;
@@ -2085,6 +2175,7 @@ export interface ApiStore {
   getGalleryListingById(id: string): Promise<GalleryListingRecord | undefined>;
   incrementGalleryListingViews(id: string): Promise<void>;
   incrementGalleryListingUses(id: string): Promise<void>;
+
   /**
    * Atomically create the tenant-scoped idempotency row and its credit hold.
    * A same-input replay returns the existing job; a reused key with a different
@@ -2096,6 +2187,7 @@ export interface ApiStore {
     provider: string;
     sourceRef?: string;
     expiresAt?: string;
+
     /** Prefer this in production so the store derives the deadline from DB time. */
     expiresInMs?: number;
     idempotencyKey: string;
@@ -2129,6 +2221,7 @@ export interface ApiStore {
     expectedStates: string[];
     state: string;
     patch?: ImportJobTransitionPatch;
+
     /** If set, operationExpiresAt is derived atomically from the store clock. */
     operationLeaseDurationMs?: number;
   }): Promise<ImportJobRecord | undefined>;
@@ -2207,6 +2300,7 @@ export interface ApiStore {
   cancelImportJob(importJobId: string, organizationId: string): Promise<ImportJobRecord | undefined>;
 
   getImportJob(id: string): Promise<ImportJobRecord | undefined>;
+
   /*
    * IMP-4 timeout sweeper: claim expired jobs with compare-and-swap. Jobs with a
    * partial target move to CLEANUP_PENDING so the caller can remove physical data
@@ -2329,6 +2423,7 @@ export interface ApiStore {
     revokedByUserId: string;
     reason: string;
   }): Promise<AccessGrantMutationResult>;
+
   /** Uses CURRENT_TIMESTAMP in PostgreSQL, never an api-replica clock. */
   listActiveProjectAccessRoles(projectId: string, userId: string): Promise<string[]>;
   recordProjectActivity(input: {
@@ -2446,6 +2541,7 @@ export interface ApiStore {
   }): Promise<AgentPatchProposalRecord>;
   listOpenAgentPatchProposals(projectId: string): Promise<AgentPatchProposalRecord[]>;
   deleteAgentPatchProposal(projectId: string, id: string): Promise<boolean>;
+
   /** Append an agent self-repair outcome to the durable history. */
   recordAgentRepairEvent(input: {
     projectId: string;
@@ -2458,6 +2554,7 @@ export interface ApiStore {
     validationError?: string;
     repairError?: string;
   }): Promise<AgentRepairEventRecord>;
+
   /** List recent self-repair events for a project (newest first). */
   listAgentRepairEvents(projectId: string, options?: { take?: number }): Promise<AgentRepairEventRecord[]>;
 
@@ -2468,6 +2565,7 @@ export interface ApiStore {
    */
   listConsensusRecords(projectId: string, options?: { take?: number }): Promise<ConsensusRecordSummary[]>;
   getConsensusRecordDetail(projectId: string, runId: string): Promise<ConsensusRecordDetail | undefined>;
+
   /** Sparse per-project enable/disable overrides for the builtin Skills catalog. */
   listProjectSkillOverrides(projectId: string): Promise<ProjectSkillOverrideRecord[]>;
   setProjectSkillEnabled(input: {
@@ -2475,15 +2573,19 @@ export interface ApiStore {
     skillId: string;
     enabled: boolean;
   }): Promise<ProjectSkillOverrideRecord>;
+
   /** Installed GitHub-repo skills for a scope target (F#27), newest first. */
   listInstalledSkills(scope: InstalledSkillScope, scopeId: string): Promise<InstalledSkillRecord[]>;
+
   /**
    * Install (or return the existing) GitHub-repo skill for a scope target.
    * `created` is false when a row for (scope, scopeId, ownerRepo) already existed.
    */
   installSkill(input: InstallSkillInput): Promise<{ record: InstalledSkillRecord; created: boolean }>;
+
   /** Uninstall a GitHub-repo skill; resolves true when a row was removed. */
   uninstallSkill(scope: InstalledSkillScope, scopeId: string, ownerRepo: string): Promise<boolean>;
+
   /**
    * Toggle an installed skill's enabled flag; undefined when no such row. A
    * revoked or audit-rejected skill cannot be enabled — the store refuses it by
@@ -2496,6 +2598,7 @@ export interface ApiStore {
     ownerRepo: string;
     enabled: boolean;
   }): Promise<InstalledSkillRecord | undefined>;
+
   /**
    * Revoke an installed skill (RPL-SK-001.4): hard-disable it and stamp
    * revokedAt/by/reason. The row stays for audit; it cannot be re-enabled until
@@ -2508,14 +2611,17 @@ export interface ApiStore {
     revokedByUserId?: string | null;
     reason?: string | null;
   }): Promise<InstalledSkillRecord | undefined>;
+
   /** Append one immutable row to the skill audit journal (RPL-SK-001.3). */
   recordSkillAudit(input: RecordSkillAuditInput): Promise<SkillAuditEventRecord>;
+
   /** The audit journal for a scope target, newest first. */
   listSkillAuditEvents(
     scope: InstalledSkillScope,
     scopeId: string,
     options?: { ownerRepo?: string; limit?: number },
   ): Promise<SkillAuditEventRecord[]>;
+
   /** Live install counts per `owner/repo` across all scopes (for the catalog). */
   countInstallsByRepo(): Promise<Record<string, number>>;
   createWorkspace(input: {
@@ -2524,6 +2630,7 @@ export interface ApiStore {
     name: string;
     runtimeMode: string;
     environment?: string;
+
     /** Non-running checkouts (for example production source trees) start STOPPED. */
     initialStatus?: WorkspaceRecord['status'];
   }): Promise<WorkspaceRecord>;
@@ -2544,6 +2651,7 @@ export interface ApiStore {
   listActiveWorkspaces(organizationId: string): Promise<WorkspaceRecord[]>;
   countSnapshots(organizationId: string): Promise<number>;
   countDeployments(organizationId: string, since?: Date): Promise<number>;
+
   /**
    * Count an organization's concurrently-published apps — distinct projects with
    * a live (READY) production deployment. Used to enforce the Replit-parity
@@ -2551,6 +2659,7 @@ export interface ApiStore {
    * so re-publishing an already-published app does not count against itself.
    */
   countPublishedApps(organizationId: string, options?: { excludeProjectId?: string }): Promise<number>;
+
   /**
    * Projets PUBLIÉS de l'org, avec la date de publication la plus récente de
    * chacun. Le contrat Starter raisonne en « projets publiés ACTIFS » : il faut
@@ -2559,6 +2668,7 @@ export interface ApiStore {
    * republication d'un 2e projet, ni d'ignorer les publications expirées.
    */
   listPublishedProjects(organizationId: string): Promise<Array<{ projectId: string; publishedAt: string }>>;
+
   /**
    * Déploiements candidats à l'extinction 30 j : PRODUCTION + READY, avec la
    * date et le plan de l'org. Nécessaire au balayage qui ARRÊTE réellement les
@@ -2601,11 +2711,13 @@ export interface ApiStore {
     contentHash: string;
   }): Promise<ProjectStorageObjectRecord>;
   getProjectStorageObject(key: string): Promise<ProjectStorageObjectRecord | undefined>;
+
   /**
    * Total stored object bytes per organization (project storage objects joined
    * to their org). Drives the daily object-storage metering sweep (P4).
    */
   aggregateStorageBytesByOrg(): Promise<Array<{ organizationId: string; bytes: number }>>;
+
   /**
    * Database point-in-time rollback (Phase-1 scaffold, dormant behind
    * DB_ROLLBACK_ENABLED). Read the project's managed-database instance and its
@@ -2613,6 +2725,7 @@ export interface ApiStore {
    * database-rollback-service.ts + migration 0040.
    */
   getDatabaseInstanceByProject(projectId: string, environment?: string): Promise<DatabaseInstanceRecord | undefined>;
+
   /** Acquire/recover the singleton migration under a DB-clock lease. */
   acquireDatabaseMigrationExecution(input: {
     projectId: string;
@@ -2670,6 +2783,7 @@ export interface ApiStore {
     targetTimestamp?: string;
     requestedByUserId?: string;
   }): Promise<DatabaseRestoreRecord>;
+
   /**
    * Phase-2 provisioning lifecycle (dormant behind DB_ROLLBACK_ENABLED). Create
    * the per-project instance row, transition its status, record snapshots, prune
@@ -2683,6 +2797,7 @@ export interface ApiStore {
     environment?: string;
     provisioningDeadlineAt?: string;
   }): Promise<DatabaseInstanceRecord>;
+
   /**
    * Atomically creates a provisioning row, or claims an existing FAILED row for
    * retry. A live PROVISIONING/ACTIVE/SUSPENDED row is returned without a claim.
@@ -2747,6 +2862,16 @@ export interface ApiStore {
     rolledBackFromId?: string;
     parentDeploymentId?: string;
     machineSize?: string;
+
+    /** Create a new immutable policy in the same transaction as this row. */
+    accessPolicy?: {
+      mode: DeploymentAccessMode;
+      passwordHash?: string;
+      createdByUserId?: string;
+    };
+
+    /** Bind an existing exact policy (redeploy/rollback in the same environment). */
+    accessPolicyVersion?: number;
     startedAt?: string;
     finishedAt?: string;
     canceledAt?: string;
@@ -2757,6 +2882,7 @@ export interface ApiStore {
         projectId: string;
         status: string;
         projectDeletedAt: Date | string | null;
+
         /*
          * Nécessaires pour éteindre RÉELLEMENT une publication Starter expirée
          * dans le chemin de service : sans la date ET le plan, le serveur ne peut
@@ -2765,28 +2891,60 @@ export interface ApiStore {
         createdAt?: string;
         environmentName?: string;
         organizationId?: string;
+
         /** Plan de l'org, uniquement si l'abonnement est ACTIF. */
         planKey?: string;
       }
     | undefined
   >;
+  getDeploymentAccessContext(deploymentId: string): Promise<DeploymentAccessContext | undefined>;
+  getDeploymentAccessPolicy(deploymentId: string): Promise<DeploymentAccessPolicyRecord | undefined>;
+  setDeploymentAccessPolicy(input: {
+    projectId: string;
+    deploymentId: string;
+    mode: DeploymentAccessMode;
+    passwordHash?: string;
+    createdByUserId?: string;
+    expectedVersion?: number;
+
+    /** READY deployments append a config-only ReleaseManifest from this source. */
+    releaseSource?: ReleaseManifestRecord;
+  }): Promise<DeploymentAccessPolicyRecord | undefined>;
+  isDeploymentAccessUserAuthorized(input: {
+    deploymentId: string;
+    userId: string;
+    mode: Extract<DeploymentAccessMode, 'WORKSPACE_ONLY' | 'INVITE_ONLY'>;
+  }): Promise<boolean>;
+  issueDeploymentAccessExchangeTicket(input: {
+    deploymentId: string;
+    userId: string;
+    tokenHash: string;
+    ttlSeconds: number;
+  }): Promise<DeploymentAccessTicketMutationResult>;
+  consumeDeploymentAccessExchangeTicket(input: {
+    deploymentId: string;
+    tokenHash: string;
+  }): Promise<DeploymentAccessTicketMutationResult>;
   updateDeployment(
     projectId: string,
     deploymentId: string,
     input: Partial<Omit<DeploymentRecord, 'id' | 'projectId' | 'createdAt'>>,
   ): Promise<DeploymentRecord>;
   listDeployments(projectId: string, options?: { take?: number }): Promise<DeploymentRecord[]>;
+
   /**
    * Deployments still in a non-terminal build state (QUEUED / BUILDING) whose
    * `updatedAt` is older than the given ISO cutoff. Drives the deploy reaper,
    * which fails builds orphaned by an api/worker crash so they never hang.
    */
   listStaleDeployments(cutoffIso: string): Promise<DeploymentRecord[]>;
+
   /**
    * READY server deployments (provider 'server') — the runtime-metering sweep
    * walks these to bill active machine time against their machineSize.
    */
   listActiveServerDeployments(): Promise<DeploymentRecord[]>;
+
   /**
    * P0-V3-08 rollback manifest. `createReleaseManifest` appends ONE immutable row
    * per successful publish, assigning the next monotonic `version` for
@@ -2807,6 +2965,7 @@ export interface ApiStore {
     storeGeneration?: string;
     configDigest?: string;
     dbMigrationPoint?: string;
+    accessPolicyVersion: number;
   }): Promise<ReleaseManifestRecord>;
   listReleaseManifests(
     projectId: string,
@@ -2891,10 +3050,13 @@ export interface ApiStore {
   }>;
   /** Atomically append the server-image manifest and transition to READY. */
   commitServerImageRelease(input: ServerImageReleaseCommitInput): Promise<ServerImageReleaseCommitResult>;
+
   /** Durable promotion evidence retained independently of a prunable Deployment row. */
   getServerImageReleasePromotion(deploymentId: string): Promise<unknown | undefined>;
+
   /** Latest append-only ProjectManifest revision, or undefined for a legacy row. */
   getLatestProjectManifest(projectId: string): Promise<ProjectManifestRevisionRecord | undefined>;
+
   /**
    * Append exactly the next version. The store serializes by project across API
    * replicas and compares `expectedDigest` under that lock. A retry whose exact
@@ -2910,18 +3072,22 @@ export interface ApiStore {
     expectedDigest?: string;
     createdByUserId?: string;
   }): Promise<ProjectManifestRevisionRecord>;
+
   /**
    * The ACTIVE versioned Rate Card row (undefined when none is active — the
    * caller falls back to the built-in card). `data` is the serialized RateCard.
    */
   getActiveRateCard(): Promise<{ version: number; data: unknown } | undefined>;
+
   /**
    * The ACTIVE versioned Agent Routing Card row (undefined when none — the
    * caller falls back to the built-in card from packages/billing).
    */
   getActiveAgentRoutingCard(): Promise<{ version: number; data: unknown } | undefined>;
+
   /** Number of routing card versions stored (0 = seed the built-in v1). */
   countAgentRoutingCards(): Promise<number>;
+
   /** Raw insert used by the boot seed (does not close a previous version). */
   insertAgentRoutingCard(input: {
     version: number;
@@ -2931,6 +3097,7 @@ export interface ApiStore {
     active: boolean;
     createdByUserId?: string;
   }): Promise<void>;
+
   /**
    * Publish a NEW routing card version: closes the currently-active version
    * (active=false + effectiveTo=now) and inserts the new one as active, in one
@@ -2941,6 +3108,7 @@ export interface ApiStore {
     sourceDate?: string;
     createdByUserId?: string;
   }): Promise<{ version: number; effectiveFrom: string }>;
+
   /** Full routing card history, newest first (who/what/when). */
   listAgentRoutingCards(limit?: number): Promise<
     Array<{
@@ -2955,6 +3123,7 @@ export interface ApiStore {
       createdByEmail?: string;
     }>
   >;
+
   /** One row per routed agent LLM call — admin-only visibility. */
   recordAgentCall(input: {
     userId?: string;
@@ -2976,6 +3145,7 @@ export interface ApiStore {
     routingCardVersion: number;
     source: string;
   }): Promise<void>;
+
   /** Per-line volume aggregate since an ISO cutoff (drives the admin table + simulator). */
   aggregateAgentCallVolume(sinceIso: string): Promise<
     Array<{
@@ -2988,6 +3158,7 @@ export interface ApiStore {
       marginMillicents: number;
     }>
   >;
+
   /** Most recent agent call log rows, newest first (admin-only). */
   listAgentCalls(limit?: number): Promise<
     Array<{
@@ -3020,10 +3191,13 @@ export interface ApiStore {
     category?: string;
   }): Promise<SupportTicketRecord>;
   listSupportTickets(organizationId: string): Promise<SupportTicketRecord[]>;
+
   /** I25: one ticket scoped to an org (returns null if it doesn't belong to that org). */
   getSupportTicket(organizationId: string, ticketId: string): Promise<SupportTicketRecord | null>;
+
   /** I25: the conversation thread for a ticket, oldest first. */
   listTicketMessages(ticketId: string): Promise<TicketMessageRecord[]>;
+
   /** I25: append a message to a ticket's thread. */
   addTicketMessage(input: {
     ticketId: string;
@@ -3182,9 +3356,13 @@ export interface ApiStore {
     refreshToken?: string;
   }): Promise<OAuthConnectionRecord>;
   listOAuthConnections(userId: string): Promise<OAuthConnectionRecord[]>;
-  /** Look up an OAuth connection by its provider identity, to reject linking a
-   *  provider account already bound to a DIFFERENT user (account-takeover guard). */
+
+  /**
+   * Look up an OAuth connection by its provider identity, to reject linking a
+   *  provider account already bound to a DIFFERENT user (account-takeover guard).
+   */
   findOAuthConnectionByExternalId(provider: string, externalId: string): Promise<OAuthConnectionRecord | null>;
+
   /** Unlink a provider from a user (account settings). Returns whether a row was removed. */
   deleteOAuthConnection(userId: string, provider: string): Promise<boolean>;
   upsertUserConnection(input: {
@@ -3313,6 +3491,7 @@ export interface ApiStore {
     serviceShutdownCents?: number | null;
     autoTopupCents?: number | null;
   }): Promise<CreditWalletRecord>;
+
   /**
    * Atomically append a ledger entry and move the materialized wallet balance by
    * the same delta. Returns the new entry and the post-mutation balance.
@@ -3327,6 +3506,7 @@ export interface ApiStore {
     metadata?: unknown;
   }): Promise<{ entry: CreditLedgerRecord; balanceCents: number }>;
   listCreditLedger(organizationId: string, options?: { take?: number }): Promise<CreditLedgerRecord[]>;
+
   /**
    * Total usage-based (PAYG) spend in cents since `sinceMs` — sums the absolute
    * value of PAYG_CHARGE ledger entries. Drives the 50/80/100% spend alerts
@@ -3346,6 +3526,7 @@ export interface ApiStore {
   }): Promise<UserSpendLimitRecord>;
   clearUserSpendLimit(organizationId: string, userId: string): Promise<void>;
   listUserSpendLimits(organizationId: string): Promise<UserSpendLimitRecord[]>;
+
   /** Sum a member's settled checkpoint credit spend since `sinceMs` (their period spend). */
   sumUserSpendSince(organizationId: string, userId: string, sinceMs: number): Promise<number>;
 
@@ -3356,6 +3537,7 @@ export interface ApiStore {
    * sumPaygSpendSince() (budget caps + spend alerts) non-zero.
    */
   recordPaygCharge(input: { organizationId: string; checkpointId: string; cents: number }): Promise<void>;
+
   /** Persist the spend-alert de-dup marker (highest rung sent this period). */
   markSpendAlert(input: { organizationId: string; pct: number; periodStartMs: number }): Promise<void>;
 
@@ -3426,6 +3608,7 @@ export interface ApiStore {
     clientSecretEnc?: string | null;
     enabled?: boolean;
   }): Promise<{ provider: string; enabled: boolean; clientId: string | null; hasSecret: boolean }>;
+
   /*
    * Admin-managed social-login provider config (one row per provider). Returns the
    * encrypted secret so the caller can decrypt it server-side; never expose it to
@@ -3447,11 +3630,13 @@ export interface ApiStore {
     enabled?: boolean;
     updatedByUserId?: string | null;
   }): Promise<{ provider: string; enabled: boolean; clientId: string | null; hasSecret: boolean }>;
+
   /*
    * Admin-managed Stripe config (singleton). Returns the encrypted blobs so the
    * caller can decrypt them server-side; never expose these to the browser.
    */
   getStripeConfig(): Promise<{ secretKeyEnc: string | null; webhookSecretEnc: string | null } | null>;
+
   /*
    * Upsert the singleton. A field left `undefined` is preserved (so saving only
    * the webhook secret doesn't wipe the secret key); pass `null` to clear.
@@ -3461,6 +3646,7 @@ export interface ApiStore {
     webhookSecretEnc?: string | null;
     updatedByUserId?: string | null;
   }): Promise<{ hasSecretKey: boolean; hasWebhookSecret: boolean }>;
+
   /*
    * Admin-set per-plan Stripe price IDs (not secrets). `undefined` leaves a field
    * unchanged; `null` clears it. The plan row must already exist (seeded).
@@ -3473,13 +3659,16 @@ export interface ApiStore {
     stripePriceAnnualId?: string | null;
   }): Promise<void>;
   listModelConfigs(options?: { enabledOnly?: boolean }): Promise<ModelConfigRecord[]>;
+
   // Admin-wide listings for the supervision console.
   listAdminCreditWallets(): Promise<CreditWalletRecord[]>;
   listAdminAgentCheckpoints(options?: { take?: number }): Promise<AgentCheckpointRecord[]>;
+
   /** F21: per-org agent-checkpoint storage footprint (row count + token/credit totals). */
   summarizeAgentCheckpoints(): Promise<
     { organizationId: string; checkpoints: number; inputTokens: number; outputTokens: number; creditCents: number }[]
   >;
+
   /**
    * F21: count (dryRun) or delete terminal (COMPLETED/FAILED) agent checkpoints
    * started before `before`. dryRun powers the pre-purge estimate; the real purge
@@ -3540,6 +3729,7 @@ export interface ApiStore {
     metadata?: unknown;
   }): Promise<UsageEventRecord>;
   listUsageEvents(organizationId: string, options?: { take?: number }): Promise<UsageEventRecord[]>;
+
   /** True if a usage event of `type` was recorded for the org at/after `sinceMs` — used to dedup the daily storage meter. */
   hasUsageEventSince(organizationId: string, type: string, sinceMs: number): Promise<boolean>;
   sumUsage(organizationId: string, type: string, since?: Date): Promise<number>;
@@ -3641,8 +3831,10 @@ export interface ApiStore {
     resolved?: boolean;
     disposition?: string;
   }): Promise<AbuseEventRecord>;
+
   /** F23: security-relevant audit rows WITH their ids (so a resolution can key off them). */
   listSecurityAuditEvents(): Promise<Array<AuditEvent & { id: string; createdAt: string }>>;
+
   /** F23: resolution overlay for security events (derived from AuditLog). */
   listSecurityEventResolutions(): Promise<SecurityEventResolutionRecord[]>;
   resolveSecurityEvent(input: {

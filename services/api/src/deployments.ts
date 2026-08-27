@@ -4,6 +4,7 @@ import { access, cp, mkdir, readdir, readFile, rm, stat } from 'node:fs/promises
 import { join, relative, resolve, sep } from 'node:path';
 import { z } from 'zod';
 import { appPublicCopy, appPublicEnglish } from './app-public-copy.js';
+import { DEPLOYMENT_ACCESS_MODES } from './deployment-access.js';
 import { hashSnapshotEntries, type SnapshotEntry } from './release-manifest.js';
 import type { DeploymentRecord, ProjectRecord } from './store.js';
 import type { TransactionalLocale } from './transactional-i18n.js';
@@ -56,6 +57,8 @@ export const createDeploymentSchema = z.object({
   artifactSizeLimitMb: z.number().int().min(1).max(2048).default(250),
   envVars: z.record(z.string()).default({}),
   injectSecrets: z.array(z.string().min(1).max(120)).default([]),
+  accessMode: z.enum(DEPLOYMENT_ACCESS_MODES).optional(),
+  accessPassword: z.string().min(10).max(256).optional(),
 
   /*
    * Machine size for server deploys (rate-card key, e.g. 'dedicated-1').
@@ -1560,8 +1563,11 @@ export async function restoreStaticSnapshotInto(
 
   if (await pathExists(indexHtmlPath)) {
     const original = await readFile(indexHtmlPath, 'utf8');
-    // The source index.html was rewritten for the OLD id's base path; re-point it
-    // to the new id's base so assets resolve under /static-deployments/<newId>/.
+
+    /*
+     * The source index.html was rewritten for the OLD id's base path; re-point it
+     * to the new id's base so assets resolve under /static-deployments/<newId>/.
+     */
     const restored = original.replaceAll(
       `/static-deployments/${fromDeploymentId}/`,
       `/static-deployments/${toDeploymentId}/`,
@@ -1654,7 +1660,8 @@ export function createDeploymentLogs(
   }));
 }
 
-/* ---------------------------------------------------------------------------
+/*
+ * ---------------------------------------------------------------------------
  * LAUNCH-BLOCKER (2026-08-01): a deployed static app rendered BLANK for
  * anonymous visitors.
  *

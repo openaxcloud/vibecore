@@ -129,6 +129,39 @@ import {
   type AgentMemoryScope,
   type AgentMemoryType,
 } from './agent-memory.js';
+import {
+  agentRoutingCardSchema,
+  getActiveAgentRoutingCard,
+  resetAgentRoutingCache,
+  seedAgentRoutingCard,
+} from './agent-routing-service.js';
+import { runAppImageBuild } from './app-image-build.js';
+import {
+  appPublicCopy,
+  appPublicEnglish,
+  localizeAppPublicErrorPayload,
+  localizeAppPublicMessage,
+  localizeAppValidationIssues,
+  localizeCreditLedgerReason,
+  type AppPublicCopyKey,
+} from './app-public-copy.js';
+import { generateAuthJwtSecret, generateAuthScaffoldFiles, isAuthScaffoldEnabled } from './auth-scaffold.js';
+import { boltFileActionsFromContent } from './bolt-file-actions.js';
+import { CheckpointBarrierError, withCheckpointBarrier } from './checkpoint-barrier-storage.js';
+import {
+  declareCheckpointConsistency,
+  declareDatabaseConsistency,
+  declareFilesConsistency,
+  type BarrierScope,
+  type ConsistencyDeclaration,
+} from './checkpoint-consistency.js';
+import { ProjectCheckpointLeaseManager, type ProjectCheckpointLease } from './checkpoint-lease.js';
+import { shouldRetirePresenceRow } from './collaboration-presence-cleanup.js';
+import {
+  publicDeclaredDeployTarget,
+  publicDetectedDeployTarget,
+  publicPendingDeployTarget,
+} from './deploy-target-public.js';
 import { createWorkspaceBuildAgent } from './deploy-workspace-agent.js';
 import {
   detectPodPackageManager,
@@ -154,30 +187,17 @@ import {
   isDetectionError,
   type ServerRuntimePlan,
 } from './server-runtime-detect.js';
-import { runAppImageBuild } from './app-image-build.js';
 import {
   createLiveServerImagePromotionRuntimeFromEnv,
   isCommittedPromotionForTenant,
   type ServerImagePromotionRuntime,
 } from './server-image-promotion.js';
 import type { PromotionManifest } from './lifecycle-state-machines.js';
-import {
-  publicDeclaredDeployTarget,
-  publicDetectedDeployTarget,
-  publicPendingDeployTarget,
-} from './deploy-target-public.js';
-import {
-  appPublicCopy,
-  appPublicEnglish,
-  localizeAppPublicErrorPayload,
-  localizeAppPublicMessage,
-  localizeAppValidationIssues,
-  localizeCreditLedgerReason,
-  type AppPublicCopyKey,
-} from './app-public-copy.js';
-import { generateAuthJwtSecret, generateAuthScaffoldFiles, isAuthScaffoldEnabled } from './auth-scaffold.js';
-import { boltFileActionsFromContent } from './bolt-file-actions.js';
-import { shouldRetirePresenceRow } from './collaboration-presence-cleanup.js';
+import { auditSkill, localizeAuditFindings, type SkillContent } from './skill-audit.js';
+import { parseSkillManifest, type SkillManifest } from './skill-manifest.js';
+import { isKnownSkill, resolveProjectSkills, resolveSkill } from './skills-catalog.js';
+import { fetchSkillRepoInstructions } from './skills-github-fetch.js';
+import { findRepoEntry, normalizeOwnerRepo, skillRepoCatalogForLocale } from './skills-repo-catalog.js';
 import { slugifyRouteSegment } from './slugify.js';
 import {
   checkServiceShutdown,
@@ -246,15 +266,6 @@ import {
   type CheckpointComponentSnapshot,
   type CheckpointState,
 } from './lifecycle-state-machines.js';
-import { CheckpointBarrierError, withCheckpointBarrier } from './checkpoint-barrier-storage.js';
-import { ProjectCheckpointLeaseManager, type ProjectCheckpointLease } from './checkpoint-lease.js';
-import {
-  declareCheckpointConsistency,
-  declareDatabaseConsistency,
-  declareFilesConsistency,
-  type BarrierScope,
-  type ConsistencyDeclaration,
-} from './checkpoint-consistency.js';
 import {
   REMIX_CONSENT_VERSION,
   REMIX_STORAGE_CONSENT_VERSION,
@@ -281,6 +292,12 @@ import { enqueueDeployBuildJob } from './deploy-queue.js';
 import { reapStaleDeployments, resolveDeployBuildTimeoutMs } from './deploy-reaper.js';
 import { meterServerDeploymentRuntime } from './deploy-runtime-metering.js';
 import { shouldRecordDeploymentUsage } from './deployment-billing.js';
+import {
+  deploymentAccessActivationEnabled,
+  publicDeploymentAccessPolicy,
+  type DeploymentAccessMode,
+} from './deployment-access.js';
+import { registerDeploymentAccessRoutes } from './deployment-access-routes.js';
 import {
   assertDeploymentRequestAllowed,
   buildDeploymentUrl,
@@ -411,12 +428,6 @@ import {
 } from './project-storage.js';
 import { aggregateProviderMetrics } from './provider-metrics.js';
 import {
-  agentRoutingCardSchema,
-  getActiveAgentRoutingCard,
-  resetAgentRoutingCache,
-  seedAgentRoutingCard,
-} from './agent-routing-service.js';
-import {
   assertPublicationStartable,
   ExpiredPublicationStartError,
   servingState,
@@ -472,26 +483,8 @@ import {
   type SandboxExec,
   type WorkflowResolver,
 } from './scheduled-tasks.js';
-import { auditSkill, localizeAuditFindings, type SkillContent } from './skill-audit.js';
-import { parseSkillManifest, type SkillManifest } from './skill-manifest.js';
-import { isKnownSkill, resolveProjectSkills, resolveSkill } from './skills-catalog.js';
-import { fetchSkillRepoInstructions } from './skills-github-fetch.js';
-import { findRepoEntry, normalizeOwnerRepo, skillRepoCatalogForLocale } from './skills-repo-catalog.js';
 import { nextSpendAlertPct, spendAlertEmailContent } from './spend-alerts.js';
-import {
-  abuseWarningEmailContent,
-  invoiceEmailContent,
-  invitationEmailContent,
-  localizedPublicErrorPayload,
-  localizedNotificationContent,
-  passwordResetEmailContent,
-  publicErrorMessage,
-  resolveTransactionalLocale,
-  verificationEmailContent,
-  welcomeEmailContent,
-  type InvoiceEmailEvent,
-  type TransactionalLocale,
-} from './transactional-i18n.js';
+import { StorageDeadlineError, THUMBNAIL_LOOKUP_DEADLINE_MS, withStorageDeadline } from './storage-deadline.js';
 import {
   API_KEY_SCOPES,
   type ApiKeyScope,
@@ -521,8 +514,6 @@ import {
   higherConsequence,
   permissionsForAction,
 } from './strike-system.js';
-import { StorageDeadlineError, THUMBNAIL_LOOKUP_DEADLINE_MS, withStorageDeadline } from './storage-deadline.js';
-import { decideWorkspaceSlot } from './workspace-slot.js';
 import {
   type GuardedAction,
   type ReputationTier,
@@ -535,7 +526,20 @@ import {
   tenantGuardrailUsageType,
 } from './tenant-guardrails.js';
 import { createThumbnailCapturer, ThumbnailCapturer, type ThumbnailLogger } from './thumbnail-capture.js';
-import { redactUrlCredentials } from './log-redaction.js';
+import {
+  abuseWarningEmailContent,
+  invoiceEmailContent,
+  invitationEmailContent,
+  localizedPublicErrorPayload,
+  localizedNotificationContent,
+  passwordResetEmailContent,
+  publicErrorMessage,
+  resolveTransactionalLocale,
+  verificationEmailContent,
+  welcomeEmailContent,
+  type InvoiceEmailEvent,
+  type TransactionalLocale,
+} from './transactional-i18n.js';
 import {
   recordPreviewBeacon,
   readClientBeacon,
@@ -544,6 +548,8 @@ import {
   getWorkspaceDiagnostics,
   type PreviewBeaconStatus,
 } from './workspace-diagnostics.js';
+import { decideWorkspaceSlot } from './workspace-slot.js';
+import { redactUrlCredentials } from './log-redaction.js';
 
 declare module 'fastify' {
   interface FastifyRequest {
@@ -594,8 +600,10 @@ export interface ApiAppOptions {
   agentMemory?: AgentMemoryService;
   mcpMarketplace?: McpMarketplaceService;
   projectStorage?: ProjectStorage;
+
   /** Production defaults to CNPG; injected only for deterministic migration tests. */
   databaseProvisioner?: DatabaseProvisioner;
+
   /** Production defaults to the real transactional PostgreSQL applicator. */
   migrationApplier?: SqlApplier;
 
@@ -864,6 +872,7 @@ const domainParams = orgParams.extend({ domain: z.string().min(3) });
 const sessionParams = z.object({ sessionId: z.string().min(1) });
 const stripeWebhookFailureParams = z.object({ eventId: z.string().min(1) });
 const projectParams = z.object({ projectId: z.string().min(1) });
+
 const projectManifestUpdateSchema = z
   .object({
     expectedDigest: z.string().regex(PROJECT_MANIFEST_DIGEST_PATTERN),
@@ -877,6 +886,7 @@ const projectResolveQuerySchema = z.object({
 });
 
 const workspaceParams = z.object({ workspaceId: z.string().min(1) });
+
 const runtimeWebSocketTicketSchema = z.object({
   endpoint: z.enum(['commands/stream', 'terminal', 'logs', 'files/watch', 'ports/watch']),
 });
@@ -2009,9 +2019,16 @@ async function deploymentProjectManifestIsCurrent(
   deployment: Pick<DeploymentRecord, 'metadata'>,
 ): Promise<boolean> {
   const boundDigest = (deployment.metadata as Record<string, unknown> | undefined)?.projectManifestDigest;
+
   /* Pre-0092 rows have no binding and retain their legacy compatibility path. */
-  if (typeof boundDigest !== 'string') return true;
-  if (!PROJECT_MANIFEST_DIGEST_PATTERN.test(boundDigest)) return false;
+  if (typeof boundDigest !== 'string') {
+    return true;
+  }
+
+  if (!PROJECT_MANIFEST_DIGEST_PATTERN.test(boundDigest)) {
+    return false;
+  }
+
   return (await currentProjectManifest(store, project)).digest === boundDigest;
 }
 
@@ -2146,6 +2163,7 @@ async function authenticateRuntimeWebSocketTicket(request: FastifyRequest, reply
    * fail-closed before the WebSocket route can touch the runtime.
    */
   const directWorkspace = await store.getWorkspace(target.workspaceId);
+
   const project = directWorkspace
     ? await store.getProject(directWorkspace.projectId)
     : await store.getProject(target.workspaceId);
@@ -4055,6 +4073,7 @@ async function requireProject(
    * this single project instead of 404-ing them out.
    */
   const collaborationAccess = await projectCollaborationAccess(store, projectId, request.currentUser?.id);
+
   const accessRoles = [
     ...(collaborationAccess.collaboratorRole ? [collaborationAccess.collaboratorRole] : []),
     ...collaborationAccess.grantRoles,
@@ -4282,6 +4301,7 @@ async function commitPromotedServerImageRelease(input: {
   rollbackFence?: RollbackLeaseFence;
 }): Promise<DeploymentRecord> {
   const release = requireCommittedServerImagePromotion(input.deployment, input.organizationId);
+
   const metadata = {
     ...(input.deployment.metadata as Record<string, unknown>),
     serverDeploy: {
@@ -4377,6 +4397,7 @@ async function reconcileDeploymentStatus(store: ApiStore, deployment: Deployment
 
       if (live && live.readyReplicas >= 1) {
         const url = `https://${serverMeta.host}`;
+
         const readyMessage = appPublicEnglish('DEPLOY_SERVER_READY', {
           replicas: live.readyReplicas,
           url,
@@ -4405,6 +4426,7 @@ async function reconcileDeploymentStatus(store: ApiStore, deployment: Deployment
              * never let reconcile manufacture READY from manager readiness.
              */
             await stopServerDeploymentViaManager(deployment.id).catch(() => undefined);
+
             const code = (error as { code?: string }).code ?? 'PROMOTION_NOT_COMMITTED';
             const message = appPublicEnglish(serverImagePromotionErrorCopyKey(code));
 
@@ -4511,9 +4533,11 @@ async function projectCollaborationRole(store: ApiStore, projectId: string, user
   const access = await projectCollaborationAccess(store, projectId, userId);
   const roles = [...(access.collaboratorRole ? [access.collaboratorRole] : []), ...access.grantRoles];
   const priority = ['owner', 'admin', 'member', 'editor', 'viewer', 'guest'];
+
   return roles.sort((left, right) => {
     const leftPriority = priority.indexOf(left);
     const rightPriority = priority.indexOf(right);
+
     return (
       (leftPriority === -1 ? priority.length : leftPriority) - (rightPriority === -1 ? priority.length : rightPriority)
     );
@@ -4526,11 +4550,14 @@ async function projectCollaborationAccess(store: ApiStore, projectId: string, us
   }
 
   const collaborator = (await store.listProjectCollaborators(projectId)).find((entry) => entry.userId === userId);
+
   const collaboratorRole =
     collaborator && !(collaborator.expiresAt && new Date(collaborator.expiresAt).getTime() <= Date.now())
       ? collaborator.roleKey
       : undefined;
+
   const grantRoles = await store.listActiveProjectAccessRoles(projectId, userId);
+
   return { collaboratorRole, grantRoles };
 }
 
@@ -5014,6 +5041,7 @@ function resolveMcpRequestLocale(request: Pick<FastifyRequest, 'headers'>, expli
 
 function setMcpLocaleResponseHeaders(reply: FastifyReply, locale: McpCatalogLocale) {
   const existingVary = reply.getHeader('vary');
+
   const varyValues = (Array.isArray(existingVary) ? existingVary.join(',') : String(existingVary ?? ''))
     .split(',')
     .map((value) => value.trim())
@@ -6932,11 +6960,13 @@ function renderProjectHomepagePreviewSvg(input: {
 }) {
   const { locale } = input;
   const { sourcePath, lines } = homepagePreviewText(input.files, locale);
+
   const updated = input.project.updatedAt
     ? new Intl.DateTimeFormat(locale === 'fr' ? 'fr-FR' : 'en-US', { dateStyle: 'medium' }).format(
         new Date(input.project.updatedAt),
       )
     : appPublicCopy('PROJECT_HOMEPAGE_PREVIEW_RECENT', locale);
+
   const fileCount = input.files.length;
   const rawTitle = previewLine(input.project.name, 42);
   const title = escapeHtml(rawTitle);
@@ -6944,12 +6974,15 @@ function renderProjectHomepagePreviewSvg(input: {
   const detail = escapeHtml(previewLine(lines[1] ?? appPublicCopy('PROJECT_HOMEPAGE_PREVIEW_DETAIL', locale), 52));
   const small = escapeHtml(previewLine(lines[2] ?? sourcePath, 72));
   const source = escapeHtml(previewLine(sourcePath, 70));
+
   const sourceType = escapeHtml(
     previewLine(input.project.sourceType ?? appPublicCopy('PROJECT_HOMEPAGE_PREVIEW_SOURCE_TYPE', locale), 36),
   );
+
   const previewAria = escapeHtml(appPublicCopy('PROJECT_HOMEPAGE_PREVIEW_ARIA', locale, { title: rawTitle }));
   const openIde = escapeHtml(appPublicCopy('PROJECT_HOMEPAGE_PREVIEW_OPEN_IDE', locale));
   const latestPreview = escapeHtml(appPublicCopy('PROJECT_HOMEPAGE_PREVIEW_LATEST', locale));
+
   const filesLabel = escapeHtml(
     appPublicCopy(
       fileCount === 1 ? 'PROJECT_HOMEPAGE_PREVIEW_FILE_ONE' : 'PROJECT_HOMEPAGE_PREVIEW_FILE_OTHER',
@@ -6957,6 +6990,7 @@ function renderProjectHomepagePreviewSvg(input: {
       { count: new Intl.NumberFormat(locale === 'fr' ? 'fr-FR' : 'en-US').format(fileCount) },
     ),
   );
+
   const updatedLabel = escapeHtml(appPublicCopy('PROJECT_HOMEPAGE_PREVIEW_UPDATED', locale, { date: updated }));
   const generatedLabel = escapeHtml(appPublicCopy('PROJECT_HOMEPAGE_PREVIEW_GENERATED', locale));
 
@@ -7590,6 +7624,7 @@ async function writeReleaseManifest(
         artifactDigest,
         ...(storeGeneration ? { storeGeneration } : {}),
         configDigest: cfgDigest,
+        accessPolicyVersion: deployment.accessPolicyVersion,
       });
     });
   } catch (error) {
@@ -9205,11 +9240,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * d'étranglement et non route par route (checkpoint-barrier-storage.ts).
    */
   const checkpointBarrierLookup = (projectId: string) => store.getActiveCheckpointBarrier(projectId);
+
   const checkpointMutationGuard = async (projectId: string) => {
     const barrier = await checkpointBarrierLookup(projectId);
-    if (barrier) throw new CheckpointBarrierError(barrier.barrierId);
+
+    if (barrier) {
+      throw new CheckpointBarrierError(barrier.barrierId);
+    }
   };
+
   const rawProjectStorage = options.projectStorage ?? new LocalProjectStorage();
+
   /*
    * Production's LocalProjectStorage executes the database guard WHILE its
    * NFS-safe per-project lock is held. Barrier acquisition takes the same lock,
@@ -9219,6 +9260,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   const projectStorage = options.projectStorage
     ? withCheckpointBarrier(rawProjectStorage, checkpointBarrierLookup)
     : new LocalProjectStorage(checkpointMutationGuard);
+
   const databaseProvisioner = options.databaseProvisioner ?? resolveDefaultDatabaseProvisioner();
   const migrationApplier = options.migrationApplier ?? createPostgresMigrationApplier();
   const gitProvider = options.gitProvider ?? new GitCliProvider(checkpointMutationGuard);
@@ -9234,13 +9276,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   const enqueueDeployJob = options.enqueueDeployJob ?? enqueueDeployBuildJob;
   const emailProvider = options.emailProvider ?? createEmailProvider();
   const isProduction = options.isProduction ?? process.env.NODE_ENV === 'production';
+
   let defaultServerImagePromotionRuntime: ServerImagePromotionRuntime | undefined;
+
   const resolveServerImagePromotionRuntime = (): ServerImagePromotionRuntime => {
     if (options.serverImagePromotionRuntime) {
       return options.serverImagePromotionRuntime;
     }
 
     defaultServerImagePromotionRuntime ??= createLiveServerImagePromotionRuntimeFromEnv();
+
     return defaultServerImagePromotionRuntime;
   };
 
@@ -9531,6 +9576,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     const existingContentLanguage = reply.getHeader('content-language');
+
     const explicitLocaleValue = Array.isArray(existingContentLanguage)
       ? existingContentLanguage[0]
       : existingContentLanguage;
@@ -9538,6 +9584,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       typeof explicitLocaleValue === 'string' && (explicitLocaleValue === 'en' || explicitLocaleValue === 'fr')
         ? explicitLocaleValue
         : undefined;
+
     const locale = explicitLocale ?? transactionalLocaleForRequest(request);
 
     if (existingContentLanguage === undefined) {
@@ -9549,6 +9596,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     const errorPayload = payload as Record<string, unknown>;
+
     const nestedError =
       errorPayload.error && typeof errorPayload.error === 'object' && !Array.isArray(errorPayload.error)
         ? (errorPayload.error as Record<string, unknown>)
@@ -9783,8 +9831,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const code = (error as Error & { code?: string }).code ?? 'API_ERROR';
     const locale = transactionalLocaleForRequest(request);
+
     const englishFallback =
       statusCode >= 500 ? (error.publicMessage ?? appPublicEnglish('INTERNAL_SERVER_ERROR')) : error.message;
+
     const appLocalized = localizeAppPublicMessage(englishFallback, locale);
 
     return reply.code(statusCode).send({
@@ -9870,6 +9920,26 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return reply
         .code(400)
         .send({ error: appPublicEnglish('STATIC_DEPLOY_INVALID_ID'), code: 'STATIC_DEPLOY_INVALID_ID' });
+    }
+
+    /*
+     * A protected static artifact is reachable only through the dedicated s-*
+     * edge, which has already enforced the exact immutable policy. Keep legacy
+     * PUBLIC URLs readable during the dedicated-origin migration, but missing /
+     * corrupt policy state is denied rather than interpreted as public.
+     */
+    const staticAccess = await store.getDeploymentAccessContext(deploymentId);
+
+    if (!staticAccess?.policy) {
+      reply.header('cache-control', 'private, no-store');
+      return reply.code(404).send({
+        error: appPublicEnglish('STATIC_DEPLOY_ARTIFACT_NOT_FOUND'),
+        code: 'STATIC_DEPLOY_ARTIFACT_NOT_FOUND',
+      });
+    }
+
+    if (staticAccess.policy.mode !== 'PUBLIC') {
+      requirePreviewProxySecret(request);
     }
 
     const snapshotRoot = staticDeploymentSnapshotDir(deploymentId);
@@ -12699,6 +12769,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       store.countUnreadNotificationsByUser(request.currentUser.id),
       store.findUserById(request.currentUser.id),
     ]);
+
     const locale = transactionalLocaleForRequest(request, user?.language);
 
     return {
@@ -12730,6 +12801,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       }
 
       const updated = await store.markNotificationRead({ id: existing.id });
+
       const [unreadCount, user] = await Promise.all([
         store.countUnreadNotificationsByUser(request.currentUser.id),
         store.findUserById(request.currentUser.id),
@@ -15018,6 +15090,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     | { ok: false; reason: string }
   > => {
     const userId = request.currentUser?.id;
+
     if (!userId) {
       return { ok: false, reason: 'Open the project workspace before deploying.' };
     }
@@ -15692,6 +15765,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       projectId,
       name: 'Scheduled',
       runtimeMode: process.env.WORKSPACE_DEFAULT_RUNTIME_MODE ?? 'docker',
+
       // This row identifies a checkout/PVC; the disposable job is the active runtime.
       initialStatus: 'STOPPED',
     });
@@ -16164,6 +16238,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     } = {},
   ) => {
     const provisioner = resolveDefaultDatabaseProvisioner();
+
     const result = await reconcileDatabaseProvisioning({
       store,
       provisioner,
@@ -16361,6 +16436,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const override = await store.getQuotaOverride(organizationId, key);
     const activeOverride = isQuotaOverrideActive(override) ? override : undefined;
     const limit = activeOverride?.limit ?? limits[key] ?? 0;
+
     /*
      * Mutating gates require a fresh authoritative read. Reusing the request
      * display-cache here made the second check after a slow import clone stale:
@@ -16396,12 +16472,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * value must never silently remove a security boundary.
    */
   const tenantGuardrailsEnabled = process.env.TENANT_GUARDRAILS_ENABLED !== 'false';
+
   const firstPartyOrgIds = new Set(
     (process.env.FIRST_PARTY_ORG_IDS ?? '')
       .split(',')
       .map((value) => value.trim())
       .filter(Boolean),
   );
+
   const TENANT_BURST_WINDOW_MS = 60 * 60 * 1000;
 
   const MS_PER_DAY = 24 * 60 * 60 * 1000;
@@ -16442,6 +16520,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   const resolveTenantReputation = async (request: any, organizationId: string) => {
     const now = Date.now();
     const severeAbuseSince = new Date(now - 7 * MS_PER_DAY);
+
     const [organization, requestUser, members, customer, billing, recentSevereAbuseEvents, activeStrikes] =
       await Promise.all([
         store.getOrganization(organizationId),
@@ -16454,6 +16533,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       ]);
 
     const ownerMembers = members.filter((member) => member.roleKey === 'owner');
+
     const ownerUsers = await Promise.all(
       ownerMembers.map((member) =>
         member.userId === requestUser?.id ? Promise.resolve(requestUser) : store.findUserById(member.userId),
@@ -16471,6 +16551,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const tier = deriveReputationTier({
       firstParty: firstPartyOrgIds.has(organizationId),
+
       /* Every owner is part of the tenant trust boundary; one weak owner demotes. */
       emailVerified: ownerUsers.every((owner) => Boolean(owner?.emailVerifiedAt)),
       billingAccountBound,
@@ -16494,6 +16575,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     limits: Record<QuotaKey, number>,
   ): Extract<TenantActionContext, { action: 'workspace.start' }> => ({
     action: 'workspace.start',
+
     /* Match the k8s admission clamp: authorize the resources that will exist. */
     cpuMillicores: Math.min(limits['workspace.cpuMillicores'], WORKSPACE_CONTAINER_MAX_CPU_MILLICORES),
     ramMb: Math.min(limits['workspace.ramMb'], WORKSPACE_CONTAINER_MAX_RAM_MB),
@@ -16558,6 +16640,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     const tier: ReputationTier = reputation.tier;
+
     const decision = evaluateTenantAdmission({
       action,
       tier,
@@ -16598,6 +16681,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             capacityIncrement: options.capacityIncrement ?? 1,
           },
         });
+
         /*
          * Claim the rolling-window slot while the org advisory lock is held and
          * before the protected mutation. Unlike resource-row counts, this
@@ -17080,7 +17164,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             tenantDeploymentContext({ provider: input.provider ?? 'manual' }),
           );
           await ensureQuota(request, project.organizationId, 'deployments.count');
-          return store.createDeployment({ projectId: project.id, provider: input.provider ?? 'manual' });
+
+          return store.createDeployment({
+            projectId: project.id,
+            provider: input.provider ?? 'manual',
+            accessPolicy: {
+              mode: deploymentAccessActivationEnabled(isProduction) ? 'INVITE_ONLY' : 'PUBLIC',
+              createdByUserId: request.currentUser?.id,
+            },
+          });
         }),
       };
       await recordUsage(request, project.organizationId, 'deployments.count');
@@ -17225,6 +17317,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        * actually running, not stale rows.
        */
       await reconcileOrphanedActiveWorkspaces(orgIdForQuota, workspaceId);
+
       const current = await store.getWorkspace(workspaceId);
       const currentlyActive = !!current && ['PENDING', 'STARTING', 'RUNNING'].includes(current.status as string);
 
@@ -17501,6 +17594,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const restartOrgId = authorized.organizationId;
     const restartBilling = restartOrgId ? await billingState(restartOrgId) : undefined;
     const restartAdmissionContext = restartBilling ? tenantWorkspaceContext(restartBilling.limits) : undefined;
+
     let restartClaimedActiveSlot = false;
 
     if (restartOrgId) {
@@ -17511,6 +17605,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
          * restart of another workspace for a quota-limited org.
          */
         await reconcileOrphanedActiveWorkspaces(restartOrgId, authorized.workspaceId);
+
         const current = await store.getWorkspace(authorized.workspaceId);
         const currentlyActive = !!current && ['PENDING', 'STARTING', 'RUNNING'].includes(current.status as string);
 
@@ -17790,10 +17885,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const { workspaceId } = parse(workspaceParams, request.params);
     const body = parse(runtimeFileWriteSchema, request.body);
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:write');
-    // The runtime volume is outside the API project-tree snapshot, so this is
-    // an admission barrier only; the manifest still declares in-pod writers as
-    // unfrozen. It prevents a new API-authorized write from starting while the
-    // checkpoint establishes its project-tree barrier.
+
+    /*
+     * The runtime volume is outside the API project-tree snapshot, so this is
+     * an admission barrier only; the manifest still declares in-pod writers as
+     * unfrozen. It prevents a new API-authorized write from starting while the
+     * checkpoint establishes its project-tree barrier.
+     */
     if (authorized.projectId && (await rejectIfCheckpointBarrier(reply, authorized.projectId))) {
       return reply;
     }
@@ -18133,6 +18231,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return reply.code(204).send();
   });
+
   /*
    * SCR-008 — passe-plat des jauges RAM / CPU / stockage de « Vue d'ensemble ».
    *
@@ -18340,8 +18439,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return html;
     }
 
-    // Prefer end-of-<head> so the (classic, non-module) reporter runs before the
-    // app's deferred module scripts and can catch a load-time throw.
+    /*
+     * Prefer end-of-<head> so the (classic, non-module) reporter runs before the
+     * app's deferred module scripts and can catch a load-time throw.
+     */
     if (/<\/head>/i.test(html)) {
       return html.replace(/<\/head>/i, `${PREVIEW_REPORTER_TAG}</head>`);
     }
@@ -18538,6 +18639,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const previewCharset = /charset\s*=\s*"?([\w-]+)"?/i.exec(previewContentType)?.[1]?.toLowerCase();
     const previewIsUtf8 = !previewCharset || previewCharset === 'utf-8' || previewCharset === 'utf8';
     const declaredLen = Number(contentLength ?? '');
+
     const injectable =
       previewContentType.includes('text/html') &&
       previewIsUtf8 &&
@@ -18545,8 +18647,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     if (injectable) {
       const rawHtml = await response.text();
+
       const injectedHtml =
         rawHtml.length <= MAX_PREVIEW_REPORTER_INJECT_BYTES ? injectPreviewReporterScript(rawHtml) : rawHtml;
+
       const outBuffer = Buffer.from(injectedHtml, 'utf8');
 
       reply.header('content-length', String(outBuffer.byteLength));
@@ -19015,6 +19119,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   };
 
   const parsedRuntimeWebSocketTicketRateLimit = Number(process.env.RUNTIME_WEBSOCKET_TICKET_RATE_LIMIT_MAX ?? 120);
+
   const runtimeWebSocketTicketRateLimit =
     Number.isFinite(parsedRuntimeWebSocketTicketRateLimit) && parsedRuntimeWebSocketTicketRateLimit >= 1
       ? Math.floor(parsedRuntimeWebSocketTicketRateLimit)
@@ -19030,6 +19135,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     async (request, reply) => {
       const { workspaceId } = parse(workspaceParams, request.params);
       const { endpoint } = parse(runtimeWebSocketTicketSchema, request.body);
+
       const permission: PermissionKey =
         endpoint === 'commands/stream' || endpoint === 'terminal' ? 'workspaces:write' : 'workspaces:read';
 
@@ -20526,7 +20632,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 14),
         createdByUserId: request.currentUser!.id,
       });
+
       const invitedUser = await store.findUserByEmail(body.email);
+
       const invitationContent = invitationEmailContent({
         baseUrl: appPublicBaseUrl(),
         token,
@@ -20604,6 +20712,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       }
 
       const invitedUser = await store.findUserByEmail(invitation.email);
+
       const invitationContent = invitationEmailContent({
         baseUrl: appPublicBaseUrl(),
         token,
@@ -21430,6 +21539,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         templateName: body.templateName,
       });
     });
+
     const files = await projectStorage.writeFiles(project.id, templateFiles);
     await persistProjectFileManifest(store, project.id, files, request.currentUser!.id);
     await commitInitialScaffold(gitProvider, project.id);
@@ -21441,6 +21551,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      */
     try {
       const locale = transactionalLocaleForRequest(request);
+
       const conversation = await store.createAiConversation({
         projectId: project.id,
         userId: request.currentUser!.id,
@@ -21678,15 +21789,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const executeCleanup = async () => {
       await leaseManager.guard();
+
       if (job.targetProjectId) {
         await projectStorage.deleteProjectFiles(job.targetProjectId, () => leaseManager.guard());
         await leaseManager.guard();
+
         if ((await projectStorage.listFiles(job.targetProjectId)).length !== 0) {
           throw Object.assign(new Error(appPublicEnglish('IMPORT_CLEANUP_FILES_REMAIN')), {
             statusCode: 409,
             code: 'IMPORT_CLEANUP_FILES_REMAIN',
           });
         }
+
         const deleted = await store.deleteClaimedImportProject({
           importJobId: job.id,
           organizationId: job.organizationId,
@@ -21694,10 +21808,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           targetProjectId: job.targetProjectId,
         });
 
-        if (!deleted) return false;
+        if (!deleted) {
+          return false;
+        }
       }
 
       await leaseManager.guard();
+
       return Boolean(
         await store.finishImportCleanup({
           importJobId: job.id,
@@ -21727,6 +21844,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     error?: string;
   }) => {
     const operationToken = input.operationToken ?? randomUUID();
+
     const pending = await store.beginImportCleanup({
       importJobId: input.importJobId,
       organizationId: input.organizationId,
@@ -21796,8 +21914,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const body = parse(importCreateSchema, request.body);
     const inputFiles = body.files ?? [];
 
-    /* Hash only the request shape/digests: idempotency mismatch detection never
-     * persists a caller's source payload or file contents outside staging. */
+    /*
+     * Hash only the request shape/digests: idempotency mismatch detection never
+     * persists a caller's source payload or file contents outside staging.
+     */
     const requestHash = createHash('sha256')
       .update(
         JSON.stringify({
@@ -21821,6 +21941,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       actorUserId: request.currentUser?.id,
       provider: body.provider,
       sourceRef: body.sourceRef,
+
       // Store derives the absolute deadline from PostgreSQL time.
       expiresInMs: 60 * 60_000,
       idempotencyKey: body.idempotencyKey,
@@ -21858,6 +21979,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       operationLeaseDurationMs?: number,
     ) => {
       assertImportTransition(state, to);
+
       const updated = await store.transitionImportJob({
         id: current.id,
         organizationId: orgId,
@@ -21901,6 +22023,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           ...(file.encoding ? { encoding: file.encoding } : {}),
         }));
       }
+
       /*
        * Credential providers are fetched server-side from the caller's own
        * active encrypted UserConnection. Client-supplied `files` are ignored for
@@ -21921,6 +22044,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         const connections = await store.listUserConnectionsByUser(request.currentUser!.id, {
           provider: body.provider,
         });
+
         const activeConnection = connections.find((connection) => connection.status === 'active');
 
         if (!activeConnection) {
@@ -22337,6 +22461,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       operationLeaseDurationMs?: number,
     ) => {
       assertImportTransition(state, to);
+
       const updated = await store.transitionImportJob({
         id: importJobId,
         organizationId: orgId,
@@ -22402,8 +22527,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         await advance('READY_TO_COMMIT', { consent, redactedCount: redacted.length });
       }
 
-      // PostgreSQL CAS is the commit point: exactly one replica receives this
-      // fencing token. A loser never creates a project or writes target files.
+      /*
+       * PostgreSQL CAS is the commit point: exactly one replica receives this
+       * fencing token. A loser never creates a project or writes target files.
+       */
       operationToken = randomUUID();
       await advance(
         'COMMITTING',
@@ -22453,6 +22580,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         await operationLeaseManager!.guard();
         await ensureTenantAdmission(request, orgId, 'project.create', { action: 'project.create' });
         await ensureQuota(request, orgId, 'projects.count');
+
         return store.createClaimedImportProject({
           importJobId,
           organizationId: orgId,
@@ -22490,6 +22618,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           }
           await persistProjectFileManifest(store, project.id, verifiedFiles, request.currentUser!.id);
           await operationLeaseManager!.guard();
+
           return store.finalizeImportCommit({
             importJobId,
             organizationId: orgId,
@@ -22521,8 +22650,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         'import reservation settled',
       );
 
-      // Ancillary usage/audit writes happen only after durable commit. Their
-      // failure cannot reinterpret a committed project as rolled back.
+      /*
+       * Ancillary usage/audit writes happen only after durable commit. Their
+       * failure cannot reinterpret a committed project as rolled back.
+       */
       await recordUsage(request, orgId, 'projects.count').catch((error) => {
         request.log.warn({ err: error, importJobId }, 'failed to record committed import project usage');
       });
@@ -22666,6 +22797,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      */
     const reservation = await store.getImportReservationByJob(importJobId, orgId);
     const staging = await store.getImportStaging(importJobId, orgId);
+
     const localizedJobError = job.error
       ? localizeAppPublicMessage(job.error, transactionalLocaleForRequest(request))
       : undefined;
@@ -22969,10 +23101,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:read',
     );
+
     const current = await currentProjectManifest(store, project);
 
     reply.header('etag', `"${current.digest}"`);
     reply.header('cache-control', 'private, no-cache');
+
     return current;
   });
   app.put('/projects/:projectId/manifest', async (request, reply) => {
@@ -22982,9 +23116,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:write',
     );
+
     if (await rejectIfCheckpointBarrier(reply, project.id)) {
       return reply;
     }
+
     const body = parse(projectManifestUpdateSchema, request.body ?? {});
     const manifest = canonicalizeProjectManifest(body.manifest);
 
@@ -22998,6 +23134,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const current = await currentProjectManifest(store, project);
     const digest = projectManifestDigest(manifest);
+
     const revision = await store.createProjectManifestRevision({
       projectId: project.id,
       schemaVersion: manifest.schemaVersion,
@@ -23007,6 +23144,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       expectedDigest: body.expectedDigest,
       createdByUserId: request.currentUser!.id,
     });
+
     const verified = verifyStoredProjectManifestRevision(revision, project.id);
 
     if (current.digest !== revision.digest) {
@@ -23036,6 +23174,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     reply.header('etag', `"${revision.digest}"`);
     reply.header('cache-control', 'private, no-cache');
+
     return { manifest: verified, digest: revision.digest };
   });
   app.get('/projects/:projectId/dashboard', async (request) => {
@@ -23285,6 +23424,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   app.get('/projects/:projectId/homepage-preview.svg', async (request, reply) => {
     const locale = transactionalLocaleForRequest(request);
     setAppLocaleResponseHeaders(reply, locale);
+
     const project = await requireProject(
       request,
       store,
@@ -23874,8 +24014,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     const name = catalogEntry?.name ?? ownerRepo.split('/')[1];
+
     const description =
       catalogEntry?.description ?? appPublicEnglish('SKILL_INSTALLED_FROM_REPOSITORY', { value1: ownerRepo });
+
     const homepageUrl = catalogEntry?.homepageUrl ?? `https://github.com/${ownerRepo}`;
     const userId = request.currentUser?.id ?? null;
 
@@ -24303,6 +24445,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       runtime: { mode: 'remote-kubernetes', autosave: true, conflictDetection: true, offlineWarning: true },
     };
   });
+
   /*
    * Empreinte bon marché de l'arborescence persistée, pour que la réouverture
    * puisse distinguer « le pod chaud est encore à jour » de « le stockage a
@@ -24658,6 +24801,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     );
 
     const billing = await billingState(project.organizationId).catch(() => undefined);
+
     const managedInstances = (
       await Promise.all(
         (['development', 'production'] as const).map(async (environment) => {
@@ -24680,6 +24824,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     ).filter((instance): instance is DatabaseInstanceRecord => Boolean(instance));
 
     const connections = await listDatabaseConnections(store, project.id);
+
     const managedKeys = new Set<string>(
       managedInstances.map((instance) =>
         instance.environment === 'production' ? 'PROD_DATABASE_URL' : 'DATABASE_URL',
@@ -24696,6 +24841,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
               ? ['schema', 'readonly-commands']
               : ['schema', 'readonly-sql', 'query'],
       })),
+
       /*
        * Structured cards, not a static list of strings. The static list used to
        * win `environments ?? connections` in DatabaseWorkbench, so every real
@@ -25931,6 +26077,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const restored = await store.withSerializedMutation(`projects:${project.organizationId}`, async () => {
       await ensureTenantAdmission(request, project.organizationId, 'project.create', { action: 'project.create' });
       await ensureQuota(request, project.organizationId, 'projects.count');
+
       return store.restoreProject(project.id);
     });
     await store.recordProjectActivity({
@@ -26039,6 +26186,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return { project: transferred };
   });
+
   /*
    * ---- Checkpoint PROJET coordonné (plan §15, CTR-CHECKPOINT) ----
    * Câblage RÉEL de la machine lifecycle-state-machines : barrière d'écriture
@@ -26093,6 +26241,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     const current = await currentProjectManifest(store, project);
+
     if (
       current.digest !== pin.digest ||
       current.manifest.schemaVersion !== pin.schemaVersion ||
@@ -26129,11 +26278,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   }): Promise<CheckpointRunSuccess | CheckpointRunFailure> => {
     const { request, projectId } = params;
     const headerKey = request.headers['idempotency-key'];
+
     const idempotencyKey =
       params.idempotencyKey ?? (typeof headerKey === 'string' && headerKey.trim() ? headerKey.trim() : undefined);
     const requestHash = createHash('sha256')
       .update(JSON.stringify({ projectId, includePod: params.includePod === true }))
       .digest('hex');
+
     /*
      * Materialize the legacy/default manifest before the checkpoint barrier is
      * acquired. Manifest appends and barrier acquisition share the same DB
@@ -26143,9 +26294,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * one pinned in the checkpoint.
      */
     const checkpointProject = await store.getProject(projectId);
+
     if (!checkpointProject) {
       return { ok: false, code: 'PROJECT_NOT_FOUND', error: appPublicEnglish('PROJECT_NOT_FOUND') };
     }
+
     await currentProjectManifest(store, checkpointProject);
 
     const ckpt = await store.createProjectCheckpoint({
@@ -26157,6 +26310,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     if (ckpt.replayed) {
       const existing = await store.getProjectCheckpoint(ckpt.id);
+
       if (existing?.state === 'COMMITTED' && existing.manifest && typeof existing.manifest === 'object') {
         return { ok: true, checkpointId: existing.id, manifest: existing.manifest as Record<string, unknown> };
       }
@@ -26184,6 +26338,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const barrierId = `bar_${randomUUID()}`;
     const ownerToken = `ckowner_${randomUUID()}`;
+
     const lease = await withProjectLock(projectId, () =>
       store.acquireProjectCheckpointBarrier({
         checkpointId: ckpt.id,
@@ -26215,6 +26370,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       CHECKPOINT_LEASE_RENEW_MS,
     );
     leaseManager.start();
+
     let state: CheckpointState = 'BARRIER_ESTABLISHED';
     let retainLease = false;
 
@@ -26245,9 +26401,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     try {
       const startedAt = await store.getDatabaseTime();
       await leaseManager.guard();
+
       const pinnedProjectManifest = await currentProjectManifest(store, checkpointProject);
       await leaseManager.guard();
+
       const components: CheckpointComponentSnapshot[] = [];
+
       /*
        * Portée RÉELLE de la barrière, source unique du niveau annoncé (P0-V3-09).
        * `inPodWritersReachable` est vrai dès qu'un workspace existe : on ne peut
@@ -26255,28 +26414,36 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        * qu'il écrit — c'est l'hypothèse qui sous-revendique, jamais l'inverse.
        */
       const workspacesForProject = await store.listWorkspaces(projectId).catch(() => []);
+
       const barrierScope: BarrierScope = {
         apiWritesFrozenAllReplicas: true, // bail persisté, lu par tous les replicas
         inPodWritersReachable: workspacesForProject.length > 0,
         dbClientWritesReachable: true,
       };
+
       const componentConsistency: Array<{ componentKind: string; consistency: ConsistencyDeclaration }> = [];
+
       /** Composants tentés mais NON prouvés — consignés, jamais comptés comme couverture. */
       const bestEffortComponents: Array<Record<string, unknown>> = [];
 
       // (1) VOLUME (fichiers projet) — snapshot réel + hash du contenu archivé.
       await advance('VOLUME_SNAPSHOTTING');
+
       // rawProjectStorage : l'orchestrateur écrit LÉGITIMEMENT sous sa propre barrière.
       await leaseManager.guard();
+
       const files = await listProjectFilesIncludingIdeState(store, rawProjectStorage, projectId);
       await leaseManager.guard();
+
       const archive = await rawProjectStorage.createSnapshot({
         projectId,
         label: appPublicEnglish('CHECKPOINT_SNAPSHOT_LABEL', { barrierId }),
         files,
       });
       await leaseManager.guard();
+
       const filesHash = checkpointFilesHash(files);
+
       const fileSnapshot = await store.createSnapshot({
         projectId,
         kind: 'manual',
@@ -26290,6 +26457,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         byteLength: archive.byteLength,
         createdByUserId: request.currentUser?.id,
       });
+
       const filesConsistency = declareFilesConsistency(barrierScope);
       componentConsistency.push({ componentKind: 'FILES', consistency: filesConsistency });
       components.push({
@@ -26306,11 +26474,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         verified: false,
       });
 
-      // (2) DATABASE — backup physique CNPG si flag actif + base provisionnée ;
-      // sinon DÉPENDANCE DÉCLARÉE (jamais un silence).
+      /*
+       * (2) DATABASE — backup physique CNPG si flag actif + base provisionnée ;
+       * sinon DÉPENDANCE DÉCLARÉE (jamais un silence).
+       */
       await advance('DB_SNAPSHOTTING');
+
       const dbInstance = await store.getDatabaseInstanceByProject(projectId).catch(() => undefined);
       const databaseProvisioned = Boolean(dbInstance);
+
       let databaseDependencyDeclared = false;
 
       /*
@@ -26326,14 +26498,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         const provisioner = resolveDefaultDatabaseProvisioner();
         const dbSnapId = `ckdb_${randomUUID().slice(0, 12)}`;
         await leaseManager.guard();
+
         const applied = await provisioner.takeSnapshot({ projectId, snapshotId: dbSnapId });
         await leaseManager.guard();
+
         const dbConsistency = declareDatabaseConsistency(barrierScope);
         bestEffortComponents.push({
           componentKind: 'DATABASE',
           snapshotId: dbSnapId,
           logicalBarrierId: barrierId,
           backupRequestAccepted: applied.applied,
+
           /*
            * Ni le CR terminé ni un restore rejoué : on ne sait pas si ce backup est
            * restaurable, donc on l'écrit au lieu de le taire.
@@ -26352,14 +26527,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
       if (params.includePod) {
         await advance('POD_SNAPSHOTTING');
+
         // Un snapshot de pod n'est PAS implémenté — le déclarer serait mentir.
       }
 
       await advance('VERIFYING');
+
       // VÉRIFICATION RÉELLE : relire l'archive et recomparer le hash du contenu.
       await leaseManager.guard();
+
       const reread = await projectStorage.getSnapshotFiles(archive.storageKey);
       await leaseManager.guard();
+
       const rereadHash = checkpointFilesHash(reread);
 
       for (const c of components) {
@@ -26397,10 +26576,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       const consistency = declareCheckpointConsistency(componentConsistency);
 
       const databaseNow = new Date(await store.getDatabaseTime());
+
       const manifest: Record<string, unknown> = {
         logicalBarrierId: barrierId,
         consistencyLevel: consistency.level,
         consistencyBasis: consistency.basis,
+
         /*
          * Les composants sont snapshottés en SÉQUENCE : partager un
          * `logicalBarrierId` ordonne les étapes, ça ne crée pas un instant
@@ -26458,6 +26639,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
+
       if (!leaseManager.isLost() && !['COMMITTED', 'CLEANED', 'MANUAL_INTERVENTION'].includes(state)) {
         let abortRecorded = false;
         await advance('ABORTING', { error: message })
@@ -26465,8 +26647,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             abortRecorded = true;
           })
           .catch(() => undefined);
-        if (abortRecorded) await advance('CLEANED').catch(() => undefined);
+
+        if (abortRecorded) {
+          await advance('CLEANED').catch(() => undefined);
+        }
       }
+
       return { ok: false, code: (error as { code?: string }).code ?? 'CHECKPOINT_FAILED', error: message };
     } finally {
       if (!retainLease) {
@@ -26500,6 +26686,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     const ckpt = await store.getProjectCheckpoint(result.checkpointId);
+
     return reply.code(201).send({ checkpoint: ckpt });
   });
 
@@ -26514,6 +26701,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       .string()
       .min(1)
       .parse((request.params as { checkpointId: string }).checkpointId);
+
     const ckpt = await store.getProjectCheckpoint(ckptId);
 
     if (!ckpt || ckpt.projectId !== project.id) {
@@ -26541,6 +26729,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       .string()
       .min(1)
       .parse((request.params as { checkpointId: string }).checkpointId);
+
     const ckpt = await store.getProjectCheckpoint(ckptId);
 
     if (!ckpt || ckpt.projectId !== project.id || ckpt.state !== 'COMMITTED') {
@@ -26558,6 +26747,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       project,
       manifest as unknown as Record<string, unknown>,
     );
+
     const filesComponent = manifest.components.find((c) => c.componentKind === 'FILES');
 
     if (!filesComponent) {
@@ -26635,6 +26825,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       .string()
       .min(1)
       .parse((request.params as { checkpointId: string }).checkpointId);
+
     const ckpt = await store.getProjectCheckpoint(ckptId);
 
     if (!ckpt || ckpt.projectId !== project.id || ckpt.state !== 'COMMITTED') {
@@ -26650,6 +26841,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       projectManifest?: unknown;
     };
     await requireCheckpointProjectManifestCurrent(project, manifest as unknown as Record<string, unknown>);
+
     const filesComponent = manifest.components.find((c) => c.componentKind === 'FILES');
 
     if (!filesComponent) {
@@ -26678,8 +26870,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const restoreHeader = request.headers['idempotency-key'];
     const restoreKey = typeof restoreHeader === 'string' && restoreHeader.trim() ? restoreHeader.trim() : randomUUID();
 
-    // (1) Point de retour AVANT toute écriture destructive. Its barrier is
-    // deliberately retained: there is no thaw/re-arm window before restore.
+    /*
+     * (1) Point de retour AVANT toute écriture destructive. Its barrier is
+     * deliberately retained: there is no thaw/re-arm window before restore.
+     */
     const safety = await runProjectCheckpoint({
       request,
       projectId: project.id,
@@ -26703,6 +26897,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const safetyLease = safety.lease;
     const safetyLeaseManager = safety.leaseManager;
+
     const safetyManifest = safety.manifest as {
       components: Array<{ componentKind: string; snapshotId: string }>;
       contentHashes: { files: string };
@@ -26717,6 +26912,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         })
         .catch(() => false);
     };
+
     /*
      * The first manifest check happened before the safety checkpoint acquired
      * its retained barrier. Revalidate now, while that barrier is the shared DB
@@ -26734,19 +26930,24 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         code: (error as { code?: string }).code ?? 'CHECKPOINT_PROJECT_MANIFEST_CHANGED',
       });
     }
+
     const safetyFilesComponent = safetyManifest.components.find((component) => component.componentKind === 'FILES');
+
     let safetyFiles: ProjectFile[];
 
     try {
       const safetySnapshot = safetyFilesComponent
         ? await store.getSnapshot(safetyFilesComponent.snapshotId)
         : undefined;
+
       if (!safetySnapshot) {
         throw Object.assign(new Error(appPublicEnglish('CHECKPOINT_SAFETY_SNAPSHOT_MISSING')), {
           code: 'CHECKPOINT_SAFETY_SNAPSHOT_MISSING',
         });
       }
+
       safetyFiles = await getSnapshotFiles(safetySnapshot);
+
       if (checkpointFilesHash(safetyFiles) !== safetyManifest.contentHashes.files) {
         throw Object.assign(new Error(appPublicEnglish('CHECKPOINT_SAFETY_SNAPSHOT_HASH_MISMATCH')), {
           code: 'CHECKPOINT_SAFETY_SNAPSHOT_HASH_MISMATCH',
@@ -26759,9 +26960,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         code: (error as { code?: string }).code ?? 'CHECKPOINT_SAFETY_ARCHIVE_INVALID',
       });
     }
+
     const hashProjectTree = async () => {
       const current = await listProjectFilesIncludingIdeState(store, rawProjectStorage, project.id);
       const hash = checkpointFilesHash(current);
+
       return { current, hash };
     };
     const rollbackToSafety = async () => {
@@ -26770,7 +26973,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         safetyLeaseManager.guard(),
       );
       await safetyLeaseManager.guard();
+
       const rolledBack = await hashProjectTree();
+
       return {
         ...rolledBack,
         verified: rolledBack.hash === safetyManifest.contentHashes.files,
@@ -26787,9 +26992,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       const matches = restoredHash === manifest.contentHashes.files;
 
       if (!matches) {
-        // Fail closed and immediately put the original bytes back while the same
-        // barrier is still fenced. A mismatch never leaves the project silently
-        // on the divergent tree.
+        /*
+         * Fail closed and immediately put the original bytes back while the same
+         * barrier is still fenced. A mismatch never leaves the project silently
+         * on the divergent tree.
+         */
         const rollback = await rollbackToSafety();
         await audit(request, store, {
           action: 'project.checkpoint.restore_failed_rolled_back',
@@ -26802,6 +27009,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             rollbackVerified: rollback.verified,
           },
         });
+
         return reply.status(409).send({
           error: rollback.verified
             ? appPublicEnglish('CHECKPOINT_RESTORE_ROLLED_BACK')
@@ -26836,11 +27044,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return {
         restored: true,
         checkpointId: ckpt.id,
+
         /** Point de retour pour annuler CE restore. */
         safetyCheckpointId: safety.checkpointId,
         restoredHash,
         expectedHash: manifest.contentHashes.files,
         fileCount: afterRestore.length,
+
         /*
          * Le restore ne couvre QUE les fichiers : la base n'est pas rejouée ici.
          * Repris du manifeste pour que l'appelant ne déduise pas une couverture
@@ -26850,6 +27060,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       };
     } catch (error) {
       let rollbackVerified = false;
+
       if (!safetyLeaseManager.isLost()) {
         rollbackVerified = await rollbackToSafety()
           .then((result) => result.verified)
@@ -26857,6 +27068,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       }
 
       const code = (error as { code?: string }).code ?? 'CHECKPOINT_RESTORE_FAILED';
+
       return reply.status(code === 'CHECKPOINT_BARRIER_LOST' ? 409 : 500).send({
         error: rollbackVerified
           ? appPublicEnglish('CHECKPOINT_RESTORE_FAILED_ROLLED_BACK')
@@ -26869,6 +27081,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       await releaseSafetyBarrier();
     }
   });
+
   const remixSchema = z.object({
     name: z.string().trim().min(1).max(120),
     slug: z.string().trim().min(2).max(120).optional(),
@@ -26901,9 +27114,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const header = request.headers['idempotency-key'];
     const explicit = (Array.isArray(header) ? header[0] : header)?.trim() || body.idempotencyKey?.trim();
 
-    // Idempotent retries require a caller-owned key. Legacy callers without one
-    // still work, but receive a fresh operation instead of being permanently
-    // collapsed onto every identical remix request made in the future.
+    /*
+     * Idempotent retries require a caller-owned key. Legacy callers without one
+     * still work, but receive a fresh operation instead of being permanently
+     * collapsed onto every identical remix request made in the future.
+     */
     return explicit || `generated:${requestHash}:${randomUUID()}`;
   };
 
@@ -26911,13 +27126,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     createHash('sha256').update(JSON.stringify(input)).digest('hex');
 
   const publicRemixJob = (job: Awaited<ReturnType<typeof store.getRemixJob>>) => {
-    if (!job) return undefined;
+    if (!job) {
+      return undefined;
+    }
 
     return {
       id: job.id,
       sourceProjectId: job.sourceProjectId,
-      // A partially provisioned target is soft-hidden and its identifier is an
-      // internal cleanup capability. Expose it only after the atomic finalize.
+
+      /*
+       * A partially provisioned target is soft-hidden and its identifier is an
+       * internal cleanup capability. Expose it only after the atomic finalize.
+       */
       targetProjectId: job.state === 'COMPLETED' ? (job.targetProjectId ?? null) : null,
       organizationId: job.organizationId,
       state: job.state,
@@ -27157,14 +27377,19 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         captureSourceSnapshot: captureRemixSourceSnapshot,
         createSourceSnapshot: async ({ remixJobId, sourceProjectId, files, actorUserId, guard }) => {
           const snapshotHash = remixFileSnapshotHash(files);
-          // Stable target names make every retry overwrite/replay the same two
-          // records. A crash between archive write, DB object upsert and job CAS
-          // cannot accumulate unbounded orphan archives or snapshot rows.
+
+          /*
+           * Stable target names make every retry overwrite/replay the same two
+           * records. A crash between archive write, DB object upsert and job CAS
+           * cannot accumulate unbounded orphan archives or snapshot rows.
+           */
           const snapshotId = `remix-${remixJobId}`;
           const storageKey = `snapshots/${sourceProjectId}/${snapshotId}.zip`;
           const existing = await store.getSnapshot(snapshotId);
+
           if (existing) {
             const manifest = existing.manifest as { snapshotHash?: unknown };
+
             if (
               existing.projectId !== sourceProjectId ||
               existing.storageKey !== storageKey ||
@@ -27175,9 +27400,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                 'REMIX_SNAPSHOT_CONFLICT',
               );
             }
+
             readProjectManifestSnapshotPin(existing.manifest, sourceProjectId);
+
             return { snapshotId: existing.id, snapshotHash: manifest.snapshotHash };
           }
+
           const archive = await projectStorage.createSnapshot({
             projectId: sourceProjectId,
             label: appPublicEnglish('REMIX_SOURCE_PIN_STORAGE_LABEL'),
@@ -27188,6 +27416,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           await guard();
           await persistProjectArchiveObject(archive, { projectId: sourceProjectId, kind: 'snapshot' });
           await guard();
+
           const snapshot = await store.createSnapshot({
             id: snapshotId,
             projectId: sourceProjectId,
@@ -27262,6 +27491,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       },
     );
   };
+
   /*
    * Secure project remix (DOMAIN_MODEL §1). Runs the normative state machine
    * server-side with the credentials-detached-before-cloning invariant enforced
@@ -27300,6 +27530,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       storagePolicy,
       storageConsentVersion: body.storageConsent?.version ?? null,
     });
+
     const idempotencyKey = remixRequestKey(request, body, requestHash);
 
     try {
@@ -27650,6 +27881,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       licenseTextSha256: licenseSnapshot.licenseTextSha256,
       consentVersion: REMIX_CONSENT_VERSION,
     });
+
     const idempotencyKey = remixRequestKey(request, body, requestHash);
 
     try {
@@ -28049,6 +28281,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const body = parse(createWorkspaceSchema, request.body);
     await requireOrganizationNotSuspended(store, project.organizationId);
+
     const workspaceBilling = await billingState(project.organizationId);
     const createWorkspaceAdmissionContext = tenantWorkspaceContext(workspaceBilling.limits);
 
@@ -28130,6 +28363,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     );
 
     const locale = transactionalLocaleForRequest(request);
+
     return {
       snapshots: (await store.listSnapshots(project.id)).map((snapshot) => localizeSnapshotRecord(snapshot, locale)),
     };
@@ -28436,6 +28670,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     );
 
     const locale = transactionalLocaleForRequest(request);
+
     return {
       snapshots: (await store.listSnapshots(project.id)).map((snapshot) => localizeSnapshotRecord(snapshot, locale)),
     };
@@ -29526,6 +29761,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   app.get('/orgs/:orgId/credits', async (request, reply) => {
     const { orgId } = parse(orgParams, request.params);
     await requireOrg(request, store, orgId, 'projects:read');
+
     const locale = transactionalLocaleForRequest(request);
 
     const wallet = await store.getCreditWallet(orgId);
@@ -30542,6 +30778,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
           if (recipient) {
             const invoiceEvent = event.type.slice('invoice.'.length) as InvoiceEmailEvent;
+
             const amountMinor = Number(
               invoiceEvent === 'paid' ? (object.amount_paid ?? object.amount_due ?? 0) : (object.amount_due ?? 0),
             );
@@ -30774,6 +31011,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    */
   app.get('/admin/capacity', async (request) => {
     await requirePlatformAdmin(request);
+
     const locale = transactionalLocaleForRequest(request);
 
     const capacity = await managerRequest<ClusterCapacity>('/capacity').catch(() => null);
@@ -30794,6 +31032,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const workspaces = await store.listAdminWorkspaces().catch(() => []);
     const idleStopped = workspaces.filter((workspace) => workspace.status === 'STOPPED').length;
+
     const alerts = capacity
       ? evaluateCapacityAlerts(capacity, thresholds).map((alert) => {
           if (alert.kind === 'node-count' && capacity.autoscaling) {
@@ -30927,7 +31166,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   app.get('/admin/deployments', async (request) => {
     await requirePlatformAdmin(request);
+
     const locale = transactionalLocaleForRequest(request);
+
     return {
       deployments: (await store.listAdminDeployments()).map((deployment) =>
         localizeDeploymentRecord(deployment, locale),
@@ -31154,11 +31395,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const locale = transactionalLocaleForRequest(request);
     const localizedCard = localizeAgentRoutingCardLabels(card, locale);
     const since = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString();
+
     const [volume, historyRows] = await Promise.all([
       store.aggregateAgentCallVolume(since).catch(() => []),
       store.listAgentRoutingCards(50).catch(() => []),
     ]);
+
     const volumeByLine = new Map(volume.map((row) => [row.lineKey, row]));
+
     const history = historyRows.map((row) => {
       const parsed = agentRoutingCardSchema.safeParse(row.data);
 
@@ -31847,6 +32091,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    */
   app.get('/admin/stripe/webhook-failures', async (request) => {
     await requirePlatformAdmin(request);
+
     const locale = transactionalLocaleForRequest(request);
 
     const failures = await store.listStripeWebhookFailures({ limit: 50 });
@@ -31894,6 +32139,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return { eventId: failure.eventId, type: failure.type, ok: true };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
+
       const errorCode =
         typeof (error as { code?: unknown })?.code === 'string'
           ? (error as { code: string }).code
@@ -31943,6 +32189,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     await requirePlatformAdmin(request);
 
     const failures = await store.listStripeWebhookFailures({ limit: 50 });
+
     const results: Array<{
       eventId: string;
       type: string;
@@ -32188,6 +32435,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   app.get('/admin/stripe-health', async (request) => {
     await requirePlatformAdmin(request);
+
     const locale = transactionalLocaleForRequest(request);
 
     if (!stripeClient) {
@@ -33444,6 +33692,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     for (const instance of provisioningInstances) {
       const state = await billingState(instance.organizationId).catch(() => undefined);
+
       const reconciled = await reconcileDatabaseProvisioning({
         store,
         provisioner,
@@ -34978,9 +35227,24 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     );
 
     const locale = transactionalLocaleForRequest(request);
+    const accessMembership = request.currentUser
+      ? await store.getMembership(request.currentUser.id, project.organizationId)
+      : undefined;
+    const canManageDeploymentAccess = accessMembership?.roleKey === 'owner' || accessMembership?.roleKey === 'admin';
+
     return {
-      deployments: reconciled.map((deployment) =>
-        localizeDeploymentRecord(annotateRollbackAvailability(deployment), locale),
+      deployments: await Promise.all(
+        reconciled.map(async (deployment) => {
+          const policy = await store.getDeploymentAccessPolicy(deployment.id).catch(() => undefined);
+          return {
+            ...localizeDeploymentRecord(annotateRollbackAvailability(deployment), locale),
+            accessPolicy: policy
+              ? publicDeploymentAccessPolicy(policy)
+              : { mode: 'INVITE_ONLY' as const, version: 0, revision: 'invalid', createdAt: null },
+            accessPolicyState: policy ? ('ACTIVE' as const) : ('LOCKED' as const),
+            accessPolicyCanManage: canManageDeploymentAccess,
+          };
+        }),
       ),
     };
   });
@@ -34995,6 +35259,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   app.get('/projects/:projectId/deployments/detect', async (request, reply) => {
     const locale = transactionalLocaleForRequest(request);
     setAppLocaleResponseHeaders(reply, locale);
+
     const project = await requireProject(
       request,
       store,
@@ -35254,6 +35519,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
     } catch (error) {
       request.log?.warn?.({ err: error, databaseInstanceId: acquisition.instance.id }, 'db provision kickoff failed');
+
       const failed = await store.failDatabaseProvisioning(acquisition.instance.id, {
         errorCode: DATABASE_PROVISION_FAILURE.kickoffFailed,
         failedAt: new Date().toISOString(),
@@ -35269,6 +35535,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     if (!outcome.applied) {
       const reason = outcome.reason ?? DATABASE_PROVISION_FAILURE.rejected;
+
       const failed = await store.failDatabaseProvisioning(acquisition.instance.id, {
         errorCode: reason,
         failedAt: new Date().toISOString(),
@@ -35560,7 +35827,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   };
 
   const resolveRawObjectStorage = (): ObjectStorage => options.objectStorage ?? resolveDefaultObjectStorage();
+
   let guardedObjectStorage: ObjectStorage | undefined;
+
   const resolveObjectStorage = (): ObjectStorage => {
     guardedObjectStorage ??= guardSharedObjectStorageWrites(
       resolveRawObjectStorage(),
@@ -35613,6 +35882,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const source = await store.getProject(share.sourceProjectId);
     const inventory = parseObjectStorageInventory(share.sourceInventory);
+
     if (
       !source ||
       source.organizationId !== share.sourceOrganizationId ||
@@ -35655,6 +35925,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   app.delete('/projects/:projectId/object-storage/share', async (request, reply) => {
     const project = await requireObjectStorageProject(request, 'projects:write');
+
     const share = await store.revokeRemixStorageShare({
       targetProjectId: project.id,
       targetOrganizationId: project.organizationId,
@@ -35763,11 +36034,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     try {
       const authority = await resolveStorageReadAuthority(project);
+
       if (!authority.inventory) {
         return reply.send(await resolveObjectStorage().createDownloadUrl(project.id, query));
       }
 
       const pinned = authority.inventory.objects.find((object) => object.key === query.key);
+
       if (!pinned?.generation) {
         throw new ObjectStorageError(appPublicEnglish('OBJECT_STORAGE_SHARED_OBJECT_NOT_FOUND'), 'OBJECT_NOT_IN_SHARE');
       }
@@ -36092,6 +36365,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        * artifact, installs (dev deps included), builds, then execs the start command.
        */
       const userId = request.currentUser?.id;
+
       let bootCommand: string[] | undefined;
 
       /*
@@ -36116,6 +36390,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
              */
             imageRef?: string;
             imageDigest?: string;
+
             /** Build-repository identity retained for provenance/audit only. */
             sourceImageUri?: string;
             sourceImageRef?: string;
@@ -36128,6 +36403,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             storeGeneration?: string;
           }
         | undefined;
+
       let imagePromotion: PromotionManifest | undefined;
       let imagePromotionErrorCode: string | undefined;
 
@@ -36444,6 +36720,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
                     try {
                       buildProgress.onPhase('promoting');
+
                       const promoted = await store.withSerializedMutation(
                         `artifact-promotion:${project.organizationId}:${project.id}:${buildResult.digest}`,
                         () =>
@@ -36645,8 +36922,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
 
       let readyRow = await store.updateDeployment(project.id, queued.id, {
-        // A server image may only cross BUILDING→READY atomically with its
-        // ReleaseManifest, after its promotion manifest passed every gate.
+        /*
+         * A server image may only cross BUILDING→READY atomically with its
+         * ReleaseManifest, after its promotion manifest passed every gate.
+         */
         status: ok && serverImageRequiresReleaseCommit ? 'BUILDING' : serverStatus,
 
         /*
@@ -36710,6 +36989,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         } catch (error) {
           await stopServerDeploymentViaManager(queued.id).catch(() => undefined);
           imagePromotionErrorCode = (error as { code?: string }).code ?? 'SERVER_RELEASE_COMMIT_FAILED';
+
           const message = appPublicEnglish(serverImagePromotionErrorCopyKey(imagePromotionErrorCode));
           readyRow = await store.updateDeployment(project.id, queued.id, {
             status: 'FAILED',
@@ -37135,6 +37415,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
     }
 
+    const parsedDeploymentBody = parse(createDeploymentSchema, request.body);
+
     const body = {
       provider: 'static' as const,
       environment: 'preview' as const,
@@ -37145,8 +37427,35 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       artifactSizeLimitMb: 250,
       envVars: {},
       injectSecrets: [],
-      ...parse(createDeploymentSchema, request.body),
+      ...parsedDeploymentBody,
+      accessMode: (parsedDeploymentBody.accessMode ??
+        (deploymentAccessActivationEnabled(isProduction) ? 'INVITE_ONLY' : 'PUBLIC')) as DeploymentAccessMode,
     };
+
+    if (
+      (body.accessMode === 'PASSWORD_PROTECTED' && !body.accessPassword) ||
+      (body.accessMode !== 'PASSWORD_PROTECTED' && body.accessPassword !== undefined)
+    ) {
+      return reply.code(400).send({
+        error: 'A password is required only for password-protected deployments.',
+        code: 'DEPLOYMENT_ACCESS_PASSWORD_INVALID',
+      });
+    }
+
+    if (body.accessMode !== 'PUBLIC' && !deploymentAccessActivationEnabled(isProduction)) {
+      return reply.code(503).send({
+        error: 'Protected deployment access is not activated on every serving edge yet.',
+        code: 'DEPLOYMENT_ACCESS_ROLLOUT_NOT_ACTIVE',
+      });
+    }
+
+    if (isProduction && body.accessMode !== 'PUBLIC' && !process.env.DEPLOYMENT_ACCESS_TOKEN_SECRET?.trim()) {
+      return reply.code(503).send({
+        error: 'Deployment access signing is unavailable.',
+        code: 'DEPLOYMENT_ACCESS_SIGNING_UNAVAILABLE',
+      });
+    }
+
     const boundProjectManifest = await currentProjectManifest(store, project);
 
     const { subscription } = await billingState(project.organizationId);
@@ -37180,6 +37489,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         if (error instanceof MachineSizeError) {
           const locale = transactionalLocaleForRequest(request);
           setAppLocaleResponseHeaders(reply, locale);
+
           return reply.code(error.statusCode).send(publicMachineSizeError(error, locale));
         }
 
@@ -37212,7 +37522,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      */
     const secondaryWorkspaceId = await resolveGitWorkspaceId(store, project.id, body.workspaceId);
     const persistedWorkspaceId = body.workspaceId ?? undefined;
+
     let boundMigrationPlan: Awaited<ReturnType<typeof collectPublishMigrationPlan>>;
+
     try {
       boundMigrationPlan = await collectPublishMigrationPlan(projectStorage, project.id, secondaryWorkspaceId);
     } catch (error) {
@@ -37268,10 +37580,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           commitSha: body.commitSha,
           customDomain: body.customDomain,
           machineSize: deployMachineSize,
+          accessPolicy: {
+            mode: body.accessMode,
+            ...(body.accessPassword ? { passwordHash: hashPassword(body.accessPassword) } : {}),
+            createdByUserId: request.currentUser?.id,
+          },
           metadata: {
             projectManifestDigest: boundProjectManifest.digest,
             projectManifestVersion: boundProjectManifest.manifest.manifestVersion,
             projectManifestSchemaVersion: boundProjectManifest.manifest.schemaVersion,
+
             /* Immutable SQL plan bound to this deployment; null pins "none". */
             publishMigrationPlan: boundMigrationPlan ?? null,
             previewDeployment: body.previewDeployment,
@@ -37314,11 +37632,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     if (asyncBuild) {
       try {
+        /*
+         * The password was already one-way hashed into the immutable policy.
+         * Never serialize the raw secret into BullMQ job data or worker logs.
+         */
+        const { accessPassword: _accessPassword, ...safeBuildInput } = body;
         await enqueueDeployJob({
           projectId: project.id,
           deploymentId: queued.id,
           userId: request.currentUser?.id,
-          buildInput: { ...body, secondaryWorkspaceId },
+          buildInput: { ...safeBuildInput, secondaryWorkspaceId },
         });
       } catch (error) {
         /*
@@ -37328,6 +37651,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
          * tails the SSE log stream and sees the failure.
          */
         request.log?.error?.({ err: error, deploymentId: queued.id }, 'deployment build enqueue failed');
+
         const failedRow = await store
           .updateDeployment(project.id, queued.id, {
             status: 'FAILED',
@@ -37903,6 +38227,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       z.object({ cron: z.string().min(1).max(200), timezone: z.string().min(1).max(64).default('UTC') }),
       request.body ?? {},
     );
+
     const preview = describeCron(body.cron, body.timezone);
 
     if (preview.valid) {
@@ -37940,6 +38265,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     const locale = transactionalLocaleForRequest(request);
+
     return {
       logs: deployment.logs.map((log) => ({
         ...log,
@@ -38043,6 +38369,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
       if (logs.length > sentLogCount) {
         const locale = transactionalLocaleForRequest(request);
+
         const delta = logs.slice(sentLogCount).map((log) => ({
           ...log,
           message: localizeBackendOwnedText(redactDeploymentLog(log.message), locale),
@@ -38137,6 +38464,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const project = await requireProject(request, store, projectId, 'projects:write');
     const locale = transactionalLocaleForRequest(request);
     setAppLocaleResponseHeaders(reply, locale);
+
     const source = await store.getDeployment(project.id, deploymentId);
 
     if (!source) {
@@ -38163,6 +38491,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     type PublishGate = { ok: true } | { ok: false; response: Record<string, unknown>; status: number };
+
     const evaluatePublishGate = async (): Promise<PublishGate> => {
       try {
         const publications = await store.listPublishedProjects(project.organizationId);
@@ -38175,6 +38504,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             publishedAt: new Date(publication.publishedAt),
           })),
         });
+
         return { ok: true };
       } catch (error) {
         if (error instanceof EntitlementError) {
@@ -38184,10 +38514,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             response: { error: error.message, code: error.code, ...error.details },
           };
         }
+
         request.log?.error?.(
           { err: error, organizationId: project.organizationId },
           'publish entitlement precheck failed — refusing (fail-closed)',
         );
+
         return {
           ok: false,
           status: 503,
@@ -38207,9 +38539,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * the two checks safe for the currently served release.
      */
     const preliminaryGate = await evaluatePublishGate();
+
     if (!preliminaryGate.ok) {
       const refusal = preliminaryGate.response;
       const cap = Number(refusal.cap);
+
       if (preliminaryGate.status === 402) {
         await audit(request, store, {
           organizationId: project.organizationId,
@@ -38219,6 +38553,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           metadata: refusal,
         });
       }
+
       return reply.code(preliminaryGate.status).send({
         ...refusal,
         ...(preliminaryGate.status === 402
@@ -38234,6 +38569,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     let migrationPlan: Awaited<ReturnType<typeof collectPublishMigrationPlan>>;
+
     try {
       const sourceMetadata = (source.metadata ?? {}) as Record<string, unknown>;
       migrationPlan = Object.prototype.hasOwnProperty.call(sourceMetadata, 'publishMigrationPlan')
@@ -38242,6 +38578,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     } catch (error) {
       const code = error instanceof MigrationManifestError ? error.code : 'MIGRATION_TARGET_UNAVAILABLE';
       request.log?.warn?.({ err: error, projectId: project.id, code }, 'publish migration plan refused');
+
       return reply.code(error instanceof MigrationManifestError ? 409 : 503).send({
         error: appPublicCopy(
           code === 'MIGRATION_UNSAFE_PLAN' ? 'MIGRATION_UNSAFE_PLAN' : 'MIGRATION_MANIFEST_INVALID',
@@ -38254,6 +38591,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     if (migrationPlan) {
       let productionConnection: DatabaseConnectionCandidate | undefined;
+
       try {
         productionConnection = (await listDatabaseConnections(store, project.id)).find(
           (connection) => connection.key === 'PROD_DATABASE_URL',
@@ -38269,6 +38607,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           retryable: true,
         });
       }
+
       if (!productionConnection) {
         return reply.code(409).send({
           error: appPublicCopy('MIGRATION_TARGET_UNAVAILABLE', locale),
@@ -38276,7 +38615,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           retryable: true,
         });
       }
+
       const statementsSha256 = hashStatements(migrationPlan.migrations);
+
       const requestHash = migrationRequestHash({
         projectId: project.id,
         organizationId: project.organizationId,
@@ -38315,6 +38656,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           statementsSha256,
         },
       });
+
       if (!migrationOutcome.ok) {
         const copyKey =
           migrationOutcome.code === 'MIGRATION_LOCK_HELD' || migrationOutcome.code === 'MIGRATION_LEASE_LOST'
@@ -38347,6 +38689,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       const sourceImage = sourceServerDeploy?.image as
         | {
             sourceImageRef?: string;
+
             /** Legacy rows stored the build-repository identity here. */
             imageRef?: string;
             imageDigest?: string;
@@ -38358,6 +38701,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             storeGeneration?: string;
           }
         | undefined;
+
       const sourceImageRef = sourceImage?.sourceImageRef ?? sourceImage?.imageRef;
 
       if (!sourceImageRef || !sourceImage?.imageDigest) {
@@ -38406,6 +38750,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           { code, deploymentId: source.id, projectId: project.id, organizationId: project.organizationId },
           'production server image promotion blocked',
         );
+
         return reply.code(503).send({
           error: appPublicCopy(serverImagePromotionErrorCopyKey(code), locale),
           code,
@@ -38436,6 +38781,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * à zéro par une panne. On refuse temporairement (503) et on réessaiera.
      */
     const publishMetadata = (source.metadata ?? {}) as Record<string, unknown>;
+    const sourceAccessPolicy = await store.getDeploymentAccessPolicy(source.id);
+
+    if (!sourceAccessPolicy) {
+      return reply.code(409).send({
+        error: 'The source deployment access policy is missing or corrupt.',
+        code: 'DEPLOYMENT_ACCESS_POLICY_INVALID',
+      });
+    }
+
     const publishMachineVcpu =
       source.provider === 'server' ? machineSizeFromCard(await getActiveRateCard(store), source.machineSize).vcpu : 0;
     const publishOutcome = await store.withSerializedMutation(
@@ -38457,12 +38811,30 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           }),
         );
         await ensureQuota(request, project.organizationId, 'deployments.count');
+
         const gate = await evaluatePublishGate();
-        if (!gate.ok) return gate;
+
+        if (!gate.ok) {
+          return gate;
+        }
 
         // Création DANS la section critique : c'est elle qui rend le plafond réel.
         const publishUrl = source.url ?? source.previewUrl ?? buildDeploymentUrl(project, source);
-        const publishedInput = buildPublishedDeploymentInput(source, publishUrl);
+
+        const publishedInput = {
+          ...buildPublishedDeploymentInput(source, publishUrl),
+
+          /*
+           * Production has its own monotonic policy namespace. Clone the exact
+           * source semantics (including only the one-way password hash), never a
+           * plaintext secret, and pin the resulting version in its manifest.
+           */
+          accessPolicy: {
+            mode: sourceAccessPolicy.mode,
+            ...(sourceAccessPolicy.passwordHash ? { passwordHash: sourceAccessPolicy.passwordHash } : {}),
+            createdByUserId: request.currentUser?.id,
+          },
+        };
 
         return {
           ok: true,
@@ -38550,9 +38922,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           projectSecrets,
           envOverrides: {},
         });
+
         const deployRateCard = await getActiveRateCard(store);
         const machineSize = machineSizeFromCard(deployRateCard, published.machineSize);
         const sourceImage = serverPublishPromotion.image as { storeGeneration?: string };
+
         const started = await startServerDeploymentViaManager({
           deploymentId: published.id,
           ...machineSizeResources(machineSize),
@@ -38566,6 +38940,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           nixStorePvcName: nixStorePvcForProject(project.id),
           ...(sourceImage.storeGeneration ? { nixGenerationRef: sourceImage.storeGeneration } : {}),
         });
+
         const url = started.url ?? `https://${host}`;
         published = await store.updateDeployment(project.id, published.id, {
           status: 'BUILDING',
@@ -38593,6 +38968,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         }
       } catch (error) {
         await stopServerDeploymentViaManager(published.id).catch(() => undefined);
+
         const code = (error as { code?: string }).code ?? 'SERVER_RELEASE_COMMIT_FAILED';
         published = await store.updateDeployment(project.id, published.id, {
           status: 'FAILED',
@@ -38655,6 +39031,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
             if (acquisition.acquired) {
               acquiredProdInstanceId = acquisition.instance.id;
+
               const outcome = await provisioner.provisionInstance({
                 projectId: project.id,
                 organizationId: project.organizationId,
@@ -38681,6 +39058,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             })
             .catch(() => undefined);
         }
+
         request.log?.warn?.({ err: error }, 'prod db ensure on publish failed (non-fatal)');
       }
     }
@@ -38704,6 +39082,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           name: 'Production',
           runtimeMode: devTemplate?.runtimeMode ?? 'docker',
           environment: 'production',
+
           // A source checkout is not a running workspace and must not consume a slot.
           initialStatus: 'STOPPED',
         });
@@ -38758,6 +39137,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * zod schema before it was stored) so the provider helpers accept it.
      */
     const sourceProvider = source.provider as (typeof deploymentProviders)[number];
+
     const providerConfigError = deployProviderConfigError(
       sourceProvider,
       process.env,
@@ -38796,7 +39176,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * could never run.
      */
     const secondaryWorkspaceId = await resolveGitWorkspaceId(store, project.id, source.workspaceId ?? undefined);
+
     let redeployMigrationPlan: Awaited<ReturnType<typeof collectPublishMigrationPlan>>;
+
     try {
       redeployMigrationPlan = await collectPublishMigrationPlan(projectStorage, project.id, secondaryWorkspaceId);
     } catch (error) {
@@ -38810,7 +39192,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         retryable: !(error instanceof MigrationManifestError),
       });
     }
+
     const sourceMetadata = (source.metadata ?? {}) as Record<string, unknown>;
+
     const sourceTimeoutSeconds =
       typeof sourceMetadata.timeoutSeconds === 'number' ? sourceMetadata.timeoutSeconds : 600;
     const sourceArtifactSizeLimitMb =
@@ -38860,6 +39244,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
           // A redeploy runs on the SAME machine the original was priced for.
           machineSize: source.machineSize,
+          accessPolicyVersion: source.accessPolicyVersion,
           metadata: {
             ...source.metadata,
             publishMigrationPlan: redeployMigrationPlan ?? null,
@@ -38943,6 +39328,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         resourceId: rebuilt.id,
         metadata: { sourceDeploymentId: source.id, status: rebuilt.status },
       });
+
       return reply
         .code(201)
         .send({ deployment: localizeDeploymentRecord(rebuilt, transactionalLocaleForRequest(request)) });
@@ -39161,6 +39547,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     );
     const project = await requireProject(request, store, projectId, 'projects:write');
     await requireOrganizationNotSuspended(store, project.organizationId);
+
     const locale = transactionalLocaleForRequest(request);
     setAppLocaleResponseHeaders(reply, locale);
 
@@ -39408,6 +39795,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     const previousDeploymentForManifest = await store.getDeployment(project.id, previous.deploymentId);
+
     if (
       previousDeploymentForManifest &&
       !(await deploymentProjectManifestIsCurrent(store, project, previousDeploymentForManifest))
@@ -39492,6 +39880,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             provider: 'static',
             environment,
             status: 'QUEUED',
+            accessPolicyVersion: previous.accessPolicyVersion,
             rolledBackFromId: previous.deploymentId,
             metadata: rollbackMetadata,
           },
@@ -39577,6 +39966,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           ...(previous.storeGeneration ? { storeGeneration: previous.storeGeneration } : {}),
           ...(previous.configDigest ? { configDigest: previous.configDigest } : {}),
           ...(previous.dbMigrationPoint ? { dbMigrationPoint: previous.dbMigrationPoint } : {}),
+          accessPolicyVersion: previous.accessPolicyVersion,
           url,
           metadata: rollbackMetadata,
           logs: [
@@ -39690,8 +40080,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       }
 
       const previousDeployment = await store.getDeployment(project.id, previous.deploymentId);
+
       const previousServerDeploy = (previousDeployment?.metadata as Record<string, unknown> | undefined)
         ?.serverDeploy as Record<string, unknown> | undefined;
+
       /*
        * Deployment rows may be pruned before their immutable ReleaseManifest.
        * The release transaction also persists the complete promotion proof in
@@ -39733,6 +40125,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             provider: 'server',
             environment,
             status: 'QUEUED',
+            accessPolicyVersion: previous.accessPolicyVersion,
             rolledBackFromId: previous.deploymentId,
             metadata: rollbackMetadata,
           },
@@ -40052,6 +40445,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      */
     const willServerDigestRollback = !willTriggerProviderRollback && target.provider === 'server';
     const rollbackMetadata = (target.metadata ?? {}) as Record<string, unknown>;
+
     const rollbackMachineVcpu =
       target.provider === 'server' ? machineSizeFromCard(await getActiveRateCard(store), target.machineSize).vcpu : 0;
 
@@ -40085,6 +40479,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         branch: target.branch,
         commitSha: target.commitSha,
         customDomain: target.customDomain,
+        accessPolicyVersion: target.accessPolicyVersion,
         metadata: {
           ...(target.metadata as Record<string, unknown>),
           rollbackTargetId: target.id,
@@ -40342,6 +40737,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     );
 
     const locale = transactionalLocaleForRequest(request);
+
     return {
       deployments: (await store.listDeployments(project.id)).map((deployment) =>
         localizeDeploymentRecord(deployment, locale),
@@ -40778,7 +41174,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     service: cloudGovernanceService,
     guardAdmin: async (request, guard) => {
       await requirePlatformAdmin(request);
-      if (guard.reauth) await requireRecentAdminReauth(request);
+
+      if (guard.reauth) {
+        await requireRecentAdminReauth(request);
+      }
     },
     audit: async (request, entry) => {
       await store.recordAdminAudit({
@@ -40802,10 +41201,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   ) {
     const parsedInterval = Number(process.env.CLOUD_OPERATION_WORKER_INTERVAL_MS ?? 5_000);
     const intervalMs = Number.isFinite(parsedInterval) ? Math.max(1_000, Math.min(60_000, parsedInterval)) : 5_000;
+
     let running = false;
+
     const tick = async () => {
-      if (running) return;
+      if (running) {
+        return;
+      }
+
       running = true;
+
       try {
         await cloudGovernanceService.executeDueOperations(25);
       } catch (error) {
@@ -40814,11 +41219,21 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         running = false;
       }
     };
+
     const timer = setInterval(() => void tick(), intervalMs);
     timer.unref();
     void tick();
     app.addHook('onClose', async () => clearInterval(timer));
   }
+
+  await registerDeploymentAccessRoutes(app, {
+    store,
+    isProduction,
+    requireProject: (request, projectId, permission) => requireProject(request, store, projectId, permission),
+    requirePreviewProxySecret,
+    audit: (request, entry) => audit(request, store, entry),
+    appPublicBaseUrl,
+  });
 
   return app;
 }

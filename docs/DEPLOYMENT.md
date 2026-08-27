@@ -130,6 +130,7 @@ declare -A MAP=(
   [CONFIG_ENCRYPTION_KEY]=vibecore-prod-encryption-key
   [WORKSPACE_AGENT_TOKEN_SECRET]=vibecore-prod-workspace-agent-token-secret
   [PREVIEW_PROXY_SHARED_SECRET]=vibecore-prod-preview-proxy-shared-secret
+  [DEPLOYMENT_ACCESS_TOKEN_SECRET]=vibecore-prod-deployment-access-token-secret
   [WORKSPACE_MANAGER_SHARED_SECRET]=vibecore-prod-workspace-manager-shared-secret
   [BACKUP_ENCRYPTION_KEY]=vibecore-prod-backup-encryption-key
   [SIEM_SIGNING_SECRET]=vibecore-prod-siem-signing-secret
