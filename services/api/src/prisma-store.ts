@@ -1,8 +1,8 @@
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { promises as dnsPromises } from 'node:dns';
 import { redactAuditMetadata, type AuditEvent } from '@vibecore/audit';
 import { hashToken } from '@vibecore/auth';
-import type { PlanKey, QuotaKey } from '@vibecore/billing';
+import { RESERVED_VM_TIERS, type PlanKey, type QuotaKey } from '@vibecore/billing';
 import { createDatabaseClient, Prisma, type DatabaseClient } from '@vibecore/database';
 import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
 import { assertAccountPurgeMutationAllowed, assertStateMachineNotPurged } from './account-purge-state-machine-fence.js';
@@ -77,6 +77,14 @@ import type {
   CollaborationPresenceRecord,
   CustomRoleRecord,
   DeploymentRecord,
+  DeploymentRuntimeKind,
+  ReservedVmBillingRequest,
+  ReservedVmBillingPeriodLease,
+  ReservedVmBillingPeriodRecord,
+  ReservedVmBillingStore,
+  ReservedVmLease,
+  ReservedVmOperationRecord,
+  ReservedVmTier,
   DeploymentAccessContext,
   DeploymentAccessTicketMutationResult,
   ReleaseManifestRecord,
@@ -200,6 +208,179 @@ async function databaseNow(tx: Prisma.TransactionClient): Promise<Date> {
 function databaseLeaseExpiry(now: Date, durationMs: number): Date {
   const bounded = Math.max(1_000, Math.min(Math.trunc(durationMs), 30 * 60_000));
   return new Date(now.getTime() + bounded);
+}
+
+const RESERVED_VM_RENEWAL_RESERVATION_MS = 7 * 24 * 60 * 60_000;
+const RESERVED_VM_MAX_GRACE_MS = 6 * 24 * 60 * 60_000;
+
+async function databaseCalendarMonthAfter(tx: Prisma.TransactionClient, start: Date): Promise<Date> {
+  const rows = await tx.$queryRaw<Array<{ next: Date }>>`
+    SELECT (${start}::timestamptz + INTERVAL '1 month') AS "next"
+  `;
+
+  const value = rows[0]?.next;
+
+  if (!(value instanceof Date) || value <= start) {
+    throw Object.assign(new Error('Reserved VM calendar-month deadline is unavailable.'), {
+      code: 'RESERVED_VM_BILLING_CLOCK_UNAVAILABLE',
+      statusCode: 503,
+    });
+  }
+
+  return value;
+}
+
+function requireReservedVmLeaseOwner(ownerToken: string): string {
+  const token = ownerToken.trim();
+
+  if (!token || token.length > 200) {
+    throw Object.assign(new Error('Reserved VM billing lease owner token is invalid.'), {
+      code: 'RESERVED_VM_BILLING_OWNER_INVALID',
+      statusCode: 400,
+    });
+  }
+
+  return token;
+}
+
+function reservedVmBillingLeaseExpiry(now: Date, ttlMs: number): Date {
+  if (!Number.isFinite(ttlMs) || ttlMs < 1_000 || ttlMs > 30 * 60_000) {
+    throw Object.assign(new Error('Reserved VM billing lease duration is invalid.'), {
+      code: 'RESERVED_VM_BILLING_LEASE_TTL_INVALID',
+      statusCode: 400,
+    });
+  }
+
+  return new Date(now.getTime() + Math.trunc(ttlMs));
+}
+
+function reservedVmGraceExpiry(now: Date, gracePeriodMs: number): Date {
+  if (!Number.isFinite(gracePeriodMs) || gracePeriodMs < 1_000 || gracePeriodMs > RESERVED_VM_MAX_GRACE_MS) {
+    throw Object.assign(new Error('Reserved VM billing grace duration is invalid.'), {
+      code: 'RESERVED_VM_BILLING_GRACE_INVALID',
+      statusCode: 400,
+    });
+  }
+
+  return new Date(now.getTime() + Math.trunc(gracePeriodMs));
+}
+
+function reservedVmBillingFenceLost(): Error & { code: string; statusCode: number } {
+  return Object.assign(new Error('Reserved VM billing period ownership was lost.'), {
+    code: 'RESERVED_VM_BILLING_FENCE_LOST',
+    statusCode: 409,
+  });
+}
+
+function reservedVmRenewalRequestHash(input: {
+  deploymentId: string;
+  organizationId: string;
+  periodStart: Date;
+  periodEnd: Date;
+  tier: string;
+  priceCents: number;
+  termsVersion: string;
+  rateCardVersion: number;
+}): string {
+  return createHash('sha256')
+    .update(
+      JSON.stringify({
+        deploymentId: input.deploymentId,
+        organizationId: input.organizationId,
+        periodStart: input.periodStart.toISOString(),
+        periodEnd: input.periodEnd.toISOString(),
+        tier: input.tier,
+        priceCents: input.priceCents,
+        termsVersion: input.termsVersion,
+        rateCardVersion: input.rateCardVersion,
+      }),
+    )
+    .digest('hex');
+}
+
+type ExpiredReservedVmGraceRow = {
+  id: string;
+  deploymentId: string;
+  periodStart: Date;
+  graceEndsAt: Date;
+  billingReservationId: string | null;
+};
+
+async function promoteExpiredReservedVmGrace(
+  tx: Prisma.TransactionClient,
+  ledger: LedgerStore,
+  input: { deploymentId?: string; take: number },
+): Promise<void> {
+  const take = Number.isFinite(input.take) ? Math.max(1, Math.min(Math.trunc(input.take), 500)) : 100;
+
+  const rows = input.deploymentId
+    ? await tx.$queryRaw<ExpiredReservedVmGraceRow[]>`
+        SELECT p."id", p."deploymentId", p."periodStart", p."graceEndsAt", p."billingReservationId"
+        FROM "ReservedVmBillingPeriod" p
+        WHERE p."deploymentId" = ${input.deploymentId}
+          AND p."status" = 'PAST_DUE'
+          AND p."graceEndsAt" <= clock_timestamp()
+        ORDER BY p."graceEndsAt" ASC, p."id" ASC
+        FOR UPDATE SKIP LOCKED
+        LIMIT ${take}
+      `
+    : await tx.$queryRaw<ExpiredReservedVmGraceRow[]>`
+        SELECT p."id", p."deploymentId", p."periodStart", p."graceEndsAt", p."billingReservationId"
+        FROM "ReservedVmBillingPeriod" p
+        WHERE p."status" = 'PAST_DUE'
+          AND p."graceEndsAt" <= clock_timestamp()
+        ORDER BY p."graceEndsAt" ASC, p."id" ASC
+        FOR UPDATE SKIP LOCKED
+        LIMIT ${take}
+      `;
+
+  for (const row of rows) {
+    const now = await databaseNow(tx);
+    const deployment = await tx.deployment.findUnique({ where: { id: row.deploymentId } });
+
+    const stillCurrent =
+      deployment?.runtimeKind === 'reserved-vm' &&
+      deployment.reservedVmNextChargeAt?.getTime() === row.periodStart.getTime();
+
+    if (row.billingReservationId) {
+      await ledger.releaseReservationInTransaction(tx, row.billingReservationId, 'failure');
+    }
+
+    if (!stillCurrent) {
+      await tx.reservedVmBillingPeriod.update({
+        where: { id: row.id },
+        data: {
+          status: 'CANCELED',
+          leaseOwner: null,
+          leaseExpiresAt: null,
+          stopRequestedAt: null,
+        },
+      });
+      continue;
+    }
+
+    await tx.reservedVmBillingPeriod.update({
+      where: { id: row.id },
+      data: {
+        status: 'STOP_REQUIRED',
+        leaseOwner: null,
+        leaseExpiresAt: null,
+        stopRequestedAt: now,
+      },
+    });
+    await tx.deployment.updateMany({
+      where: {
+        id: row.deploymentId,
+        runtimeKind: 'reserved-vm',
+        reservedVmNextChargeAt: row.periodStart,
+      },
+      data: {
+        reservedVmBillingState: 'STOP_REQUIRED',
+        reservedVmGraceEndsAt: row.graceEndsAt,
+        reservedVmStopRequestedAt: now,
+      },
+    });
+  }
 }
 
 function databaseDeadline(now: Date, durationMs: number, maximumMs = 24 * 60 * 60_000): Date {
@@ -867,7 +1048,7 @@ function assertFound<T>(value: T | null | undefined, message: string, code: stri
   return value;
 }
 
-export class PrismaApiStore implements ApiStore {
+export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
   constructor(
     readonly prisma: DatabaseClient = createDatabaseClient(),
 
@@ -7430,6 +7611,7 @@ export class PrismaApiStore implements ApiStore {
     rolledBackFromId?: string;
     parentDeploymentId?: string;
     machineSize?: string;
+    reservedVm?: ReservedVmBillingRequest;
     accessPolicy?: { mode: DeploymentAccessMode; passwordHash?: string; createdByUserId?: string };
     accessPolicyVersion?: number;
     startedAt?: string;
@@ -7444,7 +7626,62 @@ export class PrismaApiStore implements ApiStore {
 
     const environment = input.environment ?? 'preview';
 
+    const ledger = new LedgerStore(this.prisma);
+
     return this.prisma.$transaction(async (tx) => {
+      if (input.reservedVm) {
+        await tx.$executeRawUnsafe(
+          'SELECT pg_advisory_xact_lock(hashtext($1))',
+          `reserved-vm:${input.projectId}:${input.reservedVm.idempotencyKey}`,
+        );
+        const replay = await tx.reservedVmOperation.findUnique({
+          where: {
+            projectId_idempotencyKey: {
+              projectId: input.projectId,
+              idempotencyKey: input.reservedVm.idempotencyKey,
+            },
+          },
+        });
+
+        if (replay) {
+          if (replay.requestHash !== input.reservedVm.requestHash || replay.kind !== 'CREATE') {
+            throw Object.assign(new Error('Reserved VM idempotency key was reused for another request.'), {
+              code: 'RESERVED_VM_IDEMPOTENCY_CONFLICT',
+              statusCode: 409,
+            });
+          }
+
+          const existingDeployment = await tx.deployment.findUniqueOrThrow({ where: { id: replay.deploymentId } });
+          return mapDeployment(existingDeployment);
+        }
+
+        const exactPrice = RESERVED_VM_TIERS[input.reservedVm.tier]?.centsPerMonth;
+
+        if (exactPrice !== input.reservedVm.monthlyPriceCents) {
+          throw Object.assign(new Error('Reserved VM price confirmation is stale.'), {
+            code: 'RESERVED_VM_PRICE_MISMATCH',
+            statusCode: 409,
+          });
+        }
+
+        const projectOwner = await tx.project.findUnique({
+          where: { id: input.projectId },
+          select: { organizationId: true },
+        });
+
+        if (!projectOwner || projectOwner.organizationId !== input.reservedVm.organizationId) {
+          throw Object.assign(new Error('Reserved VM project ownership does not match the billing tenant.'), {
+            code: 'RESERVED_VM_TENANT_FORBIDDEN',
+            statusCode: 403,
+          });
+        }
+
+        await assertAccountPurgeMutationAllowed(tx, {
+          userIds: [input.reservedVm.actorUserId],
+          organizationIds: [input.reservedVm.organizationId],
+        });
+      }
+
       let accessPolicyVersion = input.accessPolicyVersion;
 
       if (input.accessPolicy) {
@@ -7519,6 +7756,15 @@ export class PrismaApiStore implements ApiStore {
           rolledBackFromId: input.rolledBackFromId,
           parentDeploymentId: input.parentDeploymentId,
           ...(input.machineSize ? { machineSize: input.machineSize } : {}),
+          ...(input.reservedVm
+            ? {
+                runtimeKind: 'reserved-vm',
+                reservedVmTier: input.reservedVm.tier,
+                reservedVmPriceCents: input.reservedVm.monthlyPriceCents,
+                reservedVmTermsVersion: input.reservedVm.termsVersion,
+                reservedVmRateCardVersion: input.reservedVm.rateCardVersion,
+              }
+            : {}),
           ...(accessPolicyVersion !== undefined ? { accessPolicyVersion } : {}),
           startedAt: input.startedAt ? new Date(input.startedAt) : undefined,
           finishedAt: input.finishedAt ? new Date(input.finishedAt) : undefined,
@@ -7526,7 +7772,938 @@ export class PrismaApiStore implements ApiStore {
         } as any,
       });
 
+      if (input.reservedVm) {
+        const persistentStorageClaim = `reserved-data-${deployment.id}`;
+        const reservation = await ledger.reserveUsageInTransaction(tx, {
+          organizationId: input.reservedVm.organizationId,
+          userId: input.reservedVm.actorUserId,
+          idempotencyKey: `reserved-vm:${input.projectId}:${input.reservedVm.idempotencyKey}`,
+          requestHash: input.reservedVm.requestHash,
+          operation: 'reserved_vm_monthly',
+          currency: 'usd',
+          maxAmountMinor: BigInt(input.reservedVm.monthlyPriceCents),
+          rateCardVersion: input.reservedVm.rateCardVersion,
+          expiresInMs: 2 * 60 * 60_000,
+        });
+
+        await tx.deployment.update({
+          where: { id: deployment.id },
+          data: { persistentStorageClaim },
+        });
+        await tx.reservedVmOperation.create({
+          data: {
+            projectId: input.projectId,
+            deploymentId: deployment.id,
+            organizationId: input.reservedVm.organizationId,
+            actorUserId: input.reservedVm.actorUserId ?? null,
+            idempotencyKey: input.reservedVm.idempotencyKey,
+            requestHash: input.reservedVm.requestHash,
+            kind: 'CREATE',
+            fromRuntimeKind: null,
+            fromTier: null,
+            targetRuntimeKind: 'reserved-vm',
+            targetTier: input.reservedVm.tier,
+            targetMachineSize: input.reservedVm.tier,
+            targetPriceCents: input.reservedVm.monthlyPriceCents,
+            billingAmountCents: input.reservedVm.monthlyPriceCents,
+            termsVersion: input.reservedVm.termsVersion,
+            rateCardVersion: input.reservedVm.rateCardVersion,
+            expectedRuntimeVersion: 0,
+            billingReservationId: reservation.id,
+          },
+        });
+
+        const updated = await tx.deployment.findUniqueOrThrow({ where: { id: deployment.id } });
+        return mapDeployment(updated);
+      }
+
       return mapDeployment(deployment);
+    });
+  }
+
+  async createReservedVmChangeOperation(input: {
+    projectId: string;
+    deploymentId: string;
+    organizationId: string;
+    actorUserId?: string;
+    idempotencyKey: string;
+    requestHash: string;
+    expectedRuntimeVersion: number;
+    targetRuntimeKind: DeploymentRuntimeKind;
+    targetTier?: ReservedVmTier;
+    targetMachineSize: string;
+    targetPriceCents: number;
+    termsVersion: string;
+    rateCardVersion: number;
+  }): Promise<{ operation: ReservedVmOperationRecord; deployment: DeploymentRecord; replayed: boolean }> {
+    const ledger = new LedgerStore(this.prisma);
+
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$executeRawUnsafe(
+        'SELECT pg_advisory_xact_lock(hashtext($1))',
+        `reserved-vm:${input.projectId}:${input.idempotencyKey}`,
+      );
+      const replay = await tx.reservedVmOperation.findUnique({
+        where: {
+          projectId_idempotencyKey: { projectId: input.projectId, idempotencyKey: input.idempotencyKey },
+        },
+      });
+
+      if (replay) {
+        if (replay.requestHash !== input.requestHash || replay.deploymentId !== input.deploymentId) {
+          throw Object.assign(new Error('Reserved VM idempotency key was reused for another request.'), {
+            code: 'RESERVED_VM_IDEMPOTENCY_CONFLICT',
+            statusCode: 409,
+          });
+        }
+
+        const deployment = await tx.deployment.findUniqueOrThrow({ where: { id: replay.deploymentId } });
+        return { operation: publicReservedVmOperation(replay), deployment: mapDeployment(deployment), replayed: true };
+      }
+
+      await assertAccountPurgeMutationAllowed(tx, {
+        userIds: [input.actorUserId],
+        organizationIds: [input.organizationId],
+      });
+      await tx.$queryRaw`SELECT "id" FROM "Deployment" WHERE "id" = ${input.deploymentId} FOR UPDATE`;
+      const deployment = await tx.deployment.findFirst({
+        where: { id: input.deploymentId, projectId: input.projectId },
+      });
+
+      if (!deployment) {
+        throw Object.assign(new Error('Deployment not found.'), { code: 'DEPLOYMENT_NOT_FOUND', statusCode: 404 });
+      }
+
+      const projectOwner = await tx.project.findUnique({
+        where: { id: input.projectId },
+        select: { organizationId: true },
+      });
+
+      if (!projectOwner || projectOwner.organizationId !== input.organizationId) {
+        throw Object.assign(new Error('Reserved VM project ownership does not match the billing tenant.'), {
+          code: 'RESERVED_VM_TENANT_FORBIDDEN',
+          statusCode: 403,
+        });
+      }
+
+      if (deployment.runtimeVersion !== input.expectedRuntimeVersion) {
+        throw Object.assign(new Error('Deployment runtime changed concurrently.'), {
+          code: 'RESERVED_VM_RUNTIME_VERSION_CONFLICT',
+          statusCode: 409,
+        });
+      }
+
+      const activeOperation = await tx.reservedVmOperation.findFirst({
+        where: {
+          deploymentId: deployment.id,
+          status: { in: ['PENDING', 'APPLYING'] },
+        },
+        select: { id: true },
+      });
+
+      if (activeOperation) {
+        throw Object.assign(new Error('Another Reserved VM runtime change is already in progress.'), {
+          code: 'RESERVED_VM_CHANGE_IN_PROGRESS',
+          statusCode: 409,
+        });
+      }
+
+      const activeBillingPeriod = await tx.reservedVmBillingPeriod.findFirst({
+        where: {
+          deploymentId: deployment.id,
+          status:
+            input.targetRuntimeKind === 'reserved-vm'
+              ? { in: ['PROCESSING', 'PAST_DUE', 'STOP_REQUIRED'] }
+              : 'PROCESSING',
+        },
+        select: { id: true },
+      });
+
+      if (activeBillingPeriod) {
+        throw Object.assign(new Error('Reserved VM monthly billing is already being settled.'), {
+          code: 'RESERVED_VM_BILLING_IN_PROGRESS',
+          statusCode: 409,
+        });
+      }
+
+      if (input.targetRuntimeKind === 'reserved-vm') {
+        const exactPrice = input.targetTier ? RESERVED_VM_TIERS[input.targetTier]?.centsPerMonth : undefined;
+
+        if (
+          !input.targetTier ||
+          exactPrice !== input.targetPriceCents ||
+          input.targetMachineSize !== input.targetTier
+        ) {
+          throw Object.assign(new Error('Reserved VM tier or price confirmation is stale.'), {
+            code: 'RESERVED_VM_PRICE_MISMATCH',
+            statusCode: 409,
+          });
+        }
+      } else if (input.targetTier || input.targetPriceCents !== 0) {
+        throw Object.assign(new Error('Autoscale cannot carry a Reserved VM tier or price.'), {
+          code: 'RESERVED_VM_TARGET_INVALID',
+          statusCode: 400,
+        });
+      }
+
+      if (
+        (deployment.runtimeKind ?? 'autoscale') === input.targetRuntimeKind &&
+        deployment.machineSize === input.targetMachineSize &&
+        (deployment.reservedVmTier ?? undefined) === input.targetTier
+      ) {
+        throw Object.assign(new Error('The requested runtime configuration is already active.'), {
+          code: 'RESERVED_VM_NO_CHANGE',
+          statusCode: 409,
+        });
+      }
+
+      const billingAmountCents =
+        input.targetRuntimeKind === 'reserved-vm'
+          ? Math.max(0, input.targetPriceCents - Number(deployment.reservedVmPriceCents ?? 0))
+          : 0;
+      const billingReservation =
+        billingAmountCents > 0
+          ? await ledger.reserveUsageInTransaction(tx, {
+              organizationId: input.organizationId,
+              userId: input.actorUserId,
+              idempotencyKey: `reserved-vm:${input.projectId}:${input.idempotencyKey}`,
+              requestHash: input.requestHash,
+              operation: 'reserved_vm_monthly',
+              currency: 'usd',
+              maxAmountMinor: BigInt(billingAmountCents),
+              rateCardVersion: input.rateCardVersion,
+              expiresInMs: 2 * 60 * 60_000,
+            })
+          : undefined;
+      const operation = await tx.reservedVmOperation.create({
+        data: {
+          projectId: input.projectId,
+          deploymentId: input.deploymentId,
+          organizationId: input.organizationId,
+          actorUserId: input.actorUserId ?? null,
+          idempotencyKey: input.idempotencyKey,
+          requestHash: input.requestHash,
+          kind: 'CHANGE',
+          fromRuntimeKind: deployment.runtimeKind ?? 'autoscale',
+          fromTier: deployment.reservedVmTier ?? null,
+          targetRuntimeKind: input.targetRuntimeKind,
+          targetTier: input.targetTier ?? null,
+          targetMachineSize: input.targetMachineSize,
+          targetPriceCents: input.targetPriceCents,
+          billingAmountCents,
+          termsVersion: input.termsVersion,
+          rateCardVersion: input.rateCardVersion,
+          expectedRuntimeVersion: input.expectedRuntimeVersion,
+          billingReservationId: billingReservation?.id ?? null,
+        },
+      });
+
+      return {
+        operation: publicReservedVmOperation(operation),
+        deployment: mapDeployment(deployment),
+        replayed: false,
+      };
+    });
+  }
+
+  async getReservedVmOperation(projectId: string, idempotencyKey: string) {
+    const operation = await this.prisma.reservedVmOperation.findUnique({
+      where: { projectId_idempotencyKey: { projectId, idempotencyKey } },
+    });
+    return operation ? publicReservedVmOperation(operation) : undefined;
+  }
+
+  async acquireReservedVmOperation(input: {
+    projectId: string;
+    idempotencyKey: string;
+    ownerToken: string;
+    ttlMs: number;
+  }): Promise<{ operation: ReservedVmLease; deployment: DeploymentRecord; acquired: boolean }> {
+    return this.prisma.$transaction(async (tx) => {
+      const selected = await tx.$queryRaw<Array<{ id: string }>>`
+        SELECT "id" FROM "ReservedVmOperation"
+        WHERE "projectId" = ${input.projectId} AND "idempotencyKey" = ${input.idempotencyKey}
+        FOR UPDATE
+      `;
+      const id = selected[0]?.id;
+
+      if (!id) {
+        throw Object.assign(new Error('Reserved VM operation not found.'), {
+          code: 'RESERVED_VM_OPERATION_NOT_FOUND',
+          statusCode: 404,
+        });
+      }
+
+      const now = await databaseNow(tx);
+      const operation = await tx.reservedVmOperation.findUniqueOrThrow({ where: { id } });
+      const deployment = await tx.deployment.findUniqueOrThrow({ where: { id: operation.deploymentId } });
+
+      if (operation.status === 'COMPLETED' || operation.status === 'FAILED') {
+        return { operation: mapReservedVmOperation(operation), deployment: mapDeployment(deployment), acquired: false };
+      }
+
+      if (
+        operation.leaseOwner &&
+        operation.leaseOwner !== input.ownerToken &&
+        operation.leaseExpiresAt &&
+        operation.leaseExpiresAt > now
+      ) {
+        return { operation: mapReservedVmOperation(operation), deployment: mapDeployment(deployment), acquired: false };
+      }
+
+      const claimed = await tx.reservedVmOperation.update({
+        where: { id: operation.id },
+        data: {
+          status: 'APPLYING',
+          ...(operation.phase === 'RUNTIME_APPLIED' ? {} : { phase: 'LEASED' }),
+          leaseOwner: input.ownerToken,
+          leaseExpiresAt: databaseLeaseExpiry(now, input.ttlMs),
+          fencingToken: { increment: 1 },
+          errorCode: null,
+          errorMessage: null,
+        },
+      });
+      return { operation: mapReservedVmOperation(claimed), deployment: mapDeployment(deployment), acquired: true };
+    });
+  }
+
+  async markReservedVmRuntimeApplied(input: {
+    operationId: string;
+    ownerToken: string;
+    fencingToken: number;
+  }): Promise<boolean> {
+    return this.prisma.$transaction(async (tx) => {
+      const now = await databaseNow(tx);
+      const updated = await tx.reservedVmOperation.updateMany({
+        where: {
+          id: input.operationId,
+          status: 'APPLYING',
+          leaseOwner: input.ownerToken,
+          fencingToken: input.fencingToken,
+          leaseExpiresAt: { gt: now },
+        },
+        data: { phase: 'RUNTIME_APPLIED' },
+      });
+      return updated.count === 1;
+    });
+  }
+
+  async commitReservedVmOperation(input: {
+    operationId: string;
+    ownerToken: string;
+    fencingToken: number;
+    response: Record<string, unknown>;
+  }): Promise<{ operation: ReservedVmOperationRecord; deployment: DeploymentRecord }> {
+    const ledger = new LedgerStore(this.prisma);
+
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT "id" FROM "ReservedVmOperation" WHERE "id" = ${input.operationId} FOR UPDATE`;
+      const now = await databaseNow(tx);
+      const operation = await tx.reservedVmOperation.findUniqueOrThrow({ where: { id: input.operationId } });
+
+      if (operation.status === 'COMPLETED') {
+        const deployment = await tx.deployment.findUniqueOrThrow({ where: { id: operation.deploymentId } });
+        return { operation: publicReservedVmOperation(operation), deployment: mapDeployment(deployment) };
+      }
+
+      if (
+        operation.status !== 'APPLYING' ||
+        operation.phase !== 'RUNTIME_APPLIED' ||
+        operation.leaseOwner !== input.ownerToken ||
+        operation.fencingToken !== input.fencingToken ||
+        !operation.leaseExpiresAt ||
+        operation.leaseExpiresAt <= now
+      ) {
+        throw Object.assign(new Error('Reserved VM operation ownership was lost.'), {
+          code: 'RESERVED_VM_OPERATION_FENCE_LOST',
+          statusCode: 409,
+        });
+      }
+
+      await tx.$queryRaw`SELECT "id" FROM "Deployment" WHERE "id" = ${operation.deploymentId} FOR UPDATE`;
+      const current = await tx.deployment.findUniqueOrThrow({ where: { id: operation.deploymentId } });
+
+      if (current.runtimeVersion !== operation.expectedRuntimeVersion) {
+        throw Object.assign(new Error('Deployment runtime changed concurrently.'), {
+          code: 'RESERVED_VM_RUNTIME_VERSION_CONFLICT',
+          statusCode: 409,
+        });
+      }
+
+      if (operation.billingReservationId) {
+        await ledger.commitReservationInTransaction(tx, {
+          reservationId: operation.billingReservationId,
+          actualAmountMinor: BigInt(operation.billingAmountCents),
+          refuseOverage: true,
+        });
+      }
+
+      let initialPeriodStart: Date | null = null;
+      let initialPeriodEnd: Date | null = null;
+
+      if (operation.targetRuntimeKind === 'reserved-vm' && operation.fromRuntimeKind !== 'reserved-vm') {
+        if (
+          !operation.billingReservationId ||
+          operation.billingAmountCents !== operation.targetPriceCents ||
+          !operation.targetTier
+        ) {
+          throw Object.assign(new Error('Reserved VM initial monthly settlement is incomplete.'), {
+            code: 'RESERVED_VM_BILLING_SCHEDULE_CORRUPT',
+            statusCode: 409,
+          });
+        }
+
+        initialPeriodStart = now;
+        initialPeriodEnd = await databaseCalendarMonthAfter(tx, now);
+        await tx.reservedVmBillingPeriod.create({
+          data: {
+            projectId: operation.projectId,
+            deploymentId: operation.deploymentId,
+            organizationId: operation.organizationId,
+            periodStart: initialPeriodStart,
+            periodEnd: initialPeriodEnd,
+            tier: operation.targetTier,
+            priceCents: operation.targetPriceCents,
+            termsVersion: operation.termsVersion,
+            rateCardVersion: operation.rateCardVersion,
+            status: 'PAID',
+            attemptCount: 1,
+            billingReservationId: operation.billingReservationId,
+            settledAt: now,
+          },
+        });
+      } else if (
+        operation.targetRuntimeKind === 'reserved-vm' &&
+        (!current.reservedVmCurrentPeriodStart || !current.reservedVmNextChargeAt || !current.reservedVmBillingState)
+      ) {
+        throw Object.assign(new Error('Reserved VM monthly schedule is missing.'), {
+          code: 'RESERVED_VM_BILLING_SCHEDULE_CORRUPT',
+          statusCode: 409,
+        });
+      }
+
+      if (operation.targetRuntimeKind === 'autoscale') {
+        const openPeriods = await tx.reservedVmBillingPeriod.findMany({
+          where: {
+            deploymentId: current.id,
+            status: { in: ['DUE', 'PROCESSING', 'PAST_DUE'] },
+          },
+          select: { id: true, billingReservationId: true },
+        });
+
+        for (const period of openPeriods) {
+          if (period.billingReservationId) {
+            await ledger.releaseReservationInTransaction(tx, period.billingReservationId, 'cancel');
+          }
+        }
+        await tx.reservedVmBillingPeriod.updateMany({
+          where: { id: { in: openPeriods.map((period) => period.id) } },
+          data: { status: 'CANCELED', leaseOwner: null, leaseExpiresAt: null },
+        });
+      }
+
+      const updated = await tx.deployment.update({
+        where: { id: current.id },
+        data: {
+          runtimeKind: operation.targetRuntimeKind,
+          runtimeVersion: { increment: 1 },
+          machineSize: operation.targetMachineSize,
+          reservedVmTier: operation.targetTier,
+          reservedVmPriceCents: operation.targetRuntimeKind === 'reserved-vm' ? operation.targetPriceCents : null,
+          reservedVmTermsVersion: operation.targetRuntimeKind === 'reserved-vm' ? operation.termsVersion : null,
+          reservedVmRateCardVersion: operation.targetRuntimeKind === 'reserved-vm' ? operation.rateCardVersion : null,
+          reservedVmBillingReservationId:
+            operation.targetRuntimeKind === 'reserved-vm'
+              ? (operation.billingReservationId ?? current.reservedVmBillingReservationId)
+              : null,
+          reservedVmBillingState:
+            operation.targetRuntimeKind === 'reserved-vm'
+              ? initialPeriodStart
+                ? 'CURRENT'
+                : current.reservedVmBillingState
+              : null,
+          reservedVmCurrentPeriodStart:
+            operation.targetRuntimeKind === 'reserved-vm'
+              ? (initialPeriodStart ?? current.reservedVmCurrentPeriodStart)
+              : null,
+          reservedVmNextChargeAt:
+            operation.targetRuntimeKind === 'reserved-vm' ? (initialPeriodEnd ?? current.reservedVmNextChargeAt) : null,
+          reservedVmGraceEndsAt: operation.targetRuntimeKind === 'reserved-vm' ? current.reservedVmGraceEndsAt : null,
+          reservedVmStopRequestedAt:
+            operation.targetRuntimeKind === 'reserved-vm' ? current.reservedVmStopRequestedAt : null,
+          persistentStorageClaim: current.persistentStorageClaim ?? `reserved-data-${current.id}`,
+        },
+      });
+      const completed = await tx.reservedVmOperation.update({
+        where: { id: operation.id },
+        data: {
+          status: 'COMPLETED',
+          phase: 'COMMITTED',
+          response: input.response as Prisma.InputJsonValue,
+          completedAt: now,
+          leaseOwner: null,
+          leaseExpiresAt: null,
+        },
+      });
+
+      return { operation: publicReservedVmOperation(completed), deployment: mapDeployment(updated) };
+    });
+  }
+
+  async failReservedVmOperation(input: {
+    operationId: string;
+    ownerToken: string;
+    fencingToken: number;
+    errorCode: string;
+    errorMessage: string;
+  }): Promise<ReservedVmOperationRecord> {
+    const ledger = new LedgerStore(this.prisma);
+
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT "id" FROM "ReservedVmOperation" WHERE "id" = ${input.operationId} FOR UPDATE`;
+      const now = await databaseNow(tx);
+      const operation = await tx.reservedVmOperation.findUniqueOrThrow({ where: { id: input.operationId } });
+
+      if (operation.status === 'FAILED') {
+        return publicReservedVmOperation(operation);
+      }
+
+      if (
+        operation.status !== 'APPLYING' ||
+        operation.leaseOwner !== input.ownerToken ||
+        operation.fencingToken !== input.fencingToken ||
+        !operation.leaseExpiresAt ||
+        operation.leaseExpiresAt <= now
+      ) {
+        throw Object.assign(new Error('Reserved VM operation ownership was lost.'), {
+          code: 'RESERVED_VM_OPERATION_FENCE_LOST',
+          statusCode: 409,
+        });
+      }
+
+      if (operation.billingReservationId) {
+        await ledger.releaseReservationInTransaction(tx, operation.billingReservationId, 'failure');
+      }
+
+      const failed = await tx.reservedVmOperation.update({
+        where: { id: operation.id },
+        data: {
+          status: 'FAILED',
+          phase: 'ROLLED_BACK',
+          errorCode: input.errorCode.slice(0, 120),
+          errorMessage: input.errorMessage.slice(0, 1000),
+          completedAt: now,
+          leaseOwner: null,
+          leaseExpiresAt: null,
+        },
+      });
+      return publicReservedVmOperation(failed);
+    });
+  }
+
+  async claimDueReservedVmBillingPeriod(input: {
+    ownerToken: string;
+    ttlMs: number;
+    deploymentId?: string;
+  }): Promise<{ period: ReservedVmBillingPeriodLease; deployment: DeploymentRecord } | undefined> {
+    const ownerToken = requireReservedVmLeaseOwner(input.ownerToken);
+    const ledger = new LedgerStore(this.prisma);
+
+    return this.prisma.$transaction(async (tx) => {
+      await promoteExpiredReservedVmGrace(tx, ledger, { deploymentId: input.deploymentId, take: 100 });
+
+      const now = await databaseNow(tx);
+
+      const retryRows = input.deploymentId
+        ? await tx.$queryRaw<Array<{ id: string }>>`
+            SELECT p."id"
+            FROM "ReservedVmBillingPeriod" p
+            JOIN "Deployment" d ON d."id" = p."deploymentId"
+            WHERE p."deploymentId" = ${input.deploymentId}
+              AND p."status" IN ('DUE', 'PROCESSING', 'PAST_DUE')
+              AND (p."leaseExpiresAt" IS NULL OR p."leaseExpiresAt" <= clock_timestamp())
+              AND (p."graceEndsAt" IS NULL OR p."graceEndsAt" > clock_timestamp())
+              AND d."runtimeKind" = 'reserved-vm'
+              AND d."reservedVmNextChargeAt" = p."periodStart"
+              AND NOT EXISTS (
+                SELECT 1 FROM "ReservedVmOperation" o
+                WHERE o."deploymentId" = d."id" AND o."status" IN ('PENDING', 'APPLYING')
+              )
+            ORDER BY p."periodStart" ASC, p."id" ASC
+            FOR UPDATE OF p SKIP LOCKED
+            LIMIT 1
+          `
+        : await tx.$queryRaw<Array<{ id: string }>>`
+            SELECT p."id"
+            FROM "ReservedVmBillingPeriod" p
+            JOIN "Deployment" d ON d."id" = p."deploymentId"
+            WHERE p."status" IN ('DUE', 'PROCESSING', 'PAST_DUE')
+              AND (p."leaseExpiresAt" IS NULL OR p."leaseExpiresAt" <= clock_timestamp())
+              AND (p."graceEndsAt" IS NULL OR p."graceEndsAt" > clock_timestamp())
+              AND d."runtimeKind" = 'reserved-vm'
+              AND d."reservedVmNextChargeAt" = p."periodStart"
+              AND NOT EXISTS (
+                SELECT 1 FROM "ReservedVmOperation" o
+                WHERE o."deploymentId" = d."id" AND o."status" IN ('PENDING', 'APPLYING')
+              )
+            ORDER BY p."periodStart" ASC, p."id" ASC
+            FOR UPDATE OF p SKIP LOCKED
+            LIMIT 1
+          `;
+
+      let period = retryRows[0]
+        ? await tx.reservedVmBillingPeriod.findUniqueOrThrow({ where: { id: retryRows[0].id } })
+        : undefined;
+
+      if (!period) {
+        const dueRows = input.deploymentId
+          ? await tx.$queryRaw<Array<{ id: string }>>`
+              SELECT d."id"
+              FROM "Deployment" d
+              WHERE d."id" = ${input.deploymentId}
+                AND d."runtimeKind" = 'reserved-vm'
+                AND d."reservedVmBillingState" = 'CURRENT'
+                AND d."reservedVmNextChargeAt" <= clock_timestamp()
+                AND d."reservedVmTier" IS NOT NULL
+                AND d."reservedVmPriceCents" IS NOT NULL
+                AND d."reservedVmTermsVersion" IS NOT NULL
+                AND d."reservedVmRateCardVersion" IS NOT NULL
+                AND NOT EXISTS (
+                  SELECT 1 FROM "ReservedVmBillingPeriod" p
+                  WHERE p."deploymentId" = d."id" AND p."periodStart" = d."reservedVmNextChargeAt"
+                )
+                AND NOT EXISTS (
+                  SELECT 1 FROM "ReservedVmOperation" o
+                  WHERE o."deploymentId" = d."id" AND o."status" IN ('PENDING', 'APPLYING')
+                )
+              FOR UPDATE OF d SKIP LOCKED
+              LIMIT 1
+            `
+          : await tx.$queryRaw<Array<{ id: string }>>`
+              SELECT d."id"
+              FROM "Deployment" d
+              WHERE d."runtimeKind" = 'reserved-vm'
+                AND d."reservedVmBillingState" = 'CURRENT'
+                AND d."reservedVmNextChargeAt" <= clock_timestamp()
+                AND d."reservedVmTier" IS NOT NULL
+                AND d."reservedVmPriceCents" IS NOT NULL
+                AND d."reservedVmTermsVersion" IS NOT NULL
+                AND d."reservedVmRateCardVersion" IS NOT NULL
+                AND NOT EXISTS (
+                  SELECT 1 FROM "ReservedVmBillingPeriod" p
+                  WHERE p."deploymentId" = d."id" AND p."periodStart" = d."reservedVmNextChargeAt"
+                )
+                AND NOT EXISTS (
+                  SELECT 1 FROM "ReservedVmOperation" o
+                  WHERE o."deploymentId" = d."id" AND o."status" IN ('PENDING', 'APPLYING')
+                )
+              ORDER BY d."reservedVmNextChargeAt" ASC, d."id" ASC
+              FOR UPDATE OF d SKIP LOCKED
+              LIMIT 1
+            `;
+
+        const dueId = dueRows[0]?.id;
+
+        if (!dueId) {
+          return undefined;
+        }
+
+        const deployment = await tx.deployment.findUniqueOrThrow({ where: { id: dueId } });
+
+        const project = await tx.project.findUniqueOrThrow({
+          where: { id: deployment.projectId },
+          select: { organizationId: true },
+        });
+
+        const tier = deployment.reservedVmTier as ReservedVmTier | null;
+        const exactPrice = tier ? RESERVED_VM_TIERS[tier]?.centsPerMonth : undefined;
+
+        if (
+          !tier ||
+          exactPrice !== deployment.reservedVmPriceCents ||
+          !deployment.reservedVmTermsVersion ||
+          !deployment.reservedVmRateCardVersion ||
+          !deployment.reservedVmNextChargeAt
+        ) {
+          throw Object.assign(new Error('Reserved VM renewal price snapshot is invalid.'), {
+            code: 'RESERVED_VM_BILLING_SCHEDULE_CORRUPT',
+            statusCode: 409,
+          });
+        }
+
+        const periodEnd = await databaseCalendarMonthAfter(tx, deployment.reservedVmNextChargeAt);
+        period = await tx.reservedVmBillingPeriod.create({
+          data: {
+            projectId: deployment.projectId,
+            deploymentId: deployment.id,
+            organizationId: project.organizationId,
+            periodStart: deployment.reservedVmNextChargeAt,
+            periodEnd,
+            tier,
+            priceCents: deployment.reservedVmPriceCents,
+            termsVersion: deployment.reservedVmTermsVersion,
+            rateCardVersion: deployment.reservedVmRateCardVersion,
+          },
+        });
+      }
+
+      let reservationGeneration = period.reservationGeneration;
+      let billingReservationId = period.billingReservationId;
+
+      if (billingReservationId) {
+        const existingReservation = await tx.ledgerReservation.findUnique({ where: { id: billingReservationId } });
+
+        if (
+          !existingReservation ||
+          existingReservation.organizationId !== period.organizationId ||
+          existingReservation.maxAmountMinor !== BigInt(period.priceCents)
+        ) {
+          throw Object.assign(new Error('Reserved VM renewal ledger reservation is inconsistent.'), {
+            code: 'RESERVED_VM_BILLING_LEDGER_CORRUPT',
+            statusCode: 409,
+          });
+        }
+
+        if (existingReservation.status === 'ACTIVE' && existingReservation.expiresAt <= now) {
+          await ledger.releaseReservationInTransaction(tx, existingReservation.id, 'timeout');
+          billingReservationId = null;
+          reservationGeneration += 1;
+        } else if (existingReservation.status === 'RELEASED' || existingReservation.status === 'EXPIRED') {
+          billingReservationId = null;
+          reservationGeneration += 1;
+        } else if (existingReservation.status === 'COMPENSATED') {
+          throw Object.assign(new Error('Reserved VM renewal settlement was compensated unexpectedly.'), {
+            code: 'RESERVED_VM_BILLING_LEDGER_CORRUPT',
+            statusCode: 409,
+          });
+        }
+      }
+
+      if (!billingReservationId) {
+        const reservation = await ledger.reserveUsageInTransaction(tx, {
+          organizationId: period.organizationId,
+          idempotencyKey: `reserved-vm-renewal:${period.deploymentId}:${period.periodStart.toISOString()}:g${reservationGeneration}`,
+          requestHash: reservedVmRenewalRequestHash(period),
+          operation: 'reserved_vm_renewal',
+          currency: 'usd',
+          maxAmountMinor: BigInt(period.priceCents),
+          rateCardVersion: period.rateCardVersion,
+          expiresInMs: RESERVED_VM_RENEWAL_RESERVATION_MS,
+        });
+        billingReservationId = reservation.id;
+      }
+
+      const claimed = await tx.reservedVmBillingPeriod.update({
+        where: { id: period.id },
+        data: {
+          status: 'PROCESSING',
+          attemptCount: { increment: 1 },
+          reservationGeneration,
+          billingReservationId,
+          leaseOwner: ownerToken,
+          leaseExpiresAt: reservedVmBillingLeaseExpiry(now, input.ttlMs),
+          fencingToken: { increment: 1 },
+          lastErrorCode: null,
+          lastErrorMessage: null,
+        },
+      });
+
+      const deployment = await tx.deployment.findUniqueOrThrow({ where: { id: period.deploymentId } });
+
+      return { period: mapReservedVmBillingPeriod(claimed), deployment: mapDeployment(deployment) };
+    });
+  }
+
+  async commitReservedVmBillingPeriod(input: {
+    periodId: string;
+    ownerToken: string;
+    fencingToken: number;
+  }): Promise<{ period: ReservedVmBillingPeriodRecord; deployment: DeploymentRecord; replayed: boolean }> {
+    const ownerToken = requireReservedVmLeaseOwner(input.ownerToken);
+    const ledger = new LedgerStore(this.prisma);
+
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT "id" FROM "ReservedVmBillingPeriod" WHERE "id" = ${input.periodId} FOR UPDATE`;
+
+      const period = await tx.reservedVmBillingPeriod.findUniqueOrThrow({ where: { id: input.periodId } });
+      const deployment = await tx.deployment.findUniqueOrThrow({ where: { id: period.deploymentId } });
+
+      if (period.status === 'PAID') {
+        return {
+          period: publicReservedVmBillingPeriod(period),
+          deployment: mapDeployment(deployment),
+          replayed: true,
+        };
+      }
+
+      const now = await databaseNow(tx);
+
+      if (
+        period.status !== 'PROCESSING' ||
+        period.leaseOwner !== ownerToken ||
+        period.fencingToken !== input.fencingToken ||
+        !period.leaseExpiresAt ||
+        period.leaseExpiresAt <= now ||
+        !period.billingReservationId
+      ) {
+        throw reservedVmBillingFenceLost();
+      }
+
+      await tx.$queryRaw`SELECT "id" FROM "Deployment" WHERE "id" = ${period.deploymentId} FOR UPDATE`;
+
+      const current = await tx.deployment.findUniqueOrThrow({ where: { id: period.deploymentId } });
+
+      if (
+        current.runtimeKind !== 'reserved-vm' ||
+        current.reservedVmNextChargeAt?.getTime() !== period.periodStart.getTime()
+      ) {
+        throw Object.assign(new Error('Reserved VM billing period is no longer the active cycle.'), {
+          code: 'RESERVED_VM_BILLING_CYCLE_CONFLICT',
+          statusCode: 409,
+        });
+      }
+
+      await ledger.commitReservationInTransaction(tx, {
+        reservationId: period.billingReservationId,
+        actualAmountMinor: BigInt(period.priceCents),
+        refuseOverage: true,
+      });
+
+      const paid = await tx.reservedVmBillingPeriod.update({
+        where: { id: period.id },
+        data: {
+          status: 'PAID',
+          settledAt: now,
+          leaseOwner: null,
+          leaseExpiresAt: null,
+          graceEndsAt: null,
+          stopRequestedAt: null,
+          lastErrorCode: null,
+          lastErrorMessage: null,
+        },
+      });
+      const advanced = await tx.deployment.updateMany({
+        where: {
+          id: current.id,
+          runtimeKind: 'reserved-vm',
+          reservedVmNextChargeAt: period.periodStart,
+        },
+        data: {
+          reservedVmBillingReservationId: period.billingReservationId,
+          reservedVmBillingState: 'CURRENT',
+          reservedVmCurrentPeriodStart: period.periodStart,
+          reservedVmNextChargeAt: period.periodEnd,
+          reservedVmGraceEndsAt: null,
+          reservedVmStopRequestedAt: null,
+        },
+      });
+
+      if (advanced.count !== 1) {
+        throw Object.assign(new Error('Reserved VM billing cycle advancement was lost.'), {
+          code: 'RESERVED_VM_BILLING_CYCLE_CONFLICT',
+          statusCode: 409,
+        });
+      }
+
+      const updated = await tx.deployment.findUniqueOrThrow({ where: { id: current.id } });
+
+      return { period: publicReservedVmBillingPeriod(paid), deployment: mapDeployment(updated), replayed: false };
+    });
+  }
+
+  async failReservedVmBillingPeriod(input: {
+    periodId: string;
+    ownerToken: string;
+    fencingToken: number;
+    errorCode: string;
+    errorMessage: string;
+    gracePeriodMs: number;
+  }): Promise<{ period: ReservedVmBillingPeriodRecord; deployment: DeploymentRecord }> {
+    const ownerToken = requireReservedVmLeaseOwner(input.ownerToken);
+
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT "id" FROM "ReservedVmBillingPeriod" WHERE "id" = ${input.periodId} FOR UPDATE`;
+
+      const now = await databaseNow(tx);
+      const period = await tx.reservedVmBillingPeriod.findUniqueOrThrow({ where: { id: input.periodId } });
+
+      if (
+        period.status !== 'PROCESSING' ||
+        period.leaseOwner !== ownerToken ||
+        period.fencingToken !== input.fencingToken ||
+        !period.leaseExpiresAt ||
+        period.leaseExpiresAt <= now
+      ) {
+        throw reservedVmBillingFenceLost();
+      }
+
+      const graceEndsAt = period.graceEndsAt ?? reservedVmGraceExpiry(now, input.gracePeriodMs);
+
+      const pastDue = await tx.reservedVmBillingPeriod.update({
+        where: { id: period.id },
+        data: {
+          status: 'PAST_DUE',
+          graceEndsAt,
+          leaseOwner: null,
+          leaseExpiresAt: null,
+          lastErrorCode: input.errorCode.slice(0, 120),
+          lastErrorMessage: input.errorMessage.slice(0, 1_000),
+        },
+      });
+
+      const updated = await tx.deployment.updateMany({
+        where: {
+          id: period.deploymentId,
+          runtimeKind: 'reserved-vm',
+          reservedVmNextChargeAt: period.periodStart,
+        },
+        data: {
+          reservedVmBillingState: 'PAST_DUE',
+          reservedVmGraceEndsAt: graceEndsAt,
+          reservedVmStopRequestedAt: null,
+        },
+      });
+
+      if (updated.count !== 1) {
+        throw Object.assign(new Error('Reserved VM billing period is no longer the active cycle.'), {
+          code: 'RESERVED_VM_BILLING_CYCLE_CONFLICT',
+          statusCode: 409,
+        });
+      }
+
+      const deployment = await tx.deployment.findUniqueOrThrow({ where: { id: period.deploymentId } });
+
+      return { period: publicReservedVmBillingPeriod(pastDue), deployment: mapDeployment(deployment) };
+    });
+  }
+
+  async listReservedVmStopSignals(take = 100) {
+    const boundedTake = Number.isFinite(take) ? Math.max(1, Math.min(Math.trunc(take), 500)) : 100;
+    const ledger = new LedgerStore(this.prisma);
+
+    return this.prisma.$transaction(async (tx) => {
+      await promoteExpiredReservedVmGrace(tx, ledger, { take: boundedTake });
+
+      const periods = await tx.reservedVmBillingPeriod.findMany({
+        where: {
+          status: 'STOP_REQUIRED',
+          deployment: { runtimeKind: 'reserved-vm', reservedVmBillingState: 'STOP_REQUIRED' },
+        },
+        include: { deployment: true },
+        orderBy: [{ stopRequestedAt: 'asc' }, { id: 'asc' }],
+        take: boundedTake,
+      });
+
+      return periods.map((period) => ({
+        periodId: period.id,
+        projectId: period.projectId,
+        deploymentId: period.deploymentId,
+        organizationId: period.organizationId,
+        requestedAt: period.stopRequestedAt!.toISOString(),
+        graceEndedAt: period.graceEndsAt!.toISOString(),
+        persistentStorageClaim: period.deployment.persistentStorageClaim ?? undefined,
+        deletePersistentStorage: false as const,
+      }));
     });
   }
 
@@ -12677,6 +13854,19 @@ function mapDeployment(deployment: any): DeploymentRecord {
     rolledBackFromId: deployment.rolledBackFromId ?? undefined,
     parentDeploymentId: deployment.parentDeploymentId ?? undefined,
     machineSize: deployment.machineSize ?? undefined,
+    runtimeKind: deployment.runtimeKind === 'reserved-vm' ? 'reserved-vm' : 'autoscale',
+    runtimeVersion: Number(deployment.runtimeVersion ?? 0),
+    reservedVmTier: deployment.reservedVmTier ?? undefined,
+    reservedVmPriceCents: deployment.reservedVmPriceCents ?? undefined,
+    reservedVmTermsVersion: deployment.reservedVmTermsVersion ?? undefined,
+    reservedVmRateCardVersion: deployment.reservedVmRateCardVersion ?? undefined,
+    reservedVmBillingReservationId: deployment.reservedVmBillingReservationId ?? undefined,
+    reservedVmBillingState: deployment.reservedVmBillingState ?? undefined,
+    reservedVmCurrentPeriodStart: toIso(deployment.reservedVmCurrentPeriodStart),
+    reservedVmNextChargeAt: toIso(deployment.reservedVmNextChargeAt),
+    reservedVmGraceEndsAt: toIso(deployment.reservedVmGraceEndsAt),
+    reservedVmStopRequestedAt: toIso(deployment.reservedVmStopRequestedAt),
+    persistentStorageClaim: deployment.persistentStorageClaim ?? undefined,
     accessPolicyVersion: Number(deployment.accessPolicyVersion ?? 0),
     lastMeteredAt: toIso(deployment.lastMeteredAt),
     startedAt: toIso(deployment.startedAt),
@@ -12685,6 +13875,93 @@ function mapDeployment(deployment: any): DeploymentRecord {
     createdAt: toIso(deployment.createdAt)!,
     updatedAt: toIso(deployment.updatedAt),
   };
+}
+
+function mapReservedVmOperation(row: any): ReservedVmLease {
+  return {
+    id: row.id,
+    projectId: row.projectId,
+    deploymentId: row.deploymentId,
+    organizationId: row.organizationId,
+    actorUserId: row.actorUserId ?? undefined,
+    idempotencyKey: row.idempotencyKey,
+    requestHash: row.requestHash,
+    kind: row.kind,
+    status: row.status,
+    phase: row.phase,
+    fromRuntimeKind: row.fromRuntimeKind ?? undefined,
+    fromTier: row.fromTier ?? undefined,
+    targetRuntimeKind: row.targetRuntimeKind,
+    targetTier: row.targetTier ?? undefined,
+    targetMachineSize: row.targetMachineSize,
+    targetPriceCents: Number(row.targetPriceCents),
+    billingAmountCents: Number(row.billingAmountCents),
+    termsVersion: row.termsVersion,
+    rateCardVersion: Number(row.rateCardVersion),
+    expectedRuntimeVersion: Number(row.expectedRuntimeVersion),
+    leaseOwner: row.leaseOwner ?? undefined,
+    leaseExpiresAt: toIso(row.leaseExpiresAt),
+    fencingToken: Number(row.fencingToken),
+    billingReservationId: row.billingReservationId ?? undefined,
+    response:
+      row.response && typeof row.response === 'object' && !Array.isArray(row.response)
+        ? (row.response as Record<string, unknown>)
+        : undefined,
+    errorCode: row.errorCode ?? undefined,
+    errorMessage: row.errorMessage ?? undefined,
+    completedAt: toIso(row.completedAt),
+    createdAt: toIso(row.createdAt)!,
+    updatedAt: toIso(row.updatedAt)!,
+  };
+}
+
+function mapReservedVmBillingPeriod(row: any): ReservedVmBillingPeriodLease {
+  return {
+    id: row.id,
+    projectId: row.projectId,
+    deploymentId: row.deploymentId,
+    organizationId: row.organizationId,
+    periodStart: toIso(row.periodStart)!,
+    periodEnd: toIso(row.periodEnd)!,
+    tier: row.tier,
+    priceCents: Number(row.priceCents),
+    termsVersion: row.termsVersion,
+    rateCardVersion: Number(row.rateCardVersion),
+    status: row.status,
+    attemptCount: Number(row.attemptCount),
+    reservationGeneration: Number(row.reservationGeneration),
+    leaseOwner: row.leaseOwner ?? undefined,
+    leaseExpiresAt: toIso(row.leaseExpiresAt),
+    fencingToken: Number(row.fencingToken),
+    billingReservationId: row.billingReservationId ?? undefined,
+    graceEndsAt: toIso(row.graceEndsAt),
+    stopRequestedAt: toIso(row.stopRequestedAt),
+    settledAt: toIso(row.settledAt),
+    lastErrorCode: row.lastErrorCode ?? undefined,
+    lastErrorMessage: row.lastErrorMessage ?? undefined,
+    createdAt: toIso(row.createdAt)!,
+    updatedAt: toIso(row.updatedAt)!,
+  };
+}
+
+function publicReservedVmBillingPeriod(row: any): ReservedVmBillingPeriodRecord {
+  const {
+    leaseOwner: _leaseOwner,
+    leaseExpiresAt: _leaseExpiresAt,
+    fencingToken: _fencingToken,
+    ...period
+  } = mapReservedVmBillingPeriod(row);
+  return period;
+}
+
+function publicReservedVmOperation(row: any): ReservedVmOperationRecord {
+  const {
+    leaseOwner: _leaseOwner,
+    leaseExpiresAt: _leaseExpiresAt,
+    fencingToken: _fencingToken,
+    ...operation
+  } = mapReservedVmOperation(row);
+  return operation;
 }
 
 function mapReleaseManifest(row: any): ReleaseManifestRecord {

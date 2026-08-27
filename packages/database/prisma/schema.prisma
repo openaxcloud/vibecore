@@ -291,56 +291,57 @@ model RolePermission {
 }
 
 model Project {
-  id                      String                       @id @default(cuid())
-  organizationId          String
-  name                    String
-  slug                    String
-  description             String?
-  sourceType              String                       @default("blank")
-  templateName            String?
-  gitRepositoryUrl        String?
-  gitDefaultBranch        String?
-  persistentVolumeClaim   String?
-  thumbnailUrl            String?
-  thumbnailUpdatedAt      DateTime?
-  deletedAt               DateTime?
-  createdAt               DateTime                     @default(now())
-  updatedAt               DateTime                     @updatedAt
-  organization            Organization                 @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  environments            ProjectEnvironment[]
-  envVars                 ProjectEnvVar[]
-  secrets                 ProjectSecret[]
-  collaborators           ProjectCollaborator[]
-  activity                ProjectActivity[]
-  templates               ProjectTemplate[]            @relation("ProjectTemplates")
-  galleryListings         GalleryListing[]             @relation("ProjectGalleryListings")
-  workspaces              Workspace[]
-  snapshots               ProjectSnapshot[]
-  manifestRevisions       ProjectManifestRevision[]
-  storageObjects          ProjectStorageObject[]
-  deployments             Deployment[]
-  rollbackOperations      RollbackIdempotencyRequest[]
-  fileSnapshots           FileSnapshot[]
-  conversations           AiConversation[]
-  ideState                ProjectIdeState?
-  collaborationPresence   CollaborationPresence[]
-  collaborationComments   CollaborationComment[]
-  shareLinks              ProjectShareLink[]
-  agentMemories           AgentMemory[]
-  agentMemoryPreferences  AgentMemoryPreference[]
-  agentPatchProposals     AgentPatchProposal[]
-  connectionLinks         ProjectConnectionLink[]
-  databaseInstances       DatabaseInstance[]
-  skills                  ProjectSkill[]
-  repairEvents            AgentRepairEvent[]
-  slugRedirects           ProjectSlugRedirect[]
-  runtimeWebSocketTickets RuntimeWebSocketTicket[]
-  importJobs              ImportJob[]                  @relation("ImportJobTarget")
-  targetRemixJobs         RemixJob[]                   @relation("RemixJobTarget")
-  sourceRemixShares       RemixStorageShare[]          @relation("RemixStorageShareSourceProject")
-  targetRemixShares       RemixStorageShare[]          @relation("RemixStorageShareTargetProject")
-  cloudBinding            CloudProjectBinding?
-  checkpoints             ProjectCheckpoint[]
+  id                       String                       @id @default(cuid())
+  organizationId           String
+  name                     String
+  slug                     String
+  description              String?
+  sourceType               String                       @default("blank")
+  templateName             String?
+  gitRepositoryUrl         String?
+  gitDefaultBranch         String?
+  persistentVolumeClaim    String?
+  thumbnailUrl             String?
+  thumbnailUpdatedAt       DateTime?
+  deletedAt                DateTime?
+  createdAt                DateTime                     @default(now())
+  updatedAt                DateTime                     @updatedAt
+  organization             Organization                 @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  environments             ProjectEnvironment[]
+  envVars                  ProjectEnvVar[]
+  secrets                  ProjectSecret[]
+  collaborators            ProjectCollaborator[]
+  activity                 ProjectActivity[]
+  templates                ProjectTemplate[]            @relation("ProjectTemplates")
+  galleryListings          GalleryListing[]             @relation("ProjectGalleryListings")
+  workspaces               Workspace[]
+  snapshots                ProjectSnapshot[]
+  manifestRevisions        ProjectManifestRevision[]
+  storageObjects           ProjectStorageObject[]
+  deployments              Deployment[]
+  reservedVmBillingPeriods ReservedVmBillingPeriod[]
+  rollbackOperations       RollbackIdempotencyRequest[]
+  fileSnapshots            FileSnapshot[]
+  conversations            AiConversation[]
+  ideState                 ProjectIdeState?
+  collaborationPresence    CollaborationPresence[]
+  collaborationComments    CollaborationComment[]
+  shareLinks               ProjectShareLink[]
+  agentMemories            AgentMemory[]
+  agentMemoryPreferences   AgentMemoryPreference[]
+  agentPatchProposals      AgentPatchProposal[]
+  connectionLinks          ProjectConnectionLink[]
+  databaseInstances        DatabaseInstance[]
+  skills                   ProjectSkill[]
+  repairEvents             AgentRepairEvent[]
+  slugRedirects            ProjectSlugRedirect[]
+  runtimeWebSocketTickets  RuntimeWebSocketTicket[]
+  importJobs               ImportJob[]                  @relation("ImportJobTarget")
+  targetRemixJobs          RemixJob[]                   @relation("RemixJobTarget")
+  sourceRemixShares        RemixStorageShare[]          @relation("RemixStorageShareSourceProject")
+  targetRemixShares        RemixStorageShare[]          @relation("RemixStorageShareTargetProject")
+  cloudBinding             CloudProjectBinding?
+  checkpoints              ProjectCheckpoint[]
 
   @@unique([organizationId, slug])
   @@index([organizationId])
@@ -929,52 +930,148 @@ model ProjectStorageObject {
 }
 
 model Deployment {
-  id                  String                 @id @default(cuid())
-  projectId           String
-  workspaceId         String?
-  environmentId       String?
-  environmentName     String                 @default("preview")
-  status              DeploymentStatus       @default(QUEUED)
-  provider            String
-  url                 String?
-  previewUrl          String?
-  productionUrl       String?
-  framework           String?
-  buildCommand        String?
-  outputDirectory     String?
-  branch              String?
-  commitSha           String?
-  customDomain        String?
-  logs                Json                   @default("[]")
-  metadata            Json                   @default("{}")
-  rolledBackFromId    String?
+  id                             String                    @id @default(cuid())
+  projectId                      String
+  workspaceId                    String?
+  environmentId                  String?
+  environmentName                String                    @default("preview")
+  status                         DeploymentStatus          @default(QUEUED)
+  provider                       String
+  url                            String?
+  previewUrl                     String?
+  productionUrl                  String?
+  framework                      String?
+  buildCommand                   String?
+  outputDirectory                String?
+  branch                         String?
+  commitSha                      String?
+  customDomain                   String?
+  logs                           Json                      @default("[]")
+  metadata                       Json                      @default("{}")
+  rolledBackFromId               String?
   // P2d dev/prod split: when a preview/staging deployment is published to
   // production, the new production deployment links back to its source here.
-  parentDeploymentId  String?
+  parentDeploymentId             String?
   // Replit-parity deploy metering idempotency marker: set once the deployment is
   // metered (mirrors WorkspaceRuntime.lastMeteredAt) so a re-reconcile never
   // double-charges. Dormant/SHADOW until BILLING_CREDITS_ENABLED. See metering-service.ts.
-  lastMeteredAt       DateTime?
+  lastMeteredAt                  DateTime?
   // Machine size the user picked at publish (rate-card key, e.g. 'dedicated-1').
   // Applied verbatim as the runtime pod's requests==limits and used to price
   // compute metering — the machine you picked is the machine you pay for.
-  machineSize         String                 @default("shared-0.5")
+  machineSize                    String                    @default("shared-0.5")
+  // Reserved VM is a distinct always-on lifecycle, not an Autoscale size.
+  // runtimeVersion fences every in-place lifecycle/tier change.
+  runtimeKind                    String                    @default("autoscale")
+  runtimeVersion                 Int                       @default(0)
+  reservedVmTier                 String?
+  reservedVmPriceCents           Int?
+  reservedVmTermsVersion         String?
+  reservedVmRateCardVersion      Int?
+  reservedVmBillingReservationId String?                   @unique
+  // Calendar-month renewal state. All deadlines are derived from PostgreSQL
+  // time; STOP_REQUIRED is a durable instruction to stop compute only.
+  reservedVmBillingState         String?
+  reservedVmCurrentPeriodStart   DateTime?
+  reservedVmNextChargeAt         DateTime?
+  reservedVmGraceEndsAt          DateTime?
+  reservedVmStopRequestedAt      DateTime?
+  // Stable claim retained across image, tier and runtime-kind changes.
+  persistentStorageClaim         String?
   // Exact immutable DeploymentAccessPolicy version enforced by both s-* and
   // d-* edge paths. The database default exists only for rolling compatibility;
   // the edge resolves the matching policy row and denies when it is absent.
-  accessPolicyVersion Int                    @default(1)
-  startedAt           DateTime?
-  finishedAt          DateTime?
-  canceledAt          DateTime?
-  createdAt           DateTime               @default(now())
-  updatedAt           DateTime               @updatedAt
-  project             Project                @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  environment         DeploymentEnvironment? @relation(fields: [environmentId], references: [id])
+  accessPolicyVersion            Int                       @default(1)
+  startedAt                      DateTime?
+  finishedAt                     DateTime?
+  canceledAt                     DateTime?
+  createdAt                      DateTime                  @default(now())
+  updatedAt                      DateTime                  @updatedAt
+  project                        Project                   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  environment                    DeploymentEnvironment?    @relation(fields: [environmentId], references: [id])
+  reservedVmBillingPeriods       ReservedVmBillingPeriod[]
 
   @@index([projectId])
   @@index([projectId, workspaceId])
   @@index([projectId, environmentName])
   @@index([projectId, status])
+}
+
+// Durable saga for Reserved VM create/change. PostgreSQL clock leases and the
+// expected runtimeVersion fence make a crashed worker resumable without two
+// callers billing or applying the same transition concurrently.
+model ReservedVmOperation {
+  id                     String    @id @default(cuid())
+  projectId              String
+  deploymentId           String
+  organizationId         String
+  actorUserId            String?
+  idempotencyKey         String
+  requestHash            String
+  kind                   String
+  status                 String    @default("PENDING")
+  phase                  String    @default("RESERVED")
+  fromRuntimeKind        String?
+  fromTier               String?
+  targetRuntimeKind      String
+  targetTier             String?
+  targetMachineSize      String
+  targetPriceCents       Int
+  billingAmountCents     Int
+  termsVersion           String
+  rateCardVersion        Int
+  expectedRuntimeVersion Int
+  leaseOwner             String?
+  leaseExpiresAt         DateTime?
+  fencingToken           Int       @default(0)
+  billingReservationId   String?   @unique
+  response               Json?
+  errorCode              String?
+  errorMessage           String?
+  completedAt            DateTime?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+
+  @@unique([projectId, idempotencyKey])
+  @@index([deploymentId, createdAt])
+  @@index([status, leaseExpiresAt])
+}
+
+// One immutable price snapshot per Reserved VM calendar-month period. A worker
+// may retry a DUE/PAST_DUE row, but (deploymentId, periodStart), the fenced
+// lease, and the canonical LedgerReservation make settlement exactly-once.
+model ReservedVmBillingPeriod {
+  id                    String     @id @default(cuid())
+  projectId             String
+  deploymentId          String
+  organizationId        String
+  periodStart           DateTime
+  periodEnd             DateTime
+  tier                  String
+  priceCents            Int
+  termsVersion          String
+  rateCardVersion       Int
+  status                String     @default("DUE")
+  attemptCount          Int        @default(0)
+  reservationGeneration Int        @default(0)
+  leaseOwner            String?
+  leaseExpiresAt        DateTime?
+  fencingToken          Int        @default(0)
+  billingReservationId  String?    @unique
+  graceEndsAt           DateTime?
+  stopRequestedAt       DateTime?
+  settledAt             DateTime?
+  lastErrorCode         String?
+  lastErrorMessage      String?
+  createdAt             DateTime   @default(now())
+  updatedAt             DateTime   @updatedAt
+  project               Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  deployment            Deployment @relation(fields: [deploymentId], references: [id], onDelete: Cascade)
+
+  @@unique([deploymentId, periodStart])
+  @@index([status, leaseExpiresAt])
+  @@index([organizationId, status])
+  @@index([deploymentId, status])
 }
 
 model DeploymentEnvironment {
@@ -2759,18 +2856,18 @@ model ProjectCheckpoint {
 /// holds ONLY secret/env KEYS (references) — never a value. `scanFindings`
 /// records materialized-secret hits (key + location, never the value).
 model RemixJob {
-  id                       String    @id @default(cuid())
+  id                       String             @id @default(cuid())
   sourceProjectId          String
   targetProjectId          String?
   organizationId           String
   actorUserId              String?
-  state                    String    @default("PENDING")
+  state                    String             @default("PENDING")
   /// Tenant-scoped retry key. Legacy rows may be null; every new API job has one.
   idempotencyKey           String?
   /// SHA-256 of the non-secret, authorization-relevant request shape.
   requestHash              String?
   /// Optimistic-concurrency fence for state/ownership transitions.
-  version                  Int       @default(0)
+  version                  Int                @default(0)
   /// Fencing token and renewable lease held by the current executor.
   operationToken           String?
   operationExpiresAt       DateTime?
@@ -2786,7 +2883,7 @@ model RemixJob {
   /// { secretKeys: string[], envVarKeys: string[] } — references only.
   detachedKeys             Json?
   /// DETACH | CLONE | SHARE_WITH_CONSENT
-  storagePolicy            String    @default("DETACH")
+  storagePolicy            String             @default("DETACH")
   /// Versioned explicit consent for SHARE_WITH_CONSENT; null for other policies.
   storageConsentVersion    String?
   /// Redacted per-object source/target verification facts (key,size,generation,hash).
@@ -2796,7 +2893,7 @@ model RemixJob {
   /// SecretScanFinding[] { path, secretKey, line } — never the value.
   scanFindings             Json?
   /// Count of value-lines scrubbed out of the clone during CLONING.
-  scrubbedCount            Int       @default(0)
+  scrubbedCount            Int                @default(0)
   /// VERSIONED license captured at remix time from the source listing —
   /// { licenseId, licenseTextSha256, sourceListingId, capturedAt }. Immutable on
   /// the job: later edits to the listing's license never rewrite what THIS remix
@@ -2809,9 +2906,9 @@ model RemixJob {
   /// PiiFinding[] { path, kind, line } — kind of PII masked, never the value.
   piiFindings              Json?
   /// Count of PII spans masked out of the clone during SOURCE_SANITIZED.
-  piiMaskedCount           Int       @default(0)
+  piiMaskedCount           Int                @default(0)
   /// Honest marker: was a physical isolated DB provisioned, or deferred?
-  dbForked                 Boolean   @default(false)
+  dbForked                 Boolean            @default(false)
   /// { instanceId, environment, targetTime, lsn? } — never a connection URI.
   sourceDatabasePin        Json?
   /// Target DatabaseInstance row while the isolated CNPG recovery is running.
@@ -2821,8 +2918,8 @@ model RemixJob {
   /// Stable public code; `error` remains a redacted user-facing message.
   errorCode                String?
   error                    String?
-  createdAt                DateTime  @default(now())
-  updatedAt                DateTime  @updatedAt
+  createdAt                DateTime           @default(now())
+  updatedAt                DateTime           @updatedAt
   targetProject            Project?           @relation("RemixJobTarget", fields: [targetProjectId], references: [id], onDelete: SetNull)
   targetDatabaseInstance   DatabaseInstance?  @relation("RemixJobTargetDatabase", fields: [targetDatabaseInstanceId], references: [id], onDelete: SetNull)
   storageShare             RemixStorageShare? @relation("RemixJobStorageShare", fields: [storageShareId], references: [id], onDelete: SetNull)
@@ -2838,19 +2935,19 @@ model RemixJob {
 /// bucket is never inferred from project lineage: without this durable,
 /// versioned consent row, a target project cannot read source objects.
 model RemixStorageShare {
-  id                   String    @id @default(cuid())
+  id                   String       @id @default(cuid())
   sourceProjectId      String
-  targetProjectId      String    @unique
+  targetProjectId      String       @unique
   sourceOrganizationId String
   targetOrganizationId String
   consentVersion       String
   consentedByUserId    String?
-  consentedAt          DateTime  @default(now())
+  consentedAt          DateTime     @default(now())
   sourceInventory      Json
-  state                String    @default("ACTIVE")
+  state                String       @default("ACTIVE")
   revokedAt            DateTime?
-  createdAt            DateTime  @default(now())
-  updatedAt            DateTime  @updatedAt
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
   sourceProject        Project      @relation("RemixStorageShareSourceProject", fields: [sourceProjectId], references: [id], onDelete: Cascade)
   targetProject        Project      @relation("RemixStorageShareTargetProject", fields: [targetProjectId], references: [id], onDelete: Cascade)
   sourceOrganization   Organization @relation("RemixStorageShareSourceOrganization", fields: [sourceOrganizationId], references: [id], onDelete: Cascade)
