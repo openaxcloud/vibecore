@@ -485,7 +485,7 @@ export function EcodeExactPublicNavbar({
 
             <div className="shrink-0 p-4 border-b border-border">
               <Button
-                className="w-full bg-ecode-accent hover:bg-ecode-accent text-[var(--ecode-accent-contrast)]"
+                className="w-full !min-h-11 bg-ecode-accent hover:bg-ecode-accent text-[var(--ecode-accent-contrast)]"
                 onClick={() => {
                   setMobileMenuOpen(false);
                   navigate(MARKETING_SHELL_LINKS.register.href);
@@ -495,7 +495,7 @@ export function EcodeExactPublicNavbar({
               </Button>
               <Button
                 variant="outline"
-                className="mt-2 w-full border-border text-foreground hover:bg-muted"
+                className="mt-2 w-full !min-h-11 border-border text-foreground hover:bg-muted"
                 onClick={() => {
                   setMobileMenuOpen(false);
                   navigate(MARKETING_SHELL_LINKS.login.href);
@@ -807,10 +807,26 @@ export function EcodeExactPublicFooter({ copy: copyOverride }: { copy?: Marketin
           </div>
 
           {/*
-           * gap-x reste a 10 (40px) : l'alignement horizontal des colonnes ne
-           * bouge pas. Seul l'ecart VERTICAL est resserre (40px -> 24px) ; il ne
-           * joue qu'une fois les colonnes empilees (mobile 1 col, tablette 2 col),
-           * ou il separait deux titres de colonnes.
+           * SCR-010 — Avi : « l'espace ENTRE les titres / colonnes du menu en pied
+           * de page est encore trop grand ». À ne pas confondre avec SCR-009, qui
+           * portait sur la chasse À L'INTÉRIEUR des titres : ici c'est la grille
+           * elle-même qui creuse le vide entre les groupes de liens.
+           *
+           * Mesuré live le 20/08 sur prod `web:73c4edc166`, aux 3 formats et dans
+           * les 2 thèmes (l'espacement ne dépend pas du thème) : `column-gap: 40px`
+           * et `row-gap: 20px` partout. Les 40px de gouttière sont l'essentiel du
+           * vide qu'Avi voit entre PRODUIT · RESSOURCES · SOCIÉTÉ · LÉGAL.
+           *
+           * La note précédente figeait `gap-x` à 10 « pour ne pas bouger
+           * l'alignement horizontal » — c'est précisément ce qu'Avi demande de
+           * revoir, donc elle est levée. `gap-x-6` (24px) resserre les gouttières
+           * sans coller les colonnes, et rend 16px de largeur à chaque colonne :
+           * moins de libellés qui passent à la ligne, donc un pied de page plus
+           * court en prime. `gap-y-3` (12px) resserre les groupes une fois les
+           * colonnes empilées (390 et 768), là où deux titres se suivaient.
+           *
+           * Les lignes de liens gardent leur hauteur tactile de 44px : ce sont des
+           * cibles de doigt, pas de l'espacement décoratif.
            */}
           {/*
            * Two columns from the smallest width up. This nav carries 46 links,
@@ -819,7 +835,7 @@ export function EcodeExactPublicFooter({ copy: copyOverride }: { copy?: Marketin
            * touch targets and are preserved; only the column count changes.
            * Measured on prod: footer 3981px -> 3179px, no label truncated.
            */}
-          <nav aria-label={copy.a11y.footerNavigation} className="grid grid-cols-2 gap-x-10 gap-y-6 lg:grid-cols-4">
+          <nav aria-label={copy.a11y.footerNavigation} className="grid grid-cols-2 gap-x-6 gap-y-3 lg:grid-cols-4">
             <FooterColumn title={copy.footer.columnLabels.product} links={productLinks} />
             <div>
               <FooterColumn title={copy.footer.columnLabels.resources} links={resourceLinks} />
@@ -926,10 +942,29 @@ export function EcodeExactPublicFooter({ copy: copyOverride }: { copy?: Marketin
 function FooterColumn({ title, links }: { title: string; links: readonly FooterLink[] }) {
   return (
     <div>
-      <h4 className="text-[13px] font-semibold uppercase tracking-[0.3em] text-[var(--ecode-text-muted)] dark:text-slate-400">
+      {/*
+       * SCR-009 — Avi : « l'espace des TITRES de menu dans le pied de page est
+       * trop grand ». La cause est la chasse : `tracking-[0.3em]` met 30 % de la
+       * taille de police entre CHAQUE lettre, soit ~3,9 px à 13 px — « PRODUIT »
+       * occupait ainsi presque deux fois sa largeur naturelle, et les quatre
+       * titres donnaient au pied de page un air distendu.
+       *
+       * `0.12em` garde la lecture en capitales (une chasse nulle rendrait les
+       * capitales compactes et dures à lire) tout en rendant l'espace au titre.
+       * L'écart titre → liens passe de 12 px à 8 px dans le même mouvement.
+       */}
+      <h4 className="text-[13px] font-semibold uppercase tracking-[0.12em] text-[var(--ecode-text-muted)] dark:text-slate-400">
         {title}
       </h4>
-      <ul role="list" className="mt-3 space-y-2 text-[13px]">
+      {/*
+       * AV-UX point 11 — « titres encore trop espacés » : le pas vertical réel
+       * d'une ligne de lien était 52px (rangée tactile de 44px + `space-y-2`).
+       * Les grands sites tournent autour de 32-44px. `space-y-0` supprime la
+       * marge décorative : la rangée de 44px espace déjà d'elle-même. La hauteur
+       * reste volontairement à 44px à toutes les largeurs, car `lg:` commence à
+       * 1024px — une largeur encore courante sur les tablettes tactiles.
+       */}
+      <ul role="list" className="mt-2 space-y-0 text-[13px]">
         {links.map((link) => (
           <li key={link.id}>
             <Link
@@ -959,7 +994,12 @@ function NewsletterMiniForm({ copy }: { copy: MarketingShellCopy }) {
 
   return (
     <div className="mt-8">
-      <h4 className="text-[13px] font-semibold uppercase tracking-[0.3em] text-[var(--ecode-text-muted)] dark:text-slate-400">
+      {/*
+       * SCR-009 (suite) — même chasse que les titres de colonnes (FooterColumn) :
+       * ce titre « Newsletter » vit dans la même grille de pied de page ; le
+       * laisser à 0.3em recréait exactement l'étirement corrigé juste au-dessus.
+       */}
+      <h4 className="text-[13px] font-semibold uppercase tracking-[0.12em] text-[var(--ecode-text-muted)] dark:text-slate-400">
         {copy.newsletter.title}
       </h4>
       {succeeded ? (

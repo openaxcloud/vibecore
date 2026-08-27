@@ -20,6 +20,7 @@ import { useLoaderData, useRevalidator } from 'react-router';
 import { AsyncPanelError, AsyncPanelSkeleton } from '~/components/dashboard/AsyncPanelState';
 import { AppShell, LinkButton } from '~/components/dashboard/SaaSLayout';
 import { Button } from '~/components/ui/Button';
+import { EmptyState } from '~/components/ui/EmptyState';
 import { Switch } from '~/components/ui/Switch';
 import { apiRequest, type EnterpriseActionArgs, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
 import { notificationsEn, notificationsFr, type NotificationMessageKey } from '~/lib/i18n/catalogs/notifications';
@@ -587,6 +588,7 @@ export function PreferencesMatrixSection({ initial }: { initial: NotificationPre
                             disabled={locked || undefined}
                             aria-label={switchLabel}
                             onCheckedChange={(value) => setCell(category.key, channel.key, value)}
+                            className="after:absolute after:-inset-x-1 after:-inset-y-2.5 after:content-['']"
                           />
                         </span>
                       </td>
@@ -606,13 +608,13 @@ export function PreferencesMatrixSection({ initial }: { initial: NotificationPre
   );
 }
 
-const categoryTone: Record<string, NotificationCategory['tone']> = {
-  security: 'critical',
-  billing: 'warning',
-  deployments: 'info',
-  team: 'success',
-  system: 'info',
-};
+/*
+ * Ton dérivé de `categories` (source unique) : plus de second dictionnaire à
+ * maintenir en parallèle lors de l'ajout d'une catégorie.
+ */
+function categoryToneFor(category: string): NotificationCategory['tone'] {
+  return categories.find((entry) => entry.key === category)?.tone ?? 'info';
+}
 
 function toneClasses(tone: NotificationCategory['tone']) {
   return classNames(
@@ -620,8 +622,9 @@ function toneClasses(tone: NotificationCategory['tone']) {
       'border-[var(--status-error-border)] bg-[var(--status-error-bg)] text-[var(--status-error-text)]',
     tone === 'warning' &&
       'border-[var(--status-warning-border)] bg-[var(--status-warning-bg)] text-[var(--status-warning-text)]',
-    tone === 'info' && 'border-blue-500/35 bg-blue-500/10 text-blue-400',
-    tone === 'success' && 'border-emerald-500/35 bg-emerald-500/10 text-emerald-400',
+    tone === 'info' && 'border-[var(--status-info-border)] bg-[var(--status-info-bg)] text-[var(--status-info-text)]',
+    tone === 'success' &&
+      'border-[var(--status-success-border)] bg-[var(--status-success-bg)] text-[var(--status-success-text)]',
   );
 }
 
@@ -686,7 +689,7 @@ export function NotificationFeedSection({ feed, unavailable }: { feed: Notificat
             <h2 className="flex items-center gap-2 text-base font-semibold tracking-normal">
               {t('notifications.feed.inbox')}
               {unreadCount > 0 ? (
-                <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-bolt-elements-item-contentAccent px-1.5 py-0.5 text-[11px] font-semibold text-bolt-elements-textPrimary">
+                <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-[var(--vc-action-primary-strong)] px-1.5 py-0.5 text-[11px] font-semibold text-white">
                   {unreadCount}
                 </span>
               ) : null}
@@ -725,11 +728,13 @@ export function NotificationFeedSection({ feed, unavailable }: { feed: Notificat
       ) : null}
 
       {notifications.length === 0 ? (
-        <div className="flex flex-col items-center gap-2 p-8 text-center">
-          <Bell className="h-8 w-8 text-bolt-elements-textTertiary" aria-hidden />
-          <p className="text-sm font-medium">{t('notifications.feed.emptyTitle')}</p>
-          <p className="text-sm text-bolt-elements-textSecondary">{t('notifications.feed.emptyDescription')}</p>
-        </div>
+        <EmptyState
+          variant="compact"
+          icon={Bell}
+          title={t('notifications.feed.emptyTitle')}
+          description={t('notifications.feed.emptyDescription')}
+          className="border-0 shadow-none"
+        />
       ) : (
         <ul className="divide-y divide-bolt-elements-borderColor">
           {notifications.map((notification) => (
@@ -750,7 +755,7 @@ function NotificationRow({
 }) {
   const { i18n, t } = useTranslation();
   const [confirmedRead, setConfirmedRead] = useState(notification.read);
-  const tone = categoryTone[notification.category] ?? 'info';
+  const tone = categoryToneFor(notification.category);
 
   const markRead = useRecoverableNotificationPost({
     endpoint: `/api/notifications/${encodeURIComponent(notification.id)}/read`,
@@ -809,7 +814,10 @@ function NotificationRow({
               {notification.linkUrl ? (
                 <>
                   <span aria-hidden>·</span>
-                  <a className="text-bolt-elements-item-contentAccent hover:underline" href={notification.linkUrl}>
+                  <a
+                    className="relative inline-flex items-center rounded px-1 py-2 -my-2 text-bolt-elements-item-contentAccent underline decoration-transparent underline-offset-2 transition-colors hover:decoration-current focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]"
+                    href={notification.linkUrl}
+                  >
                     {t('notifications.feed.view')}
                   </a>
                 </>

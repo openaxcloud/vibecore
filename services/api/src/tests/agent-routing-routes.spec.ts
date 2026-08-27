@@ -132,7 +132,7 @@ describe('record-usage AGM per-call log', () => {
         headers: auth('agm-token'),
         payload: {
           provider: 'anthropic',
-          model: lineKey === 'economy' ? 'claude-opus-4-8' : 'claude-fable-5',
+          model: lineKey === 'economy' ? 'claude-opus-5' : 'claude-opus-5',
           inputTokens: 100_000,
           outputTokens: 10_000,
           agentRouting: { mode, lineKey, highEffort: false, escalated: false, turbo: false, source: 'chat' },
@@ -154,8 +154,8 @@ describe('record-usage AGM per-call log', () => {
      */
     expect(economy.creditCents).toBe(98);
     expect(power.creditCents).toBe(195);
-    expect(power.model).toBe('claude-fable-5');
-    expect(economy.model).toBe('claude-opus-4-8');
+    expect(power.model).toBe('claude-opus-5');
+    expect(economy.model).toBe('claude-opus-5');
     expect(economy.costMillicents).toBe(75_000);
     expect(economy.marginMillicents).toBe(98_000 - 75_000);
     expect(economy.routingCardVersion).toBe(BUILTIN_AGENT_ROUTING_CARD.version);
@@ -208,11 +208,11 @@ describe('admin agent routing', () => {
     expect(res.statusCode).toBe(200);
 
     const body = res.json();
-    expect(body.card.version).toBe(1);
+    expect(body.card.version).toBe(BUILTIN_AGENT_ROUTING_CARD.version);
     expect(body.negativeLines).toEqual([]);
 
     const economy = body.lines.find((line: { key: string }) => line.key === 'economy');
-    expect(economy.model).toBe('claude-opus-4-8');
+    expect(economy.model).toBe('claude-opus-5');
     expect(economy.userPrice).toEqual({ inCentsPerM: 650, outCentsPerM: 3250 });
     expect(economy.margins.negative).toBe(false);
     expect(economy.volume30d.calls).toBe(1);
@@ -251,7 +251,7 @@ describe('admin agent routing', () => {
       payload: { card: draft, confirmNegativeMargin: true },
     });
     expect(confirmed.statusCode).toBe(200);
-    expect(confirmed.json().version).toBe(2); // v1 = boot seed of the built-in card
+    expect(confirmed.json().version).toBe(BUILTIN_AGENT_ROUTING_CARD.version + 1); // boot seeds the built-in card first
 
     const history = await store.listAgentRoutingCards();
     expect(history[0].active).toBe(true);
@@ -373,13 +373,13 @@ describe('GET /projects/:id/agent/routing/resolve (control-plane decision point)
     const { app, project } = await setup();
 
     const economy = (await resolve(app, project.id, '?mode=economy')).json();
-    expect(economy.base).toMatchObject({ provider: 'anthropic', model: 'claude-opus-4-8', multiplier: 1 });
+    expect(economy.base).toMatchObject({ provider: 'anthropic', model: 'claude-opus-5', multiplier: 1 });
 
     const lite = (await resolve(app, project.id, '?mode=lite')).json();
     expect(lite.base).toMatchObject({ model: 'claude-haiku-4-5', multiplier: 0.5 });
 
     const power = (await resolve(app, project.id, '?mode=power')).json();
-    expect(power.base).toMatchObject({ model: 'claude-fable-5', multiplier: 2 });
+    expect(power.base).toMatchObject({ model: 'claude-opus-5', multiplier: 2 });
     expect(power.escalation).toBeUndefined();
   });
 
@@ -398,7 +398,7 @@ describe('GET /projects/:id/agent/routing/resolve (control-plane decision point)
 
     const granted = await resolve(app, project.id, '?mode=economy&highEffort=true');
     expect(granted.statusCode).toBe(200);
-    expect(granted.json().escalation).toMatchObject({ model: 'claude-fable-5', multiplier: 2 });
+    expect(granted.json().escalation).toMatchObject({ model: 'claude-opus-5', multiplier: 2 });
     expect(granted.json().classifier).toMatchObject({ model: 'claude-haiku-4-5' });
   });
 

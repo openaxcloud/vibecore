@@ -1,6 +1,67 @@
 import { createHash } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
-import { isSecurityScheduleDue, vulnerabilitiesFromSecretScan } from './ide-panel-security';
+import {
+  extractGrepMatchLines,
+  isGrepMatchLine,
+  isSecurityScheduleDue,
+  vulnerabilitiesFromSecretScan,
+} from './ide-panel-security';
+
+/*
+ * BUG-SEC-SCANNER-PHANTOM-FINDING: BusyBox grep rejecting an option prints this
+ * to stderr, which the runtime merges into the captured scan output. None of it
+ * may ever become a security finding.
+ */
+const BUSYBOX_GREP_NOISE = [
+  'grep: unrecognized option: exclude-dir=node_modules',
+  'BusyBox v1.36.1 (2026-01-05 12:00:00 UTC) multi-call binary.',
+  'Usage: grep [-HhnlLoqvsrRiwFE] [-m N] [-A/B/C N] PATTERN/-e PATTERN.../-f FILE [FILE]...',
+  '',
+  'Search for PATTERN in FILEs (or stdin)',
+  '',
+  "\t-H\tAdd 'filename:' prefix",
+  '\t-h\tDo not add prefix',
+  '\t-n\tAdd line numbers',
+  '\t-l\tShow only names of files that match',
+  '\t-q\tQuiet. Return 0 if PATTERN is found, 1 otherwise',
+  '\t-E\tPATTERN is an extended regexp',
+  'sh: some-tool: not found',
+  'Binary file ./assets/logo.png matches',
+].join('\n');
+
+describe('grep scan output filtering (BUG-SEC-SCANNER-PHANTOM-FINDING)', () => {
+  it('recognizes real grep match lines and rejects tool noise', () => {
+    expect(isGrepMatchLine('./src/config.ts:12:API_KEY=abc')).toBe(true);
+    expect(isGrepMatchLine('src/app/main.tsx:3:eval(userInput)')).toBe(true);
+
+    expect(isGrepMatchLine('Usage: grep [-HhnlLoqvsrRiwFE] [-m N] PATTERN')).toBe(false);
+    expect(isGrepMatchLine('grep: unrecognized option: exclude-dir=node_modules')).toBe(false);
+    expect(isGrepMatchLine('sh: grep: not found')).toBe(false);
+    expect(isGrepMatchLine('Binary file ./assets/logo.png matches')).toBe(false);
+  });
+
+  it('drops the entire BusyBox usage/error output', () => {
+    expect(extractGrepMatchLines(BUSYBOX_GREP_NOISE)).toEqual([]);
+  });
+
+  it('keeps only match-format lines from mixed output', () => {
+    const output = `${BUSYBOX_GREP_NOISE}\n./src/a.ts:7:password=hunter2\n./src/b.ts:9:token=abc`;
+
+    expect(extractGrepMatchLines(output)).toEqual(['./src/a.ts:7:password=hunter2', './src/b.ts:9:token=abc']);
+  });
+
+  it('produces zero secret findings from a grep usage/error dump', () => {
+    expect(vulnerabilitiesFromSecretScan(BUSYBOX_GREP_NOISE, '2026-01-01T00:00:00.000Z')).toEqual([]);
+  });
+
+  it('still reports real matches when noise and matches are interleaved', () => {
+    const output = `grep: warning: something\n./src/config.ts:12:API_KEY=sk-live-x\nUsage: grep [-HhnlLoqvsrRiwFE] [-m N]`;
+    const findings = vulnerabilitiesFromSecretScan(output, '2026-01-01T00:00:00.000Z');
+
+    expect(findings).toHaveLength(1);
+    expect(findings[0].details).toBe('./src/config.ts:12:API_KEY=***');
+  });
+});
 
 describe('vulnerabilitiesFromSecretScan', () => {
   it('redacts the raw secret value in details', () => {

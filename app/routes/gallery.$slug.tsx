@@ -342,7 +342,7 @@ export default function GalleryDetailRoute() {
                   <button
                     type="submit"
                     disabled={remixing || !licenseAccepted}
-                    className="mt-3 inline-flex min-h-[44px] w-full items-center justify-center gap-2 whitespace-normal rounded-lg bg-[var(--ecode-accent)] px-5 py-3 text-center text-[15px] font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="mt-3 inline-flex min-h-[44px] w-full items-center justify-center gap-2 whitespace-normal rounded-lg bg-[var(--vc-action-primary-strong)] px-5 py-3 text-center text-[15px] font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
                     data-testid="gallery-remix"
                   >
                     {remixing ? (

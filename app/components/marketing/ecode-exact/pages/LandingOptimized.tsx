@@ -317,7 +317,7 @@ export default function LandingOptimized() {
                     </div>
                     <Button
                       size="lg"
-                      className="min-w-0 whitespace-normal bg-ecode-accent px-6 py-3 text-base font-semibold leading-snug text-white shadow-lg transition-all duration-300 hover:bg-ecode-accent-hover sm:px-8 sm:py-4 sm:text-[15px] sm:hover:scale-105"
+                      className="min-w-0 whitespace-normal bg-[var(--vc-action-primary-strong)] px-6 py-3 text-base font-semibold leading-snug text-white shadow-lg transition-all duration-300 hover:brightness-90 sm:px-8 sm:py-4 sm:text-[15px] sm:hover:scale-105"
                       onClick={() => appDescription.trim() && handleStartBuilding(appDescription)}
                       disabled={!appDescription.trim() || isBuilding}
                       aria-busy={isBuilding}
