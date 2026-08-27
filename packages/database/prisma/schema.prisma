@@ -133,6 +133,8 @@ model User {
   importJobs                  ImportJob[]                    @relation("ImportJobActor")
   remixStorageSharesConsented RemixStorageShare[]            @relation("RemixStorageShareConsentedBy")
   rollbackOperations          RollbackIdempotencyRequest[]   @relation("RollbackOperationActor")
+  reservedVmOperations        ReservedVmOperation[]          @relation("ReservedVmOperationActor")
+  reservedVmBillingPeriods    ReservedVmBillingPeriod[]      @relation("ReservedVmBillingPeriodActor")
   cloudOperations             CloudOperation[]
   projectCheckpoints          ProjectCheckpoint[]            @relation("ProjectCheckpointCreator")
   invitedOrganizationMembers  OrganizationMember[]           @relation("OrganizationMemberInviter")
@@ -319,6 +321,7 @@ model Project {
   manifestRevisions        ProjectManifestRevision[]
   storageObjects           ProjectStorageObject[]
   deployments              Deployment[]
+  reservedVmOperations     ReservedVmOperation[]
   reservedVmBillingPeriods ReservedVmBillingPeriod[]
   rollbackOperations       RollbackIdempotencyRequest[]
   fileSnapshots            FileSnapshot[]
@@ -964,13 +967,17 @@ model Deployment {
   // runtimeVersion fences every in-place lifecycle/tier change.
   runtimeKind                    String                    @default("autoscale")
   runtimeVersion                 Int                       @default(0)
+  // Monotonic external side-effect fence. Unlike an operation-local lease
+  // counter, this never resets when a new runtime operation is created.
+  runtimeFencingToken            Int                       @default(0)
   reservedVmTier                 String?
   reservedVmPriceCents           Int?
   reservedVmTermsVersion         String?
   reservedVmRateCardVersion      Int?
   reservedVmBillingReservationId String?                   @unique
   // Calendar-month renewal state. All deadlines are derived from PostgreSQL
-  // time; STOP_REQUIRED is a durable instruction to stop compute only.
+  // time; STOP_REQUIRED is a durable instruction to stop compute only and
+  // SUSPENDED means compute was proved stopped while the PVC/config remain.
   reservedVmBillingState         String?
   reservedVmCurrentPeriodStart   DateTime?
   reservedVmNextChargeAt         DateTime?
@@ -989,6 +996,8 @@ model Deployment {
   updatedAt                      DateTime                  @updatedAt
   project                        Project                   @relation(fields: [projectId], references: [id], onDelete: Cascade)
   environment                    DeploymentEnvironment?    @relation(fields: [environmentId], references: [id])
+  reservedVmBillingReservation   LedgerReservation?        @relation("DeploymentReservedVmBillingReservation", fields: [reservedVmBillingReservationId], references: [id], onDelete: Restrict)
+  reservedVmOperations           ReservedVmOperation[]
   reservedVmBillingPeriods       ReservedVmBillingPeriod[]
 
   @@index([projectId])
@@ -997,7 +1006,7 @@ model Deployment {
   @@index([projectId, status])
 }
 
-// Durable saga for Reserved VM create/change. PostgreSQL clock leases and the
+// Durable saga for Reserved VM create/change/redeploy/decommission. PostgreSQL clock leases and the
 // expected runtimeVersion fence make a crashed worker resumable without two
 // callers billing or applying the same transition concurrently.
 model ReservedVmOperation {
@@ -1016,6 +1025,8 @@ model ReservedVmOperation {
   targetRuntimeKind      String
   targetTier             String?
   targetMachineSize      String
+  targetCpuMillicores    Int
+  targetMemoryMb         Int
   targetPriceCents       Int
   billingAmountCents     Int
   termsVersion           String
@@ -1032,6 +1043,11 @@ model ReservedVmOperation {
   createdAt              DateTime  @default(now())
   updatedAt              DateTime  @updatedAt
 
+  project            Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  deployment         Deployment         @relation(fields: [deploymentId], references: [id], onDelete: Cascade)
+  actorUser          User?              @relation("ReservedVmOperationActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+  billingReservation LedgerReservation? @relation("ReservedVmOperationBillingReservation", fields: [billingReservationId], references: [id], onDelete: Restrict)
+
   @@unique([projectId, idempotencyKey])
   @@index([deploymentId, createdAt])
   @@index([status, leaseExpiresAt])
@@ -1041,34 +1057,39 @@ model ReservedVmOperation {
 // may retry a DUE/PAST_DUE row, but (deploymentId, periodStart), the fenced
 // lease, and the canonical LedgerReservation make settlement exactly-once.
 model ReservedVmBillingPeriod {
-  id                    String     @id @default(cuid())
+  id                    String             @id @default(cuid())
   projectId             String
   deploymentId          String
   organizationId        String
+  // Nullable only for rolling compatibility; workers fail closed when absent.
+  actorUserId           String?
   periodStart           DateTime
   periodEnd             DateTime
   tier                  String
   priceCents            Int
   termsVersion          String
   rateCardVersion       Int
-  status                String     @default("DUE")
-  attemptCount          Int        @default(0)
-  reservationGeneration Int        @default(0)
+  status                String             @default("DUE")
+  attemptCount          Int                @default(0)
+  reservationGeneration Int                @default(0)
   leaseOwner            String?
   leaseExpiresAt        DateTime?
-  fencingToken          Int        @default(0)
-  billingReservationId  String?    @unique
+  fencingToken          Int                @default(0)
+  billingReservationId  String?            @unique
   graceEndsAt           DateTime?
   stopRequestedAt       DateTime?
   settledAt             DateTime?
   lastErrorCode         String?
   lastErrorMessage      String?
-  createdAt             DateTime   @default(now())
-  updatedAt             DateTime   @updatedAt
-  project               Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  deployment            Deployment @relation(fields: [deploymentId], references: [id], onDelete: Cascade)
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+  project               Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  deployment            Deployment         @relation(fields: [deploymentId], references: [id], onDelete: Cascade)
+  actorUser             User?              @relation("ReservedVmBillingPeriodActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+  billingReservation    LedgerReservation? @relation("ReservedVmBillingPeriodLedgerReservation", fields: [billingReservationId], references: [id], onDelete: Restrict)
 
   @@unique([deploymentId, periodStart])
+  @@index([actorUserId, status])
   @@index([status, leaseExpiresAt])
   @@index([organizationId, status])
   @@index([deploymentId, status])
@@ -3202,36 +3223,39 @@ model LedgerEntry {
 }
 
 model LedgerReservation {
-  id              String                  @id @default(cuid())
-  organizationId  String
-  userId          String?
+  id                      String                   @id @default(cuid())
+  organizationId          String
+  userId                  String?
   /// Idempotency key, unique per org: a replay returns the SAME reservation.
-  idempotencyKey  String
+  idempotencyKey          String
   /// SHA-256 of the normalized business request. Reusing the key with another
   /// amount, tenant, user, operation, rate card or import job fails closed.
-  requestHash     String?
-  operation       String
-  status          LedgerReservationStatus @default(ACTIVE)
+  requestHash             String?
+  operation               String
+  status                  LedgerReservationStatus  @default(ACTIVE)
   /// Optimistic fencing generation, incremented on every lifecycle transition.
-  version         Int                     @default(0)
-  currency        String                  @default("usd")
+  version                 Int                      @default(0)
+  currency                String                   @default("usd")
   /// Authorized ceiling (hold, not a debit).
-  maxAmountMinor  BigInt
+  maxAmountMinor          BigInt
   /// Actually settled at COMMIT (≤ maxAmountMinor).
-  committedMinor  BigInt?
-  rateCardVersion Int?
-  importJobId     String?
+  committedMinor          BigInt?
+  rateCardVersion         Int?
+  importJobId             String?
   /// Correlated ledger transactions across the lifecycle.
-  reserveTxId     String?
-  settleTxId      String?
-  compensateTxId  String?
-  expiresAt       DateTime
-  committedAt     DateTime?
-  releasedAt      DateTime?
-  releaseReason   String?
-  metadata        Json?
-  createdAt       DateTime                @default(now())
-  updatedAt       DateTime                @updatedAt
+  reserveTxId             String?
+  settleTxId              String?
+  compensateTxId          String?
+  expiresAt               DateTime
+  committedAt             DateTime?
+  releasedAt              DateTime?
+  releaseReason           String?
+  metadata                Json?
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
+  reservedVmDeployment    Deployment?              @relation("DeploymentReservedVmBillingReservation")
+  reservedVmOperation     ReservedVmOperation?     @relation("ReservedVmOperationBillingReservation")
+  reservedVmBillingPeriod ReservedVmBillingPeriod? @relation("ReservedVmBillingPeriodLedgerReservation")
 
   @@unique([organizationId, idempotencyKey])
   @@index([organizationId, status])
