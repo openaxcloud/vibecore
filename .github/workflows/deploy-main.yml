@@ -36,8 +36,10 @@ on:
       - 'docs/**'
   workflow_dispatch:
     inputs:
-      short_sha:
-        description: Override image tag to build/deploy (defaults to the pushed commit)
+      target_sha:
+        description: >-
+          Full 40-hex commit SHA to build/deploy. It must already be on main;
+          defaults to the selected workflow_dispatch ref SHA.
         required: false
       force_tiers:
         description: >-
@@ -47,7 +49,6 @@ on:
 
 permissions:
   contents: read
-  id-token: write
 
 # Never run two production rollouts at once, and never cancel an in-flight one
 # (cancelling mid-`helm upgrade --atomic` or mid-build leaves things half-applied).
@@ -64,6 +65,90 @@ env:
   HELM_NAMESPACE: vibecore
 
 jobs:
+  # The first job binds the entire run to one immutable commit and waits for the
+  # five independent blocking workflows for that exact SHA. It deliberately has
+  # no id-token permission and performs no cloud authentication.
+  release-gate:
+    name: Exact-SHA required workflows (blocking, before cloud auth)
+    runs-on: ubuntu-latest
+    timeout-minutes: 170
+    permissions:
+      actions: read
+      contents: read
+    outputs:
+      target_sha: ${{ steps.target.outputs.target_sha }}
+      short_sha: ${{ steps.target.outputs.short_sha }}
+    steps:
+      - name: Bind immutable target SHA
+        id: target
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_SHA: ${{ github.sha }}
+          REQUESTED_TARGET_SHA: ${{ inputs.target_sha }}
+        run: |
+          set -euo pipefail
+
+          case "${EVENT_NAME}" in
+            push)
+              TARGET_SHA="${EVENT_SHA}"
+              ;;
+            workflow_dispatch)
+              TARGET_SHA="${REQUESTED_TARGET_SHA:-${EVENT_SHA}}"
+              ;;
+            *)
+              echo "::error::unsupported deploy trigger: ${EVENT_NAME}" >&2
+              exit 1
+              ;;
+          esac
+
+          if ! printf '%s' "${TARGET_SHA}" | grep -Eq '^[0-9a-f]{40}$'; then
+            echo "::error::target_sha must be a full lowercase 40-hex commit SHA" >&2
+            exit 1
+          fi
+
+          echo "target_sha=${TARGET_SHA}" >> "${GITHUB_OUTPUT}"
+          echo "short_sha=${TARGET_SHA:0:10}" >> "${GITHUB_OUTPUT}"
+
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.target.outputs.target_sha }}
+          fetch-depth: 0
+
+      - name: Verify checkout identity and main ancestry
+        env:
+          TARGET_SHA: ${{ steps.target.outputs.target_sha }}
+        run: |
+          set -euo pipefail
+          CHECKED_OUT_SHA="$(git rev-parse HEAD)"
+          if [ "${CHECKED_OUT_SHA}" != "${TARGET_SHA}" ]; then
+            echo "::error::checkout mismatch: expected ${TARGET_SHA}, got ${CHECKED_OUT_SHA}" >&2
+            exit 1
+          fi
+
+          git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main
+          if ! git merge-base --is-ancestor "${TARGET_SHA}" refs/remotes/origin/main; then
+            echo "::error::target ${TARGET_SHA} is not an ancestor of origin/main" >&2
+            exit 1
+          fi
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Wait for exact-SHA blocking workflow conclusions
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_SHA: ${{ steps.target.outputs.target_sha }}
+        run: |
+          set -euo pipefail
+          node --test scripts/wait-for-required-workflows.node-test.mjs
+          node scripts/wait-for-required-workflows.mjs \
+            --sha "${TARGET_SHA}" \
+            --repository "${GITHUB_REPOSITORY}" \
+            --current-run-id "${GITHUB_RUN_ID}" \
+            --timeout-seconds 9900 \
+            --poll-seconds 45
+
   # B6 — gates that must pass BEFORE anything is built or rolled out.
   #
   # security.yaml already runs gitleaks on push/PR, but that is a *separate*
@@ -72,10 +157,13 @@ jobs:
   # itself, where failing it actually prevents the rollout.
   preflight-gates:
     name: Preflight gates (secrets + pipeline policy, blocking)
+    needs: [release-gate]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.release-gate.outputs.target_sha }}
 
       - name: Install gitleaks
         run: |
@@ -123,44 +211,50 @@ jobs:
           node scripts/validate-admin-deploy-tier.mjs --self-test
           node scripts/validate-admin-deploy-tier.mjs
 
+      - name: Pipeline policy — activation probe must fail closed
+        run: |
+          set -euo pipefail
+          node --test scripts/probe-deployment-activation.node-test.mjs
+
   build-and-deploy:
     name: Build tiers sequentially, then helm upgrade
-    needs: [preflight-gates]
+    needs: [release-gate, preflight-gates]
     runs-on: ubuntu-latest
     timeout-minutes: 180
+    permissions:
+      contents: read
+      id-token: write
     environment:
       name: production
 
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ needs.release-gate.outputs.target_sha }}
           # Full history so the change-detection step can diff this push against
           # its `before` SHA (or HEAD~1 on workflow_dispatch).
           fetch-depth: 0
 
-      - name: Resolve image tag
+      - name: Verify immutable checkout and derive image tag
         id: tag
         env:
-          # Pass the workflow_dispatch input via env (never interpolate it
-          # directly into the shell) so a value like `$(curl evil)` cannot be
-          # executed in this job, which holds prod GCP/WIF credentials.
-          SHORT_SHA_INPUT: ${{ inputs.short_sha }}
+          TARGET_SHA: ${{ needs.release-gate.outputs.target_sha }}
+          SHORT_SHA: ${{ needs.release-gate.outputs.short_sha }}
         run: |
           set -euo pipefail
-          # Matches the 10-char short sha used by the Cloud Build configs and
-          # the docker tags they push (web:<sha>, api:<sha>, ...).
-          if [ -n "${SHORT_SHA_INPUT}" ]; then
-            if ! printf '%s' "${SHORT_SHA_INPUT}" | grep -Eq '^[0-9a-f]{7,40}$'; then
-              echo "Invalid short_sha input: ${SHORT_SHA_INPUT}" >&2
-              exit 1
-            fi
-            SHORT_SHA="${SHORT_SHA_INPUT}"
-          else
-            SHORT_SHA="$(git rev-parse --short=10 HEAD)"
+          CHECKED_OUT_SHA="$(git rev-parse HEAD)"
+          EXPECTED_TAG="${TARGET_SHA:0:10}"
+          if [ "${CHECKED_OUT_SHA}" != "${TARGET_SHA}" ]; then
+            echo "::error::checkout mismatch: expected ${TARGET_SHA}, got ${CHECKED_OUT_SHA}" >&2
+            exit 1
+          fi
+          if [ "${SHORT_SHA}" != "${EXPECTED_TAG}" ]; then
+            echo "::error::image tag mismatch: expected ${EXPECTED_TAG}, got ${SHORT_SHA}" >&2
+            exit 1
           fi
           echo "SHORT_SHA=${SHORT_SHA}" >> "$GITHUB_ENV"
           echo "short_sha=${SHORT_SHA}" >> "$GITHUB_OUTPUT"
-          echo "Deploying image tag: ${SHORT_SHA}"
+          echo "Deploying source ${TARGET_SHA} as image tag ${SHORT_SHA}"
 
       # Decide which image tiers actually need rebuilding from the changed paths.
       # CONSERVATIVE: default every tier to TRUE and only flip to false when we are
@@ -492,15 +586,10 @@ jobs:
           # --expect-sha binds the verdict to the exact commit being deployed, so a
           # certification can never be carried over from another tree.
           #
-          # RELATION TO THE RELEASE-GATE LOT (feat/deploy-exact-sha-gate): that lot
-          # adds a `resolve-target` job which pins `target_sha`, derives
-          # `short_sha = ${TARGET_SHA:0:10}` into this same SHORT_SHA env, and makes
-          # every job check out `ref: target_sha`. The two compose rather than
-          # duplicate: this gate keeps reading SHORT_SHA and keeps returning the same
-          # verdict, while that lot makes the checkout PROVABLY the target — at which
-          # point the `sha-mismatch` branch below becomes unreachable. It is kept as a
-          # belt, because it is the only thing standing between "we inspected tree A"
-          # and "we deployed image B" until that lot actually lands.
+          # The release-gate job above pins target_sha, derives
+          # short_sha=${TARGET_SHA:0:10} into this same SHORT_SHA env, and makes
+          # every job check out that target. This verifier keeps its independent
+          # SHA assertion as a belt against any future workflow wiring regression.
           INTERLOCK_FAIL_REASON=''
 
           if node scripts/verify-prod-interlock.mjs \
@@ -541,24 +630,30 @@ jobs:
             else
               echo "::warning::Deploying api code WITHOUT the SEC-8 activation interlock in its PRODUCTION BUNDLE — this reverts the deployment-password cache fix (public static deployments will again be served with Cache-Control: max-age=60). Disarming DEPLOYMENT_ACCESS_ACTIVATION_ENABLED."
             fi
-            echo "barrier=false" >> "$GITHUB_OUTPUT"
-            echo "phase1_flag=0" >> "$GITHUB_OUTPUT"
-            echo "final_flag=0" >> "$GITHUB_OUTPUT"
+            {
+              echo "barrier=false"
+              echo "phase1_flag=0"
+              echo "final_flag=0"
+            } >> "$GITHUB_OUTPUT"
           elif [ "${LIVE_FLAG}" = "1" ]; then
             # Steady state: the running pods are already post-cutover, so no pod
             # in this rollout — old or new — can mint a max-age=60 response. Single
             # upgrade, flag re-asserted (--reuse-values would otherwise freeze it).
             echo "Steady state — pods already post-cutover; no drain barrier needed."
-            echo "barrier=false" >> "$GITHUB_OUTPUT"
-            echo "phase1_flag=1" >> "$GITHUB_OUTPUT"
-            echo "final_flag=1" >> "$GITHUB_OUTPUT"
+            {
+              echo "barrier=false"
+              echo "phase1_flag=1"
+              echo "final_flag=1"
+            } >> "$GITHUB_OUTPUT"
           else
             # THE CUTOVER. Roll the new code with activation still closed, drain,
             # wait out the legacy max-age, and only then arm it in phase 2.
             echo "CUTOVER — phase 1 rolls out with activation CLOSED; phase 2 arms it after the drain barrier."
-            echo "barrier=true" >> "$GITHUB_OUTPUT"
-            echo "phase1_flag=0" >> "$GITHUB_OUTPUT"
-            echo "final_flag=1" >> "$GITHUB_OUTPUT"
+            {
+              echo "barrier=true"
+              echo "phase1_flag=0"
+              echo "final_flag=1"
+            } >> "$GITHUB_OUTPUT"
           fi
 
       # --reuse-values preserves every existing value (including production
@@ -707,46 +802,15 @@ jobs:
       # consulted, so the probe asserts the WEAKER, always-true property — the api
       # must never answer 2xx here while the interlock is closed. A 2xx means an
       # activation just succeeded unauthenticated, which is a far worse bug.
-      # 401/403 (auth first) and 503 (interlock) are both acceptable; 200/201 is not.
+      # Any real non-2xx response is conclusive refusal; a real 2xx is a blocking
+      # security failure. Transport/tooling failures are inconclusive: they keep
+      # activation at 0 and skip phase 2 without relabelling a healthy rollout as
+      # failed. The script captures stdout, stderr and status separately so `set
+      # -e` cannot erase the diagnostic, then deletes only its exact probe pod.
       - name: Runtime probe — deployed api refuses activation in phase 1 (SEC-9)
+        id: phase1-probe
         if: steps.cutover.outputs.barrier == 'true'
-        run: |
-          set -euo pipefail
-          POD="$(kubectl -n "${HELM_NAMESPACE}" get pods \
-            -l "app.kubernetes.io/name=api,app.kubernetes.io/instance=${HELM_RELEASE}" \
-            --field-selector=status.phase=Running \
-            -o jsonpath='{.items[0].metadata.name}')"
-          if [ -z "${POD}" ]; then
-            echo "::error::no Running api pod to probe — refusing to arm activation" >&2
-            exit 1
-          fi
-          echo "probing pod ${POD}"
-
-          # Probe from INSIDE the cluster via a throwaway pod: the api Service is
-          # not reachable from the runner, and `kubectl exec` is denied to the CI
-          # identity through Connect Gateway (see the D2 step's note).
-          CODE="$(kubectl -n "${HELM_NAMESPACE}" run "sec9-probe-${GITHUB_RUN_ID}" \
-            --rm -i --restart=Never --quiet \
-            --image=curlimages/curl:8.10.1 \
-            --command -- curl -s -o /dev/null -w '%{http_code}' -m 15 -X PUT \
-            "http://${HELM_RELEASE}-vibecore-platform-api.${HELM_NAMESPACE}.svc:3001/projects/sec9-probe/deployments/sec9-probe/access" \
-            -H 'content-type: application/json' \
-            -d '{"mode":"PASSWORD_PROTECTED","password":"sec9-probe-not-a-real-password","expectedVersion":1}' 2>/dev/null | tr -dc '0-9')"
-
-          echo "deployed api answered HTTP ${CODE} to an activation attempt during phase 1"
-          case "${CODE}" in
-            2*)
-              echo "::error::PHASE-1 PROBE FAILED — the deployed api answered ${CODE} to an activation request while the interlock is supposed to be CLOSED. Not arming activation." >&2
-              exit 1
-              ;;
-            '')
-              echo "::error::PHASE-1 PROBE INCONCLUSIVE — no HTTP status from the deployed api. Refusing to arm activation (fail-closed)." >&2
-              exit 1
-              ;;
-            *)
-              echo "ok — deployed api refuses activation (HTTP ${CODE}) while the interlock is closed"
-              ;;
-          esac
+        run: bash scripts/probe-deployment-activation.sh
 
       - name: Drain barrier — outlast the legacy public max-age (SEC-8)
         id: barrier
@@ -816,9 +880,9 @@ jobs:
       # roll is in flight, activation requests may hit a not-yet-updated pod and
       # get 503 DEPLOYMENT_ACCESS_ACTIVATION_DISABLED: fail-closed, and transient.
       - name: Phase 2 — arm password activation (SEC-8)
-        # SEC-10: also requires the barrier to have certified that the api pods
-        # actually run the commit whose production bundle was verified.
-        if: steps.cutover.outputs.barrier == 'true' && steps.barrier.outputs.armable == 'true'
+        # SEC-9 requires a conclusive refusal from the deployed API. SEC-10 also
+        # requires the barrier to certify that its pods run the verified commit.
+        if: steps.cutover.outputs.barrier == 'true' && steps.phase1-probe.outputs.armable == 'true' && steps.barrier.outputs.armable == 'true'
         run: |
           set -euo pipefail
           helm upgrade "${HELM_RELEASE}" infra/helm/platform \
@@ -872,16 +936,23 @@ jobs:
             exit 1
           fi
 
-      # P104 / SEC-8: POST-DEPLOY proof, read back from the LIVE cluster, that the
-      # interlock ended this run in exactly the state the cutover step decided —
-      # "1" only when a barrier actually ran (or had already run on a previous
-      # deploy), "0" otherwise. Guards the two failures that matter: a phase-2 that
-      # silently no-op'd (protection unusable, loud instead of mysterious), and a
-      # flag that arrived at "1" without a barrier (the hole this change closes).
+      # P104 / SEC-8: POST-DEPLOY proof, read back from the LIVE cluster. The
+      # cutover step supplies the maximum desired state; SEC-9 or SEC-10 may lower
+      # it to "0" when the deployed API cannot be certified. A value of "1" still
+      # requires a conclusive runtime refusal and a barrier against the certified
+      # API commit. This catches a phase-2 no-op and any unproven arming.
       - name: Verify the activation interlock state (SEC-8)
         run: |
           set -euo pipefail
           WANT="${{ steps.cutover.outputs.final_flag }}"
+          if [ "${{ steps.cutover.outputs.barrier }}" = 'true' ] && \
+             { [ "${{ steps.phase1-probe.outputs.armable }}" != 'true' ] || \
+               [ "${{ steps.barrier.outputs.armable }}" != 'true' ]; }; then
+            # A healthy rollout may be impossible to certify because the probe
+            # was inconclusive (SEC-9) or the live api tag did not bind to the
+            # certified commit (SEC-10). Both deliberately withhold phase 2.
+            WANT='0'
+          fi
           CM_VALUE="$(kubectl -n "${HELM_NAMESPACE}" get configmap "${HELM_RELEASE}-vibecore-platform-platform-env" \
             -o jsonpath='{.data.DEPLOYMENT_ACCESS_ACTIVATION_ENABLED}')"
           echo "configmap DEPLOYMENT_ACCESS_ACTIVATION_ENABLED='${CM_VALUE}' (expected '${WANT}')"
@@ -910,6 +981,8 @@ jobs:
             echo "### SEC-8 password-activation interlock"
             echo ""
             echo "- **Barrier ran this deploy:** \`${{ steps.cutover.outputs.barrier }}\`"
+            echo "- **SEC-9 probe armable:** \`${{ steps.phase1-probe.outputs.armable }}\`"
+            echo "- **SEC-10 barrier armable:** \`${{ steps.barrier.outputs.armable }}\`"
             echo "- **Live \`DEPLOYMENT_ACCESS_ACTIVATION_ENABLED\`:** \`${CM_VALUE}\`"
           } >> "$GITHUB_STEP_SUMMARY"
 
