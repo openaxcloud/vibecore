@@ -1,3 +1,5 @@
+import { formatTerminalSessionCopy, getTerminalSessionCopy } from '~/lib/i18n/catalogs/terminal-session';
+
 export type TerminalProfileId = 'managed' | 'bash' | 'zsh' | 'sh';
 
 export interface TerminalProfileSpec {
@@ -7,11 +9,24 @@ export interface TerminalProfileSpec {
 }
 
 export const TERMINAL_PROFILES: TerminalProfileSpec[] = [
-  { id: 'managed', label: 'Managed shell' },
+  {
+    id: 'managed',
+    get label() {
+      return getTerminalProfileLabel('managed');
+    },
+  },
   { id: 'bash', label: 'bash', command: '/bin/bash' },
   { id: 'zsh', label: 'zsh', command: '/bin/zsh' },
   { id: 'sh', label: 'sh', command: '/bin/sh' },
 ];
+
+export function getTerminalProfileLabel(profileId: TerminalProfileId, language?: string | null): string {
+  if (profileId === 'managed') {
+    return getTerminalSessionCopy(language)['terminalSession.profile.managed'];
+  }
+
+  return profileId;
+}
 
 const TERMINAL_WORKSPACE_LABEL = '~/workspace';
 
@@ -50,9 +65,18 @@ export function getSessionLabel(index: number, profileId: TerminalProfileId): st
  * dim/italic so it reads as transient status, and ends with CRLF so the real
  * shell prompt prints cleanly underneath it once the OSC 'interactive' arrives.
  */
-export function buildConnectingNotice(profileId: TerminalProfileId): string {
-  const target = profileId === 'managed' ? 'workspace' : `${shellNameForProfile(profileId)} shell`;
+export function buildConnectingNotice(profileId: TerminalProfileId, language?: string | null): string {
+  const copy = getTerminalSessionCopy(language);
+
+  const target =
+    profileId === 'managed'
+      ? copy['terminalSession.target.workspace']
+      : formatTerminalSessionCopy(copy['terminalSession.target.shell'], {
+          shell: shellNameForProfile(profileId),
+        });
+
+  const message = formatTerminalSessionCopy(copy['terminalSession.status.connecting'], { target });
 
   /* \x1b[2m = dim, \x1b[3m = italic, \x1b[0m = reset. */
-  return `\x1b[2m\x1b[3mConnecting to ${target}…\x1b[0m\r\n`;
+  return `\x1b[2m\x1b[3m${message}\x1b[0m\r\n`;
 }

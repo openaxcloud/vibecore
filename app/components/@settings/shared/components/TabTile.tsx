@@ -6,6 +6,7 @@ import { classNames } from '~/utils/classNames';
 
 interface TabTileProps {
   tab: TabVisibilityConfig;
+  label?: string;
   onClick?: () => void;
   isActive?: boolean;
   hasUpdate?: boolean;
@@ -18,6 +19,7 @@ interface TabTileProps {
 
 export const TabTile: React.FC<TabTileProps> = ({
   tab,
+  label,
   onClick,
   isActive,
   hasUpdate,
@@ -27,6 +29,8 @@ export const TabTile: React.FC<TabTileProps> = ({
   className,
   children,
 }: TabTileProps) => {
+  const resolvedLabel = label ?? TAB_LABELS[tab.id];
+
   return (
     <Tooltip.Provider delayDuration={500}>
       <Tooltip.Root>
@@ -45,9 +49,10 @@ export const TabTile: React.FC<TabTileProps> = ({
               />
               <div
                 role="button"
-                aria-label={TAB_LABELS[tab.id]}
+                aria-label={resolvedLabel}
                 tabIndex={isLoading ? -1 : 0}
                 aria-pressed={isActive}
+                aria-busy={isLoading || undefined}
                 onClick={onClick}
                 onKeyDown={(event) => {
                   if (!isLoading && (event.key === 'Enter' || event.key === ' ')) {
@@ -57,6 +62,7 @@ export const TabTile: React.FC<TabTileProps> = ({
                 }}
                 className={classNames(
                   'relative flex flex-col items-center justify-center h-full p-4 rounded-lg',
+                  'vc-focus-ring focus:outline-none',
                   'bg-bolt-elements-background-depth-2',
                   'group cursor-pointer',
                   'hover:bg-[color-mix(in_srgb,var(--vc-ide-accent-action)_8%,transparent)]',
@@ -100,7 +106,14 @@ export const TabTile: React.FC<TabTileProps> = ({
 
                 {/* Label and Description */}
                 <div className="flex flex-col items-center mt-4 w-full">
-                  <h3
+                  {/*
+                   * `h2` : ces tuiles sont les sections de premier rang sous le
+                   * `h1` de la page. En `h3` elles créaient un saut h1→h3, mesuré
+                   * aux trois formats — un niveau sauté reste un défaut WCAG
+                   * 1.3.1. La taille est portée par la classe, rien ne bouge
+                   * visuellement.
+                   */}
+                  <h2
                     className={classNames(
                       'text-[15px] font-medium leading-snug mb-2',
                       'text-bolt-elements-textSecondary',
@@ -109,8 +122,8 @@ export const TabTile: React.FC<TabTileProps> = ({
                       isActive ? 'text-[var(--vc-ide-accent-action)]' : '',
                     )}
                   >
-                    {TAB_LABELS[tab.id]}
-                  </h3>
+                    {resolvedLabel}
+                  </h2>
                   {description && (
                     <p
                       className={classNames(

@@ -1,253 +1,287 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>E-Code Platform - Offline</title>
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-  <meta name="theme-color" content="#F26207">
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-    
-    body {
-      font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-      background: #0a0a0a;
-      color: #fafafa;
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-    }
-    
-    .offline-container {
-      background: #171717;
-      border: 1px solid #262626;
-      border-radius: 16px;
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-      max-width: 500px;
-      width: 100%;
-      padding: 40px;
-      text-align: center;
-      animation: slideUp 0.5s ease-out;
-    }
-    
-    @keyframes slideUp {
-      from {
-        opacity: 0;
-        transform: translateY(30px);
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#0a0f1c" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>E-Code</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family:
+          'IBM Plex Sans',
+          -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          sans-serif;
+        background: #080b12;
+        color: #f8fafc;
       }
-      to {
-        opacity: 1;
-        transform: translateY(0);
+
+      :root[data-theme='light'] {
+        color-scheme: light;
+        background: #f6f8fb;
+        color: #111827;
       }
-    }
-    
-    .offline-icon {
-      width: 120px;
-      height: 120px;
-      margin: 0 auto 30px;
-      animation: pulse 2s infinite;
-    }
-    
-    @keyframes pulse {
-      0%, 100% {
-        transform: scale(1);
+
+      * {
+        box-sizing: border-box;
       }
-      50% {
-        transform: scale(1.05);
+
+      body {
+        min-height: 100vh;
+        min-height: 100dvh;
+        margin: 0;
+        display: grid;
+        place-items: center;
+        padding: clamp(16px, 4vw, 40px);
+        background: radial-gradient(circle at top, rgb(242 98 7 / 12%), transparent 42%), var(--offline-page, #080b12);
       }
-    }
-    
-    .offline-icon svg {
-      width: 100%;
-      height: 100%;
-    }
-    
-    .logo {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      margin-bottom: 24px;
-    }
-    
-    .logo-icon {
-      width: 40px;
-      height: 40px;
-      background: linear-gradient(135deg, #F26207 0%, #FF8A3D 100%);
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 700;
-      font-size: 20px;
-    }
-    
-    .logo-text {
-      font-size: 1.5rem;
-      font-weight: 700;
-      background: linear-gradient(135deg, #F26207 0%, #FF8A3D 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-    
-    h1 {
-      color: #fafafa;
-      font-size: 1.75rem;
-      margin-bottom: 10px;
-      font-weight: 700;
-    }
-    
-    .subtitle {
-      color: #a3a3a3;
-      font-size: 1rem;
-      margin-bottom: 30px;
-      line-height: 1.5;
-    }
-    
-    .status-message {
-      background: #262626;
-      border: 1px solid #404040;
-      border-radius: 12px;
-      padding: 20px;
-      margin-bottom: 30px;
-    }
-    
-    .status-message p {
-      color: #a3a3a3;
-      font-size: 0.875rem;
-      line-height: 1.6;
-    }
-    
-    .feature-list {
-      text-align: left;
-      margin: 30px 0;
-      padding: 0 20px;
-    }
-    
-    .feature-list h2 {
-      color: #fafafa;
-      font-size: 1.125rem;
-      margin-bottom: 16px;
-      text-align: center;
-    }
-    
-    .feature-list ul {
-      list-style: none;
-    }
-    
-    .feature-list li {
-      color: #a3a3a3;
-      margin-bottom: 12px;
-      padding-left: 28px;
-      position: relative;
-      font-size: 0.875rem;
-    }
-    
-    .feature-list li::before {
-      content: '✓';
-      position: absolute;
-      left: 0;
-      color: #F26207;
-      font-weight: bold;
-    }
-    
-    .retry-button {
-      background: linear-gradient(135deg, #F26207 0%, #FF8A3D 100%);
-      color: white;
-      border: none;
-      padding: 14px 32px;
-      border-radius: 10px;
-      font-size: 1rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      display: inline-block;
-      text-decoration: none;
-    }
-    
-    .retry-button:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 10px 30px -10px rgba(242, 98, 7, 0.5);
-    }
-    
-    .retry-button:active {
-      transform: translateY(0);
-    }
-    
-    .connection-status {
-      margin-top: 24px;
-      padding-top: 20px;
-      border-top: 1px solid #262626;
-    }
-    
-    .connection-indicator {
-      display: inline-block;
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      margin-right: 8px;
-      animation: blink 2s infinite;
-    }
-    
-    .offline .connection-indicator {
-      background: #ef4444;
-    }
-    
-    .online .connection-indicator {
-      background: #22c55e;
-    }
-    
-    @keyframes blink {
-      0%, 100% {
-        opacity: 1;
+
+      :root[data-theme='light'] body {
+        --offline-page: #f6f8fb;
       }
-      50% {
-        opacity: 0.5;
+
+      .offline-card {
+        width: min(100%, 620px);
+        padding: clamp(24px, 6vw, 48px);
+        border: 1px solid #293244;
+        border-radius: 24px;
+        background: rgb(17 24 39 / 92%);
+        box-shadow: 0 30px 80px rgb(0 0 0 / 30%);
       }
-    }
-    
-    .connection-text {
-      color: #a3a3a3;
-      font-size: 0.875rem;
-    }
-    
-    @media (max-width: 640px) {
-      .offline-container {
-        padding: 30px 20px;
+
+      :root[data-theme='light'] .offline-card {
+        border-color: #dce2ea;
+        background: rgb(255 255 255 / 96%);
+        box-shadow: 0 24px 70px rgb(15 23 42 / 12%);
       }
-      
-      h1 {
-        font-size: 1.5rem;
+
+      .offline-header,
+      .brand,
+      .language-switch,
+      .connection-status {
+        display: flex;
+        align-items: center;
       }
-      
-      .subtitle {
-        font-size: 0.9rem;
+
+      .offline-header {
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 32px;
       }
-      
-      .feature-list {
+
+      .brand {
+        min-width: 0;
+        gap: 10px;
+        font-size: 1.1rem;
+        font-weight: 700;
+      }
+
+      .brand-mark {
+        display: grid;
+        width: 38px;
+        height: 38px;
+        flex: 0 0 auto;
+        place-items: center;
+        border-radius: 11px;
+        background: linear-gradient(135deg, #f26207, #f99d25);
+        color: #fff;
+      }
+
+      .language-switch {
+        min-height: 44px;
+        padding: 4px;
+        gap: 2px;
+        border: 1px solid #354055;
+        border-radius: 999px;
+      }
+
+      :root[data-theme='light'] .language-switch {
+        border-color: #d5dce6;
+      }
+
+      .language-switch button {
+        min-width: 40px;
+        min-height: 36px;
         padding: 0 10px;
+        border: 0;
+        border-radius: 999px;
+        background: transparent;
+        color: inherit;
+        cursor: pointer;
+        font: inherit;
+        font-size: 0.75rem;
+        font-weight: 700;
       }
-    }
-  </style>
-</head>
-<body>
-  <div class="offline-container">
-    <div class="logo">
-      <div class="logo-icon">E</div>
-      <span class="logo-text">E-Code</span>
-    </div>
-    
-    <div class="offline-icon">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#F26207" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+
+      .language-switch button[aria-pressed='true'] {
+        background: #f26207;
+        color: #fff;
+      }
+
+      .offline-icon {
+        width: 72px;
+        height: 72px;
+        margin-bottom: 24px;
+        color: #f26207;
+      }
+
+      h1,
+      h2,
+      p {
+        overflow-wrap: anywhere;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: clamp(2rem, 7vw, 3rem);
+        line-height: 1.05;
+        letter-spacing: -0.035em;
+      }
+
+      .subtitle {
+        margin: 14px 0 0;
+        color: #b5c0d1;
+        font-size: clamp(1rem, 2.5vw, 1.15rem);
+        line-height: 1.6;
+      }
+
+      :root[data-theme='light'] .subtitle,
+      :root[data-theme='light'] .status-message,
+      :root[data-theme='light'] .feature-list,
+      :root[data-theme='light'] .connection-status {
+        color: #4b5563;
+      }
+
+      .status-message {
+        margin: 28px 0;
+        padding: 18px 20px;
+        border: 1px solid #293244;
+        border-radius: 16px;
+        background: rgb(30 41 59 / 58%);
+        color: #cbd5e1;
+        line-height: 1.65;
+      }
+
+      :root[data-theme='light'] .status-message {
+        border-color: #e0e5ec;
+        background: #f8fafc;
+      }
+
+      .feature-list {
+        color: #cbd5e1;
+      }
+
+      .feature-list h2 {
+        margin: 0 0 14px;
+        color: inherit;
+        font-size: 1rem;
+      }
+
+      .feature-list ul {
+        margin: 0;
+        padding: 0;
+        display: grid;
+        gap: 12px;
+        list-style: none;
+      }
+
+      .feature-list li {
+        position: relative;
+        padding-left: 26px;
+        line-height: 1.45;
+      }
+
+      .feature-list li::before {
+        position: absolute;
+        left: 0;
+        color: #f26207;
+        content: '✓';
+        font-weight: 700;
+      }
+
+      .retry-button {
+        width: 100%;
+        min-height: 48px;
+        margin-top: 30px;
+        padding: 12px 20px;
+        border: 0;
+        border-radius: 12px;
+        background: linear-gradient(135deg, #f26207, #e95500);
+        color: #fff;
+        cursor: pointer;
+        font: inherit;
+        font-weight: 700;
+      }
+
+      .retry-button:focus-visible,
+      .language-switch button:focus-visible {
+        outline: 3px solid rgb(242 98 7 / 38%);
+        outline-offset: 3px;
+      }
+
+      .connection-status {
+        justify-content: center;
+        gap: 9px;
+        margin-top: 22px;
+        color: #94a3b8;
+        font-size: 0.875rem;
+      }
+
+      .connection-indicator {
+        width: 9px;
+        height: 9px;
+        flex: 0 0 auto;
+        border-radius: 50%;
+        background: #ef4444;
+      }
+
+      .connection-indicator.online {
+        background: #22c55e;
+      }
+
+      @media (max-width: 420px) {
+        .offline-header {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+
+        .language-switch {
+          align-self: stretch;
+          justify-content: center;
+        }
+
+        .language-switch button {
+          flex: 1;
+        }
+      }
+    </style>
+    <script src="/offline-messages.js" defer></script>
+    <script src="/offline-i18n.js" defer></script>
+  </head>
+  <body>
+    <main class="offline-card">
+      <header class="offline-header">
+        <div class="brand">
+          <span class="brand-mark" aria-hidden="true">E</span>
+          <span>E-Code</span>
+        </div>
+        <div class="language-switch" role="group" data-i18n-aria-label="languageSwitch">
+          <button type="button" data-language="en"></button>
+          <button type="button" data-language="fr"></button>
+        </div>
+      </header>
+
+      <svg
+        class="offline-icon"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.8"
+        aria-hidden="true"
+      >
         <path d="M1 1l22 22"></path>
         <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"></path>
         <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"></path>
@@ -256,82 +290,30 @@
         <path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path>
         <line x1="12" y1="20" x2="12.01" y2="20"></line>
       </svg>
-    </div>
-    
-    <h1>You're Offline</h1>
-    
-    <p class="subtitle">
-      No worries! E-Code Platform works offline too.
-    </p>
-    
-    <div class="status-message">
-      <p>
-        It looks like you've lost your internet connection. Some features may be limited, but you can still access cached content and continue working on your local projects.
-      </p>
-    </div>
-    
-    <div class="feature-list">
-      <h2>Available Offline:</h2>
-      <ul>
-        <li>View and edit cached projects</li>
-        <li>Access previously loaded documentation</li>
-        <li>Use local development tools</li>
-        <li>Continue coding in your workspace</li>
-      </ul>
-    </div>
-    
-    <button class="retry-button" onclick="handleRetry()">
-      Try Again
-    </button>
-    
-    <div class="connection-status">
-      <span class="connection-indicator offline" id="indicator"></span>
-      <span class="connection-text" id="status-text">Checking connection...</span>
-    </div>
-  </div>
-  
-  <script>
-    function updateConnectionStatus() {
-      const indicator = document.getElementById('indicator');
-      const statusText = document.getElementById('status-text');
-      
-      if (navigator.onLine) {
-        indicator.className = 'connection-indicator online';
-        statusText.textContent = 'Connection restored! Redirecting...';
-        setTimeout(() => {
-          window.location.reload();
-        }, 1000);
-      } else {
-        indicator.className = 'connection-indicator offline';
-        statusText.textContent = 'No connection';
-      }
-    }
-    
-    function handleRetry() {
-      const statusText = document.getElementById('status-text');
-      statusText.textContent = 'Checking connection...';
-      
-      fetch('/favicon.svg', { method: 'HEAD' })
-        .then(() => {
-          window.location.reload();
-        })
-        .catch(() => {
-          statusText.textContent = 'Still offline. Please check your connection.';
-        });
-    }
-    
-    window.addEventListener('online', updateConnectionStatus);
-    window.addEventListener('offline', updateConnectionStatus);
-    
-    updateConnectionStatus();
-    
-    setInterval(updateConnectionStatus, 5000);
-    
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.ready.then((registration) => {
-        console.log('Service Worker is active:', registration.active);
-      });
-    }
-  </script>
-</body>
+
+      <h1 data-i18n="heading"></h1>
+      <p class="subtitle" data-i18n="subtitle"></p>
+
+      <div class="status-message">
+        <p data-i18n="explanation"></p>
+      </div>
+
+      <section class="feature-list">
+        <h2 data-i18n="availableHeading"></h2>
+        <ul>
+          <li data-i18n="cachedProjects"></li>
+          <li data-i18n="loadedDocumentation"></li>
+          <li data-i18n="localTools"></li>
+          <li data-i18n="workspace"></li>
+        </ul>
+      </section>
+
+      <button class="retry-button" id="retry-button" type="button" data-i18n="retry"></button>
+
+      <div class="connection-status" role="status" aria-live="polite">
+        <span class="connection-indicator" id="connection-indicator"></span>
+        <span id="connection-status" data-i18n="checking"></span>
+      </div>
+    </main>
+  </body>
 </html>

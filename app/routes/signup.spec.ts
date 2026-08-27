@@ -4,7 +4,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { action, loader } from './signup';
+import { action, loader, meta } from './signup';
 import { toResponse } from '~/lib/test/rr7-data';
 
 const ORIGINAL_ENV = {
@@ -78,12 +78,24 @@ describe('signup route loader', () => {
 
   it('returns null on app.e-code.ai so the form renders', async () => {
     const response = toResponse(await loader(buildLoaderArgs('app.e-code.ai')));
-    expect(response).toBeNull();
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ language: 'en' });
   });
 
   it('returns null on localhost so dev mode keeps working', async () => {
     const response = toResponse(await loader(buildLoaderArgs('localhost:5173')));
-    expect(response).toBeNull();
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ language: 'en' });
+  });
+
+  it('publishes localized French route metadata', () => {
+    const metadata = meta({ data: { language: 'fr' } } as Parameters<typeof meta>[0]);
+
+    expect(metadata).toContainEqual({ title: 'Créer un compte - E-Code' });
+    expect(metadata).toContainEqual({
+      name: 'description',
+      content: 'Créez votre compte E-Code et commencez à développer des applications de production.',
+    });
   });
 });
 
@@ -99,8 +111,8 @@ describe('signup route action', () => {
     expect(response.status).toBe(400);
     expect(fetchSpy).not.toHaveBeenCalled();
 
-    const payload = (await response.json()) as { error: string };
-    expect(payload.error).toContain('at least 8');
+    const payload = (await response.json()) as { errorCode: string; errorParams?: { count: number } };
+    expect(payload).toMatchObject({ errorCode: 'AUTH_PASSWORD_TOO_SHORT', errorParams: { count: 8 } });
   });
 
   it('rejects mismatched password confirmation', async () => {
@@ -120,8 +132,8 @@ describe('signup route action', () => {
     expect(response.status).toBe(400);
     expect(fetchSpy).not.toHaveBeenCalled();
 
-    const payload = (await response.json()) as { error: string };
-    expect(payload.error.toLowerCase()).toContain('do not match');
+    const payload = (await response.json()) as { errorCode: string };
+    expect(payload.errorCode).toBe('AUTH_PASSWORD_MISMATCH');
   });
 
   it('posts to /auth/register and redirects to /dashboard with a session cookie on success', async () => {
@@ -217,8 +229,8 @@ describe('signup route action', () => {
 
     expect(response.status).toBe(409);
 
-    const payload = (await response.json()) as { error: string; fields?: { email?: string } };
-    expect(payload.error.toLowerCase()).toContain('already exists');
+    const payload = (await response.json()) as { errorCode: string; fields?: { email?: string } };
+    expect(payload.errorCode).toBe('AUTH_EMAIL_EXISTS');
     expect(payload.fields?.email).toBe('ada@example.com');
   });
 });

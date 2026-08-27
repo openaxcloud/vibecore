@@ -1,4 +1,5 @@
 import { Eye, EyeOff } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { classNames } from '~/utils/classNames';
 
 /**
@@ -10,19 +11,30 @@ import { classNames } from '~/utils/classNames';
 export function RevealButton({
   revealed,
   onToggle,
-  subject = 'password',
+  subject,
+  showLabel,
+  hideLabel,
   className,
 }: {
   revealed: boolean;
   onToggle: () => void;
   subject?: string;
+  showLabel?: string;
+  hideLabel?: string;
   className?: string;
 }) {
+  const { t } = useTranslation();
+
+  const resolvedShowLabel =
+    showLabel ?? (subject ? t('common.showSubject', { subject }) : t('auth.common.showPassword'));
+  const resolvedHideLabel =
+    hideLabel ?? (subject ? t('common.hideSubject', { subject }) : t('auth.common.hidePassword'));
+
   return (
     <button
       type="button"
       aria-pressed={revealed}
-      aria-label={revealed ? `Hide ${subject}` : `Show ${subject}`}
+      aria-label={revealed ? resolvedHideLabel : resolvedShowLabel}
       onMouseDown={(event) => event.preventDefault()}
       onClick={onToggle}
       className={classNames(

@@ -1,4 +1,5 @@
-import { apiErrorMessage, apiRequest, json, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
+import { apiRequest, json, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
+import { remainingApiErrorResponse } from '~/lib/i18n/catalogs/remaining-api-routes';
 
 interface ProjectExportResponse {
   archive?: {
@@ -12,7 +13,7 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
   const projectId = params.projectId;
 
   if (!projectId) {
-    throw json({ ok: false, error: 'Project not found' }, { status: 404 });
+    throw remainingApiErrorResponse(request, 'PROJECT_NOT_FOUND', 404, { extra: { ok: false } });
   }
 
   try {
@@ -25,9 +26,13 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
       headers: { 'cache-control': 'no-store' },
     });
   } catch (error) {
-    const message = await apiErrorMessage(error, 'Project export unavailable');
     const status = error instanceof Response && error.status !== 500 ? error.status : 502;
 
-    throw json({ ok: false, error: message }, { status });
+    throw remainingApiErrorResponse(
+      request,
+      status === 401 || status === 403 ? 'PROJECT_EXPORT_AUTH_REQUIRED' : 'PROJECT_EXPORT_UNAVAILABLE',
+      status,
+      { extra: { ok: false } },
+    );
   }
 }

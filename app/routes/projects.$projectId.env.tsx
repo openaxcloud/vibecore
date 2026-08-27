@@ -1,11 +1,11 @@
 import { Braces, Trash2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import type { MetaFunction } from 'react-router';
 import { Form, Link, useActionData, useLoaderData, useNavigation, useSearchParams } from 'react-router';
 import {
   buildEnvVarDiff,
   buildEnvVarRows,
   ENV_VAR_SCOPES,
-  ENV_VAR_SCOPE_LABELS,
   normalizeEnvVarScope,
   type EnvVarRecord,
   type EnvVarScope,
@@ -13,94 +13,128 @@ import {
 import { ProjectShell } from '~/components/dashboard/SaaSLayout';
 import { Button } from '~/components/ui/Button';
 import {
-  apiErrorMessage,
   apiRequest,
+  formObject,
   json,
   redirect,
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
-import { projectAction, projectPageLoader } from '~/lib/project-route.server';
+import {
+  formatProjectEnvCopy,
+  getProjectEnvCopy,
+  getProjectEnvPluralKey,
+  getProjectEnvScopeLabel,
+  resolveProjectEnvLanguage,
+  type ProjectEnvCopy,
+} from '~/lib/i18n/catalogs/project-env';
+import { resolveRequestLocale } from '~/lib/i18n/request-locale';
+import type { ProjectRecord } from '~/lib/project-route.server';
+import { isReauthRedirect } from '~/lib/route-reauth';
 import { classNames } from '~/utils/classNames';
 
 type EnvData = { envVars: EnvVarRecord[] };
 
-export const meta: MetaFunction = () => [{ title: 'Environment variables - E-Code' }];
+// Code-facing examples remain locale-neutral by design.
+const VARIABLE_NAME_PLACEHOLDER = 'VITE_API_URL';
+
+export const meta: MetaFunction<typeof loader> = ({ data, matches }) => {
+  const rootData = matches.find((match) => match.id === 'root')?.data as { language?: string } | undefined;
+  const copy = getProjectEnvCopy(data?.language ?? rootData?.language);
+  const title = copy['projectEnv.meta.title'];
+  const description = copy['projectEnv.meta.description'];
+
+  return [
+    { title },
+    { name: 'description', content: description },
+    { property: 'og:title', content: title },
+    { property: 'og:description', content: description },
+    { name: 'twitter:title', content: title },
+    { name: 'twitter:description', content: description },
+  ];
+};
 export { UserAreaRouteErrorBoundary as ErrorBoundary } from '~/components/dashboard/UserAreaRouteError';
-export const loader = (args: EnterpriseLoaderArgs) =>
-  projectPageLoader<EnvData>(args, (projectId) => `/projects/${projectId}/env-vars`);
-export const action = (args: EnterpriseActionArgs) =>
-  projectAction(args, {
-    default: async ({ request, projectId, body }) => {
-      const scope = normalizeEnvVarScope(typeof body.scope === 'string' ? body.scope : undefined);
 
-      try {
-        await apiRequest(request, `/projects/${projectId}/env-vars`, {
-          method: 'PUT',
-          body: JSON.stringify({ key: body.key, value: body.value ?? '', scope }),
-        });
-      } catch (error) {
-        /*
-         * apiRequest throws a react-router redirect() Response (3xx with a Location header) when
-         * the session expired (401) or MFA is required (403). Re-throw it so the browser follows
-         * the re-auth redirect instead of rendering it as a body-less inline error.
-         */
-        if (error instanceof Response && error.status >= 300 && error.status < 400) {
-          throw error;
-        }
+export async function loader({ request, params }: EnterpriseLoaderArgs) {
+  const language = resolveProjectEnvLanguage(resolveRequestLocale(request).language);
+  const copy = getProjectEnvCopy(language);
+  const projectId = params.projectId;
 
-        /*
-         * The API validates the key against /^[A-Z0-9_]+$/ (400), enforces RBAC (403) and may fail
-         * with 500. Surface the message inline instead of throwing to an error boundary.
-         */
-        const status = error instanceof Response ? error.status : 400;
+  if (!projectId) {
+    throw json({ error: copy['projectEnv.error.projectNotFound'] }, { status: 404 });
+  }
 
-        return json({ error: await apiErrorMessage(error, 'Failed to save variable') }, { status });
-      }
+  try {
+    const [projectResult, data] = await Promise.all([
+      apiRequest<{ project: ProjectRecord }>(request, `/projects/${projectId}`),
+      apiRequest<EnvData>(request, `/projects/${projectId}/env-vars`),
+    ]);
 
-      return redirect(`/projects/${projectId}/env?scope=${scope}`);
-    },
-    delete: async ({ request, projectId, body }) => {
-      const scope = normalizeEnvVarScope(typeof body.scope === 'string' ? body.scope : undefined);
+    return json({ project: projectResult.project, data, language });
+  } catch (error) {
+    if (isReauthRedirect(error)) {
+      throw error;
+    }
 
-      try {
-        await apiRequest(request, `/projects/${projectId}/env-vars`, {
-          method: 'DELETE',
-          body: JSON.stringify({ key: body.key, scope }),
-        });
-      } catch (error) {
-        /*
-         * apiRequest throws a react-router redirect() Response (3xx with a Location header) when
-         * the session expired (401) or MFA is required (403). Re-throw it so the browser follows
-         * the re-auth redirect instead of rendering it as a body-less inline error.
-         */
-        if (error instanceof Response && error.status >= 300 && error.status < 400) {
-          throw error;
-        }
+    console.error('Environment variable loader failed:', error);
+    throw json({ error: copy['projectEnv.error.serviceUnavailable'] }, { status: 503 });
+  }
+}
 
-        /*
-         * The API enforces RBAC (403) and returns 404 when the key no longer
-         * exists. Surface the message inline instead of throwing to an error
-         * boundary so the panel stays usable.
-         */
-        const status = error instanceof Response ? error.status : 400;
+export async function action({ request, params }: EnterpriseActionArgs) {
+  const language = resolveProjectEnvLanguage(resolveRequestLocale(request).language);
+  const copy = getProjectEnvCopy(language);
+  const projectId = params.projectId;
 
-        return json({ error: await apiErrorMessage(error, 'Failed to delete variable') }, { status });
-      }
+  if (!projectId) {
+    throw json({ error: copy['projectEnv.error.projectNotFound'] }, { status: 404 });
+  }
 
-      return redirect(`/projects/${projectId}/env?scope=${scope}`);
-    },
-  });
+  const body = formObject(await request.formData()) as Record<string, string>;
+  const intent = body.intent === 'delete' ? 'delete' : 'save';
+  const scope = normalizeEnvVarScope(body.scope);
+
+  try {
+    await apiRequest(request, `/projects/${projectId}/env-vars`, {
+      method: intent === 'delete' ? 'DELETE' : 'PUT',
+      body: JSON.stringify(
+        intent === 'delete' ? { key: body.key, scope } : { key: body.key, value: body.value ?? '', scope },
+      ),
+    });
+  } catch (error) {
+    if (isReauthRedirect(error)) {
+      throw error;
+    }
+
+    console.error(`Environment variable ${intent} failed:`, error);
+
+    const status = error instanceof Response ? error.status : 503;
+
+    const errorKey =
+      status >= 500
+        ? 'projectEnv.error.serviceUnavailable'
+        : intent === 'delete'
+          ? 'projectEnv.error.deleteFailed'
+          : 'projectEnv.error.saveFailed';
+
+    return json({ error: copy[errorKey] }, { status });
+  }
+
+  return redirect(`/projects/${projectId}/env?scope=${scope}`);
+}
 
 export default function ProjectEnvPage() {
-  const { project, data } = useLoaderData<typeof loader>();
+  const { i18n } = useTranslation();
+  const { project, data, language: loadedLanguage } = useLoaderData<typeof loader>();
+  const language = resolveProjectEnvLanguage(i18n.resolvedLanguage ?? i18n.language ?? loadedLanguage);
+  const copy = getProjectEnvCopy(language);
   const navigation = useNavigation();
   const saving = navigation.state === 'submitting';
   const actionData = useActionData<typeof action>() as { error?: string } | undefined;
   const [searchParams] = useSearchParams();
 
   const activeScope = normalizeEnvVarScope(searchParams.get('scope') ?? undefined);
-  const rows = buildEnvVarRows(data.envVars, activeScope);
+  const rows = buildEnvVarRows(data.envVars, activeScope, language, copy);
   const diffRows = buildEnvVarDiff(data.envVars).filter((row) => row.differs);
 
   const scopeCounts = ENV_VAR_SCOPES.reduce<Record<EnvVarScope, number>>(
@@ -114,13 +148,13 @@ export default function ProjectEnvPage() {
   return (
     <ProjectShell
       projectId={project.id}
-      title="Environment variables"
-      description="Manage non-secret runtime configuration per environment. Variables are scoped to Development, Preview or Production."
+      title={copy['projectEnv.page.title']}
+      description={copy['projectEnv.page.description']}
     >
       {/* Scope tabs — one per environment, active tab drives the list + the add form. */}
       <div
         role="tablist"
-        aria-label="Environment scope"
+        aria-label={copy['projectEnv.scope.ariaLabel']}
         className="mb-6 inline-flex flex-wrap gap-1 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-1"
       >
         {ENV_VAR_SCOPES.map((scope) => {
@@ -133,13 +167,13 @@ export default function ProjectEnvPage() {
               role="tab"
               aria-selected={active}
               className={classNames(
-                'inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
+                'inline-flex min-h-11 items-center gap-2 whitespace-normal rounded-md px-3 py-2 text-left text-sm font-medium transition-colors',
                 active
                   ? 'bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary shadow-sm'
                   : 'text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary',
               )}
             >
-              {ENV_VAR_SCOPE_LABELS[scope]}
+              {getProjectEnvScopeLabel(scope, copy)}
               <span className="rounded-full bg-bolt-elements-background-depth-3 px-1.5 text-xs tabular-nums text-bolt-elements-textSecondary">
                 {scopeCounts[scope]}
               </span>
@@ -173,8 +207,11 @@ export default function ProjectEnvPage() {
                   <button
                     type="submit"
                     disabled={saving}
-                    aria-label={`Delete ${row.key} from ${ENV_VAR_SCOPE_LABELS[activeScope]}`}
-                    className="rounded-md p-2 text-bolt-elements-textSecondary transition-colors hover:bg-bolt-elements-background-depth-3 hover:text-[var(--status-error-text)] disabled:opacity-50"
+                    aria-label={formatProjectEnvCopy(copy['projectEnv.delete.ariaLabel'], {
+                      key: row.key,
+                      scope: getProjectEnvScopeLabel(activeScope, copy),
+                    })}
+                    className="min-h-11 min-w-11 rounded-md p-2 text-bolt-elements-textSecondary transition-colors hover:bg-bolt-elements-background-depth-3 hover:text-[var(--status-error-text)] disabled:opacity-50"
                   >
                     <Trash2 className="h-4 w-4" aria-hidden />
                   </button>
@@ -189,30 +226,31 @@ export default function ProjectEnvPage() {
         >
           <input type="hidden" name="scope" value={activeScope} />
           <p className="text-sm text-bolt-elements-textSecondary">
-            Adding to{' '}
-            <span className="font-medium text-bolt-elements-textPrimary">{ENV_VAR_SCOPE_LABELS[activeScope]}</span>
+            {formatProjectEnvCopy(copy['projectEnv.form.addingTo'], {
+              scope: getProjectEnvScopeLabel(activeScope, copy),
+            })}
           </p>
           <Field
-            label="Variable name"
+            label={copy['projectEnv.form.name']}
             name="key"
-            placeholder="VITE_API_URL"
+            placeholder={VARIABLE_NAME_PLACEHOLDER}
             pattern="[A-Z0-9_]+"
-            title="Use uppercase letters, numbers and underscores only."
+            title={copy['projectEnv.form.nameHelp']}
             required
           />
-          <Field label="Value" name="value" placeholder="https://api.example.com" />
+          <Field label={copy['projectEnv.form.value']} name="value" placeholder="https://api.example.com" />
           {actionData?.error ? (
             <p className="text-sm text-[var(--status-error-text)]" role="alert">
               {actionData.error}
             </p>
           ) : null}
           <Button type="submit" disabled={saving} aria-busy={saving}>
-            {saving ? 'Saving…' : 'Save variable'}
+            {saving ? copy['projectEnv.form.saving'] : copy['projectEnv.form.submit']}
           </Button>
         </Form>
       </div>
 
-      <EnvDiffSection rows={diffRows} />
+      <EnvDiffSection rows={diffRows} copy={copy} language={language} />
     </ProjectShell>
   );
 }
@@ -222,25 +260,35 @@ export default function ProjectEnvPage() {
  * across Development / Preview / Production, so a drift between environments is
  * visible at a glance. Hidden entirely when every key is consistent.
  */
-function EnvDiffSection({ rows }: { rows: ReturnType<typeof buildEnvVarDiff> }) {
+export function EnvDiffSection({
+  rows,
+  copy,
+  language,
+}: {
+  rows: ReturnType<typeof buildEnvVarDiff>;
+  copy: ProjectEnvCopy;
+  language: string;
+}) {
   if (rows.length === 0) {
     return null;
   }
 
   return (
     <section className="mt-8">
-      <h2 className="text-sm font-semibold">Differences across environments</h2>
+      <h2 className="break-words text-sm font-semibold">{copy['projectEnv.diff.title']}</h2>
       <p className="mt-1 text-sm text-bolt-elements-textSecondary">
-        {rows.length} variable{rows.length === 1 ? '' : 's'} differ between Development, Preview and Production.
+        {formatProjectEnvCopy(copy[getProjectEnvPluralKey('projectEnv.diff.summary', rows.length, language)], {
+          count: rows.length,
+        })}
       </p>
       <div className="mt-4 overflow-x-auto rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-sm">
         <table className="w-full min-w-[560px] text-left text-sm">
           <thead>
             <tr className="border-b border-bolt-elements-borderColor text-xs uppercase tracking-wide text-bolt-elements-textSecondary">
-              <th className="px-4 py-2.5 font-medium">Variable</th>
+              <th className="px-4 py-2.5 font-medium">{copy['projectEnv.diff.variable']}</th>
               {ENV_VAR_SCOPES.map((scope) => (
                 <th key={scope} className="px-4 py-2.5 font-medium">
-                  {ENV_VAR_SCOPE_LABELS[scope]}
+                  {getProjectEnvScopeLabel(scope, copy)}
                 </th>
               ))}
             </tr>
@@ -254,13 +302,14 @@ function EnvDiffSection({ rows }: { rows: ReturnType<typeof buildEnvVarDiff> }) 
                   return (
                     <td key={scope} className="px-4 py-2.5">
                       {value === undefined ? (
-                        <span className="text-bolt-elements-textTertiary">— not set</span>
+                        <span className="text-bolt-elements-textTertiary">{copy['projectEnv.diff.notSet']}</span>
                       ) : (
                         <span
+                          data-user-content
                           className="block max-w-[220px] truncate font-mono text-xs text-bolt-elements-textPrimary"
                           title={value}
                         >
-                          {value === '' ? '(empty)' : value}
+                          {value === '' ? copy['projectEnv.diff.empty'] : value}
                         </span>
                       )}
                     </td>
@@ -294,7 +343,7 @@ function Field(props: {
         ) : null}
       </span>
       <input
-        className="h-10 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 text-sm outline-none focus:border-bolt-elements-focus"
+        className="h-11 min-w-0 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 text-sm outline-none focus:border-bolt-elements-focus"
         name={props.name}
         placeholder={props.placeholder}
         pattern={props.pattern}

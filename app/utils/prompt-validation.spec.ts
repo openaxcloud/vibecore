@@ -211,6 +211,20 @@ describe('validateProjectPrompt', () => {
     const strict = validateProjectPrompt('a b c d e', { maxChars: 5 });
     expect(strict.errors.map((e) => e.code)).toContain('too_long');
   });
+
+  it('returns reviewed French validation copy with French number formatting', () => {
+    const tooShort = validateProjectPrompt('Bonjour', { minWords: 2, language: 'fr-FR' });
+    expect(tooShort.errors[0]?.message).toContain('au moins 2 mots');
+
+    const tooLong = validateProjectPrompt('un deux trois quatre', {
+      maxChars: 10,
+      language: 'fr',
+    });
+    expect(tooLong.errors.find((issue) => issue.code === 'too_long')?.message).toContain('actuellement 20');
+
+    const warning = validateProjectPrompt('Construisez une application soignée', { language: 'fr' });
+    expect(warning.warnings[0]?.message).toContain('caractères invisibles');
+  });
 });
 
 describe('countStrippedNonPrintable', () => {

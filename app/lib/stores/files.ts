@@ -3,6 +3,7 @@ import type { FileChange, FileNode, RuntimeAdapter } from '@vibecore/runtime-con
 import { map, type MapStore } from 'nanostores';
 import { resolveContentlessCreate } from './files.watch-create';
 import { reconcileRemoteWrite } from './reconcile-remote-write';
+import { clientStoresServicesText } from '~/lib/i18n/catalogs/client-stores-services';
 import {
   addLockedFile,
   removeLockedFile,
@@ -59,6 +60,33 @@ export interface ProjectStorageFile {
 type Dirent = File | Folder;
 
 export type FileMap = Record<string, Dirent | undefined>;
+
+/*
+ * BUG-IDE-PANEL-RECLICK-REPROVISION-001 — a runtime tree listing taken while the
+ * pod is waking/being (re)provisioned can be PARTIAL: the agent answers before
+ * the workspace has been (re)seeded, so it lists only a fraction of the real
+ * project (observed live: the IDE file tree collapsed from 12 files to 1 during
+ * a spurious reprovision). Hard-replacing a hydrated tree with such a snapshot
+ * destroys the canonical view — and everything derived from it (editor tabs,
+ * "files changed" signatures, install detection).
+ *
+ * Pure decision: keep the CURRENT hydrated tree when the incoming listing lost
+ * most of it. Small trees (< 4 files) carry no signal and always adopt; a
+ * listing that keeps at least ~a quarter of the files is treated as a genuine
+ * bulk change (e.g. real deletions) and adopted. Later reloads adopt the full
+ * tree again once the pod is seeded, so preservation is self-healing.
+ */
+export function shouldPreserveHydratedTree(currentFileCount: number, incomingFileCount: number): boolean {
+  if (currentFileCount < 4) {
+    return false;
+  }
+
+  if (incomingFileCount >= currentFileCount) {
+    return false;
+  }
+
+  return incomingFileCount <= Math.max(2, Math.floor(currentFileCount / 4));
+}
 
 export class FilesStore {
   #runtime: RuntimeAdapter;
@@ -251,6 +279,21 @@ export class FilesStore {
     };
 
     nodes.forEach(visit);
+
+    /*
+     * A full-tree resync must never let a PARTIAL listing (pod waking up /
+     * mid-reprovision, before the reseed lands) collapse an already-hydrated
+     * tree — see shouldPreserveHydratedTree. Keep the canonical tree; the next
+     * successful reload adopts the runtime listing again.
+     */
+    if (shouldPreserveHydratedTree(this.#size, fileCount)) {
+      logger.warn(
+        `Ignoring partial runtime tree listing (${fileCount} files) that would collapse the hydrated tree (${this.#size} files)`,
+      );
+
+      return;
+    }
+
     this.#size = fileCount;
     this.files.set(nextFiles);
     this.#loadLockedFiles();
@@ -766,7 +809,7 @@ export class FilesStore {
       const relativePath = this.#toRuntimePath(filePath);
 
       if (!relativePath) {
-        throw new Error(`EINVAL: invalid file path, write '${relativePath}'`);
+        throw new Error(clientStoresServicesText('clientStores.files.invalidFileWrite', { path: filePath }));
       }
 
       const oldContent = this.getFile(filePath)?.content;
@@ -819,7 +862,7 @@ export class FilesStore {
            * failing with a stack of "Remote file changed since it was loaded".
            */
           if (options?.onRemoteConflict !== 'reconcile') {
-            throw new Error(`Remote file changed since it was loaded: ${filePath}`);
+            throw new Error(clientStoresServicesText('clientStores.files.remoteChanged', { path: filePath }));
           }
 
           effectiveContent = reconcileRemoteWrite(filePath, remoteContent, content);
@@ -1213,7 +1256,7 @@ export class FilesStore {
       const relativePath = this.#toRuntimePath(filePath);
 
       if (!relativePath) {
-        throw new Error(`EINVAL: invalid file path, create '${relativePath}'`);
+        throw new Error(clientStoresServicesText('clientStores.files.invalidFileCreate', { path: filePath }));
       }
 
       /*
@@ -1312,7 +1355,7 @@ export class FilesStore {
       const relativePath = this.#toRuntimePath(folderPath);
 
       if (!relativePath) {
-        throw new Error(`EINVAL: invalid folder path, create '${relativePath}'`);
+        throw new Error(clientStoresServicesText('clientStores.files.invalidFolderCreate', { path: folderPath }));
       }
 
       await this.#runtime.createDirectory(relativePath);
@@ -1335,7 +1378,7 @@ export class FilesStore {
       const relativePath = this.#toRuntimePath(filePath);
 
       if (!relativePath) {
-        throw new Error(`EINVAL: invalid file path, delete '${relativePath}'`);
+        throw new Error(clientStoresServicesText('clientStores.files.invalidFileDelete', { path: filePath }));
       }
 
       await this.#runtime.deleteFile(relativePath);
@@ -1375,7 +1418,7 @@ export class FilesStore {
       const relativePath = this.#toRuntimePath(folderPath);
 
       if (!relativePath) {
-        throw new Error(`EINVAL: invalid folder path, delete '${relativePath}'`);
+        throw new Error(clientStoresServicesText('clientStores.files.invalidFolderDelete', { path: folderPath }));
       }
 
       await this.#runtime.deleteFile(relativePath);

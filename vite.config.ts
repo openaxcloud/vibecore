@@ -5,6 +5,7 @@ import { defineConfig, normalizePath, type ViteDevServer } from 'vite';
 import { nodePolyfills } from 'vite-plugin-node-polyfills';
 import { optimizeCssModules } from 'vite-plugin-optimize-css-modules';
 import tsconfigPaths from 'vite-tsconfig-paths';
+import { manualChunks } from './build-config/manual-chunks';
 
 // Load environment variables from multiple files
 dotenv.config({ path: '.env.local' });
@@ -142,83 +143,18 @@ export default defineConfig((config) => {
         },
         output: {
           format: 'esm',
-          manualChunks(id) {
-            if (!id.includes('/node_modules/')) {
-              return undefined;
-            }
 
-            if (id.includes('/monaco-editor/')) {
-              if (id.includes('/esm/vs/language/typescript/') || id.includes('/esm/vs/basic-languages/typescript/')) {
-                return 'vendor-monaco-typescript';
-              }
-
-              if (id.includes('/esm/vs/language/css/') || id.includes('/esm/vs/basic-languages/css/')) {
-                return 'vendor-monaco-css';
-              }
-
-              if (id.includes('/esm/vs/language/html/') || id.includes('/esm/vs/basic-languages/html/')) {
-                return 'vendor-monaco-html';
-              }
-
-              if (id.includes('/esm/vs/language/json/') || id.includes('/esm/vs/basic-languages/json/')) {
-                return 'vendor-monaco-json';
-              }
-
-              return 'vendor-monaco-core';
-            }
-
-            if (id.includes('/@codemirror/') || id.includes('/@lezer/')) {
-              /*
-               * Splitting CodeMirror core from its language packs produced a
-               * circular chunk (lang-* re-imports core helpers that re-import
-               * lang-*), which triggered "Cannot access 'dt' before
-               * initialization" at runtime and left the page on a blank
-               * shell. Keep CodeMirror + Lezer in a single chunk so module
-               * initialization is deterministic.
-               */
-              return 'vendor-codemirror';
-            }
-
-            if (id.includes('/@xterm/')) {
-              return 'vendor-terminal';
-            }
-
-            if (id.includes('/html2canvas/')) {
-              return 'vendor-export-canvas';
-            }
-
-            if (id.includes('/jspdf/')) {
-              return 'vendor-export-pdf';
-            }
-
-            if (id.includes('/lucide-react/')) {
-              return 'vendor-icons';
-            }
-
-            /*
-             * React, react-dom, scheduler, react-router, @radix-ui and jszip
-             * are kept together. Splitting them produced cycles like
-             *   vendor-react -> vendor-radix   -> vendor-react
-             *   vendor-react -> vendor-router  -> vendor-react
-             *   vendor-react -> vendor-export-zip -> vendor-react
-             * which left react-dom's __SECRET_INTERNALS / radix's forwardRef
-             * in the TDZ at runtime and crashed hydration ("black screen"
-             * on the landing page).
-             */
-            if (
-              id.includes('/react-dom/') ||
-              id.includes('/react/') ||
-              id.includes('/scheduler/') ||
-              id.includes('/react-router/') ||
-              id.includes('/@react-router/') ||
-              id.includes('/@radix-ui/') ||
-              id.includes('/jszip/')
-            ) {
-              return 'vendor-react';
-            }
-
-            return undefined;
-          },
+          /*
+           * Rollup's default splitting produced ~96 chunks for the root route's
+           * ~210-module graph — a median chunk of 8 KB, 68 of them under 20 KB.
+           * The browser therefore opened ~100 connections before it could
+           * hydrate ANY page, and the measured cost was dominated by that
+           * contention, not by bytes: the slowest resources on the marketing
+           * home weighed 1-11 KB yet took ~9.5 s each. Merging the small ones
+           * trades a handful of chunks for far fewer round-trips. See BUG-PERF-LOAD.
+           */
+          experimentalMinChunkSize: 50_000,
+          manualChunks,
         },
       },
       commonjsOptions: {

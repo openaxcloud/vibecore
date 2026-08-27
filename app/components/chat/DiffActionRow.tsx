@@ -20,7 +20,13 @@
  */
 
 import { memo } from 'react';
+import { useTranslation } from 'react-i18next';
 
+import {
+  formatChatRenderersCopy,
+  formatChatRenderersPlural,
+  getChatRenderersCopy,
+} from '~/lib/i18n/catalogs/chat-renderers';
 import type { DiffApplyMeta } from '~/types/actions';
 import { classNames } from '~/utils/classNames';
 
@@ -35,30 +41,51 @@ export interface DiffActionRowProps {
 }
 
 export const DiffActionRow = memo(({ filePath, diffApply, onOpenFile }: DiffActionRowProps) => {
+  const { i18n } = useTranslation();
+  const language = i18n.resolvedLanguage ?? i18n.language ?? 'en';
+  const copy = getChatRenderersCopy(language);
   const applied = diffApply?.status === 'applied';
   const failed = diffApply?.status === 'failed';
   const hasChanges = applied && (diffApply.addedLines > 0 || diffApply.removedLines > 0);
 
+  const addedLabel = hasChanges
+    ? formatChatRenderersPlural(language, diffApply.addedLines, {
+        one: copy['chatRenderers.diff.added_one'],
+        other: copy['chatRenderers.diff.added_other'],
+      })
+    : '';
+  const removedLabel = hasChanges
+    ? formatChatRenderersPlural(language, diffApply.removedLines, {
+        one: copy['chatRenderers.diff.removed_one'],
+        other: copy['chatRenderers.diff.removed_other'],
+      })
+    : '';
+
   return (
     <div
-      className="flex min-w-0 flex-1 items-center gap-1.5"
+      className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5"
       data-testid="diff-action-row"
       data-status={diffApply?.status}
     >
-      <span className="shrink-0">Edit</span>
-      <code
-        className="truncate bg-bolt-elements-artifacts-inlineCode-background text-bolt-elements-artifacts-inlineCode-text px-1.5 py-1 rounded-md text-bolt-elements-item-contentAccent hover:underline cursor-pointer"
+      <span className="shrink-0">{copy['chatRenderers.diff.edit']}</span>
+      <button
+        type="button"
+        className="inline-flex min-h-11 min-w-0 max-w-full items-center rounded-md bg-bolt-elements-artifacts-inlineCode-background px-1.5 py-1 text-bolt-elements-item-contentAccent outline-none hover:underline focus-visible:ring-2 focus-visible:ring-bolt-elements-focus"
         onClick={() => onOpenFile?.(filePath)}
+        aria-label={formatChatRenderersCopy(copy['chatRenderers.diff.openFile'], { path: filePath })}
       >
-        {filePath}
-      </code>
-      <span className="shrink-0 text-xs text-bolt-elements-textTertiary">(targeted patch)</span>
+        <code className="truncate text-bolt-elements-artifacts-inlineCode-text">{filePath}</code>
+      </button>
+      <span className="text-xs text-bolt-elements-textTertiary">{copy['chatRenderers.diff.targetedPatch']}</span>
 
       {hasChanges ? (
         <span
           className="bolt-file-action-diff-summary shrink-0"
           data-has-changes="true"
-          aria-label={`${diffApply.addedLines} added, ${diffApply.removedLines} removed`}
+          aria-label={formatChatRenderersCopy(copy['chatRenderers.diff.summary'], {
+            added: addedLabel,
+            removed: removedLabel,
+          })}
         >
           <span className="bolt-file-action-diff-added">+{diffApply.addedLines}</span>
           <span className="bolt-file-action-diff-removed">−{diffApply.removedLines}</span>
@@ -68,14 +95,14 @@ export const DiffActionRow = memo(({ filePath, diffApply, onOpenFile }: DiffActi
       {failed ? (
         <span
           className={classNames(
-            'shrink-0 inline-flex items-center gap-1 rounded-full border px-1.5 py-0 text-[10px] font-medium leading-4',
+            'shrink-0 inline-flex items-center gap-1 rounded-full border px-1.5 py-0 text-[11px] font-medium leading-4',
             'border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 text-bolt-elements-icon-error',
           )}
           role="status"
-          aria-label="Patch could not be applied"
+          aria-label={copy['chatRenderers.diff.applyFailedAria']}
         >
           <span className="i-ph:warning-circle" aria-hidden />
-          Could not apply
+          {copy['chatRenderers.diff.applyFailed']}
         </span>
       ) : null}
     </div>

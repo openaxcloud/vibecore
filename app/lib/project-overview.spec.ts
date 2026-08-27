@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { buildProjectOverviewInsights, detectProjectStack, extractProjectScripts } from './project-overview';
+import {
+  buildProjectOverviewInsights,
+  detectProjectStack,
+  extractProjectScripts,
+  normalizeProjectOverviewCommits,
+} from './project-overview';
 
 describe('project overview insights', () => {
   it('detects the project stack from manifests, dependencies and files', () => {
@@ -102,5 +107,12 @@ describe('project overview insights', () => {
     // The displayed member list is capped, but the active count must reflect the full team.
     expect(overview.members).toHaveLength(8);
     expect(overview.summary.activeMemberCount).toBe(15);
+  });
+
+  it('localizes the fallback without changing user-provided commit messages', () => {
+    expect(normalizeProjectOverviewCommits([{ sha: 'a1', message: '' }], 'fr')[0]?.message).toBe('Commit sans message');
+    expect(normalizeProjectOverviewCommits([{ sha: 'a2', message: 'Fix dashboard' }], 'fr')[0]?.message).toBe(
+      'Fix dashboard',
+    );
   });
 });

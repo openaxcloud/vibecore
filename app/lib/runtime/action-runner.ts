@@ -1,9 +1,13 @@
 import type { RuntimeAdapter } from '@vibecore/runtime-contract';
 import { atom, map, type MapStore } from 'nanostores';
 import { applyEntryExportReconcile } from './entry-export-reconcile';
+import { ensureEntryImportsResolvable } from './entry-placeholder';
 import { buildSelfRepairPrompt, validateAndFormatHunk, type HunkValidationError } from './hunk-validate';
 import type { ActionCallbackData } from './message-parser';
+import { hasInstalledPreviewDependencies, type PreviewPackageManifest } from './preview-dependencies';
 import { workspaceEvents } from './workspace-events';
+import { formatActionRunnerCopy, getActionRunnerCopy, type ActionRunnerKey } from '~/lib/i18n/catalogs/action-runner';
+import { getI18nInstance } from '~/lib/i18n/runtime';
 import type {
   ActionAlert,
   BoltAction,
@@ -52,6 +56,13 @@ const INSTALL_TOOL_TIMEOUT_MS = 300_000;
 const BUILD_TOOL_TIMEOUT_MS = 300_000;
 const TOOL_MAX_ATTEMPTS = 3;
 const TOOL_RETRY_BASE_DELAY_MS = 250;
+
+function actionRunnerText(key: ActionRunnerKey, values: Readonly<Record<string, string | number>> = {}): string {
+  const i18n = getI18nInstance();
+  const copy = getActionRunnerCopy(i18n.resolvedLanguage ?? i18n.language);
+
+  return formatActionRunnerCopy(copy[key], values);
+}
 
 /*
  * Phase 0 #2 — AST self-repair retry budget. When pre-write validation
@@ -148,13 +159,13 @@ async function callSelfRepairEndpoint(prompt: string, signal?: AbortSignal): Pro
   });
 
   if (!response.ok) {
-    throw new Error(`self-repair endpoint returned ${response.status}`);
+    throw new Error(actionRunnerText('actionRunner.error.selfRepairStatus', { status: response.status }));
   }
 
   const payload = (await response.json()) as { content?: unknown; error?: unknown };
 
   if (typeof payload.content !== 'string' || payload.content.length === 0) {
-    throw new Error('self-repair endpoint returned empty content');
+    throw new Error(actionRunnerText('actionRunner.error.selfRepairEmpty'));
   }
 
   return extractSelfRepairContent(payload.content);
@@ -230,7 +241,7 @@ class ActionCommandError extends Error {
 
   constructor(message: string, output: string) {
     // Create a formatted message that includes both the error message and output
-    const formattedMessage = `Failed To Execute Shell Command: ${message}\n\nOutput:\n${output}`;
+    const formattedMessage = actionRunnerText('actionRunner.error.shellExecutionFailed', { message, output });
     super(formattedMessage);
 
     // Set the output separately so it can be accessed programmatically
@@ -255,10 +266,85 @@ class ActionCommandError extends Error {
 
 class ToolTimeoutError extends Error {
   constructor(actionType: ActionState['type'], timeoutMs: number) {
-    super(`${actionType} action timed out after ${Math.round(timeoutMs / 1000)} seconds`);
+    super(
+      actionRunnerText('actionRunner.error.timeout', {
+        actionType,
+        seconds: Math.round(timeoutMs / 1000),
+      }),
+    );
     this.name = 'ToolTimeoutError';
     Object.setPrototypeOf(this, ToolTimeoutError.prototype);
   }
+}
+
+/**
+ * L'action a été annulée par l'utilisateur pendant qu'une entrée-sortie était en
+ * vol. Distincte du dépassement de délai : ce n'est pas une panne, c'est un
+ * arrêt demandé — la boucle de reprise doit s'arrêter net, pas réessayer.
+ */
+class ActionAbortedError extends Error {
+  constructor(actionType: ActionState['type']) {
+    super(`Action ${actionType} aborted by the user`);
+    this.name = 'ActionAbortedError';
+    Object.setPrototypeOf(this, ActionAbortedError.prototype);
+  }
+}
+
+/*
+ * Whether a `start` boltAction is launching a DEV SERVER (so it should be handed
+ * to the workbench's single tracked launcher) rather than some bespoke long-running
+ * command. Matches the package-manager dev/start scripts and the common framework
+ * dev CLIs; a command that is none of these keeps the legacy PTY path so it is
+ * never silently dropped.
+ */
+export function isDevServerStartCommand(command: string): boolean {
+  const normalized = (command ?? '').toLowerCase();
+
+  return (
+    /\b(?:npm|pnpm|yarn|bun)\s+(?:run\s+)?(?:dev|start|serve|preview)\b/.test(normalized) ||
+    /(?:^|\s|\/|&&\s*)(?:npx\s+)?vite\b/.test(normalized) ||
+    /\b(?:next|astro|remix|nuxt|vinxi|ng|vue-cli-service|react-scripts|parcel|rsbuild|webpack(?:-dev-server)?)\s+(?:dev|serve|start)\b/.test(
+      normalized,
+    ) ||
+    /\bnpm\s+start\b/.test(normalized)
+  );
+}
+
+/*
+ * BUG-AGENT-007 (chemin de repli) — la commande de `start` embarque-t-elle DÉJÀ
+ * une installation explicite (`npm install && node server.js`) ? Dans ce cas la
+ * garantie d'installation ci-dessous ne doit pas en préfixer une seconde.
+ * Volontairement plus strict que INSTALL_COMMAND_PATTERN : `npx`/`bunx` ne
+ * comptent PAS comme une installation du projet (ils n'installent que l'outil
+ * invoqué, pas les dépendances de l'app).
+ */
+const EXPLICIT_INSTALL_PATTERN = /(^|[\s;&|])(?:npm|pnpm|yarn|bun)\s+(?:install|ci|i|add)\b/i;
+
+export function startCommandAlreadyInstalls(command: string): boolean {
+  return EXPLICIT_INSTALL_PATTERN.test(command ?? '');
+}
+
+/**
+ * BUG-AGENT-007 (chemin de repli) — quelle commande d'installation précéder au
+ * `start` quand node_modules est vide. Déduite du gestionnaire visible dans la
+ * commande elle-même, sinon du champ `packageManager` du package.json, sinon npm.
+ */
+export function installCommandForStartCommand(command: string, packageManager?: string): string {
+  const source = `${command ?? ''} ${packageManager ?? ''}`.toLowerCase();
+
+  if (/(^|[\s;&|])pnpm[\s@]/.test(`${source} `)) {
+    return 'pnpm install';
+  }
+
+  if (/(^|[\s;&|])yarn[\s@]/.test(`${source} `)) {
+    return 'yarn install';
+  }
+
+  if (/(^|[\s;&|])bunx?[\s@]/.test(`${source} `)) {
+    return 'bun install';
+  }
+
+  return 'npm install';
 }
 
 export class ActionRunner {
@@ -270,6 +356,18 @@ export class ActionRunner {
   onAlert?: (alert: ActionAlert) => void;
   onSupabaseAlert?: (alert: SupabaseAlert) => void;
   onDeployAlert?: (alert: DeployAlert) => void;
+
+  /*
+   * Delegate a dev-server `start` action to the workbench's single tracked,
+   * install-aware launcher (startPreviewServer → streamCommand) instead of typing
+   * `npm run dev` into the jsh PTY. The PTY launch is untracked (never appears in
+   * /processes), not install-guaranteed (a slow install is Ctrl+C-killed by the
+   * next action), and races the tracked launcher on --strictPort 5173 — the
+   * structural cause of "dev server never starts". When this hook is wired there is
+   * exactly ONE launcher; when it is absent (tests / other embeddings) the runner
+   * falls back to the legacy PTY behaviour.
+   */
+  onStartDevServer?: (command: string) => Promise<unknown> | unknown;
   buildOutput?: { path: string; exitCode: number; output: string };
   #actionWatchdogs = new Map<string, ReturnType<typeof setTimeout>>();
 
@@ -279,12 +377,14 @@ export class ActionRunner {
     onAlert?: (alert: ActionAlert) => void,
     onSupabaseAlert?: (alert: SupabaseAlert) => void,
     onDeployAlert?: (alert: DeployAlert) => void,
+    onStartDevServer?: (command: string) => Promise<unknown> | unknown,
   ) {
     this.#runtime = runtime;
     this.#shellTerminal = getShellTerminal;
     this.onAlert = onAlert;
     this.onSupabaseAlert = onSupabaseAlert;
     this.onDeployAlert = onDeployAlert;
+    this.onStartDevServer = onStartDevServer;
   }
 
   addAction(data: ActionCallbackData) {
@@ -376,6 +476,22 @@ export class ActionRunner {
     this.#updateAction(actionId, { status: 'complete', executed: true });
   }
 
+  /**
+   * Demote an action the caller proved did not land. Used by the workbench's
+   * post-write read-back (BUG-AGENT-002): a file action must not stay "complete"
+   * when the bytes are absent from the runtime pod, which is how a run could
+   * report "Terminé 100 %" over a workspace missing its entry point.
+   */
+  failAction(actionId: string, error: string) {
+    const action = this.actions.get()[actionId];
+
+    if (!action) {
+      return;
+    }
+
+    this.#updateAction(actionId, { status: 'failed', error });
+  }
+
   async waitForIdle() {
     await this.#currentExecutionPromise;
   }
@@ -424,7 +540,7 @@ export class ActionRunner {
             break;
           }
           case 'file': {
-            await this.#runFileAction(action, isStreaming);
+            await this.#runFileAction(action, isStreaming, actionId);
             break;
           }
           case 'diff': {
@@ -464,7 +580,7 @@ export class ActionRunner {
 
                 this.onAlert?.({
                   type: 'error',
-                  title: 'Dev Server Failed',
+                  title: actionRunnerText('actionRunner.alert.devServerFailed'),
                   description: err.header,
                   content: err.output,
                 });
@@ -485,7 +601,11 @@ export class ActionRunner {
              * that silently drops a file write or command. Surface it as a
              * failure so the user sees something went wrong.
              */
-            throw new Error(`Unsupported action type: ${String((action as { type?: unknown }).type ?? 'unknown')}`);
+            throw new Error(
+              actionRunnerText('actionRunner.error.unsupportedAction', {
+                actionType: String((action as { type?: unknown }).type ?? 'unknown'),
+              }),
+            );
           }
         }
       });
@@ -504,7 +624,15 @@ export class ActionRunner {
         status: isStreaming ? 'running' : action.abortSignal.aborted ? 'aborted' : 'complete',
       });
     } catch (error) {
+      /*
+       * Une annulation doit LAISSER UNE TRACE. Ce `return` silencieux laissait le
+       * statut à « running » : quand l'annulation ne vient pas de `action.abort()`
+       * — qui, lui, pose « aborted » — mais du signal partagé, l'action restait
+       * affichée « En cours » pour toujours, alors même que l'utilisateur venait
+       * d'appuyer sur Arrêter. C'est l'autre moitié du blocage de 68 minutes.
+       */
       if (action.abortSignal.aborted) {
+        this.#updateAction(actionId, { status: 'aborted' });
         return;
       }
 
@@ -517,7 +645,7 @@ export class ActionRunner {
 
       this.onAlert?.({
         type: 'error',
-        title: 'Dev Server Failed',
+        title: actionRunnerText('actionRunner.alert.devServerFailed'),
         description: error.header,
         content: error.output,
       });
@@ -570,31 +698,60 @@ export class ActionRunner {
     throw lastError;
   }
 
+  /*
+   * BUG-AGENT-HANG-001 — cette course doit TOUJOURS se dénouer.
+   *
+   * Le délai refusait de rejeter dès que l'action était annulée, en supposant
+   * que « la promesse sous-jacente se dénoue d'elle-même ». Cette hypothèse est
+   * fausse : l'écriture (`#runtime.writeFile`) ne reçoit AUCUN signal
+   * d'annulation, elle poursuit ses quatre tentatives de 30 s et peut relancer
+   * un provisionnement d'espace de travail.
+   *
+   * Enchaînement observé en production, 68 minutes durant : l'utilisateur
+   * appuie sur Arrêter → le drapeau d'annulation bascule → le seul mécanisme
+   * capable de dénouer la course est neutralisé → la course ne se dénoue jamais
+   * → `#executeAction` ne rend jamais la main → `#currentExecutionPromise`, qui
+   * SÉRIALISE toutes les actions, reste en attente → chaque action suivante
+   * reste « En cours » et plus aucun fichier n'apparaît dans l'arbre.
+   *
+   * C'est ce qui explique d'un seul mécanisme les quatre symptômes : le blocage,
+   * l'absence de nouveaux fichiers, l'absence d'erreur, et un « Arrêter » qui
+   * rend le blocage définitif au lieu d'y mettre fin.
+   *
+   * Désormais : l'annulation dénoue la course immédiatement, et le délai rejette
+   * dans tous les cas. Une action ne peut plus rester en attente sans fin.
+   */
   async #withTimeout<T>(action: ActionState, promise: Promise<T>): Promise<T> {
     let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    let onAbort: (() => void) | undefined;
 
     const timeoutMs = this.#timeoutMsForAction(action);
 
     const timeout = new Promise<never>((_, reject) => {
-      timeoutId = setTimeout(() => {
-        /*
-         * If the action was already aborted, the underlying promise is settling on
-         * its own; surfacing a timeout here would mask the abort with a misleading
-         * "timed out" error and defeat the retry/abort handling upstream.
-         */
-        if (action.abortSignal.aborted) {
-          return;
-        }
+      timeoutId = setTimeout(() => reject(new ToolTimeoutError(action.type, timeoutMs)), timeoutMs);
+    });
 
-        reject(new ToolTimeoutError(action.type, timeoutMs));
-      }, timeoutMs);
+    const aborted = new Promise<never>((_, reject) => {
+      const rejeter = () => reject(new ActionAbortedError(action.type));
+
+      if (action.abortSignal.aborted) {
+        rejeter();
+        return;
+      }
+
+      onAbort = rejeter;
+      action.abortSignal.addEventListener('abort', rejeter, { once: true });
     });
 
     try {
-      return await Promise.race([promise, timeout]);
+      return await Promise.race([promise, timeout, aborted]);
     } finally {
       if (timeoutId) {
         clearTimeout(timeoutId);
+      }
+
+      if (onAbort) {
+        action.abortSignal.removeEventListener('abort', onAbort);
       }
     }
   }
@@ -628,7 +785,7 @@ export class ActionRunner {
       return error.message;
     }
 
-    return 'Action failed';
+    return actionRunnerText('actionRunner.error.actionFailed');
   }
 
   async #runShellAction(action: ActionState) {
@@ -661,7 +818,7 @@ export class ActionRunner {
       const enhancedError = this.#createEnhancedShellError(
         action.content,
         resp?.exitCode ?? 1,
-        resp?.output ?? 'No response from shell',
+        resp?.output ?? actionRunnerText('actionRunner.error.noShellResponse'),
       );
       throw new ActionCommandError(enhancedError.title, enhancedError.details);
     }
@@ -670,6 +827,19 @@ export class ActionRunner {
   async #runStartAction(action: ActionState) {
     if (action.type !== 'start') {
       unreachable('Expected shell action');
+    }
+
+    /*
+     * UNIFIED LAUNCHER: hand a dev-server start to the workbench's single tracked
+     * launcher (startPreviewServer) instead of the jsh PTY, so there is never a
+     * second, untracked, install-unaware dev server racing it on port 5173. Only a
+     * recognized dev-server command is delegated — a non-dev `start` (a bespoke
+     * script with no dev/start entry the tracked path could detect) still runs in
+     * the PTY so we never silently drop it. No-op fallback when the hook is unwired.
+     */
+    if (this.onStartDevServer && isDevServerStartCommand(action.content)) {
+      await this.onStartDevServer(action.content);
+      return { exitCode: 0, output: '' };
     }
 
     if (!this.#shellTerminal) {
@@ -683,6 +853,22 @@ export class ActionRunner {
       unreachable('Shell terminal not found');
     }
 
+    /*
+     * BUG-AGENT-007 (chemin de repli) — garantie d'installation AVANT le launch.
+     * Le chemin délégué ci-dessus (onStartDevServer → startPreviewServer) porte
+     * déjà la « bulletproof install guarantee » du workbench ; ce chemin PTY —
+     * commande non reconnue comme dev-server (`node server.js`, script sur
+     * mesure) ou hook non câblé — lançait la commande BRUTE. Sur un workspace
+     * dont node_modules est vide, elle mourait aussitôt (« command not found » /
+     * « Cannot find module ») et l'aperçu restait vide. On sonde node_modules
+     * via le même helper que le workbench et on installe d'abord si besoin.
+     */
+    await this.#ensureStartDependenciesInstalled(action, shell);
+
+    if (action.abortSignal.aborted) {
+      return { exitCode: 0, output: '' };
+    }
+
     const resp = await shell.executeCommand(this.runnerId.get(), action.content, () => {
       logger.debug(`[${action.type}]:Aborting Action\n\n`, action);
       action.abort();
@@ -690,18 +876,126 @@ export class ActionRunner {
     logger.debug(`${action.type} Shell Response: [exit code:${resp?.exitCode}]`);
 
     if (resp?.exitCode != 0) {
-      throw new ActionCommandError('Failed To Start Application', resp?.output || 'No Output Available');
+      throw new ActionCommandError(
+        actionRunnerText('actionRunner.error.startFailed'),
+        resp?.output || actionRunnerText('actionRunner.error.noOutputAvailable'),
+      );
     }
 
     return resp;
   }
 
-  async #runFileAction(action: ActionState, isStreaming: boolean = false) {
+  /*
+   * BUG-AGENT-007 (chemin de repli) — s'assure que les dépendances du projet
+   * sont installées avant qu'un `start` PTY ne lance son serveur. Sonde en
+   * meilleure-intention : impossible de lire package.json → on ne change RIEN au
+   * comportement historique (la commande part telle quelle). Une installation
+   * qui ÉCHOUE, en revanche, fait échouer l'action avec la vraie erreur npm —
+   * strictement plus actionnable que le « command not found » qui suivrait.
+   */
+  async #ensureStartDependenciesInstalled(action: ActionState, shell: BoltShell) {
+    if (startCommandAlreadyInstalls(action.content)) {
+      return;
+    }
+
+    let pkg: PreviewPackageManifest & { packageManager?: string };
+
+    try {
+      const read = await this.#runtime.readFile('package.json');
+      pkg = JSON.parse(read.content) as PreviewPackageManifest & { packageManager?: string };
+    } catch {
+      // Pas de manifeste lisible → rien à garantir.
+      return;
+    }
+
+    let installed = true;
+
+    try {
+      installed = await hasInstalledPreviewDependencies(pkg, (directory) => this.#runtime.listFiles(directory));
+    } catch {
+      // Sonde indisponible : on n'ajoute pas d'installation sur un doute.
+      return;
+    }
+
+    if (installed || action.abortSignal.aborted) {
+      return;
+    }
+
+    const installCommand = installCommandForStartCommand(action.content, pkg.packageManager);
+    logger.debug(`[start]: node_modules incomplet — exécution de « ${installCommand} » avant « ${action.content} »`);
+
+    const resp = await shell.executeCommand(this.runnerId.get(), installCommand, () => {
+      logger.debug('[start]: Aborting dependency install before start', action);
+      action.abort();
+    });
+
+    if (resp?.exitCode !== 0 && !action.abortSignal.aborted) {
+      throw new ActionCommandError(
+        actionRunnerText('actionRunner.error.startFailed'),
+        resp?.output || actionRunnerText('actionRunner.error.noOutputAvailable'),
+      );
+    }
+  }
+
+  /*
+   * BUG-AGENT-001 — mémo des écritures déjà appliquées, pour ne PUT que sur un
+   * changement réel.
+   *
+   * Mesuré en direct le 21/08 sur `web:405b1f369d`, en interceptant `fetch` et
+   * en relevant la TAILLE du corps de chaque écriture :
+   *
+   *   vite.config.ts   20 écritures — 1 SEULE taille distincte (363)
+   *   index.html        8 écritures — 1 SEULE taille distincte (661)
+   *   package.json     96 écritures — 2 tailles distinctes (69 puis 1015)
+   *
+   * Ce sont donc des répétitions À L'IDENTIQUE, pas de la croissance de
+   * streaming. La garde `if (action.executed) return` de `runAction` empêche
+   * déjà de rejouer un MÊME `actionId` : ces écritures portent donc des
+   * actionId différents pour un contenu identique — des actions ré-émises. La
+   * clé doit être (chemin, contenu), pas l'actionId, sinon elle ne dédoublonne
+   * rien de ce qui se passe réellement.
+   *
+   * Ce qui est sauté est exactement une écriture qui produirait, octet pour
+   * octet, ce que ce runner a déjà écrit à ce chemin — sans effet sur le
+   * disque, mais qui coûtait un aller-retour réseau ET, sur le chemin
+   * non-streaming, un tour de self-repair (donc un appel LLM) par répétition.
+   * Un contenu DIFFÉRENT n'est jamais sauté : la transition 69 → 1015 de
+   * package.json passe. L'entrée n'est posée qu'APRÈS une écriture réussie,
+   * donc un échec laisse le chemin réécrivable.
+   */
+  #lastWrittenFingerprint = new Map<string, number>();
+
+  static #contentFingerprint(content: string): number {
+    let h = 5381;
+
+    for (let i = 0; i < content.length; i++) {
+      h = ((h << 5) + h + content.charCodeAt(i)) | 0;
+    }
+
+    // la longueur discrimine les collisions de contenus courts
+    return (h ^ content.length) | 0;
+  }
+
+  async #runFileAction(action: ActionState, isStreaming: boolean = false, actionId?: string) {
     if (action.type !== 'file') {
       unreachable('Expected file action');
     }
 
     const relativePath = this.#toRuntimePath(action.filePath);
+
+    const contentFingerprint = ActionRunner.#contentFingerprint(action.content);
+
+    /*
+     * On compare au DERNIER contenu écrit à ce chemin, pas à l'ensemble des
+     * contenus déjà vus. La nuance est ce qui sépare un dédoublonnage sûr d'une
+     * perte de fichier : avec un ensemble, la séquence A → B → A saute la
+     * troisième écriture et laisse B sur le disque. Un test dédié couvre ce
+     * retour arrière.
+     */
+    if (this.#lastWrittenFingerprint.get(relativePath) === contentFingerprint) {
+      logger.debug(`Skipping byte-identical rewrite of ${relativePath} (action ${actionId ?? 'n/a'})`);
+      return;
+    }
 
     let folder = nodePath.dirname(relativePath);
 
@@ -796,6 +1090,9 @@ export class ActionRunner {
     try {
       await this.#runtime.writeFile(relativePath, payload);
       logger.debug(`File written ${relativePath}`);
+
+      // Après succès seulement : un échec doit laisser le chemin réécrivable.
+      this.#lastWrittenFingerprint.set(relativePath, contentFingerprint);
     } catch (error) {
       logger.error('Failed to write file\n\n', error);
       throw error;
@@ -825,6 +1122,27 @@ export class ActionRunner {
 
         for (const fixedPath of fixed) {
           logger.debug(`Reconciled missing default export in ${fixedPath}`);
+        }
+
+        /*
+         * Et l'inverse : l'entrée qui importe un module PAS ENCORE écrit. L'agent
+         * crée souvent `src/App.tsx` bien après `src/main.tsx`, et Vite répète
+         * « Failed to resolve import "./App" » à chaque requête pendant tout ce
+         * temps — aperçu blanc et compteur d'erreurs qui monte sans fin. Un module
+         * d'attente comble le trou : l'import résout, et l'aperçu montre
+         * « Génération en cours… » au lieu d'un blanc. Il est remplacé dès que
+         * l'agent écrit le vrai fichier.
+         */
+        const combles = await ensureEntryImportsResolvable(
+          {
+            readFile: async (p) => (await this.#runtime.readFile(p)).content,
+            writeFile: (p, content) => this.#runtime.writeFile(p, content),
+          },
+          relativePath,
+        );
+
+        for (const cheminComble of combles) {
+          logger.debug(`Placeholder written for pending entry import: ${cheminComble}`);
         }
       } catch (error) {
         logger.warn('Entry export/import reconcile skipped', error);
@@ -862,7 +1180,7 @@ export class ActionRunner {
       return {
         ok: false,
         kind: 'missing-file',
-        message: `diff target ${action.filePath} does not exist — full file required`,
+        message: actionRunnerText('actionRunner.diff.targetMissing', { filePath: action.filePath }),
       };
     }
 
@@ -870,18 +1188,25 @@ export class ActionRunner {
       return {
         ok: false,
         kind: 'missing-file',
-        message: `diff target ${action.filePath} does not exist — full file required`,
+        message: actionRunnerText('actionRunner.diff.targetMissing', { filePath: action.filePath }),
       };
     }
 
     const parsed = parseSearchReplaceBlocks(action.content);
 
     if (parsed.malformed || parsed.blocks.length === 0) {
-      const detail = parsed.error ?? 'no SEARCH/REPLACE blocks found';
+      if (parsed.error) {
+        logger.warn(`[diff]: malformed SEARCH/REPLACE payload for ${action.filePath}: ${parsed.error}`);
+      }
+
+      const detail = parsed.error
+        ? actionRunnerText('actionRunner.diff.invalidStructure')
+        : actionRunnerText('actionRunner.diff.noBlocks');
+
       return {
         ok: false,
         kind: 'malformed',
-        message: `diff for ${action.filePath} could not be parsed (${detail}) — re-emit the full file`,
+        message: actionRunnerText('actionRunner.diff.malformed', { filePath: action.filePath, detail }),
         original,
       };
     }
@@ -893,15 +1218,19 @@ export class ActionRunner {
         (hunk) => hunk.status === 'failed-not-found' || hunk.status === 'failed-ambiguous',
       );
 
-      const anchors = failed.map((hunk) => `block #${hunk.index + 1}: ${hunk.status}`).join(', ');
+      const anchors = failed
+        .map((hunk) => actionRunnerText('actionRunner.diff.block', { index: hunk.index + 1 }))
+        .join(', ');
+
+      const anchorsSuffix = anchors ? actionRunnerText('actionRunner.diff.anchors', { anchors }) : '';
 
       return {
         ok: false,
         kind: 'apply-failed',
-        message:
-          `diff for ${action.filePath} did not apply against the current file` +
-          (anchors ? ` (${anchors})` : '') +
-          ' — the file drifted from the anchor; re-emit the full file',
+        message: actionRunnerText('actionRunner.diff.notApplied', {
+          filePath: action.filePath,
+          anchors: anchorsSuffix,
+        }),
         hunks: result.hunks,
         original,
       };
@@ -1035,7 +1364,7 @@ export class ActionRunner {
 
       this.onAlert?.({
         type: 'warning',
-        title: 'Diff could not be applied',
+        title: actionRunnerText('actionRunner.diff.alertTitle'),
         description: resolution.message,
         content: resolution.message,
         source: 'preview',
@@ -1388,8 +1717,8 @@ export class ActionRunner {
     // Trigger build started alert
     this.onDeployAlert?.({
       type: 'info',
-      title: 'Building Application',
-      description: 'Building your application...',
+      title: actionRunnerText('actionRunner.build.runningTitle'),
+      description: actionRunnerText('actionRunner.build.runningDescription'),
       stage: 'building',
       buildStatus: 'running',
       deployStatus: 'pending',
@@ -1412,23 +1741,26 @@ export class ActionRunner {
       // Trigger build failed alert
       this.onDeployAlert?.({
         type: 'error',
-        title: 'Build Failed',
-        description: 'Your application build failed',
-        content: output || 'No build output available',
+        title: actionRunnerText('actionRunner.build.failedTitle'),
+        description: actionRunnerText('actionRunner.build.failedDescription'),
+        content: output || actionRunnerText('actionRunner.build.noOutput'),
         stage: 'building',
         buildStatus: 'failed',
         deployStatus: 'pending',
         source: 'netlify',
       });
 
-      throw new ActionCommandError('Build Failed', output || 'No Output Available');
+      throw new ActionCommandError(
+        actionRunnerText('actionRunner.build.failedTitle'),
+        output || actionRunnerText('actionRunner.error.noOutputAvailable'),
+      );
     }
 
     // Trigger build success alert
     this.onDeployAlert?.({
       type: 'success',
-      title: 'Build Completed',
-      description: 'Your application was built successfully',
+      title: actionRunnerText('actionRunner.build.completedTitle'),
+      description: actionRunnerText('actionRunner.build.completedDescription'),
       stage: 'deploying',
       buildStatus: 'complete',
       deployStatus: 'running',
@@ -1473,14 +1805,14 @@ export class ActionRunner {
     switch (operation) {
       case 'migration':
         if (!filePath) {
-          throw new Error('Migration requires a filePath');
+          throw new Error(actionRunnerText('actionRunner.supabase.migrationPathMissing'));
         }
 
         // Show alert for migration action
         this.onSupabaseAlert?.({
           type: 'info',
-          title: 'Supabase Migration',
-          description: `Create migration file: ${filePath}`,
+          title: actionRunnerText('actionRunner.supabase.migrationTitle'),
+          description: actionRunnerText('actionRunner.supabase.migrationDescription', { filePath }),
           content,
           source: 'supabase',
         });
@@ -1498,8 +1830,8 @@ export class ActionRunner {
         // Always show the alert and let the SupabaseAlert component handle connection state
         this.onSupabaseAlert?.({
           type: 'info',
-          title: 'Supabase Query',
-          description: 'Execute database query',
+          title: actionRunnerText('actionRunner.supabase.queryTitle'),
+          description: actionRunnerText('actionRunner.supabase.queryDescription'),
           content,
           source: 'supabase',
         });
@@ -1509,7 +1841,7 @@ export class ActionRunner {
       }
 
       default:
-        throw new Error(`Unknown operation: ${operation}`);
+        throw new Error(actionRunnerText('actionRunner.supabase.unknownOperation', { operation }));
     }
   }
 
@@ -1532,19 +1864,25 @@ export class ActionRunner {
 
     const title =
       stage === 'building'
-        ? 'Building Application'
+        ? actionRunnerText('actionRunner.deploy.buildingTitle')
         : stage === 'deploying'
-          ? 'Deploying Application'
-          : 'Deployment Complete';
+          ? actionRunnerText('actionRunner.deploy.deployingTitle')
+          : actionRunnerText('actionRunner.deploy.completedTitle');
 
     const description =
       status === 'failed'
-        ? `${stage === 'building' ? 'Build' : 'Deployment'} failed`
+        ? actionRunnerText(
+            stage === 'building' ? 'actionRunner.deploy.buildFailed' : 'actionRunner.deploy.deploymentFailed',
+          )
         : status === 'running'
-          ? `${stage === 'building' ? 'Building' : 'Deploying'} your application...`
+          ? actionRunnerText(stage === 'building' ? 'actionRunner.deploy.building' : 'actionRunner.deploy.deploying')
           : status === 'complete'
-            ? `${stage === 'building' ? 'Build' : 'Deployment'} completed successfully`
-            : `Preparing to ${stage === 'building' ? 'build' : 'deploy'} your application`;
+            ? actionRunnerText(
+                stage === 'building' ? 'actionRunner.deploy.buildCompleted' : 'actionRunner.deploy.deploymentCompleted',
+              )
+            : actionRunnerText(
+                stage === 'building' ? 'actionRunner.deploy.preparingBuild' : 'actionRunner.deploy.preparingDeployment',
+              );
 
     const buildStatus =
       stage === 'building' ? status : stage === 'deploying' || stage === 'complete' ? 'complete' : 'pending';
@@ -1600,14 +1938,14 @@ export class ActionRunner {
             return {
               shouldModify: true,
               modifiedCommand: `rm -f ${filePaths.join(' ')}`,
-              warning: 'Added -f flag to rm command as target files do not exist',
+              warning: actionRunnerText('actionRunner.validation.addedForceMissing'),
             };
           } else if (existingFiles.length < filePaths.length) {
             // Some files don't exist, modify to only remove existing ones with -f for safety
             return {
               shouldModify: true,
               modifiedCommand: `rm -f ${filePaths.join(' ')}`,
-              warning: 'Added -f flag to rm command as some target files do not exist',
+              warning: actionRunnerText('actionRunner.validation.addedForcePartial'),
             };
           }
         } catch (error) {
@@ -1629,7 +1967,7 @@ export class ActionRunner {
           return {
             shouldModify: true,
             modifiedCommand: `mkdir -p ${targetDir} && cd ${targetDir}`,
-            warning: 'Directory does not exist, created it first',
+            warning: actionRunnerText('actionRunner.validation.createdDirectory'),
           };
         }
       }
@@ -1647,7 +1985,7 @@ export class ActionRunner {
         } catch {
           return {
             shouldModify: false,
-            warning: `Source file '${sourceFile}' does not exist`,
+            warning: actionRunnerText('actionRunner.validation.sourceMissing', { sourceFile }),
           };
         }
       }
@@ -1671,50 +2009,47 @@ export class ActionRunner {
     const errorPatterns = [
       {
         pattern: /cannot remove.*No such file or directory/,
-        title: 'File Not Found',
+        title: actionRunnerText('actionRunner.shell.fileNotFoundTitle'),
         getMessage: () => {
           const fileMatch = output?.match(/'([^']+)'/);
-          const fileName = fileMatch ? fileMatch[1] : 'file';
+          const fileName = fileMatch ? fileMatch[1] : actionRunnerText('actionRunner.shell.defaultFile');
 
-          return `The file '${fileName}' does not exist and cannot be removed.\n\nSuggestion: Use 'ls' to check what files exist, or use 'rm -f' to ignore missing files.`;
+          return actionRunnerText('actionRunner.shell.fileNotFoundDetails', { fileName });
         },
       },
       {
         pattern: /No such file or directory/,
-        title: 'File or Directory Not Found',
+        title: actionRunnerText('actionRunner.shell.pathNotFoundTitle'),
         getMessage: () => {
           if (trimmedCommand.startsWith('cd ')) {
             const dirMatch = trimmedCommand.match(/cd\s+(.+)/);
-            const dirName = dirMatch ? dirMatch[1] : 'directory';
+            const dirName = dirMatch ? dirMatch[1] : actionRunnerText('actionRunner.shell.defaultDirectory');
 
-            return `The directory '${dirName}' does not exist.\n\nSuggestion: Use 'mkdir -p ${dirName}' to create it first, or check available directories with 'ls'.`;
+            return actionRunnerText('actionRunner.shell.directoryNotFoundDetails', { directory: dirName });
           }
 
-          return `The specified file or directory does not exist.\n\nSuggestion: Check the path and use 'ls' to see available files.`;
+          return actionRunnerText('actionRunner.shell.pathNotFoundDetails');
         },
       },
       {
         pattern: /Permission denied/,
-        title: 'Permission Denied',
-        getMessage: () =>
-          `Permission denied for '${firstWord}'.\n\nSuggestion: The file may not be executable. Try 'chmod +x filename' first.`,
+        title: actionRunnerText('actionRunner.shell.permissionDeniedTitle'),
+        getMessage: () => actionRunnerText('actionRunner.shell.permissionDeniedDetails', { command: firstWord }),
       },
       {
         pattern: /command not found/,
-        title: 'Command Not Found',
-        getMessage: () =>
-          `The command '${firstWord}' is not available in the active runtime.\n\nSuggestion: Check available commands or use a package manager to install it.`,
+        title: actionRunnerText('actionRunner.shell.commandNotFoundTitle'),
+        getMessage: () => actionRunnerText('actionRunner.shell.commandNotFoundDetails', { command: firstWord }),
       },
       {
         pattern: /Is a directory/,
-        title: 'Target is a Directory',
-        getMessage: () =>
-          `Cannot perform this operation - target is a directory.\n\nSuggestion: Use 'ls' to list directory contents or add appropriate flags.`,
+        title: actionRunnerText('actionRunner.shell.targetDirectoryTitle'),
+        getMessage: () => actionRunnerText('actionRunner.shell.targetDirectoryDetails'),
       },
       {
         pattern: /File exists/,
-        title: 'File Already Exists',
-        getMessage: () => `File already exists.\n\nSuggestion: Use a different name or add '-f' flag to overwrite.`,
+        title: actionRunnerText('actionRunner.shell.fileExistsTitle'),
+        getMessage: () => actionRunnerText('actionRunner.shell.fileExistsDetails'),
       },
     ];
 
@@ -1732,16 +2067,22 @@ export class ActionRunner {
     let suggestion = '';
 
     if (trimmedCommand.startsWith('npm ')) {
-      suggestion = '\n\nSuggestion: Try running "npm install" first or check package.json.';
+      suggestion = actionRunnerText('actionRunner.shell.npmSuggestion');
     } else if (trimmedCommand.startsWith('git ')) {
-      suggestion = "\n\nSuggestion: Check if you're in a git repository or if remote is configured.";
+      suggestion = actionRunnerText('actionRunner.shell.gitSuggestion');
     } else if (trimmedCommand.match(/^(ls|cat|rm|cp|mv)/)) {
-      suggestion = '\n\nSuggestion: Check file paths and use "ls" to see available files.';
+      suggestion = actionRunnerText('actionRunner.shell.pathSuggestion');
     }
 
     return {
-      title: `Command Failed (exit code: ${exitCode})`,
-      details: `Command: ${trimmedCommand}\n\nOutput: ${output || 'No output available'}${suggestion}`,
+      title: actionRunnerText('actionRunner.shell.commandFailedTitle', {
+        exitCode: exitCode ?? '',
+      }),
+      details: actionRunnerText('actionRunner.shell.commandFailedDetails', {
+        command: trimmedCommand,
+        output: output || actionRunnerText('actionRunner.error.noOutputAvailable'),
+        suggestion,
+      }),
     };
   }
 

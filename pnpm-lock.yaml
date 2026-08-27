@@ -13,6 +13,7 @@ overrides:
   fast-jwt: ^6.2.4
   immutable: ^5.1.5
   '@xmldom/xmldom': ^0.9.10
+  plist>@xmldom/xmldom: ^0.8.14
   electron: ^42.0.0
   wrangler: ^4.90.0
   body-parser: ^2.2.2
@@ -273,6 +274,9 @@ importers:
       '@unocss/reset':
         specifier: ^0.61.9
         version: 0.61.9
+      '@vibecore/billing':
+        specifier: workspace:*
+        version: link:packages/billing
       '@vibecore/editor':
         specifier: workspace:^
         version: link:packages/editor
@@ -926,6 +930,9 @@ importers:
       '@vibecore/security':
         specifier: workspace:*
         version: link:../../packages/security
+      '@vibecore/template-catalog':
+        specifier: workspace:*
+        version: link:../../packages/template-catalog
       '@xmldom/xmldom':
         specifier: ^0.9.10
         version: 0.9.10
@@ -5651,6 +5658,10 @@ packages:
   '@xmldom/is-dom-node@1.0.1':
     resolution: {integrity: sha512-CJDxIgE5I0FH+ttq/Fxy6nRpxP70+e2O048EPe85J2use3XKdatVM7dDVvFNjQudd9B49NPoZ+8PG49zj4Er8Q==}
     engines: {node: '>= 16'}
+
+  '@xmldom/xmldom@0.8.14':
+    resolution: {integrity: sha512-T4EDRUBVZYRldYApjEJiU0e1stYWaRAX7CuSnKzrpwdZKo53zGV8/pqfzV6FfwNl9YThD2OumQYvqtvjvgG7aQ==}
+    engines: {node: '>=10.0.0'}
 
   '@xmldom/xmldom@0.9.10':
     resolution: {integrity: sha512-A9gOqLdi6cV4ibazAjcQufGj0B1y/vDqYrcuP6d/6x8P27gRS8643Dj9o1dEKtB6O7fwxb2FgBmJS2mX7gpvdw==}
@@ -16548,6 +16559,8 @@ snapshots:
 
   '@xmldom/is-dom-node@1.0.1': {}
 
+  '@xmldom/xmldom@0.8.14': {}
+
   '@xmldom/xmldom@0.9.10': {}
 
   '@xterm/addon-fit@0.10.0(@xterm/xterm@5.5.0)':
@@ -20848,7 +20861,7 @@ snapshots:
 
   plist@3.1.0:
     dependencies:
-      '@xmldom/xmldom': 0.9.10
+      '@xmldom/xmldom': 0.8.14
       base64-js: 1.5.1
       xmlbuilder: 15.1.1
 

@@ -439,6 +439,14 @@ export function buildRestoreClusterManifest(input: {
 export interface ProvisionResult {
   clusterName: string;
   applied: boolean;
+
+  /*
+   * Pourquoi rien n'a été appliqué, quand `applied` est faux. Nommer la cause
+   * est le tout l'intérêt : sans elle, l'appelant ne peut pas distinguer « c'est
+   * en cours » de « ça ne partira jamais » — c'est précisément ce qui produisait
+   * un statut PROVISIONING éternel (voir `provisionInstance`).
+   */
+  reason?: 'SHARED_TENANT_UNAVAILABLE';
 }
 
 export interface RestoreProgress {
@@ -603,10 +611,34 @@ export class CnpgProvisioner implements DatabaseProvisioner {
        */
       const sharedCluster = input.sharedClusterName ?? DEFAULT_SHARED_CLUSTER;
 
-      // Create the owner role + database + isolation first (the Database CRD
-      // below needs the owner role to already exist). Best-effort: if the
-      // prerequisites are absent this is a no-op and the CRD still records intent.
-      await this.#ensureSharedTenant(input.projectId, sharedCluster, input.environment).catch(() => undefined);
+      /*
+       * BUG-QA-DB-PROVISIONING-STUCK — le rôle propriétaire doit exister AVANT la
+       * Database CR, et son échec ne peut plus être ignoré.
+       *
+       * Le code posait la CR même quand `#ensureSharedTenant` n'avait rien fait
+       * (« best-effort », échec avalé). CNPG refusait alors de créer la base et
+       * la CR restait indéfiniment en échec — reproduit en réel :
+       *
+       *   Database db-<projet>  APPLIED=false
+       *   ERROR: role "t_<projet>" does not exist (SQLSTATE 42704)
+       *
+       * Côté produit, cela se voyait comme un statut « PROVISIONING » qui ne
+       * finissait jamais : personne ne réconciliait la ligne, et la ressource
+       * empoisonnée restait dans le cluster.
+       *
+       * Le déclencheur le plus simple est l'absence de `DB_SHARED_TENANT_SECRET`
+       * — mais TOUTE défaillance passait par le même trou : cluster partagé
+       * injoignable, secret `<cluster>-app` absent, erreur SQL, RBAC refusé. On
+       * n'applique donc plus rien tant que le locataire n'est pas réellement en
+       * place, et on NOMME la raison au lieu de la taire.
+       */
+      const tenantUri = await this.#ensureSharedTenant(input.projectId, sharedCluster, input.environment).catch(
+        () => undefined,
+      );
+
+      if (!tenantUri) {
+        return { clusterName: sharedCluster, applied: false, reason: 'SHARED_TENANT_UNAVAILABLE' };
+      }
 
       await this.k8s.apply(buildPoolerManifest(sharedCluster));
       await this.k8s.apply(

@@ -6,6 +6,8 @@ import {
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
+import { getNotificationsCopy } from '~/lib/i18n/catalogs/notifications';
+import { localeResponseHeaders, resolveRequestLocale } from '~/lib/i18n/request-locale';
 
 export type EcodeNotificationPreferences = {
   email: Record<string, boolean>;
@@ -35,6 +37,14 @@ type UserPreferencesPayload = {
 const noStoreHeaders = {
   'Cache-Control': 'no-store',
 };
+
+function localizedNoStoreHeaders(request: Request) {
+  const locale = resolveRequestLocale(request);
+  const headers = localeResponseHeaders(request, locale);
+  headers.set('Cache-Control', 'no-store');
+
+  return { copy: getNotificationsCopy(locale.language), headers };
+}
 
 export const DEFAULT_ECODE_NOTIFICATION_PREFERENCES: EcodeNotificationPreferences = {
   email: {
@@ -170,12 +180,14 @@ export async function readJsonObject(request: Request) {
 }
 
 export async function ecodeNotificationPreferencesAction({ request }: EnterpriseActionArgs) {
+  const { copy, headers } = localizedNoStoreHeaders(request);
+
   if (request.method !== 'PATCH' && request.method !== 'PUT') {
-    return json({ ok: false, error: 'Method not allowed' }, { status: 405, headers: noStoreHeaders });
+    return json({ ok: false, error: copy['notifications.api.methodNotAllowed'] }, { status: 405, headers });
   }
 
   if (!readSessionToken(request)) {
-    return json({ ok: false, error: 'Authentication required' }, { status: 401, headers: noStoreHeaders });
+    return json({ ok: false, error: copy['notifications.api.authenticationRequired'] }, { status: 401, headers });
   }
 
   const preferences = normalizeEcodeNotificationPreferences(await readJsonObject(request));
@@ -186,7 +198,7 @@ export async function ecodeNotificationPreferencesAction({ request }: Enterprise
     redirectOn401: false,
   });
 
-  return json(normalizeEcodeNotificationPreferences(payload.preferences?.notifications), { headers: noStoreHeaders });
+  return json(normalizeEcodeNotificationPreferences(payload.preferences?.notifications), { headers });
 }
 
 /**
@@ -279,9 +291,11 @@ export async function notificationFeedLoader({ request }: EnterpriseLoaderArgs) 
 }
 
 export async function notificationsCollectionAction({ request }: EnterpriseActionArgs) {
+  const { copy, headers } = localizedNoStoreHeaders(request);
+
   // POST (or legacy DELETE) marks the whole feed read; anything else is rejected.
   if (request.method !== 'POST' && request.method !== 'DELETE') {
-    return json({ ok: false, error: 'Method not allowed' }, { status: 405, headers: noStoreHeaders });
+    return json({ ok: false, error: copy['notifications.api.methodNotAllowed'] }, { status: 405, headers });
   }
 
   const payload = await apiRequest<{ marked?: number; unreadCount?: number }>(request, '/user/notifications/read-all', {
@@ -291,21 +305,23 @@ export async function notificationsCollectionAction({ request }: EnterpriseActio
   return json(
     { ok: true, marked: payload.marked ?? 0, unreadCount: payload.unreadCount ?? 0 },
     {
-      headers: noStoreHeaders,
+      headers,
     },
   );
 }
 
 export async function notificationMutationAction({ request, params }: EnterpriseActionArgs) {
+  const { copy, headers } = localizedNoStoreHeaders(request);
+
   // POST/PATCH mark a single notification read; the id comes from the route.
   if (request.method !== 'POST' && request.method !== 'PATCH') {
-    return json({ ok: false, error: 'Method not allowed' }, { status: 405, headers: noStoreHeaders });
+    return json({ ok: false, error: copy['notifications.api.methodNotAllowed'] }, { status: 405, headers });
   }
 
   const notificationId = params.notificationId;
 
   if (!notificationId) {
-    return json({ ok: false, error: 'Missing notification id' }, { status: 400, headers: noStoreHeaders });
+    return json({ ok: false, error: copy['notifications.api.missingNotificationId'] }, { status: 400, headers });
   }
 
   const payload = await apiRequest<{ unreadCount?: number }>(
@@ -314,5 +330,5 @@ export async function notificationMutationAction({ request, params }: Enterprise
     { method: 'POST' },
   );
 
-  return json({ ok: true, unreadCount: payload.unreadCount ?? 0 }, { headers: noStoreHeaders });
+  return json({ ok: true, unreadCount: payload.unreadCount ?? 0 }, { headers });
 }

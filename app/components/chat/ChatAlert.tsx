@@ -1,4 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
+
+import { formatErrorSurfacesCopy, getErrorSurfacesCopy } from '~/lib/i18n/catalogs/error-surfaces';
 import type { ActionAlert } from '~/types/actions';
 import { classNames } from '~/utils/classNames';
 
@@ -9,14 +12,14 @@ interface Props {
 }
 
 export default function ChatAlert({ alert, clearAlert, postMessage }: Props) {
+  const { i18n } = useTranslation();
+  const copy = getErrorSurfacesCopy(i18n.resolvedLanguage ?? i18n.language);
   const { description, content, source } = alert;
 
   const isPreview = source === 'preview';
-  const title = isPreview ? 'Preview Error' : 'Terminal Error';
+  const title = isPreview ? copy['chatAlert.preview.title'] : copy['chatAlert.terminal.title'];
 
-  const message = isPreview
-    ? 'We encountered an error while running the preview. Would you like E-Code to analyze and help resolve this issue?'
-    : 'We encountered an error while running terminal commands. Would you like E-Code to analyze and help resolve this issue?';
+  const message = isPreview ? copy['chatAlert.preview.message'] : copy['chatAlert.terminal.message'];
 
   return (
     <AnimatePresence>
@@ -40,12 +43,12 @@ export default function ChatAlert({ alert, clearAlert, postMessage }: Props) {
             <div className={`i-ph:warning-duotone text-xl text-bolt-elements-button-danger-text`}></div>
           </motion.div>
           {/* Content */}
-          <div className="ml-3 flex-1">
+          <div className="ml-3 min-w-0 flex-1">
             <motion.h3
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.1 }}
-              className={`text-sm font-medium text-bolt-elements-textPrimary`}
+              className="break-words text-sm font-medium text-bolt-elements-textPrimary"
             >
               {title}
             </motion.h3>
@@ -53,13 +56,18 @@ export default function ChatAlert({ alert, clearAlert, postMessage }: Props) {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.2 }}
-              className={`mt-2 text-sm text-bolt-elements-textSecondary`}
+              className="mt-2 text-sm text-bolt-elements-textSecondary"
             >
-              <p>{message}</p>
+              <p className="break-words">{message}</p>
               {description && (
-                <div className="text-xs text-bolt-elements-textSecondary p-2 bg-bolt-elements-background-depth-3 rounded mt-4 mb-4 break-words whitespace-pre-wrap max-h-40 overflow-y-auto">
-                  Error: {description}
-                </div>
+                <details className="mt-4 mb-4 text-xs text-bolt-elements-textSecondary">
+                  <summary className="inline-flex min-h-11 max-w-full cursor-pointer items-center break-words font-medium text-bolt-elements-textPrimary">
+                    {copy['chatAlert.details']}
+                  </summary>
+                  <pre className="max-h-40 overflow-auto whitespace-pre-wrap break-words rounded bg-bolt-elements-background-depth-3 p-2">
+                    <code>{description}</code>
+                  </pre>
+                </details>
               )}
             </motion.div>
 
@@ -70,15 +78,18 @@ export default function ChatAlert({ alert, clearAlert, postMessage }: Props) {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
             >
-              <div className={classNames(' flex gap-2')}>
+              <div className={classNames('flex flex-wrap gap-2')}>
                 <button
                   onClick={() =>
                     postMessage(
-                      `*Fix this ${isPreview ? 'preview' : 'terminal'} error* \n\`\`\`${isPreview ? 'js' : 'sh'}\n${content}\n\`\`\`\n`,
+                      formatErrorSurfacesCopy(
+                        isPreview ? copy['chatAlert.prompt.preview'] : copy['chatAlert.prompt.terminal'],
+                        { content },
+                      ),
                     )
                   }
                   className={classNames(
-                    `px-2 py-1.5 rounded-md text-sm font-medium`,
+                    'min-h-11 min-w-11 whitespace-normal rounded-md px-3 py-2 text-sm font-medium',
                     'bg-bolt-elements-button-primary-background',
                     'hover:bg-bolt-elements-button-primary-backgroundHover',
                     'focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-bolt-elements-button-danger-background',
@@ -87,19 +98,19 @@ export default function ChatAlert({ alert, clearAlert, postMessage }: Props) {
                   )}
                 >
                   <div className="i-ph:chat-circle-duotone"></div>
-                  Ask the agent
+                  {copy['chatAlert.askAgent']}
                 </button>
                 <button
                   onClick={clearAlert}
                   className={classNames(
-                    `px-2 py-1.5 rounded-md text-sm font-medium`,
+                    'min-h-11 min-w-11 whitespace-normal rounded-md px-3 py-2 text-sm font-medium',
                     'bg-bolt-elements-button-secondary-background',
                     'hover:bg-bolt-elements-button-secondary-backgroundHover',
                     'focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-bolt-elements-button-secondary-background',
                     'text-bolt-elements-button-secondary-text',
                   )}
                 >
-                  Dismiss
+                  {copy['chatAlert.dismiss']}
                 </button>
               </div>
             </motion.div>

@@ -22,6 +22,7 @@ import {
   ListTodo,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { buildPromptForMode, resolveDemoScrollTarget } from './landing-build-intent';
 import {
   BuildModeSelector,
@@ -41,6 +42,11 @@ import {
   readPersistedModelId,
   readPersistedProvider,
 } from '~/components/marketing/ecode-exact/resolve-preferred-model';
+import {
+  formatLandingDemoLabel,
+  getMarketingExactLandingForumCopy,
+  type LandingExampleId,
+} from '~/lib/i18n/catalogs/marketing-exact-landing-forum';
 import { scrollToElement, scrollWindowBy } from '~/lib/scroll-to';
 import { stashModelHandoff } from '~/utils/model-handoff';
 
@@ -51,8 +57,22 @@ import { stashModelHandoff } from '~/utils/model-handoff';
  */
 const DEMO_SCROLL_MAX_ATTEMPTS = 10;
 const DEMO_SCROLL_RETRY_MS = 120;
+const DEMO_DURATION_MINUTES = 2;
+
+const EXAMPLE_VISUALS: Record<LandingExampleId, { icon: typeof ShoppingCart; color: string }> = {
+  ecommerce: { icon: ShoppingCart, color: 'from-ecode-orange to-ecode-orange-light' },
+  chat: { icon: MessageSquare, color: 'from-ecode-orange-light to-ecode-yellow' },
+  chatbot: { icon: Bot, color: 'from-ecode-orange to-ecode-orange-hover' },
+  dashboard: { icon: LineChart, color: 'from-ecode-yellow to-ecode-orange' },
+  saas: { icon: Briefcase, color: 'from-ecode-orange-hover to-ecode-orange' },
+  project: { icon: ListTodo, color: 'from-ecode-orange-light to-ecode-orange' },
+};
 
 export default function LandingOptimized() {
+  const { i18n } = useTranslation();
+  const language = i18n.resolvedLanguage ?? i18n.language;
+  const copy = getMarketingExactLandingForumCopy(language).exactLanding;
+  const demoLabel = formatLandingDemoLabel(copy.hero.watchDemo, DEMO_DURATION_MINUTES, language);
   const [, navigate] = useWouterLocation();
   const { user } = useAuth();
   const { toast } = useEcodeToast();
@@ -100,8 +120,8 @@ export default function LandingOptimized() {
 
     if (mode === 'continue-planning') {
       toast({
-        title: 'Continue refining',
-        description: 'Take your time to refine your app description',
+        title: copy.toast.continueTitle,
+        description: copy.toast.continueDescription,
       });
       return;
     }
@@ -141,6 +161,8 @@ export default function LandingOptimized() {
      * across the login redirect). `composerBuildIntent` tells /projects/new to
      * auto-submit the create form on arrival instead of waiting for a click.
      */
+    let handoffStored = true;
+
     try {
       sessionStorage.setItem('pendingAppDescription', prompt);
       sessionStorage.setItem('pendingBuildMode', mode);
@@ -160,6 +182,8 @@ export default function LandingOptimized() {
         stashModelHandoff(chosenModelId, readPersistedProvider());
       }
     } catch {
+      handoffStored = false;
+
       /*
        * sessionStorage blocked (private mode) — /projects/new still renders; the
        * visitor just retypes the idea once. Better than throwing here.
@@ -168,12 +192,12 @@ export default function LandingOptimized() {
 
     setPendingBuildPrompt('');
 
+    const setupDescription =
+      mode === 'design-first' ? copy.toast.setupDesignDescription : copy.toast.setupFullDescription;
+
     toast({
-      title: 'Setting up your project…',
-      description:
-        mode === 'design-first'
-          ? 'Opening the builder to create your design prototype'
-          : 'Opening the builder to generate your full application',
+      title: handoffStored ? copy.toast.setupTitle : copy.toast.storageWarningTitle,
+      description: handoffStored ? setupDescription : copy.toast.storageWarningDescription,
     });
 
     navigate('/projects/new');
@@ -211,50 +235,10 @@ export default function LandingOptimized() {
     attempt(DEMO_SCROLL_MAX_ATTEMPTS);
   };
 
-  const examples = [
-    {
-      icon: <ShoppingCart className="h-4 w-4" />,
-      label: 'E-commerce Platform',
-      text: 'Build a full-stack e-commerce marketplace with Stripe payments, product catalog with search and filters, shopping cart with checkout flow, user authentication, order management dashboard',
-      color: 'from-ecode-orange to-ecode-orange-light',
-      id: 'ecommerce',
-    },
-    {
-      icon: <MessageSquare className="h-4 w-4" />,
-      label: 'Real-time Chat',
-      text: 'Create a Slack-like real-time messaging platform with WebSocket connections, public and private channels, direct messages, file sharing, typing indicators',
-      color: 'from-ecode-orange-light to-ecode-yellow',
-      id: 'chat',
-    },
-    {
-      icon: <Bot className="h-4 w-4" />,
-      label: 'AI Assistant',
-      text: 'Build an intelligent AI chatbot with OpenAI GPT-5 integration, conversation memory, document upload for RAG knowledge base, streaming responses',
-      color: 'from-ecode-orange to-ecode-orange-hover',
-      id: 'chatbot',
-    },
-    {
-      icon: <LineChart className="h-4 w-4" />,
-      label: 'Analytics Dashboard',
-      text: 'Design a Fortune 500-grade analytics dashboard with real-time interactive charts, KPI widgets, data tables with filtering, date range picker',
-      color: 'from-ecode-yellow to-ecode-orange',
-      id: 'dashboard',
-    },
-    {
-      icon: <Briefcase className="h-4 w-4" />,
-      label: 'SaaS Starter',
-      text: 'Create a complete SaaS starter kit with landing page, pricing tiers, Stripe subscription billing, user authentication, team management',
-      color: 'from-ecode-orange-hover to-ecode-orange',
-      id: 'saas',
-    },
-    {
-      icon: <ListTodo className="h-4 w-4" />,
-      label: 'Project Management',
-      text: 'Build a Jira-like project management tool with drag-and-drop Kanban boards, sprint planning, task assignments, time tracking',
-      color: 'from-ecode-orange-light to-ecode-orange',
-      id: 'project',
-    },
-  ];
+  const examples = copy.hero.examples.map((example) => ({
+    ...example,
+    ...EXAMPLE_VISUALS[example.id],
+  }));
 
   return (
     <MarketingLayout>
@@ -267,41 +251,46 @@ export default function LandingOptimized() {
 
         <div className="container-responsive relative z-10 max-w-7xl text-center px-4 py-20">
           <div className="space-y-8">
+            {/*
+             * `flex-wrap` broke the pill below ~430px: the label alone is wider
+             * than the row, so the two decorative sparkles wrapped onto lines of
+             * their own and the `rounded-full` badge became a 106px-tall slab.
+             * `flex-nowrap` + `min-w-0` on the label keeps the sparkles flanking
+             * the text and lets the text itself wrap inside the pill.
+             */}
             <Badge
               variant="outline"
-              className="mx-auto inline-flex items-center gap-2 px-6 py-2 text-[13px] font-semibold text-[var(--ecode-text)] shadow-[0_12px_42px_-34px_rgba(242,98,7,0.65)] animate-fade-in"
+              className="mx-auto inline-flex max-w-full flex-nowrap items-center justify-center gap-2 border-ecode-accent/25 bg-ecode-accent/10 px-4 py-2 text-center text-[13px] font-semibold leading-snug text-[var(--ecode-text)] shadow-sm animate-fade-in sm:px-6"
               style={{
                 background: 'linear-gradient(90deg, rgba(242, 98, 7, 0.06), rgba(247, 127, 0, 0.06))',
-                borderColor: 'rgba(242, 98, 7, 0.2)',
               }}
               data-testid="badge-hero"
             >
-              <Sparkles className="h-4 w-4 text-ecode-accent" />
-              AI-Powered Enterprise Development Platform
-              <Sparkles className="h-4 w-4 text-ecode-accent" />
+              <Sparkles className="h-4 w-4 shrink-0 text-ecode-accent" aria-hidden="true" />
+              <span className="min-w-0 break-words">{copy.hero.badge}</span>
+              <Sparkles className="h-4 w-4 shrink-0 text-ecode-accent" aria-hidden="true" />
             </Badge>
 
             <h1
-              className="text-[44px] sm:text-6xl lg:text-7xl xl:text-8xl font-bold tracking-tight animate-fade-in"
+              className="break-words text-[44px] sm:text-6xl lg:text-7xl xl:text-8xl font-bold leading-[1.05] tracking-tight animate-fade-in"
               style={{ animationDelay: '100ms' }}
               data-testid="heading-hero"
             >
-              <span className="text-[var(--ecode-text)]">Build & Deploy</span>
+              <span className="text-[var(--ecode-text)]">{copy.hero.titleLineOne}</span>
               <br />
               <span className="bg-gradient-to-r from-ecode-orange via-ecode-orange-light to-ecode-yellow bg-clip-text text-transparent">
-                Production Apps
+                {copy.hero.titleLineTwo}
               </span>
               <br />
-              <span className="text-[var(--ecode-text)]">in Minutes</span>
+              <span className="text-[var(--ecode-text)]">{copy.hero.titleLineThree}</span>
             </h1>
 
             <p
-              className="mx-auto max-w-3xl text-xl sm:text-2xl text-[var(--ecode-text-muted)] font-medium animate-fade-in"
+              className="mx-auto max-w-3xl break-words text-lg font-medium leading-relaxed text-[var(--ecode-text-muted)] animate-fade-in sm:text-2xl"
               style={{ animationDelay: '200ms' }}
               data-testid="text-hero-description"
             >
-              The only platform that combines AI agents, cloud infrastructure, and enterprise security to deliver
-              Fortune 500 development velocity to every team.
+              {copy.hero.description}
             </p>
 
             <div className="max-w-4xl mx-auto mt-8 animate-fade-in" style={{ animationDelay: '400ms' }}>
@@ -313,7 +302,8 @@ export default function LandingOptimized() {
                     <div className="flex-1">
                       <input
                         type="text"
-                        placeholder="Describe your app idea in any language..."
+                        placeholder={copy.hero.placeholder}
+                        aria-label={copy.hero.placeholder}
                         className="w-full bg-transparent border-none outline-none text-base sm:text-[15px] placeholder:text-[var(--ecode-text-muted)] text-[var(--ecode-text)] px-4 sm:px-6 py-3 sm:py-4"
                         value={appDescription}
                         onChange={(e) => setAppDescription(e.target.value)}
@@ -327,13 +317,14 @@ export default function LandingOptimized() {
                     </div>
                     <Button
                       size="lg"
-                      className="bg-ecode-accent hover:bg-ecode-accent-hover text-white shadow-lg px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-[15px] font-semibold h-auto min-h-[44px] rounded-xl transition-all duration-300 hover:scale-105"
+                      className="min-w-0 whitespace-normal bg-[var(--vc-action-primary-strong)] px-6 py-3 text-base font-semibold leading-snug text-white shadow-lg transition-all duration-300 hover:brightness-90 sm:px-8 sm:py-4 sm:text-[15px] sm:hover:scale-105"
                       onClick={() => appDescription.trim() && handleStartBuilding(appDescription)}
-                      disabled={!appDescription.trim()}
+                      disabled={!appDescription.trim() || isBuilding}
+                      aria-busy={isBuilding}
                       data-testid="button-build-now"
                     >
-                      <Sparkles className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
-                      Build Now
+                      <Sparkles className="mr-2 h-4 w-4 shrink-0 sm:h-5 sm:w-5" aria-hidden="true" />
+                      {isBuilding ? copy.hero.building : copy.hero.buildNow}
                     </Button>
                   </div>
                 </div>
@@ -348,8 +339,8 @@ export default function LandingOptimized() {
                   onClick={scrollToVideoDemo}
                   data-testid="button-watch-demo-mobile"
                 >
-                  <PlayCircle className="h-4 w-4 text-ecode-accent" />
-                  Watch Demo (2 min)
+                  <PlayCircle className="h-4 w-4 shrink-0 text-ecode-accent" aria-hidden="true" />
+                  <span className="min-w-0 break-words">{demoLabel}</span>
                 </Button>
                 <Button
                   size="lg"
@@ -358,30 +349,37 @@ export default function LandingOptimized() {
                   onClick={() => navigate('/pricing')}
                   data-testid="button-view-pricing-mobile"
                 >
-                  View Pricing
-                  <ArrowRight className="h-4 w-4" />
+                  <span className="min-w-0 break-words">{copy.hero.viewPricing}</span>
+                  <ArrowRight className="h-4 w-4 shrink-0" aria-hidden="true" />
                 </Button>
               </div>
 
               <div className="mt-8 space-y-4 animate-fade-in" style={{ animationDelay: '500ms' }}>
-                <p className="text-[13px] text-[var(--ecode-text-muted)] text-center">Try these popular examples:</p>
+                <p className="break-words text-center text-[13px] text-[var(--ecode-text-muted)]">
+                  {copy.hero.examplesTitle}
+                </p>
                 <div className="relative sm:static">
                   <div className="vc-no-scrollbar flex flex-nowrap justify-start gap-3 overflow-x-auto pb-1 sm:flex-wrap sm:justify-center sm:overflow-visible sm:pb-0">
-                    {examples.map((example, index) => (
-                      <button
-                        key={index}
-                        onClick={() => setAppDescription(example.text)}
-                        className="group flex shrink-0 items-center gap-2 px-3 sm:px-4 py-2 rounded-full bg-[var(--ecode-surface)] border border-[var(--ecode-border)] hover:border-ecode-accent/50 transition-all duration-300 hover:scale-105 min-h-[44px]"
-                        data-testid={`button-example-${example.id}`}
-                      >
-                        <div className={`bg-gradient-to-r ${example.color} text-white p-1.5 rounded-md`}>
-                          {example.icon}
-                        </div>
-                        <span className="whitespace-nowrap text-[11px] sm:text-[13px] font-medium text-[var(--ecode-text)]">
-                          {example.label}
-                        </span>
-                      </button>
-                    ))}
+                    {examples.map((example) => {
+                      const Icon = example.icon;
+
+                      return (
+                        <button
+                          key={example.id}
+                          type="button"
+                          onClick={() => setAppDescription(example.prompt)}
+                          className="group flex shrink-0 items-center gap-2 px-3 sm:px-4 py-2 rounded-full bg-[var(--ecode-surface)] border border-[var(--ecode-border)] hover:border-ecode-accent/50 transition-all duration-300 hover:scale-105 min-h-[44px]"
+                          data-testid={`button-example-${example.id}`}
+                        >
+                          <div className={`shrink-0 rounded-md bg-gradient-to-r ${example.color} p-1.5 text-white`}>
+                            <Icon className="h-4 w-4" aria-hidden="true" />
+                          </div>
+                          <span className="whitespace-nowrap text-[11px] sm:text-[13px] font-medium text-[var(--ecode-text)]">
+                            {example.label}
+                          </span>
+                        </button>
+                      );
+                    })}
                   </div>
                   {/* Right-edge fade hinting at more chips off-screen (mobile only). */}
                   <span
@@ -395,18 +393,15 @@ export default function LandingOptimized() {
                 className="flex flex-wrap justify-center gap-4 mt-6 animate-fade-in"
                 style={{ animationDelay: '600ms' }}
               >
-                <div className="flex items-center gap-2 text-[13px] text-[var(--ecode-text-muted)]">
-                  <CheckCircle className="h-4 w-4 text-ecode-accent" />
-                  No credit card required
-                </div>
-                <div className="flex items-center gap-2 text-[13px] text-[var(--ecode-text-muted)]">
-                  <CheckCircle className="h-4 w-4 text-ecode-accent" />
-                  Deploy instantly
-                </div>
-                <div className="flex items-center gap-2 text-[13px] text-[var(--ecode-text-muted)]">
-                  <CheckCircle className="h-4 w-4 text-ecode-accent" />
-                  Scale to millions
-                </div>
+                {copy.hero.assurances.map((assurance) => (
+                  <div
+                    key={assurance.id}
+                    className="flex min-w-0 max-w-full items-center gap-2 text-[13px] text-[var(--ecode-text-muted)]"
+                  >
+                    <CheckCircle className="h-4 w-4 shrink-0 text-ecode-accent" aria-hidden="true" />
+                    <span className="break-words">{assurance.text}</span>
+                  </div>
+                ))}
               </div>
             </div>
 
@@ -421,8 +416,8 @@ export default function LandingOptimized() {
                 onClick={scrollToVideoDemo}
                 data-testid="button-watch-demo"
               >
-                <PlayCircle className="h-4 w-4 sm:h-5 sm:w-5 text-ecode-accent" />
-                Watch Demo (2 min)
+                <PlayCircle className="h-4 w-4 shrink-0 text-ecode-accent sm:h-5 sm:w-5" aria-hidden="true" />
+                <span className="min-w-0 break-words">{demoLabel}</span>
               </Button>
               <Button
                 size="lg"
@@ -431,15 +426,15 @@ export default function LandingOptimized() {
                 onClick={() => navigate('/pricing')}
                 data-testid="button-view-pricing"
               >
-                View Pricing
-                <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5" />
+                <span className="min-w-0 break-words">{copy.hero.viewPricing}</span>
+                <ArrowRight className="h-4 w-4 shrink-0 sm:h-5 sm:w-5" aria-hidden="true" />
               </Button>
             </div>
           </div>
         </div>
 
         <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 animate-bounce">
-          <ChevronRight className="h-8 w-8 text-[var(--ecode-text-muted)] rotate-90" />
+          <ChevronRight className="h-8 w-8 rotate-90 text-[var(--ecode-text-muted)]" aria-hidden="true" />
         </div>
       </section>
 

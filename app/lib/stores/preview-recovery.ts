@@ -115,10 +115,49 @@ export function shouldKickReopenPreview(input: {
   hasProject: boolean;
   isStartingPreview: boolean;
   workspaceStatus: WorkspaceSession | undefined;
+
+  /**
+   * `true` dès qu'un port d'aperçu est SERVI (il répond et un processus vivant
+   * le détient). `undefined` quand l'information n'est pas encore connue — on
+   * ne relance alors rien, pour ne pas tirer sur un serveur qui démarre.
+   */
+  hasServingPreview?: boolean;
 }): boolean {
-  return (
-    input.autoStart && input.hasProject && !input.isStartingPreview && workspaceNeedsReprovision(input.workspaceStatus)
-  );
+  if (!input.autoStart || !input.hasProject || input.isStartingPreview) {
+    return false;
+  }
+
+  if (workspaceNeedsReprovision(input.workspaceStatus)) {
+    return true;
+  }
+
+  /*
+   * BUG-AGENT-007 — un workspace VIVANT sans serveur de dev.
+   *
+   * Jusqu'ici seuls les statuts `stopped` / `error` relançaient l'aperçu, et le
+   * commentaire d'origine l'assumait : « Restart of an already-running preview
+   * stays manual by design ». Mais un pod `running` qui n'a AUCUN processus Vite
+   * n'est pas « un aperçu déjà démarré » — c'est un aperçu mort que personne ne
+   * relance. Mesuré en direct le 21/08 : workspace `running`, 18 fichiers
+   * écrits, `ps aux | grep -c '[v]ite'` → 0, rien sur 5173, `HTTP 000`, et ZÉRO
+   * appel `/commands` à la réouverture. La condition confondait « workspace
+   * vivant » et « serveur de dev vivant ».
+   *
+   * Le signal utilisé est `serving` — « le port répond ET un processus vivant le
+   * détient » — et surtout PAS l'événement de port : celui-ci annonçait
+   * `Runtime port event: 5173` avec une URL d'aperçu alors que rien n'écoutait.
+   * Se brancher dessus donnerait une condition qui ne se déclenche jamais,
+   * c'est-à-dire le défaut actuel.
+   *
+   * Prudence : on ne relance QUE si le workspace est explicitement `running`. Un
+   * statut inconnu ou en cours de démarrage ne déclenche rien — le serveur est
+   * peut-être simplement en train de monter, et le relancer le tuerait.
+   */
+  if (input.workspaceStatus?.status !== 'running') {
+    return false;
+  }
+
+  return input.hasServingPreview === false;
 }
 
 /**
@@ -259,4 +298,44 @@ export function appendWorkspaceLogLines(
   }
 
   return next.slice(-limit);
+}
+
+/**
+ * BUG-AGENT-007 — plafond dur sur les relances d'un aperçu mort.
+ *
+ * Le garde par session (`reopenKickedSessionRef`) suffit pour un pod qui
+ * redémarre : l'id de session change, la ref se réarme une fois. Il ne suffit
+ * PAS pour un workspace qui reste `running` en servant un aperçu mort — l'id ne
+ * change pas, mais un remontage du composant remet la ref à zéro. Sans plafond,
+ * chaque remontage relancerait le serveur : c'est exactement la boucle de
+ * redémarrage que ce chemin a déjà connue.
+ *
+ * Le compteur vit au niveau du MODULE, donc il survit aux remontages, et il
+ * s'efface par fenêtre glissante pour qu'un problème résolu n'interdise pas à
+ * jamais une relance légitime.
+ */
+const DEAD_PREVIEW_KICK_WINDOW_MS = 5 * 60 * 1000;
+const DEAD_PREVIEW_KICK_MAX = 2;
+
+let deadPreviewKicks: number[] = [];
+
+/** Testable : remet le plafond à zéro entre deux cas. */
+export function resetDeadPreviewKicks(): void {
+  deadPreviewKicks = [];
+}
+
+/**
+ * Consomme un jeton de relance. Renvoie `false` — et ne consomme rien — quand le
+ * plafond de la fenêtre est atteint.
+ */
+export function canKickDeadPreview(now: number = Date.now()): boolean {
+  deadPreviewKicks = deadPreviewKicks.filter((at) => now - at < DEAD_PREVIEW_KICK_WINDOW_MS);
+
+  if (deadPreviewKicks.length >= DEAD_PREVIEW_KICK_MAX) {
+    return false;
+  }
+
+  deadPreviewKicks.push(now);
+
+  return true;
 }

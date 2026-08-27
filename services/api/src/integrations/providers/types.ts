@@ -37,6 +37,12 @@ export interface ConnectorApiKeyTestResult {
     | 'API_KEY_INSUFFICIENT_SCOPE'
     | 'PROVIDER_UNREACHABLE'
     | 'PROVIDER_RESPONSE_MALFORMED';
+
+  /**
+   * Provider/network diagnostic for server-side observability only. Route
+   * handlers must map `code` to trusted public copy and never serialize this
+   * value because it can contain upstream text or secrets.
+   */
   detail?: string;
 }
 
@@ -83,19 +89,20 @@ export class ConnectorProviderError extends Error {
     | 'PROVIDER_RESPONSE_MALFORMED'
     | 'PROVIDER_UNSUPPORTED_OPERATION';
   readonly httpStatus?: number;
+
+  /** Internal upstream diagnostic. Never serialize this value to clients. */
   readonly providerDetail?: string;
 
-  constructor(input: {
-    code: ConnectorProviderError['code'];
-    message: string;
-    httpStatus?: number;
-    providerDetail?: string;
-  }) {
-    super(input.message);
+  constructor(input: { code: ConnectorProviderError['code']; httpStatus?: number; providerDetail?: string }) {
+    /*
+     * The stable code is intentionally the default internal Error message.
+     * User-facing routes resolve localized copy from the code and must never
+     * treat Error.message as public text.
+     */
+    super(input.code);
     this.name = 'ConnectorProviderError';
     this.code = input.code;
     this.httpStatus = input.httpStatus;
     this.providerDetail = input.providerDetail;
   }
 }
-

@@ -21,6 +21,8 @@
  * every network edge is injectable so the module is fully unit-testable.
  */
 
+import { appPublicEnglish } from './app-public-copy.js';
+
 export interface AppImageBuildSpec {
   /** GCP project id hosting Cloud Build + Artifact Registry (e.g. vibecore-495216). */
   gcpProject: string;
@@ -61,8 +63,7 @@ export type AppImageBuildResult =
     }
   | { ok: false; error: string; buildId?: string; logUrl?: string };
 
-const METADATA_TOKEN_URL =
-  'http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token';
+const METADATA_TOKEN_URL = 'http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token';
 
 /** Terminal Cloud Build statuses (anything else is still converging). */
 const TERMINAL_STATUSES = new Set(['SUCCESS', 'FAILURE', 'INTERNAL_ERROR', 'TIMEOUT', 'CANCELLED', 'EXPIRED']);
@@ -111,7 +112,10 @@ async function metadataAccessToken(fetchImpl: typeof fetch): Promise<string> {
  * the pushed image's size from Artifact Registry. Never throws — a failed build
  * comes back as `{ ok: false }` with the build log URL for the deploy log.
  */
-export async function runAppImageBuild(spec: AppImageBuildSpec, deps: AppImageBuildDeps = {}): Promise<AppImageBuildResult> {
+export async function runAppImageBuild(
+  spec: AppImageBuildSpec,
+  deps: AppImageBuildDeps = {},
+): Promise<AppImageBuildResult> {
   const fetchImpl = deps.fetchImpl ?? fetch;
   const getAccessToken = deps.getAccessToken ?? (() => metadataAccessToken(fetchImpl));
   const sleep = deps.sleep ?? ((ms: number) => new Promise((resolve) => setTimeout(resolve, ms)));
@@ -190,7 +194,14 @@ export async function runAppImageBuild(spec: AppImageBuildSpec, deps: AppImageBu
     return { ok: false, error: 'Cloud Build create returned no build id' };
   }
 
-  onLog('info', `[image] build ${buildId} queued (context gs://${spec.sourceBucket}/${spec.sourceObject})`);
+  onLog(
+    'info',
+    appPublicEnglish('APP_IMAGE_BUILD_QUEUED', {
+      buildId,
+      bucket: spec.sourceBucket,
+      object: spec.sourceObject,
+    }),
+  );
 
   /*
    * Poll to a terminal state. Deadline = the build's own timeout + queue/pull
@@ -222,7 +233,7 @@ export async function runAppImageBuild(spec: AppImageBuildSpec, deps: AppImageBu
 
     if (build.status && build.status !== status) {
       status = build.status;
-      onLog('info', `[image] build ${buildId}: ${status}`);
+      onLog('info', appPublicEnglish('APP_IMAGE_BUILD_STATUS', { buildId, status }));
     }
 
     if (status && TERMINAL_STATUSES.has(status)) {

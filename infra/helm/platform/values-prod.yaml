@@ -88,14 +88,21 @@ secrets:
 platformEnv:
   saasApiUrl: 'http://vibecore-vibecore-platform-api.vibecore.svc.cluster.local:3001'
   apiBaseUrl: 'http://vibecore-vibecore-platform-api.vibecore.svc.cluster.local:3001'
-  # P11 auto thumbnails. Leave EMPTY until the screenshotter is deployed — while
-  # empty the API's capture triggers are inert. When enabling, set the URL to the
-  # in-cluster service and provision SCREENSHOTTER_SHARED_SECRET in the platform
-  # secret (the API sends it as a Bearer; the pod verifies it).
-  #   screenshotterUrl: 'http://vibecore-vibecore-platform-screenshotter.vibecore.svc.cluster.local:3030'
-  #   screenshotterAllowedHosts: 'preview.e-code.ai'
-  screenshotterUrl: ''
-  screenshotterAllowedHosts: ''
+  # P11 auto thumbnails — ENABLED (services.screenshotter.enabled=true below).
+  # SCREENSHOTTER_SHARED_SECRET is chart-managed (auto-generated + preserved by
+  # templates/screenshotter-auth-secret.yaml, mounted on every pod) — no manual
+  # secret provisioning needed. The URL is the in-cluster screenshotter Service
+  # (templates/services.yaml: <release>-<chart>-<kebab name>, port 3030);
+  # allowedHosts is the pod's SSRF allowlist; previewProxyUrl routes preview
+  # hosts through the in-cluster preview-proxy (an in-cluster pod cannot hairpin
+  # to the public preview LB).
+  # ⚠️ CD deploys with `helm upgrade --reuse-values`, which IGNORES this file —
+  # deploy-main.yml re-asserts these three values (and enabled/imageTag) via
+  # --set on every runtime-tier deploy; this file keeps manual full-values
+  # deploys in sync.
+  screenshotterUrl: 'http://vibecore-vibecore-platform-screenshotter.vibecore.svc.cluster.local:3030'
+  screenshotterAllowedHosts: 'preview.e-code.ai'
+  screenshotterPreviewProxyUrl: 'http://vibecore-vibecore-platform-preview-proxy.vibecore.svc.cluster.local:3020'
   publicApiBaseUrl: 'https://api.e-code.ai'
   # Comma-separated emails. PlatformAdmin grants global console access
   # (services/api/src/app.ts:2224). Edit cautiously.
@@ -309,16 +316,21 @@ services:
     resources:
       requests: { cpu: 100m, memory: 256Mi }
       limits: { cpu: 500m, memory: 512Mi }
-  # P11 automatic thumbnails — headless Chromium render service.
-  # ⚠️ INFRA-GATED: keep enabled:false until Avi validates the envelope. Flip to
-  # true (and provision SCREENSHOTTER_SHARED_SECRET in the platform secret) to
-  # deploy. The API triggers stay inert until SCREENSHOTTER_URL is configured, so
-  # this whole change is safe to merge with the pod absent.
+  # P11 automatic thumbnails — headless Chromium render service. ENABLED: the
+  # image is built by the CD pipeline (infra/cloudbuild/runtime-tier.yaml,
+  # build-screenshotter) and SCREENSHOTTER_SHARED_SECRET is chart-managed
+  # (templates/screenshotter-auth-secret.yaml) — no operator secret needed.
+  # ⚠️ CD deploys with --reuse-values (this file is ignored there):
+  # deploy-main.yml asserts enabled=true + imageTag via --set on every
+  # runtime-tier deploy; this file keeps manual full-values deploys in sync.
   screenshotter:
-    enabled: false
+    enabled: true
     image: screenshotter
     port: 3030
     replicas: 1
+    # HPA cap — Chromium concurrency is governed in-pod (SCREENSHOTTER_MAX_
+    # CONCURRENCY), so scaling out replicas buys little; 2 covers a rollout surge.
+    maxReplicas: 2
     path: ''
     readOnlyRootFilesystem: false
     tmpSizeLimit: 512Mi

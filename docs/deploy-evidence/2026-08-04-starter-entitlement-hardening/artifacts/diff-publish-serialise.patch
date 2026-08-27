@@ -1,0 +1,207 @@
+diff --git a/services/api/src/app.ts b/services/api/src/app.ts
+index 4445854e..02bdf905 100644
+--- a/services/api/src/app.ts
++++ b/services/api/src/app.ts
+@@ -31,6 +31,9 @@ import {
+   StripeBillingClient,
+   assertQuota,
+   assertPublishEntitlement,
++  isPublicationActive,
++  publishedProjectTtlDays,
++  toEntitlementPlanKey,
+   EntitlementError,
+   aiModelCatalog,
+   availableMachineSizes,
+@@ -7854,6 +7857,43 @@ export function shouldRetryAgentHop(opts: {
+   return idempotent && transient;
+ }
+ 
++
++/**
++ * Une publication Starter a-t-elle dépassé sa durée de vie ?
++ *
++ * L'offre annonce que l'app publiée « descend » au bout de 30 jours. Tant que
++ * cette extinction n'existe que dans le COMPTEUR d'entitlement, l'URL continue
++ * de répondre : le produit dirait une chose et le serveur en ferait une autre.
++ * Cette fonction est appliquée dans le chemin de SERVICE pour que l'extinction
++ * soit réelle.
++ *
++ * Ne s'applique qu'aux publications de PRODUCTION d'une org Starter : une
++ * preview n'est pas une publication, et un plan payant n'a pas de TTL.
++ */
++export function publishedDeploymentExpired(input: {
++  planKey?: string;
++  environmentName?: string;
++  createdAt?: string;
++  now?: Date;
++}): boolean {
++  if (input.environmentName !== 'production' || !input.createdAt) {
++    return false;
++  }
++
++  const plan = toEntitlementPlanKey(input.planKey);
++  const ttlDays = publishedProjectTtlDays(plan);
++
++  if (ttlDays === null) {
++    return false;
++  }
++
++  return !isPublicationActive({
++    plan,
++    publishedAt: new Date(input.createdAt),
++    now: input.now ?? new Date(),
++  });
++}
++
+ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyInstance> {
+   const store = options.store ?? createDefaultStore();
+   const agentMemory = options.agentMemory ?? createDefaultAgentMemory(store);
+@@ -8378,6 +8418,27 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
+         .send({ error: 'Static deployment artifact not found', code: 'STATIC_DEPLOY_ARTIFACT_NOT_FOUND' });
+     }
+ 
++    /*
++     * EXTINCTION RÉELLE de la publication Starter arrivée à 30 jours. 410 Gone
++     * (et non 404) : la ressource a bien existé et son URL est définitivement
++     * retirée — republier crée une nouvelle publication. Sans ce gate, le
++     * produit annonçait une extinction qui n'avait jamais lieu.
++     */
++    if (
++      publishedDeploymentExpired({
++        planKey: ownerStatus.planKey,
++        environmentName: ownerStatus.environmentName,
++        createdAt: ownerStatus.createdAt,
++      })
++    ) {
++      reply.header('cache-control', 'no-store');
++
++      return reply.code(410).send({
++        error: "Cette publication a expiré. Republiez le projet pour remettre l'adresse en ligne.",
++        code: 'PUBLISHED_DEPLOYMENT_EXPIRED',
++      });
++    }
++
+     /*
+      * P104: password-protected deployments (the pricing page advertises them).
+      * A gated deployment serves NO byte to a visitor without a valid access
+@@ -32339,45 +32400,95 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
+     /*
+      * ---- Contrat Starter : projets publiés ACTIFS (pas « déploiements ») ----
+      *
+-     * L'offre gratuite autorise UN projet publié à la fois. Trois conséquences
+-     * que le modèle précédent (« cap de déploiements ») ratait :
++     * L'offre gratuite autorise UN projet publié à la fois :
+      *  - republier le MÊME projet est toujours autorisé — sinon on interdirait
+      *    de corriger un bug en production ;
+-     *  - seul un DEUXIÈME projet distinct déclenche l'invitation à monter de
+-     *    plan ;
+-     *  - une publication Starter s'éteint au bout de 30 jours et cesse alors de
+-     *    consommer la place, ce qui permet de republier sans intervention.
++     *  - seul un DEUXIÈME projet distinct déclenche l'invitation à monter de plan.
+      *
+-     * Hors du flag crédits : un entitlement décrit l'OFFRE, pas le modèle de
+-     * facturation à l'usage ; derrière un flag non défini, il n'applique rien.
+-     */
+-    const publications = await store.listPublishedProjects(project.organizationId).catch(() => []);
+-    const entitlementPlanKey = (await billingState(project.organizationId).catch(() => undefined))?.plan.key;
++     * SÉRIALISÉ PAR ORGANISATION (advisory lock PostgreSQL, cf.
++     * withSerializedMutation) : lecture des publications + décision d'entitlement
++     * + création du déploiement forment UNE SEULE section critique. Séparées,
++     * deux publishes simultanés de projets différents lisaient tous les deux
++     * « 0 actif » et passaient tous les deux — le plafond ne tenait pas sous
++     * concurrence. Le lock est pris par ORG (et non par projet) parce que c'est
++     * l'org qui porte le quota.
++     *
++     * FAIL-CLOSED : aucune de ces lectures n'est neutralisée par un `.catch`.
++     * Une erreur de lecture des publications ou de l'état de facturation ne doit
++     * JAMAIS se traduire par « 0 publication active » — ce serait un quota remis
++     * à zéro par une panne. On refuse temporairement (503) et on réessaiera.
++     */
++    const publishOutcome = await store.withSerializedMutation(
++      `publish:org:${project.organizationId}`,
++      async (): Promise<
++        { ok: true; deployment: Awaited<ReturnType<typeof store.createDeployment>> } | { ok: false; response: unknown; status: number }
++      > => {
++        let publications: Array<{ projectId: string; publishedAt: string }>;
++        let entitlementPlanKey: string | undefined;
+ 
+-    try {
+-      assertPublishEntitlement({
+-        planKey: entitlementPlanKey,
+-        targetProjectId: project.id,
+-        publications: publications.map((p) => ({ projectId: p.projectId, publishedAt: new Date(p.publishedAt) })),
+-      });
+-    } catch (error) {
+-      if (error instanceof EntitlementError) {
++        try {
++          publications = await store.listPublishedProjects(project.organizationId);
++          entitlementPlanKey = (await billingState(project.organizationId))?.plan.key;
++        } catch (error) {
++          request.log?.error?.(
++            { err: error, organizationId: project.organizationId },
++            'publish entitlement precheck failed — refusing (fail-closed)',
++          );
++
++          return {
++            ok: false,
++            status: 503,
++            response: {
++              error:
++                "Impossible de vérifier les limites de votre plan pour le moment. Réessayez dans un instant — aucune publication n'a été créée.",
++              code: 'ENTITLEMENT_CHECK_UNAVAILABLE',
++              retryable: true,
++            },
++          };
++        }
++
++        try {
++          assertPublishEntitlement({
++            planKey: entitlementPlanKey,
++            targetProjectId: project.id,
++            publications: publications.map((p) => ({ projectId: p.projectId, publishedAt: new Date(p.publishedAt) })),
++          });
++        } catch (error) {
++          if (error instanceof EntitlementError) {
++            return {
++              ok: false,
++              status: error.statusCode,
++              response: { error: error.message, code: error.code, ...error.details },
++            };
++          }
++
++          throw error;
++        }
++
++        // Création DANS la section critique : c'est elle qui rend le plafond réel.
++        const publishUrl = source.url ?? source.previewUrl ?? buildDeploymentUrl(project, source);
++
++        return { ok: true, deployment: await store.createDeployment(buildPublishedDeploymentInput(source, publishUrl)) };
++      },
++    );
++
++    if (!publishOutcome.ok) {
++      if (publishOutcome.status === 402) {
+         await audit(request, store, {
+           organizationId: project.organizationId,
+           action: 'entitlement.refused',
+           resourceType: 'deployment',
+           resourceId: deploymentId,
+-          metadata: { code: error.code, ...error.details },
++          metadata: publishOutcome.response as Record<string, unknown>,
+         });
+-
+-        return reply.code(error.statusCode).send({ error: error.message, code: error.code, ...error.details });
+       }
+ 
+-      throw error;
++      return reply.code(publishOutcome.status).send(publishOutcome.response);
+     }
+ 
+-    const publishUrl = source.url ?? source.previewUrl ?? buildDeploymentUrl(project, source);
+-    const published = await store.createDeployment(buildPublishedDeploymentInput(source, publishUrl));
++    const published = publishOutcome.deployment;
++
++
+ 
+     /*
+      * P2d: publishing gives the project a real PRODUCTION database, distinct

@@ -1,14 +1,19 @@
+import { useTranslation } from 'react-i18next';
 import type { MetaFunction } from 'react-router';
 import { useLoaderData, useRevalidator } from 'react-router';
 import { AsyncPanelError, AsyncPanelSkeleton } from '~/components/dashboard/AsyncPanelState';
 import { AppShell, ProjectGrid } from '~/components/dashboard/SaaSLayout';
 import { projectStackLabel } from '~/lib/dashboard-project-stack';
 import { apiRequest, firstOrganizationOrNull, redirect, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
+import { userAreaEn, userAreaFr } from '~/lib/i18n/catalogs/user-area';
+import { resolveRequestLocale } from '~/lib/i18n/request-locale';
 import { formatUserAreaDateTime } from '~/lib/i18n/user-area-locale';
 import { projectLifecycle, projectLifecycleDisplayLabel } from '~/lib/project-card-presentation';
 import { isReauthRedirect } from '~/lib/route-reauth';
 
-export const meta: MetaFunction = () => [{ title: 'Recent projects - E-Code' }];
+export const meta: MetaFunction<typeof loader> = ({ data }) => [
+  { title: (data?.language === 'fr' ? userAreaFr : userAreaEn)['recentProjects.metaTitle'] },
+];
 export { UserAreaRouteErrorBoundary as ErrorBoundary } from '~/components/dashboard/UserAreaRouteError';
 
 type ApiProject = {
@@ -21,6 +26,7 @@ type ApiProject = {
 };
 
 export async function loader({ request }: EnterpriseLoaderArgs) {
+  const language = resolveRequestLocale(request).language;
   const organization = await firstOrganizationOrNull(request);
 
   if (!organization) {
@@ -41,16 +47,20 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
           return {
             id: project.id,
             name: project.name,
-            status: projectLifecycleDisplayLabel(lifecycle),
+            status: projectLifecycleDisplayLabel(lifecycle, language),
             lifecycle,
             deploymentCount: project.deploymentCount,
-            updated: project.updatedAt ? (formatUserAreaDateTime(project.updatedAt) ?? 'recently') : 'recently',
+            updated: project.updatedAt
+              ? (formatUserAreaDateTime(project.updatedAt, undefined, language) ??
+                (language === 'fr' ? userAreaFr : userAreaEn)['userArea.project.recently'])
+              : (language === 'fr' ? userAreaFr : userAreaEn)['userArea.project.recently'],
             updatedAtIso: project.updatedAt,
-            stack: projectStackLabel(project),
+            stack: projectStackLabel(project, language),
             sourceType: project.sourceType,
             previewImageUrl: `/api/projects/${project.id}/thumbnail`,
           };
         }),
+      language,
       projectsUnavailable: false,
     };
   } catch (error) {
@@ -58,32 +68,34 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
       throw error;
     }
 
-    return { projects: [], projectsUnavailable: true };
+    return { language, projects: [], projectsUnavailable: true };
   }
 }
 
 export default function RecentProjectsPage() {
+  const { t } = useTranslation();
   const { projects, projectsUnavailable } = useLoaderData<typeof loader>();
   const revalidator = useRevalidator();
   const retrying = revalidator.state !== 'idle';
 
   return (
-    <AppShell
-      title="Recent projects"
-      description="Continue from the projects and workspaces you touched most recently."
-    >
+    <AppShell title={t('recentProjects.title')} description={t('recentProjects.description')}>
       {projectsUnavailable ? (
         retrying ? (
-          <AsyncPanelSkeleton label="Loading recent projects" rows={4} />
+          <AsyncPanelSkeleton label={t('recentProjects.loading')} rows={4} />
         ) : (
           <AsyncPanelError
-            title="Recent projects could not load"
-            description="The project list is hidden because the latest request failed. No project was changed."
+            title={t('recentProjects.loadFailedTitle')}
+            description={t('recentProjects.loadFailedBody')}
             onRetry={revalidator.revalidate}
           />
         )
       ) : (
-        <ProjectGrid projects={projects} />
+        <>
+          {/* BUG-USR-007: h1→h2→h3 heading order (cards are h3); sr-only. */}
+          <h2 className="sr-only">{t('recentProjects.listHeading')}</h2>
+          <ProjectGrid projects={projects} />
+        </>
       )}
     </AppShell>
   );

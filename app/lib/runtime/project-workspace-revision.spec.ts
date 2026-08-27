@@ -5,10 +5,25 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { fetchPersistedProjectRevision } from './ProjectWorkspaceProvider';
 
-function response(init: { ok?: boolean; etag?: string | null; body?: unknown }) {
+/*
+ * BUG-RUNTIME-DIVERGENCE (option A, signal 3) — CHANGEMENT DE CONTRAT assumé.
+ *
+ * Ces tests décrivaient l'ancienne source de vérité : l'ETag de l'ide-state,
+ * c'est-à-dire `ideState.version`. Or cette version est incrémentée par les
+ * écritures d'INTERFACE — ouvrir un onglet, déplacer le curseur. Mesuré en réel
+ * sur une seule session : 5 → 9 sans qu'un fichier ait changé. La comparaison
+ * concluait donc « le stockage a bougé » à presque chaque réouverture et forçait
+ * le reseed : c'est exactement le symptôme signalé (« ça recharge et reconstruit
+ * au lieu de montrer l'app comme on l'a laissée »).
+ *
+ * La révision vient désormais de `GET /files-revision`, dérivée des chemins,
+ * dates et tailles — donc insensible aux écritures d'interface.
+ */
+
+function response(init: { ok?: boolean; body?: unknown }) {
   return {
     ok: init.ok ?? true,
-    headers: { get: (k: string) => (k.toLowerCase() === 'etag' ? (init.etag ?? null) : null) },
+    headers: { get: () => null },
     json: async () => init.body,
   } as unknown as Response;
 }
@@ -16,25 +31,31 @@ function response(init: { ok?: boolean; etag?: string | null; body?: unknown }) 
 describe('fetchPersistedProjectRevision', () => {
   afterEach(() => vi.unstubAllGlobals());
 
-  it('prefers the persisted ide-state ETag (the version) — cheap, no body parse', async () => {
-    const json = vi.fn(async () => ({ ideState: { version: 99 } }));
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async () => ({ ...response({ etag: '"7"' }), json })),
-    );
-    await expect(fetchPersistedProjectRevision('p1')).resolves.toBe('"7"');
-    expect(json).not.toHaveBeenCalled();
+  it('interroge /files-revision, et non plus l_ide-state', async () => {
+    const fetchMock = vi.fn(async () => response({ body: { revision: 'abc123' } }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(fetchPersistedProjectRevision('p1')).resolves.toBe('abc123');
+
+    const url = String(fetchMock.mock.calls[0]?.[0]);
+    expect(url).toContain('/files-revision');
+    expect(url).not.toContain('/ide-state');
   });
 
-  it('falls back to the body version when no ETag header is present', async () => {
+  it('ignore désormais `ideState.version` même si la réponse en porte une', async () => {
+    /*
+     * Garde de non-régression : c'est cette valeur-là qui provoquait les reseeds
+     * injustifiés. Elle ne doit plus jamais devenir la révision.
+     */
     vi.stubGlobal(
       'fetch',
-      vi.fn(async () => response({ etag: null, body: { ideState: { version: 12 } } })),
+      vi.fn(async () => response({ body: { revision: 'abc123', ideState: { version: 99 } } })),
     );
-    await expect(fetchPersistedProjectRevision('p1')).resolves.toBe('12');
+
+    await expect(fetchPersistedProjectRevision('p1')).resolves.toBe('abc123');
   });
 
-  it('returns undefined on a non-ok response (falls back to marker-only behaviour)', async () => {
+  it('rend undefined sur une réponse non-ok (repli sur le comportement antérieur)', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async () => response({ ok: false })),
@@ -42,15 +63,29 @@ describe('fetchPersistedProjectRevision', () => {
     await expect(fetchPersistedProjectRevision('p1')).resolves.toBeUndefined();
   });
 
-  it('returns undefined when the ide-state has never been persisted (no version)', async () => {
+  it('rend undefined quand la révision est absente ou vide', async () => {
     vi.stubGlobal(
       'fetch',
-      vi.fn(async () => response({ etag: null, body: { ideState: null } })),
+      vi.fn(async () => response({ body: { revision: '' } })),
+    );
+    await expect(fetchPersistedProjectRevision('p1')).resolves.toBeUndefined();
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => response({ body: {} })),
     );
     await expect(fetchPersistedProjectRevision('p1')).resolves.toBeUndefined();
   });
 
-  it('returns undefined (never throws) when the fetch itself fails', async () => {
+  it('rend undefined quand la révision n_est pas une chaîne (réponse malformée)', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => response({ body: { revision: 42 } })),
+    );
+    await expect(fetchPersistedProjectRevision('p1')).resolves.toBeUndefined();
+  });
+
+  it('rend undefined (ne lève jamais) quand le fetch lui-même échoue', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async () => {

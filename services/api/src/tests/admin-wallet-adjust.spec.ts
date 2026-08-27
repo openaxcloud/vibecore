@@ -30,7 +30,12 @@ async function setup() {
   });
   await store.updateUser({ userId: admin.id, mfaEnabled: true });
   await store.createSession({ userId: admin.id, token: 'admin-token', expiresAt: new Date(Date.now() + 3600_000) });
-  await app.inject({ method: 'POST', url: '/auth/reauth', headers: auth('admin-token'), payload: { password: 'password123' } });
+  await app.inject({
+    method: 'POST',
+    url: '/auth/reauth',
+    headers: auth('admin-token'),
+    payload: { password: 'password123' },
+  });
 
   // a non-admin session, to prove the guard
   await store.createSession({ userId: owner.id, token: 'owner-token', expiresAt: new Date(Date.now() + 3600_000) });
@@ -167,5 +172,103 @@ describe('admin wallet adjust', () => {
       headers: auth('owner-token'),
     });
     expect(denied.statusCode).toBe(403);
+  });
+
+  it('localizes platform ledger reasons in French while preserving operator content and identifiers', async () => {
+    const { app, store, org } = await setup();
+    const platformEntries = [
+      { kind: 'CONSUMPTION' as const, reason: 'workspace compute' },
+      { kind: 'CONSUMPTION' as const, reason: 'object storage' },
+      { kind: 'CONSUMPTION' as const, reason: 'database compute' },
+      { kind: 'CONSUMPTION' as const, reason: 'database storage' },
+      { kind: 'CONSUMPTION' as const, reason: 'deployment reserved-vm' },
+      { kind: 'CONSUMPTION' as const, reason: 'agent checkpoint' },
+      { kind: 'CONSUMPTION' as const, reason: 'agent checkpoint (overdraw reversal)' },
+      { kind: 'EXPIRY' as const, reason: 'rollover cap exceeded' },
+      { kind: 'EXPIRY' as const, reason: 'prior grant expired (no rollover)' },
+      { kind: 'GRANT' as const, reason: 'pro monthly grant' },
+      { kind: 'GRANT' as const, reason: 'starter daily grant' },
+      { kind: 'PAYG_CHARGE' as const, reason: 'PAYG overage (billed to Stripe metered usage)' },
+    ];
+
+    for (const entry of platformEntries) {
+      await store.recordCreditEntry({
+        organizationId: org.id,
+        deltaCents: entry.kind === 'GRANT' ? 100 : -1,
+        kind: entry.kind,
+        reason: entry.reason,
+      });
+    }
+
+    await store.recordCreditEntry({
+      organizationId: org.id,
+      deltaCents: 25,
+      kind: 'ADJUSTMENT',
+      reason: 'workspace compute',
+    });
+    await store.recordCreditEntry({
+      organizationId: org.id,
+      deltaCents: 25,
+      kind: 'ADJUSTMENT',
+      reason: 'Customer goodwill for London workspace',
+    });
+
+    const french = await app.inject({
+      method: 'GET',
+      url: `/admin/wallets/${org.id}/ledger`,
+      headers: { ...auth('admin-token'), 'accept-language': 'fr-FR,fr;q=0.9,en;q=0.7' },
+    });
+
+    expect(french.statusCode).toBe(200);
+    expect(french.headers['content-language']).toBe('fr');
+
+    const frenchLedger = french.json().ledger as Array<{ kind: string; reason: string }>;
+    const frenchReasons = frenchLedger.map((entry) => entry.reason);
+    expect(frenchReasons).toEqual(
+      expect.arrayContaining([
+        'Calcul de l’espace de travail',
+        'Stockage d’objets',
+        'Calcul de la base de données',
+        'Stockage de la base de données',
+        'Déploiement reserved-vm',
+        'Point de contrôle de l’agent',
+        'Point de contrôle de l’agent (contrepassation du dépassement de solde)',
+        'Plafond de report dépassé',
+        'Attribution précédente expirée (sans report)',
+        'Attribution mensuelle du forfait pro',
+        'Attribution quotidienne du forfait starter',
+        'Dépassement PAYG (facturé via l’usage mesuré par Stripe)',
+        'workspace compute',
+        'Customer goodwill for London workspace',
+      ]),
+    );
+
+    const frenchSystemReasons = frenchLedger
+      .filter((entry) => entry.kind !== 'ADJUSTMENT')
+      .map((entry) => entry.reason);
+
+    for (const englishPlatformReason of platformEntries.map((entry) => entry.reason)) {
+      expect(frenchSystemReasons).not.toContain(englishPlatformReason);
+    }
+
+    const english = await app.inject({
+      method: 'GET',
+      url: `/admin/wallets/${org.id}/ledger`,
+      headers: { ...auth('admin-token'), 'accept-language': 'en-US,en;q=0.9' },
+    });
+    const englishReasons = (english.json().ledger as Array<{ reason: string }>).map((entry) => entry.reason);
+
+    expect(english.headers['content-language']).toBe('en');
+    expect(englishReasons).toEqual(
+      expect.arrayContaining([
+        'Workspace compute',
+        'Deployment reserved-vm',
+        'Agent checkpoint (overdraw reversal)',
+        'Monthly grant for the pro plan',
+        'PAYG overage (billed through Stripe metered usage)',
+        'workspace compute',
+        'Customer goodwill for London workspace',
+      ]),
+    );
   });
 });

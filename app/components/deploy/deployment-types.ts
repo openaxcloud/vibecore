@@ -1,3 +1,9 @@
+import {
+  getDeployRemainingCopy,
+  type DeployRemainingCopy,
+  type DeployRemainingKey,
+} from '~/lib/i18n/catalogs/deploy-remaining';
+
 /**
  * Replit-parity deployment-type model for the Publish panel.
  *
@@ -36,57 +42,92 @@ export interface DeploymentType {
   requires?: { code: string[]; infra: string[] };
 }
 
-export const DEPLOYMENT_TYPES: readonly DeploymentType[] = [
-  {
-    id: 'static',
-    name: 'Static',
-    tagline: 'Build once, serve the output as a fast static site.',
-    description:
-      'Runs your build command and publishes the output directory to a public URL. Best for SPAs, generated sites and front-end apps that do not need a running server.',
-    status: 'available',
-    bestFor: 'Static sites & SPAs (React, Vue, Astro, plain HTML)',
+type DeploymentTypeCopyKeys = Readonly<{
+  name: DeployRemainingKey;
+  tagline: DeployRemainingKey;
+  detailKey: DeployRemainingKey;
+  bestFor: DeployRemainingKey;
+}>;
+
+const DEPLOYMENT_TYPE_COPY_KEYS: Readonly<Record<DeploymentTypeId, DeploymentTypeCopyKeys>> = {
+  static: {
+    name: 'deployRemaining.type.static.name',
+    tagline: 'deployRemaining.type.static.tagline',
+    detailKey: 'deployRemaining.type.static.description',
+    bestFor: 'deployRemaining.type.static.bestFor',
   },
-  {
-    id: 'autoscale',
-    name: 'Autoscale',
-    tagline: 'Run a server that scales with traffic and to zero when idle.',
-    description:
-      'Runs your app as a managed HTTP service on a durable runtime. Best for full-stack apps with a backend (Next.js SSR, Express, Remix server). The runtime, build and start command are auto-detected from your project.',
-    status: 'available',
-    bestFor: 'Full-stack apps with a server (SSR, APIs)',
+  autoscale: {
+    name: 'deployRemaining.type.autoscale.name',
+    tagline: 'deployRemaining.type.autoscale.tagline',
+    detailKey: 'deployRemaining.type.autoscale.description',
+    bestFor: 'deployRemaining.type.autoscale.bestFor',
   },
-  {
-    id: 'reserved-vm',
-    name: 'Reserved VM',
-    tagline: 'A dedicated always-on machine for predictable workloads.',
-    description:
-      'Runs your app on a dedicated, always-on instance with reserved CPU/RAM. Best for stateful servers, WebSocket apps, bots and workloads that must never cold-start.',
-    status: 'coming-soon',
-    bestFor: 'Always-on servers, bots, WebSocket apps',
+  'reserved-vm': {
+    name: 'deployRemaining.type.reservedVm.name',
+    tagline: 'deployRemaining.type.reservedVm.tagline',
+    detailKey: 'deployRemaining.type.reservedVm.description',
+    bestFor: 'deployRemaining.type.reservedVm.bestFor',
+  },
+  scheduled: {
+    name: 'deployRemaining.type.scheduled.name',
+    tagline: 'deployRemaining.type.scheduled.tagline',
+    detailKey: 'deployRemaining.type.scheduled.description',
+    bestFor: 'deployRemaining.type.scheduled.bestFor',
+  },
+};
+
+const DEPLOYMENT_TYPE_STATUS: Readonly<Record<DeploymentTypeId, DeploymentTypeStatus>> = {
+  static: 'available',
+  autoscale: 'available',
+  'reserved-vm': 'coming-soon',
+  scheduled: 'available',
+};
+
+const DEPLOYMENT_TYPE_IDS: readonly DeploymentTypeId[] = ['static', 'autoscale', 'reserved-vm', 'scheduled'];
+
+function createDeploymentType(id: DeploymentTypeId, copy: DeployRemainingCopy): DeploymentType {
+  const keys = DEPLOYMENT_TYPE_COPY_KEYS[id];
+
+  const base = {
+    id,
+    name: copy[keys.name],
+    tagline: copy[keys.tagline],
+    description: copy[keys.detailKey],
+    status: DEPLOYMENT_TYPE_STATUS[id],
+    bestFor: copy[keys.bestFor],
+  } satisfies DeploymentType;
+
+  if (id !== 'reserved-vm') {
+    return base;
+  }
+
+  return {
+    ...base,
     requires: {
-      code: ['Reserved-tier selection + provisioning route', 'Lifecycle controls (start/stop/restart) + logs'],
-      infra: ['Dedicated node pool / reserved compute', 'Host-based ingress + TLS', 'Persistent attached storage'],
+      code: [
+        copy['deployRemaining.type.reservedVm.requires.code.selection'],
+        copy['deployRemaining.type.reservedVm.requires.code.lifecycle'],
+      ],
+      infra: [
+        copy['deployRemaining.type.reservedVm.requires.infra.compute'],
+        copy['deployRemaining.type.reservedVm.requires.infra.ingress'],
+        copy['deployRemaining.type.reservedVm.requires.infra.storage'],
+      ],
     },
-  },
-  {
-    id: 'scheduled',
-    name: 'Scheduled',
-    tagline: 'Run a command on a cron schedule.',
-    description:
-      'Runs a command on a recurring schedule inside your project sandbox, then stops. Billed for the seconds it actually ran (duration x machine size), not 24/7. Every run is kept with its exit code, duration and full logs. Best for batch jobs, data syncs, report generation and periodic maintenance.',
+  };
+}
 
-    /*
-     * Now real: the executor lives in the api (scheduled-tasks.ts) and is backed
-     * by the ScheduledTask / ScheduledTaskRun tables. See the Scheduled tab for
-     * the run history.
-     */
-    status: 'available',
-    bestFor: 'Cron jobs, batch tasks, periodic syncs',
-  },
-] as const;
+export function getDeploymentTypes(language?: string | null): readonly DeploymentType[] {
+  const copy = getDeployRemainingCopy(language);
 
-export function getDeploymentType(id: string): DeploymentType | undefined {
-  return DEPLOYMENT_TYPES.find((type) => type.id === id);
+  return DEPLOYMENT_TYPE_IDS.map((id) => createDeploymentType(id, copy));
+}
+
+/** Backward-compatible English data for non-React callers. */
+export const DEPLOYMENT_TYPES: readonly DeploymentType[] = getDeploymentTypes('en');
+
+export function getDeploymentType(id: string, language?: string | null): DeploymentType | undefined {
+  return getDeploymentTypes(language).find((type) => type.id === id);
 }
 
 export function isDeploymentTypeAvailable(id: string): boolean {

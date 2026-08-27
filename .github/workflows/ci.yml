@@ -26,7 +26,7 @@ jobs:
           POSTGRES_DB: vibecore
           POSTGRES_USER: vibecore
           POSTGRES_PASSWORD: vibecore
-        ports: ["55432:5432"]
+        ports: ['55432:5432']
         options: >-
           --health-cmd "pg_isready -U vibecore -d vibecore"
           --health-interval 5s
@@ -34,7 +34,7 @@ jobs:
           --health-retries 20
       redis:
         image: redis:7-alpine
-        ports: ["56379:6379"]
+        ports: ['56379:6379']
         options: >-
           --health-cmd "redis-cli ping"
           --health-interval 5s
@@ -72,6 +72,9 @@ jobs:
 
       - name: Lint
         run: pnpm run lint
+
+      - name: I18n catalogs and source regression guard
+        run: pnpm run i18n:check
 
       - name: Typecheck
         run: pnpm run typecheck

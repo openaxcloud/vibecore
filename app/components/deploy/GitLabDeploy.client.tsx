@@ -1,7 +1,15 @@
 import { useStore } from '@nanostores/react';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
-import { formatBuildFailureOutput } from './deployUtils';
+import { DEFAULT_DEPLOY_BUILD_COMMAND, formatBuildFailureOutput } from './deployUtils';
+import {
+  getDeployRemainingCopy,
+  getRepositoryDeployErrorMessage,
+  getRepositoryDeployStatusMessage,
+  type RepositoryDeployErrorCode,
+  type RepositoryDeployStatus,
+} from '~/lib/i18n/catalogs/deploy-remaining';
 import { getLocalStorage } from '~/lib/persistence/localStorage';
 import { chatId } from '~/lib/persistence/useChatHistory';
 import { useRuntimeAdapter } from '~/lib/runtime/RuntimeAdapterProvider';
@@ -9,31 +17,51 @@ import type { ActionCallbackData } from '~/lib/runtime/message-parser';
 import { collectRuntimeTextFiles } from '~/lib/runtime/runtime-files';
 import { workbenchStore } from '~/lib/stores/workbench';
 
+class GitLabDeployError extends Error {
+  constructor(
+    readonly code: Extract<RepositoryDeployErrorCode, 'no-active-project' | 'build-failed' | 'preparation-failed'>,
+    readonly technicalCause?: unknown,
+  ) {
+    super(code);
+    this.name = 'GitLabDeployError';
+  }
+}
+
 export function useGitLabDeploy() {
+  const { i18n } = useTranslation();
   const runtimeAdapter = useRuntimeAdapter();
   const [isDeploying, setIsDeploying] = useState(false);
+  const [deploymentStatus, setDeploymentStatus] = useState<RepositoryDeployStatus>('idle');
   const currentChatId = useStore(chatId);
+  const language = i18n.resolvedLanguage ?? i18n.language;
+
+  const currentLanguage = () => i18n.resolvedLanguage ?? i18n.language;
 
   const handleGitLabDeploy = async () => {
     const connection = getLocalStorage('gitlab_connection');
 
     if (!connection?.token || !connection?.user) {
-      toast.error('Please connect your GitLab account in Settings > Connections first');
+      setDeploymentStatus('error');
+      toast.error(getRepositoryDeployErrorMessage(currentLanguage(), 'gitlab', 'connect-first'));
+
       return false;
     }
 
     if (!currentChatId) {
-      toast.error('No active chat found');
+      setDeploymentStatus('error');
+      toast.error(getRepositoryDeployErrorMessage(currentLanguage(), 'gitlab', 'no-active-chat'));
+
       return false;
     }
 
     try {
       setIsDeploying(true);
+      setDeploymentStatus('building');
 
       const artifact = workbenchStore.firstArtifact;
 
       if (!artifact) {
-        throw new Error('No active project found');
+        throw new GitLabDeployError('no-active-project');
       }
 
       // Create a deployment artifact for visual feedback
@@ -41,7 +69,7 @@ export function useGitLabDeploy() {
       workbenchStore.addArtifact({
         id: deploymentId,
         messageId: deploymentId,
-        title: 'GitLab Deployment',
+        title: getDeployRemainingCopy(currentLanguage())['deployRemaining.repository.gitlab.artifactTitle'],
         type: 'standalone',
       });
 
@@ -58,7 +86,7 @@ export function useGitLabDeploy() {
         actionId,
         action: {
           type: 'build' as const,
-          content: 'npm run build',
+          content: DEFAULT_DEPLOY_BUILD_COMMAND,
         },
       };
 
@@ -71,15 +99,20 @@ export function useGitLabDeploy() {
       const buildOutput = artifact.runner.buildOutput;
 
       if (!buildOutput || buildOutput.exitCode !== 0) {
+        const technicalOutput = formatBuildFailureOutput(buildOutput?.output);
+
+        console.error('GitLab build failed:', technicalOutput);
+
         // Notify that build failed
         deployArtifact.runner.handleDeployAction('building', 'failed', {
-          error: formatBuildFailureOutput(buildOutput?.output),
+          error: getRepositoryDeployErrorMessage(currentLanguage(), 'gitlab', 'build-failed'),
           source: 'gitlab',
         });
-        throw new Error('Build failed');
+        throw new GitLabDeployError('build-failed', technicalOutput);
       }
 
       // Notify that build succeeded and deployment preparation is starting
+      setDeploymentStatus('preparing');
       deployArtifact.runner.handleDeployAction('deploying', 'running', {
         source: 'gitlab',
       });
@@ -103,7 +136,8 @@ export function useGitLabDeploy() {
       });
 
       // Show success toast notification
-      toast.success(`🚀 GitLab deployment preparation completed successfully!`);
+      setDeploymentStatus('success');
+      toast.success(getDeployRemainingCopy(currentLanguage())['deployRemaining.repository.gitlab.success']);
 
       return {
         success: true,
@@ -112,7 +146,11 @@ export function useGitLabDeploy() {
       };
     } catch (err) {
       console.error('GitLab deploy error:', err);
-      toast.error(err instanceof Error ? err.message : 'GitLab deployment preparation failed');
+      setDeploymentStatus('error');
+
+      const errorCode = err instanceof GitLabDeployError ? err.code : 'preparation-failed';
+
+      toast.error(getRepositoryDeployErrorMessage(currentLanguage(), 'gitlab', errorCode));
 
       return false;
     } finally {
@@ -124,5 +162,7 @@ export function useGitLabDeploy() {
     isDeploying,
     handleGitLabDeploy,
     isConnected: !!getLocalStorage('gitlab_connection')?.user,
+    deploymentStatus,
+    statusMessage: getRepositoryDeployStatusMessage(language, deploymentStatus),
   };
 }

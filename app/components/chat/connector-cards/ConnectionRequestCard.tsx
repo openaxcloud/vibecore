@@ -1,4 +1,5 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '~/components/ui/Button';
 import type {
   ConnectionRequestMessage,
@@ -6,6 +7,11 @@ import type {
   ExistingAccountConnection,
 } from '~/lib/chat/connector-messages';
 import { useConnectorPopup } from '~/lib/chat/use-connector-popup';
+import {
+  formatChatConnectorsCopy,
+  formatChatConnectorsPlural,
+  getChatConnectorsCopy,
+} from '~/lib/i18n/catalogs/chat-connectors';
 
 /*
  * The only validation between the agent stream and this component (in
@@ -57,9 +63,45 @@ export interface ConnectionRequestCardProps {
 }
 
 export function ConnectionRequestCard({ payload, projectId, onResolved, onFailed }: ConnectionRequestCardProps) {
+  const { i18n } = useTranslation();
+  const language = i18n.resolvedLanguage ?? i18n.language;
+  const copy = getChatConnectorsCopy(language);
   const { state, launch, reset } = useConnectorPopup();
   const [networkError, setNetworkError] = useState<string | null>(null);
   const [pendingExistingId, setPendingExistingId] = useState<string | null>(null);
+  const notifiedResultRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (state.phase === 'launching' || state.phase === 'idle') {
+      notifiedResultRef.current = null;
+
+      return;
+    }
+
+    if (state.phase === 'succeeded') {
+      const resultKey = `succeeded:${state.result.userConnectionId}`;
+
+      if (notifiedResultRef.current !== resultKey) {
+        notifiedResultRef.current = resultKey;
+        onResolved?.({
+          userConnectionId: state.result.userConnectionId,
+          accountLabel: state.result.accountLabel,
+        });
+      }
+
+      return;
+    }
+
+    const resultKey = `failed:${state.result.errorCode ?? 'unspecified'}`;
+
+    if (notifiedResultRef.current !== resultKey) {
+      notifiedResultRef.current = resultKey;
+      onFailed?.({
+        errorCode: state.result.errorCode,
+        errorMessage: copy['chatConnectors.connection.failureDefault'],
+      });
+    }
+  }, [copy, onFailed, onResolved, state]);
 
   const startOAuth = useCallback(async () => {
     setNetworkError(null);
@@ -72,22 +114,32 @@ export function ConnectionRequestCard({ payload, projectId, onResolved, onFailed
       });
 
       if (!response.ok) {
-        const parsed = (await response.json().catch(() => ({}))) as { error?: string; code?: string };
-        const message = parsed.error ?? `Failed to start OAuth flow (HTTP ${response.status})`;
+        const parsed = (await response.json().catch(() => ({}))) as { code?: unknown };
+        const errorCode = typeof parsed.code === 'string' ? parsed.code : undefined;
+        const message = copy['chatConnectors.connection.startFailed'];
         setNetworkError(message);
-        onFailed?.({ errorCode: parsed.code, errorMessage: message });
+        onFailed?.({ errorCode, errorMessage: message });
 
         return;
       }
 
-      const result = (await response.json()) as { provider: string; authorizationUrl: string };
+      const result = (await response.json()) as { provider?: unknown; authorizationUrl?: unknown };
+
+      if (
+        typeof result.authorizationUrl !== 'string' ||
+        typeof result.provider !== 'string' ||
+        result.provider !== payload.provider
+      ) {
+        throw new Error(payload.provider);
+      }
+
       launch({ authorizationUrl: result.authorizationUrl, provider: result.provider });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown failure starting OAuth flow.';
+    } catch {
+      const message = copy['chatConnectors.connection.startFailed'];
       setNetworkError(message);
       onFailed?.({ errorMessage: message });
     }
-  }, [launch, onFailed, payload.provider, projectId]);
+  }, [copy, launch, onFailed, payload.provider, projectId]);
 
   const linkExisting = useCallback(
     async (userConnectionId: string, accountLabel: string) => {
@@ -113,40 +165,43 @@ export function ConnectionRequestCard({ payload, projectId, onResolved, onFailed
         });
 
         if (!response.ok) {
-          const parsed = (await response.json().catch(() => ({}))) as { error?: string; code?: string };
-          const message = parsed.error ?? `Failed to link the existing connection (HTTP ${response.status})`;
+          const parsed = (await response.json().catch(() => ({}))) as { code?: unknown };
+          const errorCode = typeof parsed.code === 'string' ? parsed.code : undefined;
+          const message = copy['chatConnectors.connection.linkFailed'];
           setNetworkError(message);
-          onFailed?.({ errorCode: parsed.code, errorMessage: message });
+          onFailed?.({ errorCode, errorMessage: message });
 
           return;
         }
 
         onResolved?.({ userConnectionId, accountLabel });
-      } catch (error) {
-        const message = error instanceof Error ? error.message : 'Unknown failure linking existing connection.';
+      } catch {
+        const message = copy['chatConnectors.connection.linkFailed'];
         setNetworkError(message);
         onFailed?.({ errorMessage: message });
       } finally {
         setPendingExistingId(null);
       }
     },
-    [onFailed, onResolved, projectId],
+    [copy, onFailed, onResolved, projectId],
   );
 
   if (state.phase === 'succeeded') {
-    if (onResolved) {
-      onResolved({ userConnectionId: state.result.userConnectionId, accountLabel: state.result.accountLabel });
-    }
-
     return (
       <div className="my-2 rounded-lg border border-bolt-elements-borderColor p-4 bg-bolt-elements-background-depth-1">
         <div className="flex items-center gap-3">
-          <span className="i-ph:check-circle-fill w-5 h-5 text-bolt-elements-icon-success" />
-          <div>
+          <span className="i-ph:check-circle-fill h-5 w-5 shrink-0 text-bolt-elements-icon-success" aria-hidden />
+          <div className="min-w-0">
             <p className="text-sm font-medium text-bolt-elements-textPrimary">
-              Connected to {payload.providerDisplayName}
+              {formatChatConnectorsCopy(copy['chatConnectors.connection.connectedTo'], {
+                provider: payload.providerDisplayName,
+              })}
             </p>
-            <p className="text-xs text-bolt-elements-textSecondary">as {state.result.accountLabel}</p>
+            <p className="break-words text-xs text-bolt-elements-textSecondary">
+              {formatChatConnectorsCopy(copy['chatConnectors.connection.as'], {
+                account: state.result.accountLabel,
+              })}
+            </p>
           </div>
         </div>
       </div>
@@ -154,32 +209,34 @@ export function ConnectionRequestCard({ payload, projectId, onResolved, onFailed
   }
 
   if (state.phase === 'failed') {
-    if (onFailed) {
-      onFailed({ errorCode: state.result.errorCode, errorMessage: state.result.errorMessage });
-    }
-
     return (
       <div className="my-2 rounded-lg border border-bolt-elements-borderColor p-4 bg-bolt-elements-background-depth-1">
         <div className="flex items-start gap-3">
-          <span className="i-ph:x-circle-fill w-5 h-5 text-bolt-elements-icon-error" />
-          <div className="flex-1">
+          <span className="i-ph:x-circle-fill h-5 w-5 shrink-0 text-bolt-elements-icon-error" aria-hidden />
+          <div className="min-w-0 flex-1">
             <p className="text-sm font-medium text-bolt-elements-textPrimary">
-              {payload.providerDisplayName} connection failed
+              {formatChatConnectorsCopy(copy['chatConnectors.connection.failed'], {
+                provider: payload.providerDisplayName,
+              })}
             </p>
-            <p className="text-xs text-bolt-elements-textSecondary mt-1">
-              {state.result.errorMessage ?? 'The provider did not complete the connection.'}
+            <p className="mt-1 text-xs text-bolt-elements-textSecondary">
+              {copy['chatConnectors.connection.failureDefault']}
             </p>
             {state.result.errorCode ? (
-              <p className="text-xs text-bolt-elements-textTertiary mt-1">Code: {state.result.errorCode}</p>
+              <p className="mt-1 break-all text-xs text-bolt-elements-textTertiary">
+                {formatChatConnectorsCopy(copy['chatConnectors.connection.code'], {
+                  code: state.result.errorCode,
+                })}
+              </p>
             ) : null}
             <Button
               onClick={() => {
                 reset();
-                startOAuth();
+                void startOAuth();
               }}
-              className="mt-3"
+              className="mt-3 min-h-11 whitespace-normal"
             >
-              Try again
+              {copy['chatConnectors.connection.retry']}
             </Button>
           </div>
         </div>
@@ -197,20 +254,29 @@ export function ConnectionRequestCard({ payload, projectId, onResolved, onFailed
       <div className="flex items-start gap-3">
         <img
           src={payload.providerLogoUrl}
-          alt={`${payload.providerDisplayName} logo`}
-          className="w-8 h-8 rounded"
+          alt={formatChatConnectorsCopy(copy['chatConnectors.connection.logoAlt'], {
+            provider: payload.providerDisplayName,
+          })}
+          className="h-8 w-8 shrink-0 rounded"
           onError={(event) => {
             (event.target as HTMLImageElement).style.visibility = 'hidden';
           }}
         />
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-bolt-elements-textPrimary">Connect {payload.providerDisplayName}</p>
-          <p className="text-xs text-bolt-elements-textSecondary mt-1">{payload.reason}</p>
+          <p className="break-words text-sm font-medium text-bolt-elements-textPrimary">
+            {formatChatConnectorsCopy(copy['chatConnectors.connection.connect'], {
+              provider: payload.providerDisplayName,
+            })}
+          </p>
+          <p className="mt-1 break-words text-xs text-bolt-elements-textSecondary">{payload.reason}</p>
 
           {scopes.length > 0 ? (
             <details className="mt-2">
-              <summary className="cursor-pointer text-xs text-bolt-elements-textSecondary">
-                Requested permissions ({scopes.length})
+              <summary className="inline-flex min-h-11 cursor-pointer items-center text-xs text-bolt-elements-textSecondary">
+                {formatChatConnectorsPlural(language, scopes.length, {
+                  one: copy['chatConnectors.connection.permissions_one'],
+                  other: copy['chatConnectors.connection.permissions_other'],
+                })}
               </summary>
               <ul className="mt-2 space-y-1">
                 {scopes.map((scope) => (
@@ -228,23 +294,30 @@ export function ConnectionRequestCard({ payload, projectId, onResolved, onFailed
 
           {hasExisting ? (
             <div className="mt-3 space-y-2">
-              <p className="text-xs text-bolt-elements-textSecondary">Use an existing connection:</p>
+              <p className="text-xs text-bolt-elements-textSecondary">{copy['chatConnectors.connection.existing']}</p>
               {existingConnections.map((existing) => (
                 <div
                   key={existing.userConnectionId}
-                  className="flex items-center justify-between gap-3 rounded border border-bolt-elements-borderColor p-2"
+                  className="flex flex-col items-stretch justify-between gap-3 rounded border border-bolt-elements-borderColor p-2 sm:flex-row sm:items-center"
                 >
-                  <div>
-                    <p className="text-xs font-medium text-bolt-elements-textPrimary">{existing.accountLabel}</p>
+                  <div className="min-w-0">
+                    <p className="break-words text-xs font-medium text-bolt-elements-textPrimary">
+                      {existing.accountLabel}
+                    </p>
                     <p className="text-xs text-bolt-elements-textTertiary">
-                      {existing.scopesMatch ? 'Scopes match' : 'Different scopes — re-auth may be required'}
+                      {existing.scopesMatch
+                        ? copy['chatConnectors.connection.scopesMatch']
+                        : copy['chatConnectors.connection.scopesDiffer']}
                     </p>
                   </div>
                   <Button
                     onClick={() => linkExisting(existing.userConnectionId, existing.accountLabel)}
                     disabled={pendingExistingId === existing.userConnectionId}
+                    className="min-h-11 whitespace-normal sm:shrink-0"
                   >
-                    {pendingExistingId === existing.userConnectionId ? 'Linking...' : 'Use this'}
+                    {pendingExistingId === existing.userConnectionId
+                      ? copy['chatConnectors.connection.linking']
+                      : copy['chatConnectors.connection.useThis']}
                   </Button>
                 </div>
               ))}
@@ -252,18 +325,24 @@ export function ConnectionRequestCard({ payload, projectId, onResolved, onFailed
           ) : null}
 
           <div className="mt-3 flex items-center gap-2">
-            <Button onClick={startOAuth} disabled={isLaunching}>
+            <Button onClick={startOAuth} disabled={isLaunching} className="min-h-11 whitespace-normal">
               {isLaunching ? (
                 <span className="flex items-center gap-2">
-                  <span className="i-ph:spinner-gap-bold animate-spin w-4 h-4" />
-                  Waiting for {payload.providerDisplayName}...
+                  <span className="i-ph:spinner-gap-bold h-4 w-4 shrink-0 animate-spin" aria-hidden />
+                  {formatChatConnectorsCopy(copy['chatConnectors.connection.waiting'], {
+                    provider: payload.providerDisplayName,
+                  })}
                 </span>
               ) : (
                 <span className="flex items-center gap-2">
-                  <span className="i-ph:plug w-4 h-4" />
+                  <span className="i-ph:plug h-4 w-4 shrink-0" aria-hidden />
                   {hasExisting
-                    ? `Connect a new ${payload.providerDisplayName} account`
-                    : `Connect ${payload.providerDisplayName}`}
+                    ? formatChatConnectorsCopy(copy['chatConnectors.connection.connectNew'], {
+                        provider: payload.providerDisplayName,
+                      })
+                    : formatChatConnectorsCopy(copy['chatConnectors.connection.connect'], {
+                        provider: payload.providerDisplayName,
+                      })}
                 </span>
               )}
             </Button>

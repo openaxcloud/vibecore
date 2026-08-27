@@ -1,7 +1,9 @@
 import { useStore } from '@nanostores/react';
-import { memo, useEffect, useState } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { bundledLanguages, codeToHtml, isSpecialLang, type BundledLanguage, type SpecialLanguage } from 'shiki';
 import styles from './CodeBlock.module.scss';
+import { getChatResidualsCopy } from '~/lib/i18n/catalogs/chat-residuals';
 import { themeStore } from '~/lib/stores/theme';
 import { classNames } from '~/utils/classNames';
 import { createScopedLogger } from '~/utils/logger';
@@ -18,26 +20,50 @@ interface CodeBlockProps {
 
 export const CodeBlock = memo(
   ({ className, code, language = 'plaintext', theme, disableCopy = false }: CodeBlockProps) => {
+    const { i18n } = useTranslation();
+    const copy = getChatResidualsCopy(i18n.resolvedLanguage ?? i18n.language);
     const [html, setHTML] = useState<string | undefined>(undefined);
-    const [copied, setCopied] = useState(false);
+    const [copyStatus, setCopyStatus] = useState<'idle' | 'copied' | 'failed'>('idle');
+    const [highlightFailed, setHighlightFailed] = useState(false);
+    const copyResetTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
     /* Follow the active app theme unless an explicit `theme` override is passed. */
     const activeTheme = useStore(themeStore);
     const effectiveTheme = theme ?? (activeTheme === 'light' ? 'light-plus' : 'dark-plus');
 
-    const copyToClipboard = () => {
-      if (copied) {
+    const copyToClipboard = async () => {
+      if (copyStatus === 'copied') {
         return;
       }
 
-      navigator.clipboard?.writeText(code)?.catch(() => {});
+      if (copyResetTimer.current) {
+        clearTimeout(copyResetTimer.current);
+      }
 
-      setCopied(true);
+      try {
+        if (!navigator.clipboard) {
+          throw new Error();
+        }
 
-      setTimeout(() => {
-        setCopied(false);
+        await navigator.clipboard.writeText(code);
+        setCopyStatus('copied');
+      } catch {
+        setCopyStatus('failed');
+      }
+
+      copyResetTimer.current = setTimeout(() => {
+        setCopyStatus('idle');
       }, 2000);
     };
+
+    useEffect(
+      () => () => {
+        if (copyResetTimer.current) {
+          clearTimeout(copyResetTimer.current);
+        }
+      },
+      [],
+    );
 
     useEffect(() => {
       let effectiveLanguage = language;
@@ -58,10 +84,20 @@ export const CodeBlock = memo(
       let cancelled = false;
 
       const processCode = async () => {
-        const highlighted = await codeToHtml(code, { lang: effectiveLanguage, theme: effectiveTheme });
+        try {
+          const highlighted = await codeToHtml(code, { lang: effectiveLanguage, theme: effectiveTheme });
 
-        if (!cancelled) {
-          setHTML(highlighted);
+          if (!cancelled) {
+            setHTML(highlighted);
+            setHighlightFailed(false);
+          }
+        } catch (error) {
+          logger.error('Syntax highlighting failed', error);
+
+          if (!cancelled) {
+            setHTML(undefined);
+            setHighlightFailed(true);
+          }
         }
       };
 
@@ -84,7 +120,7 @@ export const CodeBlock = memo(
       <div className={classNames('relative group text-left', className)}>
         {languageLabel && (
           <span
-            className="absolute top-[10px] left-[12px] z-10 select-none rounded text-[10px] font-medium uppercase tracking-wide text-bolt-elements-textTertiary opacity-70 group-hover:opacity-100"
+            className="absolute top-[10px] left-[12px] z-10 select-none rounded text-[11px] font-medium uppercase tracking-wide text-bolt-elements-textTertiary opacity-70 group-hover:opacity-100"
             aria-hidden
           >
             {languageLabel}
@@ -93,32 +129,47 @@ export const CodeBlock = memo(
         <div
           className={classNames(
             styles.CopyButtonContainer,
-            'bg-transparent absolute top-[10px] right-[10px] rounded-md z-10 text-lg flex items-center justify-center opacity-0 group-hover:opacity-100',
+            'absolute right-[10px] top-[10px] z-10 flex items-center justify-center rounded-md bg-transparent text-lg opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100',
             {
-              'rounded-l-0 opacity-100': copied,
+              'rounded-l-0 opacity-100': copyStatus !== 'idle',
             },
           )}
         >
+          {copyStatus !== 'idle' ? (
+            <span
+              className="absolute right-full mr-1 flex min-h-8 max-w-[min(240px,calc(100vw-80px))] items-center rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-2 py-1 text-xs text-bolt-elements-textPrimary shadow-lg"
+              role="status"
+            >
+              {copyStatus === 'copied' ? copy['chatResiduals.code.copied'] : copy['chatResiduals.code.copyFailed']}
+            </span>
+          ) : null}
           {!disableCopy && (
             <button
               className={classNames(
                 styles.CopyButton,
-                'flex items-center p-[6px] justify-center rounded-md transition-theme',
-                {
-                  'before:opacity-0': !copied,
-                  'before:opacity-100': copied,
-                },
+                'flex min-h-11 min-w-11 items-center justify-center rounded-md p-[6px] transition-theme before:!hidden',
               )}
               type="button"
-              aria-label="Copy code"
-              title="Copy Code"
-              onClick={() => copyToClipboard()}
+              aria-label={copyStatus === 'copied' ? copy['chatResiduals.code.copied'] : copy['chatResiduals.code.copy']}
+              title={copy['chatResiduals.code.copy']}
+              onClick={() => void copyToClipboard()}
             >
               <div className="i-ph:clipboard-text-duotone" aria-hidden></div>
             </button>
           )}
         </div>
-        <div dangerouslySetInnerHTML={{ __html: html ?? '' }}></div>
+        {highlightFailed ? (
+          <div>
+            <p className="px-3 pt-3 text-xs text-bolt-elements-textSecondary" role="status">
+              {copy['chatResiduals.code.highlightFailed']}
+            </p>
+            <pre className="overflow-auto p-3 text-xs text-bolt-elements-textPrimary">
+              <code>{code}</code>
+            </pre>
+          </div>
+        ) : (
+          <div dangerouslySetInnerHTML={{ __html: html ?? '' }}></div>
+        )}
       </div>
     );
   },

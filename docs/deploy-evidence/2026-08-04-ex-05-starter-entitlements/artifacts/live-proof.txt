@@ -1,0 +1,38 @@
+EX-05 — PREUVE LIVE : entitlements Starter appliqués côté serveur
+=================================================================
+Banc : vraie API (services/api, tsx src/server.ts, PID 79006) sur port 3399
+       + vrai PostgreSQL 16 (pgvector/pgvector:pg16, port 55433), schéma Prisma
+       complet appliqué via `prisma migrate deploy`.
+Compte : créé par le VRAI endpoint POST /auth/register (HTTP 201), plan effectif
+         résolu par le serveur = `free` → replié sur `starter`.
+
+--- LIMITES DÉJÀ APPLIQUÉES (vérifiées en réel, refus 429 QUOTA_EXCEEDED) ---
+projects.count       limite 3 : projets 1,2,3 -> HTTP 201 ; projet 4 -> HTTP 429 QUOTA_EXCEEDED
+workspaces.active    limite 1 : ws 1 -> HTTP 201 ; ws 2 -> HTTP 429 QUOTA_EXCEEDED
+team.members         limite 1 : ajout d'un 2e membre réel -> HTTP 429 QUOTA_EXCEEDED
+snapshots.count      limite 5 : snaps 1..5 -> HTTP 201 ; snap 6 -> HTTP 429 QUOTA_EXCEEDED
+deployments.count    limite 0 : création de déploiement -> HTTP 429 QUOTA_EXCEEDED
+
+État DB après ces refus (aucun dépassement n'a fuité) :
+  deployments       | 0
+  org_members       | 1
+  projects          | 3
+  project_snapshots | 5
+  workspaces        | 1
+
+--- LIMITE AJOUTÉE PAR EX-05 : cap d'apps publiées par plan ---
+Contexte : le cap existant (20) était plan-INDÉPENDANT et derrière
+BILLING_CREDITS_ENABLED, non défini en production — donc jamais exécuté.
+
+publish app #1 -> HTTP 201
+publish app #2 -> HTTP 402
+  {"error":"Le plan starter autorise 1 application(s) publiée(s) simultanément.",
+   "code":"PLAN_PUBLISHED_APP_LIMIT","plan":"starter","cap":1,"active":1}
+
+État DB : apps_publiees = 1  (la 2e n'a pas été créée)
+Non-régression : republier l'app DÉJÀ publiée -> HTTP 201 (pas d'auto-blocage)
+Audit : action=entitlement.refused
+        metadata={"cap":1,"code":"PLAN_PUBLISHED_APP_LIMIT","plan":"starter","active":1}
+
+--- NETTOYAGE ---
+Compte jetable supprimé : Organization=0, User('ex05-%@proof.local')=0

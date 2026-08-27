@@ -2,7 +2,8 @@
  * @vitest-environment jsdom
  */
 
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { I18nextProvider } from 'react-i18next';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 /*
@@ -29,6 +30,7 @@ vi.mock('~/lib/stores/theme', async () => {
 });
 
 import { MermaidBlock } from './MermaidBlock';
+import { createI18nInstance } from '~/lib/i18n/runtime';
 
 afterEach(() => {
   cleanup();
@@ -36,13 +38,25 @@ afterEach(() => {
 });
 
 describe('MermaidBlock', () => {
+  function renderMermaid(code: string, language: 'en' | 'fr' = 'en') {
+    const i18n = createI18nInstance(language);
+
+    const result = render(
+      <I18nextProvider i18n={i18n}>
+        <MermaidBlock code={code} />
+      </I18nextProvider>,
+    );
+
+    return { ...result, i18n };
+  }
+
   it('renders the produced SVG on a successful render without throwing', async () => {
     /*
      * Before the fix this threw:
      * "Can only set one of `children` or `props.dangerouslySetInnerHTML`."
      * because the canvas <div> mixed dangerouslySetInnerHTML with JSX children.
      */
-    const { container } = render(<MermaidBlock code="graph TD; A-->B;" />);
+    const { container } = renderMermaid('graph TD; A-->B;');
 
     await waitFor(() => {
       expect(container.querySelector('[data-testid="diagram"]')).not.toBeNull();
@@ -60,7 +74,7 @@ describe('MermaidBlock', () => {
   it('renders the error state as a sibling, never as a child of the innerHTML canvas', async () => {
     renderMock.mockRejectedValueOnce(new Error('boom syntax error'));
 
-    const { container } = render(<MermaidBlock code="not a diagram" />);
+    const { container } = renderMermaid('not a diagram');
 
     await waitFor(() => {
       expect(container.querySelector('[role="alert"]')).not.toBeNull();
@@ -71,7 +85,15 @@ describe('MermaidBlock', () => {
     // The canvas stays childless (innerHTML driven); the error UI is a sibling.
     expect(canvas?.querySelector('.bolt-mermaid-block-error')).toBeNull();
     expect(container.querySelector('.bolt-mermaid-block-error')).not.toBeNull();
-    expect(screen.getByText(/boom syntax error/i)).not.toBeNull();
+    expect(screen.getByText('The Mermaid diagram could not be rendered.')).not.toBeNull();
+    expect(screen.queryByText(/boom syntax error/i)).toBeNull();
+    expect(screen.getByText('not a diagram')).not.toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+
+    await waitFor(() => {
+      expect(container.querySelector('[data-testid="diagram"]')).not.toBeNull();
+    });
   });
 
   it('invokes bindFunctions only after the freshly rendered svg is committed to the DOM', async () => {
@@ -93,7 +115,7 @@ describe('MermaidBlock', () => {
       bindFunctions,
     });
 
-    render(<MermaidBlock code="graph TD; A-->B;" />);
+    renderMermaid('graph TD; A-->B;');
 
     await waitFor(() => {
       expect(bindFunctions).toHaveBeenCalledTimes(1);
@@ -112,12 +134,50 @@ describe('MermaidBlock', () => {
   it('does not throw when a successful render returns no bindFunctions', async () => {
     renderMock.mockResolvedValueOnce({ svg: '<svg data-testid="no-bind"></svg>' });
 
-    const { container } = render(<MermaidBlock code="graph TD; A-->B;" />);
+    const { container } = renderMermaid('graph TD; A-->B;');
 
     await waitFor(() => {
       expect(container.querySelector('[data-testid="no-bind"]')).not.toBeNull();
     });
 
     expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  it('renders French copy, keeps Mermaid source untouched, and switches language live', async () => {
+    const source = 'graph TD; Utilisateur-->API;';
+    const { i18n } = renderMermaid(source, 'fr');
+
+    await waitFor(() => {
+      expect(screen.getByText('Diagramme Mermaid')).toBeTruthy();
+    });
+
+    expect(screen.getByRole('button', { name: 'Copier la source du diagramme' })).toBeTruthy();
+    expect(renderMock).toHaveBeenCalledWith(expect.any(String), source);
+
+    await act(async () => {
+      await i18n.changeLanguage('en');
+    });
+
+    expect(screen.getByText('Mermaid diagram')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Copy diagram source' })).toBeTruthy();
+  });
+
+  it('surfaces a safe localized clipboard error without exposing the technical exception', async () => {
+    const { i18n } = renderMermaid('graph TD; A-->B;', 'fr');
+
+    await waitFor(() => {
+      expect(screen.getByText('Diagramme Mermaid')).toBeTruthy();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Copier la source du diagramme' }));
+
+    expect(await screen.findByText('La source du diagramme n’a pas pu être copiée. Réessayez.')).toBeTruthy();
+    expect(screen.queryByText(/Clipboard API unavailable/i)).toBeNull();
+
+    await act(async () => {
+      await i18n.changeLanguage('en');
+    });
+
+    expect(screen.getByText('The diagram source could not be copied. Try again.')).toBeTruthy();
   });
 });

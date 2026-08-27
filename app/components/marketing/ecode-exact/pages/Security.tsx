@@ -1,106 +1,92 @@
-import { Shield, Lock, Key, Server, CheckCircle, AlertTriangle } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Key, Lock, Server, Shield } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+
 import {
   EcodeExactPublicFooter as PublicFooter,
   EcodeExactPublicNavbar as PublicNavbar,
 } from '~/components/marketing/ecode-exact/EcodeExactShell';
 import {
+  Badge,
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
+  Link,
 } from '~/components/marketing/ecode-exact/EcodeExactUi';
-import { Badge, Link } from '~/components/marketing/ecode-exact/EcodeExactUi';
+import {
+  getMarketingExactTrustPressCopy,
+  type SecurityCertificationId,
+  type SecurityFeatureId,
+} from '~/lib/i18n/catalogs/marketing-exact-trust-press';
+
+const SECURITY_FEATURE_ICONS: Record<SecurityFeatureId, LucideIcon> = {
+  encryption: Lock,
+  authentication: Key,
+  infrastructure: Server,
+  data: Shield,
+};
+
+const SECURITY_CERTIFICATION_MEDIA: Record<SecurityCertificationId, { icon: LucideIcon; className: string }> = {
+  soc2: { icon: CheckCircle, className: 'text-green-600' },
+  iso27001: { icon: CheckCircle, className: 'text-green-600' },
+  gdpr: { icon: CheckCircle, className: 'text-green-600' },
+  ccpa: { icon: CheckCircle, className: 'text-green-600' },
+  hipaa: { icon: AlertTriangle, className: 'text-amber-600' },
+  pci: { icon: CheckCircle, className: 'text-green-600' },
+};
 
 export default function Security() {
-  const securityFeatures = [
-    {
-      icon: Lock,
-      title: 'End-to-End Encryption',
-      description: 'All data is encrypted in transit and at rest using industry-standard encryption',
-    },
-    {
-      icon: Key,
-      title: 'Secure Authentication',
-      description: 'Multi-factor authentication and SSO support for enterprise customers',
-    },
-    {
-      icon: Server,
-      title: 'Infrastructure Security',
-      description: 'Hosted on secure cloud infrastructure with regular security audits',
-    },
-    {
-      icon: Shield,
-      title: 'Data Protection',
-      description: 'GDPR compliant with strict data protection and privacy policies',
-    },
-  ];
+  const { i18n } = useTranslation();
+  const copy = getMarketingExactTrustPressCopy(i18n.resolvedLanguage ?? i18n.language).exactSecurity;
 
-  const certifications = [
-    { name: 'SOC 2 Type II', status: 'Certified', icon: CheckCircle },
-    { name: 'ISO 27001', status: 'Certified', icon: CheckCircle },
-    { name: 'GDPR Compliant', status: 'Compliant', icon: CheckCircle },
-    { name: 'CCPA Compliant', status: 'Compliant', icon: CheckCircle },
-    { name: 'HIPAA', status: 'Available', icon: AlertTriangle },
-    { name: 'PCI DSS', status: 'Level 1', icon: CheckCircle },
-  ];
-
-  const securityPractices = [
-    {
-      title: 'Regular Security Audits',
-      description: 'Third-party penetration testing and security assessments',
-    },
-    {
-      title: '24/7 Monitoring',
-      description: 'Continuous monitoring of systems for security threats',
-    },
-    {
-      title: 'Incident Response',
-      description: 'Dedicated security team with rapid incident response',
-    },
-    {
-      title: 'Employee Training',
-      description: 'Regular security training for all employees',
-    },
-  ];
+  const features = copy.features.items.map((feature) => ({
+    ...feature,
+    icon: SECURITY_FEATURE_ICONS[feature.id],
+  }));
+  const certifications = copy.certifications.items.map((certification) => ({
+    ...certification,
+    ...SECURITY_CERTIFICATION_MEDIA[certification.id],
+  }));
 
   return (
     <div className="min-h-screen flex flex-col" data-testid="page-security">
       <PublicNavbar />
 
       <main className="flex-1">
-        {/* Hero Section */}
         <section className="py-responsive bg-gradient-to-b from-background to-muted">
           <div className="container-responsive">
             <div className="text-center max-w-3xl mx-auto">
-              <Shield className="h-12 w-12 mx-auto mb-4 text-primary" />
-              <h1 className="text-4xl font-bold mb-4" data-testid="heading-security">
-                Enterprise-Grade Security
+              <Shield className="h-12 w-12 mx-auto mb-4 text-primary" aria-hidden />
+              <h1 className="mkt-h1 font-bold mb-4" data-testid="heading-security">
+                {copy.hero.title}
               </h1>
-              <p className="text-[15px] text-muted-foreground mb-8">
-                Your code and data are protected by industry-leading security measures
-              </p>
-              <Badge variant="secondary" className="text-[15px] px-4 py-2">
-                SOC 2 Type II Certified
+              <p className="mkt-lead text-muted-foreground mb-8">{copy.hero.description}</p>
+              <Badge
+                variant="secondary"
+                className="inline-flex max-w-full whitespace-normal px-4 py-2 text-center text-[15px]"
+              >
+                {copy.hero.badge}
               </Badge>
             </div>
           </div>
         </section>
 
-        {/* Security Features */}
         <section className="py-responsive">
           <div className="container-responsive">
-            <h2 className="text-3xl font-bold text-center mb-12">Security Features</h2>
+            <h2 className="mkt-h2 font-bold text-center mb-12">{copy.features.title}</h2>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {securityFeatures.map((feature) => {
+              {features.map((feature) => {
                 const Icon = feature.icon;
+
                 return (
-                  <Card key={feature.title}>
+                  <Card key={feature.id} className="h-full">
                     <CardContent className="pt-6 text-center">
-                      <Icon className="h-12 w-12 mx-auto mb-4 text-primary" />
-                      <h3 className="font-semibold mb-2">{feature.title}</h3>
-                      <p className="text-[13px] text-muted-foreground">{feature.description}</p>
+                      <Icon className="h-12 w-12 mx-auto mb-4 text-primary" aria-hidden />
+                      <h3 className="mkt-h3 font-semibold mb-2">{feature.title}</h3>
+                      <p className="mkt-small text-muted-foreground leading-relaxed">{feature.description}</p>
                     </CardContent>
                   </Card>
                 );
@@ -109,22 +95,22 @@ export default function Security() {
           </div>
         </section>
 
-        {/* Certifications */}
         <section className="py-responsive bg-muted">
           <div className="container-responsive">
-            <h2 className="text-3xl font-bold text-center mb-12">Compliance & Certifications</h2>
+            <h2 className="mkt-h2 font-bold text-center mb-12">{copy.certifications.title}</h2>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-4xl mx-auto">
-              {certifications.map((cert) => {
-                const Icon = cert.icon;
+              {certifications.map((certification) => {
+                const Icon = certification.icon;
+
                 return (
-                  <Card key={cert.name}>
-                    <CardContent className="flex items-center justify-between p-6">
-                      <div>
-                        <h3 className="font-semibold">{cert.name}</h3>
-                        <p className="text-[13px] text-muted-foreground">{cert.status}</p>
+                  <Card key={certification.id} className="h-full">
+                    <CardContent className="flex items-start justify-between gap-4 p-6">
+                      <div className="min-w-0">
+                        <h3 className="font-semibold">{certification.name}</h3>
+                        <p className="mkt-small text-muted-foreground">{certification.status}</p>
                       </div>
-                      <Icon className={`h-6 w-6 ${cert.icon === CheckCircle ? 'text-green-600' : 'text-yellow-600'}`} />
+                      <Icon className={`h-6 w-6 shrink-0 ${certification.className}`} aria-hidden />
                     </CardContent>
                   </Card>
                 );
@@ -133,18 +119,17 @@ export default function Security() {
           </div>
         </section>
 
-        {/* Security Practices */}
         <section className="py-responsive">
           <div className="container-responsive">
-            <h2 className="text-3xl font-bold text-center mb-12">Our Security Practices</h2>
+            <h2 className="mkt-h2 font-bold text-center mb-12">{copy.practices.title}</h2>
 
             <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-              {securityPractices.map((practice) => (
-                <div key={practice.title} className="flex gap-4">
-                  <CheckCircle className="h-6 w-6 text-primary flex-shrink-0 mt-1" />
-                  <div>
-                    <h3 className="font-semibold mb-2">{practice.title}</h3>
-                    <p className="text-muted-foreground">{practice.description}</p>
+              {copy.practices.items.map((practice) => (
+                <div key={practice.id} className="flex gap-4">
+                  <CheckCircle className="h-6 w-6 text-primary flex-shrink-0 mt-1" aria-hidden />
+                  <div className="min-w-0">
+                    <h3 className="mkt-h3 font-semibold mb-2">{practice.title}</h3>
+                    <p className="mkt-body text-muted-foreground leading-relaxed">{practice.description}</p>
                   </div>
                 </div>
               ))}
@@ -152,63 +137,39 @@ export default function Security() {
           </div>
         </section>
 
-        {/* Data Protection */}
         <section className="py-responsive bg-muted">
           <div className="container-responsive">
             <div className="max-w-4xl mx-auto">
-              <h2 className="text-3xl font-bold text-center mb-12">Data Protection</h2>
+              <h2 className="mkt-h2 font-bold text-center mb-12">{copy.data.title}</h2>
 
               <Card>
                 <CardHeader>
-                  <CardTitle>Your Data, Your Control</CardTitle>
-                  <CardDescription>
-                    We believe in transparency and giving you full control over your data
-                  </CardDescription>
+                  <CardTitle>{copy.data.cardTitle}</CardTitle>
+                  <CardDescription>{copy.data.cardDescription}</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <h4 className="font-semibold mb-2">Data Ownership</h4>
-                    <p className="text-muted-foreground">
-                      You retain full ownership of all code and data you create on E-Code
-                    </p>
-                  </div>
-                  <div>
-                    <h4 className="font-semibold mb-2">Data Portability</h4>
-                    <p className="text-muted-foreground">
-                      Export your projects and data at any time in standard formats
-                    </p>
-                  </div>
-                  <div>
-                    <h4 className="font-semibold mb-2">Data Retention</h4>
-                    <p className="text-muted-foreground">
-                      Clear data retention policies with automatic deletion options
-                    </p>
-                  </div>
-                  <div>
-                    <h4 className="font-semibold mb-2">Privacy Controls</h4>
-                    <p className="text-muted-foreground">
-                      Granular privacy settings to control who can see your projects
-                    </p>
-                  </div>
+                <CardContent className="grid gap-6 md:grid-cols-2">
+                  {copy.data.items.map((item) => (
+                    <div key={item.id}>
+                      <h3 className="mkt-h3 font-semibold mb-2">{item.title}</h3>
+                      <p className="mkt-body text-muted-foreground leading-relaxed">{item.description}</p>
+                    </div>
+                  ))}
                 </CardContent>
               </Card>
             </div>
           </div>
         </section>
 
-        {/* Talk to our security team */}
         <section className="py-responsive">
           <div className="container-responsive text-center">
-            <h2 className="text-3xl font-bold mb-4">Have a Security Question?</h2>
-            <p className="text-[15px] text-muted-foreground mb-8 max-w-2xl mx-auto">
-              Learn more about our security practices, compliance certifications, and commitment to protecting your data
-            </p>
+            <h2 className="mkt-h2 font-bold mb-4">{copy.cta.title}</h2>
+            <p className="mkt-lead text-muted-foreground mb-8 max-w-2xl mx-auto">{copy.cta.description}</p>
             <Link
               href="/contact"
-              className="inline-flex items-center justify-center px-6 py-3 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 min-h-[44px]"
+              className="inline-flex w-full max-w-sm sm:w-auto items-center justify-center px-6 py-3 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 min-h-[44px]"
               data-testid="button-security-trust-center"
             >
-              Contact Our Security Team
+              {copy.cta.button}
             </Link>
           </div>
         </section>

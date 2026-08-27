@@ -33,15 +33,13 @@ function makeBridge(
 
 describe('saveDesktopSettings', () => {
   it('returns staged message when bridge is missing', async () => {
-    expect(await saveDesktopSettings(undefined, { a: 1 })).toBe(
-      'Open this page in the E-Code desktop app to change native settings.',
-    );
+    expect(await saveDesktopSettings(undefined, { a: 1 })).toBe('desktopSettings.status.openAppSettings');
   });
 
   it('persists and returns saved status on success', async () => {
     const set = vi.fn(async () => ({ ok: true }));
     const bridge = makeBridge({ settingsSet: set });
-    expect(await saveDesktopSettings(bridge, { a: 1 })).toBe('Desktop settings saved.');
+    expect(await saveDesktopSettings(bridge, { a: 1 })).toBe('desktopSettings.status.saved');
     expect(set).toHaveBeenCalledWith({ a: 1 });
   });
 
@@ -51,9 +49,7 @@ describe('saveDesktopSettings', () => {
         throw new Error('disk write failed');
       },
     });
-    await expect(saveDesktopSettings(bridge, { a: 1 })).resolves.toBe(
-      'Desktop settings could not be saved. Try again.',
-    );
+    await expect(saveDesktopSettings(bridge, { a: 1 })).resolves.toBe('desktopSettings.status.saveFailed');
   });
 
   it('does not stringify non-Error rejections into the interface', async () => {
@@ -62,19 +58,17 @@ describe('saveDesktopSettings', () => {
         throw 'nope';
       },
     });
-    await expect(saveDesktopSettings(bridge, {})).resolves.toBe('Desktop settings could not be saved. Try again.');
+    await expect(saveDesktopSettings(bridge, {})).resolves.toBe('desktopSettings.status.saveFailed');
   });
 });
 
 describe('showDesktopTestNotification', () => {
   it('returns a desktop-app message when the bridge is missing', async () => {
-    expect(await showDesktopTestNotification(undefined)).toBe(
-      'Open this page in the E-Code desktop app to test native notifications.',
-    );
+    expect(await showDesktopTestNotification(undefined)).toBe('desktopSettings.status.openAppNotification');
   });
 
   it('returns sent status on success', async () => {
-    expect(await showDesktopTestNotification(makeBridge())).toBe('Test notification sent.');
+    expect(await showDesktopTestNotification(makeBridge())).toBe('desktopSettings.status.notificationSent');
   });
 
   it('turns permission errors into safe actionable copy', async () => {
@@ -83,27 +77,34 @@ describe('showDesktopTestNotification', () => {
         throw new Error('permission denied');
       },
     });
-    await expect(showDesktopTestNotification(bridge)).resolves.toBe(
-      'The test notification could not be sent. Check system permissions and try again.',
-    );
+    await expect(showDesktopTestNotification(bridge)).resolves.toBe('desktopSettings.status.notificationFailed');
+  });
+
+  it('sends a localized body without translating the E-Code brand', async () => {
+    const notificationsShow = vi.fn(async () => ({ shown: true, supported: true }));
+    const bridge = makeBridge({ notificationsShow });
+
+    await expect(showDesktopTestNotification(bridge, 'fr')).resolves.toBe('desktopSettings.status.notificationSent');
+    expect(notificationsShow).toHaveBeenCalledWith({
+      title: 'E-Code',
+      body: 'Les notifications natives sont activées.',
+    });
   });
 });
 
 describe('openDesktopLocalFolder', () => {
   it('returns a desktop-app message when the bridge is missing', async () => {
-    expect(await openDesktopLocalFolder(undefined)).toBe(
-      'Open this page in the E-Code desktop app to choose a local folder.',
-    );
+    expect(await openDesktopLocalFolder(undefined)).toBe('desktopSettings.status.openAppFolder');
   });
 
   it('returns selected folder on success', async () => {
     const bridge = makeBridge({ openLocalFolder: async () => '/home/user/app' });
-    expect(await openDesktopLocalFolder(bridge)).toBe('Folder selected.');
+    expect(await openDesktopLocalFolder(bridge)).toBe('desktopSettings.status.folderSelected');
   });
 
   it('returns canceled status when no folder chosen', async () => {
     const bridge = makeBridge({ openLocalFolder: async () => undefined });
-    expect(await openDesktopLocalFolder(bridge)).toBe('Folder selection canceled.');
+    expect(await openDesktopLocalFolder(bridge)).toBe('desktopSettings.status.folderCanceled');
   });
 
   it('does not expose dialog errors to the interface', async () => {
@@ -112,7 +113,7 @@ describe('openDesktopLocalFolder', () => {
         throw new Error('dialog error');
       },
     });
-    await expect(openDesktopLocalFolder(bridge)).resolves.toBe('The folder picker could not open. Try again.');
+    await expect(openDesktopLocalFolder(bridge)).resolves.toBe('desktopSettings.status.folderFailed');
   });
 });
 

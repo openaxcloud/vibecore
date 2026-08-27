@@ -9,6 +9,14 @@
 import React, { useCallback, useEffect, useState } from 'react';
 
 import { apiJson, reauthAdmin } from './api';
+import {
+  adminLedgerKindLabel,
+  adminLocale,
+  adminPluralT,
+  adminStatusLabel,
+  adminStandaloneT as adminT,
+  localizedAdminError,
+} from './i18n';
 
 export interface PanelProps {
   /** Re-auth password entered in the top bar; required before mutating actions. */
@@ -20,9 +28,7 @@ export interface PanelProps {
 
 export function formatCents(cents: number | null | undefined): string {
   const value = typeof cents === 'number' && Number.isFinite(cents) ? cents : 0;
-  const sign = value < 0 ? '-' : '';
-
-  return `${sign}$${(Math.abs(value) / 100).toFixed(2)}`;
+  return new Intl.NumberFormat(adminLocale(), { style: 'currency', currency: 'USD' }).format(value / 100);
 }
 
 export function formatDateTime(value: string | null | undefined): string {
@@ -32,7 +38,7 @@ export function formatDateTime(value: string | null | undefined): string {
 
   const date = new Date(value);
 
-  return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString();
+  return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString(adminLocale());
 }
 
 /**
@@ -46,7 +52,7 @@ export async function withReauth<T>(
   run: () => Promise<T>,
 ): Promise<T | undefined> {
   if (!reauthPassword) {
-    pushToast('Enter your re-auth password in the top bar before this action.');
+    pushToast(adminT('admin.standalone.panelReauthRequired'));
     return undefined;
   }
 
@@ -54,7 +60,7 @@ export async function withReauth<T>(
     await reauthAdmin(reauthPassword);
     return await run();
   } catch (error) {
-    pushToast(error instanceof Error ? error.message : 'Action failed');
+    pushToast(localizedAdminError(error, 'admin.standalone.panelActionFailed'));
     return undefined;
   }
 }
@@ -83,7 +89,7 @@ export function usePanelData<T>(path: string): {
       })
       .catch((requestError: unknown) => {
         if (!cancelled) {
-          setError(requestError instanceof Error ? requestError.message : 'Failed to load');
+          setError(localizedAdminError(requestError, 'admin.standalone.panelLoadFailed'));
         }
       })
       .finally(() => {
@@ -104,7 +110,7 @@ export function usePanelData<T>(path: string): {
 
 export function PanelStates({ loading, error }: { loading: boolean; error?: string }) {
   if (loading) {
-    return <div className="panel skeleton" role="status" aria-label="Loading" />;
+    return <div className="panel skeleton" role="status" aria-label={adminT('admin.standalone.loading_8f26c6')} />;
   }
 
   if (error) {
@@ -179,12 +185,12 @@ function CreditWalletsPanel({ reauthPassword, pushToast }: PanelProps) {
     const cents = Math.trunc(Number(delta));
 
     if (!Number.isFinite(cents) || cents === 0) {
-      pushToast('Enter a non-zero adjustment amount in cents (+credit / −debit).');
+      pushToast(adminT('admin.standalone.walletAmountInvalid'));
       return;
     }
 
     if (!reason.trim()) {
-      pushToast('A reason is required for every wallet adjustment.');
+      pushToast(adminT('admin.standalone.walletReasonRequired'));
       return;
     }
 
@@ -199,7 +205,7 @@ function CreditWalletsPanel({ reauthPassword, pushToast }: PanelProps) {
     setBusy(false);
 
     if (result) {
-      pushToast(`Wallet adjusted — new balance ${formatCents(result.wallet.balanceCents)}. Audited.`);
+      pushToast(adminT('admin.standalone.walletAdjusted', { balance: formatCents(result.wallet.balanceCents) }));
       setDelta('');
       setReason('');
       reload();
@@ -212,28 +218,26 @@ function CreditWalletsPanel({ reauthPassword, pushToast }: PanelProps) {
   }
 
   return (
-    <section className="panel" aria-label="Credit wallets">
+    <section className="panel" aria-label={adminT('admin.standalone.creditWallets_159a5d')}>
       <div className="page-title">
-        <h2>Credit wallets</h2>
+        <h2>{adminT('admin.standalone.creditWallets_159a5d')}</h2>
         <button className="secondary" type="button" onClick={reload}>
-          Refresh
+          {adminT('admin.standalone.refresh_56e3ba')}
         </button>
       </div>
-      <p className="muted">
-        Signed adjustments (+credit / −debit) require a reason and are written to the wallet ledger and AdminAuditLog.
-      </p>
+      <p className="muted">{adminT('admin.standalone.signedAdjustmentsCreditDebitRequireAReasonAnd_f03154')}</p>
       {wallets.length === 0 ? (
-        <p className="muted">No credit wallets yet.</p>
+        <p className="muted">{adminT('admin.standalone.noCreditWalletsYet_3415d9')}</p>
       ) : (
         <div className="table-wrap">
           <table>
             <thead>
               <tr>
-                <th>Organization</th>
-                <th>Balance</th>
-                <th>Budget cap</th>
-                <th>Updated</th>
-                <th>Actions</th>
+                <th>{adminT('admin.standalone.organization_519255')}</th>
+                <th>{adminT('admin.standalone.balance_90eef6')}</th>
+                <th>{adminT('admin.standalone.budgetCap_a36814')}</th>
+                <th>{adminT('admin.standalone.updated_f2f857')}</th>
+                <th>{adminT('admin.standalone.actions_c3cd63')}</th>
               </tr>
             </thead>
             <tbody>
@@ -246,7 +250,9 @@ function CreditWalletsPanel({ reauthPassword, pushToast }: PanelProps) {
                     <td>{formatDateTime(wallet.updatedAt)}</td>
                     <td>
                       <button className="secondary" type="button" onClick={() => toggleOrg(wallet.organizationId)}>
-                        {openOrg === wallet.organizationId ? 'Close' : 'Adjust / history'}
+                        {openOrg === wallet.organizationId
+                          ? adminT('admin.standalone.close_bbfa77')
+                          : adminT('admin.standalone.adjustHistory')}
                       </button>
                     </td>
                   </tr>
@@ -262,48 +268,48 @@ function CreditWalletsPanel({ reauthPassword, pushToast }: PanelProps) {
                             }}
                           >
                             <label>
-                              Adjustment (cents, +credit / −debit)
+                              {adminT('admin.standalone.adjustmentCentsCreditDebit_1ed0eb')}
                               <input
                                 type="number"
                                 step="1"
                                 value={delta}
                                 onChange={(event) => setDelta(event.target.value)}
-                                placeholder="e.g. 5000 or -2000"
+                                placeholder={adminT('admin.standalone.eG5000Or2000_f97ea4')}
                               />
                             </label>
                             <label>
-                              Reason (required)
+                              {adminT('admin.standalone.reasonRequired_51df13')}
                               <input
                                 value={reason}
                                 onChange={(event) => setReason(event.target.value)}
-                                placeholder="Why is this adjustment being made?"
+                                placeholder={adminT('admin.standalone.whyIsThisAdjustmentBeingMade_acced6')}
                               />
                             </label>
                             <button className="action" type="submit" disabled={busy}>
-                              {busy ? 'Applying…' : 'Apply adjustment'}
+                              {busy ? adminT('admin.standalone.applying') : adminT('admin.standalone.applyAdjustment')}
                             </button>
                           </form>
-                          <h3>Movement history</h3>
+                          <h3>{adminT('admin.standalone.movementHistory_9418ba')}</h3>
                           {ledgerLoading ? (
-                            <p className="muted">Loading movements…</p>
+                            <p className="muted">{adminT('admin.standalone.loadingMovements_ee86a1')}</p>
                           ) : ledger.length === 0 ? (
-                            <p className="muted">No movements recorded.</p>
+                            <p className="muted">{adminT('admin.standalone.noMovementsRecorded_582085')}</p>
                           ) : (
                             <div className="table-wrap">
                               <table>
                                 <thead>
                                   <tr>
-                                    <th>When</th>
-                                    <th>Kind</th>
-                                    <th>Amount</th>
-                                    <th>Reason</th>
+                                    <th>{adminT('admin.standalone.when_769bb1')}</th>
+                                    <th>{adminT('admin.standalone.kind_e00ac2')}</th>
+                                    <th>{adminT('admin.standalone.amount_43dc85')}</th>
+                                    <th>{adminT('admin.standalone.reason_f219cc')}</th>
                                   </tr>
                                 </thead>
                                 <tbody>
                                   {ledger.map((entry) => (
                                     <tr key={entry.id}>
                                       <td>{formatDateTime(entry.createdAt)}</td>
-                                      <td>{entry.kind}</td>
+                                      <td>{adminLedgerKindLabel(entry.kind)}</td>
                                       <td
                                         className={
                                           entry.deltaCents < 0
@@ -401,7 +407,7 @@ function AccountDeletionsPanel({ reauthPassword, pushToast }: PanelProps) {
     setBusyUser(undefined);
 
     if (result) {
-      pushToast('Account deletion cancelled — the grace-period purge will not run. Audited.');
+      pushToast(adminT('admin.standalone.deletionCancelled'));
       reload();
     }
   }
@@ -429,35 +435,43 @@ function AccountDeletionsPanel({ reauthPassword, pushToast }: PanelProps) {
       anchor.click();
       anchor.remove();
       URL.revokeObjectURL(url);
-      pushToast('Account data exported — JSON downloaded. Audited.');
+      pushToast(adminT('admin.standalone.accountDataExported'));
     }
   }
 
   return (
-    <section className="panel" aria-label="Account deletions">
+    <section className="panel" aria-label={adminT('admin.standalone.accountDeletions_4361ee')}>
       <div className="page-title">
-        <h2>Account deletions</h2>
+        <h2>{adminT('admin.standalone.accountDeletions_4361ee')}</h2>
         <button className="secondary" type="button" onClick={reload}>
-          Refresh
+          {adminT('admin.standalone.refresh_56e3ba')}
         </button>
       </div>
       <p className="muted">
-        Self-serve deletions purge after a {data?.gracePeriodDays ?? 14}-day grace window.{' '}
-        {data ? `${data.readyToPurge} ready to purge now.` : ''} Cancelling stops the scheduled purge (audited).
+        {adminT('admin.standalone.selfServeDeletionsPurgeAfterA_a6108a')} {data?.gracePeriodDays ?? 14}
+        {adminT('admin.standalone.dayGraceWindow_c25341')}{' '}
+        {data
+          ? adminPluralT(
+              'admin.standalone.readyToPurgeNow_one',
+              'admin.standalone.readyToPurgeNow_other',
+              data.readyToPurge,
+            )
+          : ''}{' '}
+        {adminT('admin.standalone.cancellingStopsTheScheduledPurgeAudited_b47561')}
       </p>
       {requests.length === 0 ? (
-        <p className="muted">No pending account deletions.</p>
+        <p className="muted">{adminT('admin.standalone.noPendingAccountDeletions_38d542')}</p>
       ) : (
         <div className="table-wrap">
           <table>
             <thead>
               <tr>
-                <th>User</th>
-                <th>Status</th>
-                <th>Requested</th>
-                <th>Purge due</th>
-                <th>TTL</th>
-                <th>Actions</th>
+                <th>{adminT('admin.standalone.user_9f8a23')}</th>
+                <th>{adminT('admin.standalone.status_bae7d5')}</th>
+                <th>{adminT('admin.standalone.requested_c26bf6')}</th>
+                <th>{adminT('admin.standalone.purgeDue_792bdf')}</th>
+                <th>{adminT('admin.standalone.ttl_878260')}</th>
+                <th>{adminT('admin.standalone.actions_c3cd63')}</th>
               </tr>
             </thead>
             <tbody>
@@ -470,7 +484,11 @@ function AccountDeletionsPanel({ reauthPassword, pushToast }: PanelProps) {
                     <td>{formatDateTime(row.requestedAt)}</td>
                     <td>{formatDateTime(row.purgeDueAt)}</td>
                     <td className="ledger-amount">
-                      {ttl == null ? '—' : ttl <= 0 ? 'due now' : `${ttl} day${ttl === 1 ? '' : 's'}`}
+                      {ttl == null
+                        ? '—'
+                        : ttl <= 0
+                          ? adminT('admin.standalone.dueNow')
+                          : adminPluralT('admin.standalone.day_one', 'admin.standalone.day_other', ttl)}
                     </td>
                     <td>
                       <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
@@ -480,7 +498,9 @@ function AccountDeletionsPanel({ reauthPassword, pushToast }: PanelProps) {
                           disabled={exportingUser === row.userId}
                           onClick={() => void exportData(row.userId, row.email)}
                         >
-                          {exportingUser === row.userId ? 'Exporting…' : 'Export data'}
+                          {exportingUser === row.userId
+                            ? adminT('admin.standalone.exporting')
+                            : adminT('admin.standalone.exportData')}
                         </button>
                         <button
                           className="secondary"
@@ -488,7 +508,9 @@ function AccountDeletionsPanel({ reauthPassword, pushToast }: PanelProps) {
                           disabled={busyUser === row.userId}
                           onClick={() => void cancel(row.userId)}
                         >
-                          {busyUser === row.userId ? 'Cancelling…' : 'Cancel deletion'}
+                          {busyUser === row.userId
+                            ? adminT('admin.standalone.cancelling')
+                            : adminT('admin.standalone.cancelDeletion')}
                         </button>
                       </div>
                     </td>
@@ -550,23 +572,25 @@ function AiModelsPanel({ reauthPassword, pushToast }: PanelProps) {
     setBusy(undefined);
 
     if (result) {
-      pushToast(`${model.displayName} ${model.enabled ? 'disabled' : 'enabled'}.`);
+      pushToast(
+        adminT('admin.standalone.modelStateChanged', {
+          model: model.displayName,
+          state: model.enabled ? adminT('admin.standalone.disable') : adminT('admin.standalone.enable'),
+        }),
+      );
       reload();
     }
   }
 
   return (
-    <section className="panel" aria-label="AI models">
+    <section className="panel" aria-label={adminT('admin.standalone.aiModels_220092')}>
       <div className="page-title">
-        <h2>AI models</h2>
+        <h2>{adminT('admin.standalone.aiModels_220092')}</h2>
         <button className="secondary" type="button" onClick={reload}>
-          Refresh
+          {adminT('admin.standalone.refresh_56e3ba')}
         </button>
       </div>
-      <p className="muted">
-        Plan × model access and cost per 1M tokens. Every plan must keep at least one active model — the API refuses a
-        disable that would strand a plan.
-      </p>
+      <p className="muted">{adminT('admin.standalone.planModelAccessAndCostPer1mTokens_fc5360')}</p>
       <div className="plan-coverage">
         {plans.map((plan) => {
           const count = activeByPlan.get(plan) ?? 0;
@@ -574,26 +598,26 @@ function AiModelsPanel({ reauthPassword, pushToast }: PanelProps) {
 
           return (
             <span key={plan} className={`plan-chip ${tone}`}>
-              {plan}: {count} active
+              {plan}: {count} {adminT('admin.standalone.active_2bb6b9')}
             </span>
           );
         })}
       </div>
       {models.length === 0 ? (
-        <p className="muted">No models in the registry.</p>
+        <p className="muted">{adminT('admin.standalone.noModelsInTheRegistry_db8735')}</p>
       ) : (
         <div className="table-wrap">
           <table>
             <thead>
               <tr>
-                <th>Model</th>
-                <th>In $/1M</th>
-                <th>Out $/1M</th>
+                <th>{adminT('admin.standalone.model_68c2cc')}</th>
+                <th>{adminT('admin.standalone.in1m_759e3f')}</th>
+                <th>{adminT('admin.standalone.out1m_8d9342')}</th>
                 {plans.map((plan) => (
                   <th key={plan}>{plan}</th>
                 ))}
-                <th>Status</th>
-                <th>Action</th>
+                <th>{adminT('admin.standalone.status_bae7d5')}</th>
+                <th>{adminT('admin.standalone.action_97c89a')}</th>
               </tr>
             </thead>
             <tbody>
@@ -604,8 +628,12 @@ function AiModelsPanel({ reauthPassword, pushToast }: PanelProps) {
                     <td>
                       {model.displayName}
                       <span className="muted"> ({model.provider ?? '—'})</span>
-                      {model.isHighPower ? <span className="model-tag">power</span> : null}
-                      {model.supportsThinking ? <span className="model-tag">thinking</span> : null}
+                      {model.isHighPower ? (
+                        <span className="model-tag">{adminT('admin.standalone.power_b573f2')}</span>
+                      ) : null}
+                      {model.supportsThinking ? (
+                        <span className="model-tag">{adminT('admin.standalone.thinking_beac9e')}</span>
+                      ) : null}
                     </td>
                     <td className="ledger-amount">{formatCents(model.inputCentsPerM)}</td>
                     <td className="ledger-amount">{formatCents(model.outputCentsPerM)}</td>
@@ -615,7 +643,7 @@ function AiModelsPanel({ reauthPassword, pushToast }: PanelProps) {
                       </td>
                     ))}
                     <td className={model.enabled ? 'ledger-credit' : 'muted'}>
-                      {model.enabled ? 'active' : 'disabled'}
+                      {model.enabled ? adminT('admin.standalone.active_2bb6b9') : adminT('admin.standalone.disable')}
                     </td>
                     <td>
                       <button
@@ -624,7 +652,11 @@ function AiModelsPanel({ reauthPassword, pushToast }: PanelProps) {
                         disabled={busy === key}
                         onClick={() => void toggle(model)}
                       >
-                        {busy === key ? '…' : model.enabled ? 'Disable' : 'Enable'}
+                        {busy === key
+                          ? '…'
+                          : model.enabled
+                            ? adminT('admin.standalone.disable')
+                            : adminT('admin.standalone.enable')}
                       </button>
                     </td>
                   </tr>
@@ -679,7 +711,7 @@ function PreviewsPanel({ reauthPassword, pushToast }: PanelProps) {
     const minutes = Math.trunc(Number(ttl));
 
     if (!Number.isFinite(minutes) || minutes <= 0) {
-      pushToast('Enter a positive number of minutes for the default preview TTL.');
+      pushToast(adminT('admin.standalone.previewTtlInvalid'));
       return;
     }
 
@@ -694,7 +726,7 @@ function PreviewsPanel({ reauthPassword, pushToast }: PanelProps) {
     setSavingTtl(false);
 
     if (result) {
-      pushToast(`Default preview TTL set to ${minutes} minutes.`);
+      pushToast(adminT('admin.standalone.previewTtlSaved', { count: minutes }));
       reload();
     }
   }
@@ -708,17 +740,17 @@ function PreviewsPanel({ reauthPassword, pushToast }: PanelProps) {
     setBusy(undefined);
 
     if (result) {
-      pushToast(`Preview killed (workspace ${workspaceId} stopped). Audited.`);
+      pushToast(adminT('admin.standalone.previewKilled', { workspace: workspaceId }));
       reload();
     }
   }
 
   return (
-    <section className="panel" aria-label="Previews">
+    <section className="panel" aria-label={adminT('admin.standalone.previews_beb86d')}>
       <div className="page-title">
-        <h2>Previews</h2>
+        <h2>{adminT('admin.standalone.previews_beb86d')}</h2>
         <button className="secondary" type="button" onClick={reload}>
-          Refresh
+          {adminT('admin.standalone.refresh_56e3ba')}
         </button>
       </div>
       <form
@@ -729,26 +761,26 @@ function PreviewsPanel({ reauthPassword, pushToast }: PanelProps) {
         }}
       >
         <label>
-          Default preview TTL (minutes)
+          {adminT('admin.standalone.defaultPreviewTtlMinutes_6c5faa')}
           <input type="number" step="1" min="1" value={ttl} onChange={(event) => setTtl(event.target.value)} />
         </label>
         <button className="action" type="submit" disabled={savingTtl}>
-          {savingTtl ? 'Saving…' : 'Save default TTL'}
+          {savingTtl ? adminT('admin.standalone.saving') : adminT('admin.standalone.saveDefaultTtl')}
         </button>
       </form>
       {previews.length === 0 ? (
-        <p className="muted">No workspace previews.</p>
+        <p className="muted">{adminT('admin.standalone.noWorkspacePreviews_d093a1')}</p>
       ) : (
         <div className="table-wrap">
           <table>
             <thead>
               <tr>
-                <th>Workspace</th>
-                <th>Status</th>
-                <th>Created</th>
-                <th>Expires</th>
-                <th>TTL</th>
-                <th>Action</th>
+                <th>{adminT('admin.standalone.workspace_4ca0a7')}</th>
+                <th>{adminT('admin.standalone.status_bae7d5')}</th>
+                <th>{adminT('admin.standalone.created_accf40')}</th>
+                <th>{adminT('admin.standalone.expires_a99be3')}</th>
+                <th>{adminT('admin.standalone.ttl_878260')}</th>
+                <th>{adminT('admin.standalone.action_97c89a')}</th>
               </tr>
             </thead>
             <tbody>
@@ -757,7 +789,7 @@ function PreviewsPanel({ reauthPassword, pushToast }: PanelProps) {
                 const expired = secondsLeft <= 0;
 
                 const ttlLabel = expired
-                  ? 'expired'
+                  ? adminT('admin.standalone.status.expired')
                   : secondsLeft >= 3600
                     ? `${Math.floor(secondsLeft / 3600)}h ${Math.floor((secondsLeft % 3600) / 60)}m`
                     : `${Math.max(1, Math.floor(secondsLeft / 60))}m`;
@@ -767,7 +799,7 @@ function PreviewsPanel({ reauthPassword, pushToast }: PanelProps) {
                 return (
                   <tr key={preview.workspaceId}>
                     <td>{preview.workspaceId}</td>
-                    <td>{preview.status}</td>
+                    <td>{adminStatusLabel(preview.status)}</td>
                     <td>{formatDateTime(preview.createdAt)}</td>
                     <td>{formatDateTime(preview.expiresAt)}</td>
                     <td className={expired ? 'ledger-debit' : 'ledger-amount'}>{ttlLabel}</td>
@@ -778,7 +810,9 @@ function PreviewsPanel({ reauthPassword, pushToast }: PanelProps) {
                         disabled={busy === preview.workspaceId || !running}
                         onClick={() => void kill(preview.workspaceId)}
                       >
-                        {busy === preview.workspaceId ? 'Killing…' : 'Kill'}
+                        {busy === preview.workspaceId
+                          ? adminT('admin.standalone.killing')
+                          : adminT('admin.standalone.kill')}
                       </button>
                     </td>
                   </tr>
@@ -811,14 +845,19 @@ interface AbuseRow {
 
 function abuseStatusLabel(row: AbuseRow): { label: string; className: string } {
   if (row.resolved) {
-    return { label: row.disposition ? `resolved · ${row.disposition}` : 'resolved', className: 'ledger-credit' };
+    return {
+      label: row.disposition
+        ? adminT('admin.standalone.resolvedDisposition', { disposition: row.disposition })
+        : adminT('admin.standalone.resolved'),
+      className: 'ledger-credit',
+    };
   }
 
   if (row.disposition === 'warned') {
-    return { label: 'warned (open)', className: 'status-warn-text' };
+    return { label: adminT('admin.standalone.warnedOpen_5aad02'), className: 'status-warn-text' };
   }
 
-  return { label: 'open', className: 'status-warn-text' };
+  return { label: adminT('admin.standalone.open_5fc7e3'), className: 'status-warn-text' };
 }
 
 function AbuseEventsPanel({ reauthPassword, pushToast }: PanelProps) {
@@ -837,12 +876,14 @@ function AbuseEventsPanel({ reauthPassword, pushToast }: PanelProps) {
     const result = await withReauth(reauthPassword, pushToast, async () => {
       if (kind === 'suspend') {
         if (!row.userId) {
-          throw new Error('This event has no associated user to suspend.');
+          throw new Error(adminT('admin.standalone.thisEventHasNoAssociatedUserToSuspend_f19396'));
         }
 
         return apiJson(`/admin/users/${row.userId}/suspend`, {
           method: 'POST',
-          body: JSON.stringify({ reason: `Abuse: ${row.type} (${row.severity})` }),
+          body: JSON.stringify({
+            reason: adminT('admin.standalone.abuseSuspendReason', { type: row.type, severity: row.severity }),
+          }),
         });
       }
 
@@ -852,38 +893,42 @@ function AbuseEventsPanel({ reauthPassword, pushToast }: PanelProps) {
 
     if (result) {
       const done =
-        kind === 'suspend' ? 'User suspended (reason audited).' : kind === 'warn' ? 'Warning emailed.' : 'Dismissed.';
+        kind === 'suspend'
+          ? adminT('admin.standalone.userSuspended')
+          : kind === 'warn'
+            ? adminT('admin.standalone.warningEmailed')
+            : adminT('admin.standalone.eventDismissed');
       pushToast(done);
       reload();
     }
   }
 
   return (
-    <section className="panel" aria-label="Abuse events">
+    <section className="panel" aria-label={adminT('admin.standalone.abuseEvents_b36589')}>
       <div className="page-title">
-        <h2>Abuse events</h2>
+        <h2>{adminT('admin.standalone.abuseEvents_b36589')}</h2>
         <button className="secondary" type="button" onClick={reload}>
-          Refresh
+          {adminT('admin.standalone.refresh_56e3ba')}
         </button>
       </div>
       <p className="muted">
-        Dismiss (no action), Warn (emails the user, keeps the event open to escalate), or Suspend the user (reason →
-        AdminAuditLog, E26). {events.filter((event) => !event.resolved).length} open.
+        {adminT('admin.standalone.dismissNoActionWarnEmailsTheUserKeeps_9e0df4')}{' '}
+        {events.filter((event) => !event.resolved).length} {adminT('admin.standalone.open_309a63')}
       </p>
       {events.length === 0 ? (
-        <p className="muted">No abuse events.</p>
+        <p className="muted">{adminT('admin.standalone.noAbuseEvents_9fcf3c')}</p>
       ) : (
         <div className="table-wrap">
           <table>
             <thead>
               <tr>
-                <th>Type</th>
-                <th>Severity</th>
-                <th>Org</th>
-                <th>User</th>
-                <th>Created</th>
-                <th>Status</th>
-                <th>Actions</th>
+                <th>{adminT('admin.standalone.type_3deb74')}</th>
+                <th>{adminT('admin.standalone.severity_de314f')}</th>
+                <th>{adminT('admin.standalone.org_972f71')}</th>
+                <th>{adminT('admin.standalone.user_9f8a23')}</th>
+                <th>{adminT('admin.standalone.created_accf40')}</th>
+                <th>{adminT('admin.standalone.status_bae7d5')}</th>
+                <th>{adminT('admin.standalone.actions_c3cd63')}</th>
               </tr>
             </thead>
             <tbody>
@@ -905,7 +950,7 @@ function AbuseEventsPanel({ reauthPassword, pushToast }: PanelProps) {
                           disabled={busy === `${row.id}:dismiss` || row.resolved}
                           onClick={() => void act(row, 'dismiss')}
                         >
-                          Dismiss
+                          {adminT('admin.standalone.dismiss_70afe9')}
                         </button>
                         <button
                           className="secondary"
@@ -913,7 +958,7 @@ function AbuseEventsPanel({ reauthPassword, pushToast }: PanelProps) {
                           disabled={busy === `${row.id}:warn` || !row.userId}
                           onClick={() => void act(row, 'warn')}
                         >
-                          Warn
+                          {adminT('admin.standalone.warn_3009d5')}
                         </button>
                         <button
                           className="danger"
@@ -921,7 +966,7 @@ function AbuseEventsPanel({ reauthPassword, pushToast }: PanelProps) {
                           disabled={busy === `${row.id}:suspend` || !row.userId}
                           onClick={() => void act(row, 'suspend')}
                         >
-                          Suspend
+                          {adminT('admin.standalone.suspend_b24247')}
                         </button>
                       </div>
                     </td>
@@ -984,7 +1029,7 @@ function CostsPanel({ reauthPassword, pushToast }: PanelProps) {
     const dollars = Number(budget);
 
     if (!Number.isFinite(dollars) || dollars < 0) {
-      pushToast('Enter a monthly budget in dollars (0 to clear).');
+      pushToast(adminT('admin.standalone.budgetInvalid'));
       return;
     }
 
@@ -999,7 +1044,7 @@ function CostsPanel({ reauthPassword, pushToast }: PanelProps) {
     setSaving(false);
 
     if (result) {
-      pushToast(`Monthly AI budget set to $${dollars.toFixed(2)}.`);
+      pushToast(adminT('admin.standalone.budgetSaved', { amount: formatCents(Math.round(dollars * 100)) }));
       reload();
     }
   }
@@ -1008,34 +1053,43 @@ function CostsPanel({ reauthPassword, pushToast }: PanelProps) {
     summary.alertLevel === 'over' ? 'cost-alert-over' : summary.alertLevel === 'warn' ? 'cost-alert-warn' : '';
 
   return (
-    <section className="panel" aria-label="Cost dashboard">
+    <section className="panel" aria-label={adminT('admin.standalone.costDashboard_564e1b')}>
       <div className="page-title">
-        <h2>Cost dashboard</h2>
+        <h2>{adminT('admin.standalone.costDashboard_564e1b')}</h2>
         <button className="secondary" type="button" onClick={reload}>
-          Refresh
+          {adminT('admin.standalone.refresh_56e3ba')}
         </button>
       </div>
 
       {summary.alertLevel === 'warn' || summary.alertLevel === 'over' ? (
         <div className={`cost-alert ${alertClass}`} role="alert">
-          Month-to-date AI spend is {summary.budgetUsedPct}% of the $
-          {((summary.monthlyBudgetCents ?? 0) / 100).toFixed(2)} budget
-          {summary.alertLevel === 'over' ? ' — over budget.' : ' — approaching the limit.'}
+          {adminT('admin.standalone.monthToDateAiSpendIs_73136a')} {summary.budgetUsedPct}
+          {adminT('admin.standalone.ofThe_86303f')}
+          {formatCents(summary.monthlyBudgetCents ?? 0)} {adminT('admin.standalone.budget_81e4a5')}
+          {summary.alertLevel === 'over'
+            ? adminT('admin.standalone.overBudget')
+            : adminT('admin.standalone.nearBudget')}
         </div>
       ) : null}
 
       <div className="cost-stats">
         <div>
-          <span className="muted">30-day AI spend</span>
+          <span className="muted">{adminT('admin.standalone.30DayAiSpend_fe0436')}</span>
           <strong>{formatCents(summary.windowTotalCents)}</strong>
         </div>
         <div>
-          <span className="muted">Month to date</span>
+          <span className="muted">{adminT('admin.standalone.monthToDate_314175')}</span>
           <strong>{formatCents(summary.monthToDateCents)}</strong>
         </div>
         <div>
-          <span className="muted">Budget used</span>
-          <strong>{summary.budgetUsedPct == null ? '— (no budget)' : `${summary.budgetUsedPct}%`}</strong>
+          <span className="muted">{adminT('admin.standalone.budgetUsed_98c64c')}</span>
+          <strong>
+            {summary.budgetUsedPct == null
+              ? adminT('admin.standalone.noBudget')
+              : new Intl.NumberFormat(adminLocale(), { style: 'percent', maximumFractionDigits: 1 }).format(
+                  summary.budgetUsedPct / 100,
+                )}
+          </strong>
         </div>
       </div>
 
@@ -1047,19 +1101,23 @@ function CostsPanel({ reauthPassword, pushToast }: PanelProps) {
         }}
       >
         <label>
-          Monthly AI budget ($)
+          {adminT('admin.standalone.monthlyAiBudget_a73917')}
           <input type="number" step="0.01" min="0" value={budget} onChange={(event) => setBudget(event.target.value)} />
         </label>
         <button className="action" type="submit" disabled={saving}>
-          {saving ? 'Saving…' : 'Save budget'}
+          {saving ? adminT('admin.standalone.saving') : adminT('admin.standalone.saveBudget')}
         </button>
       </form>
 
       {summary.providers.length === 0 ? (
-        <p className="muted">No AI cost records in the last 30 days.</p>
+        <p className="muted">{adminT('admin.standalone.noAiCostRecordsInTheLast30_dacb99')}</p>
       ) : (
         <>
-          <div className="cost-chart" role="img" aria-label="AI cost per day for the last 30 days by provider">
+          <div
+            className="cost-chart"
+            role="img"
+            aria-label={adminT('admin.standalone.aiCostPerDayForTheLast30_2a5214')}
+          >
             {summary.days.map((day, index) => (
               <div key={day} className="cost-bar" title={`${day}: ${formatCents(dayTotals[index])}`}>
                 <div className="cost-bar-stack">
@@ -1146,7 +1204,7 @@ function CheckpointsPanel({ reauthPassword, pushToast }: PanelProps) {
     const olderThanDays = Math.trunc(Number(days));
 
     if (!Number.isFinite(olderThanDays) || olderThanDays <= 0) {
-      pushToast('Enter a positive number of days.');
+      pushToast(adminT('admin.standalone.daysInvalid'));
       return;
     }
 
@@ -1161,26 +1219,31 @@ function CheckpointsPanel({ reauthPassword, pushToast }: PanelProps) {
     setBusy(false);
 
     if (result) {
-      pushToast(`Purged ${result.deleted} checkpoint(s) older than ${olderThanDays} days. Audited.`);
+      pushToast(
+        adminT(
+          result.deleted === 1 ? 'admin.standalone.checkpointPurge_one' : 'admin.standalone.checkpointPurge_other',
+          { count: result.deleted, days: olderThanDays },
+        ),
+      );
       reload();
     }
   }
 
   return (
-    <section className="panel" aria-label="Agent checkpoints">
+    <section className="panel" aria-label={adminT('admin.standalone.agentCheckpoints_153494')}>
       <div className="page-title">
-        <h2>Agent checkpoints</h2>
+        <h2>{adminT('admin.standalone.agentCheckpoints_153494')}</h2>
         <button className="secondary" type="button" onClick={reload}>
-          Refresh
+          {adminT('admin.standalone.refresh_56e3ba')}
         </button>
       </div>
       <div className="cost-stats">
         <div>
-          <span className="muted">Total checkpoints</span>
-          <strong>{storage.totalCheckpoints.toLocaleString()}</strong>
+          <span className="muted">{adminT('admin.standalone.totalCheckpoints_fb890a')}</span>
+          <strong>{storage.totalCheckpoints.toLocaleString(adminLocale())}</strong>
         </div>
         <div>
-          <span className="muted">Total settled credit</span>
+          <span className="muted">{adminT('admin.standalone.totalSettledCredit_937c43')}</span>
           <strong>{formatCents(storage.totalCreditCents)}</strong>
         </div>
       </div>
@@ -1193,39 +1256,42 @@ function CheckpointsPanel({ reauthPassword, pushToast }: PanelProps) {
         }}
       >
         <label>
-          Purge terminal checkpoints older than (days)
+          {adminT('admin.standalone.purgeTerminalCheckpointsOlderThanDays_acdf97')}
           <input type="number" step="1" min="1" value={days} onChange={(event) => setDays(event.target.value)} />
         </label>
         <button className="danger" type="submit" disabled={busy || storage.purgeEstimate === 0}>
-          {busy ? 'Purging…' : `Purge ${storage.purgeEstimate}`}
+          {busy
+            ? adminT('admin.standalone.purging')
+            : adminT('admin.standalone.purgeCount', { count: storage.purgeEstimate })}
         </button>
       </form>
       <p className="muted">
-        Estimate: {storage.purgeEstimate} COMPLETED/FAILED checkpoint(s) started before {formatDateTime(storage.cutoff)}{' '}
-        would be permanently deleted (removes settled billing history — audited).
+        {adminT('admin.standalone.estimate_3a7ca0')} {storage.purgeEstimate}{' '}
+        {adminT('admin.standalone.completedFailedCheckpointSStartedBefore_35efb3')} {formatDateTime(storage.cutoff)}{' '}
+        {adminT('admin.standalone.wouldBePermanentlyDeletedRemovesSettledBillingHistory_052258')}
       </p>
 
       {storage.byOrg.length === 0 ? (
-        <p className="muted">No agent checkpoints.</p>
+        <p className="muted">{adminT('admin.standalone.noAgentCheckpoints_31799b')}</p>
       ) : (
         <div className="table-wrap">
           <table>
             <thead>
               <tr>
-                <th>Organization</th>
-                <th>Checkpoints</th>
-                <th>Input tokens</th>
-                <th>Output tokens</th>
-                <th>Settled credit</th>
+                <th>{adminT('admin.standalone.organization_519255')}</th>
+                <th>{adminT('admin.standalone.checkpoints_a2b3a5')}</th>
+                <th>{adminT('admin.standalone.inputTokens_92f7d2')}</th>
+                <th>{adminT('admin.standalone.outputTokens_b879f5')}</th>
+                <th>{adminT('admin.standalone.settledCredit_875a02')}</th>
               </tr>
             </thead>
             <tbody>
               {storage.byOrg.map((row) => (
                 <tr key={row.organizationId}>
                   <td>{row.organizationId}</td>
-                  <td className="ledger-amount">{row.checkpoints.toLocaleString()}</td>
-                  <td className="ledger-amount">{row.inputTokens.toLocaleString()}</td>
-                  <td className="ledger-amount">{row.outputTokens.toLocaleString()}</td>
+                  <td className="ledger-amount">{row.checkpoints.toLocaleString(adminLocale())}</td>
+                  <td className="ledger-amount">{row.inputTokens.toLocaleString(adminLocale())}</td>
+                  <td className="ledger-amount">{row.outputTokens.toLocaleString(adminLocale())}</td>
                   <td className="ledger-amount">{formatCents(row.creditCents)}</td>
                 </tr>
               ))}
@@ -1299,23 +1365,23 @@ function KeyBadge({ info }: { info: ProviderKeyInfo | undefined }) {
 
   if (info.hasKey) {
     return (
-      <span className="ledger-credit" title="Admin-set key stored (encrypted)">
-        ✓ key (db)
+      <span className="ledger-credit" title={adminT('admin.standalone.adminSetKeyStoredEncrypted_b5fb68')}>
+        {adminT('admin.standalone.keyDb_192435')}
       </span>
     );
   }
 
   if (info.source === 'env') {
     return (
-      <span className="muted" title="Resolved from the platform env var">
-        ✓ key (env)
+      <span className="muted" title={adminT('admin.standalone.resolvedFromThePlatformEnvVar_1d276a')}>
+        {adminT('admin.standalone.keyEnv_5cc43d')}
       </span>
     );
   }
 
   return (
-    <span className="ledger-debit" title="No platform key configured">
-      ✗ no key
+    <span className="ledger-debit" title={adminT('admin.standalone.noPlatformKeyConfigured_b1ad73')}>
+      {adminT('admin.standalone.noKey_9ff594')}
     </span>
   );
 }
@@ -1374,7 +1440,7 @@ function ProvidersPanel({ reauthPassword, pushToast }: PanelProps) {
     setSaving(false);
 
     if (result) {
-      pushToast('Provider fallback order saved. Audited.');
+      pushToast(adminT('admin.standalone.providerOrderSaved'));
       reload();
     }
   }
@@ -1414,7 +1480,7 @@ function ProvidersPanel({ reauthPassword, pushToast }: PanelProps) {
     }
 
     if (Object.keys(payload).length === 0) {
-      pushToast('Nothing to save — enter a key or change a field first.');
+      pushToast(adminT('admin.standalone.nothingToSave'));
       return;
     }
 
@@ -1434,7 +1500,7 @@ function ProvidersPanel({ reauthPassword, pushToast }: PanelProps) {
       }
 
       setKeyInput('');
-      pushToast(`Saved ${name} credentials. Audited.`);
+      pushToast(adminT('admin.standalone.providerCredentialsSaved', { provider: name }));
       keys.reload();
     }
   }
@@ -1455,15 +1521,15 @@ function ProvidersPanel({ reauthPassword, pushToast }: PanelProps) {
 
         return next;
       });
-      pushToast(`Removed ${name} key. Env fallback resumes. Audited.`);
+      pushToast(adminT('admin.standalone.providerKeyRemoved', { provider: name }));
       keys.reload();
     }
   }
 
   return (
-    <section className="panel" aria-label="AI providers">
+    <section className="panel" aria-label={adminT('admin.standalone.aiProviders_897a9f')}>
       <div className="page-title">
-        <h2>AI providers</h2>
+        <h2>{adminT('admin.standalone.aiProviders_897a9f')}</h2>
         <button
           className="secondary"
           type="button"
@@ -1472,19 +1538,18 @@ function ProvidersPanel({ reauthPassword, pushToast }: PanelProps) {
             keys.reload();
           }}
         >
-          Refresh
+          {adminT('admin.standalone.refresh_56e3ba')}
         </button>
       </div>
-      <p className="muted">
-        Enable/disable providers, set the fallback order (↑/↓, then Save), and set each provider’s platform API key.
-        Keys are write-only and encrypted; the runtime resolves them DB-first and falls back to the provider’s env var,
-        so a provider with no key here keeps its current env behaviour.
-      </p>
+      <p className="muted">{adminT('admin.standalone.enableDisableProvidersSetTheFallbackOrderThen_79d4c3')}</p>
 
       {!data?.metricsAvailable ? (
         <div className="cost-alert cost-alert-warn" role="note">
-          No AI provider requests recorded in the last {data?.window ?? '24h'} yet — p95 latency and error rate populate
-          as requests flow. Alert thresholds: warn ≥{data?.thresholds.warnErrorPct ?? 2}%, error ≥
+          {adminT('admin.standalone.noAiProviderRequestsRecordedInTheLast_09da11')}{' '}
+          {data?.window ?? adminT('admin.standalone.window24Hours')}{' '}
+          {adminT('admin.standalone.yetP95LatencyAndErrorRatePopulateAs_9e771b')}
+          {data?.thresholds.warnErrorPct ?? 2}
+          {adminT('admin.standalone.error_8fc756')}
           {data?.thresholds.errorErrorPct ?? 5}%.
         </div>
       ) : null}
@@ -1494,12 +1559,12 @@ function ProvidersPanel({ reauthPassword, pushToast }: PanelProps) {
           <thead>
             <tr>
               <th>#</th>
-              <th>Provider</th>
-              <th>Status</th>
-              <th>p95 latency (24h)</th>
-              <th>Error rate (24h)</th>
-              <th>Key</th>
-              <th>Actions</th>
+              <th>{adminT('admin.standalone.provider_7ceee3')}</th>
+              <th>{adminT('admin.standalone.status_bae7d5')}</th>
+              <th>{adminT('admin.standalone.p95Latency24h_743f55')}</th>
+              <th>{adminT('admin.standalone.errorRate24h_5a4f14')}</th>
+              <th>{adminT('admin.standalone.key_c67dd2')}</th>
+              <th>{adminT('admin.standalone.actions_c3cd63')}</th>
             </tr>
           </thead>
           <tbody>
@@ -1515,13 +1580,21 @@ function ProvidersPanel({ reauthPassword, pushToast }: PanelProps) {
                     <td className="ledger-amount">{index + 1}</td>
                     <td>{provider?.displayName ?? info?.displayName ?? name}</td>
                     <td className={provider?.enabled ? 'ledger-credit' : 'muted'}>
-                      {provider?.enabled ? 'enabled' : 'disabled'}
+                      {adminStatusLabel(provider?.enabled ? 'active' : 'disabled')}
                     </td>
                     <td className="ledger-amount">
                       {provider?.p95LatencyMs == null ? (
                         <span className="muted">—</span>
                       ) : (
-                        <span title={`${provider.sampleCount ?? 0} requests sampled`}>{provider.p95LatencyMs} ms</span>
+                        <span
+                          title={adminPluralT(
+                            'admin.standalone.requestsSampled_one',
+                            'admin.standalone.requestsSampled_other',
+                            provider.sampleCount ?? 0,
+                          )}
+                        >
+                          {provider.p95LatencyMs} {adminT('admin.standalone.ms_26cc32')}
+                        </span>
                       )}
                     </td>
                     <td className={errorRateClass(provider?.errorRatePct, thresholds)}>
@@ -1536,7 +1609,7 @@ function ProvidersPanel({ reauthPassword, pushToast }: PanelProps) {
                           className="secondary"
                           type="button"
                           disabled={index === 0}
-                          aria-label={`Move ${name} up`}
+                          aria-label={adminT('admin.standalone.moveProviderUp', { provider: name })}
                           onClick={() => move(index, -1)}
                         >
                           ↑
@@ -1545,7 +1618,7 @@ function ProvidersPanel({ reauthPassword, pushToast }: PanelProps) {
                           className="secondary"
                           type="button"
                           disabled={index === order.length - 1}
-                          aria-label={`Move ${name} down`}
+                          aria-label={adminT('admin.standalone.moveProviderDown', { provider: name })}
                           onClick={() => move(index, 1)}
                         >
                           ↓
@@ -1556,7 +1629,7 @@ function ProvidersPanel({ reauthPassword, pushToast }: PanelProps) {
                           aria-expanded={isOpen}
                           onClick={() => toggleKeys(name)}
                         >
-                          {isOpen ? 'Close' : 'Key'}
+                          {isOpen ? adminT('admin.standalone.close_bbfa77') : adminT('admin.standalone.key_c67dd2')}
                         </button>
                       </div>
                     </td>
@@ -1573,19 +1646,21 @@ function ProvidersPanel({ reauthPassword, pushToast }: PanelProps) {
                             }}
                           >
                             <label>
-                              API key (write-only — leave blank to keep the current key)
+                              {adminT('admin.standalone.apiKeyWriteOnlyLeaveBlankToKeep_4a13f0')}
                               <input
                                 type="password"
                                 autoComplete="off"
                                 value={keyInput}
                                 onChange={(event) => setKeyInput(event.target.value)}
                                 placeholder={
-                                  info?.hasKey ? '•••• stored — enter to rotate' : 'Paste the platform API key'
+                                  info?.hasKey
+                                    ? adminT('admin.standalone.keyStoredPlaceholder')
+                                    : adminT('admin.standalone.keyPastePlaceholder')
                                 }
                               />
                             </label>
                             <label>
-                              Base URL (optional — leave blank to clear; OpenAI-compatible only)
+                              {adminT('admin.standalone.baseUrlOptionalLeaveBlankToClearOpenai_ac07d4')}
                               <input
                                 type="url"
                                 value={baseUrlInput}
@@ -1599,11 +1674,15 @@ function ProvidersPanel({ reauthPassword, pushToast }: PanelProps) {
                                 checked={byokInput}
                                 onChange={(event) => setByokInput(event.target.checked)}
                               />
-                              Allow users to bring their own key (BYOK)
+                              {adminT('admin.standalone.allowUsersToBringTheirOwnKeyByok_83e9f9')}
                             </label>
                             <div className="actions">
                               <button className="action" type="submit" disabled={keyBusy}>
-                                {keyBusy ? 'Saving…' : info?.hasKey ? 'Save / rotate' : 'Save key'}
+                                {keyBusy
+                                  ? adminT('admin.standalone.saving')
+                                  : info?.hasKey
+                                    ? adminT('admin.standalone.saveRotate')
+                                    : adminT('admin.standalone.saveKey')}
                               </button>
                               {info?.hasKey ? (
                                 confirmRemove ? (
@@ -1614,7 +1693,7 @@ function ProvidersPanel({ reauthPassword, pushToast }: PanelProps) {
                                       disabled={keyBusy}
                                       onClick={() => void removeKey(name)}
                                     >
-                                      Confirm remove
+                                      {adminT('admin.standalone.confirmRemove_2a8865')}
                                     </button>
                                     <button
                                       className="secondary"
@@ -1622,7 +1701,7 @@ function ProvidersPanel({ reauthPassword, pushToast }: PanelProps) {
                                       disabled={keyBusy}
                                       onClick={() => setConfirmRemove(false)}
                                     >
-                                      Cancel
+                                      {adminT('admin.standalone.cancel_77dfd2')}
                                     </button>
                                   </>
                                 ) : (
@@ -1632,18 +1711,20 @@ function ProvidersPanel({ reauthPassword, pushToast }: PanelProps) {
                                     disabled={keyBusy}
                                     onClick={() => setConfirmRemove(true)}
                                   >
-                                    Remove key
+                                    {adminT('admin.standalone.removeKey_582d9a')}
                                   </button>
                                 )
                               ) : null}
                             </div>
                           </form>
                           <p className="muted">
-                            Source: <strong>{info?.source ?? 'none'}</strong>
+                            {adminT('admin.standalone.source_922acd')}{' '}
+                            <strong>{info?.source ?? adminT('admin.standalone.sourceNone')}</strong>
                             {lastSavedLast4[name] ? (
                               <>
                                 {' '}
-                                · saved key ending <code>····{lastSavedLast4[name]}</code>
+                                {adminT('admin.standalone.savedKeyEnding_c24b41')}{' '}
+                                <code>····{lastSavedLast4[name]}</code>
                               </>
                             ) : null}
                           </p>
@@ -1659,7 +1740,7 @@ function ProvidersPanel({ reauthPassword, pushToast }: PanelProps) {
       </div>
       <div className="actions" style={{ marginTop: 10 }}>
         <button className="action" type="button" disabled={!dirty || saving} onClick={() => void save()}>
-          {saving ? 'Saving…' : 'Save order'}
+          {saving ? adminT('admin.standalone.saving') : adminT('admin.standalone.saveOrder')}
         </button>
       </div>
     </section>
@@ -1723,7 +1804,7 @@ function SecurityEventsPanel({ reauthPassword, pushToast }: PanelProps) {
     setBusy(false);
 
     if (result) {
-      pushToast('Security event marked resolved. Audited.');
+      pushToast(adminT('admin.standalone.securityResolved'));
       setOpenId(undefined);
       setNote('');
       reload();
@@ -1731,36 +1812,47 @@ function SecurityEventsPanel({ reauthPassword, pushToast }: PanelProps) {
   }
 
   return (
-    <section className="panel" aria-label="Security events">
+    <section className="panel" aria-label={adminT('admin.standalone.securityEvents_c68076')}>
       <div className="page-title">
         <h2>
-          Security events{' '}
-          {data && data.openCount > 0 ? <span className="open-badge">{data.openCount} open</span> : null}
+          {adminT('admin.standalone.securityEvents_c68076')}{' '}
+          {data && data.openCount > 0 ? (
+            <span className="open-badge">
+              {data.openCount} {adminT('admin.standalone.open_5fc7e3')}
+            </span>
+          ) : null}
         </h2>
         <button className="secondary" type="button" onClick={reload}>
-          Refresh
+          {adminT('admin.standalone.refresh_56e3ba')}
         </button>
       </div>
-      <p className="muted">
-        Auth / MFA / security audit events, newest first. Severity is derived from the action. Resolving records an
-        optional note (keyed to the immutable audit row — the trail is never edited).
-      </p>
+      <p className="muted">{adminT('admin.standalone.authMfaSecurityAuditEventsNewestFirstSeverity_8cbdf2')}</p>
       {events.length === 0 ? (
-        <p className="muted">No security events.</p>
+        <p className="muted">{adminT('admin.standalone.noSecurityEvents_ce9a30')}</p>
       ) : (
         <ol className="event-timeline">
           {events.map((event) => (
             <li key={event.id} className={event.resolved ? 'event-resolved' : ''}>
-              <span className={`sev-badge ${severityClass(event.severity)}`}>{event.severity}</span>
+              <span className={`sev-badge ${severityClass(event.severity)}`}>
+                {adminT(`admin.standalone.severity.${event.severity}`)}
+              </span>
               <div className="event-body">
                 <div className="event-head">
                   <strong>{event.action}</strong>
                   <span className="muted">{formatDateTime(event.createdAt)}</span>
                 </div>
                 <div className="muted event-meta">
-                  {event.actorUserId ? `actor ${event.actorUserId}` : 'no actor'}
+                  {event.actorUserId
+                    ? adminT('admin.standalone.actor', { id: event.actorUserId })
+                    : adminT('admin.standalone.noActor')}
                   {event.ipAddress ? ` · ${event.ipAddress}` : ''}
-                  {event.resolved ? ` · resolved${event.note ? `: ${event.note}` : ''}` : ''}
+                  {event.resolved
+                    ? ` · ${
+                        event.note
+                          ? adminT('admin.standalone.resolvedWithNote', { note: event.note })
+                          : adminT('admin.standalone.resolved')
+                      }`
+                    : ''}
                 </div>
                 {!event.resolved ? (
                   openId === event.id ? (
@@ -1768,10 +1860,10 @@ function SecurityEventsPanel({ reauthPassword, pushToast }: PanelProps) {
                       <input
                         value={note}
                         onChange={(e) => setNote(e.target.value)}
-                        placeholder="Resolution note (optional)"
+                        placeholder={adminT('admin.standalone.resolutionNoteOptional_f47be8')}
                       />
                       <button className="action" type="button" disabled={busy} onClick={() => void resolve(event.id)}>
-                        {busy ? 'Saving…' : 'Confirm resolve'}
+                        {busy ? adminT('admin.standalone.saving') : adminT('admin.standalone.confirmResolve')}
                       </button>
                       <button
                         className="secondary"
@@ -1781,7 +1873,7 @@ function SecurityEventsPanel({ reauthPassword, pushToast }: PanelProps) {
                           setNote('');
                         }}
                       >
-                        Cancel
+                        {adminT('admin.standalone.cancel_77dfd2')}
                       </button>
                     </div>
                   ) : (
@@ -1793,7 +1885,7 @@ function SecurityEventsPanel({ reauthPassword, pushToast }: PanelProps) {
                         setNote('');
                       }}
                     >
-                      Mark resolved
+                      {adminT('admin.standalone.markResolved_f9896c')}
                     </button>
                   )
                 ) : null}
@@ -1985,6 +2077,7 @@ export function AgentRoutingPanel({ reauthPassword, pushToast }: PanelProps) {
 
     const price = draftUserPrice(line);
     const inputMargin = price.inCentsPerM > 0 ? (price.inCentsPerM - line.costInCentsPerM) / price.inCentsPerM : null;
+
     const outputMargin =
       price.outCentsPerM > 0 ? (price.outCentsPerM - line.costOutCentsPerM) / price.outCentsPerM : null;
 
@@ -2028,14 +2121,16 @@ export function AgentRoutingPanel({ reauthPassword, pushToast }: PanelProps) {
       });
       setSimulation(result);
     } catch (err) {
-      pushToast(err instanceof Error ? err.message : 'Simulation failed');
+      pushToast(localizedAdminError(err, 'admin.standalone.simulationFailed'));
     }
   };
 
   const publish = async () => {
     if (negativeDraftLines.length > 0 && !confirmNegative) {
       pushToast(
-        `Negative margin on: ${negativeDraftLines.map((line) => line.key).join(', ')} — tick the explicit confirmation to publish anyway.`,
+        adminT('admin.standalone.negativeMarginConfirm', {
+          lines: negativeDraftLines.map((line) => line.key).join(', '),
+        }),
       );
       return;
     }
@@ -2048,7 +2143,7 @@ export function AgentRoutingPanel({ reauthPassword, pushToast }: PanelProps) {
     );
 
     if (result?.published) {
-      pushToast(`Routing card v${result.version} published — live immediately, no deployment.`);
+      pushToast(adminT('admin.standalone.routingPublished', { version: result.version }));
       reload();
     }
   };
@@ -2067,22 +2162,25 @@ export function AgentRoutingPanel({ reauthPassword, pushToast }: PanelProps) {
   return (
     <div className="admin-panel">
       <div className="admin-panel-block">
-        <h3>Model routing — active card v{data.card.version}</h3>
+        <h3>
+          {adminT('admin.standalone.modelRoutingActiveCardV_649e77')}
+          {data.card.version}
+        </h3>
         <p className="admin-panel-hint">
-          One line per mode/switch. The user price is <strong>base × multiplier</strong> — the multiplier shown IS the
-          multiplier billed. Margin is computed live; a negative margin blocks publishing unless explicitly confirmed.
-          Publishing creates a NEW version (config change — never a deployment).
+          {adminT('admin.standalone.oneLinePerModeSwitchTheUserPrice_7174dc')}{' '}
+          <strong>{adminT('admin.standalone.baseMultiplier_c4deba')}</strong>{' '}
+          {adminT('admin.standalone.theMultiplierShownIsTheMultiplierBilledMargin_95d198')}
         </p>
 
         <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap', margin: '8px 0' }}>
           <label>
-            Base user price /1M in (¢): {cellInput(effectiveBaseIn, setBaseIn)}
+            {adminT('admin.standalone.baseUserPrice1mIn_6a9dc1')} {cellInput(effectiveBaseIn, setBaseIn)}
           </label>
           <label>
-            Base user price /1M out (¢): {cellInput(effectiveBaseOut, setBaseOut)}
+            {adminT('admin.standalone.baseUserPrice1mOut_56d9d5')} {cellInput(effectiveBaseOut, setBaseOut)}
           </label>
           <label>
-            Source date:{' '}
+            {adminT('admin.standalone.sourceDate_889778')}{' '}
             <input
               type="date"
               value={sourceDate ?? ''}
@@ -2095,20 +2193,20 @@ export function AgentRoutingPanel({ reauthPassword, pushToast }: PanelProps) {
           <table className="admin-table">
             <thead>
               <tr>
-                <th>Line</th>
-                <th>Provider</th>
-                <th>Model</th>
-                <th>Cost /1M in (¢)</th>
-                <th>Cost /1M out (¢)</th>
+                <th>{adminT('admin.standalone.line_ea9676')}</th>
+                <th>{adminT('admin.standalone.provider_7ceee3')}</th>
+                <th>{adminT('admin.standalone.model_68c2cc')}</th>
+                <th>{adminT('admin.standalone.cost1mIn_00fce9')}</th>
+                <th>{adminT('admin.standalone.cost1mOut_cb5962')}</th>
                 <th>×</th>
-                <th>User /1M in</th>
-                <th>User /1M out</th>
-                <th>Margin in</th>
-                <th>Margin out</th>
-                <th>Margin 30d</th>
-                <th>Volume 30d</th>
-                <th>Plans</th>
-                <th>Active</th>
+                <th>{adminT('admin.standalone.user1mIn_2e7092')}</th>
+                <th>{adminT('admin.standalone.user1mOut_1e548f')}</th>
+                <th>{adminT('admin.standalone.marginIn_d72590')}</th>
+                <th>{adminT('admin.standalone.marginOut_e25894')}</th>
+                <th>{adminT('admin.standalone.margin30d_9cac2b')}</th>
+                <th>{adminT('admin.standalone.volume30d_6d3e99')}</th>
+                <th>{adminT('admin.standalone.plans_cf2e5f')}</th>
+                <th>{adminT('admin.standalone.active_a733b8')}</th>
               </tr>
             </thead>
             <tbody>
@@ -2122,7 +2220,9 @@ export function AgentRoutingPanel({ reauthPassword, pushToast }: PanelProps) {
                     <td>
                       <strong>{line.label}</strong>
                       {!line.billedToUser ? (
-                        <div style={{ fontSize: 11, color: '#8a8f98' }}>not billed (our operating cost)</div>
+                        <div style={{ fontSize: 11, color: '#8a8f98' }}>
+                          {adminT('admin.standalone.notBilledOurOperatingCost_5b7fc7')}
+                        </div>
                       ) : null}
                     </td>
                     <td>
@@ -2139,7 +2239,9 @@ export function AgentRoutingPanel({ reauthPassword, pushToast }: PanelProps) {
                         style={{ width: 170 }}
                       />
                     </td>
-                    <td>{cellInput(line.costInCentsPerM, (next) => updateLine(line.key, { costInCentsPerM: next }))}</td>
+                    <td>
+                      {cellInput(line.costInCentsPerM, (next) => updateLine(line.key, { costInCentsPerM: next }))}
+                    </td>
                     <td>
                       {cellInput(line.costOutCentsPerM, (next) => updateLine(line.key, { costOutCentsPerM: next }))}
                     </td>
@@ -2153,7 +2255,11 @@ export function AgentRoutingPanel({ reauthPassword, pushToast }: PanelProps) {
                     </td>
                     <td style={{ fontSize: 11 }}>
                       {served
-                        ? `${served.volume30d.calls} calls · ${served.volume30d.tokensIn.toLocaleString()} in / ${served.volume30d.tokensOut.toLocaleString()} out`
+                        ? adminT('admin.standalone.callVolume', {
+                            calls: served.volume30d.calls.toLocaleString(adminLocale()),
+                            input: served.volume30d.tokensIn.toLocaleString(adminLocale()),
+                            output: served.volume30d.tokensOut.toLocaleString(adminLocale()),
+                          })
                         : '—'}
                     </td>
                     <td>
@@ -2168,7 +2274,7 @@ export function AgentRoutingPanel({ reauthPassword, pushToast }: PanelProps) {
                           })
                         }
                         style={{ width: 160 }}
-                        title="Comma-separated plan keys"
+                        title={adminT('admin.standalone.commaSeparatedPlanKeys_b4f5e3')}
                       />
                     </td>
                     <td>
@@ -2199,51 +2305,62 @@ export function AgentRoutingPanel({ reauthPassword, pushToast }: PanelProps) {
               fontWeight: 600,
             }}
           >
-            ⚠ Negative margin on: {negativeDraftLines.map((line) => line.label).join(', ')}. Publishing is blocked
-            unless you explicitly confirm losing money on these lines.
+            {adminT('admin.standalone.negativeMarginOn_a4c991')}{' '}
+            {negativeDraftLines.map((line) => line.label).join(', ')}
+            {adminT('admin.standalone.publishingIsBlockedUnlessYouExplicitlyConfirmLosing_bcd6c0')}
             <label style={{ display: 'block', marginTop: 6, fontWeight: 400 }}>
               <input
                 type="checkbox"
                 checked={confirmNegative}
                 onChange={(event) => setConfirmNegative(event.currentTarget.checked)}
               />{' '}
-              I understand and confirm publishing with a negative margin.
+              {adminT('admin.standalone.iUnderstandAndConfirmPublishingWithANegative_ee4b7c')}
             </label>
           </div>
         ) : null}
 
         <div style={{ display: 'flex', gap: 10, margin: '10px 0' }}>
           <button type="button" onClick={simulate}>
-            Simulate on the last 30 days
+            {adminT('admin.standalone.simulateOnTheLast30Days_bbde22')}
           </button>
           <button type="button" onClick={publish} data-testid="agent-routing-publish">
-            Publish new version
+            {adminT('admin.standalone.publishNewVersion_c72a11')}
           </button>
           <button type="button" onClick={reload}>
-            Reset draft
+            {adminT('admin.standalone.resetDraft_cdca27')}
           </button>
         </div>
 
         {simulation ? (
           <div className="admin-panel-block" data-testid="agent-routing-simulation">
-            <h4>Simulation — real volume of the last {simulation.windowDays} days</h4>
+            <h4>
+              {adminT('admin.standalone.simulationRealVolumeOfTheLast_960e46')} {simulation.windowDays}{' '}
+              {adminT('admin.standalone.days_5548ae')}
+            </h4>
             <p>
-              At this volume, this config would have <strong>cost {formatCents(simulation.totals.simulatedCostCents)}</strong>{' '}
-              and <strong>earned {formatCents(simulation.totals.simulatedCreditCents)}</strong> (margin{' '}
-              {formatCents(simulation.totals.simulatedMarginCents)}) — vs actual: cost{' '}
-              {formatCents(simulation.totals.actualCostCents)}, earned {formatCents(simulation.totals.actualCreditCents)}
-              , margin {formatCents(simulation.totals.actualMarginCents)}.
+              {adminT('admin.standalone.atThisVolumeThisConfigWouldHave_e10562')}{' '}
+              <strong>
+                {adminT('admin.standalone.cost_885dc4')} {formatCents(simulation.totals.simulatedCostCents)}
+              </strong>{' '}
+              {adminT('admin.standalone.and_cffa50')}{' '}
+              <strong>
+                {adminT('admin.standalone.earned_7aa913')} {formatCents(simulation.totals.simulatedCreditCents)}
+              </strong>{' '}
+              {adminT('admin.standalone.margin_0a1dda')} {formatCents(simulation.totals.simulatedMarginCents)}
+              {adminT('admin.standalone.vsActualCost_f01611')} {formatCents(simulation.totals.actualCostCents)}
+              {adminT('admin.standalone.earned_c3717d')} {formatCents(simulation.totals.actualCreditCents)}
+              {adminT('admin.standalone.margin_cdbfd2')} {formatCents(simulation.totals.actualMarginCents)}.
             </p>
             <table className="admin-table">
               <thead>
                 <tr>
-                  <th>Line</th>
-                  <th>Calls</th>
-                  <th>Actual cost</th>
-                  <th>Actual earned</th>
-                  <th>Simulated cost</th>
-                  <th>Simulated earned</th>
-                  <th>Simulated margin</th>
+                  <th>{adminT('admin.standalone.line_ea9676')}</th>
+                  <th>{adminT('admin.standalone.calls_0a19b7')}</th>
+                  <th>{adminT('admin.standalone.actualCost_edf396')}</th>
+                  <th>{adminT('admin.standalone.actualEarned_9cb13e')}</th>
+                  <th>{adminT('admin.standalone.simulatedCost_6426ad')}</th>
+                  <th>{adminT('admin.standalone.simulatedEarned_2ec5f3')}</th>
+                  <th>{adminT('admin.standalone.simulatedMargin_4ee579')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -2267,28 +2384,28 @@ export function AgentRoutingPanel({ reauthPassword, pushToast }: PanelProps) {
       </div>
 
       <div className="admin-panel-block">
-        <h4>Version history — who changed what, when</h4>
+        <h4>{adminT('admin.standalone.versionHistoryWhoChangedWhatWhen_bb0a19')}</h4>
         <table className="admin-table">
           <thead>
             <tr>
-              <th>Version</th>
-              <th>Active</th>
-              <th>Effective from</th>
-              <th>Effective to</th>
-              <th>Source date</th>
-              <th>Author</th>
-              <th>Created</th>
+              <th>{adminT('admin.standalone.version_2da600')}</th>
+              <th>{adminT('admin.standalone.active_a733b8')}</th>
+              <th>{adminT('admin.standalone.effectiveFrom_ede7a1')}</th>
+              <th>{adminT('admin.standalone.effectiveTo_07f1b2')}</th>
+              <th>{adminT('admin.standalone.sourceDate_1356ae')}</th>
+              <th>{adminT('admin.standalone.author_5fda23')}</th>
+              <th>{adminT('admin.standalone.created_accf40')}</th>
             </tr>
           </thead>
           <tbody>
             {data.history.map((entry) => (
               <tr key={entry.version}>
                 <td>v{entry.version}</td>
-                <td>{entry.active ? '● active' : '—'}</td>
+                <td>{entry.active ? adminT('admin.standalone.activeDot') : '—'}</td>
                 <td>{formatDateTime(entry.effectiveFrom)}</td>
                 <td>{entry.effectiveTo ? formatDateTime(entry.effectiveTo) : '—'}</td>
                 <td>{entry.sourceDate ?? '—'}</td>
-                <td>{entry.createdByEmail ?? 'seed'}</td>
+                <td>{entry.createdByEmail ?? adminT('admin.standalone.seedAuthor')}</td>
                 <td>{formatDateTime(entry.createdAt)}</td>
               </tr>
             ))}
@@ -2297,20 +2414,20 @@ export function AgentRoutingPanel({ reauthPassword, pushToast }: PanelProps) {
       </div>
 
       <div className="admin-panel-block">
-        <h4>Recent agent calls (admin-only log)</h4>
+        <h4>{adminT('admin.standalone.recentAgentCallsAdminOnlyLog_070d7a')}</h4>
         <table className="admin-table">
           <thead>
             <tr>
-              <th>When</th>
-              <th>Mode</th>
-              <th>Line</th>
-              <th>Model (real)</th>
-              <th>Tokens in/out</th>
-              <th>Cost</th>
-              <th>Credits</th>
-              <th>Margin</th>
-              <th>Escalated</th>
-              <th>Card</th>
+              <th>{adminT('admin.standalone.when_769bb1')}</th>
+              <th>{adminT('admin.standalone.mode_a7b93d')}</th>
+              <th>{adminT('admin.standalone.line_ea9676')}</th>
+              <th>{adminT('admin.standalone.modelReal_2f22cd')}</th>
+              <th>{adminT('admin.standalone.tokensInOut_9a5fc7')}</th>
+              <th>{adminT('admin.standalone.cost_64ae43')}</th>
+              <th>{adminT('admin.standalone.credits_bfac50')}</th>
+              <th>{adminT('admin.standalone.margin_792fe4')}</th>
+              <th>{adminT('admin.standalone.escalated_aff666')}</th>
+              <th>{adminT('admin.standalone.card_4d4ce7')}</th>
             </tr>
           </thead>
           <tbody>
@@ -2319,27 +2436,29 @@ export function AgentRoutingPanel({ reauthPassword, pushToast }: PanelProps) {
                 <td>{formatDateTime(call.createdAt)}</td>
                 <td>
                   {call.mode}
-                  {call.turbo ? ' · turbo' : ''}
-                  {call.highEffort ? ' · high-effort' : ''}
+                  {call.turbo ? adminT('admin.standalone.turboSuffix') : ''}
+                  {call.highEffort ? adminT('admin.standalone.highEffortSuffix') : ''}
                 </td>
                 <td>{call.lineKey}</td>
                 <td>
                   {call.provider}/{call.model}
-                  {!call.billedToUser ? ' (unbilled)' : ''}
+                  {!call.billedToUser ? adminT('admin.standalone.unbilledSuffix') : ''}
                 </td>
                 <td>
-                  {call.tokensIn.toLocaleString()} / {call.tokensOut.toLocaleString()}
+                  {call.tokensIn.toLocaleString(adminLocale())} / {call.tokensOut.toLocaleString(adminLocale())}
                 </td>
                 <td>{formatCents(call.costMillicents / 1000)}</td>
                 <td>{formatCents(call.creditCents)}</td>
-                <td style={marginTone(call.marginMillicents < 0 ? -1 : 1)}>{formatCents(call.marginMillicents / 1000)}</td>
-                <td>{call.escalated ? 'yes' : 'no'}</td>
+                <td style={marginTone(call.marginMillicents < 0 ? -1 : 1)}>
+                  {formatCents(call.marginMillicents / 1000)}
+                </td>
+                <td>{call.escalated ? adminT('admin.standalone.yes') : adminT('admin.standalone.no')}</td>
                 <td>v{call.routingCardVersion}</td>
               </tr>
             ))}
             {calls && calls.length === 0 ? (
               <tr>
-                <td colSpan={10}>No routed calls yet.</td>
+                <td colSpan={10}>{adminT('admin.standalone.noRoutedCallsYet_ceff6f')}</td>
               </tr>
             ) : null}
           </tbody>

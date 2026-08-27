@@ -1,5 +1,7 @@
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
+import { getScreenshotSelectorCopy } from '~/lib/i18n/catalogs/screenshot-selector';
 
 interface ScreenshotSelectorProps {
   isSelectionMode: boolean;
@@ -9,6 +11,8 @@ interface ScreenshotSelectorProps {
 
 export const ScreenshotSelector = memo(
   ({ isSelectionMode, setIsSelectionMode, containerRef }: ScreenshotSelectorProps) => {
+    const { i18n } = useTranslation();
+    const copy = getScreenshotSelectorCopy(i18n.resolvedLanguage ?? i18n.language);
     const [isCapturing, setIsCapturing] = useState(false);
     const [selectionStart, setSelectionStart] = useState<{ x: number; y: number } | null>(null);
     const [selectionEnd, setSelectionEnd] = useState<{ x: number; y: number } | null>(null);
@@ -32,64 +36,88 @@ export const ScreenshotSelector = memo(
       };
     }, []);
 
-    const initializeStream = async () => {
-      if (!mediaStreamRef.current) {
-        try {
-          const stream = await navigator.mediaDevices.getDisplayMedia({
-            audio: false,
-            video: {
-              displaySurface: 'window',
-              preferCurrentTab: true,
-              surfaceSwitching: 'include',
-              systemAudio: 'exclude',
-            },
-          } as MediaStreamConstraints);
-
-          // Add handler for when sharing stops
-          stream.addEventListener('inactive', () => {
-            if (videoRef.current) {
-              videoRef.current.pause();
-              videoRef.current.srcObject = null;
-              videoRef.current.remove();
-              videoRef.current = null;
-            }
-
-            if (mediaStreamRef.current) {
-              mediaStreamRef.current.getTracks().forEach((track) => track.stop());
-              mediaStreamRef.current = null;
-            }
-
-            setIsSelectionMode(false);
-            setSelectionStart(null);
-            setSelectionEnd(null);
-            setIsCapturing(false);
-          });
-
-          mediaStreamRef.current = stream;
-
-          // Initialize video element if needed
-          if (!videoRef.current) {
-            const video = document.createElement('video');
-            video.style.opacity = '0';
-            video.style.position = 'fixed';
-            video.style.pointerEvents = 'none';
-            video.style.zIndex = '-1';
-            document.body.appendChild(video);
-            videoRef.current = video;
-          }
-
-          // Set up video with the stream
-          videoRef.current.srcObject = stream;
-          await videoRef.current.play();
-        } catch (error) {
-          console.error('Failed to initialize stream:', error);
-          setIsSelectionMode(false);
-          toast.error('Failed to initialize screen capture');
-        }
+    useEffect(() => {
+      if (!isSelectionMode) {
+        return undefined;
       }
 
-      return mediaStreamRef.current;
-    };
+      const cancelOnEscape = (event: KeyboardEvent) => {
+        if (event.key !== 'Escape') {
+          return;
+        }
+
+        setSelectionStart(null);
+        setSelectionEnd(null);
+        setIsSelectionMode(false);
+      };
+
+      window.addEventListener('keydown', cancelOnEscape);
+
+      return () => window.removeEventListener('keydown', cancelOnEscape);
+    }, [isSelectionMode, setIsSelectionMode]);
+
+    const initializeStream = useCallback(async () => {
+      if (mediaStreamRef.current) {
+        return mediaStreamRef.current;
+      }
+
+      try {
+        const stream = await navigator.mediaDevices.getDisplayMedia({
+          audio: false,
+          video: {
+            displaySurface: 'window',
+            preferCurrentTab: true,
+            surfaceSwitching: 'include',
+            systemAudio: 'exclude',
+          },
+        } as MediaStreamConstraints);
+
+        // Add handler for when sharing stops
+        stream.addEventListener('inactive', () => {
+          if (videoRef.current) {
+            videoRef.current.pause();
+            videoRef.current.srcObject = null;
+            videoRef.current.remove();
+            videoRef.current = null;
+          }
+
+          if (mediaStreamRef.current) {
+            mediaStreamRef.current.getTracks().forEach((track) => track.stop());
+            mediaStreamRef.current = null;
+          }
+
+          setIsSelectionMode(false);
+          setSelectionStart(null);
+          setSelectionEnd(null);
+          setIsCapturing(false);
+        });
+
+        mediaStreamRef.current = stream;
+
+        // Initialize video element if needed
+        if (!videoRef.current) {
+          const video = document.createElement('video');
+          video.style.opacity = '0';
+          video.style.position = 'fixed';
+          video.style.pointerEvents = 'none';
+          video.style.zIndex = '-1';
+          document.body.appendChild(video);
+          videoRef.current = video;
+        }
+
+        // Set up video with the stream
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+
+        return stream;
+      } catch (error) {
+        console.error(error);
+        setIsSelectionMode(false);
+        toast.error(copy['screenshotSelector.toast.streamFailed']);
+
+        return null;
+      }
+    }, [copy, setIsSelectionMode]);
 
     const handleCopySelection = useCallback(async () => {
       if (!isSelectionMode || !selectionStart || !selectionEnd || !containerRef.current) {
@@ -116,7 +144,7 @@ export const ScreenshotSelector = memo(
         const tempCtx = tempCanvas.getContext('2d');
 
         if (!tempCtx) {
-          throw new Error('Failed to get temporary canvas context');
+          throw new Error();
         }
 
         // Draw the full video frame
@@ -156,7 +184,7 @@ export const ScreenshotSelector = memo(
         const ctx = canvas.getContext('2d');
 
         if (!ctx) {
-          throw new Error('Failed to get canvas context');
+          throw new Error();
         }
 
         // Draw the cropped area
@@ -168,7 +196,7 @@ export const ScreenshotSelector = memo(
             if (blob) {
               resolve(blob);
             } else {
-              reject(new Error('Failed to create blob'));
+              reject(new Error());
             }
           }, 'image/png');
         });
@@ -194,16 +222,19 @@ export const ScreenshotSelector = memo(
               const file = new File([blob], 'screenshot.png', { type: 'image/png' });
               setUploadedFiles([...uploadedFiles, file]);
               setImageDataList([...imageDataList, base64Image]);
-              toast.success('Screenshot captured and added to chat');
+              toast.success(copy['screenshotSelector.toast.captured']);
             } else {
-              toast.error('Could not add screenshot to chat');
+              toast.error(copy['screenshotSelector.toast.addFailed']);
             }
+          } else {
+            toast.error(copy['screenshotSelector.toast.addFailed']);
           }
         };
+        reader.onerror = () => toast.error(copy['screenshotSelector.toast.addFailed']);
         reader.readAsDataURL(blob);
       } catch (error) {
-        console.error('Failed to capture screenshot:', error);
-        toast.error('Failed to capture screenshot');
+        console.error(error);
+        toast.error(copy['screenshotSelector.toast.captureFailed']);
       } finally {
         /*
          * Always release the screen-capture MediaStream — on success too, not
@@ -220,10 +251,10 @@ export const ScreenshotSelector = memo(
         setSelectionEnd(null);
         setIsSelectionMode(false); // Turn off selection mode after capture
       }
-    }, [isSelectionMode, selectionStart, selectionEnd, containerRef, setIsSelectionMode]);
+    }, [copy, isSelectionMode, selectionStart, selectionEnd, containerRef, initializeStream, setIsSelectionMode]);
 
     const handleSelectionStart = useCallback(
-      (e: React.MouseEvent) => {
+      (e: React.PointerEvent) => {
         e.preventDefault();
         e.stopPropagation();
 
@@ -241,7 +272,7 @@ export const ScreenshotSelector = memo(
     );
 
     const handleSelectionMove = useCallback(
-      (e: React.MouseEvent) => {
+      (e: React.PointerEvent) => {
         e.preventDefault();
         e.stopPropagation();
 
@@ -264,10 +295,14 @@ export const ScreenshotSelector = memo(
     return (
       <div
         className="absolute inset-0 cursor-crosshair"
-        onMouseDown={handleSelectionStart}
-        onMouseMove={handleSelectionMove}
-        onMouseUp={handleCopySelection}
-        onMouseLeave={() => {
+        role="application"
+        tabIndex={0}
+        aria-label={copy['screenshotSelector.aria']}
+        aria-busy={isCapturing}
+        onPointerDown={handleSelectionStart}
+        onPointerMove={handleSelectionMove}
+        onPointerUp={handleCopySelection}
+        onPointerLeave={() => {
           if (selectionStart) {
             setSelectionStart(null);
           }
@@ -276,12 +311,16 @@ export const ScreenshotSelector = memo(
           backgroundColor: isCapturing ? 'transparent' : 'var(--vc-ide-overlay)',
           userSelect: 'none',
           WebkitUserSelect: 'none',
+          touchAction: 'none',
           pointerEvents: 'all',
           opacity: isCapturing ? 0 : 1,
           zIndex: 50,
           transition: 'opacity 0.1s ease-in-out',
         }}
       >
+        <span className="sr-only" aria-live="polite">
+          {isCapturing ? copy['screenshotSelector.capturing'] : copy['screenshotSelector.instructions']}
+        </span>
         {selectionStart && selectionEnd && !isCapturing && (
           <div
             className="absolute border-2 border-blue-500 bg-blue-200 bg-opacity-20"

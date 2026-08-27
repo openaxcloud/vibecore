@@ -261,4 +261,65 @@ describe('P0-V3-11 — migration au publish', () => {
     expect(store.migrationExecutions.size).toBe(1);
     expect([...store.migrationExecutions.values()][0].appliedStatements).toBe(afterFirst);
   });
+
+  /*
+   * LA garantie de ce lot, prouvée de bout en bout : migrer AVANT de publier, et
+   * refuser le publish si la migration échoue, POUR QUE LA PRODUCTION CONTINUE DE
+   * SERVIR LA VERSION PRÉCÉDENTE.
+   *
+   * Les autres tests négatifs vérifient qu'aucun déploiement n'est CRÉÉ. Ce n'est
+   * pas la même chose : « rien de neuf » n'implique pas « l'ancien sert encore ».
+   * Celui-ci publie d'abord une v1 qui réussit, puis fait échouer la migration de
+   * la v2, et vérifie que le déploiement SERVI est toujours la v1 — id compris.
+   *
+   * Ce test tombe si l'on replace la migration APRÈS `withSerializedMutation` :
+   * le publish serait alors déjà acté quand la migration échoue, et la v2 —
+   * branchée sur un schéma non préparé — deviendrait la version servie.
+   */
+  it("NÉGATIF : migration en échec sur la v2 → publish REFUSÉ et la v1 reste la version SERVIE", async () => {
+    const { app, store, project, org, deployment } = await setup();
+
+    // --- v1 : publication nominale, migration appliquée ---
+    const first = await publish(app, project.id, deployment.id);
+    expect(first.statusCode).toBe(201);
+
+    const servedAfterV1 = (await store.listDeployments(project.id)).find((d: any) => d.environment === 'production');
+    expect(servedAfterV1).toBeDefined();
+    const servedIdAfterV1 = servedAfterV1!.id;
+    const executionsAfterV1 = store.migrationExecutions.size;
+
+    // --- v2 : nouveau build prêt à publier, mais dont la migration va échouer ---
+    const v2 = await store.createDeployment({
+      projectId: project.id,
+      organizationId: org.id,
+      environment: 'preview',
+      status: 'READY',
+      provider: 'server',
+    } as any);
+
+    // La cible de migration disparaît entre les deux publications (secret retiré,
+    // base déprovisionnée) : c'est le même mode d'échec que le test
+    // « base production injoignable », mais joué APRÈS une v1 déjà en service.
+    await store.deleteProjectSecret(project.id, 'PROD_DATABASE_URL');
+
+    const second = await publish(app, project.id, v2.id);
+
+    // 1. Le publish est REFUSÉ.
+    expect(second.statusCode).toBe(409);
+    expect(second.json().code).toBe('MIGRATION_TARGET_UNAVAILABLE');
+
+    // 2. La v2 n'est jamais devenue la version servie.
+    const productionNow = (await store.listDeployments(project.id)).filter((d: any) => d.environment === 'production');
+    expect(productionNow).toHaveLength(1);
+    expect(productionNow[0].id).toBe(servedIdAfterV1);
+    expect(productionNow[0].id).not.toBe(v2.id);
+
+    // 3. La migration de la v1 n'a pas été rejouée ni défaite au passage.
+    expect(store.migrationExecutions.size).toBeGreaterThanOrEqual(executionsAfterV1);
+
+    // 4. Aucun verrou de migration ne reste tenu : un publish ultérieur reste possible.
+    for (const execution of store.migrationExecutions.values()) {
+      expect(execution.activeLock).toBeNull();
+    }
+  });
 });

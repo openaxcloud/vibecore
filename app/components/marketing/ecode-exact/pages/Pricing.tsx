@@ -125,14 +125,19 @@ export default function Pricing() {
   // Default features for fallback when API is unavailable
   const defaultFeatures: Record<string, PricingTier['features']> = {
     // Replit-parity inclusions (replit.com/pricing).
+    /*
+     * Carte publique Starter : 5 AVANTAGES, AUCUN quota chiffré. Cette page
+     * publiait « 5 projets actifs / 10 Go / 50 Go / 100 requêtes IA » —
+     * des valeurs SANS SOURCE qui contredisaient à la fois le catalogue et ce
+     * qui est réellement appliqué. Supprimées : les règles vivent dans le
+     * contrat Starter + la rate card versionnée.
+     */
     free: [
-      { text: 'Free daily Agent credits', included: true, highlight: true },
-      { text: 'Built-in database for full-stack apps', included: true },
-      { text: 'Publish up to 1 project', included: true },
-      { text: 'Private / password-protected deployments', included: true },
-      { text: '1 collaborator', included: true },
-      { text: '1 agent at a time', included: true },
-      { text: '"Made with" badge', included: true },
+      { text: 'Free Agent credits, refreshed every day', included: true, highlight: true },
+      { text: 'Full-stack database included', included: true },
+      { text: 'Build slide decks, videos and animations', included: true },
+      { text: 'One published project at a time', included: true },
+      { text: 'Private or password-protected deployments', included: true },
       { text: 'Remove "Made with" badge', included: false },
       { text: 'Publish to any region', included: false },
       { text: 'Parallel agents', included: false },
@@ -270,16 +275,30 @@ export default function Pricing() {
     {
       category: 'Infrastructure',
       features: [
-        { name: 'CPU cores', starter: '1 vCPU', core: '4 vCPUs', teams: '8 vCPUs', enterprise: 'Custom' },
-        { name: 'Memory', starter: '1 GB', core: '8 GB', teams: '16 GB', enterprise: 'Custom' },
-        { name: 'Storage', starter: '10 GB', core: '100 GB', teams: '500 GB', enterprise: 'Unlimited' },
-        { name: 'Bandwidth', starter: '50 GB', core: '1 TB', teams: 'Unlimited', enterprise: 'Unlimited' },
+        /*
+         * Les chiffres Starter de cette section étaient inventés (1 vCPU / 1 GB /
+         * 10 GB / 50 GB). Ce sont des limites TECHNIQUES, pas des avantages
+         * commerciaux : tant qu'elles ne sont pas capturées sur un compte réel,
+         * elles restent « — ». Voir la rate card versionnée.
+         */
+        { name: 'CPU cores', starter: '—', core: '4 vCPUs', teams: '8 vCPUs', enterprise: 'Custom' },
+        { name: 'Memory', starter: '—', core: '8 GB', teams: '16 GB', enterprise: 'Custom' },
+        { name: 'Storage', starter: '—', core: '100 GB', teams: '500 GB', enterprise: 'Unlimited' },
+        { name: 'Bandwidth', starter: '—', core: '1 TB', teams: 'Unlimited', enterprise: 'Unlimited' },
       ],
     },
     {
       category: 'Development',
       features: [
-        { name: 'Projects', starter: '5 active', core: 'Unlimited', teams: 'Unlimited', enterprise: 'Unlimited' },
+        // Aucun plafond de projets publié pour Starter : « 5 active » était sans source.
+        { name: 'Projects', starter: 'Unlimited', core: 'Unlimited', teams: 'Unlimited', enterprise: 'Unlimited' },
+        {
+          name: 'Published projects at a time',
+          starter: '1',
+          core: 'Unlimited',
+          teams: 'Unlimited',
+          enterprise: 'Unlimited',
+        },
         {
           name: 'Private repos',
           starter: <X className="h-4 w-4 text-[var(--ecode-text-muted)]" />,
@@ -306,7 +325,18 @@ export default function Pricing() {
     {
       category: 'AI Features',
       features: [
-        { name: 'AI requests/month', starter: '100', core: 'Unlimited', teams: 'Unlimited', enterprise: 'Unlimited' },
+        /*
+         * « 100 requêtes/mois » était inventé. Starter fonctionne avec des
+         * crédits Agent QUOTIDIENS (plafonnés au mois), dont le montant n'est pas
+         * publié : il reste non chiffré tant qu'il n'est pas capturé en réel.
+         */
+        {
+          name: 'Agent credits',
+          starter: 'Daily, capped monthly',
+          core: 'Monthly credits',
+          teams: 'Monthly credits',
+          enterprise: 'Custom',
+        },
         {
           name: 'Code completion',
           starter: 'Basic',
@@ -469,7 +499,7 @@ export default function Pricing() {
                 className={`inline-flex cursor-pointer appearance-none items-center border-0 bg-transparent p-0 text-[13px] sm:text-[15px] font-medium transition-colors duration-200 ${billingPeriod === 'yearly' ? 'text-[var(--ecode-text)]' : 'text-[var(--ecode-text-muted)]'}`}
               >
                 Yearly
-                <Badge className="ml-1 sm:ml-2 text-[10px] sm:text-[11px] bg-[var(--ecode-accent)] text-white border-0">
+                <Badge className="ml-1 sm:ml-2 text-[11px] bg-[var(--vc-action-primary-strong)] text-white border-0">
                   Save 20%
                 </Badge>
               </button>
@@ -494,7 +524,7 @@ export default function Pricing() {
                 {tier.popular && (
                   <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 z-10">
                     <Badge
-                      className="px-4 py-1 bg-[var(--ecode-accent)] text-white border-0 shadow-lg"
+                      className="px-4 py-1 bg-[var(--vc-action-primary-strong)] text-white border-0 shadow-lg"
                       data-testid="badge-popular"
                     >
                       <Star className="h-3 w-3 mr-1 fill-white" />
@@ -571,9 +601,9 @@ export default function Pricing() {
                     <Button
                       className={`w-full h-11 sm:h-12 text-[13px] sm:text-base font-semibold transition-all duration-200 ${
                         tier.popular
-                          ? 'bg-[var(--ecode-accent)] hover:bg-[var(--ecode-accent-hover)] text-white shadow-lg hover:shadow-xl'
+                          ? 'bg-[var(--vc-action-primary-strong)] hover:brightness-90 text-white shadow-lg hover:shadow-xl'
                           : tier.enterprise
-                            ? 'bg-[var(--ecode-accent)] hover:bg-[var(--ecode-accent-hover)] text-white'
+                            ? 'bg-[var(--vc-action-primary-strong)] hover:brightness-90 text-white'
                             : 'border border-[var(--ecode-border)] bg-[var(--ecode-surface)] text-[var(--ecode-text)] hover:border-[var(--ecode-accent)]/30 hover:bg-[var(--ecode-accent)]/5'
                       }`}
                       variant={tier.popular || tier.enterprise ? 'default' : 'outline'}
@@ -680,7 +710,7 @@ export default function Pricing() {
           </div>
 
           <div className="lg:hidden text-center mb-4">
-            <Badge variant="outline" className="text-[10px] text-[var(--ecode-text-muted)] animate-pulse">
+            <Badge variant="outline" className="text-[11px] text-[var(--ecode-text-muted)] animate-pulse">
               <ChevronRight className="h-3 w-3 mr-1" />
               Swipe left to compare all plans
             </Badge>
@@ -813,7 +843,7 @@ export default function Pricing() {
               <div className="flex gap-4 pt-4">
                 <Button
                   size="lg"
-                  className="bg-[var(--ecode-accent)] text-white hover:bg-[var(--ecode-accent-hover)] transition-all duration-200"
+                  className="bg-[var(--vc-action-primary-strong)] text-white hover:brightness-90 transition-all duration-200"
                   onClick={() => navigate('/contact-sales')}
                   data-testid="button-enterprise-contact"
                 >

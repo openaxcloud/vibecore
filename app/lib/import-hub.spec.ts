@@ -3,7 +3,9 @@ import {
   IMPORT_HUB_CREDENTIAL_IDS,
   IMPORT_HUB_PROVIDERS,
   IMPORT_HUB_READY_IDS,
+  getImportHubCategoryLabels,
   getImportHubProvider,
+  getImportHubProviders,
   type ImportHubProviderId,
 } from './import-hub';
 
@@ -60,5 +62,36 @@ describe('import hub registry', () => {
   it('resolves providers by id', () => {
     expect(getImportHubProvider('github')?.label).toBe('GitHub');
     expect(getImportHubProvider('nope')).toBeUndefined();
+  });
+
+  it('localizes presentation copy while preserving provider contracts and destinations', () => {
+    const english = getImportHubProviders('en');
+    const french = getImportHubProviders('fr-FR');
+
+    expect(french.map(({ id, category, status, to }) => ({ id, category, status, to }))).toEqual(
+      english.map(({ id, category, status, to }) => ({ id, category, status, to })),
+    );
+    expect(getImportHubCategoryLabels('fr')).toEqual({
+      git: 'Dépôts Git',
+      export: 'Exports d’agents et d’outils de création',
+      data: 'Données',
+      design: 'Design',
+      ai: 'IA',
+      blank: 'Partir de zéro',
+    });
+    expect(getImportHubProvider('zip', 'fr')?.label).toBe('Archive ZIP');
+    expect(getImportHubProvider('spreadsheet', 'fr')?.label).toBe('Feuille de calcul');
+    expect(getImportHubProvider('vercel', 'fr')?.badge).toBe('Connecter le jeton');
+
+    for (const brand of ['github', 'bitbucket', 'bolt', 'lovable', 'base44', 'vercel', 'figma', 'claude']) {
+      expect(getImportHubProvider(brand, 'fr')?.label).toBe(getImportHubProvider(brand, 'en')?.label);
+    }
+  });
+
+  it('falls back to English for locales without a dedicated catalog', () => {
+    expect(getImportHubProviders('de-DE').map((provider) => provider.label)).toEqual(
+      IMPORT_HUB_PROVIDERS.map((provider) => provider.label),
+    );
+    expect(getImportHubCategoryLabels('es').git).toBe('Git repositories');
   });
 });

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { action } from './api.report.abuse';
+import { getWebApiRoutesCopy } from '~/lib/i18n/catalogs/web-api-routes';
 import { toResponse } from '~/lib/test/rr7-data';
 
 function request(body: unknown, init: RequestInit = {}) {
@@ -35,10 +36,23 @@ describe('/api/report/abuse', () => {
       }),
     );
 
-    const data = (await response.json()) as { error: string };
+    const data = (await response.json()) as { code: string; error: string; details?: unknown[] };
+    const copy = getWebApiRoutesCopy('en');
 
     expect(response.status).toBe(400);
-    expect(data.error).toBe('Invalid abuse report data');
+    expect(response.headers.get('Content-Language')).toBe('en');
+    expect(data).toMatchObject({
+      code: 'ABUSE_REPORT_INVALID',
+      error: copy.ABUSE_REPORT_INVALID,
+    });
+    expect(data.details).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ field: 'targetUrl', code: expect.any(String) }),
+        expect.objectContaining({ field: 'description', code: expect.any(String) }),
+      ]),
+    );
+    expect(JSON.stringify(data)).not.toContain('not-a-url');
+    expect(JSON.stringify(data)).not.toContain('too short');
   });
 
   it('returns a real email fallback when intake credentials are not configured', async () => {
@@ -66,11 +80,21 @@ describe('/api/report/abuse', () => {
         }),
       );
 
-      const data = (await response.json()) as { fallbackMailto: string };
+      const data = (await response.json()) as { code: string; error: string; fallbackMailto: string };
+      const copy = getWebApiRoutesCopy('en');
+      const mailto = decodeURIComponent(data.fallbackMailto);
 
       expect(response.status).toBe(503);
-      expect(data.fallbackMailto).toContain('mailto:abuse@e-code.ai');
-      expect(data.fallbackMailto).toContain('privacy');
+      expect(response.headers.get('Content-Language')).toBe('en');
+      expect(data).toMatchObject({
+        code: 'ABUSE_INTAKE_UNAVAILABLE',
+        error: copy.ABUSE_INTAKE_UNAVAILABLE,
+      });
+      expect(mailto).toContain('mailto:abuse@e-code.ai?subject=');
+      expect(mailto).toContain(copy.abuseTypePrivacy);
+      expect(mailto).toContain(copy.abuseMailReportType.replace('{type}', copy.abuseTypePrivacy));
+      expect(mailto).toContain('https://e-code.ai/u/example/project');
+      expect(mailto).toContain('This page exposes private information without consent.');
     } finally {
       if (previousToken === undefined) {
         delete process.env.ABUSE_REPORT_GITHUB_TOKEN;

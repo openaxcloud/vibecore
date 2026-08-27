@@ -636,17 +636,17 @@ model ProjectTemplate {
 }
 
 model Workspace {
-  id               String             @id @default(cuid())
+  id               String                    @id @default(cuid())
   projectId        String
   name             String
-  status           WorkspaceStatus    @default(PENDING)
+  status           WorkspaceStatus           @default(PENDING)
   runtimeMode      String
   // P2d dev/prod split: 'development' (the editable workspace) or 'production'
   // (the checkout created when a deployment is published). Existing rows
   // backfill to 'development'. Not unique — a project keeps multiple dev
   // workspaces (primary + secondary agent-run checkouts); the prod checkout
   // is the single workspace with environment='production'.
-  environment      String             @default("development")
+  environment      String                    @default("development")
   // Filesystem path (relative to the project storage root) for this
   // workspace's isolated git working tree. Allocated when the workspace
   // is created so each branch / agent run can have its own checkout
@@ -659,13 +659,16 @@ model Workspace {
   // every workspace. Nullable: a fresh workspace inherits the project-level
   // remote until the user explicitly configures one.
   gitRepositoryUrl String?
-  createdAt        DateTime           @default(now())
-  updatedAt        DateTime           @updatedAt
-  project          Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdAt        DateTime                  @default(now())
+  updatedAt        DateTime                  @updatedAt
+  project          Project                   @relation(fields: [projectId], references: [id], onDelete: Cascade)
   sessions         WorkspaceSession[]
   ports            WorkspacePort[]
   snapshots        FileSnapshot[]
   ideState         WorkspaceIdeState?
+  readinessBeacons PreviewReadinessBeacon[]
+  lifecycleEvents  WorkspaceLifecycleEvent[]
+  postMortems      WorkspacePostMortem[]
 
   @@index([projectId])
 }
@@ -817,6 +820,45 @@ model DeploymentEnvironment {
   id          String       @id @default(cuid())
   name        String       @unique
   deployments Deployment[]
+}
+
+// P0-V3-08 deployment rollback manifest: one IMMUTABLE row appended per successful
+// publish. It captures everything a DETERMINISTIC rollback needs so a published
+// deployment can be restored to its previous version for real — independent of any
+// live runtime/snapshot state. `deploymentId` is a plain pointer with NO FK on
+// purpose: the manifest OUTLIVES the deployment row (a deployment can be pruned but
+// its release must remain rollback-addressable). `version` is monotonic per
+// (projectId, environment) so N-1 is unambiguous. A rollback that finds no previous
+// manifest — or an artifact whose bytes no longer match `artifactDigest` — MUST fail
+// closed rather than serve a blind/stale rollback.
+model ReleaseManifest {
+  id           String @id @default(cuid())
+  projectId    String
+  deploymentId String
+  environment  String @default("preview")
+  version      Int
+  provider     String
+
+  // 'static-snapshot' (artifactDigest = sha256 of the served bundle bytes) or
+  // 'server-image' (artifactDigest = the image sha256, artifactRef = bare AR ref).
+  artifactKind   String
+  artifactRef    String
+  artifactDigest String
+
+  // Declared, never faked — NULL when the pipeline doesn't emit it:
+  //  storeGeneration  = the ecode.lock Nix generation the release pinned (server)
+  //  configDigest     = sha256 fingerprint of the effective env/config at publish
+  //  dbMigrationPoint = latest applied DB migration marker at publish (RECORDED for
+  //                     compatibility checks; image rollback never reverts the DB)
+  storeGeneration  String?
+  configDigest     String?
+  dbMigrationPoint String?
+
+  createdAt DateTime @default(now())
+
+  @@unique([projectId, environment, version])
+  @@index([projectId, environment])
+  @@index([deploymentId])
 }
 
 // Versioned Rate Card: the priced catalogue (machine sizes, compute-unit and
@@ -1435,9 +1477,12 @@ model McpCatalogEntry {
   id                  String       @id @default(cuid())
   slug                String       @unique
   name                String
+  nameFr              String?
   description         String
+  descriptionFr       String?
   domain              McpDomain
   tags                String[]
+  tagsFr              String[]     @default([])
   author              String
   homepageUrl         String?
   iconUrl             String?
@@ -1445,6 +1490,7 @@ model McpCatalogEntry {
   transport           McpTransport
   configTemplate      Json
   configSchema        Json         @default("{}")
+  configSchemaFr      Json         @default("{}")
   installCount        Int          @default(0)
   featured            Boolean      @default(false)
   verified            Boolean      @default(false)
@@ -1814,20 +1860,24 @@ model ReconnectionAlert {
 /// real producer is the connector reconnection alert: when one is raised the
 /// API also drops a Notification so the feed is non-empty in reality.
 model Notification {
-  id        String    @id @default(cuid())
-  userId    String
+  id            String    @id @default(cuid())
+  userId        String
   /// Coarse routing/tone bucket, aligned with the preferences surfaces:
   /// "security" | "billing" | "deployments" | "team" | "system".
-  category  String    @default("system")
-  title     String
-  body      String?
+  category      String    @default("system")
+  title         String
+  body          String?
+  /// Stable i18n descriptor for newly-produced notifications. Nullable keeps
+  /// every historical row and older producer compatible with title/body.
+  messageKey    String?
+  messageParams Json?
   /// Optional in-app link the notification points at (e.g. /account/connections).
-  linkUrl   String?
+  linkUrl       String?
   /// Free-form producer metadata (e.g. the source alert id / provider) so the
   /// feed can be traced back to its origin without extra columns.
-  metadata  Json?
-  readAt    DateTime?
-  createdAt DateTime  @default(now())
+  metadata      Json?
+  readAt        DateTime?
+  createdAt     DateTime  @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -2438,47 +2488,56 @@ model ImportJob {
 /// clones from THAT snapshot, so what a user forks matches the published
 /// listing regardless of later edits to the source project.
 model GalleryListing {
-  id                String    @id @default(cuid())
-  slug              String    @unique
-  title             String
-  description       String
-  category          String
+  id                  String    @id @default(cuid())
+  slug                String    @unique
+  title               String
+  description         String
+  category            String
   /// Free-form display tags (["react","stripe"]). Not a taxonomy.
-  tags              String[]  @default([])
+  tags                String[]  @default([])
   /// PUBLISHED (visible) | PENDING_REVIEW (curated, not yet live) | UNPUBLISHED.
-  status            String    @default("PUBLISHED")
-  featured          Boolean   @default(false)
-  sourceProjectId   String
+  status              String    @default("PUBLISHED")
+  featured            Boolean   @default(false)
+  sourceProjectId     String
   /// Immutable release pin — the ProjectSnapshot a Remix reproduces.
-  sourceSnapshotId  String
+  sourceSnapshotId    String
   /// Curated author display (denormalized so a listing survives author changes).
-  authorName        String
-  authorUserId      String?
+  authorName          String
+  authorUserId        String?
   /// Outbound "View App" link to the deployed app (may be null pre-deploy).
-  appUrl            String?
+  appUrl              String?
   /// Card preview image (a real rendered screenshot). Root-relative static
   /// asset (/gallery-apps/<id>/thumbnail.png) or an https URL; null renders
   /// the text-only card.
-  thumbnailUrl      String?
+  thumbnailUrl        String?
   /// FAIL-CLOSED (directive 20/07) : un projet publié ordinaire est
   /// ALL_RIGHTS_RESERVED, non-remixable. remixAllowed ne passe true qu'avec
   /// une licence EXPLICITE + confirmation des droits + politique PII acceptée.
-  remixAllowed      Boolean   @default(false)
+  remixAllowed        Boolean   @default(false)
   /// License identifier declared at curation (e.g. an SPDX id like "MIT").
   /// Null = the author declared no license (surfaced as such — never invented).
-  licenseId         String?
+  licenseId           String?
   /// VERSIONED license text snapshot captured at curation. What a remixer
   /// accepts is THIS text, pinned by its sha256 onto the RemixJob.
-  licenseText       String?
+  licenseText         String?
   /// sha256 of licenseText — the version pin recorded on every remix.
-  licenseTextSha256 String?
+  licenseTextSha256   String?
   /// Version of the PII-sharing consent the AUTHOR explicitly gave at curation
   /// (data ships unmasked). Null = no consent → PII is masked on every remix.
-  piiConsentVersion String?
-  viewCount         Int       @default(0)
-  useCount          Int       @default(0)
-  createdAt         DateTime  @default(now())
-  publishedAt       DateTime?
+  piiConsentVersion   String?
+  /// TRACE AUDITABLE des confirmations exigées pour rendre un listing remixable
+  /// (P0-V3-05, réserve #8). Avant la migration 0081 elles étaient validées à la
+  /// curation puis JAMAIS écrites : la confirmation des droits par le curateur
+  /// était inauditable a posteriori. Horodatage + acteur (userId de l'admin qui
+  /// a curé). Null = jamais confirmé.
+  rightsConfirmedAt   DateTime?
+  rightsConfirmedBy   String?
+  piiPolicyAcceptedAt DateTime?
+  piiPolicyAcceptedBy String?
+  viewCount           Int       @default(0)
+  useCount            Int       @default(0)
+  createdAt           DateTime  @default(now())
+  publishedAt         DateTime?
 
   sourceProject Project @relation("ProjectGalleryListings", fields: [sourceProjectId], references: [id], onDelete: Cascade)
   author        User?   @relation("UserGalleryListings", fields: [authorUserId], references: [id], onDelete: SetNull)
@@ -2637,59 +2696,57 @@ model LedgerReconciliationRun {
   @@index([source, runAt])
 }
 
-/// Exécution d'une migration de schéma sur la base d'un projet, au moment du
-/// Publish (P0-V3-11, CTR-DATABASE). Une migration ne doit JAMAIS corrompre les
-/// données : cette table porte le verrou, la preuve de backup et la machine à
-/// états, en base et non en mémoire de processus — l'API tourne en 2..6 replicas
-/// (values-prod.yaml), donc un verrou in-process ne verrouille rien.
-model DBMigrationExecution {
-  id             String @id @default(cuid())
-  projectId      String
-  organizationId String
-  /// development | production — le verrou est par ENVIRONNEMENT (I-MIG-2).
-  environment    String
+// BLOCKER #5 — honest preview readiness. The in-preview reporter script detects a
+// blank DOM / console error the server can never see and beacons it. Persisting
+// it (vs the old fire-and-forget log) lets `/ports` readiness be honest across
+// API replicas: a fresh blank/error beacon vetoes `ready` even when the port
+// probe passed. `status`: 'ok' | 'blank' | 'error'. One row per (workspace,port),
+// upserted; readiness only honours beacons newer than a short TTL.
+model PreviewReadinessBeacon {
+  id          String    @id @default(cuid())
+  workspaceId String
+  port        Int
+  status      String
+  detail      String?
+  reportedAt  DateTime  @default(now())
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
-  /// PLANNED → LOCK_ACQUIRED → BACKUP_VERIFIED → APPLYING → VALIDATING → COMMITTED
-  /// échec → FAILED_SAFE | FORWARD_FIX_REQUIRED | MANUAL_RECOVERY
-  state String @default("PLANNED")
+  @@unique([workspaceId, port])
+  @@index([workspaceId])
+}
 
-  /// Rejouer la même clé ne ré-applique JAMAIS la migration : la ligne existante
-  /// est renvoyée telle quelle (unique avec projectId).
-  idempotencyKey String
+// BLOCKER #6 — timestamped workspace lifecycle machine. Append-only trail of
+// PENDING->STARTING->RUNNING->STOPPING->STOPPED/FAILED transitions so a workspace
+// that died can be reconstructed after the fact (vs Workspace.status, a single
+// overwritten value). `state` is a WorkspaceLifecycleState; transitions are
+// validated by assertWorkspaceLifecycleTransition before write.
+model WorkspaceLifecycleEvent {
+  id          String    @id @default(cuid())
+  workspaceId String
+  state       String
+  reason      String?
+  detail      Json?
+  at          DateTime  @default(now())
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
-  /// LE VERROU (I-MIG-2). Vaut `<projectId>:<environment>` tant que l'exécution
-  /// est active, puis repasse à NULL en état terminal. Un index UNIQUE porte
-  /// dessus : Postgres considérant les NULL comme distincts, autant de lignes
-  /// terminées qu'on veut coexistent, mais une SEULE active par (projet, env).
-  /// C'est le SGBD qui refuse la 2e migration concurrente, pas une vérification
-  /// applicative sujette aux courses entre replicas.
-  activeLock String?
+  @@index([workspaceId, at])
+}
 
-  /// Preuve de backup (I-MIG-1). `backupVerifiedAt` n'est renseigné qu'après
-  /// observation de l'ABOUTISSEMENT du backup, jamais à la soumission du CR.
-  backupId                 String?
-  backupVerifiedAt         DateTime?
-  /// COMMENT la vérification a été faite — un booléen seul laisserait croire à
-  /// une preuve qui n'a pas eu lieu.
-  backupVerificationMethod String?
+// BLOCKER #6 — post-mortem snapshot captured when a workspace stops/fails: the
+// last-known ports, processes, Problems (beacons/diagnostics) and a tail of the
+// runtime logs, frozen at shutdown. Append-only (one per stop), so a support
+// operator can see WHY a preview was blank/dead after the pod is gone.
+model WorkspacePostMortem {
+  id          String    @id @default(cuid())
+  workspaceId String
+  reason      String
+  finalState  String
+  ports       Json?
+  processes   Json?
+  problems    Json?
+  logsTail    String?
+  capturedAt  DateTime  @default(now())
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
-  /// Compatibilité DÉCLARÉE, jamais supposée (I-MIG-3) : true | false | UNKNOWN.
-  backwardCompatible String @default("UNKNOWN")
-  forwardCompatible  String @default("UNKNOWN")
-
-  /// Empreinte des instructions planifiées + nombre réellement appliqué.
-  statementsSha256  String?
-  statementCount    Int     @default(0)
-  appliedStatements Int     @default(0)
-
-  deploymentId    String?
-  createdByUserId String?
-  error           String?
-  startedAt       DateTime  @default(now())
-  completedAt     DateTime?
-  updatedAt       DateTime  @updatedAt
-
-  @@unique([projectId, idempotencyKey])
-  @@unique([activeLock])
-  @@index([projectId, environment, state])
+  @@index([workspaceId, capturedAt])
 }

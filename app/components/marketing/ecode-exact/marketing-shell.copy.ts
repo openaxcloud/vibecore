@@ -200,6 +200,7 @@ export type MarketingShellCopy = Readonly<{
     closeMobileMenu: string;
     mobileMenuTitle: string;
     mobileMenuDescription: string;
+    siteHeader: string;
     siteFooter: string;
     footerNavigation: string;
     platformComparisons: string;
@@ -312,6 +313,7 @@ const en = {
     closeMobileMenu: 'Close mobile menu',
     mobileMenuTitle: 'Mobile navigation menu',
     mobileMenuDescription: 'Navigate through E-Code platform sections',
+    siteHeader: 'Site header',
     siteFooter: 'Site footer',
     footerNavigation: 'Footer navigation',
     platformComparisons: 'Platform comparisons',
@@ -594,6 +596,7 @@ const fr = {
     closeMobileMenu: 'Fermer le menu mobile',
     mobileMenuTitle: 'Menu de navigation mobile',
     mobileMenuDescription: 'Parcourir les rubriques de la plateforme E-Code',
+    siteHeader: 'En-tête du site',
     siteFooter: 'Pied de page du site',
     footerNavigation: 'Navigation du pied de page',
     platformComparisons: 'Comparaisons de plateformes',
@@ -641,12 +644,13 @@ const fr = {
         description: 'Reliez les agents aux outils et sources de contexte approuvés via MCP.',
       },
       polyglotBackends: {
-        title: 'Backends polyglottes',
-        description: 'Générez et exécutez des services backend dans les langages courants avec des logs en direct.',
+        title: 'Services applicatifs polyglottes',
+        description:
+          'Générez et exécutez des services applicatifs dans les langages courants avec des journaux en direct.',
       },
       deployments: {
         title: 'Déploiements',
-        description: 'Mettez en ligne avec gestion des domaines, logs, contrôles d’état et retours arrière.',
+        description: 'Mettez en ligne avec gestion des domaines, journaux, contrôles d’état et retours arrière.',
       },
       bounties: {
         title: 'Missions',
@@ -658,7 +662,7 @@ const fr = {
       },
       appBuilder: {
         title: 'Créateur d’applications',
-        description: 'Transformez un processus métier en application full-stack opérationnelle.',
+        description: 'Transformez un processus métier en application complète et opérationnelle.',
       },
       websiteBuilder: {
         title: 'Créateur de sites web',
@@ -721,7 +725,7 @@ const fr = {
         description: 'Démarrez avec des fondations sélectionnées pour des produits et secteurs courants.',
       },
       marketplace: {
-        title: 'Marketplace',
+        title: 'Place de marché',
         description: 'Trouvez des bases, méthodes d’implémentation et fondations de projet réutilisables.',
       },
       caseStudies: {
@@ -798,7 +802,7 @@ const fr = {
       desktopApp: 'Application de bureau',
       collaboration: 'Collaboration',
       mcpIntegrations: 'Intégrations MCP',
-      polyglotBackends: 'Backends polyglottes',
+      polyglotBackends: 'Services applicatifs polyglottes',
       teams: 'Équipes',
       deployments: 'Déploiements',
       pricing: 'Tarifs',
@@ -808,7 +812,7 @@ const fr = {
       blog: 'Blog',
       community: 'Communauté',
       templates: 'Modèles',
-      marketplace: 'Marketplace',
+      marketplace: 'Place de marché',
       languages: 'Langages',
       status: 'État des services',
       forum: 'Forum',
@@ -876,6 +880,7 @@ const es = {
     closeMobileMenu: 'Cerrar el menú móvil',
     mobileMenuTitle: 'Menú de navegación móvil',
     mobileMenuDescription: 'Recorre las secciones de la plataforma E-Code',
+    siteHeader: 'Encabezado del sitio',
     siteFooter: 'Pie de página del sitio',
     footerNavigation: 'Navegación del pie de página',
     platformComparisons: 'Comparaciones de plataformas',
@@ -1158,6 +1163,7 @@ const ar = {
     closeMobileMenu: 'إغلاق قائمة الهاتف',
     mobileMenuTitle: 'قائمة التنقل على الهاتف',
     mobileMenuDescription: 'التنقل بين أقسام منصة E-Code',
+    siteHeader: 'ترويسة الموقع',
     siteFooter: 'تذييل الموقع',
     footerNavigation: 'التنقل في تذييل الصفحة',
     platformComparisons: 'مقارنات المنصات',

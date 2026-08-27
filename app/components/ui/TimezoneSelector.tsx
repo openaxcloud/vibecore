@@ -1,11 +1,12 @@
 import { Globe2, LocateFixed } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { formatSharedComponentsCopy, getSharedComponentsCopy } from '~/lib/i18n/catalogs/shared-components';
 import { detectedIanaTimeZone, isValidIanaTimeZone, supportedIanaTimeZones } from '~/lib/time-zones';
 
 const TIME_ZONE_LIST_ID = 'account-iana-time-zones';
 const TIME_ZONE_HINT_ID = 'account-time-zone-hint';
 const TIME_ZONE_ERROR_ID = 'account-time-zone-error';
-const INVALID_TIME_ZONE_MESSAGE = 'Choose a valid IANA time zone.';
 
 export function TimezoneSelector({
   value,
@@ -16,6 +17,8 @@ export function TimezoneSelector({
   onChange: (value: string) => void;
   disabled?: boolean;
 }) {
+  const { i18n } = useTranslation();
+  const copy = getSharedComponentsCopy(i18n.resolvedLanguage ?? i18n.language);
   const inputRef = useRef<HTMLInputElement>(null);
   const [initialValue] = useState(value);
 
@@ -36,13 +39,13 @@ export function TimezoneSelector({
   }, [initialValue]);
 
   useEffect(() => {
-    inputRef.current?.setCustomValidity(invalid ? INVALID_TIME_ZONE_MESSAGE : '');
-  }, [invalid]);
+    inputRef.current?.setCustomValidity(invalid ? copy['timezone.invalid'] : '');
+  }, [copy, invalid]);
 
   return (
     <div className="grid gap-2">
       <label htmlFor="account-time-zone" className="text-sm font-medium">
-        Time zone
+        {copy['timezone.label']}
       </label>
       <div className="flex flex-col gap-2 sm:flex-row">
         <div className="relative min-w-0 flex-1">
@@ -57,7 +60,7 @@ export function TimezoneSelector({
             name="timezone"
             type="text"
             list={TIME_ZONE_LIST_ID}
-            placeholder="Search time zones"
+            placeholder={copy['timezone.search']}
             autoComplete="off"
             spellCheck={false}
             value={value}
@@ -78,8 +81,12 @@ export function TimezoneSelector({
           type="button"
           className="inline-flex min-h-[44px] shrink-0 items-center justify-center gap-2 rounded-md border border-bolt-elements-borderColor px-3 text-sm font-medium text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)] disabled:cursor-wait disabled:opacity-60"
           disabled={disabled || !detectedTimeZone}
-          aria-label="Use detected time zone"
-          title={detectedTimeZone ? `Use ${detectedTimeZone}` : 'Detecting time zone'}
+          aria-label={copy['timezone.useDetected.aria']}
+          title={
+            detectedTimeZone
+              ? formatSharedComponentsCopy(copy['timezone.useNamed'], { timeZone: detectedTimeZone })
+              : copy['timezone.detecting']
+          }
           onClick={() => {
             if (detectedTimeZone) {
               onChange(detectedTimeZone);
@@ -89,15 +96,17 @@ export function TimezoneSelector({
           }}
         >
           <LocateFixed className="h-4 w-4" aria-hidden />
-          Use detected
+          {copy['timezone.useDetected']}
         </button>
       </div>
       <p id={TIME_ZONE_HINT_ID} className="text-xs text-bolt-elements-textTertiary" aria-live="polite">
-        {detectedTimeZone ? `Detected: ${detectedTimeZone}` : 'Detecting time zone…'}
+        {detectedTimeZone
+          ? formatSharedComponentsCopy(copy['timezone.detected'], { timeZone: detectedTimeZone })
+          : copy['timezone.detecting']}
       </p>
       {touched && invalid ? (
         <p id={TIME_ZONE_ERROR_ID} className="text-sm text-bolt-elements-icon-error" role="alert">
-          {INVALID_TIME_ZONE_MESSAGE}
+          {copy['timezone.invalid']}
         </p>
       ) : null}
     </div>

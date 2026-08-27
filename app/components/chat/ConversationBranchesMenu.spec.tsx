@@ -3,9 +3,12 @@
  */
 
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import type { ReactElement } from 'react';
+import { I18nextProvider } from 'react-i18next';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ConversationBranchesMenu } from './ConversationBranchesMenu';
+import { createI18nInstance } from '~/lib/i18n/runtime';
 
 /*
  * Mock the hook the menu reads. We don't care about the persistence
@@ -51,6 +54,10 @@ function setBranches(items: Array<{ id: string; title?: string; messages?: unkno
   };
 }
 
+function renderMenu(element: ReactElement, language: 'en' | 'fr' = 'en') {
+  return render(<I18nextProvider i18n={createI18nInstance(language)}>{element}</I18nextProvider>);
+}
+
 describe('<ConversationBranchesMenu />', () => {
   beforeEach(() => {
     switchTo.mockClear();
@@ -66,7 +73,7 @@ describe('<ConversationBranchesMenu />', () => {
   it('renders nothing when there are no conversations', () => {
     setBranches([]);
 
-    const { container } = render(<ConversationBranchesMenu projectId="p-1" />);
+    const { container } = renderMenu(<ConversationBranchesMenu projectId="p-1" />);
     expect(container.firstChild).toBeNull();
   });
 
@@ -76,7 +83,7 @@ describe('<ConversationBranchesMenu />', () => {
       { id: 'fork-1', title: 'Old branch' },
     ]);
 
-    render(<ConversationBranchesMenu projectId="p-1" />);
+    renderMenu(<ConversationBranchesMenu projectId="p-1" />);
 
     const trigger = screen.getByRole('button', { name: /Conversation branches \(2\)/ });
     expect(trigger).toBeTruthy();
@@ -89,7 +96,7 @@ describe('<ConversationBranchesMenu />', () => {
       { id: 'fork-1', title: 'Old branch' },
     ]);
 
-    render(<ConversationBranchesMenu projectId="p-1" />);
+    renderMenu(<ConversationBranchesMenu projectId="p-1" />);
 
     const trigger = screen.getByRole('button', { name: /Conversation branches/ });
     fireEvent.click(trigger);
@@ -102,7 +109,7 @@ describe('<ConversationBranchesMenu />', () => {
   it('calls switchTo when the user picks a branch', () => {
     setBranches([{ id: 'fork-1', title: 'Old branch' }]);
 
-    render(<ConversationBranchesMenu projectId="p-1" />);
+    renderMenu(<ConversationBranchesMenu projectId="p-1" />);
     fireEvent.click(screen.getByRole('button', { name: /Conversation branches/ }));
 
     /*
@@ -120,12 +127,25 @@ describe('<ConversationBranchesMenu />', () => {
       { id: 'fork-1', title: 'Archived' },
     ]);
 
-    render(<ConversationBranchesMenu projectId="p-1" />);
+    renderMenu(<ConversationBranchesMenu projectId="p-1" />);
     fireEvent.click(screen.getByRole('button', { name: /Conversation branches/ }));
 
     const liveRow = screen.getByText('Live thread').closest('li');
     const archivedRow = screen.getByText('Archived').closest('li');
     expect(liveRow?.getAttribute('data-active')).toBe('true');
     expect(archivedRow?.getAttribute('data-active')).toBe('false');
+  });
+
+  it('renders French controls while preserving user-authored branch titles', () => {
+    setBranches([{ id: 'fork-1', title: 'Customer checkout branch' }]);
+
+    renderMenu(<ConversationBranchesMenu projectId="p-1" />, 'fr');
+    fireEvent.click(screen.getByRole('button', { name: 'Branches de conversation (1)' }));
+
+    expect(screen.getByTitle('Basculer vers Customer checkout branch')).toBeTruthy();
+    expect(screen.getByTitle('Renommer la branche')).toBeTruthy();
+    expect(screen.getByTitle('Supprimer la branche (et ses descendantes)')).toBeTruthy();
+    expect(document.body.textContent).toContain('Customer checkout branch');
+    expect(document.body.textContent).not.toContain('Browse conversation branches');
   });
 });

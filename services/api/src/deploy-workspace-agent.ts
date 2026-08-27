@@ -50,6 +50,20 @@ export function flattenAgentTree(nodes: AgentTreeNode[] | undefined): WorkspaceL
 }
 
 /**
+ * Build tools write far more than errors to stderr. npm in particular sends its
+ * warnings there, so classifying the whole stream as `error` painted a working
+ * install red: a deploy log showed a wall of
+ * `[Erreur] npm warn tar TAR_ENTRY_ERROR …` lines that were merely warnings, and
+ * the one line that actually explained the failure was lost among them.
+ *
+ * Deliberately conservative: only a line that DECLARES itself a warning is
+ * downgraded. Anything else keeps `error`, so no real failure is ever softened.
+ */
+export function stderrLevel(line: string): StaticBuildLogLevel {
+  return /^\s*(?:npm\s+warn\b|warn\b|warning\b)/i.test(line) ? 'info' : 'error';
+}
+
+/**
  * Run one command in the workspace pod over the agent's `/commands/stream` WS,
  * forwarding each output line to `onLine`. Resolves (never rejects) with the
  * exit result; a dropped connection before `exit` is reported as an error so the
@@ -100,16 +114,18 @@ export function streamAgentCommand(
 
     try {
       socket = wsFactory(url);
-    } catch (error) {
-      finish({ exitCode: null, timedOut: false, error: (error as Error).message });
+    } catch {
+      finish({ exitCode: null, timedOut: false, error: 'WORKSPACE_STREAM_OPEN_FAILED' });
       return;
     }
 
     socket.addEventListener('open', () => {
       try {
-        socket?.send(JSON.stringify({ type: 'hello', payload: { command: step.command, args: step.args, cwd: step.cwd } }));
-      } catch (error) {
-        finish({ exitCode: null, timedOut: false, error: (error as Error).message });
+        socket?.send(
+          JSON.stringify({ type: 'hello', payload: { command: step.command, args: step.args, cwd: step.cwd } }),
+        );
+      } catch {
+        finish({ exitCode: null, timedOut: false, error: 'WORKSPACE_STREAM_SEND_FAILED' });
       }
     });
 
@@ -128,21 +144,25 @@ export function streamAgentCommand(
           emit('info', message.data);
           break;
         case 'stderr':
-          emit('error', message.data);
+          emit(stderrLevel(String(message.data ?? '')), message.data);
           break;
         case 'exit':
           finish({ exitCode: typeof message.exitCode === 'number' ? message.exitCode : null, timedOut: false });
           break;
         case 'error':
-          finish({ exitCode: null, timedOut: false, error: message.error?.message ?? 'workspace stream error' });
+          finish({ exitCode: null, timedOut: false, error: 'WORKSPACE_STREAM_COMMAND_FAILED' });
           break;
         default:
           break;
       }
     });
 
-    socket.addEventListener('error', () => finish({ exitCode: null, timedOut: false, error: 'workspace stream connection error' }));
-    socket.addEventListener('close', () => finish({ exitCode: null, timedOut: false, error: 'workspace stream closed before the command finished' }));
+    socket.addEventListener('error', () =>
+      finish({ exitCode: null, timedOut: false, error: 'WORKSPACE_STREAM_CONNECTION_FAILED' }),
+    );
+    socket.addEventListener('close', () =>
+      finish({ exitCode: null, timedOut: false, error: 'WORKSPACE_STREAM_CLOSED' }),
+    );
   });
 }
 
@@ -174,8 +194,8 @@ export function createWorkspaceBuildAgent(deps: WorkspaceBuildAgentDeps): Worksp
     },
 
     readFile: (filePath) =>
-      deps.agentGet<{ content: string; encoding?: 'utf8' | 'base64' }>(
-        `/files/read?path=${encodeURIComponent(filePath)}`,
-      ).then((result) => ({ content: result.content, encoding: result.encoding === 'base64' ? 'base64' : 'utf8' })),
+      deps
+        .agentGet<{ content: string; encoding?: 'utf8' | 'base64' }>(`/files/read?path=${encodeURIComponent(filePath)}`)
+        .then((result) => ({ content: result.content, encoding: result.encoding === 'base64' ? 'base64' : 'utf8' })),
   };
 }

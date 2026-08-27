@@ -2,6 +2,13 @@ import { ArrowLeft } from 'lucide-react';
 import { type LoaderFunctionArgs, type MetaFunction } from 'react-router';
 import { Link, useLoaderData } from 'react-router';
 import { AppShell } from '~/components/dashboard/SaaSLayout';
+import {
+  formatImportHubCopy,
+  getImportHubCopy,
+  getImportHubCredentialRequirement,
+  type ImportHubCredentialProviderId,
+} from '~/lib/i18n/catalogs/import-hub';
+import { resolveRequestLocale } from '~/lib/i18n/request-locale';
 import { getImportHubProvider } from '~/lib/import-hub';
 
 /**
@@ -12,51 +19,70 @@ import { getImportHubProvider } from '~/lib/import-hub';
  * connector is enabled the primary action becomes a real token exchange; today
  * it states the exact blocker (parity honesty — no fake success).
  */
-const CREDENTIAL_PROVIDERS = new Set(['vercel', 'figma', 'claude']);
+const CREDENTIAL_PROVIDERS = new Set<ImportHubCredentialProviderId>(['vercel', 'figma', 'claude']);
 
-const CREDENTIAL_REQUIREMENT: Record<string, string> = {
-  vercel: 'a Vercel access token with read access to the project you want to import',
-  figma: 'a Figma personal access token and the file key of the design to import',
-  claude: 'a connected Claude source for the design/artifact you want to import',
-};
+function isCredentialProvider(provider: string): provider is ImportHubCredentialProviderId {
+  return CREDENTIAL_PROVIDERS.has(provider as ImportHubCredentialProviderId);
+}
 
-export function loader({ params }: LoaderFunctionArgs) {
+export function loader({ params, request }: LoaderFunctionArgs) {
   const provider = params.provider ?? '';
 
-  if (!CREDENTIAL_PROVIDERS.has(provider)) {
+  if (!isCredentialProvider(provider)) {
     throw new Response(null, { status: 404 });
   }
 
-  const meta = getImportHubProvider(provider);
+  const language = resolveRequestLocale(request).language;
+  const providerMetadata = getImportHubProvider(provider, language);
 
-  return { provider, label: meta?.label ?? provider, requirement: CREDENTIAL_REQUIREMENT[provider] };
+  return {
+    provider,
+    language,
+    label: providerMetadata?.label ?? provider,
+    requirement: getImportHubCredentialRequirement(provider, language),
+  };
 }
 
-export const meta: MetaFunction<typeof loader> = ({ data }) =>
-  data ? [{ title: `Import from ${data.label} - E-Code` }] : [{ title: 'Import - E-Code' }];
+export const meta: MetaFunction<typeof loader> = ({ data }) => {
+  const copy = getImportHubCopy(data?.language);
+
+  return [
+    {
+      title: data
+        ? formatImportHubCopy(copy['importHub.credential.metaTitle'], { label: data.label })
+        : copy['importHub.credential.metaFallback'],
+    },
+  ];
+};
 
 export default function ImportCredentialProviderPage() {
-  const { label, requirement } = useLoaderData<typeof loader>();
+  const { label, requirement, language } = useLoaderData<typeof loader>();
+  const copy = getImportHubCopy(language);
+
+  const text = (template: string, values: Readonly<Record<string, string | number>> = {}) =>
+    formatImportHubCopy(template, values);
 
   return (
-    <AppShell title={`Import from ${label}`} description={`Connect ${label} to import into a persistent workspace.`}>
-      <div className="w-full max-w-full rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 sm:p-6">
-        <p className="text-sm text-bolt-elements-textSecondary">
-          Importing from {label} needs {requirement}. This connector is credential-gated: it stays disabled until the
-          token is connected, and it never reports a success it did not perform.
+    <AppShell
+      title={text(copy['importHub.credential.title'], { label })}
+      description={text(copy['importHub.credential.description'], { label })}
+    >
+      <div className="min-w-0 w-full max-w-full overflow-x-hidden rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 sm:p-6">
+        <p className="break-words text-sm leading-6 text-bolt-elements-textSecondary">
+          {text(copy['importHub.credential.explanation'], { label, requirement })}
         </p>
         <div
           role="status"
-          className="mt-4 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-sm text-bolt-elements-textTertiary"
+          className="mt-4 break-words rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-sm leading-6 text-bolt-elements-textTertiary"
         >
-          Credential required — connect your {label} token to enable this import.
+          {text(copy['importHub.credential.status'], { label })}
         </div>
         <Link
           to="/import"
-          className="mt-5 inline-flex items-center gap-1.5 text-sm font-medium text-[var(--vc-ide-accent-action)] hover:underline"
+          className="mt-5 inline-flex min-h-11 max-w-full min-w-0 flex-wrap items-center gap-1.5 break-words text-sm font-medium text-[var(--vc-ide-accent-action)] hover:underline"
         >
-          <ArrowLeft className="h-4 w-4" aria-hidden />
-          Back to all import sources
+          <ArrowLeft className="h-4 w-4 shrink-0" aria-hidden />
+          {copy['importHub.credential.back']}
         </Link>
       </div>
     </AppShell>

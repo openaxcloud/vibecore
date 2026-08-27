@@ -59,7 +59,6 @@ export const githubConnector: ConnectorProvider = {
     if (!response.ok) {
       throw new ConnectorProviderError({
         code: 'PROVIDER_TOKEN_EXCHANGE_FAILED',
-        message: `GitHub token exchange returned HTTP ${response.status}`,
         httpStatus: response.status,
       });
     }
@@ -71,22 +70,19 @@ export const githubConnector: ConnectorProvider = {
     } catch {
       throw new ConnectorProviderError({
         code: 'PROVIDER_RESPONSE_MALFORMED',
-        message: 'GitHub token exchange returned a non-JSON body',
       });
     }
 
     if (payload.error) {
       throw new ConnectorProviderError({
         code: 'PROVIDER_TOKEN_EXCHANGE_FAILED',
-        message: payload.error,
-        providerDetail: payload.error_description,
+        providerDetail: payload.error_description ?? payload.error,
       });
     }
 
     if (!payload.access_token) {
       throw new ConnectorProviderError({
         code: 'PROVIDER_RESPONSE_MALFORMED',
-        message: 'GitHub token exchange response did not include access_token',
       });
     }
 
@@ -118,7 +114,6 @@ export const githubConnector: ConnectorProvider = {
     if (!response.ok) {
       throw new ConnectorProviderError({
         code: 'PROVIDER_USER_INFO_FAILED',
-        message: `GitHub user info returned HTTP ${response.status}`,
         httpStatus: response.status,
       });
     }
@@ -130,14 +125,12 @@ export const githubConnector: ConnectorProvider = {
     } catch {
       throw new ConnectorProviderError({
         code: 'PROVIDER_RESPONSE_MALFORMED',
-        message: 'GitHub user info returned a non-JSON body',
       });
     }
 
     if (!payload.id || !payload.login) {
       throw new ConnectorProviderError({
         code: 'PROVIDER_RESPONSE_MALFORMED',
-        message: 'GitHub user info response is missing id or login',
       });
     }
 
@@ -150,7 +143,9 @@ export const githubConnector: ConnectorProvider = {
   },
 };
 
-export function resolveGithubCredentials(envProvider: Record<string, string | undefined> = process.env): ConnectorOAuthCredentials | null {
+export function resolveGithubCredentials(
+  envProvider: Record<string, string | undefined> = process.env,
+): ConnectorOAuthCredentials | null {
   const clientId = envProvider.INTEGRATION_GITHUB_CLIENT_ID ?? envProvider.GITHUB_INTEGRATION_CLIENT_ID;
   const clientSecret = envProvider.INTEGRATION_GITHUB_CLIENT_SECRET ?? envProvider.GITHUB_INTEGRATION_CLIENT_SECRET;
   const redirectUri =

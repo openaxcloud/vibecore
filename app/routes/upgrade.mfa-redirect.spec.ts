@@ -16,7 +16,7 @@ const apiRequest = vi.fn();
 const firstOrganizationOrNull = vi.fn();
 
 vi.mock('~/lib/enterprise-api.server', async () => {
-  // Reuse the real `json`/`redirect`/`apiErrorMessage`/`isApiResponse` helpers; only stub the network calls.
+  // Reuse the real response helpers; only stub the network calls.
   const actual = await vi.importActual<typeof import('~/lib/enterprise-api.server')>('~/lib/enterprise-api.server');
 
   return {
@@ -41,6 +41,7 @@ function buildRequest(fields: Record<string, string> = {}): Request {
 afterEach(() => {
   apiRequest.mockReset();
   firstOrganizationOrNull.mockReset();
+  vi.restoreAllMocks();
 });
 
 describe('upgrade action — re-auth redirect handling', () => {
@@ -67,10 +68,12 @@ describe('upgrade action — re-auth redirect handling', () => {
     };
 
     expect(result.init?.status).toBe(400);
-    expect(result.data).toEqual({ error: 'Plan unavailable.' });
+    expect(result.data).toEqual({ error: 'Checkout is unavailable right now. Try again later.' });
+    expect(result.data.error).not.toContain('Plan unavailable');
   });
 
   it('returns a friendly inline message when the API is unreachable (non-Response error)', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
     firstOrganizationOrNull.mockResolvedValueOnce({ id: 'org_1' });
     apiRequest.mockRejectedValueOnce(new Error('ECONNREFUSED'));
 
@@ -79,6 +82,6 @@ describe('upgrade action — re-auth redirect handling', () => {
       init?: { status?: number };
     };
 
-    expect(result.data).toEqual({ error: 'Checkout is temporarily unavailable. Please try again later.' });
+    expect(result.data).toEqual({ error: 'Checkout is temporarily unavailable. Try again later.' });
   });
 });

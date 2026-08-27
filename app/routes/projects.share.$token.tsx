@@ -19,6 +19,8 @@ import { isRouteErrorResponse, useLoaderData, useRouteError } from 'react-router
 import type { ShareLinkErrorKind } from '~/components/share/ShareLinkErrorView';
 import { ShareLinkErrorView } from '~/components/share/ShareLinkErrorView';
 import { apiRequest, isApiResponse, redirect } from '~/lib/enterprise-api.server';
+import { buildRemainingRouteMeta, getRemainingRouteShellsCopy } from '~/lib/i18n/catalogs/remaining-route-shells';
+import { localeResponseHeaders, resolveRequestLocale } from '~/lib/i18n/request-locale';
 import { legacyProjectIdePath } from '~/utils/project-url';
 
 interface RedeemResponse {
@@ -39,10 +41,14 @@ interface LoaderData {
 }
 
 export const loader = async ({ request, params }: LoaderFunctionArgs) => {
+  const localeResolution = resolveRequestLocale(request);
   const token = params.token ?? '';
 
   if (!token) {
-    return json<LoaderData>({ errorKind: 'invalid' }, { status: 400 });
+    return json<LoaderData>(
+      { errorKind: 'invalid' },
+      { status: 400, headers: localeResponseHeaders(request, localeResolution) },
+    );
   }
 
   try {
@@ -52,7 +58,9 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
     );
 
     /* Redeemed (or already a collaborator) - drop the user into the project. */
-    return redirect(legacyProjectIdePath(result.share.projectId));
+    return redirect(legacyProjectIdePath(result.share.projectId), {
+      headers: localeResponseHeaders(request, localeResolution),
+    });
   } catch (error) {
     if (isApiResponse(error, 404)) {
       /*
@@ -72,7 +80,7 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 
       return json<LoaderData>(
         { errorKind: code === 'SHARE_LINK_PROJECT_MISSING' ? 'project-missing' : 'not-found' },
-        { status: 404 },
+        { status: 404, headers: localeResponseHeaders(request, localeResolution) },
       );
     }
 
@@ -86,11 +94,25 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
       throw error;
     }
 
-    return json<LoaderData>({ errorKind: 'unavailable' }, { status: 502 });
+    return json<LoaderData>(
+      { errorKind: 'unavailable' },
+      { status: 502, headers: localeResponseHeaders(request, localeResolution) },
+    );
   }
 };
 
-export const meta: MetaFunction = () => [{ title: 'Project share · E-Code' }, { name: 'robots', content: 'noindex' }];
+export const meta: MetaFunction = ({ matches }) => {
+  const rootData = matches.find((match) => match.id === 'root')?.data as { language?: string } | undefined;
+  const copy = getRemainingRouteShellsCopy(rootData?.language);
+
+  return buildRemainingRouteMeta({
+    title: copy['remainingRoutes.projectShare.title'],
+    description: copy['remainingRoutes.projectShare.description'],
+    path: '/projects/share',
+    language: rootData?.language,
+    noindex: true,
+  });
+};
 
 /*
  * Catches thrown Responses (unexpected API failures rethrown by the loader)

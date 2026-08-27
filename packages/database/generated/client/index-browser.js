@@ -557,6 +557,22 @@ exports.Prisma.DeploymentEnvironmentScalarFieldEnum = {
   name: 'name'
 };
 
+exports.Prisma.ReleaseManifestScalarFieldEnum = {
+  id: 'id',
+  projectId: 'projectId',
+  deploymentId: 'deploymentId',
+  environment: 'environment',
+  version: 'version',
+  provider: 'provider',
+  artifactKind: 'artifactKind',
+  artifactRef: 'artifactRef',
+  artifactDigest: 'artifactDigest',
+  storeGeneration: 'storeGeneration',
+  configDigest: 'configDigest',
+  dbMigrationPoint: 'dbMigrationPoint',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.RateCardScalarFieldEnum = {
   id: 'id',
   version: 'version',
@@ -952,9 +968,12 @@ exports.Prisma.McpCatalogEntryScalarFieldEnum = {
   id: 'id',
   slug: 'slug',
   name: 'name',
+  nameFr: 'nameFr',
   description: 'description',
+  descriptionFr: 'descriptionFr',
   domain: 'domain',
   tags: 'tags',
+  tagsFr: 'tagsFr',
   author: 'author',
   homepageUrl: 'homepageUrl',
   iconUrl: 'iconUrl',
@@ -962,6 +981,7 @@ exports.Prisma.McpCatalogEntryScalarFieldEnum = {
   transport: 'transport',
   configTemplate: 'configTemplate',
   configSchema: 'configSchema',
+  configSchemaFr: 'configSchemaFr',
   installCount: 'installCount',
   featured: 'featured',
   verified: 'verified',
@@ -1182,6 +1202,8 @@ exports.Prisma.NotificationScalarFieldEnum = {
   category: 'category',
   title: 'title',
   body: 'body',
+  messageKey: 'messageKey',
+  messageParams: 'messageParams',
   linkUrl: 'linkUrl',
   metadata: 'metadata',
   readAt: 'readAt',
@@ -1511,6 +1533,10 @@ exports.Prisma.GalleryListingScalarFieldEnum = {
   licenseText: 'licenseText',
   licenseTextSha256: 'licenseTextSha256',
   piiConsentVersion: 'piiConsentVersion',
+  rightsConfirmedAt: 'rightsConfirmedAt',
+  rightsConfirmedBy: 'rightsConfirmedBy',
+  piiPolicyAcceptedAt: 'piiPolicyAcceptedAt',
+  piiPolicyAcceptedBy: 'piiPolicyAcceptedBy',
   viewCount: 'viewCount',
   useCount: 'useCount',
   createdAt: 'createdAt',
@@ -1592,28 +1618,34 @@ exports.Prisma.LedgerReconciliationRunScalarFieldEnum = {
   metadata: 'metadata'
 };
 
-exports.Prisma.DBMigrationExecutionScalarFieldEnum = {
+exports.Prisma.PreviewReadinessBeaconScalarFieldEnum = {
   id: 'id',
-  projectId: 'projectId',
-  organizationId: 'organizationId',
-  environment: 'environment',
+  workspaceId: 'workspaceId',
+  port: 'port',
+  status: 'status',
+  detail: 'detail',
+  reportedAt: 'reportedAt'
+};
+
+exports.Prisma.WorkspaceLifecycleEventScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
   state: 'state',
-  idempotencyKey: 'idempotencyKey',
-  activeLock: 'activeLock',
-  backupId: 'backupId',
-  backupVerifiedAt: 'backupVerifiedAt',
-  backupVerificationMethod: 'backupVerificationMethod',
-  backwardCompatible: 'backwardCompatible',
-  forwardCompatible: 'forwardCompatible',
-  statementsSha256: 'statementsSha256',
-  statementCount: 'statementCount',
-  appliedStatements: 'appliedStatements',
-  deploymentId: 'deploymentId',
-  createdByUserId: 'createdByUserId',
-  error: 'error',
-  startedAt: 'startedAt',
-  completedAt: 'completedAt',
-  updatedAt: 'updatedAt'
+  reason: 'reason',
+  detail: 'detail',
+  at: 'at'
+};
+
+exports.Prisma.WorkspacePostMortemScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  reason: 'reason',
+  finalState: 'finalState',
+  ports: 'ports',
+  processes: 'processes',
+  problems: 'problems',
+  logsTail: 'logsTail',
+  capturedAt: 'capturedAt'
 };
 
 exports.Prisma.SortOrder = {
@@ -1841,6 +1873,7 @@ exports.Prisma.ModelName = {
   ProjectStorageObject: 'ProjectStorageObject',
   Deployment: 'Deployment',
   DeploymentEnvironment: 'DeploymentEnvironment',
+  ReleaseManifest: 'ReleaseManifest',
   RateCard: 'RateCard',
   AuditLog: 'AuditLog',
   SecurityEventResolution: 'SecurityEventResolution',
@@ -1922,7 +1955,9 @@ exports.Prisma.ModelName = {
   LedgerReservation: 'LedgerReservation',
   LedgerFxRate: 'LedgerFxRate',
   LedgerReconciliationRun: 'LedgerReconciliationRun',
-  DBMigrationExecution: 'DBMigrationExecution'
+  PreviewReadinessBeacon: 'PreviewReadinessBeacon',
+  WorkspaceLifecycleEvent: 'WorkspaceLifecycleEvent',
+  WorkspacePostMortem: 'WorkspacePostMortem'
 };
 
 /**

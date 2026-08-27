@@ -1,5 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ProjectCollaborationClient, type CollaborationSnapshot } from './projectCollaborationClient';
+import { getCollaborationRuntimeCopy } from '~/lib/i18n/catalogs/collaboration-runtime';
 
 type SharedCollaborationClient = {
   client: ProjectCollaborationClient;
@@ -87,6 +89,7 @@ export function useProjectCollaboration({
   filePath?: string;
   mode?: 'editing' | 'read-only' | 'pair-programming';
 }) {
+  const { i18n } = useTranslation();
   const [client, setClient] = useState<ProjectCollaborationClient | undefined>();
 
   const [snapshot, setSnapshot] = useState<CollaborationSnapshot | undefined>(() => client?.snapshot);
@@ -138,5 +141,18 @@ export function useProjectCollaboration({
     });
   }, [client, enabled, filePath, mode]);
 
-  return { client, snapshot };
+  const localizedSnapshot = useMemo(() => {
+    if (!snapshot?.errorCode) {
+      return snapshot;
+    }
+
+    const copy = getCollaborationRuntimeCopy(i18n.resolvedLanguage ?? i18n.language);
+
+    return {
+      ...snapshot,
+      error: copy[`collaborationRuntime.${snapshot.errorCode}`],
+    };
+  }, [i18n.language, i18n.resolvedLanguage, snapshot]);
+
+  return { client, snapshot: localizedSnapshot };
 }

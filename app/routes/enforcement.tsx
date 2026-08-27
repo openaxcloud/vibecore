@@ -1,12 +1,27 @@
-import type { MetaFunction } from 'react-router';
+import type { LoaderFunctionArgs, MetaFunction } from 'react-router';
 
 import Enforcement from '~/components/marketing/ecode-exact/pages/Enforcement';
+import { getMarketingExactGuidesPoliciesCopy } from '~/lib/i18n/catalogs/marketing-exact-guides-policies';
+import { resolveRequestLocale } from '~/lib/i18n/request-locale';
+import { socialMetaTags } from '~/utils/social-meta';
 
-// In-repo SSR (main Remix app) rather than the prebuilt external marketing bundle.
-export const meta: MetaFunction = () => [
-  { title: 'Enforcement Policy — E-Code' },
-  { name: 'description', content: 'How E-Code responds to policy violations, and how to appeal.' },
-];
+export function loader({ request }: LoaderFunctionArgs) {
+  return { language: resolveRequestLocale(request).language };
+}
+
+export const meta: MetaFunction<typeof loader> = ({ data }) => {
+  const seo = getMarketingExactGuidesPoliciesCopy(data?.language).exactEnforcement.seo;
+
+  const social = socialMetaTags(seo).map((tag) => {
+    const identifier = 'property' in tag ? tag.property : 'name' in tag ? tag.name : undefined;
+
+    return identifier === 'og:image:alt' || identifier === 'twitter:image:alt'
+      ? { ...tag, content: seo.imageAlt }
+      : tag;
+  });
+
+  return [{ title: seo.title }, { name: 'description', content: seo.description }, ...social];
+};
 
 export default function EnforcementRoute() {
   return <Enforcement />;
