@@ -1,5 +1,7 @@
 import { Storage } from '@google-cloud/storage';
 
+const GCP_ADC_ACCESS_TOKEN_MISSING = 'GCP_ADC_ACCESS_TOKEN_MISSING';
+
 export interface GcpTokenProvider {
   getAccessToken(): Promise<string>;
 }
@@ -17,7 +19,7 @@ export function createAdcTokenProvider(): GcpTokenProvider {
       const token = await auth.getAccessToken();
 
       if (!token) {
-        throw new Error('ADC returned no access token');
+        throw new Error(GCP_ADC_ACCESS_TOKEN_MISSING);
       }
 
       return token;

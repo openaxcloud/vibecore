@@ -2891,6 +2891,30 @@
     "en": "This project still owns managed database, cloud, or migration resources. Move those resources with the tenant transfer workflow before transferring the project.",
     "fr": "Ce projet possède encore des ressources gérées de base de données, de cloud ou de migration. Déplacez-les avec le workflow de transfert de tenant avant de transférer le projet."
   },
+  "APP_IMAGE_BUILD_KMS_INVALID": {
+    "en": "The Cloud Build signing key is missing or does not belong to the build project.",
+    "fr": "La clé de signature Cloud Build est absente ou n’appartient pas au projet de build."
+  },
+  "APP_IMAGE_BUILD_SERVICE_ACCOUNT_INVALID": {
+    "en": "The dedicated Cloud Build service account is missing or does not belong to the build project.",
+    "fr": "Le compte de service Cloud Build dédié est absent ou n’appartient pas au projet de build."
+  },
+  "CLOUD_TENANT_FACTORY_DISABLED": {
+    "en": "Cloud tenant provisioning is currently disabled. Nothing was created.",
+    "fr": "Le provisionnement de tenants cloud est actuellement désactivé. Aucune ressource n’a été créée."
+  },
+  "CLOUD_TENANT_FACTORY_NOT_CONFIGURED": {
+    "en": "Cloud tenant provisioning is not configured. Nothing was created.",
+    "fr": "Le provisionnement de tenants cloud n’est pas configuré. Aucune ressource n’a été créée."
+  },
+  "SERVER_PROMOTION_BINAUTH_EVIDENCE_INVALID": {
+    "en": "Binary Authorization evidence is incomplete or belongs to another image.",
+    "fr": "La preuve Binary Authorization est incomplète ou appartient à une autre image."
+  },
+  "SERVER_PROMOTION_RETENTION_TAG_MISSING": {
+    "en": "The promoted image has no immutable active retention tag.",
+    "fr": "L’image promue ne possède pas de tag de rétention actif immuable."
+  },
   "TENANT_GUARDRAIL_UNAVAILABLE": {
     "en": "This organization’s capacity could not be verified right now. Try again in a moment — nothing was created.",
     "fr": "Impossible de vérifier la capacité de cette organisation pour le moment. Réessayez dans un instant — aucune ressource n’a été créée."

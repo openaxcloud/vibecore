@@ -8002,6 +8002,9 @@ interface RuntimeSocketMessageBuffer {
   forwardCloseTo(listener: () => void): void;
 }
 
+const RUNTIME_SOCKET_MESSAGE_BUFFER_ATTACHED = 'RUNTIME_SOCKET_MESSAGE_BUFFER_ATTACHED';
+const RUNTIME_SOCKET_CLOSE_BUFFER_ATTACHED = 'RUNTIME_SOCKET_CLOSE_BUFFER_ATTACHED';
+
 /**
  * Install the downstream message listener synchronously, before a websocket
  * route performs authentication or permission I/O.  RemoteRuntimeAdapter sends
@@ -8068,7 +8071,7 @@ function bufferRuntimeSocketMessages(
     },
     forwardTo(listener) {
       if (sink) {
-        throw new Error('Runtime socket message buffer is already attached');
+        throw new Error(RUNTIME_SOCKET_MESSAGE_BUFFER_ATTACHED);
       }
 
       sink = listener;
@@ -8081,7 +8084,7 @@ function bufferRuntimeSocketMessages(
     },
     forwardCloseTo(listener) {
       if (closeSink) {
-        throw new Error('Runtime socket close buffer is already attached');
+        throw new Error(RUNTIME_SOCKET_CLOSE_BUFFER_ATTACHED);
       }
 
       closeSink = listener;
@@ -26611,6 +26614,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * archived. A snapshot produced by the pre-barrier implementation is refused
    * on retry because it cannot prove that files and topology shared an instant.
    */
+  const REMIX_SOURCE_BARRIER_UNAVAILABLE = 'REMIX_SOURCE_BARRIER_UNAVAILABLE';
+  const REMIX_SOURCE_CAPTURE_FAILED = 'REMIX_SOURCE_CAPTURE_FAILED';
+
   const captureRemixSourceSnapshot = async (input: {
     remixJobId: string;
     sourceProjectId: string;
@@ -26681,10 +26687,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       await store
         .updateProjectCheckpoint(checkpoint.id, {
           state: 'CLEANED',
-          error: 'REMIX_SOURCE_BARRIER_UNAVAILABLE',
+          error: REMIX_SOURCE_BARRIER_UNAVAILABLE,
         })
         .catch(() => undefined);
-      throw new RemixInvariantError('Source project is already frozen', 'REMIX_SOURCE_BARRIER_UNAVAILABLE');
+      throw new RemixInvariantError('Source project is already frozen', REMIX_SOURCE_BARRIER_UNAVAILABLE);
     }
 
     const leaseManager = new ProjectCheckpointLeaseManager(
@@ -26764,7 +26770,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       await store
         .updateProjectCheckpoint(checkpoint.id, {
           state: 'CLEANED',
-          error: 'REMIX_SOURCE_CAPTURE_FAILED',
+          error: REMIX_SOURCE_CAPTURE_FAILED,
         })
         .catch(() => undefined);
       throw error;

@@ -130,6 +130,10 @@ import type {
   RecordSkillAuditInput,
 } from './store.js';
 
+const SERVER_RELEASE_PROMOTION_NOT_COMMITTED = 'SERVER_RELEASE_PROMOTION_NOT_COMMITTED';
+const SERVER_RELEASE_MANIFEST_CONFLICT = 'SERVER_RELEASE_MANIFEST_CONFLICT';
+const SERVER_RELEASE_MANIFEST_WITHOUT_READY = 'SERVER_RELEASE_MANIFEST_WITHOUT_READY';
+
 const RUNTIME_WEBSOCKET_TICKET_INSERT_EMPTY = 'RUNTIME_WEBSOCKET_TICKET_INSERT_EMPTY';
 const DB_MIGRATION_STATE_CORRUPT = 'DB_MIGRATION_STATE_CORRUPT';
 const DB_MIGRATION_PLAN_CORRUPT = 'DB_MIGRATION_PLAN_CORRUPT';
@@ -6533,7 +6537,7 @@ export class PrismaApiStore implements ApiStore {
           input.artifactRef,
         )
       ) {
-        throw new Error('SERVER_RELEASE_PROMOTION_NOT_COMMITTED');
+        throw new Error(SERVER_RELEASE_PROMOTION_NOT_COMMITTED);
       }
 
       const existing = await tx.releaseManifest.findFirst({
@@ -6547,11 +6551,11 @@ export class PrismaApiStore implements ApiStore {
           existing.artifactRef !== input.artifactRef ||
           existing.artifactDigest !== input.artifactDigest
         ) {
-          throw new Error('SERVER_RELEASE_MANIFEST_CONFLICT');
+          throw new Error(SERVER_RELEASE_MANIFEST_CONFLICT);
         }
 
         if (deployment.status !== 'READY') {
-          throw new Error('SERVER_RELEASE_MANIFEST_WITHOUT_READY');
+          throw new Error(SERVER_RELEASE_MANIFEST_WITHOUT_READY);
         }
 
         return { committed: true, deployment: mapDeployment(deployment), manifest: mapReleaseManifest(existing) };

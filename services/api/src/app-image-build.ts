@@ -152,7 +152,7 @@ export async function runAppImageBuild(
   const builderMatch = CLOUD_BUILD_SERVICE_ACCOUNT_RE.exec(spec.buildServiceAccount);
 
   if (kmsMatch?.groups?.project !== spec.gcpProject) {
-    return { ok: false, error: 'Cloud Build Cosign KMS key is missing or outside the build project.' };
+    return { ok: false, error: appPublicEnglish('APP_IMAGE_BUILD_KMS_INVALID') };
   }
 
   if (
@@ -160,7 +160,7 @@ export async function runAppImageBuild(
     builderMatch.groups.emailProject !== spec.gcpProject ||
     !builderMatch.groups.email
   ) {
-    return { ok: false, error: 'Dedicated Cloud Build service account is missing or outside the build project.' };
+    return { ok: false, error: appPublicEnglish('APP_IMAGE_BUILD_SERVICE_ACCOUNT_INVALID') };
   }
 
   const dockerfileB64 = Buffer.from(
