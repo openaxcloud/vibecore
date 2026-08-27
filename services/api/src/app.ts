@@ -8905,7 +8905,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      */
     if (error instanceof RateLimitStoreUnavailableError) {
       return reply.code(503).header('retry-after', '5').send({
-        error: 'Rate limiting is temporarily unavailable — request refused.',
+        error: appPublicEnglish('RATE_LIMIT_STORE_UNAVAILABLE_REQUEST'),
         code: error.code,
         retryable: true,
       });
@@ -10387,7 +10387,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           request.log?.error?.({ err: error }, 'admin rate limit store unavailable — refusing (fail-closed)');
 
           return reply.code(503).header('retry-after', '5').send({
-            error: 'Rate limiting is temporarily unavailable — admin mutations are refused.',
+            error: appPublicEnglish('RATE_LIMIT_STORE_UNAVAILABLE_ADMIN'),
             code: 'RATE_LIMIT_STORE_UNAVAILABLE',
             retryable: true,
           });

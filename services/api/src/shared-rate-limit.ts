@@ -28,6 +28,8 @@
  * Il n'existe aucun chemin par lequel une panne rende « autorisé sans compter ».
  */
 
+import { appPublicEnglish } from './app-public-copy.js';
+
 export interface RateLimitHit {
   /** Nombre de requêtes comptées dans la fenêtre courante, CETTE requête incluse. */
   count: number;
@@ -72,7 +74,7 @@ export class RedisRateLimitBackend implements RateLimitBackend {
     const ttl = Number(raw?.[1]);
 
     if (!Number.isFinite(count) || count < 1) {
-      throw new Error('redis rate-limit returned a non-numeric count');
+      throw new Error(appPublicEnglish('RATE_LIMIT_NON_NUMERIC_COUNT_INTERNAL'));
     }
 
     return {
@@ -126,7 +128,7 @@ export class RateLimitStoreUnavailableError extends Error {
   readonly code = 'RATE_LIMIT_STORE_UNAVAILABLE';
 
   constructor(readonly cause: unknown) {
-    super('Le store de rate limiting est injoignable — requête refusée (fail-closed).');
+    super(appPublicEnglish('RATE_LIMIT_STORE_UNREACHABLE_INTERNAL'));
     this.name = 'RateLimitStoreUnavailableError';
   }
 }
@@ -252,7 +254,7 @@ export class FastifyRateLimitSharedStore {
     if (!backend) {
       // Mieux vaut échouer que compter dans le vide : sans backend, il n'y a
       // pas de limite du tout, ce qui est le pire des états.
-      throw new Error('FastifyRateLimitSharedStore: aucun backend fourni');
+      throw new Error(appPublicEnglish('RATE_LIMIT_BACKEND_MISSING_INTERNAL'));
     }
 
     return backend;
