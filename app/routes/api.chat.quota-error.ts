@@ -22,7 +22,17 @@ export class ChatQuotaError extends Error {
   readonly statusCode: number;
   readonly code: string;
 
-  constructor(message: string, statusCode: number, code: string) {
+  constructor(
+    message: string,
+    statusCode: number,
+    code: string,
+    readonly details?: {
+      isRetryable?: boolean;
+      requestId?: string;
+      executionStatus?: 'in-progress';
+      retryAfterMs?: number;
+    },
+  ) {
     super(message);
     this.name = 'ChatQuotaError';
     this.statusCode = statusCode;
@@ -36,6 +46,9 @@ export interface SerializedChatStreamError {
   statusCode: number;
   code: string;
   isRetryable: boolean;
+  requestId?: string;
+  executionStatus?: 'in-progress';
+  retryAfterMs?: number;
 }
 
 /**
@@ -53,7 +66,10 @@ export function buildChatStreamErrorPayload(error: unknown): SerializedChatStrea
       message: error.message,
       statusCode: error.statusCode,
       code: error.code,
-      isRetryable: false,
+      isRetryable: error.details?.isRetryable ?? false,
+      ...(error.details?.requestId ? { requestId: error.details.requestId } : {}),
+      ...(error.details?.executionStatus ? { executionStatus: error.details.executionStatus } : {}),
+      ...(error.details?.retryAfterMs ? { retryAfterMs: error.details.retryAfterMs } : {}),
     };
   }
 

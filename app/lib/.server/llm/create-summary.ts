@@ -17,9 +17,13 @@ export async function createSummary(props: {
   promptId?: string;
   contextOptimization?: boolean;
   abortSignal?: AbortSignal;
-  onFinish?: (resp: GenerateTextResult<Record<string, CoreTool<any, any>>, never>) => void;
+  onFinish?: (
+    resp: GenerateTextResult<Record<string, CoreTool<any, any>>, never>,
+    identity: { provider: string; model: string },
+  ) => void;
+  onProviderStart?: () => Promise<void>;
 }) {
-  const { messages, env: serverEnv, apiKeys, providerSettings, abortSignal, onFinish } = props;
+  const { messages, env: serverEnv, apiKeys, providerSettings, abortSignal, onFinish, onProviderStart } = props;
 
   let currentModel = DEFAULT_MODEL;
   let currentProvider = DEFAULT_PROVIDER.name;
@@ -147,6 +151,8 @@ ${summary.summary}`;
       : message.content;
 
   // select files from the list of code file from the project that might be useful for the current request from the user
+  await onProviderStart?.();
+
   const resp = await generateText({
     system: `
         You are a software engineer. You are working on a project. you need to summarize the work till now and provide a summary of the chat till now.
@@ -250,7 +256,7 @@ Please provide a summary of the chat till now including the hitorical summary of
   const response = resp.text;
 
   if (onFinish) {
-    onFinish(resp);
+    onFinish(resp, { provider: provider.name, model: modelDetails.name });
   }
 
   return response;

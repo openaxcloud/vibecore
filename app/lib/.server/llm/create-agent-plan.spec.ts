@@ -1,5 +1,10 @@
-import { describe, expect, it } from 'vitest';
-import { buildPlanLanguageRule, parseAgentPlan } from './create-agent-plan';
+import { describe, expect, it, vi } from 'vitest';
+import {
+  buildAgentPlannerUsage,
+  buildPlanLanguageRule,
+  finalizeAgentPlannerResponse,
+  parseAgentPlan,
+} from './create-agent-plan';
 
 describe('parseAgentPlan', () => {
   it('parses a clean JSON plan into tasks + a roster ordered by the role catalog', () => {
@@ -45,6 +50,54 @@ describe('parseAgentPlan', () => {
     expect(parseAgentPlan('{"tasks":[]}')).toBeUndefined();
     expect(parseAgentPlan('{"tasks":[{"title":"x","role":"nope"}]}')).toBeUndefined();
     expect(parseAgentPlan('{not valid json')).toBeUndefined();
+  });
+});
+
+describe('planner usage contract', () => {
+  it('preserves the actual provider/model and normalizes provider token counters', () => {
+    expect(
+      buildAgentPlannerUsage({
+        provider: 'anthropic',
+        model: 'claude-sonnet-4',
+        usage: { promptTokens: 123.9, completionTokens: 45 },
+      }),
+    ).toEqual({
+      callId: 'planner',
+      kind: 'planner',
+      provider: 'anthropic',
+      model: 'claude-sonnet-4',
+      inputTokens: 123,
+      outputTokens: 45,
+    });
+  });
+
+  it('never emits negative or non-finite token counts', () => {
+    expect(
+      buildAgentPlannerUsage({
+        provider: 'openai',
+        model: 'gpt-4.1',
+        usage: { promptTokens: Number.NaN, completionTokens: -5 },
+      }),
+    ).toMatchObject({ inputTokens: 0, outputTokens: 0 });
+  });
+
+  it('emits measured usage even when the paid planner response is invalid JSON', () => {
+    const onUsage = vi.fn();
+
+    const result = finalizeAgentPlannerResponse({
+      text: 'not valid planner JSON',
+      provider: 'openai',
+      model: 'gpt-4.1-mini',
+      usage: { promptTokens: 91, completionTokens: 8 },
+      roleCap: 2,
+      onUsage,
+    });
+
+    expect(result).toBeUndefined();
+    expect(onUsage).toHaveBeenCalledOnce();
+    expect(onUsage).toHaveBeenCalledWith(
+      expect.objectContaining({ kind: 'planner', inputTokens: 91, outputTokens: 8 }),
+    );
   });
 });
 

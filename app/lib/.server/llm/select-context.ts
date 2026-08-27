@@ -45,9 +45,23 @@ export async function selectContext(props: {
   contextOptimization?: boolean;
   summary: string;
   abortSignal?: AbortSignal;
-  onFinish?: (resp: GenerateTextResult<Record<string, CoreTool<any, any>>, never>) => void;
+  onFinish?: (
+    resp: GenerateTextResult<Record<string, CoreTool<any, any>>, never>,
+    identity: { provider: string; model: string },
+  ) => void;
+  onProviderStart?: () => Promise<void>;
 }) {
-  const { messages, env: serverEnv, apiKeys, files, providerSettings, summary, abortSignal, onFinish } = props;
+  const {
+    messages,
+    env: serverEnv,
+    apiKeys,
+    files,
+    providerSettings,
+    summary,
+    abortSignal,
+    onFinish,
+    onProviderStart,
+  } = props;
 
   let currentModel = DEFAULT_MODEL;
   let currentProvider = DEFAULT_PROVIDER.name;
@@ -159,6 +173,8 @@ export async function selectContext(props: {
   }
 
   // select files from the list of code file from the project that might be useful for the current request from the user
+  await onProviderStart?.();
+
   const resp = await generateText({
     system: `
         You are a software engineer. You are working on a project. You have access to the following files:
@@ -231,6 +247,11 @@ export async function selectContext(props: {
   });
 
   const response = resp.text;
+
+  if (onFinish) {
+    onFinish(resp, { provider: provider.name, model: modelDetails.name });
+  }
+
   const updateContextBuffer = response.match(/<updateContextBuffer>([\s\S]*?)<\/updateContextBuffer>/);
 
   if (!updateContextBuffer) {
@@ -313,10 +334,6 @@ export async function selectContext(props: {
     if (!(relativePath in filteredFiles)) {
       filteredFiles[relativePath] = dirent;
     }
-  }
-
-  if (onFinish) {
-    onFinish(resp);
   }
 
   const totalFiles = Object.keys(filteredFiles).length;

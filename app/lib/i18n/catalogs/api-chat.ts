@@ -38,6 +38,8 @@ export const apiChatCatalog = {
     connectorScopeEmailDescription: 'Read your primary email address.',
     contextOptimizationSkipped: 'Context optimization skipped',
     determiningFilesToRead: 'Determining Files to Read',
+    entitlementsUnavailable:
+      'Your plan permissions could not be verified right now. Try again in a moment; no Agent run was started.',
     executingSpecialistLanes: 'Executing specialist agent lanes',
     generatingResponse: 'Generating Response',
     invalidApiKey: 'Invalid or missing API key',
@@ -58,6 +60,8 @@ export const apiChatCatalog = {
     quotaExceeded:
       'The AI usage quota for this organization has been reached. Try again after it resets or change your plan.',
     responseGenerated: 'Response Generated',
+    runAlreadyStarted:
+      'This Agent turn is already running or awaiting billing recovery. Wait for it to finish before retrying.',
     responseInterrupted: 'Response interrupted: continuation failed',
     responseTruncatedNoContent: 'Response truncated: model returned no further content',
     responseTruncatedSegments: 'Response truncated: maximum continuation segments reached',
@@ -67,15 +71,30 @@ export const apiChatCatalog = {
     roleBackendResponsibility:
       'Build API routes, validation, persistence adapters, auth/session boundaries, realtime handlers, and server-side error handling.',
     roleBackendTitle: 'Backend',
+    roleDatabaseResponsibility:
+      'Design durable schemas and migrations, transactional invariants, tenant-scoped queries, retention, backups, and rollback-safe data changes.',
+    roleDatabaseTitle: 'Database',
     roleDevopsResponsibility:
       'Create runtime scripts, dependency setup, environment examples, build config, and deploy configuration.',
     roleDevopsTitle: 'DevOps',
     roleFrontendResponsibility:
       'Build UI components, pages, layouts, state management, accessibility, responsive behavior, loading states, and error states.',
     roleFrontendTitle: 'Frontend',
+    roleAccessibilityResponsibility:
+      'Verify WCAG AA semantics, keyboard and screen-reader behavior, responsive layouts, localization, contrast, and reduced-motion behavior.',
+    roleAccessibilityTitle: 'Accessibility',
+    rolePerformanceResponsibility:
+      'Profile critical paths, bound expensive work, tune caching and concurrency, and prevent latency, memory, and resource regressions.',
+    rolePerformanceTitle: 'Performance',
     roleQaResponsibility:
       'Write critical-path tests, verify build/typecheck, inspect preview behavior, and fix failures.',
     roleQaTitle: 'QA',
+    roleReviewerResponsibility:
+      'Review cross-lane integration, contracts, failure modes, security and data boundaries, then close release-blocking regressions.',
+    roleReviewerTitle: 'Reviewer',
+    roleSecurityResponsibility:
+      'Threat-model the change and enforce authentication, authorization, tenant isolation, secure defaults, secret handling, and auditable controls.',
+    roleSecurityTitle: 'Security',
     spendLimitReached: 'You have reached your personal AI spending limit for this billing period.',
     streamAuthFailed: 'Invalid or missing API key. Please check your API key configuration.',
     streamInvalidResponse:
@@ -87,6 +106,8 @@ export const apiChatCatalog = {
     streamTokenLimit:
       'Token limit exceeded. The conversation is too long for the selected model. Try using a model with a larger context window or start a new conversation.',
     streamUnknown: 'An unexpected streaming error occurred.',
+    usageSettlementUnavailable:
+      'The response could not be finalized because usage settlement is temporarily unavailable. Your run is protected and will be recovered automatically.',
     streamingPortfolioFiles: 'Streaming cached portfolio files',
     unexpectedError: 'An unexpected error occurred',
   },
@@ -120,6 +141,8 @@ export const apiChatCatalog = {
     connectorScopeEmailDescription: 'Lire votre adresse e-mail principale.',
     contextOptimizationSkipped: 'Optimisation du contexte ignorée',
     determiningFilesToRead: 'Sélection des fichiers à lire',
+    entitlementsUnavailable:
+      'Impossible de vérifier les autorisations de votre offre pour le moment. Réessayez dans un instant ; aucune exécution Agent n’a été lancée.',
     executingSpecialistLanes: 'Exécution des agents spécialisés',
     generatingResponse: 'Génération de la réponse',
     invalidApiKey: 'Clé API absente ou invalide',
@@ -140,6 +163,8 @@ export const apiChatCatalog = {
     quotaExceeded:
       'Le quota d’utilisation de l’IA de votre organisation est atteint. Réessayez après sa réinitialisation ou modifiez votre forfait.',
     responseGenerated: 'Réponse générée',
+    runAlreadyStarted:
+      'Ce tour Agent est déjà en cours ou attend une reprise de facturation. Attendez sa fin avant de réessayer.',
     responseInterrupted: 'Réponse interrompue : la reprise a échoué',
     responseTruncatedNoContent: 'Réponse tronquée : le modèle n’a renvoyé aucun contenu supplémentaire',
     responseTruncatedSegments: 'Réponse tronquée : le nombre maximal de reprises est atteint',
@@ -149,15 +174,30 @@ export const apiChatCatalog = {
     roleBackendResponsibility:
       'Construire les routes API, la validation, la persistance, les limites d’authentification et de session, le temps réel et la gestion des erreurs serveur.',
     roleBackendTitle: 'Backend',
+    roleDatabaseResponsibility:
+      'Concevoir des schémas et migrations durables, les invariants transactionnels, les requêtes isolées par tenant, la rétention, les sauvegardes et les retours arrière sûrs.',
+    roleDatabaseTitle: 'Base de données',
     roleDevopsResponsibility:
       'Créer les scripts d’exécution, la configuration des dépendances, les exemples d’environnement, le build et le déploiement.',
     roleDevopsTitle: 'DevOps',
     roleFrontendResponsibility:
       'Construire les composants, pages, mises en page, états, comportements accessibles et responsifs, ainsi que les états de chargement et d’erreur.',
     roleFrontendTitle: 'Frontend',
+    roleAccessibilityResponsibility:
+      'Vérifier la conformité WCAG AA, le clavier, les lecteurs d’écran, le responsive, la localisation, les contrastes et la réduction des animations.',
+    roleAccessibilityTitle: 'Accessibilité',
+    rolePerformanceResponsibility:
+      'Profiler les parcours critiques, borner les travaux coûteux, régler le cache et la concurrence, et prévenir les régressions de latence, mémoire et ressources.',
+    rolePerformanceTitle: 'Performance',
     roleQaResponsibility:
       'Écrire les tests des parcours critiques, vérifier le build et le typage, contrôler la preview et corriger les échecs.',
     roleQaTitle: 'QA',
+    roleReviewerResponsibility:
+      'Réviser l’intégration entre agents, les contrats, les modes d’échec et les frontières de sécurité et de données, puis corriger les régressions bloquantes.',
+    roleReviewerTitle: 'Révision',
+    roleSecurityResponsibility:
+      'Modéliser les menaces et imposer l’authentification, les autorisations, l’isolation des tenants, les valeurs sûres, la gestion des secrets et des contrôles auditables.',
+    roleSecurityTitle: 'Sécurité',
     spendLimitReached: 'Vous avez atteint votre plafond personnel de dépenses IA pour cette période de facturation.',
     streamAuthFailed: 'Clé API absente ou invalide. Vérifiez la configuration de votre clé API.',
     streamInvalidResponse:
@@ -169,6 +209,8 @@ export const apiChatCatalog = {
     streamTokenLimit:
       'Limite de tokens dépassée. La conversation est trop longue pour le modèle sélectionné. Choisissez un modèle avec une fenêtre de contexte plus grande ou démarrez une nouvelle conversation.',
     streamUnknown: 'Une erreur inattendue est survenue pendant la génération.',
+    usageSettlementUnavailable:
+      'La réponse n’a pas pu être finalisée car le règlement de l’usage est temporairement indisponible. Votre exécution est protégée et sera reprise automatiquement.',
     streamingPortfolioFiles: 'Diffusion des fichiers du portfolio en cache',
     unexpectedError: 'Une erreur inattendue est survenue',
   },
@@ -178,7 +220,17 @@ export type ApiChatCopyKey = keyof typeof apiChatCatalog.en;
 export type ApiChatCopy = Readonly<Record<ApiChatCopyKey, string>>;
 
 export type ApiChatLanguage = 'en' | 'fr';
-export type ApiChatRoleId = 'architect' | 'frontend' | 'backend' | 'devops' | 'qa';
+export type ApiChatRoleId =
+  | 'architect'
+  | 'frontend'
+  | 'backend'
+  | 'database'
+  | 'security'
+  | 'devops'
+  | 'performance'
+  | 'accessibility'
+  | 'qa'
+  | 'reviewer';
 export type ApiChatConflict = Readonly<{
   type: 'file-overlap' | 'risk-disagreement' | 'verification-gap' | 'role-failure';
   description: string;
@@ -198,10 +250,15 @@ const STREAM_ERROR_COPY_KEYS: Record<StreamErrorCode, ApiChatCopyKey> = {
 
 const ROLE_COPY_KEYS: Record<ApiChatRoleId, { title: ApiChatCopyKey; responsibility: ApiChatCopyKey }> = {
   architect: { title: 'roleArchitectTitle', responsibility: 'roleArchitectResponsibility' },
+  accessibility: { title: 'roleAccessibilityTitle', responsibility: 'roleAccessibilityResponsibility' },
   backend: { title: 'roleBackendTitle', responsibility: 'roleBackendResponsibility' },
+  database: { title: 'roleDatabaseTitle', responsibility: 'roleDatabaseResponsibility' },
   devops: { title: 'roleDevopsTitle', responsibility: 'roleDevopsResponsibility' },
   frontend: { title: 'roleFrontendTitle', responsibility: 'roleFrontendResponsibility' },
+  performance: { title: 'rolePerformanceTitle', responsibility: 'rolePerformanceResponsibility' },
   qa: { title: 'roleQaTitle', responsibility: 'roleQaResponsibility' },
+  reviewer: { title: 'roleReviewerTitle', responsibility: 'roleReviewerResponsibility' },
+  security: { title: 'roleSecurityTitle', responsibility: 'roleSecurityResponsibility' },
 };
 
 function normalizeApiChatLanguage(language: string | null | undefined): ApiChatLanguage {
@@ -300,7 +357,11 @@ export function localizeApiChatQuotaError(
 
   const copy = getApiChatCopy(language);
 
-  return code === 'USER_SPEND_LIMIT_REACHED' ? copy.spendLimitReached : copy.quotaExceeded;
+  if (code === 'USER_SPEND_LIMIT_REACHED') {
+    return copy.spendLimitReached;
+  }
+
+  return code === 'PLAN_ENTITLEMENT_CHECK_UNAVAILABLE' ? copy.entitlementsUnavailable : copy.quotaExceeded;
 }
 
 export function localizeApiChatModeError(language: string | null | undefined, englishMessage: string): string {

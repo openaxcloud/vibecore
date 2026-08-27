@@ -1,4 +1,5 @@
 /* eslint-disable import/order */
+import { createHash } from 'node:crypto';
 import { type ActionFunctionArgs } from 'react-router';
 import { createDataStream, formatDataStreamPart, generateId, type JSONValue } from 'ai';
 import {
@@ -46,7 +47,16 @@ import { anthropicCacheStore } from '~/lib/.server/llm/anthropic-cache-als';
 import { streamText, type Messages, type StreamingOptions } from '~/lib/.server/llm/stream-text';
 import { accumulateCacheUsage } from '~/lib/.server/llm/cache-usage';
 import { extractPropertiesFromMessage } from '~/lib/.server/llm/utils';
-import { checkChatQuota, recordChatUsage, recordProviderMetric } from '~/lib/.server/ai-usage';
+import {
+  checkChatQuota,
+  claimChatExecution,
+  markPlatformChatUsageStarted,
+  markChatProviderStarted,
+  recordPlatformChatUsage,
+  recordChatUsage,
+  recordProviderMetric,
+  type RecordChatUsageInput,
+} from '~/lib/.server/ai-usage';
 import { CONTINUE_PROMPT } from '~/lib/common/prompts/prompts';
 import { filterEnabledMcpServers, MCPService } from '~/lib/services/mcpService';
 import { loadUserMcpConfig } from '~/lib/.server/mcp/load-config.server';
@@ -181,6 +191,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
   }
 
   let parsedBody: {
+    id?: string;
     messages: Messages;
     files: any;
     promptId?: string;
@@ -244,6 +255,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
   }
 
   const {
+    id: clientConversationId,
     messages,
     files,
     promptId,
@@ -259,6 +271,54 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
     approvedPlanTasks,
     enabledMcpServers,
   } = parsedBody;
+
+  const latestUserTurn = [...messages].reverse().find((message) => message.role === 'user');
+  const stableTurnId = typeof latestUserTurn?.id === 'string' ? latestUserTurn.id.trim() : '';
+  const stableConversationId = typeof clientConversationId === 'string' ? clientConversationId.trim() : '';
+  const stableRunPhase = planApproved ? 'execute-approved-plan' : planFirstEnabled ? 'propose-plan' : 'execute';
+
+  const quotaIdempotencyKey = createHash('sha256')
+    .update(
+      JSON.stringify({
+        projectId: projectId ?? null,
+        conversationId: stableConversationId,
+        turnId: stableTurnId,
+        phase: stableRunPhase,
+      }),
+    )
+    .digest('hex');
+  const quotaRequestHash = createHash('sha256')
+    .update(
+      JSON.stringify({
+        projectId: projectId ?? null,
+        conversationId: stableConversationId,
+        turnId: stableTurnId,
+        messages,
+        files,
+        promptId: promptId ?? null,
+        chatMode,
+        contextOptimization,
+        designScheme: designScheme ?? null,
+        agentPower: agentPower ?? null,
+        planFirstEnabled: planFirstEnabled ?? false,
+        planApproved: planApproved ?? false,
+        approvedPlanTasks: approvedPlanTasks ?? null,
+      }),
+    )
+    .digest('hex');
+
+  const claimOwnerId = generateId();
+
+  if (projectId && (!stableConversationId || !stableTurnId)) {
+    return new Response(
+      JSON.stringify({ error: true, code: 'AI_RUN_IDENTITY_REQUIRED', message: copy.invalidJsonBody }),
+      {
+        status: 400,
+        headers: responseHeaders({ 'Content-Type': 'application/json' }),
+        statusText: 'Bad Request',
+      },
+    );
+  }
 
   /*
    * Normalise the per-request MCP allow-list: a real array (possibly empty) of
@@ -413,6 +473,25 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
   const encoder: TextEncoder = new TextEncoder();
 
   let progressCounter: number = 1;
+  let userSpendReservationId: string | undefined;
+  let canonicalExecutionToken: string | undefined;
+  let canonicalPlatformReceipt: { state: 'exact' | 'recovered'; outcome?: 'hard' | 'easy' } | undefined;
+  type ProviderUsageCall = RecordChatUsageInput['calls'][number];
+
+  const providerCalls = new Map<string, ProviderUsageCall>();
+
+  let canonicalUsageFlushed = false;
+  let canonicalUserSpendStarted = false;
+
+  const addProviderCall = (call: ProviderUsageCall) => {
+    const existing = providerCalls.get(call.callId);
+
+    if (existing && JSON.stringify(existing) !== JSON.stringify(call)) {
+      throw new Error(`Conflicting provider usage receipt for ${call.callId}`);
+    }
+
+    providerCalls.set(call.callId, call);
+  };
 
   try {
     /*
@@ -482,6 +561,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
      * A floor, not exact accounting (it excludes the system prefix, like the pre-flight).
      */
     const estimatedInputTokens = Math.ceil((totalMessageContent.length / 4) * 1.2);
+    const usesProviderlessPortfolioTemplate = shouldUsePortfolioTemplate({ messages, chatMode, files });
 
     let lastChunk: string | undefined = undefined;
 
@@ -511,12 +591,29 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
          * Resolved from the quota check's plan below; fail-open (stays true) so an
          * unknown/degraded plan lookup NEVER blocks a paying user's request.
          */
-        let premiumModesEligible = true;
+        let premiumModesEligible = false;
+        let planParallelAgents = 1;
 
-        if (projectId) {
+        if (projectId && !usesProviderlessPortfolioTemplate) {
           const quota = await checkChatQuota({
             projectId,
             estimatedInputTokens,
+            estimatedOutputTokens: MAX_TOKENS,
+            idempotencyKey: quotaIdempotencyKey,
+            requestHash: quotaRequestHash,
+            requestedParallelAgents: agentPower
+              ? agentPower.turboMode
+                ? parallelAgentsForBuildTier('power', agentPower.highPowerModel)
+                : parallelAgentsForBuildTier(agentPower.buildTier, agentPower.highPowerModel)
+              : 10,
+            provider:
+              agentSelection.highEffort && agentRoute?.escalation
+                ? agentRoute.escalation.provider
+                : agentTargetLine?.provider,
+            model:
+              agentSelection.highEffort && agentRoute?.escalation
+                ? agentRoute.escalation.model
+                : agentTargetLine?.model,
             cookieHeader: cookieHeader ?? undefined,
           });
 
@@ -572,12 +669,37 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
           }
 
           /*
-           * Premium-mode (Turbo / high-power) eligibility from the resolved plan.
-           * Mirrors premiumAgentModesEligible in @vibecore/billing: only the
-           * unambiguous free/Starter tier is ineligible; an absent byok payload
-           * leaves premium modes enabled (fail-open).
+           * Premium-mode and fan-out permissions come from the exact versioned
+           * entitlement snapshot returned by the API. Missing/malformed snapshots
+           * are rejected inside checkChatQuota before generation starts.
            */
-          premiumModesEligible = quota.byok ? quota.byok.plan !== 'free' && quota.byok.plan !== 'starter' : true;
+          premiumModesEligible = quota.entitlements.plan !== 'starter';
+          planParallelAgents = quota.entitlements.parallelAgents;
+          userSpendReservationId = quota.userSpendReservationId;
+
+          if (!userSpendReservationId) {
+            throw new ChatQuotaError(copy.entitlementsUnavailable, 503, 'CANONICAL_AI_RESERVATION_REQUIRED');
+          }
+
+          const claim = await claimChatExecution({
+            projectId,
+            requestId: quotaIdempotencyKey,
+            claimOwnerId,
+            userSpendReservationId,
+            cookieHeader: cookieHeader ?? undefined,
+          });
+
+          if (claim.replayed) {
+            throw new ChatQuotaError(copy.runAlreadyStarted, 409, 'AI_EXECUTION_IN_PROGRESS', {
+              isRetryable: true,
+              requestId: claim.requestId,
+              executionStatus: claim.executionStatus,
+              retryAfterMs: Math.max(1_000, Date.parse(claim.leaseExpiresAt) - Date.now()),
+            });
+          }
+
+          canonicalExecutionToken = claim.executionToken;
+          canonicalPlatformReceipt = claim.platformReceipt;
 
           /*
            * C1.b.6 — Force managed keys. When the org plan disallows BYOK,
@@ -633,7 +755,68 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
           }
         }
 
-        if (shouldUsePortfolioTemplate({ messages, chatMode, files })) {
+        const ensureCanonicalUserSpendStarted = async () => {
+          if (!projectId || canonicalUserSpendStarted) {
+            return;
+          }
+
+          if (!userSpendReservationId || !canonicalExecutionToken) {
+            throw new ChatQuotaError(copy.entitlementsUnavailable, 503, 'CANONICAL_AI_RESERVATION_REQUIRED');
+          }
+
+          await markChatProviderStarted({
+            projectId,
+            requestId: quotaIdempotencyKey,
+            executionToken: canonicalExecutionToken,
+            userSpendReservationId,
+            cookieHeader: cookieHeader ?? undefined,
+          });
+          canonicalUserSpendStarted = true;
+        };
+
+        const settleCanonicalUsage = async (finishReason: string) => {
+          if (!projectId || canonicalUsageFlushed) {
+            return;
+          }
+
+          if (
+            !userSpendReservationId ||
+            !canonicalExecutionToken ||
+            !canonicalUserSpendStarted ||
+            providerCalls.size === 0
+          ) {
+            throw new ChatQuotaError(copy.usageSettlementUnavailable, 503, 'CANONICAL_AI_USAGE_INCOMPLETE');
+          }
+
+          await recordChatUsage({
+            projectId,
+            requestId: quotaIdempotencyKey,
+            executionToken: canonicalExecutionToken,
+            userSpendReservationId,
+            calls: [...providerCalls.values()],
+            finishReason,
+            conversationId: stableConversationId,
+            messageId: stableTurnId,
+            cookieHeader: request.headers.get('Cookie') ?? undefined,
+            source: 'remix-chat',
+            ...(agentRoute && agentTargetLine
+              ? {
+                  agentRouting: {
+                    mode: agentSelection.mode,
+                    highEffort: agentSelection.highEffort,
+                    escalated: agentEscalated,
+                    turbo: agentSelection.turbo,
+                    lineKey: agentTargetLine.lineKey,
+                    routingCardVersion: agentRoute.routingVersion,
+                    source: 'chat',
+                  },
+                }
+              : {}),
+          });
+          canonicalUsageFlushed = true;
+        };
+
+        if (usesProviderlessPortfolioTemplate) {
           const streamChunks = createPortfolioTemplateStreamChunks(messages);
           const assistantText = createPortfolioTemplateArtifact(messages);
 
@@ -808,15 +991,15 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
 
         /*
          * Composer power controls → parallel-agent cap. Lite=1 (single lane, no
-         * orchestration), Economy=3, Power=5 (+1 for High-power). This is what
+         * orchestration), Economy=2, Power=10. This is what
          * makes the Lite/Economy/Power selector VISIBLY change how many specialist
-         * agents run, instead of every request silently fanning out all 5.
+         * agents run, instead of every request silently using the same roster.
          */
         /*
          * Enforce Turbo / high-power gating on BEHAVIOUR: an ineligible (free)
          * plan can't fan out the full Turbo roster nor add the high-power lane —
          * strip those modes so the org gets (and is billed for) only what its plan
-         * allows. Fail-open: premiumModesEligible defaults true on any ambiguity.
+         * allows. Ambiguity is denied by the pre-flight entitlement lookup.
          */
         const effectivePower = agentPower
           ? premiumModesEligible
@@ -833,13 +1016,15 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
           } as unknown as ContextAnnotation);
         }
 
-        const parallelAgents = effectivePower
+        const requestedParallelAgents = effectivePower
           ? effectivePower.turboMode
             ? /* Turbo: fan out the full roster for the fastest wall-clock (more lanes
                * finishing concurrently), at the higher cost the control advertises. */
               parallelAgentsForBuildTier('power', effectivePower.highPowerModel)
             : parallelAgentsForBuildTier(effectivePower.buildTier, effectivePower.highPowerModel)
-          : undefined;
+          : planParallelAgents;
+
+        const parallelAgents = Math.min(requestedParallelAgents, planParallelAgents);
 
         /*
          * Decide up-front whether this request will orchestrate so we only pay for
@@ -877,6 +1062,8 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
               abortSignal: request.signal,
               maxRoles: parallelAgents,
               language,
+              onProviderStart: ensureCanonicalUserSpendStarted,
+              onUsage: (usage) => addProviderCall(usage),
             });
 
             if (plan) {
@@ -911,6 +1098,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
          * usage recording here (the executing turn handles those).
          */
         if (planFirstEnabled && !planApproved && agentPlanTasks?.length) {
+          await settleCanonicalUsage('plan-ready');
           dataStream.writeMessageAnnotation({
             type: 'agentPlan',
             planned: true,
@@ -1026,6 +1214,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                    * the org isn't billed for lanes nobody is watching.
                    */
                   signal: request.signal,
+                  onProviderStart: ensureCanonicalUserSpendStarted,
                   onEvent: (event) => {
                     if (event.type === 'lane-start') {
                       dataStream.writeMessageAnnotation({
@@ -1042,6 +1231,10 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                         text: event.content,
                       } satisfies ContextAnnotation);
                     } else if (event.type === 'lane-done') {
+                      if (event.result.usage) {
+                        addProviderCall(event.result.usage);
+                      }
+
                       dataStream.writeMessageAnnotation({
                         type: 'agentLaneStream',
                         kind: 'done',
@@ -1074,7 +1267,12 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                    */
                   projectId,
                   signal: request.signal,
+                  onProviderStart: ensureCanonicalUserSpendStarted,
                 });
+              }
+
+              for (const call of execution.usage.calls) {
+                addProviderCall(call);
               }
 
               agentOrchestrationContext = [agentOrchestrationContext, createAgentExecutionContext(execution)]
@@ -1218,7 +1416,17 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                   promptId,
                   contextOptimization,
                   abortSignal: request.signal,
-                  onFinish(resp) {
+                  onProviderStart: ensureCanonicalUserSpendStarted,
+                  onFinish(resp, identity) {
+                    addProviderCall({
+                      callId: 'summary',
+                      kind: 'summary',
+                      provider: identity.provider,
+                      model: identity.model,
+                      inputTokens: resp.usage?.promptTokens || 0,
+                      outputTokens: resp.usage?.completionTokens || 0,
+                    });
+
                     if (resp.usage) {
                       logger.debug('createSummary token usage', JSON.stringify(resp.usage));
                       cumulativeUsage.completionTokens += resp.usage.completionTokens || 0;
@@ -1309,7 +1517,17 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                 contextOptimization,
                 summary: summary ?? '',
                 abortSignal: request.signal,
-                onFinish(resp) {
+                onProviderStart: ensureCanonicalUserSpendStarted,
+                onFinish(resp, identity) {
+                  addProviderCall({
+                    callId: 'context',
+                    kind: 'context',
+                    provider: identity.provider,
+                    model: identity.model,
+                    inputTokens: resp.usage?.promptTokens || 0,
+                    outputTokens: resp.usage?.completionTokens || 0,
+                  });
+
                   if (resp.usage) {
                     logger.debug('selectContext token usage', JSON.stringify(resp.usage));
                     cumulativeUsage.completionTokens += resp.usage.completionTokens || 0;
@@ -1381,6 +1599,26 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
               cumulativeUsage.promptTokens += usage.promptTokens || 0;
               cumulativeUsage.totalTokens += usage.totalTokens || 0;
             }
+
+            const segmentUserMessage = processedMessages.filter((message) => message.role === 'user').at(-1);
+
+            const segmentTagged = segmentUserMessage
+              ? extractPropertiesFromMessage(segmentUserMessage)
+              : { provider: 'unknown', model: 'unknown' };
+            const segmentProvider = agentTargetLine
+              ? (routedTurnProvider ?? boltProviderName(agentTargetLine.provider))
+              : segmentTagged.provider;
+
+            const segmentModel = agentTargetLine ? (routedTurnModel ?? agentTargetLine.model) : segmentTagged.model;
+            const mainCallIndex = [...providerCalls.values()].filter((call) => call.kind === 'main').length;
+            addProviderCall({
+              callId: `main:${mainCallIndex + 1}`,
+              kind: 'main',
+              provider: segmentProvider,
+              model: segmentModel,
+              inputTokens: Math.max(0, Math.trunc(usage?.promptTokens || estimatedInputTokens)),
+              outputTokens: Math.max(0, Math.trunc(usage?.completionTokens || 0)),
+            });
 
             accumulateCacheUsage(cumulativeUsage, (rest as Record<string, unknown>).providerMetadata);
 
@@ -1518,41 +1756,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
               );
 
               if (projectId) {
-                /*
-                 * Fire-and-log: a billing/quota write failure must never break the
-                 * data stream or abort the rest of onFinish (cleanup still runs).
-                 */
-                try {
-                  await recordChatUsage({
-                    projectId,
-                    provider: completionProvider,
-                    model: completionModel,
-
-                    /*
-                     * Floor to the estimate when the provider under-reports usage (xAI streams
-                     * return promptTokens=0) so a real generation is never billed 0 input tokens.
-                     */
-                    inputTokens: cumulativeUsage.promptTokens || estimatedInputTokens,
-                    outputTokens: cumulativeUsage.completionTokens,
-                    finishReason: terminalFinishReason,
-                    cookieHeader: request.headers.get('Cookie') ?? undefined,
-                    source: 'remix-chat',
-                    ...(agentRoute && agentTargetLine
-                      ? {
-                          agentRouting: {
-                            mode: agentSelection.mode,
-                            highEffort: agentSelection.highEffort,
-                            escalated: agentEscalated,
-                            turbo: agentSelection.turbo,
-                            lineKey: agentTargetLine.lineKey,
-                            source: 'chat',
-                          },
-                        }
-                      : {}),
-                  });
-                } catch (error) {
-                  logger.error(`failed to record chat usage: ${error instanceof Error ? error.message : error}`);
-                }
+                await settleCanonicalUsage(terminalFinishReason);
 
                 /*
                  * F18 — record the provider request outcome (latency + errored) for
@@ -1740,6 +1944,8 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                     routedTurnModel = decidedModel;
                     routedTurnProvider = decidedProvider;
                   },
+                  skipProviderProbe: true,
+                  onProviderStart: ensureCanonicalUserSpendStarted,
                 });
 
                 result.mergeIntoDataStream(dataStream);
@@ -1773,6 +1979,10 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
               logger.error(`onFinish failed: ${error instanceof Error ? error.message : error}`);
               streamRecovery.stop();
               await safeCloseMcp();
+
+              if (projectId && providerCalls.size > 0 && !canonicalUsageFlushed) {
+                throw new ChatQuotaError(copy.usageSettlementUnavailable, 503, 'CANONICAL_AI_USAGE_SETTLEMENT_FAILED');
+              }
             }
           },
         };
@@ -1811,6 +2021,29 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
               apiKeys,
               providerSettings,
               serverEnv: context.cloudflare?.env as unknown as Record<string, string>,
+              classifierReplay: canonicalPlatformReceipt,
+              onClassifierStart: async (intent) => {
+                if (!projectId || !userSpendReservationId || !canonicalExecutionToken) {
+                  throw new ChatQuotaError(copy.entitlementsUnavailable, 503, 'CANONICAL_AI_RESERVATION_REQUIRED');
+                }
+
+                await markPlatformChatUsageStarted({
+                  projectId,
+                  requestId: quotaIdempotencyKey,
+                  executionToken: canonicalExecutionToken,
+                  userSpendReservationId,
+                  agentRouting: {
+                    mode: agentSelection.mode,
+                    highEffort: agentSelection.highEffort,
+                    turbo: agentSelection.turbo,
+                    lineKey: 'classifier',
+                    routingCardVersion: agentRoute.routingVersion,
+                    source: 'classifier',
+                  },
+                  call: intent,
+                  cookieHeader: cookieHeader ?? undefined,
+                });
+              },
             });
 
             agentEscalated = hardness.hard;
@@ -1818,30 +2051,38 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
             agentClassifierUsage = hardness.classifierUsage;
             agentTargetLine = hardness.hard ? agentRoute.escalation : agentRoute.base;
 
-            /*
-             * The classifier's own tokens are OUR operating cost: logged to the
-             * admin call log (billedToUser=false on the classifier line), never
-             * billed to the user. Fire-and-forget.
-             */
+            /* Persist the operator-only classifier receipt before any user-billed call. */
             if (agentClassifierUsage && projectId) {
-              void recordChatUsage({
+              if (!userSpendReservationId || !canonicalExecutionToken) {
+                throw new ChatQuotaError(copy.entitlementsUnavailable, 503, 'CANONICAL_AI_RESERVATION_REQUIRED');
+              }
+
+              await recordPlatformChatUsage({
                 projectId,
-                provider: agentClassifierUsage.provider,
-                model: agentClassifierUsage.model,
-                inputTokens: agentClassifierUsage.inputTokens,
-                outputTokens: agentClassifierUsage.outputTokens,
-                finishReason: 'classifier',
-                cookieHeader: request.headers.get('Cookie') ?? undefined,
-                source: 'agent-classifier',
+                requestId: quotaIdempotencyKey,
+                executionToken: canonicalExecutionToken,
+                userSpendReservationId,
+                outcome: hardness.hard ? 'hard' : 'easy',
                 agentRouting: {
                   mode: agentSelection.mode,
-                  highEffort: true,
-                  escalated: agentEscalated,
+                  highEffort: agentSelection.highEffort,
+                  escalated: hardness.hard,
                   turbo: agentSelection.turbo,
                   lineKey: 'classifier',
+                  routingCardVersion: agentRoute.routingVersion,
                   source: 'classifier',
                 },
-              }).catch(() => undefined);
+                call: {
+                  callId: 'classifier',
+                  kind: 'classifier',
+                  billedToUser: false,
+                  provider: agentClassifierUsage.provider,
+                  model: agentClassifierUsage.model,
+                  inputTokens: agentClassifierUsage.inputTokens,
+                  outputTokens: agentClassifierUsage.outputTokens,
+                },
+                cookieHeader: cookieHeader ?? undefined,
+              });
             }
           }
 
@@ -1914,6 +2155,8 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
             routedTurnModel = decidedModel;
             routedTurnProvider = decidedProvider;
           },
+          skipProviderProbe: true,
+          onProviderStart: ensureCanonicalUserSpendStarted,
         });
 
         result.mergeIntoDataStream(dataStream);

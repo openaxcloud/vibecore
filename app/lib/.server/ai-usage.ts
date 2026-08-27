@@ -1,3 +1,4 @@
+import { getApiChatCopy } from '~/lib/i18n/catalogs/api-chat';
 import { createScopedLogger } from '~/utils/logger';
 
 const logger = createScopedLogger('ai-usage');
@@ -74,12 +75,32 @@ function applyApiAuthHeaders(headers: Record<string, string>, input: { bearerTok
   return false;
 }
 
+function internalMutationSecret(): string | undefined {
+  const env = ((globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env ?? {}) as Record<
+    string,
+    string | undefined
+  >;
+
+  const secret = env.INTERNAL_API_SHARED_SECRET ?? env.WORKSPACE_MANAGER_SHARED_SECRET;
+  const normalized = secret?.trim();
+
+  return normalized && new TextEncoder().encode(normalized).byteLength >= 32 ? normalized : undefined;
+}
+
 export interface RecordChatUsageInput {
   projectId: string;
-  provider: string;
-  model: string;
-  inputTokens: number;
-  outputTokens: number;
+  requestId: string;
+  executionToken: string;
+  userSpendReservationId: string;
+  calls: Array<{
+    callId: string;
+    kind: 'planner' | 'agent-lane' | 'summary' | 'context' | 'main' | 'classifier';
+    billedToUser?: boolean;
+    provider: string;
+    model: string;
+    inputTokens: number;
+    outputTokens: number;
+  }>;
   finishReason?: string;
   conversationId?: string;
   messageId?: string;
@@ -97,6 +118,7 @@ export interface RecordChatUsageInput {
     escalated: boolean;
     turbo: boolean;
     lineKey: string;
+    routingCardVersion: number;
     source?: string;
   };
 
@@ -108,20 +130,16 @@ export interface RecordChatUsageInput {
 }
 
 /**
- * Fire-and-log POST to services/api `/projects/:projectId/ai/record-usage`.
- *
- * Called from `app/routes/api.chat.ts` onFinish so every completed Bolt
- * chat ends up in the AiCostLedger and the quota counters. Failures are
- * logged and swallowed — we never want a metering hiccup to crash the
- * user's chat stream.
- *
- * Until C1.b.4 reroutes the actual LLM call through services/ai-gateway,
- * this is how the cost ledger gets populated for the managed-keys SaaS
- * model (see audit C1).
+ * Canonical usage settlement is awaited and retried; completion is not
+ * acknowledged while the authoritative receipt exists only in memory.
  */
 export interface CheckChatQuotaInput {
   projectId: string;
   estimatedInputTokens: number;
+  estimatedOutputTokens?: number;
+  requestedParallelAgents?: number;
+  idempotencyKey: string;
+  requestHash: string;
   model?: string;
   provider?: string;
 
@@ -138,12 +156,20 @@ export interface ByokPolicy {
   plan: string;
 }
 
+export interface ChatPlanEntitlements {
+  version: string;
+  plan: 'starter' | 'core' | 'pro' | 'enterprise';
+  parallelAgents: number;
+}
+
 export type CheckChatQuotaResult =
   | {
       ok: true;
       inputTokensRemaining?: number;
       messagesRemaining?: number;
       byok?: ByokPolicy;
+      entitlements: ChatPlanEntitlements;
+      userSpendReservationId?: string;
     }
   | {
       ok: false;
@@ -160,13 +186,15 @@ export type CheckChatQuotaResult =
  * message instead of letting the user burn tokens they'll be billed
  * for but can't afford.
  *
- * Fail-open on network errors (returns ok:true) — we'd rather risk
- * over-spending a chat than break the UX when the api is degraded.
- * Auditing in `recordChatUsage` would still catch a runaway loop.
+ * Plan enforcement is fail-closed: authentication, transport, malformed
+ * payload, and server errors all deny the generation before any fan-out starts.
  */
 export async function checkChatQuota(input: CheckChatQuotaInput): Promise<CheckChatQuotaResult> {
   if (!input.projectId) {
-    return { ok: true };
+    return {
+      ok: true,
+      entitlements: { version: 'standalone-restrictive', plan: 'starter', parallelAgents: 1 },
+    };
   }
 
   const url = `${apiBaseUrl().replace(/\/+$/, '')}/projects/${encodeURIComponent(input.projectId)}/ai/check-quota`;
@@ -177,9 +205,26 @@ export async function checkChatQuota(input: CheckChatQuotaInput): Promise<CheckC
   };
 
   if (!applyApiAuthHeaders(headers, input)) {
-    // No credentials forwarded — fail-open, the api would reject anyway.
-    return { ok: true };
+    return {
+      ok: false,
+      statusCode: 401,
+      code: 'PLAN_ENTITLEMENT_CHECK_UNAVAILABLE',
+      message: getApiChatCopy('en').entitlementsUnavailable,
+    };
   }
+
+  const serviceSecret = internalMutationSecret();
+
+  if (!serviceSecret) {
+    return {
+      ok: false,
+      statusCode: 503,
+      code: 'PLAN_ENTITLEMENT_CHECK_UNAVAILABLE',
+      message: getApiChatCopy('en').entitlementsUnavailable,
+    };
+  }
+
+  headers['x-vibecore-internal-secret'] = serviceSecret;
 
   try {
     const response = await fetch(url, {
@@ -187,13 +232,17 @@ export async function checkChatQuota(input: CheckChatQuotaInput): Promise<CheckC
       headers,
       body: JSON.stringify({
         estimatedInputTokens: input.estimatedInputTokens,
+        estimatedOutputTokens: input.estimatedOutputTokens,
+        requestedParallelAgents: input.requestedParallelAgents,
+        idempotencyKey: input.idempotencyKey,
+        requestHash: input.requestHash,
         model: input.model,
         provider: input.provider,
       }),
 
       /*
        * Bounded so a hung api pod can't stall the chat stream at its very first
-       * step. The surrounding try/catch already fails open on error.
+       * step. The surrounding try/catch denies generation on error.
        */
       signal: AbortSignal.timeout(10_000),
     });
@@ -206,15 +255,41 @@ export async function checkChatQuota(input: CheckChatQuotaInput): Promise<CheckC
             messages?: { remaining?: number };
           };
           byok?: ByokPolicy;
+          entitlements?: ChatPlanEntitlements;
+          userSpendReservationId?: string;
         };
+
+        if (
+          !payload.entitlements ||
+          !['starter', 'core', 'pro', 'enterprise'].includes(payload.entitlements.plan) ||
+          !Number.isSafeInteger(payload.entitlements.parallelAgents) ||
+          payload.entitlements.parallelAgents < 1 ||
+          payload.entitlements.parallelAgents > 10 ||
+          !payload.entitlements.version
+        ) {
+          return {
+            ok: false,
+            statusCode: 503,
+            code: 'PLAN_ENTITLEMENT_CHECK_UNAVAILABLE',
+            message: getApiChatCopy('en').entitlementsUnavailable,
+          };
+        }
+
         return {
           ok: true,
           inputTokensRemaining: payload.ai?.inputTokens?.remaining,
           messagesRemaining: payload.ai?.messages?.remaining,
           byok: payload.byok,
+          entitlements: payload.entitlements,
+          userSpendReservationId: payload.userSpendReservationId,
         };
       } catch {
-        return { ok: true };
+        return {
+          ok: false,
+          statusCode: 503,
+          code: 'PLAN_ENTITLEMENT_CHECK_UNAVAILABLE',
+          message: getApiChatCopy('en').entitlementsUnavailable,
+        };
       }
     }
 
@@ -240,9 +315,8 @@ export async function checkChatQuota(input: CheckChatQuotaInput): Promise<CheckC
     }
 
     /*
-     * 401/403/5xx → fail-open so we don't break chat when auth or api
-     * is transiently degraded. The post-stream recorder still tries to
-     * bill, and the api's own audit logs will flag the discrepancy.
+     * Any non-quota error denies the stream: without an authoritative response
+     * the web tier must not guess a more permissive Agent fan-out.
      */
     logger.warn(
       JSON.stringify({
@@ -252,7 +326,12 @@ export async function checkChatQuota(input: CheckChatQuotaInput): Promise<CheckC
       }),
     );
 
-    return { ok: true };
+    return {
+      ok: false,
+      statusCode: response.status >= 400 && response.status < 600 ? response.status : 503,
+      code: 'PLAN_ENTITLEMENT_CHECK_UNAVAILABLE',
+      message: getApiChatCopy('en').entitlementsUnavailable,
+    };
   } catch (error) {
     logger.warn(
       JSON.stringify({
@@ -261,8 +340,283 @@ export async function checkChatQuota(input: CheckChatQuotaInput): Promise<CheckC
         projectId: input.projectId,
       }),
     );
-    return { ok: true };
+    return {
+      ok: false,
+      statusCode: 503,
+      code: 'PLAN_ENTITLEMENT_CHECK_UNAVAILABLE',
+      message: getApiChatCopy('en').entitlementsUnavailable,
+    };
   }
+}
+
+export interface MarkChatProviderStartedInput {
+  projectId: string;
+  requestId: string;
+  executionToken: string;
+  userSpendReservationId: string;
+  cookieHeader?: string;
+  bearerToken?: string;
+}
+
+export interface ClaimChatExecutionInput {
+  projectId: string;
+  requestId: string;
+  claimOwnerId: string;
+  userSpendReservationId: string;
+  cookieHeader?: string;
+  bearerToken?: string;
+}
+
+export class CanonicalAiUsageError extends Error {
+  constructor(
+    readonly code: string,
+    readonly statusCode: number,
+    readonly retryable: boolean,
+  ) {
+    super(code);
+    this.name = 'CanonicalAiUsageError';
+  }
+}
+
+async function postCanonicalAiOperation(input: {
+  url: string;
+  body: unknown;
+  auth: { bearerToken?: string; cookieHeader?: string };
+  projectId: string;
+}): Promise<Response> {
+  const headers: Record<string, string> = { 'content-type': 'application/json', accept: 'application/json' };
+
+  if (!applyApiAuthHeaders(headers, input.auth)) {
+    throw new CanonicalAiUsageError('CANONICAL_AI_AUTH_REQUIRED', 401, false);
+  }
+
+  const serviceSecret = internalMutationSecret();
+
+  if (!serviceSecret) {
+    throw new CanonicalAiUsageError('CANONICAL_AI_INTERNAL_AUTH_REQUIRED', 503, false);
+  }
+
+  headers['x-vibecore-internal-secret'] = serviceSecret;
+
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      const response = await fetch(input.url, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(input.body),
+        signal: AbortSignal.timeout(10_000),
+      });
+
+      if (response.ok) {
+        return response;
+      }
+
+      const payload = (await response.json().catch(() => ({}))) as { code?: string; retryable?: boolean };
+      const retryable = payload.retryable === true || response.status >= 500;
+
+      const error = new CanonicalAiUsageError(
+        payload.code ?? 'CANONICAL_AI_OPERATION_FAILED',
+        response.status,
+        retryable,
+      );
+
+      if (!retryable || attempt === 2) {
+        throw error;
+      }
+
+      lastError = error;
+    } catch (error) {
+      if (error instanceof CanonicalAiUsageError && !error.retryable) {
+        throw error;
+      }
+
+      lastError = error;
+
+      if (attempt === 2) {
+        break;
+      }
+    }
+    await new Promise<void>((resolve) => setTimeout(resolve, 50 * 2 ** attempt));
+  }
+  logger.error(
+    JSON.stringify({
+      event: 'ai-usage.canonical-operation-failed',
+      projectId: input.projectId,
+      error: lastError instanceof Error ? lastError.message : String(lastError),
+    }),
+  );
+
+  if (lastError instanceof CanonicalAiUsageError) {
+    throw lastError;
+  }
+
+  throw new CanonicalAiUsageError('CANONICAL_AI_TRANSPORT_FAILED', 503, true);
+}
+
+export async function markChatProviderStarted(input: MarkChatProviderStartedInput): Promise<{ replayed: boolean }> {
+  if (!input.projectId) {
+    return { replayed: false };
+  }
+
+  const url = `${apiBaseUrl().replace(/\/+$/, '')}/projects/${encodeURIComponent(input.projectId)}/ai/provider-started`;
+
+  const response = await postCanonicalAiOperation({
+    url,
+    body: {
+      requestId: input.requestId,
+      executionToken: input.executionToken,
+      userSpendReservationId: input.userSpendReservationId,
+    },
+    auth: input,
+    projectId: input.projectId,
+  });
+
+  const payload = (await response.json()) as { replayed?: unknown };
+
+  if (typeof payload.replayed !== 'boolean') {
+    throw new CanonicalAiUsageError('CANONICAL_AI_START_RESPONSE_INVALID', 503, true);
+  }
+
+  return { replayed: payload.replayed };
+}
+
+export async function claimChatExecution(input: ClaimChatExecutionInput): Promise<{
+  replayed: boolean;
+  requestId: string;
+  executionStatus: 'in-progress';
+  reservationStatus: string;
+  executionToken: string;
+  leaseExpiresAt: string;
+  platformReceipt?: { state: 'exact' | 'recovered'; outcome?: 'hard' | 'easy' };
+}> {
+  const url = `${apiBaseUrl().replace(/\/+$/, '')}/projects/${encodeURIComponent(input.projectId)}/ai/execution-claim`;
+
+  const response = await postCanonicalAiOperation({
+    url,
+    body: {
+      requestId: input.requestId,
+      claimOwnerId: input.claimOwnerId,
+      userSpendReservationId: input.userSpendReservationId,
+    },
+    auth: input,
+    projectId: input.projectId,
+  });
+  const payload = (await response.json()) as {
+    replayed?: unknown;
+    requestId?: unknown;
+    executionStatus?: unknown;
+    reservationStatus?: unknown;
+    executionToken?: unknown;
+    leaseExpiresAt?: unknown;
+    platformReceipt?: unknown;
+  };
+
+  if (
+    typeof payload.replayed !== 'boolean' ||
+    payload.requestId !== input.requestId ||
+    payload.executionStatus !== 'in-progress' ||
+    typeof payload.reservationStatus !== 'string' ||
+    typeof payload.executionToken !== 'string' ||
+    typeof payload.leaseExpiresAt !== 'string'
+  ) {
+    throw new CanonicalAiUsageError('CANONICAL_AI_CLAIM_RESPONSE_INVALID', 503, true);
+  }
+
+  return {
+    replayed: payload.replayed,
+    requestId: payload.requestId,
+    executionStatus: payload.executionStatus,
+    reservationStatus: payload.reservationStatus,
+    executionToken: payload.executionToken,
+    leaseExpiresAt: payload.leaseExpiresAt,
+    ...(payload.platformReceipt &&
+    typeof payload.platformReceipt === 'object' &&
+    !Array.isArray(payload.platformReceipt) &&
+    ((payload.platformReceipt as { state?: unknown }).state === 'exact' ||
+      (payload.platformReceipt as { state?: unknown }).state === 'recovered')
+      ? {
+          platformReceipt: payload.platformReceipt as {
+            state: 'exact' | 'recovered';
+            outcome?: 'hard' | 'easy';
+          },
+        }
+      : {}),
+  };
+}
+
+export async function markPlatformChatUsageStarted(input: {
+  projectId: string;
+  requestId: string;
+  executionToken: string;
+  userSpendReservationId: string;
+  agentRouting: {
+    mode: 'lite' | 'economy' | 'power';
+    highEffort: boolean;
+    turbo: boolean;
+    lineKey: 'classifier';
+    routingCardVersion: number;
+    source: 'classifier';
+  };
+  call: {
+    callId: 'classifier';
+    provider: string;
+    model: string;
+    maxInputTokens: number;
+    maxOutputTokens: number;
+  };
+  cookieHeader?: string;
+  bearerToken?: string;
+}): Promise<void> {
+  const url = `${apiBaseUrl().replace(/\/+$/, '')}/projects/${encodeURIComponent(input.projectId)}/ai/platform-usage-started`;
+  await postCanonicalAiOperation({
+    url,
+    body: {
+      requestId: input.requestId,
+      executionToken: input.executionToken,
+      userSpendReservationId: input.userSpendReservationId,
+      agentRouting: input.agentRouting,
+      call: input.call,
+    },
+    auth: input,
+    projectId: input.projectId,
+  });
+}
+
+export async function recordPlatformChatUsage(input: {
+  projectId: string;
+  requestId: string;
+  executionToken: string;
+  userSpendReservationId: string;
+  outcome: 'hard' | 'easy';
+  agentRouting: {
+    mode: 'lite' | 'economy' | 'power';
+    highEffort: boolean;
+    escalated: boolean;
+    turbo: boolean;
+    lineKey: 'classifier';
+    routingCardVersion: number;
+    source: 'classifier';
+  };
+  call: Extract<RecordChatUsageInput['calls'][number], { kind: 'classifier' }> | RecordChatUsageInput['calls'][number];
+  cookieHeader?: string;
+  bearerToken?: string;
+}): Promise<void> {
+  const url = `${apiBaseUrl().replace(/\/+$/, '')}/projects/${encodeURIComponent(input.projectId)}/ai/record-platform-usage`;
+  await postCanonicalAiOperation({
+    url,
+    body: {
+      requestId: input.requestId,
+      executionToken: input.executionToken,
+      userSpendReservationId: input.userSpendReservationId,
+      outcome: input.outcome,
+      agentRouting: input.agentRouting,
+      call: { ...input.call, kind: 'classifier', billedToUser: false },
+    },
+    auth: input,
+    projectId: input.projectId,
+  });
 }
 
 export async function recordChatUsage(input: RecordChatUsageInput): Promise<void> {
@@ -270,85 +624,31 @@ export async function recordChatUsage(input: RecordChatUsageInput): Promise<void
     return;
   }
 
-  if (input.inputTokens === 0 && input.outputTokens === 0) {
-    // Nothing to bill, no point bouncing through api.
-    return;
-  }
-
   const url = `${apiBaseUrl().replace(/\/+$/, '')}/projects/${encodeURIComponent(input.projectId)}/ai/record-usage`;
-
-  const headers: Record<string, string> = {
-    'content-type': 'application/json',
-    accept: 'application/json',
-  };
-
-  if (!applyApiAuthHeaders(headers, input)) {
-    logger.warn(
-      JSON.stringify({
-        event: 'ai-usage.skipped',
-        reason: 'no_auth',
-        projectId: input.projectId,
-      }),
-    );
-    return;
-  }
-
-  try {
-    const response = await fetch(url, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({
-        provider: input.provider,
-        model: input.model,
-        inputTokens: input.inputTokens,
-        outputTokens: input.outputTokens,
-        finishReason: input.finishReason,
-        conversationId: input.conversationId,
-        messageId: input.messageId,
-        source: input.source ?? 'remix-chat',
-        ...(input.agentRouting ? { agentRouting: input.agentRouting } : {}),
-      }),
-      signal: AbortSignal.timeout(15_000),
-    });
-
-    if (!response.ok) {
-      logger.warn(
-        JSON.stringify({
-          event: 'ai-usage.api-error',
-          status: response.status,
-          projectId: input.projectId,
-          provider: input.provider,
-          model: input.model,
-          inputTokens: input.inputTokens,
-          outputTokens: input.outputTokens,
-        }),
-      );
-      return;
-    }
-
-    /*
-     * Trace-level acknowledgement so we can correlate the local C1.a log
-     * with the api-side ledger row in Cloud Logging.
-     */
-    logger.debug(
-      JSON.stringify({
-        event: 'ai-usage.recorded',
-        projectId: input.projectId,
-        provider: input.provider,
-        model: input.model,
-        inputTokens: input.inputTokens,
-        outputTokens: input.outputTokens,
-      }),
-    );
-  } catch (error) {
-    logger.warn(
-      JSON.stringify({
-        event: 'ai-usage.fetch-failed',
-        error: error instanceof Error ? error.message : String(error),
-        projectId: input.projectId,
-      }),
-    );
-  }
+  await postCanonicalAiOperation({
+    url,
+    body: {
+      requestId: input.requestId,
+      executionToken: input.executionToken,
+      calls: input.calls,
+      finishReason: input.finishReason,
+      conversationId: input.conversationId,
+      messageId: input.messageId,
+      userSpendReservationId: input.userSpendReservationId,
+      source: input.source ?? 'remix-chat',
+      ...(input.agentRouting ? { agentRouting: input.agentRouting } : {}),
+    },
+    auth: input,
+    projectId: input.projectId,
+  });
+  logger.debug(
+    JSON.stringify({
+      event: 'ai-usage.recorded',
+      projectId: input.projectId,
+      requestId: input.requestId,
+      calls: input.calls.length,
+    }),
+  );
 }
 
 /** Input to {@link recordProviderMetric} (F18 admin p95/error-rate metrics). */
@@ -389,6 +689,14 @@ export async function recordProviderMetric(input: RecordProviderMetricInput): Pr
   if (!applyApiAuthHeaders(headers, input)) {
     return;
   }
+
+  const serviceSecret = internalMutationSecret();
+
+  if (!serviceSecret) {
+    return;
+  }
+
+  headers['x-vibecore-internal-secret'] = serviceSecret;
 
   try {
     await fetch(url, {
