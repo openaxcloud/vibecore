@@ -116,10 +116,10 @@ contracts:
     openDependencies: "inventaire exhaustif + négatif PAR identité + WIF 3 chemins (chantier D)"
   - contractId: CTR-CHECKPOINT
     file: CHECKPOINT_CONTRACT.md
-    contractVersion: 2
+    contractVersion: 4
     refusalReasonV1: "tests unitaires mais aucun câblage réel"
     hardeningStatus: HARDENED_PENDING_REVIEW
-    anchor: "CÂBLÉ (PR #32, NON MERGÉE) : endpoints réels + barrière 423/dégel garanti + restore vérifié en projet jetable — 18 tests"
+    anchor: "Mergé 150d54782 : migration 0089, endpoints réels, barrière PostgreSQL DB-clock multi-réplicas, restore hashé et fencé ; aucune preuve live revendiquée"
     expectedReviewer: OpenAI-Codex
     signatureResult: PENDING_REVIEW
     openDependencies: "snapshot DB physique CNPG dormant (DB_ROLLBACK_ENABLED) + preuve PITR live (PR-DR)"

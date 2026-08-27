@@ -1,6 +1,7 @@
 # AUTH_ACCESS_CONTRACT — authentification & accès aux déploiements (audit v4 I)
 
 schemaVersion: 2
+repoCommit: aba0ccff6
 repoBase: 70afddf7e034658cacb498bb4876619d567881f4
 implementationRef: commit containing this schema version
 

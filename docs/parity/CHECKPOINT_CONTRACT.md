@@ -3,7 +3,7 @@
 contractId: CTR-CHECKPOINT
 contractVersion: 4
 schemaVersion: 4
-repoCommit: PENDING
+repoCommit: 150d54782
 reviewer: UNKNOWN
 expectedReviewer: OpenAI-Codex
 signatureResult: PENDING_REVIEW # v1/v2 refusées ; v4 en validation avant intégration main, sans claim live
