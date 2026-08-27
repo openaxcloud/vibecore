@@ -7835,6 +7835,23 @@ function workspaceManagerControlHeaders(json = false): Record<string, string> {
   };
 }
 
+const ACCOUNT_PURGE_WORKSPACE_FAILURE = {
+  pvcCheck: 'ACCOUNT_PURGE_PVC_CHECK_FAILED',
+  delete: 'ACCOUNT_PURGE_WORKSPACE_DELETE_FAILED',
+  freeze: 'ACCOUNT_PURGE_WORKSPACE_FREEZE_FAILED',
+  unfreeze: 'ACCOUNT_PURGE_WORKSPACE_UNFREEZE_FAILED',
+  reconcile: 'ACCOUNT_PURGE_WORKSPACE_RECONCILE_FAILED',
+  billingCancellerUnavailable: 'ACCOUNT_PURGE_BILLING_CANCELLER_UNAVAILABLE',
+} as const;
+
+type AccountPurgeWorkspaceFailureCode =
+  (typeof ACCOUNT_PURGE_WORKSPACE_FAILURE)[keyof typeof ACCOUNT_PURGE_WORKSPACE_FAILURE];
+
+/** Stable control-plane code; request handlers own any public localized copy. */
+function accountPurgeWorkspaceFailure(code: AccountPurgeWorkspaceFailureCode): Error & { code: string } {
+  return Object.assign(new Error(code), { code });
+}
+
 function createAccountPurgeWorkspaceEraser(): WorkspaceVolumeErasurePort {
   return {
     async pvcExists(workspaceId) {
@@ -7846,8 +7863,7 @@ function createAccountPurgeWorkspaceEraser(): WorkspaceVolumeErasurePort {
         },
       );
       if (response.status === 404) return false;
-      if (!response.ok)
-        throw Object.assign(new Error('ACCOUNT_PURGE_PVC_CHECK_FAILED'), { code: 'ACCOUNT_PURGE_PVC_CHECK_FAILED' });
+      if (!response.ok) throw accountPurgeWorkspaceFailure(ACCOUNT_PURGE_WORKSPACE_FAILURE.pvcCheck);
       const body = (await response.json()) as { exists?: boolean };
       return body.exists === true;
     },
@@ -7859,9 +7875,7 @@ function createAccountPurgeWorkspaceEraser(): WorkspaceVolumeErasurePort {
         signal: AbortSignal.timeout(180_000),
       });
       if (!response.ok) {
-        throw Object.assign(new Error('ACCOUNT_PURGE_WORKSPACE_DELETE_FAILED'), {
-          code: 'ACCOUNT_PURGE_WORKSPACE_DELETE_FAILED',
-        });
+        throw accountPurgeWorkspaceFailure(ACCOUNT_PURGE_WORKSPACE_FAILURE.delete);
       }
     },
   };
@@ -7878,9 +7892,7 @@ function createAccountPurgeWriteBarrier(): WriteBarrierPort {
           signal: AbortSignal.timeout(120_000),
         });
         if (!response.ok) {
-          throw Object.assign(new Error('ACCOUNT_PURGE_WORKSPACE_FREEZE_FAILED'), {
-            code: 'ACCOUNT_PURGE_WORKSPACE_FREEZE_FAILED',
-          });
+          throw accountPurgeWorkspaceFailure(ACCOUNT_PURGE_WORKSPACE_FAILURE.freeze);
         }
       }
     },
@@ -7900,9 +7912,7 @@ async function releaseAccountPurgeWorkspaceBarriers(
       signal: AbortSignal.timeout(30_000),
     });
     if (!response.ok && response.status !== 404 && response.status !== 409) {
-      throw Object.assign(new Error('ACCOUNT_PURGE_WORKSPACE_UNFREEZE_FAILED'), {
-        code: 'ACCOUNT_PURGE_WORKSPACE_UNFREEZE_FAILED',
-      });
+      throw accountPurgeWorkspaceFailure(ACCOUNT_PURGE_WORKSPACE_FAILURE.unfreeze);
     }
   }
 }
@@ -7917,9 +7927,7 @@ async function reconcileAccountPurgeWorkspaceBarriers(
     signal: AbortSignal.timeout(30_000),
   });
   if (!response.ok) {
-    throw Object.assign(new Error('ACCOUNT_PURGE_WORKSPACE_RECONCILE_FAILED'), {
-      code: 'ACCOUNT_PURGE_WORKSPACE_RECONCILE_FAILED',
-    });
+    throw accountPurgeWorkspaceFailure(ACCOUNT_PURGE_WORKSPACE_FAILURE.reconcile);
   }
   return (await response.json()) as { scanned: number; reconciled: number; workspaceIds: string[] };
 }
@@ -34130,9 +34138,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
               options.accountPurgeBillingCanceler ??
               (async (externalId, idempotencyKey) => {
                 if (!stripeClient) {
-                  throw Object.assign(new Error('ACCOUNT_PURGE_BILLING_CANCELLER_UNAVAILABLE'), {
-                    code: 'ACCOUNT_PURGE_BILLING_CANCELLER_UNAVAILABLE',
-                  });
+                  throw accountPurgeWorkspaceFailure(ACCOUNT_PURGE_WORKSPACE_FAILURE.billingCancellerUnavailable);
                 }
                 const cancellation = await stripeClient.cancelSubscription(externalId, idempotencyKey);
                 const providerStatus = cancellation.status ?? (cancellation.deleted ? 'deleted' : undefined);

@@ -333,14 +333,6 @@ describe('app.ts i18n source guard', () => {
       'durable_archive_missing',
       'checksum_mismatch',
       'manager_failed',
-      // Stable account-purge adapter failures consumed as machine codes by the
-      // retry/reconciliation state machine; they are never response copy.
-      'ACCOUNT_PURGE_PVC_CHECK_FAILED',
-      'ACCOUNT_PURGE_WORKSPACE_DELETE_FAILED',
-      'ACCOUNT_PURGE_WORKSPACE_FREEZE_FAILED',
-      'ACCOUNT_PURGE_WORKSPACE_UNFREEZE_FAILED',
-      'ACCOUNT_PURGE_WORKSPACE_RECONCILE_FAILED',
-      'ACCOUNT_PURGE_BILLING_CANCELLER_UNAVAILABLE',
       // Stable billing/policy identifiers consumed as machine data.
       'chat.completion',
       'chat.completion.{…}',
@@ -394,21 +386,6 @@ describe('credit-ledger persistence source guard', () => {
       file: 'services/api/src/prisma-store.ts',
       path: prismaStorePath,
       expected: [
-        // Stable state-machine and deployment-access result codes. HTTP routes
-        // map them to catalogue copy; persistence must keep the codes exact.
-        'ROLLBACK_OWNERSHIP_LOST',
-        'ROLLBACK_RELEASE_MOVED',
-        'ROLLBACK_TARGET_CONFLICT',
-        'SERVER_RELEASE_ACCESS_POLICY_INVALID',
-        'SERVER_RELEASE_FENCE_CONFLICT',
-        'DEPLOYMENT_NOT_FOUND',
-        'POLICY_INVALID',
-        'POLICY_NOT_PRIVATE',
-        'POLICY_CHANGED',
-        'ACCESS_DENIED',
-        'TICKET_NOT_FOUND',
-        'TICKET_REPLAYED',
-        'TICKET_EXPIRED',
         // Persisted platform-generated ledger reason localized at the HTTP boundary.
         'PAYG overage (billed to Stripe metered usage)',
       ],
@@ -420,6 +397,17 @@ describe('credit-ledger persistence source guard', () => {
 
       expect(result.parseErrors).toEqual([]);
       expect(new Set(result.findings.map((finding: { text: string }) => finding.text))).toEqual(new Set(expected));
+
+      if (file === 'services/api/src/prisma-store.ts') {
+        // Machine invariants must stay invisible to the copy scanner even when
+        // their byte-exact codes are preserved by typed constants.
+        expect(result.findings).toEqual([
+          expect.objectContaining({
+            rule: 'visible-object-copy',
+            text: 'PAYG overage (billed to Stripe metered usage)',
+          }),
+        ]);
+      }
     },
   );
 });
