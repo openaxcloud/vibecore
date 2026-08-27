@@ -108,21 +108,40 @@ jobs:
 
       - name: Prepare database
         run: |
+          trap 'echo "::group::Container state"; docker compose --env-file .env -f docker-compose.dev.yml ps; docker compose --env-file .env -f docker-compose.dev.yml logs --tail=80 postgres; echo "::endgroup::"' ERR
           pnpm --filter @vibecore/database db:deploy
           pnpm --filter @vibecore/database db:seed
 
       - name: Start API
         run: |
           pnpm --filter @vibecore/api dev > /tmp/vibecore-i18n-api-${{ matrix.project }}.log 2>&1 &
-          echo $! > /tmp/vibecore-i18n-api-${{ matrix.project }}.pid
+          api_pid=$!
+          echo "$api_pid" > /tmp/vibecore-i18n-api-${{ matrix.project }}.pid
           for _ in {1..180}; do
             if curl --fail --silent --show-error --max-time 5 http://127.0.0.1:3001/health > /dev/null; then
               exit 0
             fi
 
+            # The API dying is terminal: waiting the remaining seconds only
+            # delays a failure we can already report, with its cause at hand.
+            if ! kill -0 "$api_pid" 2>/dev/null; then
+              echo '::error::The API process exited before serving /health' >&2
+              break
+            fi
+
             sleep 1
           done
-          echo 'Timed out waiting for the API health endpoint' >&2
+
+          # Without this the step reported only "timed out" and threw away the
+          # API's own output — 156 failed runs since 2026-08-05 with no trace
+          # of the cause, which is why nobody could fix it.
+          echo '::group::API log (cause of the failure above)'
+          cat /tmp/vibecore-i18n-api-${{ matrix.project }}.log || echo '(no API log was produced)'
+          echo '::endgroup::'
+          echo '::group::Container state'
+          docker compose --env-file .env -f docker-compose.dev.yml ps || true
+          docker compose --env-file .env -f docker-compose.dev.yml logs --tail=80 postgres redis || true
+          echo '::endgroup::'
           exit 1
 
       - name: Build web app
@@ -139,6 +158,9 @@ jobs:
 
             sleep 1
           done
+          echo '::group::Web app log (cause of the failure above)'
+          cat /tmp/vibecore-i18n-web-${{ matrix.project }}.log || echo '(no web log was produced)'
+          echo '::endgroup::'
           echo 'Timed out waiting for the production web app' >&2
           exit 1
 
