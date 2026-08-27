@@ -72,6 +72,10 @@ secrets:
     STRIPE_WEBHOOK_SECRET: vibecore-prod-stripe-webhook-secret
     EMAIL_HTTP_TOKEN: vibecore-prod-email-http-token
     PREVIEW_PROXY_SHARED_SECRET: vibecore-prod-preview-proxy-shared-secret
+    # Dedicated HMAC root for deployment access proofs. It must not reuse the
+    # preview-proxy/control-plane bearer. Only API code reads it; the current
+    # shared-secret envFrom model still mounts the platform secret in all pods.
+    DEPLOYMENT_ACCESS_TOKEN_SECRET: vibecore-prod-deployment-access-token-secret
     # Gate for the workspace-manager control plane (start/stop/gc/agent-token).
     # The manager is fail-closed (503) in prod without it, and api+worker send
     # the bearer ONLY from this var — so it MUST be provisioned on every fresh/DR
@@ -121,6 +125,9 @@ platformEnv:
   cloudTenantAllowedParentFolders: ''
   cloudOperationWorker: 'off'
   cloudOperationWorkerIntervalMs: '5000'
+  # Phase 2 only: set true after DEPLOYMENT_ACCESS_ENFORCEMENT is confirmed on
+  # every preview-proxy replica (see docs/parity/AUTH_ACCESS_CONTRACT.md).
+  deploymentAccessActivationEnabled: 'false'
   # Fastify must trust X-Forwarded-* headers because traffic arrives via the
   # GKE ingress (ingress-nginx). Without this, request.ip is always the proxy
   # pod IP, breaking audit logs, rate-limits, and OAuth callback origin checks.

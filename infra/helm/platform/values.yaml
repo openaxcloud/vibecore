@@ -61,6 +61,9 @@ platformEnv:
   cloudTenantAllowedParentFolders: ''
   cloudOperationWorker: 'off'
   cloudOperationWorkerIntervalMs: '5000'
+  # Flip to 'true' only after all preview-proxy replicas enforce deployment
+  # access. The API rejects protected modes while false (mixed-rollout safety).
+  deploymentAccessActivationEnabled: 'false'
   # Set to 'true' to make the ai-gateway REQUIRE the shared-secret bearer on
   # /chat/completions. Leave empty until the secret is confirmed present on both
   # the api and ai-gateway pods (it is provisioned by templates/ai-gateway-auth-secret.yaml

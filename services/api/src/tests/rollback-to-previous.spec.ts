@@ -88,6 +88,7 @@ describe('static rollback-to-previous (deterministic, fail-closed)', () => {
       artifactRef: `static-deployments/${deployment.id}`,
       artifactDigest,
       configDigest: 'sha256:' + '0'.repeat(64),
+      accessPolicyVersion: 1,
     });
 
     return { deployment, artifactDigest };

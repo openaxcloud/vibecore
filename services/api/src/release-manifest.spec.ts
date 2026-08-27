@@ -21,6 +21,7 @@ function manifest(version: number, over: Partial<ReleaseManifestRecord> = {}): R
     artifactKind: 'static-snapshot',
     artifactRef: `static-deployments/d-${version}`,
     artifactDigest: `sha256:${String(version).repeat(64).slice(0, 64)}`,
+    accessPolicyVersion: 1,
     createdAt: '2026-08-04T00:00:00.000Z',
     ...over,
   };

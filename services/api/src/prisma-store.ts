@@ -6,7 +6,11 @@ import type { PlanKey, QuotaKey } from '@vibecore/billing';
 import { createDatabaseClient, Prisma, type DatabaseClient } from '@vibecore/database';
 import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
 import { appPublicEnglish } from './app-public-copy.js';
-import { isCommittedPromotionForTenant, SERVER_IMAGE_RELEASE_AUDIT_ACTION } from './server-image-promotion.js';
+import {
+  normalizeDeploymentAccessMode,
+  type DeploymentAccessMode,
+  type DeploymentAccessPolicyRecord,
+} from './deployment-access.js';
 import {
   canonicalizeProjectManifest,
   createDefaultProjectManifest,
@@ -18,8 +22,8 @@ import {
   type ProjectManifest,
   type ProjectManifestCloneMode,
 } from './project-manifest.js';
+import { isCommittedPromotionForTenant, SERVER_IMAGE_RELEASE_AUDIT_ACTION } from './server-image-promotion.js';
 import { slugify } from './slugify.js';
-import { countActiveModerationStrikes } from './strike-system.js';
 import { API_KEY_SCOPES, DEFAULT_ENV_VAR_SCOPE, ENV_VAR_SCOPES } from './store.js';
 import type {
   AbuseEventRecord,
@@ -68,6 +72,8 @@ import type {
   CollaborationPresenceRecord,
   CustomRoleRecord,
   DeploymentRecord,
+  DeploymentAccessContext,
+  DeploymentAccessTicketMutationResult,
   ReleaseManifestRecord,
   ServerImageReleaseCommitInput,
   ServerImageReleaseCommitResult,
@@ -128,11 +134,13 @@ import type {
   SkillAuditEventRecord,
   RecordSkillAuditInput,
 } from './store.js';
+import { countActiveModerationStrikes } from './strike-system.js';
 
 const RUNTIME_WEBSOCKET_TICKET_INSERT_EMPTY = 'RUNTIME_WEBSOCKET_TICKET_INSERT_EMPTY';
 const DB_MIGRATION_STATE_CORRUPT = 'DB_MIGRATION_STATE_CORRUPT';
 const DB_MIGRATION_PLAN_CORRUPT = 'DB_MIGRATION_PLAN_CORRUPT';
 const DB_MIGRATION_EXECUTION_INSERT_EMPTY = 'DB_MIGRATION_EXECUTION_INSERT_EMPTY';
+
 const COLLABORATION_REASON = {
   membershipNotActive: 'MEMBERSHIP_NOT_ACTIVE',
   groupNotFound: 'GROUP_NOT_FOUND',
@@ -224,19 +232,25 @@ function mapDatabaseMigrationExecution(row: DatabaseMigrationRow): DatabaseMigra
   if (!DATABASE_MIGRATION_STATES.has(row.state as DatabaseMigrationState)) {
     throw new Error(DB_MIGRATION_STATE_CORRUPT);
   }
+
   if (!Array.isArray(row.plan) || row.plan.length !== row.statementCount) {
     throw new Error(DB_MIGRATION_PLAN_CORRUPT);
   }
+
   const plan = row.plan.map((entry) => {
     if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
       throw new Error(DB_MIGRATION_PLAN_CORRUPT);
     }
+
     const item = entry as Record<string, unknown>;
+
     if (typeof item.name !== 'string' || typeof item.sha256 !== 'string' || !/^[a-f0-9]{64}$/.test(item.sha256)) {
       throw new Error(DB_MIGRATION_PLAN_CORRUPT);
     }
+
     return { name: item.name, sha256: item.sha256 };
   });
+
   return {
     id: row.id,
     projectId: row.projectId,
@@ -480,8 +494,10 @@ function importTransitionData(patch: ImportJobTransitionPatch | undefined): Pris
   };
 }
 
-// Database point-in-time rollback (Phase-1 scaffold) row → record mappers.
-// sizeBytes is a Postgres BIGINT (Prisma `bigint`); narrow to number for the API.
+/*
+ * Database point-in-time rollback (Phase-1 scaffold) row → record mappers.
+ * sizeBytes is a Postgres BIGINT (Prisma `bigint`); narrow to number for the API.
+ */
 function mapDatabaseInstance(row: {
   id: string;
   projectId: string;
@@ -771,6 +787,7 @@ export class PrismaApiStore implements ApiStore {
 
   async touchUserActivity(userId: string, nowMs?: number) {
     const at = new Date(Number.isFinite(nowMs) ? (nowMs as number) : Date.now());
+
     try {
       // updateMany so a deleted user is a no-op (count 0) rather than a P2025 throw.
       const result = await this.prisma.user.updateMany({ where: { id: userId }, data: { lastActiveAt: at } });
@@ -783,8 +800,11 @@ export class PrismaApiStore implements ApiStore {
   async listInactiveUserCandidates(input: { cutoffMs: number; take?: number }) {
     const cutoff = new Date(input.cutoffMs);
     const take = Math.max(1, Math.min(input.take ?? 500, 5000));
-    // Active reference = lastActiveAt, falling back to createdAt for accounts
-    // never touched. Both branches must be older than the cutoff.
+
+    /*
+     * Active reference = lastActiveAt, falling back to createdAt for accounts
+     * never touched. Both branches must be older than the cutoff.
+     */
     const users = await this.prisma.user.findMany({
       where: {
         OR: [{ lastActiveAt: { lt: cutoff } }, { AND: [{ lastActiveAt: null }, { createdAt: { lt: cutoff } }] }],
@@ -1296,8 +1316,10 @@ export class PrismaApiStore implements ApiStore {
   }
 
   async getProject(id: string) {
-    // Count deployments so callers (e.g. the IDE top bar) can show Publish vs
-    // Republish without a second query; mapProject surfaces it as deploymentCount.
+    /*
+     * Count deployments so callers (e.g. the IDE top bar) can show Publish vs
+     * Republish without a second query; mapProject surfaces it as deploymentCount.
+     */
     const project = await this.prisma.project.findUnique({
       where: { id },
       include: { _count: { select: { deployments: true } } },
@@ -1343,15 +1365,19 @@ export class PrismaApiStore implements ApiStore {
       'PROJECT_NOT_FOUND',
     );
 
-    // No-op rename: don't mint a self-redirect (it would loop the old→new URL
-    // back onto itself) — just hand back the project unchanged.
+    /*
+     * No-op rename: don't mint a self-redirect (it would loop the old→new URL
+     * back onto itself) — just hand back the project unchanged.
+     */
     if (project.slug === input.newSlug) {
       return mapProject(project);
     }
 
-    // slug is only @@unique within an org, so a bare update would 500 on P2002.
-    // Surface the clash as a typed 409 the route can translate into an inline
-    // "slug already taken" message.
+    /*
+     * slug is only @@unique within an org, so a bare update would 500 on P2002.
+     * Surface the clash as a typed 409 the route can translate into an inline
+     * "slug already taken" message.
+     */
     const clash = await this.prisma.project.findFirst({
       where: { organizationId: project.organizationId, slug: input.newSlug, id: { not: project.id } },
       select: { id: true },
@@ -1368,17 +1394,21 @@ export class PrismaApiStore implements ApiStore {
     const expiresAt = new Date(Date.now() + ttlDays * 24 * 60 * 60 * 1000);
 
     return this.prisma.$transaction(async (tx) => {
-      // Persist old → project redirect (upsert so a re-rename of the same old
-      // slug just refreshes the 30-day window instead of P2002-ing).
+      /*
+       * Persist old → project redirect (upsert so a re-rename of the same old
+       * slug just refreshes the 30-day window instead of P2002-ing).
+       */
       await tx.projectSlugRedirect.upsert({
         where: { projectId_oldSlug: { projectId: project.id, oldSlug: project.slug } },
         create: { projectId: project.id, oldSlug: project.slug, expiresAt },
         update: { expiresAt },
       });
 
-      // Renaming BACK to a slug this project previously redirected FROM would
-      // leave a self-redirect (newSlug → this project) that bounces the fresh
-      // canonical URL. Drop it.
+      /*
+       * Renaming BACK to a slug this project previously redirected FROM would
+       * leave a self-redirect (newSlug → this project) that bounces the fresh
+       * canonical URL. Drop it.
+       */
       await tx.projectSlugRedirect.deleteMany({ where: { projectId: project.id, oldSlug: input.newSlug } });
 
       return mapProject(await tx.project.update({ where: { id: project.id }, data: { slug: input.newSlug } }));
@@ -1439,6 +1469,7 @@ export class PrismaApiStore implements ApiStore {
      * snapshots and undercount the tenant by one.
      */
     const createdAtFilter = options.since ? Prisma.sql`AND p."createdAt" >= ${options.since}` : Prisma.empty;
+
     const rows = await this.prisma.$queryRaw<Array<{ count: number }>>(Prisma.sql`
       SELECT COUNT(DISTINCT p."id")::int AS "count"
       FROM "Project" p
@@ -1496,6 +1527,7 @@ export class PrismaApiStore implements ApiStore {
         AND "createdAt" >= ${since}
         AND ("metadata"->>'disposition') IS DISTINCT FROM 'dismissed'
     `);
+
     const count = Number(row?.count ?? 0n);
 
     if (!Number.isSafeInteger(count) || count < 0) {
@@ -1559,8 +1591,10 @@ export class PrismaApiStore implements ApiStore {
   }
 
   async hardDeleteProject(projectId: string) {
-    // Every child relation declares onDelete: Cascade (AiConversation: SetNull),
-    // so a plain delete removes the whole project graph atomically.
+    /*
+     * Every child relation declares onDelete: Cascade (AiConversation: SetNull),
+     * so a plain delete removes the whole project graph atomically.
+     */
     return mapProject(await this.prisma.project.delete({ where: { id: projectId } }));
   }
 
@@ -1594,11 +1628,13 @@ export class PrismaApiStore implements ApiStore {
               Prisma.sql`SELECT pg_advisory_xact_lock(hashtextextended(${`project-checkpoint:${input.projectId}`}, 0))`,
             );
             await tx.$queryRawUnsafe('SELECT "id" FROM "Project" WHERE "id" = $1 FOR UPDATE', input.projectId);
+
             const locked = assertFound(
               await tx.project.findUnique({ where: { id: input.projectId } }),
               'Project not found',
               'PROJECT_NOT_FOUND',
             );
+
             if (locked.organizationId === input.targetOrganizationId) {
               return mapProject(locked);
             }
@@ -1611,6 +1647,7 @@ export class PrismaApiStore implements ApiStore {
               },
               select: { id: true },
             });
+
             if (checkpointBarrier) {
               throw Object.assign(new Error(appPublicEnglish('CHECKPOINT_BARRIER_ACTIVE_MESSAGE')), {
                 statusCode: 423,
@@ -1685,6 +1722,7 @@ export class PrismaApiStore implements ApiStore {
                 code: 'PROJECT_TRANSFER_MANAGED_RESOURCES_ACTIVE',
               });
             }
+
             const sourceRevisionRow = await tx.projectManifestRevision.findFirst({
               where: { projectId: input.projectId },
               orderBy: { manifestVersion: 'desc' },
@@ -1692,7 +1730,9 @@ export class PrismaApiStore implements ApiStore {
             const sourceManifest = sourceRevisionRow
               ? verifyStoredProjectManifestRevision(mapProjectManifestRevision(sourceRevisionRow), input.projectId)
               : createDefaultProjectManifest(input.projectId);
+
             const detachedSeed = projectManifestForClone(sourceManifest, input.projectId, 'DETACH_EXTERNALS');
+
             const detachedManifest = canonicalizeProjectManifest({
               ...detachedSeed,
               manifestVersion: (sourceRevisionRow?.manifestVersion ?? 0) + 1,
@@ -1780,7 +1820,9 @@ export class PrismaApiStore implements ApiStore {
       this.prisma.project.findUnique({ where: { id: input.projectId } }),
       this.getLatestProjectManifest(input.projectId),
     ]);
+
     const source = assertFound(sourceRow, 'Project not found', 'PROJECT_NOT_FOUND');
+
     const sourceManifest = sourceRevision
       ? verifyStoredProjectManifestRevision(sourceRevision, source.id)
       : createDefaultProjectManifest(source.id);
@@ -1884,7 +1926,11 @@ export class PrismaApiStore implements ApiStore {
   async getDatabaseTime() {
     const rows = await this.prisma.$queryRaw<Array<{ now: Date }>>`SELECT clock_timestamp() AS "now"`;
     const now = rows[0]?.now;
-    if (!now) throw new Error(appPublicEnglish('DATABASE_TIME_UNAVAILABLE'));
+
+    if (!now) {
+      throw new Error(appPublicEnglish('DATABASE_TIME_UNAVAILABLE'));
+    }
+
     return now.toISOString();
   }
 
@@ -1901,6 +1947,7 @@ export class PrismaApiStore implements ApiStore {
         await tx.$executeRaw`
           SELECT pg_advisory_xact_lock(hashtextextended(${`project-checkpoint-idempotency:${input.idempotencyKey}`}, 0))
         `;
+
         const existing = await tx.projectCheckpoint.findUnique({
           where: { idempotencyKey: input.idempotencyKey },
         });
@@ -1943,8 +1990,10 @@ export class PrismaApiStore implements ApiStore {
         SELECT pg_advisory_xact_lock(hashtextextended(${`project-checkpoint:${input.projectId}`}, 0))
       `;
 
-      // Expiry is a durable fail-open thaw. Clear a dead singleton while the
-      // same project lock is held so only one successor can take ownership.
+      /*
+       * Expiry is a durable fail-open thaw. Clear a dead singleton while the
+       * same project lock is held so only one successor can take ownership.
+       */
       await tx.$executeRaw`
         UPDATE "ProjectCheckpoint"
         SET "barrierProjectId" = NULL,
@@ -1978,6 +2027,7 @@ export class PrismaApiStore implements ApiStore {
           )
         RETURNING "id", "logicalBarrierId", "barrierFence", "barrierExpiresAt"
       `;
+
       const row = rows[0];
 
       return row
@@ -2049,6 +2099,7 @@ export class PrismaApiStore implements ApiStore {
   }) {
     if (input.to === 'COMMITTED') {
       const manifest = JSON.stringify(input.patch?.manifest ?? null);
+
       const rows = await this.prisma.$queryRaw<Array<{ id: string }>>`
         UPDATE "ProjectCheckpoint"
         SET "state" = 'COMMITTED',
@@ -2075,6 +2126,7 @@ export class PrismaApiStore implements ApiStore {
           code: 'CHECKPOINT_BARRIER_LOST',
         });
       }
+
       return;
     }
 
@@ -2172,6 +2224,7 @@ export class PrismaApiStore implements ApiStore {
         AND "barrierExpiresAt" > clock_timestamp()
       LIMIT 1
     `;
+
     const row = rows[0];
 
     if (!row?.barrierExpiresAt || !row.logicalBarrierId) {
@@ -2269,6 +2322,7 @@ export class PrismaApiStore implements ApiStore {
         input.id,
         input.organizationId,
       );
+
       const now = await databaseNow(tx);
       const job = await tx.remixJob.findFirst({ where: { id: input.id, organizationId: input.organizationId } });
 
@@ -2312,7 +2366,9 @@ export class PrismaApiStore implements ApiStore {
         input.id,
         input.organizationId,
       );
+
       const now = await databaseNow(tx);
+
       const row = await tx.remixJob.findFirst({
         where: {
           id: input.id,
@@ -2324,7 +2380,9 @@ export class PrismaApiStore implements ApiStore {
         },
       });
 
-      if (!row) return undefined;
+      if (!row) {
+        return undefined;
+      }
 
       return mapRemixJob(
         await tx.remixJob.update({
@@ -2353,7 +2411,9 @@ export class PrismaApiStore implements ApiStore {
         input.id,
         input.organizationId,
       );
+
       const now = await databaseNow(tx);
+
       const row = await tx.remixJob.findFirst({
         where: {
           id: input.id,
@@ -2365,7 +2425,9 @@ export class PrismaApiStore implements ApiStore {
         },
       });
 
-      if (!row) return undefined;
+      if (!row) {
+        return undefined;
+      }
 
       return mapRemixJob(
         await tx.remixJob.update({
@@ -2387,6 +2449,7 @@ export class PrismaApiStore implements ApiStore {
     }
 
     const row = await this.prisma.remixJob.findFirst({ where: { id: input.id, organizationId: input.organizationId } });
+
     return row ? mapRemixJob(row) : undefined;
   }
 
@@ -2403,7 +2466,9 @@ export class PrismaApiStore implements ApiStore {
         input.remixJobId,
         input.organizationId,
       );
+
       const now = await databaseNow(tx);
+
       const job = await tx.remixJob.findFirst({
         where: { id: input.remixJobId, organizationId: input.organizationId },
       });
@@ -2429,17 +2494,20 @@ export class PrismaApiStore implements ApiStore {
       const sourceSnapshot = job.sourceSnapshotId
         ? await tx.projectSnapshot.findFirst({ where: { id: job.sourceSnapshotId, projectId: source.id } })
         : undefined;
+
       if (!sourceSnapshot) {
         throw Object.assign(new Error(appPublicEnglish('PROJECT_MANIFEST_SNAPSHOT_UNPINNED')), {
           statusCode: 409,
           code: 'PROJECT_MANIFEST_SNAPSHOT_UNPINNED',
         });
       }
+
       /*
        * Clone the manifest embedded in the immutable source snapshot, never the
        * latest live revision. Files v1 + topology v2 is not a valid remix.
        */
       const sourceManifest = readProjectManifestSnapshotPin(sourceSnapshot.manifest, source.id).manifest;
+
       const ensureDetachedTargetManifest = async (targetProjectId: string) => {
         const existingRevisionRow = await tx.projectManifestRevision.findFirst({
           where: { projectId: targetProjectId },
@@ -2476,11 +2544,14 @@ export class PrismaApiStore implements ApiStore {
       }
 
       const baseSlug = slugify(input.slug) || `remix-${job.id.slice(-8)}`;
+
       const occupied = await tx.project.findUnique({
         where: { organizationId_slug: { organizationId: input.organizationId, slug: baseSlug } },
         select: { id: true },
       });
+
       const slug = occupied ? `${baseSlug}-${job.id.slice(-8).toLowerCase()}` : baseSlug;
+
       const project = await tx.project.create({
         data: {
           organizationId: input.organizationId,
@@ -2492,8 +2563,11 @@ export class PrismaApiStore implements ApiStore {
           gitRepositoryUrl: source.gitRepositoryUrl,
           gitDefaultBranch: source.gitDefaultBranch,
           persistentVolumeClaim: `pvc-${input.organizationId}-${slug}`,
-          // Keep a partially-provisioned target out of normal project listings.
-          // finalizeClaimedRemix clears this atomically with COMPLETED.
+
+          /*
+           * Keep a partially-provisioned target out of normal project listings.
+           * finalizeClaimedRemix clears this atomically with COMPLETED.
+           */
           deletedAt: new Date(),
         },
       });
@@ -2521,7 +2595,9 @@ export class PrismaApiStore implements ApiStore {
         input.remixJobId,
         input.organizationId,
       );
+
       const now = await databaseNow(tx);
+
       const job = await tx.remixJob.findFirst({
         where: {
           id: input.remixJobId,
@@ -2593,7 +2669,9 @@ export class PrismaApiStore implements ApiStore {
         input.remixJobId,
         input.organizationId,
       );
+
       const now = await databaseNow(tx);
+
       const job = await tx.remixJob.findFirst({
         where: {
           id: input.remixJobId,
@@ -2649,7 +2727,9 @@ export class PrismaApiStore implements ApiStore {
         input.remixJobId,
         input.organizationId,
       );
+
       const now = await databaseNow(tx);
+
       const job = await tx.remixJob.findFirst({
         where: { id: input.remixJobId, organizationId: input.organizationId },
       });
@@ -2693,7 +2773,9 @@ export class PrismaApiStore implements ApiStore {
         input.remixJobId,
         input.organizationId,
       );
+
       const now = await databaseNow(tx);
+
       const job = await tx.remixJob.findFirst({
         where: {
           id: input.remixJobId,
@@ -2710,6 +2792,7 @@ export class PrismaApiStore implements ApiStore {
       }
 
       await tx.project.deleteMany({ where: { id: input.targetProjectId, organizationId: input.organizationId } });
+
       return true;
     });
   }
@@ -2721,7 +2804,9 @@ export class PrismaApiStore implements ApiStore {
         input.remixJobId,
         input.organizationId,
       );
+
       const now = await databaseNow(tx);
+
       const job = await tx.remixJob.findFirst({
         where: {
           id: input.remixJobId,
@@ -2812,8 +2897,12 @@ export class PrismaApiStore implements ApiStore {
       data: { state: 'REVOKED', revokedAt: new Date() },
     });
 
-    if (updated.count !== 1) return undefined;
+    if (updated.count !== 1) {
+      return undefined;
+    }
+
     const row = await this.prisma.remixStorageShare.findUnique({ where: { targetProjectId: input.targetProjectId } });
+
     return row ? mapRemixStorageShare(row) : undefined;
   }
 
@@ -2829,7 +2918,9 @@ export class PrismaApiStore implements ApiStore {
         input.remixJobId,
         input.organizationId,
       );
+
       const now = await databaseNow(tx);
+
       const job = await tx.remixJob.findFirst({
         where: {
           id: input.remixJobId,
@@ -2842,7 +2933,10 @@ export class PrismaApiStore implements ApiStore {
         select: { id: true },
       });
 
-      if (!job) return false;
+      if (!job) {
+        return false;
+      }
+
       return (await tx.remixStorageShare.deleteMany({ where: { targetProjectId: input.targetProjectId } })).count > 0;
     });
   }
@@ -2933,6 +3027,7 @@ export class PrismaApiStore implements ApiStore {
     publishedAt?: string;
   }) {
     const status = input.status ?? 'PUBLISHED';
+
     const row = await this.prisma.galleryListing.create({
       data: {
         slug: input.slug,
@@ -2953,13 +3048,17 @@ export class PrismaApiStore implements ApiStore {
         licenseText: input.licenseText ?? null,
         licenseTextSha256: input.licenseTextSha256 ?? null,
         piiConsentVersion: input.piiConsentVersion ?? null,
+
         // Trace auditable des confirmations de curation (P0-V3-05, réserve #8).
         rightsConfirmedAt: input.rightsConfirmedAt ?? null,
         rightsConfirmedBy: input.rightsConfirmedBy ?? null,
         piiPolicyAcceptedAt: input.piiPolicyAcceptedAt ?? null,
         piiPolicyAcceptedBy: input.piiPolicyAcceptedBy ?? null,
-        // A row published at creation records publishedAt so the detail page
-        // can show a real date; a PENDING_REVIEW row leaves it null.
+
+        /*
+         * A row published at creation records publishedAt so the detail page
+         * can show a real date; a PENDING_REVIEW row leaves it null.
+         */
         publishedAt: input.publishedAt ? new Date(input.publishedAt) : status === 'PUBLISHED' ? new Date() : null,
       },
     });
@@ -2976,6 +3075,7 @@ export class PrismaApiStore implements ApiStore {
   }) {
     const status = opts?.status ?? 'PUBLISHED';
     const query = opts?.query?.trim();
+
     const rows = await this.prisma.galleryListing.findMany({
       where: {
         status,
@@ -2992,8 +3092,11 @@ export class PrismaApiStore implements ApiStore {
             }
           : {}),
       },
-      // Featured first, then most recently published, so the grid leads with
-      // the curated highlights (mirrors the replit.com/gallery ordering).
+
+      /*
+       * Featured first, then most recently published, so the grid leads with
+       * the curated highlights (mirrors the replit.com/gallery ordering).
+       */
       orderBy: [{ featured: 'desc' }, { publishedAt: 'desc' }, { createdAt: 'desc' }],
       ...(opts?.limit ? { take: opts.limit } : {}),
     });
@@ -3033,6 +3136,7 @@ export class PrismaApiStore implements ApiStore {
     try {
       const created = await this.prisma.$transaction(async (tx) => {
         const now = await databaseNow(tx);
+
         const job = await tx.importJob.create({
           data: {
             organizationId: input.organizationId,
@@ -3103,6 +3207,7 @@ export class PrismaApiStore implements ApiStore {
       where: { id, organizationId },
       select: { stagedFiles: true, connectorPreview: true },
     });
+
     const files = importStagedFiles(row?.stagedFiles);
 
     if (!row || !files) {
@@ -3128,6 +3233,7 @@ export class PrismaApiStore implements ApiStore {
     operationLeaseDurationMs?: number;
   }) {
     const operationLeaseDurationMs = input.operationLeaseDurationMs;
+
     if (operationLeaseDurationMs !== undefined) {
       return this.prisma.$transaction(async (tx) => {
         await tx.$queryRawUnsafe(
@@ -3135,7 +3241,9 @@ export class PrismaApiStore implements ApiStore {
           input.id,
           input.organizationId,
         );
+
         const now = await databaseNow(tx);
+
         const row = await tx.importJob.findFirst({
           where: {
             id: input.id,
@@ -3144,7 +3252,10 @@ export class PrismaApiStore implements ApiStore {
             state: { in: input.expectedStates },
           },
         });
-        if (!row) return undefined;
+
+        if (!row) {
+          return undefined;
+        }
 
         return mapImportJob(
           await tx.importJob.update({
@@ -3198,7 +3309,9 @@ export class PrismaApiStore implements ApiStore {
         input.id,
         input.organizationId,
       );
+
       const now = await databaseNow(tx);
+
       const row = await tx.importJob.findFirst({
         where: {
           id: input.id,
@@ -3208,7 +3321,10 @@ export class PrismaApiStore implements ApiStore {
           operationExpiresAt: { gt: now },
         },
       });
-      if (!row) return undefined;
+
+      if (!row) {
+        return undefined;
+      }
 
       return mapImportJob(
         await tx.importJob.update({
@@ -3230,6 +3346,7 @@ export class PrismaApiStore implements ApiStore {
   }) {
     return this.prisma.$transaction(async (tx) => {
       const now = await databaseNow(tx);
+
       const count = await tx.importJob.count({
         where: {
           id: input.id,
@@ -3258,9 +3375,11 @@ export class PrismaApiStore implements ApiStore {
         input.importJobId,
         input.organizationId,
       );
+
       const job = await tx.importJob.findFirst({
         where: { id: input.importJobId, organizationId: input.organizationId },
       });
+
       const now = await databaseNow(tx);
 
       if (
@@ -3318,8 +3437,11 @@ export class PrismaApiStore implements ApiStore {
           slug: input.slug,
           sourceType: input.sourceType,
           persistentVolumeClaim: `pvc-${input.organizationId}-${input.slug}`,
-          // Hidden until files, file manifest, billing settlement and import
-          // state commit succeed atomically in finalizeImportCommit.
+
+          /*
+           * Hidden until files, file manifest, billing settlement and import
+           * state commit succeed atomically in finalizeImportCommit.
+           */
           deletedAt: now,
         },
       });
@@ -3346,6 +3468,7 @@ export class PrismaApiStore implements ApiStore {
         input.importJobId,
         input.organizationId,
       );
+
       const job = await tx.importJob.findFirst({
         where: { id: input.importJobId, organizationId: input.organizationId },
       });
@@ -3375,10 +3498,12 @@ export class PrismaApiStore implements ApiStore {
       }
 
       await tx.$queryRawUnsafe('SELECT "id" FROM "Project" WHERE "id" = $1 FOR UPDATE', input.targetProjectId);
+
       const target = await tx.project.findFirst({
         where: { id: input.targetProjectId, organizationId: input.organizationId },
         select: { id: true },
       });
+
       if (!target) {
         return undefined;
       }
@@ -3419,6 +3544,7 @@ export class PrismaApiStore implements ApiStore {
           version: { increment: 1 },
         },
       });
+
       const reservation = await tx.importCreditReservation.findUniqueOrThrow({ where: { importJobId: job.id } });
 
       return { job: mapImportJob(committed), reservation: mapImportReservation(reservation) };
@@ -3439,10 +3565,13 @@ export class PrismaApiStore implements ApiStore {
         input.importJobId,
         input.organizationId,
       );
+
       const job = await tx.importJob.findFirst({
         where: { id: input.importJobId, organizationId: input.organizationId },
       });
+
       const now = await databaseNow(tx);
+
       const activeOtherOwner =
         job?.operationToken &&
         job.operationToken !== input.operationToken &&
@@ -3505,6 +3634,7 @@ export class PrismaApiStore implements ApiStore {
         input.importJobId,
         input.organizationId,
       );
+
       const job = await tx.importJob.findFirst({
         where: {
           id: input.importJobId,
@@ -3535,7 +3665,9 @@ export class PrismaApiStore implements ApiStore {
         input.importJobId,
         input.organizationId,
       );
+
       const now = await databaseNow(tx);
+
       const row = await tx.importJob.findFirst({
         where: {
           id: input.importJobId,
@@ -3546,6 +3678,7 @@ export class PrismaApiStore implements ApiStore {
           targetProjectId: null,
         },
       });
+
       const terminal = row?.cleanupTerminalState;
 
       if (!row || !terminal || !['ROLLING_BACK', 'EXPIRED', 'FAILED'].includes(terminal)) {
@@ -3575,6 +3708,7 @@ export class PrismaApiStore implements ApiStore {
         importJobId,
         organizationId,
       );
+
       const job = await tx.importJob.findFirst({ where: { id: importJobId, organizationId } });
 
       if (!job) {
@@ -3649,6 +3783,7 @@ export class PrismaApiStore implements ApiStore {
       ORDER BY "createdAt" ASC
       LIMIT 100
     `);
+
     const claimed: string[] = [];
 
     for (const candidate of stale) {
@@ -3665,7 +3800,9 @@ export class PrismaApiStore implements ApiStore {
             `import-target-effect:${candidate.targetProjectId}`,
           );
         }
+
         await tx.$queryRawUnsafe('SELECT "id" FROM "ImportJob" WHERE "id" = $1 FOR UPDATE', candidate.id);
+
         const job = await tx.importJob.findUnique({ where: { id: candidate.id } });
 
         if (!job || job.targetProjectId !== candidate.targetProjectId) {
@@ -3673,6 +3810,7 @@ export class PrismaApiStore implements ApiStore {
         }
 
         const now = await databaseNow(tx);
+
         const operationExpired =
           ['COMMITTING', 'CLEANUP_PENDING'].includes(job.state) &&
           Boolean(job.operationExpiresAt && job.operationExpiresAt <= now);
@@ -3687,12 +3825,14 @@ export class PrismaApiStore implements ApiStore {
         }
 
         const token = randomUUID();
+
         if (job.targetProjectId) {
           await tx.project.updateMany({
             where: { id: job.targetProjectId, organizationId: job.organizationId },
             data: { deletedAt: now },
           });
         }
+
         await tx.importJob.update({
           where: { id: job.id },
           data: job.targetProjectId
@@ -3826,6 +3966,7 @@ export class PrismaApiStore implements ApiStore {
   }) {
     return this.prisma.$transaction(async (tx) => {
       const uniqueUserIds = [...new Set(input.userIds)];
+
       const memberships = await tx.organizationMember.findMany({
         where: { organizationId: input.organizationId, userId: { in: uniqueUserIds }, state: 'ACTIVE' },
         select: { id: true },
@@ -3909,6 +4050,7 @@ export class PrismaApiStore implements ApiStore {
       skip: input.offset,
       take: input.limit + 1,
     });
+
     const hasMore = groups.length > input.limit;
     const items = groups.slice(0, input.limit).map(mapCollaborationGroup);
 
@@ -4079,6 +4221,7 @@ export class PrismaApiStore implements ApiStore {
       }
 
       const uniqueUserIds = [...new Set(input.userIds)];
+
       const memberships = await tx.organizationMember.findMany({
         where: { organizationId: input.organizationId, userId: { in: uniqueUserIds }, state: 'ACTIVE' },
         select: { id: true, userId: true },
@@ -4124,7 +4267,9 @@ export class PrismaApiStore implements ApiStore {
       orderBy: { id: 'asc' },
       take: input.limit + 1,
     });
+
     const hasMore = members.length > input.limit;
+
     const items = members
       .slice(0, input.limit)
       .map((member) => mapCollaborationGroupMember(member, member.membership.userId));
@@ -4157,10 +4302,12 @@ export class PrismaApiStore implements ApiStore {
        */
       if (input.resourceType === 'PROJECT') {
         await tx.$queryRawUnsafe('SELECT "id" FROM "Project" WHERE "id" = $1 FOR UPDATE', input.resourceId);
+
         const project = await tx.project.findUnique({
           where: { id: input.resourceId },
           select: { organizationId: true },
         });
+
         if (!project || project.organizationId !== input.organizationId) {
           return { ok: false as const, reason: COLLABORATION_REASON.activeGrantConflict };
         }
@@ -4303,6 +4450,7 @@ export class PrismaApiStore implements ApiStore {
       orderBy: { id: 'asc' },
       take: input.limit + 1,
     });
+
     const hasMore = grants.length > input.limit;
     const items = grants.slice(0, input.limit).map(mapResourceAccessGrant);
 
@@ -4319,6 +4467,7 @@ export class PrismaApiStore implements ApiStore {
       orderBy: { id: 'asc' },
       take: input.limit + 1,
     });
+
     const hasMore = grants.length > input.limit;
     const items = grants.slice(0, input.limit).map(mapResourceAccessGrant);
 
@@ -5078,8 +5227,10 @@ export class PrismaApiStore implements ApiStore {
       return undefined;
     }
 
-    // Fail-closed enforcement: a revoked or audit-rejected skill can never be
-    // enabled. Return the unchanged row so the caller sees it stayed disabled.
+    /*
+     * Fail-closed enforcement: a revoked or audit-rejected skill can never be
+     * enabled. Return the unchanged row so the caller sees it stayed disabled.
+     */
     const blocked = current.revokedAt !== null || current.auditVerdict === 'rejected';
 
     if (input.enabled && blocked) {
@@ -5267,6 +5418,7 @@ export class PrismaApiStore implements ApiStore {
      */
     const updated = await this.prisma.$transaction(async (tx) => {
       const { initialStatus, ...data } = input;
+
       const created = await tx.workspace.create({
         data: { ...data, status: initialStatus ?? 'PENDING' },
       });
@@ -5460,6 +5612,7 @@ export class PrismaApiStore implements ApiStore {
     turnIndex?: number;
   }) {
     let latestManifest = await this.getLatestProjectManifest(input.projectId);
+
     if (!latestManifest && (await this.prisma.project.count({ where: { id: input.projectId } })) === 1) {
       const initial = createDefaultProjectManifest(input.projectId);
       latestManifest = await this.createProjectManifestRevision({
@@ -5471,6 +5624,7 @@ export class PrismaApiStore implements ApiStore {
         createdByUserId: input.createdByUserId,
       });
     }
+
     const manifestBase =
       input.manifest && typeof input.manifest === 'object' && !Array.isArray(input.manifest)
         ? (input.manifest as Record<string, unknown>)
@@ -5499,6 +5653,7 @@ export class PrismaApiStore implements ApiStore {
     }
 
     const existing = await this.prisma.projectSnapshot.findUnique({ where: { id: input.id } });
+
     if (existing) {
       if (existing.projectId !== input.projectId || existing.storageKey !== input.storageKey) {
         throw Object.assign(new Error(appPublicEnglish('SNAPSHOT_IDEMPOTENCY_CONFLICT')), {
@@ -5506,15 +5661,23 @@ export class PrismaApiStore implements ApiStore {
           code: 'SNAPSHOT_IDEMPOTENCY_CONFLICT',
         });
       }
+
       return mapSnapshot(existing);
     }
 
     try {
       return mapSnapshot(await this.prisma.projectSnapshot.create({ data }));
     } catch (error) {
-      if (!isPrismaKnownRequestError(error) || error.code !== 'P2002') throw error;
+      if (!isPrismaKnownRequestError(error) || error.code !== 'P2002') {
+        throw error;
+      }
+
       const raced = await this.prisma.projectSnapshot.findUnique({ where: { id: input.id } });
-      if (!raced || raced.projectId !== input.projectId || raced.storageKey !== input.storageKey) throw error;
+
+      if (!raced || raced.projectId !== input.projectId || raced.storageKey !== input.storageKey) {
+        throw error;
+      }
+
       return mapSnapshot(raced);
     }
   }
@@ -5606,12 +5769,17 @@ export class PrismaApiStore implements ApiStore {
     deploymentId?: string;
     createdByUserId?: string;
   }) {
-    if (!Number.isFinite(input.ttlMs) || input.ttlMs < 1) throw new TypeError('invalid migration lease TTL');
+    if (!Number.isFinite(input.ttlMs) || input.ttlMs < 1) {
+      throw new TypeError('invalid migration lease TTL');
+    }
+
     const activeLock = `${input.projectId}:${input.environment}`;
+
     return this.prisma.$transaction(async (tx) => {
       await tx.$executeRaw(
         Prisma.sql`SELECT pg_advisory_xact_lock(hashtextextended(${`db-migration:${activeLock}`}, 0))`,
       );
+
       const selectByIdempotency = async () =>
         (
           await tx.$queryRaw<DatabaseMigrationRow[]>(Prisma.sql`
@@ -5621,13 +5789,27 @@ export class PrismaApiStore implements ApiStore {
             FOR UPDATE
           `)
         )[0];
+
       let row = await selectByIdempotency();
+
       if (row) {
         const execution = mapDatabaseMigrationExecution(row);
-        if (row.requestHash !== input.requestHash) return { kind: 'IDEMPOTENCY_COLLISION' as const, execution };
-        if (row.state === 'COMMITTED') return { kind: 'REPLAYED' as const, execution };
-        if (row.state === 'FAILED_SAFE') return { kind: 'FAILED' as const, execution };
-        if (row.leaseLive) return { kind: 'BLOCKED' as const, execution };
+
+        if (row.requestHash !== input.requestHash) {
+          return { kind: 'IDEMPOTENCY_COLLISION' as const, execution };
+        }
+
+        if (row.state === 'COMMITTED') {
+          return { kind: 'REPLAYED' as const, execution };
+        }
+
+        if (row.state === 'FAILED_SAFE') {
+          return { kind: 'FAILED' as const, execution };
+        }
+
+        if (row.leaseLive) {
+          return { kind: 'BLOCKED' as const, execution };
+        }
       } else {
         row = (
           await tx.$queryRaw<DatabaseMigrationRow[]>(Prisma.sql`
@@ -5637,7 +5819,10 @@ export class PrismaApiStore implements ApiStore {
             FOR UPDATE
           `)
         )[0];
-        if (row?.leaseLive) return { kind: 'BLOCKED' as const, execution: mapDatabaseMigrationExecution(row) };
+
+        if (row?.leaseLive) {
+          return { kind: 'BLOCKED' as const, execution: mapDatabaseMigrationExecution(row) };
+        }
       }
 
       if (row) {
@@ -5650,7 +5835,11 @@ export class PrismaApiStore implements ApiStore {
           WHERE "id" = ${row.id} AND ("leaseExpiresAt" IS NULL OR "leaseExpiresAt" <= CURRENT_TIMESTAMP)
           RETURNING *
         `);
-        if (!claimed) return { kind: 'BLOCKED' as const, execution: mapDatabaseMigrationExecution(row) };
+
+        if (!claimed) {
+          return { kind: 'BLOCKED' as const, execution: mapDatabaseMigrationExecution(row) };
+        }
+
         return { kind: 'RECOVERY' as const, execution: mapDatabaseMigrationExecution(claimed) };
       }
 
@@ -5669,7 +5858,11 @@ export class PrismaApiStore implements ApiStore {
           ${input.createdByUserId ?? null}, CURRENT_TIMESTAMP
         ) RETURNING *
       `);
-      if (!created) throw new Error(DB_MIGRATION_EXECUTION_INSERT_EMPTY);
+
+      if (!created) {
+        throw new Error(DB_MIGRATION_EXECUTION_INSERT_EMPTY);
+      }
+
       return { kind: 'ACQUIRED' as const, execution: mapDatabaseMigrationExecution(created) };
     });
   }
@@ -5727,7 +5920,11 @@ export class PrismaApiStore implements ApiStore {
   }) {
     const release = input.release === true;
     const retainLock = input.retainLock === true;
-    if (release && retainLock) throw new TypeError('migration transition cannot release and retain its lock');
+
+    if (release && retainLock) {
+      throw new TypeError('migration transition cannot release and retain its lock');
+    }
+
     const [row] = await this.prisma.$queryRaw<DatabaseMigrationRow[]>(Prisma.sql`
       UPDATE "DBMigrationExecution"
       SET "state" = ${input.nextState}, "version" = "version" + 1,
@@ -5749,6 +5946,7 @@ export class PrismaApiStore implements ApiStore {
         AND "leaseExpiresAt" > CURRENT_TIMESTAMP AND "activeLock" IS NOT NULL
       RETURNING *
     `);
+
     return row ? mapDatabaseMigrationExecution(row) : undefined;
   }
 
@@ -5843,9 +6041,12 @@ export class PrismaApiStore implements ApiStore {
         lastErrorAt: null,
       },
     });
-    // Re-read on both paths. If another retry won the conditional update, the
-    // loser must return the winner's PROVISIONING state instead of a stale
-    // FAILED snapshot that would incorrectly invite another retry.
+
+    /*
+     * Re-read on both paths. If another retry won the conditional update, the
+     * loser must return the winner's PROVISIONING state instead of a stale
+     * FAILED snapshot that would incorrectly invite another retry.
+     */
     const current = await this.prisma.databaseInstance.findUniqueOrThrow({ where: { id: existing.id } });
 
     return { instance: mapDatabaseInstance(current), acquired: claimed.count === 1, created: false };
@@ -6046,17 +6247,80 @@ export class PrismaApiStore implements ApiStore {
     rolledBackFromId?: string;
     parentDeploymentId?: string;
     machineSize?: string;
+    accessPolicy?: { mode: DeploymentAccessMode; passwordHash?: string; createdByUserId?: string };
+    accessPolicyVersion?: number;
     startedAt?: string;
     finishedAt?: string;
     canceledAt?: string;
   }) {
-    return mapDeployment(
-      await this.prisma.deployment.create({
+    if (input.accessPolicy && input.accessPolicyVersion !== undefined) {
+      throw Object.assign(new Error('A deployment cannot create and bind an access policy at the same time.'), {
+        code: 'DEPLOYMENT_ACCESS_POLICY_INPUT_CONFLICT',
+      });
+    }
+
+    const environment = input.environment ?? 'preview';
+
+    return this.prisma.$transaction(async (tx) => {
+      let accessPolicyVersion = input.accessPolicyVersion;
+
+      if (input.accessPolicy) {
+        const mode = normalizeDeploymentAccessMode(input.accessPolicy.mode);
+        const passwordHash = input.accessPolicy.passwordHash?.trim();
+
+        if ((mode === 'PASSWORD_PROTECTED') !== Boolean(passwordHash)) {
+          throw Object.assign(new Error('Password protection requires exactly one non-empty password hash.'), {
+            code: 'DEPLOYMENT_ACCESS_PASSWORD_INVALID',
+          });
+        }
+
+        await tx.$executeRawUnsafe(
+          'SELECT pg_advisory_xact_lock(hashtext($1))',
+          `deployment-access:${input.projectId}:${environment}`,
+        );
+
+        const latest = await tx.deploymentAccessPolicy.findFirst({
+          where: { projectId: input.projectId, environment },
+          orderBy: { version: 'desc' },
+          select: { version: true },
+        });
+        accessPolicyVersion = (latest?.version ?? 0) + 1;
+        await tx.deploymentAccessPolicy.create({
+          data: {
+            projectId: input.projectId,
+            environment,
+            version: accessPolicyVersion,
+            mode,
+            revision: randomUUID(),
+            passwordHash: passwordHash ?? null,
+            createdByUserId: input.accessPolicy.createdByUserId ?? null,
+          },
+        });
+      } else if (accessPolicyVersion !== undefined) {
+        const bound = await tx.deploymentAccessPolicy.findUnique({
+          where: {
+            projectId_environment_version: {
+              projectId: input.projectId,
+              environment,
+              version: accessPolicyVersion,
+            },
+          },
+          select: { id: true },
+        });
+
+        if (!bound) {
+          throw Object.assign(new Error('The requested deployment access policy does not exist.'), {
+            code: 'DEPLOYMENT_ACCESS_POLICY_NOT_FOUND',
+          });
+        }
+      }
+
+      const deployment = await tx.deployment.create({
         data: {
           projectId: input.projectId,
           workspaceId: input.workspaceId,
           provider: input.provider,
-          environmentName: input.environment ?? 'preview',
+          environmentName: environment,
           status: input.status ?? 'QUEUED',
           url: input.url,
           previewUrl: input.previewUrl,
@@ -6072,12 +6336,15 @@ export class PrismaApiStore implements ApiStore {
           rolledBackFromId: input.rolledBackFromId,
           parentDeploymentId: input.parentDeploymentId,
           ...(input.machineSize ? { machineSize: input.machineSize } : {}),
+          ...(accessPolicyVersion !== undefined ? { accessPolicyVersion } : {}),
           startedAt: input.startedAt ? new Date(input.startedAt) : undefined,
           finishedAt: input.finishedAt ? new Date(input.finishedAt) : undefined,
           canceledAt: input.canceledAt ? new Date(input.canceledAt) : undefined,
         } as any,
-      }),
-    );
+      });
+
+      return mapDeployment(deployment);
+    });
   }
 
   async getDeployment(projectId: string, deploymentId: string) {
@@ -6093,6 +6360,7 @@ export class PrismaApiStore implements ApiStore {
         status: true,
         createdAt: true,
         environmentName: true,
+
         /*
          * L'org et son abonnement sont nécessaires ICI : l'extinction à 30 jours
          * d'une publication Starter se décide dans le chemin de SERVICE, pas
@@ -6132,6 +6400,457 @@ export class PrismaApiStore implements ApiStore {
       organizationId: deployment.project?.organizationId,
       planKey: subscription?.status === 'ACTIVE' ? subscription.plan?.key : undefined,
     };
+  }
+
+  async getDeploymentAccessContext(deploymentId: string): Promise<DeploymentAccessContext | undefined> {
+    const deployment = await this.prisma.deployment.findUnique({
+      where: { id: deploymentId },
+      select: {
+        id: true,
+        projectId: true,
+        environmentName: true,
+        accessPolicyVersion: true,
+        status: true,
+        project: { select: { organizationId: true, deletedAt: true } },
+      },
+    });
+
+    if (!deployment) {
+      return undefined;
+    }
+
+    const policyRow = await this.prisma.deploymentAccessPolicy.findUnique({
+      where: {
+        projectId_environment_version: {
+          projectId: deployment.projectId,
+          environment: deployment.environmentName,
+          version: deployment.accessPolicyVersion,
+        },
+      },
+    });
+
+    const policy = validDeploymentAccessPolicy(policyRow) ? mapDeploymentAccessPolicy(policyRow) : undefined;
+
+    return {
+      deploymentId: deployment.id,
+      projectId: deployment.projectId,
+      organizationId: deployment.project.organizationId,
+      environment: deployment.environmentName,
+      deploymentStatus: deployment.status as DeploymentRecord['status'],
+      projectDeletedAt: toIso(deployment.project.deletedAt),
+      policy,
+    };
+  }
+
+  async getDeploymentAccessPolicy(deploymentId: string): Promise<DeploymentAccessPolicyRecord | undefined> {
+    return (await this.getDeploymentAccessContext(deploymentId))?.policy;
+  }
+
+  async setDeploymentAccessPolicy(input: {
+    projectId: string;
+    deploymentId: string;
+    mode: DeploymentAccessMode;
+    passwordHash?: string;
+    createdByUserId?: string;
+    expectedVersion?: number;
+    releaseSource?: ReleaseManifestRecord;
+  }): Promise<DeploymentAccessPolicyRecord | undefined> {
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$queryRawUnsafe(
+        'SELECT "id" FROM "Deployment" WHERE "id" = $1 AND "projectId" = $2 FOR UPDATE',
+        input.deploymentId,
+        input.projectId,
+      );
+
+      const deployment = await tx.deployment.findFirst({
+        where: { id: input.deploymentId, projectId: input.projectId },
+        select: { id: true, projectId: true, environmentName: true, accessPolicyVersion: true, status: true },
+      });
+
+      if (!deployment) {
+        return undefined;
+      }
+
+      if (input.expectedVersion !== undefined && deployment.accessPolicyVersion !== input.expectedVersion) {
+        throw Object.assign(new Error('The deployment access policy changed; reload before saving.'), {
+          statusCode: 409,
+          code: 'DEPLOYMENT_ACCESS_POLICY_VERSION_CONFLICT',
+        });
+      }
+
+      const mode = normalizeDeploymentAccessMode(input.mode);
+      const passwordHash = input.passwordHash?.trim();
+
+      if ((mode === 'PASSWORD_PROTECTED') !== Boolean(passwordHash)) {
+        throw Object.assign(new Error('Password protection requires exactly one non-empty password hash.'), {
+          statusCode: 400,
+          code: 'DEPLOYMENT_ACCESS_PASSWORD_INVALID',
+        });
+      }
+
+      if (deployment.status === 'READY' && !input.releaseSource) {
+        throw Object.assign(new Error('A ready deployment needs a release manifest before access can change.'), {
+          statusCode: 409,
+          code: 'DEPLOYMENT_ACCESS_RELEASE_MANIFEST_REQUIRED',
+        });
+      }
+
+      if (
+        input.releaseSource &&
+        (input.releaseSource.projectId !== deployment.projectId ||
+          input.releaseSource.environment !== deployment.environmentName ||
+          input.releaseSource.deploymentId !== deployment.id)
+      ) {
+        throw Object.assign(new Error('The release manifest does not belong to this deployment.'), {
+          statusCode: 409,
+          code: 'DEPLOYMENT_ACCESS_RELEASE_MANIFEST_MISMATCH',
+        });
+      }
+
+      await tx.$executeRawUnsafe(
+        'SELECT pg_advisory_xact_lock(hashtext($1))',
+        `deployment-access:${deployment.projectId}:${deployment.environmentName}`,
+      );
+
+      const latestPolicy = await tx.deploymentAccessPolicy.findFirst({
+        where: { projectId: deployment.projectId, environment: deployment.environmentName },
+        orderBy: { version: 'desc' },
+        select: { version: true },
+      });
+
+      const nextPolicyVersion = (latestPolicy?.version ?? 0) + 1;
+
+      const policy = await tx.deploymentAccessPolicy.create({
+        data: {
+          projectId: deployment.projectId,
+          environment: deployment.environmentName,
+          version: nextPolicyVersion,
+          mode,
+          revision: randomUUID(),
+          passwordHash: passwordHash ?? null,
+          createdByUserId: input.createdByUserId ?? null,
+        },
+      });
+
+      if (input.releaseSource) {
+        await tx.$executeRawUnsafe(
+          'SELECT pg_advisory_xact_lock(hashtext($1))',
+          `release-manifest:${deployment.projectId}:${deployment.environmentName}`,
+        );
+
+        const latestRelease = await tx.releaseManifest.findFirst({
+          where: { projectId: deployment.projectId, environment: deployment.environmentName },
+          orderBy: { version: 'desc' },
+          select: { version: true },
+        });
+        await tx.releaseManifest.create({
+          data: {
+            projectId: deployment.projectId,
+            deploymentId: deployment.id,
+            environment: deployment.environmentName,
+            version: (latestRelease?.version ?? 0) + 1,
+            provider: input.releaseSource.provider,
+            artifactKind: input.releaseSource.artifactKind,
+            artifactRef: input.releaseSource.artifactRef,
+            artifactDigest: input.releaseSource.artifactDigest,
+            storeGeneration: input.releaseSource.storeGeneration ?? null,
+            configDigest: input.releaseSource.configDigest ?? null,
+            dbMigrationPoint: input.releaseSource.dbMigrationPoint ?? null,
+            accessPolicyVersion: nextPolicyVersion,
+          },
+        });
+      }
+
+      await tx.deployment.update({
+        where: { id: deployment.id },
+        data: { accessPolicyVersion: nextPolicyVersion },
+      });
+
+      return mapDeploymentAccessPolicy(policy);
+    });
+  }
+
+  private async _deploymentAccessUserAuthorized(
+    db: Pick<DatabaseClient, '$queryRawUnsafe'>,
+    input: {
+      deploymentId: string;
+      userId: string;
+      mode: Extract<DeploymentAccessMode, 'WORKSPACE_ONLY' | 'INVITE_ONLY'>;
+    },
+  ): Promise<boolean> {
+    const rows = await db.$queryRawUnsafe<Array<{ allowed: boolean }>>(
+      `
+        SELECT CASE
+          WHEN $3 = 'WORKSPACE_ONLY' THEN EXISTS (
+            SELECT 1
+            FROM "OrganizationMember" AS membership
+            WHERE membership."organizationId" = project."organizationId"
+              AND membership."userId" = $2
+              AND membership."state" = 'ACTIVE'
+          )
+          WHEN $3 = 'INVITE_ONLY' THEN (
+            EXISTS (
+              SELECT 1
+              FROM "OrganizationMember" AS membership
+              JOIN "Role" AS role ON role."id" = membership."roleId"
+              WHERE membership."organizationId" = project."organizationId"
+                AND membership."userId" = $2
+                AND membership."state" = 'ACTIVE'
+                AND role."key" IN ('owner', 'admin')
+            )
+            OR EXISTS (
+              SELECT 1
+              FROM "ProjectCollaborator" AS collaborator
+              WHERE collaborator."projectId" = project."id"
+                AND collaborator."userId" = $2
+                AND (collaborator."expiresAt" IS NULL OR collaborator."expiresAt" > clock_timestamp())
+            )
+            OR EXISTS (
+              SELECT 1
+              FROM "ResourceAccessGrant" AS access_grant
+              LEFT JOIN "CollaborationGroup" AS subject_group
+                ON subject_group."organizationId" = access_grant."organizationId"
+               AND subject_group."id" = access_grant."subjectGroupId"
+               AND subject_group."deletedAt" IS NULL
+              WHERE access_grant."organizationId" = project."organizationId"
+                AND access_grant."status" = 'ACTIVE'
+                AND access_grant."acceptedAt" IS NOT NULL
+                AND access_grant."revokedAt" IS NULL
+                AND access_grant."expiresAt" > clock_timestamp()
+                AND (
+                  (access_grant."resourceType" = 'PROJECT' AND access_grant."resourceId" = project."id")
+                  OR (access_grant."resourceType" = 'DEPLOYMENT' AND access_grant."resourceId" = deployment."id")
+                )
+                AND (
+                  (access_grant."subjectType" = 'USER' AND access_grant."subjectUserId" = $2)
+                  OR (
+                    access_grant."subjectType" = 'GROUP'
+                    AND subject_group."id" IS NOT NULL
+                    AND EXISTS (
+                      SELECT 1
+                      FROM "CollaborationGroupMember" AS group_member
+                      JOIN "OrganizationMember" AS membership
+                        ON membership."organizationId" = group_member."organizationId"
+                       AND membership."id" = group_member."membershipId"
+                      WHERE group_member."organizationId" = access_grant."organizationId"
+                        AND group_member."groupId" = access_grant."subjectGroupId"
+                        AND membership."userId" = $2
+                        AND membership."state" = 'ACTIVE'
+                    )
+                  )
+                )
+            )
+          )
+          ELSE FALSE
+        END AS allowed
+        FROM "Deployment" AS deployment
+        JOIN "Project" AS project ON project."id" = deployment."projectId"
+        WHERE deployment."id" = $1
+          AND project."deletedAt" IS NULL
+        LIMIT 1
+      `,
+      input.deploymentId,
+      input.userId,
+      input.mode,
+    );
+
+    return rows[0]?.allowed === true;
+  }
+
+  async isDeploymentAccessUserAuthorized(input: {
+    deploymentId: string;
+    userId: string;
+    mode: Extract<DeploymentAccessMode, 'WORKSPACE_ONLY' | 'INVITE_ONLY'>;
+  }): Promise<boolean> {
+    return this._deploymentAccessUserAuthorized(this.prisma, input);
+  }
+
+  async issueDeploymentAccessExchangeTicket(input: {
+    deploymentId: string;
+    userId: string;
+    tokenHash: string;
+    ttlSeconds: number;
+  }): Promise<DeploymentAccessTicketMutationResult> {
+    return this.prisma.$transaction(async (tx) => {
+      const deployment = await tx.deployment.findUnique({
+        where: { id: input.deploymentId },
+        select: {
+          id: true,
+          projectId: true,
+          environmentName: true,
+          accessPolicyVersion: true,
+          status: true,
+          project: { select: { deletedAt: true } },
+        },
+      });
+
+      if (!deployment || deployment.project.deletedAt || deployment.status !== 'READY') {
+        return { ok: false as const, reason: 'DEPLOYMENT_NOT_FOUND' as const };
+      }
+
+      const policyRow = await tx.deploymentAccessPolicy.findUnique({
+        where: {
+          projectId_environment_version: {
+            projectId: deployment.projectId,
+            environment: deployment.environmentName,
+            version: deployment.accessPolicyVersion,
+          },
+        },
+      });
+
+      if (!validDeploymentAccessPolicy(policyRow)) {
+        return { ok: false as const, reason: 'POLICY_INVALID' as const };
+      }
+
+      const policy = mapDeploymentAccessPolicy(policyRow);
+
+      if (policy.mode !== 'WORKSPACE_ONLY' && policy.mode !== 'INVITE_ONLY') {
+        return { ok: false as const, reason: 'POLICY_NOT_PRIVATE' as const };
+      }
+
+      if (
+        !(await this._deploymentAccessUserAuthorized(tx as unknown as Pick<DatabaseClient, '$queryRawUnsafe'>, {
+          deploymentId: deployment.id,
+          userId: input.userId,
+          mode: policy.mode,
+        }))
+      ) {
+        return { ok: false as const, reason: 'ACCESS_DENIED' as const };
+      }
+
+      const rows = await tx.$queryRawUnsafe<Array<{ expiresAt: Date }>>(
+        `
+          INSERT INTO "DeploymentAccessExchangeTicket" (
+            "id", "deploymentId", "userId", "policyVersion", "policyRevision",
+            "tokenHash", "expiresAt", "createdAt"
+          ) VALUES ($1, $2, $3, $4, $5, $6,
+            clock_timestamp() + ($7 * interval '1 second'), clock_timestamp())
+          RETURNING "expiresAt"
+        `,
+        randomUUID(),
+        deployment.id,
+        input.userId,
+        policy.version,
+        policy.revision,
+        input.tokenHash,
+        Math.max(1, Math.min(300, Math.floor(input.ttlSeconds))),
+      );
+
+      return {
+        ok: true as const,
+        policy,
+        userId: input.userId,
+        expiresAt: rows[0].expiresAt.toISOString(),
+      };
+    });
+  }
+
+  async consumeDeploymentAccessExchangeTicket(input: {
+    deploymentId: string;
+    tokenHash: string;
+  }): Promise<DeploymentAccessTicketMutationResult> {
+    return this.prisma.$transaction(async (tx) => {
+      const consumed = await tx.$queryRawUnsafe<
+        Array<{
+          deploymentId: string;
+          userId: string;
+          policyVersion: number;
+          policyRevision: string;
+          expiresAt: Date;
+        }>
+      >(
+        `
+          UPDATE "DeploymentAccessExchangeTicket"
+          SET "consumedAt" = clock_timestamp()
+          WHERE "deploymentId" = $1
+            AND "tokenHash" = $2
+            AND "consumedAt" IS NULL
+            AND "expiresAt" > clock_timestamp()
+          RETURNING "deploymentId", "userId", "policyVersion", "policyRevision", "expiresAt"
+        `,
+        input.deploymentId,
+        input.tokenHash,
+      );
+
+      if (consumed.length !== 1) {
+        const existing = await tx.deploymentAccessExchangeTicket.findUnique({
+          where: { tokenHash: input.tokenHash },
+          select: { deploymentId: true, consumedAt: true, expiresAt: true },
+        });
+
+        if (!existing || existing.deploymentId !== input.deploymentId) {
+          return { ok: false as const, reason: 'TICKET_NOT_FOUND' as const };
+        }
+
+        if (existing.consumedAt) {
+          return { ok: false as const, reason: 'TICKET_REPLAYED' as const };
+        }
+
+        return { ok: false as const, reason: 'TICKET_EXPIRED' as const };
+      }
+
+      const ticket = consumed[0];
+
+      const deployment = await tx.deployment.findUnique({
+        where: { id: ticket.deploymentId },
+        select: {
+          id: true,
+          projectId: true,
+          environmentName: true,
+          accessPolicyVersion: true,
+          status: true,
+          project: { select: { deletedAt: true } },
+        },
+      });
+
+      if (!deployment || deployment.project.deletedAt || deployment.status !== 'READY') {
+        return { ok: false as const, reason: 'DEPLOYMENT_NOT_FOUND' as const };
+      }
+
+      if (deployment.accessPolicyVersion !== ticket.policyVersion) {
+        return { ok: false as const, reason: 'POLICY_CHANGED' as const };
+      }
+
+      const policyRow = await tx.deploymentAccessPolicy.findUnique({
+        where: {
+          projectId_environment_version: {
+            projectId: deployment.projectId,
+            environment: deployment.environmentName,
+            version: deployment.accessPolicyVersion,
+          },
+        },
+      });
+
+      if (!validDeploymentAccessPolicy(policyRow)) {
+        return { ok: false as const, reason: 'POLICY_INVALID' as const };
+      }
+
+      const policy = mapDeploymentAccessPolicy(policyRow);
+
+      if (
+        policy.revision !== ticket.policyRevision ||
+        (policy.mode !== 'WORKSPACE_ONLY' && policy.mode !== 'INVITE_ONLY')
+      ) {
+        return { ok: false as const, reason: 'POLICY_CHANGED' as const };
+      }
+
+      if (
+        !(await this._deploymentAccessUserAuthorized(tx as unknown as Pick<DatabaseClient, '$queryRawUnsafe'>, {
+          deploymentId: deployment.id,
+          userId: ticket.userId,
+          mode: policy.mode,
+        }))
+      ) {
+        return { ok: false as const, reason: 'ACCESS_DENIED' as const };
+      }
+
+      return {
+        ok: true as const,
+        policy,
+        userId: ticket.userId,
+        expiresAt: ticket.expiresAt.toISOString(),
+      };
+    });
   }
 
   async updateDeployment(
@@ -6199,8 +6918,11 @@ export class PrismaApiStore implements ApiStore {
       await this.prisma.deployment.findMany({
         where: { provider: 'server', status: 'READY' as any },
         orderBy: { createdAt: 'asc' },
-        // Bound one metering sweep; an unswept tail is billed on the next tick
-        // (the watermark is per-row, so nothing is lost — only deferred).
+
+        /*
+         * Bound one metering sweep; an unswept tail is billed on the next tick
+         * (the watermark is per-row, so nothing is lost — only deferred).
+         */
         take: 500,
       })
     ).map(mapDeployment);
@@ -6218,9 +6940,38 @@ export class PrismaApiStore implements ApiStore {
     storeGeneration?: string;
     configDigest?: string;
     dbMigrationPoint?: string;
+    accessPolicyVersion: number;
   }) {
-    return mapReleaseManifest(
-      await this.prisma.releaseManifest.create({
+    return this.prisma.$transaction(async (tx) => {
+      const [deployment, accessPolicy] = await Promise.all([
+        tx.deployment.findFirst({
+          where: {
+            id: input.deploymentId,
+            projectId: input.projectId,
+            environmentName: input.environment,
+            accessPolicyVersion: input.accessPolicyVersion,
+          },
+          select: { id: true },
+        }),
+        tx.deploymentAccessPolicy.findUnique({
+          where: {
+            projectId_environment_version: {
+              projectId: input.projectId,
+              environment: input.environment,
+              version: input.accessPolicyVersion,
+            },
+          },
+        }),
+      ]);
+
+      if (!deployment || !validDeploymentAccessPolicy(accessPolicy)) {
+        throw Object.assign(new Error('A release manifest must pin the deployment exact valid access policy.'), {
+          code: 'RELEASE_ACCESS_POLICY_INVALID',
+        });
+      }
+
+      return mapReleaseManifest(
+        await tx.releaseManifest.create({
         data: {
           projectId: input.projectId,
           deploymentId: input.deploymentId,
@@ -6233,9 +6984,11 @@ export class PrismaApiStore implements ApiStore {
           storeGeneration: input.storeGeneration ?? null,
           configDigest: input.configDigest ?? null,
           dbMigrationPoint: input.dbMigrationPoint ?? null,
+          accessPolicyVersion: input.accessPolicyVersion,
         },
-      }),
-    );
+        }),
+      );
+    });
   }
 
   async listReleaseManifests(projectId: string, environment: string, options?: { take?: number }) {
@@ -6269,6 +7022,7 @@ export class PrismaApiStore implements ApiStore {
       const serverDeploy = (input.metadata as Record<string, unknown>).serverDeploy as
         | Record<string, unknown>
         | undefined;
+
       const image = serverDeploy?.image as Record<string, unknown> | undefined;
 
       if (
@@ -6287,6 +7041,20 @@ export class PrismaApiStore implements ApiStore {
         throw new Error('SERVER_RELEASE_PROMOTION_NOT_COMMITTED');
       }
 
+      const accessPolicy = await tx.deploymentAccessPolicy.findUnique({
+        where: {
+          projectId_environment_version: {
+            projectId: input.projectId,
+            environment: input.environment,
+            version: deployment.accessPolicyVersion,
+          },
+        },
+      });
+
+      if (!validDeploymentAccessPolicy(accessPolicy)) {
+        throw new Error('SERVER_RELEASE_ACCESS_POLICY_INVALID');
+      }
+
       const existing = await tx.releaseManifest.findFirst({
         where: { deploymentId: input.deploymentId },
         orderBy: { version: 'desc' },
@@ -6296,7 +7064,8 @@ export class PrismaApiStore implements ApiStore {
         if (
           existing.artifactKind !== 'server-image' ||
           existing.artifactRef !== input.artifactRef ||
-          existing.artifactDigest !== input.artifactDigest
+          existing.artifactDigest !== input.artifactDigest ||
+          existing.accessPolicyVersion !== deployment.accessPolicyVersion
         ) {
           throw new Error('SERVER_RELEASE_MANIFEST_CONFLICT');
         }
@@ -6316,6 +7085,7 @@ export class PrismaApiStore implements ApiStore {
         'SELECT pg_advisory_xact_lock(hashtext($1))',
         `release-manifest:${input.projectId}:${input.environment}`,
       );
+
       const latest = await tx.releaseManifest.findFirst({
         where: { projectId: input.projectId, environment: input.environment },
         orderBy: { version: 'desc' },
@@ -6333,6 +7103,7 @@ export class PrismaApiStore implements ApiStore {
           artifactDigest: input.artifactDigest,
           storeGeneration: input.storeGeneration ?? null,
           configDigest: input.configDigest ?? null,
+          accessPolicyVersion: deployment.accessPolicyVersion,
         },
       });
       await tx.adminAuditLog.create({
@@ -6347,6 +7118,7 @@ export class PrismaApiStore implements ApiStore {
           } as unknown as Prisma.InputJsonValue,
         },
       });
+
       const ready = await tx.deployment.update({
         where: { id: input.deploymentId },
         data: {
@@ -6407,12 +7179,14 @@ export class PrismaApiStore implements ApiStore {
         await tx.$executeRaw`
           SELECT pg_advisory_xact_lock(hashtextextended(${`project-checkpoint:${input.projectId}`}, 0))
         `;
+
         const activeBarrier = await tx.$queryRaw<Array<{ id: string }>>`
           SELECT "id" FROM "ProjectCheckpoint"
           WHERE "barrierProjectId" = ${input.projectId}
             AND "barrierExpiresAt" > clock_timestamp()
           LIMIT 1
         `;
+
         if (activeBarrier[0]) {
           throw Object.assign(new Error(appPublicEnglish('CHECKPOINT_BARRIER_ACTIVE_MESSAGE')), {
             code: 'CHECKPOINT_BARRIER_ACTIVE',
@@ -6663,8 +7437,11 @@ export class PrismaApiStore implements ApiStore {
           updatedAt: { lt: new Date(cutoffIso) },
         },
         orderBy: { updatedAt: 'asc' },
-        // Bound the sweep so a large backlog can't exceed a single reaper tick's
-        // budget; the unswept tail is picked up on the next run.
+
+        /*
+         * Bound the sweep so a large backlog can't exceed a single reaper tick's
+         * budget; the unswept tail is picked up on the next run.
+         */
         take: 200,
       })
     ).map(mapDeployment);
@@ -6690,8 +7467,10 @@ export class PrismaApiStore implements ApiStore {
     ).map(mapSupportTicket);
   }
 
-  // I25: fetch a single ticket, scoped to its org so one org can't read another's
-  // ticket by guessing an id. Returns null when the ticket isn't in that org.
+  /*
+   * I25: fetch a single ticket, scoped to its org so one org can't read another's
+   * ticket by guessing an id. Returns null when the ticket isn't in that org.
+   */
   async getSupportTicket(organizationId: string, ticketId: string): Promise<SupportTicketRecord | null> {
     const ticket = await this.prisma.supportTicket.findFirst({ where: { id: ticketId, organizationId } });
     return ticket ? mapSupportTicket(ticket) : null;
@@ -6784,8 +7563,11 @@ export class PrismaApiStore implements ApiStore {
       await this.prisma.featureFlag.findMany({
         where: { organizationId: organizationId ?? null },
         orderBy: { key: 'asc' },
-        // Bound the payload — an unbounded findMany on a misconfigured tenant could
-        // return an enormous list. 1000 flags is far beyond any real registry.
+
+        /*
+         * Bound the payload — an unbounded findMany on a misconfigured tenant could
+         * return an enormous list. 1000 flags is far beyond any real registry.
+         */
         take: 1000,
       })
     ).map(mapFeatureFlag);
@@ -6901,6 +7683,7 @@ export class PrismaApiStore implements ApiStore {
           vote: input.vote,
           chatId: input.chatId,
         },
+
         // An undefined chatId is skipped by Prisma, keeping the stored one.
         update: { vote: input.vote, chatId: input.chatId },
       }),
@@ -6973,8 +7756,11 @@ export class PrismaApiStore implements ApiStore {
       create: {
         organizationId,
         ipAllowlist: [],
-        // MFA optional everywhere (Avi's decision): default an org to NOT forcing
-        // admin MFA. Note this setting is not itself an enforcement gate — the
+
+        /*
+         * MFA optional everywhere (Avi's decision): default an org to NOT forcing
+         * admin MFA. Note this setting is not itself an enforcement gate — the
+         */
         // global ADMIN_MFA_REQUIRED env (adminMfaRequired()) is the real lever —
         // so this default is for consistency/UI, not behavior.
         requireMfaForAdmins: false,
@@ -7000,6 +7786,7 @@ export class PrismaApiStore implements ApiStore {
           dataRetentionDays: input.dataRetentionDays ?? 365,
           legalHoldEnabled: input.legalHoldEnabled ?? false,
           ssoEnforced: input.ssoEnforced ?? false,
+
           // undefined on the record means "not provided"; null/ISO both map to a concrete value.
           ssoEnforcedAt:
             input.ssoEnforcedAt === undefined ? undefined : input.ssoEnforcedAt ? new Date(input.ssoEnforcedAt) : null,
@@ -7011,6 +7798,7 @@ export class PrismaApiStore implements ApiStore {
           dataRetentionDays: input.dataRetentionDays,
           legalHoldEnabled: input.legalHoldEnabled,
           ssoEnforced: input.ssoEnforced,
+
           // Passing `null` clears the clock (enforcement turned off); `undefined` leaves it untouched.
           ssoEnforcedAt:
             input.ssoEnforcedAt === undefined ? undefined : input.ssoEnforcedAt ? new Date(input.ssoEnforcedAt) : null,
@@ -7198,6 +7986,7 @@ export class PrismaApiStore implements ApiStore {
      * that window the previous hash no longer matches, so an old bearer stops working.
      */
     const rotationWindowStart = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
     const record = await this.prisma.scimToken.findFirst({
       where: {
         OR: [{ tokenHash }, { previousTokenHash: tokenHash, rotatedAt: { gte: rotationWindowStart } }],
@@ -7730,6 +8519,7 @@ export class PrismaApiStore implements ApiStore {
   async listNotificationsByUser(input: { userId: string; limit?: number }) {
     const rows = await this.prisma.notification.findMany({
       where: { userId: input.userId },
+
       // Unread first, then newest — a compact, actionable feed.
       orderBy: [{ readAt: { sort: 'asc', nulls: 'first' } }, { createdAt: 'desc' }],
       take: Math.min(Math.max(input.limit ?? 50, 1), 200),
@@ -7995,15 +8785,19 @@ export class PrismaApiStore implements ApiStore {
     autoTopupCents?: number | null;
   }) {
     const data: Record<string, unknown> = {};
+
     if (input.budgetCapCents !== undefined) {
       data.budgetCapCents = input.budgetCapCents;
     }
+
     if (input.serviceShutdownCents !== undefined) {
       data.serviceShutdownCents = input.serviceShutdownCents;
     }
+
     if (input.autoTopupCents !== undefined) {
       data.autoTopupCents = input.autoTopupCents;
     }
+
     return mapCreditWallet(
       await this.prisma.creditWallet.upsert({
         where: { organizationId: input.organizationId },
@@ -8050,6 +8844,7 @@ export class PrismaApiStore implements ApiStore {
         where: { id: wallet.id },
         data: { balanceCents: { increment: input.deltaCents } },
       });
+
       return { entry: mapCreditLedger(entry), balanceCents: updated.balanceCents };
     });
   }
@@ -8350,6 +9145,7 @@ export class PrismaApiStore implements ApiStore {
       displayName: input.displayName,
       ...(input.enabled !== undefined ? { enabled: input.enabled } : {}),
       ...(input.apiKeySecret !== undefined ? { apiKeySecret: input.apiKeySecret } : {}),
+
       // `undefined` = leave unchanged; explicit `null` = clear the encrypted key.
       ...(input.apiKeyEnc !== undefined ? { apiKeyEnc: input.apiKeyEnc } : {}),
       ...(input.baseUrl !== undefined ? { baseUrl: input.baseUrl } : {}),
@@ -8405,6 +9201,7 @@ export class PrismaApiStore implements ApiStore {
       ...(input.clientSecretEnc !== undefined ? { defaultClientSecretEnc: input.clientSecretEnc } : {}),
       ...(input.enabled !== undefined ? { enabled: input.enabled } : {}),
     };
+
     const row = await this.prisma.connectorCatalog.update({ where: { provider: input.provider }, data });
 
     return {
@@ -8570,6 +9367,7 @@ export class PrismaApiStore implements ApiStore {
     }
 
     const result = await this.prisma.agentCheckpoint.deleteMany({ where });
+
     return { count: result.count };
   }
 
@@ -8596,8 +9394,10 @@ export class PrismaApiStore implements ApiStore {
     outputCentsPerM: number;
     contextWindow: number;
   }) {
-    // The parent provider must exist; create a disabled shell if the admin is
-    // registering a model before configuring its provider.
+    /*
+     * The parent provider must exist; create a disabled shell if the admin is
+     * registering a model before configuring its provider.
+     */
     const provider = await this.prisma.providerConfig.upsert({
       where: { provider: input.provider },
       update: {},
@@ -8613,6 +9413,7 @@ export class PrismaApiStore implements ApiStore {
       ...(input.isHighPower !== undefined ? { isHighPower: input.isHighPower } : {}),
       ...(input.supportsThinking !== undefined ? { supportsThinking: input.supportsThinking } : {}),
     };
+
     return mapModelConfig(
       await this.prisma.modelConfig.upsert({
         where: { providerConfigId_modelId: { providerConfigId: provider.id, modelId: input.modelId } },
@@ -9115,6 +9916,7 @@ export class PrismaApiStore implements ApiStore {
       this.prisma.user.findMany({ orderBy: { createdAt: 'desc' }, take: 500 }),
       this.prisma.user.findMany({ where: { platformAdmin: true } }),
     ]);
+
     const byId = new Map<string, (typeof recent)[number]>();
 
     for (const user of recent) {
@@ -9362,8 +10164,10 @@ export class PrismaApiStore implements ApiStore {
       }
     }
 
-    // Guard against an unscoped wipe: a selector is mandatory at the route layer,
-    // but defend here too so a future caller can never null the whole trail.
+    /*
+     * Guard against an unscoped wipe: a selector is mandatory at the route layer,
+     * but defend here too so a future caller can never null the whole trail.
+     */
     if (!input.organizationId && !input.actorUserId) {
       return { redacted: 0 };
     }
@@ -9626,6 +10430,7 @@ function mapEnvVar(envVar: any): ProjectEnvironmentRecord {
     projectId: envVar.projectId,
     key: envVar.key,
     value: envVar.value,
+
     // Back-compat: rows read before the column was populated fall back to production.
     scope: normalizeEnvVarScope(envVar.scope),
     createdAt: toIso(envVar.createdAt)!,
@@ -9868,6 +10673,7 @@ function mapDeployment(deployment: any): DeploymentRecord {
     rolledBackFromId: deployment.rolledBackFromId ?? undefined,
     parentDeploymentId: deployment.parentDeploymentId ?? undefined,
     machineSize: deployment.machineSize ?? undefined,
+    accessPolicyVersion: Number(deployment.accessPolicyVersion ?? 0),
     lastMeteredAt: toIso(deployment.lastMeteredAt),
     startedAt: toIso(deployment.startedAt),
     finishedAt: toIso(deployment.finishedAt),
@@ -9891,6 +10697,37 @@ function mapReleaseManifest(row: any): ReleaseManifestRecord {
     storeGeneration: row.storeGeneration ?? undefined,
     configDigest: row.configDigest ?? undefined,
     dbMigrationPoint: row.dbMigrationPoint ?? undefined,
+    accessPolicyVersion: Number(row.accessPolicyVersion ?? 0),
+    createdAt: toIso(row.createdAt)!,
+  };
+}
+
+function validDeploymentAccessPolicy(row: any): boolean {
+  if (!row || !Number.isInteger(row.version) || row.version <= 0 || typeof row.revision !== 'string' || !row.revision) {
+    return false;
+  }
+
+  const mode = normalizeDeploymentAccessMode(row.mode);
+
+  if (mode !== row.mode) {
+    return false;
+  }
+
+  return mode === 'PASSWORD_PROTECTED'
+    ? typeof row.passwordHash === 'string' && row.passwordHash.length > 0
+    : row.passwordHash === null || row.passwordHash === undefined;
+}
+
+function mapDeploymentAccessPolicy(row: any): DeploymentAccessPolicyRecord {
+  return {
+    id: row.id,
+    projectId: row.projectId,
+    environment: row.environment,
+    version: row.version,
+    mode: normalizeDeploymentAccessMode(row.mode),
+    revision: row.revision,
+    passwordHash: row.passwordHash ?? undefined,
+    createdByUserId: row.createdByUserId ?? undefined,
     createdAt: toIso(row.createdAt)!,
   };
 }

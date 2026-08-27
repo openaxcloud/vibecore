@@ -285,6 +285,32 @@ export const projectUserAreaEn = {
         cancel: 'Cancel',
       },
       production: 'Production',
+      access: {
+        title: 'Deployment access',
+        description:
+          'Choose who can open the dedicated deployment origin. Every change creates an immutable policy revision and immediately invalidates older access proofs.',
+        label: 'Who can access',
+        noDeployment: 'Publish a deployment before configuring its access policy.',
+        version: 'Policy v{version}',
+        password: 'Deployment password',
+        passwordPlaceholder: 'At least 10 characters',
+        rotation: 'Changing mode or password rotates the policy and its active sessions.',
+        adminOnly: 'Only workspace owners and admins can change this policy.',
+        locked:
+          'The pinned policy could not be verified. Access is locked to invitation-only until an owner or admin saves a valid policy.',
+        save: 'Save access policy',
+        saving: 'Saving…',
+        saved: 'Deployment access policy saved.',
+        modes: {
+          public: { label: 'Public', description: 'Anyone with the URL can open the deployment.' },
+          password: { label: 'Password protected', description: 'Visitors enter one deployment-specific password.' },
+          workspace: { label: 'Workspace only', description: 'Any active member of this workspace can open it.' },
+          invite: {
+            label: 'Invitation only',
+            description: 'Owners, admins and explicitly granted collaborators only.',
+          },
+        },
+      },
       publish: {
         title: 'Publish',
         detecting: 'Detecting how your app should deploy…',
@@ -380,6 +406,7 @@ export const projectUserAreaEn = {
         cancelFailed: 'Failed to cancel deployment',
         redeployFailed: 'Failed to redeploy',
         rollbackFailed: 'Failed to roll back',
+        accessFailed: 'Failed to update deployment access',
       },
     },
   },
@@ -666,6 +693,35 @@ export const projectUserAreaFr = {
         cancel: 'Annuler',
       },
       production: 'Production',
+      access: {
+        title: 'Accès au déploiement',
+        description:
+          'Choisissez qui peut ouvrir l’origine dédiée du déploiement. Chaque modification crée une révision immuable et invalide immédiatement les anciennes preuves d’accès.',
+        label: 'Qui peut accéder',
+        noDeployment: 'Publiez un déploiement avant de configurer sa politique d’accès.',
+        version: 'Politique v{version}',
+        password: 'Mot de passe du déploiement',
+        passwordPlaceholder: '10 caractères minimum',
+        rotation: 'Changer le mode ou le mot de passe renouvelle la politique et ses sessions actives.',
+        adminOnly: 'Seuls les propriétaires et administrateurs de l’espace peuvent modifier cette politique.',
+        locked:
+          'La politique liée n’a pas pu être vérifiée. L’accès reste verrouillé sur invitation uniquement jusqu’à l’enregistrement d’une politique valide.',
+        save: 'Enregistrer la politique',
+        saving: 'Enregistrement…',
+        saved: 'Politique d’accès au déploiement enregistrée.',
+        modes: {
+          public: { label: 'Public', description: 'Toute personne disposant de l’URL peut ouvrir le déploiement.' },
+          password: {
+            label: 'Protégé par mot de passe',
+            description: 'Les visiteurs saisissent un mot de passe propre au déploiement.',
+          },
+          workspace: { label: 'Espace uniquement', description: 'Tout membre actif de cet espace peut l’ouvrir.' },
+          invite: {
+            label: 'Sur invitation',
+            description: 'Propriétaires, administrateurs et collaborateurs explicitement autorisés.',
+          },
+        },
+      },
       publish: {
         title: 'Publier',
         detecting: 'Détection du mode de déploiement de votre application…',
@@ -764,6 +820,7 @@ export const projectUserAreaFr = {
         cancelFailed: 'Impossible d’annuler le déploiement',
         redeployFailed: 'Impossible de redéployer',
         rollbackFailed: 'Impossible de rétablir ce déploiement',
+        accessFailed: 'Impossible de modifier l’accès au déploiement',
       },
     },
   },

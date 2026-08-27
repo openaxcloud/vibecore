@@ -287,12 +287,12 @@ model RolePermission {
 }
 
 model Project {
-  id                      String                   @id @default(cuid())
+  id                      String                    @id @default(cuid())
   organizationId          String
   name                    String
   slug                    String
   description             String?
-  sourceType              String                   @default("blank")
+  sourceType              String                    @default("blank")
   templateName            String?
   gitRepositoryUrl        String?
   gitDefaultBranch        String?
@@ -300,16 +300,16 @@ model Project {
   thumbnailUrl            String?
   thumbnailUpdatedAt      DateTime?
   deletedAt               DateTime?
-  createdAt               DateTime                 @default(now())
-  updatedAt               DateTime                 @updatedAt
-  organization            Organization             @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdAt               DateTime                  @default(now())
+  updatedAt               DateTime                  @updatedAt
+  organization            Organization              @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   environments            ProjectEnvironment[]
   envVars                 ProjectEnvVar[]
   secrets                 ProjectSecret[]
   collaborators           ProjectCollaborator[]
   activity                ProjectActivity[]
-  templates               ProjectTemplate[]        @relation("ProjectTemplates")
-  galleryListings         GalleryListing[]         @relation("ProjectGalleryListings")
+  templates               ProjectTemplate[]         @relation("ProjectTemplates")
+  galleryListings         GalleryListing[]          @relation("ProjectGalleryListings")
   workspaces              Workspace[]
   snapshots               ProjectSnapshot[]
   manifestRevisions       ProjectManifestRevision[]
@@ -330,7 +330,7 @@ model Project {
   repairEvents            AgentRepairEvent[]
   slugRedirects           ProjectSlugRedirect[]
   runtimeWebSocketTickets RuntimeWebSocketTicket[]
-  importJobs              ImportJob[]              @relation("ImportJobTarget")
+  importJobs              ImportJob[]               @relation("ImportJobTarget")
   cloudBinding            CloudProjectBinding?
   checkpoints             ProjectCheckpoint[]
 
@@ -921,43 +921,47 @@ model ProjectStorageObject {
 }
 
 model Deployment {
-  id                 String                 @id @default(cuid())
-  projectId          String
-  workspaceId        String?
-  environmentId      String?
-  environmentName    String                 @default("preview")
-  status             DeploymentStatus       @default(QUEUED)
-  provider           String
-  url                String?
-  previewUrl         String?
-  productionUrl      String?
-  framework          String?
-  buildCommand       String?
-  outputDirectory    String?
-  branch             String?
-  commitSha          String?
-  customDomain       String?
-  logs               Json                   @default("[]")
-  metadata           Json                   @default("{}")
-  rolledBackFromId   String?
+  id                  String                 @id @default(cuid())
+  projectId           String
+  workspaceId         String?
+  environmentId       String?
+  environmentName     String                 @default("preview")
+  status              DeploymentStatus       @default(QUEUED)
+  provider            String
+  url                 String?
+  previewUrl          String?
+  productionUrl       String?
+  framework           String?
+  buildCommand        String?
+  outputDirectory     String?
+  branch              String?
+  commitSha           String?
+  customDomain        String?
+  logs                Json                   @default("[]")
+  metadata            Json                   @default("{}")
+  rolledBackFromId    String?
   // P2d dev/prod split: when a preview/staging deployment is published to
   // production, the new production deployment links back to its source here.
-  parentDeploymentId String?
+  parentDeploymentId  String?
   // Replit-parity deploy metering idempotency marker: set once the deployment is
   // metered (mirrors WorkspaceRuntime.lastMeteredAt) so a re-reconcile never
   // double-charges. Dormant/SHADOW until BILLING_CREDITS_ENABLED. See metering-service.ts.
-  lastMeteredAt      DateTime?
+  lastMeteredAt       DateTime?
   // Machine size the user picked at publish (rate-card key, e.g. 'dedicated-1').
   // Applied verbatim as the runtime pod's requests==limits and used to price
   // compute metering — the machine you picked is the machine you pay for.
-  machineSize        String                 @default("shared-0.5")
-  startedAt          DateTime?
-  finishedAt         DateTime?
-  canceledAt         DateTime?
-  createdAt          DateTime               @default(now())
-  updatedAt          DateTime               @updatedAt
-  project            Project                @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  environment        DeploymentEnvironment? @relation(fields: [environmentId], references: [id])
+  machineSize         String                 @default("shared-0.5")
+  // Exact immutable DeploymentAccessPolicy version enforced by both s-* and
+  // d-* edge paths. The database default exists only for rolling compatibility;
+  // the edge resolves the matching policy row and denies when it is absent.
+  accessPolicyVersion Int                    @default(1)
+  startedAt           DateTime?
+  finishedAt          DateTime?
+  canceledAt          DateTime?
+  createdAt           DateTime               @default(now())
+  updatedAt           DateTime               @updatedAt
+  project             Project                @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  environment         DeploymentEnvironment? @relation(fields: [environmentId], references: [id])
 
   @@index([projectId])
   @@index([projectId, workspaceId])
@@ -1003,11 +1007,49 @@ model ReleaseManifest {
   configDigest     String?
   dbMigrationPoint String?
 
+  // I-AUTH-1: the access policy is part of release identity. Rollback restores
+  // this exact version rather than inheriting a later/less restrictive mode.
+  accessPolicyVersion Int @default(1)
+
   createdAt DateTime @default(now())
 
   @@unique([projectId, environment, version])
   @@index([projectId, environment])
   @@index([deploymentId])
+}
+
+// Immutable, monotonic access policy history per project/environment. A change
+// inserts a new row and atomically advances Deployment.accessPolicyVersion.
+model DeploymentAccessPolicy {
+  id              String   @id @default(cuid())
+  projectId       String
+  environment     String
+  version         Int
+  mode            String
+  revision        String   @unique
+  passwordHash    String?
+  createdByUserId String?
+  createdAt       DateTime @default(now())
+
+  @@unique([projectId, environment, version])
+  @@index([projectId, environment, createdAt])
+}
+
+// One-shot capability used to move an already-authorized identity from the web
+// origin to a dedicated deployment origin. Only tokenHash is persisted.
+model DeploymentAccessExchangeTicket {
+  id             String    @id @default(cuid())
+  deploymentId   String
+  userId         String
+  policyVersion  Int
+  policyRevision String
+  tokenHash      String    @unique
+  expiresAt      DateTime
+  consumedAt     DateTime?
+  createdAt      DateTime  @default(now())
+
+  @@index([deploymentId, expiresAt])
+  @@index([userId, expiresAt])
 }
 
 // Versioned Rate Card: the priced catalogue (machine sizes, compute-unit and
@@ -2414,22 +2456,22 @@ model DatabaseRestore {
 /// The SQL itself stays in project storage; only the immutable name/hash plan is
 /// persisted so recovery can reconcile the target without retaining user SQL.
 model DBMigrationExecution {
-  id                       String   @id @default(cuid())
+  id                       String    @id @default(cuid())
   projectId                String
   organizationId           String
   environment              String
-  state                    String   @default("LOCK_ACQUIRED")
+  state                    String    @default("LOCK_ACQUIRED")
   idempotencyKey           String
   requestHash              String
-  activeLock               String?  @unique
+  activeLock               String?   @unique
   ownerToken               String?
-  version                  Int      @default(0)
+  version                  Int       @default(0)
   leaseExpiresAt           DateTime?
-  attempt                  Int      @default(1)
+  attempt                  Int       @default(1)
   plan                     Json
   statementsSha256         String
-  statementCount           Int      @default(0)
-  appliedStatements        Int      @default(0)
+  statementCount           Int       @default(0)
+  appliedStatements        Int       @default(0)
   backwardCompatible       Boolean
   forwardCompatible        Boolean
   backupId                 String?
@@ -2438,10 +2480,10 @@ model DBMigrationExecution {
   deploymentId             String?
   createdByUserId          String?
   errorCode                String?
-  startedAt                DateTime @default(now())
+  startedAt                DateTime  @default(now())
   completedAt              DateTime?
-  createdAt                DateTime @default(now())
-  updatedAt                DateTime @updatedAt
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
 
   @@unique([projectId, idempotencyKey])
   @@index([projectId, environment, state])
@@ -2614,37 +2656,37 @@ model AgentCallLog {
 /// seulement une fois TOUT vérifié sous la même barrière. Rien à voir avec
 /// AgentCheckpoint (facturation par requête agent).
 model ProjectCheckpoint {
-  id               String    @id @default(cuid())
-  projectId        String
-  state            String    @default("PREPARING")
-  logicalBarrierId String?
+  id                String    @id @default(cuid())
+  projectId         String
+  state             String    @default("PREPARING")
+  logicalBarrierId  String?
   /// crash-consistent | UNKNOWN. `application-consistent` is NOT emitted: it
   /// would require quiescing the in-pod writers (dev server, terminal, agent),
   /// which the API-level barrier cannot reach. See CHECKPOINT_CONTRACT §Cohérence.
-  consistencyLevel String?
+  consistencyLevel  String?
   /// { components: [{componentKind, snapshotId, hash, verified, …}], restoreCompatibility, dependenciesDeclared }
-  manifest         Json?
-  error            String?
-  expiresAt        DateTime?
-  createdByUserId  String?
+  manifest          Json?
+  error             String?
+  expiresAt         DateTime?
+  createdByUserId   String?
   /// Stable retry identity. A repeated key is accepted only when requestHash
   /// matches; a different request with the same key is refused.
-  idempotencyKey   String?   @unique
-  requestHash      String?
+  idempotencyKey    String?   @unique
+  requestHash       String?
   /// Non-null only while this row owns the one active barrier for its project.
   /// The unique constraint is the durable per-project singleton; an expired
   /// owner is cleared under the same project lock before a successor acquires.
-  barrierProjectId String?   @unique
+  barrierProjectId  String?   @unique
   barrierOwnerToken String?
-  barrierFence     Int       @default(0)
+  barrierFence      Int       @default(0)
   /// Barrier lease deadline. The write barrier is read from THIS COLUMN, not from
   /// process memory: the API runs 2..6 replicas (values-prod.yaml), so an
   /// in-process barrier is invisible to the other replicas and freezes nothing.
   /// A past/NULL value means thawed — expiry IS the guaranteed thaw, even if the
   /// process holding the checkpoint dies mid-flight.
-  barrierExpiresAt DateTime?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  barrierExpiresAt  DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
   project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   createdBy User?   @relation("ProjectCheckpointCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)

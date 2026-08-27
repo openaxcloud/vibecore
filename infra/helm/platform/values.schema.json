@@ -9,6 +9,11 @@
       "type": "object",
       "required": ["runtime"],
       "properties": {
+        "deploymentAccessActivationEnabled": {
+          "type": "string",
+          "enum": ["false", "true"],
+          "description": "Two-phase deployment-access interlock. Protected modes may be created only after every serving edge enforces policy."
+        },
         "runtime": {
           "type": "object",
           "required": ["serverDeployRollbackFromDigest"],

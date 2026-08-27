@@ -2,6 +2,17 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 import { Readable } from 'node:stream';
 import Fastify, { type FastifyInstance, type FastifyReply, type FastifyRequest } from 'fastify';
 
+import {
+  ACCESS_EXCHANGE_PATH,
+  ACCESS_PASSWORD_PATH,
+  deploymentAccessCookieName,
+  readBoundedGateBody,
+  readNamedCookie,
+  sanitizeSameOriginReturnTo,
+  sendDeploymentAccessGate,
+  stripDeploymentAccessCookie,
+  type DeploymentAccessVerdict,
+} from './deployment-access-gate.js';
 import { INSPECTOR_SCRIPT } from './inspector-script.js';
 import { attachPreviewWebSocketProxy } from './preview-ws-proxy.js';
 import {
@@ -94,6 +105,13 @@ export interface PreviewProxyOptions {
 
   /** In-cluster api base URL for the port-access lookup. */
   apiBaseUrl?: string;
+
+  /**
+   * Enforce immutable deployment access policies on both s-* and d-* origins.
+   * This is rolled out before API activation; when enabled, an unavailable or
+   * malformed policy verdict fails closed before any workload byte is fetched.
+   */
+  enforceDeploymentAccess?: boolean;
 
   /**
    * Inject the inspect-to-code bridge into proxied HTML so "Inspect to code"
@@ -554,6 +572,9 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
   const apiBaseUrl = (options.apiBaseUrl ?? process.env.API_BASE_URL ?? '').trim().replace(/\/$/, '');
   const proxySharedSecret = options.proxySharedSecret ?? process.env.PREVIEW_PROXY_SHARED_SECRET;
 
+  const enforceDeploymentAccess =
+    options.enforceDeploymentAccess ?? process.env.DEPLOYMENT_ACCESS_ENFORCEMENT === 'true';
+
   if (enforceTenant && !tenantSecret) {
     throw new Error('PREVIEW_TENANT_SECRET is required when PREVIEW_PROXY_ENFORCE_TENANT is enabled.');
   }
@@ -562,6 +583,10 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
     throw new Error(
       'PREVIEW_ENFORCE_PRIVATE_PORTS requires API_BASE_URL, PREVIEW_PROXY_SHARED_SECRET and PREVIEW_TENANT_SECRET.',
     );
+  }
+
+  if (enforceDeploymentAccess && (!apiBaseUrl || !proxySharedSecret)) {
+    throw new Error('DEPLOYMENT_ACCESS_ENFORCEMENT requires API_BASE_URL and PREVIEW_PROXY_SHARED_SECRET.');
   }
 
   /* Is this workspace's port marked private? Fail-open on any lookup error. */
@@ -587,7 +612,24 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
   };
 
   /* Login-required page shown when a private port is hit without a session. */
-  const app = Fastify({ logger: options.logger ?? false });
+  const trustProxyEnv = process.env.TRUST_PROXY;
+  const trustProxy: boolean | number | string =
+    trustProxyEnv === 'true'
+      ? 1
+      : trustProxyEnv === 'false' || trustProxyEnv === undefined
+        ? false
+        : /^\d+$/.test(trustProxyEnv)
+          ? Number(trustProxyEnv)
+          : trustProxyEnv;
+  const app = Fastify({ logger: options.logger ?? false, trustProxy });
+  const protectedDeploymentRequests = new WeakSet<object>();
+
+  const deploymentAccessClientKey = (request: FastifyRequest): string | undefined =>
+    proxySharedSecret
+      ? createHmac('sha256', proxySharedSecret)
+          .update(`vibecore.deployment-access.rate.v1\0${request.ip}`)
+          .digest('hex')
+      : undefined;
 
   /*
    * We stream request.raw straight to the upstream agent, so Fastify's default
@@ -616,6 +658,16 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
    * guarded so an upstream that already set them wins.
    */
   app.addHook('onSend', async (_request, reply, payload) => {
+    if (protectedDeploymentRequests.has(_request)) {
+      /*
+       * A private response is user-specific even when the workload attempted
+       * to emit public cache directives. Never let a CDN replay it cross-user.
+       */
+      reply.header('cache-control', 'private, no-store, max-age=0');
+      reply.header('pragma', 'no-cache');
+      reply.header('vary', 'Cookie');
+    }
+
     if (!reply.hasHeader('cross-origin-resource-policy')) {
       reply.header('cross-origin-resource-policy', 'cross-origin');
     }
@@ -671,9 +723,12 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
    */
   app.post(BLANK_PREVIEW_PATH, async (request, reply) => {
     let url = 'unknown';
-    // Tri-state readiness signal from the reporter: 'blank' (never mounted) is the
-    // default for back-compat with older reporters that posted only { url }, and
-    // 'error' is a broken-but-rendered app (failed stylesheet/script — #5).
+
+    /*
+     * Tri-state readiness signal from the reporter: 'blank' (never mounted) is the
+     * default for back-compat with older reporters that posted only { url }, and
+     * 'error' is a broken-but-rendered app (failed stylesheet/script — #5).
+     */
     let status: 'blank' | 'error' = 'blank';
     let detail: string | undefined;
 
@@ -810,10 +865,10 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
 
     // (3) Interroger l'autorité.
     try {
-      const response = await fetchImpl(
-        `${apiBaseUrl}/deployments/${encodeURIComponent(deploymentId)}/serving-state`,
-        { method: 'GET', headers: { accept: 'application/json' } },
-      );
+      const response = await fetchImpl(`${apiBaseUrl}/deployments/${encodeURIComponent(deploymentId)}/serving-state`, {
+        method: 'GET',
+        headers: { accept: 'application/json' },
+      });
 
       if (!response.ok) {
         return 'unknown';
@@ -839,6 +894,200 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
     } catch {
       // (4) API injoignable et aucun état frais : indéterminé.
       return 'unknown';
+    }
+  };
+
+  /**
+   * Query the control-plane policy authority with only the host-scoped proof
+   * cookie. Generic browser cookies, Authorization and workload headers never
+   * cross this boundary. No verdict is cached: rotation/revocation is effective
+   * on the very next request.
+   */
+  const resolveDeploymentAccessVerdict = async (
+    request: FastifyRequest,
+    deploymentId: string,
+  ): Promise<DeploymentAccessVerdict> => {
+    const cookieName = deploymentAccessCookieName(deploymentId);
+
+    if (!enforceDeploymentAccess || !apiBaseUrl || !proxySharedSecret) {
+      return { decision: 'allow', mode: 'PUBLIC', cookieName };
+    }
+
+    const proof = readNamedCookie(request.headers.cookie, cookieName);
+    const clientKey = deploymentAccessClientKey(request);
+
+    try {
+      const response = await fetchImpl(
+        `${apiBaseUrl}/internal/deployments/${encodeURIComponent(deploymentId)}/access/verdict`,
+        {
+          method: 'GET',
+          headers: {
+            accept: 'application/json',
+            authorization: `Bearer ${proxySharedSecret}`,
+            ...(proof ? { 'x-vibecore-deployment-access-cookie': proof } : {}),
+            ...(clientKey ? { 'x-vibecore-access-client-key': clientKey } : {}),
+          },
+          redirect: 'error',
+        },
+      );
+
+      if (!response.ok) {
+        return { decision: 'locked', mode: 'INVITE_ONLY', cookieName };
+      }
+
+      const body = (await response.json()) as Partial<DeploymentAccessVerdict>;
+
+      if (body.cookieName !== cookieName) {
+        return { decision: 'locked', mode: 'INVITE_ONLY', cookieName };
+      }
+
+      if (
+        body.decision === 'allow' &&
+        (body.mode === 'PUBLIC' ||
+          body.mode === 'PASSWORD_PROTECTED' ||
+          body.mode === 'WORKSPACE_ONLY' ||
+          body.mode === 'INVITE_ONLY')
+      ) {
+        if (body.mode !== 'PUBLIC') {
+          protectedDeploymentRequests.add(request);
+        }
+
+        return { decision: 'allow', mode: body.mode, cookieName };
+      }
+
+      if (body.decision === 'password-required' && body.mode === 'PASSWORD_PROTECTED') {
+        return { decision: body.decision, mode: body.mode, cookieName };
+      }
+
+      if (
+        body.decision === 'sign-in-required' &&
+        (body.mode === 'WORKSPACE_ONLY' || body.mode === 'INVITE_ONLY') &&
+        typeof body.signInUrl === 'string' &&
+        body.signInUrl.length <= 2048
+      ) {
+        return { decision: body.decision, mode: body.mode, cookieName, signInUrl: body.signInUrl };
+      }
+
+      return { decision: 'locked', mode: 'INVITE_ONLY', cookieName };
+    } catch {
+      return { decision: 'locked', mode: 'INVITE_ONLY', cookieName };
+    }
+  };
+
+  const enforceDeploymentGate = async (
+    request: FastifyRequest,
+    reply: FastifyReply,
+    deploymentId: string,
+  ): Promise<boolean> => {
+    const verdict = await resolveDeploymentAccessVerdict(request, deploymentId);
+
+    if (verdict.decision === 'allow') {
+      return true;
+    }
+
+    await sendDeploymentAccessGate(request, reply, verdict);
+
+    return false;
+  };
+
+  /** Copy exactly one host-only platform proof cookie from the internal API. */
+  const forwardAccessSetCookie = (reply: FastifyReply, response: Response, deploymentId: string): boolean => {
+    const value = response.headers.get('set-cookie');
+    const prefix = `${deploymentAccessCookieName(deploymentId)}=`;
+
+    if (
+      !value ||
+      !value.startsWith(prefix) ||
+      /[\r\n]/.test(value) ||
+      /(?:^|;)\s*domain=/i.test(value) ||
+      !/(?:^|;)\s*httponly(?:;|$)/i.test(value) ||
+      !/(?:^|;)\s*samesite=lax(?:;|$)/i.test(value)
+    ) {
+      return false;
+    }
+
+    reply.header('set-cookie', value);
+
+    return true;
+  };
+
+  const handleDeploymentAccessSubmission = async (
+    request: FastifyRequest,
+    reply: FastifyReply,
+    deploymentId: string,
+    path: string,
+  ): Promise<unknown> => {
+    if (!enforceDeploymentAccess || !apiBaseUrl || !proxySharedSecret || request.method !== 'POST') {
+      return sendDeploymentAccessGate(request, reply, {
+        decision: 'locked',
+        mode: 'INVITE_ONLY',
+        cookieName: deploymentAccessCookieName(deploymentId),
+      });
+    }
+
+    let fields: URLSearchParams;
+
+    try {
+      fields = await readBoundedGateBody(request);
+    } catch {
+      return sendDeploymentAccessGate(request, reply, {
+        decision: 'locked',
+        mode: 'INVITE_ONLY',
+        cookieName: deploymentAccessCookieName(deploymentId),
+      });
+    }
+
+    const returnTo = sanitizeSameOriginReturnTo(fields.get('returnTo'));
+    const isPassword = path === ACCESS_PASSWORD_PATH;
+    const secret = isPassword ? fields.get('password') : fields.get('ticket');
+
+    if (!secret || secret.length > (isPassword ? 256 : 512)) {
+      return sendDeploymentAccessGate(request, reply, {
+        decision: 'locked',
+        mode: 'INVITE_ONLY',
+        cookieName: deploymentAccessCookieName(deploymentId),
+      });
+    }
+
+    try {
+      const operation = isPassword ? 'password' : 'exchange';
+      const clientKey = deploymentAccessClientKey(request);
+
+      const response = await fetchImpl(
+        `${apiBaseUrl}/internal/deployments/${encodeURIComponent(deploymentId)}/access/${operation}`,
+        {
+          method: 'POST',
+          headers: {
+            authorization: `Bearer ${proxySharedSecret}`,
+            'content-type': 'application/json',
+            ...(clientKey ? { 'x-vibecore-access-client-key': clientKey } : {}),
+          },
+          body: JSON.stringify(isPassword ? { password: secret } : { ticket: secret }),
+          redirect: 'error',
+        },
+      );
+
+      if (!response.ok || !forwardAccessSetCookie(reply, response, deploymentId)) {
+        const verdict = await resolveDeploymentAccessVerdict(request, deploymentId);
+        return sendDeploymentAccessGate(
+          request,
+          reply,
+          verdict.decision === 'allow'
+            ? { decision: 'locked', mode: 'INVITE_ONLY', cookieName: deploymentAccessCookieName(deploymentId) }
+            : verdict,
+        );
+      }
+
+      reply.header('cache-control', 'private, no-store, max-age=0');
+      reply.header('referrer-policy', 'no-referrer');
+
+      return reply.redirect(returnTo, 303);
+    } catch {
+      return sendDeploymentAccessGate(request, reply, {
+        decision: 'locked',
+        mode: 'INVITE_ONLY',
+        cookieName: deploymentAccessCookieName(deploymentId),
+      });
     }
   };
 
@@ -984,8 +1233,10 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
     }
 
     const publicHost = (request.headers.host ?? '').split(':')[0].trim().toLowerCase();
+
     const headers: Record<string, string> = {
       'x-vibecore-static-deploy': deploymentId,
+      ...(proxySharedSecret ? { authorization: `Bearer ${proxySharedSecret}` } : {}),
       ...(publicHost ? { 'x-forwarded-host': publicHost } : {}),
     };
 
@@ -1123,6 +1374,16 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
       }
 
       const lower = name.toLowerCase();
+
+      if (lower === 'cookie') {
+        const workloadCookies = stripDeploymentAccessCookie(value, deploymentAccessCookieName(deploymentId));
+
+        if (workloadCookies) {
+          headers.cookie = workloadCookies;
+        }
+
+        continue;
+      }
 
       if (
         lower === 'host' ||
@@ -1492,6 +1753,7 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
        */
       const upstreamCt = upstreamResponse.headers.get('content-type') ?? '';
       const upstreamLenHeader = upstreamResponse.headers.get('content-length');
+
       const isNotReadyStatus =
         upstreamResponse.status === 404 || upstreamResponse.status === 502 || upstreamResponse.status === 503;
 
@@ -1786,6 +2048,24 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
           return;
         }
 
+        if (path === ACCESS_PASSWORD_PATH || path === ACCESS_EXCHANGE_PATH) {
+          await handleDeploymentAccessSubmission(request, reply, deploy.deploymentId, path);
+          return;
+        }
+
+        if (path.startsWith('/__vibecore/access/')) {
+          await sendDeploymentAccessGate(request, reply, {
+            decision: 'locked',
+            mode: 'INVITE_ONLY',
+            cookieName: deploymentAccessCookieName(deploy.deploymentId),
+          });
+          return;
+        }
+
+        if (!(await enforceDeploymentGate(request, reply, deploy.deploymentId))) {
+          return;
+        }
+
         /*
          * EXTINCTION 30 j du chemin SERVER.
          *
@@ -1818,11 +2098,14 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
            */
           applyPreviewProxyLocale(reply, request);
           reply.header('cache-control', 'no-store');
-          await reply.code(503).header('retry-after', '5').send({
-            error: getPreviewProxyCopy(request.headers).PUBLICATION_STATE_UNAVAILABLE,
-            code: 'PUBLICATION_STATE_UNAVAILABLE',
-            retryable: true,
-          });
+          await reply
+            .code(503)
+            .header('retry-after', '5')
+            .send({
+              error: getPreviewProxyCopy(request.headers).PUBLICATION_STATE_UNAVAILABLE,
+              code: 'PUBLICATION_STATE_UNAVAILABLE',
+              retryable: true,
+            });
 
           return;
         }
@@ -1845,6 +2128,24 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
           path === REPORTER_SCRIPT_PATH ||
           path === BLANK_PREVIEW_PATH
         ) {
+          return;
+        }
+
+        if (path === ACCESS_PASSWORD_PATH || path === ACCESS_EXCHANGE_PATH) {
+          await handleDeploymentAccessSubmission(request, reply, staticDeploy.deploymentId, path);
+          return;
+        }
+
+        if (path.startsWith('/__vibecore/access/')) {
+          await sendDeploymentAccessGate(request, reply, {
+            decision: 'locked',
+            mode: 'INVITE_ONLY',
+            cookieName: deploymentAccessCookieName(staticDeploy.deploymentId),
+          });
+          return;
+        }
+
+        if (!(await enforceDeploymentGate(request, reply, staticDeploy.deploymentId))) {
           return;
         }
 

@@ -3,8 +3,11 @@ import { hashToken } from '@vibecore/auth';
 import type { PlanKey, QuotaKey } from '@vibecore/billing';
 import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
 import { appPublicEnglish } from '../app-public-copy.js';
-import { DEFAULT_ENV_VAR_SCOPE } from '../store.js';
-import { isCommittedPromotionForTenant, SERVER_IMAGE_RELEASE_AUDIT_ACTION } from '../server-image-promotion.js';
+import {
+  normalizeDeploymentAccessMode,
+  type DeploymentAccessMode,
+  type DeploymentAccessPolicyRecord,
+} from '../deployment-access.js';
 import {
   createDefaultProjectManifest,
   projectManifestSnapshotPin,
@@ -15,7 +18,8 @@ import {
   type ProjectManifest,
   type ProjectManifestCloneMode,
 } from '../project-manifest.js';
-import { countActiveModerationStrikes } from '../strike-system.js';
+import { isCommittedPromotionForTenant, SERVER_IMAGE_RELEASE_AUDIT_ACTION } from '../server-image-promotion.js';
+import { DEFAULT_ENV_VAR_SCOPE } from '../store.js';
 import type {
   EnvVarScope,
   AbuseEventRecord,
@@ -66,6 +70,8 @@ import type {
   CollaborationPresenceRecord,
   CustomRoleRecord,
   DeploymentRecord,
+  DeploymentAccessContext,
+  DeploymentAccessTicketMutationResult,
   ReleaseManifestRecord,
   ServerImageReleaseCommitInput,
   ServerImageReleaseCommitResult,
@@ -125,6 +131,7 @@ import type {
   SkillAuditEventRecord,
   RecordSkillAuditInput,
 } from '../store.js';
+import { countActiveModerationStrikes } from '../strike-system.js';
 
 function id(prefix: string) {
   return `${prefix}_${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`;
@@ -156,6 +163,7 @@ export class TestApiStore implements ApiStore {
   readonly databaseInstances = new Map<string, DatabaseInstanceRecord>();
   readonly databaseSnapshots = new Map<string, DatabaseSnapshotRecord>();
   readonly databaseRestores = new Map<string, DatabaseRestoreRecord>();
+
   /** Models the separate CloudGovernance store's durable Project binding. */
   readonly cloudProjectBindingProjectIds = new Set<string>();
   readonly projectEnvVars = new Map<string, ProjectEnvironmentRecord>();
@@ -174,6 +182,18 @@ export class TestApiStore implements ApiStore {
   readonly agentPatchProposals = new Map<string, AgentPatchProposalRecord>();
   readonly projectTemplates = new Map<string, ProjectTemplateRecord>();
   readonly deployments = new Map<string, DeploymentRecord>();
+  readonly deploymentAccessPolicies: DeploymentAccessPolicyRecord[] = [];
+  readonly deploymentAccessExchangeTickets = new Map<
+    string,
+    {
+      deploymentId: string;
+      userId: string;
+      policyVersion: number;
+      policyRevision: string;
+      expiresAt: string;
+      consumedAt?: string;
+    }
+  >();
   readonly supportTickets = new Map<string, SupportTicketRecord>();
   readonly ticketMessages: TicketMessageRecord[] = [];
   readonly featureFlags = new Map<string, FeatureFlagRecord>();
@@ -467,6 +487,7 @@ export class TestApiStore implements ApiStore {
     ttlMs: number;
   }) {
     const { ttlMs, ...scope } = input;
+
     const ticket: RuntimeWebSocketTicketRecord = {
       id: id('runtime-ws-ticket'),
       ...scope,
@@ -884,6 +905,7 @@ export class TestApiStore implements ApiStore {
 
   async countProjects(organizationId: string, options: { since?: Date } = {}) {
     const sinceMs = options.since?.getTime();
+
     const visible = (await this.listProjects(organizationId)).filter(
       (project) => sinceMs === undefined || new Date(project.createdAt).getTime() >= sinceMs,
     );
@@ -1020,7 +1042,10 @@ export class TestApiStore implements ApiStore {
   async transferProject(input: { projectId: string; targetOrganizationId: string; actorUserId?: string }) {
     return this.withSerializedMutation(`project-manifest:${input.projectId}`, async () => {
       const project = await this.updateProject({ projectId: input.projectId });
-      if (project.organizationId === input.targetOrganizationId) return project;
+
+      if (project.organizationId === input.targetOrganizationId) {
+        return project;
+      }
 
       if (await this.getActiveCheckpointBarrier(project.id)) {
         throw Object.assign(new Error(appPublicEnglish('CHECKPOINT_BARRIER_ACTIVE_MESSAGE')), {
@@ -1056,7 +1081,9 @@ export class TestApiStore implements ApiStore {
       const hasReadyDeployment = [...this.deployments.values()].some(
         (deployment) => deployment.projectId === project.id && deployment.status === 'READY',
       );
+
       const hasReleaseManifest = this.releaseManifests.some((manifest) => manifest.projectId === project.id);
+
       if (
         hasManagedDatabase ||
         hasActiveMigration ||
@@ -1074,10 +1101,13 @@ export class TestApiStore implements ApiStore {
       }
 
       const sourceRevision = await this.getLatestProjectManifest(project.id);
+
       const sourceManifest = sourceRevision
         ? verifyStoredProjectManifestRevision(sourceRevision, project.id)
         : createDefaultProjectManifest(project.id);
+
       const detachedSeed = projectManifestForClone(sourceManifest, project.id, 'DETACH_EXTERNALS');
+
       const detachedManifest = {
         ...detachedSeed,
         manifestVersion: (sourceRevision?.manifestVersion ?? 0) + 1,
@@ -1102,6 +1132,7 @@ export class TestApiStore implements ApiStore {
 
       project.organizationId = input.targetOrganizationId;
       project.updatedAt = now();
+
       const revision: ProjectManifestRevisionRecord = {
         id: id('project_manifest'),
         projectId: project.id,
@@ -1112,6 +1143,7 @@ export class TestApiStore implements ApiStore {
         createdByUserId: input.actorUserId,
         createdAt: now(),
       };
+
       const revisions = this.projectManifestRevisions.get(project.id) ?? [];
       revisions.push(revision);
       this.projectManifestRevisions.set(project.id, revisions);
@@ -1134,6 +1166,7 @@ export class TestApiStore implements ApiStore {
     }
 
     const sourceRevision = await this.getLatestProjectManifest(source.id);
+
     const sourceManifest = sourceRevision
       ? verifyStoredProjectManifestRevision(sourceRevision, source.id)
       : createDefaultProjectManifest(source.id);
@@ -1286,6 +1319,7 @@ export class TestApiStore implements ApiStore {
     externalId?: string;
   }) {
     const normalizedName = input.name.trim().normalize('NFKC').toLocaleLowerCase('en-US');
+
     const duplicate = [...this.collaborationGroups.values()].find(
       (group) =>
         group.organizationId === input.organizationId &&
@@ -1298,6 +1332,7 @@ export class TestApiStore implements ApiStore {
     }
 
     const timestamp = now();
+
     const group: CollaborationGroupRecord = {
       id: id('group'),
       organizationId: input.organizationId,
@@ -1308,6 +1343,7 @@ export class TestApiStore implements ApiStore {
       updatedAt: timestamp,
     };
     this.collaborationGroups.set(group.id, group);
+
     return group;
   }
 
@@ -1334,6 +1370,7 @@ export class TestApiStore implements ApiStore {
 
     group.name = input.name.trim();
     group.updatedAt = now();
+
     return group;
   }
 
@@ -1376,9 +1413,11 @@ export class TestApiStore implements ApiStore {
       updatedAt: now(),
     };
     group.name = input.name.trim();
+
     if (input.externalId !== undefined) {
       group.externalId = input.externalId ?? undefined;
     }
+
     group.updatedAt = now();
     this.collaborationGroups.set(group.id, group);
 
@@ -1415,9 +1454,11 @@ export class TestApiStore implements ApiStore {
       .filter((group) => !input.source || group.source === input.source)
       .filter((group) => !input.cursor || group.id > input.cursor)
       .sort((left, right) => left.id.localeCompare(right.id));
+
     const window = candidates.slice(input.offset ?? 0);
     const hasMore = window.length > input.limit;
     const items = window.slice(0, input.limit);
+
     return { items, nextCursor: hasMore ? items.at(-1)?.id : undefined };
   }
 
@@ -1507,6 +1548,7 @@ export class TestApiStore implements ApiStore {
       createdAt: now(),
     };
     this.collaborationGroupMembers.set(member.id, member);
+
     return { ok: true as const, member };
   }
 
@@ -1599,8 +1641,10 @@ export class TestApiStore implements ApiStore {
       .filter((member) => !input.cursor || member.id > input.cursor)
       .filter((member) => this.memberships.get(member.membershipId)?.state === 'ACTIVE')
       .sort((left, right) => left.id.localeCompare(right.id));
+
     const hasMore = candidates.length > input.limit;
     const items = candidates.slice(0, input.limit);
+
     return { items, nextCursor: hasMore ? items.at(-1)?.id : undefined };
   }
 
@@ -1671,6 +1715,7 @@ export class TestApiStore implements ApiStore {
     }
 
     const timestamp = now();
+
     const grant: ResourceAccessGrantRecord = {
       id: id('access_grant'),
       organizationId: input.organizationId,
@@ -1691,6 +1736,7 @@ export class TestApiStore implements ApiStore {
       updatedAt: timestamp,
     };
     this.resourceAccessGrants.set(grant.id, grant);
+
     return { ok: true as const, grant };
   }
 
@@ -1714,8 +1760,10 @@ export class TestApiStore implements ApiStore {
       )
       .filter((grant) => !input.cursor || grant.id > input.cursor)
       .sort((left, right) => left.id.localeCompare(right.id));
+
     const hasMore = candidates.length > input.limit;
     const items = candidates.slice(0, input.limit);
+
     return { items, nextCursor: hasMore ? items.at(-1)?.id : undefined };
   }
 
@@ -1724,8 +1772,10 @@ export class TestApiStore implements ApiStore {
       .filter((grant) => grant.subjectType === 'USER' && grant.subjectUserId === input.userId)
       .filter((grant) => !input.cursor || grant.id > input.cursor)
       .sort((left, right) => left.id.localeCompare(right.id));
+
     const hasMore = candidates.length > input.limit;
     const items = candidates.slice(0, input.limit);
+
     return { items, nextCursor: hasMore ? items.at(-1)?.id : undefined };
   }
 
@@ -1745,6 +1795,7 @@ export class TestApiStore implements ApiStore {
       updatedAt: now(),
     };
     this.resourceAccessGrants.set(accepted.id, accepted);
+
     return { ok: true as const, grant: accepted };
   }
 
@@ -1765,6 +1816,7 @@ export class TestApiStore implements ApiStore {
       updatedAt: now(),
     };
     this.resourceAccessGrants.set(rejected.id, rejected);
+
     return { ok: true as const, grant: rejected };
   }
 
@@ -1789,11 +1841,13 @@ export class TestApiStore implements ApiStore {
       updatedAt: now(),
     };
     this.resourceAccessGrants.set(revoked.id, revoked);
+
     return { ok: true as const, grant: revoked };
   }
 
   async listActiveProjectAccessRoles(projectId: string, userId: string) {
     const current = Date.now();
+
     const memberships = [...this.memberships.values()].filter(
       (membership) => membership.userId === userId && membership.state === 'ACTIVE',
     );
@@ -2596,6 +2650,7 @@ export class TestApiStore implements ApiStore {
   }) {
     if (input.id) {
       const existing = this.snapshots.get(input.id);
+
       if (existing) {
         if (existing.projectId !== input.projectId || existing.storageKey !== input.storageKey) {
           throw Object.assign(new Error('Snapshot idempotency key conflicts with another snapshot'), {
@@ -2603,10 +2658,13 @@ export class TestApiStore implements ApiStore {
             code: 'SNAPSHOT_IDEMPOTENCY_CONFLICT',
           });
         }
+
         return existing;
       }
     }
+
     let latestManifest = await this.getLatestProjectManifest(input.projectId);
+
     if (!latestManifest && this.projects.has(input.projectId)) {
       const initial = createDefaultProjectManifest(input.projectId);
       latestManifest = await this.createProjectManifestRevision({
@@ -2618,6 +2676,7 @@ export class TestApiStore implements ApiStore {
         createdByUserId: input.createdByUserId,
       });
     }
+
     const manifestBase =
       input.manifest && typeof input.manifest === 'object' && !Array.isArray(input.manifest)
         ? (input.manifest as Record<string, unknown>)
@@ -2717,22 +2776,35 @@ export class TestApiStore implements ApiStore {
   }) {
     const timestamp = Date.now();
     const activeLock = `${input.projectId}:${input.environment}`;
+
     let row = [...this.migrationExecutions.values()].find(
       (entry) => entry.projectId === input.projectId && entry.idempotencyKey === input.idempotencyKey,
     );
+
     if (row) {
-      if (row.requestHash !== input.requestHash) return { kind: 'IDEMPOTENCY_COLLISION' as const, execution: row };
-      if (row.state === 'COMMITTED') return { kind: 'REPLAYED' as const, execution: row };
-      if (row.state === 'FAILED_SAFE') return { kind: 'FAILED' as const, execution: row };
+      if (row.requestHash !== input.requestHash) {
+        return { kind: 'IDEMPOTENCY_COLLISION' as const, execution: row };
+      }
+
+      if (row.state === 'COMMITTED') {
+        return { kind: 'REPLAYED' as const, execution: row };
+      }
+
+      if (row.state === 'FAILED_SAFE') {
+        return { kind: 'FAILED' as const, execution: row };
+      }
+
       if (row.leaseExpiresAt && new Date(row.leaseExpiresAt).getTime() > timestamp) {
         return { kind: 'BLOCKED' as const, execution: row };
       }
     } else {
       row = [...this.migrationExecutions.values()].find((entry) => entry.activeLock === activeLock);
+
       if (row?.leaseExpiresAt && new Date(row.leaseExpiresAt).getTime() > timestamp) {
         return { kind: 'BLOCKED' as const, execution: row };
       }
     }
+
     if (row) {
       const claimed: DatabaseMigrationExecutionRecord = {
         ...row,
@@ -2743,6 +2815,7 @@ export class TestApiStore implements ApiStore {
         leaseExpiresAt: new Date(timestamp + input.ttlMs).toISOString(),
       };
       this.migrationExecutions.set(row.id, claimed);
+
       return { kind: 'RECOVERY' as const, execution: claimed };
     }
 
@@ -2770,6 +2843,7 @@ export class TestApiStore implements ApiStore {
       startedAt: now(),
     };
     this.migrationExecutions.set(created.id, created);
+
     return { kind: 'ACQUIRED' as const, execution: created };
   }
 
@@ -2782,6 +2856,7 @@ export class TestApiStore implements ApiStore {
   }) {
     const row = this.migrationExecutions.get(input.id);
     const timestamp = Date.now();
+
     if (
       !row ||
       row.ownerToken !== input.ownerToken ||
@@ -2790,14 +2865,17 @@ export class TestApiStore implements ApiStore {
       !row.activeLock ||
       !row.leaseExpiresAt ||
       new Date(row.leaseExpiresAt).getTime() <= timestamp
-    )
+    ) {
       return undefined;
+    }
+
     const renewed = {
       ...row,
       version: row.version + 1,
       leaseExpiresAt: new Date(timestamp + input.ttlMs).toISOString(),
     };
     this.migrationExecutions.set(row.id, renewed);
+
     return renewed;
   }
 
@@ -2834,10 +2912,18 @@ export class TestApiStore implements ApiStore {
     errorCode?: string;
   }) {
     const row = this.migrationExecutions.get(input.id);
-    if (!(await this.validateDatabaseMigrationLease({ ...input, state: input.expectedState }))) return undefined;
+
+    if (!(await this.validateDatabaseMigrationLease({ ...input, state: input.expectedState }))) {
+      return undefined;
+    }
+
     const release = input.release === true;
     const retainLock = input.retainLock === true;
-    if (release && retainLock) throw new TypeError('migration transition cannot release and retain its lock');
+
+    if (release && retainLock) {
+      throw new TypeError('migration transition cannot release and retain its lock');
+    }
+
     const transitioned: DatabaseMigrationExecutionRecord = {
       ...row!,
       state: input.nextState,
@@ -2857,6 +2943,7 @@ export class TestApiStore implements ApiStore {
       ...(input.errorCode ? { errorCode: input.errorCode } : {}),
     };
     this.migrationExecutions.set(row!.id, transitioned);
+
     return transitioned;
   }
 
@@ -2929,10 +3016,13 @@ export class TestApiStore implements ApiStore {
     provisioningDeadlineAt: string;
   }) {
     const environment = input.environment === 'production' ? 'production' : 'development';
-    // Deliberately inspect and mutate the in-memory record without an await in
-    // between. This mirrors the single-row conditional UPDATE used by the
-    // Prisma store, so concurrency tests cannot grant two retry claims merely
-    // because this test double yielded at the wrong point.
+
+    /*
+     * Deliberately inspect and mutate the in-memory record without an await in
+     * between. This mirrors the single-row conditional UPDATE used by the
+     * Prisma store, so concurrency tests cannot grant two retry claims merely
+     * because this test double yielded at the wrong point.
+     */
     const existing = Array.from(this.databaseInstances.values()).find(
       (row) => row.projectId === input.projectId && row.environment === environment,
     );
@@ -3120,16 +3210,76 @@ export class TestApiStore implements ApiStore {
     metadata?: Record<string, unknown>;
     rolledBackFromId?: string;
     parentDeploymentId?: string;
+    machineSize?: string;
+    accessPolicy?: { mode: DeploymentAccessMode; passwordHash?: string; createdByUserId?: string };
+    accessPolicyVersion?: number;
     startedAt?: string;
     finishedAt?: string;
     canceledAt?: string;
   }) {
+    const environment = input.environment ?? 'preview';
+
+    let accessPolicyVersion = input.accessPolicyVersion;
+
+    if (input.accessPolicy) {
+      const mode = normalizeDeploymentAccessMode(input.accessPolicy.mode);
+      const passwordHash = input.accessPolicy.passwordHash?.trim();
+
+      if ((mode === 'PASSWORD_PROTECTED') !== Boolean(passwordHash)) {
+        throw new Error('DEPLOYMENT_ACCESS_PASSWORD_INVALID');
+      }
+
+      accessPolicyVersion =
+        this.deploymentAccessPolicies
+          .filter((policy) => policy.projectId === input.projectId && policy.environment === environment)
+          .reduce((max, policy) => Math.max(max, policy.version), 0) + 1;
+      this.deploymentAccessPolicies.push({
+        id: id('access_policy'),
+        projectId: input.projectId,
+        environment,
+        version: accessPolicyVersion,
+        mode,
+        revision: id('access_revision'),
+        passwordHash,
+        createdByUserId: input.accessPolicy.createdByUserId,
+        createdAt: now(),
+      });
+    } else if (accessPolicyVersion === undefined) {
+      let legacy = this.deploymentAccessPolicies.find(
+        (policy) => policy.projectId === input.projectId && policy.environment === environment && policy.version === 1,
+      );
+
+      if (!legacy) {
+        legacy = {
+          id: id('access_policy'),
+          projectId: input.projectId,
+          environment,
+          version: 1,
+          mode: 'PUBLIC',
+          revision: id('legacy_public'),
+          createdAt: now(),
+        };
+        this.deploymentAccessPolicies.push(legacy);
+      }
+
+      accessPolicyVersion = legacy.version;
+    } else if (
+      !this.deploymentAccessPolicies.some(
+        (policy) =>
+          policy.projectId === input.projectId &&
+          policy.environment === environment &&
+          policy.version === accessPolicyVersion,
+      )
+    ) {
+      throw new Error('DEPLOYMENT_ACCESS_POLICY_NOT_FOUND');
+    }
+
     const deployment: DeploymentRecord = {
       id: id('deployment'),
       projectId: input.projectId,
       workspaceId: input.workspaceId,
       provider: input.provider,
-      environment: input.environment ?? 'preview',
+      environment,
       status: input.status ?? 'QUEUED',
       url: input.url,
       previewUrl: input.previewUrl,
@@ -3144,6 +3294,8 @@ export class TestApiStore implements ApiStore {
       metadata: input.metadata,
       rolledBackFromId: input.rolledBackFromId,
       parentDeploymentId: input.parentDeploymentId,
+      machineSize: input.machineSize,
+      accessPolicyVersion,
       startedAt: input.startedAt,
       finishedAt: input.finishedAt,
       canceledAt: input.canceledAt,
@@ -3180,6 +3332,284 @@ export class TestApiStore implements ApiStore {
       organizationId: project?.organizationId,
       planKey: subscription?.status === 'ACTIVE' ? subscription.planKey : undefined,
     };
+  }
+
+  async getDeploymentAccessContext(deploymentId: string): Promise<DeploymentAccessContext | undefined> {
+    const deployment = this.deployments.get(deploymentId);
+
+    if (!deployment) {
+      return undefined;
+    }
+
+    const project = this.projects.get(deployment.projectId);
+
+    if (!project) {
+      return undefined;
+    }
+
+    const policy = this.deploymentAccessPolicies.find(
+      (candidate) =>
+        candidate.projectId === deployment.projectId &&
+        candidate.environment === deployment.environment &&
+        candidate.version === deployment.accessPolicyVersion,
+    );
+
+    return {
+      deploymentId,
+      projectId: deployment.projectId,
+      organizationId: project.organizationId,
+      environment: deployment.environment,
+      deploymentStatus: deployment.status,
+      projectDeletedAt: project.deletedAt,
+      policy,
+    };
+  }
+
+  async getDeploymentAccessPolicy(deploymentId: string) {
+    return (await this.getDeploymentAccessContext(deploymentId))?.policy;
+  }
+
+  async setDeploymentAccessPolicy(input: {
+    projectId: string;
+    deploymentId: string;
+    mode: DeploymentAccessMode;
+    passwordHash?: string;
+    createdByUserId?: string;
+    expectedVersion?: number;
+    releaseSource?: ReleaseManifestRecord;
+  }) {
+    const deployment = await this.getDeployment(input.projectId, input.deploymentId);
+
+    if (!deployment) {
+      return undefined;
+    }
+
+    if (input.expectedVersion !== undefined && deployment.accessPolicyVersion !== input.expectedVersion) {
+      throw Object.assign(new Error('DEPLOYMENT_ACCESS_POLICY_VERSION_CONFLICT'), {
+        statusCode: 409,
+        code: 'DEPLOYMENT_ACCESS_POLICY_VERSION_CONFLICT',
+      });
+    }
+
+    if (deployment.status === 'READY' && !input.releaseSource) {
+      throw Object.assign(new Error('DEPLOYMENT_ACCESS_RELEASE_MANIFEST_REQUIRED'), {
+        statusCode: 409,
+        code: 'DEPLOYMENT_ACCESS_RELEASE_MANIFEST_REQUIRED',
+      });
+    }
+
+    if (
+      input.releaseSource &&
+      (input.releaseSource.projectId !== deployment.projectId ||
+        input.releaseSource.environment !== deployment.environment ||
+        input.releaseSource.deploymentId !== deployment.id)
+    ) {
+      throw Object.assign(new Error('DEPLOYMENT_ACCESS_RELEASE_MANIFEST_MISMATCH'), {
+        statusCode: 409,
+        code: 'DEPLOYMENT_ACCESS_RELEASE_MANIFEST_MISMATCH',
+      });
+    }
+
+    const mode = normalizeDeploymentAccessMode(input.mode);
+    const passwordHash = input.passwordHash?.trim();
+
+    if ((mode === 'PASSWORD_PROTECTED') !== Boolean(passwordHash)) {
+      throw Object.assign(new Error('DEPLOYMENT_ACCESS_PASSWORD_INVALID'), {
+        statusCode: 400,
+        code: 'DEPLOYMENT_ACCESS_PASSWORD_INVALID',
+      });
+    }
+
+    const version =
+      this.deploymentAccessPolicies
+        .filter((policy) => policy.projectId === deployment.projectId && policy.environment === deployment.environment)
+        .reduce((max, policy) => Math.max(max, policy.version), 0) + 1;
+    const policy: DeploymentAccessPolicyRecord = {
+      id: id('access_policy'),
+      projectId: deployment.projectId,
+      environment: deployment.environment,
+      version,
+      mode,
+      revision: id('access_revision'),
+      passwordHash,
+      createdByUserId: input.createdByUserId,
+      createdAt: now(),
+    };
+    this.deploymentAccessPolicies.push(policy);
+
+    if (input.releaseSource) {
+      const latestVersion = this.releaseManifests
+        .filter(
+          (manifest) => manifest.projectId === deployment.projectId && manifest.environment === deployment.environment,
+        )
+        .reduce((max, manifest) => Math.max(max, manifest.version), 0);
+      this.releaseManifests.push({
+        ...input.releaseSource,
+        id: id('release_manifest'),
+        deploymentId: deployment.id,
+        version: latestVersion + 1,
+        accessPolicyVersion: version,
+        createdAt: now(),
+      });
+    }
+
+    this.deployments.set(deployment.id, { ...deployment, accessPolicyVersion: version, updatedAt: now() });
+
+    return policy;
+  }
+
+  async isDeploymentAccessUserAuthorized(input: {
+    deploymentId: string;
+    userId: string;
+    mode: Extract<DeploymentAccessMode, 'WORKSPACE_ONLY' | 'INVITE_ONLY'>;
+  }) {
+    const deployment = this.deployments.get(input.deploymentId);
+    const project = deployment ? this.projects.get(deployment.projectId) : undefined;
+
+    if (!deployment || !project || project.deletedAt) {
+      return false;
+    }
+
+    const membership = [...this.memberships.values()].find(
+      (candidate) =>
+        candidate.organizationId === project.organizationId &&
+        candidate.userId === input.userId &&
+        candidate.state === 'ACTIVE',
+    );
+
+    if (input.mode === 'WORKSPACE_ONLY') {
+      return membership?.state === 'ACTIVE';
+    }
+
+    if (membership?.state === 'ACTIVE' && (membership.roleKey === 'owner' || membership.roleKey === 'admin')) {
+      return true;
+    }
+
+    const collaborator = [...this.projectCollaborators.values()].find(
+      (candidate) => candidate.projectId === project.id && candidate.userId === input.userId,
+    );
+
+    if (collaborator && (!collaborator.expiresAt || new Date(collaborator.expiresAt).getTime() > Date.now())) {
+      return true;
+    }
+
+    return [...this.resourceAccessGrants.values()].some((grant) => {
+      if (
+        grant.organizationId !== project.organizationId ||
+        grant.status !== 'ACTIVE' ||
+        !grant.acceptedAt ||
+        grant.revokedAt ||
+        new Date(grant.expiresAt).getTime() <= Date.now() ||
+        !(
+          (grant.resourceType === 'PROJECT' && grant.resourceId === project.id) ||
+          (grant.resourceType === 'DEPLOYMENT' && grant.resourceId === deployment.id)
+        )
+      ) {
+        return false;
+      }
+
+      if (grant.subjectType === 'USER') {
+        return grant.subjectUserId === input.userId;
+      }
+
+      return [...this.collaborationGroupMembers.values()].some(
+        (member) =>
+          member.groupId === grant.subjectGroupId && member.userId === input.userId && membership?.state === 'ACTIVE',
+      );
+    });
+  }
+
+  async issueDeploymentAccessExchangeTicket(input: {
+    deploymentId: string;
+    userId: string;
+    tokenHash: string;
+    ttlSeconds: number;
+  }): Promise<DeploymentAccessTicketMutationResult> {
+    const context = await this.getDeploymentAccessContext(input.deploymentId);
+
+    if (!context || context.projectDeletedAt || context.deploymentStatus !== 'READY') {
+      return { ok: false, reason: 'DEPLOYMENT_NOT_FOUND' };
+    }
+
+    if (!context.policy) {
+      return { ok: false, reason: 'POLICY_INVALID' };
+    }
+
+    if (context.policy.mode !== 'WORKSPACE_ONLY' && context.policy.mode !== 'INVITE_ONLY') {
+      return { ok: false, reason: 'POLICY_NOT_PRIVATE' };
+    }
+
+    if (
+      !(await this.isDeploymentAccessUserAuthorized({
+        deploymentId: input.deploymentId,
+        userId: input.userId,
+        mode: context.policy.mode,
+      }))
+    ) {
+      return { ok: false, reason: 'ACCESS_DENIED' };
+    }
+
+    const expiresAt = new Date(Date.now() + Math.max(1, Math.min(300, input.ttlSeconds)) * 1000).toISOString();
+    this.deploymentAccessExchangeTickets.set(input.tokenHash, {
+      deploymentId: input.deploymentId,
+      userId: input.userId,
+      policyVersion: context.policy.version,
+      policyRevision: context.policy.revision,
+      expiresAt,
+    });
+
+    return { ok: true, policy: context.policy, userId: input.userId, expiresAt };
+  }
+
+  async consumeDeploymentAccessExchangeTicket(input: {
+    deploymentId: string;
+    tokenHash: string;
+  }): Promise<DeploymentAccessTicketMutationResult> {
+    const ticket = this.deploymentAccessExchangeTickets.get(input.tokenHash);
+
+    if (!ticket || ticket.deploymentId !== input.deploymentId) {
+      return { ok: false, reason: 'TICKET_NOT_FOUND' };
+    }
+
+    if (ticket.consumedAt) {
+      return { ok: false, reason: 'TICKET_REPLAYED' };
+    }
+
+    if (new Date(ticket.expiresAt).getTime() <= Date.now()) {
+      return { ok: false, reason: 'TICKET_EXPIRED' };
+    }
+
+    ticket.consumedAt = now();
+
+    const context = await this.getDeploymentAccessContext(input.deploymentId);
+
+    if (!context || context.projectDeletedAt || context.deploymentStatus !== 'READY') {
+      return { ok: false, reason: 'DEPLOYMENT_NOT_FOUND' };
+    }
+
+    if (!context.policy) {
+      return { ok: false, reason: 'POLICY_INVALID' };
+    }
+
+    if (
+      context.policy.version !== ticket.policyVersion ||
+      context.policy.revision !== ticket.policyRevision ||
+      (context.policy.mode !== 'WORKSPACE_ONLY' && context.policy.mode !== 'INVITE_ONLY')
+    ) {
+      return { ok: false, reason: 'POLICY_CHANGED' };
+    }
+
+    if (
+      !(await this.isDeploymentAccessUserAuthorized({
+        deploymentId: input.deploymentId,
+        userId: ticket.userId,
+        mode: context.policy.mode,
+      }))
+    ) {
+      return { ok: false, reason: 'ACCESS_DENIED' };
+    }
+
+    return { ok: true, policy: context.policy, userId: ticket.userId, expiresAt: ticket.expiresAt };
   }
 
   async updateDeployment(
@@ -3233,7 +3663,28 @@ export class TestApiStore implements ApiStore {
     storeGeneration?: string;
     configDigest?: string;
     dbMigrationPoint?: string;
+    accessPolicyVersion: number;
   }): Promise<ReleaseManifestRecord> {
+    const deployment = this.deployments.get(input.deploymentId);
+    const policy = this.deploymentAccessPolicies.find(
+      (candidate) =>
+        candidate.projectId === input.projectId &&
+        candidate.environment === input.environment &&
+        candidate.version === input.accessPolicyVersion,
+    );
+
+    if (
+      !deployment ||
+      deployment.projectId !== input.projectId ||
+      deployment.environment !== input.environment ||
+      deployment.accessPolicyVersion !== input.accessPolicyVersion ||
+      !policy
+    ) {
+      throw Object.assign(new Error('A release manifest must pin the deployment exact valid access policy.'), {
+        code: 'RELEASE_ACCESS_POLICY_INVALID',
+      });
+    }
+
     const row: ReleaseManifestRecord = {
       id: `rm-${this.releaseManifests.length + 1}-${input.deploymentId}`,
       projectId: input.projectId,
@@ -3247,6 +3698,7 @@ export class TestApiStore implements ApiStore {
       storeGeneration: input.storeGeneration,
       configDigest: input.configDigest,
       dbMigrationPoint: input.dbMigrationPoint,
+      accessPolicyVersion: input.accessPolicyVersion,
       createdAt: new Date().toISOString(),
     };
     this.releaseManifests.push(row);
@@ -3271,6 +3723,17 @@ export class TestApiStore implements ApiStore {
 
       if (!deployment || deployment.projectId !== input.projectId) {
         throw new Error(`Deployment not found: ${input.deploymentId}`);
+      }
+
+      const accessPolicy = this.deploymentAccessPolicies.find(
+        (candidate) =>
+          candidate.projectId === input.projectId &&
+          candidate.environment === input.environment &&
+          candidate.version === deployment.accessPolicyVersion,
+      );
+
+      if (!accessPolicy) {
+        throw new Error('SERVER_RELEASE_ACCESS_POLICY_INVALID');
       }
 
       const project = this.projects.get(input.projectId);
@@ -3300,7 +3763,8 @@ export class TestApiStore implements ApiStore {
         if (
           existing.artifactKind !== 'server-image' ||
           existing.artifactRef !== input.artifactRef ||
-          existing.artifactDigest !== input.artifactDigest
+          existing.artifactDigest !== input.artifactDigest ||
+          existing.accessPolicyVersion !== deployment.accessPolicyVersion
         ) {
           throw new Error('SERVER_RELEASE_MANIFEST_CONFLICT');
         }
@@ -3331,6 +3795,7 @@ export class TestApiStore implements ApiStore {
         artifactDigest: input.artifactDigest,
         storeGeneration: input.storeGeneration,
         configDigest: input.configDigest,
+        accessPolicyVersion: deployment.accessPolicyVersion,
         createdAt: now(),
       };
       const ready: DeploymentRecord = {
@@ -3358,6 +3823,7 @@ export class TestApiStore implements ApiStore {
         createdAt: now(),
       });
       this.deployments.set(ready.id, ready);
+
       return { committed: true, deployment: ready, manifest };
     });
   }
@@ -3394,6 +3860,7 @@ export class TestApiStore implements ApiStore {
           statusCode: 423,
         });
       }
+
       const rows = this.projectManifestRevisions.get(input.projectId) ?? [];
       const latest = [...rows].sort((left, right) => right.manifestVersion - left.manifestVersion)[0];
 
@@ -3402,6 +3869,7 @@ export class TestApiStore implements ApiStore {
       }
 
       const expectedMatches = latest ? input.expectedDigest === latest.digest : input.expectedDigest === undefined;
+
       if (!expectedMatches || input.manifestVersion !== (latest?.manifestVersion ?? 0) + 1) {
         throw Object.assign(new Error(appPublicEnglish('PROJECT_MANIFEST_VERSION_CONFLICT')), {
           code: 'PROJECT_MANIFEST_VERSION_CONFLICT',
@@ -3421,6 +3889,7 @@ export class TestApiStore implements ApiStore {
       };
       rows.push(row);
       this.projectManifestRevisions.set(input.projectId, rows);
+
       return row;
     });
   }
@@ -3507,6 +3976,7 @@ export class TestApiStore implements ApiStore {
     requestHash?: string;
   }) {
     const requestHash = input.requestHash ?? hashToken(`project-checkpoint:${input.projectId}`);
+
     const existing = input.idempotencyKey
       ? [...this.projectCheckpoints.values()].find((row) => row.idempotencyKey === input.idempotencyKey)
       : undefined;
@@ -3533,6 +4003,7 @@ export class TestApiStore implements ApiStore {
       barrierFence: 0,
     };
     this.projectCheckpoints.set(row.id, row);
+
     return { id: row.id, state: row.state, replayed: false };
   }
 
@@ -3559,6 +4030,7 @@ export class TestApiStore implements ApiStore {
     }
 
     const row = this.projectCheckpoints.get(input.checkpointId);
+
     const active = [...this.projectCheckpoints.values()].some(
       (candidate) =>
         candidate.barrierProjectId === input.projectId &&
@@ -3605,6 +4077,7 @@ export class TestApiStore implements ApiStore {
     }
 
     row.barrierExpiresAt = new Date(Date.now() + input.ttlSeconds * 1000).toISOString();
+
     return row.barrierExpiresAt;
   }
 
@@ -3639,6 +4112,7 @@ export class TestApiStore implements ApiStore {
     retainBarrier?: boolean;
   }) {
     await this.assertProjectCheckpointBarrier(input);
+
     const row = this.projectCheckpoints.get(input.checkpointId)!;
 
     if (row.state !== input.from) {
@@ -3650,9 +4124,11 @@ export class TestApiStore implements ApiStore {
 
     row.state = input.to;
     Object.assign(row, input.patch);
+
     if (input.patch?.retentionSeconds !== undefined) {
       row.expiresAt = new Date(Date.now() + input.patch.retentionSeconds * 1000).toISOString();
     }
+
     if (input.to === 'COMMITTED' && input.retainBarrier !== true) {
       row.barrierProjectId = null;
       row.barrierOwnerToken = null;
@@ -3662,16 +4138,24 @@ export class TestApiStore implements ApiStore {
 
   async releaseProjectCheckpointBarrier(input: { checkpointId: string; ownerToken: string; fence: number }) {
     const row = this.projectCheckpoints.get(input.checkpointId);
-    if (!row || row.barrierOwnerToken !== input.ownerToken || row.barrierFence !== input.fence) return false;
+
+    if (!row || row.barrierOwnerToken !== input.ownerToken || row.barrierFence !== input.fence) {
+      return false;
+    }
+
     row.barrierProjectId = null;
     row.barrierOwnerToken = null;
     row.barrierExpiresAt = null;
+
     return true;
   }
 
   async updateProjectCheckpoint(idv: string, patch: Record<string, unknown>) {
     const row = this.projectCheckpoints.get(idv);
-    if (row) Object.assign(row, patch);
+
+    if (row) {
+      Object.assign(row, patch);
+    }
   }
 
   /** Mirrors PrismaApiStore: barrier read from the shared row, expiry = thaw. */
@@ -3729,6 +4213,7 @@ export class TestApiStore implements ApiStore {
     }
 
     const timestamp = now();
+
     const row: RemixJobRecord = {
       id: id('remix'),
       sourceProjectId: input.sourceProjectId,
@@ -3777,6 +4262,7 @@ export class TestApiStore implements ApiStore {
       version: row.version + 1,
       updatedAt: now(),
     });
+
     return row;
   }
 
@@ -3804,6 +4290,7 @@ export class TestApiStore implements ApiStore {
     row.operationExpiresAt = new Date(Date.now() + input.leaseDurationMs).toISOString();
     row.version += 1;
     row.updatedAt = now();
+
     return row;
   }
 
@@ -3831,6 +4318,7 @@ export class TestApiStore implements ApiStore {
     }
 
     Object.assign(row, input.patch ?? {}, { state: input.state, version: row.version + 1, updatedAt: now() });
+
     return row;
   }
 
@@ -3845,6 +4333,7 @@ export class TestApiStore implements ApiStore {
     row.operationExpiresAt = undefined;
     row.version += 1;
     row.updatedAt = now();
+
     return row;
   }
 
@@ -3868,19 +4357,28 @@ export class TestApiStore implements ApiStore {
     }
 
     const source = this.projects.get(job.sourceProjectId);
-    if (!source) throw new Error('Project not found');
+
+    if (!source) {
+      throw new Error('Project not found');
+    }
+
     const sourceSnapshot = job.sourceSnapshotId ? this.snapshots.get(job.sourceSnapshotId) : undefined;
+
     if (!sourceSnapshot || sourceSnapshot.projectId !== source.id) {
       throw Object.assign(new Error(appPublicEnglish('PROJECT_MANIFEST_SNAPSHOT_UNPINNED')), {
         statusCode: 409,
         code: 'PROJECT_MANIFEST_SNAPSHOT_UNPINNED',
       });
     }
+
     const sourceManifest = readProjectManifestSnapshotPin(sourceSnapshot.manifest, source.id).manifest;
+
     if (job.targetProjectId) {
       const existing = this.projects.get(job.targetProjectId);
+
       if (existing) {
         const existingRevision = await this.getLatestProjectManifest(existing.id);
+
         if (existingRevision) {
           verifyStoredProjectManifestRevision(existingRevision, existing.id);
         } else {
@@ -3898,6 +4396,7 @@ export class TestApiStore implements ApiStore {
             },
           ]);
         }
+
         return existing;
       }
     }
@@ -3918,6 +4417,7 @@ export class TestApiStore implements ApiStore {
     job.targetProjectId = project.id;
     job.version += 1;
     job.updatedAt = now();
+
     return project;
   }
 
@@ -3956,6 +4456,7 @@ export class TestApiStore implements ApiStore {
     job.dbForked = true;
     job.version += 1;
     job.updatedAt = now();
+
     return job;
   }
 
@@ -3985,6 +4486,7 @@ export class TestApiStore implements ApiStore {
     job.operationExpiresAt = undefined;
     job.version += 1;
     job.updatedAt = now();
+
     return job;
   }
 
@@ -3998,7 +4500,10 @@ export class TestApiStore implements ApiStore {
   }) {
     const job = this.remixJobs.get(input.remixJobId);
 
-    if (!job || job.organizationId !== input.organizationId || job.state === 'COMPLETED') return undefined;
+    if (!job || job.organizationId !== input.organizationId || job.state === 'COMPLETED') {
+      return undefined;
+    }
+
     Object.assign(job, {
       state: 'CLEANUP_PENDING',
       cleanupTerminalState: input.terminalState,
@@ -4009,6 +4514,7 @@ export class TestApiStore implements ApiStore {
       version: job.version + 1,
       updatedAt: now(),
     });
+
     return job;
   }
 
@@ -4019,17 +4525,24 @@ export class TestApiStore implements ApiStore {
     targetProjectId: string;
   }) {
     const job = this.remixJobs.get(input.remixJobId);
-    if (!job || job.state !== 'CLEANUP_PENDING' || job.operationToken !== input.operationToken) return false;
+
+    if (!job || job.state !== 'CLEANUP_PENDING' || job.operationToken !== input.operationToken) {
+      return false;
+    }
+
     this.projects.delete(input.targetProjectId);
     job.targetProjectId = undefined;
+
     return true;
   }
 
   async finishRemixCleanup(input: { remixJobId: string; organizationId: string; operationToken: string }) {
     const job = this.remixJobs.get(input.remixJobId);
+
     if (!job || job.state !== 'CLEANUP_PENDING' || job.operationToken !== input.operationToken || job.targetProjectId) {
       return undefined;
     }
+
     job.state = 'FAILED';
     job.operationToken = undefined;
     job.operationExpiresAt = undefined;
@@ -4038,6 +4551,7 @@ export class TestApiStore implements ApiStore {
     job.targetDatabaseInstanceId = undefined;
     job.version += 1;
     job.updatedAt = now();
+
     return job;
   }
 
@@ -4056,7 +4570,11 @@ export class TestApiStore implements ApiStore {
     sourceInventory: unknown;
   }) {
     const existing = this.remixStorageShares.get(input.targetProjectId);
-    if (existing) return existing;
+
+    if (existing) {
+      return existing;
+    }
+
     const row: RemixStorageShareRecord = {
       id: id('remix-share'),
       ...input,
@@ -4064,6 +4582,7 @@ export class TestApiStore implements ApiStore {
       state: 'ACTIVE',
     };
     this.remixStorageShares.set(input.targetProjectId, row);
+
     return row;
   }
 
@@ -4074,6 +4593,7 @@ export class TestApiStore implements ApiStore {
 
   async revokeRemixStorageShare(input: { targetProjectId: string; targetOrganizationId: string }) {
     const share = this.remixStorageShares.get(input.targetProjectId);
+
     if (!share || share.targetOrganizationId !== input.targetOrganizationId || share.state !== 'ACTIVE') {
       return undefined;
     }
@@ -4084,6 +4604,7 @@ export class TestApiStore implements ApiStore {
       revokedAt: now(),
     };
     this.remixStorageShares.set(input.targetProjectId, revoked);
+
     return revoked;
   }
 
@@ -4094,6 +4615,7 @@ export class TestApiStore implements ApiStore {
     targetProjectId: string;
   }) {
     const job = this.remixJobs.get(input.remixJobId);
+
     if (
       !job ||
       job.organizationId !== input.organizationId ||
@@ -4105,6 +4627,7 @@ export class TestApiStore implements ApiStore {
     ) {
       return false;
     }
+
     return this.remixStorageShares.delete(input.targetProjectId);
   }
 
@@ -4273,6 +4796,7 @@ export class TestApiStore implements ApiStore {
     }
 
     const timestamp = now();
+
     const row: ImportJobRecord & { stagedFiles?: ImportStagedFile[]; connectorPreview?: unknown } = {
       id: id('import'),
       organizationId: input.organizationId,
@@ -4349,11 +4873,25 @@ export class TestApiStore implements ApiStore {
         : {}),
     });
 
-    if (input.patch?.targetProjectId === null) row.targetProjectId = undefined;
-    if (input.patch?.operationToken === null) row.operationToken = undefined;
-    if (input.patch?.operationExpiresAt === null) row.operationExpiresAt = undefined;
-    if (input.patch?.cleanupTerminalState === null) row.cleanupTerminalState = undefined;
-    if (input.patch?.error === null) row.error = undefined;
+    if (input.patch?.targetProjectId === null) {
+      row.targetProjectId = undefined;
+    }
+
+    if (input.patch?.operationToken === null) {
+      row.operationToken = undefined;
+    }
+
+    if (input.patch?.operationExpiresAt === null) {
+      row.operationExpiresAt = undefined;
+    }
+
+    if (input.patch?.cleanupTerminalState === null) {
+      row.cleanupTerminalState = undefined;
+    }
+
+    if (input.patch?.error === null) {
+      row.error = undefined;
+    }
 
     return row;
   }
@@ -4366,6 +4904,7 @@ export class TestApiStore implements ApiStore {
     leaseDurationMs: number;
   }) {
     const row = this.importJobs.get(input.id);
+
     if (
       !row ||
       row.organizationId !== input.organizationId ||
@@ -4380,6 +4919,7 @@ export class TestApiStore implements ApiStore {
     row.operationExpiresAt = new Date(Date.now() + input.leaseDurationMs).toISOString();
     row.version += 1;
     row.updatedAt = now();
+
     return row;
   }
 
@@ -4429,6 +4969,7 @@ export class TestApiStore implements ApiStore {
 
       if (existing) {
         const existingRevision = await this.getLatestProjectManifest(existing.id);
+
         if (existingRevision) {
           verifyStoredProjectManifestRevision(existingRevision, existing.id);
         } else {
@@ -4446,6 +4987,7 @@ export class TestApiStore implements ApiStore {
             },
           ]);
         }
+
         return existing;
       }
     }
@@ -4489,9 +5031,11 @@ export class TestApiStore implements ApiStore {
     }
 
     const target = this.projects.get(input.targetProjectId);
+
     if (!target || target.organizationId !== input.organizationId) {
       return undefined;
     }
+
     reservation.state = 'SETTLED';
     reservation.debitedCredits = input.actualCredits;
     reservation.version += 1;
@@ -4522,6 +5066,7 @@ export class TestApiStore implements ApiStore {
   }) {
     const job = this.importJobs.get(input.importJobId);
     const reservation = this.importReservations.get(input.importJobId);
+
     const otherOwnerActive =
       job?.operationToken &&
       job.operationToken !== input.operationToken &&
@@ -4537,16 +5082,24 @@ export class TestApiStore implements ApiStore {
       return undefined;
     }
 
-    if (reservation?.state === 'SETTLED') return undefined;
+    if (reservation?.state === 'SETTLED') {
+      return undefined;
+    }
+
     if (reservation) {
       reservation.state = 'COMPENSATED';
       reservation.debitedCredits = 0;
       reservation.version += 1;
     }
+
     if (job.targetProjectId) {
       const target = this.projects.get(job.targetProjectId);
-      if (target?.organizationId === input.organizationId) target.deletedAt = now();
+
+      if (target?.organizationId === input.organizationId) {
+        target.deletedAt = now();
+      }
     }
+
     Object.assign(job, {
       state: 'CLEANUP_PENDING',
       stagedFiles: undefined,
@@ -4583,7 +5136,11 @@ export class TestApiStore implements ApiStore {
     }
 
     const target = this.projects.get(input.targetProjectId);
-    if (!target || target.organizationId !== input.organizationId || !target.deletedAt) return false;
+
+    if (!target || target.organizationId !== input.organizationId || !target.deletedAt) {
+      return false;
+    }
+
     this.projects.delete(input.targetProjectId);
     this.projectIdeStates.delete(input.targetProjectId);
     job.targetProjectId = undefined;
@@ -4623,18 +5180,26 @@ export class TestApiStore implements ApiStore {
   async cancelImportJob(importJobId: string, organizationId: string) {
     const job = this.importJobs.get(importJobId);
 
-    if (!job || job.organizationId !== organizationId) return undefined;
-    if (job.state === 'CANCELLED') return job;
+    if (!job || job.organizationId !== organizationId) {
+      return undefined;
+    }
+
+    if (job.state === 'CANCELLED') {
+      return job;
+    }
+
     if (['COMMITTED', 'COMMITTING', 'CLEANUP_PENDING', 'ROLLING_BACK', 'EXPIRED', 'FAILED'].includes(job.state)) {
       return undefined;
     }
 
     const reservation = this.importReservations.get(importJobId);
+
     if (reservation?.state === 'RESERVED') {
       reservation.state = 'COMPENSATED';
       reservation.debitedCredits = 0;
       reservation.version += 1;
     }
+
     Object.assign(job, {
       state: 'CANCELLED',
       stagedFiles: undefined,
@@ -4662,8 +5227,12 @@ export class TestApiStore implements ApiStore {
       if (!terminal.has(row.state) && (operationExpired || stagingExpired)) {
         if (row.targetProjectId) {
           const target = this.projects.get(row.targetProjectId);
-          if (target?.organizationId === row.organizationId) target.deletedAt = new Date(now).toISOString();
+
+          if (target?.organizationId === row.organizationId) {
+            target.deletedAt = new Date(now).toISOString();
+          }
         }
+
         row.state = row.targetProjectId ? 'CLEANUP_PENDING' : 'EXPIRED';
         row.error = 'Import staging expired before it was committed.';
         row.stagedFiles = undefined;
@@ -4677,10 +5246,12 @@ export class TestApiStore implements ApiStore {
         }
 
         const reservation = this.importReservations.get(row.id);
+
         if (reservation?.state === 'RESERVED') {
           reservation.state = 'COMPENSATED';
           reservation.version += 1;
         }
+
         ids.push(row.id);
       }
     }
