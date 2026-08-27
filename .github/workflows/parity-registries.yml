@@ -227,10 +227,7 @@ jobs:
           path: |
             /tmp/collect.log
             /tmp/parity-collector-diagnostics
-            ${{ steps.collect.outputs.snapshot_dir }}/manifest.json
-            ${{ steps.collect.outputs.snapshot_dir }}/pricing.rendered.html
-            ${{ steps.collect.outputs.snapshot_dir }}/gallery.rendered.html
-            ${{ steps.collect.outputs.snapshot_dir }}/community.rendered.html
+            ${{ steps.collect.outputs.snapshot_dir }}
       - name: Commit the day's snapshot
         run: |
           git config user.name "parity-baseline-bot"

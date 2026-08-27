@@ -220,6 +220,28 @@ Observation:
 
 `eventDate` reste `null` lorsqu’aucune date officielle de lancement n’est connue.
 
+#### 3.2.1 Contrat d’échec et archive authentifiable
+
+Chaque source capturée avec le statut `OK` produit, en plus de l’artefact lisible,
+un enregistrement de réponse `WARC/1.1`. Le WARC lie l’URL finale, le statut HTTP,
+la date de capture, la longueur exacte et les empreintes SHA-256 du bloc HTTP et du
+payload. Le manifeste lie à son tour le fichier WARC par son nom et son SHA-256.
+Le gate quotidien relit les octets du payload et refuse toute longueur, cible,
+empreinte ou donnée terminale incohérente.
+
+Une navigation Playwright n’est jamais considérée comme réussie au seul motif
+qu’elle a retourné du HTML. Le collecteur distingue explicitement `BLOCKED`,
+`AUTH_REQUIRED`, `ROUTE_REMOVED`, `INCOMPLETE_RENDER` et `FAILED`. Pour les trois
+routes produit obligatoires, le job exige également un texte rendu substantiel
+et hashé. Un de ces états empêche le commit du snapshot, tandis que le manifeste,
+les logs et le dossier de capture complet restent téléversés avec `if: always()`
+pour le diagnostic.
+
+Le contrat est verrouillé hors réseau par
+`node --test scripts/parity/collector-ci.node-test.mjs`, avec mutations dédiées
+aux cinq pannes P1-A2-13 : blocage bot, hydratation JavaScript incomplète,
+apparition d’une authentification, suppression de route et WARC corrompu.
+
 ### 3.3 Scan du 20 juillet 2026
 
 Le scan joint est traité comme une **collecte brute à normaliser** :
