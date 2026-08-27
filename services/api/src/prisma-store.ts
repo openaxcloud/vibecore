@@ -2942,6 +2942,9 @@ export class PrismaApiStore implements ApiStore {
         status: true,
         createdAt: true,
         environmentName: true,
+        // P104: the access config lives in metadata.access; the static-serve
+        // gate reads it from here. Dropping it fails OPEN (see store.ts).
+        metadata: true,
         /*
          * L'org et son abonnement sont nécessaires ICI : l'extinction à 30 jours
          * d'une publication Starter se décide dans le chemin de SERVICE, pas
@@ -2980,6 +2983,7 @@ export class PrismaApiStore implements ApiStore {
       environmentName: deployment.environmentName ?? undefined,
       organizationId: deployment.project?.organizationId,
       planKey: subscription?.status === 'ACTIVE' ? subscription.plan?.key : undefined,
+      metadata: (deployment.metadata ?? undefined) as Record<string, unknown> | undefined,
     };
   }
 

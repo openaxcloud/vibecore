@@ -1944,6 +1944,19 @@ export interface ApiStore {
         organizationId?: string;
         /** Plan de l'org, uniquement si l'abonnement est ACTIF. */
         planKey?: string;
+        /*
+         * P104: the metadata JSON so the static-serve path can read the access
+         * config (metadata.access) without a second query.
+         *
+         * REQUIRED for the gate to work at all. `accessConfigFromMetadata`
+         * treats an absent `access` key as PUBLIC (the legitimate default for a
+         * deployment that was never gated), so if this field silently stops
+         * being selected, every password-protected deployment is served openly
+         * with no error anywhere. That exact fail-open happened when P104 was
+         * reverted from main and re-applied: the call sites came back, this
+         * contract did not. Covered by deployment-password.spec.ts.
+         */
+        metadata?: Record<string, unknown>;
       }
     | undefined
   >;
