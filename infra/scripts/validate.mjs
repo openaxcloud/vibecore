@@ -214,6 +214,13 @@ assertStrictCorsOrigins(
   'https://app.e-code.ai,https://e-code.ai,https://www.e-code.ai',
   'production API CORS allowlist',
 );
+const prodIngress = renderedResource(prodPlatform, 'vibecore-vibecore-platform-app');
+assertIncludes(
+  prodIngress,
+  'nginx.ingress.kubernetes.io/from-to-www-redirect: "true"',
+  'production canonical www redirect',
+);
+assertIncludes(prodIngress, '- "www.e-code.ai"', 'production www TLS host');
 
 const derivedWwwCorsPlatform = helmTemplate([
   '--set',

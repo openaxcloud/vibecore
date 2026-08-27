@@ -9,6 +9,10 @@ global:
   appDomain: app.e-code.ai
   previewDomain: preview.e-code.ai
   marketingDomain: e-code.ai
+  # Production DNS and the managed certificate already serve www.e-code.ai.
+  # Persist the redirect here so a fresh install/DR restore cannot lose the
+  # live 308 redirect that deploys using --reuse-values currently preserve.
+  marketingWwwRedirect: true
   apiDomain: api.e-code.ai
   workspaceManagerDomain: workspace-manager.e-code.ai
   dns01:
