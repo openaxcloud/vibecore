@@ -107,11 +107,31 @@ function contrast(foreground: string, background: string) {
 }
 
 function token(selector: string, property: string) {
-  const value = BLOCKS.get(selector)?.get(property);
+  const value = resolveToken(selector, property);
 
   expect(value, `${selector} { ${property} }`).toMatch(/^#[0-9a-f]{6}$/i);
 
   return value!;
+}
+
+/*
+ * Suit les alias jusqu'à la couleur réellement rendue. Un jeton peut pointer
+ * vers un autre (`--status-success-text: var(--vc-ide-accent-success-on-tint)`)
+ * : c'est la valeur au bout de la chaîne qui atteint l'écran, donc c'est elle
+ * qu'il faut mesurer. On résout dans le bloc courant puis, à défaut, dans le
+ * bloc de base — l'ordre de la cascade.
+ */
+function resolveToken(selector: string, property: string, depth = 0): string | undefined {
+  const base = selector.replace(/^:root\[data-theme='(light|dark)'\]\s*/, '') || ':root';
+  const raw = BLOCKS.get(selector)?.get(property) ?? BLOCKS.get(base)?.get(property);
+
+  if (raw === undefined || depth > 8) {
+    return raw;
+  }
+
+  const alias = raw.trim().match(/^var\(\s*(--[\w-]+)\s*(?:,.*)?\)$/);
+
+  return alias ? resolveToken(selector, alias[1], depth + 1) : raw;
 }
 
 const AA_BODY_TEXT = 4.5;
