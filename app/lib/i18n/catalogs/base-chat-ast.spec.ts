@@ -178,10 +178,22 @@ describe('BaseChat strengthened-AST catalog', () => {
      *    d'un attribut de comportement devient conditionnelle. Voir
      *    `~/lib/command-palette-focus`.
      *
+     * 6. BUG-IDE-PANEL-RESOLUTION-001, corrigé À LA DEMANDE EXPLICITE du
+     *    propriétaire (« une seule source de vérité pour l'en-tête et le
+     *    contenu ») — `mobileServiceHeaderTab` ne dérive plus de
+     *    `activeMobileOpenTabId` (état d'onglet monté tardivement) mais du
+     *    panneau de service RÉSOLU, `activeMobileServicePanel`, celui-là même
+     *    que rend le contenu. C'est ce décalage qui affichait l'en-tête
+     *    « Agent » au-dessus du contenu « Déploiements », et qui envoyait
+     *    `?panel=studio` sur Vue d'ensemble / `?panel=debugger` sur Git à
+     *    froid. `mobileHeaderTab` — l'en-tête de la coque mobile gelée sur
+     *    IMG_9149 — n'est PAS touché : mêmes valeurs, mêmes classes, même
+     *    rendu. Seule la source du sous-en-tête de panneau de service change.
+     *
      * Toute évolution du hash hors d'une demande explicite du propriétaire
      * signale une dérive de mise en page à refuser.
      */
-    expect(frozenHash).toBe('509abbb9f97fb6ddf80c54d7dbc7736a2220db0386b7eea05486ba5f7d2cd15e');
+    expect(frozenHash).toBe('b0eab6767c15193772baabb0f8ee5f55357889bbf96d4172a504ae21302b4b7a');
     expect(outsideFrozen).toEqual([]);
 
     // The mobile header/dock labels are now localized via t(); no raw English remains.

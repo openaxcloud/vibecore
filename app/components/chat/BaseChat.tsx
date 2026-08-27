@@ -3246,13 +3246,15 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
          * barre du bas) laissait le contenu sur sa valeur précédente pendant que
          * l'en-tête affichait le nouvel onglet.
          */
-        const tabResolution = resolveIdePanelKey(tabId);
+        if (panel === 'deploy') {
+          const tabResolution = resolveIdePanelKey(tabId);
 
-        if (tabResolution.status === 'canonical' || tabResolution.status === 'alias') {
-          const target = ideMobileTarget(tabResolution.panel);
+          if (tabResolution.status === 'canonical' || tabResolution.status === 'alias') {
+            const target = ideMobileTarget(tabResolution.panel);
 
-          if (target.servicePanel) {
-            setMobileServicePanel(target.servicePanel);
+            if (target.servicePanel) {
+              setMobileServicePanel(target.servicePanel);
+            }
           }
         }
 

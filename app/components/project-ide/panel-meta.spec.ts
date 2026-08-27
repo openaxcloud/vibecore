@@ -14,6 +14,8 @@ import { join } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
+import { IDE_MANAGEMENT_PANELS } from '~/lib/ide/panel-registry';
+
 import { GENERIC_PANEL_ICON, PANEL_ICONS, panelIcon } from './panel-meta';
 
 const baseChatSource = readFileSync(join(__dirname, '..', 'chat', 'BaseChat.tsx'), 'utf8');
@@ -23,16 +25,6 @@ const codeOnly = (source: string) =>
   source.replace(/\/\*[\s\S]*?\*\//g, (block) => block.replace(/[^\n]/g, ' ')).replace(/\/\/.*$/gm, '');
 
 const baseChatCode = codeOnly(baseChatSource);
-
-function extractStringArray(name: string): string[] {
-  const match = baseChatCode.match(new RegExp(`const ${name} = \\[([\\s\\S]*?)\\] as const;`));
-
-  if (!match) {
-    throw new Error(`Unable to locate const ${name} in BaseChat.tsx`);
-  }
-
-  return [...match[1].matchAll(/'([a-z0-9-]+)'/g)].map((entry) => entry[1]);
-}
 
 function extractBlock(startMarker: string, endMarker: string): string {
   const start = baseChatCode.indexOf(startMarker);
@@ -56,7 +48,7 @@ const declaredPanels = [
   'files',
   'search',
   'locks',
-  ...extractStringArray('IDE_MANAGEMENT_PANELS'),
+  ...IDE_MANAGEMENT_PANELS,
 ];
 
 describe('UNIF-05 — registre unique PANEL_ICONS', () => {
