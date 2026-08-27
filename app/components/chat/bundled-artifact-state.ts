@@ -53,3 +53,123 @@ export function firstBundledFailureReason(actions: ActionState[]): string | unde
 
   return undefined;
 }
+
+/**
+ * BUG-AGENT-003 — l'issue de l'orchestration doit peser sur le statut affiché.
+ *
+ * La ligne de statut du run (« Agent · Terminé · 100 % ») se calcule à partir
+ * des seules annotations `progress`, qui décrivent les ACTIONS. Un run dont les
+ * cinq voies parallèles échouent et dont le consensus est rejeté à 0 % voit donc
+ * ses écritures de fichiers réussir et s'affiche « Terminé 100 % » — alors que
+ * le panneau Agent, lui, affiche honnêtement « Plan 0/5 » et « Rejeté ».
+ *
+ * Deux surfaces, deux vérités contradictoires sur le même run. Ce prédicat
+ * fournit la moitié manquante, pour que la ligne de statut ne puisse plus
+ * annoncer un succès complet quand l'orchestration a échoué.
+ *
+ * Volontairement étroit : seuls un `status: 'failed'` explicite et un consensus
+ * `REJECTED` comptent. Un run `partial` reste `partial` — le dégrader en échec
+ * serait aussi mensonger, dans l'autre sens.
+ */
+export function isAgentRunFailed(annotations: unknown): boolean {
+  if (!Array.isArray(annotations)) {
+    return false;
+  }
+
+  for (const entry of annotations) {
+    if (typeof entry !== 'object' || entry === null) {
+      continue;
+    }
+
+    const annotation = entry as {
+      type?: unknown;
+      status?: unknown;
+      consensus?: { outcome?: unknown } | null;
+    };
+
+    if (annotation.type !== 'agentExecution') {
+      continue;
+    }
+
+    if (annotation.status === 'failed') {
+      return true;
+    }
+
+    if (annotation.consensus && annotation.consensus.outcome === 'REJECTED') {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
+ * BUG-UX-AGENT-DONE-FALSE — le complément de `isAgentRunFailed`, pour la zone
+ * grise que le prédicat étroit laisse volontairement passer.
+ *
+ * `isAgentRunFailed` ne compte que l'échec franc (`status: 'failed'`, consensus
+ * `REJECTED`). Mais en live, un run « Partial · 20% agreement » avec un plan à
+ * 0/N rôles complétés s'affichait quand même « Agent · Terminé · 100 % » : le
+ * pourcentage vient du ratio d'actions de fichiers, pas de l'orchestration.
+ *
+ * Ce prédicat détecte cette zone grise SANS la requalifier en échec (ce qui
+ * mentirait dans l'autre sens) : le run est bien allé au bout, mais pas
+ * proprement. L'appelant l'affiche « Terminé avec des erreurs ».
+ *
+ * Signaux retenus, tous issus de l'annotation `agentExecution` :
+ *  - `status: 'partial'` — l'orchestrateur lui-même dit « partiel » ;
+ *  - au moins un rôle du plan non `complete` (le « Plan 0/N » du panneau Agent) ;
+ *  - consensus non `ACCEPTED` (`PARTIAL`, `ABSTAINED`) ;
+ *  - accord mesuré sous le seuil exigé (`agreementScore < threshold`).
+ */
+export function isAgentRunDegraded(annotations: unknown): boolean {
+  if (!Array.isArray(annotations)) {
+    return false;
+  }
+
+  for (const entry of annotations) {
+    if (typeof entry !== 'object' || entry === null) {
+      continue;
+    }
+
+    const annotation = entry as {
+      type?: unknown;
+      status?: unknown;
+      results?: Array<{ status?: unknown } | null> | null;
+      consensus?: { outcome?: unknown; agreementScore?: unknown; threshold?: unknown } | null;
+    };
+
+    if (annotation.type !== 'agentExecution') {
+      continue;
+    }
+
+    if (annotation.status === 'partial') {
+      return true;
+    }
+
+    if (
+      Array.isArray(annotation.results) &&
+      annotation.results.some((result) => result != null && result.status !== 'complete')
+    ) {
+      return true;
+    }
+
+    const consensus = annotation.consensus;
+
+    if (consensus) {
+      if (consensus.outcome !== undefined && consensus.outcome !== 'ACCEPTED') {
+        return true;
+      }
+
+      if (
+        typeof consensus.agreementScore === 'number' &&
+        typeof consensus.threshold === 'number' &&
+        consensus.agreementScore < consensus.threshold
+      ) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}

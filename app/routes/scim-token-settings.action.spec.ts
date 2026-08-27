@@ -1,17 +1,16 @@
 /**
  * @vitest-environment node
  *
- * Regression guard for the SCIM-token action error handling. The action used to
- * call `apiRequest` with no try/catch, so a thrown `Response` (403 missing
- * `scim:manage`, 400 duplicate name, 5xx api down) bubbled past the route to the
- * root error boundary — full-paging the user off the form — while the inline
- * `error={actionData?.error}` path could never fire because the action never
- * returned `{ error }`. These tests assert the action now catches the throw and
- * returns a JSON `{ error }` body (with the upstream status) the form can render.
+ * Security and contract guards for SCIM token settings. Upstream response prose
+ * must never reach the UI; only reviewed, locale-independent status codes leave
+ * the action. One-time secrets are accepted only from a valid response shape.
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { action, loader, meta } from './scim-token-settings';
+import type { ScimTokenActionData } from '~/lib/i18n/catalogs/scim-token-settings';
 
 const apiRequest = vi.fn();
+const firstOrganizationOrNull = vi.fn();
 
 vi.mock('~/lib/enterprise-api.server', async () => {
   const actual = await vi.importActual<typeof import('~/lib/enterprise-api.server')>('~/lib/enterprise-api.server');
@@ -19,10 +18,9 @@ vi.mock('~/lib/enterprise-api.server', async () => {
   return {
     ...actual,
     apiRequest: (...args: unknown[]) => apiRequest(...args),
+    firstOrganizationOrNull: (...args: unknown[]) => firstOrganizationOrNull(...args),
   };
 });
-
-import { action } from './scim-token-settings';
 
 function formRequest(fields: Record<string, string>): Request {
   const form = new FormData();
@@ -34,14 +32,9 @@ function formRequest(fields: Record<string, string>): Request {
   return new Request('http://localhost/scim-token-settings', { method: 'POST', body: form });
 }
 
-/*
- * The route's `json` is React Router 7's `data()` helper, which returns a
- * `{ data, init }` wrapper (not a Fetch `Response`). Unwrap both here so the
- * assertions read the body and the HTTP status the framework would emit.
- */
 async function runAction(fields: Record<string, string>) {
   const result = (await action({ request: formRequest(fields) } as never)) as {
-    data: { error?: string; status?: string; token?: string };
+    data: ScimTokenActionData;
     init?: { status?: number } | number | null;
   };
 
@@ -50,90 +43,251 @@ async function runAction(fields: Record<string, string>) {
   return { status: init?.status ?? 200, body: result.data };
 }
 
-describe('scim-token-settings action error handling', () => {
+async function runLoader(language = 'en-US') {
+  const request = new Request('http://localhost/scim-token-settings', {
+    headers: { 'Accept-Language': language },
+  });
+  const result = (await loader({ request } as never)) as {
+    data: {
+      orgId: string;
+      language: 'en' | 'fr';
+      scimTokens: Array<Record<string, unknown>>;
+      loadErrorKind: 'permission' | 'temporary' | null;
+    };
+  };
+
+  return result.data;
+}
+
+function apiResponse(status: number, payload?: Record<string, unknown>) {
+  return new Response(payload ? JSON.stringify(payload) : '', {
+    status,
+    headers: payload ? { 'content-type': 'application/json' } : undefined,
+  });
+}
+
+describe('scim-token-settings action', () => {
   beforeEach(() => {
     apiRequest.mockReset();
+    firstOrganizationOrNull.mockReset();
+    firstOrganizationOrNull.mockResolvedValue({ id: 'org_1' });
   });
 
-  it('returns an inline 403 error (not a thrown Response) when the api forbids the request', async () => {
-    apiRequest.mockRejectedValueOnce(
-      new Response(JSON.stringify({ error: 'You lack the scim:manage permission.' }), {
-        status: 403,
-        headers: { 'content-type': 'application/json' },
-      }),
-    );
+  it('maps forbidden API prose to a stable permission code without leaking it', async () => {
+    apiRequest.mockRejectedValueOnce(apiResponse(403, { error: 'You lack the scim:manage permission.' }));
 
-    const { status, body } = await runAction({ orgId: 'org_1', name: 'idp-token' });
+    const { status, body } = await runAction({ orgId: 'org_1', intent: 'create', name: 'idp-token' });
 
     expect(status).toBe(403);
-    expect(body.error).toBe('You lack the scim:manage permission.');
-    expect(body.token).toBeUndefined();
+    expect(body).toEqual({ errorCode: 'permissionDenied' });
+    expect(JSON.stringify(body)).not.toContain('You lack');
   });
 
-  it('propagates a 400 duplicate-name error inline with its message', async () => {
+  it('uses stable API codes for recent-admin reauthentication', async () => {
     apiRequest.mockRejectedValueOnce(
-      new Response(JSON.stringify({ error: 'A token with that name already exists.' }), {
-        status: 400,
-        headers: { 'content-type': 'application/json' },
-      }),
+      apiResponse(403, { code: 'ADMIN_REAUTH_REQUIRED', error: 'Internal policy prose' }),
     );
 
-    const { status, body } = await runAction({ orgId: 'org_1', name: 'dupe' });
+    const { status, body } = await runAction({ orgId: 'org_1', intent: 'create', name: 'idp-token' });
+
+    expect(status).toBe(403);
+    expect(body).toEqual({ errorCode: 'reauthRequired' });
+    expect(JSON.stringify(body)).not.toContain('Internal policy prose');
+  });
+
+  it('maps validation prose to a reviewed invalid-request code', async () => {
+    apiRequest.mockRejectedValueOnce(apiResponse(400, { error: 'A token with that name already exists.' }));
+
+    const { status, body } = await runAction({ orgId: 'org_1', intent: 'create', name: 'dupe' });
 
     expect(status).toBe(400);
-    expect(body.error).toBe('A token with that name already exists.');
+    expect(body).toEqual({ errorCode: 'invalidRequest' });
+    expect(JSON.stringify(body)).not.toContain('already exists');
   });
 
-  it('falls back to a generic message when the api response has no error body', async () => {
-    apiRequest.mockRejectedValueOnce(new Response('', { status: 500 }));
+  it('maps server and network failures to the same safe unavailable code', async () => {
+    apiRequest.mockRejectedValueOnce(apiResponse(500));
 
-    const { status, body } = await runAction({ orgId: 'org_1', name: 'x' });
+    await expect(runAction({ orgId: 'org_1', intent: 'create', name: 'x' })).resolves.toEqual({
+      status: 502,
+      body: { errorCode: 'serviceUnavailable' },
+    });
 
-    expect(status).toBe(500);
-    expect(body.error).toBe('Failed to create SCIM token.');
+    apiRequest.mockRejectedValueOnce(new Error('fetch failed with private upstream host'));
+
+    await expect(runAction({ orgId: 'org_1', intent: 'create', name: 'x' })).resolves.toEqual({
+      status: 502,
+      body: { errorCode: 'serviceUnavailable' },
+    });
   });
 
-  it('returns a 200 unavailable error for a non-Response throw (network/timeout)', async () => {
-    apiRequest.mockRejectedValueOnce(new Error('fetch failed'));
-
-    const { body } = await runAction({ orgId: 'org_1', name: 'x' });
-
-    expect(body.error).toContain('temporarily unavailable');
-    expect(body.token).toBeUndefined();
-  });
-
-  it('still validates a missing orgId before touching the api', async () => {
-    const { status, body } = await runAction({ name: 'x' });
-
-    expect(status).toBe(400);
-    expect(body.error).toBe('Your organization is unavailable. Reload the page and try again.');
+  it('validates organization, intent and token name before touching the API', async () => {
+    await expect(runAction({ intent: 'create', name: 'x' })).resolves.toEqual({
+      status: 400,
+      body: { errorCode: 'organizationUnavailable' },
+    });
+    await expect(runAction({ orgId: 'org_1', intent: 'unsupported', name: 'x' })).resolves.toEqual({
+      status: 400,
+      body: { errorCode: 'intentInvalid' },
+    });
+    await expect(runAction({ orgId: 'org_1', intent: 'create', name: '   ' })).resolves.toEqual({
+      status: 400,
+      body: { errorCode: 'nameRequired', field: 'name' },
+    });
+    await expect(runAction({ orgId: 'org_1', intent: 'create', name: 'x'.repeat(257) })).resolves.toEqual({
+      status: 400,
+      body: { errorCode: 'nameTooLong', field: 'name' },
+    });
     expect(apiRequest).not.toHaveBeenCalled();
   });
 
-  it('returns the created token on success', async () => {
-    apiRequest.mockResolvedValueOnce({ token: 'scim_secret_value' });
+  it('trims user input, encodes the organization and returns the exact created secret', async () => {
+    apiRequest.mockResolvedValueOnce({ token: ' scim_secret_value ' });
 
-    const { body } = await runAction({ orgId: 'org_1', name: 'good' });
+    const { body } = await runAction({ orgId: ' org/one ', name: '  Okta production  ' });
 
-    expect(body.token).toBe('scim_secret_value');
-    expect(body.error).toBeUndefined();
-    expect(body.status).toContain('SCIM token created');
+    expect(body).toEqual({ statusCode: 'created', token: ' scim_secret_value ' });
+    expect(apiRequest).toHaveBeenCalledWith(expect.any(Request), '/orgs/org%2Fone/scim/tokens', {
+      method: 'POST',
+      body: JSON.stringify({ name: 'Okta production' }),
+    });
   });
 
-  it('re-throws a 401 login re-auth (3xx) redirect so the framework performs the redirect', async () => {
+  it('rejects a malformed create response instead of rendering an invalid secret', async () => {
+    apiRequest.mockResolvedValueOnce({ token: '   ' });
+
+    await expect(runAction({ orgId: 'org_1', intent: 'create', name: 'Okta' })).resolves.toEqual({
+      status: 502,
+      body: { errorCode: 'invalidResponse' },
+    });
+  });
+
+  it('renews a selected token with encoded identifiers and returns the one-time secret', async () => {
+    apiRequest.mockResolvedValueOnce({ token: 'rotated_secret' });
+
+    const { body } = await runAction({ orgId: 'org/1', intent: 'rotate', tokenId: 'token/1' });
+
+    expect(body).toEqual({ statusCode: 'rotated', token: 'rotated_secret' });
+    expect(apiRequest).toHaveBeenCalledWith(expect.any(Request), '/orgs/org%2F1/scim/tokens/token%2F1/rotate', {
+      method: 'POST',
+    });
+  });
+
+  it('revokes a selected token and never returns a secret', async () => {
+    apiRequest.mockResolvedValueOnce({});
+
+    const { body } = await runAction({ orgId: 'org_1', intent: 'revoke', tokenId: 'token_1' });
+
+    expect(body).toEqual({ statusCode: 'revoked' });
+    expect(apiRequest).toHaveBeenCalledWith(expect.any(Request), '/orgs/org_1/scim/tokens/token_1', {
+      method: 'DELETE',
+    });
+  });
+
+  it('validates a missing token ID and maps a disappeared token', async () => {
+    await expect(runAction({ orgId: 'org_1', intent: 'rotate' })).resolves.toEqual({
+      status: 400,
+      body: { errorCode: 'tokenRequired' },
+    });
+
+    apiRequest.mockRejectedValueOnce(apiResponse(404, { code: 'SCIM_TOKEN_NOT_FOUND', error: 'Database row details' }));
+
+    await expect(runAction({ orgId: 'org_1', intent: 'revoke', tokenId: 'gone' })).resolves.toEqual({
+      status: 404,
+      body: { errorCode: 'tokenNotFound' },
+    });
+  });
+
+  it('rethrows login and MFA redirects so React Router performs them', async () => {
     const loginRedirect = new Response(null, {
       status: 302,
       headers: { Location: '/login?returnTo=%2Fscim-token-settings' },
     });
     apiRequest.mockRejectedValueOnce(loginRedirect);
 
-    await expect(action({ request: formRequest({ orgId: 'org_1', name: 'x' }) } as never)).rejects.toBe(loginRedirect);
-  });
+    await expect(
+      action({ request: formRequest({ orgId: 'org_1', intent: 'create', name: 'x' }) } as never),
+    ).rejects.toBe(loginRedirect);
 
-  it('re-throws an MFA_REQUIRED redirect to /mfa-setup instead of swallowing it inline', async () => {
     const mfaRedirect = new Response(null, { status: 303, headers: { Location: '/mfa-setup' } });
     apiRequest.mockRejectedValueOnce(mfaRedirect);
 
-    await expect(action({ request: formRequest({ orgId: 'org_1', name: 'x' }) } as never)).rejects.toBe(mfaRedirect);
+    await expect(
+      action({ request: formRequest({ orgId: 'org_1', intent: 'create', name: 'x' }) } as never),
+    ).rejects.toBe(mfaRedirect);
+  });
+});
+
+describe('scim-token-settings loader and metadata', () => {
+  beforeEach(() => {
+    apiRequest.mockReset();
+    firstOrganizationOrNull.mockReset();
+    firstOrganizationOrNull.mockResolvedValue({ id: 'org/1' });
+  });
+
+  it('resolves French on the server, encodes the organization and validates token metadata', async () => {
+    apiRequest.mockResolvedValueOnce({
+      scimTokens: [
+        {
+          id: 'token_1',
+          name: 'Nom saisi par le client',
+          createdAt: '2026-01-02T03:04:05.000Z',
+          lastUsedAt: null,
+          expiresAt: '2027-01-02T03:04:05.000Z',
+          expired: false,
+        },
+      ],
+    });
+
+    const data = await runLoader('fr-FR,fr;q=0.9,en;q=0.8');
+
+    expect(data.language).toBe('fr');
+    expect(data.loadErrorKind).toBeNull();
+    expect(data.scimTokens).toHaveLength(1);
+    expect(data.scimTokens[0]?.name).toBe('Nom saisi par le client');
+    expect(apiRequest).toHaveBeenCalledWith(expect.any(Request), '/orgs/org%2F1/scim/tokens');
+
+    expect(meta({ data } as never)).toEqual([
+      { title: 'Paramètres des jetons SCIM — E-Code' },
+      {
+        name: 'description',
+        content:
+          'Créez, renouvelez et révoquez les jetons SCIM utilisés par les fournisseurs d’identité pour provisionner les membres.',
+      },
+    ]);
+  });
+
+  it('does not turn malformed security metadata into a false empty state', async () => {
+    apiRequest.mockResolvedValueOnce({ scimTokens: [{ id: 'token_1', name: 'incomplete' }] });
+
+    const data = await runLoader('en-US');
+
+    expect(data.scimTokens).toEqual([]);
+    expect(data.loadErrorKind).toBe('temporary');
+  });
+
+  it('distinguishes permission denial from temporary failure without returning API prose', async () => {
+    apiRequest.mockRejectedValueOnce(apiResponse(403, { error: 'Sensitive upstream explanation' }));
+
+    const data = await runLoader('fr');
+
+    expect(data.loadErrorKind).toBe('permission');
+    expect(JSON.stringify(data)).not.toContain('Sensitive upstream explanation');
+
+    apiRequest.mockRejectedValueOnce(new Error('private backend hostname'));
+
+    const retryData = await runLoader('fr');
+
+    expect(retryData.loadErrorKind).toBe('temporary');
+    expect(JSON.stringify(retryData)).not.toContain('private backend hostname');
+  });
+
+  it('rethrows authentication redirects from the loader', async () => {
+    const redirectResponse = new Response(null, { status: 302, headers: { Location: '/login' } });
+    apiRequest.mockRejectedValueOnce(redirectResponse);
+
+    await expect(loader({ request: new Request('http://localhost/scim-token-settings') } as never)).rejects.toBe(
+      redirectResponse,
+    );
   });
 });

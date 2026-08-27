@@ -2,14 +2,17 @@ import { useStore } from '@nanostores/react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { computed, map } from 'nanostores';
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { createHighlighter, type BundledLanguage, type BundledTheme, type HighlighterGeneric } from 'shiki';
 import { DiffActionRow } from './DiffActionRow';
+import { type BundledArtifactState, deriveBundledArtifactState } from './bundled-artifact-state';
 import {
-  type BundledArtifactState,
-  deriveBundledArtifactState,
-  firstBundledFailureReason,
-} from './bundled-artifact-state';
-import type { ActionState, FailedActionState } from '~/lib/runtime/action-runner';
+  type ChatRenderersCopy,
+  formatChatRendererDuration,
+  formatChatRenderersCopy,
+  getChatRenderersCopy,
+} from '~/lib/i18n/catalogs/chat-renderers';
+import type { ActionState } from '~/lib/runtime/action-runner';
 import { themeStore } from '~/lib/stores/theme';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { classNames } from '~/utils/classNames';
@@ -42,6 +45,8 @@ interface ArtifactProps {
 }
 
 export const Artifact = memo(({ artifactId }: ArtifactProps) => {
+  const { i18n } = useTranslation();
+  const copy = getChatRenderersCopy(i18n.resolvedLanguage ?? i18n.language ?? 'en');
   const userToggledActions = useRef(false);
   const [showActions, setShowActions] = useState(false);
   const [bundledState, setBundledState] = useState<BundledArtifactState>('running');
@@ -103,34 +108,39 @@ export const Artifact = memo(({ artifactId }: ArtifactProps) => {
 
   if (artifact?.type === 'bundled') {
     if (bundledState === 'failed') {
-      dynamicTitle = isRestore ? 'Project restore failed' : 'Project setup failed';
+      dynamicTitle = isRestore
+        ? copy['chatRenderers.artifact.restoreFailedTitle']
+        : copy['chatRenderers.artifact.setupFailedTitle'];
     } else if (bundledState === 'complete') {
-      dynamicTitle = isRestore ? 'Project Restored' : 'Project Created';
+      dynamicTitle = isRestore
+        ? copy['chatRenderers.artifact.restoredTitle']
+        : copy['chatRenderers.artifact.createdTitle'];
     } else {
-      dynamicTitle = isRestore ? 'Restoring Project...' : 'Creating Project...';
+      dynamicTitle = isRestore
+        ? copy['chatRenderers.artifact.restoringTitle']
+        : copy['chatRenderers.artifact.creatingTitle'];
     }
   }
-
-  const bundledFailureReason = artifact?.type === 'bundled' ? firstBundledFailureReason(actions) : undefined;
 
   return (
     <>
       <div className="artifact border border-bolt-elements-borderColor flex flex-col overflow-hidden rounded-lg w-full transition-border duration-150">
-        <div className="flex">
+        <div className="flex min-w-0">
           <button
-            className="flex items-stretch bg-bolt-elements-artifacts-background hover:bg-bolt-elements-artifacts-backgroundHover w-full overflow-hidden"
+            type="button"
+            className="flex min-h-11 min-w-0 w-full items-stretch overflow-hidden bg-bolt-elements-artifacts-background outline-none hover:bg-bolt-elements-artifacts-backgroundHover focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-bolt-elements-borderColorActive"
             onClick={() => {
               const showWorkbench = workbenchStore.showWorkbench.get();
               workbenchStore.showWorkbench.set(!showWorkbench);
             }}
           >
-            <div className="px-5 p-3.5 w-full text-left">
-              <div className="w-full text-bolt-elements-textPrimary font-medium leading-5 text-sm">
+            <div className="min-w-0 w-full px-5 p-3.5 text-left">
+              <div className="w-full break-words text-bolt-elements-textPrimary font-medium leading-5 text-sm">
                 {/* Use the dynamic title here */}
                 {dynamicTitle}
               </div>
-              <div className="w-full w-full text-bolt-elements-textSecondary text-xs mt-0.5">
-                Click to open Workbench
+              <div className="mt-0.5 w-full break-words text-xs text-bolt-elements-textSecondary">
+                {copy['chatRenderers.artifact.openWorkbench']}
               </div>
             </div>
           </button>
@@ -139,14 +149,18 @@ export const Artifact = memo(({ artifactId }: ArtifactProps) => {
             {actions.length > 0 && artifact.type !== 'bundled' && (
               <motion.button
                 type="button"
-                aria-label={showActions ? 'Hide actions' : 'Show actions'}
+                aria-label={
+                  showActions ? copy['chatRenderers.artifact.hideActions'] : copy['chatRenderers.artifact.showActions']
+                }
                 aria-expanded={showActions}
-                title={showActions ? 'Hide actions' : 'Show actions'}
+                title={
+                  showActions ? copy['chatRenderers.artifact.hideActions'] : copy['chatRenderers.artifact.showActions']
+                }
                 initial={{ width: 0 }}
                 animate={{ width: 'auto' }}
                 exit={{ width: 0 }}
                 transition={{ duration: 0.15, ease: cubicEasingFn }}
-                className="bg-bolt-elements-artifacts-background hover:bg-bolt-elements-artifacts-backgroundHover"
+                className="min-h-11 min-w-11 shrink-0 bg-bolt-elements-artifacts-background outline-none hover:bg-bolt-elements-artifacts-backgroundHover focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-bolt-elements-borderColorActive"
                 onClick={toggleActions}
               >
                 <div className="p-4">
@@ -157,8 +171,11 @@ export const Artifact = memo(({ artifactId }: ArtifactProps) => {
           </AnimatePresence>
         </div>
         {artifact.type === 'bundled' && (
-          <div className="flex flex-col gap-1.5 p-5 bg-bolt-elements-actions-background border-t border-bolt-elements-artifacts-borderColor">
-            <div className="flex items-center gap-1.5">
+          <div
+            className="flex min-w-0 flex-col gap-1.5 border-t border-bolt-elements-artifacts-borderColor bg-bolt-elements-actions-background p-5"
+            aria-live="polite"
+          >
+            <div className="flex min-w-0 flex-wrap items-center gap-1.5">
               <div
                 className={classNames(
                   'text-lg',
@@ -166,6 +183,7 @@ export const Artifact = memo(({ artifactId }: ArtifactProps) => {
                     bundledState === 'complete' ? 'complete' : bundledState === 'failed' ? 'failed' : 'running',
                   ),
                 )}
+                aria-hidden="true"
               >
                 {bundledState === 'complete' ? (
                   <div className="i-ph:check"></div>
@@ -175,21 +193,21 @@ export const Artifact = memo(({ artifactId }: ArtifactProps) => {
                   <div className="i-svg-spinners:90-ring-with-bg"></div>
                 )}
               </div>
-              <div className="text-bolt-elements-textPrimary font-medium leading-5 text-sm">
+              <div className="min-w-0 break-words text-bolt-elements-textPrimary font-medium leading-5 text-sm">
                 {bundledState === 'complete'
                   ? isRestore
-                    ? 'Restore files from snapshot'
-                    : 'Initial files created'
+                    ? copy['chatRenderers.artifact.restoreFiles']
+                    : copy['chatRenderers.artifact.initialFilesCreated']
                   : bundledState === 'failed'
                     ? isRestore
-                      ? 'Restore failed'
-                      : 'Project setup failed'
-                    : 'Creating initial files'}
+                      ? copy['chatRenderers.artifact.restoreFailed']
+                      : copy['chatRenderers.artifact.setupFailed']
+                    : copy['chatRenderers.artifact.creatingInitialFiles']}
               </div>
             </div>
-            {bundledState === 'failed' && bundledFailureReason ? (
-              <div className="ml-[1.625rem] whitespace-pre-wrap break-words font-mono text-xs text-bolt-elements-icon-error">
-                {bundledFailureReason}
+            {bundledState === 'failed' ? (
+              <div className="ml-[1.625rem] break-words text-xs text-bolt-elements-icon-error" role="alert">
+                {copy['chatRenderers.artifact.failureSafe']}
               </div>
             ) : null}
           </div>
@@ -259,44 +277,32 @@ export function openArtifactInWorkbench(filePath: any) {
   workbenchStore.setSelectedFile(`${WORK_DIR}/${filePath}`);
 }
 
-function formatActionDuration(ms?: number) {
-  if (!Number.isFinite(ms) || !ms || ms <= 0) {
-    return undefined;
-  }
-
-  if (ms < 1000) {
-    return `${Math.round(ms)}ms`;
-  }
-
-  if (ms < 60_000) {
-    const seconds = ms / 1000;
-    return `${seconds >= 10 ? Math.round(seconds) : seconds.toFixed(1)}s`;
-  }
-
-  const minutes = Math.floor(ms / 60_000);
-  const seconds = Math.round((ms % 60_000) / 1000);
-
-  return seconds === 0 ? `${minutes}m` : `${minutes}m ${seconds}s`;
-}
-
-function statusLabel(status: ActionState['status']) {
+function statusLabel(status: ActionState['status'], copy: ChatRenderersCopy): string {
   switch (status) {
     case 'pending':
-      return 'Queued';
+      return copy['chatRenderers.artifact.status.pending'];
     case 'running':
-      return 'Running';
+      return copy['chatRenderers.artifact.status.running'];
     case 'complete':
-      return 'Done';
+      return copy['chatRenderers.artifact.status.complete'];
     case 'failed':
-      return 'Failed';
+      return copy['chatRenderers.artifact.status.failed'];
     case 'aborted':
-      return 'Stopped';
+      return copy['chatRenderers.artifact.status.aborted'];
     default:
-      return undefined;
+      return copy['chatRenderers.artifact.status.failed'];
   }
 }
 
-function ActionDurationBadge({ action }: { action: ActionState }) {
+function ActionDurationBadge({
+  action,
+  copy,
+  language,
+}: {
+  action: ActionState;
+  copy: ChatRenderersCopy;
+  language: string;
+}) {
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
@@ -317,7 +323,7 @@ function ActionDurationBadge({ action }: { action: ActionState }) {
     durationMs = action.finishedAt - action.startedAt;
   }
 
-  const label = formatActionDuration(durationMs);
+  const label = formatChatRendererDuration(language, durationMs);
 
   if (!label) {
     return null;
@@ -325,8 +331,8 @@ function ActionDurationBadge({ action }: { action: ActionState }) {
 
   return (
     <span
-      className="ml-1 inline-flex items-center rounded-full border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-1.5 py-0 text-[10px] font-medium leading-4 text-bolt-elements-textSecondary"
-      aria-label={`Duration ${label}`}
+      className="ml-1 inline-flex items-center rounded-full border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-1.5 py-0 text-[11px] font-medium leading-4 text-bolt-elements-textSecondary"
+      aria-label={formatChatRenderersCopy(copy['chatRenderers.artifact.duration'], { duration: label })}
     >
       {label}
     </span>
@@ -334,6 +340,10 @@ function ActionDurationBadge({ action }: { action: ActionState }) {
 }
 
 const ActionList = memo(({ actions }: ActionListProps) => {
+  const { i18n } = useTranslation();
+  const language = i18n.resolvedLanguage ?? i18n.language ?? 'en';
+  const copy = getChatRenderersCopy(language);
+
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
       <ul className="list-none space-y-2.5">
@@ -341,7 +351,7 @@ const ActionList = memo(({ actions }: ActionListProps) => {
           const { status, type, content } = action;
           const isLast = index === actions.length - 1;
           const hasShellPreview = type === 'shell' || type === 'start';
-          const statusText = statusLabel(status);
+          const statusText = statusLabel(status, copy);
 
           return (
             <motion.li
@@ -353,14 +363,14 @@ const ActionList = memo(({ actions }: ActionListProps) => {
                 duration: 0.2,
                 ease: cubicEasingFn,
               }}
-              className="bolt-action-row"
+              className="bolt-action-row min-w-0"
               data-status={status}
             >
-              <div className="flex items-center gap-1.5 text-sm">
+              <div className="flex min-w-0 flex-wrap items-center gap-1.5 text-sm">
                 <div
                   className={classNames('text-lg', getIconColor(action.status))}
                   role="status"
-                  aria-label={statusText ?? status}
+                  aria-label={statusText}
                 >
                   {status === 'running' ? (
                     <>
@@ -378,16 +388,20 @@ const ActionList = memo(({ actions }: ActionListProps) => {
                     <div className="i-ph:x"></div>
                   ) : null}
                 </div>
-                <div className="flex min-w-0 flex-1 items-center gap-1.5">
+                <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
                   {type === 'file' ? (
-                    <div className="flex min-w-0 flex-1 items-center gap-1.5">
-                      <span className="shrink-0">Create</span>
-                      <code
-                        className="truncate bg-bolt-elements-artifacts-inlineCode-background text-bolt-elements-artifacts-inlineCode-text px-1.5 py-1 rounded-md text-bolt-elements-item-contentAccent hover:underline cursor-pointer"
+                    <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
+                      <span className="shrink-0">{copy['chatRenderers.artifact.createFile']}</span>
+                      <button
+                        type="button"
+                        className="inline-flex min-h-11 min-w-0 max-w-full items-center rounded-md bg-bolt-elements-artifacts-inlineCode-background px-1.5 py-1 text-bolt-elements-item-contentAccent outline-none hover:underline focus-visible:ring-2 focus-visible:ring-bolt-elements-borderColorActive"
                         onClick={() => openArtifactInWorkbench(action.filePath)}
+                        aria-label={formatChatRenderersCopy(copy['chatRenderers.artifact.openFile'], {
+                          path: action.filePath,
+                        })}
                       >
-                        {action.filePath}
-                      </code>
+                        <code className="truncate text-bolt-elements-artifacts-inlineCode-text">{action.filePath}</code>
+                      </button>
                     </div>
                   ) : type === 'diff' ? (
                     <DiffActionRow
@@ -396,23 +410,26 @@ const ActionList = memo(({ actions }: ActionListProps) => {
                       onOpenFile={openArtifactInWorkbench}
                     />
                   ) : type === 'shell' ? (
-                    <span className="flex-1 min-h-[28px] flex items-center">Run command</span>
+                    <span className="flex min-h-11 flex-1 items-center break-words">
+                      {copy['chatRenderers.artifact.runCommand']}
+                    </span>
                   ) : type === 'start' ? (
-                    <a
+                    <button
+                      type="button"
                       onClick={(e) => {
                         e.preventDefault();
                         workbenchStore.currentView.set('preview');
                       }}
-                      className="flex flex-1 items-center min-h-[28px]"
+                      className="flex min-h-11 min-w-0 flex-1 items-center rounded-md text-left outline-none focus-visible:ring-2 focus-visible:ring-bolt-elements-borderColorActive"
                     >
-                      Start Application
-                    </a>
+                      {copy['chatRenderers.artifact.startApplication']}
+                    </button>
                   ) : null}
                 </div>
                 {statusText ? (
                   <span
                     className={classNames(
-                      'shrink-0 rounded-full border px-1.5 py-0 text-[10px] font-medium leading-4',
+                      'shrink-0 rounded-full border px-1.5 py-0 text-[11px] font-medium leading-4',
                       'border-bolt-elements-borderColor bg-bolt-elements-background-depth-2',
                       status === 'complete'
                         ? 'text-bolt-elements-icon-success'
@@ -426,27 +443,29 @@ const ActionList = memo(({ actions }: ActionListProps) => {
                     {statusText}
                   </span>
                 ) : null}
-                <ActionDurationBadge action={action} />
+                <ActionDurationBadge action={action} copy={copy} language={language} />
               </div>
               {hasShellPreview && content ? (
                 <details
                   className={classNames('bolt-action-row-details mt-1', { 'mb-3.5': !isLast })}
                   open={status === 'running' || status === 'failed'}
                 >
-                  <summary className="cursor-pointer select-none text-xs text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary">
-                    {status === 'failed' ? 'Show command (failed)' : 'Show command'}
+                  <summary className="inline-flex min-h-11 max-w-full cursor-pointer select-none items-center break-words rounded-md text-xs text-bolt-elements-textSecondary outline-none hover:text-bolt-elements-textPrimary focus-visible:ring-2 focus-visible:ring-bolt-elements-borderColorActive">
+                    {status === 'failed'
+                      ? copy['chatRenderers.artifact.showFailedCommand']
+                      : copy['chatRenderers.artifact.showCommand']}
                   </summary>
                   <ShellCodeBlock classsName="mt-1" code={content} />
                 </details>
               ) : null}
-              {status === 'failed' && (action as FailedActionState).error ? (
+              {status === 'failed' ? (
                 <div
-                  className={classNames(
-                    'mt-1 whitespace-pre-wrap break-words font-mono text-xs text-bolt-elements-icon-error',
-                    { 'mb-3.5': !isLast },
-                  )}
+                  className={classNames('mt-1 break-words text-xs text-bolt-elements-icon-error', {
+                    'mb-3.5': !isLast,
+                  })}
+                  role="alert"
                 >
-                  {(action as FailedActionState).error}
+                  {copy['chatRenderers.artifact.actionFailedSafe']}
                 </div>
               ) : null}
             </motion.li>

@@ -1,19 +1,18 @@
-import { useMemo, useState } from 'react';
-import { useFetcher, useSearchParams } from 'react-router';
-import { RelativeTime } from '~/components/ui/RelativeTime';
+import { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { useFetcher, useRevalidator, useSearchParams } from 'react-router';
 
-/*
- * Admin support-tickets panel (design handoff E27): ticket table with a
- * "First response due" SLA column (warning when due within 1h, error when
- * overdue), a platform-admin assignee select, and sortable headers (due asc by
- * default) following the UsersPanel sortable-header idiom.
- *
- * Data comes from GET /admin/support-tickets, which enriches every ticket with
- * `firstResponseDueAt` (createdAt + the org plan's SLA target) and ships the
- * platform-admin `assignees` list. Mutations post back to the admin route
- * action ('support-respond' / 'support-assign' intents), which performs the
- * password step-up before calling the API.
- */
+import { RelativeTime } from '~/components/ui/RelativeTime';
+import {
+  adminSupportTicketActionFeedback,
+  adminSupportTicketStatusLabel,
+  formatAdminSupportTicketsDateTime,
+  formatAdminSupportTicketsDueDelta,
+  formatAdminSupportTicketsPlural,
+  getAdminSupportTicketsCopy,
+  interpolateAdminSupportTicketsCopy,
+  type AdminSupportTicketsCopy,
+} from '~/lib/i18n/catalogs/admin-support-tickets';
 
 export type AdminSupportTicket = {
   id: string;
@@ -24,11 +23,7 @@ export type AdminSupportTicket = {
   createdAt?: string;
   assigneeUserId?: string;
   planKey?: string;
-
-  /** ISO stamp of the first admin response; set = SLA met. */
   firstResponseAt?: string;
-
-  /** Server-derived first-response deadline (createdAt + plan SLA target). */
   firstResponseDueAt?: string;
 };
 
@@ -36,15 +31,28 @@ export type AdminTicketAssignee = { id: string; name?: string; email?: string };
 
 const TICKET_STATUSES = ['OPEN', 'PENDING', 'RESOLVED', 'CLOSED'] as const;
 
+type TicketStatus = (typeof TICKET_STATUSES)[number];
 type TicketSort = 'subject' | 'status' | 'created' | 'due';
 
 const DEFAULT_SORT: TicketSort = 'due';
 const DEFAULT_DIR = 'asc';
-
-/** Threshold under which an unanswered ticket flips from ok to warning. */
 const SLA_WARNING_WINDOW_MS = 60 * 60 * 1000;
 
 type SlaState = 'responded' | 'ok' | 'warning' | 'overdue' | 'unknown';
+type FetcherData = { ok?: boolean; message?: string; error?: string };
+
+const INPUT_CLASS =
+  'mt-1 min-h-11 w-full min-w-0 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-sm text-bolt-elements-textPrimary placeholder:text-bolt-elements-textTertiary focus:outline-none focus-visible:ring-2 focus-visible:ring-bolt-elements-borderColorActive disabled:cursor-not-allowed disabled:opacity-60';
+
+function isTicketSort(value: string | null): value is TicketSort {
+  return value === 'subject' || value === 'status' || value === 'created' || value === 'due';
+}
+
+function normalizeTicketStatus(value?: string): TicketStatus {
+  const normalized = value?.trim().toUpperCase();
+
+  return TICKET_STATUSES.find((status) => status === normalized) ?? 'PENDING';
+}
 
 function ticketSlaState(ticket: AdminSupportTicket, nowMs: number): SlaState {
   if (ticket.firstResponseAt) {
@@ -64,46 +72,31 @@ function ticketSlaState(ticket: AdminSupportTicket, nowMs: number): SlaState {
   return dueMs - nowMs <= SLA_WARNING_WINDOW_MS ? 'warning' : 'ok';
 }
 
-const dueRelativeFormatter = new Intl.RelativeTimeFormat('en', { numeric: 'always' });
-
-/** "in 42 minutes" / "3 hours ago" — formatRelativeTime degrades future dates to absolute, so keep a local one. */
-function formatDueDelta(dueMs: number, nowMs: number): string {
-  const deltaMs = dueMs - nowMs;
-  const absMs = Math.abs(deltaMs);
-
-  if (absMs < 60_000) {
-    return dueRelativeFormatter.format(Math.sign(deltaMs) || 1, 'minute');
-  }
-
-  if (absMs < 60 * 60_000) {
-    return dueRelativeFormatter.format(Math.round(deltaMs / 60_000), 'minute');
-  }
-
-  if (absMs < 24 * 60 * 60_000) {
-    return dueRelativeFormatter.format(Math.round(deltaMs / (60 * 60_000)), 'hour');
-  }
-
-  return dueRelativeFormatter.format(Math.round(deltaMs / (24 * 60 * 60_000)), 'day');
-}
-
-const INPUT_CLASS =
-  'mt-1 w-full rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-sm text-bolt-elements-textPrimary focus:outline-none focus:ring-2 focus:ring-bolt-elements-borderColorActive';
-
-/*
- * SLA cell. Warning/overdue colors are the shared status tokens per the accent
- * policy (docs/DESIGN_ACCENTS.md) — never hard-coded.
- */
-function SlaCell({ ticket, nowMs }: { ticket: AdminSupportTicket; nowMs: number }) {
+function SlaCell({
+  ticket,
+  nowMs,
+  language,
+  copy,
+}: {
+  ticket: AdminSupportTicket;
+  nowMs: number;
+  language: string;
+  copy: AdminSupportTicketsCopy;
+}) {
   const state = ticketSlaState(ticket, nowMs);
 
   if (state === 'unknown') {
-    return <span className="text-xs text-bolt-elements-textTertiary">—</span>;
+    return (
+      <span className="text-xs text-bolt-elements-textTertiary" title={copy['adminSupportTickets.sla.unavailable']}>
+        <span className="sr-only">{copy['adminSupportTickets.sla.unavailable']}</span>—
+      </span>
+    );
   }
 
   if (state === 'responded') {
     return (
-      <span className="text-xs text-[var(--status-success-text)]">
-        Responded{' '}
+      <span className="break-words text-xs text-[var(--status-success-text)] [overflow-wrap:anywhere]">
+        {copy['adminSupportTickets.sla.responded']}{' '}
         {ticket.firstResponseAt ? <RelativeTime value={ticket.firstResponseAt} className="text-inherit" /> : null}
       </span>
     );
@@ -118,33 +111,120 @@ function SlaCell({ ticket, nowMs }: { ticket: AdminSupportTicket; nowMs: number 
         ? 'text-xs font-medium text-[var(--status-warning-text)]'
         : 'text-xs text-bolt-elements-textSecondary';
 
-  // suppressHydrationWarning: the label depends on "now", which legitimately differs between server render and hydration.
   return (
-    <span className={className} suppressHydrationWarning>
-      {state === 'overdue' ? 'Overdue ' : 'Due '}
-      <time dateTime={new Date(dueMs).toISOString()} title={new Date(dueMs).toLocaleString('en-US')}>
-        {formatDueDelta(dueMs, nowMs)}
+    <span className={`min-w-0 break-words [overflow-wrap:anywhere] ${className}`} suppressHydrationWarning>
+      {state === 'overdue' ? copy['adminSupportTickets.sla.overdue'] : copy['adminSupportTickets.sla.due']} ·{' '}
+      <time dateTime={new Date(dueMs).toISOString()} title={formatAdminSupportTicketsDateTime(dueMs, language)}>
+        {formatAdminSupportTicketsDueDelta(dueMs, nowMs, language)}
       </time>
-      {ticket.planKey ? <span className="ml-1 text-bolt-elements-textTertiary">({ticket.planKey} SLA)</span> : null}
+      {ticket.planKey ? (
+        <span className="ml-1 text-bolt-elements-textTertiary">
+          (
+          {interpolateAdminSupportTicketsCopy(copy['adminSupportTickets.sla.plan'], {
+            plan: ticket.planKey,
+          })}
+          )
+        </span>
+      ) : null}
     </span>
   );
 }
 
-export function SupportTicketsPanel({ payload }: { payload: Record<string, unknown> }) {
-  const tickets = (Array.isArray(payload.tickets) ? payload.tickets : []) as AdminSupportTicket[];
-  const assignees = (Array.isArray(payload.assignees) ? payload.assignees : []) as AdminTicketAssignee[];
+function SupportTicketsLoading({ copy }: { copy: AdminSupportTicketsCopy }) {
+  return (
+    <section
+      role="status"
+      aria-busy="true"
+      aria-live="polite"
+      aria-label={copy['adminSupportTickets.loading']}
+      className="min-w-0 overflow-hidden rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 shadow-sm sm:p-5"
+    >
+      <span className="sr-only">{copy['adminSupportTickets.loading']}</span>
+      <div className="animate-pulse space-y-3 motion-reduce:animate-none" aria-hidden="true">
+        <div className="h-4 w-2/5 max-w-48 rounded bg-bolt-elements-background-depth-3" />
+        <div className="h-12 w-full rounded bg-bolt-elements-background-depth-3" />
+        <div className="h-12 w-11/12 rounded bg-bolt-elements-background-depth-3" />
+        <div className="h-12 w-4/5 rounded bg-bolt-elements-background-depth-3" />
+      </div>
+    </section>
+  );
+}
+
+function SupportTicketsLoadError({
+  copy,
+  retrying,
+  onRetry,
+}: {
+  copy: AdminSupportTicketsCopy;
+  retrying: boolean;
+  onRetry: () => void;
+}) {
+  return (
+    <section
+      role="alert"
+      aria-live="assertive"
+      className="flex min-w-0 flex-col gap-4 rounded-lg border border-[var(--status-error-border)] bg-[var(--status-error-bg)] p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-5"
+    >
+      <div className="min-w-0">
+        <h3 className="break-words text-sm font-semibold text-bolt-elements-textPrimary [overflow-wrap:anywhere]">
+          {copy['adminSupportTickets.error.title']}
+        </h3>
+        <p className="mt-1 max-w-2xl break-words text-sm leading-6 text-bolt-elements-textSecondary [overflow-wrap:anywhere]">
+          {copy['adminSupportTickets.error.description']}
+        </p>
+      </div>
+      <button
+        type="button"
+        onClick={onRetry}
+        disabled={retrying}
+        aria-busy={retrying}
+        className="inline-flex min-h-11 w-full shrink-0 items-center justify-center whitespace-normal rounded-md border border-[var(--status-error-border)] bg-bolt-elements-background-depth-1 px-4 py-2 text-center text-sm font-medium text-bolt-elements-textPrimary transition-colors hover:bg-bolt-elements-background-depth-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-bolt-elements-borderColorActive disabled:cursor-wait disabled:opacity-60 sm:w-auto"
+      >
+        {retrying ? copy['adminSupportTickets.error.retrying'] : copy['adminSupportTickets.error.retry']}
+      </button>
+    </section>
+  );
+}
+
+function SupportTicketsEmpty({ copy }: { copy: AdminSupportTicketsCopy }) {
+  return (
+    <section
+      role="status"
+      aria-live="polite"
+      className="min-w-0 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5 text-center shadow-sm sm:p-6"
+    >
+      <h3 className="break-words text-sm font-semibold text-bolt-elements-textPrimary [overflow-wrap:anywhere]">
+        {copy['adminSupportTickets.empty.title']}
+      </h3>
+      <p className="mx-auto mt-1 max-w-xl break-words text-sm leading-6 text-bolt-elements-textSecondary [overflow-wrap:anywhere]">
+        {copy['adminSupportTickets.empty.description']}
+      </p>
+    </section>
+  );
+}
+
+export function SupportTicketsPanel({
+  payload,
+  loading = false,
+}: {
+  payload: Record<string, unknown>;
+  loading?: boolean;
+}) {
+  const { i18n } = useTranslation();
+  const language = i18n.resolvedLanguage ?? i18n.language ?? 'en';
+  const copy = getAdminSupportTicketsCopy(language);
+  const revalidator = useRevalidator();
   const [password, setPassword] = useState('');
-
-  /*
-   * One "now" per mount keeps every row's SLA state consistent; a revalidation
-   * (after respond/assign) remounts the loader data anyway.
-   */
   const [nowMs] = useState(() => Date.now());
-
-  // Same searchParams-backed sort/dir idiom as the UsersPanel, sorted client-side (the list endpoint is unpaginated).
   const [searchParams, setSearchParams] = useSearchParams();
-  const sort = (searchParams.get('sort') as TicketSort) || DEFAULT_SORT;
+  const requestedSort = searchParams.get('sort');
+  const sort = isTicketSort(requestedSort) ? requestedSort : DEFAULT_SORT;
   const dir = searchParams.get('dir') === 'desc' ? 'desc' : DEFAULT_DIR;
+
+  const hasTicketPayload = Array.isArray(payload.tickets);
+  const loadFailed = payload.supportTicketsLoadError === true || !hasTicketPayload;
+  const tickets = (hasTicketPayload ? payload.tickets : []) as AdminSupportTicket[];
+  const assignees = (Array.isArray(payload.assignees) ? payload.assignees : []) as AdminTicketAssignee[];
 
   const setSort = (column: TicketSort) => {
     setSearchParams(
@@ -163,18 +243,18 @@ export function SupportTicketsPanel({ payload }: { payload: Record<string, unkno
 
   const sorted = useMemo(() => {
     const factor = dir === 'asc' ? 1 : -1;
+    const locale = language.toLowerCase().startsWith('fr') ? 'fr-FR' : 'en-US';
 
     const key = (ticket: AdminSupportTicket): string | number => {
       switch (sort) {
         case 'subject':
-          return (ticket.subject ?? '').toLowerCase();
+          return ticket.subject ?? '';
         case 'status':
           return ticket.status ?? '';
         case 'created':
           return new Date(ticket.createdAt ?? 0).getTime() || 0;
         case 'due':
         default: {
-          // Answered tickets sink below open ones; unknown due dates last.
           if (ticket.firstResponseAt) {
             return Number.MAX_SAFE_INTEGER - 1;
           }
@@ -186,81 +266,157 @@ export function SupportTicketsPanel({ payload }: { payload: Record<string, unkno
       }
     };
 
-    return [...tickets].sort((a, b) => {
-      const ka = key(a);
-      const kb = key(b);
+    return [...tickets].sort((left, right) => {
+      const leftKey = key(left);
+      const rightKey = key(right);
 
-      return (ka < kb ? -1 : ka > kb ? 1 : 0) * factor;
+      if (typeof leftKey === 'string' && typeof rightKey === 'string') {
+        return leftKey.localeCompare(rightKey, locale, { sensitivity: 'base' }) * factor;
+      }
+
+      return ((leftKey as number) - (rightKey as number)) * factor;
     });
-  }, [tickets, sort, dir]);
+  }, [dir, language, sort, tickets]);
 
   const sortableHeader = (label: string, column: TicketSort) => (
     <th
-      className="px-4 py-3 font-medium"
+      className="px-4 py-3 align-bottom font-medium whitespace-normal"
       aria-sort={sort === column ? (dir === 'asc' ? 'ascending' : 'descending') : 'none'}
     >
       <button
         type="button"
         onClick={() => setSort(column)}
-        className="inline-flex items-center gap-1 uppercase tracking-wide hover:text-bolt-elements-textPrimary"
+        aria-label={interpolateAdminSupportTicketsCopy(copy['adminSupportTickets.sortBy'], { column: label })}
+        className="inline-flex min-h-11 max-w-full items-center gap-1 rounded-sm text-left uppercase tracking-wide whitespace-normal hover:text-bolt-elements-textPrimary focus:outline-none focus-visible:ring-2 focus-visible:ring-bolt-elements-borderColorActive"
       >
-        {label}
-        {sort === column ? <span aria-hidden>{dir === 'asc' ? '▲' : '▼'}</span> : null}
+        <span className="break-words [overflow-wrap:anywhere]">{label}</span>
+        {sort === column ? <span aria-hidden="true">{dir === 'asc' ? '▲' : '▼'}</span> : null}
       </button>
     </th>
   );
 
-  return (
-    <div className="grid gap-4">
-      <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 shadow-sm">
-        <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">Confirm changes with your password</h3>
-        <p className="mt-1 text-xs text-bolt-elements-textSecondary">
-          Responding to or assigning a ticket is step-up protected. Enter your password once, then act on tickets below.
-          It is sent only with the action and never stored.
-        </p>
-        <input
-          type="password"
-          value={password}
-          onChange={(event) => setPassword(event.target.value)}
-          autoComplete="current-password"
-          placeholder="Your password"
-          data-testid="admin-reauth-password"
-          className="mt-3 w-full max-w-sm rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-sm text-bolt-elements-textPrimary focus:outline-none focus:ring-2 focus:ring-bolt-elements-borderColorActive"
-        />
-      </div>
+  if (loading) {
+    return <SupportTicketsLoading copy={copy} />;
+  }
 
-      {sorted.length === 0 ? (
-        <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 text-sm text-bolt-elements-textSecondary shadow-sm">
-          No support tickets found.
-        </div>
-      ) : (
-        <div className="overflow-x-auto rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-sm">
-          <table className="w-full min-w-[860px] border-collapse text-sm">
-            <thead>
-              <tr className="border-b border-bolt-elements-borderColor text-left text-xs uppercase tracking-wide text-bolt-elements-textSecondary">
-                {sortableHeader('Subject', 'subject')}
-                {sortableHeader('Status', 'status')}
-                {sortableHeader('Created', 'created')}
-                {sortableHeader('First response due', 'due')}
-                <th className="px-4 py-3 font-medium">Assignee</th>
-                <th className="px-4 py-3 font-medium">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sorted.map((ticket) => (
-                <SupportTicketRow
-                  key={ticket.id}
-                  ticket={ticket}
-                  assignees={assignees}
-                  password={password}
-                  nowMs={nowMs}
-                />
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+  if (loadFailed) {
+    return (
+      <SupportTicketsLoadError
+        copy={copy}
+        retrying={revalidator.state !== 'idle'}
+        onRetry={() => revalidator.revalidate()}
+      />
+    );
+  }
+
+  if (sorted.length === 0) {
+    return <SupportTicketsEmpty copy={copy} />;
+  }
+
+  const countLabel = formatAdminSupportTicketsPlural(sorted.length, language, {
+    one: copy['adminSupportTickets.count_one'],
+    other: copy['adminSupportTickets.count_other'],
+  });
+
+  return (
+    <div className="grid min-w-0 max-w-full gap-4">
+      <p
+        className="break-words text-sm font-medium text-bolt-elements-textSecondary [overflow-wrap:anywhere]"
+        role="status"
+      >
+        {countLabel}
+      </p>
+
+      <section
+        className="min-w-0 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 shadow-sm"
+        aria-labelledby="admin-support-reauth-heading"
+      >
+        <h3 id="admin-support-reauth-heading" className="text-sm font-semibold text-bolt-elements-textPrimary">
+          {copy['adminSupportTickets.reauth.title']}
+        </h3>
+        <p className="mt-1 max-w-3xl break-words text-xs leading-5 text-bolt-elements-textSecondary [overflow-wrap:anywhere]">
+          {copy['adminSupportTickets.reauth.description']}
+        </p>
+        <label
+          htmlFor="admin-support-reauth-password"
+          className="mt-3 block max-w-sm text-xs font-medium text-bolt-elements-textSecondary"
+        >
+          {copy['adminSupportTickets.reauth.passwordLabel']}
+          <input
+            id="admin-support-reauth-password"
+            type="password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            autoComplete="current-password"
+            placeholder={copy['adminSupportTickets.reauth.passwordPlaceholder']}
+            data-testid="admin-reauth-password"
+            className={INPUT_CLASS}
+          />
+        </label>
+      </section>
+
+      <div
+        className="min-w-0 max-w-full overflow-x-auto rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-bolt-elements-borderColorActive"
+        role="region"
+        aria-label={copy['adminSupportTickets.table.scrollLabel']}
+        tabIndex={0}
+      >
+        <table className="w-full min-w-[960px] border-collapse text-sm">
+          <caption className="sr-only">{copy['adminSupportTickets.table.caption']}</caption>
+          <thead>
+            <tr className="border-b border-bolt-elements-borderColor text-left text-xs uppercase tracking-wide text-bolt-elements-textSecondary">
+              {sortableHeader(copy['adminSupportTickets.column.subject'], 'subject')}
+              {sortableHeader(copy['adminSupportTickets.column.status'], 'status')}
+              {sortableHeader(copy['adminSupportTickets.column.created'], 'created')}
+              {sortableHeader(copy['adminSupportTickets.column.due'], 'due')}
+              <th className="px-4 py-3 font-medium whitespace-normal">{copy['adminSupportTickets.column.assignee']}</th>
+              <th className="px-4 py-3 font-medium whitespace-normal">{copy['adminSupportTickets.column.actions']}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sorted.map((ticket) => (
+              <SupportTicketRow
+                key={ticket.id}
+                ticket={ticket}
+                assignees={assignees}
+                password={password}
+                nowMs={nowMs}
+                language={language}
+                copy={copy}
+              />
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
+  );
+}
+
+function ActionFeedback({
+  data,
+  operation,
+  language,
+}: {
+  data: unknown;
+  operation: 'assignment' | 'response';
+  language: string;
+}) {
+  const feedback = adminSupportTicketActionFeedback(data, operation, language);
+
+  if (!feedback) {
+    return null;
+  }
+
+  return (
+    <p
+      className={`mt-1.5 break-words text-xs font-medium [overflow-wrap:anywhere] ${
+        feedback.tone === 'error' ? 'text-[var(--status-error-text)]' : 'text-[var(--status-success-text)]'
+      }`}
+      role={feedback.tone === 'error' ? 'alert' : 'status'}
+      aria-live={feedback.tone === 'error' ? 'assertive' : 'polite'}
+    >
+      {feedback.message}
+    </p>
   );
 }
 
@@ -269,20 +425,29 @@ function SupportTicketRow({
   assignees,
   password,
   nowMs,
+  language,
+  copy,
 }: {
   ticket: AdminSupportTicket;
   assignees: AdminTicketAssignee[];
   password: string;
   nowMs: number;
+  language: string;
+  copy: AdminSupportTicketsCopy;
 }) {
-  const assignFetcher = useFetcher<{ ok?: boolean; message?: string; error?: string }>();
-  const respondFetcher = useFetcher<{ ok?: boolean; message?: string; error?: string }>();
+  const assignFetcher = useFetcher<FetcherData>();
+  const respondFetcher = useFetcher<FetcherData>();
   const [respondOpen, setRespondOpen] = useState(false);
-  const [status, setStatus] = useState<string>(ticket.status ?? 'PENDING');
+  const [status, setStatus] = useState<TicketStatus>(() => normalizeTicketStatus(ticket.status));
   const [response, setResponse] = useState('');
-
   const assigning = assignFetcher.state !== 'idle';
   const responding = respondFetcher.state !== 'idle';
+
+  useEffect(() => {
+    if (respondFetcher.state === 'idle' && respondFetcher.data?.ok === true) {
+      setResponse('');
+    }
+  }, [respondFetcher.data?.ok, respondFetcher.state]);
 
   const assign = (assigneeUserId: string) => {
     assignFetcher.submit(
@@ -296,36 +461,39 @@ function SupportTicketRow({
       { intent: 'support-respond', ticketId: ticket.id, status, response, password },
       { method: 'post' },
     );
-    setResponse('');
   };
 
-  const statusTone =
-    ticket.status === 'RESOLVED' || ticket.status === 'CLOSED'
-      ? 'border-green-500/30 text-green-600 dark:text-green-400'
-      : ticket.status === 'OPEN'
-        ? 'border-red-500/30 text-red-600 dark:text-red-400'
-        : 'border-bolt-elements-borderColor text-bolt-elements-textSecondary';
+  const normalizedStatus = ticket.status?.trim().toUpperCase();
 
-  const feedback = (data?: { message?: string; error?: string }) =>
-    data?.message || data?.error ? (
-      <p
-        className={`mt-1 text-xs font-medium ${
-          data.error ? 'text-[var(--status-error-text)]' : 'text-[var(--status-success-text)]'
-        }`}
-      >
-        {data.error ?? data.message}
-      </p>
-    ) : null;
+  const statusTone =
+    normalizedStatus === 'RESOLVED' || normalizedStatus === 'CLOSED'
+      ? 'border-[var(--status-success-border)] bg-[var(--status-success-bg)] text-[var(--status-success-text)]'
+      : normalizedStatus === 'OPEN'
+        ? 'border-[var(--status-error-border)] bg-[var(--status-error-bg)] text-[var(--status-error-text)]'
+        : normalizedStatus === 'PENDING'
+          ? 'border-[var(--status-warning-border)] bg-[var(--status-warning-bg)] text-[var(--status-warning-text)]'
+          : 'border-bolt-elements-borderColor text-bolt-elements-textSecondary';
+
+  const subject = ticket.subject ?? ticket.id;
+  const responseRegionId = `ticket-response-form-${ticket.id}`;
 
   return (
     <>
       <tr className="border-b border-bolt-elements-borderColor last:border-b-0 align-top">
-        <td className="px-4 py-3">
-          <p className="font-medium text-bolt-elements-textPrimary">{ticket.subject ?? ticket.id}</p>
-          <p className="mt-0.5 text-xs text-bolt-elements-textSecondary">
+        <td className="min-w-0 px-4 py-3">
+          <p className="break-words font-medium text-bolt-elements-textPrimary [overflow-wrap:anywhere]">{subject}</p>
+          <p className="mt-0.5 break-all text-xs text-bolt-elements-textSecondary">
             {[
-              ticket.organizationId ? `org ${ticket.organizationId}` : null,
-              ticket.userId ? `user ${ticket.userId}` : null,
+              ticket.organizationId
+                ? interpolateAdminSupportTicketsCopy(copy['adminSupportTickets.organizationIdentifier'], {
+                    id: ticket.organizationId,
+                  })
+                : null,
+              ticket.userId
+                ? interpolateAdminSupportTicketsCopy(copy['adminSupportTickets.userIdentifier'], {
+                    id: ticket.userId,
+                  })
+                : null,
             ]
               .filter(Boolean)
               .join(' · ') || ticket.id}
@@ -333,93 +501,123 @@ function SupportTicketRow({
         </td>
         <td className="px-4 py-3">
           <span
-            className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${statusTone}`}
+            className={`inline-flex max-w-full items-center rounded-full border px-2 py-0.5 text-xs font-medium whitespace-normal ${statusTone}`}
           >
-            {String(ticket.status ?? 'unknown').toLowerCase()}
+            <span className="break-words [overflow-wrap:anywhere]">
+              {adminSupportTicketStatusLabel(ticket.status, language)}
+            </span>
           </span>
         </td>
         <td className="px-4 py-3 text-xs text-bolt-elements-textSecondary">
-          {ticket.createdAt ? <RelativeTime value={ticket.createdAt} /> : '—'}
+          {ticket.createdAt ? (
+            <RelativeTime value={ticket.createdAt} />
+          ) : (
+            <span title={copy['adminSupportTickets.dateUnavailable']}>
+              <span className="sr-only">{copy['adminSupportTickets.dateUnavailable']}</span>—
+            </span>
+          )}
         </td>
-        <td className="px-4 py-3">
-          <SlaCell ticket={ticket} nowMs={nowMs} />
+        <td className="min-w-0 px-4 py-3">
+          <SlaCell ticket={ticket} nowMs={nowMs} language={language} copy={copy} />
         </td>
-        <td className="px-4 py-3">
+        <td className="min-w-0 px-4 py-3">
           <select
             value={ticket.assigneeUserId ?? ''}
             onChange={(event) => assign(event.target.value)}
             disabled={assigning || !password}
-            aria-label={`Assignee for ticket ${ticket.subject ?? ticket.id}`}
+            aria-busy={assigning}
+            aria-label={interpolateAdminSupportTicketsCopy(copy['adminSupportTickets.assigneeFor'], { subject })}
             data-testid={`ticket-assignee-${ticket.id}`}
-            className="w-full max-w-[180px] rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-2 py-1.5 text-xs text-bolt-elements-textPrimary focus:outline-none focus:ring-2 focus:ring-bolt-elements-borderColorActive disabled:cursor-not-allowed disabled:opacity-50"
+            className="min-h-11 w-full min-w-0 max-w-[200px] rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-2 py-1.5 text-xs text-bolt-elements-textPrimary focus:outline-none focus-visible:ring-2 focus-visible:ring-bolt-elements-borderColorActive disabled:cursor-not-allowed disabled:opacity-50"
           >
-            <option value="">Unassigned</option>
+            <option value="">{copy['adminSupportTickets.assignee.unassigned']}</option>
             {assignees.map((assignee) => (
               <option key={assignee.id} value={assignee.id}>
                 {assignee.name || assignee.email || assignee.id}
               </option>
             ))}
           </select>
-          {feedback(assignFetcher.data)}
+          {assigning ? (
+            <p className="mt-1.5 text-xs text-bolt-elements-textTertiary" role="status" aria-live="polite">
+              {copy['adminSupportTickets.assignee.assigning']}
+            </p>
+          ) : (
+            <ActionFeedback data={assignFetcher.data} operation="assignment" language={language} />
+          )}
         </td>
         <td className="px-4 py-3">
           <button
             type="button"
             onClick={() => setRespondOpen((open) => !open)}
             aria-expanded={respondOpen}
+            aria-controls={responseRegionId}
             data-testid={`ticket-respond-toggle-${ticket.id}`}
-            className="inline-flex items-center rounded-md border border-bolt-elements-borderColor px-2.5 py-1 text-xs font-medium text-bolt-elements-textPrimary transition-colors hover:bg-bolt-elements-background-depth-3"
+            className="inline-flex min-h-11 max-w-full items-center rounded-md border border-bolt-elements-borderColor px-3 py-2 text-xs font-medium text-bolt-elements-textPrimary whitespace-normal transition-colors hover:bg-bolt-elements-background-depth-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-bolt-elements-borderColorActive"
           >
-            {respondOpen ? 'Close' : 'Respond'}
+            <span className="break-words [overflow-wrap:anywhere]">
+              {respondOpen ? copy['adminSupportTickets.action.close'] : copy['adminSupportTickets.action.respond']}
+            </span>
           </button>
         </td>
       </tr>
       {respondOpen ? (
-        <tr className="border-b border-bolt-elements-borderColor last:border-b-0 bg-bolt-elements-background-depth-1/50">
+        <tr
+          id={responseRegionId}
+          className="border-b border-bolt-elements-borderColor last:border-b-0 bg-bolt-elements-background-depth-1/50"
+        >
           <td colSpan={6} className="px-4 py-3">
-            <div className="grid gap-3 sm:max-w-2xl">
-              <label className="block text-xs text-bolt-elements-textSecondary sm:max-w-xs">
-                New status
+            <div className="grid min-w-0 gap-3 sm:max-w-2xl">
+              <label className="block min-w-0 text-xs text-bolt-elements-textSecondary sm:max-w-xs">
+                {copy['adminSupportTickets.form.newStatus']}
                 <select
                   value={status}
-                  onChange={(event) => setStatus(event.target.value)}
+                  onChange={(event) => setStatus(normalizeTicketStatus(event.target.value))}
+                  disabled={responding}
                   data-testid={`ticket-status-${ticket.id}`}
                   className={INPUT_CLASS}
                 >
                   {TICKET_STATUSES.map((value) => (
                     <option key={value} value={value}>
-                      {value}
+                      {adminSupportTicketStatusLabel(value, language)}
                     </option>
                   ))}
                 </select>
               </label>
 
-              <label className="block text-xs text-bolt-elements-textSecondary">
-                Response
+              <label className="block min-w-0 text-xs text-bolt-elements-textSecondary">
+                {copy['adminSupportTickets.form.response']}
                 <textarea
                   value={response}
                   onChange={(event) => setResponse(event.target.value)}
                   rows={3}
-                  placeholder="Write your response to the customer…"
+                  disabled={responding}
+                  placeholder={copy['adminSupportTickets.form.responsePlaceholder']}
                   data-testid={`ticket-response-${ticket.id}`}
                   className={INPUT_CLASS}
                 />
               </label>
 
-              <div className="flex flex-wrap items-center gap-3">
+              <div className="flex min-w-0 flex-col items-start gap-3 sm:flex-row sm:flex-wrap sm:items-center">
                 <button
                   type="button"
                   disabled={responding || !password || !response.trim()}
+                  aria-busy={responding}
                   onClick={respond}
                   data-testid={`ticket-respond-${ticket.id}`}
-                  className="inline-flex h-8 items-center justify-center rounded-md bg-[var(--vc-ide-accent-action)] px-3 text-xs font-medium text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)] disabled:cursor-not-allowed disabled:opacity-50"
+                  className="inline-flex min-h-11 w-full items-center justify-center whitespace-normal rounded-md bg-bolt-elements-button-primary-background px-3 py-2 text-center text-xs font-medium text-bolt-elements-button-primary-text transition-colors hover:bg-bolt-elements-button-primary-backgroundHover focus:outline-none focus-visible:ring-2 focus-visible:ring-bolt-elements-borderColorActive disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
                 >
-                  {responding ? 'Sending…' : 'Send response'}
+                  {responding
+                    ? copy['adminSupportTickets.form.sending']
+                    : copy['adminSupportTickets.form.sendResponse']}
                 </button>
                 {!password ? (
-                  <span className="text-xs text-bolt-elements-textTertiary">Enter your password above first.</span>
+                  <span className="break-words text-xs text-bolt-elements-textTertiary [overflow-wrap:anywhere]">
+                    {copy['adminSupportTickets.form.passwordFirst']}
+                  </span>
                 ) : null}
-                {feedback(respondFetcher.data)}
+                {!responding ? (
+                  <ActionFeedback data={respondFetcher.data} operation="response" language={language} />
+                ) : null}
               </div>
             </div>
           </td>

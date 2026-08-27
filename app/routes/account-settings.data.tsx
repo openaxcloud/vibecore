@@ -8,17 +8,26 @@ import { AsyncPanelError, AsyncPanelSkeleton } from '~/components/dashboard/Asyn
 import { StatusPill } from '~/components/dashboard/SaaSLayout';
 import { Button } from '~/components/ui/Button';
 import { Dialog, DialogTitle } from '~/components/ui/Dialog';
+import { apiRequest, type EnterpriseActionArgs, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
 import {
-  apiErrorMessage,
-  apiRequest,
-  type EnterpriseActionArgs,
-  type EnterpriseLoaderArgs,
-} from '~/lib/enterprise-api.server';
+  formatAccountDataDate,
+  formatAccountDataPlural,
+  getAccountDataPageCopy,
+  interpolateAccountDataCopy,
+  localizeDeletionScopeItem,
+  resolveAccountDataActionErrorCode,
+  type AccountDataActionErrorCode,
+  type AccountDataActionIntent,
+  type AccountDeletionStatus,
+} from '~/lib/i18n/catalogs/account-data';
+import { resolveRequestLocale } from '~/lib/i18n/request-locale';
 import { isReauthRedirect, shouldRethrowActionError } from '~/lib/route-reauth';
 
-export const meta: MetaFunction = () => [{ title: 'Data & privacy - E-Code' }];
+export const meta: MetaFunction<typeof loader> = ({ data }) => {
+  const copy = getAccountDataPageCopy(data?.language).seo;
 
-type DeletionStatus = 'none' | 'requested' | 'grace_period' | 'ready_to_purge' | 'purged';
+  return [{ title: copy.title }, { name: 'description', content: copy.description }];
+};
 
 /**
  * Mirrors the API's `accountDeletionView` (services/api/src/app.ts → GET
@@ -27,7 +36,7 @@ type DeletionStatus = 'none' | 'requested' | 'grace_period' | 'ready_to_purge' |
  * runs out-of-band. We only request / cancel / surface that intent here.
  */
 type DeletionView = {
-  status: DeletionStatus;
+  status: AccountDeletionStatus;
   canCancel: boolean;
   requestedAt: string | null;
   purgeDueAt: string | null;
@@ -45,21 +54,6 @@ function emailConfirmMatches(confirm: string, email: string): boolean {
   return confirm.trim().toLowerCase() === email.trim().toLowerCase() && email.trim().length > 0;
 }
 
-const EXPORT_INCLUDES = [
-  'Profile and account preferences',
-  'Organizations and your membership roles',
-  'Projects (names and metadata)',
-  'API keys (names and prefixes only)',
-  'Connected accounts (provider and status)',
-  'Recent account activity',
-] as const;
-
-const EXPORT_EXCLUDES = [
-  'Passwords and password hashes',
-  'API key secrets',
-  'OAuth / connection access tokens',
-] as const;
-
 export async function loader({ request }: EnterpriseLoaderArgs) {
   /*
    * Data export (GDPR right of access) is served FROM the loader, not a raw
@@ -69,6 +63,8 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
    * export (app/routes/audit-logs.tsx). Triggered by `?export=data`.
    */
   const url = new URL(request.url);
+  const language = resolveRequestLocale(request).language;
+  const copy = getAccountDataPageCopy(language);
 
   if (url.searchParams.get('export') === 'data') {
     const document = await apiRequest<unknown>(request, '/account/data-export', { redirectOn401: true });
@@ -77,7 +73,8 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
     return new Response(JSON.stringify(document, null, 2), {
       headers: {
         'content-type': 'application/json; charset=utf-8',
-        'content-disposition': `attachment; filename="ecode-data-export-${stamp}.json"`,
+        'content-disposition': `attachment; filename="${copy.export.filenamePrefix}-${stamp}.json"`,
+        'content-language': language,
         'cache-control': 'no-store',
       },
     });
@@ -89,7 +86,7 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
       apiRequest<{ user?: { email?: string } }>(request, '/auth/me'),
     ]);
 
-    return json({ view, email: me.user?.email ?? '', loadError: null });
+    return json({ view, email: me.user?.email ?? '', loadError: false, language, loadedAt: new Date().toISOString() });
   } catch (error) {
     if (isReauthRedirect(error)) {
       throw error;
@@ -98,18 +95,21 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
     return json({
       view: null,
       email: '',
-      loadError: 'Data and privacy settings are temporarily unavailable.',
+      loadError: true,
+      language,
+      loadedAt: new Date().toISOString(),
     });
   }
 }
 
 type ActionResult =
   | { ok: true; intent: 'request' | 'cancel'; view: DeletionView }
-  | { ok: false; intent: string; error: string };
+  | { ok: false; intent: AccountDataActionIntent; errorCode: AccountDataActionErrorCode };
 
 export async function action({ request }: EnterpriseActionArgs) {
   const form = await request.formData();
   const intent = String(form.get('intent') ?? '');
+  const actionIntent: AccountDataActionIntent = intent === 'request' || intent === 'cancel' ? intent : 'unknown';
 
   try {
     if (intent === 'cancel') {
@@ -132,10 +132,7 @@ export async function action({ request }: EnterpriseActionArgs) {
       const email = me.user?.email ?? '';
 
       if (!emailConfirmMatches(confirm, email)) {
-        return json<ActionResult>(
-          { ok: false, intent, error: 'Type your account email exactly to confirm deletion.' },
-          { status: 400 },
-        );
+        return json<ActionResult>({ ok: false, intent: 'request', errorCode: 'confirmationMismatch' }, { status: 400 });
       }
 
       const view = await apiRequest<DeletionView>(request, '/account/deletion', { method: 'POST' });
@@ -143,7 +140,7 @@ export async function action({ request }: EnterpriseActionArgs) {
       return json<ActionResult>({ ok: true, intent: 'request', view });
     }
 
-    return json<ActionResult>({ ok: false, intent, error: 'Unknown action.' }, { status: 400 });
+    return json<ActionResult>({ ok: false, intent: 'unknown', errorCode: 'unknownAction' }, { status: 400 });
   } catch (error) {
     /*
      * apiRequest throws a 3xx redirect Response when the session expired mid-flight
@@ -155,36 +152,20 @@ export async function action({ request }: EnterpriseActionArgs) {
       throw error;
     }
 
-    return json<ActionResult>(
-      { ok: false, intent, error: await apiErrorMessage(error, 'Could not update your deletion request.') },
-      { status: 500 },
-    );
+    if (error instanceof Response) {
+      return json<ActionResult>(
+        { ok: false, intent: actionIntent, errorCode: resolveAccountDataActionErrorCode(error.status, actionIntent) },
+        { status: error.status },
+      );
+    }
+
+    return json<ActionResult>({ ok: false, intent: actionIntent, errorCode: 'requestFailed' }, { status: 500 });
   }
 }
 
-const dateFormatter = new Intl.DateTimeFormat('en-GB', {
-  year: 'numeric',
-  month: 'short',
-  day: 'numeric',
-  hour: '2-digit',
-  minute: '2-digit',
-  timeZone: 'UTC',
-});
-
-function formatDate(value: string | null) {
-  return value ? dateFormatter.format(new Date(value)) : null;
-}
-
-const STATUS_LABEL: Record<DeletionStatus, string> = {
-  none: 'Active',
-  requested: 'Deletion requested',
-  grace_period: 'Pending deletion',
-  ready_to_purge: 'Deletion in progress',
-  purged: 'Deleted',
-};
-
 export default function AccountDataPage() {
-  const { view: loaderView, email, loadError } = useLoaderData<typeof loader>();
+  const { view: loaderView, email, loadError, language, loadedAt } = useLoaderData<typeof loader>();
+  const copy = getAccountDataPageCopy(language);
   const actionData = useActionData<typeof action>() as ActionResult | undefined;
   const navigation = useNavigation();
   const revalidator = useRevalidator();
@@ -197,11 +178,11 @@ export default function AccountDataPage() {
     return (
       <div className="space-y-6">
         {retrying ? (
-          <AsyncPanelSkeleton label="Loading data and privacy settings" rows={5} />
+          <AsyncPanelSkeleton label={copy.load.loading} rows={5} />
         ) : (
           <AsyncPanelError
-            title="Data and privacy settings could not load"
-            description="Account status, exports, and deletion controls are hidden because the latest request failed. No account data was changed."
+            title={copy.load.errorTitle}
+            description={copy.load.errorDescription}
             onRetry={revalidator.revalidate}
           />
         )}
@@ -214,17 +195,35 @@ export default function AccountDataPage() {
   const failure = actionData && !actionData.ok ? actionData : null;
 
   // Failed deletion requests surface INSIDE the dialog; everything else banners at the top.
-  const requestError = failure?.intent === 'request' ? failure.error : null;
-  const error = failure && failure.intent !== 'request' ? failure.error : null;
+  const requestError = failure?.intent === 'request' ? copy.errors[failure.errorCode] : null;
+  const error = failure && failure.intent !== 'request' ? copy.errors[failure.errorCode] : null;
 
-  const pending = view.status === 'grace_period' || view.status === 'requested';
-  const purgeDate = formatDate(view.purgeDueAt);
-  const requestedDate = formatDate(view.requestedAt);
+  const deletionScheduled = view.status !== 'none';
+  const cancellableWindow = view.status === 'grace_period' || view.status === 'requested';
+  const purgeDate = view.purgeDueAt ? formatAccountDataDate(view.purgeDueAt, language) : null;
+  const requestedDate = view.requestedAt ? formatAccountDataDate(view.requestedAt, language) : null;
   const confirmOk = emailConfirmMatches(confirmValue, email);
+  const gracePeriodDays = Number.isFinite(view.gracePeriodDays) ? Math.max(0, view.gracePeriodDays) : 0;
 
-  // Projected end of the grace window if the user confirms right now (approximate by design).
-  const projectedPurgeDate = formatDate(
-    new Date(Date.now() + view.gracePeriodDays * 24 * 60 * 60 * 1000).toISOString(),
+  // Project from the loader timestamp to keep server rendering and hydration deterministic.
+  const loadedAtMs = new Date(loadedAt).getTime();
+
+  const projectedPurgeDate = Number.isFinite(loadedAtMs)
+    ? formatAccountDataDate(loadedAtMs + gracePeriodDays * 24 * 60 * 60 * 1000, language)
+    : null;
+  const dialogDescription = formatAccountDataPlural(
+    language,
+    gracePeriodDays,
+    projectedPurgeDate
+      ? {
+          one: copy.dialog.descriptionWithDate_one,
+          other: copy.dialog.descriptionWithDate_other,
+        }
+      : {
+          one: copy.dialog.descriptionWithoutDate_one,
+          other: copy.dialog.descriptionWithoutDate_other,
+        },
+    projectedPurgeDate ? { date: projectedPurgeDate } : {},
   );
 
   return (
@@ -244,20 +243,20 @@ export default function AccountDataPage() {
           <p
             role="status"
             aria-live="polite"
-            className="rounded-md border border-[var(--status-success-border)] bg-[var(--status-success-bg)] px-3 py-2 text-sm text-bolt-elements-textSecondary"
+            className="rounded-md border border-[var(--status-success-border)] bg-[var(--status-success-bg)] px-3 py-2 text-sm text-[var(--status-success-text)]"
           >
-            Account deletion cancelled. Your account stays active.
+            {copy.success.cancellation}
           </p>
         ) : null}
 
         {/* Current status */}
         <section className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5 shadow-sm sm:p-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="text-base font-semibold text-bolt-elements-textPrimary">Account status</h2>
-            <StatusPill label={STATUS_LABEL[view.status]} />
+            <h2 className="break-words text-base font-semibold text-bolt-elements-textPrimary">{copy.status.title}</h2>
+            <StatusPill label={copy.status.labels[view.status]} />
           </div>
 
-          {pending ? (
+          {deletionScheduled ? (
             <div className="mt-4 rounded-md border border-[var(--status-warning-border)] bg-[var(--status-warning-bg)] p-4">
               <div className="flex items-start gap-3">
                 <AlertTriangle
@@ -266,60 +265,93 @@ export default function AccountDataPage() {
                   aria-hidden
                 />
                 <div className="min-w-0 text-sm text-bolt-elements-textSecondary">
-                  <p className="font-medium text-bolt-elements-textPrimary">Your account is scheduled for deletion.</p>
-                  <p className="mt-1">
-                    {requestedDate ? `Requested ${requestedDate}. ` : null}
-                    {purgeDate
-                      ? `Your data will be permanently removed on ${purgeDate}.`
-                      : `You have ${view.gracePeriodDays} days to cancel.`}
-                  </p>
+                  {view.status === 'ready_to_purge' ? (
+                    <>
+                      <p className="break-words font-medium text-bolt-elements-textPrimary">{copy.status.readyTitle}</p>
+                      <p className="mt-1 break-words leading-5">{copy.status.readyDescription}</p>
+                    </>
+                  ) : view.status === 'purged' ? (
+                    <>
+                      <p className="break-words font-medium text-bolt-elements-textPrimary">
+                        {copy.status.purgedTitle}
+                      </p>
+                      <p className="mt-1 break-words leading-5">{copy.status.purgedDescription}</p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="break-words font-medium text-bolt-elements-textPrimary">
+                        {copy.status.scheduledTitle}
+                      </p>
+                      <p className="mt-1 break-words leading-5">
+                        {requestedDate
+                          ? `${interpolateAccountDataCopy(copy.status.requestedOn, { date: requestedDate })} `
+                          : null}
+                        {purgeDate
+                          ? interpolateAccountDataCopy(copy.status.purgeOn, { date: purgeDate })
+                          : formatAccountDataPlural(language, gracePeriodDays, {
+                              one: copy.status.daysToCancel_one,
+                              other: copy.status.daysToCancel_other,
+                            })}
+                      </p>
+                    </>
+                  )}
                 </div>
               </div>
 
-              {view.canCancel ? (
+              {cancellableWindow && view.canCancel ? (
                 <Form method="post" className="mt-4">
                   <input type="hidden" name="intent" value="cancel" />
-                  <Button type="submit" variant="outline" disabled={busy} aria-busy={busy} className="gap-1.5">
+                  <Button
+                    type="submit"
+                    variant="outline"
+                    disabled={busy}
+                    aria-busy={busy}
+                    className="min-h-[44px] w-full gap-1.5 whitespace-normal sm:w-auto"
+                  >
                     <Undo2 className="h-4 w-4" aria-hidden />
-                    {busy ? 'Cancelling…' : 'Cancel deletion request'}
+                    {busy ? copy.status.cancelling : copy.status.cancelRequest}
                   </Button>
                 </Form>
               ) : null}
             </div>
           ) : (
-            <p className="mt-2 text-sm text-bolt-elements-textSecondary">
-              Your account is active. You can request deletion below.
+            <p className="mt-2 break-words text-sm leading-5 text-bolt-elements-textSecondary">
+              {copy.status.activeDescription}
             </p>
           )}
         </section>
 
         {/* What deletion removes / retains */}
         <section className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5 shadow-sm sm:p-6">
-          <h2 className="text-base font-semibold text-bolt-elements-textPrimary">What gets deleted</h2>
-          <p className="mt-1 text-sm text-bolt-elements-textSecondary">
-            Deletion is permanent after a {view.gracePeriodDays}-day grace period. Some records are retained where the
-            law requires it.
+          <h2 className="break-words text-base font-semibold text-bolt-elements-textPrimary">{copy.deletion.title}</h2>
+          <p className="mt-1 break-words text-sm leading-5 text-bolt-elements-textSecondary">
+            {formatAccountDataPlural(language, gracePeriodDays, {
+              one: copy.deletion.description_one,
+              other: copy.deletion.description_other,
+            })}
           </p>
 
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             <div className="rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-4">
-              <p className="text-sm font-medium text-bolt-elements-textPrimary">Permanently removed</p>
+              <p className="break-words text-sm font-medium text-bolt-elements-textPrimary">
+                {copy.deletion.permanentlyRemoved}
+              </p>
               <ul className="mt-2 space-y-1 text-sm text-bolt-elements-textSecondary">
                 {view.scope.deleted.map((item) => (
                   <li key={item} className="flex items-start gap-2">
                     <Trash2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-bolt-elements-textTertiary" aria-hidden />
-                    <span>{item}</span>
+                    <span className="min-w-0 break-words">{localizeDeletionScopeItem(item, 'deleted', language)}</span>
                   </li>
                 ))}
               </ul>
             </div>
             <div className="rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-4">
-              <p className="text-sm font-medium text-bolt-elements-textPrimary">Retained (legal/financial)</p>
+              <p className="break-words text-sm font-medium text-bolt-elements-textPrimary">{copy.deletion.retained}</p>
               <ul className="mt-2 space-y-1 text-sm text-bolt-elements-textSecondary">
                 {view.scope.retained.map((item) => (
                   <li key={item} className="flex items-start gap-2">
                     <ShieldAlert className="mt-0.5 h-3.5 w-3.5 shrink-0 text-bolt-elements-textTertiary" aria-hidden />
-                    <span>{item}</span>
+                    <span className="min-w-0 break-words">{localizeDeletionScopeItem(item, 'retained', language)}</span>
                   </li>
                 ))}
               </ul>
@@ -329,31 +361,30 @@ export default function AccountDataPage() {
 
         {/* Download my data (GDPR export) */}
         <section className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5 shadow-sm sm:p-6">
-          <h2 className="text-base font-semibold text-bolt-elements-textPrimary">Download my data</h2>
-          <p className="mt-1 text-sm text-bolt-elements-textSecondary">
-            Export a copy of your personal data as a JSON file. The export is generated server-side over your session —
-            no secrets, tokens, or passwords are ever included.
+          <h2 className="break-words text-base font-semibold text-bolt-elements-textPrimary">{copy.export.title}</h2>
+          <p className="mt-1 break-words text-sm leading-5 text-bolt-elements-textSecondary">
+            {copy.export.description}
           </p>
 
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             <div className="rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-4">
-              <p className="text-sm font-medium text-bolt-elements-textPrimary">Included</p>
+              <p className="break-words text-sm font-medium text-bolt-elements-textPrimary">{copy.export.included}</p>
               <ul className="mt-2 space-y-1 text-sm text-bolt-elements-textSecondary">
-                {EXPORT_INCLUDES.map((item) => (
+                {copy.export.includes.map((item) => (
                   <li key={item} className="flex items-start gap-2">
                     <Download className="mt-0.5 h-3.5 w-3.5 shrink-0 text-bolt-elements-textTertiary" aria-hidden />
-                    <span>{item}</span>
+                    <span className="min-w-0 break-words">{item}</span>
                   </li>
                 ))}
               </ul>
             </div>
             <div className="rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-4">
-              <p className="text-sm font-medium text-bolt-elements-textPrimary">Never included</p>
+              <p className="break-words text-sm font-medium text-bolt-elements-textPrimary">{copy.export.excluded}</p>
               <ul className="mt-2 space-y-1 text-sm text-bolt-elements-textSecondary">
-                {EXPORT_EXCLUDES.map((item) => (
+                {copy.export.excludes.map((item) => (
                   <li key={item} className="flex items-start gap-2">
                     <ShieldAlert className="mt-0.5 h-3.5 w-3.5 shrink-0 text-bolt-elements-textTertiary" aria-hidden />
-                    <span>{item}</span>
+                    <span className="min-w-0 break-words">{item}</span>
                   </li>
                 ))}
               </ul>
@@ -364,22 +395,24 @@ export default function AccountDataPage() {
             href="/account-data?export=data"
             download
             data-testid="account-data-export"
-            className="mt-4 inline-flex min-h-[44px] items-center gap-1.5 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-4 text-sm font-medium text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3"
+            className="mt-4 inline-flex min-h-[44px] w-full min-w-0 items-center justify-center gap-1.5 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-4 text-center text-sm font-medium text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3 sm:w-auto"
           >
-            <Download className="h-4 w-4" aria-hidden />
-            Download my data (JSON)
+            <Download className="h-4 w-4 shrink-0" aria-hidden />
+            <span className="break-words">{copy.export.download}</span>
           </a>
         </section>
 
         {/* Danger zone: request deletion (typed-confirmation dialog) */}
-        {!pending ? (
+        {!deletionScheduled ? (
           <section className="rounded-lg border border-[var(--status-error-border)] bg-[var(--status-error-bg)] p-5 shadow-sm sm:p-6">
-            <h2 className="text-base font-semibold" style={{ color: 'var(--status-error-text)' }}>
-              Delete account
+            <h2 className="break-words text-base font-semibold" style={{ color: 'var(--status-error-text)' }}>
+              {copy.danger.title}
             </h2>
-            <p className="mt-1 text-sm text-bolt-elements-textSecondary">
-              This schedules your account for permanent deletion. You can cancel within the {view.gracePeriodDays}-day
-              grace period — sign back in and cancel from this page — after which it cannot be undone.
+            <p className="mt-1 break-words text-sm leading-5 text-bolt-elements-textSecondary">
+              {formatAccountDataPlural(language, gracePeriodDays, {
+                one: copy.danger.description_one,
+                other: copy.danger.description_other,
+              })}
             </p>
 
             <button
@@ -393,10 +426,10 @@ export default function AccountDataPage() {
                 color: 'var(--status-error-text)',
                 borderColor: 'color-mix(in srgb, var(--vc-ide-accent-error) 40%, transparent)',
               }}
-              className="mt-4 inline-flex min-h-[44px] items-center gap-1.5 rounded-md border px-4 text-sm font-medium transition-colors hover:bg-[var(--status-error-bg)]"
+              className="mt-4 inline-flex min-h-[44px] w-full min-w-0 items-center justify-center gap-1.5 rounded-md border px-4 text-center text-sm font-medium transition-colors hover:bg-[var(--status-error-bg)] sm:w-auto"
             >
-              <Trash2 className="h-4 w-4" aria-hidden />
-              Delete account…
+              <Trash2 className="h-4 w-4 shrink-0" aria-hidden />
+              <span className="break-words">{copy.danger.open}</span>
             </button>
           </section>
         ) : null}
@@ -407,26 +440,16 @@ export default function AccountDataPage() {
        * app/routes/api-keys.tsx). The destructive submit stays disabled until
        * the user types their account email — the User model has no username.
        */}
-      <RadixDialog.Root open={deleteOpen && !pending} onOpenChange={setDeleteOpen}>
-        {deleteOpen && !pending ? (
+      <RadixDialog.Root open={deleteOpen && !deletionScheduled} onOpenChange={setDeleteOpen}>
+        {deleteOpen && !deletionScheduled ? (
           <Dialog onClose={() => setDeleteOpen(false)} onBackdrop={() => setDeleteOpen(false)}>
             <div className="p-6">
               <DialogTitle asChild>
-                <h2 className="text-base font-semibold" style={{ color: 'var(--status-error-text)' }}>
-                  Delete your account?
+                <h2 className="break-words text-base font-semibold" style={{ color: 'var(--status-error-text)' }}>
+                  {copy.dialog.title}
                 </h2>
               </DialogTitle>
-              <p className="mt-1 text-sm text-bolt-elements-textSecondary">
-                Your account will be scheduled for permanent deletion after a {view.gracePeriodDays}-day grace period
-                {projectedPurgeDate ? (
-                  <>
-                    {' '}
-                    (on or after{' '}
-                    <span className="font-medium text-bolt-elements-textPrimary">{projectedPurgeDate}</span>)
-                  </>
-                ) : null}
-                . Until then you can sign back in and cancel from this page.
-              </p>
+              <p className="mt-1 break-words text-sm leading-5 text-bolt-elements-textSecondary">{dialogDescription}</p>
 
               {requestError ? (
                 <p
@@ -438,12 +461,16 @@ export default function AccountDataPage() {
                 </p>
               ) : null}
 
-              <Form method="post" className="mt-4 space-y-4">
+              <Form method="post" noValidate className="mt-4 space-y-4">
                 <input type="hidden" name="intent" value="request" />
 
                 <div>
-                  <label htmlFor="confirm" className="block text-sm font-medium text-bolt-elements-textPrimary">
-                    Type <span className="font-mono font-semibold">{email}</span> to confirm
+                  <label
+                    htmlFor="confirm"
+                    className="block break-words text-sm font-medium leading-5 text-bolt-elements-textPrimary"
+                  >
+                    {copy.dialog.confirmPrefix} <span className="break-all font-mono font-semibold">{email}</span>{' '}
+                    {copy.dialog.confirmSuffix}
                   </label>
                   <input
                     id="confirm"
@@ -454,17 +481,17 @@ export default function AccountDataPage() {
                     value={confirmValue}
                     onChange={(event) => setConfirmValue(event.target.value)}
                     placeholder={email}
-                    className="mt-1 min-h-[44px] w-full rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-sm text-bolt-elements-textPrimary focus:border-bolt-elements-focus focus:outline-none"
+                    className="mt-1 min-h-[44px] w-full rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-[16px] text-bolt-elements-textPrimary focus:border-bolt-elements-focus focus:outline-none sm:text-sm"
                   />
                 </div>
 
-                <div className="flex justify-end gap-2">
+                <div className="flex flex-col-reverse justify-end gap-2 sm:flex-row">
                   <button
                     type="button"
                     onClick={() => setDeleteOpen(false)}
                     className="inline-flex min-h-[44px] items-center justify-center rounded-md border border-bolt-elements-borderColor px-4 text-sm font-medium text-bolt-elements-textPrimary transition-colors hover:bg-bolt-elements-background-depth-3"
                   >
-                    Cancel
+                    {copy.dialog.cancel}
                   </button>
                   <button
                     type="submit"
@@ -475,10 +502,10 @@ export default function AccountDataPage() {
                       color: 'var(--status-error-text)',
                       borderColor: 'color-mix(in srgb, var(--vc-ide-accent-error) 40%, transparent)',
                     }}
-                    className="inline-flex min-h-[44px] items-center gap-1.5 rounded-md border px-4 text-sm font-medium transition-colors hover:bg-[var(--status-error-bg)] disabled:cursor-not-allowed disabled:opacity-60"
+                    className="inline-flex min-h-[44px] min-w-0 items-center justify-center gap-1.5 rounded-md border px-4 text-center text-sm font-medium transition-colors hover:bg-[var(--status-error-bg)] disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    <Trash2 className="h-4 w-4" aria-hidden />
-                    {busy ? 'Requesting…' : 'Request account deletion'}
+                    <Trash2 className="h-4 w-4 shrink-0" aria-hidden />
+                    <span className="break-words">{busy ? copy.dialog.requesting : copy.dialog.requestDeletion}</span>
                   </button>
                 </div>
               </Form>

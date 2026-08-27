@@ -1,0 +1,351 @@
+diff --git a/packages/billing/src/starter-entitlements.ts b/packages/billing/src/starter-entitlements.ts
+index 704c2fbf..e40b7c67 100644
+--- a/packages/billing/src/starter-entitlements.ts
++++ b/packages/billing/src/starter-entitlements.ts
+@@ -1,100 +1,64 @@
+ /**
+- * Entitlements du plan Starter appliqués CÔTÉ SERVEUR (EX-05).
++ * CONTRAT STARTER — entitlements appliqués côté serveur.
+  *
+- * Le problème que ce module corrige : plusieurs entitlements Starter étaient
+- * **déclarés** (catalogue de plans, page pricing) sans aucune application
+- * serveur — un utilisateur gratuit pouvait donc dépasser ce que l'offre annonce.
+- * D'autres étaient appliqués mais derrière `BILLING_CREDITS_ENABLED`, non défini
+- * en production : du code de garde qui ne garde rien.
++ * Toutes les VALEURS viennent de la rate card versionnée
++ * (`starter-rate-card.ts`) : aucun chiffre n'est écrit ici. Ce fichier ne
++ * contient que des RÈGLES.
+  *
+- * Règles de conception :
++ * Le modèle correct, et pourquoi il compte :
+  *
+- *  - **Fail-closed.** Une limite illisible, non finie ou négative bloque au lieu
+- *    de laisser passer. Un plan inconnu retombe sur Starter (le plus restrictif),
+- *    jamais sur « illimité ».
+- *  - **Indépendant du flag crédits.** Ces limites décrivent l'OFFRE, pas le
+- *    modèle de facturation à l'usage ; les mettre derrière le flag reviendrait à
+- *    ne pas les appliquer du tout en prod.
+- *  - **402 quand il faut payer pour lever la limite**, distinct du 429 des
+- *    quotas de débit : un Starter qui atteint son app publiée n'est pas
+- *    « trop rapide », il lui manque un plan. Le code d'erreur dit lequel.
++ *   L'offre Starter n'est PAS « un déploiement ». C'est **un projet publié
++ *   actif à la fois**. La nuance est tout le sujet : republier le même projet
++ *   dix fois est un usage normal — c'est un DEUXIÈME projet distinct qui
++ *   dépasse l'offre. Modéliser ça en `maxDeployments = 1` (ou pire,
++ *   `deployments = 0`) punit l'itération normale et ne protège rien.
+  *
+- * ⚠️ Les valeurs marquées UNKNOWN ne sont PAS inventées : Replit ne les publie
+- * pas. Voir `STARTER_PARITY_SOURCES` — un chiffre non sourcé reste `null` et
+- * n'est appliqué par personne.
++ *   Un projet publié sur Starter **descend automatiquement au bout de 30
++ *   jours**. Une fois expiré, il ne compte plus, et le MÊME projet peut être
++ *   republié. L'expiration est donc une règle de comptage, pas une punition.
++ *
++ * Deux compteurs de crédits DISTINCTS existent (crédits Agent quotidiens
++ * plafonnés au mois ; crédits cloud mensuels) — voir `StarterCreditCounters`.
++ * Ils ne sont pas fusionnés : ce sont deux enveloppes différentes.
++ *
++ * ⚠️ Le dépassement Starter n'est PAS branché sur du pay-as-you-go Stripe : la
++ * doc Replit présente le pay-as-you-go comme un DÉBLOCAGE Core. Tant qu'un
++ * compte Starter réel n'a pas démontré le contraire, l'épuisement déclenche une
++ * garde d'upgrade CONFIGURABLE (voir `UpgradeGuardMode`).
+  */
++import { STARTER_RATE_CARD, usableValue } from './starter-rate-card.js';
+ 
+ export type EntitlementPlanKey = 'starter' | 'core' | 'pro' | 'enterprise';
+ 
++/** Ce que fait la plateforme quand une enveloppe Starter est épuisée. */
++export type UpgradeGuardMode =
++  /** Refuser et inviter à passer à un plan supérieur. Défaut. */
++  | 'block-and-invite-upgrade'
++  /** Laisser passer en enregistrant le dépassement (observation seule). */
++  | 'observe-only';
++
++export const DEFAULT_UPGRADE_GUARD_MODE: UpgradeGuardMode = 'block-and-invite-upgrade';
++
+ /**
+- * Traçabilité de chaque chiffre. `value: null` = non publié par Replit ⇒ aucune
+- * application, aucune supposition. C'est volontaire : mieux vaut un trou déclaré
+- * qu'un chiffre inventé qui refuserait à tort de vrais utilisateurs.
++ * Cap de projets publiés ACTIFS par plan. Starter vient de la rate card ; les
++ * plans payants sont bornés par la limite dure « 20 apps simultanées », qui
++ * s'applique à tous les plans et n'est donc pas un quota commercial Starter.
+  */
+-export const STARTER_PARITY_SOURCES = {
+-  publishedApps: {
+-    value: 1,
+-    source: 'docs.replit.com/billing/plans/starter-plan — « Get 1 free published app »',
+-    verifiedOn: '2026-08-04',
+-  },
+-  workspaceStorageGb: {
+-    value: 2,
+-    source: 'docs.replit.com/billing/plans/starter-plan — StarterWorkspaceStorage = 2GB',
+-    verifiedOn: '2026-08-04',
+-  },
+-  publishedAppTtlDays: {
+-    value: 30,
+-    source: "docs.replit.com/billing/plans/starter-plan — published apps « go down after 30 days »",
+-    verifiedOn: '2026-08-04',
+-  },
+-  egressGibPerMonth: {
+-    value: 10,
+-    source: 'replit.com/blog/new-limits-and-plans — free tier « 10 GiB/month »',
+-    verifiedOn: '2026-08-04',
+-  },
+-  concurrentAppsAllPlans: {
+-    value: 20,
+-    source: 'docs.replit.com/legal-and-security-info/usage — « Concurrent Replit Apps: 20 (hard) »',
+-    verifiedOn: '2026-08-04',
+-  },
+-  // --- Non publiés par Replit : NE PAS INVENTER ---
+-  collaborators: {
+-    value: null,
+-    source: 'NON PUBLIÉ pour Starter (Core=5, Pro=15 seulement). docs.replit.com/build/invite-teammates',
+-    verifiedOn: '2026-08-04',
+-  },
+-  projectsCount: {
+-    value: null,
+-    source: 'NON PUBLIÉ. Seule la borne 20 apps concurrentes, tous plans confondus, est documentée.',
+-    verifiedOn: '2026-08-04',
+-  },
+-  dailyCreditAmount: {
+-    value: null,
+-    source: 'NON PUBLIÉ — « daily credits, up to a monthly cap », sans montant.',
+-    verifiedOn: '2026-08-04',
+-  },
+-} as const;
+-
+-/** Cap d'applications publiées SIMULTANÉMENT, par plan. */
+-export const PUBLISHED_APP_CAP: Record<EntitlementPlanKey, number> = {
+-  // Chiffre Replit vérifié.
+-  starter: 1,
+-  /*
+-   * Core/Pro : « unlimited published apps » côté Replit, borné en pratique par
+-   * la limite dure de 20 apps concurrentes, tous plans confondus.
+-   */
+-  core: 20,
+-  pro: 20,
+-  enterprise: 20,
+-};
+-
+-/** Stockage d'espace de travail par plan, en Go (chiffre Replit vérifié pour Starter). */
+-export const WORKSPACE_STORAGE_GB_CAP: Record<EntitlementPlanKey, number> = {
+-  starter: 2,
+-  core: 50,
+-  pro: 100,
+-  enterprise: 250,
+-};
++export function maxActivePublishedProjects(plan: EntitlementPlanKey): number {
++  if (plan === 'starter') {
++    const capped = usableValue(STARTER_RATE_CARD.publishing.maxActivePublishedProjects);
++
++    // Fail-closed : rate card illisible ⇒ on n'invente pas, on bloque.
++    return capped ?? 0;
++  }
++
++  return usableValue(STARTER_RATE_CARD.technicalLimits.concurrentAppsAllPlans) ?? 0;
++}
++
++/** Durée de vie d'une publication Starter, en jours (null si non capturée). */
++export function publishedProjectTtlDays(plan: EntitlementPlanKey): number | null {
++  return plan === 'starter' ? usableValue(STARTER_RATE_CARD.publishing.publishedProjectTtlDays) : null;
++}
+ 
+ export class EntitlementError extends Error {
+   constructor(
+@@ -118,71 +82,154 @@ export function toEntitlementPlanKey(key: string | undefined | null): Entitlemen
+     case 'core':
+       return 'core';
+     case 'pro':
+-    case 'team': // clé héritée
++    case 'team':
+       return 'pro';
+     case 'enterprise':
+       return 'enterprise';
+     default:
+-      // 'starter', 'free', undefined, inconnu → le plus restrictif.
+       return 'starter';
+   }
+ }
+ 
+-/** Lecture fail-closed d'un cap : une valeur inutilisable bloque tout (0). */
+-function safeCap(value: number | undefined): number {
+-  return Number.isFinite(value) && (value as number) >= 0 ? (value as number) : 0;
++/** Une publication vivante : quel projet, et quand elle expire (si elle expire). */
++export interface ActivePublication {
++  projectId: string;
++  publishedAt: Date;
+ }
+ 
+ /**
+- * Refuse de publier une app de plus que ce que le plan autorise.
+- *
+- * `active` = nombre d'apps DÉJÀ publiées, hors celle qu'on republie (republier
+- * une app déjà en ligne ne doit jamais déclencher son propre cap).
++ * Une publication compte-t-elle encore ? Sur Starter, elle s'éteint d'elle-même
++ * au bout du TTL — un projet expiré ne consomme plus l'unique place, ce qui
++ * permet de republier le MÊME projet (ou un autre) sans intervention.
++ */
++export function isPublicationActive(input: {
++  plan: EntitlementPlanKey;
++  publishedAt: Date;
++  now: Date;
++}): boolean {
++  const ttl = publishedProjectTtlDays(input.plan);
++
++  if (ttl === null) {
++    return true; // pas de TTL connu pour ce plan ⇒ la publication reste active
++  }
++
++  const ageMs = input.now.getTime() - input.publishedAt.getTime();
++
++  // Une date future ou illisible est traitée comme active (fail-closed).
++  if (!Number.isFinite(ageMs)) {
++    return true;
++  }
++
++  return ageMs < ttl * 24 * 60 * 60 * 1000;
++}
++
++export interface PublishDecision {
++  allowed: boolean;
++  plan: EntitlementPlanKey;
++  cap: number;
++  /** Projets DISTINCTS encore publiés, hors celui qu'on republie. */
++  activeOtherProjects: number;
++  /** Vrai quand il s'agit de republier un projet déjà publié. */
++  isRepublish: boolean;
++}
++
++/**
++ * Décide si `targetProjectId` peut être publié.
+  *
+- * 402 et non 429 : la limite se lève en changeant de plan, pas en attendant.
++ * Deux propriétés que le test naïf « 2e appel Publish → refus » ne capture pas :
++ *  - republier un projet DÉJÀ publié est toujours autorisé, quel que soit le
++ *    plafond (sinon on interdirait de corriger un bug en production) ;
++ *  - les publications expirées ne comptent pas.
+  */
+-export function assertPublishedAppEntitlement(input: {
++export function evaluatePublish(input: {
+   planKey: string | undefined | null;
+-  active: number;
++  targetProjectId: string;
++  publications: ActivePublication[];
++  now?: Date;
+   cap?: number;
+-}): void {
++}): PublishDecision {
+   const plan = toEntitlementPlanKey(input.planKey);
+-  const cap = safeCap(input.cap ?? PUBLISHED_APP_CAP[plan]);
+-  // Un compteur illisible compte comme « déjà au plafond ».
+-  const active = Number.isFinite(input.active) ? input.active : Number.POSITIVE_INFINITY;
++  const now = input.now ?? new Date();
++  const rawCap = input.cap ?? maxActivePublishedProjects(plan);
++  const cap = Number.isFinite(rawCap) && rawCap >= 0 ? rawCap : 0;
++
++  const live = input.publications.filter((p) => isPublicationActive({ plan, publishedAt: p.publishedAt, now }));
++  const isRepublish = live.some((p) => p.projectId === input.targetProjectId);
++  const activeOtherProjects = new Set(
++    live.filter((p) => p.projectId !== input.targetProjectId).map((p) => p.projectId),
++  ).size;
+ 
+-  if (active >= cap) {
++  return {
++    // Republier ne consomme pas de place supplémentaire : toujours autorisé.
++    allowed: isRepublish || activeOtherProjects < cap,
++    plan,
++    cap,
++    activeOtherProjects,
++    isRepublish,
++  };
++}
++
++/** Variante levante, pour les chemins qui doivent refuser. */
++export function assertPublishEntitlement(input: {
++  planKey: string | undefined | null;
++  targetProjectId: string;
++  publications: ActivePublication[];
++  now?: Date;
++  cap?: number;
++  guardMode?: UpgradeGuardMode;
++}): PublishDecision {
++  const decision = evaluatePublish(input);
++  const mode = input.guardMode ?? DEFAULT_UPGRADE_GUARD_MODE;
++
++  if (!decision.allowed && mode === 'block-and-invite-upgrade') {
+     throw new EntitlementError(
+-      `Le plan ${plan} autorise ${cap} application(s) publiée(s) simultanément.`,
+-      'PLAN_PUBLISHED_APP_LIMIT',
++      `Votre plan permet ${decision.cap} projet(s) publié(s) à la fois. Passez à un plan supérieur pour en publier d'autres.`,
++      'PLAN_ACTIVE_PUBLISHED_PROJECT_LIMIT',
+       402,
+-      { plan, cap, active },
++      {
++        plan: decision.plan,
++        cap: decision.cap,
++        activeOtherProjects: decision.activeOtherProjects,
++        upgradeRequired: true,
++      },
+     );
+   }
++
++  return decision;
+ }
+ 
+ /**
+- * Refuse de dépasser le stockage d'espace de travail du plan.
+- * `usedBytes` illisible ⇒ traité comme au plafond (fail-closed).
++ * Les DEUX compteurs de crédits Starter, gardés distincts.
++ *
++ * Aucun montant n'est appliqué tant que la rate card les marque
++ * `PENDING_LIVE_CAPTURE` : `limitCents: null` signifie « inconnu, donc non
++ * appliqué », et surtout pas « illimité ».
+  */
+-export function assertWorkspaceStorageEntitlement(input: {
+-  planKey: string | undefined | null;
+-  usedBytes: number;
+-  incomingBytes?: number;
+-  capGb?: number;
+-}): void {
+-  const plan = toEntitlementPlanKey(input.planKey);
+-  const capGb = safeCap(input.capGb ?? WORKSPACE_STORAGE_GB_CAP[plan]);
+-  const capBytes = capGb * 1024 * 1024 * 1024;
+-  const used = Number.isFinite(input.usedBytes) ? input.usedBytes : Number.POSITIVE_INFINITY;
+-  const incoming = Number.isFinite(input.incomingBytes) ? (input.incomingBytes as number) : 0;
++export interface StarterCreditCounters {
++  agentDaily: { limitCents: number | null; resetCadence: 'daily'; monthlyCapCents: number | null };
++  cloudMonthly: { limitCents: number | null; resetCadence: 'monthly'; covers: readonly string[] };
++}
+ 
+-  if (used + incoming > capBytes) {
+-    throw new EntitlementError(
+-      `Le plan ${plan} est limité à ${capGb} Go de stockage d'espace de travail.`,
+-      'PLAN_STORAGE_LIMIT',
+-      402,
+-      { plan, capGb, usedBytes: Number.isFinite(used) ? used : null, incomingBytes: incoming },
+-    );
+-  }
++export function starterCreditCounters(): StarterCreditCounters {
++  return {
++    agentDaily: {
++      limitCents: usableValue(STARTER_RATE_CARD.agentCredits.dailyAllowanceCents),
++      resetCadence: 'daily',
++      monthlyCapCents: usableValue(STARTER_RATE_CARD.agentCredits.monthlyCapCents),
++    },
++    cloudMonthly: {
++      limitCents: usableValue(STARTER_RATE_CARD.cloudCredits.monthlyAllowanceCents),
++      resetCadence: 'monthly',
++      covers: STARTER_RATE_CARD.cloudCredits.covers,
++    },
++  };
++}
++
++/**
++ * Le dépassement Starter ne doit pas être facturé à l'usage tant que ce
++ * comportement n'a pas été observé sur un vrai compte Starter. Cette fonction
++ * existe pour que l'intention soit explicite et testable.
++ */
++export function starterOverageIsPayAsYouGo(): boolean {
++  return false;
+ }

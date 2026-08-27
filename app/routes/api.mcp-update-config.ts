@@ -1,5 +1,6 @@
 import { type ActionFunctionArgs } from 'react-router';
 import { apiRequest } from '~/lib/enterprise-api.server';
+import { remainingApiErrorResponse, remainingApiRouteMessage } from '~/lib/i18n/catalogs/remaining-api-routes';
 import { MCPService, type MCPConfig } from '~/lib/services/mcpService';
 import { createScopedLogger } from '~/utils/logger';
 
@@ -9,7 +10,7 @@ const logger = createScopedLogger('api.mcp-update-config');
  * Strip credentials (config.env / config.headers) and the live client handle
  * from a server-tools map before it is serialized to the browser.
  */
-function sanitizeServerTools(serverTools: Record<string, unknown>) {
+function sanitizeServerTools(request: Request, serverTools: Record<string, unknown>) {
   return Object.fromEntries(
     Object.entries(serverTools).map(([name, server]) => {
       const record = server as {
@@ -21,7 +22,15 @@ function sanitizeServerTools(serverTools: Record<string, unknown>) {
 
       const safeConfig = record.config ? { ...record.config, env: undefined, headers: undefined } : undefined;
 
-      return [name, { status: record.status, tools: record.tools, error: record.error, config: safeConfig }];
+      return [
+        name,
+        {
+          status: record.status,
+          tools: record.tools,
+          error: record.error ? remainingApiRouteMessage(request, 'MCP_SERVER_UNAVAILABLE') : undefined,
+          config: safeConfig,
+        },
+      ];
     }),
   );
 }
@@ -45,18 +54,18 @@ export async function action({ request }: ActionFunctionArgs) {
   const mcpService = new MCPService();
 
   try {
-    const mcpConfig = (await request.json()) as MCPConfig;
+    const mcpConfig = (await request.json().catch(() => null)) as MCPConfig | null;
 
     if (!mcpConfig || typeof mcpConfig !== 'object') {
-      return Response.json({ error: 'Invalid MCP servers configuration' }, { status: 400 });
+      return remainingApiErrorResponse(request, 'MCP_CONFIG_INVALID', 400);
     }
 
     const serverTools = await mcpService.updateConfig(mcpConfig);
 
-    return Response.json(sanitizeServerTools(serverTools as Record<string, unknown>));
+    return Response.json(sanitizeServerTools(request, serverTools as Record<string, unknown>));
   } catch (error) {
     logger.error('Error updating MCP config:', error);
-    return Response.json({ error: 'Failed to update MCP config' }, { status: 500 });
+    return remainingApiErrorResponse(request, 'MCP_UPDATE_FAILED', 500);
   } finally {
     await mcpService.close().catch(() => undefined);
   }

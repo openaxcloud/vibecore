@@ -1,17 +1,26 @@
 import { useStore } from '@nanostores/react';
 import * as RadixDialog from '@radix-ui/react-dialog';
 import { lazy, Suspense, useState, useEffect, useMemo, useCallback, type ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { AvatarDropdown } from './AvatarDropdown';
 import { TabPanelBoundary } from './TabPanelBoundary';
-import { TAB_LABELS, DEFAULT_TAB_CONFIG, TAB_DESCRIPTIONS } from './constants';
+import { DEFAULT_TAB_CONFIG } from './constants';
 import { getTabPanelBoundaryKey } from './tab-panel-boundary-key';
-import { getStatusMessage, getTabUpdateStatus } from './tab-status';
+import { getTabUpdateStatus } from './tab-status';
 import type { TabType } from './types';
 import { TabTile } from '~/components/@settings/shared/components/TabTile';
 import BackgroundRays from '~/components/ui/BackgroundRays';
 import { DialogTitle } from '~/components/ui/Dialog';
 import { useFeatures } from '~/lib/hooks/useFeatures';
 import { useNotifications } from '~/lib/hooks/useNotifications';
+import {
+  formatSettingsCoreStatusMessage,
+  getSettingsCoreCopy,
+  getSettingsCoreTabDescription,
+  getSettingsCoreTabLabel,
+  resolveSettingsCoreLanguage,
+  type SettingsCoreCopy,
+} from '~/lib/i18n/catalogs/settings-core';
 import { tabConfigurationStore, resetTabConfiguration } from '~/lib/stores/settings';
 import { classNames } from '~/utils/classNames';
 
@@ -45,18 +54,62 @@ interface ControlPanelProps {
   open: boolean;
   onClose: () => void;
   initialTab?: TabType | null;
+
+  /*
+   * Servi comme PAGE (`/settings`) et non comme dialogue au-dessus d'une autre
+   * page. Le titre devient alors le `h1` du document : sans lui la route n'avait
+   * AUCUN titre de niveau 1 et démarrait au niveau 2, laissant un lecteur d'écran
+   * sans point d'entrée (WCAG 1.3.1). En dialogue, `h2` reste correct — la page
+   * en dessous porte déjà son propre `h1`.
+   */
+  asPage?: boolean;
 }
 
 // Beta status for experimental features
 const BETA_TABS = new Set<TabType>(['local-providers', 'mcp']);
 
-const BetaLabel = () => (
+const BetaLabel = ({ label }: { label: string }) => (
   <div className="absolute top-2 right-2 px-1.5 py-0.5 rounded-full bg-[color-mix(in_srgb,var(--vc-ide-accent-action)_10%,transparent)]">
-    <span className="text-[10px] font-medium text-[var(--vc-ide-accent-action)]">BETA</span>
+    <span className="text-[11px] font-medium text-[var(--vc-ide-accent-action)]">{label}</span>
   </div>
 );
 
-export const ControlPanel = ({ open, onClose, initialTab = null }: ControlPanelProps) => {
+export const SettingsTabLoading = ({ label }: { label: string }) => (
+  <div className="mx-auto w-full max-w-3xl space-y-4 p-1 sm:p-2" role="status" aria-live="polite" aria-busy="true">
+    <span className="sr-only">{label}</span>
+    <div className="h-8 w-2/5 animate-pulse rounded-md bg-bolt-elements-background-depth-3 motion-reduce:animate-none" />
+    <div className="h-24 w-full animate-pulse rounded-xl border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 motion-reduce:animate-none" />
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <div className="h-20 animate-pulse rounded-xl border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 motion-reduce:animate-none" />
+      <div className="h-20 animate-pulse rounded-xl border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 motion-reduce:animate-none" />
+    </div>
+  </div>
+);
+
+const EmptySettingsTabs = ({ copy }: { copy: SettingsCoreCopy }) => (
+  <div className="mx-auto flex max-w-xl flex-col items-center px-2 py-10 text-center sm:px-6 sm:py-16">
+    <div className="i-ph:sliders-horizontal mb-3 h-10 w-10 text-bolt-elements-textTertiary" aria-hidden="true" />
+    <h2 className="text-base font-semibold text-bolt-elements-textPrimary [overflow-wrap:anywhere]">
+      {copy['settingsCore.panel.empty.title']}
+    </h2>
+    <p className="mt-2 text-sm text-bolt-elements-textSecondary [overflow-wrap:anywhere]">
+      {copy['settingsCore.panel.empty.description']}
+    </p>
+    <button
+      type="button"
+      onClick={resetTabConfiguration}
+      className={classNames(
+        'vc-focus-ring mt-5 inline-flex min-h-11 items-center justify-center rounded-lg px-4 py-2 text-sm font-medium focus:outline-none',
+        'bg-[var(--vc-ide-accent-action)] text-[var(--vc-ide-text-on-accent)]',
+        'hover:brightness-110 active:brightness-95',
+      )}
+    >
+      {copy['settingsCore.panel.empty.action']}
+    </button>
+  </div>
+);
+
+export const ControlPanel = ({ open, onClose, initialTab = null, asPage = false }: ControlPanelProps) => {
   // State
   const [activeTab, setActiveTab] = useState<TabType | null>(null);
   const [loadingTab, setLoadingTab] = useState<TabType | null>(null);
@@ -67,6 +120,9 @@ export const ControlPanel = ({ open, onClose, initialTab = null }: ControlPanelP
    * rejected dynamic import() is retried after the user clicks "Retry".
    */
   const [tabReloadKey, setTabReloadKey] = useState(0);
+  const { i18n } = useTranslation();
+  const language = resolveSettingsCoreLanguage(i18n.resolvedLanguage ?? i18n.language);
+  const copy = getSettingsCoreCopy(language);
 
   // Store values
   const tabConfiguration = useStore(tabConfigurationStore);
@@ -215,10 +271,12 @@ export const ControlPanel = ({ open, onClose, initialTab = null }: ControlPanelP
     }
 
     return (
-      <TabPanelBoundary key={getTabPanelBoundaryKey(tabId, tabReloadKey)} onRetry={handleRetryTabLoad}>
-        <Suspense fallback={<div className="p-6 text-sm text-bolt-elements-textSecondary">Loading settings...</div>}>
-          {tab}
-        </Suspense>
+      <TabPanelBoundary
+        key={getTabPanelBoundaryKey(tabId, tabReloadKey)}
+        onRetry={handleRetryTabLoad}
+        language={language}
+      >
+        <Suspense fallback={<SettingsTabLoading label={copy['settingsCore.panel.loading']} />}>{tab}</Suspense>
       </TabPanelBoundary>
     );
   };
@@ -249,11 +307,23 @@ export const ControlPanel = ({ open, onClose, initialTab = null }: ControlPanelP
     setTimeout(() => setLoadingTab(null), 500);
   };
 
+  const localizedStatusMessage = (tabId: TabType) => {
+    if (tabId === 'features') {
+      return formatSettingsCoreStatusMessage(tabId, unviewedFeatures.length, language);
+    }
+
+    if (tabId === 'notifications') {
+      return formatSettingsCoreStatusMessage(tabId, unreadNotifications.length, language);
+    }
+
+    return '';
+  };
+
   return (
     <RadixDialog.Root open={open}>
       <RadixDialog.Portal>
-        <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-hidden p-3 modern-scrollbar sm:p-4">
-          <RadixDialog.Overlay className="absolute inset-0 bg-black/70 dark:bg-black/80 backdrop-blur-sm transition-opacity duration-200" />
+        <div className="modern-scrollbar fixed inset-0 z-[100] flex items-center justify-center overflow-hidden p-2 sm:p-4">
+          <RadixDialog.Overlay className="absolute inset-0 bg-[var(--vc-ide-overlay)] backdrop-blur-sm transition-opacity duration-200" />
 
           <RadixDialog.Content
             aria-describedby={undefined}
@@ -278,14 +348,15 @@ export const ControlPanel = ({ open, onClose, initialTab = null }: ControlPanelP
               </div>
               <div className="relative z-10 flex flex-col h-full">
                 {/* Header */}
-                <div className="flex items-center justify-between px-6 py-4 border-b border-bolt-elements-borderColor">
-                  <div className="flex min-w-0 items-center space-x-4">
+                <div className="flex min-h-14 items-center justify-between gap-2 border-b border-bolt-elements-borderColor px-2 py-2 sm:px-6 sm:py-3">
+                  <div className="flex min-w-0 flex-1 items-center gap-1 sm:gap-3">
                     {(activeTab || showTabManagement) && (
                       <button
                         type="button"
                         onClick={handleBack}
-                        aria-label="Back"
-                        className="flex shrink-0 items-center justify-center w-9 h-9 rounded-full bg-transparent hover:bg-[color-mix(in_srgb,var(--vc-ide-accent-action)_10%,transparent)] group transition-colors duration-150"
+                        aria-label={copy['settingsCore.panel.back']}
+                        title={copy['settingsCore.panel.back']}
+                        className="vc-focus-ring group flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-transparent transition-colors duration-150 hover:bg-[color-mix(in_srgb,var(--vc-ide-accent-action)_10%,transparent)] focus:outline-none"
                       >
                         <div
                           className="i-ph:arrow-left w-4 h-4 text-bolt-elements-textTertiary group-hover:text-[var(--vc-ide-accent-action)] transition-colors"
@@ -293,14 +364,33 @@ export const ControlPanel = ({ open, onClose, initialTab = null }: ControlPanelP
                         />
                       </button>
                     )}
-                    <DialogTitle className="min-w-0 truncate text-xl font-semibold text-bolt-elements-textPrimary">
-                      {showTabManagement ? 'Tab Management' : activeTab ? TAB_LABELS[activeTab] : 'Control Panel'}
+                    <DialogTitle
+                      asChild={asPage}
+                      className="min-w-0 text-base font-semibold leading-tight text-bolt-elements-textPrimary [overflow-wrap:anywhere] sm:text-xl"
+                    >
+                      {asPage ? (
+                        <h1>
+                          {showTabManagement
+                            ? copy['settingsCore.panel.tabManagement']
+                            : activeTab
+                              ? getSettingsCoreTabLabel(activeTab, language)
+                              : copy['settingsCore.panel.title']}
+                        </h1>
+                      ) : (
+                        <>
+                          {showTabManagement
+                            ? copy['settingsCore.panel.tabManagement']
+                            : activeTab
+                              ? getSettingsCoreTabLabel(activeTab, language)
+                              : copy['settingsCore.panel.title']}
+                        </>
+                      )}
                     </DialogTitle>
                   </div>
 
-                  <div className="flex items-center gap-6">
+                  <div className="flex shrink-0 items-center gap-1 sm:gap-3">
                     {/* Avatar and Dropdown */}
-                    <div className="pl-6">
+                    <div>
                       <AvatarDropdown onSelectTab={handleTabClick} />
                     </div>
 
@@ -308,8 +398,9 @@ export const ControlPanel = ({ open, onClose, initialTab = null }: ControlPanelP
                     <button
                       type="button"
                       onClick={handleClose}
-                      aria-label="Close settings"
-                      className="flex items-center justify-center w-9 h-9 rounded-full bg-transparent hover:bg-[color-mix(in_srgb,var(--vc-ide-accent-action)_10%,transparent)] group transition-all duration-200"
+                      aria-label={copy['settingsCore.panel.close']}
+                      title={copy['settingsCore.panel.close']}
+                      className="vc-focus-ring group flex h-11 w-11 items-center justify-center rounded-full bg-transparent transition-all duration-200 hover:bg-[color-mix(in_srgb,var(--vc-ide-accent-action)_10%,transparent)] focus:outline-none"
                     >
                       <div
                         className="i-ph:x w-4 h-4 text-bolt-elements-textTertiary group-hover:text-[var(--vc-ide-accent-action)] transition-colors"
@@ -334,19 +425,23 @@ export const ControlPanel = ({ open, onClose, initialTab = null }: ControlPanelP
                 >
                   <div
                     className={classNames(
-                      'p-6 transition-opacity duration-150',
+                      'p-3 transition-opacity duration-150 sm:p-6',
                       activeTab || showTabManagement ? 'opacity-100' : 'opacity-100',
                     )}
                   >
-                    {activeTab ? (
+                    {!isTabConfigValid ? (
+                      <SettingsTabLoading label={copy['settingsCore.panel.repairing']} />
+                    ) : activeTab ? (
                       getTabComponent(activeTab)
+                    ) : visibleTabs.length === 0 ? (
+                      <EmptySettingsTabs copy={copy} />
                     ) : (
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 relative">
                         {visibleTabs.map((tab, index) => (
                           <div
                             key={tab.id}
                             className={classNames(
-                              'aspect-[1.5/1] transition-transform duration-100 ease-out',
+                              'min-h-[180px] transition-transform duration-100 ease-out sm:aspect-[1.5/1]',
                               'hover:scale-[1.01]',
                             )}
                             style={{
@@ -356,15 +451,16 @@ export const ControlPanel = ({ open, onClose, initialTab = null }: ControlPanelP
                           >
                             <TabTile
                               tab={tab}
+                              label={getSettingsCoreTabLabel(tab.id, language)}
                               onClick={() => handleTabClick(tab.id as TabType)}
                               isActive={activeTab === tab.id}
                               hasUpdate={getTabUpdateStatus(tab.id as TabType, tabStatusInputs)}
-                              statusMessage={getStatusMessage(tab.id as TabType, tabStatusInputs)}
-                              description={TAB_DESCRIPTIONS[tab.id]}
+                              statusMessage={localizedStatusMessage(tab.id as TabType)}
+                              description={getSettingsCoreTabDescription(tab.id, language)}
                               isLoading={loadingTab === tab.id}
                               className="h-full relative"
                             >
-                              {BETA_TABS.has(tab.id) && <BetaLabel />}
+                              {BETA_TABS.has(tab.id) && <BetaLabel label={copy['settingsCore.panel.beta']} />}
                             </TabTile>
                           </div>
                         ))}

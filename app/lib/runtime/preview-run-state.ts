@@ -1,4 +1,13 @@
+import { getWorkbenchSurfaceCopy } from '~/lib/i18n/catalogs/workbench-surface';
+import { getI18nInstance } from '~/lib/i18n/runtime';
+
 export type CompactPreviewRunState = 'idle' | 'static' | 'starting' | 'running' | 'stopping' | 'error';
+
+function previewRunCopy(language?: string | null) {
+  const i18n = getI18nInstance();
+
+  return getWorkbenchSurfaceCopy(language ?? i18n.resolvedLanguage ?? i18n.language);
+}
 
 export function resolveCompactPreviewRunState({
   previewServerStatus,
@@ -41,40 +50,44 @@ export function isCompactPreviewRunActive(state: CompactPreviewRunState) {
   return state === 'starting' || state === 'running' || state === 'static' || state === 'stopping';
 }
 
-export function compactPreviewRunAriaLabel(state: CompactPreviewRunState) {
+export function compactPreviewRunAriaLabel(state: CompactPreviewRunState, language?: string | null) {
+  const copy = previewRunCopy(language);
+
   switch (state) {
     case 'starting':
-      return 'Starting project';
+      return copy['workbenchSurface.run.startingAria'];
     case 'running':
     case 'static':
-      return 'Stop running';
+      return copy['workbenchSurface.run.stopAria'];
     case 'stopping':
-      return 'Stopping project';
+      return copy['workbenchSurface.run.stoppingAria'];
     case 'error':
-      return 'Retry run';
+      return copy['workbenchSurface.run.retryAria'];
     case 'idle':
-      return 'Run project';
+      return copy['workbenchSurface.run.runAria'];
   }
 
-  return 'Run project';
+  return copy['workbenchSurface.run.runAria'];
 }
 
-export function compactPreviewRunText(state: CompactPreviewRunState) {
+export function compactPreviewRunText(state: CompactPreviewRunState, language?: string | null) {
+  const copy = previewRunCopy(language);
+
   switch (state) {
     case 'starting':
-      return 'Starting';
+      return copy['workbenchSurface.run.starting'];
     case 'running':
     case 'static':
-      return 'Stop';
+      return copy['workbenchSurface.run.stop'];
     case 'stopping':
-      return 'Stopping';
+      return copy['workbenchSurface.run.stopping'];
     case 'error':
-      return 'Retry';
+      return copy['workbenchSurface.run.retry'];
     case 'idle':
-      return 'Run';
+      return copy['workbenchSurface.run.run'];
   }
 
-  return 'Run';
+  return copy['workbenchSurface.run.run'];
 }
 
 export function compactPreviewRunIcon(state: CompactPreviewRunState) {

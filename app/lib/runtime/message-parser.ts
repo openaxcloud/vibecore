@@ -1,3 +1,4 @@
+import { clientStoresServicesText } from '~/lib/i18n/catalogs/client-stores-services';
 import type {
   ActionType,
   BoltAction,
@@ -9,6 +10,7 @@ import type {
 } from '~/types/actions';
 import type { BoltArtifactData } from '~/types/artifact';
 import { createScopedLogger } from '~/utils/logger';
+import { stripTransportMarkup, trailingTransportFragmentLength } from '~/utils/transport-markup';
 import { unreachable } from '~/utils/unreachable';
 
 const ARTIFACT_TAG_OPEN = '<boltArtifact';
@@ -36,13 +38,25 @@ const logger = createScopedLogger('MessageParser');
 function withoutTrailingCloseTagPrefix(content: string): string {
   const max = Math.min(content.length, ARTIFACT_ACTION_TAG_CLOSE.length - 1);
 
+  let hold = 0;
+
   for (let k = max; k > 0; k--) {
     if (content.endsWith(ARTIFACT_ACTION_TAG_CLOSE.slice(0, k))) {
-      return content.slice(0, content.length - k);
+      hold = k;
+      break;
     }
   }
 
-  return content;
+  /*
+   * BUG-AGENT-TRANSPORT-MARKUP — the same hazard, but for the model's own
+   * function-call transport markup. A stream that dies mid-wrapper leaves a tail
+   * like `…}\n</antml`, which is NOT a prefix of `</boltAction>` and so slipped
+   * through the loop above and was autosaved verbatim into ten prod files.
+   * Hold back the longer of the two candidate tails.
+   */
+  hold = Math.max(hold, trailingTransportFragmentLength(content));
+
+  return hold > 0 ? content.slice(0, content.length - hold) : content;
 }
 
 export interface ArtifactCallbackData extends BoltArtifactData {
@@ -171,7 +185,14 @@ export function cleanFileActionContent(content: string, _filePath?: string) {
    */
   const stripped = cleanoutMarkdownSyntax(content);
 
-  return cleanHighlightedCodeMarkup(stripped);
+  /*
+   * BUG-AGENT-TRANSPORT-MARKUP — drop any COMPLETE transport wrapper the model
+   * emitted inside the action body (e.g. `…code…</invoke>` right before the
+   * real `</boltAction>`). The write boundary strips these too, but doing it
+   * here keeps the streamed editor preview clean and means the content the
+   * action commits already matches what lands on disk.
+   */
+  return stripTransportMarkup(cleanHighlightedCodeMarkup(stripped)).content;
 }
 export class StreamingMessageParser {
   #messages = new Map<string, MessageState>();
@@ -250,6 +271,37 @@ export class StreamingMessageParser {
 
         if (state.insideAction) {
           const closeIndex = input.indexOf(ARTIFACT_ACTION_TAG_CLOSE, i);
+
+          /*
+           * BUG-AGENT-004 — the model restarted mid-action.
+           *
+           * When generation hits the token cap inside a file, the model
+           * continues in the SAME message: prose ("Je continue la génération…")
+           * followed by a fresh <boltArtifact>/<boltAction> re-emitting the
+           * whole file. `insideAction` was still true, so all of that — prose
+           * AND literal markup — was appended as FILE CONTENT. Proven live
+           * (2026-08-15): src/App.tsx shipped with its import block twice, the
+           * sentence, and a literal `<boltAction …>` line at line 23; Vite
+           * answered 500 on it and the preview stayed blank.
+           *
+           * A new action opening before the current one ever closed means the
+           * partial is abandoned output. Drop it and reparse from the new tag —
+           * the re-emission that follows is the content the model actually
+           * meant to deliver.
+           *
+           * Caveat accepted: a file whose own content contains a literal
+           * `<boltAction` opener is cut short here. That is strictly better
+           * than the previous behaviour, which corrupted the file outright.
+           */
+          const restartIndex = input.indexOf(ARTIFACT_ACTION_TAG_OPEN, i);
+
+          if (restartIndex !== -1 && (closeIndex === -1 || restartIndex < closeIndex)) {
+            state.insideAction = false;
+            state.currentAction = { content: '' };
+            i = restartIndex;
+
+            continue;
+          }
 
           const currentAction = state.currentAction;
 
@@ -552,7 +604,11 @@ export class StreamingMessageParser {
 
       if (!operation || !['migration', 'query'].includes(operation)) {
         logger.warn(`Invalid or missing operation for Supabase action: ${operation}`);
-        throw new Error(`Invalid Supabase operation: ${operation}`);
+        throw new Error(
+          clientStoresServicesText('clientRuntime.messageParser.supabaseOperationInvalid', {
+            operation: operation || clientStoresServicesText('clientRuntime.messageParser.operationUnknown'),
+          }),
+        );
       }
 
       (actionAttributes as SupabaseAction).operation = operation as 'migration' | 'query';
@@ -562,7 +618,7 @@ export class StreamingMessageParser {
 
         if (!filePath) {
           logger.warn('Migration requires a filePath');
-          throw new Error('Migration requires a filePath');
+          throw new Error(clientStoresServicesText('clientRuntime.messageParser.migrationPathRequired'));
         }
 
         (actionAttributes as SupabaseAction).filePath = filePath;

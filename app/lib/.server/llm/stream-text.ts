@@ -1,10 +1,11 @@
-import { convertToCoreMessages, streamText as _streamText, type Message } from 'ai';
+import { convertToCoreMessages, smoothStream, streamText as _streamText, type Message } from 'ai';
 import {
   areParallelSubagentsAvailable,
   type AgentOrchestrationPlan,
   buildAgentOrchestrationPlan,
   createAgentOrchestrationPrompt,
 } from './agent-orchestration';
+import { withThinkingDisabled, type ProviderOptionsShape } from './anthropic-thinking';
 import {
   MAX_TOKENS,
   PROVIDER_COMPLETION_LIMITS,
@@ -19,6 +20,7 @@ import { removeUnsupportedModelSettings } from './model-compat';
 import { AUTO_MODEL, decideRoute, resolveRouteTable, type RouteDecision } from './model-routing';
 import { estimateOutputBudget, clampOutputBudget, type OutputBudgetInput } from './output-budget';
 import { resolveUsableProvider } from './provider-credentials';
+import { ensureProviderProbed, resolveRuntimeProvider } from './provider-fallback';
 import { createFilesContext, extractPropertiesFromMessage } from './utils';
 import { PromptLibrary } from '~/lib/common/prompt-library';
 import { discussPrompt } from '~/lib/common/prompts/discuss-prompt';
@@ -438,8 +440,48 @@ export async function streamText(props: {
     serverEnv: effectiveServerEnv as Record<string, string> | undefined,
   });
 
-  const provider = resolved.provider;
-  currentModel = resolved.model;
+  /*
+   * Deuxième repli, à l'EXÉCUTION cette fois. `resolveUsableProvider` ci-dessus
+   * ne bascule que sur une clé ABSENTE ; il ne voit pas le mode de panne mesuré
+   * en production le 19/08, où la clé Anthropic est bien présente et c'est
+   * l'appel qui rend « Your credit balance is too low ». La sonde marque alors
+   * le fournisseur comme indisponible et le tour part chez OpenAI puis Gemini,
+   * au lieu de rendre un 500 « Service indisponible » sur une plateforme dont
+   * deux autres fournisseurs répondent.
+   *
+   * La sonde coûte UN jeton et n'est tirée qu'une fois par fournisseur toutes
+   * les cinq minutes ; un échec qui ne désigne pas le fournisseur (prompt,
+   * abandon client) ne déclenche aucune bascule.
+   */
+  await ensureProviderProbed({
+    provider: resolved.provider,
+    model: resolved.model,
+    apiKeys,
+    serverEnv: effectiveServerEnv as Record<string, string> | undefined,
+    abortSignal,
+  });
+
+  const runtimeChoice = resolveRuntimeProvider({
+    provider: resolved.provider,
+    model: resolved.model,
+    apiKeys,
+    serverEnv: effectiveServerEnv as Record<string, string> | undefined,
+  });
+
+  const provider = runtimeChoice.provider;
+  currentModel = runtimeChoice.model;
+
+  if (runtimeChoice.switchedFrom) {
+    logger.warn(
+      JSON.stringify({
+        event: 'provider.fallback',
+        from: runtimeChoice.switchedFrom.provider,
+        reason: runtimeChoice.switchedFrom.reason,
+        to: provider.name,
+        model: currentModel,
+      }),
+    );
+  }
 
   const staticModels = LLMManager.getInstance().getStaticModelListFromProvider(provider);
 
@@ -842,12 +884,45 @@ ${props.summary}
      * so already-written files are never duplicated. Default 4, env-overridable.
      */
     maxRetries: resolveStreamMaxRetries(effectiveServerEnv as Record<string, string | undefined> | undefined),
+
+    /*
+     * Smooth the provider stream into WORD-sized chunks before it reaches the
+     * client (BUG-QA-STREAM-CHOPPY-001, « ça saute, impossible de lire »).
+     *
+     * Measured on the running agent: the provider delivered ~110 characters
+     * every ~700 ms (14 chunks over 9.36 s, median gap 695 ms). Between two
+     * blocks the client has nothing to paint, so the transcript advances in
+     * visible jumps. nginx was cleared — the same cadence is observed from
+     * inside the pod — and the 40 ms client-side smoothing cannot invent frames
+     * that never arrived: only the SERVER can subdivide them.
+     *
+     * `smoothStream` is a first-class transform of the `ai` SDK and was
+     * available but wired NOWHERE. Placed BEFORE `...filteredOptions` so an
+     * explicit caller-supplied `experimental_transform` still wins.
+     */
+    experimental_transform: smoothStream({ chunking: 'word' }),
     ...tokenParams,
     messages: convertToCoreMessages(processedMessages as any),
     ...filteredOptions,
 
     ...temperatureOptionsForModel(modelDetails.name, modelDetails.provider),
     ...(abortSignal ? { abortSignal } : {}),
+
+    /*
+     * Contournement temporaire : on demande explicitement à Anthropic de NE PAS
+     * produire de réflexion étendue. Le SDK installé (0.0.39) ne sait pas valider
+     * les événements `thinking` / `thinking_delta` / `signature_delta` et fait
+     * mourir le flux sur le premier d'entre eux. À retirer dès que le SDK est
+     * monté — voir `anthropic-thinking.ts`.
+     */
+    ...(() => {
+      const merged = withThinkingDisabled(
+        modelDetails.provider,
+        (filteredOptions as { providerOptions?: ProviderOptionsShape }).providerOptions,
+      );
+
+      return merged ? { providerOptions: merged } : {};
+    })(),
   };
 
   /*

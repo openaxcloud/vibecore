@@ -4,6 +4,12 @@ import Fastify, { type FastifyInstance, type FastifyReply, type FastifyRequest }
 
 import { INSPECTOR_SCRIPT } from './inspector-script.js';
 import { attachPreviewWebSocketProxy } from './preview-ws-proxy.js';
+import {
+  applyPreviewProxyLocale,
+  getPreviewProxyCopy,
+  previewProxyHtml,
+  sendPreviewProxyError,
+} from './public-i18n.js';
 import { REPORTER_SCRIPT } from './reporter-script.js';
 
 /*
@@ -23,16 +29,12 @@ const MAX_INJECT_BYTES = 4 * 1024 * 1024;
  * starting and reloads itself until the dev server returns a real 200. Asset/XHR
  * requests still receive the machine-readable JSON error.
  */
-const PREVIEW_STARTING_HTML = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta http-equiv="refresh" content="2"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Starting your app…</title><style>html,body{height:100%;margin:0}body{display:flex;align-items:center;justify-content:center;font-family:ui-sans-serif,system-ui,-apple-system,sans-serif;background:#0d1117;color:#c9d1d9}.box{text-align:center;max-width:420px;padding:24px}.s{width:28px;height:28px;border:3px solid #30363d;border-top-color:#F26207;border-radius:50%;margin:0 auto 16px;animation:spin 1s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}h1{font-size:15px;font-weight:600;margin:0 0 6px}p{font-size:13px;color:#8b949e;margin:0}</style></head><body><div class="box"><div class="s"></div><h1>Starting your app…</h1><p>The dev server is booting. This page refreshes automatically.</p></div></body></html>`;
-
 /*
  * Terminal state page (BUG-DEPLOY-002): the deployment host exists but nothing
  * is (or will be) behind it — the build failed or the deployment was deleted.
  * A raw 502 JSON here read as an outage; this states the truth, without the
  * auto-refresh loop of the starting page (nothing will come up).
  */
-const DEPLOY_NOT_LIVE_HTML = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Deployment not live</title><style>html,body{height:100%;margin:0}body{display:flex;align-items:center;justify-content:center;font-family:ui-sans-serif,system-ui,-apple-system,sans-serif;background:#0d1117;color:#c9d1d9}.box{text-align:center;max-width:440px;padding:24px}.i{width:28px;height:28px;border:3px solid #30363d;border-radius:50%;margin:0 auto 16px;position:relative}.i:after{content:"";position:absolute;inset:6px;border-radius:50%;background:#f85149}h1{font-size:15px;font-weight:600;margin:0 0 6px}p{font-size:13px;color:#8b949e;margin:0}</style></head><body><div class="box"><div class="i"></div><h1>This deployment is not live</h1><p>Its last publish failed or it was deleted. Publish the project again to bring it back.</p></div></body></html>`;
-
 /*
  * True when the request is the iframe's top-level document navigation (vs an asset
  * or XHR sub-request). Only document navigations should get the HTML holding page.
@@ -130,6 +132,20 @@ export interface PreviewProxyOptions {
    */
   serverDeployManagerUrl?: string;
   serverDeployManagerSecret?: string;
+
+  /*
+   * How long the proxy is willing to BLOCK a browser request while a deployment
+   * wakes. This must stay comfortably below the ingress `proxy_read_timeout`
+   * (nginx default 60s): the wake used to be awaited for up to 90s, so a server
+   * app that could not become ready (crash loop) blew past the ingress deadline
+   * and the browser got a raw `504 Gateway Time-out` from nginx instead of the
+   * branded holding page — proven live 2026-08-06 (BUG-DEPLOY-003).
+   *
+   * The wake is not lost when this expires: the manager scales the Deployment to
+   * 1 before it starts polling readiness, so the scale-up proceeds server-side
+   * while the auto-refreshing holding page picks the app up on a later refresh.
+   */
+  serverDeployWakeWaitMs?: number;
 }
 
 /*
@@ -416,6 +432,51 @@ export function verifyPreviewTenantToken(
 }
 
 /*
+ * Decide what an IDE-preview response may say about who is allowed to frame it.
+ *
+ * The IDE embeds the dev server as a cross-origin iframe. Every hop of this
+ * proxy forwards upstream headers verbatim, so a dev server — or any plugin or
+ * framework the user's own app happens to run — that emits `X-Frame-Options` or
+ * a CSP `frame-ancestors` directive makes the browser refuse the frame. The
+ * request still returns 200 with the full document, so the failure surfaces as
+ * a silently blank Webview: nothing in the network tab looks wrong, and reading
+ * the same URL directly works because that is top-level, not framed.
+ *
+ * Returns `null` to drop the header, or the value to send.
+ *
+ * ONLY EVER CALL THIS ON THE IDE PREVIEW SURFACE — `handlePreviewRequest`
+ * (host `<workspaceId>-<port>`, path `/p/:workspaceId/:port/*`) and the
+ * same-origin API fallback that mirrors it. PUBLISHED apps (`s-<id>` static and
+ * `d-<id>` server deployments) are visited DIRECTLY by the public and are never
+ * framed by us: their anti-clickjacking headers must reach the browser intact.
+ * Stripping them there would let any site on the internet frame a user's
+ * published app — a clickjacking hole we would have opened ourselves.
+ *
+ * Deliberately narrow even where it does apply: `X-Frame-Options` has no
+ * non-framing meaning and is dropped whole, while a CSP loses ONLY its
+ * `frame-ancestors` directive and keeps every other protection the app asked
+ * for (`default-src`, `script-src`, …).
+ */
+export function sanitizePreviewFramingHeader(name: string, value: string): string | null {
+  const lower = name.toLowerCase();
+
+  if (lower === 'x-frame-options') {
+    return null;
+  }
+
+  if (lower !== 'content-security-policy' && lower !== 'content-security-policy-report-only') {
+    return value;
+  }
+
+  const kept = value
+    .split(';')
+    .map((directive) => directive.trim())
+    .filter((directive) => directive.length > 0 && !/^frame-ancestors(\s|$)/i.test(directive));
+
+  return kept.length > 0 ? kept.join('; ') : null;
+}
+
+/**
  * Pull a single cookie value out of a raw Cookie header. Returns undefined when
  * the header is absent or the named cookie is not present. Tolerant of the
  * surrounding `; ` separators and missing values.
@@ -477,6 +538,16 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
   const serverDeployManagerSecret =
     options.serverDeployManagerSecret ?? process.env.WORKSPACE_MANAGER_SHARED_SECRET?.trim();
 
+  /*
+   * Client-visible wake budget (see PreviewProxyOptions.serverDeployWakeWaitMs).
+   * Kept well under the ingress read timeout so the branded page always wins the
+   * race against nginx's own gateway error.
+   */
+  const serverDeployWakeWaitMs = Math.max(
+    1_000,
+    options.serverDeployWakeWaitMs ?? (Number(process.env.SERVER_DEPLOY_WAKE_WAIT_MS) || 12_000),
+  );
+
   const enforceTenant = options.enforceTenant ?? process.env.PREVIEW_PROXY_ENFORCE_TENANT === 'true';
   const tenantSecret = options.tenantSecret ?? process.env.PREVIEW_TENANT_SECRET;
   const enforcePrivatePorts = options.enforcePrivatePorts ?? process.env.PREVIEW_ENFORCE_PRIVATE_PORTS === 'true';
@@ -516,8 +587,6 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
   };
 
   /* Login-required page shown when a private port is hit without a session. */
-  const PRIVATE_PORT_HTML = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Private port</title><style>html,body{height:100%;margin:0}body{display:flex;align-items:center;justify-content:center;font-family:ui-sans-serif,system-ui,-apple-system,sans-serif;background:#0d1117;color:#c9d1d9}.box{text-align:center;max-width:420px;padding:24px}h1{font-size:16px;font-weight:600;margin:0 0 8px}p{font-size:13px;color:#8b949e;margin:0}</style></head><body><div class="box"><h1>This port is private</h1><p>Sign in to the workspace owner&apos;s account to view this preview.</p></div></body></html>`;
-
   const app = Fastify({ logger: options.logger ?? false });
 
   /*
@@ -602,18 +671,61 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
    */
   app.post(BLANK_PREVIEW_PATH, async (request, reply) => {
     let url = 'unknown';
+    // Tri-state readiness signal from the reporter: 'blank' (never mounted) is the
+    // default for back-compat with older reporters that posted only { url }, and
+    // 'error' is a broken-but-rendered app (failed stylesheet/script — #5).
+    let status: 'blank' | 'error' = 'blank';
+    let detail: string | undefined;
 
     try {
-      const body = typeof request.body === 'string' ? JSON.parse(request.body) : (request.body as { url?: unknown });
+      const body =
+        typeof request.body === 'string'
+          ? JSON.parse(request.body)
+          : (request.body as { url?: unknown; status?: unknown; detail?: unknown });
 
       if (body && typeof body.url === 'string') {
         url = body.url;
+      }
+
+      if (body && body.status === 'error') {
+        status = 'error';
+      }
+
+      if (body && typeof body.detail === 'string') {
+        detail = body.detail.slice(0, 500);
       }
     } catch {
       // malformed beacon — still record the event.
     }
 
-    request.log.warn({ event: 'preview.blank', url }, 'preview served but the app never mounted (#root empty)');
+    request.log.warn(
+      { event: status === 'error' ? 'preview.asset_error' : 'preview.blank', url, detail },
+      status === 'error'
+        ? 'preview rendered but a critical asset failed to load'
+        : 'preview served but the app never mounted (#root empty)',
+    );
+
+    /*
+     * BLOCKER #5: relay the signal to the api so /ports readiness stops reporting
+     * this port ready (the port probe alone can't see a blank DOM or a failed
+     * asset). The beacon lands on the preview host `<ws>-<port>.<previewDomain>`, so
+     * the (workspaceId, port) come straight from the request Host. Best-effort: a
+     * missing api url/secret or a failed POST just falls back to the log above.
+     */
+    const parsedHost = parsePreviewHost(request.headers.host, previewDomain);
+
+    if (parsedHost && apiBaseUrl && proxySharedSecret) {
+      void fetchImpl(`${apiBaseUrl}/internal/preview/beacon`, {
+        method: 'POST',
+        headers: { authorization: `Bearer ${proxySharedSecret}`, 'content-type': 'application/json' },
+        body: JSON.stringify({
+          workspaceId: parsedHost.workspaceId,
+          port: Number(parsedHost.port),
+          status,
+          ...(detail ? { detail } : {}),
+        }),
+      }).catch(() => undefined);
+    }
 
     return reply.code(204).send();
   });
@@ -633,6 +745,103 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
    * 'gone' → the manager says the Deployment does not exist (build failed and
    * was torn down, or deleted) — a terminal state page, never a wake loop.
    */
+  /*
+   * Cache d'état de service, très court.
+   *
+   * Sans cache, chaque requête d'une app déployée ajouterait un aller-retour
+   * vers l'API — inacceptable sur un chemin public à fort trafic. Avec un cache
+   * long, une extinction mettrait des minutes à prendre effet. 15 s tranche :
+   * l'app s'éteint en quelques secondes et l'API n'est sollicitée qu'une fois
+   * par fenêtre et par déploiement.
+   */
+  /*
+   * Cache d'état de service, avec DEUX régimes distincts — la dissymétrie est
+   * délibérée et porte tout l'invariant.
+   *
+   *  - « expiré » est COLLANT et sans expiration. L'extinction est MONOTONE :
+   *    une publication éteinte ne redevient jamais vivante (la republication crée
+   *    un NOUVEAU déploiement, donc un autre id). Une fois le verdict connu, une
+   *    panne de l'API ne doit plus jamais pouvoir rouvrir l'accès.
+   *  - « vivant » est caché avec un TTL court. Il doit être revérifié, puisque
+   *    c'est l'état qui, lui, peut changer.
+   */
+  const expiredDeployments = new Set<string>();
+  const liveUntil = new Map<string, number>();
+  const LIVE_CACHE_TTL_MS = 15_000;
+
+  /** Verdict du garde. `unknown` ⇒ on ne sait pas, donc on ne sert pas. */
+  type ServingVerdict = 'live' | 'expired' | 'unknown';
+
+  /**
+   * État de service d'une publication SERVER.
+   *
+   * Hiérarchie des réponses, du plus sûr au plus disponible :
+   *  1. connu expiré  -> `expired`, définitivement, sans interroger personne ;
+   *  2. connu vivant et frais -> `live` ;
+   *  3. sinon on interroge l'API ;
+   *  4. API injoignable ET aucun état frais -> `unknown`.
+   *
+   * `unknown` ne sert PAS l'application : un workload potentiellement expiré ne
+   * doit jamais renvoyer d'octets applicatifs. Le garde reste néanmoins une
+   * défense SECONDAIRE — l'autorité d'extinction est l'arrêt du workload côté
+   * manager, qui ne dépend pas de ce chemin.
+   */
+  const resolveServingVerdict = async (deploymentId: string): Promise<ServingVerdict> => {
+    // (1) Verdict collant : plus rien ne peut le contredire.
+    if (expiredDeployments.has(deploymentId)) {
+      return 'expired';
+    }
+
+    if (!apiBaseUrl) {
+      /*
+       * Sans API configurée (dev, tests unitaires du proxy), le garde est hors
+       * service : on laisse passer et l'extinction repose entièrement sur l'arrêt
+       * du workload. C'est une absence de configuration, pas un état indéterminé.
+       */
+      return 'live';
+    }
+
+    // (2) Vivant et encore frais.
+    const freshUntil = liveUntil.get(deploymentId);
+
+    if (freshUntil && Date.now() < freshUntil) {
+      return 'live';
+    }
+
+    // (3) Interroger l'autorité.
+    try {
+      const response = await fetchImpl(
+        `${apiBaseUrl}/deployments/${encodeURIComponent(deploymentId)}/serving-state`,
+        { method: 'GET', headers: { accept: 'application/json' } },
+      );
+
+      if (!response.ok) {
+        return 'unknown';
+      }
+
+      const body = (await response.json()) as { state?: string };
+
+      if (body?.state === 'expired') {
+        expiredDeployments.add(deploymentId);
+        liveUntil.delete(deploymentId);
+
+        return 'expired';
+      }
+
+      if (body?.state === 'live') {
+        liveUntil.set(deploymentId, Date.now() + LIVE_CACHE_TTL_MS);
+
+        return 'live';
+      }
+
+      // `not-found` ou réponse inattendue : on ne sait pas, donc on ne sert pas.
+      return 'unknown';
+    } catch {
+      // (4) API injoignable et aucun état frais : indéterminé.
+      return 'unknown';
+    }
+  };
+
   const wakeServerDeploy = async (deploymentId: string): Promise<'ready' | 'starting' | 'gone'> => {
     if (!serverDeployManagerUrl) {
       return 'starting';
@@ -648,8 +857,15 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
             ...(serverDeployManagerSecret ? { authorization: `Bearer ${serverDeployManagerSecret}` } : {}),
           },
 
-          // Wake = scale + pull + install + boot; allow well beyond a normal request.
-          signal: AbortSignal.timeout(90_000),
+          /*
+           * Wake = scale + pull + install + boot, which can take far longer than
+           * this budget. We deliberately stop WAITING at serverDeployWakeWaitMs
+           * and hand the browser the auto-refreshing holding page rather than
+           * holding the connection open past the ingress timeout — the manager
+           * has already scaled the Deployment to 1 by then, so the boot carries
+           * on and a later refresh lands on the live app.
+           */
+          signal: AbortSignal.timeout(serverDeployWakeWaitMs),
         },
       );
 
@@ -748,9 +964,7 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
     deploymentId: string,
   ): Promise<unknown> => {
     if (!apiBaseUrl) {
-      return reply
-        .code(500)
-        .send({ error: 'Static deploy upstream misconfigured', code: 'STATIC_DEPLOY_UPSTREAM_INVALID' });
+      return sendPreviewProxyError(request, reply, 500, 'STATIC_DEPLOY_UPSTREAM_INVALID');
     }
 
     const rawPath = request.url.startsWith('/') ? request.url : `/${request.url}`;
@@ -761,12 +975,12 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
     try {
       upstream = new URL(`${upstreamBase}${rawPath}`);
     } catch {
-      return reply.code(400).send({ error: 'Invalid deploy path', code: 'STATIC_DEPLOY_PATH_INVALID' });
+      return sendPreviewProxyError(request, reply, 400, 'STATIC_DEPLOY_PATH_INVALID');
     }
 
     // An app-controlled path can never repoint us off the API origin.
     if (upstream.origin !== new URL(apiBaseUrl).origin) {
-      return reply.code(400).send({ error: 'Invalid deploy path', code: 'STATIC_DEPLOY_PATH_INVALID' });
+      return sendPreviewProxyError(request, reply, 400, 'STATIC_DEPLOY_PATH_INVALID');
     }
 
     const publicHost = (request.headers.host ?? '').split(':')[0].trim().toLowerCase();
@@ -830,6 +1044,12 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
           return;
         }
 
+        /*
+         * PUBLISHED app (s-<id> / d-<id>): visited DIRECTLY by the public, not
+         * framed by the IDE. Its anti-clickjacking headers are forwarded
+         * untouched — stripping them here would let any site frame a user's
+         * published app. Only the IDE preview surface is sanitized.
+         */
         reply.header(name, value);
       });
 
@@ -850,10 +1070,10 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
       clearTimeout(timeout);
 
       if (error?.name === 'AbortError') {
-        return reply.code(504).send({ error: 'Static deploy upstream timeout', code: 'STATIC_DEPLOY_UPSTREAM_TIMEOUT' });
+        return sendPreviewProxyError(request, reply, 504, 'STATIC_DEPLOY_UPSTREAM_TIMEOUT');
       }
 
-      return reply.code(502).send({ error: 'Static deploy upstream failed', code: 'STATIC_DEPLOY_UPSTREAM_FAILED' });
+      return sendPreviewProxyError(request, reply, 502, 'STATIC_DEPLOY_UPSTREAM_FAILED');
     }
   };
 
@@ -862,13 +1082,19 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
     reply: FastifyReply,
     deploymentId: string,
     alreadyWoke = false,
+
+    /*
+     * Absolute wall-clock budget for THIS browser request, shared with the
+     * post-wake retry below. Without it the retry started a fresh
+     * requestTimeoutMs window on top of the first attempt plus the wake, and the
+     * total could still outlive the ingress read timeout (BUG-DEPLOY-003).
+     */
+    deadlineAt = Date.now() + requestTimeoutMs + serverDeployWakeWaitMs,
   ): Promise<unknown> => {
     const upstreamBase = serverDeployUpstreamUrl(deploymentId, serverDeployUpstreamTemplate);
 
     if (!upstreamBase) {
-      return reply
-        .code(500)
-        .send({ error: 'Server deploy upstream misconfigured', code: 'SERVER_DEPLOY_UPSTREAM_INVALID' });
+      return sendPreviewProxyError(request, reply, 500, 'SERVER_DEPLOY_UPSTREAM_INVALID');
     }
 
     const rawPath = request.url.startsWith('/') ? request.url : `/${request.url}`;
@@ -878,7 +1104,7 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
     try {
       upstream = new URL(`${upstreamBase}${rawPath}`);
     } catch {
-      return reply.code(400).send({ error: 'Invalid deploy path', code: 'SERVER_DEPLOY_PATH_INVALID' });
+      return sendPreviewProxyError(request, reply, 400, 'SERVER_DEPLOY_PATH_INVALID');
     }
 
     /*
@@ -886,7 +1112,7 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
      * can never repoint us off the intended in-cluster upstream origin.
      */
     if (upstream.origin !== new URL(upstreamBase).origin) {
-      return reply.code(400).send({ error: 'Invalid deploy path', code: 'SERVER_DEPLOY_PATH_INVALID' });
+      return sendPreviewProxyError(request, reply, 400, 'SERVER_DEPLOY_PATH_INVALID');
     }
 
     const headers: Record<string, string> = { 'x-vibecore-server-deploy': deploymentId };
@@ -916,7 +1142,10 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
     }
 
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), requestTimeoutMs);
+
+    // Never wait past the shared deadline — see the `deadlineAt` note above.
+    const attemptTimeoutMs = Math.max(1_000, Math.min(requestTimeoutMs, deadlineAt - Date.now()));
+    const timeout = setTimeout(() => controller.abort(), attemptTimeoutMs);
 
     let streamingHandoff = false;
 
@@ -955,6 +1184,12 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
           return;
         }
 
+        /*
+         * PUBLISHED app (s-<id> / d-<id>): visited DIRECTLY by the public, not
+         * framed by the IDE. Its anti-clickjacking headers are forwarded
+         * untouched — stripping them here would let any site frame a user's
+         * published app. Only the IDE preview surface is sanitized.
+         */
         reply.header(name, value);
       });
 
@@ -977,9 +1212,14 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
 
       return reply.send(readable);
     } catch (error: any) {
-      if (error?.name === 'AbortError') {
-        return reply.code(504).send({ error: 'Deploy upstream timeout', code: 'SERVER_DEPLOY_UPSTREAM_TIMEOUT' });
-      }
+      /*
+       * An AbortError here means the app did not answer inside the attempt
+       * budget — an app that is booting (or wedged) looks exactly like one that
+       * is asleep, so it takes the same wake + holding-page path below rather
+       * than short-circuiting to a bare JSON 504 the browser would render as a
+       * finished page (BUG-DEPLOY-003).
+       */
+      const timedOut = error?.name === 'AbortError';
 
       /*
        * Scale-to-zero wake path: an unreachable upstream (connection refused / no
@@ -987,13 +1227,13 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
        * Ask the manager to wake it, then retry the forward exactly once. The
        * `alreadyWoke` guard prevents a wake loop if it comes up unreachable again.
        */
-      if (!alreadyWoke) {
+      if (!alreadyWoke && Date.now() < deadlineAt) {
         clearTimeout(timeout);
 
         const woke = await wakeServerDeploy(deploymentId);
 
         if (woke === 'ready') {
-          return handleServerDeployRequest(request, reply, deploymentId, true);
+          return handleServerDeployRequest(request, reply, deploymentId, true, deadlineAt);
         }
 
         if (woke === 'gone') {
@@ -1002,12 +1242,16 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
            * (failed build torn down, or deployment deleted) — BUG-DEPLOY-002.
            */
           if (wantsHtmlDocument(request)) {
-            return reply.code(410).type('text/html').header('cache-control', 'no-store').send(DEPLOY_NOT_LIVE_HTML);
+            applyPreviewProxyLocale(reply, request);
+
+            return reply
+              .code(410)
+              .type('text/html')
+              .header('cache-control', 'no-store')
+              .send(previewProxyHtml(request, 'deployment-not-live'));
           }
 
-          return reply
-            .code(410)
-            .send({ error: 'Deployment is not live (failed or deleted)', code: 'SERVER_DEPLOY_NOT_LIVE' });
+          return sendPreviewProxyError(request, reply, 410, 'SERVER_DEPLOY_NOT_LIVE');
         }
 
         /*
@@ -1021,12 +1265,20 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
        * for a document navigation, a JSON error otherwise (mirrors the preview path).
        */
       if (wantsHtmlDocument(request)) {
-        return reply.code(503).type('text/html').header('cache-control', 'no-store').send(PREVIEW_STARTING_HTML);
+        applyPreviewProxyLocale(reply, request);
+
+        return reply
+          .code(503)
+          .type('text/html')
+          .header('cache-control', 'no-store')
+          .send(previewProxyHtml(request, 'starting'));
       }
 
-      return reply
-        .code(502)
-        .send({ error: 'Deploy upstream error', code: 'SERVER_DEPLOY_UPSTREAM_ERROR', detail: error?.message });
+      if (timedOut) {
+        return sendPreviewProxyError(request, reply, 504, 'SERVER_DEPLOY_UPSTREAM_TIMEOUT');
+      }
+
+      return sendPreviewProxyError(request, reply, 502, 'SERVER_DEPLOY_UPSTREAM_ERROR');
     } finally {
       if (!streamingHandoff) {
         clearTimeout(timeout);
@@ -1039,7 +1291,7 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
     const portNumber = Number(params.port);
 
     if (!Number.isInteger(portNumber) || portNumber < 1 || portNumber > 65535) {
-      return reply.code(400).send({ error: 'Invalid preview port', code: 'PREVIEW_PORT_INVALID' });
+      return sendPreviewProxyError(request, reply, 400, 'PREVIEW_PORT_INVALID');
     }
 
     /*
@@ -1059,7 +1311,7 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
       );
 
       if (!requesterOrgId) {
-        return reply.code(403).send({ error: 'Preview access denied', code: 'PREVIEW_TENANT_FORBIDDEN' });
+        return sendPreviewProxyError(request, reply, 403, 'PREVIEW_TENANT_FORBIDDEN');
       }
     }
 
@@ -1076,14 +1328,16 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
           : undefined);
 
       if (!sessionOrgId) {
-        return reply.code(401).type('text/html').send(PRIVATE_PORT_HTML);
+        applyPreviewProxyLocale(reply, request);
+
+        return reply.code(401).type('text/html').send(previewProxyHtml(request, 'private-port'));
       }
     }
 
     const agent = await resolveAgent(params.workspaceId, requesterOrgId).catch(() => undefined);
 
     if (!agent) {
-      return reply.code(404).send({ error: 'Workspace agent not reachable', code: 'PREVIEW_AGENT_NOT_FOUND' });
+      return sendPreviewProxyError(request, reply, 404, 'PREVIEW_AGENT_NOT_FOUND');
     }
 
     const proxyPath = params['*'] ?? '';
@@ -1104,7 +1358,7 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
     try {
       upstream = new URL(`${agent.baseUrl.replace(/\/$/, '')}${upstreamPath}${queryString}`);
     } catch {
-      return reply.code(400).send({ error: 'Invalid preview path', code: 'PREVIEW_PATH_INVALID' });
+      return sendPreviewProxyError(request, reply, 400, 'PREVIEW_PATH_INVALID');
     }
 
     /*
@@ -1117,7 +1371,7 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
     const expectedPrefix = `${new URL(`${agent.baseUrl.replace(/\/$/, '')}/`).pathname.replace(/\/$/, '')}/preview/${portNumber}/`;
 
     if (!upstream.pathname.startsWith(expectedPrefix)) {
-      return reply.code(400).send({ error: 'Invalid preview path', code: 'PREVIEW_PATH_INVALID' });
+      return sendPreviewProxyError(request, reply, 400, 'PREVIEW_PATH_INVALID');
     }
 
     const headers: Record<string, string> = {
@@ -1216,6 +1470,56 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
        */
       clearTimeout(timeout);
 
+      /*
+       * Startup-window guard against a SILENT BLANK preview. A dev server that is
+       * LISTENING but not yet serving its app answers a top-level navigation with
+       * a "not ready" response — most often a 0-byte 404: Vite serves `GET /` as a
+       * 404 with an empty body while its `index.html` has not yet been synced onto
+       * disk (reproduced in situ), and the agent + this proxy forward that 404
+       * verbatim. `/ports` meanwhile reports the port ready (it only means the
+       * socket is open), so the user is left staring at a white screen — the
+       * recurring "Webview blanc" launch-blocker — for as long as the window lasts
+       * (~3 min observed) before the same URL flips to 200.
+       *
+       * For a document/iframe navigation, convert that into the auto-refreshing
+       * "Starting your app…" holding page so the preview is NEVER a silent blank:
+       * it reloads every 2s and shows the real app the instant the server serves
+       * content. Scoped tightly so a genuine app response is never masked — only a
+       * top-level document navigation, only 404/502/503, and only when the body is
+       * empty or not HTML. A real app 404 page (text/html WITH a body) is passed
+       * through unchanged. Sub-resource 404s (scripts/XHR) never match
+       * wantsHtmlDocument, so a missing asset still surfaces to the app as a 404.
+       */
+      const upstreamCt = upstreamResponse.headers.get('content-type') ?? '';
+      const upstreamLenHeader = upstreamResponse.headers.get('content-length');
+      const isNotReadyStatus =
+        upstreamResponse.status === 404 || upstreamResponse.status === 502 || upstreamResponse.status === 503;
+
+      /*
+       * "Not serving the app yet" signature: an EMPTY body (an explicit
+       * content-length: 0, e.g. Vite's 0-byte 404 before index.html lands) OR a
+       * non-HTML body. A real app 404 PAGE is text/html WITH a body — content-type
+       * text/html and no explicit zero length — so it passes through untouched.
+       * (A missing content-length must NOT read as empty, or a real 404 page with
+       * no declared length would be masked.)
+       */
+      const declaredZeroLength = upstreamLenHeader !== null && Number(upstreamLenHeader) === 0;
+      const notServingApp = declaredZeroLength || !upstreamCt.includes('text/html');
+
+      if (isNotReadyStatus && wantsHtmlDocument(request) && notServingApp) {
+        // Release the upstream socket; the not-ready body is empty/irrelevant.
+        await (upstreamResponse.body as ReadableStream<Uint8Array> | null)?.cancel().catch(() => undefined);
+
+        applyPreviewProxyLocale(reply, request);
+
+        return reply
+          .code(503)
+          .header('content-type', 'text/html; charset=utf-8')
+          .header('retry-after', '2')
+          .header('cache-control', 'no-store')
+          .send(previewProxyHtml(request, 'starting'));
+      }
+
       reply.status(upstreamResponse.status);
 
       const contentType = upstreamResponse.headers.get('content-type') ?? '';
@@ -1249,17 +1553,26 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
           lower === 'transfer-encoding' ||
           lower === 'connection' ||
           lower === 'keep-alive' ||
-
           // length no longer matches the decoded body
           (upstreamWasEncoded && lower === 'content-length') ||
-
           // recomputed after a possible body rewrite below
           (isHtml && injectInspector && lower === 'content-length')
         ) {
           return;
         }
 
-        reply.header(name, value);
+        /*
+         * The IDE frames this response cross-origin; an upstream
+         * X-Frame-Options / CSP frame-ancestors would make the browser refuse
+         * the frame and leave a blank Webview at HTTP 200.
+         */
+        const framingSafe = sanitizePreviewFramingHeader(name, value);
+
+        if (framingSafe === null) {
+          return;
+        }
+
+        reply.header(name, framingSafe);
       });
 
       if (!upstreamResponse.body) {
@@ -1404,21 +1717,21 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
        * page; asset/XHR requests still get the machine-readable error.
        */
       if (wantsHtmlDocument(request)) {
+        applyPreviewProxyLocale(reply, request);
+
         return reply
           .code(503)
           .header('content-type', 'text/html; charset=utf-8')
           .header('retry-after', '2')
           .header('cache-control', 'no-store')
-          .send(PREVIEW_STARTING_HTML);
+          .send(previewProxyHtml(request, 'starting'));
       }
 
       if (error?.name === 'AbortError') {
-        return reply.code(504).send({ error: 'Preview upstream timeout', code: 'PREVIEW_UPSTREAM_TIMEOUT' });
+        return sendPreviewProxyError(request, reply, 504, 'PREVIEW_UPSTREAM_TIMEOUT');
       }
 
-      return reply
-        .code(502)
-        .send({ error: 'Preview upstream error', code: 'PREVIEW_UPSTREAM_ERROR', detail: error?.message });
+      return sendPreviewProxyError(request, reply, 502, 'PREVIEW_UPSTREAM_ERROR');
     } finally {
       /*
        * Streamed responses clear the timer on stream completion (see sendStream);
@@ -1470,6 +1783,47 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
           path === REPORTER_SCRIPT_PATH ||
           path === BLANK_PREVIEW_PATH
         ) {
+          return;
+        }
+
+        /*
+         * EXTINCTION 30 j du chemin SERVER.
+         *
+         * Le proxy transmettait `d-<id>` DIRECTEMENT au Service in-cluster sans
+         * jamais consulter l'API : une publication Starter expirée restait donc
+         * joignable indéfiniment, alors que le chemin STATIQUE, lui, renvoyait
+         * bien 410. C'est ce trou que ce garde ferme.
+         *
+         * 410 Gone (et non 404) : la ressource a existé et son adresse est
+         * retirée. On refuse AVANT tout forward — aucun octet applicatif ne part
+         * vers l'amont, et l'amont lui-même a été arrêté par le balayage côté API
+         * (le 410 est la façade, l'arrêt est la substance).
+         */
+        const verdict = await resolveServingVerdict(deploy.deploymentId);
+
+        if (verdict === 'expired') {
+          reply.header('cache-control', 'no-store');
+          await sendPreviewProxyError(request, reply, 410, 'PUBLISHED_DEPLOYMENT_EXPIRED');
+
+          return;
+        }
+
+        if (verdict === 'unknown') {
+          /*
+           * État INDÉTERMINÉ : on ne peut pas établir si cette publication est
+           * encore valide. Servir reviendrait à renvoyer les octets d'un workload
+           * POTENTIELLEMENT expiré — c'est précisément ce qu'on refuse. 503 (et
+           * non 410) : on ne prétend pas qu'elle est éteinte, on dit qu'on ne
+           * sait pas, et l'appelant peut réessayer.
+           */
+          applyPreviewProxyLocale(reply, request);
+          reply.header('cache-control', 'no-store');
+          await reply.code(503).header('retry-after', '5').send({
+            error: getPreviewProxyCopy(request.headers).PUBLICATION_STATE_UNAVAILABLE,
+            code: 'PUBLICATION_STATE_UNAVAILABLE',
+            retryable: true,
+          });
+
           return;
         }
 

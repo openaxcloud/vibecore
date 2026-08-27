@@ -1,12 +1,23 @@
 import { atom } from 'nanostores';
 import { toast } from 'react-toastify';
 import { logStore } from './logs';
+import {
+  formatClientRuntimeResidualCopy,
+  getClientRuntimeResidualCopy,
+} from '~/lib/i18n/catalogs/client-runtime-residual';
+import { getI18nInstance } from '~/lib/i18n/runtime';
 import type { NetlifyConnection, NetlifyUser } from '~/types/netlify';
 
 // Initialize with stored connection or environment variable
 const storedConnection = typeof window !== 'undefined' ? localStorage.getItem('netlify_connection') : null;
 const envToken = import.meta.env.VITE_NETLIFY_ACCESS_TOKEN;
 console.log('Netlify store: envToken loaded:', envToken ? '[TOKEN_EXISTS]' : '[NO_TOKEN]');
+
+function getNetlifyConnectionCopy() {
+  const i18n = getI18nInstance();
+
+  return getClientRuntimeResidualCopy(i18n.resolvedLanguage ?? i18n.language);
+}
 
 // If we have an environment token but no stored connection, initialize with the env token
 function parseStoredNetlifyConnection(raw: string | null): NetlifyConnection {
@@ -36,6 +47,7 @@ export const isFetchingStats = atom<boolean>(false);
 
 // Function to initialize Netlify connection with environment token
 export async function initializeNetlifyConnection() {
+  const copy = getNetlifyConnectionCopy();
   const currentState = netlifyConnection.get();
 
   // If we already have a connection or no token, don't try to connect
@@ -57,7 +69,9 @@ export async function initializeNetlifyConnection() {
     });
 
     if (!response.ok) {
-      throw new Error(`Failed to connect to Netlify: ${response.statusText}`);
+      throw new Error(
+        formatClientRuntimeResidualCopy(copy['clientRuntime.connection.failed'], { provider: 'Netlify' }),
+      );
     }
 
     const userData = await response.json();
@@ -78,7 +92,10 @@ export async function initializeNetlifyConnection() {
     await fetchNetlifyStats(envToken);
   } catch (error) {
     console.error('Error initializing Netlify connection:', error);
-    logStore.logError('Failed to initialize Netlify connection', { error });
+    logStore.logError(
+      formatClientRuntimeResidualCopy(copy['clientRuntime.connection.initializationFailed'], { provider: 'Netlify' }),
+      { error },
+    );
   } finally {
     isConnecting.set(false);
   }
@@ -96,6 +113,8 @@ export const updateNetlifyConnection = (updates: Partial<NetlifyConnection>) => 
 };
 
 export async function fetchNetlifyStats(token: string) {
+  const copy = getNetlifyConnectionCopy();
+
   try {
     isFetchingStats.set(true);
 
@@ -108,7 +127,7 @@ export async function fetchNetlifyStats(token: string) {
     });
 
     if (!sitesResponse.ok) {
-      throw new Error(`Failed to fetch sites: ${sitesResponse.status}`);
+      throw Object.assign(new Error(), { code: 'NETLIFY_SITES_HTTP_ERROR', status: sitesResponse.status });
     }
 
     const sitesJson = (await sitesResponse.json()) as any;
@@ -129,8 +148,12 @@ export async function fetchNetlifyStats(token: string) {
     });
   } catch (error) {
     console.error('Netlify API Error:', error);
-    logStore.logError('Failed to fetch Netlify stats', { error });
-    toast.error('Failed to fetch Netlify statistics');
+
+    const failureMessage = formatClientRuntimeResidualCopy(copy['clientRuntime.connection.statsFetchFailed'], {
+      provider: 'Netlify',
+    });
+    logStore.logError(failureMessage, { error });
+    toast.error(failureMessage);
   } finally {
     isFetchingStats.set(false);
   }

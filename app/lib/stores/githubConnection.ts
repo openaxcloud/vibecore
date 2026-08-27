@@ -1,5 +1,10 @@
 import Cookies from 'js-cookie';
 import { atom, computed } from 'nanostores';
+import {
+  formatClientRuntimeResidualCopy,
+  getClientRuntimeResidualCopy,
+} from '~/lib/i18n/catalogs/client-runtime-residual';
+import { getI18nInstance } from '~/lib/i18n/runtime';
 import { gitHubApiService } from '~/lib/services/githubApiService';
 import { logStore } from '~/lib/stores/logs';
 import type { GitHubConnection } from '~/types/GitHub';
@@ -8,6 +13,12 @@ import { calculateStatsSummary } from '~/utils/githubStats';
 // Auto-connect using environment variable
 const envToken = import.meta.env?.VITE_GITHUB_ACCESS_TOKEN;
 const envTokenType = import.meta.env?.VITE_GITHUB_TOKEN_TYPE;
+
+function getGitHubConnectionCopy() {
+  const i18n = getI18nInstance();
+
+  return getClientRuntimeResidualCopy(i18n.resolvedLanguage ?? i18n.language);
+}
 
 const githubConnectionAtom = atom<GitHubConnection>({
   user: null,
@@ -70,8 +81,12 @@ export const githubConnectionStore = {
 
   // Connect to GitHub
   async connect(token: string, tokenType: 'classic' | 'fine-grained' = 'classic'): Promise<void> {
+    const copy = getGitHubConnectionCopy();
+
     if (isGitHubConnecting.get()) {
-      throw new Error('Connection already in progress');
+      throw new Error(
+        formatClientRuntimeResidualCopy(copy['clientRuntime.connection.alreadyInProgress'], { provider: 'GitHub' }),
+      );
     }
 
     isGitHubConnecting.set(true);
@@ -109,9 +124,13 @@ export const githubConnectionStore = {
       // Update atom
       githubConnectionAtom.set(connection);
 
-      logStore.logInfo('Connected to GitHub', {
+      const connectedMessage = formatClientRuntimeResidualCopy(copy['clientRuntime.connection.connectedAs'], {
+        provider: 'GitHub',
+        account: user.login,
+      });
+      logStore.logInfo(connectedMessage, {
         type: 'system',
-        message: `Connected to GitHub as ${user.login}`,
+        message: connectedMessage,
       });
 
       // Fetch stats in background
@@ -120,11 +139,15 @@ export const githubConnectionStore = {
       });
     } catch (error) {
       console.error('Failed to connect to GitHub:', error);
-      logStore.logError(`GitHub authentication failed: ${error instanceof Error ? error.message : 'Unknown error'}`, {
-        type: 'system',
-        message: 'GitHub authentication failed',
+
+      const failureMessage = formatClientRuntimeResidualCopy(copy['clientRuntime.connection.authenticationFailed'], {
+        provider: 'GitHub',
       });
-      throw error;
+      logStore.logError(failureMessage, {
+        type: 'system',
+        message: failureMessage,
+      });
+      throw new Error(failureMessage);
     } finally {
       isGitHubConnecting.set(false);
     }
@@ -132,6 +155,8 @@ export const githubConnectionStore = {
 
   // Disconnect from GitHub
   disconnect(): void {
+    const copy = getGitHubConnectionCopy();
+
     // Clear atoms
     githubConnectionAtom.set({
       user: null,
@@ -150,18 +175,24 @@ export const githubConnectionStore = {
     // Clear API service cache
     gitHubApiService.clearCache();
 
-    logStore.logInfo('Disconnected from GitHub', {
+    const disconnectedMessage = formatClientRuntimeResidualCopy(copy['clientRuntime.connection.disconnected'], {
+      provider: 'GitHub',
+    });
+    logStore.logInfo(disconnectedMessage, {
       type: 'system',
-      message: 'Disconnected from GitHub',
+      message: disconnectedMessage,
     });
   },
 
   // Fetch GitHub stats
   async fetchStats(): Promise<void> {
+    const copy = getGitHubConnectionCopy();
     const connection = githubConnectionAtom.get();
 
     if (!connection.user || !connection.token) {
-      throw new Error('Not connected to GitHub');
+      throw new Error(
+        formatClientRuntimeResidualCopy(copy['clientRuntime.connection.statsUnavailable'], { provider: 'GitHub' }),
+      );
     }
 
     if (isGitHubLoadingStats.get()) {
@@ -185,23 +216,31 @@ export const githubConnectionStore = {
       // Update atom
       githubConnectionAtom.set(updatedConnection);
 
-      logStore.logInfo('GitHub stats refreshed', {
+      const refreshedMessage = formatClientRuntimeResidualCopy(copy['clientRuntime.connection.statsUpdated'], {
+        provider: 'GitHub',
+      });
+      logStore.logInfo(refreshedMessage, {
         type: 'system',
-        message: 'Successfully refreshed GitHub statistics',
+        message: refreshedMessage,
       });
     } catch (error) {
       console.error('Failed to fetch GitHub stats:', error);
 
       // If the error is due to expired token, disconnect
       if (error instanceof Error && error.message.includes('401')) {
-        logStore.logError('GitHub token has expired', {
+        const tokenExpiredMessage = formatClientRuntimeResidualCopy(copy['clientRuntime.connection.tokenExpired'], {
+          provider: 'GitHub',
+        });
+        logStore.logError(tokenExpiredMessage, {
           type: 'system',
-          message: 'GitHub token has expired. Please reconnect your account.',
+          message: tokenExpiredMessage,
         });
         this.disconnect();
       }
 
-      throw error;
+      throw new Error(
+        formatClientRuntimeResidualCopy(copy['clientRuntime.connection.statsFetchFailed'], { provider: 'GitHub' }),
+      );
     } finally {
       isGitHubLoadingStats.set(false);
     }

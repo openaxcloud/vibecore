@@ -5,6 +5,7 @@ import {
   injectInspectorScript,
   parseServerDeployHost,
   readCookie,
+  sanitizePreviewFramingHeader,
   serverDeployUpstreamUrl,
   signPreviewTenantToken,
   verifyPreviewTenantToken,
@@ -46,6 +47,130 @@ describe('preview-proxy', () => {
     expect(response.headers['content-type']).toContain('text/html');
     expect(response.headers['retry-after']).toBe('2');
     expect(response.body).toContain('Starting your app');
+  });
+
+  it('serves the holding page (not a silent blank) when the dev server answers a 0-byte 404 (index.html not yet synced)', async () => {
+    // Vite serves `GET /` as a 404 with an empty body while its index.html has not
+    // yet landed on disk; the port is already LISTENING so /ports reports ready.
+    const fetchImpl = (async () => new Response(null, { status: 404 })) as unknown as typeof fetch;
+    const app = await buildPreviewProxyApp({ fetchImpl, resolveAgent: async () => fakeAgent });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/p/ws_1/5173/',
+      headers: { accept: 'text/html,*/*', 'sec-fetch-dest': 'iframe' },
+    });
+
+    expect(response.statusCode).toBe(503);
+    expect(response.headers['content-type']).toContain('text/html');
+    expect(response.headers['retry-after']).toBe('2');
+    expect(response.body).toContain('Starting your app');
+  });
+
+  it('serves the localized holding page when the dev server is still booting (503, empty body)', async () => {
+    const fetchImpl = (async () => new Response(null, { status: 503 })) as unknown as typeof fetch;
+
+    const app = await buildPreviewProxyApp({ fetchImpl, resolveAgent: async () => fakeAgent });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/p/ws_1/5173/',
+      headers: {
+        accept: 'text/html',
+        'accept-language': 'fr-FR,fr;q=0.9',
+        'sec-fetch-dest': 'document',
+      },
+    });
+
+    expect(response.statusCode).toBe(503);
+    expect(response.headers['content-language']).toBe('fr');
+    expect(response.headers.vary).toContain('Accept-Language');
+    expect(response.body).toContain('<html lang="fr">');
+    expect(response.body).toContain('Démarrage de votre application');
+  });
+
+  it('passes through a REAL app 404 page (text/html with a body) unchanged — never masks it', async () => {
+    const fetchImpl = (async () =>
+      new Response('<!doctype html><title>Not found</title><h1>404 — no such route</h1>', {
+        status: 404,
+        headers: { 'content-type': 'text/html; charset=utf-8' },
+      })) as unknown as typeof fetch;
+
+    const app = await buildPreviewProxyApp({ fetchImpl, resolveAgent: async () => fakeAgent });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/p/ws_1/5173/no-such-route',
+      headers: { accept: 'text/html', 'sec-fetch-dest': 'document' },
+    });
+
+    expect(response.statusCode).toBe(404);
+    expect(response.body).toContain('404 — no such route');
+  });
+
+  it('passes through a sub-resource 404 (script/XHR) unchanged — only document navs get the holding page', async () => {
+    const fetchImpl = (async () => new Response(null, { status: 404 })) as unknown as typeof fetch;
+
+    const app = await buildPreviewProxyApp({ fetchImpl, resolveAgent: async () => fakeAgent });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/p/ws_1/5173/assets/missing.js',
+      headers: { accept: '*/*', 'sec-fetch-dest': 'script' },
+    });
+
+    expect(response.statusCode).toBe(404);
+    expect(response.body).not.toContain('Starting your app');
+  });
+
+  it('serves French holding HTML with the active lang and locale response headers', async () => {
+    const fetchImpl = (async () => {
+      throw new Error('raw upstream detail must stay private');
+    }) as unknown as typeof fetch;
+    const app = await buildPreviewProxyApp({ fetchImpl, resolveAgent: async () => fakeAgent });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/p/ws_1/4173/',
+      headers: {
+        accept: 'text/html,*/*',
+        'accept-language': 'fr-FR,fr;q=0.9',
+        'sec-fetch-dest': 'iframe',
+      },
+    });
+
+    expect(response.statusCode).toBe(503);
+    expect(response.headers['content-language']).toBe('fr');
+    expect(response.headers.vary).toContain('Cookie');
+    expect(response.body).toContain('<html lang="fr">');
+    expect(response.body).toContain('Démarrage de votre application');
+    expect(response.body).not.toContain('raw upstream detail');
+    await app.close();
+  });
+
+  it('prioritizes the manual locale cookie and localizes stable JSON errors', async () => {
+    const app = await buildPreviewProxyApp({ resolveAgent: async () => undefined });
+
+    const frenchResponse = await app.inject({
+      method: 'GET',
+      url: '/p/ws_1/4173/assets/main.js',
+      headers: { cookie: 'vibecore-lang=fr', 'accept-language': 'en-US' },
+    });
+    const englishResponse = await app.inject({
+      method: 'GET',
+      url: '/p/ws_1/4173/assets/main.js',
+      headers: { cookie: 'vibecore-lang=en', 'accept-language': 'fr-FR' },
+    });
+
+    expect(frenchResponse.headers['content-language']).toBe('fr');
+    expect(frenchResponse.json()).toEqual({
+      error: 'L’aperçu de l’espace de travail est encore inaccessible. Veuillez réessayer.',
+      code: 'PREVIEW_AGENT_NOT_FOUND',
+    });
+    expect(englishResponse.headers['content-language']).toBe('en');
+    expect(englishResponse.json()).toMatchObject({ code: 'PREVIEW_AGENT_NOT_FOUND' });
+    expect(englishResponse.json().error).toMatch(/^The workspace preview/);
+    await app.close();
   });
 
   it('still returns a JSON error for asset/XHR sub-requests when the dev server is unreachable', async () => {
@@ -289,6 +414,62 @@ describe('preview-proxy', () => {
     });
 
     expect(response.statusCode).toBe(204);
+    await app.close();
+  });
+
+  it("BLOCKER #5: relays a failed-asset 'error' beacon to the api readiness endpoint", async () => {
+    const { fn: fetchImpl, calls } = recordingFetch(async () => new Response('', { status: 204 }));
+
+    const app = await buildPreviewProxyApp({
+      fetchImpl,
+      resolveAgent: async () => fakeAgent,
+      previewDomain: 'preview.e-code.ai',
+      apiBaseUrl: 'http://api.local',
+      proxySharedSecret: 'preview-secret',
+    });
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/__vibecore/preview-blank',
+      headers: { 'content-type': 'application/json', host: 'ws-abc-5173.preview.e-code.ai' },
+      payload: JSON.stringify({
+        url: 'https://ws-abc-5173.preview.e-code.ai/',
+        ts: 1,
+        status: 'error',
+        detail: 'Failed to load stylesheet: /assets/index.css',
+      }),
+    });
+
+    expect(response.statusCode).toBe(204);
+
+    const relay = calls.find((c) => c.url.pathname === '/internal/preview/beacon');
+    expect(relay).toBeDefined();
+    const relayed = JSON.parse(String(relay!.init.body));
+    expect(relayed).toMatchObject({ workspaceId: 'ws-abc', port: 5173, status: 'error' });
+    expect(relayed.detail).toContain('stylesheet');
+    await app.close();
+  });
+
+  it("BLOCKER #5: a body without status defaults to 'blank' (back-compat with older reporters)", async () => {
+    const { fn: fetchImpl, calls } = recordingFetch(async () => new Response('', { status: 204 }));
+
+    const app = await buildPreviewProxyApp({
+      fetchImpl,
+      resolveAgent: async () => fakeAgent,
+      previewDomain: 'preview.e-code.ai',
+      apiBaseUrl: 'http://api.local',
+      proxySharedSecret: 'preview-secret',
+    });
+
+    await app.inject({
+      method: 'POST',
+      url: '/__vibecore/preview-blank',
+      headers: { 'content-type': 'application/json', host: 'ws-abc-5173.preview.e-code.ai' },
+      payload: JSON.stringify({ url: 'https://ws-abc-5173.preview.e-code.ai/', ts: 1 }),
+    });
+
+    const relay = calls.find((c) => c.url.pathname === '/internal/preview/beacon');
+    expect(JSON.parse(String(relay!.init.body))).toMatchObject({ status: 'blank' });
     await app.close();
   });
 
@@ -883,5 +1064,228 @@ describe('preview-proxy', () => {
 
       await app.close();
     });
+
+    /*
+     * BUG-DEPLOY-003 (proven live 2026-08-06): a crash-looping app never becomes
+     * ready, so the manager's activate call hung for its full readiness poll. The
+     * proxy waited it out and the browser was answered by nginx with a raw
+     * `504 Gateway Time-out` at the ingress read timeout — the branded page never
+     * shipped. The wake wait is now bounded well under that timeout.
+     */
+    it('gives up waiting on a wake that never becomes ready and serves the branded page, not a gateway error', async () => {
+      let activateAborted = false;
+
+      const fetchImpl = (async (url: any, init: any) => {
+        const href = typeof url === 'string' ? url : (url.href ?? url.toString());
+
+        if (href.endsWith('/activate')) {
+          // A crash-looping app: the manager polls readiness and never answers.
+          return new Promise((_resolve, reject) => {
+            init.signal?.addEventListener('abort', () => {
+              activateAborted = true;
+              reject(Object.assign(new Error('aborted'), { name: 'AbortError' }));
+            });
+          });
+        }
+
+        if (href.includes('app-clr8x9abc123')) {
+          throw new Error('ECONNREFUSED');
+        }
+
+        return new Response('{}', { status: 200 });
+      }) as unknown as typeof fetch;
+
+      const app = await buildPreviewProxyApp({
+        fetchImpl,
+        previewDomain: 'preview.e-code.ai',
+        serverDeployManagerUrl: 'http://workspace-manager.test',
+        serverDeployWakeWaitMs: 1_000,
+      });
+
+      const startedAt = Date.now();
+      const response = await app.inject({
+        method: 'GET',
+        url: '/',
+        headers: { host: 'd-clr8x9abc123.preview.e-code.ai', accept: 'text/html' },
+      });
+
+      expect(response.statusCode).toBe(503);
+      expect(response.body).toContain('Starting your app');
+      expect(activateAborted).toBe(true);
+
+      // Bounded by the configured wake budget, nowhere near the old 90s wait.
+      expect(Date.now() - startedAt).toBeLessThan(10_000);
+
+      await app.close();
+    });
+
+    /*
+     * An app that accepts the connection but never responds looked identical to a
+     * gateway failure: the abort short-circuited to a bare JSON 504 that a browser
+     * renders as a finished page. It now takes the same wake + holding-page path.
+     */
+    it('serves the branded holding page when the app accepts the connection but never responds', async () => {
+      const fetchImpl = (async (url: any, init: any) => {
+        const href = typeof url === 'string' ? url : (url.href ?? url.toString());
+
+        if (href.endsWith('/activate')) {
+          return new Response(JSON.stringify({ ready: false, readyReplicas: 0 }), { status: 200 });
+        }
+
+        if (href.includes('app-clr8x9abc123')) {
+          return new Promise((_resolve, reject) => {
+            init.signal?.addEventListener('abort', () =>
+              reject(Object.assign(new Error('aborted'), { name: 'AbortError' })),
+            );
+          });
+        }
+
+        return new Response('{}', { status: 200 });
+      }) as unknown as typeof fetch;
+
+      const app = await buildPreviewProxyApp({
+        fetchImpl,
+        previewDomain: 'preview.e-code.ai',
+        serverDeployManagerUrl: 'http://workspace-manager.test',
+        requestTimeoutMs: 1_000,
+        serverDeployWakeWaitMs: 1_000,
+      });
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/',
+        headers: { host: 'd-clr8x9abc123.preview.e-code.ai', accept: 'text/html' },
+      });
+
+      expect(response.statusCode).toBe(503);
+      expect(response.body).toContain('Starting your app');
+
+      await app.close();
+    });
+  });
+});
+
+/*
+ * BUG-PREVIEW-FRAMING-BLOCKED. The Webview stayed blank while the request
+ * itself returned 200 with the whole document — reading the same URL directly
+ * worked, because that is top-level and not framed. The proxy forwarded the
+ * upstream's `X-Frame-Options` / CSP `frame-ancestors` verbatim, so the browser
+ * refused the IDE's cross-origin iframe and reported nothing an HTTP-level
+ * check could see.
+ */
+describe('sanitizePreviewFramingHeader', () => {
+  it('drops X-Frame-Options whole, whatever its case or value', () => {
+    expect(sanitizePreviewFramingHeader('X-Frame-Options', 'DENY')).toBeNull();
+    expect(sanitizePreviewFramingHeader('x-frame-options', 'SAMEORIGIN')).toBeNull();
+  });
+
+  it('removes ONLY frame-ancestors from a CSP and keeps every other directive', () => {
+    expect(sanitizePreviewFramingHeader('content-security-policy', "default-src 'self'; frame-ancestors 'self'")).toBe(
+      "default-src 'self'",
+    );
+    expect(
+      sanitizePreviewFramingHeader(
+        'Content-Security-Policy',
+        "default-src 'self'; frame-ancestors 'none'; script-src 'unsafe-inline'",
+      ),
+    ).toBe("default-src 'self'; script-src 'unsafe-inline'");
+  });
+
+  it('drops a CSP that carried nothing but frame-ancestors', () => {
+    expect(sanitizePreviewFramingHeader('content-security-policy', "frame-ancestors 'self'")).toBeNull();
+  });
+
+  it('also sanitizes the report-only CSP, which browsers honour for framing reports', () => {
+    expect(
+      sanitizePreviewFramingHeader('content-security-policy-report-only', "default-src 'self'; frame-ancestors 'self'"),
+    ).toBe("default-src 'self'");
+  });
+
+  it('does not touch a directive that merely starts with the same letters', () => {
+    expect(sanitizePreviewFramingHeader('content-security-policy', 'frame-ancestors-not-a-directive foo')).toBe(
+      'frame-ancestors-not-a-directive foo',
+    );
+  });
+
+  it('leaves unrelated headers exactly as they are', () => {
+    expect(sanitizePreviewFramingHeader('content-type', 'text/html')).toBe('text/html');
+    expect(sanitizePreviewFramingHeader('cross-origin-resource-policy', 'cross-origin')).toBe('cross-origin');
+  });
+});
+
+/*
+ * The framing exemption must stop at the IDE preview. A PUBLISHED app is opened
+ * DIRECTLY by the public in a top-level tab — nothing of ours frames it — so
+ * removing its anti-clickjacking headers would let any site on the internet
+ * frame a user's published app. These three cases pin the boundary in both
+ * directions, so a future refactor cannot widen it by accident.
+ */
+describe('preview-proxy — framing headers are scoped to the IDE preview surface', () => {
+  const framingUpstream = () =>
+    (async () =>
+      new Response('<!doctype html><html><head></head><body><div id="root">app</div></body></html>', {
+        status: 200,
+        headers: {
+          'content-type': 'text/html; charset=utf-8',
+          'x-frame-options': 'SAMEORIGIN',
+          'content-security-policy': "default-src 'self'; frame-ancestors 'self'",
+        },
+      })) as unknown as typeof fetch;
+
+  it('IDE preview (/p/:workspaceId/:port): strips framing headers so the IDE can frame the dev server', async () => {
+    const app = await buildPreviewProxyApp({ fetchImpl: framingUpstream(), resolveAgent: async () => fakeAgent });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/p/ws_1/5173/',
+      headers: { accept: 'text/html', 'sec-fetch-dest': 'iframe' },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.headers['x-frame-options']).toBeUndefined();
+
+    const csp = String(response.headers['content-security-policy'] ?? '');
+    expect(csp).not.toMatch(/frame-ancestors/i);
+
+    // Strips framing, not security: the app's other directives survive.
+    expect(csp).toContain("default-src 'self'");
+
+    await app.close();
+  });
+
+  it('PUBLISHED server deploy (d-<id>): keeps X-Frame-Options and frame-ancestors untouched', async () => {
+    const app = await buildPreviewProxyApp({ fetchImpl: framingUpstream(), previewDomain: 'preview.e-code.ai' });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/',
+      headers: { host: 'd-clr8x9abc123.preview.e-code.ai', accept: 'text/html' },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.headers['x-frame-options']).toBe('SAMEORIGIN');
+    expect(String(response.headers['content-security-policy'])).toBe("default-src 'self'; frame-ancestors 'self'");
+
+    await app.close();
+  });
+
+  it('PUBLISHED static deploy (s-<id>): keeps X-Frame-Options and frame-ancestors untouched', async () => {
+    const app = await buildPreviewProxyApp({
+      fetchImpl: framingUpstream(),
+      previewDomain: 'preview.e-code.ai',
+      apiBaseUrl: 'http://api.test',
+    });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/',
+      headers: { host: 's-clr8x9abc123.preview.e-code.ai', accept: 'text/html' },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.headers['x-frame-options']).toBe('SAMEORIGIN');
+    expect(String(response.headers['content-security-policy'])).toBe("default-src 'self'; frame-ancestors 'self'");
+
+    await app.close();
   });
 });

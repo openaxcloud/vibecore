@@ -1,6 +1,19 @@
-import { Database, Trash2, RefreshCw, Clock, HardDrive, CheckCircle } from 'lucide-react';
-import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import { AlertCircle, CheckCircle, Clock, Database, HardDrive, RefreshCw, Trash2 } from 'lucide-react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '~/components/ui/Button';
+import {
+  formatGitHubTabCacheEntriesHeading,
+  formatGitHubTabCacheSize,
+  formatGitHubTabDate,
+  formatGitHubTabDateTime,
+  formatGitHubTabExpiredCacheResult,
+  formatGitHubTabNumber,
+  formatGitHubTabTime,
+  getGitHubTabCacheSafeError,
+  getGitHubTabCopy,
+  interpolateGitHubTabCopy,
+} from '~/lib/i18n/catalogs/github-tab';
 import { classNames } from '~/utils/classNames';
 
 interface CacheEntry {
@@ -15,7 +28,7 @@ interface CacheEntry {
    */
   timestamp?: number;
   lastAccessed: number;
-  data: any;
+  data: unknown;
 }
 
 interface CacheStats {
@@ -23,7 +36,6 @@ interface CacheStats {
   totalEntries: number;
   oldestEntry: number;
   newestEntry: number;
-  hitRate?: number;
 }
 
 interface GitHubCacheManagerProps {
@@ -31,9 +43,17 @@ interface GitHubCacheManagerProps {
   showStats?: boolean;
 }
 
+type CacheOperation = 'refresh' | 'clear-all' | 'clear-expired' | 'compact' | 'clear-entry' | null;
+
+type CacheFeedback =
+  | { kind: 'cleared-all'; time: number }
+  | { kind: 'cleared-expired'; count: number }
+  | { kind: 'compacted' }
+  | { kind: 'removed-entry'; key: string }
+  | { kind: 'error' };
+
 // Cache management utilities
 export class CacheManagerService {
-  private static readonly _cachePrefix = 'github_';
   private static readonly _cacheKeys = [
     'github_connection',
     'github_stats_cache',
@@ -50,9 +70,10 @@ export class CacheManagerService {
         const data = localStorage.getItem(key);
 
         if (data) {
-          const parsed = JSON.parse(data);
-          const rawTimestamp = parsed && typeof parsed.timestamp === 'number' ? parsed.timestamp : undefined;
-          const rawLastAccessed = parsed && typeof parsed.lastAccessed === 'number' ? parsed.lastAccessed : undefined;
+          const parsed: unknown = JSON.parse(data);
+          const record = parsed && typeof parsed === 'object' ? (parsed as Record<string, unknown>) : null;
+          const rawTimestamp = typeof record?.timestamp === 'number' ? record.timestamp : undefined;
+          const rawLastAccessed = typeof record?.lastAccessed === 'number' ? record.lastAccessed : undefined;
           entries.push({
             key,
             size: new Blob([data]).size,
@@ -67,15 +88,17 @@ export class CacheManagerService {
         }
       } catch (error) {
         console.warn(`Failed to parse cache entry: ${key}`, error);
+
+        if (!(error instanceof SyntaxError)) {
+          throw error;
+        }
       }
     }
 
     return entries.sort((a, b) => b.lastAccessed - a.lastAccessed);
   }
 
-  static getCacheStats(): CacheStats {
-    const entries = this.getCacheEntries();
-
+  static getCacheStats(entries: readonly CacheEntry[] = this.getCacheEntries()): CacheStats {
     if (entries.length === 0) {
       return {
         totalSize: 0,
@@ -138,6 +161,10 @@ export class CacheManagerService {
 
     for (const entry of entries) {
       try {
+        if (!entry.data || typeof entry.data !== 'object' || Array.isArray(entry.data)) {
+          continue;
+        }
+
         // Re-serialize with minimal data
         const compacted = {
           ...entry.data,
@@ -146,45 +173,92 @@ export class CacheManagerService {
         localStorage.setItem(entry.key, JSON.stringify(compacted));
       } catch (error) {
         console.warn(`Failed to compact cache entry: ${entry.key}`, error);
+        throw error;
       }
     }
   }
 
-  static formatSize(bytes: number): string {
-    if (bytes === 0) {
-      return '0 B';
-    }
-
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+  static formatSize(bytes: number, language?: string | null): string {
+    return formatGitHubTabCacheSize(bytes, language);
   }
 }
 
 export function GitHubCacheManager({ className = '', showStats = true }: GitHubCacheManagerProps) {
+  const { i18n } = useTranslation();
+  const language = i18n.resolvedLanguage ?? i18n.language;
+  const copy = getGitHubTabCopy(language);
   const [cacheEntries, setCacheEntries] = useState<CacheEntry[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [lastClearTime, setLastClearTime] = useState<number | null>(null);
+  const [loadState, setLoadState] = useState<'loading' | 'success' | 'error'>('loading');
+  const [operation, setOperation] = useState<CacheOperation>(null);
+  const [feedback, setFeedback] = useState<CacheFeedback | null>(null);
 
   const refreshCacheData = useCallback(() => {
-    setCacheEntries(CacheManagerService.getCacheEntries());
+    const nextEntries = CacheManagerService.getCacheEntries();
+
+    setCacheEntries(nextEntries);
+    setLoadState('success');
   }, []);
 
   useEffect(() => {
-    refreshCacheData();
+    try {
+      refreshCacheData();
+    } catch (error) {
+      console.error('GitHub cache read failed', error);
+      setCacheEntries([]);
+      setLoadState('error');
+    }
   }, [refreshCacheData]);
 
-  const cacheStats = useMemo(() => CacheManagerService.getCacheStats(), [cacheEntries]);
+  const cacheStats = useMemo(() => CacheManagerService.getCacheStats(cacheEntries), [cacheEntries]);
+  const isBusy = operation !== null;
 
-  const handleClearAll = useCallback(async () => {
-    setIsLoading(true);
+  const feedbackMessage = useMemo(() => {
+    if (!feedback) {
+      return null;
+    }
+
+    switch (feedback.kind) {
+      case 'cleared-all':
+        return interpolateGitHubTabCopy(copy['githubTab.cache.feedback.clearedAll'], {
+          time: formatGitHubTabTime(feedback.time, language),
+        });
+      case 'cleared-expired':
+        return formatGitHubTabExpiredCacheResult(feedback.count, language);
+      case 'compacted':
+        return copy['githubTab.cache.feedback.compacted'];
+      case 'removed-entry':
+        return interpolateGitHubTabCopy(copy['githubTab.cache.feedback.removedEntry'], { key: feedback.key });
+      case 'error':
+        return getGitHubTabCacheSafeError(language);
+    }
+
+    return null;
+  }, [copy, feedback, language]);
+
+  const handleRefresh = useCallback(() => {
+    setOperation('refresh');
+    setFeedback(null);
+    setLoadState('loading');
+
+    try {
+      refreshCacheData();
+    } catch (error) {
+      console.error('GitHub cache refresh failed', error);
+      setCacheEntries([]);
+      setLoadState('error');
+    } finally {
+      setOperation(null);
+    }
+  }, [refreshCacheData]);
+
+  const handleClearAll = useCallback(() => {
+    setOperation('clear-all');
+    setFeedback(null);
 
     try {
       CacheManagerService.clearCache();
-      setLastClearTime(Date.now());
       refreshCacheData();
+      setFeedback({ kind: 'cleared-all', time: Date.now() });
 
       // Trigger a page refresh to update all components
       setTimeout(() => {
@@ -192,203 +266,318 @@ export function GitHubCacheManager({ className = '', showStats = true }: GitHubC
       }, 1000);
     } catch (error) {
       console.error('Failed to clear cache:', error);
+      setFeedback({ kind: 'error' });
     } finally {
-      setIsLoading(false);
+      setOperation(null);
     }
   }, [refreshCacheData]);
 
   const handleClearExpired = useCallback(() => {
-    setIsLoading(true);
+    setOperation('clear-expired');
+    setFeedback(null);
 
     try {
       const removedCount = CacheManagerService.clearExpiredCache();
       refreshCacheData();
-
-      if (removedCount > 0) {
-        // Show success message or trigger update
-        console.log(`Removed ${removedCount} expired cache entries`);
-      }
+      setFeedback({ kind: 'cleared-expired', count: removedCount });
     } catch (error) {
       console.error('Failed to clear expired cache:', error);
+      setFeedback({ kind: 'error' });
     } finally {
-      setIsLoading(false);
+      setOperation(null);
     }
   }, [refreshCacheData]);
 
   const handleCompactCache = useCallback(() => {
-    setIsLoading(true);
+    setOperation('compact');
+    setFeedback(null);
 
     try {
       CacheManagerService.compactCache();
       refreshCacheData();
+      setFeedback({ kind: 'compacted' });
     } catch (error) {
       console.error('Failed to compact cache:', error);
+      setFeedback({ kind: 'error' });
     } finally {
-      setIsLoading(false);
+      setOperation(null);
     }
   }, [refreshCacheData]);
 
   const handleClearSpecific = useCallback(
     (key: string) => {
-      setIsLoading(true);
+      setOperation('clear-entry');
+      setFeedback(null);
 
       try {
         CacheManagerService.clearCache([key]);
         refreshCacheData();
+        setFeedback({ kind: 'removed-entry', key: key.replace(/^github_/u, '') });
       } catch (error) {
         console.error(`Failed to clear cache key: ${key}`, error);
+        setFeedback({ kind: 'error' });
       } finally {
-        setIsLoading(false);
+        setOperation(null);
       }
     },
     [refreshCacheData],
   );
 
-  if (!showStats && cacheEntries.length === 0) {
-    return null;
-  }
-
   return (
-    <div
+    <section
       className={classNames(
-        'space-y-4 p-4 bg-bolt-elements-background-depth-1 border border-bolt-elements-borderColor rounded-lg',
+        'min-w-0 space-y-4 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-4',
         className,
       )}
+      aria-labelledby="github-cache-manager-title"
+      aria-busy={loadState === 'loading' || isBusy}
     >
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Database className="w-4 h-4 text-bolt-elements-item-contentAccent" />
-          <h3 className="text-sm font-medium text-bolt-elements-textPrimary">GitHub Cache Management</h3>
+      <div className="flex min-w-0 items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-2">
+          <Database className="h-4 w-4 shrink-0 text-bolt-elements-item-contentAccent" aria-hidden="true" />
+          <h3
+            id="github-cache-manager-title"
+            className="min-w-0 break-words text-sm font-medium text-bolt-elements-textPrimary"
+          >
+            {copy['githubTab.cache.title']}
+          </h3>
         </div>
 
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={refreshCacheData} disabled={isLoading}>
-            <RefreshCw className={classNames('w-3 h-3', isLoading ? 'animate-spin' : '')} />
-          </Button>
-        </div>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={handleRefresh}
+          disabled={isBusy}
+          aria-label={copy['githubTab.cache.refresh']}
+          title={copy['githubTab.cache.refresh']}
+          className="!h-11 !w-11 shrink-0 p-0"
+        >
+          <RefreshCw
+            className={classNames('h-4 w-4', operation === 'refresh' || loadState === 'loading' ? 'animate-spin' : '')}
+            aria-hidden="true"
+          />
+        </Button>
       </div>
 
-      {showStats && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <div className="bg-bolt-elements-background-depth-2 p-3 rounded-lg">
-            <div className="flex items-center gap-2 mb-1">
-              <HardDrive className="w-3 h-3 text-bolt-elements-textSecondary" />
-              <span className="text-xs font-medium text-bolt-elements-textSecondary">Total Size</span>
-            </div>
-            <p className="text-sm font-semibold text-bolt-elements-textPrimary">
-              {CacheManagerService.formatSize(cacheStats.totalSize)}
-            </p>
-          </div>
-
-          <div className="bg-bolt-elements-background-depth-2 p-3 rounded-lg">
-            <div className="flex items-center gap-2 mb-1">
-              <Database className="w-3 h-3 text-bolt-elements-textSecondary" />
-              <span className="text-xs font-medium text-bolt-elements-textSecondary">Entries</span>
-            </div>
-            <p className="text-sm font-semibold text-bolt-elements-textPrimary">{cacheStats.totalEntries}</p>
-          </div>
-
-          <div className="bg-bolt-elements-background-depth-2 p-3 rounded-lg">
-            <div className="flex items-center gap-2 mb-1">
-              <Clock className="w-3 h-3 text-bolt-elements-textSecondary" />
-              <span className="text-xs font-medium text-bolt-elements-textSecondary">Oldest</span>
-            </div>
-            <p className="text-xs text-bolt-elements-textSecondary">
-              {cacheStats.oldestEntry ? new Date(cacheStats.oldestEntry).toLocaleDateString() : 'N/A'}
-            </p>
-          </div>
-
-          <div className="bg-bolt-elements-background-depth-2 p-3 rounded-lg">
-            <div className="flex items-center gap-2 mb-1">
-              <CheckCircle className="w-3 h-3 text-bolt-elements-textSecondary" />
-              <span className="text-xs font-medium text-bolt-elements-textSecondary">Status</span>
-            </div>
-            <p className="text-xs text-green-600 dark:text-green-400">
-              {cacheStats.totalEntries > 0 ? 'Active' : 'Empty'}
-            </p>
-          </div>
-        </div>
-      )}
-
-      {cacheEntries.length > 0 && (
-        <div className="space-y-2">
-          <h4 className="text-xs font-medium text-bolt-elements-textSecondary">
-            Cache Entries ({cacheEntries.length})
-          </h4>
-
-          <div className="space-y-2 max-h-48 overflow-y-auto">
-            {cacheEntries.map((entry) => (
-              <div
-                key={entry.key}
-                className="flex items-center justify-between p-2 bg-bolt-elements-background-depth-2 rounded border border-bolt-elements-borderColor"
-              >
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium text-bolt-elements-textPrimary truncate">
-                    {entry.key.replace('github_', '')}
-                  </p>
-                  <p className="text-xs text-bolt-elements-textSecondary">
-                    {CacheManagerService.formatSize(entry.size)} • {new Date(entry.lastAccessed).toLocaleString()}
-                  </p>
-                </div>
-
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleClearSpecific(entry.key)}
-                  disabled={isLoading}
-                  className="ml-2"
-                >
-                  <Trash2 className="w-3 h-3 text-red-500" />
-                </Button>
-              </div>
+      {loadState === 'loading' ? (
+        <div role="status" aria-live="polite">
+          <p className="break-words text-sm text-bolt-elements-textSecondary">{copy['githubTab.cache.loading']}</p>
+          <div className="mt-3 grid grid-cols-1 gap-3 min-[360px]:grid-cols-2 xl:grid-cols-4" aria-hidden="true">
+            {Array.from({ length: showStats ? 4 : 2 }, (_, index) => (
+              <div key={index} className="h-16 animate-pulse rounded-lg bg-bolt-elements-background-depth-2" />
             ))}
           </div>
         </div>
+      ) : loadState === 'error' ? (
+        <div
+          className="flex min-w-0 flex-col items-start gap-3 rounded-lg border border-[var(--status-error-border)] bg-[var(--status-error-bg)] p-4 sm:flex-row sm:justify-between"
+          role="alert"
+        >
+          <div className="flex min-w-0 items-start gap-2">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-[var(--status-error-text)]" aria-hidden="true" />
+            <div className="min-w-0">
+              <p className="break-words text-sm font-medium text-[var(--status-error-text)]">
+                {copy['githubTab.cache.errorTitle']}
+              </p>
+              <p className="mt-1 break-words text-sm text-[var(--status-error-text)]">
+                {copy['githubTab.cache.errorDescription']}
+              </p>
+            </div>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleRefresh}
+            className="!h-auto min-h-11 max-w-full shrink-0 !whitespace-normal break-words py-2 text-center leading-tight"
+          >
+            {copy['githubTab.cache.retry']}
+          </Button>
+        </div>
+      ) : (
+        <>
+          {showStats && (
+            <div className="grid grid-cols-1 gap-3 min-[360px]:grid-cols-2 xl:grid-cols-4">
+              <div className="min-w-0 rounded-lg bg-bolt-elements-background-depth-2 p-3">
+                <div className="mb-1 flex min-w-0 items-center gap-2">
+                  <HardDrive className="h-3 w-3 shrink-0 text-bolt-elements-textSecondary" aria-hidden="true" />
+                  <span className="min-w-0 break-words text-xs font-medium text-bolt-elements-textSecondary">
+                    {copy['githubTab.cache.stats.totalSize']}
+                  </span>
+                </div>
+                <p className="break-words text-sm font-semibold text-bolt-elements-textPrimary">
+                  {CacheManagerService.formatSize(cacheStats.totalSize, language)}
+                </p>
+              </div>
+
+              <div className="min-w-0 rounded-lg bg-bolt-elements-background-depth-2 p-3">
+                <div className="mb-1 flex min-w-0 items-center gap-2">
+                  <Database className="h-3 w-3 shrink-0 text-bolt-elements-textSecondary" aria-hidden="true" />
+                  <span className="min-w-0 break-words text-xs font-medium text-bolt-elements-textSecondary">
+                    {copy['githubTab.cache.stats.entries']}
+                  </span>
+                </div>
+                <p className="break-words text-sm font-semibold text-bolt-elements-textPrimary">
+                  {formatGitHubTabNumber(cacheStats.totalEntries, language)}
+                </p>
+              </div>
+
+              <div className="min-w-0 rounded-lg bg-bolt-elements-background-depth-2 p-3">
+                <div className="mb-1 flex min-w-0 items-center gap-2">
+                  <Clock className="h-3 w-3 shrink-0 text-bolt-elements-textSecondary" aria-hidden="true" />
+                  <span className="min-w-0 break-words text-xs font-medium text-bolt-elements-textSecondary">
+                    {copy['githubTab.cache.stats.oldest']}
+                  </span>
+                </div>
+                <p className="break-words text-xs text-bolt-elements-textSecondary">
+                  {cacheStats.oldestEntry
+                    ? formatGitHubTabDate(cacheStats.oldestEntry, language)
+                    : copy['githubTab.cache.notAvailable']}
+                </p>
+              </div>
+
+              <div className="min-w-0 rounded-lg bg-bolt-elements-background-depth-2 p-3">
+                <div className="mb-1 flex min-w-0 items-center gap-2">
+                  <CheckCircle className="h-3 w-3 shrink-0 text-bolt-elements-textSecondary" aria-hidden="true" />
+                  <span className="min-w-0 break-words text-xs font-medium text-bolt-elements-textSecondary">
+                    {copy['githubTab.cache.stats.status']}
+                  </span>
+                </div>
+                <p
+                  className={classNames(
+                    'break-words text-xs',
+                    cacheStats.totalEntries > 0
+                      ? 'text-[var(--status-success-text)]'
+                      : 'text-bolt-elements-textSecondary',
+                  )}
+                >
+                  {cacheStats.totalEntries > 0
+                    ? copy['githubTab.cache.stats.active']
+                    : copy['githubTab.cache.stats.empty']}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {cacheEntries.length === 0 ? (
+            <div
+              className="min-w-0 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4"
+              role="status"
+            >
+              <p className="break-words text-sm font-medium text-bolt-elements-textPrimary">
+                {copy['githubTab.cache.emptyTitle']}
+              </p>
+              <p className="mt-1 break-words text-sm text-bolt-elements-textSecondary">
+                {copy['githubTab.cache.emptyDescription']}
+              </p>
+            </div>
+          ) : (
+            <div className="min-w-0 space-y-2">
+              <h4 className="break-words text-xs font-medium text-bolt-elements-textSecondary">
+                {formatGitHubTabCacheEntriesHeading(cacheEntries.length, language)}
+              </h4>
+
+              <div className="max-h-48 space-y-2 overflow-y-auto">
+                {cacheEntries.map((entry) => {
+                  const displayKey = entry.key.replace(/^github_/u, '');
+
+                  return (
+                    <div
+                      key={entry.key}
+                      className="flex min-w-0 flex-col items-stretch justify-between gap-2 rounded border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-2 min-[360px]:flex-row min-[360px]:items-center"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="break-all text-xs font-medium text-bolt-elements-textPrimary">{displayKey}</p>
+                        <p className="mt-0.5 break-words text-xs text-bolt-elements-textSecondary">
+                          {CacheManagerService.formatSize(entry.size, language)} ·{' '}
+                          {formatGitHubTabDateTime(new Date(entry.lastAccessed), language)}
+                        </p>
+                      </div>
+
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleClearSpecific(entry.key)}
+                        disabled={isBusy}
+                        aria-label={interpolateGitHubTabCopy(copy['githubTab.cache.entry.remove'], {
+                          key: displayKey,
+                        })}
+                        title={interpolateGitHubTabCopy(copy['githubTab.cache.entry.remove'], {
+                          key: displayKey,
+                        })}
+                        className="!h-11 !w-11 shrink-0 self-end p-0 min-[360px]:self-auto"
+                      >
+                        <Trash2 className="h-4 w-4 text-[var(--status-error-text)]" aria-hidden="true" />
+                      </Button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          <div className="flex min-w-0 flex-col gap-2 border-t border-bolt-elements-borderColor pt-3 min-[420px]:flex-row min-[420px]:flex-wrap">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleClearExpired}
+              disabled={isBusy || cacheEntries.length === 0}
+              className="!h-auto min-h-11 max-w-full gap-1 !whitespace-normal break-words py-2 text-center leading-tight"
+            >
+              <Clock className="h-4 w-4 shrink-0" aria-hidden="true" />
+              <span className="text-xs">{copy['githubTab.cache.actions.clearExpired']}</span>
+            </Button>
+
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleCompactCache}
+              disabled={isBusy || cacheEntries.length === 0}
+              className="!h-auto min-h-11 max-w-full gap-1 !whitespace-normal break-words py-2 text-center leading-tight"
+            >
+              <RefreshCw className="h-4 w-4 shrink-0" aria-hidden="true" />
+              <span className="text-xs">{copy['githubTab.cache.actions.compact']}</span>
+            </Button>
+
+            {cacheEntries.length > 0 && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleClearAll}
+                disabled={isBusy}
+                className="!h-auto min-h-11 max-w-full gap-1 border-[var(--status-error-border)] !whitespace-normal break-words py-2 text-center text-[var(--status-error-text)] leading-tight hover:bg-[var(--status-error-bg)] hover:text-[var(--status-error-text)]"
+              >
+                <Trash2 className="h-4 w-4 shrink-0" aria-hidden="true" />
+                <span className="text-xs">{copy['githubTab.cache.actions.clearAll']}</span>
+              </Button>
+            )}
+          </div>
+        </>
       )}
 
-      <div className="flex flex-wrap gap-2 pt-2 border-t border-bolt-elements-borderColor">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleClearExpired}
-          disabled={isLoading}
-          className="flex items-center gap-1"
+      {feedbackMessage && (
+        <div
+          className={classNames(
+            'flex min-w-0 items-start gap-2 rounded border p-3 text-xs',
+            feedback?.kind === 'error'
+              ? 'border-[var(--status-error-border)] bg-[var(--status-error-bg)] text-[var(--status-error-text)]'
+              : 'border-[var(--status-success-border)] bg-[var(--status-success-bg)] text-[var(--status-success-text)]',
+          )}
+          role={feedback?.kind === 'error' ? 'alert' : 'status'}
+          aria-live="polite"
         >
-          <Clock className="w-3 h-3" />
-          <span className="text-xs">Clear Expired</span>
-        </Button>
-
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleCompactCache}
-          disabled={isLoading}
-          className="flex items-center gap-1"
-        >
-          <RefreshCw className="w-3 h-3" />
-          <span className="text-xs">Compact</span>
-        </Button>
-
-        {cacheEntries.length > 0 && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleClearAll}
-            disabled={isLoading}
-            className="flex items-center gap-1 text-red-600 hover:text-red-700 border-red-200 hover:border-red-300"
-          >
-            <Trash2 className="w-3 h-3" />
-            <span className="text-xs">Clear All</span>
-          </Button>
-        )}
-      </div>
-
-      {lastClearTime && (
-        <div className="flex items-center gap-2 p-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded text-xs text-green-700 dark:text-green-400">
-          <CheckCircle className="w-3 h-3" />
-          <span>Cache cleared successfully at {new Date(lastClearTime).toLocaleTimeString()}</span>
+          {feedback?.kind === 'error' ? (
+            <AlertCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
+          ) : (
+            <CheckCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
+          )}
+          <span className="min-w-0 break-words">{feedbackMessage}</span>
         </div>
       )}
-    </div>
+    </section>
   );
 }

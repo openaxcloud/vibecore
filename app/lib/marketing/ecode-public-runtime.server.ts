@@ -1,6 +1,8 @@
 import { data as json, type LoaderFunctionArgs } from 'react-router';
 
+import rawPublicRuntimeCatalog from './ecode-public-runtime.catalog.json' with { type: 'json' };
 import { listEcodeTemplates } from './ecode-template-catalog.server';
+import { localeResponseHeaders, resolveRequestLocale } from '~/lib/i18n/request-locale';
 
 type RuntimeProcess = {
   env?: Record<string, string | undefined>;
@@ -20,9 +22,82 @@ type PublicServiceStatus = {
   affectedRegions: string[];
 };
 
-const noStoreHeaders = {
-  'Cache-Control': 'no-store',
-};
+type PublicRuntimeLocale = 'en' | 'fr';
+type PublicRuntimeLoaderArgs = Pick<LoaderFunctionArgs, 'request'>;
+type PublicRuntimeTemplate = ReturnType<typeof listEcodeTemplates>[number];
+
+function withEnglishFallback<T>(english: T, localized: unknown): T {
+  if (typeof english === 'string') {
+    return (typeof localized === 'string' && localized.trim().length > 0 ? localized : english) as T;
+  }
+
+  if (Array.isArray(english)) {
+    const localizedItems = Array.isArray(localized) ? localized : [];
+
+    return english.map((item, index) => withEnglishFallback(item, localizedItems[index])) as T;
+  }
+
+  if (english && typeof english === 'object') {
+    const localizedRecord =
+      localized && typeof localized === 'object' && !Array.isArray(localized)
+        ? (localized as Record<string, unknown>)
+        : {};
+
+    return Object.fromEntries(
+      Object.entries(english).map(([key, value]) => [key, withEnglishFallback(value, localizedRecord[key])]),
+    ) as T;
+  }
+
+  return (typeof localized === typeof english ? localized : english) as T;
+}
+
+const publicRuntimeCatalog = {
+  en: rawPublicRuntimeCatalog.en,
+  fr: withEnglishFallback(rawPublicRuntimeCatalog.en, rawPublicRuntimeCatalog.fr),
+} as const;
+
+function publicRuntimeContext(args?: PublicRuntimeLoaderArgs) {
+  if (!args?.request) {
+    return {
+      locale: 'en' as const,
+      copy: publicRuntimeCatalog.en,
+      headers: new Headers({
+        'Cache-Control': 'no-store',
+        'Content-Language': 'en',
+        Vary: 'Cookie, Accept-Language',
+      }),
+    };
+  }
+
+  const resolution = resolveRequestLocale(args.request);
+  const locale: PublicRuntimeLocale = resolution.language === 'fr' ? 'fr' : 'en';
+  const headers = localeResponseHeaders(args.request, resolution);
+  headers.set('Cache-Control', 'no-store');
+  headers.set('Content-Language', locale);
+
+  return { locale, copy: publicRuntimeCatalog[locale], headers };
+}
+
+function formatPublicRuntimeCopy(template: string, values: Record<string, string>): string {
+  return template.replace(/\{([a-zA-Z0-9_]+)\}/g, (match, key: string) => values[key] ?? match);
+}
+
+function localizedTemplate(template: PublicRuntimeTemplate, locale: PublicRuntimeLocale): PublicRuntimeTemplate {
+  const localizedTemplates = publicRuntimeCatalog[locale].templates as Record<
+    string,
+    { name: string; description: string }
+  >;
+
+  const englishTemplates = publicRuntimeCatalog.en.templates as Record<string, { name: string; description: string }>;
+  const english = englishTemplates[template.slug];
+  const localized = localizedTemplates[template.slug];
+
+  return {
+    ...template,
+    name: localized?.name || english?.name || template.name,
+    description: localized?.description || english?.description || template.description,
+  };
+}
 
 function runtimeProcess() {
   return (globalThis as typeof globalThis & { process?: RuntimeProcess }).process;
@@ -53,73 +128,31 @@ function withLastChecked(service: Omit<PublicServiceStatus, 'lastChecked'>): Pub
   };
 }
 
-function publicStatusServices(): PublicServiceStatus[] {
-  return [
+const publicStatusRuntime = [
+  { id: 'editor', category: 'core', status: 'operational', uptime: 99.99, responseTime: 120 },
+  { id: 'ai-agent', category: 'features', status: 'operational', uptime: 99.95, responseTime: 450 },
+  { id: 'deployments', category: 'infrastructure', status: 'operational', uptime: 99.99, responseTime: 80 },
+  { id: 'database', category: 'infrastructure', status: 'operational', uptime: 99.99, responseTime: 45 },
+  { id: 'collaboration', category: 'features', status: 'operational', uptime: 99.98, responseTime: 95 },
+  { id: 'api', category: 'core', status: 'operational', uptime: 99.99, responseTime: 60 },
+] as const;
+
+function publicStatusServices(locale: PublicRuntimeLocale): PublicServiceStatus[] {
+  const copy = publicRuntimeCatalog[locale].statusServices;
+
+  return publicStatusRuntime.map((service) =>
     withLastChecked({
-      id: 'editor',
-      name: 'E-Code Editor',
-      category: 'core',
-      status: 'operational',
-      uptime: 99.99,
-      responseTime: 120,
-      description: 'Core IDE and code editing services',
+      ...service,
+      name: copy[service.id].name,
+      description: copy[service.id].description,
       affectedRegions: [],
     }),
-    withLastChecked({
-      id: 'ai-agent',
-      name: 'AI Agent',
-      category: 'features',
-      status: 'operational',
-      uptime: 99.95,
-      responseTime: 450,
-      description: 'Autonomous builder and assistant',
-      affectedRegions: [],
-    }),
-    withLastChecked({
-      id: 'deployments',
-      name: 'Hosting & Deployments',
-      category: 'infrastructure',
-      status: 'operational',
-      uptime: 99.99,
-      responseTime: 80,
-      description: 'Application hosting and deployment pipeline',
-      affectedRegions: [],
-    }),
-    withLastChecked({
-      id: 'database',
-      name: 'Database Services',
-      category: 'infrastructure',
-      status: 'operational',
-      uptime: 99.99,
-      responseTime: 45,
-      description: 'Managed persistence, metadata and project state',
-      affectedRegions: [],
-    }),
-    withLastChecked({
-      id: 'collaboration',
-      name: 'Collaboration',
-      category: 'features',
-      status: 'operational',
-      uptime: 99.98,
-      responseTime: 95,
-      description: 'Realtime team presence and multiplayer editing',
-      affectedRegions: [],
-    }),
-    withLastChecked({
-      id: 'api',
-      name: 'API Services',
-      category: 'core',
-      status: 'operational',
-      uptime: 99.99,
-      responseTime: 60,
-      description: 'Public and workspace API surface',
-      affectedRegions: [],
-    }),
-  ];
+  );
 }
 
-export function ecodeRagStatsLoader() {
+export function ecodeRagStatsLoader(args?: PublicRuntimeLoaderArgs) {
   const env = runtimeEnv();
+  const { headers } = publicRuntimeContext(args);
 
   return json(
     {
@@ -135,7 +168,7 @@ export function ecodeRagStatsLoader() {
         gemini: Boolean(env.GEMINI_API_KEY),
       },
     },
-    { headers: noStoreHeaders },
+    { headers },
   );
 }
 
@@ -148,11 +181,14 @@ export function ecodeRagStatsLoader() {
  */
 export function ecodeRagSessionConfigLoader({ request }: LoaderFunctionArgs) {
   const sessionId = new URL(request.url).searchParams.get('sessionId') ?? null;
+  const { headers } = publicRuntimeContext({ request });
 
-  return json({ sessionId, config: { enabled: false } }, { headers: noStoreHeaders });
+  return json({ sessionId, config: { enabled: false } }, { headers });
 }
 
 export async function ecodeRagSessionConfigAction({ request }: LoaderFunctionArgs) {
+  const { headers } = publicRuntimeContext({ request });
+
   let sessionId: string | null = null;
   let enabled = false;
 
@@ -164,63 +200,61 @@ export async function ecodeRagSessionConfigAction({ request }: LoaderFunctionArg
     // Malformed body: fall back to defaults rather than 500ing the widget.
   }
 
-  return json({ sessionId, config: { enabled } }, { headers: noStoreHeaders });
+  return json({ sessionId, config: { enabled } }, { headers });
 }
 
-export function ecodeAboutLoader() {
+export function ecodeAboutLoader(args?: PublicRuntimeLoaderArgs) {
+  const { copy, headers } = publicRuntimeContext(args);
+
   return json(
     {
       values: [
         {
           icon: 'Lightbulb',
-          title: 'Innovation',
-          description: 'We push the boundaries of AI-assisted software delivery.',
+          ...copy.about.values.innovation,
         },
-        { icon: 'Users', title: 'Collaboration', description: 'Building production software is a team workflow.' },
+        { icon: 'Users', ...copy.about.values.collaboration },
         {
           icon: 'Shield',
-          title: 'Security',
-          description: 'Enterprise-grade protection for code, data and deployments.',
+          ...copy.about.values.security,
         },
-        { icon: 'Target', title: 'Focus', description: 'A direct path from idea to running application.' },
+        { icon: 'Target', ...copy.about.values.focus },
       ],
       milestones: [
-        { year: '2024', event: 'E-Code founded with a mission to make production app creation faster.' },
-        { year: '2025', event: 'Enterprise AI coding workflows expanded across web, mobile and teams.' },
-        { year: '2026', event: 'E-Code integrates the E-Code public experience with real workspace templates.' },
+        { year: '2024', event: copy.about.milestones['2024'] },
+        { year: '2025', event: copy.about.milestones['2025'] },
+        { year: '2026', event: copy.about.milestones['2026'] },
       ],
       team: [
-        { name: 'E-Code Team', role: 'Product Engineering', avatar: 'EC' },
-        { name: 'E-Code Platform', role: 'Workspace Runtime', avatar: 'VC' },
+        { ...copy.about.team.team, avatar: 'EC' },
+        { ...copy.about.team.platform, avatar: 'VC' },
       ],
       stats: [
         {
           icon: 'Rocket',
-          label: 'Templates',
           value: '20',
-          description: 'Production starters available from the E-Code catalog.',
+          ...copy.about.stats.templates,
         },
         {
           icon: 'Code',
-          label: 'Surfaces',
           value: '50+',
-          description: 'Public E-Code routes available in the imported shell.',
+          ...copy.about.stats.surfaces,
         },
         {
           icon: 'Shield',
-          label: 'Security',
           value: '24/7',
-          description: 'Status, abuse and compliance pages exposed publicly.',
+          ...copy.about.stats.security,
         },
       ],
     },
-    { headers: noStoreHeaders },
+    { headers },
   );
 }
 
-export function ecodeMonitoringHealthLoader() {
+export function ecodeMonitoringHealthLoader(args?: PublicRuntimeLoaderArgs) {
   const heapPercentage = memoryPercentage();
   const uptime = runtimeUptime();
+  const { headers } = publicRuntimeContext(args);
 
   return json(
     {
@@ -251,24 +285,31 @@ export function ecodeMonitoringHealthLoader() {
         errorRate: true,
       },
     },
-    { headers: noStoreHeaders },
+    { headers },
   );
 }
 
-export function ecodeStatusServicesLoader() {
-  return json(publicStatusServices(), { headers: noStoreHeaders });
+export function ecodeStatusServicesLoader(args?: PublicRuntimeLoaderArgs) {
+  const { locale, headers } = publicRuntimeContext(args);
+
+  return json(publicStatusServices(locale), { headers });
 }
 
-export function ecodeStatusIncidentsLoader() {
-  return json([], { headers: noStoreHeaders });
+export function ecodeStatusIncidentsLoader(args?: PublicRuntimeLoaderArgs) {
+  const { headers } = publicRuntimeContext(args);
+
+  return json([], { headers });
 }
 
-export function ecodeStatusMaintenanceLoader() {
-  return json([], { headers: noStoreHeaders });
+export function ecodeStatusMaintenanceLoader(args?: PublicRuntimeLoaderArgs) {
+  const { headers } = publicRuntimeContext(args);
+
+  return json([], { headers });
 }
 
-export function ecodeStatusMetricsLoader() {
-  const services = publicStatusServices();
+export function ecodeStatusMetricsLoader(args?: PublicRuntimeLoaderArgs) {
+  const { locale, headers } = publicRuntimeContext(args);
+  const services = publicStatusServices(locale);
   const uptime30d = services.reduce((sum, service) => sum + service.uptime, 0) / services.length;
 
   return json(
@@ -282,13 +323,14 @@ export function ecodeStatusMetricsLoader() {
       services_operational: services.length,
       total_services: services.length,
     },
-    { headers: noStoreHeaders },
+    { headers },
   );
 }
 
 export function ecodeStatusUptimeLoader({ request }: LoaderFunctionArgs) {
   const url = new URL(request.url);
   const range = url.searchParams.get('range') || '24h';
+  const { headers } = publicRuntimeContext({ request });
 
   return json(
     {
@@ -299,11 +341,13 @@ export function ecodeStatusUptimeLoader({ request }: LoaderFunctionArgs) {
       ],
       range,
     },
-    { headers: noStoreHeaders },
+    { headers },
   );
 }
 
-export function ecodePolyglotHealthLoader() {
+export function ecodePolyglotHealthLoader(args?: PublicRuntimeLoaderArgs) {
+  const { headers } = publicRuntimeContext(args);
+
   return json(
     {
       status: 'healthy',
@@ -315,33 +359,24 @@ export function ecodePolyglotHealthLoader() {
       architecture: 'polyglot',
       languages: ['TypeScript', 'Python'],
     },
-    { headers: noStoreHeaders },
+    { headers },
   );
 }
 
-export function ecodePolyglotCapabilitiesLoader() {
+export function ecodePolyglotCapabilitiesLoader(args?: PublicRuntimeLoaderArgs) {
+  const { copy, headers } = publicRuntimeContext(args);
+
   return json(
     {
       services: {
         typescript: {
           port: 8787,
-          capabilities: [
-            'User authentication and session management',
-            'REST API endpoints',
-            'Project management',
-            'File operations',
-            'Realtime WebSocket coordination',
-          ],
+          capabilities: copy.polyglotCapabilities.typescript,
           endpoints: ['/api/projects', '/api/auth', '/api/files', '/api/workspaces'],
         },
         'python-ml': {
           port: 8081,
-          capabilities: [
-            'AI-powered code analysis',
-            'Retrieval and ranking workflows',
-            'Data processing jobs',
-            'Model-assisted suggestions',
-          ],
+          capabilities: copy.polyglotCapabilities.pythonMl,
           endpoints: ['/api/code/analyze', '/api/text/analyze', '/api/data/process'],
         },
       },
@@ -354,11 +389,13 @@ export function ecodePolyglotCapabilitiesLoader() {
         'data-analysis': 'python-ml',
       },
     },
-    { headers: noStoreHeaders },
+    { headers },
   );
 }
 
-export function ecodePolyglotBenchmarkLoader() {
+export function ecodePolyglotBenchmarkLoader(args?: PublicRuntimeLoaderArgs) {
+  const { headers } = publicRuntimeContext(args);
+
   return json(
     {
       fastest: { service: 'typescript', responseTime: 30, status: 'healthy' },
@@ -368,75 +405,78 @@ export function ecodePolyglotBenchmarkLoader() {
       ],
       timestamp: new Date().toISOString(),
     },
-    { headers: noStoreHeaders },
+    { headers },
   );
 }
 
-export function ecodeMarketplaceExtensionsLoader() {
+export function ecodeMarketplaceExtensionsLoader(args?: PublicRuntimeLoaderArgs) {
+  const { copy, headers } = publicRuntimeContext(args);
+
   return json(
     [
       {
         id: 1,
         name: 'Prettier',
-        description: 'Code formatter using Prettier for consistent style',
+        description: copy.marketplace.extensions['1'].description,
         author: 'Prettier',
         category: 'formatters',
         tags: ['formatting', 'code-style', 'prettier'],
         downloads: 0,
         rating: 4.9,
         reviews: 0,
-        price: 'Free',
+        price: copy.marketplace.extensions['1'].price,
         featured: true,
         installed: false,
       },
       {
         id: 2,
         name: 'ESLint',
-        description: 'Find and fix problems in JavaScript and TypeScript code',
+        description: copy.marketplace.extensions['2'].description,
         author: 'ESLint',
         category: 'linters',
         tags: ['linting', 'javascript', 'typescript'],
         downloads: 0,
         rating: 4.8,
         reviews: 0,
-        price: 'Free',
+        price: copy.marketplace.extensions['2'].price,
         featured: true,
         installed: false,
       },
       {
         id: 3,
         name: 'Tailwind CSS IntelliSense',
-        description: 'Tailwind CSS class autocomplete and highlighting',
+        description: copy.marketplace.extensions['3'].description,
         author: 'Tailwind Labs',
         category: 'languages',
         tags: ['css', 'tailwind', 'styling'],
         downloads: 0,
         rating: 4.8,
         reviews: 0,
-        price: 'Free',
+        price: copy.marketplace.extensions['3'].price,
         featured: false,
         installed: false,
       },
       {
         id: 4,
         name: 'E-Code AI Workspace',
-        description: 'Workspace helpers for agent orchestration, previews and deployments',
+        description: copy.marketplace.extensions['4'].description,
         author: 'E-Code',
         category: 'ai',
         tags: ['ai', 'workspace', 'deployments'],
         downloads: 0,
         rating: 4.7,
         reviews: 0,
-        price: 'Free',
+        price: copy.marketplace.extensions['4'].price,
         featured: true,
         installed: false,
       },
     ],
-    { headers: noStoreHeaders },
+    { headers },
   );
 }
 
-export function ecodeMarketplacePublishersLoader() {
+export function ecodeMarketplacePublishersLoader(args?: PublicRuntimeLoaderArgs) {
+  const { copy, headers } = publicRuntimeContext(args);
   const officialTemplates = listEcodeTemplates().filter((template) => template.isOfficial);
 
   return json(
@@ -449,10 +489,10 @@ export function ecodeMarketplacePublishersLoader() {
         extensions: 1,
         templates: officialTemplates.length,
         downloads: officialTemplates.reduce((sum, template) => sum + template.stats.downloads, 0),
-        description: 'Official E-Code workspace templates and E-Code shell adapters.',
+        description: copy.marketplace.publisherDescription,
       },
     ],
-    { headers: noStoreHeaders },
+    { headers },
   );
 }
 
@@ -467,7 +507,7 @@ export function ecodeMarketplacePublishersLoader() {
  * shows 0 and is honestly empty, while showcase/tutorials/discussion report the
  * exact number of posts a ?category= request will return.
  */
-export function buildCommunityCategories(templates: Array<{ category: string }>) {
+export function buildCommunityCategories(templates: Array<{ category: string }>, locale: PublicRuntimeLocale = 'en') {
   const counts = templates.reduce<Record<string, number>>((acc, _template, index) => {
     const category = communityPostCategory(index);
     acc[category] = (acc[category] ?? 0) + 1;
@@ -475,11 +515,13 @@ export function buildCommunityCategories(templates: Array<{ category: string }>)
     return acc;
   }, {});
 
+  const names = publicRuntimeCatalog[locale].community.categories;
+
   return [
-    { id: 'showcase', name: 'Showcase', icon: 'Star', postCount: counts.showcase ?? 0 },
-    { id: 'tutorials', name: 'Tutorials', icon: 'Code', postCount: counts.tutorials ?? 0 },
-    { id: 'challenges', name: 'Challenges', icon: 'Trophy', postCount: counts.challenges ?? 0 },
-    { id: 'discussion', name: 'Discussion', icon: 'MessageSquare', postCount: counts.discussion ?? 0 },
+    { id: 'showcase', name: names.showcase, icon: 'Star', postCount: counts.showcase ?? 0 },
+    { id: 'tutorials', name: names.tutorials, icon: 'Code', postCount: counts.tutorials ?? 0 },
+    { id: 'challenges', name: names.challenges, icon: 'Trophy', postCount: counts.challenges ?? 0 },
+    { id: 'discussion', name: names.discussion, icon: 'MessageSquare', postCount: counts.discussion ?? 0 },
   ];
 }
 
@@ -492,41 +534,50 @@ export function communityPostCategory(index: number): 'showcase' | 'tutorials' |
   return index % 3 === 0 ? 'showcase' : index % 3 === 1 ? 'tutorials' : 'discussion';
 }
 
-function communityCategories() {
-  return buildCommunityCategories(listEcodeTemplates());
+function communityCategories(locale: PublicRuntimeLocale) {
+  return buildCommunityCategories(listEcodeTemplates(), locale);
 }
 
-function communityPosts() {
-  return listEcodeTemplates().map((template, index) => ({
-    id: template.slug,
-    title: `${template.name} template showcase`,
-    content: template.description,
-    author: {
-      id: template.author.id,
-      username: template.author.id,
-      displayName: template.author.name,
-      avatarUrl: undefined,
-      reputation: 0,
-    },
-    category: communityPostCategory(index),
-    tags: template.tags.slice(0, 5),
-    likes: template.stats.stars,
-    comments: 0,
-    views: template.stats.downloads,
-    isLiked: false,
-    isBookmarked: false,
-    createdAt: template.updatedAt,
-    projectUrl: template.githubRepo ? `https://github.com/${template.githubRepo}` : undefined,
-    imageUrl: undefined,
-    commentsData: [],
-  }));
+function communityPosts(locale: PublicRuntimeLocale) {
+  const titleTemplate = publicRuntimeCatalog[locale].community.postTitle;
+
+  return listEcodeTemplates().map((template, index) => {
+    const localized = localizedTemplate(template, locale);
+
+    return {
+      id: template.slug,
+      title: formatPublicRuntimeCopy(titleTemplate, { name: localized.name }),
+      content: localized.description,
+      author: {
+        id: template.author.id,
+        username: template.author.id,
+        displayName: template.author.name,
+        avatarUrl: undefined,
+        reputation: 0,
+      },
+      category: communityPostCategory(index),
+      tags: template.tags.slice(0, 5),
+      likes: template.stats.stars,
+      comments: 0,
+      views: template.stats.downloads,
+      isLiked: false,
+      isBookmarked: false,
+      createdAt: template.updatedAt,
+      projectUrl: template.githubRepo ? `https://github.com/${template.githubRepo}` : undefined,
+      imageUrl: undefined,
+      commentsData: [],
+    };
+  });
 }
 
-export function ecodeCommunityCategoriesLoader() {
-  return json(communityCategories(), { headers: noStoreHeaders });
+export function ecodeCommunityCategoriesLoader(args?: PublicRuntimeLoaderArgs) {
+  const { locale, headers } = publicRuntimeContext(args);
+
+  return json(communityCategories(locale), { headers });
 }
 
 export function ecodeCommunityPostsLoader({ request }: LoaderFunctionArgs) {
+  const { locale, headers } = publicRuntimeContext({ request });
   const url = new URL(request.url);
 
   /*
@@ -541,7 +592,7 @@ export function ecodeCommunityPostsLoader({ request }: LoaderFunctionArgs) {
   const category = url.searchParams.get('category');
   const search = (url.searchParams.get('search') ?? '').toLowerCase();
 
-  const filtered = communityPosts().filter((post) => {
+  const filtered = communityPosts(locale).filter((post) => {
     const matchesCategory = !category || category === 'all' || post.category === category;
 
     const matchesSearch =
@@ -567,31 +618,35 @@ export function ecodeCommunityPostsLoader({ request }: LoaderFunctionArgs) {
         hasMore: start + pageSize < filtered.length,
       },
     },
-    { headers: noStoreHeaders },
+    { headers },
   );
 }
 
-export function ecodeCommunityPostLoader({ params }: LoaderFunctionArgs) {
-  const post = communityPosts().find((candidate) => candidate.id === params.postId);
+export function ecodeCommunityPostLoader({ params, request }: LoaderFunctionArgs) {
+  const { locale, copy, headers } = publicRuntimeContext({ request });
+  const post = communityPosts(locale).find((candidate) => candidate.id === params.postId);
 
   if (!post) {
-    return json({ ok: false, error: 'Post not found' }, { status: 404, headers: noStoreHeaders });
+    return json({ ok: false, error: copy.community.postNotFound }, { status: 404, headers });
   }
 
-  return json(post, { headers: noStoreHeaders });
+  return json(post, { headers });
 }
 
-export async function ecodeCommunityPostMutationAction() {
-  return json({ ok: true }, { headers: noStoreHeaders });
+export async function ecodeCommunityPostMutationAction(args?: PublicRuntimeLoaderArgs) {
+  const { headers } = publicRuntimeContext(args);
+
+  return json({ ok: true }, { headers });
 }
 
-export function ecodeCommunityChallengesLoader() {
+export function ecodeCommunityChallengesLoader(args?: PublicRuntimeLoaderArgs) {
+  const { copy, headers } = publicRuntimeContext(args);
+
   return json(
     [
       {
         id: 'ai-agent-starter',
-        title: 'Ship an AI agent starter',
-        description: 'Build from the official AI agent template and share the production workflow.',
+        ...copy.community.challenges['ai-agent-starter'],
         difficulty: 'medium',
         category: 'ai',
         participants: 0,
@@ -601,8 +656,7 @@ export function ecodeCommunityChallengesLoader() {
       },
       {
         id: 'mobile-workspace',
-        title: 'Mobile workspace build',
-        description: 'Adapt an Expo starter into a complete mobile workspace flow.',
+        ...copy.community.challenges['mobile-workspace'],
         difficulty: 'easy',
         category: 'mobile',
         participants: 0,
@@ -611,37 +665,47 @@ export function ecodeCommunityChallengesLoader() {
         status: 'active',
       },
     ],
-    { headers: noStoreHeaders },
+    { headers },
   );
 }
 
-export function ecodeCommunityLeaderboardLoader() {
-  return json([], { headers: noStoreHeaders });
+export function ecodeCommunityLeaderboardLoader(args?: PublicRuntimeLoaderArgs) {
+  const { headers } = publicRuntimeContext(args);
+
+  return json([], { headers });
 }
 
 export function ecodeExploreProjectsLoader({ request }: LoaderFunctionArgs) {
+  const { locale, headers } = publicRuntimeContext({ request });
   const url = new URL(request.url);
   const category = url.searchParams.get('category');
   const search = (url.searchParams.get('search') ?? '').toLowerCase();
 
   const projects = listEcodeTemplates()
-    .map((template, index) => ({
-      id: index + 1,
-      slug: template.slug,
-      name: template.name,
-      description: template.description,
-      language: template.language,
-      category: template.category,
-      tags: template.tags,
-      stars: template.stats.stars,
-      forks: template.stats.forks,
-      runs: template.stats.downloads,
-      author: template.author.id,
-      avatar: undefined,
-      lastUpdated: new Date(template.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      createdAt: template.updatedAt,
-      updatedAt: template.updatedAt,
-    }))
+    .map((template, index) => {
+      const localized = localizedTemplate(template, locale);
+
+      return {
+        id: index + 1,
+        slug: template.slug,
+        name: localized.name,
+        description: localized.description,
+        language: template.language,
+        category: template.category,
+        tags: template.tags,
+        stars: template.stats.stars,
+        forks: template.stats.forks,
+        runs: template.stats.downloads,
+        author: template.author.id,
+        avatar: undefined,
+        lastUpdated: new Date(template.updatedAt).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US', {
+          month: 'short',
+          day: 'numeric',
+        }),
+        createdAt: template.updatedAt,
+        updatedAt: template.updatedAt,
+      };
+    })
     .filter((project) => {
       const matchesCategory = !category || category === 'all' || project.category === category;
 
@@ -654,5 +718,5 @@ export function ecodeExploreProjectsLoader({ request }: LoaderFunctionArgs) {
       return matchesCategory && matchesSearch;
     });
 
-  return json(projects, { headers: noStoreHeaders });
+  return json(projects, { headers });
 }

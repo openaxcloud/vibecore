@@ -1,10 +1,26 @@
-import type { MetaFunction } from 'react-router';
+import type { LoaderFunctionArgs, MetaFunction } from 'react-router';
 import Desktop from '~/components/marketing/ecode-exact/pages/Desktop';
+import { getMarketingExactStatusDesktopCopy } from '~/lib/i18n/catalogs/marketing-exact-status-desktop';
+import { resolveRequestLocale } from '~/lib/i18n/request-locale';
+import { socialMetaTags } from '~/utils/social-meta';
 
-export const meta: MetaFunction = () => [
-  { title: 'Desktop App — E-Code' },
-  { name: 'description', content: 'The E-Code desktop app for macOS, Windows and Linux.' },
-];
+export function loader({ request }: LoaderFunctionArgs) {
+  return { language: resolveRequestLocale(request).language };
+}
+
+export const meta: MetaFunction<typeof loader> = ({ data }) => {
+  const seo = getMarketingExactStatusDesktopCopy(data?.language).exactDesktop.seo;
+
+  const social = socialMetaTags(seo).map((tag) => {
+    const identifier = 'property' in tag ? tag.property : 'name' in tag ? tag.name : undefined;
+
+    return identifier === 'og:image:alt' || identifier === 'twitter:image:alt'
+      ? { ...tag, content: seo.imageAlt }
+      : tag;
+  });
+
+  return [{ title: seo.title }, { name: 'description', content: seo.description }, ...social];
+};
 
 export default function DesktopRoute() {
   return <Desktop />;

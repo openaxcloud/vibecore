@@ -1,5 +1,7 @@
 import { memo, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { FileHistoryPanel } from './FileHistoryPanel';
+import { getWorkspaceMiscCopy } from '~/lib/i18n/catalogs/workspace-misc';
 
 interface EditorHistoryOverlayProps {
   filePath: string;
@@ -14,6 +16,8 @@ interface EditorHistoryOverlayProps {
  * every viewport.
  */
 export const EditorHistoryOverlay = memo(({ filePath, content }: EditorHistoryOverlayProps) => {
+  const { i18n } = useTranslation();
+  const copy = getWorkspaceMiscCopy(i18n.resolvedLanguage ?? i18n.language);
   const [open, setOpen] = useState(false);
 
   // Close when the open file changes so history always matches what's on screen.
@@ -28,14 +32,16 @@ export const EditorHistoryOverlay = memo(({ filePath, content }: EditorHistoryOv
           type="button"
           onClick={() => setOpen(true)}
           data-testid="file-history-open"
-          aria-label="Open file history"
+          aria-label={copy['workspaceMisc.editorHistory.open.aria']}
           className="absolute bottom-3 right-3 z-20 flex min-h-[44px] items-center gap-1.5 rounded-full border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-3.5 text-sm font-medium text-bolt-elements-textPrimary shadow-md hover:bg-bolt-elements-background-depth-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]"
         >
           <div
             className="i-ph:clock-counter-clockwise-duotone text-base text-[var(--vc-ide-accent-action)]"
             aria-hidden
           />
-          History
+          <span className="min-w-0 break-words text-center leading-tight">
+            {copy['workspaceMisc.editorHistory.open.label']}
+          </span>
         </button>
       )}
 

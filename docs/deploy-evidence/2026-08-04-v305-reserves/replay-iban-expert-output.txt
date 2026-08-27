@@ -1,0 +1,52 @@
+OK    REFUS EXPERT — EUR doit survivre
+        in  "ES91 2100 0418 4502 0005 1332 EUR"
+        out "[PII:iban masked on remix] EUR"
+OK    devise GBP
+        in  "GB29 NWBK 6016 1331 9268 19 GBP"
+        out "[PII:iban masked on remix] GBP"
+OK    devise USD
+        in  "DE89 3704 0044 0532 0130 00 USD"
+        out "[PII:iban masked on remix] USD"
+OK    groupe terminal de 3 (bug v1)
+        in  "FR76 3000 6000 0112 3456 7890 189 EUR"
+        out "[PII:iban masked on remix] EUR"
+OK    colonne CSV
+        in  "ES91 2100 0418 4502 0005 1332,EUR,1200"
+        out "[PII:iban masked on remix],EUR,1200"
+OK    tabulation
+        in  "ES91 2100 0418 4502 0005 1332\tEUR"
+        out "[PII:iban masked on remix]\tEUR"
+OK    ponctuation
+        in  "Compte (ES91 2100 0418 4502 0005 1332)."
+        out "Compte ([PII:iban masked on remix])."
+OK    DEUX IBAN dans la phrase
+        in  "De ES91 2100 0418 4502 0005 1332 vers NL91 ABNA 0417 1643 00, 50 EUR."
+        out "De [PII:iban masked on remix] vers [PII:iban masked on remix], 50 EUR."
+OK    espaces INSÉCABLES
+        in  "ES91 2100 0418 4502 0005 1332 EUR"
+        out "[PII:iban masked on remix] EUR"
+OK    forme COMPACTE
+        in  "compact ES9121000418450200051332 fin"
+        out "compact [PII:iban masked on remix] fin"
+OK    R1 — checksum FAUX, longueur bonne -> MASQUÉ
+        in  "ES91 2100 0418 4502 0005 1333"
+        out "[PII:iban masked on remix]"
+OK    R1 — checksum faux + voisin intact
+        in  "ES91 2100 0418 4502 0005 1333 EUR"
+        out "[PII:iban masked on remix] EUR"
+OK    R3 — trop court pour GB -> non masqué
+        in  "GB29 NWBK 6016 1331 9268 1"
+        out "GB29 NWBK 6016 1331 9268 1"
+OK    R4 — pays inconnu -> non masqué (et signalé)
+        in  "ZZ91 2100 0418 4502 0005 1332"
+        out "ZZ91 2100 0418 4502 0005 1332"
+OK    R3 — jeton quelconque
+        in  "ref ABCD1234EFGH5678IJKL9012 fin"
+        out "ref ABCD1234EFGH5678IJKL9012 fin"
+OK    R3 — plus long que le pays
+        in  "ES9121000418450200051332EXTRA"
+        out "ES9121000418450200051332EXTRA"
+OK    R4 — code pays inconnu SIGNALÉ
+        unknownCandidates = [{"countryCode":"ZZ","normalizedLength":24,"decision":"UNKNOWN_COUNTRY_CODE"}]
+
+17/17 cas conformes

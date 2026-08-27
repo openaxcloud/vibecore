@@ -13,9 +13,12 @@ import {
   User as UserIcon,
 } from 'lucide-react';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import type { MetaFunction } from 'react-router';
 import { Form, Link, useActionData, useNavigation } from 'react-router';
 import { AuthField, AuthOauthButton, AuthScreen, AuthSubmit, useAuthOauthPending } from '~/components/auth/AuthScreen';
 import { PASSWORD_MIN_LENGTH, PasswordStrengthMeter } from '~/components/auth/PasswordStrength';
+import { AUTH_HERO_STATS } from '~/lib/auth-hero-stats';
 import {
   apiRequest,
   formObject,
@@ -25,6 +28,42 @@ import {
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
+import type { TranslationKey } from '~/lib/i18n/dictionary';
+import { resolveRequestLocale } from '~/lib/i18n/request-locale';
+import { translateServerMessage } from '~/lib/i18n/server';
+
+export const meta: MetaFunction<typeof loader> = ({ data }) => {
+  const language = data?.language ?? 'en';
+
+  return [
+    { title: translateServerMessage(language, 'auth.signup.metaTitle') },
+    { name: 'description', content: translateServerMessage(language, 'auth.signup.metaDescription') },
+  ];
+};
+
+type SignupFeedbackCode =
+  | 'AUTH_EMAIL_REQUIRED'
+  | 'AUTH_PASSWORD_TOO_SHORT'
+  | 'AUTH_PASSWORD_MISMATCH'
+  | 'AUTH_EMAIL_EXISTS'
+  | 'AUTH_SIGNUP_FAILED'
+  | 'AUTH_SIGNUP_UNAVAILABLE';
+
+const SIGNUP_FEEDBACK_KEYS = {
+  AUTH_EMAIL_REQUIRED: 'auth.feedback.emailRequired',
+  AUTH_PASSWORD_TOO_SHORT: 'auth.feedback.passwordTooShort',
+  AUTH_PASSWORD_MISMATCH: 'auth.feedback.passwordsMismatch',
+  AUTH_EMAIL_EXISTS: 'auth.feedback.emailExists',
+  AUTH_SIGNUP_FAILED: 'auth.feedback.signupFailed',
+  AUTH_SIGNUP_UNAVAILABLE: 'auth.feedback.signupUnavailable',
+} as const satisfies Record<SignupFeedbackCode, TranslationKey>;
+
+const SIGNUP_FEATURES = [
+  { icon: Shield, key: 'auth.signup.featureSecurity' },
+  { icon: Sparkles, key: 'auth.signup.featureAgent' },
+  { icon: Code2, key: 'auth.signup.featureIde' },
+  { icon: CheckCircle, key: 'auth.signup.featureProviders' },
+] as const;
 
 /*
  * Mirror login.tsx: the marketing host shouldn't expose the signup form.
@@ -41,7 +80,7 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
     return redirect(`https://app.e-code.ai/register${search}`, { status: 301 });
   }
 
-  return null;
+  return json({ language: resolveRequestLocale(request).language });
 }
 
 /*
@@ -59,7 +98,11 @@ function postRegisterDestination(request: Request): string {
 }
 
 type ActionResult =
-  | { error: string; fields?: { name?: string; email?: string; organizationName?: string } }
+  | {
+      errorCode: SignupFeedbackCode;
+      errorParams?: { count: number };
+      fields?: { name?: string; email?: string; organizationName?: string };
+    }
   | { ok: true };
 
 export async function action({ request }: EnterpriseActionArgs) {
@@ -80,7 +123,7 @@ export async function action({ request }: EnterpriseActionArgs) {
    */
   if (!email) {
     return json<ActionResult>(
-      { error: 'Email is required.', fields: { name, email, organizationName } },
+      { errorCode: 'AUTH_EMAIL_REQUIRED', fields: { name, email, organizationName } },
       { status: 400 },
     );
   }
@@ -88,7 +131,8 @@ export async function action({ request }: EnterpriseActionArgs) {
   if (password.length < PASSWORD_MIN_LENGTH) {
     return json<ActionResult>(
       {
-        error: `Password must be at least ${PASSWORD_MIN_LENGTH} characters.`,
+        errorCode: 'AUTH_PASSWORD_TOO_SHORT',
+        errorParams: { count: PASSWORD_MIN_LENGTH },
         fields: { name, email, organizationName },
       },
       { status: 400 },
@@ -97,7 +141,7 @@ export async function action({ request }: EnterpriseActionArgs) {
 
   if (password !== confirmPassword) {
     return json<ActionResult>(
-      { error: 'Passwords do not match.', fields: { name, email, organizationName } },
+      { errorCode: 'AUTH_PASSWORD_MISMATCH', fields: { name, email, organizationName } },
       { status: 400 },
     );
   }
@@ -133,29 +177,24 @@ export async function action({ request }: EnterpriseActionArgs) {
     });
   } catch (error) {
     if (error instanceof Response) {
-      let message = 'Could not create your account.';
+      let errorCode: SignupFeedbackCode = 'AUTH_SIGNUP_FAILED';
 
       try {
         const payload = (await error.json()) as { error?: string; code?: string };
 
         if (payload.code === 'AUTH_EMAIL_EXISTS') {
-          message = 'An account with this email already exists. Try signing in instead.';
-        } else if (payload.error) {
-          message = payload.error;
+          errorCode = 'AUTH_EMAIL_EXISTS';
         }
       } catch {
-        message = error.statusText || message;
+        // Never expose transport or API prose; the client translates a stable code.
       }
 
-      return json<ActionResult>(
-        { error: message, fields: { name, email, organizationName } },
-        { status: error.status },
-      );
+      return json<ActionResult>({ errorCode, fields: { name, email, organizationName } }, { status: error.status });
     }
 
     return json<ActionResult>(
       {
-        error: `Signup failed. The API service is temporarily unreachable. Please try again in a moment.`,
+        errorCode: 'AUTH_SIGNUP_UNAVAILABLE',
         fields: { name, email, organizationName },
       },
       { status: 503 },
@@ -164,8 +203,14 @@ export async function action({ request }: EnterpriseActionArgs) {
 }
 
 export default function SignupPage() {
+  const { t } = useTranslation();
+
   const actionData = useActionData<typeof action>() as
-    | { error?: string; fields?: { name?: string; email?: string; organizationName?: string } }
+    | {
+        errorCode?: SignupFeedbackCode;
+        errorParams?: { count: number };
+        fields?: { name?: string; email?: string; organizationName?: string };
+      }
     | undefined;
 
   const navigation = useNavigation();
@@ -176,96 +221,108 @@ export default function SignupPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [showOrgField, setShowOrgField] = useState(Boolean(actionData?.fields?.organizationName));
 
+  const error = actionData?.errorCode
+    ? t(SIGNUP_FEEDBACK_KEYS[actionData.errorCode], actionData.errorParams)
+    : undefined;
+
   return (
     <AuthScreen
-      eyebrow="Free to get started"
-      title="Create your account"
-      description="Spin up your first workspace, invite teammates and start shipping with the AI agent in minutes."
-      error={actionData?.error}
+      eyebrow={t('auth.signup.eyebrow')}
+      title={t('auth.signup.title')}
+      description={t('auth.signup.description')}
+      error={error}
       backTo="/"
-      backLabel="Back to home"
-      heroEyebrow="Start free, scale on demand"
-      heroTitle="Build production apps with an AI co-pilot"
-      heroBody="Provision a workspace, share live previews and ship to your own infrastructure — all from a single browser tab."
+      backLabel={t('auth.common.backHome')}
+      heroEyebrow={t('auth.signup.heroEyebrow')}
+      heroTitle={t('auth.signup.heroTitle')}
+      heroBody={t('auth.signup.heroBody')}
       heroAside={
         <>
           <div className="mt-9 grid gap-4">
-            {[
-              { icon: Shield, text: 'SOC2-ready controls, MFA and audit logs out of the box' },
-              { icon: Sparkles, text: 'AI agent that writes, reviews and ships code with you' },
-              { icon: Code2, text: 'Cloud IDE with terminal, preview and Git-native workflows' },
-              { icon: CheckCircle, text: 'Bring your own keys for 21 AI providers' },
-            ].map((feature) => {
+            {SIGNUP_FEATURES.map((feature) => {
               const Icon = feature.icon;
 
               return (
-                <div key={feature.text} className="flex items-center gap-3">
+                <div key={feature.key} className="flex items-center gap-3">
                   <div className="grid h-10 w-10 place-items-center rounded-lg bg-white/18 backdrop-blur-md">
                     <Icon className="h-5 w-5" />
                   </div>
-                  <span className="text-[14px] font-medium text-white/92">{feature.text}</span>
+                  <span className="text-[14px] font-medium text-white/92">{t(feature.key)}</span>
                 </div>
               );
             })}
           </div>
 
           <div className="mt-10 grid grid-cols-2 gap-5 border-t border-white/20 pt-8">
-            <div>
-              <div className="text-3xl font-bold">21</div>
-              <div className="mt-1 text-[12px] text-white/72">AI providers</div>
-            </div>
-            <div>
-              <div className="text-3xl font-bold">29+</div>
-              <div className="mt-1 text-[12px] text-white/72">Languages</div>
-            </div>
+            {/* Chiffres depuis AUTH_HERO_STATS (source unique partagée avec /login). */}
+            {AUTH_HERO_STATS.slice(0, 2).map((item, index) => (
+              <div key={item.value}>
+                <div className="text-3xl font-bold">{item.value}</div>
+                <div className="mt-1 text-[12px] text-white/72">
+                  {t(index === 0 ? 'auth.signup.statProviders' : 'auth.signup.statLanguages')}
+                </div>
+              </div>
+            ))}
           </div>
         </>
       }
       footer={
         <>
-          Already have an account?{' '}
+          {t('auth.signup.footerPrompt')}{' '}
           <Link to="/login" className="vc-auth-link font-semibold hover:underline">
-            Sign in
+            {t('auth.signup.signIn')}
           </Link>
         </>
       }
       belowCard={
-        <p className="vc-auth-legal mt-5 text-center text-[11px] leading-5 sm:mt-6">
-          By creating an account, you agree to our{' '}
-          <Link to="/terms" className="underline">
-            Terms
-          </Link>{' '}
-          and{' '}
-          <Link to="/privacy" className="underline">
-            Privacy Policy
-          </Link>
-          .
-        </p>
+        <>
+          {/* Parité avec /login : la preuve sociale reste visible sous 1024px. */}
+          <div className="vc-auth-mobile-stats mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4 lg:hidden">
+            {AUTH_HERO_STATS.map((item) => (
+              <div key={item.value} className="vc-auth-mobile-stat rounded-lg px-3 py-3 text-center">
+                <div className="text-[16px] font-bold">{item.value}</div>
+                <div className="mt-1 text-[11px]">{t(item.labelKey)}</div>
+              </div>
+            ))}
+          </div>
+
+          <p className="vc-auth-legal mt-5 text-center text-[11px] leading-5 sm:mt-6">
+            {t('auth.signup.legalPrefix')}{' '}
+            <Link to="/terms" className="underline">
+              {t('auth.common.terms')}
+            </Link>{' '}
+            {t('auth.common.and')}{' '}
+            <Link to="/privacy" className="underline">
+              {t('auth.common.privacyPolicy')}
+            </Link>
+            .
+          </p>
+        </>
       }
     >
       <Form method="post" className="space-y-4 sm:space-y-5">
         <AuthField
-          label="Full name"
+          label={t('auth.common.fullName')}
           name="name"
           autoComplete="name"
           defaultValue={actionData?.fields?.name ?? ''}
-          placeholder="Ada Lovelace"
+          placeholder={t('auth.common.fullNamePlaceholder')}
           icon={<UserIcon className="h-4 w-4" />}
         />
 
         <AuthField
-          label="Work email"
+          label={t('auth.common.workEmail')}
           name="email"
           type="email"
           autoComplete="email"
           required
           defaultValue={actionData?.fields?.email ?? ''}
-          placeholder="you@company.com"
+          placeholder={t('auth.common.emailPlaceholder')}
           icon={<Mail className="h-4 w-4" />}
         />
 
         <label className="block">
-          <span className="vc-auth-label text-[13px] font-medium">Password</span>
+          <span className="vc-auth-label text-[13px] font-medium">{t('auth.common.password')}</span>
           <span className="relative mt-2 block">
             <Lock className="vc-auth-field-icon pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
             <input
@@ -276,14 +333,14 @@ export default function SignupPage() {
               minLength={PASSWORD_MIN_LENGTH}
               value={password}
               onChange={(event) => setPassword(event.target.value)}
-              placeholder={`At least ${PASSWORD_MIN_LENGTH} characters`}
+              placeholder={t('auth.common.passwordMinCharacters', { count: PASSWORD_MIN_LENGTH })}
               className="vc-auth-input h-12 w-full rounded-md border px-10 pr-12 text-[16px] outline-none transition-colors sm:h-11 sm:text-[13px]"
             />
             <button
               type="button"
               onClick={() => setShowPassword((value) => !value)}
-              className="vc-auth-input-action absolute right-2 top-1/2 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-md transition-colors sm:h-8 sm:w-8"
-              aria-label={showPassword ? 'Hide password' : 'Show password'}
+              className="vc-auth-input-action absolute right-1 top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-md transition-colors lg:right-2 lg:h-8 lg:w-8"
+              aria-label={showPassword ? t('auth.common.hidePassword') : t('auth.common.showPassword')}
             >
               {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
@@ -293,7 +350,7 @@ export default function SignupPage() {
         </label>
 
         <label className="block">
-          <span className="vc-auth-label text-[13px] font-medium">Confirm password</span>
+          <span className="vc-auth-label text-[13px] font-medium">{t('auth.common.confirmPassword')}</span>
           <span className="relative mt-2 block">
             <Lock className="vc-auth-field-icon pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
             <input
@@ -302,14 +359,14 @@ export default function SignupPage() {
               autoComplete="new-password"
               required
               minLength={8}
-              placeholder="Re-enter the same password"
+              placeholder={t('auth.common.samePasswordPlaceholder')}
               className="vc-auth-input h-12 w-full rounded-md border px-10 pr-12 text-[16px] outline-none transition-colors sm:h-11 sm:text-[13px]"
             />
             <button
               type="button"
               onClick={() => setShowConfirmPassword((value) => !value)}
-              className="vc-auth-input-action absolute right-2 top-1/2 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-md transition-colors sm:h-8 sm:w-8"
-              aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+              className="vc-auth-input-action absolute right-1 top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-md transition-colors lg:right-2 lg:h-8 lg:w-8"
+              aria-label={showConfirmPassword ? t('auth.common.hidePassword') : t('auth.common.showPassword')}
             >
               {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
@@ -318,21 +375,21 @@ export default function SignupPage() {
 
         {showOrgField ? (
           <AuthField
-            label="Organization name"
+            label={t('auth.common.organizationName')}
             name="organizationName"
             autoComplete="organization"
             defaultValue={actionData?.fields?.organizationName ?? ''}
-            placeholder="Acme Inc."
+            placeholder={t('auth.common.organizationPlaceholder')}
             icon={<Building2 className="h-4 w-4" />}
-            hint="Leave blank to create a personal workspace — you can rename it later in settings."
+            hint={t('auth.signup.organizationHint')}
           />
         ) : (
           <button
             type="button"
             onClick={() => setShowOrgField(true)}
-            className="vc-auth-inline-link text-[12px] font-semibold hover:underline"
+            className="vc-auth-inline-link inline-flex min-h-11 items-center px-1 text-[12px] font-semibold hover:underline"
           >
-            + Add an organization name (optional)
+            {t('auth.signup.addOrganization')}
           </button>
         )}
 
@@ -342,8 +399,8 @@ export default function SignupPage() {
          * recommended strength guidance and never blocks submission.
          */}
         <AuthSubmit
-          label="Create account"
-          loadingLabel="Creating account..."
+          label={t('auth.signup.submit')}
+          loadingLabel={t('auth.signup.submitting')}
           isSubmitting={isSubmitting}
           disabled={pendingProvider !== null || password.length < PASSWORD_MIN_LENGTH}
         />
@@ -352,7 +409,7 @@ export default function SignupPage() {
       <div className="vc-auth-secondary-actions mt-5 grid gap-3 border-t pt-5 sm:grid-cols-2">
         <AuthOauthButton
           provider="github"
-          label="Sign up with GitHub"
+          label={t('auth.signup.github')}
           icon={<Github className="h-4 w-4" />}
           pendingProvider={pendingProvider}
           onStart={startOAuth}
@@ -360,7 +417,7 @@ export default function SignupPage() {
         />
         <AuthOauthButton
           provider="google"
-          label="Sign up with Google"
+          label={t('auth.signup.google')}
           icon={<Chrome className="h-4 w-4" />}
           pendingProvider={pendingProvider}
           onStart={startOAuth}

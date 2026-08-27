@@ -26,7 +26,7 @@ afterEach(() => {
 describe('triggerObjectStorageMetering', () => {
   it('throws when no API base URL is configured so the CronJob fails loudly', async () => {
     const { triggerObjectStorageMetering } = await import('./index.js');
-    await expect(triggerObjectStorageMetering({})).rejects.toThrowError(/API_INTERNAL_URL .* is required/);
+    await expect(triggerObjectStorageMetering({})).rejects.toThrowError(/API_INTERNAL_URL, API_URL, SAAS_API_URL or API_BASE_URL is required/);
   });
 
   it('POSTs to /internal/metering/object-storage with the internal secret', async () => {

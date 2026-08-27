@@ -2,6 +2,8 @@ import { type ActionFunctionArgs } from 'react-router';
 import { streamText } from '~/lib/.server/llm/stream-text';
 import { requireWebSession } from '~/lib/.server/require-session';
 import { getApiKeysFromCookie, getProviderSettingsFromCookie } from '~/lib/api/cookies';
+import { getApiRuntimeRoutesCopy } from '~/lib/i18n/catalogs/api-runtime-routes';
+import { localeResponseHeaders, resolveRequestLocale } from '~/lib/i18n/request-locale';
 import type { ProviderInfo } from '~/types/model';
 import { createScopedLogger } from '~/utils/logger';
 import { stripIndents } from '~/utils/stripIndent';
@@ -13,8 +15,37 @@ export async function action(args: ActionFunctionArgs) {
 const logger = createScopedLogger('api.enhancher');
 
 async function enhancerAction({ context, request }: ActionFunctionArgs) {
+  const localeResolution = resolveRequestLocale(request);
+  const copy = getApiRuntimeRoutesCopy(localeResolution.language);
+
+  const responseHeaders = (initial?: HeadersInit) => {
+    const headers = localeResponseHeaders(request, localeResolution);
+
+    new Headers(initial).forEach((value, key) => headers.set(key, value));
+
+    return headers;
+  };
+
   // Gate the platform's managed provider keys behind a valid session.
-  await requireWebSession(request);
+  try {
+    await requireWebSession(request);
+  } catch (error) {
+    if (error instanceof Response) {
+      logger.warn(`Prompt enhancer session validation failed with status ${error.status}`);
+
+      const message =
+        error.status === 503
+          ? copy['apiRuntime.generic.authenticationUnavailable']
+          : copy['apiRuntime.generic.authenticationRequired'];
+
+      throw new Response(message, {
+        status: error.status,
+        headers: responseHeaders({ 'Content-Type': 'text/plain; charset=utf-8' }),
+      });
+    }
+
+    throw error;
+  }
 
   let body: {
     message: string;
@@ -26,9 +57,9 @@ async function enhancerAction({ context, request }: ActionFunctionArgs) {
   try {
     body = await request.json();
   } catch {
-    throw new Response('Invalid JSON body', {
+    throw new Response(copy['apiRuntime.generic.invalidJson'], {
       status: 400,
-      statusText: 'Bad Request',
+      headers: responseHeaders({ 'Content-Type': 'text/plain; charset=utf-8' }),
     });
   }
 
@@ -36,9 +67,9 @@ async function enhancerAction({ context, request }: ActionFunctionArgs) {
 
   // validate 'model' and 'provider' fields
   if (!model || typeof model !== 'string') {
-    throw new Response('Invalid or missing model', {
+    throw new Response(copy['apiRuntime.generic.invalidModel'], {
       status: 400,
-      statusText: 'Bad Request',
+      headers: responseHeaders({ 'Content-Type': 'text/plain; charset=utf-8' }),
     });
   }
 
@@ -47,18 +78,18 @@ async function enhancerAction({ context, request }: ActionFunctionArgs) {
    * non-object would throw a TypeError before validation, escaping as a 500.
    */
   if (!provider || typeof provider !== 'object') {
-    throw new Response('Invalid or missing provider', {
+    throw new Response(copy['apiRuntime.generic.invalidProvider'], {
       status: 400,
-      statusText: 'Bad Request',
+      headers: responseHeaders({ 'Content-Type': 'text/plain; charset=utf-8' }),
     });
   }
 
   const { name: providerName } = provider;
 
   if (!providerName || typeof providerName !== 'string') {
-    throw new Response('Invalid or missing provider', {
+    throw new Response(copy['apiRuntime.generic.invalidProvider'], {
       status: 400,
-      statusText: 'Bad Request',
+      headers: responseHeaders({ 'Content-Type': 'text/plain; charset=utf-8' }),
     });
   }
 
@@ -109,6 +140,7 @@ async function enhancerAction({ context, request }: ActionFunctionArgs) {
 
             IMPORTANT: Your response must ONLY contain the enhanced prompt text.
             Do not include any explanations, metadata, or wrapper tags.
+            Write the enhanced prompt in ${localeResolution.language === 'fr' ? 'French' : 'English'}.
 
             <original_prompt>
               ${message}
@@ -161,24 +193,28 @@ async function enhancerAction({ context, request }: ActionFunctionArgs) {
     return new Response(result.textStream, {
       status: 200,
       headers: {
-        'Content-Type': 'text/event-stream',
-        Connection: 'keep-alive',
-        'Cache-Control': 'no-cache',
+        ...Object.fromEntries(
+          responseHeaders({
+            'Content-Type': 'text/event-stream; charset=utf-8',
+            Connection: 'keep-alive',
+            'Cache-Control': 'no-cache',
+          }),
+        ),
       },
     });
   } catch (error: unknown) {
-    console.log(error);
+    logger.error('Prompt enhancer request failed', error);
 
     if (error instanceof Error && error.message?.includes('API key')) {
-      throw new Response('Invalid or missing API key', {
+      throw new Response(copy['apiRuntime.generic.invalidApiKey'], {
         status: 401,
-        statusText: 'Unauthorized',
+        headers: responseHeaders({ 'Content-Type': 'text/plain; charset=utf-8' }),
       });
     }
 
-    throw new Response(null, {
+    throw new Response(copy['apiRuntime.generic.requestFailed'], {
       status: 500,
-      statusText: 'Internal Server Error',
+      headers: responseHeaders({ 'Content-Type': 'text/plain; charset=utf-8' }),
     });
   }
 }

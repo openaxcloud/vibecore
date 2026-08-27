@@ -4,6 +4,8 @@ import { hashToken } from '@vibecore/auth';
 import type { PlanKey, QuotaKey } from '@vibecore/billing';
 import { createDatabaseClient, Prisma, type DatabaseClient } from '@vibecore/database';
 import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
+import { appPublicEnglish } from './app-public-copy.js';
+import { slugify } from './slugify.js';
 import { API_KEY_SCOPES, DEFAULT_ENV_VAR_SCOPE, ENV_VAR_SCOPES } from './store.js';
 import type {
   AbuseEventRecord,
@@ -43,6 +45,7 @@ import type {
   CollaborationPresenceRecord,
   CustomRoleRecord,
   DeploymentRecord,
+  ReleaseManifestRecord,
   DomainVerificationRecord,
   EmailDeliveryEventRecord,
   EnterpriseSettingsRecord,
@@ -215,14 +218,6 @@ function mapDatabaseRestore(row: {
   };
 }
 
-function slugify(value: string) {
-  return value
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '');
-}
-
 function projectSlugBase(input: { slug?: string; name: string }) {
   return slugify(input.slug || input.name) || 'project';
 }
@@ -293,6 +288,7 @@ export class PrismaApiStore implements ApiStore {
     name?: string;
     passwordHash: string;
     platformAdmin?: boolean;
+    language?: string;
   }): Promise<UserRecord> {
     return mapUser(
       await this.prisma.user.create({
@@ -301,6 +297,7 @@ export class PrismaApiStore implements ApiStore {
           name: input.name,
           passwordHash: input.passwordHash,
           platformAdmin: input.platformAdmin,
+          language: input.language,
         },
       }),
     );
@@ -896,7 +893,7 @@ export class PrismaApiStore implements ApiStore {
     });
 
     if (clash) {
-      throw Object.assign(new Error('A project with this URL slug already exists in this organization.'), {
+      throw Object.assign(new Error(appPublicEnglish('PROJECT_SLUG_TAKEN')), {
         statusCode: 409,
         code: 'PROJECT_SLUG_TAKEN',
       });
@@ -1286,6 +1283,10 @@ export class PrismaApiStore implements ApiStore {
     licenseText: string | null;
     licenseTextSha256: string | null;
     piiConsentVersion: string | null;
+    rightsConfirmedAt: Date | null;
+    rightsConfirmedBy: string | null;
+    piiPolicyAcceptedAt: Date | null;
+    piiPolicyAcceptedBy: string | null;
     viewCount: number;
     useCount: number;
     createdAt: Date;
@@ -1311,6 +1312,10 @@ export class PrismaApiStore implements ApiStore {
       licenseText: row.licenseText ?? undefined,
       licenseTextSha256: row.licenseTextSha256 ?? undefined,
       piiConsentVersion: row.piiConsentVersion ?? undefined,
+      rightsConfirmedAt: row.rightsConfirmedAt ?? undefined,
+      rightsConfirmedBy: row.rightsConfirmedBy ?? undefined,
+      piiPolicyAcceptedAt: row.piiPolicyAcceptedAt ?? undefined,
+      piiPolicyAcceptedBy: row.piiPolicyAcceptedBy ?? undefined,
       viewCount: row.viewCount,
       useCount: row.useCount,
       createdAt: row.createdAt.toISOString(),
@@ -1337,6 +1342,10 @@ export class PrismaApiStore implements ApiStore {
     licenseText?: string;
     licenseTextSha256?: string;
     piiConsentVersion?: string;
+    rightsConfirmedAt?: Date;
+    rightsConfirmedBy?: string;
+    piiPolicyAcceptedAt?: Date;
+    piiPolicyAcceptedBy?: string;
     publishedAt?: string;
   }) {
     const status = input.status ?? 'PUBLISHED';
@@ -1360,6 +1369,11 @@ export class PrismaApiStore implements ApiStore {
         licenseText: input.licenseText ?? null,
         licenseTextSha256: input.licenseTextSha256 ?? null,
         piiConsentVersion: input.piiConsentVersion ?? null,
+        // Trace auditable des confirmations de curation (P0-V3-05, réserve #8).
+        rightsConfirmedAt: input.rightsConfirmedAt ?? null,
+        rightsConfirmedBy: input.rightsConfirmedBy ?? null,
+        piiPolicyAcceptedAt: input.piiPolicyAcceptedAt ?? null,
+        piiPolicyAcceptedBy: input.piiPolicyAcceptedBy ?? null,
         // A row published at creation records publishedAt so the detail page
         // can show a real date; a PENDING_REVIEW row leaves it null.
         publishedAt: input.publishedAt ? new Date(input.publishedAt) : status === 'PUBLISHED' ? new Date() : null,
@@ -1514,7 +1528,7 @@ export class PrismaApiStore implements ApiStore {
     // updateMany never sets targetProjectId — the target stays unmounted.
     await this.prisma.importJob.updateMany({
       where: { id: { in: ids } },
-      data: { state: 'EXPIRED', error: 'Import staging expired before it was committed.' },
+      data: { state: 'EXPIRED', error: appPublicEnglish('IMPORT_STAGING_EXPIRED') },
     });
 
     return ids;
@@ -1669,14 +1683,16 @@ export class PrismaApiStore implements ApiStore {
       });
 
       if (result.count === 0) {
-        throw Object.assign(new Error('IDE state version conflict'), { code: 'IDE_STATE_VERSION_CONFLICT' });
+        throw Object.assign(new Error(appPublicEnglish('IDE_STATE_VERSION_CONFLICT')), {
+          code: 'IDE_STATE_VERSION_CONFLICT',
+        });
       }
 
       const updated = await this.prisma.projectIdeState.findUnique({ where: { projectId: input.projectId } });
 
       if (!updated) {
         // The row was deleted/archived between the updateMany and this read.
-        throw Object.assign(new Error('IDE state was concurrently deleted'), { code: 'IDE_STATE_NOT_FOUND' });
+        throw Object.assign(new Error(appPublicEnglish('IDE_STATE_NOT_FOUND')), { code: 'IDE_STATE_NOT_FOUND' });
       }
 
       return mapProjectIdeState(updated);
@@ -1722,14 +1738,16 @@ export class PrismaApiStore implements ApiStore {
       });
 
       if (result.count === 0) {
-        throw Object.assign(new Error('IDE state version conflict'), { code: 'IDE_STATE_VERSION_CONFLICT' });
+        throw Object.assign(new Error(appPublicEnglish('IDE_STATE_VERSION_CONFLICT')), {
+          code: 'IDE_STATE_VERSION_CONFLICT',
+        });
       }
 
       const updated = await this.prisma.workspaceIdeState.findUnique({ where: { workspaceId: input.workspaceId } });
 
       if (!updated) {
         // The row was deleted/archived between the updateMany and this read.
-        throw Object.assign(new Error('IDE state was concurrently deleted'), { code: 'IDE_STATE_NOT_FOUND' });
+        throw Object.assign(new Error(appPublicEnglish('IDE_STATE_NOT_FOUND')), { code: 'IDE_STATE_NOT_FOUND' });
       }
 
       return mapWorkspaceIdeState(updated);
@@ -1785,7 +1803,7 @@ export class PrismaApiStore implements ApiStore {
     });
 
     if (existingPresence && existingPresence.userId !== input.userId) {
-      throw Object.assign(new Error('Presence session belongs to another user'), {
+      throw Object.assign(new Error(appPublicEnglish('PRESENCE_FORBIDDEN')), {
         statusCode: 403,
         code: 'PRESENCE_FORBIDDEN',
       });
@@ -1969,7 +1987,7 @@ export class PrismaApiStore implements ApiStore {
     });
 
     if (existing && existing.projectId !== input.projectId) {
-      throw Object.assign(new Error('Agent patch proposal not found'), {
+      throw Object.assign(new Error(appPublicEnglish('AGENT_PATCH_PROPOSAL_NOT_FOUND')), {
         statusCode: 404,
         code: 'AGENT_PATCH_PROPOSAL_NOT_FOUND',
       });
@@ -2458,6 +2476,84 @@ export class PrismaApiStore implements ApiStore {
     return rows.length;
   }
 
+  async listExpiryCandidateDeployments(options: { take?: number } = {}) {
+    const rows = await this.prisma.deployment.findMany({
+      where: {
+        environmentName: 'production',
+        status: 'READY',
+        provider: 'server',
+        project: { deletedAt: null },
+      },
+      select: {
+        id: true,
+        projectId: true,
+        provider: true,
+        environmentName: true,
+        status: true,
+        createdAt: true,
+        metadata: true,
+        project: {
+          select: {
+            organizationId: true,
+            organization: {
+              select: {
+                subscriptions: {
+                  where: { status: 'ACTIVE' },
+                  select: { plan: { select: { key: true } } },
+                  take: 1,
+                },
+              },
+            },
+          },
+        },
+      },
+      orderBy: { createdAt: 'asc' },
+      take: options.take ?? 500,
+    });
+
+    return rows.map((row) => ({
+      id: row.id,
+      projectId: row.projectId,
+      organizationId: row.project?.organizationId,
+      provider: row.provider,
+      environmentName: row.environmentName ?? undefined,
+      status: row.status,
+      createdAt: row.createdAt.toISOString(),
+      planKey: row.project?.organization?.subscriptions?.[0]?.plan?.key,
+      expiredAt: ((row.metadata ?? {}) as Record<string, unknown>)?.expiredAt as string | undefined,
+    }));
+  }
+
+  async listPublishedProjects(organizationId: string) {
+    /*
+     * Une ligne par PROJET, datée de sa publication la plus récente : republier
+     * ne doit pas faire compter le projet deux fois, et l'expiration se calcule
+     * sur la publication la plus récente.
+     */
+    const rows = await this.prisma.deployment.findMany({
+      where: {
+        project: { organizationId, deletedAt: null },
+        environmentName: 'production',
+        status: 'READY',
+      },
+      select: { projectId: true, createdAt: true },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const latest = new Map<string, Date>();
+
+    for (const row of rows) {
+      if (!latest.has(row.projectId)) {
+        latest.set(row.projectId, row.createdAt);
+      }
+    }
+
+    return [...latest.entries()].map(([projectId, publishedAt]) => ({
+      projectId,
+      publishedAt: publishedAt.toISOString(),
+    }));
+  }
+
   async createSnapshot(input: {
     projectId: string;
     label?: string;
@@ -2763,17 +2859,49 @@ export class PrismaApiStore implements ApiStore {
   async getDeploymentOwnerStatus(deploymentId: string) {
     const deployment = await this.prisma.deployment.findUnique({
       where: { id: deploymentId },
-      select: { projectId: true, status: true, project: { select: { deletedAt: true } } },
+      select: {
+        projectId: true,
+        status: true,
+        createdAt: true,
+        environmentName: true,
+        /*
+         * L'org et son abonnement sont nécessaires ICI : l'extinction à 30 jours
+         * d'une publication Starter se décide dans le chemin de SERVICE, pas
+         * seulement dans le compteur.
+         */
+        project: {
+          select: {
+            deletedAt: true,
+            organizationId: true,
+            organization: {
+              select: {
+                // Relation au PLURIEL : on ne retient que l'abonnement ACTIF.
+                subscriptions: {
+                  where: { status: 'ACTIVE' },
+                  select: { status: true, plan: { select: { key: true } } },
+                  take: 1,
+                },
+              },
+            },
+          },
+        },
+      },
     });
 
     if (!deployment) {
       return undefined;
     }
 
+    const subscription = deployment.project?.organization?.subscriptions?.[0];
+
     return {
       projectId: deployment.projectId,
       status: deployment.status,
       projectDeletedAt: deployment.project?.deletedAt ?? null,
+      createdAt: deployment.createdAt.toISOString(),
+      environmentName: deployment.environmentName ?? undefined,
+      organizationId: deployment.project?.organizationId,
+      planKey: subscription?.status === 'ACTIVE' ? subscription.plan?.key : undefined,
     };
   }
 
@@ -2847,6 +2975,48 @@ export class PrismaApiStore implements ApiStore {
         take: 500,
       })
     ).map(mapDeployment);
+  }
+
+  async createReleaseManifest(input: {
+    projectId: string;
+    deploymentId: string;
+    environment: string;
+    version: number;
+    provider: string;
+    artifactKind: 'static-snapshot' | 'server-image';
+    artifactRef: string;
+    artifactDigest: string;
+    storeGeneration?: string;
+    configDigest?: string;
+    dbMigrationPoint?: string;
+  }) {
+    return mapReleaseManifest(
+      await this.prisma.releaseManifest.create({
+        data: {
+          projectId: input.projectId,
+          deploymentId: input.deploymentId,
+          environment: input.environment,
+          version: input.version,
+          provider: input.provider,
+          artifactKind: input.artifactKind,
+          artifactRef: input.artifactRef,
+          artifactDigest: input.artifactDigest,
+          storeGeneration: input.storeGeneration ?? null,
+          configDigest: input.configDigest ?? null,
+          dbMigrationPoint: input.dbMigrationPoint ?? null,
+        },
+      }),
+    );
+  }
+
+  async listReleaseManifests(projectId: string, environment: string, options?: { take?: number }) {
+    return (
+      await this.prisma.releaseManifest.findMany({
+        where: { projectId, environment },
+        orderBy: { version: 'desc' },
+        take: options?.take ?? 100,
+      })
+    ).map(mapReleaseManifest);
   }
 
   async getActiveRateCard() {
@@ -3475,8 +3645,11 @@ export class PrismaApiStore implements ApiStore {
 
       const message =
         code === 'ENOTFOUND' || code === 'ENODATA'
-          ? `No TXT record found at ${host}. Add a TXT record with value "${expected}" and try again once DNS propagates.`
-          : `DNS lookup for ${host} failed (${code ?? error?.message ?? 'unknown error'}). Try again shortly.`;
+          ? appPublicEnglish('DOMAIN_TXT_RECORD_MISSING', { host, expected })
+          : appPublicEnglish('DOMAIN_DNS_LOOKUP_FAILED', {
+              host,
+              detail: code ?? 'DNS_LOOKUP_FAILED',
+            });
 
       /*
        * A missing TXT record (ENOTFOUND/ENODATA) or a transient resolver error
@@ -3507,9 +3680,7 @@ export class PrismaApiStore implements ApiStore {
       });
 
       throw Object.assign(
-        new Error(
-          `TXT record at ${host} did not match the expected verification value. Found ${txtRecords.length} record(s), none equal to "${expected}".`,
-        ),
+        new Error(appPublicEnglish('DOMAIN_TXT_VALUE_MISMATCH', { host, count: txtRecords.length, expected })),
         { statusCode: 422, code: 'DOMAIN_VERIFICATION_FAILED' },
       );
     }
@@ -4091,6 +4262,8 @@ export class PrismaApiStore implements ApiStore {
     category?: string;
     title: string;
     body?: string;
+    messageKey?: string;
+    messageParams?: Record<string, unknown>;
     linkUrl?: string;
     metadata?: Record<string, unknown>;
   }) {
@@ -4100,6 +4273,8 @@ export class PrismaApiStore implements ApiStore {
         category: input.category ?? 'system',
         title: input.title,
         body: input.body,
+        messageKey: input.messageKey,
+        messageParams: (input.messageParams ?? undefined) as Prisma.InputJsonValue | undefined,
         linkUrl: input.linkUrl,
         metadata: (input.metadata ?? undefined) as Prisma.InputJsonValue | undefined,
       },
@@ -4629,7 +4804,10 @@ export class PrismaApiStore implements ApiStore {
     const pack = await this.prisma.creditPack.findUnique({ where: { id: input.id } });
 
     if (!pack) {
-      throw Object.assign(new Error('Credit pack not found'), { statusCode: 404, code: 'CREDIT_PACK_NOT_FOUND' });
+      throw Object.assign(new Error(appPublicEnglish('CREDIT_PACK_NOT_FOUND')), {
+        statusCode: 404,
+        code: 'CREDIT_PACK_NOT_FOUND',
+      });
     }
 
     return mapCreditPack(pack);
@@ -5621,7 +5799,7 @@ export class PrismaApiStore implements ApiStore {
       const existing = await this.prisma.supportTicket.findUnique({ where: { id: input.ticketId } });
 
       if (!existing) {
-        throw Object.assign(new Error('Support ticket not found'), {
+        throw Object.assign(new Error(appPublicEnglish('SUPPORT_TICKET_NOT_FOUND')), {
           statusCode: 404,
           code: 'SUPPORT_TICKET_NOT_FOUND',
         });
@@ -6188,6 +6366,24 @@ function mapDeployment(deployment: any): DeploymentRecord {
   };
 }
 
+function mapReleaseManifest(row: any): ReleaseManifestRecord {
+  return {
+    id: row.id,
+    projectId: row.projectId,
+    deploymentId: row.deploymentId,
+    environment: row.environment,
+    version: row.version,
+    provider: row.provider,
+    artifactKind: row.artifactKind,
+    artifactRef: row.artifactRef,
+    artifactDigest: row.artifactDigest,
+    storeGeneration: row.storeGeneration ?? undefined,
+    configDigest: row.configDigest ?? undefined,
+    dbMigrationPoint: row.dbMigrationPoint ?? undefined,
+    createdAt: toIso(row.createdAt)!,
+  };
+}
+
 function mapSupportTicket(ticket: any): SupportTicketRecord {
   /*
    * assigneeUserId / firstResponseAt live in the metadata JSON blob (like
@@ -6452,6 +6648,8 @@ function mapNotification(notification: any): NotificationRecord {
     category: notification.category,
     title: notification.title,
     body: notification.body ?? undefined,
+    messageKey: notification.messageKey ?? undefined,
+    messageParams: (notification.messageParams as Record<string, unknown> | null) ?? undefined,
     linkUrl: notification.linkUrl ?? undefined,
     metadata: (notification.metadata as Record<string, unknown> | null) ?? undefined,
     readAt: toIso(notification.readAt),

@@ -170,11 +170,11 @@ p0s:
     status: OPEN
     commit: "bd4c334e"
     reviewer: UNKNOWN
-    evidenceId: docs/deploy-evidence/2026-07-16-remix/
-    proof: "PARTIEL : invariant sécurité PROUVÉ live (secret introuvable fichiers+DB+job ; quarantaine 409 ; CLONING refusé avant CREDENTIALS_DETACHED). RMX-3 CODÉ (branche feat/remix-license-pii, PR ouverte, PAS mergée) : remixAllowed/licenseSnapshot(sha256)/consentVersion effectifs + étape SOURCE_SANITIZED (masquage PII email/téléphone international/IBAN/carte Luhn-valide, findings {path,kind,line} sans valeur, re-scan résiduel bloquant) + consentement explicite UI (checkbox, bouton gaté) + refus 400 REMIX_CONSENT_REQUIRED / 403 REMIX_NOT_ALLOWED + immutabilité du snapshot licence prouvée par test — 12 tests dédiés (35 remix+gallery au total), typecheck + build stricts verts. PROUVÉ SUR STACK CI RÉELLE (API+Postgres réels, run 29747404378, commit 67f3b2cb) : parcours écran complet + PII masquées dans le clone + licenseSnapshot/consentVersion sur le job + négatif 400 — evidence docs/deploy-evidence/2026-07-20-remix-license-pii/. RESTE : merge + preuve LIVE PROD à l'écran, fork DB physique + copie objets (RMX-4/5), décision DEC-OWNER-REMIX-DEFAULT-LICENSE (Avi)."
+    evidenceId: docs/deploy-evidence/2026-08-03-v305-remix-live/
+    proof: "PROUVÉ LIVE PROD (2026-08-03) — la condition de clôture est remplie, le point reste OPEN en attente de SIGNATURE EXPERT. RMX-3 est MERGÉ depuis le 20/07 (PR #21 + PR #25 fail-closed) et TOURNE EN PROD : api:05319065be, migrations 0076+0077 appliquées (rolled_back_at=null), GalleryListing.remixAllowed DEFAULT false NOT NULL. Sur api.e-code.ai : (A) listing non autorisé -> 403 REMIX_NOT_ALLOWED ; (B) listing MIT sans consentement -> 400 REMIX_CONSENT_REQUIRED avec licenseTextSha256 + remixConsentVersion 2026-07-20.1 ; (C) acceptLicense mal typé -> 400 VALIDATION_ERROR (check !== true, aucune coercition) ; (D) remix autorisé -> 201, piiMaskedCount=2, licenseSnapshot épinglé par hash. CLONE RÉEL RELU ET FOUILLÉ (export zip décodé, 31 fichiers, 97296 o) : la PII de la source (4242 4242 4242 4242, présente dans storefront.ts) est ABSENTE dans les 3 variantes d'espacement ET après normalisation, aucune séquence 16 chiffres Luhn-valide nulle part, 2 marqueurs [PII:card masked on remix] aux emplacements d'origine ; non-vacuité vérifiée (texte non vide + marqueurs présents + piiMaskedCount concordant). Rejouable : scan-clone-for-pii.py. RÉSERVES DÉCLARÉES (ne pas signer sans les traiter) : (1) seule la catégorie 'card' est prouvée en prod, email/phone le sont sur stack CI, iban seulement en mémoire ; (2) les NOMS de personnes ne sont pas masqués (aucun matcher — le clone e2e contient encore 'Jane Doe') ; (3) hors périmètre : IP, NIR/passeport, adresses postales, dates de naissance, téléphones nationaux, fichiers BINAIRES, chemins de fichiers ; (4) le re-scan résiduel n'est PAS indépendant (mêmes PII_MATCHERS que le masqueur) ; (5) POST /projects/:id/remix ne masque rien (sanitizePii:false) et requireProject accepte un collaborateur non-membre ; (6) piiConsentVersion désactive tout le masquage sans vérifier le consentement réel ; (7) aucune allowlist SPDX — licenseId est une chaîne libre, on prouve 'une licence déclarée et acceptée', pas 'cette licence autorise la dérivation' ; (8) rightsConfirmed/piiPolicyAccepted validés puis JAMAIS persistés -> confirmation des droits inauditable ; (9) le workflow Production E2E ne se déclenche pas sur push main."
     dependances: []
     conditionDeCloture: "Licence+consentement appliqués au listing ET masking PII prouvé sur un clone réel"
-    nextAction: "Feu vert merge PR remix-license-pii → deploy → preuve live à l'écran + artefacts ; puis RMX-4/5"
+    nextAction: "Signature expert sur la preuve live 2026-08-03 + arbitrage Avi sur les réserves (2) noms, (7) allowlist SPDX, (8) persistance des confirmations ; puis RMX-4/5"
     targetDate: "2026-08-31"
   - p0Id: P0-V3-06
     title: "Import incomplet malgré la quarantaine (rétention, appel, scanners reproductibles, Git complexe)"
@@ -542,22 +542,25 @@ p0s:
     source: "Audit de réanalyse LIVRAISON 2 (2026-07-20), P0-09"
     priority: 9
     owner: platform
-    status: OPEN
-    reviewNote: "REFUSÉ au reçu RR-20260802-CODEX-09 (motif verbatim) : Le teardown classe comme NOTFOUND le message ambigu « Project [x] not found or permission denied » dès que gcloud auth print-access-token réussit. Un token valide prouve l'authentification, pas l'autorisation resourcemanager.projects.get. Un projet existant mais invisible peut être déclaré absent et recevoir CLEANUP_RECEIPT=OK. Correction : 1) ne jamais traiter le message combiné comme absence vérifiée ; 2) NOTFOUND seulement sur vrai HTTP 404 / statut NOT_FOUND structuré non ambigu ; 3) UNKNOWN sur toute réponse ambiguë ; 4) test token valide + projet existant + principal sans projects.get/projects.delete → reçu FAILED. (Refus précédent RR-20260731-CODEX-08 : describe traité comme absence — corrigé en PR #55 mais la classification NOTFOUND reste ambiguë.)"
-    reviewReceiptId: RR-20260802-CODEX-09
+    status: CLOSED
+    previousRefusalReason: "REFUSÉ au reçu RR-20260802-CODEX-09 (motif verbatim) : Le teardown classe comme NOTFOUND le message ambigu « Project [x] not found or permission denied » dès que gcloud auth print-access-token réussit. Un token valide prouve l'authentification, pas l'autorisation resourcemanager.projects.get. Un projet existant mais invisible peut être déclaré absent et recevoir CLEANUP_RECEIPT=OK. Correction : 1) ne jamais traiter le message combiné comme absence vérifiée ; 2) NOTFOUND seulement sur vrai HTTP 404 / statut NOT_FOUND structuré non ambigu ; 3) UNKNOWN sur toute réponse ambiguë ; 4) test token valide + projet existant + principal sans projects.get/projects.delete → reçu FAILED. (Refus précédent RR-20260731-CODEX-08 : describe traité comme absence — corrigé en PR #55 mais la classification NOTFOUND reste ambiguë.)"
+    reviewReceiptId: RR-20260804-CODEX-10
     remediationTrack: CHANTIER
-    refusalReason: "WIF prouvé GKE seulement, pas les 3 chemins"
+    previousRefusalReasonV1: "WIF prouvé GKE seulement, pas les 3 chemins"
     refusalType: PREUVE_INSUFFISANTE
-    reviewVerdict: REFUSED
+    reviewVerdict: SIGNED
     reviewCommit: "57febeab"
     commit: d1063912acf8bbbc2dabf7941490be33e4c87b51
-    reviewer: UNKNOWN
-    evidenceId: docs/parity/baseline/sources/2026-07-20-gke-workload-identity.html
-    proof: "§4.4 REMPLACÉ, ancré GCP-13 (citation exacte « In GKE, Google Cloud manages the workload identity pool and provider for you and doesn't require an external identity provider ») : 3 chemins — GKE→WIF for GKE (recommandé, aucun IdP externe) ; hors GCP→IAM WIF externe ; Cloud Run→service identity + impersonation courte. Zéro clé persistante partout."
+    reviewer: OpenAI-Codex
+    reviewedRemediationCommit: "26f1ad8451d1aa222c52486d96d634c7f03adf46"
+    resolutionBranch: "feat/wif-three-paths-replayable"
+    resolutionStatus: "PROVEN_REVIEW_PENDING"
+    evidenceId: docs/deploy-evidence/2026-07-21-wif-three-paths/
+    proof: "3 CHEMINS WORKLOAD IDENTITY PROUVÉS LIVE sur GCP, ZÉRO CLÉ, de bout en bout REJOUABLE (correction du refus « non rejouable », REPONSE_EXPERT_PR40_20260722 §D1). repro.sh provisionne un projet de test dédié (jamais la prod) sous folder test, puis CONFIGURE ET JOUE réellement les 3 chemins avec assertions strictes, puis teardown complet (~0$). (1) GKE WIF : cluster de test zonal + KSA liée à la GSA autorisée → pod lit le secret via token metadata (READ_HTTP=200 + contenu attendu) ; KSA NON liée → pod négatif RÉEL joué et archivé (token/impersonation refusé ou identité ≠ GSA autorisée). (2) WIF externe GitHub OIDC : pool+provider (condition assertion.repository=='openaxcloud/vibecore') + grants workloadIdentityUser/serviceAccountTokenCreator ; workflow .github/workflows/wif-proof.yml PARAMÉTRÉ par inputs workflow_dispatch (project/number/bucket/SAs/préfixe) → run GitHub Actions réel : autorisé exige READ_HTTP=200 + contenu (échec sur 403/404), négatif = impersonation SA non autorisée DENIED. (3) Cloud Run service identity : token via metadata (keyUsed=false), Dockerfile corrigé (COPY cloudrun-main.py main.py) ; autorisé read_status=200 + contenu attendu ou fail, négatif SA sans droit = 403. CORRECTIONS V3 FAIL-CLOSED (REPONSE_EXPERT_V3_20260722 §P0-A2-09) : (a) préflight rend gh (authentifié)+gcloud/docker/kubectl/curl OBLIGATOIRES avant tout provisioning ; (b) run GitHub suivi par NONCE EXACT (dispatch -f nonce ; run-name porte le nonce ; repro.sh récupère le databaseId dont displayTitle contient le nonce, puis re-vérifie — jamais « le plus récent ») ; (c) négatif GKE exige HTTP 401/403 + corps permission-denied contrôlé (000/404/5xx échoue) ; (d) trap teardown armé AVANT gcloud projects create ET gcloud billing projects link (idempotent, ET sûr si le projet n'existe pas encore) → 0 ressource résiduelle sur erreur. CORRECTION RR-20260723-CODEX-07 §P0-A2-09 : le trap était armé APRÈS create+billing link ; sous set -Eeuo pipefail, un échec de la liaison billing sortait AVANT l'armement du trap → projet laissé ACTIF. Corrigé : ID projet calculé d'abord, trap teardown EXIT armé AVANT create/billing (repro.sh l.94 teardown(), l.108 trap, l.116 create, l.117 billing link). Cas négatif billing-fail REJOUÉ LIVE : replay-20260723T191146Z-negative-billingfail/ (WIF_BILLING invalide → projet ecode-wif-proof-833908 créé, billing link échoue IAM_PERMISSION_DENIED sous set -e, trap EXIT nettoie → PROJECT_STATE=DELETE_REQUESTED ; describe indépendant = DELETE_REQUESTED). Diff de l'ordre trap↔create archivé : trap-order-fix.diff. 3 chemins REJOUÉS après correctif : replay-20260723T191340Z/ (projet frais ecode-wif-proof-834022 ; Cloud Run 200/403 ; GitHub run 30037477577 nonce-vérifié success ; GKE autorisé 200+contenu / négatif 403+corps permission-denied identité≠GSA ; teardown joué, PROJECT_STATE=DELETE_REQUESTED, ~0$). Run V3 antérieur : replay-20260723T114035Z/. CORRECTION RR-20260723-CODEX-08 (RR-08) §P0-A2-09 : la garde 'if gcloud projects describe … then … else ABSENT' lisait TOUT échec de describe (réseau/API/auth/quota) comme 'projet absent' → suppression sautée → flap pouvait laisser le projet actif. Corrigé (logique fail-closed extraite dans teardown-lib.sh, sourcée par repro.sh) : (i) classify_project_state parse le motif d'erreur — NOTFOUND conclu SEULEMENT sur motif not-found ET auth prouvée saine (gcloud auth print-access-token), sinon UNKNOWN ; (ii) describe réessayé sur erreurs transitoires ; (iii) gcloud projects delete TENTÉ même si état UNKNOWN ; (iv) reçu fail-closed — CLEANUP_RECEIPT=OK seulement si état final DELETE_REQUESTED ou NOT_FOUND authentifié, sinon CLEANUP_RECEIPT=FAILED + exit != 0. Test injection de fautes (mock gcloud) teardown-lib.spec.sh : PASS=23 FAIL=0 (rr08-teardown-faultinjection/spec-output.txt), dont transient_persistent = describe en erreur réseau permanente → delete tenté quand même + reçu FAILED, notfound_auth vs notfound_auth_broken, delete_fails_active = reçu FAILED sur projet ACTIF. Rejoué LIVE 2026-07-31 (nouveau teardown) : négatif billing-fail replay-20260731T151804Z-rr08-negative-billingfail/ (DESCRIBE_CLASSIFICATION=PRESENT:ACTIVE → delete → DELETE_REQUESTED, CLEANUP_RECEIPT=OK, projet ecode-wif-proof-511088) ; 3 chemins replay-20260731T154358Z-rr08/ (projet frais ecode-wif-proof-512642 ; Cloud Run 200/403, GitHub OIDC nonce-vérifié success, GKE 200/négatif 403, teardown fail-closed CLEANUP_RECEIPT=OK DELETE_REQUESTED). CORRECTION RR-20260723-CODEX-09 (RR-09) §P0-A2-09 : le critère NOTFOUND de RR-08 (message texte 'not found or permission denied' + gcloud auth print-access-token OK) était faux — un jeton valide prouve l'AUTH, pas l'AUTORISATION projects.get ; un principal authentifié sans droit de lecture sur un projet EXISTANT recevait ce message et aurait été classé 'absent'. Corrigé : classify_project_state interroge Cloud Resource Manager v1 projects.get et classe sur le STATUT HTTP STRUCTURÉ — 200 PRESENT:<lifecycleState> ; 404 ET error.status==NOT_FOUND → NOTFOUND (vrai absent) ; 401/403/404-sans-statut → UNKNOWN (jamais absent) ; 000/408/429/5xx → transitoire→retry→UNKNOWN. Fait GCP vérifié live : GET /v1/projects/<inexistant> renvoie 403 PERMISSION_DENIED (pas 404) donc l'ambiguïté 403 reste UNKNOWN, delete tenté, reçu fail-closed. Test mock gcloud+curl teardown-lib.spec.sh : PASS=31 FAIL=0, dont ambiguous_403 (403 → PAS NOTFOUND) et exists_no_getdelete (jeton valide + projet existant + principal sans projects.get NI projects.delete → GET 403, delete 403 → CLEANUP_RECEIPT=FAILED, PAS OK). Rejoué LIVE 2026-08-03 (teardown RR-09 REST) : négatif billing-fail replay-20260803T064401Z-rr09-negative-billingfail/ (DESCRIBE_CLASSIFICATION=PRESENT:ACTIVE via CRM 200 → delete → DELETE_REQUESTED, CLEANUP_RECEIPT=OK, projet ecode-wif-proof-739444) ; 3 chemins replay-20260803T064443Z-rr09/ (projet frais ecode-wif-proof-739484 ; Cloud Run 200/403, GitHub OIDC nonce-vérifié success, GKE 200/négatif 403, teardown fail-closed CLEANUP_RECEIPT=OK DELETE_REQUESTED). Preuves suivies dans git (exception .gitignore + gitleaks allowlist des captures test éphémères). Aucune clé de service générée nulle part."
     dependances: []
-    conditionDeCloture: "Compléter l'évidence : WIF prouvé GKE seulement, pas les 3 chemins ; puis re-soumission au relecteur"
-    nextAction: "Session WIF : NOTFOUND uniquement sur vrai HTTP 404 / statut NOT_FOUND structuré non ambigu (jamais le message combiné not-found-or-permission-denied) ; UNKNOWN sur toute réponse ambiguë ; test négatif token valide + projet existant + principal sans projects.get/projects.delete → reçu FAILED ; puis re-soumission"
-    targetDate: "2026-07-20"
+    conditionDeCloture: "REMPLIE — reçu RR-20260804-CODEX-10 COMPLET (texte brut docs/parity/incoming/REPONSE_EXPERT_V7_20260804.md, sha256 7832522b…) : « P0-A2-09 peut recevoir le reviewer OpenAI-Codex et passer à l'état signé prévu »"
+    nextAction: "AUCUNE — signé"
+    targetDate: "2026-08-15"
   - p0Id: P0-A2-10
     title: "Décision Gallery incohérente"
     description: "Reclasser CAPTURE_INCOMPLETE/OPEN"
@@ -1180,19 +1183,18 @@ p0s:
     source: "Plan exécutable v2026-07-20.4 §19 (sha256 467608f5…)"
     priority: 5
     owner: platform
-    status: OPEN
-    remediationTrack: A_TRIER
-    refusalReason: "l'artefact ne distingue pas apps supplémentaires et types d'Artifact"
-    refusalType: PREUVE_INSUFFISANTE
-    reviewVerdict: REFUSED
-    reviewCommit: "57febeab"
+    status: CLOSED
+    reviewNote: "SIGNÉ au reçu RR-20260805-CODEX-STARTER-PR95 (COMPLET, responseHash 1aaca19e…) — Pricing Starter durci (PR #95, entitlement hardening) APPROVED FOR MERGE au SHA exact 39be5a37, toutes réserves du contre-audit levées ; condition expert : signature liée à l arbre exact (delta => re-revue) ; mergé par merge commit 3f0a6a8bae préservant 39be5a37 comme parent, ancêtre de main vérifié"
+    reviewReceiptId: RR-20260805-CODEX-STARTER-PR95
+    reviewVerdict: SIGNED
+    reviewCommit: "39be5a37"
     commit: 46da267bcaf21335635935aed385ae414daade9b
-    reviewer: UNKNOWN
-    evidenceId: docs/parity/OFFERING_ENTITLEMENT_REGISTRY.yaml
-    proof: "Adopté via plan §11.3 (verbatim) ; OFFERING sans montants, entitlements AUTHENTICATED_LIVE_REQUIRED avant reproduction exacte."
+    reviewer: OpenAI-Codex
+    evidenceId: docs/deploy-evidence/2026-08-04-starter-entitlement-hardening/
+    proof: "PR #95 (fix/starter-entitlement-hardening, tête 39be5a37) : entitlements Starter alignés (apps supplémentaires vs types d Artifact), expiration server-deploy + garde proxy ; preuves docs/deploy-evidence/2026-08-04-starter-entitlement-hardening/ + 2026-08-05-server-deploy-expiry/ ; CI verte à la tête (seul Playwright repo-wide rouge, hors périmètre)."
     dependances: []
-    conditionDeCloture: "Compléter l'évidence : l'artefact ne distingue pas apps supplémentaires et types d'Artifact ; puis re-soumission au relecteur"
-    nextAction: "Revue"
+    conditionDeCloture: "REMPLIE — signature expert au SHA exact + merge préservant l arbre signé"
+    nextAction: "Aucune (surveiller le déploiement)"
     targetDate: "2026-07-20"
   - p0Id: P0-EX-06
     title: "Retirer les montants tarifaires du plan durable"

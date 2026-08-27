@@ -16,6 +16,12 @@ import {
 } from '@vibecore/k8s-client';
 import { resolveSandboxRuntime, type SandboxRuntime } from '@vibecore/sandbox-runtime';
 import { signAgentToken, type WorkspaceEvent } from '@vibecore/workspace-sdk';
+import {
+  workspaceManagerError,
+  workspaceManagerMessage,
+  type WorkspaceManagerMessageKey,
+  type WorkspaceManagerPublicError,
+} from './public-i18n.js';
 
 export type WorkspaceStatus = 'STARTING' | 'RUNNING' | 'STOPPED' | 'FAILED' | 'DELETED';
 
@@ -107,7 +113,7 @@ export class JsonWorkspaceStore implements WorkspaceStore {
     const existing = workspaces.get(workspaceId);
 
     if (!existing) {
-      throw new Error('Workspace not found');
+      throw workspaceManagerError('workspaceNotFound', { code: 'WORKSPACE_NOT_FOUND', statusCode: 404 });
     }
 
     const updated = { ...existing, ...patch };
@@ -718,9 +724,10 @@ export class WorkspaceManager {
         this.k8s.delete('Service', input.namespace, record.serviceName),
       ]);
 
+      const publicKey = (error as WorkspaceManagerPublicError | undefined)?.publicMessageKey ?? 'workspaceStartFailed';
       const failed = await this.store.update(input.workspaceId, {
         status: 'FAILED',
-        error: error instanceof Error ? error.message : 'Kubernetes error',
+        error: workspaceManagerMessage(publicKey, 'en'),
       });
 
       await this.publish(failed, 'workspace.failed');
@@ -1537,7 +1544,7 @@ export class WorkspaceManager {
         const failure = detectPodTerminalFailure(typedPod);
 
         if (failure) {
-          throw Object.assign(new Error(failure.message), { code: failure.code });
+          throw workspaceManagerError(failure.messageKey, { code: failure.code });
         }
 
         /*
@@ -1712,10 +1719,7 @@ export class WorkspaceManager {
        * to tell "this workspace no longer exists" apart from a transient fault
        * so they can treat a stop/delete of an unknown workspace as idempotent.
        */
-      throw Object.assign(new Error('Workspace not found'), {
-        statusCode: 404,
-        code: 'WORKSPACE_NOT_FOUND',
-      });
+      throw workspaceManagerError('workspaceNotFound', { statusCode: 404, code: 'WORKSPACE_NOT_FOUND' });
     }
 
     return workspace;
@@ -1849,9 +1853,13 @@ export function detectPodTerminalFailure(
   pod: PodStatusView,
   now: number = Date.now(),
   graceMs: number = unschedulableGraceMs(),
-): { message: string; code: string } | null {
+): { message: string; messageKey: WorkspaceManagerMessageKey; code: string } | null {
   if (pod.status?.phase === 'Failed') {
-    return { message: 'Workspace pod failed to start', code: 'WORKSPACE_POD_FAILED' };
+    return {
+      message: workspaceManagerMessage('workspacePodFailed', 'en'),
+      messageKey: 'workspacePodFailed',
+      code: 'WORKSPACE_POD_FAILED',
+    };
   }
 
   /*
@@ -1869,10 +1877,9 @@ export function detectPodTerminalFailure(
     const since = scheduled.lastTransitionTime ? Date.parse(scheduled.lastTransitionTime) : Number.NaN;
 
     if (Number.isFinite(since) && now - since >= graceMs) {
-      const detail = scheduled.message ? `: ${scheduled.message}` : '';
-
       return {
-        message: `Workspace pod could not be scheduled — no capacity available${detail}`,
+        message: workspaceManagerMessage('workspaceUnschedulable', 'en'),
+        messageKey: 'workspaceUnschedulable',
         code: 'WORKSPACE_POD_UNSCHEDULABLE',
       };
     }
@@ -1883,14 +1890,16 @@ export function detectPodTerminalFailure(
 
     if (oomReason === 'OOMKilled') {
       return {
-        message: 'Workspace pod was OOMKilled — increase the plan memory limit or restart',
+        message: workspaceManagerMessage('workspaceOomKilled', 'en'),
+        messageKey: 'workspaceOomKilled',
         code: 'WORKSPACE_POD_OOMKILLED',
       };
     }
 
     if (container.state?.waiting?.reason === 'CrashLoopBackOff') {
       return {
-        message: 'Workspace pod is crash-looping (CrashLoopBackOff)',
+        message: workspaceManagerMessage('workspaceCrashLoop', 'en'),
+        messageKey: 'workspaceCrashLoop',
         code: 'WORKSPACE_POD_CRASHLOOP',
       };
     }
@@ -1914,7 +1923,8 @@ export function detectPodTerminalFailure(
       waitingReason === 'CreateContainerError'
     ) {
       return {
-        message: `Workspace pod could not start its container (${waitingReason})`,
+        message: workspaceManagerMessage('workspaceContainerFailed', 'en'),
+        messageKey: 'workspaceContainerFailed',
         code: 'WORKSPACE_POD_IMAGE_OR_CONFIG_ERROR',
       };
     }

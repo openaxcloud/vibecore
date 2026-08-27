@@ -13,6 +13,7 @@ import {
   openAiPromptCacheKey,
   providerConfigs,
 } from './gateway.js';
+import { aiGatewayMessage } from './public-i18n.js';
 
 describe('anthropicPayload shared-context caching', () => {
   it('sets cache_control on the last SHARED message when the prefix clears the min', () => {
@@ -150,7 +151,7 @@ describe('AiGateway', () => {
     // Default (main chat): a premium model on Free is rejected.
     expect(() =>
       gateway.route({ plan: 'free', provider: 'anthropic', model: 'claude-3-5-sonnet-latest', messages: [] }),
-    ).toThrow('Model is not available on this plan');
+    ).toThrow(aiGatewayMessage('modelPlanBlocked', 'en'));
 
     // planFallback (agent lanes): transparently resolves to a Free-allowed model — no throw.
     const routed = gateway.route({
@@ -407,7 +408,7 @@ describe('AiGateway', () => {
     expect(extractProviderErrorMessage(undefined)).toBeUndefined();
   });
 
-  it('surfaces the real Anthropic account-limit message on the stream error part (not a bare 429)', async () => {
+  it('surfaces localized account-limit copy without exposing the raw provider body', async () => {
     const provider = await startProvider((_body, response) => {
       response.writeHead(429, { 'content-type': 'application/json' }).end(ANTHROPIC_ACCOUNT_LIMIT_BODY);
     });
@@ -431,8 +432,8 @@ describe('AiGateway', () => {
     const errorChunk = chunks.find((chunk) => chunk.type === 'error');
     expect(errorChunk).toBeDefined();
 
-    // The real provider reason is preserved, not swallowed into "Provider stream failed: 429".
-    expect(errorChunk?.error).toContain('specified API usage limits');
+    expect(errorChunk?.error).toBe(aiGatewayMessage('providerAccountLimit', 'en'));
+    expect(errorChunk?.error).not.toContain('specified API usage limits');
     expect(chunks.some((chunk) => chunk.type === 'delta')).toBe(false);
   });
 

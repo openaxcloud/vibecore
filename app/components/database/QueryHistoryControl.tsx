@@ -1,6 +1,12 @@
 import * as PopoverPrimitive from '@radix-ui/react-popover';
 import { History, Trash2, X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import Popover from '~/components/ui/Popover';
+import {
+  formatDatabaseStudioCopy,
+  formatDatabaseStudioNumber,
+  getDatabaseStudioCopy,
+} from '~/lib/i18n/catalogs/database-studio';
 
 /*
  * G14 — Database Studio query history control. Pure presentation: the MRU
@@ -15,6 +21,13 @@ interface QueryHistoryControlProps {
 }
 
 export function QueryHistoryControl({ entries, onClear, onPick, onRemove }: QueryHistoryControlProps) {
+  const { i18n } = useTranslation();
+  const language = i18n.resolvedLanguage ?? i18n.language;
+  const copy = getDatabaseStudioCopy(language);
+
+  const text = (template: string, values: Readonly<Record<string, string | number>> = {}) =>
+    formatDatabaseStudioCopy(template, values);
+
   return (
     <Popover
       side="bottom"
@@ -27,14 +40,20 @@ export function QueryHistoryControl({ entries, onClear, onPick, onRemove }: Quer
           className="inline-flex items-center gap-1 rounded-md border border-bolt-elements-borderColor px-2.5 py-1 text-[12px] text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary"
         >
           <History className="h-3.5 w-3.5" style={{ color: 'var(--vc-ide-accent-action)' }} aria-hidden />
-          History
-          {entries.length ? <span className="text-bolt-elements-textTertiary">({entries.length})</span> : null}
+          {copy['databaseStudio.history.title']}
+          {entries.length ? (
+            <span className="text-bolt-elements-textTertiary">
+              {text(copy['databaseStudio.history.count'], {
+                count: formatDatabaseStudioNumber(entries.length, language),
+              })}
+            </span>
+          ) : null}
         </button>
       }
     >
       {entries.length === 0 ? (
         <p className="px-1.5 py-1 text-[12px] text-bolt-elements-textTertiary">
-          No queries yet — successful runs land here.
+          {copy['databaseStudio.history.empty']}
         </p>
       ) : (
         <div className="flex flex-col gap-0.5">
@@ -53,7 +72,7 @@ export function QueryHistoryControl({ entries, onClear, onPick, onRemove }: Quer
                 </PopoverPrimitive.Close>
                 <button
                   type="button"
-                  aria-label={`Remove from history: ${statement}`}
+                  aria-label={text(copy['databaseStudio.history.remove'], { statement })}
                   onClick={() => onRemove(statement)}
                   className="rounded p-1 text-bolt-elements-textTertiary opacity-0 hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary focus-visible:opacity-100 group-hover:opacity-100"
                 >
@@ -69,7 +88,7 @@ export function QueryHistoryControl({ entries, onClear, onPick, onRemove }: Quer
               className="inline-flex items-center gap-1 rounded px-1.5 py-1 text-[12px] text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary"
             >
               <Trash2 className="h-3 w-3" aria-hidden />
-              Clear all
+              {copy['databaseStudio.history.clear']}
             </button>
           </div>
         </div>

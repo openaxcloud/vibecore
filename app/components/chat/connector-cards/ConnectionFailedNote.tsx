@@ -1,4 +1,10 @@
+import { useTranslation } from 'react-i18next';
 import type { ConnectionFailedMessage, ConnectionFailureReason } from '~/lib/chat/connector-messages';
+import {
+  formatChatResidualsCopy,
+  getChatResidualsCopy,
+  getConnectionFailureReasonLabel,
+} from '~/lib/i18n/catalogs/chat-residuals';
 
 /*
  * Surfaces a connection_failed data part as an inline diagnostic note.
@@ -11,16 +17,6 @@ import type { ConnectionFailedMessage, ConnectionFailureReason } from '~/lib/cha
  * does not need to localise every code.
  */
 
-const REASON_LABEL: Record<ConnectionFailureReason, string> = {
-  user_denied: 'The connection was denied.',
-  invalid_state: 'The OAuth state could not be verified.',
-  provider_error: 'The provider returned an error.',
-  scope_mismatch: 'The granted scopes do not cover what the agent needs.',
-  timeout: 'The provider did not respond in time.',
-};
-
-const GENERIC_REASON_LABEL = 'The connection could not be completed.';
-
 /*
  * Resolve a failure reason to a human-readable label. The upstream
  * data-part filter (isConnectorDataPart) only checks that `kind` is a
@@ -30,8 +26,11 @@ const GENERIC_REASON_LABEL = 'The connection could not be completed.';
  * leaving the diagnostic card blank. Fall back to a generic label so
  * the note always explains that the connection failed.
  */
-export function reasonLabel(reason: ConnectionFailureReason | string | undefined): string {
-  return (reason != null && REASON_LABEL[reason as ConnectionFailureReason]) || GENERIC_REASON_LABEL;
+export function reasonLabel(
+  reason: ConnectionFailureReason | string | undefined,
+  language: string | null | undefined = 'en',
+): string {
+  return getConnectionFailureReasonLabel(language, reason);
 }
 
 export interface ConnectionFailedNoteProps {
@@ -39,16 +38,21 @@ export interface ConnectionFailedNoteProps {
 }
 
 export function ConnectionFailedNote({ payload }: ConnectionFailedNoteProps) {
+  const { i18n } = useTranslation();
+  const language = i18n.resolvedLanguage ?? i18n.language;
+  const copy = getChatResidualsCopy(language);
+
   return (
-    <div className="my-2 flex items-start gap-2 rounded-md border border-bolt-elements-borderColor px-3 py-2 bg-bolt-elements-background-depth-1">
-      <span className="i-ph:warning-circle-fill w-4 h-4 text-bolt-elements-icon-error mt-0.5" />
+    <div className="my-2 flex min-w-0 items-start gap-2 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2">
+      <span className="i-ph:warning-circle-fill mt-0.5 h-4 w-4 shrink-0 text-bolt-elements-icon-error" aria-hidden />
       <div className="min-w-0 flex-1">
-        <p className="text-xs text-bolt-elements-textPrimary">
-          {payload.providerDisplayName} connection could not be completed.
+        <p className="break-words text-xs text-bolt-elements-textPrimary">
+          {formatChatResidualsCopy(copy['chatResiduals.connectionFailed.title'], {
+            provider: payload.providerDisplayName,
+          })}
         </p>
-        <p className="text-xs text-bolt-elements-textSecondary mt-0.5 break-words">
-          {reasonLabel(payload.reason)}
-          {payload.detail ? ` ${payload.detail}` : ''}
+        <p className="mt-0.5 break-words text-xs text-bolt-elements-textSecondary">
+          {reasonLabel(payload.reason, language)}
         </p>
       </div>
     </div>

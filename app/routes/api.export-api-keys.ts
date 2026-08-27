@@ -1,6 +1,7 @@
-import { data as json, type LoaderFunction } from 'react-router';
+import { type LoaderFunction } from 'react-router';
 import { getApiKeysFromCookie } from '~/lib/api/cookies';
 import { readSessionToken } from '~/lib/enterprise-api.server';
+import { remainingApiErrorResponse } from '~/lib/i18n/catalogs/remaining-api-routes';
 import { LLMManager } from '~/lib/modules/llm/manager';
 
 export const loader: LoaderFunction = async ({ context, request }) => {
@@ -10,7 +11,9 @@ export const loader: LoaderFunction = async ({ context, request }) => {
    * caller's own cookie-scoped keys (server secrets are already excluded below).
    */
   if (!readSessionToken(request)) {
-    return json({ error: 'Unauthorized' }, { status: 401 });
+    return remainingApiErrorResponse(request, 'UNAUTHORIZED', 401, {
+      headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate, private', Pragma: 'no-cache' },
+    });
   }
 
   // Get API keys from cookie

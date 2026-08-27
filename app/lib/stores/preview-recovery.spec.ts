@@ -1,11 +1,13 @@
 import type { WorkspaceSession } from '@vibecore/runtime-contract';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import {
   appendWorkspaceLogLines,
+  canKickDeadPreview,
   decodeArchiveEntry,
   isTransientCommandFailure,
   isTransientFailureMessage,
   previewPortsToPrune,
+  resetDeadPreviewKicks,
   resolvePreviewBootOverlay,
   shouldKickReopenPreview,
   shouldLatchPreviewStartFailure,
@@ -50,8 +52,15 @@ describe('shouldReattachRunningPreview', () => {
   it('REATTACHES when the workspace is running and a port is already serving (reopen of a live pod)', () => {
     expect(shouldReattachRunningPreview(session('running'), [{ port: 5173, ready: true }])).toBe(true);
 
-    // The previews store forwards the URL as baseUrl.
-    expect(shouldReattachRunningPreview(session('running'), [{ port: 5173, baseUrl: 'https://x.preview' }])).toBe(true);
+    /*
+     * REGRESSION — SOLUTIONS_REAL_PROOF_BLOCKERS.md §5: a forwarded URL is NOT a
+     * serving signal (the API stamps one on every port it reports, without ever
+     * touching the network). Reattaching to a URL-bearing but unprobed port is
+     * how the IDE ended up attached to a dead dev server showing a blank frame.
+     */
+    expect(shouldReattachRunningPreview(session('running'), [{ port: 5173, baseUrl: 'https://x.preview' }])).toBe(
+      false,
+    );
 
     // A live serving port makes even a status still lagging at STARTING a reattach.
     expect(shouldReattachRunningPreview(session('starting'), [{ port: 5173, ready: true }])).toBe(true);
@@ -228,5 +237,82 @@ describe('shouldLatchPreviewStartFailure', () => {
   it('always latches a manual run/restart failure, transient or not', () => {
     expect(shouldLatchPreviewStartFailure({ manual: true, message: 'Remote runtime request failed: 502' })).toBe(true);
     expect(shouldLatchPreviewStartFailure({ manual: true, message: 'No package.json found' })).toBe(true);
+  });
+});
+
+/*
+ * BUG-AGENT-007 — un workspace VIVANT sans serveur de dev.
+ *
+ * Mesuré en direct le 21/08 : workspace `running`, 18 fichiers écrits,
+ * `ps aux | grep -c '[v]ite'` → 0, rien sur 5173, `HTTP 000`, et ZÉRO appel
+ * `/commands` à la réouverture. Le prédicat confondait « workspace vivant » et
+ * « serveur de dev vivant ».
+ */
+describe('BUG-AGENT-007 — relancer un aperçu mort sur un workspace vivant', () => {
+  const vivant = {
+    autoStart: true,
+    hasProject: true,
+    isStartingPreview: false,
+    workspaceStatus: session('running'),
+  };
+
+  it('relance quand le workspace tourne mais qu_aucun port n_est SERVI', () => {
+    expect(shouldKickReopenPreview({ ...vivant, hasServingPreview: false })).toBe(true);
+  });
+
+  it('ne relance pas un aperçu réellement servi', () => {
+    expect(shouldKickReopenPreview({ ...vivant, hasServingPreview: true })).toBe(false);
+  });
+
+  it('ne relance pas tant que l_information est INCONNUE — le serveur monte peut-être', () => {
+    expect(shouldKickReopenPreview({ ...vivant, hasServingPreview: undefined })).toBe(false);
+    expect(shouldKickReopenPreview(vivant)).toBe(false);
+  });
+
+  it('ne relance pas un workspace qui DÉMARRE, même sans port servi', () => {
+    expect(shouldKickReopenPreview({ ...vivant, workspaceStatus: session('starting'), hasServingPreview: false })).toBe(
+      false,
+    );
+  });
+
+  it('respecte les gardes existants (autoStart, projet, démarrage en cours)', () => {
+    expect(shouldKickReopenPreview({ ...vivant, hasServingPreview: false, autoStart: false })).toBe(false);
+    expect(shouldKickReopenPreview({ ...vivant, hasServingPreview: false, hasProject: false })).toBe(false);
+    expect(shouldKickReopenPreview({ ...vivant, hasServingPreview: false, isStartingPreview: true })).toBe(false);
+  });
+});
+
+describe('BUG-AGENT-007 — le plafond anti-boucle', () => {
+  beforeEach(() => {
+    resetDeadPreviewKicks();
+  });
+
+  it('autorise deux relances puis COUPE — une boucle prod est pire que pas d_aperçu', () => {
+    const t = 1_000_000;
+    expect(canKickDeadPreview(t)).toBe(true);
+    expect(canKickDeadPreview(t + 1000)).toBe(true);
+    expect(canKickDeadPreview(t + 2000)).toBe(false);
+    expect(canKickDeadPreview(t + 60_000)).toBe(false);
+  });
+
+  it('se réarme après la fenêtre — un problème résolu ne doit pas bloquer à jamais', () => {
+    const t = 2_000_000;
+    canKickDeadPreview(t);
+    canKickDeadPreview(t + 1000);
+    expect(canKickDeadPreview(t + 2000)).toBe(false);
+
+    // au-delà de la fenêtre glissante de 5 min
+    expect(canKickDeadPreview(t + 5 * 60 * 1000 + 1)).toBe(true);
+  });
+
+  it('un refus ne consomme PAS de jeton', () => {
+    const t = 3_000_000;
+    canKickDeadPreview(t);
+    canKickDeadPreview(t);
+    expect(canKickDeadPreview(t)).toBe(false);
+    expect(canKickDeadPreview(t)).toBe(false);
+
+    // toujours exactement 2 consommés : la fenêtre s'ouvre pile après 5 min
+    expect(canKickDeadPreview(t + 5 * 60 * 1000 + 1)).toBe(true);
   });
 });

@@ -1,0 +1,85 @@
+diff --git a/docs/deploy-evidence/2026-07-21-wif-three-paths/repro.sh b/docs/deploy-evidence/2026-07-21-wif-three-paths/repro.sh
+index b4ddcdde..783236f6 100755
+--- a/docs/deploy-evidence/2026-07-21-wif-three-paths/repro.sh
++++ b/docs/deploy-evidence/2026-07-21-wif-three-paths/repro.sh
+@@ -7,8 +7,10 @@
+ #  (2) run GitHub suivi par NONCE EXACT (jamais « le plus récent ») ;
+ #  (3) négatif GKE = refus IAM PRÉCIS 401/403 + contenu de refus contrôlé
+ #      (000/404/5xx ne prouve RIEN → échec) ;
+-#  (4) trap de teardown installé DÈS la création du projet (aucune ressource
+-#      laissée en cas d'erreur intermédiaire) ;
++#  (4) trap de teardown ARMÉ *AVANT* `gcloud projects create` ET
++#      `gcloud billing projects link` (correction expert RR-20260723-CODEX-07) :
++#      si la liaison billing échoue sous set -e, le trap EXIT nettoie quand même
++#      le projet créé. Teardown idempotent ET SÛR si le projet n'existe pas encore.
+ #  (5) rejoue les 3 chemins et archive le nouveau run.
+ #
+ # Projet de TEST dédié (jamais la prod). Zéro clé de service. Coût cible ~0 $.
+@@ -47,35 +49,50 @@ Q(){ grep -vE "WARNING|Python 3|reinstall|CLOUDSDK|compatible Python|gcloud comp
+ fail(){ echo "ASSERTION FAILED: $*" | tee -a "$OUT/run.log"; exit 1; }
+ retry(){ local n=0 max="${RETRY_MAX:-8}"; until "$@"; do n=$((n+1)); [ "$n" -ge "$max" ] && return 1; sleep 12; done; }
+ 
+-# ---- 0. provisioning + TRAP TEARDOWN dès la 1re ressource ------------------
++# ---- 0. provisioning : TRAP TEARDOWN armé AVANT toute ressource facturable --
++# Correction expert RR-20260723-CODEX-07 : l'ID du projet est calculé D'ABORD,
++# puis le `trap teardown EXIT` est armé AVANT `gcloud projects create` ET AVANT
++# `gcloud billing projects link`. Ainsi, si la liaison billing échoue sous set -e
++# (le script sortirait immédiatement), le trap EXIT nettoie tout de même le projet
++# déjà créé → 0 ressource facturable résiduelle.
+ log "0. idempotence : projets ecode-wif-proof-* ACTIFS ?"
+ EXISTING=$(gcloud projects list --filter="projectId:ecode-wif-proof-* AND lifecycleState:ACTIVE" --format="value(projectId)" 2>/dev/null | Q | head -1 || true)
+-if [ -n "$EXISTING" ]; then PROJECT="$EXISTING"; log "  réutilise $PROJECT"; else
+-  PROJECT="ecode-wif-proof-$(date +%s | tail -c 7)"
+-  log "  crée $PROJECT sous folder $FOLDER"
+-  gcloud projects create "$PROJECT" --folder="$FOLDER" --name="ECode WIF Proof" 2>&1 | Q | tail -1
+-  gcloud billing projects link "$PROJECT" --billing-account="$BILLING" 2>&1 | Q | tail -1
++if [ -n "$EXISTING" ]; then PROJECT="$EXISTING"; PROJECT_PREEXISTING=1; else
++  PROJECT="ecode-wif-proof-$(date +%s | tail -c 7)"; PROJECT_PREEXISTING=0
+ fi
+ 
+-# TEARDOWN idempotent, installé MAINTENANT (dès que le projet existe) via trap EXIT :
+-# toute erreur intermédiaire (set -e / fail) déclenche le nettoyage → 0 ressource résiduelle.
++# TEARDOWN idempotent ET SÛR si le projet n'existe pas encore (garde
++# `gcloud projects describe` : rien à supprimer si le create n'a jamais eu lieu).
+ TEARDOWN_DONE=0
+ teardown(){
+   local rc=$?
+   [ "$TEARDOWN_DONE" = 1 ] && return; TEARDOWN_DONE=1
+   { echo "# TEARDOWN $(date -u +%FT%TZ) (exit rc=$rc)"
+-    gcloud container clusters delete "$CLUSTER" --project="$PROJECT" --zone="$ZONE" --quiet 2>&1 | Q | tail -1 || true
+-    gcloud run services delete wif-proof --project="$PROJECT" --region="$REGION" --quiet 2>&1 | Q | tail -1 || true
+-    gcloud artifacts repositories delete wif-proof --project="$PROJECT" --location="$REGION" --quiet 2>&1 | Q | tail -1 || true
+-    gcloud iam workload-identity-pools providers delete github --project="$PROJECT" --location=global --workload-identity-pool=github-pool --quiet 2>&1 | Q | tail -1 || true
+-    gcloud iam workload-identity-pools delete github-pool --project="$PROJECT" --location=global --quiet 2>&1 | Q | tail -1 || true
+-    for sa in wif-authorized wif-wrong; do gcloud iam service-accounts delete "${sa}@${PROJECT}.iam.gserviceaccount.com" --project="$PROJECT" --quiet 2>&1 | Q | tail -1 || true; done
+-    gcloud projects delete "$PROJECT" --quiet 2>&1 | Q | tail -2 || true
+-    echo "PROJECT_STATE=$(gcloud projects describe "$PROJECT" --format="value(lifecycleState)" 2>/dev/null | Q)"
++    if gcloud projects describe "$PROJECT" >/dev/null 2>&1; then
++      gcloud container clusters delete "$CLUSTER" --project="$PROJECT" --zone="$ZONE" --quiet 2>&1 | Q | tail -1 || true
++      gcloud run services delete wif-proof --project="$PROJECT" --region="$REGION" --quiet 2>&1 | Q | tail -1 || true
++      gcloud artifacts repositories delete wif-proof --project="$PROJECT" --location="$REGION" --quiet 2>&1 | Q | tail -1 || true
++      gcloud iam workload-identity-pools providers delete github --project="$PROJECT" --location=global --workload-identity-pool=github-pool --quiet 2>&1 | Q | tail -1 || true
++      gcloud iam workload-identity-pools delete github-pool --project="$PROJECT" --location=global --quiet 2>&1 | Q | tail -1 || true
++      for sa in wif-authorized wif-wrong; do gcloud iam service-accounts delete "${sa}@${PROJECT}.iam.gserviceaccount.com" --project="$PROJECT" --quiet 2>&1 | Q | tail -1 || true; done
++      gcloud projects delete "$PROJECT" --quiet 2>&1 | Q | tail -2 || true
++      echo "PROJECT_STATE=$(gcloud projects describe "$PROJECT" --format="value(lifecycleState)" 2>/dev/null | Q)"
++    else
++      echo "PROJECT_STATE=ABSENT (projet '$PROJECT' inexistant — rien à nettoyer, teardown sûr)"
++    fi
+   } | tee "$OUT/teardown-trace.txt"
+ }
+ trap teardown EXIT
+-log "  trap teardown INSTALLÉ (projet $PROJECT sera nettoyé quoi qu'il arrive)"
++log "  trap teardown ARMÉ AVANT create/billing (projet $PROJECT) — nettoyage garanti même si la liaison billing échoue"
++
++# Création + liaison billing APRÈS l'armement du trap : toute erreur ici est rattrapée.
++if [ "$PROJECT_PREEXISTING" = 1 ]; then
++  log "  réutilise $PROJECT (déjà ACTIF)"
++else
++  log "  crée $PROJECT sous folder $FOLDER"
++  gcloud projects create "$PROJECT" --folder="$FOLDER" --name="ECode WIF Proof" 2>&1 | Q | tail -1
++  gcloud billing projects link "$PROJECT" --billing-account="$BILLING" 2>&1 | Q | tail -1
++fi
+ 
+ PN=$(gcloud projects describe "$PROJECT" --format="value(projectNumber)" 2>/dev/null | Q)
+ BUCKET="${PROJECT}-secret-data"; AUTH_SA="wif-authorized@${PROJECT}.iam.gserviceaccount.com"; WRONG_SA="wif-wrong@${PROJECT}.iam.gserviceaccount.com"

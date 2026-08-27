@@ -31,6 +31,21 @@ export const platformMetricDefinitions: MetricDefinition[] = [
     buckets: defaultBuckets,
   },
   { name: 'workspace_failures_total', help: 'Workspace failures.', type: 'counter' },
+
+  /*
+   * Incremented by the api when a workspace start/restart reconciles the runtime
+   * back toward the persisted ide-state. It was being incremented WITHOUT being
+   * declared here: the registry throws on an unknown name, the throw landed in
+   * the reconciliation's catch, and every successful reseed was logged as
+   * « runtime reseed reconciliation failed ». Observed live on the audit env
+   * while chasing project-creation defects — a log that says the opposite of
+   * what happened is worse than no log at all.
+   */
+  {
+    name: 'workspace_runtime_reseed_total',
+    help: 'Workspace runtime reseeds reconciled from persisted ide-state, by reason.',
+    type: 'counter',
+  },
   {
     name: 'workspace_cold_start_pending_total',
     help: 'Workspace opens that returned "starting" while a cold start was still provisioning.',
@@ -102,12 +117,15 @@ export type HistogramSampleJson = {
   labels: Record<string, string>;
   count: number;
   sum: number;
+
   /** Cumulative bucket counts keyed by the upper bound (`le`). */
   buckets: Array<{ le: number; count: number }>;
+
   /** Estimated quantiles from bucket interpolation (undefined when no observations). */
   p50?: number;
   p95?: number;
   p99?: number;
+
   /** Arithmetic mean of observations (sum / count), undefined when no observations. */
   avg?: number;
 };
@@ -116,12 +134,16 @@ export type MetricJson = {
   name: string;
   help: string;
   type: MetricDefinition['type'];
+
   /** True when no sample has ever been recorded for this metric. */
   empty: boolean;
+
   /** Sum of all series values (counters/gauges) — a quick headline number. */
   total?: number;
+
   /** Per-label-set series for counters and gauges. */
   samples?: MetricSampleJson[];
+
   /** Per-label-set histogram series (histograms only). */
   histograms?: HistogramSampleJson[];
 };
@@ -142,6 +164,7 @@ function estimateQuantile(buckets: Array<{ le: number; count: number }>, total: 
   }
 
   const rank = quantile * total;
+
   let previousLe = 0;
   let previousCount = 0;
 
@@ -154,6 +177,7 @@ function estimateQuantile(buckets: Array<{ le: number; count: number }>, total: 
       }
 
       const fraction = (rank - previousCount) / bucketCount;
+
       return previousLe + (bucket.le - previousLe) * fraction;
     }
 
@@ -282,6 +306,7 @@ export class PrometheusRegistry {
           const buckets = [...histogram.buckets.entries()]
             .sort(([left], [right]) => left - right)
             .map(([le, count]) => ({ le, count }));
+
           // Include the implicit +Inf bucket (total count) for quantile math.
           const cumulative = [...buckets, { le: Number.POSITIVE_INFINITY, count: histogram.count }];
 

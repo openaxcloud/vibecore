@@ -1,8 +1,8 @@
+import { useTranslation } from 'react-i18next';
 import type { MetaFunction } from 'react-router';
 import { useActionData } from 'react-router';
 import { AppShell, LinkButton, TemplateGallery, templates } from '~/components/dashboard/SaaSLayout';
 import {
-  apiErrorMessage,
   apiRequest,
   firstOrganization,
   firstOrganizationOrNull,
@@ -13,29 +13,40 @@ import {
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
+import {
+  translateUserAreaMessage,
+  userAreaEn,
+  userAreaFr,
+  type UserAreaTranslationKey,
+} from '~/lib/i18n/catalogs/user-area';
+import { resolveRequestLocale } from '~/lib/i18n/request-locale';
 import { shouldRethrowActionError } from '~/lib/route-reauth';
 import { projectIdePath } from '~/utils/project-url';
 
-export const meta: MetaFunction = () => [{ title: 'Workspace templates - E-Code' }];
+export const meta: MetaFunction<typeof loader> = ({ data }) => [
+  { title: (data?.language === 'fr' ? userAreaFr : userAreaEn)['workspaceTemplates.metaTitle'] },
+];
 
 type Project = { id: string; slug?: string };
 
 export async function loader({ request }: EnterpriseLoaderArgs) {
+  const { language } = resolveRequestLocale(request);
   const organization = await firstOrganizationOrNull(request);
 
   if (!organization) {
     return redirect('/');
   }
 
-  return null;
+  return { language };
 }
 
 export async function action({ request }: EnterpriseActionArgs) {
+  const { language } = resolveRequestLocale(request);
   const body = formObject(await request.formData()) as { templateName?: string; name?: string };
   const selectedTemplate = templates.find((template) => template.id === body.templateName);
 
   if (!selectedTemplate) {
-    return { error: 'Template is not available in this workspace.' };
+    return { errorKey: 'workspaceTemplates.unavailable' as const };
   }
 
   const slug = `${selectedTemplate.id}-${Date.now().toString(36)}`;
@@ -49,7 +60,9 @@ export async function action({ request }: EnterpriseActionArgs) {
         name: body.name?.trim() || selectedTemplate.name,
         slug,
         templateName: selectedTemplate.id,
-        description: `${selectedTemplate.name} starter created from the private template gallery.`,
+        description: translateUserAreaMessage(language, 'workspaceTemplates.createdDescription', {
+          template: translateUserAreaMessage(language, selectedTemplate.nameKey),
+        }),
       }),
     });
 
@@ -69,10 +82,16 @@ export async function action({ request }: EnterpriseActionArgs) {
     }
 
     if (isApiResponse(error)) {
-      return json(
-        { error: await apiErrorMessage(error, 'Could not create a workspace from this template.') },
-        { status: error.status },
-      );
+      const errorKey =
+        error.status === 402 || error.status === 429
+          ? ('workspaceTemplates.quotaReached' as const)
+          : error.status === 400 || error.status === 422
+            ? ('workspaceTemplates.invalidRequest' as const)
+            : error.status === 409
+              ? ('workspaceTemplates.conflict' as const)
+              : ('workspaceTemplates.createFailed' as const);
+
+      return json({ errorKey }, { status: error.status });
     }
 
     throw error;
@@ -80,28 +99,35 @@ export async function action({ request }: EnterpriseActionArgs) {
 }
 
 export default function DashboardTemplatesPage() {
-  const actionData = useActionData<typeof action>() as { error?: string } | undefined;
+  const { t } = useTranslation();
+  const actionData = useActionData<typeof action>() as { errorKey?: UserAreaTranslationKey } | undefined;
 
   return (
     <AppShell
-      title="Templates"
-      description="Create production workspaces from curated starters with persistent files, runtime defaults and audit-visible project activity."
+      title={t('workspaceTemplates.title')}
+      description={t('workspaceTemplates.description')}
       actions={
         <>
           <LinkButton to="/import/empty" variant="outline">
-            Empty project
+            {t('workspaceTemplates.emptyProject')}
           </LinkButton>
           <LinkButton to="/import" variant="outline">
-            Import
+            {t('workspaceTemplates.import')}
           </LinkButton>
         </>
       }
     >
-      {actionData?.error ? (
-        <p className="mb-4 rounded-md border border-[var(--status-error-border)] bg-[var(--status-error-bg)] px-3 py-2 text-sm text-[var(--status-error-text)]">
-          {actionData.error}
+      {actionData?.errorKey ? (
+        <p
+          role="alert"
+          className="mb-4 rounded-md border border-[var(--status-error-border)] bg-[var(--status-error-bg)] px-3 py-2 text-sm text-[var(--status-error-text)]"
+        >
+          {t(actionData.errorKey)}
         </p>
       ) : null}
+      {/* BUG-USR-007: section landmark so heading order is h1→h2→h3 (template cards
+          are h3); sr-only keeps the visual design unchanged. */}
+      <h2 className="sr-only">{t('workspaceTemplates.listHeading')}</h2>
       <TemplateGallery mode="authenticated" />
     </AppShell>
   );

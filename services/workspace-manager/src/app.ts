@@ -4,6 +4,12 @@ import Fastify from 'fastify';
 import { z } from 'zod';
 import { runAppBuild } from './app-builds.js';
 import { WorkspaceManager } from './manager.js';
+import {
+  localizeWorkspaceManagerMessage,
+  workspaceManagerLocaleFromHeader,
+  workspaceManagerMessage,
+  workspaceManagerMessageKeyForEnglish,
+} from './public-i18n.js';
 import { runScheduledJob } from './scheduled-jobs.js';
 
 /*
@@ -164,7 +170,7 @@ function requirePreviewProxyAuth(request: { headers: Record<string, string | str
   const expected = normalizeSharedSecret(process.env.PREVIEW_PROXY_SHARED_SECRET);
 
   if (!expected) {
-    throw Object.assign(new Error('Preview proxy shared secret is not configured'), {
+    throw Object.assign(new Error(workspaceManagerMessage('previewProxyNotConfigured', 'en')), {
       statusCode: 503,
       code: 'PREVIEW_PROXY_NOT_CONFIGURED',
     });
@@ -175,7 +181,7 @@ function requirePreviewProxyAuth(request: { headers: Record<string, string | str
   const token = normalizeSharedSecret(value?.replace(/^Bearer\s+/i, ''));
 
   if (!token || !secretsMatch(token, expected)) {
-    throw Object.assign(new Error('Unauthorized preview proxy request'), {
+    throw Object.assign(new Error(workspaceManagerMessage('previewProxyUnauthorized', 'en')), {
       statusCode: 401,
       code: 'PREVIEW_PROXY_UNAUTHORIZED',
     });
@@ -223,6 +229,73 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
   const app = Fastify({ logger: false });
 
   app.addHook('onRequest', async (request, reply) => {
+    const locale = workspaceManagerLocaleFromHeader(request.headers['accept-language']);
+    reply.header('content-language', locale);
+    reply.header('vary', 'Accept-Language');
+  });
+
+  app.addHook('preSerialization', async (request, _reply, payload) => {
+    const locale = workspaceManagerLocaleFromHeader(request.headers['accept-language']);
+
+    const visit = (value: unknown, field?: string): unknown => {
+      if (typeof value === 'string') {
+        return field === 'error' || field === 'message' ? localizeWorkspaceManagerMessage(value, locale) : value;
+      }
+
+      if (Array.isArray(value)) {
+        return value.map((entry) => visit(entry));
+      }
+
+      if (!value || typeof value !== 'object') {
+        return value;
+      }
+
+      return Object.fromEntries(
+        Object.entries(value as Record<string, unknown>).map(([key, entry]) => [key, visit(entry, key)]),
+      );
+    };
+
+    return visit(payload);
+  });
+
+  app.setErrorHandler((error, request, reply) => {
+    const locale = workspaceManagerLocaleFromHeader(request.headers['accept-language']);
+
+    if (error instanceof z.ZodError) {
+      return reply.code(400).send({
+        statusCode: 400,
+        error: workspaceManagerMessage('validationFailed', locale),
+        message: workspaceManagerMessage('validationFailed', locale),
+        code: 'VALIDATION_ERROR',
+      });
+    }
+
+    const typed = error as Error & {
+      code?: string;
+      publicMessageKey?: Parameters<typeof workspaceManagerMessage>[0];
+      statusCode?: number;
+    };
+    const statusCode = typeof typed.statusCode === 'number' ? typed.statusCode : 500;
+    const exactKey = workspaceManagerMessageKeyForEnglish(typed.message);
+    const message = typed.publicMessageKey
+      ? workspaceManagerMessage(typed.publicMessageKey, locale)
+      : exactKey
+        ? workspaceManagerMessage(exactKey, locale)
+        : workspaceManagerMessage(statusCode >= 500 ? 'internalServerError' : 'requestFailed', locale);
+
+    if (statusCode >= 500) {
+      request.log.error({ err: error, code: typed.code }, 'workspace-manager request failed');
+    }
+
+    return reply.code(statusCode).send({
+      statusCode,
+      error: message,
+      message,
+      code: typed.code ?? 'WORKSPACE_MANAGER_ERROR',
+    });
+  });
+
+  app.addHook('onRequest', async (request, reply) => {
     if (request.url === '/health' || request.url.startsWith('/health?')) {
       return;
     }
@@ -245,7 +318,7 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
     if (!expected) {
       if (process.env.NODE_ENV === 'production') {
         return reply.code(503).send({
-          error: 'Workspace manager shared secret is not configured',
+          error: workspaceManagerMessage('managerNotConfigured', 'en'),
           code: 'WORKSPACE_MANAGER_NOT_CONFIGURED',
         });
       }
@@ -260,7 +333,7 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
     if (!token || !secretsMatch(token, expected)) {
       return reply
         .code(401)
-        .send({ error: 'Unauthorized workspace manager request', code: 'WORKSPACE_MANAGER_UNAUTHORIZED' });
+        .send({ error: workspaceManagerMessage('managerUnauthorized', 'en'), code: 'WORKSPACE_MANAGER_UNAUTHORIZED' });
     }
   });
 
@@ -322,7 +395,9 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
       return await manager.activateServerDeployment(runtimeNamespace(), (request.params as any).deploymentId);
     } catch (error) {
       if ((error as { code?: string })?.code === 'SERVER_DEPLOY_NOT_FOUND') {
-        return reply.code(404).send({ error: 'server deployment not found', code: 'SERVER_DEPLOY_NOT_FOUND' });
+        return reply
+          .code(404)
+          .send({ error: workspaceManagerMessage('serverDeploymentNotFound', 'en'), code: 'SERVER_DEPLOY_NOT_FOUND' });
       }
 
       throw error;
@@ -485,7 +560,9 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
       workspace.status === 'FAILED' ||
       workspace.status === 'STOPPED'
     ) {
-      return reply.code(404).send({ error: 'Workspace agent not found', code: 'WORKSPACE_AGENT_NOT_FOUND' });
+      return reply
+        .code(404)
+        .send({ error: workspaceManagerMessage('workspaceAgentNotFound', 'en'), code: 'WORKSPACE_AGENT_NOT_FOUND' });
     }
 
     /*
@@ -501,14 +578,18 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
 
     if (process.env.WORKSPACE_MANAGER_ENFORCE_PREVIEW_TENANT === 'true') {
       if (!requesterOrgId || requesterOrgId !== workspace.orgId) {
-        return reply.code(403).send({ error: 'Preview access denied', code: 'WORKSPACE_TENANT_FORBIDDEN' });
+        return reply
+          .code(403)
+          .send({ error: workspaceManagerMessage('previewAccessDenied', 'en'), code: 'WORKSPACE_TENANT_FORBIDDEN' });
       }
     } else if (requesterOrgId && requesterOrgId !== workspace.orgId) {
       /*
        * Enforcement off but a mismatching orgId was supplied — still deny; this
        * can only happen once preview-proxy is sending the cookie-derived org.
        */
-      return reply.code(403).send({ error: 'Preview access denied', code: 'WORKSPACE_TENANT_FORBIDDEN' });
+      return reply
+        .code(403)
+        .send({ error: workspaceManagerMessage('previewAccessDenied', 'en'), code: 'WORKSPACE_TENANT_FORBIDDEN' });
     }
 
     /*
@@ -548,7 +629,9 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
 
   const dbResourceGuard = (kind: string, namespace: string, reply: any): boolean => {
     if (namespace !== DB_ROLLBACK_NAMESPACE || !DB_ROLLBACK_KINDS.has(kind)) {
-      reply.code(403).send({ error: 'Database resource not permitted', code: 'DB_RESOURCE_FORBIDDEN' });
+      reply
+        .code(403)
+        .send({ error: workspaceManagerMessage('databaseResourceForbidden', 'en'), code: 'DB_RESOURCE_FORBIDDEN' });
 
       return false;
     }
@@ -576,9 +659,10 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
     }
 
     if (!/^postgresql\.cnpg\.io\//.test(manifest.apiVersion)) {
-      return reply
-        .code(403)
-        .send({ error: 'Only CloudNativePG resources are permitted', code: 'DB_RESOURCE_FORBIDDEN' });
+      return reply.code(403).send({
+        error: workspaceManagerMessage('databaseApiVersionForbidden', 'en'),
+        code: 'DB_RESOURCE_FORBIDDEN',
+      });
     }
 
     await manager.k8s.apply(manifest as any);
@@ -598,7 +682,9 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
     const resource = await manager.k8s.get(kind, namespace, name);
 
     if (!resource) {
-      return reply.code(404).send({ error: 'Not found', code: 'DB_RESOURCE_NOT_FOUND' });
+      return reply
+        .code(404)
+        .send({ error: workspaceManagerMessage('databaseResourceNotFound', 'en'), code: 'DB_RESOURCE_NOT_FOUND' });
     }
 
     return resource;
@@ -619,7 +705,9 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
      * reads to provision shared tenants. Never arbitrary secrets.
      */
     if (namespace !== DB_ROLLBACK_NAMESPACE || !/^(db-[a-z0-9-]+|shared-pg-[0-9]+)-(app|conn)$/.test(name)) {
-      return reply.code(403).send({ error: 'Secret not permitted', code: 'DB_SECRET_FORBIDDEN' });
+      return reply
+        .code(403)
+        .send({ error: workspaceManagerMessage('databaseSecretForbidden', 'en'), code: 'DB_SECRET_FORBIDDEN' });
     }
 
     const resource = (await manager.k8s.get('Secret', namespace, name)) as
@@ -627,7 +715,9 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
       | undefined;
 
     if (!resource?.data) {
-      return reply.code(404).send({ error: 'Not found', code: 'DB_SECRET_NOT_FOUND' });
+      return reply
+        .code(404)
+        .send({ error: workspaceManagerMessage('databaseSecretNotFound', 'en'), code: 'DB_SECRET_NOT_FOUND' });
     }
 
     const data = Object.fromEntries(

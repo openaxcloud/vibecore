@@ -1,6 +1,8 @@
 import { useStore } from '@nanostores/react';
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
+import { getSupabaseConnectionCopy } from '~/lib/i18n/catalogs/supabase-connection';
 import { logStore } from '~/lib/stores/logs';
 import {
   supabaseConnection,
@@ -11,8 +13,44 @@ import {
   fetchProjectApiKeys,
   initializeSupabaseConnection,
 } from '~/lib/stores/supabase';
+import type { SupabaseStats, SupabaseUser } from '~/types/supabase';
+
+interface SupabaseConnectionPayload {
+  user: SupabaseUser;
+  stats: SupabaseStats;
+}
+
+class SupabaseConnectionRequestError extends Error {
+  readonly statusCode: number | undefined;
+
+  constructor(statusCode?: number) {
+    super();
+    this.name = 'SupabaseConnectionRequestError';
+    this.statusCode = statusCode;
+  }
+}
+
+function isSupabaseConnectionPayload(value: unknown): value is SupabaseConnectionPayload {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  const candidate = value as Partial<SupabaseConnectionPayload>;
+
+  return Boolean(
+    candidate.user &&
+      typeof candidate.user === 'object' &&
+      candidate.stats &&
+      typeof candidate.stats === 'object' &&
+      Array.isArray(candidate.stats.projects) &&
+      typeof candidate.stats.totalProjects === 'number',
+  );
+}
 
 export function useSupabaseConnection() {
+  const { i18n } = useTranslation();
+  const language = i18n.resolvedLanguage ?? i18n.language ?? 'en';
+  const copy = getSupabaseConnectionCopy(language);
   const connection = useStore(supabaseConnection);
   const connecting = useStore(isConnecting);
   const fetchingStats = useStore(isFetchingStats);
@@ -47,9 +85,9 @@ export function useSupabaseConnection() {
           if (savedCredentials && !parsed.credentials) {
             parsed.credentials = JSON.parse(savedCredentials);
           }
-        } catch (error) {
+        } catch {
           // Corrupted cache (partial write / tampering) — drop it rather than crash init.
-          console.error('useSupabaseConnection: Failed to parse saved connection, clearing cache', error);
+          console.error('useSupabaseConnection: Failed to parse saved connection, clearing cache');
           localStorage.removeItem('supabase_connection');
           localStorage.removeItem('supabaseCredentials');
           parsed = null;
@@ -64,7 +102,9 @@ export function useSupabaseConnection() {
           }
 
           if (parsed.token && parsed.selectedProjectId && !parsed.credentials) {
-            fetchProjectApiKeys(parsed.selectedProjectId, parsed.token).catch(console.error);
+            fetchProjectApiKeys(parsed.selectedProjectId, parsed.token).catch(() => {
+              console.error('useSupabaseConnection: Failed to restore project API keys');
+            });
           }
         }
       }
@@ -89,10 +129,14 @@ export function useSupabaseConnection() {
         }),
       });
 
-      const data = (await response.json()) as any;
-
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to connect');
+        throw new SupabaseConnectionRequestError(response.status);
+      }
+
+      const data: unknown = await response.json();
+
+      if (!isSupabaseConnectionPayload(data)) {
+        throw new SupabaseConnectionRequestError(response.status);
       }
 
       updateSupabaseConnection({
@@ -101,15 +145,17 @@ export function useSupabaseConnection() {
         stats: data.stats,
       });
 
-      toast.success('Successfully connected to Supabase');
+      toast.success(copy['supabaseConnection.toast.connected']);
 
       setIsProjectsExpanded(true);
 
       return true;
     } catch (error) {
-      console.error('Connection error:', error);
-      logStore.logError('Failed to authenticate with Supabase', { error });
-      toast.error(error instanceof Error ? error.message : 'Failed to connect to Supabase');
+      const statusCode = error instanceof SupabaseConnectionRequestError ? error.statusCode : undefined;
+
+      console.error('Supabase connection request failed', { statusCode });
+      logStore.logError('Supabase authentication failed', undefined, { statusCode });
+      toast.error(copy['supabaseConnection.toast.connectFailed']);
       updateSupabaseConnection({ user: null, token: '' });
 
       return false;
@@ -120,7 +166,7 @@ export function useSupabaseConnection() {
 
   const handleDisconnect = () => {
     updateSupabaseConnection({ user: null, token: '' });
-    toast.success('Disconnected from Supabase');
+    toast.success(copy['supabaseConnection.toast.disconnected']);
     setIsDropdownOpen(false);
   };
 
@@ -141,13 +187,13 @@ export function useSupabaseConnection() {
     if (projectId && currentState.token) {
       try {
         await fetchProjectApiKeys(projectId, currentState.token);
-        toast.success('Project selected successfully');
-      } catch (error) {
-        console.error('Failed to fetch API keys:', error);
-        toast.error('Selected project but failed to fetch API keys');
+        toast.success(copy['supabaseConnection.toast.projectSelected']);
+      } catch {
+        console.error('Failed to fetch Supabase project API keys');
+        toast.error(copy['supabaseConnection.toast.projectKeysFailed']);
       }
     } else {
-      toast.success('Project selected successfully');
+      toast.success(copy['supabaseConnection.toast.projectSelected']);
     }
 
     setIsDropdownOpen(false);
@@ -177,7 +223,7 @@ export function useSupabaseConnection() {
         return fetchProjectApiKeys(projectId, connection.token);
       }
 
-      return Promise.reject(new Error('No token available'));
+      return Promise.reject(new Error(copy['supabaseConnection.error.noToken']));
     },
   };
 }

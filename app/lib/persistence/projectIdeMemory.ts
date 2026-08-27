@@ -1,5 +1,7 @@
 import type { Message } from 'ai';
 import type { IChatMetadata } from './db';
+import { pruneToBudget, writeWithinBudget } from './ide-memory-budget';
+import { formatPersistenceRuntimeCopy, getPersistenceRuntimeCopy } from '~/lib/i18n/catalogs/persistence-runtime';
 
 export type ProjectIdePanel = 'webview' | 'console' | 'network' | 'files';
 export type ProjectIdeWorkspacePanel =
@@ -432,10 +434,90 @@ function writeLocalProjectIdeMemory(scope: string, memory: ProjectIdeMemory) {
     return;
   }
 
+  /*
+   * Écriture SOUS BUDGET, et qui ne lève jamais.
+   *
+   * Un simple `try/catch` ne suffisait pas : il évitait la levée mais laissait le
+   * stockage saturé, donc TOUTES les écritures suivantes échouaient en silence et
+   * la mémoire IDE devenait inutile. `writeWithinBudget` fait de la place en
+   * évinçant les autres projets, puis retente une fois.
+   */
   try {
-    globalThis.localStorage.setItem(storageKeyForScope(scope), JSON.stringify(memory));
+    const key = storageKeyForScope(scope);
+
+    const outcome = writeWithinBudget(
+      globalThis.localStorage,
+      PROJECT_IDE_MEMORY_STORAGE_PREFIX,
+      key,
+      JSON.stringify(memory),
+    );
+
+    if (outcome !== 'written') {
+      console.warn('Project IDE memory write degraded', { scope, outcome });
+    }
   } catch (error) {
+    /*
+     * Filet de dernier recours. `writeWithinBudget` est écrit pour ne pas lever,
+     * mais cette écriture est appelée depuis la boucle de génération : une
+     * exception ici la casserait, et c'est précisément le défaut d'origine.
+     */
     console.error('Failed to write local project IDE memory', error);
+  }
+}
+
+/*
+ * Purge déclenchée au CHARGEMENT DU MODULE, côté navigateur uniquement.
+ *
+ * Placée ici et pas dans un composant : ce module est importé par tout ce qui lit
+ * la mémoire IDE, donc aucun appelant ne peut l'oublier. `localStorageAvailable()`
+ * la rend inerte au rendu serveur, et le drapeau la rend idempotente — un second
+ * import ne repurge pas.
+ */
+if (
+  typeof globalThis !== 'undefined' &&
+  typeof (globalThis as { localStorage?: unknown }).localStorage !== 'undefined'
+) {
+  queueMicrotask(() => {
+    pruneProjectIdeMemoryOnBoot();
+  });
+}
+
+/**
+ * Purge au démarrage : sans elle, un navigateur DÉJÀ saturé reste cassé jusqu'à
+ * une purge manuelle. C'est exactement ce qu'il a fallu faire à la main en
+ * production, sur un stockage arrivé à 10 Mo pour 64 projets.
+ *
+ * Idempotente et silencieuse : sous le budget, elle ne fait rien.
+ */
+let purgeFaite = false;
+
+export function pruneProjectIdeMemoryOnBoot(): string[] {
+  if (purgeFaite) {
+    return [];
+  }
+
+  purgeFaite = true;
+
+  return prunerMaintenant();
+}
+
+function prunerMaintenant(): string[] {
+  if (!localStorageAvailable()) {
+    return [];
+  }
+
+  try {
+    const evicted = pruneToBudget(globalThis.localStorage, PROJECT_IDE_MEMORY_STORAGE_PREFIX);
+
+    if (evicted.length > 0) {
+      console.warn(`Project IDE memory: evicted ${evicted.length} stale project entr(y|ies) to stay within budget`);
+    }
+
+    return evicted;
+  } catch (error) {
+    console.error('Project IDE memory prune skipped', error);
+
+    return [];
   }
 }
 
@@ -706,7 +788,7 @@ export async function getProjectIdeMemory(projectId: string, workspaceId?: strin
     }
 
     if (!response.ok) {
-      throw new Error(`Failed to load project IDE memory (${response.status})`);
+      throw Object.assign(new Error(), { code: 'PROJECT_IDE_MEMORY_LOAD_FAILED', status: response.status });
     }
 
     const payload = (await response.json()) as IdeStateEnvelope;
@@ -1009,15 +1091,33 @@ async function persistWithRetry(scope: string): Promise<void> {
           pendingDirty.set(scope, memoryForServerSave(merged, dirty));
         }
 
-        const conflictError = new Error('IDE state was modified by another session');
+        const conflictError = new Error(getPersistenceRuntimeCopy()['persistence.ide.concurrentChange']);
         (conflictError as { status?: number }).status = 412;
         lastError = conflictError;
+
+        /*
+         * Back off before re-PUTting the re-merged state. A `continue` here used to
+         * skip the delay at the loop tail, so a sustained conflict (the agent and the
+         * IDE both writing ide-state during generation) fired the whole retry budget
+         * as back-to-back PUTs in a few ms — worsening the race and exhausting the
+         * retries instantly. A short growing delay lets the other writer settle so the
+         * next attempt lands with a fresh version.
+         */
+        const conflictDelay = SAVE_RETRY_DELAYS_MS[attempt] ?? SAVE_RETRY_DELAYS_MS[SAVE_RETRY_DELAYS_MS.length - 1];
+
+        if (conflictDelay !== undefined) {
+          await new Promise((resolve) => setTimeout(resolve, Math.min(conflictDelay, 500)));
+        }
 
         continue;
       }
 
       if (!response.ok) {
-        const error = new Error(`Failed to save project IDE memory (${response.status})`);
+        const error = new Error(
+          formatPersistenceRuntimeCopy(getPersistenceRuntimeCopy()['persistence.ide.saveFailed'], {
+            status: String(response.status),
+          }),
+        );
         (error as { status?: number }).status = response.status;
 
         if (response.status >= 400 && response.status < 500 && response.status !== 408 && response.status !== 429) {
@@ -1060,5 +1160,19 @@ async function persistWithRetry(scope: string): Promise<void> {
     }
   }
 
-  throw lastError instanceof Error ? lastError : new Error('Failed to save project IDE memory');
+  /*
+   * Exhausted the retries on a persistent 412 conflict. The re-merged state is
+   * already durably held in localStorage + `pendingDirty`, so the next debounced
+   * flush (or the next reopen's reseed) will retry it against a fresh version. A
+   * transient version race is NOT a save failure the user must see — throwing it
+   * here surfaced as an IDE-breaking error toast / unhandled rejection. Return
+   * gracefully instead; genuine non-conflict failures still throw below.
+   */
+  if (lastError instanceof Error && (lastError as { status?: number }).status === 412) {
+    return;
+  }
+
+  throw lastError instanceof Error
+    ? lastError
+    : new Error(getPersistenceRuntimeCopy()['persistence.ide.saveFailedGeneric']);
 }

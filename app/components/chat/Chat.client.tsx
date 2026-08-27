@@ -7,6 +7,7 @@ import type { Message } from 'ai';
 import { useAnimate } from 'framer-motion';
 import Cookies from 'js-cookie';
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
 import {
   classifySend,
@@ -14,6 +15,8 @@ import {
   isStreamStalled,
   RESPONSE_COMPLETE_GRACE_MS,
 } from '~/lib/chat/composer-send-guard';
+import { formatClientAstResidualCopy, getClientAstResidualCopy } from '~/lib/i18n/catalogs/client-ast-residual';
+import { formatChatClientCopy, getChatClientCopy } from '~/lib/i18n/catalogs/chat-client';
 import { BaseChat } from './BaseChat';
 import type { ElementInfo } from '~/components/workbench/Inspector';
 import { useMessageParser, usePromptEnhancer, useShortcuts } from '~/lib/hooks';
@@ -281,6 +284,11 @@ export const ChatImpl = memo(
   }: ChatProps) => {
     useShortcuts();
 
+    const { i18n } = useTranslation();
+    const language = i18n.resolvedLanguage ?? i18n.language;
+    const copy = getChatClientCopy(language);
+    const astCopy = getClientAstResidualCopy(language);
+
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const [chatStarted, setChatStarted] = useState(initialMessages.length > 0);
     const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
@@ -491,18 +499,22 @@ export const ChatImpl = memo(
       const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}/ai/conversations`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ title: description?.trim() || 'Project agent' }),
+        body: JSON.stringify({ title: description?.trim() || copy['chatClient.project.agent'] }),
       });
 
       if (!response.ok) {
-        throw new Error(`AI conversation create failed (${response.status})`);
+        throw new Error(
+          formatClientAstResidualCopy(astCopy['clientAst.chat.technical.conversationCreate'], {
+            status: response.status,
+          }),
+        );
       }
 
       const payload = (await response.json()) as ProjectAiConversationResponse;
       const conversationId = payload.conversation?.id;
 
       if (!conversationId) {
-        throw new Error('AI conversation create response did not include an id');
+        throw Object.assign(new Error(), { code: 'CHAT_CONVERSATION_ID_MISSING' });
       }
 
       const nextMetadata = { ...(chatMetadata.get() ?? {}), aiConversationId: conversationId };
@@ -516,7 +528,7 @@ export const ChatImpl = memo(
       });
 
       return conversationId;
-    }, [description, projectId, projectIdeMode]);
+    }, [astCopy, copy, description, projectId, projectIdeMode]);
 
     const syncProjectAiTranscript = useCallback(
       async (nextMessages: Message[]) => {
@@ -549,13 +561,17 @@ export const ChatImpl = memo(
           );
 
           if (!response.ok) {
-            throw new Error(`AI transcript sync failed (${response.status})`);
+            throw new Error(
+              formatClientAstResidualCopy(astCopy['clientAst.chat.technical.transcriptSync'], {
+                status: response.status,
+              }),
+            );
           }
         } catch (error) {
           logStore.logError('Failed to sync project AI transcript', error);
         }
       },
-      [ensureProjectAiConversation, projectId, projectIdeMode],
+      [astCopy, ensureProjectAiConversation, projectId, projectIdeMode],
     );
 
     const persistMessageHistory = useCallback(
@@ -577,7 +593,8 @@ export const ChatImpl = memo(
 
         const savePromise = drainPendingSaves()
           .catch((error) => {
-            toast.error(error instanceof Error ? error.message : 'Failed to save chat history');
+            logger.error('Failed to save chat history', error);
+            toast.error(copy['chatClient.history.saveFailed']);
           })
           .finally(() => {
             persistInFlightRef.current = null;
@@ -591,7 +608,7 @@ export const ChatImpl = memo(
 
         return savePromise;
       },
-      [storeMessageHistory, syncProjectAiTranscript],
+      [copy, storeMessageHistory, syncProjectAiTranscript],
     );
 
     /*
@@ -833,7 +850,7 @@ export const ChatImpl = memo(
             stop();
             setFakeLoading(false);
             workbenchStore.abortAllActions();
-            toast.warning('The generation stalled and was stopped — you can send your message again.');
+            toast.warning(copy['chatClient.generation.stalled']);
           }
         }, 10_000);
       }
@@ -844,7 +861,7 @@ export const ChatImpl = memo(
           stallWatchdogRef.current = null;
         }
       };
-    }, [isLoading, stop]);
+    }, [copy, isLoading, stop]);
 
     // Mirror isLoading into a ref so the completion timer below reads the live value.
     useEffect(() => {
@@ -963,7 +980,11 @@ export const ChatImpl = memo(
         );
 
         if (!response.ok) {
-          throw new Error(`AI transcript load failed (${response.status})`);
+          throw new Error(
+            formatClientAstResidualCopy(astCopy['clientAst.chat.technical.transcriptLoad'], {
+              status: response.status,
+            }),
+          );
         }
 
         const payload = (await response.json()) as ProjectAiMessagesResponse;
@@ -1008,7 +1029,7 @@ export const ChatImpl = memo(
           return;
         }
 
-        toast.error('Could not load your conversation history.', {
+        toast.error(copy['chatClient.history.loadFailed'], {
           autoClose: false,
           onClick: () => {
             backendTranscriptRetryRef.current = 0;
@@ -1026,6 +1047,8 @@ export const ChatImpl = memo(
         }
       };
     }, [
+      astCopy,
+      copy,
       initialMessages.length,
       messages.length,
       projectId,
@@ -1097,7 +1120,7 @@ export const ChatImpl = memo(
         setFakeLoading(false);
 
         let errorInfo = {
-          message: 'An unexpected error occurred',
+          message: error instanceof Error ? error.message : '',
           isRetryable: true,
           statusCode: 500,
           provider: provider.name,
@@ -1120,7 +1143,7 @@ export const ChatImpl = memo(
         }
 
         let errorType: LlmErrorAlertType['errorType'] = 'unknown';
-        let title = 'Request Failed';
+        let title = copy['chatClient.error.title.request'];
 
         const lowerMessage = errorInfo.message.toLowerCase();
         const rawCode = (errorInfo as { code?: unknown }).code;
@@ -1128,7 +1151,7 @@ export const ChatImpl = memo(
 
         if (errorInfo.statusCode === 401 || lowerMessage.includes('api key')) {
           errorType = 'authentication';
-          title = 'Authentication Error';
+          title = copy['chatClient.error.title.authentication'];
         } else if (errorCode === 'QUOTA_EXCEEDED' || lowerMessage.includes('quota')) {
           /*
            * A plan/org quota exhaustion surfaces as a 429 too, but it is NOT a
@@ -1139,13 +1162,13 @@ export const ChatImpl = memo(
            * sends users chasing a non-existent provider outage.
            */
           errorType = 'quota';
-          title = 'Quota Exceeded';
+          title = copy['chatClient.error.title.quota'];
         } else if (errorInfo.statusCode === 429 || lowerMessage.includes('rate limit')) {
           errorType = 'rate_limit';
-          title = 'Rate Limit Exceeded';
+          title = copy['chatClient.error.title.rateLimit'];
         } else if (errorInfo.statusCode >= 500) {
           errorType = 'network';
-          title = 'Server Error';
+          title = copy['chatClient.error.title.server'];
         }
 
         logStore.logError(`${context} request failed`, error, {
@@ -1185,13 +1208,13 @@ export const ChatImpl = memo(
         setLlmErrorAlert({
           type: 'error',
           title,
-          description: errorInfo.message,
+          description: '',
           provider: provider.name,
           errorType,
         });
         setData([]);
       },
-      [provider.name, stop, reload],
+      [copy, provider.name, stop, reload],
     );
 
     const clearApiErrorAlert = useCallback(() => {
@@ -1432,12 +1455,7 @@ export const ChatImpl = memo(
           }
 
           if (pendingPrompt.aiFallback) {
-            toast.warn(
-              pendingPrompt.aiFallbackReason
-                ? `AI generation failed (${pendingPrompt.aiFallbackReason}). The project was created empty so you can keep your prompt and retry.`
-                : 'AI generation failed. The project was created empty so you can keep your prompt and retry.',
-              { autoClose: 8000 },
-            );
+            toast.warn(copy['chatClient.project.aiFallback'], { autoClose: 8000 });
           }
 
           runAnimation();
@@ -1465,7 +1483,7 @@ export const ChatImpl = memo(
       return () => {
         cancelled = true;
       };
-    }, [append, model, projectId, projectIdeMode, provider, runAnimation, filesHydrated]);
+    }, [append, copy, model, projectId, projectIdeMode, provider, runAnimation, filesHydrated]);
 
     useEffect(() => {
       const prompt = searchParams.get('prompt')?.trim();
@@ -1568,37 +1586,25 @@ export const ChatImpl = memo(
         return;
       }
 
-      const reason = searchParams.get('promptQueueError')?.trim();
-      toast.error(
-        reason
-          ? `Project created, but the initial prompt could not be queued (${reason}).`
-          : 'Project created, but the initial prompt could not be queued.',
-        { autoClose: 8000 },
-      );
+      toast.error(copy['chatClient.project.promptQueueFailed'], { autoClose: 8000 });
 
       const nextParams = new URLSearchParams(searchParams);
       nextParams.delete('promptQueueError');
       setSearchParams(nextParams, { replace: true });
-    }, [projectIdeMode, searchParams, setSearchParams]);
+    }, [copy, projectIdeMode, searchParams, setSearchParams]);
 
     useEffect(() => {
       if (!projectIdeMode || searchParams.get('aiFallback') !== 'true') {
         return;
       }
 
-      const reason = searchParams.get('aiFallbackReason')?.trim();
-      toast.warn(
-        reason
-          ? `AI generation failed (${reason}). The project was created empty so you can keep your prompt and retry.`
-          : 'AI generation failed. The project was created empty so you can keep your prompt and retry.',
-        { autoClose: 8000 },
-      );
+      toast.warn(copy['chatClient.project.aiFallback'], { autoClose: 8000 });
 
       const nextParams = new URLSearchParams(searchParams);
       nextParams.delete('aiFallback');
       nextParams.delete('aiFallbackReason');
       setSearchParams(nextParams, { replace: true });
-    }, [projectIdeMode, searchParams, setSearchParams]);
+    }, [copy, projectIdeMode, searchParams, setSearchParams]);
 
     // Helper function to create message parts array from text and images
     const createMessageParts = (text: string, images: string[] = []): Array<TextUIPart | FileUIPart> => {
@@ -1654,7 +1660,11 @@ export const ChatImpl = memo(
                * toast so the send still proceeds with the readable attachments.
                */
               reader.onerror = () => {
-                toast.error(`Could not read attachment "${file.name}". Sending without it.`);
+                toast.error(
+                  formatChatClientCopy(copy['chatClient.attachment.readFailed'], {
+                    name: file.name,
+                  }),
+                );
                 resolve(undefined);
               };
               reader.readAsDataURL(file);
@@ -1684,7 +1694,7 @@ export const ChatImpl = memo(
 
       if (sendDecision === 'stop-active') {
         abort();
-        toast.info('Stopped the current generation — send your message again.');
+        toast.info(copy['chatClient.generation.stopped']);
 
         return;
       }
@@ -1723,12 +1733,7 @@ export const ChatImpl = memo(
 
             if (sends >= 4) {
               window.localStorage.setItem(nudgeKey, new Date().toISOString());
-              toast.info(
-                'Still iterating? Power mode handles complex tasks in fewer turns — try it from the mode selector.',
-                {
-                  autoClose: 8000,
-                },
-              );
+              toast.info(copy['chatClient.generation.powerNudge'], { autoClose: 8000 });
             }
           }
         } catch {
@@ -1781,9 +1786,9 @@ export const ChatImpl = memo(
           if (template !== 'blank') {
             const temResp = await getTemplates(template, title).catch((e) => {
               if (e.message.includes('rate limit')) {
-                toast.warning('Rate limit exceeded. Skipping starter template\n Continuing with blank template');
+                toast.warning(copy['chatClient.starter.rateLimited']);
               } else {
-                toast.warning('Failed to import starter template\n Continuing with blank template');
+                toast.warning(copy['chatClient.starter.importFailed']);
               }
 
               return null;
@@ -1891,7 +1896,7 @@ export const ChatImpl = memo(
       chatStore.setKey('aborted', false);
 
       if (modifiedFiles !== undefined) {
-        const userUpdateArtifact = filesToArtifacts(modifiedFiles, `${Date.now()}`);
+        const userUpdateArtifact = filesToArtifacts(modifiedFiles, `${Date.now()}`, language);
         const messageText = `${userUpdateArtifact}${finalMessageContent}`;
 
         const attachmentOptions =
@@ -2162,14 +2167,17 @@ export const ChatImpl = memo(
                 void saveProjectIdeMemory(projectId, {
                   chat: {
                     id: `project:${projectId}`,
-                    description: description ?? 'Project agent',
+                    description: description ?? copy['chatClient.project.agent'],
                     messages: [],
                     clearMessages: true,
                     conversations: [
                       ...(memory.chat?.conversations ?? []),
                       {
                         id: conversationId,
-                        title: String(firstUserMessage?.content ?? 'Project conversation').slice(0, 96),
+                        title: String(firstUserMessage?.content ?? copy['chatClient.project.conversation']).slice(
+                          0,
+                          96,
+                        ),
                         messages: currentMessages,
                         createdAt: now,
                         updatedAt: now,
@@ -2200,9 +2208,10 @@ export const ChatImpl = memo(
           }
 
           pendingPersistRef.current = null;
-          persistMessageHistory([]).catch((error) =>
-            toast.error(error instanceof Error ? error.message : 'Failed to reset chat history'),
-          );
+          persistMessageHistory([]).catch((error) => {
+            logger.error('Failed to reset chat history', error);
+            toast.error(copy['chatClient.history.resetFailed']);
+          });
           setInput('');
           setData(undefined);
         }}

@@ -437,6 +437,8 @@ describe('Gallery remix — versioned license + consent + PII masking (P0-V3-05 
   const PII_EMAIL = 'jane.doe@realmail.example-corp.fr';
   const PII_PHONE = '+33 6 12 34 56 78';
   const PII_CARD = '4242 4242 4242 4242'; // Luhn-valid test number
+  const PII_IBAN = 'FR76 3000 6000 0112 3456 7890 189';
+  const PII_NAME = 'Jane Doe'; // réserve #2 : un NOM est une donnée personnelle
 
   async function setupLicensed(listingOverrides: Record<string, unknown> = {}) {
     const ctx = await seedGallery();
@@ -446,7 +448,7 @@ describe('Gallery remix — versioned license + consent + PII masking (P0-V3-05 
     const snapshotFiles: ProjectFile[] = [
       {
         path: 'seed/customers.csv',
-        content: `name,email,phone,card\nJane Doe,${PII_EMAIL},${PII_PHONE},${PII_CARD}\n`,
+        content: `name,email,phone,card,iban\n${PII_NAME},${PII_EMAIL},${PII_PHONE},${PII_CARD},${PII_IBAN}\n`,
         updatedAt: '',
       },
       { path: 'src/app.ts', content: 'export const CONTACT = "support@example.com";\n', updatedAt: '' },
@@ -560,7 +562,7 @@ describe('Gallery remix — versioned license + consent + PII masking (P0-V3-05 
     expect((jobAfter?.licenseSnapshot as { licenseId: string }).licenseId).toBe('MIT');
   });
 
-  it('MASKS PII in the clone (no author consent): email, phone, card gone; fixtures kept', async () => {
+  it('MASKS PII in the clone (no author consent): name, email, phone, card, iban gone; fixtures kept', async () => {
     const { app, store, projectStorage, remixerOrg } = await setupLicensed();
 
     const res = await app.inject({
@@ -575,19 +577,28 @@ describe('Gallery remix — versioned license + consent + PII masking (P0-V3-05 
     const cloneFiles = await projectStorage.listFiles(body.project.id);
     const allText = cloneFiles.map((f) => f.content).join('\n');
 
-    // THE PROOF: the person's data is nowhere in the clone.
-    expect(allText).not.toContain(PII_EMAIL);
-    expect(allText).not.toContain(PII_PHONE);
-    expect(allText).not.toContain(PII_CARD);
-    expect(allText).toContain('[PII:email masked on remix]');
-    expect(allText).toContain('[PII:phone masked on remix]');
-    expect(allText).toContain('[PII:card masked on remix]');
+    // NON-VACUITÉ : sans ça, un clone vide ferait passer toutes les négations.
+    expect(allText.length).toBeGreaterThan(0);
+
+    // THE PROOF: the person's data is nowhere in the clone — LES 5 CATÉGORIES.
+    // Le NOM (réserve #2) est inclus : avant ce lot, « Jane Doe » survivait.
+    for (const secret of [PII_NAME, PII_EMAIL, PII_PHONE, PII_CARD, PII_IBAN]) {
+      expect(allText, secret).not.toContain(secret);
+    }
+
+    for (const marker of ['name', 'email', 'phone', 'card', 'iban']) {
+      expect(allText, marker).toContain(`[PII:${marker} masked on remix]`);
+    }
+
+    // Aucun FRAGMENT résiduel : le dernier groupe de l'IBAN ne doit pas
+    // survivre au masquage (défaut vu en preuve live le 2026-08-04).
+    expect(allText).not.toContain('189');
 
     // RFC 2606 fixture addresses are NOT someone's data — kept.
     expect(allText).toContain('support@example.com');
 
     // The job records WHAT was masked (kind + location), never the value.
-    expect(body.remix.piiMaskedCount).toBeGreaterThanOrEqual(3);
+    expect(body.remix.piiMaskedCount).toBeGreaterThanOrEqual(5);
     const job = await store.getRemixJob(body.remix.remixJobId);
     expect(job?.piiMaskedCount).toBe(body.remix.piiMaskedCount);
     expect(JSON.stringify(job)).not.toContain(PII_EMAIL);
@@ -655,7 +666,7 @@ describe('POST /admin/gallery-listings — curator publish (no self-service)', (
     const archive = await projectStorage.createSnapshot({ projectId: source.id, files });
     const snapshot = await store.createSnapshot({ projectId: source.id, kind: 'manual', manifest: {}, storageKey: archive.storageKey });
 
-    return { app, store, source, snapshot };
+    return { app, store, source, snapshot, admin };
   }
 
   const listingBody = (source: string, snapshot: string) => ({
@@ -736,7 +747,7 @@ describe('Politique licence FAIL-CLOSED (directive 20/07)', () => {
     await projectStorage.writeFiles(source.id, files);
     const archive = await projectStorage.createSnapshot({ projectId: source.id, files });
     const snapshot = await store.createSnapshot({ projectId: source.id, kind: 'manual', manifest: {}, storageKey: archive.storageKey });
-    return { app, store, source, snapshot };
+    return { app, store, source, snapshot, admin };
   }
 
   it('un listing créé SANS choix explicite est NON-remixable par défaut', async () => {
@@ -803,5 +814,126 @@ describe('Politique licence FAIL-CLOSED (directive 20/07)', () => {
     });
     expect(res.statusCode).toBe(403);
     expect(res.json().code).toBe('REMIX_LICENSE_REQUIRED'); // aucun fallback, jamais
+  });
+
+  /* ── réserve #7 : la licence doit AUTORISER la dérivation ─────────────── */
+
+  it('curation : licence NON dérivable → 400 REMIX_LICENSE_NOT_DERIVATIVE', async () => {
+    const { app, source, snapshot } = await mkCurator();
+    const res = await app.inject({
+      method: 'POST',
+      url: '/admin/gallery-listings',
+      headers: auth('admin-token'),
+      payload: {
+        slug: 'nd-app', title: 'ND App', description: 'x', category: 'web',
+        sourceProjectId: source.id, sourceSnapshotId: snapshot.id, authorName: 'A',
+        remixAllowed: true,
+        // Le contre-exemple de l'audit : chaîne libre qui passait tous les gates.
+        licenseId: 'PROPRIETARY — NO DERIVATIVES', licenseText: 'All rights reserved…',
+        rightsConfirmed: true, piiPolicyAccepted: true,
+      },
+    });
+    expect(res.statusCode).toBe(400);
+    expect(res.json().code).toBe('REMIX_LICENSE_NOT_DERIVATIVE');
+  });
+
+  it('curation : CC-BY-ND (no-derivatives) refusée avec la raison typée', async () => {
+    const { app, source, snapshot } = await mkCurator();
+    const res = await app.inject({
+      method: 'POST', url: '/admin/gallery-listings', headers: auth('admin-token'),
+      payload: {
+        slug: 'ccnd-app', title: 'CC ND', description: 'x', category: 'web',
+        sourceProjectId: source.id, sourceSnapshotId: snapshot.id, authorName: 'A',
+        remixAllowed: true, licenseId: 'CC-BY-ND-4.0', licenseText: 'CC BY-ND…',
+        rightsConfirmed: true, piiPolicyAccepted: true,
+      },
+    });
+    expect(res.statusCode).toBe(400);
+    expect(res.json().reason).toBe('NOT_DERIVATIVE');
+  });
+
+  it('curation : licence dérivable acceptée ET normalisée en SPDX canonique', async () => {
+    const { app, source, snapshot } = await mkCurator();
+    const res = await app.inject({
+      method: 'POST', url: '/admin/gallery-listings', headers: auth('admin-token'),
+      payload: {
+        slug: 'ok-app', title: 'OK App', description: 'x', category: 'web',
+        sourceProjectId: source.id, sourceSnapshotId: snapshot.id, authorName: 'A',
+        remixAllowed: true, licenseId: 'apache 2.0', licenseText: 'Apache License…',
+        rightsConfirmed: true, piiPolicyAccepted: true,
+      },
+    });
+    expect(res.statusCode).toBe(201);
+    // La saisie brute « apache 2.0 » n'est JAMAIS persistée telle quelle.
+    expect(res.json().listing.licenseId).toBe('Apache-2.0');
+  });
+
+  it('défense en profondeur : listing hérité à licence non dérivable → remix 403', async () => {
+    const ctx = await seedGallery();
+    const { store, projectStorage, app } = ctx;
+    const project = await store.createProject({ organizationId: ctx.org.id, name: 'Legacy', slug: 'legacy' });
+    const files: ProjectFile[] = [{ path: 'a', content: '1', updatedAt: '' }];
+    await projectStorage.writeFiles(project.id, files);
+    const archive = await projectStorage.createSnapshot({ projectId: project.id, files });
+    const snapshot = await store.createSnapshot({ projectId: project.id, kind: 'manual', manifest: {}, storageKey: archive.storageKey });
+    // Écriture store directe : simule une ligne créée AVANT l'allowlist SPDX.
+    await store.createGalleryListing({
+      slug: 'legacy-nd', title: 'Legacy ND', description: 'x', category: 'web',
+      sourceProjectId: project.id, sourceSnapshotId: snapshot.id, authorName: 'A',
+      remixAllowed: true, licenseId: 'CC-BY-NC-ND-4.0', licenseText: 'x',
+      licenseTextSha256: 'a'.repeat(64),
+    });
+    const u = await store.createUser({ email: 'nd@example.com', name: 'Nd', passwordHash: hashPassword('password123') });
+    const o = await store.createOrganization({ name: 'NdO', slug: 'ndo', ownerUserId: u.id });
+    await store.createSession({ userId: u.id, token: 'nd-token', expiresAt: new Date(Date.now() + 3600_000) });
+
+    const res = await app.inject({
+      method: 'POST', url: '/gallery/legacy-nd/remix', headers: auth('nd-token'),
+      payload: { organizationId: o.id, acceptLicense: true },
+    });
+    expect(res.statusCode).toBe(403);
+    expect(res.json().code).toBe('REMIX_LICENSE_NOT_DERIVATIVE');
+  });
+
+  /* ── réserve #8 : trace auditable des confirmations ───────────────────── */
+
+  it('curation : rightsConfirmed / piiPolicyAccepted sont PERSISTÉS (horodatage + acteur)', async () => {
+    const { app, source, snapshot, store, admin } = await mkCurator();
+    const before = Date.now();
+    const res = await app.inject({
+      method: 'POST', url: '/admin/gallery-listings', headers: auth('admin-token'),
+      payload: {
+        slug: 'traced-app', title: 'Traced', description: 'x', category: 'web',
+        sourceProjectId: source.id, sourceSnapshotId: snapshot.id, authorName: 'A',
+        remixAllowed: true, licenseId: 'MIT', licenseText: 'MIT…',
+        rightsConfirmed: true, piiPolicyAccepted: true,
+      },
+    });
+    expect(res.statusCode).toBe(201);
+
+    // LA PREUVE : la confirmation est retrouvable en base, pas seulement validée.
+    const listing = await store.getGalleryListingBySlug('traced-app');
+    expect(listing?.rightsConfirmedAt).toBeInstanceOf(Date);
+    expect(listing?.piiPolicyAcceptedAt).toBeInstanceOf(Date);
+    expect(listing!.rightsConfirmedAt!.getTime()).toBeGreaterThanOrEqual(before - 1000);
+    // …et on sait QUI a confirmé.
+    expect(listing?.rightsConfirmedBy).toBe(admin.id);
+    expect(listing?.piiPolicyAcceptedBy).toBe(admin.id);
+  });
+
+  it('un listing non-remixable ne porte AUCUNE trace de confirmation', async () => {
+    const { app, source, snapshot, store } = await mkCurator();
+    await app.inject({
+      method: 'POST', url: '/admin/gallery-listings', headers: auth('admin-token'),
+      payload: {
+        slug: 'viewonly-app', title: 'View Only', description: 'x', category: 'web',
+        sourceProjectId: source.id, sourceSnapshotId: snapshot.id, authorName: 'A',
+      },
+    });
+
+    const listing = await store.getGalleryListingBySlug('viewonly-app');
+    expect(listing?.remixAllowed).toBe(false);
+    expect(listing?.rightsConfirmedAt).toBeUndefined();
+    expect(listing?.rightsConfirmedBy).toBeUndefined();
   });
 });

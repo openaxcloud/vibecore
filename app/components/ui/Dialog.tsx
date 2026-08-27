@@ -1,12 +1,21 @@
 import * as RadixDialog from '@radix-ui/react-dialog';
 import { motion, type Variants } from 'framer-motion';
-import React, { memo, type ReactNode, useRef, useState, useEffect } from 'react';
+import React, { memo, type ReactNode, useContext, useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { I18nContext } from 'react-i18next';
 import { FixedSizeList } from 'react-window';
 import { Button } from './Button';
 import { Checkbox } from './Checkbox';
 import { IconButton } from './IconButton';
 import { Label } from './Label';
 import { isAllSelected } from './selection-dialog-utils';
+import {
+  formatSearchDataSettingsNumber,
+  formatSearchDataSettingsPlural,
+  getDataSettingsCopy,
+  interpolateSearchDataSettingsCopy,
+  resolveSearchDataSettingsLanguage,
+} from '~/lib/i18n/catalogs/search-data-settings';
+import { detectUserLanguage } from '~/lib/i18n/language';
 import { classNames } from '~/utils/classNames';
 import { cubicEasingFn } from '~/utils/easings';
 
@@ -24,8 +33,15 @@ export const DialogButton = memo(({ type, children, onClick, disabled }: DialogB
     <button
       className={classNames(
         'inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-colors',
+
+        /*
+         * UNIF lot 5 : primary de dialog = la même famille surface-aware que
+         * ui/Button `primary` (`--vc-action-primary` → accent action bleu dans
+         * l'IDE, orange user area, accents auth/marketing). Hover = fond
+         * assombri (pas d'opacity, illisible sur certains fonds).
+         */
         type === 'primary'
-          ? 'bg-bolt-elements-item-contentAccent text-white hover:opacity-90'
+          ? 'bg-[var(--vc-action-primary)] text-[var(--vc-action-primary-foreground)] hover:bg-[var(--vc-action-primary-hover)]'
           : type === 'secondary'
             ? 'bg-transparent text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary'
             : 'bg-transparent text-bolt-elements-button-danger-text hover:bg-bolt-elements-button-danger-background',
@@ -41,7 +57,10 @@ export const DialogButton = memo(({ type, children, onClick, disabled }: DialogB
 export const DialogTitle = memo(({ className, children, ...props }: RadixDialog.DialogTitleProps) => {
   return (
     <RadixDialog.Title
-      className={classNames('text-lg font-medium text-bolt-elements-textPrimary flex items-center gap-2', className)}
+      className={classNames(
+        'flex min-w-0 items-center gap-2 break-words text-lg font-medium text-bolt-elements-textPrimary',
+        className,
+      )}
       {...props}
     >
       {children}
@@ -93,6 +112,31 @@ export const dialogVariants = {
   },
 } satisfies Variants;
 
+/**
+ * Dialogs also appear in isolated component tests and recovery boundaries that
+ * do not mount I18nextProvider. Reading the context directly avoids noisy
+ * NO_I18NEXT_INSTANCE warnings while still subscribing to live language
+ * changes whenever a provider is present.
+ */
+export function useDialogLanguage() {
+  const i18n = useContext(I18nContext)?.i18n;
+
+  return useSyncExternalStore(
+    (onStoreChange) => {
+      if (!i18n) {
+        return () => undefined;
+      }
+
+      const handleLanguageChanged = () => onStoreChange();
+      i18n.on('languageChanged', handleLanguageChanged);
+
+      return () => i18n.off('languageChanged', handleLanguageChanged);
+    },
+    () => resolveSearchDataSettingsLanguage(i18n?.resolvedLanguage ?? i18n?.language ?? detectUserLanguage()),
+    () => resolveSearchDataSettingsLanguage(i18n?.resolvedLanguage ?? i18n?.language ?? 'en'),
+  );
+}
+
 interface DialogProps {
   children: ReactNode;
   className?: string;
@@ -102,6 +146,9 @@ interface DialogProps {
 }
 
 export const Dialog = memo(({ children, className, showCloseButton = true, onClose, onBackdrop }: DialogProps) => {
+  const language = useDialogLanguage();
+  const sharedCopy = getDataSettingsCopy(language).sharedDialog;
+
   /*
    * Only dismiss on a genuine backdrop TAP, not a swipe/pan. On mobile, panning to
    * scroll the modal (or a stray horizontal drag) used to end on the overlay and
@@ -151,7 +198,7 @@ export const Dialog = memo(({ children, className, showCloseButton = true, onClo
               <RadixDialog.Close asChild>
                 <IconButton
                   icon="i-ph:x"
-                  title="Close"
+                  title={sharedCopy.close}
                   className="absolute top-3 right-3 h-9 w-9 text-bolt-elements-textTertiary hover:text-bolt-elements-textSecondary"
                   onClick={onClose}
                 />
@@ -223,39 +270,50 @@ export function ConfirmationDialog({
   onClose,
   title,
   description,
-  confirmLabel = 'Confirm',
-  cancelLabel = 'Cancel',
+  confirmLabel,
+  cancelLabel,
   variant = 'default',
   isLoading = false,
   onConfirm,
 }: ConfirmationDialogProps) {
+  const language = useDialogLanguage();
+  const sharedCopy = getDataSettingsCopy(language).sharedDialog;
+  const resolvedConfirmLabel = confirmLabel ?? sharedCopy.confirm;
+  const resolvedCancelLabel = cancelLabel ?? sharedCopy.cancel;
+
   return (
     <RadixDialog.Root open={isOpen} onOpenChange={onClose}>
       <Dialog showCloseButton={false}>
         <div className="p-6 bg-bolt-elements-background-depth-2 relative z-10">
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription className="mb-4">{description}</DialogDescription>
-          <div className="flex justify-end space-x-2">
-            <Button variant="outline" onClick={onClose} disabled={isLoading}>
-              {cancelLabel}
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button
+              variant="outline"
+              onClick={onClose}
+              disabled={isLoading}
+              className="!h-auto min-h-9 !whitespace-normal break-words py-2 text-center leading-tight"
+            >
+              {resolvedCancelLabel}
             </Button>
             <Button
               variant={variant}
               onClick={onConfirm}
               disabled={isLoading}
-              className={
+              className={classNames(
+                '!h-auto min-h-9 !whitespace-normal break-words py-2 text-center leading-tight',
                 variant === 'destructive'
                   ? 'bg-red-500 text-white hover:bg-red-600'
-                  : 'bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent hover:bg-bolt-elements-button-primary-backgroundHover'
-              }
+                  : 'bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent hover:bg-bolt-elements-button-primary-backgroundHover',
+              )}
             >
               {isLoading ? (
                 <>
                   <div className="i-ph-spinner-gap-bold animate-spin w-4 h-4 mr-2" />
-                  {confirmLabel}
+                  {resolvedConfirmLabel}
                 </>
               ) : (
-                confirmLabel
+                resolvedConfirmLabel
               )}
             </Button>
           </div>
@@ -323,9 +381,12 @@ export function SelectionDialog({
   isOpen,
   onClose,
   onConfirm,
-  confirmLabel = 'Confirm',
+  confirmLabel,
   maxHeight = '60vh',
 }: SelectionDialogProps) {
+  const language = useDialogLanguage();
+  const sharedCopy = getDataSettingsCopy(language).sharedDialog;
+  const resolvedConfirmLabel = confirmLabel ?? sharedCopy.confirm;
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
 
   /*
@@ -387,11 +448,11 @@ export function SelectionDialog({
           checked={selectedItems.includes(item.id)}
           onCheckedChange={() => handleToggleItem(item.id)}
         />
-        <div className="grid gap-1.5 leading-none">
+        <div className="grid min-w-0 gap-1.5 leading-none">
           <Label
             htmlFor={`item-${item.id}`}
             className={classNames(
-              'text-sm font-medium cursor-pointer',
+              'cursor-pointer break-words text-sm font-medium',
               selectedItems.includes(item.id)
                 ? 'text-bolt-elements-item-contentAccent'
                 : 'text-bolt-elements-textPrimary',
@@ -399,7 +460,9 @@ export function SelectionDialog({
           >
             {item.label}
           </Label>
-          {item.description && <p className="text-xs text-bolt-elements-textSecondary">{item.description}</p>}
+          {item.description && (
+            <p className="break-words text-xs text-bolt-elements-textSecondary">{item.description}</p>
+          )}
         </div>
       </div>
     );
@@ -410,23 +473,35 @@ export function SelectionDialog({
       <Dialog showCloseButton={false}>
         <div className="p-6 bg-bolt-elements-background-depth-2 relative z-10">
           <DialogTitle>{title}</DialogTitle>
-          <DialogDescription className="mt-2 mb-4">
-            Select the items you want to include and click{' '}
-            <span className="text-bolt-elements-item-contentAccent font-medium">{confirmLabel}</span>.
+          <DialogDescription className="mt-2 mb-4 break-words">
+            {interpolateSearchDataSettingsCopy(sharedCopy.selectionDescription, {
+              action: resolvedConfirmLabel,
+            })}
           </DialogDescription>
 
           <div className="py-4">
             <div className="flex items-center justify-between mb-4">
               <span className="text-sm font-medium text-bolt-elements-textSecondary">
-                {selectedItems.length} of {items.length} selected
+                {formatSearchDataSettingsPlural(
+                  language,
+                  selectedItems.length,
+                  {
+                    one: sharedCopy.selectionSummary_one,
+                    other: sharedCopy.selectionSummary_other,
+                  },
+                  {
+                    selected: formatSearchDataSettingsNumber(selectedItems.length, language),
+                    total: formatSearchDataSettingsNumber(items.length, language),
+                  },
+                )}
               </span>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={handleSelectAll}
-                className="text-xs h-8 px-2 text-bolt-elements-textPrimary hover:text-bolt-elements-item-contentAccent hover:bg-bolt-elements-item-backgroundAccent bg-bolt-elements-background-depth-2 dark:bg-transparent"
+                className="!h-auto min-h-8 !whitespace-normal break-words bg-bolt-elements-background-depth-2 px-2 py-2 text-center text-xs leading-tight text-bolt-elements-textPrimary hover:bg-bolt-elements-item-backgroundAccent hover:text-bolt-elements-item-contentAccent dark:bg-transparent"
               >
-                {allSelected ? 'Deselect All' : 'Select All'}
+                {allSelected ? sharedCopy.deselectAll : sharedCopy.selectAll}
               </Button>
             </div>
 
@@ -447,25 +522,27 @@ export function SelectionDialog({
                   {ItemRenderer}
                 </FixedSizeList>
               ) : (
-                <div className="text-center py-4 text-sm text-bolt-elements-textTertiary">No items to display</div>
+                <div className="py-4 text-center text-sm text-bolt-elements-textTertiary">{sharedCopy.noItems}</div>
               )}
             </div>
           </div>
 
-          <div className="flex justify-between mt-6">
+          <div className="mt-6 flex flex-wrap justify-between gap-2">
             <Button
               variant="outline"
               onClick={onClose}
-              className="border-bolt-elements-borderColor text-bolt-elements-textPrimary hover:bg-bolt-elements-item-backgroundActive"
+              className="!h-auto min-h-9 !whitespace-normal break-words border-bolt-elements-borderColor py-2 text-center leading-tight text-bolt-elements-textPrimary hover:bg-bolt-elements-item-backgroundActive"
             >
-              Cancel
+              {sharedCopy.cancel}
             </Button>
+            {/* UNIF lot 5 : primary canonique (variant) au lieu du legacy statique `bg-accent-500`. */}
             <Button
+              variant="primary"
               onClick={handleConfirm}
               disabled={selectedItems.length === 0}
-              className="bg-accent-500 text-white hover:bg-accent-600 disabled:opacity-50 disabled:pointer-events-none"
+              className="!h-auto min-h-9 !whitespace-normal break-words py-2 text-center leading-tight"
             >
-              {confirmLabel}
+              {resolvedConfirmLabel}
             </Button>
           </div>
         </div>

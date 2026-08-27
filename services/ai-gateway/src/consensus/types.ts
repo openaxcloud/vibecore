@@ -1,4 +1,5 @@
 import type { AgentRoleId, AgentRunResult } from '../agent-executor.js';
+import type { AiGatewayLocale } from '../public-i18n.js';
 
 export type ConsensusAlgorithm = 'QUORUM' | 'BYZANTINE_PBFT' | 'WEIGHTED_PLURALITY';
 
@@ -47,6 +48,7 @@ export interface ConsensusOutput {
 export interface ConsensusRunInput {
   results: AgentRunResult[];
   algorithm: ConsensusAlgorithm;
+  locale?: AiGatewayLocale;
   threshold?: number;
   roleWeights?: Partial<Record<AgentRoleId, number>>;
 }

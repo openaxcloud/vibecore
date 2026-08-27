@@ -1,0 +1,117 @@
+import { resolveMarketingLanguage } from './marketing';
+
+export const gitProviderConnectEn = {
+  'gitProvider.title': 'No remote connected yet',
+  'gitProvider.description': 'Connect a source-control provider here, or add a Git origin directly to this workspace.',
+  'gitProvider.providersAria': 'Connect Git remote providers',
+  'gitProvider.github.label': 'GitHub',
+  'gitProvider.github.description': 'Authorize E-Code to use your GitHub repositories from this workspace.',
+  'gitProvider.github.action': 'Connect GitHub',
+  'gitProvider.github.placeholder': 'https://github.com/acme/app.git',
+  'gitProvider.gitlab.label': 'GitLab',
+  'gitProvider.gitlab.description': 'Start the GitLab OAuth flow without leaving the Git panel.',
+  'gitProvider.gitlab.action': 'Connect GitLab',
+  'gitProvider.gitlab.placeholder': 'https://gitlab.com/acme/app.git',
+  'gitProvider.bitbucket.label': 'Bitbucket',
+  'gitProvider.bitbucket.description': 'Connect a Bitbucket account for hosted Git workflows.',
+  'gitProvider.bitbucket.action': 'Connect Bitbucket',
+  'gitProvider.bitbucket.placeholder': 'https://bitbucket.org/acme/app.git',
+  'gitProvider.custom.label': 'Custom remote',
+  'gitProvider.custom.description': 'Add any HTTPS or SSH Git origin that this workspace can access.',
+  'gitProvider.custom.action': 'Add remote URL',
+  'gitProvider.custom.placeholder': 'git@example.com:acme/app.git',
+  'gitProvider.cardAria': '{action} from the Git panel',
+  'gitProvider.waitingOauth': 'Waiting for OAuth…',
+  'gitProvider.connectedAs': 'Connected as {account}',
+  'gitProvider.connectedToast': '{provider} connected as {account}',
+  'gitProvider.connectionFailed': '{provider} connection failed.',
+  'gitProvider.oauthStartFailed': 'Unable to start the {provider} OAuth flow.',
+  'gitProvider.repoPicker.show': 'Choose from your GitHub repositories',
+  'gitProvider.repoPicker.hide': 'Hide your GitHub repositories',
+  'gitProvider.remote.dialogAria': 'Configure {provider}',
+  'gitProvider.remote.title': 'Configure {provider}',
+  'gitProvider.remote.description': 'This sets the workspace Git origin and stores the remote on the project.',
+  'gitProvider.remote.close': 'Close',
+  'gitProvider.remote.url': 'Remote URL',
+  'gitProvider.remote.defaultBranch': 'Default branch',
+  'gitProvider.remote.defaultBranchPlaceholder': 'main',
+  'gitProvider.remote.saving': 'Saving…',
+  'gitProvider.remote.save': 'Save remote',
+  'gitProvider.remote.savedToast': 'Git origin configured for {branch}',
+  'gitProvider.remote.saveFailed': 'Unable to configure this Git remote.',
+  'gitProvider.repositories.connectFirst': 'Connect GitHub above first to list your repositories.',
+  'gitProvider.repositories.loadFailed': 'Could not load your GitHub repositories.',
+  'gitProvider.repositories.search': 'Search your repositories',
+  'gitProvider.repositories.placeholder': 'owner/name',
+  'gitProvider.repositories.loading': 'Loading your repositories…',
+  'gitProvider.repositories.noMatch': 'No repositories match “{query}”.',
+  'gitProvider.repositories.private': 'private',
+  'gitProvider.repositories.connect': 'Connect',
+} as const;
+
+export type GitProviderConnectKey = keyof typeof gitProviderConnectEn;
+export type GitProviderConnectCopy = Readonly<Record<GitProviderConnectKey, string>>;
+
+export const gitProviderConnectFr: GitProviderConnectCopy = {
+  'gitProvider.title': 'Aucun dépôt distant connecté',
+  'gitProvider.description':
+    'Connectez un fournisseur de gestion de code source ou ajoutez directement une origine Git à cet espace de travail.',
+  'gitProvider.providersAria': 'Connecter des fournisseurs de dépôts Git distants',
+  'gitProvider.github.label': 'GitHub',
+  'gitProvider.github.description': 'Autorisez E-Code à utiliser vos dépôts GitHub depuis cet espace de travail.',
+  'gitProvider.github.action': 'Connecter GitHub',
+  'gitProvider.github.placeholder': 'https://github.com/acme/app.git',
+  'gitProvider.gitlab.label': 'GitLab',
+  'gitProvider.gitlab.description': 'Lancez le flux OAuth GitLab sans quitter le panneau Git.',
+  'gitProvider.gitlab.action': 'Connecter GitLab',
+  'gitProvider.gitlab.placeholder': 'https://gitlab.com/acme/app.git',
+  'gitProvider.bitbucket.label': 'Bitbucket',
+  'gitProvider.bitbucket.description': 'Connectez un compte Bitbucket pour vos workflows Git hébergés.',
+  'gitProvider.bitbucket.action': 'Connecter Bitbucket',
+  'gitProvider.bitbucket.placeholder': 'https://bitbucket.org/acme/app.git',
+  'gitProvider.custom.label': 'Dépôt distant personnalisé',
+  'gitProvider.custom.description': 'Ajoutez toute origine Git HTTPS ou SSH accessible depuis cet espace de travail.',
+  'gitProvider.custom.action': 'Ajouter l’URL distante',
+  'gitProvider.custom.placeholder': 'git@example.com:acme/app.git',
+  'gitProvider.cardAria': '{action} depuis le panneau Git',
+  'gitProvider.waitingOauth': 'En attente d’OAuth…',
+  'gitProvider.connectedAs': 'Connecté en tant que {account}',
+  'gitProvider.connectedToast': '{provider} connecté en tant que {account}',
+  'gitProvider.connectionFailed': 'Échec de la connexion à {provider}.',
+  'gitProvider.oauthStartFailed': 'Impossible de lancer le flux OAuth {provider}.',
+  'gitProvider.repoPicker.show': 'Choisir parmi vos dépôts GitHub',
+  'gitProvider.repoPicker.hide': 'Masquer vos dépôts GitHub',
+  'gitProvider.remote.dialogAria': 'Configurer {provider}',
+  'gitProvider.remote.title': 'Configurer {provider}',
+  'gitProvider.remote.description':
+    'Cette action définit l’origine Git de l’espace de travail et enregistre le dépôt distant dans le projet.',
+  'gitProvider.remote.close': 'Fermer',
+  'gitProvider.remote.url': 'URL distante',
+  'gitProvider.remote.defaultBranch': 'Branche par défaut',
+  'gitProvider.remote.defaultBranchPlaceholder': 'main',
+  'gitProvider.remote.saving': 'Enregistrement…',
+  'gitProvider.remote.save': 'Enregistrer le dépôt distant',
+  'gitProvider.remote.savedToast': 'Origine Git configurée pour la branche {branch}',
+  'gitProvider.remote.saveFailed': 'Impossible de configurer ce dépôt Git distant.',
+  'gitProvider.repositories.connectFirst': 'Connectez d’abord GitHub ci-dessus pour afficher la liste de vos dépôts.',
+  'gitProvider.repositories.loadFailed': 'Impossible de charger vos dépôts GitHub.',
+  'gitProvider.repositories.search': 'Rechercher dans vos dépôts',
+  'gitProvider.repositories.placeholder': 'propriétaire/nom',
+  'gitProvider.repositories.loading': 'Chargement de vos dépôts…',
+  'gitProvider.repositories.noMatch': 'Aucun dépôt ne correspond à « {query} ».',
+  'gitProvider.repositories.private': 'privé',
+  'gitProvider.repositories.connect': 'Connecter',
+};
+
+export function getGitProviderConnectCopy(language?: string | null): GitProviderConnectCopy {
+  return resolveMarketingLanguage(language) === 'fr' ? gitProviderConnectFr : gitProviderConnectEn;
+}
+
+export function formatGitProviderConnectCopy(
+  template: string,
+  values: Readonly<Record<string, string | number>> = {},
+): string {
+  return template.replace(/\{(\w+)\}/g, (match, key: string) =>
+    Object.prototype.hasOwnProperty.call(values, key) ? String(values[key]) : match,
+  );
+}

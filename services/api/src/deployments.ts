@@ -1,8 +1,12 @@
 import { spawn } from 'node:child_process';
-import { access, cp, mkdir, readFile, rm, stat } from 'node:fs/promises';
-import { join, resolve, sep } from 'node:path';
+import { createHash } from 'node:crypto';
+import { access, cp, mkdir, readdir, readFile, rm, stat } from 'node:fs/promises';
+import { join, relative, resolve, sep } from 'node:path';
 import { z } from 'zod';
+import { appPublicCopy, appPublicEnglish } from './app-public-copy.js';
+import { hashSnapshotEntries, type SnapshotEntry } from './release-manifest.js';
 import type { DeploymentRecord, ProjectRecord } from './store.js';
+import type { TransactionalLocale } from './transactional-i18n.js';
 
 export const deploymentProviders = [
   'static',
@@ -117,7 +121,10 @@ export function sanitizeDeploymentPath(path: string) {
   const normalized = path.replace(/\\/g, '/').replace(/^\/+/, '').replace(/\/+/g, '/');
 
   if (!normalized || normalized.includes('..') || normalized.startsWith('~')) {
-    throw Object.assign(new Error('Invalid deployment path'), { statusCode: 400, code: 'INVALID_DEPLOYMENT_PATH' });
+    throw Object.assign(new Error(appPublicEnglish('INVALID_DEPLOYMENT_PATH')), {
+      statusCode: 400,
+      code: 'INVALID_DEPLOYMENT_PATH',
+    });
   }
 
   return normalized;
@@ -169,6 +176,21 @@ const providerDisplayName: Record<(typeof deploymentProviders)[number], string> 
   docker: 'Docker',
 };
 
+function deploymentProviderDisplayName(
+  provider: (typeof deploymentProviders)[number],
+  locale: TransactionalLocale,
+): string {
+  if (provider === 'static') {
+    return appPublicCopy('DEPLOY_PROVIDER_STATIC', locale);
+  }
+
+  if (provider === 'server') {
+    return appPublicCopy('DEPLOY_PROVIDER_SERVER', locale);
+  }
+
+  return providerDisplayName[provider];
+}
+
 /**
  * Returns a client-facing error when a non-static provider has no deploy hook /
  * credentials configured, so the API can reject the request with an honest 400
@@ -183,6 +205,7 @@ const providerDisplayName: Record<(typeof deploymentProviders)[number], string> 
 export function deployProviderConfigError(
   provider: (typeof deploymentProviders)[number],
   env: NodeJS.ProcessEnv = process.env,
+  locale: TransactionalLocale = 'en',
 ): { error: string; message: string } | null {
   if (provider === 'static') {
     return null;
@@ -197,7 +220,10 @@ export function deployProviderConfigError(
 
   return {
     error: 'PROVIDER_NOT_CONFIGURED',
-    message: `Deploy to ${providerDisplayName[provider]} requires ${missing.join(', ')} to be configured. Contact your admin.`,
+    message: appPublicCopy('DEPLOY_PROVIDER_CONFIG_REQUIRED', locale, {
+      provider: deploymentProviderDisplayName(provider, locale),
+      missing: missing.join(', '),
+    }),
   };
 }
 
@@ -207,14 +233,14 @@ export function assertDeploymentRequestAllowed(
   env: NodeJS.ProcessEnv = process.env,
 ) {
   if (input.provider === 'docker' && planKey !== 'enterprise') {
-    throw Object.assign(new Error('Custom Dockerfile deployments require Enterprise plan'), {
+    throw Object.assign(new Error(appPublicEnglish('ENTERPRISE_DEPLOYMENT_REQUIRED')), {
       statusCode: 403,
       code: 'ENTERPRISE_DEPLOYMENT_REQUIRED',
     });
   }
 
   if (dangerousBuildPatterns.some((pattern) => pattern.test(input.buildCommand))) {
-    throw Object.assign(new Error('Build command is not allowed for user deployments'), {
+    throw Object.assign(new Error(appPublicEnglish('DEPLOYMENT_COMMAND_BLOCKED')), {
       statusCode: 400,
       code: 'DEPLOYMENT_COMMAND_BLOCKED',
     });
@@ -837,7 +863,7 @@ const SAFE_WORKSPACE_ID = /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/;
  */
 export function workspaceStorageDir(projectId: string, workspaceId: string) {
   if (!SAFE_WORKSPACE_ID.test(workspaceId)) {
-    throw Object.assign(new Error('Invalid workspaceId'), {
+    throw Object.assign(new Error(appPublicEnglish('INVALID_WORKSPACE_ID')), {
       statusCode: 400,
       code: 'INVALID_WORKSPACE_ID',
     });
@@ -1357,7 +1383,23 @@ export async function snapshotStaticBuild(deploymentId: string, outputDir: strin
 
   if (await pathExists(indexHtmlPath)) {
     const original = await readFile(indexHtmlPath, 'utf8');
-    const rewritten = rewriteHtmlAbsoluteUrls(original, `/static-deployments/${deploymentId}/`);
+
+    /*
+     * BUG-DEPLOY-LIVE. The prefix rewrite below only makes sense for the LEGACY
+     * path-based serving mode (`<api>/static-deployments/<id>/...`). When a
+     * dedicated origin exists (PREVIEW_DOMAIN set — i.e. production and every
+     * real deployment), the snapshot is served at the ROOT of
+     * `s-<id>.preview.<domain>`, so a rewritten `/static-deployments/<id>/assets/x.js`
+     * is looked up as a file INSIDE the snapshot and 404s
+     * (`STATIC_DEPLOY_FILE_NOT_FOUND`) — the document loads but every asset
+     * fails, leaving `<div id="root">` empty: a blank deployed app.
+     *
+     * The legacy path keeps working either way: that route 302-redirects to the
+     * dedicated origin whenever one exists, so the prefix is never needed there.
+     */
+    const rewritten = staticDeployDedicatedOrigin(deploymentId)
+      ? original
+      : rewriteHtmlAbsoluteUrls(original, `/static-deployments/${deploymentId}/`);
 
     if (rewritten !== original) {
       const { writeFile } = await import('node:fs/promises');
@@ -1439,6 +1481,103 @@ export async function removeStaticDeploymentSnapshot(deploymentId: string) {
   await rm(target, { recursive: true, force: true });
 }
 
+/** Recursively collect every regular file under `root` as a root-relative path. */
+async function walkFiles(root: string, dir: string, out: string[]): Promise<void> {
+  const entries = await readdir(dir, { withFileTypes: true });
+
+  for (const entry of entries) {
+    const child = join(dir, entry.name);
+
+    if (entry.isDirectory()) {
+      await walkFiles(root, child, out);
+    } else if (entry.isFile()) {
+      out.push(relative(root, child));
+    }
+  }
+}
+
+/**
+ * P0-V3-08: deterministic content digest of a static snapshot directory. Hashes
+ * every file's bytes, binds it to its relative path, and folds the sorted set into
+ * one `sha256:…` (see hashSnapshotEntries). This is the manifest's `artifactDigest`
+ * for static releases — recomputing it at rollback time and comparing proves the
+ * restored bytes are byte-identical to what was published (no blind rollback).
+ * Returns undefined if the directory is missing (nothing to hash).
+ */
+export async function computeStaticSnapshotDigest(deploymentId: string): Promise<string | undefined> {
+  const root = staticDeploymentSnapshotDir(deploymentId);
+
+  if (!(await pathExists(root))) {
+    return undefined;
+  }
+
+  const files: string[] = [];
+  await walkFiles(root, root, files);
+
+  const entries: SnapshotEntry[] = [];
+
+  for (const rel of files) {
+    const bytes = await readFile(join(root, rel));
+    entries.push({
+      // Normalise to forward slashes so the digest is stable across platforms.
+      path: rel.split(sep).join('/'),
+      sha256: createHash('sha256').update(bytes).digest('hex'),
+    });
+  }
+
+  return hashSnapshotEntries(entries);
+}
+
+/**
+ * Re-materialise a previous release's static snapshot into a NEW deployment's
+ * snapshot dir so the rollback serves the old bytes under its own id/URL. Copies
+ * from the retained source snapshot; throws SNAPSHOT_SOURCE_MISSING if the source
+ * bytes are gone (the caller turns that into a fail-closed 409 — never a rollback
+ * that serves an empty dir). Rewrites the index.html base path for the new id.
+ */
+export async function restoreStaticSnapshotInto(
+  fromDeploymentId: string,
+  toDeploymentId: string,
+): Promise<{ indexHtmlPath?: string }> {
+  const source = staticDeploymentSnapshotDir(fromDeploymentId);
+
+  if (!(await pathExists(source))) {
+    throw Object.assign(
+      new Error(appPublicEnglish('ROLLBACK_STATIC_SNAPSHOT_MISSING', { deploymentId: fromDeploymentId })),
+      {
+        statusCode: 409,
+        code: 'ROLLBACK_SNAPSHOT_SOURCE_MISSING',
+      },
+    );
+  }
+
+  const target = staticDeploymentSnapshotDir(toDeploymentId);
+  await rm(target, { recursive: true, force: true });
+  await mkdir(target, { recursive: true });
+  await cp(source, target, { recursive: true });
+
+  const indexHtmlPath = join(target, 'index.html');
+
+  if (await pathExists(indexHtmlPath)) {
+    const original = await readFile(indexHtmlPath, 'utf8');
+    // The source index.html was rewritten for the OLD id's base path; re-point it
+    // to the new id's base so assets resolve under /static-deployments/<newId>/.
+    const restored = original.replaceAll(
+      `/static-deployments/${fromDeploymentId}/`,
+      `/static-deployments/${toDeploymentId}/`,
+    );
+
+    if (restored !== original) {
+      const { writeFile } = await import('node:fs/promises');
+      await writeFile(indexHtmlPath, restored, 'utf8');
+    }
+
+    return { indexHtmlPath };
+  }
+
+  return {};
+}
+
 export function createDeploymentLogs(
   input: CreateDeploymentRequest,
   deployment: DeploymentRecord,
@@ -1483,15 +1622,33 @@ export function createDeploymentLogs(
   /*
    * Same lie for server deploys: readiness is logged by the pipeline when the
    * Deployment really answers, never at queue time.
+   *
+   * 2026-08-17: `static` had exactly the same problem and was still exempt. Its
+   * pipeline installs and builds inside the workspace pod AFTER queueing, so a
+   * deploy that then died on `npm install` had already announced
+   * "Déploiement ready: https://s-…/" in its own log — an address that serves
+   * nothing. Measured live on two consecutive failed deploys. A provider that
+   * still has work to do cannot report readiness up front.
    */
-  if (deployment.provider !== 'server') {
+  if (deployment.provider !== 'server' && deployment.provider !== 'static') {
     baseLogs.push(
       `Deployment ready: ${deployment.url ?? deployment.previewUrl ?? deployment.productionUrl ?? 'pending URL'}`,
     );
   }
 
+  /*
+   * Stamp the summary block with the QUEUE time, not "now". These lines describe
+   * what was decided when the deploy was queued, but they are persisted at the
+   * END of the pipeline — stamping them with the current clock pushed them past
+   * every real build line, so the Logs panel (which renders the array as stored)
+   * opened with the outcome and buried the build underneath it. Proven live
+   * 2026-08-06: "Deployment ready: …" at 14:42:44 listed above "[install] up to
+   * date" at 14:42:43.
+   */
+  const queuedAt = deployment.startedAt ?? deployment.createdAt ?? new Date().toISOString();
+
   return baseLogs.map((message) => ({
-    timestamp: new Date().toISOString(),
+    timestamp: queuedAt,
     level: 'info' as const,
     message: redactDeploymentLog(message, input.envVars),
   }));

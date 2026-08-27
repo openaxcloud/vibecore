@@ -1,5 +1,6 @@
 import { useStore } from '@nanostores/react';
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Panel, type ImperativePanelHandle } from 'react-resizable-panels';
 import { Terminal, type TerminalRef, type TerminalSearchResults } from './Terminal';
 import { TerminalManager } from './TerminalManager';
@@ -95,6 +96,7 @@ interface TerminalTabsProps {
 }
 
 export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: TerminalTabsProps) => {
+  const { t } = useTranslation();
   const showTerminal = useStore(workbenchStore.showTerminal);
   const theme = useStore(themeStore);
 
@@ -525,8 +527,8 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
                 className="bolt-terminal-session-button"
                 aria-haspopup="menu"
                 aria-expanded={sessionMenuOpen}
-                aria-label={`Open shell sessions. Active session ${activeSessionLabel}.`}
-                title="Shell sessions"
+                aria-label={t('terminalTabs.sessions.open', { session: activeSessionLabel })}
+                title={t('terminalTabs.sessions.title')}
                 onClick={() => {
                   setMoreMenuOpen(false);
                   setSessionMenuOpen((value) => !value);
@@ -536,7 +538,7 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
                 <span className="bolt-terminal-session-label">{activeSessionLabel}</span>
               </button>
               {sessionMenuOpen ? (
-                <div className="bolt-terminal-session-menu" role="menu" aria-label="Shell sessions">
+                <div className="bolt-terminal-session-menu" role="menu" aria-label={t('terminalTabs.sessions.title')}>
                   {Array.from({ length: terminalCount + 1 }, (_, index) => {
                     const isActive = activeTerminal === index;
                     const terminalLabel = getSessionLabel(index);
@@ -560,7 +562,7 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
                           <button
                             type="button"
                             className="bolt-terminal-session-close"
-                            aria-label={`Close ${terminalLabel}`}
+                            aria-label={t('terminalTabs.sessions.close', { label: terminalLabel })}
                             onClick={() => closeTerminal(index)}
                           >
                             <span className="i-ph:x" aria-hidden />
@@ -579,35 +581,37 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
                         role="menuitem"
                         onClick={addTerminal}
                         disabled={atShellLimit}
-                        title={atShellLimit ? `Maximum ${MAX_TERMINALS} shells` : undefined}
-                        data-vc-tooltip={atShellLimit ? `Maximum ${MAX_TERMINALS} shells` : undefined}
+                        title={atShellLimit ? t('terminalTabs.sessions.max', { max: MAX_TERMINALS }) : undefined}
+                        data-vc-tooltip={
+                          atShellLimit ? t('terminalTabs.sessions.max', { max: MAX_TERMINALS }) : undefined
+                        }
                       >
                         <span className="i-ph:plus" aria-hidden />
-                        <span>New Shell</span>
+                        <span>{t('terminalTabs.sessions.new')}</span>
                       </button>
                     );
                   })()}
                 </div>
               ) : null}
             </div>
-            <div className="bolt-terminal-primary-actions" aria-label="Shell actions">
+            <div className="bolt-terminal-primary-actions" aria-label={t('terminalTabs.actions.label')}>
               <button
                 type="button"
                 className="bolt-terminal-icon-button"
-                aria-label="Copy"
-                title="Copy selection or visible output"
+                aria-label={t('terminalTabs.copy.label')}
+                title={t('terminalTabs.copy.title')}
                 onClick={copyActiveTerminal}
               >
                 <span className={copied ? 'i-ph:check' : 'i-ph:copy'} aria-hidden />
               </button>
               <span className="sr-only" role="status" aria-live="polite">
-                {copied ? 'Copied to clipboard' : ''}
+                {copied ? t('terminalTabs.copy.copied') : ''}
               </span>
               <button
                 type="button"
                 className="bolt-terminal-icon-button"
-                aria-label="Find in Shell"
-                title={`Find in Shell (${FIND_SHORTCUT_HINT})`}
+                aria-label={t('terminalTabs.find.label')}
+                title={t('terminalTabs.find.titleShortcut', { shortcut: FIND_SHORTCUT_HINT })}
                 onClick={openSearch}
               >
                 <span className="i-ph:magnifying-glass" aria-hidden />
@@ -615,8 +619,8 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
               <button
                 type="button"
                 className="bolt-terminal-icon-button"
-                aria-label="Clear terminal"
-                title={`Clear terminal (${CLEAR_SHORTCUT_HINT})`}
+                aria-label={t('terminalTabs.clear.label')}
+                title={t('terminalTabs.clear.titleShortcut', { shortcut: CLEAR_SHORTCUT_HINT })}
                 onClick={clearActiveTerminal}
               >
                 <span className="i-ph:trash" aria-hidden />
@@ -627,8 +631,8 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
                   className="bolt-terminal-more-button"
                   aria-haspopup="menu"
                   aria-expanded={moreMenuOpen}
-                  aria-label="More Shell actions"
-                  title="More Shell actions"
+                  aria-label={t('terminalTabs.more.label')}
+                  title={t('terminalTabs.more.label')}
                   onClick={() => {
                     setSessionMenuOpen(false);
                     setMoreMenuOpen((value) => !value);
@@ -637,7 +641,7 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
                   <span className="i-ph:dots-three-vertical-bold" aria-hidden />
                 </button>
                 {moreMenuOpen ? (
-                  <div className="bolt-terminal-more-menu" role="menu" aria-label="More Shell actions">
+                  <div className="bolt-terminal-more-menu" role="menu" aria-label={t('terminalTabs.more.label')}>
                     <div className="bolt-terminal-menu-heading">
                       <span className="i-ph:terminal-window" aria-hidden />
                       <div>
@@ -655,7 +659,7 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
                       }}
                     >
                       <span className="i-ph:stop" aria-hidden />
-                      <span>Kill Shell</span>
+                      <span>{t('terminalTabs.menu.kill')}</span>
                     </button>
                     <button
                       type="button"
@@ -664,7 +668,7 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
                       onClick={copyActiveTerminal}
                     >
                       <span className="i-ph:copy" aria-hidden />
-                      <span>Copy output</span>
+                      <span>{t('terminalTabs.copy.output')}</span>
                     </button>
                     <button
                       type="button"
@@ -676,11 +680,11 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
                       }}
                     >
                       <span className="i-ph:trash" aria-hidden />
-                      <span>Clear terminal</span>
+                      <span>{t('terminalTabs.clear.label')}</span>
                     </button>
                     <button type="button" className="bolt-terminal-menu-item" role="menuitem" onClick={openSearch}>
                       <span className="i-ph:magnifying-glass" aria-hidden />
-                      <span>Find in Shell</span>
+                      <span>{t('terminalTabs.find.label')}</span>
                     </button>
                     <button
                       type="button"
@@ -692,7 +696,7 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
                       }}
                     >
                       <span className="i-ph:arrow-clockwise" aria-hidden />
-                      <span>Restart Shell</span>
+                      <span>{t('terminalTabs.menu.restart')}</span>
                     </button>
                     <button
                       type="button"
@@ -704,7 +708,7 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
                       }}
                     >
                       <span className="i-ph:columns" aria-hidden />
-                      <span>{splitView ? 'Single view' : 'Split view'}</span>
+                      <span>{splitView ? t('terminalTabs.view.single') : t('terminalTabs.view.split')}</span>
                     </button>
                     <button
                       type="button"
@@ -713,12 +717,12 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
                       onClick={closeActiveShellTab}
                     >
                       <span className="i-ph:x" aria-hidden />
-                      <span>Close tab</span>
+                      <span>{t('terminalTabs.tab.close')}</span>
                     </button>
                     <label className="bolt-terminal-profile-select">
-                      <span>Profile</span>
+                      <span>{t('terminalTabs.profile.label')}</span>
                       <select
-                        aria-label="Shell profile"
+                        aria-label={t('terminalTabs.profile.select')}
                         value={profile}
                         onChange={(event) => setProfile(event.target.value as TerminalProfile)}
                       >
@@ -731,15 +735,15 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
                     </label>
                     <div
                       className="bolt-terminal-runtime-meta"
-                      aria-label="Shell PTY size"
-                      title="Shell PTY size. Shows the current pseudo-terminal columns and rows."
+                      aria-label={t('terminalTabs.pty.label')}
+                      title={t('terminalTabs.pty.title')}
                     >
                       <span className="bolt-terminal-runtime-dot" aria-hidden />
-                      <span>PTY size</span>
+                      <span>{t('terminalTabs.pty.size')}</span>
                       <strong>
                         {terminalSize.cols > 0 && terminalSize.rows > 0
-                          ? `${terminalSize.cols}x${terminalSize.rows}`
-                          : 'Detecting'}
+                          ? t('terminalTabs.pty.dimensions', { cols: terminalSize.cols, rows: terminalSize.rows })
+                          : t('terminalTabs.pty.detecting')}
                       </strong>
                     </div>
                   </div>
@@ -748,8 +752,8 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
               <button
                 type="button"
                 className="bolt-terminal-icon-button"
-                aria-label="Close tab"
-                title="Close tab"
+                aria-label={t('terminalTabs.tab.close')}
+                title={t('terminalTabs.tab.close')}
                 onClick={closeActiveShellTab}
               >
                 <span className="i-ph:x" aria-hidden />
@@ -758,10 +762,10 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
           </div>
           <div className="bolt-terminal-content-frame">
             {searchOpen ? (
-              <div className="bolt-terminal-find-row" role="search" aria-label="Find in Shell">
+              <div className="bolt-terminal-find-row" role="search" aria-label={t('terminalTabs.find.label')}>
                 <input
                   ref={searchInputRef}
-                  aria-label="Find in Shell"
+                  aria-label={t('terminalTabs.find.label')}
                   value={searchQuery}
                   onChange={(event) => {
                     const value = event.target.value;
@@ -788,37 +792,40 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
                       event.currentTarget.select();
                     }
                   }}
-                  placeholder="Find"
+                  placeholder={t('terminalTabs.find.placeholder')}
                 />
                 {searchResults && searchQuery.trim() ? (
                   <span className="bolt-terminal-find-count" aria-live="polite">
                     {searchResults.resultCount === 0
-                      ? 'No results'
+                      ? t('terminalTabs.find.noResults')
                       : searchResults.resultIndex >= 0
-                        ? `${searchResults.resultIndex + 1} of ${searchResults.resultCount}`
-                        : `${searchResults.resultCount} matches`}
+                        ? t('terminalTabs.find.countOf', {
+                            index: searchResults.resultIndex + 1,
+                            count: searchResults.resultCount,
+                          })
+                        : t('terminalTabs.find.countMatches', { count: searchResults.resultCount })}
                   </span>
                 ) : null}
                 <button
                   type="button"
-                  aria-label="Next match"
-                  title="Next match (Enter)"
+                  aria-label={t('terminalTabs.find.next')}
+                  title={t('terminalTabs.find.nextTitle')}
                   onClick={() => findInActiveTerminal('next')}
                   disabled={!searchQuery.trim()}
                 >
-                  Next
+                  {t('terminalTabs.find.nextShort')}
                 </button>
                 <button
                   type="button"
-                  aria-label="Previous match"
-                  title="Previous match (Shift+Enter)"
+                  aria-label={t('terminalTabs.find.prev')}
+                  title={t('terminalTabs.find.prevTitle')}
                   onClick={() => findInActiveTerminal('previous')}
                   disabled={!searchQuery.trim()}
                 >
-                  Previous
+                  {t('terminalTabs.find.prevShort')}
                 </button>
-                <button type="button" title="Close find (Esc)" onClick={closeSearch}>
-                  Exit
+                <button type="button" title={t('terminalTabs.find.closeTitle')} onClick={closeSearch}>
+                  {t('terminalTabs.find.exit')}
                 </button>
               </div>
             ) : null}
@@ -886,7 +893,7 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
                           terminalProfiles.find((item) => item.id === paneProfileId) ?? terminalProfiles[0];
                         paneProfiles.current.set(index, paneProfileId);
                         terminal.write(buildConnectingNotice(paneProfileId));
-                        workbenchStore.attachTerminal(terminal, paneProfile.command);
+                        workbenchStore.attachTerminal(terminal, paneProfile.command, index);
                       }}
                       onTerminalResize={(cols, rows) => {
                         setTerminalSize({ cols, rows });

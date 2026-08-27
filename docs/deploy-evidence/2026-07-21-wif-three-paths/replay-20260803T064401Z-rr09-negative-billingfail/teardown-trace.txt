@@ -1,0 +1,12 @@
+# TEARDOWN 2026-08-03T06:44:14Z (exit rc=1)
+DESCRIBE_CLASSIFICATION=PRESENT:ACTIVE (rc=0)
+ - ResponseError: code=403, message=Kubernetes Engine API has not been used in project ecode-wif-proof-739444 before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/container.googleapis.com/overview?project=ecode-wif-proof-739444 then retry. If you enabled this API recently, wait a few minutes for the action to propagate to our systems and retry. This command is authenticated as groupequaliwatt@gmail.com which is the active account specified by the [core/account] property.
+  reason: SERVICE_DISABLED
+  reason: SERVICE_DISABLED
+  reason: IAM_PERMISSION_DENIED
+  reason: IAM_PERMISSION_DENIED
+ERROR: (gcloud.iam.service-accounts.delete) NOT_FOUND: Unknown service account. This command is authenticated as groupequaliwatt@gmail.com which is the active account specified by the [core/account] property
+ERROR: (gcloud.iam.service-accounts.delete) NOT_FOUND: Unknown service account. This command is authenticated as groupequaliwatt@gmail.com which is the active account specified by the [core/account] property
+PROJECT_DELETE_ATTEMPT=ok
+PROJECT_STATE=DELETE_REQUESTED
+CLEANUP_RECEIPT=OK

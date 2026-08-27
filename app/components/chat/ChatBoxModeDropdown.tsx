@@ -1,4 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { formatChatBoxChildrenCopy, getChatBoxChildrenCopy } from '~/lib/i18n/catalogs/chat-box-children';
 import { classNames } from '~/utils/classNames';
 
 export type ComposerMode = 'agent' | 'assistant';
@@ -24,28 +26,31 @@ interface ModeOption {
  *   Agent     → runs the task end to end, autonomously.
  *   Assistant → answers and proposes scoped edits, waits for your go.
  */
-const MODE_OPTIONS: readonly ModeOption[] = [
-  {
-    id: 'agent',
-    label: 'Agent',
-    description: 'Runs the task end to end, autonomously.',
-    icon: 'i-ph:robot',
-  },
-  {
-    id: 'assistant',
-    label: 'Assistant',
-    description: 'Answers and suggests scoped edits, waits for your go.',
-    icon: 'i-ph:chat-circle-text',
-  },
-];
-
 export function ChatBoxModeDropdown({ agentMode, setAgentMode, disabled }: ChatBoxModeDropdownProps) {
+  const { i18n } = useTranslation();
+  const copy = getChatBoxChildrenCopy(i18n.resolvedLanguage ?? i18n.language);
+
+  const modeOptions: readonly ModeOption[] = [
+    {
+      id: 'agent',
+      label: copy['chatBoxChildren.mode.agent.label'],
+      description: copy['chatBoxChildren.mode.agent.description'],
+      icon: 'i-ph:robot',
+    },
+    {
+      id: 'assistant',
+      label: copy['chatBoxChildren.mode.assistant.label'],
+      description: copy['chatBoxChildren.mode.assistant.description'],
+      icon: 'i-ph:chat-circle-text',
+    },
+  ];
+
   const [open, setOpen] = useState(false);
   const anchorRef = useRef<HTMLDivElement>(null);
   const menuId = useId();
 
   const current: ComposerMode = agentMode === 'assistant' ? 'assistant' : 'agent';
-  const currentOption = MODE_OPTIONS.find((option) => option.id === current) ?? MODE_OPTIONS[0];
+  const currentOption = modeOptions.find((option) => option.id === current) ?? modeOptions[0];
 
   useEffect(() => {
     if (!open) {
@@ -88,17 +93,25 @@ export function ChatBoxModeDropdown({ agentMode, setAgentMode, disabled }: ChatB
         aria-expanded={open}
         aria-controls={menuId}
         disabled={disabled}
-        title={`Mode: ${currentOption.label} — ${currentOption.description}`}
+        title={formatChatBoxChildrenCopy(copy['chatBoxChildren.mode.triggerTitle'], {
+          label: currentOption.label,
+          description: currentOption.description,
+        })}
         onClick={() => setOpen((value) => !value)}
       >
         <span className={classNames(currentOption.icon, 'bolt-chatbox-mode-trigger-icon')} aria-hidden />
-        <span className="bolt-chatbox-mode-trigger-label">{currentOption.label}</span>
+        <span className="bolt-chatbox-mode-trigger-label min-w-0 break-words">{currentOption.label}</span>
         <span className="i-ph:caret-up text-xs" aria-hidden />
       </button>
 
       {open ? (
-        <div id={menuId} className="bolt-chatbox-mode-menu" role="menu" aria-label="Agent mode">
-          {MODE_OPTIONS.map((option) => {
+        <div
+          id={menuId}
+          className="bolt-chatbox-mode-menu overflow-x-hidden"
+          role="menu"
+          aria-label={copy['chatBoxChildren.mode.menuAria']}
+        >
+          {modeOptions.map((option) => {
             const active = option.id === current;
 
             return (
@@ -112,9 +125,9 @@ export function ChatBoxModeDropdown({ agentMode, setAgentMode, disabled }: ChatB
                 onClick={() => selectMode(option.id)}
               >
                 <span className={classNames(option.icon, 'bolt-chatbox-mode-menu-item-icon')} aria-hidden />
-                <span className="bolt-chatbox-mode-menu-item-body">
-                  <span className="bolt-chatbox-mode-menu-item-label">{option.label}</span>
-                  <span className="bolt-chatbox-mode-menu-item-desc">{option.description}</span>
+                <span className="bolt-chatbox-mode-menu-item-body break-words">
+                  <span className="bolt-chatbox-mode-menu-item-label break-words">{option.label}</span>
+                  <span className="bolt-chatbox-mode-menu-item-desc break-words">{option.description}</span>
                 </span>
                 {active ? <span className="i-ph:check bolt-chatbox-mode-menu-item-check" aria-hidden /> : null}
               </button>

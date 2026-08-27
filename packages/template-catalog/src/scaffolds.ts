@@ -1,6 +1,8 @@
 import type { GalleryDemoAppFile } from './types.js';
+import { docsCopilotFiles } from './apps/docs-copilot.js';
 import { fieldServiceInspectorFiles } from './apps/field-service-inspector.js';
 import { incidentPostmortemExplainerFiles } from './apps/incident-postmortem-explainer.js';
+import { neonTriviaArenaFiles } from './apps/neon-trivia-arena.js';
 import { pipelineCrmFiles } from './apps/pipeline-crm.js';
 import { qbrGeneratorFiles } from './apps/qbr-generator.js';
 import { revenueCohortExplorerFiles } from './apps/revenue-cohort-explorer.js';
@@ -485,6 +487,8 @@ const fieldServiceFiles: readonly GalleryDemoAppFile[] = Object.freeze([
 ]);
 
 export const GALLERY_DEMO_APP_FILES = Object.freeze({
+  'docs-copilot': docsCopilotFiles,
+  'neon-trivia-arena': neonTriviaArenaFiles,
   'vendor-risk-review': vendorRiskReviewFiles,
   'field-service-inspector': fieldServiceInspectorFiles,
   'revenue-cohort-explorer': revenueCohortExplorerFiles,

@@ -1,0 +1,432 @@
+{
+  "en": {
+    "statusServices": {
+      "editor": {
+        "name": "E-Code Editor",
+        "description": "Core IDE and code editing services"
+      },
+      "ai-agent": {
+        "name": "AI Agent",
+        "description": "Autonomous builder and assistant"
+      },
+      "deployments": {
+        "name": "Hosting & Deployments",
+        "description": "Application hosting and deployment pipeline"
+      },
+      "database": {
+        "name": "Database Services",
+        "description": "Managed persistence, metadata and project state"
+      },
+      "collaboration": {
+        "name": "Collaboration",
+        "description": "Realtime team presence and multiplayer editing"
+      },
+      "api": {
+        "name": "API Services",
+        "description": "Public and workspace API surface"
+      }
+    },
+    "about": {
+      "values": {
+        "innovation": {
+          "title": "Innovation",
+          "description": "We push the boundaries of AI-assisted software delivery."
+        },
+        "collaboration": {
+          "title": "Collaboration",
+          "description": "Building production software is a team workflow."
+        },
+        "security": {
+          "title": "Security",
+          "description": "Enterprise-grade protection for code, data and deployments."
+        },
+        "focus": {
+          "title": "Focus",
+          "description": "A direct path from idea to running application."
+        }
+      },
+      "milestones": {
+        "2024": "E-Code founded with a mission to make production app creation faster.",
+        "2025": "Enterprise AI coding workflows expanded across web, mobile and teams.",
+        "2026": "E-Code integrates the E-Code public experience with real workspace templates."
+      },
+      "team": {
+        "team": {
+          "name": "E-Code Team",
+          "role": "Product Engineering"
+        },
+        "platform": {
+          "name": "E-Code Platform",
+          "role": "Workspace Runtime"
+        }
+      },
+      "stats": {
+        "templates": {
+          "label": "Templates",
+          "description": "Production starters available from the E-Code catalog."
+        },
+        "surfaces": {
+          "label": "Surfaces",
+          "description": "Public E-Code routes available in the imported shell."
+        },
+        "security": {
+          "label": "Security",
+          "description": "Status, abuse and compliance pages exposed publicly."
+        }
+      }
+    },
+    "polyglotCapabilities": {
+      "typescript": [
+        "User authentication and session management",
+        "REST API endpoints",
+        "Project management",
+        "File operations",
+        "Realtime WebSocket coordination"
+      ],
+      "pythonMl": [
+        "AI-powered code analysis",
+        "Retrieval and ranking workflows",
+        "Data processing jobs",
+        "Model-assisted suggestions"
+      ]
+    },
+    "marketplace": {
+      "extensions": {
+        "1": {
+          "description": "Code formatter using Prettier for consistent style",
+          "price": "Free"
+        },
+        "2": {
+          "description": "Find and fix problems in JavaScript and TypeScript code",
+          "price": "Free"
+        },
+        "3": {
+          "description": "Tailwind CSS class autocomplete and highlighting",
+          "price": "Free"
+        },
+        "4": {
+          "description": "Workspace helpers for agent orchestration, previews and deployments",
+          "price": "Free"
+        }
+      },
+      "publisherDescription": "Official E-Code workspace templates and E-Code shell adapters."
+    },
+    "community": {
+      "categories": {
+        "showcase": "Showcase",
+        "tutorials": "Tutorials",
+        "challenges": "Challenges",
+        "discussion": "Discussion"
+      },
+      "postTitle": "{name} template showcase",
+      "postNotFound": "Post not found",
+      "challenges": {
+        "ai-agent-starter": {
+          "title": "Ship an AI agent starter",
+          "description": "Build from the official AI agent template and share the production workflow."
+        },
+        "mobile-workspace": {
+          "title": "Mobile workspace build",
+          "description": "Adapt an Expo starter into a complete mobile workspace flow."
+        }
+      }
+    },
+    "templates": {
+      "react-saas": {
+        "name": "React SaaS",
+        "description": "Production SaaS starter with React, Vite, TypeScript, authenticated dashboard surfaces and deploy-ready structure."
+      },
+      "next-dashboard": {
+        "name": "Next dashboard",
+        "description": "Full-stack dashboard starter with Next.js, Prisma, Tailwind CSS and database-backed operational screens."
+      },
+      "fastify-api": {
+        "name": "Fastify API",
+        "description": "Backend service starter with Node.js, Fastify, PostgreSQL-style persistence boundaries and production API conventions."
+      },
+      "ai-agent": {
+        "name": "AI agent",
+        "description": "Agent runtime starter with tool orchestration, streaming events, provider routing and IDE integration points."
+      },
+      "landing-page": {
+        "name": "Landing page",
+        "description": "Responsive marketing starter for conversion pages, polished content sections and production-ready routing."
+      },
+      "mobile-starter": {
+        "name": "Mobile starter",
+        "description": "Mobile app starter with Expo, React and TypeScript for shared frontend packages and device-first flows."
+      },
+      "expo-app": {
+        "name": "Expo App",
+        "description": "Expo starter template for building cross-platform mobile apps"
+      },
+      "basic-astro": {
+        "name": "Astro Basic",
+        "description": "Lightweight Astro starter template for building fast static websites"
+      },
+      "nextjs-shadcn": {
+        "name": "Next.js with shadcn/ui",
+        "description": "Next.js starter fullstack template integrated with shadcn/ui components and styling system"
+      },
+      "vite-shadcn": {
+        "name": "Vite with shadcn/ui",
+        "description": "Vite starter fullstack template integrated with shadcn/ui components and styling system"
+      },
+      "qwik-typescript": {
+        "name": "Qwik TypeScript",
+        "description": "Qwik framework starter with TypeScript for building resumable applications"
+      },
+      "remix-typescript": {
+        "name": "Remix TypeScript",
+        "description": "Remix framework starter with TypeScript for full-stack web applications"
+      },
+      "slidev": {
+        "name": "Slidev Presentation",
+        "description": "Slidev starter template for creating developer-friendly presentations using Markdown"
+      },
+      "sveltekit": {
+        "name": "SvelteKit",
+        "description": "SvelteKit starter template for building fast, efficient web applications"
+      },
+      "vanilla-vite": {
+        "name": "Vanilla + Vite",
+        "description": "Minimal Vite starter template for vanilla JavaScript projects"
+      },
+      "vite-react": {
+        "name": "React + Vite + typescript",
+        "description": "React starter template powered by Vite for fast development experience"
+      },
+      "vite-typescript": {
+        "name": "Vite + TypeScript",
+        "description": "Vite starter template with TypeScript configuration for type-safe development"
+      },
+      "vue": {
+        "name": "Vue.js",
+        "description": "Vue.js starter template with modern tooling and best practices"
+      },
+      "angular": {
+        "name": "Angular Starter",
+        "description": "A modern Angular starter template with TypeScript support and best practices configuration"
+      },
+      "solidjs": {
+        "name": "SolidJS Tailwind",
+        "description": "Lightweight SolidJS starter template for building fast static websites"
+      }
+    }
+  },
+  "fr": {
+    "statusServices": {
+      "editor": {
+        "name": "Éditeur E-Code",
+        "description": "Services principaux de l’IDE et d’édition de code"
+      },
+      "ai-agent": {
+        "name": "Agent IA",
+        "description": "Assistant et moteur de création autonomes"
+      },
+      "deployments": {
+        "name": "Hébergement et déploiements",
+        "description": "Hébergement des applications et pipeline de déploiement"
+      },
+      "database": {
+        "name": "Services de base de données",
+        "description": "Persistance gérée, métadonnées et état des projets"
+      },
+      "collaboration": {
+        "name": "Collaboration",
+        "description": "Présence d’équipe en temps réel et édition collaborative"
+      },
+      "api": {
+        "name": "Services API",
+        "description": "Interfaces API publiques et des espaces de travail"
+      }
+    },
+    "about": {
+      "values": {
+        "innovation": {
+          "title": "Innovation",
+          "description": "Nous repoussons les limites de la livraison logicielle assistée par l’IA."
+        },
+        "collaboration": {
+          "title": "Collaboration",
+          "description": "La création de logiciels prêts pour la production repose sur un travail d’équipe."
+        },
+        "security": {
+          "title": "Sécurité",
+          "description": "Une protection de niveau entreprise pour le code, les données et les déploiements."
+        },
+        "focus": {
+          "title": "Priorité",
+          "description": "Un parcours direct de l’idée à l’application en production."
+        }
+      },
+      "milestones": {
+        "2024": "Création d’E-Code avec pour mission d’accélérer la réalisation d’applications prêtes pour la production.",
+        "2025": "Extension des workflows de développement par IA aux applications web, mobiles et aux équipes.",
+        "2026": "Intégration de l’expérience publique E-Code à de véritables modèles d’espaces de travail."
+      },
+      "team": {
+        "team": {
+          "name": "Équipe E-Code",
+          "role": "Ingénierie produit"
+        },
+        "platform": {
+          "name": "Plateforme E-Code",
+          "role": "Runtime des espaces de travail"
+        }
+      },
+      "stats": {
+        "templates": {
+          "label": "Modèles",
+          "description": "Starters prêts pour la production disponibles dans le catalogue E-Code."
+        },
+        "surfaces": {
+          "label": "Interfaces",
+          "description": "Routes publiques E-Code disponibles dans l’interface importée."
+        },
+        "security": {
+          "label": "Sécurité",
+          "description": "Pages publiques consacrées à l’état des services, aux abus et à la conformité."
+        }
+      }
+    },
+    "polyglotCapabilities": {
+      "typescript": [
+        "Authentification des utilisateurs et gestion des sessions",
+        "Points de terminaison d’API REST",
+        "Gestion des projets",
+        "Opérations sur les fichiers",
+        "Coordination en temps réel par WebSocket"
+      ],
+      "pythonMl": [
+        "Analyse de code assistée par l’IA",
+        "Workflows de récupération et de classement",
+        "Tâches de traitement des données",
+        "Suggestions assistées par les modèles"
+      ]
+    },
+    "marketplace": {
+      "extensions": {
+        "1": {
+          "description": "Formatage du code avec Prettier pour garantir un style cohérent",
+          "price": "Gratuit"
+        },
+        "2": {
+          "description": "Détection et correction des problèmes dans le code JavaScript et TypeScript",
+          "price": "Gratuit"
+        },
+        "3": {
+          "description": "Saisie semi-automatique et mise en évidence des classes Tailwind CSS",
+          "price": "Gratuit"
+        },
+        "4": {
+          "description": "Outils d’espace de travail pour orchestrer les agents, les aperçus et les déploiements",
+          "price": "Gratuit"
+        }
+      },
+      "publisherDescription": "Modèles officiels d’espaces de travail E-Code et adaptateurs de l’interface E-Code."
+    },
+    "community": {
+      "categories": {
+        "showcase": "Réalisations",
+        "tutorials": "Tutoriels",
+        "challenges": "Défis",
+        "discussion": "Discussions"
+      },
+      "postTitle": "Présentation du modèle {name}",
+      "postNotFound": "Publication introuvable",
+      "challenges": {
+        "ai-agent-starter": {
+          "title": "Livrez un starter d’agent IA",
+          "description": "Partez du modèle officiel d’agent IA et partagez le workflow de mise en production."
+        },
+        "mobile-workspace": {
+          "title": "Créez un espace de travail mobile",
+          "description": "Adaptez un starter Expo afin de créer un parcours mobile complet dans l’espace de travail."
+        }
+      }
+    },
+    "templates": {
+      "react-saas": {
+        "name": "React SaaS",
+        "description": "Starter SaaS prêt pour la production avec React, Vite et TypeScript, des interfaces de tableau de bord authentifiées et une structure prête au déploiement."
+      },
+      "next-dashboard": {
+        "name": "Tableau de bord Next",
+        "description": "Starter de tableau de bord full-stack avec Next.js, Prisma, Tailwind CSS et des écrans opérationnels adossés à une base de données."
+      },
+      "fastify-api": {
+        "name": "Fastify API",
+        "description": "Starter de service backend avec Node.js, Fastify, des frontières de persistance de type PostgreSQL et les conventions d’une API de production."
+      },
+      "ai-agent": {
+        "name": "Agent IA",
+        "description": "Starter de runtime agentique avec orchestration des outils, événements en streaming, routage des fournisseurs et points d’intégration à l’IDE."
+      },
+      "landing-page": {
+        "name": "Page de destination",
+        "description": "Starter marketing responsive pour les pages de conversion, avec des sections de contenu soignées et un routage prêt pour la production."
+      },
+      "mobile-starter": {
+        "name": "Starter mobile",
+        "description": "Starter d’application mobile avec Expo, React et TypeScript pour les packages frontend partagés et les parcours pensés pour les appareils mobiles."
+      },
+      "expo-app": {
+        "name": "Expo App",
+        "description": "Modèle de démarrage Expo pour créer des applications mobiles multiplateformes"
+      },
+      "basic-astro": {
+        "name": "Astro de base",
+        "description": "Modèle de démarrage Astro léger pour créer des sites web statiques rapides"
+      },
+      "nextjs-shadcn": {
+        "name": "Next.js avec shadcn/ui",
+        "description": "Modèle de démarrage full-stack Next.js intégrant les composants shadcn/ui et leur système de styles"
+      },
+      "vite-shadcn": {
+        "name": "Vite avec shadcn/ui",
+        "description": "Modèle de démarrage full-stack Vite intégrant les composants shadcn/ui et leur système de styles"
+      },
+      "qwik-typescript": {
+        "name": "Qwik TypeScript",
+        "description": "Modèle de démarrage Qwik avec TypeScript pour créer des applications reprenables"
+      },
+      "remix-typescript": {
+        "name": "Remix TypeScript",
+        "description": "Modèle de démarrage Remix avec TypeScript pour des applications web full-stack"
+      },
+      "slidev": {
+        "name": "Présentation Slidev",
+        "description": "Modèle de démarrage Slidev pour créer avec Markdown des présentations adaptées aux développeurs"
+      },
+      "sveltekit": {
+        "name": "SvelteKit",
+        "description": "Modèle de démarrage SvelteKit pour créer des applications web rapides et efficaces"
+      },
+      "vanilla-vite": {
+        "name": "Vanilla + Vite",
+        "description": "Modèle de démarrage Vite minimal pour les projets JavaScript sans framework"
+      },
+      "vite-react": {
+        "name": "React + Vite + TypeScript",
+        "description": "Modèle de démarrage React propulsé par Vite pour une expérience de développement rapide"
+      },
+      "vite-typescript": {
+        "name": "Vite + TypeScript",
+        "description": "Modèle de démarrage Vite configuré avec TypeScript pour un développement avec typage sûr"
+      },
+      "vue": {
+        "name": "Vue.js",
+        "description": "Modèle de démarrage Vue.js avec des outils modernes et les bonnes pratiques"
+      },
+      "angular": {
+        "name": "Starter Angular",
+        "description": "Modèle de démarrage Angular moderne avec prise en charge de TypeScript et configuration conforme aux bonnes pratiques"
+      },
+      "solidjs": {
+        "name": "SolidJS Tailwind",
+        "description": "Modèle de démarrage SolidJS léger pour créer des sites web statiques rapides"
+      }
+    }
+  }
+}

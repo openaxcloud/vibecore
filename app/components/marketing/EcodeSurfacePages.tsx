@@ -28,21 +28,29 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { MetaFunction } from 'react-router';
 import { Link, useParams } from 'react-router';
 import { PublicShell } from '~/components/dashboard/SaaSLayout';
+import {
+  getMarketingSurfaceCopy,
+  marketingSurfaceCategoryEn,
+  type MarketingSurfaceCategory,
+} from '~/lib/i18n/catalogs/marketing-surface';
+import {
+  getMarketingImportSourceLabel,
+  getMarketingSurfaceDynamicPageCopy,
+  type MarketingSurfaceDynamicDescriptor,
+} from '~/lib/i18n/catalogs/marketing-surface-dynamic';
+import {
+  getMarketingSurfacePageCopy,
+  marketingSurfacePageEnglish as marketingSurfacePageEn,
+} from '~/lib/i18n/catalogs/marketing-surface-pages';
+import { normalizeSupportedLanguage } from '~/lib/i18n/language';
 
-type SurfaceCategory =
-  | 'builder'
-  | 'runtime'
-  | 'data'
-  | 'security'
-  | 'team'
-  | 'learning'
-  | 'marketplace'
-  | 'admin'
-  | 'integration'
-  | 'ai';
+const englishSurfaceUi = getMarketingSurfaceCopy('en').ui;
+
+type SurfaceCategory = MarketingSurfaceCategory;
 
 type SurfaceAction = readonly [label: string, to: string];
 
@@ -77,6 +85,7 @@ export interface EcodeSurfacePageDefinition {
   stats: readonly SurfaceStat[];
   sections: readonly SurfaceSection[];
   relatedRoutes: readonly SurfaceRelatedRoute[];
+  dynamicCopy?: MarketingSurfaceDynamicDescriptor;
 }
 
 interface SurfacePageInput {
@@ -91,187 +100,11 @@ interface SurfacePageInput {
   secondaryAction?: SurfaceAction;
   sections?: readonly SurfaceSection[];
   relatedRoutes?: readonly SurfaceRelatedRoute[];
+  dynamicCopy?: MarketingSurfaceDynamicDescriptor;
 }
 
-const categoryCopy = {
-  builder: {
-    eyebrow: 'Builder surface',
-    primaryAction: ['Create project', '/projects/new'],
-    secondaryAction: ['Browse templates', '/templates'],
-    stats: [
-      { label: 'Route status', value: 'Live page' },
-      { label: 'Source', value: 'E-Code import' },
-      { label: 'Flow', value: 'Prompt to preview' },
-    ],
-    controls: ['Typed project files', 'Preview verification', 'Agent patch review', 'Deployment handoff'],
-    relatedRoutes: [
-      { label: 'New project', to: '/projects/new', description: 'Start a governed E-Code workspace.' },
-      { label: 'Templates', to: '/templates', description: 'Use production starters as a foundation.' },
-      { label: 'Features', to: '/features', description: 'Review the imported E-Code product surface.' },
-    ],
-  },
-  runtime: {
-    eyebrow: 'Runtime surface',
-    primaryAction: ['Open diagnostics', '/runtime-diagnostics'],
-    secondaryAction: ['View status', '/status'],
-    stats: [
-      { label: 'Runtime loop', value: 'Run, log, preview' },
-      { label: 'Adapters', value: 'Connected' },
-      { label: 'Failure mode', value: 'Recoverable' },
-    ],
-    controls: ['Port detection', 'Log visibility', 'Preview health', 'Deployment readiness'],
-    relatedRoutes: [
-      {
-        label: 'Runtime diagnostics',
-        to: '/runtime-diagnostics',
-        description: 'Inspect runtime readiness and errors.',
-      },
-      { label: 'Preview', to: '/preview', description: 'Validate rendered application output.' },
-      { label: 'Status', to: '/status', description: 'Check platform operational state.' },
-    ],
-  },
-  data: {
-    eyebrow: 'Data surface',
-    primaryAction: ['Open database', '/database'],
-    secondaryAction: ['Read docs', '/docs'],
-    stats: [
-      { label: 'Data layer', value: 'Modeled' },
-      { label: 'Secrets', value: 'Isolated' },
-      { label: 'Preview', value: 'Seedable' },
-    ],
-    controls: ['Schema planning', 'Environment boundaries', 'Seed data', 'Rollback path'],
-    relatedRoutes: [
-      { label: 'Database', to: '/database', description: 'Model app data and persistence.' },
-      { label: 'Object storage', to: '/object-storage', description: 'Attach files and media to projects.' },
-      { label: 'Secrets', to: '/secrets', description: 'Keep credentials outside generated code.' },
-    ],
-  },
-  security: {
-    eyebrow: 'Security surface',
-    primaryAction: ['Review security', '/security'],
-    secondaryAction: ['Contact sales', '/contact-sales'],
-    stats: [
-      { label: 'Identity', value: 'Governed' },
-      { label: 'Policy', value: 'Visible' },
-      { label: 'Audit', value: 'Traceable' },
-    ],
-    controls: ['SSO planning', 'Role boundaries', 'Secrets hygiene', 'Audit evidence'],
-    relatedRoutes: [
-      { label: 'Security', to: '/security', description: 'Review public trust and security posture.' },
-      { label: 'Authentication', to: '/authentication', description: 'Plan identity flows for generated apps.' },
-      { label: 'Custom roles', to: '/custom-roles', description: 'Map access to team responsibility.' },
-    ],
-  },
-  team: {
-    eyebrow: 'Team surface',
-    primaryAction: ['Open teams', '/teams'],
-    secondaryAction: ['Contact sales', '/contact-sales'],
-    stats: [
-      { label: 'Collaboration', value: 'Shared' },
-      { label: 'Access', value: 'Role-based' },
-      { label: 'Review', value: 'Auditable' },
-    ],
-    controls: ['Member invites', 'Project access', 'Billing ownership', 'Release review'],
-    relatedRoutes: [
-      { label: 'Teams', to: '/teams', description: 'Coordinate members, billing and project access.' },
-      { label: 'Collaboration', to: '/collaboration', description: 'Review multiplayer development workflows.' },
-      { label: 'Marketing teams', to: '/marketing/teams', description: 'See enterprise team positioning.' },
-    ],
-  },
-  learning: {
-    eyebrow: 'Learning surface',
-    primaryAction: ['Start learning', '/learn'],
-    secondaryAction: ['Open docs', '/docs'],
-    stats: [
-      { label: 'Guides', value: 'Practical' },
-      { label: 'Examples', value: 'Routable' },
-      { label: 'Depth', value: 'Beginner to advanced' },
-    ],
-    controls: ['Guided tutorials', 'Reference docs', 'Template examples', 'Troubleshooting paths'],
-    relatedRoutes: [
-      { label: 'Learn', to: '/learn', description: 'Follow structured E-Code learning paths.' },
-      { label: 'Tutorials', to: '/tutorials', description: 'Build real projects step by step.' },
-      { label: 'Docs', to: '/docs', description: 'Use the primary product reference.' },
-    ],
-  },
-  marketplace: {
-    eyebrow: 'Marketplace surface',
-    primaryAction: ['Explore apps', '/apps'],
-    secondaryAction: ['Browse marketplace', '/marketplace'],
-    stats: [
-      { label: 'Catalog', value: 'Curated' },
-      { label: 'Launch path', value: 'Template to app' },
-      { label: 'Reuse', value: 'Team-ready' },
-    ],
-    controls: ['Reusable starters', 'Extension points', 'App templates', 'Review before release'],
-    relatedRoutes: [
-      { label: 'Apps', to: '/apps', description: 'Browse imported app and product surfaces.' },
-      { label: 'Marketplace', to: '/marketplace', description: 'Discover reusable starters and patterns.' },
-      { label: 'Extensions', to: '/extensions', description: 'Extend workspaces with approved tools.' },
-    ],
-  },
-  admin: {
-    eyebrow: 'Operations surface',
-    primaryAction: ['Open analytics', '/analytics'],
-    secondaryAction: ['Review account', '/account'],
-    stats: [
-      { label: 'Visibility', value: 'Operational' },
-      { label: 'Controls', value: 'Account-aware' },
-      { label: 'Signals', value: 'Actionable' },
-    ],
-    controls: ['Usage tracking', 'Plan visibility', 'Account settings', 'Operational alerts'],
-    relatedRoutes: [
-      { label: 'Analytics', to: '/analytics', description: 'Understand usage and delivery signals.' },
-      { label: 'Account', to: '/account', description: 'Manage account-level product access.' },
-      { label: 'Usage alerts', to: '/usage-alerts', description: 'Keep teams inside clear limits.' },
-    ],
-  },
-  integration: {
-    eyebrow: 'Integration surface',
-    primaryAction: ['Connect GitHub', '/import-github'],
-    secondaryAction: ['View integrations', '/integrations'],
-    stats: [
-      { label: 'Source', value: 'Importable' },
-      { label: 'Adapters', value: 'Mapped' },
-      { label: 'Tools', value: 'Governed' },
-    ],
-    controls: ['Repository import', 'Provider adapters', 'API contracts', 'Connection health'],
-    relatedRoutes: [
-      { label: 'GitHub import', to: '/import-github', description: 'Import repositories into E-Code.' },
-      { label: 'Integrations', to: '/integrations', description: 'Connect approved product tools.' },
-      { label: 'API SDK', to: '/api-sdk', description: 'Build against typed platform interfaces.' },
-    ],
-  },
-  ai: {
-    eyebrow: 'AI surface',
-    primaryAction: ['Open AI studio', '/ai-agent/studio'],
-    secondaryAction: ['Read AI docs', '/ai-documentation'],
-    stats: [
-      { label: 'Agent loop', value: 'Reviewable' },
-      { label: 'Context', value: 'Workspace-aware' },
-      { label: 'Output', value: 'Validated' },
-    ],
-    controls: ['Prompt planning', 'Patch review', 'Tool boundaries', 'Preview-aware checks'],
-    relatedRoutes: [
-      { label: 'AI Agent Studio', to: '/ai-agent/studio', description: 'Plan and inspect agent work.' },
-      { label: 'Assistant', to: '/assistant', description: 'Use the everyday coding copilot.' },
-      { label: 'AI documentation', to: '/ai-documentation', description: 'Understand model and tool behavior.' },
-    ],
-  },
-} as const satisfies Record<
-  SurfaceCategory,
-  {
-    eyebrow: string;
-    primaryAction: SurfaceAction;
-    secondaryAction: SurfaceAction;
-    stats: readonly SurfaceStat[];
-    controls: readonly string[];
-    relatedRoutes: readonly SurfaceRelatedRoute[];
-  }
->;
-
 function makeSurfacePage(input: SurfacePageInput): EcodeSurfacePageDefinition {
-  const category = categoryCopy[input.category];
+  const category = marketingSurfaceCategoryEn.surfaceCategories[input.category];
 
   return {
     slug: input.slug,
@@ -287,461 +120,456 @@ function makeSurfacePage(input: SurfacePageInput): EcodeSurfacePageDefinition {
     stats: category.stats,
     sections: input.sections ?? [
       {
-        title: `${input.title} workflow`,
-        body: `${input.title} is now a real E-Code route backed by the imported E-Code product map. It keeps the user moving from intent to a visible, recoverable product workflow.`,
+        title: englishSurfaceUi.workflowTitle(input.title),
+        body: englishSurfaceUi.workflowBody(input.title),
         items: input.highlights,
       },
       {
-        title: 'Production controls',
-        body: 'The route is wired through the public shell, navigation-safe links and responsive content instead of an empty compatibility page.',
+        title: englishSurfaceUi.productionControls,
+        body: englishSurfaceUi.productionBody,
         items: category.controls,
       },
     ],
     relatedRoutes: input.relatedRoutes ?? category.relatedRoutes,
+    dynamicCopy: input.dynamicCopy,
   };
+}
+
+function makeDynamicSurfacePage(
+  input: Omit<SurfacePageInput, 'title' | 'description' | 'highlights' | 'relatedRoutes'> & {
+    dynamicCopy: MarketingSurfaceDynamicDescriptor;
+  },
+): EcodeSurfacePageDefinition {
+  const copy = getMarketingSurfaceDynamicPageCopy('en', input.dynamicCopy);
+
+  return makeSurfacePage({ ...input, ...copy });
 }
 
 export const ecodeSurfacePages = {
   new: makeSurfacePage({
     slug: 'new',
-    title: 'New E-Code Project',
-    description:
-      'A direct creation route for teams starting a new AI-built application from a prompt, template or import.',
+    title: marketingSurfacePageEn.new.title,
+    description: marketingSurfacePageEn.new.description,
     category: 'builder',
     icon: Plus,
-    highlights: ['Natural-language brief', 'Template selection', 'Git/import choices', 'Preview-first validation'],
+    highlights: marketingSurfacePageEn.new.highlights,
   }),
   home: makeSurfacePage({
     slug: 'home',
-    title: 'Workspace Home',
-    description:
-      'A signed-in style home surface that routes users to recent work, creation flows, docs and team activity.',
+    title: marketingSurfacePageEn.home.title,
+    description: marketingSurfacePageEn.home.description,
     category: 'builder',
     icon: Gauge,
-    highlights: ['Recent projects', 'Creation shortcuts', 'Team activity', 'Operational status'],
+    highlights: marketingSurfacePageEn.home.highlights,
   }),
   'agent-activity': makeSurfacePage({
     slug: 'agent-activity',
-    title: 'Agent Activity',
-    description: 'A traceable activity route for AI planning, patch review, command execution and validation outcomes.',
+    title: marketingSurfacePageEn['agent-activity'].title,
+    description: marketingSurfacePageEn['agent-activity'].description,
     category: 'ai',
     icon: Activity,
-    highlights: ['Prompt history', 'Patch summaries', 'Command results', 'Review checkpoints'],
+    highlights: marketingSurfacePageEn['agent-activity'].highlights,
   }),
   apps: makeSurfacePage({
     slug: 'apps',
-    title: 'Apps',
-    description:
-      'The imported E-Code app catalog for internal tools, SaaS surfaces, AI workflows and reusable product kits.',
+    title: marketingSurfacePageEn.apps.title,
+    description: marketingSurfacePageEn.apps.description,
     category: 'marketplace',
     icon: Boxes,
-    highlights: ['Internal tools', 'SaaS starters', 'AI applications', 'Reusable workspace kits'],
+    highlights: marketingSurfacePageEn.apps.highlights,
   }),
   teams: makeSurfacePage({
     slug: 'teams',
-    title: 'Teams',
-    description:
-      'The plural E-Code teams route for organization workspaces, members, roles, billing and governed projects.',
+    title: marketingSurfacePageEn.teams.title,
+    description: marketingSurfacePageEn.teams.description,
     category: 'team',
     icon: Users,
-    highlights: ['Members and roles', 'Shared billing', 'Project access', 'Audit-ready review'],
+    highlights: marketingSurfacePageEn.teams.highlights,
   }),
   vnc: makeSurfacePage({
     slug: 'vnc',
-    title: 'VNC Runtime',
-    description:
-      'A runtime screen route for desktop-style previews, visual debugging and remote application inspection.',
+    title: marketingSurfacePageEn.vnc.title,
+    description: marketingSurfacePageEn.vnc.description,
     category: 'runtime',
     icon: MonitorPlay,
-    highlights: ['Visual runtime access', 'Preview inspection', 'Remote debugging', 'Recoverable session state'],
+    highlights: marketingSurfacePageEn.vnc.highlights,
   }),
   analytics: makeSurfacePage({
     slug: 'analytics',
-    title: 'Analytics',
-    description: 'Operational analytics for usage, build velocity, preview health, agent activity and team adoption.',
+    title: marketingSurfacePageEn.analytics.title,
+    description: marketingSurfacePageEn.analytics.description,
     category: 'admin',
     icon: Gauge,
-    highlights: ['Usage signals', 'Preview health', 'Build velocity', 'Team adoption'],
+    highlights: marketingSurfacePageEn.analytics.highlights,
   }),
   scalability: makeSurfacePage({
     slug: 'scalability',
-    title: 'Scalability',
-    description:
-      'Capacity planning content for teams growing from first project to enterprise runtime and governance needs.',
+    title: marketingSurfacePageEn.scalability.title,
+    description: marketingSurfacePageEn.scalability.description,
     category: 'admin',
     icon: Rocket,
-    highlights: ['Runtime scaling', 'Team growth', 'Release capacity', 'Enterprise controls'],
+    highlights: marketingSurfacePageEn.scalability.highlights,
   }),
   education: makeSurfacePage({
     slug: 'education',
-    title: 'Education',
-    description: 'Education program guidance for classrooms, bootcamps and universities adopting E-Code safely.',
+    title: marketingSurfacePageEn.education.title,
+    description: marketingSurfacePageEn.education.description,
     category: 'learning',
     icon: Users,
-    highlights: ['Student workspaces', 'Classroom templates', 'Privacy controls', 'Instructor review'],
+    highlights: marketingSurfacePageEn.education.highlights,
   }),
   'api-sdk': makeSurfacePage({
     slug: 'api-sdk',
-    title: 'API SDK',
-    description:
-      'Typed integration guidance for teams connecting E-Code projects, runtime events and platform automation.',
+    title: marketingSurfacePageEn['api-sdk'].title,
+    description: marketingSurfacePageEn['api-sdk'].description,
     category: 'integration',
     icon: Braces,
-    highlights: ['Typed clients', 'Runtime events', 'Project automation', 'Webhook-ready contracts'],
+    highlights: marketingSurfacePageEn['api-sdk'].highlights,
   }),
   'mobile-apps': makeSurfacePage({
     slug: 'mobile-apps',
-    title: 'Mobile Apps',
-    description:
-      'Mobile application delivery paths that connect Expo-style projects, previews and release preparation.',
+    title: marketingSurfacePageEn['mobile-apps'].title,
+    description: marketingSurfacePageEn['mobile-apps'].description,
     category: 'builder',
     icon: MonitorSmartphone,
-    highlights: ['Phone previews', 'Tablet workflows', 'Expo starters', 'Release assets'],
+    highlights: marketingSurfacePageEn['mobile-apps'].highlights,
   }),
   profile: makeSurfacePage({
     slug: 'profile',
-    title: 'Profile',
-    description: 'A public profile route for builders, projects, community identity and shared E-Code work.',
+    title: marketingSurfacePageEn.profile.title,
+    description: marketingSurfacePageEn.profile.description,
     category: 'team',
     icon: Users,
-    highlights: ['Builder identity', 'Shared projects', 'Community context', 'Verified routes'],
+    highlights: marketingSurfacePageEn.profile.highlights,
   }),
   runtimes: makeSurfacePage({
     slug: 'runtimes',
-    title: 'Runtimes',
-    description:
-      'Runtime choices for generated apps, including browser previews, remote execution and deployment handoff.',
+    title: marketingSurfacePageEn.runtimes.title,
+    description: marketingSurfacePageEn.runtimes.description,
     category: 'runtime',
     icon: Rocket,
-    highlights: ['Browser runtime', 'Remote execution', 'Port mapping', 'Deployment handoff'],
+    highlights: marketingSurfacePageEn.runtimes.highlights,
   }),
   'runtime-diagnostics': makeSurfacePage({
     slug: 'runtime-diagnostics',
-    title: 'Runtime Diagnostics',
-    description:
-      'A diagnostics surface for dependency install, server start, preview rendering and runtime error recovery.',
+    title: marketingSurfacePageEn['runtime-diagnostics'].title,
+    description: marketingSurfacePageEn['runtime-diagnostics'].description,
     category: 'runtime',
     icon: Activity,
-    highlights: ['Install checks', 'Server health', 'Port detection', 'Error recovery'],
+    highlights: marketingSurfacePageEn['runtime-diagnostics'].highlights,
   }),
   'search-advanced': makeSurfacePage({
     slug: 'search-advanced',
-    title: 'Advanced Search',
-    description:
-      'Search across projects, files, docs, templates, community content and agent activity with clearer scopes.',
+    title: marketingSurfacePageEn['search-advanced'].title,
+    description: marketingSurfacePageEn['search-advanced'].description,
     category: 'builder',
     icon: Search,
-    highlights: ['Project scope', 'File search', 'Docs search', 'Agent context'],
+    highlights: marketingSurfacePageEn['search-advanced'].highlights,
   }),
   secrets: makeSurfacePage({
     slug: 'secrets',
-    title: 'Secrets',
-    description:
-      'A secure route for environment secrets, provider credentials and runtime-safe configuration practices.',
+    title: marketingSurfacePageEn.secrets.title,
+    description: marketingSurfacePageEn.secrets.description,
     category: 'security',
     icon: Lock,
-    highlights: ['Encrypted values', 'Runtime boundaries', 'Provider keys', 'No source leakage'],
+    highlights: marketingSurfacePageEn.secrets.highlights,
   }),
   workflows: makeSurfacePage({
     slug: 'workflows',
-    title: 'Workflows',
-    description: 'Automated development workflows for generation, validation, review, preview and release preparation.',
+    title: marketingSurfacePageEn.workflows.title,
+    description: marketingSurfacePageEn.workflows.description,
     category: 'builder',
     icon: GitBranch,
-    highlights: ['Prompt to patch', 'Validation gates', 'Review loops', 'Release preparation'],
+    highlights: marketingSurfacePageEn.workflows.highlights,
   }),
   ssh: makeSurfacePage({
     slug: 'ssh',
-    title: 'SSH Access',
-    description: 'Secure shell access guidance for advanced runtime debugging without bypassing team controls.',
+    title: marketingSurfacePageEn.ssh.title,
+    description: marketingSurfacePageEn.ssh.description,
     category: 'security',
     icon: Terminal,
-    highlights: ['Secure sessions', 'Scoped access', 'Audit context', 'Runtime debugging'],
+    highlights: marketingSurfacePageEn.ssh.highlights,
   }),
   'security-scanner': makeSurfacePage({
     slug: 'security-scanner',
-    title: 'Security Scanner',
-    description: 'Scan generated code, dependencies and configuration for security issues before preview or release.',
+    title: marketingSurfacePageEn['security-scanner'].title,
+    description: marketingSurfacePageEn['security-scanner'].description,
     category: 'security',
     icon: ShieldCheck,
-    highlights: ['Dependency review', 'Secret detection', 'Config checks', 'Release confidence'],
+    highlights: marketingSurfacePageEn['security-scanner'].highlights,
   }),
   dependencies: makeSurfacePage({
     slug: 'dependencies',
-    title: 'Dependencies',
-    description:
-      'Dependency insight for generated projects, package updates, install failures and runtime compatibility.',
+    title: marketingSurfacePageEn.dependencies.title,
+    description: marketingSurfacePageEn.dependencies.description,
     category: 'runtime',
     icon: FileArchive,
-    highlights: ['Package graph', 'Install health', 'Version updates', 'Runtime compatibility'],
+    highlights: marketingSurfacePageEn.dependencies.highlights,
   }),
   'object-storage': makeSurfacePage({
     slug: 'object-storage',
-    title: 'Object Storage',
-    description: 'Object storage planning for uploaded files, generated assets, public media and user content.',
+    title: marketingSurfacePageEn['object-storage'].title,
+    description: marketingSurfacePageEn['object-storage'].description,
     category: 'data',
     icon: FileArchive,
-    highlights: ['Uploads', 'Public media', 'Access policies', 'Asset lifecycle'],
+    highlights: marketingSurfacePageEn['object-storage'].highlights,
   }),
   'usage-alerts': makeSurfacePage({
     slug: 'usage-alerts',
-    title: 'Usage Alerts',
-    description: 'Alerting surfaces for spend, runtime limits, AI usage, team quotas and operational thresholds.',
+    title: marketingSurfacePageEn['usage-alerts'].title,
+    description: marketingSurfacePageEn['usage-alerts'].description,
     category: 'admin',
     icon: Activity,
-    highlights: ['Spend alerts', 'Runtime limits', 'AI usage', 'Team quotas'],
+    highlights: marketingSurfacePageEn['usage-alerts'].highlights,
   }),
   'mobile-admin': makeSurfacePage({
     slug: 'mobile-admin',
-    title: 'Mobile Admin',
-    description: 'Admin controls designed for phone and tablet review of projects, team access and platform state.',
+    title: marketingSurfacePageEn['mobile-admin'].title,
+    description: marketingSurfacePageEn['mobile-admin'].description,
     category: 'admin',
     icon: MonitorSmartphone,
-    highlights: ['Mobile approvals', 'Team access', 'Project review', 'Operational status'],
+    highlights: marketingSurfacePageEn['mobile-admin'].highlights,
   }),
   account: makeSurfacePage({
     slug: 'account',
-    title: 'Account',
-    description: 'Account-level settings for identity, plan ownership, billing direction and secure product access.',
+    title: marketingSurfacePageEn.account.title,
+    description: marketingSurfacePageEn.account.description,
     category: 'admin',
     icon: Settings,
-    highlights: ['Identity', 'Billing context', 'Plan ownership', 'Security settings'],
+    highlights: marketingSurfacePageEn.account.highlights,
   }),
   cycles: makeSurfacePage({
     slug: 'cycles',
-    title: 'Cycles',
-    description: 'Product cycle planning for prompts, implementation passes, validation gates and release readiness.',
+    title: marketingSurfacePageEn.cycles.title,
+    description: marketingSurfacePageEn.cycles.description,
     category: 'team',
     icon: Activity,
-    highlights: ['Planning cycles', 'Build passes', 'Validation gates', 'Release readiness'],
+    highlights: marketingSurfacePageEn.cycles.highlights,
   }),
   powerups: makeSurfacePage({
     slug: 'powerups',
-    title: 'Powerups',
-    description: 'Enhancement packs for agents, templates, integrations and runtime capabilities inside E-Code.',
+    title: marketingSurfacePageEn.powerups.title,
+    description: marketingSurfacePageEn.powerups.description,
     category: 'marketplace',
     icon: Sparkles,
-    highlights: ['Agent boosts', 'Template packs', 'Runtime add-ons', 'Integration kits'],
+    highlights: marketingSurfacePageEn.powerups.highlights,
   }),
   badges: makeSurfacePage({
     slug: 'badges',
-    title: 'Badges',
-    description: 'Recognition surfaces for builders, teams, launches, contribution quality and community activity.',
+    title: marketingSurfacePageEn.badges.title,
+    description: marketingSurfacePageEn.badges.description,
     category: 'marketplace',
     icon: ShieldCheck,
-    highlights: ['Builder recognition', 'Launch milestones', 'Quality signals', 'Community proof'],
+    highlights: marketingSurfacePageEn.badges.highlights,
   }),
   subscribe: makeSurfacePage({
     slug: 'subscribe',
-    title: 'Subscribe',
-    description: 'A subscription route for plan selection, product updates and ongoing E-Code access.',
+    title: marketingSurfacePageEn.subscribe.title,
+    description: marketingSurfacePageEn.subscribe.description,
     category: 'admin',
     icon: CheckCircle2,
-    highlights: ['Plan selection', 'Billing path', 'Product updates', 'Account continuity'],
+    highlights: marketingSurfacePageEn.subscribe.highlights,
   }),
   plans: makeSurfacePage({
     slug: 'plans',
-    title: 'Plans',
-    description: 'Plan comparison content for individuals, teams and enterprises using the E-Code platform.',
+    title: marketingSurfacePageEn.plans.title,
+    description: marketingSurfacePageEn.plans.description,
     category: 'admin',
     icon: Gauge,
-    highlights: ['Individual plan', 'Team plan', 'Enterprise plan', 'Usage controls'],
-    secondaryAction: ['View pricing', '/pricing'],
+    highlights: marketingSurfacePageEn.plans.highlights,
+    secondaryAction: [marketingSurfacePageEn.plans.secondaryActionLabel, '/pricing'],
   }),
   learn: makeSurfacePage({
     slug: 'learn',
-    title: 'Learn',
-    description: 'Structured learning paths for prompt-to-app delivery, runtimes, security and team workflows.',
+    title: marketingSurfacePageEn.learn.title,
+    description: marketingSurfacePageEn.learn.description,
     category: 'learning',
     icon: LifeBuoy,
-    highlights: ['First project', 'Runtime basics', 'Security practices', 'Team delivery'],
+    highlights: marketingSurfacePageEn.learn.highlights,
   }),
   themes: makeSurfacePage({
     slug: 'themes',
-    title: 'Themes',
-    description: 'Theme guidance for dark default, light mode, app styling, brand tokens and generated UI consistency.',
+    title: marketingSurfacePageEn.themes.title,
+    description: marketingSurfacePageEn.themes.description,
     category: 'builder',
     icon: Command,
-    highlights: ['Dark default', 'Light toggle', 'Brand tokens', 'Responsive styling'],
+    highlights: marketingSurfacePageEn.themes.highlights,
   }),
   performance: makeSurfacePage({
     slug: 'performance',
-    title: 'Performance',
-    description:
-      'Performance guidance for generated apps, previews, bundles, runtime start and user-facing responsiveness.',
+    title: marketingSurfacePageEn.performance.title,
+    description: marketingSurfacePageEn.performance.description,
     category: 'runtime',
     icon: Gauge,
-    highlights: ['Bundle awareness', 'Fast previews', 'Runtime startup', 'Responsive UI'],
+    highlights: marketingSurfacePageEn.performance.highlights,
   }),
   'sso-configuration': makeSurfacePage({
     slug: 'sso-configuration',
-    title: 'SSO Configuration',
-    description: 'Configure enterprise identity, SAML/OIDC handoff, team domains and secure onboarding flows.',
+    title: marketingSurfacePageEn['sso-configuration'].title,
+    description: marketingSurfacePageEn['sso-configuration'].description,
     category: 'security',
     icon: KeyRound,
-    highlights: ['SAML/OIDC', 'Domain policy', 'Secure onboarding', 'Access audit'],
+    highlights: marketingSurfacePageEn['sso-configuration'].highlights,
   }),
   'custom-roles': makeSurfacePage({
     slug: 'custom-roles',
-    title: 'Custom Roles',
-    description: 'Role design for project access, billing administration, security ownership and release approvals.',
+    title: marketingSurfacePageEn['custom-roles'].title,
+    description: marketingSurfacePageEn['custom-roles'].description,
     category: 'security',
     icon: Users,
-    highlights: ['Project roles', 'Billing admins', 'Security owners', 'Release approvers'],
+    highlights: marketingSurfacePageEn['custom-roles'].highlights,
   }),
   assistant: makeSurfacePage({
     slug: 'assistant',
-    title: 'Assistant',
-    description: 'The E-Code assistant route for daily coding help, project context, review support and next actions.',
+    title: marketingSurfacePageEn.assistant.title,
+    description: marketingSurfacePageEn.assistant.description,
     category: 'ai',
     icon: Sparkles,
-    highlights: ['Project-aware help', 'Code suggestions', 'Review support', 'Next actions'],
+    highlights: marketingSurfacePageEn.assistant.highlights,
   }),
   'code-search': makeSurfacePage({
     slug: 'code-search',
-    title: 'Code Search',
-    description: 'Code search across generated files, templates, dependencies and team-owned project repositories.',
+    title: marketingSurfacePageEn['code-search'].title,
+    description: marketingSurfacePageEn['code-search'].description,
     category: 'builder',
     icon: FileCode2,
-    highlights: ['File search', 'Symbol discovery', 'Template lookup', 'Team context'],
+    highlights: marketingSurfacePageEn['code-search'].highlights,
   }),
   problems: makeSurfacePage({
     slug: 'problems',
-    title: 'Problems',
-    description: 'A diagnostics route for TypeScript errors, runtime failures, dependency issues and preview blockers.',
+    title: marketingSurfacePageEn.problems.title,
+    description: marketingSurfacePageEn.problems.description,
     category: 'runtime',
     icon: LifeBuoy,
-    highlights: ['Type errors', 'Runtime failures', 'Dependency issues', 'Preview blockers'],
+    highlights: marketingSurfacePageEn.problems.highlights,
   }),
   database: makeSurfacePage({
     slug: 'database',
-    title: 'Database',
-    description: 'Database planning and implementation guidance for generated apps with real schemas and migrations.',
+    title: marketingSurfacePageEn.database.title,
+    description: marketingSurfacePageEn.database.description,
     category: 'data',
     icon: Braces,
-    highlights: ['Schema design', 'Migrations', 'Seed data', 'Query safety'],
+    highlights: marketingSurfacePageEn.database.highlights,
   }),
   console: makeSurfacePage({
     slug: 'console',
-    title: 'Console',
-    description: 'A product console route for commands, status output, runtime logs and operational actions.',
+    title: marketingSurfacePageEn.console.title,
+    description: marketingSurfacePageEn.console.description,
     category: 'runtime',
     icon: Command,
-    highlights: ['Command output', 'Runtime logs', 'Operational actions', 'Status visibility'],
+    highlights: marketingSurfacePageEn.console.highlights,
   }),
   shell: makeSurfacePage({
     slug: 'shell',
-    title: 'Shell',
-    description: 'Shell workflow guidance for controlled command execution inside an E-Code project environment.',
+    title: marketingSurfacePageEn.shell.title,
+    description: marketingSurfacePageEn.shell.description,
     category: 'runtime',
     icon: Terminal,
-    highlights: ['Command execution', 'Environment context', 'Log capture', 'Safe recovery'],
+    highlights: marketingSurfacePageEn.shell.highlights,
   }),
   packages: makeSurfacePage({
     slug: 'packages',
-    title: 'Packages',
-    description:
-      'Package management content for dependencies, workspace packages, version updates and install diagnostics.',
+    title: marketingSurfacePageEn.packages.title,
+    description: marketingSurfacePageEn.packages.description,
     category: 'runtime',
     icon: FileArchive,
-    highlights: ['Workspace packages', 'Dependency versions', 'Install diagnostics', 'Update paths'],
+    highlights: marketingSurfacePageEn.packages.highlights,
   }),
   'kv-store': makeSurfacePage({
     slug: 'kv-store',
-    title: 'KV Store',
-    description: 'Key-value storage guidance for sessions, feature flags, lightweight state and edge-ready products.',
+    title: marketingSurfacePageEn['kv-store'].title,
+    description: marketingSurfacePageEn['kv-store'].description,
     category: 'data',
     icon: Layers,
-    highlights: ['Session state', 'Feature flags', 'Edge data', 'Low-latency reads'],
+    highlights: marketingSurfacePageEn['kv-store'].highlights,
   }),
   preview: makeSurfacePage({
     slug: 'preview',
-    title: 'Preview',
-    description: 'Preview validation for generated apps, visual QA, route checks and runtime readiness.',
+    title: marketingSurfacePageEn.preview.title,
+    description: marketingSurfacePageEn.preview.description,
     category: 'runtime',
     icon: MonitorPlay,
-    highlights: ['Visual QA', 'Route checks', 'Runtime readiness', 'Shareable review'],
+    highlights: marketingSurfacePageEn.preview.highlights,
   }),
   authentication: makeSurfacePage({
     slug: 'authentication',
-    title: 'Authentication',
-    description: 'Authentication architecture for generated apps, from passwords and OAuth to enterprise SSO.',
+    title: marketingSurfacePageEn.authentication.title,
+    description: marketingSurfacePageEn.authentication.description,
     category: 'security',
     icon: KeyRound,
-    highlights: ['Password auth', 'OAuth', 'Session security', 'Enterprise SSO'],
+    highlights: marketingSurfacePageEn.authentication.highlights,
   }),
   extensions: makeSurfacePage({
     slug: 'extensions',
-    title: 'Extensions',
-    description: 'Extension points for project tools, data connectors, automations and approved agent capabilities.',
+    title: marketingSurfacePageEn.extensions.title,
+    description: marketingSurfacePageEn.extensions.description,
     category: 'integration',
     icon: Layers,
-    highlights: ['Tool extensions', 'Data connectors', 'Agent capabilities', 'Approval controls'],
+    highlights: marketingSurfacePageEn.extensions.highlights,
   }),
   integrations: makeSurfacePage({
     slug: 'integrations',
-    title: 'Integrations',
-    description: 'Connect source control, deployment providers, databases, AI providers and operational systems.',
+    title: marketingSurfacePageEn.integrations.title,
+    description: marketingSurfacePageEn.integrations.description,
     category: 'integration',
     icon: Globe2,
-    highlights: ['Source control', 'Deployment providers', 'Databases', 'AI providers'],
+    highlights: marketingSurfacePageEn.integrations.highlights,
   }),
   networking: makeSurfacePage({
     slug: 'networking',
-    title: 'Networking',
-    description: 'Networking guidance for exposed ports, preview URLs, custom domains and secure runtime connectivity.',
+    title: marketingSurfacePageEn.networking.title,
+    description: marketingSurfacePageEn.networking.description,
     category: 'runtime',
     icon: Globe2,
-    highlights: ['Port mapping', 'Preview URLs', 'Custom domains', 'Secure connectivity'],
+    highlights: marketingSurfacePageEn.networking.highlights,
   }),
   threads: makeSurfacePage({
     slug: 'threads',
-    title: 'Threads',
-    description: 'Discussion threads for project review, agent decisions, team questions and release coordination.',
+    title: marketingSurfacePageEn.threads.title,
+    description: marketingSurfacePageEn.threads.description,
     category: 'team',
     icon: Users,
-    highlights: ['Project discussion', 'Agent decisions', 'Review questions', 'Release coordination'],
+    highlights: marketingSurfacePageEn.threads.highlights,
   }),
   referrals: makeSurfacePage({
     slug: 'referrals',
-    title: 'Referrals',
-    description: 'Referral and invite flows for bringing builders, teams and partners into E-Code workspaces.',
+    title: marketingSurfacePageEn.referrals.title,
+    description: marketingSurfacePageEn.referrals.description,
     category: 'marketplace',
     icon: Users,
-    highlights: ['Builder invites', 'Team referrals', 'Partner paths', 'Community growth'],
+    highlights: marketingSurfacePageEn.referrals.highlights,
   }),
   'solartech-ai-chat': makeSurfacePage({
     slug: 'solartech-ai-chat',
-    title: 'SolarTech AI Chat',
-    description:
-      'A real app route for the imported SolarTech AI chat template with support, sales and workflow patterns.',
+    title: marketingSurfacePageEn['solartech-ai-chat'].title,
+    description: marketingSurfacePageEn['solartech-ai-chat'].description,
     category: 'ai',
     icon: Sparkles,
-    highlights: ['AI chat UX', 'Support workflows', 'Knowledge routing', 'Template-ready app'],
+    highlights: marketingSurfacePageEn['solartech-ai-chat'].highlights,
   }),
   'solartech-crm': makeSurfacePage({
     slug: 'solartech-crm',
-    title: 'SolarTech CRM',
-    description: 'A CRM app template route for pipeline management, accounts, opportunities and operational workflows.',
+    title: marketingSurfacePageEn['solartech-crm'].title,
+    description: marketingSurfacePageEn['solartech-crm'].description,
     category: 'marketplace',
     icon: Boxes,
-    highlights: ['Pipeline views', 'Accounts', 'Opportunities', 'Operational dashboards'],
+    highlights: marketingSurfacePageEn['solartech-crm'].highlights,
   }),
   'salesforcepro-crm': makeSurfacePage({
     slug: 'salesforcepro-crm',
-    title: 'SalesforcePro CRM',
-    description: 'An enterprise CRM template route adapted from E-Code for sales operations and account intelligence.',
+    title: marketingSurfacePageEn['salesforcepro-crm'].title,
+    description: marketingSurfacePageEn['salesforcepro-crm'].description,
     category: 'marketplace',
     icon: Users,
-    highlights: ['Sales operations', 'Account intelligence', 'Team workflows', 'Executive reporting'],
+    highlights: marketingSurfacePageEn['salesforcepro-crm'].highlights,
   }),
   'solartech-fortune500-store': makeSurfacePage({
     slug: 'solartech-fortune500-store',
-    title: 'SolarTech Fortune 500 Store',
-    description: 'A commerce and procurement app route for enterprise catalogs, approvals and customer buying flows.',
+    title: marketingSurfacePageEn['solartech-fortune500-store'].title,
+    description: marketingSurfacePageEn['solartech-fortune500-store'].description,
     category: 'marketplace',
     icon: Boxes,
-    highlights: ['Enterprise catalog', 'Procurement approvals', 'Commerce UX', 'Customer workflows'],
+    highlights: marketingSurfacePageEn['solartech-fortune500-store'].highlights,
   }),
 } as const satisfies Record<string, EcodeSurfacePageDefinition>;
 
@@ -749,49 +577,47 @@ export const ecodeAdvancedSurfacePages = {
   mobile: makeSurfacePage({
     slug: 'advanced/mobile',
     route: '/advanced/mobile',
-    title: 'Advanced Mobile',
-    description: 'Advanced mobile delivery for responsive IDE surfaces, app assets, previews and release workflows.',
+    title: marketingSurfacePageEn['advanced/mobile'].title,
+    description: marketingSurfacePageEn['advanced/mobile'].description,
     category: 'builder',
     icon: MonitorSmartphone,
-    highlights: ['Responsive IDE', 'App assets', 'Mobile previews', 'Release workflows'],
+    highlights: marketingSurfacePageEn['advanced/mobile'].highlights,
   }),
   sso: makeSurfacePage({
     slug: 'advanced/sso',
     route: '/advanced/sso',
-    title: 'Advanced SSO',
-    description: 'Advanced identity architecture for enterprise SAML/OIDC, SCIM, domains and role mapping.',
+    title: marketingSurfacePageEn['advanced/sso'].title,
+    description: marketingSurfacePageEn['advanced/sso'].description,
     category: 'security',
     icon: KeyRound,
-    highlights: ['SAML/OIDC', 'SCIM', 'Domain controls', 'Role mapping'],
+    highlights: marketingSurfacePageEn['advanced/sso'].highlights,
   }),
   collaboration: makeSurfacePage({
     slug: 'advanced/collaboration',
     route: '/advanced/collaboration',
-    title: 'Advanced Collaboration',
-    description:
-      'Team collaboration patterns for review threads, shared context, access controls and release coordination.',
+    title: marketingSurfacePageEn['advanced/collaboration'].title,
+    description: marketingSurfacePageEn['advanced/collaboration'].description,
     category: 'team',
     icon: Users,
-    highlights: ['Review threads', 'Shared context', 'Access controls', 'Release coordination'],
+    highlights: marketingSurfacePageEn['advanced/collaboration'].highlights,
   }),
   storage: makeSurfacePage({
     slug: 'advanced/storage',
     route: '/advanced/storage',
-    title: 'Advanced Storage',
-    description:
-      'Storage architecture for generated apps, object buckets, KV data, database files and media lifecycle.',
+    title: marketingSurfacePageEn['advanced/storage'].title,
+    description: marketingSurfacePageEn['advanced/storage'].description,
     category: 'data',
     icon: FileArchive,
-    highlights: ['Object buckets', 'KV data', 'Database files', 'Media lifecycle'],
+    highlights: marketingSurfacePageEn['advanced/storage'].highlights,
   }),
   community: makeSurfacePage({
     slug: 'advanced/community',
     route: '/advanced/community',
-    title: 'Advanced Community',
-    description: 'Community architecture for posts, profiles, moderation, templates and builder discovery.',
+    title: marketingSurfacePageEn['advanced/community'].title,
+    description: marketingSurfacePageEn['advanced/community'].description,
     category: 'marketplace',
     icon: Users,
-    highlights: ['Profiles', 'Posts', 'Moderation', 'Builder discovery'],
+    highlights: marketingSurfacePageEn['advanced/community'].highlights,
   }),
 } as const satisfies Record<string, EcodeSurfacePageDefinition>;
 
@@ -799,11 +625,11 @@ export const ecodeStandaloneSurfacePages = {
   'ai-agent/studio': makeSurfacePage({
     slug: 'ai-agent/studio',
     route: '/ai-agent/studio',
-    title: 'AI Agent Studio',
-    description: 'A studio route for planning, supervising and validating E-Code AI agent work inside real projects.',
+    title: marketingSurfacePageEn['ai-agent/studio'].title,
+    description: marketingSurfacePageEn['ai-agent/studio'].description,
     category: 'ai',
     icon: Sparkles,
-    highlights: ['Prompt planning', 'Tool boundaries', 'Patch review', 'Preview-aware validation'],
+    highlights: marketingSurfacePageEn['ai-agent/studio'].highlights,
   }),
 
   /*
@@ -816,29 +642,29 @@ export const ecodeStandaloneSurfacePages = {
   'editor/new': makeSurfacePage({
     slug: 'editor/new',
     route: '/editor/new',
-    title: 'New Editor Session',
-    description: 'Start a fresh editor session for an E-Code project, prompt or imported workspace.',
+    title: marketingSurfacePageEn['editor/new'].title,
+    description: marketingSurfacePageEn['editor/new'].description,
     category: 'builder',
     icon: FileCode2,
-    highlights: ['Fresh workspace', 'Prompt context', 'File editor', 'Preview handoff'],
+    highlights: marketingSurfacePageEn['editor/new'].highlights,
   }),
   'teams/new': makeSurfacePage({
     slug: 'teams/new',
     route: '/teams/new',
-    title: 'New Team',
-    description: 'Create a new E-Code team workspace with members, roles, billing context and project governance.',
+    title: marketingSurfacePageEn['teams/new'].title,
+    description: marketingSurfacePageEn['teams/new'].description,
     category: 'team',
     icon: Plus,
-    highlights: ['Team creation', 'Member invites', 'Role planning', 'Shared billing'],
+    highlights: marketingSurfacePageEn['teams/new'].highlights,
   }),
   'user/settings': makeSurfacePage({
     slug: 'user/settings',
     route: '/user/settings',
-    title: 'User Settings',
-    description: 'Personal settings for identity, notifications, editor defaults and connected E-Code accounts.',
+    title: marketingSurfacePageEn['user/settings'].title,
+    description: marketingSurfacePageEn['user/settings'].description,
     category: 'admin',
     icon: Settings,
-    highlights: ['Identity settings', 'Notifications', 'Editor defaults', 'Connected accounts'],
+    highlights: marketingSurfacePageEn['user/settings'].highlights,
   }),
 } as const satisfies Record<string, EcodeSurfacePageDefinition>;
 
@@ -871,12 +697,39 @@ export function getEcodeStandaloneSurfacePage(slug: string): EcodeSurfacePageDef
   return (ecodeStandaloneSurfacePages as Record<string, EcodeSurfacePageDefinition>)[slug];
 }
 
-export function makeEcodeSurfaceMetaTags(page: EcodeSurfacePageDefinition) {
-  return [{ title: `${page.title} - E-Code` }, { name: 'description', content: page.description }];
+export function makeEcodeSurfaceMetaTags(page: EcodeSurfacePageDefinition, language?: string | null) {
+  const dynamicPageCopy = page.dynamicCopy ? getMarketingSurfaceDynamicPageCopy(language, page.dynamicCopy) : undefined;
+  const staticPageCopy = page.dynamicCopy ? undefined : getMarketingSurfacePageCopy(language, page.slug);
+  const localizedTitle = dynamicPageCopy?.title ?? staticPageCopy?.title ?? page.title;
+  const description = dynamicPageCopy?.description ?? staticPageCopy?.description ?? page.description;
+  const title = `${localizedTitle} - E-Code`;
+  const canonical = `https://e-code.ai${page.route}`;
+  const french = normalizeSupportedLanguage(language) === 'fr';
+
+  return [
+    { title },
+    { name: 'description', content: description },
+    { property: 'og:title', content: title },
+    { property: 'og:description', content: description },
+    { property: 'og:type', content: 'website' },
+    { property: 'og:url', content: canonical },
+    { property: 'og:locale', content: french ? 'fr_FR' : 'en_US' },
+    { property: 'og:locale:alternate', content: french ? 'en_US' : 'fr_FR' },
+    { name: 'twitter:title', content: title },
+    { name: 'twitter:description', content: description },
+    { tagName: 'link', rel: 'canonical', href: canonical },
+    { tagName: 'link', rel: 'alternate', hrefLang: 'en', href: `${canonical}?lang=en` },
+    { tagName: 'link', rel: 'alternate', hrefLang: 'fr', href: `${canonical}?lang=fr` },
+    { tagName: 'link', rel: 'alternate', hrefLang: 'x-default', href: canonical },
+  ];
 }
 
 export function makeEcodeSurfaceMeta(page: EcodeSurfacePageDefinition): MetaFunction {
-  return () => makeEcodeSurfaceMetaTags(page);
+  return ({ matches }) => {
+    const rootData = matches.find((match) => match.id === 'root')?.data as { language?: string } | undefined;
+
+    return makeEcodeSurfaceMetaTags(page, rootData?.language);
+  };
 }
 
 export function EcodeSurfacePageBySlug() {
@@ -885,7 +738,7 @@ export function EcodeSurfacePageBySlug() {
   const page = getEcodeSurfacePage(slug);
 
   if (!page) {
-    throw new Response('E-Code surface page not found', { status: 404 });
+    throw new Response(null, { status: 404 });
   }
 
   return <EcodeSurfacePage page={page} />;
@@ -896,13 +749,66 @@ export function EcodeAdvancedSurfaceRoute() {
   const page = getEcodeAdvancedSurfacePage(params.section ?? '');
 
   if (!page) {
-    throw new Response('Advanced E-Code surface page not found', { status: 404 });
+    throw new Response(null, { status: 404 });
   }
 
   return <EcodeSurfacePage page={page} />;
 }
 
 export function EcodeSurfacePage({ page }: { page: EcodeSurfacePageDefinition }) {
+  const { i18n } = useTranslation();
+  const activeLanguage = i18n.resolvedLanguage ?? i18n.language;
+  const localizedCopy = getMarketingSurfaceCopy(activeLanguage);
+
+  const dynamicPageCopy = page.dynamicCopy
+    ? getMarketingSurfaceDynamicPageCopy(activeLanguage, page.dynamicCopy)
+    : undefined;
+
+  const staticPageCopy = page.dynamicCopy ? undefined : getMarketingSurfacePageCopy(activeLanguage, page.slug);
+
+  const categoryEnglish = marketingSurfaceCategoryEn.surfaceCategories[page.category];
+  const category = localizedCopy.categories[page.category];
+  const localizedTitle = dynamicPageCopy?.title ?? staticPageCopy?.title ?? page.title;
+  const localizedDescription = dynamicPageCopy?.description ?? staticPageCopy?.description ?? page.description;
+  const localizedHighlights = dynamicPageCopy?.highlights ?? staticPageCopy?.highlights ?? page.highlights;
+  const usesDefaultSections = page.sections[1]?.title === englishSurfaceUi.productionControls;
+
+  const localizedSections = usesDefaultSections
+    ? [
+        {
+          ...page.sections[0],
+          title: localizedCopy.ui.workflowTitle(localizedTitle),
+          body: localizedCopy.ui.workflowBody(localizedTitle),
+          items: localizedHighlights,
+        },
+        {
+          ...page.sections[1],
+          title: localizedCopy.ui.productionControls,
+          body: localizedCopy.ui.productionBody,
+          items: category.controls,
+        },
+      ]
+    : page.sections;
+  const localizedPage = {
+    ...page,
+    title: localizedTitle,
+    description: localizedDescription,
+    highlights: localizedHighlights,
+    eyebrow: category.eyebrow,
+    primaryAction: page.primaryAction === categoryEnglish.primaryAction ? category.primaryAction : page.primaryAction,
+    secondaryAction:
+      staticPageCopy?.secondaryActionLabel !== undefined
+        ? ([staticPageCopy.secondaryActionLabel, page.secondaryAction[1]] as const)
+        : page.secondaryAction === categoryEnglish.secondaryAction
+          ? category.secondaryAction
+          : page.secondaryAction,
+    stats: category.stats,
+    sections: localizedSections,
+    relatedRoutes:
+      dynamicPageCopy?.relatedRoutes ??
+      (page.relatedRoutes === categoryEnglish.relatedRoutes ? category.relatedRoutes : page.relatedRoutes),
+  };
+
   const Icon = page.icon;
 
   return (
@@ -919,41 +825,43 @@ export function EcodeSurfacePage({ page }: { page: EcodeSurfacePageDefinition })
             <div className="max-w-4xl">
               <span className="inline-flex items-center gap-2 rounded-full border border-[var(--ecode-border)] bg-[var(--ecode-surface)] px-4 py-2 text-[13px] font-semibold uppercase tracking-[0.24em] text-[var(--ecode-accent)]">
                 <Icon className="h-4 w-4" aria-hidden />
-                {page.eyebrow}
+                {localizedPage.eyebrow}
               </span>
               <h1 className="mt-8 max-w-4xl text-5xl font-bold leading-[1.04] tracking-tight text-[var(--ecode-text)] sm:text-6xl lg:text-7xl">
-                {page.title}
+                {localizedPage.title}
               </h1>
               <p className="mt-6 max-w-3xl text-lg leading-8 text-[var(--ecode-text-secondary)] sm:text-xl">
-                {page.description}
+                {localizedPage.description}
               </p>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                <EcodeSurfaceActionLink to={page.primaryAction[1]}>{page.primaryAction[0]}</EcodeSurfaceActionLink>
-                <EcodeSurfaceActionLink to={page.secondaryAction[1]} variant="secondary">
-                  {page.secondaryAction[0]}
+                <EcodeSurfaceActionLink to={localizedPage.primaryAction[1]}>
+                  {localizedPage.primaryAction[0]}
+                </EcodeSurfaceActionLink>
+                <EcodeSurfaceActionLink to={localizedPage.secondaryAction[1]} variant="secondary">
+                  {localizedPage.secondaryAction[0]}
                 </EcodeSurfaceActionLink>
               </div>
             </div>
 
             <aside
               className="overflow-hidden rounded-lg border border-[var(--ecode-border)] bg-[var(--ecode-surface)] shadow-[0_24px_80px_rgba(0,0,0,0.18)]"
-              aria-label={`${page.title} route details`}
+              aria-label={localizedCopy.ui.routeDetails(localizedPage.title)}
             >
               <div className="flex h-11 items-center gap-2 border-b border-[var(--ecode-border)] bg-[var(--ecode-surface-secondary)] px-4">
                 <span className="h-2.5 w-2.5 rounded-full bg-red-400" aria-hidden />
                 <span className="h-2.5 w-2.5 rounded-full bg-yellow-400" aria-hidden />
                 <span className="h-2.5 w-2.5 rounded-full bg-green-400" aria-hidden />
                 <strong className="ml-2 min-w-0 truncate text-[12px] font-semibold text-[var(--ecode-text-secondary)]">
-                  {page.route}
+                  {localizedPage.route}
                 </strong>
               </div>
               <div className="grid gap-4 p-5">
                 <div className="flex min-w-0 items-center gap-3 rounded-lg bg-[var(--ecode-background)] p-3 font-mono text-[12px] text-[var(--ecode-text-secondary)]">
                   <Terminal className="h-4 w-4 shrink-0 text-[var(--ecode-accent)]" aria-hidden />
-                  <span className="min-w-0 [overflow-wrap:anywhere]">ecode route verify {page.route}</span>
+                  <code className="min-w-0 [overflow-wrap:anywhere]">ecode route verify {localizedPage.route}</code>
                 </div>
                 <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
-                  {page.stats.map((stat) => (
+                  {localizedPage.stats.map((stat) => (
                     <div
                       key={`${stat.label}-${stat.value}`}
                       className="min-h-[5.75rem] rounded-lg border border-[var(--ecode-border)] bg-[var(--ecode-background)] p-4"
@@ -967,16 +875,19 @@ export function EcodeSurfacePage({ page }: { page: EcodeSurfacePageDefinition })
                 </div>
                 <div className="flex items-center gap-3 rounded-lg bg-[var(--ecode-background)] p-3 text-[13px] text-[var(--ecode-text-secondary)]">
                   <CheckCircle2 className="h-4 w-4 shrink-0 text-[var(--ecode-accent)]" aria-hidden />
-                  <span>Imported from E-Code and rendered through E-Code public navigation.</span>
+                  <span>{localizedCopy.ui.importedConfirmation}</span>
                 </div>
               </div>
             </aside>
           </div>
         </section>
 
-        <section className="container-responsive py-16 sm:py-24" aria-label={`${page.title} imported capabilities`}>
+        <section
+          className="container-responsive py-16 sm:py-24"
+          aria-label={localizedCopy.ui.importedCapabilities(localizedPage.title)}
+        >
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {page.highlights.map((highlight) => (
+            {localizedPage.highlights.map((highlight) => (
               <div
                 key={highlight}
                 className="flex min-h-[4.75rem] items-center gap-3 rounded-lg border border-[var(--ecode-border)] bg-[var(--ecode-surface)] p-4 text-[14px] font-medium text-[var(--ecode-text)]"
@@ -989,7 +900,7 @@ export function EcodeSurfacePage({ page }: { page: EcodeSurfacePageDefinition })
         </section>
 
         <section className="container-responsive grid gap-5 lg:grid-cols-2">
-          {page.sections.map((section) => (
+          {localizedPage.sections.map((section) => (
             <article
               key={section.title}
               className="rounded-lg border border-[var(--ecode-border)] bg-[var(--ecode-surface)] p-6 sm:p-7"
@@ -1008,18 +919,21 @@ export function EcodeSurfacePage({ page }: { page: EcodeSurfacePageDefinition })
           ))}
         </section>
 
-        <section className="container-responsive py-16 sm:py-24" aria-label={`${page.title} related routes`}>
+        <section
+          className="container-responsive py-16 sm:py-24"
+          aria-label={localizedCopy.ui.relatedRoutes(localizedPage.title)}
+        >
           <div className="grid gap-8 rounded-lg border border-[var(--ecode-border)] bg-[var(--ecode-surface)] p-6 sm:p-8 lg:grid-cols-[0.7fr_1.3fr]">
             <div>
               <span className="inline-flex rounded-full border border-[var(--ecode-border)] bg-[var(--ecode-background)] px-4 py-2 text-[13px] font-semibold uppercase tracking-[0.24em] text-[var(--ecode-accent)]">
-                Connected routes
+                {localizedCopy.ui.connectedRoutes}
               </span>
               <h2 className="mt-5 text-3xl font-bold tracking-tight text-[var(--ecode-text)] sm:text-5xl">
-                Keep moving through real pages.
+                {localizedCopy.ui.connectedTitle}
               </h2>
             </div>
             <div className="grid gap-4 md:grid-cols-3">
-              {page.relatedRoutes.map((route) => (
+              {localizedPage.relatedRoutes.map((route) => (
                 <Link
                   key={route.to}
                   to={route.to}
@@ -1030,7 +944,7 @@ export function EcodeSurfacePage({ page }: { page: EcodeSurfacePageDefinition })
                     {route.description}
                   </small>
                   <span className="mt-auto inline-flex items-center pt-5 text-[13px] font-semibold text-[var(--ecode-accent)]">
-                    Open
+                    {localizedCopy.ui.open}
                     <ArrowRight className="ml-2 h-4 w-4 transition group-hover:translate-x-1" aria-hidden />
                   </span>
                 </Link>
@@ -1054,7 +968,7 @@ function EcodeSurfaceActionLink({
 }) {
   const className =
     variant === 'primary'
-      ? 'inline-flex min-h-[44px] items-center justify-center rounded-md bg-[var(--ecode-accent)] px-5 py-3 text-[13px] font-semibold text-white transition hover:bg-[var(--ecode-accent-hover)]'
+      ? 'inline-flex min-h-[44px] items-center justify-center rounded-md bg-[var(--vc-action-primary-strong)] px-5 py-3 text-[13px] font-semibold text-white transition hover:brightness-90'
       : 'inline-flex min-h-[44px] items-center justify-center rounded-md border border-[var(--ecode-border)] bg-transparent px-5 py-3 text-[13px] font-semibold text-[var(--ecode-text)] transition hover:border-[var(--ecode-accent)] hover:text-[var(--ecode-accent)]';
 
   if (/^(https?:)?\/\//.test(to)) {
@@ -1075,15 +989,15 @@ function EcodeSurfaceActionLink({
 }
 
 const PROJECT_IMPORT_SOURCE_LABELS = {
-  figma: 'Figma',
+  figma: getMarketingImportSourceLabel('en', 'figma')!,
 
   /*
    * The 'bolt' route key is an internal identifier kept for backwards
    * compatibility; its user-facing label is brand-neutral so the upstream
    * codename never surfaces in titles, descriptions or the browser tab.
    */
-  bolt: 'Legacy export',
-  lovable: 'Lovable',
+  bolt: getMarketingImportSourceLabel('en', 'bolt')!,
+  lovable: getMarketingImportSourceLabel('en', 'lovable')!,
 } as const satisfies Record<string, string>;
 
 export type ProjectImportSource = keyof typeof PROJECT_IMPORT_SOURCE_LABELS;
@@ -1092,152 +1006,93 @@ export type ProjectImportSource = keyof typeof PROJECT_IMPORT_SOURCE_LABELS;
 export const PROJECT_IMPORT_SOURCES = Object.keys(PROJECT_IMPORT_SOURCE_LABELS) as ProjectImportSource[];
 
 export function createProjectImportSurfacePage(projectId: string, source: string): EcodeSurfacePageDefinition {
-  const label = PROJECT_IMPORT_SOURCE_LABELS[source as ProjectImportSource];
-
-  if (!label) {
-    throw new Response('Unsupported E-Code import source', { status: 404 });
+  if (!PROJECT_IMPORT_SOURCE_LABELS[source as ProjectImportSource]) {
+    throw new Response(null, { status: 404 });
   }
 
-  return makeSurfacePage({
+  return makeDynamicSurfacePage({
     slug: `projects/${projectId}/import/${source}`,
     route: `/projects/${projectId}/import/${source}`,
-    title: `${label} Project Import`,
-    description: `Import ${label} work into project ${projectId} with asset mapping, route planning and validation checks.`,
     category: 'integration',
     icon: Upload,
-    highlights: [`${label} source mapping`, 'Project context', 'Dependency planning', 'Preview validation'],
-    relatedRoutes: [
-      { label: 'GitHub import', to: '/import-github', description: 'Import repository-backed projects.' },
-      { label: 'Project overview', to: `/projects/${projectId}`, description: 'Return to the project workspace.' },
-      { label: 'Preview', to: `/projects/${projectId}/preview`, description: 'Validate the imported app visually.' },
-    ],
+    dynamicCopy: { key: 'projectImport', values: { projectId, source } },
   });
 }
 
 export function createProjectDatabaseSurfacePage(projectId: string): EcodeSurfacePageDefinition {
-  return makeSurfacePage({
+  return makeDynamicSurfacePage({
     slug: `projects/${projectId}/database`,
     route: `/projects/${projectId}/database`,
-    title: 'Project Database',
-    description: `Project ${projectId} database planning for schemas, migrations, seed data and safe runtime configuration.`,
     category: 'data',
     icon: Braces,
-    highlights: ['Project schema', 'Migrations', 'Seed data', 'Runtime variables'],
-    relatedRoutes: [
-      { label: 'Database', to: '/database', description: 'Review platform database guidance.' },
-      { label: 'Secrets', to: '/secrets', description: 'Store database credentials safely.' },
-      { label: 'Project preview', to: `/projects/${projectId}/preview`, description: 'Validate database-backed UI.' },
-    ],
+    dynamicCopy: { key: 'projectDatabase', values: { projectId } },
   });
 }
 
 export function createProjectPreviewSurfacePage(projectId: string): EcodeSurfacePageDefinition {
-  return makeSurfacePage({
+  return makeDynamicSurfacePage({
     slug: `projects/${projectId}/preview`,
     route: `/projects/${projectId}/preview`,
-    title: 'Project Preview',
-    description: `Preview route for project ${projectId}, focused on visual QA, runtime readiness and shareable review.`,
     category: 'runtime',
     icon: MonitorPlay,
-    highlights: ['Visual QA', 'Runtime readiness', 'Route checks', 'Shareable review'],
-    relatedRoutes: [
-      { label: 'Preview', to: '/preview', description: 'Review platform preview behavior.' },
-      { label: 'Runtime diagnostics', to: '/runtime-diagnostics', description: 'Inspect runtime blockers.' },
-      {
-        label: 'Project database',
-        to: `/projects/${projectId}/database`,
-        description: 'Validate data-backed features.',
-      },
-    ],
+    dynamicCopy: { key: 'projectPreview', values: { projectId } },
   });
 }
 
 export function createProjectCompatSurfacePage(projectId: string): EcodeSurfacePageDefinition {
-  return makeSurfacePage({
+  return makeDynamicSurfacePage({
     slug: `project/${projectId}`,
     route: `/project/${projectId}`,
-    title: 'Project Compatibility Overview',
-    description: `Compatibility route for legacy E-Code project ${projectId}, with links into the E-Code project workspace.`,
     category: 'builder',
     icon: Boxes,
-    highlights: ['Legacy route support', 'Project overview', 'Workspace links', 'Preview handoff'],
-    relatedRoutes: [
-      { label: 'Projects', to: '/projects', description: 'Open the E-Code project list.' },
-      { label: 'Project workspace', to: `/projects/${projectId}`, description: 'Open the canonical project route.' },
-      { label: 'Editor', to: `/editor/${projectId}`, description: 'Use the imported editor compatibility route.' },
-    ],
+    dynamicCopy: { key: 'projectCompat', values: { projectId } },
   });
 }
 
 export function createEditorSurfacePage(editorId: string): EcodeSurfacePageDefinition {
-  return makeSurfacePage({
+  return makeDynamicSurfacePage({
     slug: `editor/${editorId}`,
     route: `/editor/${editorId}`,
-    title: 'Editor Session',
-    description: `Editor compatibility route for session ${editorId}, preserving the E-Code path into the E-Code IDE flow.`,
     category: 'builder',
     icon: FileCode2,
-    highlights: ['File editor', 'Agent context', 'Preview panel', 'Session continuity'],
-    relatedRoutes: [
-      { label: 'New editor session', to: '/editor/new', description: 'Start a new editor route.' },
-      { label: 'Projects', to: '/projects', description: 'Open the canonical project workspace list.' },
-      { label: 'Features', to: '/features', description: 'Review the imported E-Code IDE capabilities.' },
-    ],
+    dynamicCopy: { key: 'editor', values: { editorId } },
   });
 }
 
 export function createTeamSurfacePage(teamId: string, section?: 'settings'): EcodeSurfacePageDefinition {
-  return makeSurfacePage({
+  return makeDynamicSurfacePage({
     slug: section ? `teams/${teamId}/${section}` : `teams/${teamId}`,
     route: section ? `/teams/${teamId}/${section}` : `/teams/${teamId}`,
-    title: section === 'settings' ? 'Team Settings' : 'Team Workspace',
-    description:
-      section === 'settings'
-        ? `Settings route for team ${teamId}, including identity, members, billing context and project access.`
-        : `Team route for ${teamId}, connecting members, shared projects, roles and review workflows.`,
     category: 'team',
     icon: section === 'settings' ? Settings : Users,
-    highlights:
-      section === 'settings'
-        ? ['Member policy', 'Billing ownership', 'Project access', 'Audit context']
-        : ['Members', 'Shared projects', 'Roles', 'Review workflows'],
-    relatedRoutes: [
-      { label: 'All teams', to: '/teams', description: 'Return to the imported teams route.' },
-      { label: 'Create team', to: '/teams/new', description: 'Start a new team workspace.' },
-      { label: 'Collaboration', to: '/collaboration', description: 'Review multiplayer team behavior.' },
-    ],
+    dynamicCopy: {
+      key: section === 'settings' ? 'teamSettings' : 'teamWorkspace',
+      values: { teamId },
+    },
   });
 }
 
 export function createProfileSurfacePage(username?: string): EcodeSurfacePageDefinition {
   const name = username ?? 'builder';
 
-  return makeSurfacePage({
+  return makeDynamicSurfacePage({
     slug: username ? `profile/${username}` : 'profile',
     route: username ? `/profile/${username}` : '/profile',
-    title: username ? `${name} Profile` : 'Profile',
-    description: username
-      ? `Public E-Code profile route for ${name}, including builder identity, shared work and community context.`
-      : 'A profile route for builder identity, shared projects, community presence and account discovery.',
     category: 'team',
     icon: Users,
-    highlights: ['Builder identity', 'Shared projects', 'Community presence', 'Public route support'],
+    dynamicCopy: {
+      key: username ? 'profileNamed' : 'profile',
+      values: { username: name },
+    },
   });
 }
 
 export function createUserSurfacePage(username: string): EcodeSurfacePageDefinition {
-  return makeSurfacePage({
+  return makeDynamicSurfacePage({
     slug: `user/${username}`,
     route: `/user/${username}`,
-    title: `${username} User Profile`,
-    description: `Legacy E-Code user route for ${username}, mapped into a real E-Code profile-compatible surface.`,
     category: 'team',
     icon: Users,
-    highlights: ['Legacy user route', 'Profile context', 'Shared projects', 'Community identity'],
-    relatedRoutes: [
-      { label: 'Profile', to: `/profile/${username}`, description: 'Open the equivalent profile route.' },
-      { label: 'User settings', to: '/user/settings', description: 'Manage user-level preferences.' },
-      { label: 'Community', to: '/community', description: 'Browse community routes.' },
-    ],
+    dynamicCopy: { key: 'user', values: { username } },
   });
 }
