@@ -25,6 +25,8 @@ export interface PurgeClassReport {
   models: Record<string, number>;
   /** Mandatory motive when action === 'retained' (fail-closed exceptions). */
   reason?: string;
+  /** Exact non-secret resource evidence when a physical class needs audit replay. */
+  evidence?: Record<string, unknown>;
   /**
    * Post-purge verification for DELETED classes: rows still matching the purge
    * selector after the deletes ran. Must be 0 for the proof to verify.
@@ -70,6 +72,16 @@ export interface PurgeStorageInventory {
   bucketProjectIds: string[];
   /** Every project the subject has a workspace in (sole-org + collaborator). */
   workspaceProjectIds: string[];
+  /**
+   * Durable local ProjectSnapshot objects captured before DB rows cascade away.
+   * The project id binds each untrusted DB key to its tenant-owned namespace.
+   */
+  localSnapshotObjects: Array<{ projectId: string; storageKey: string }>;
+  /**
+   * Every static deployment artifact owned by a sole-member organization.
+   * Includes ids referenced only by append-only ReleaseManifest rows.
+   */
+  staticDeploymentIds: string[];
 }
 
 export interface PurgeEffectDescriptor {
@@ -82,7 +94,12 @@ export interface PurgeEffectDescriptor {
     | 'k8s_service'
     | 'k8s_pod'
     | 'k8s_secret'
-    | 'k8s_pvc';
+    | 'k8s_pvc'
+    | 'local_project_storage'
+    | 'local_project_archive'
+    | 'local_project_snapshot'
+    | 'local_workspace_storage'
+    | 'static_deployment_snapshot';
   resourceId: string;
 }
 

@@ -214,6 +214,7 @@ import {
   purgeDueAtMs,
 } from './data-deletion.js';
 import type { PurgeClassReport, PurgeLeaseContext, PurgeStorageInventory } from './account-purge.js';
+import { eraseLocalAccountStorage } from './account-local-storage-purge.js';
 import {
   eraseSubjectStorage,
   type WorkspaceVolumeErasurePort,
@@ -599,6 +600,13 @@ export interface ApiAppOptions {
   store?: ApiStore;
   agentMemory?: AgentMemoryService;
   mcpMarketplace?: McpMarketplaceService;
+
+  /**
+   * Test-only storage seam. Production rejects injected adapters because an
+   * implementation cannot be wrapped safely around its own check-to-write
+   * window; the built-in LocalProjectStorage shares its distributed lock with
+   * account-purge erasure.
+   */
   projectStorage?: ProjectStorage;
 
   /** Production defaults to CNPG; injected only for deterministic migration tests. */
@@ -9221,6 +9229,7 @@ export function publishedDeploymentExpired(input: {
 export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyInstance> {
   const store = options.store ?? createDefaultStore();
   const agentMemory = options.agentMemory ?? createDefaultAgentMemory(store);
+  const isProduction = options.isProduction ?? process.env.NODE_ENV === 'production';
 
   const mcpMarketplace =
     options.mcpMarketplace ??
@@ -9249,21 +9258,37 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
   };
 
-  const rawProjectStorage = options.projectStorage ?? new LocalProjectStorage();
+  const accountPurgeStorageGuard = (projectId: string, workspaceId?: string) =>
+    store.assertProjectStorageMutable(projectId, workspaceId);
+
+  const projectTreeMutationGuard = async (projectId: string, workspaceId?: string) => {
+    await accountPurgeStorageGuard(projectId, workspaceId);
+    await checkpointMutationGuard(projectId);
+  };
+
+  if (options.projectStorage && isProduction) {
+    throw Object.assign(new Error(appPublicEnglish('UNSAFE_PROJECT_STORAGE_ADAPTER')), {
+      code: 'UNSAFE_PROJECT_STORAGE_ADAPTER',
+    });
+  }
+
+  const rawProjectStorage =
+    options.projectStorage ?? new LocalProjectStorage(accountPurgeStorageGuard, accountPurgeStorageGuard);
 
   /*
    * Production's LocalProjectStorage executes the database guard WHILE its
-   * NFS-safe per-project lock is held. Barrier acquisition takes the same lock,
-   * closing the check→write race across API replicas. Injected test adapters
-   * retain the generic proxy contract.
+   * NFS-safe per-project lock is held. Purge erasure takes that same lock,
+   * closing the check→write race across API replicas. Injected adapters are a
+   * non-production test seam only, because a proxy cannot move a guard inside
+   * an unknown adapter's mutation critical section.
    */
   const projectStorage = options.projectStorage
     ? withCheckpointBarrier(rawProjectStorage, checkpointBarrierLookup)
-    : new LocalProjectStorage(checkpointMutationGuard);
+    : new LocalProjectStorage(projectTreeMutationGuard, accountPurgeStorageGuard);
 
   const databaseProvisioner = options.databaseProvisioner ?? resolveDefaultDatabaseProvisioner();
   const migrationApplier = options.migrationApplier ?? createPostgresMigrationApplier();
-  const gitProvider = options.gitProvider ?? new GitCliProvider(checkpointMutationGuard);
+  const gitProvider = options.gitProvider ?? new GitCliProvider(projectTreeMutationGuard);
   const staticBuildRunner = options.staticBuildRunner ?? runStaticBuild;
 
   /*
@@ -9275,8 +9300,6 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   const useWorkspacePodBuild = options.useWorkspacePodBuild ?? !options.staticBuildRunner;
   const enqueueDeployJob = options.enqueueDeployJob ?? enqueueDeployBuildJob;
   const emailProvider = options.emailProvider ?? createEmailProvider();
-  const isProduction = options.isProduction ?? process.env.NODE_ENV === 'production';
-
   let defaultServerImagePromotionRuntime: ServerImagePromotionRuntime | undefined;
 
   const resolveServerImagePromotionRuntime = (): ServerImagePromotionRuntime => {
@@ -33359,24 +33382,48 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                   ...(providerStatus ? { providerStatus } : {}),
                 };
               }),
-            eraseStorage: async (inventory, lease) =>
-              options.accountStoragePurger
-                ? options.accountStoragePurger(inventory, userId, lease)
-                : eraseSubjectStorage(
-                    {
-                      bucketProjectIds: inventory.bucketProjectIds,
-                      workspaceIds: inventory.workspaceProjectIds.map((projectId) =>
-                        runtimeWorkspaceId(projectId, userId),
-                      ),
-                    },
-                    {
-                      objectStorage: options.objectStorage ?? resolveDefaultObjectStorage(),
-                      workspaceVolumes: createAccountPurgeWorkspaceEraser(),
-                      writeBarrier: createAccountPurgeWriteBarrier(),
-                      lease,
-                      log: app.log as unknown as { warn(object: unknown, message?: string): void },
-                    },
-                  ),
+            eraseStorage: async (inventory, lease) => {
+              if (options.accountStoragePurger) {
+                return options.accountStoragePurger(inventory, userId, lease);
+              }
+
+              const providerStorage = await eraseSubjectStorage(
+                {
+                  bucketProjectIds: inventory.bucketProjectIds,
+                  workspaceIds: inventory.workspaceProjectIds.map((projectId) => runtimeWorkspaceId(projectId, userId)),
+                },
+                {
+                  objectStorage: options.objectStorage ?? resolveDefaultObjectStorage(),
+                  workspaceVolumes: createAccountPurgeWorkspaceEraser(),
+                  writeBarrier: createAccountPurgeWriteBarrier(),
+                  lease,
+                  log: app.log as unknown as { warn(object: unknown, message?: string): void },
+                },
+              );
+
+              /* Never touch local bytes unless the cross-runtime write barrier held. */
+              if (!providerStorage.frozen) {
+                return { classes: providerStorage.classes, verified: false };
+              }
+
+              const localStorage = await eraseLocalAccountStorage(
+                {
+                  ownedProjectIds: inventory.bucketProjectIds,
+                  workspaceStorage: inventory.workspaceProjectIds.map((projectId) => ({
+                    projectId,
+                    workspaceId: runtimeWorkspaceId(projectId, userId),
+                  })),
+                  snapshotObjects: inventory.localSnapshotObjects,
+                  staticDeploymentIds: inventory.staticDeploymentIds,
+                },
+                { lease },
+              );
+
+              return {
+                classes: [...providerStorage.classes, ...localStorage.classes],
+                verified: providerStorage.verified && localStorage.verified,
+              };
+            },
             releaseWorkspaceBarrier: (inventory, planId, ownerToken) =>
               releaseAccountPurgeWorkspaceBarriers(
                 inventory.workspaceProjectIds.map((projectId) => runtimeWorkspaceId(projectId, userId)),
@@ -37108,7 +37155,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
       if (staticBuild.ok && staticBuild.outputDir) {
         try {
-          await snapshotStaticBuild(queued.id, staticBuild.outputDir);
+          await snapshotStaticBuild(queued.id, staticBuild.outputDir, () =>
+            store.assertProjectStorageMutable(project.id),
+          );
           staticBuildLogs.push({
             timestamp: new Date().toISOString(),
             level: 'info',
@@ -39374,7 +39423,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
       if (staticBuild.ok && staticBuild.outputDir) {
         try {
-          await snapshotStaticBuild(redeploy.id, staticBuild.outputDir);
+          await snapshotStaticBuild(redeploy.id, staticBuild.outputDir, () =>
+            store.assertProjectStorageMutable(project.id),
+          );
           rebuildLogs.push({
             timestamp: new Date().toISOString(),
             level: 'info',

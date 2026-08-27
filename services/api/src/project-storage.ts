@@ -261,7 +261,7 @@ export interface ProjectStorage {
 }
 
 /** Executed while the cross-replica project lock is held, immediately before a tree mutation. */
-export type ProjectMutationGuard = (projectId: string) => Promise<void>;
+export type ProjectMutationGuard = (projectId: string, workspaceId?: string) => Promise<void>;
 
 export const SECONDARY_WORKSPACES_DIR = '.vibecore-workspaces';
 
@@ -649,11 +649,19 @@ export async function filesFromZip(
 }
 
 export class LocalProjectStorage implements ProjectStorage {
-  constructor(private readonly mutationGuard?: ProjectMutationGuard) {}
+  constructor(
+    private readonly mutationGuard?: ProjectMutationGuard,
+    /** `_objects` writes bypass checkpoint barriers but never account-purge fencing. */
+    private readonly objectMutationGuard?: ProjectMutationGuard,
+  ) {}
 
-  private withTreeMutation<T>(projectId: string, mutate: () => Promise<T>): Promise<T> {
+  private withTreeMutation<T>(
+    projectId: string,
+    workspaceId: string | undefined,
+    mutate: () => Promise<T>,
+  ): Promise<T> {
     return withProjectLock(projectId, async () => {
-      await this.mutationGuard?.(projectId);
+      await this.mutationGuard?.(projectId, workspaceId);
       return mutate();
     });
   }
@@ -664,7 +672,7 @@ export class LocalProjectStorage implements ProjectStorage {
     workspaceId?: string,
     guard?: () => Promise<void>,
   ) {
-    return this.withTreeMutation(projectId, async () => {
+    return this.withTreeMutation(projectId, workspaceId, async () => {
       for (const file of files) {
         const target = safeWorkspacePath(projectId, workspaceId, file.path);
         await guard?.();
@@ -683,6 +691,7 @@ export class LocalProjectStorage implements ProjectStorage {
 
   async exportZip(projectId: string) {
     return withProjectLock(projectId, async () => {
+      await this.objectMutationGuard?.(projectId);
       const content = await archiveFiles(await walkFiles(safeProjectPath(projectId)));
       const storageKey = archiveKey('exports', projectId);
       const target = safeProjectPath('_objects', storageKey);
@@ -694,7 +703,7 @@ export class LocalProjectStorage implements ProjectStorage {
   }
 
   async importZip(projectId: string, base64: string, options: { replaceExisting?: boolean } = {}) {
-    return this.withTreeMutation(projectId, async () => {
+    return this.withTreeMutation(projectId, undefined, async () => {
       const files = await filesFromZipBase64(base64);
 
       if (options.replaceExisting) {
@@ -726,6 +735,7 @@ export class LocalProjectStorage implements ProjectStorage {
     guard?: () => Promise<void>;
   }) {
     return withProjectLock(input.projectId, async () => {
+      await this.objectMutationGuard?.(input.projectId);
       const content = await archiveFiles(input.files);
       const storageKey = input.storageKey ?? archiveKey('snapshots', input.projectId);
       const target = safeProjectPath('_objects', storageKey);
@@ -752,7 +762,7 @@ export class LocalProjectStorage implements ProjectStorage {
     input: { projectId: string; workspaceId?: string; files: ProjectFile[] },
     guard?: () => Promise<void>,
   ) {
-    return this.withTreeMutation(input.projectId, async () => {
+    return this.withTreeMutation(input.projectId, input.workspaceId, async () => {
       const target = safeWorkspacePath(input.projectId, input.workspaceId);
 
       /*
@@ -777,7 +787,7 @@ export class LocalProjectStorage implements ProjectStorage {
   }
 
   async deleteProjectFiles(projectId: string, guard?: () => Promise<void>): Promise<void> {
-    await this.withTreeMutation(projectId, async () => {
+    await this.withTreeMutation(projectId, undefined, async () => {
       await guard?.();
       await resilientRm(safeProjectPath(projectId));
     });
@@ -842,9 +852,13 @@ async function clearTreePreservingSecondaryWorkspaces(target: string) {
 export class GitCliProvider implements GitProvider {
   constructor(private readonly mutationGuard?: ProjectMutationGuard) {}
 
-  private withMutationLock<T>(projectId: string, mutate: () => Promise<T>): Promise<T> {
+  private withMutationLock<T>(
+    projectId: string,
+    workspaceId: string | undefined,
+    mutate: () => Promise<T>,
+  ): Promise<T> {
     return withProjectLock(projectId, async () => {
-      await this.mutationGuard?.(projectId);
+      await this.mutationGuard?.(projectId, workspaceId);
       return mutate();
     });
   }
@@ -991,7 +1005,16 @@ export class GitCliProvider implements GitProvider {
     }
   }
 
-  private async git(projectId: string, args: string[], workspaceId?: string, raw = false) {
+  /**
+   * Even nominally read-only Git commands call ensureRepository(), which may
+   * create/configure `.git`. Keep the safe default fenced and locked; mutation
+   * methods already holding the lock call gitLocked() directly.
+   */
+  private git(projectId: string, args: string[], workspaceId?: string, raw = false): Promise<string> {
+    return this.withMutationLock(projectId, workspaceId, () => this.gitLocked(projectId, args, workspaceId, raw));
+  }
+
+  private async gitLocked(projectId: string, args: string[], workspaceId?: string, raw = false) {
     await this.ensureRepository(projectId, workspaceId);
 
     const result = await execFile(
@@ -1072,7 +1095,7 @@ export class GitCliProvider implements GitProvider {
   }
 
   async status(projectId: string, workspaceId?: string, files?: ProjectFile[]) {
-    return this.withMutationLock(projectId, () => this.statusLocked(projectId, workspaceId, files));
+    return this.withMutationLock(projectId, workspaceId, () => this.statusLocked(projectId, workspaceId, files));
   }
 
   private async statusLocked(projectId: string, workspaceId?: string, files?: ProjectFile[]) {
@@ -1088,16 +1111,16 @@ export class GitCliProvider implements GitProvider {
     let detached = false;
 
     try {
-      branch = await this.git(projectId, ['symbolic-ref', '--short', 'HEAD'], workspaceId);
+      branch = await this.gitLocked(projectId, ['symbolic-ref', '--short', 'HEAD'], workspaceId);
     } catch {
-      const headSha = await this.git(projectId, ['rev-parse', '--short', 'HEAD'], workspaceId).catch(() => '');
+      const headSha = await this.gitLocked(projectId, ['rev-parse', '--short', 'HEAD'], workspaceId).catch(() => '');
 
       if (headSha) {
         branch = headSha;
         detached = true;
       }
     }
-    const porcelain = await this.git(projectId, ['status', '--porcelain=v1', '-uall'], workspaceId, true);
+    const porcelain = await this.gitLocked(projectId, ['status', '--porcelain=v1', '-uall'], workspaceId, true);
     const statusLines = porcelain.split('\n').filter(Boolean);
 
     /*
@@ -1122,7 +1145,7 @@ export class GitCliProvider implements GitProvider {
       .filter((line) => ['DD', 'AU', 'UD', 'UA', 'DU', 'AA', 'UU'].includes(line.slice(0, 2)))
       .map((line) => ({ path: statusPath(line), status: line.slice(0, 2) }));
 
-    const aheadBehind = await this.git(
+    const aheadBehind = await this.gitLocked(
       projectId,
       ['rev-list', '--left-right', '--count', '@{upstream}...HEAD'],
       workspaceId,
@@ -1142,7 +1165,7 @@ export class GitCliProvider implements GitProvider {
     authorName?: string;
     authorEmail?: string;
   }) {
-    return this.withMutationLock(input.projectId, async () => {
+    return this.withMutationLock(input.projectId, input.workspaceId, async () => {
       await this.ensureRepository(input.projectId, input.workspaceId);
 
       /*
@@ -1155,14 +1178,14 @@ export class GitCliProvider implements GitProvider {
       const selectedFiles = input.selectedFiles?.map((filePath) => filePath.replace(/^\/+/, '')).filter(Boolean) ?? [];
       const addArgs = selectedFiles.length ? ['add', '--', ...selectedFiles] : ['add', '--all'];
 
-      await this.git(input.projectId, addArgs, input.workspaceId);
+      await this.gitLocked(input.projectId, addArgs, input.workspaceId);
 
       /*
        * Nothing staged → `git commit` exits non-zero with "nothing to commit",
        * which would surface as a raw 500. Detect it and raise a friendly,
        * typed error the UI can render as "No changes to commit".
        */
-      const staged = await this.git(input.projectId, ['diff', '--cached', '--name-only'], input.workspaceId);
+      const staged = await this.gitLocked(input.projectId, ['diff', '--cached', '--name-only'], input.workspaceId);
 
       if (!staged.trim()) {
         throw Object.assign(new Error(appPublicEnglish('GIT_NOTHING_TO_COMMIT')), {
@@ -1190,26 +1213,26 @@ export class GitCliProvider implements GitProvider {
         ? ['commit', '-m', input.message, ...authorArgs, '--', ...selectedFiles]
         : ['commit', '-m', input.message, ...authorArgs];
 
-      await this.git(input.projectId, commitArgs, input.workspaceId);
+      await this.gitLocked(input.projectId, commitArgs, input.workspaceId);
 
-      const sha = await this.git(input.projectId, ['rev-parse', 'HEAD'], input.workspaceId);
+      const sha = await this.gitLocked(input.projectId, ['rev-parse', 'HEAD'], input.workspaceId);
 
       return { sha, message: input.message };
     });
   }
 
   async push(input: { projectId: string; workspaceId?: string; branch: string }) {
-    return this.withMutationLock(input.projectId, async () => {
-      await this.git(input.projectId, ['push', 'origin', input.branch], input.workspaceId);
+    return this.withMutationLock(input.projectId, input.workspaceId, async () => {
+      await this.gitLocked(input.projectId, ['push', 'origin', input.branch], input.workspaceId);
 
       return { pushed: true, branch: input.branch };
     });
   }
 
   async pull(input: { projectId: string; workspaceId?: string; branch: string }) {
-    return this.withMutationLock(input.projectId, async () => {
+    return this.withMutationLock(input.projectId, input.workspaceId, async () => {
       try {
-        await this.git(input.projectId, ['pull', 'origin', input.branch], input.workspaceId);
+        await this.gitLocked(input.projectId, ['pull', 'origin', input.branch], input.workspaceId);
       } catch (error) {
         /*
          * A conflicting pull exits non-zero, which would otherwise surface as a
@@ -1217,7 +1240,7 @@ export class GitCliProvider implements GitProvider {
          * unmerged paths and return a typed 409 so the UI can route the user into
          * conflict resolution instead of showing a generic failure.
          */
-        const conflictsOut = await this.git(
+        const conflictsOut = await this.gitLocked(
           input.projectId,
           ['diff', '--name-only', '--diff-filter=U'],
           input.workspaceId,
@@ -1245,26 +1268,26 @@ export class GitCliProvider implements GitProvider {
   }
 
   async configureRemote(input: { projectId: string; workspaceId?: string; remoteUrl: string }) {
-    return this.withMutationLock(input.projectId, async () => {
-      const remotes = await this.git(input.projectId, ['remote'], input.workspaceId).catch(() => '');
+    return this.withMutationLock(input.projectId, input.workspaceId, async () => {
+      const remotes = await this.gitLocked(input.projectId, ['remote'], input.workspaceId).catch(() => '');
 
       const args = remotes.split('\n').includes('origin')
         ? ['remote', 'set-url', 'origin', input.remoteUrl]
         : ['remote', 'add', 'origin', input.remoteUrl];
 
-      await this.git(input.projectId, args, input.workspaceId);
+      await this.gitLocked(input.projectId, args, input.workspaceId);
 
       return { remote: 'origin', remoteUrl: input.remoteUrl };
     });
   }
 
   async removeRemote(input: { projectId: string; workspaceId?: string }) {
-    return this.withMutationLock(input.projectId, async () => {
-      const remotes = await this.git(input.projectId, ['remote'], input.workspaceId).catch(() => '');
+    return this.withMutationLock(input.projectId, input.workspaceId, async () => {
+      const remotes = await this.gitLocked(input.projectId, ['remote'], input.workspaceId).catch(() => '');
 
       if (remotes.split('\n').includes('origin')) {
         // Tolerate an already-absent origin (idempotent disconnect).
-        await this.git(input.projectId, ['remote', 'remove', 'origin'], input.workspaceId).catch(() => undefined);
+        await this.gitLocked(input.projectId, ['remote', 'remove', 'origin'], input.workspaceId).catch(() => undefined);
       }
 
       return { removed: true };
@@ -1295,15 +1318,15 @@ export class GitCliProvider implements GitProvider {
     create?: boolean;
     startPoint?: string;
   }) {
-    return this.withMutationLock(input.projectId, async () => {
+    return this.withMutationLock(input.projectId, input.workspaceId, async () => {
       if (input.create) {
-        await this.git(
+        await this.gitLocked(
           input.projectId,
           ['checkout', '-b', input.branch, input.startPoint ?? 'HEAD'],
           input.workspaceId,
         );
       } else {
-        await this.git(input.projectId, ['checkout', input.branch], input.workspaceId);
+        await this.gitLocked(input.projectId, ['checkout', input.branch], input.workspaceId);
       }
 
       return { branch: input.branch };
@@ -1311,14 +1334,14 @@ export class GitCliProvider implements GitProvider {
   }
 
   async stashPush(input: { projectId: string; workspaceId?: string; message?: string }) {
-    return this.withMutationLock(input.projectId, async () => {
+    return this.withMutationLock(input.projectId, input.workspaceId, async () => {
       const args = ['stash', 'push', '--include-untracked'];
 
       if (input.message) {
         args.push('-m', input.message);
       }
 
-      const output = await this.git(input.projectId, args, input.workspaceId);
+      const output = await this.gitLocked(input.projectId, args, input.workspaceId);
 
       return { stashed: !/No local changes/i.test(output), output };
     });
@@ -1339,8 +1362,8 @@ export class GitCliProvider implements GitProvider {
   }
 
   async stashApply(input: { projectId: string; workspaceId?: string; stashRef: string; drop?: boolean }) {
-    return this.withMutationLock(input.projectId, async () => {
-      const output = await this.git(
+    return this.withMutationLock(input.projectId, input.workspaceId, async () => {
+      const output = await this.gitLocked(
         input.projectId,
         ['stash', input.drop ? 'pop' : 'apply', input.stashRef],
         input.workspaceId,
@@ -1351,8 +1374,8 @@ export class GitCliProvider implements GitProvider {
   }
 
   async cherryPick(input: { projectId: string; workspaceId?: string; sha: string }) {
-    return this.withMutationLock(input.projectId, async () => {
-      const output = await this.git(input.projectId, ['cherry-pick', input.sha], input.workspaceId);
+    return this.withMutationLock(input.projectId, input.workspaceId, async () => {
+      const output = await this.gitLocked(input.projectId, ['cherry-pick', input.sha], input.workspaceId);
 
       return { picked: true, output };
     });
@@ -1364,11 +1387,11 @@ export class GitCliProvider implements GitProvider {
     filePath: string;
     strategy: 'ours' | 'theirs';
   }) {
-    return this.withMutationLock(input.projectId, async () => {
+    return this.withMutationLock(input.projectId, input.workspaceId, async () => {
       const filePath = input.filePath.replace(/^\/+/, '');
 
-      await this.git(input.projectId, ['checkout', `--${input.strategy}`, '--', filePath], input.workspaceId);
-      await this.git(input.projectId, ['add', '--', filePath], input.workspaceId);
+      await this.gitLocked(input.projectId, ['checkout', `--${input.strategy}`, '--', filePath], input.workspaceId);
+      await this.gitLocked(input.projectId, ['add', '--', filePath], input.workspaceId);
 
       return { resolved: true, filePath, strategy: input.strategy };
     });
@@ -1413,13 +1436,13 @@ export class GitCliProvider implements GitProvider {
       });
     }
 
-    return this.withMutationLock(projectId, async () => {
+    return this.withMutationLock(projectId, workspaceId, async () => {
       /*
        * Restore every tracked file to its state at <sha> (Replit's "Restore All").
        * `git checkout <sha> -- .` overwrites the working tree + index with that
        * commit's content WITHOUT moving HEAD, so the user can review and commit.
        */
-      await this.git(projectId, ['checkout', rev, '--', '.'], workspaceId);
+      await this.gitLocked(projectId, ['checkout', rev, '--', '.'], workspaceId);
 
       return { restored: true, sha: rev };
     });
@@ -1436,7 +1459,7 @@ export class GitCliProvider implements GitProvider {
   }
 
   async markResolved(input: { projectId: string; workspaceId?: string; filePath: string; content: string }) {
-    return this.withMutationLock(input.projectId, async () => {
+    return this.withMutationLock(input.projectId, input.workspaceId, async () => {
       const clean = input.filePath.replace(/^\/+/, '');
       const target = safeWorkspacePath(input.projectId, input.workspaceId, clean);
 
@@ -1444,14 +1467,14 @@ export class GitCliProvider implements GitProvider {
       // merge can be completed by a normal commit.
       await mkdir(dirname(target), { recursive: true });
       await writeFile(target, input.content, 'utf8');
-      await this.git(input.projectId, ['add', '--', clean], input.workspaceId);
+      await this.gitLocked(input.projectId, ['add', '--', clean], input.workspaceId);
 
       return { resolved: true, filePath: clean };
     });
   }
 
   async discard(input: { projectId: string; workspaceId?: string; filePaths?: string[] }) {
-    return this.withMutationLock(input.projectId, async () => {
+    return this.withMutationLock(input.projectId, input.workspaceId, async () => {
       const paths = (input.filePaths ?? []).map((path) => path.replace(/^\/+/, '')).filter(Boolean);
 
       /*
@@ -1471,7 +1494,7 @@ export class GitCliProvider implements GitProvider {
       }
 
       const pathspec = paths.length ? paths : ['.'];
-      await this.git(input.projectId, ['checkout', '--', ...pathspec], input.workspaceId);
+      await this.gitLocked(input.projectId, ['checkout', '--', ...pathspec], input.workspaceId);
 
       return { discarded: true, filePaths: paths };
     });
