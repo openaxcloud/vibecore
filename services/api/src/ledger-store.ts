@@ -9,6 +9,8 @@
  * (durable, survives a process restart) posts balanced transactions at each step.
  */
 
+import { createHash } from 'node:crypto';
+
 import { Prisma, type DatabaseClient } from '@vibecore/database';
 
 import {
@@ -19,16 +21,94 @@ import {
   type LedgerEntryInput,
 } from './ledger-core.js';
 import {
-  compensateEntries,
+  deriveCompensationEntries,
   releaseEntries,
   reserveEntries,
   settleEntries,
   type ReservationAccounts,
 } from './ledger-reservation.js';
 
+const RESERVATION_REVIVE_REASON = 'reservation.revive';
+
 /** Prisma unique-constraint violation, checked structurally (P7 error typing). */
 function isUniqueViolation(error: unknown): boolean {
   return typeof error === 'object' && error !== null && (error as { code?: unknown }).code === 'P2002';
+}
+
+function conflict(message: string, code: string): LedgerError {
+  return Object.assign(new LedgerError(message, code), { statusCode: 409 });
+}
+
+async function databaseNow(trx: Prisma.TransactionClient): Promise<Date> {
+  const rows = await trx.$queryRaw<Array<{ now: Date }>>`SELECT clock_timestamp() AS "now"`;
+  const value = rows[0]?.now;
+
+  if (!(value instanceof Date)) {
+    throw new LedgerError('PostgreSQL clock is unavailable', 'LEDGER_DATABASE_TIME_UNAVAILABLE');
+  }
+
+  return value;
+}
+
+function boundedDeadline(now: Date, durationMs: number): Date {
+  if (!Number.isFinite(durationMs) || durationMs < 1_000 || durationMs > 7 * 24 * 60 * 60_000) {
+    throw new LedgerError('Reservation duration is outside the supported range', 'LEDGER_BAD_EXPIRY');
+  }
+
+  return new Date(now.getTime() + Math.trunc(durationMs));
+}
+
+type ReservationRequest = {
+  organizationId: string;
+  idempotencyKey: string;
+  operation: string;
+  maxAmountMinor: bigint;
+  currency: string;
+  userId?: string;
+  importJobId?: string;
+  rateCardVersion?: number;
+  requestHash?: string;
+};
+
+function reservationRequestHash(input: ReservationRequest): string {
+  return createHash('sha256')
+    .update(
+      JSON.stringify({
+        organizationId: input.organizationId,
+        idempotencyKey: input.idempotencyKey,
+        operation: input.operation,
+        maxAmountMinor: input.maxAmountMinor.toString(),
+        currency: normalizeCurrency(input.currency),
+        userId: input.userId ?? null,
+        importJobId: input.importJobId ?? null,
+        rateCardVersion: input.rateCardVersion ?? null,
+        upstreamRequestHash: input.requestHash ?? null,
+      }),
+    )
+    .digest('hex');
+}
+
+function transactionRequestHash(input: PostTransactionInput): string {
+  const entries = input.entries
+    .map((entry) => ({
+      accountId: entry.accountId,
+      direction: entry.direction,
+      amountMinor: entry.amountMinor.toString(),
+      currency: normalizeCurrency(entry.currency),
+    }))
+    .sort((left, right) => JSON.stringify(left).localeCompare(JSON.stringify(right)));
+
+  return createHash('sha256')
+    .update(
+      JSON.stringify({
+        organizationId: input.organizationId,
+        reason: input.reason,
+        reversalOfId: input.reversalOfId ?? null,
+        rateCardVersion: input.rateCardVersion ?? null,
+        entries,
+      }),
+    )
+    .digest('hex');
 }
 
 export type LedgerAccountType = 'ASSET' | 'LIABILITY' | 'REVENUE' | 'EXPENSE' | 'EQUITY';
@@ -56,40 +136,155 @@ export interface PostTransactionInput {
 }
 
 export class LedgerStore {
-  constructor(private readonly db: DatabaseClient) {}
+  constructor(private readonly _db: DatabaseClient) {}
 
-  /** Idempotently resolve an account for (org, key, currency). */
-  async getOrCreateAccount(organizationId: string, key: string, currency: string): Promise<{ id: string; type: LedgerAccountType }> {
+  private async _getOrCreateAccountInTrx(
+    trx: Prisma.TransactionClient,
+    organizationId: string,
+    key: string,
+    currency: string,
+  ): Promise<{ id: string; type: LedgerAccountType }> {
     const type = LEDGER_ACCOUNTS[key];
 
     if (!type) {
       throw new LedgerError(`Unknown ledger account key "${key}"`, 'LEDGER_UNKNOWN_ACCOUNT');
     }
 
-    const cur = normalizeCurrency(currency);
-    const existing = await this.db.ledgerAccount.findUnique({
-      where: { organizationId_key_currency: { organizationId, key, currency: cur } },
+    const normalized = normalizeCurrency(currency);
+
+    const account = await trx.ledgerAccount.upsert({
+      where: { organizationId_key_currency: { organizationId, key, currency: normalized } },
+      create: { organizationId, key, type, currency: normalized },
+      update: {},
     });
 
-    if (existing) {
-      return { id: existing.id, type: existing.type as LedgerAccountType };
+    if (account.organizationId !== organizationId || account.currency !== normalized || account.type !== type) {
+      throw new LedgerError('Ledger account identity is inconsistent', 'LEDGER_ACCOUNT_IDENTITY_MISMATCH');
     }
 
-    try {
-      const created = await this.db.ledgerAccount.create({
-        data: { organizationId, key, type, currency: cur },
-      });
-      return { id: created.id, type };
-    } catch (error) {
-      // Lost a create race — re-read.
-      if (isUniqueViolation(error)) {
-        const row = await this.db.ledgerAccount.findUniqueOrThrow({
-          where: { organizationId_key_currency: { organizationId, key, currency: cur } },
-        });
-        return { id: row.id, type: row.type as LedgerAccountType };
+    return { id: account.id, type };
+  }
+
+  /** Idempotently resolve an account for (org, key, currency). */
+  async getOrCreateAccount(
+    organizationId: string,
+    key: string,
+    currency: string,
+  ): Promise<{ id: string; type: LedgerAccountType }> {
+    return this._db.$transaction((trx) => this._getOrCreateAccountInTrx(trx, organizationId, key, currency));
+  }
+
+  private async _postEntriesInTrx(
+    trx: Prisma.TransactionClient,
+    input: PostTransactionInput,
+  ): Promise<{ id: string; entryIds: string[] }> {
+    validateBalanced(input.entries);
+
+    const accountIds = [...new Set(input.entries.map((entry) => entry.accountId))];
+
+    const accounts = await trx.ledgerAccount.findMany({
+      where: { id: { in: accountIds } },
+      select: { id: true, organizationId: true, currency: true },
+    });
+
+    const byId = new Map(accounts.map((account) => [account.id, account]));
+
+    for (const entry of input.entries) {
+      const account = byId.get(entry.accountId);
+
+      if (!account) {
+        throw new LedgerError(`Ledger account ${entry.accountId} does not exist`, 'LEDGER_ACCOUNT_NOT_FOUND');
       }
 
-      throw error;
+      if (account.organizationId !== input.organizationId) {
+        throw new LedgerError('Cross-organization ledger posting refused', 'LEDGER_ACCOUNT_ORG_MISMATCH');
+      }
+
+      if (account.currency !== normalizeCurrency(entry.currency)) {
+        throw new LedgerError('Ledger account currency mismatch refused', 'LEDGER_ACCOUNT_CURRENCY_MISMATCH');
+      }
+    }
+
+    const requestHash = transactionRequestHash(input);
+
+    const created = await trx.ledgerTransaction.create({
+      data: {
+        organizationId: input.organizationId,
+        reason: input.reason,
+        idempotencyKey: input.idempotencyKey ?? null,
+        reversalOfId: input.reversalOfId ?? null,
+        rateCardVersion: input.rateCardVersion ?? null,
+        metadata: {
+          ...(input.metadata ?? {}),
+          requestHash,
+        } as Prisma.InputJsonValue,
+      },
+    });
+
+    await trx.ledgerEntry.createMany({
+      data: input.entries.map((entry) => ({
+        transactionId: created.id,
+        accountId: entry.accountId,
+        direction: entry.direction,
+        amountMinor: entry.amountMinor,
+        currency: normalizeCurrency(entry.currency),
+      })),
+    });
+
+    const entries = await trx.ledgerEntry.findMany({
+      where: { transactionId: created.id },
+      select: { id: true },
+    });
+
+    return { id: created.id, entryIds: entries.map((entry) => entry.id) };
+  }
+
+  private _assertTransactionReplayMatches(
+    existing: {
+      reason: string;
+      reversalOfId: string | null;
+      rateCardVersion: number | null;
+      metadata: unknown;
+      entries: Array<{ accountId: string; direction: string; amountMinor: bigint; currency: string }>;
+    },
+    input: PostTransactionInput,
+  ): void {
+    const metadata =
+      typeof existing.metadata === 'object' && existing.metadata !== null && !Array.isArray(existing.metadata)
+        ? (existing.metadata as Record<string, unknown>)
+        : undefined;
+
+    const persistedHash = typeof metadata?.requestHash === 'string' ? metadata.requestHash : undefined;
+
+    if (persistedHash) {
+      if (persistedHash !== transactionRequestHash(input)) {
+        throw conflict(
+          'Ledger transaction idempotency key was reused for another request',
+          'LEDGER_IDEMPOTENCY_CONFLICT',
+        );
+      }
+
+      return;
+    }
+
+    const expected = input.entries
+      .map((entry) => `${entry.accountId}:${entry.direction}:${entry.amountMinor}:${normalizeCurrency(entry.currency)}`)
+      .sort();
+    const actual = existing.entries
+      .map((entry) => `${entry.accountId}:${entry.direction}:${entry.amountMinor}:${normalizeCurrency(entry.currency)}`)
+      .sort();
+
+    if (
+      existing.reason !== input.reason ||
+      existing.reversalOfId !== (input.reversalOfId ?? null) ||
+      existing.rateCardVersion !== (input.rateCardVersion ?? null) ||
+      expected.length !== actual.length ||
+      expected.some((value, index) => value !== actual[index])
+    ) {
+      throw conflict(
+        'Ledger transaction idempotency key was reused for another request',
+        'LEDGER_IDEMPOTENCY_CONFLICT',
+      );
     }
   }
 
@@ -99,54 +294,43 @@ export class LedgerStore {
    * on (organizationId, idempotencyKey): a replay returns the existing transaction.
    */
   async postTransaction(input: PostTransactionInput): Promise<{ id: string; entryIds: string[]; replayed: boolean }> {
-    // I-LED-1 — refuse an unbalanced transaction up front.
     validateBalanced(input.entries);
 
     if (input.idempotencyKey) {
-      const existing = await this.db.ledgerTransaction.findUnique({
-        where: { organizationId_idempotencyKey: { organizationId: input.organizationId, idempotencyKey: input.idempotencyKey } },
-        include: { entries: { select: { id: true } } },
+      const existing = await this._db.ledgerTransaction.findUnique({
+        where: {
+          organizationId_idempotencyKey: { organizationId: input.organizationId, idempotencyKey: input.idempotencyKey },
+        },
+        include: {
+          entries: { select: { id: true, accountId: true, direction: true, amountMinor: true, currency: true } },
+        },
       });
 
       if (existing) {
+        this._assertTransactionReplayMatches(existing, input);
         return { id: existing.id, entryIds: existing.entries.map((e) => e.id), replayed: true };
       }
     }
 
     try {
-      const tx = await this.db.$transaction(async (trx) => {
-        const created = await trx.ledgerTransaction.create({
-          data: {
-            organizationId: input.organizationId,
-            reason: input.reason,
-            idempotencyKey: input.idempotencyKey ?? null,
-            reversalOfId: input.reversalOfId ?? null,
-            rateCardVersion: input.rateCardVersion ?? null,
-            metadata: (input.metadata ?? undefined) as Prisma.InputJsonValue | undefined,
-          },
-        });
-
-        await trx.ledgerEntry.createMany({
-          data: input.entries.map((e) => ({
-            transactionId: created.id,
-            accountId: e.accountId,
-            direction: e.direction,
-            amountMinor: e.amountMinor,
-            currency: normalizeCurrency(e.currency),
-          })),
-        });
-
-        const entries = await trx.ledgerEntry.findMany({ where: { transactionId: created.id }, select: { id: true } });
-        return { id: created.id, entryIds: entries.map((x) => x.id) };
-      });
+      const tx = await this._db.$transaction((trx) => this._postEntriesInTrx(trx, input));
 
       return { ...tx, replayed: false };
     } catch (error) {
       if (isUniqueViolation(error) && input.idempotencyKey) {
-        const row = await this.db.ledgerTransaction.findUniqueOrThrow({
-          where: { organizationId_idempotencyKey: { organizationId: input.organizationId, idempotencyKey: input.idempotencyKey } },
-          include: { entries: { select: { id: true } } },
+        const row = await this._db.ledgerTransaction.findUniqueOrThrow({
+          where: {
+            organizationId_idempotencyKey: {
+              organizationId: input.organizationId,
+              idempotencyKey: input.idempotencyKey,
+            },
+          },
+          include: {
+            entries: { select: { id: true, accountId: true, direction: true, amountMinor: true, currency: true } },
+          },
         });
+        this._assertTransactionReplayMatches(row, input);
+
         return { id: row.id, entryIds: row.entries.map((e) => e.id), replayed: true };
       }
 
@@ -157,12 +341,14 @@ export class LedgerStore {
   /** Signed net balance (Σ DEBIT − Σ CREDIT) in minor units for an account. */
   async accountBalanceMinor(accountId: string, currency: string): Promise<bigint> {
     const cur = normalizeCurrency(currency);
-    const rows = await this.db.ledgerEntry.findMany({
+
+    const rows = await this._db.ledgerEntry.findMany({
       where: { accountId, currency: cur },
       select: { direction: true, amountMinor: true },
     });
 
     let net = 0n;
+
     for (const r of rows) {
       net += r.direction === 'DEBIT' ? r.amountMinor : -r.amountMinor;
     }
@@ -171,13 +357,19 @@ export class LedgerStore {
   }
 
   /** Resolve the standard reservation accounts for an org+currency. */
-  private async reservationAccounts(organizationId: string, currency: string): Promise<ReservationAccounts> {
-    const [userCredits, reserved, revenue, taxPayable] = await Promise.all([
-      this.getOrCreateAccount(organizationId, 'user_credits', currency),
-      this.getOrCreateAccount(organizationId, 'reserved', currency),
-      this.getOrCreateAccount(organizationId, 'revenue', currency),
-      this.getOrCreateAccount(organizationId, 'tax_payable', currency),
-    ]);
+  private async _reservationAccountsInTrx(
+    trx: Prisma.TransactionClient,
+    organizationId: string,
+    currency: string,
+  ): Promise<ReservationAccounts> {
+    /*
+     * Fixed order prevents two first-use transactions from deadlocking while
+     * creating the same tenant's account set.
+     */
+    const userCredits = await this._getOrCreateAccountInTrx(trx, organizationId, 'user_credits', currency);
+    const reserved = await this._getOrCreateAccountInTrx(trx, organizationId, 'reserved', currency);
+    const revenue = await this._getOrCreateAccountInTrx(trx, organizationId, 'revenue', currency);
+    const taxPayable = await this._getOrCreateAccountInTrx(trx, organizationId, 'tax_payable', currency);
 
     return {
       userCreditsAccountId: userCredits.id,
@@ -185,6 +377,46 @@ export class LedgerStore {
       revenueAccountId: revenue.id,
       taxPayableAccountId: taxPayable.id,
     };
+  }
+
+  private async _lockReservationBalance(trx: Prisma.TransactionClient, accountId: string): Promise<void> {
+    await trx.$queryRaw`SELECT "id" FROM "LedgerAccount" WHERE "id" = ${accountId} FOR UPDATE`;
+  }
+
+  private _assertReservationReplayMatches(
+    existing: {
+      organizationId: string;
+      idempotencyKey: string;
+      operation: string;
+      maxAmountMinor: bigint;
+      currency: string;
+      userId: string | null;
+      importJobId: string | null;
+      rateCardVersion: number | null;
+      requestHash: string | null;
+    },
+    input: ReservationRequest,
+    expectedHash: string,
+  ): void {
+    const matchesLegacyShape =
+      existing.organizationId === input.organizationId &&
+      existing.idempotencyKey === input.idempotencyKey &&
+      existing.operation === input.operation &&
+      existing.maxAmountMinor === input.maxAmountMinor &&
+      existing.currency === normalizeCurrency(input.currency) &&
+      existing.userId === (input.userId ?? null) &&
+      existing.importJobId === (input.importJobId ?? null) &&
+      existing.rateCardVersion === (input.rateCardVersion ?? null);
+
+    if (
+      (existing.requestHash && existing.requestHash !== expectedHash) ||
+      (!existing.requestHash && !matchesLegacyShape)
+    ) {
+      throw conflict(
+        'Ledger reservation idempotency key was reused for another request',
+        'LEDGER_IDEMPOTENCY_CONFLICT',
+      );
+    }
   }
 
   /**
@@ -198,76 +430,115 @@ export class LedgerStore {
     operation: string;
     maxAmountMinor: bigint;
     currency?: string;
-    expiresAt: string;
+    expiresAt?: string;
+
+    /** Prefer a duration: the deadline is then derived from PostgreSQL time. */
+    expiresInMs?: number;
     userId?: string;
     importJobId?: string;
     rateCardVersion?: number;
     hardLimitMinor?: bigint;
+
+    /** Optional upstream request digest, incorporated into replay identity. */
+    requestHash?: string;
   }): Promise<{ id: string; status: string; created: boolean }> {
     const currency = normalizeCurrency(input.currency ?? 'usd');
+    const request: ReservationRequest = { ...input, currency };
+    const requestHash = reservationRequestHash(request);
 
-    const existing = await this.db.ledgerReservation.findUnique({
-      where: { organizationId_idempotencyKey: { organizationId: input.organizationId, idempotencyKey: input.idempotencyKey } },
-    });
-
-    if (existing) {
-      return { id: existing.id, status: existing.status, created: false };
-    }
-
-    const accounts = await this.reservationAccounts(input.organizationId, currency);
-
-    // Hard limit (I-LED-4): projected reserved balance must stay within the cap.
-    if (input.hardLimitMinor !== undefined) {
-      const reservedBalance = await this.accountBalanceMinor(accounts.reservedAccountId, currency);
-      // reserved is a LIABILITY (normal CREDIT) → its "size" is −net (credits exceed debits).
-      const projected = -reservedBalance + input.maxAmountMinor;
-      assertWithinHardLimit(projected, input.hardLimitMinor, 'reservation budget');
-    }
-
-    let reservation;
     try {
-      reservation = await this.db.ledgerReservation.create({
-        data: {
+      return await this._db.$transaction(async (trx) => {
+        const accounts = await this._reservationAccountsInTrx(trx, input.organizationId, currency);
+        await this._lockReservationBalance(trx, accounts.reservedAccountId);
+
+        const existing = await trx.ledgerReservation.findUnique({
+          where: {
+            organizationId_idempotencyKey: {
+              organizationId: input.organizationId,
+              idempotencyKey: input.idempotencyKey,
+            },
+          },
+        });
+
+        if (existing) {
+          this._assertReservationReplayMatches(existing, request, requestHash);
+
+          if (!existing.requestHash) {
+            await trx.ledgerReservation.update({ where: { id: existing.id }, data: { requestHash } });
+          }
+
+          return { id: existing.id, status: existing.status, created: false };
+        }
+
+        const now = await databaseNow(trx);
+
+        const expiresAt =
+          input.expiresInMs !== undefined
+            ? boundedDeadline(now, input.expiresInMs)
+            : input.expiresAt
+              ? new Date(input.expiresAt)
+              : undefined;
+
+        if (!expiresAt || Number.isNaN(expiresAt.getTime())) {
+          throw new LedgerError('Reservation expiry is required', 'LEDGER_BAD_EXPIRY');
+        }
+
+        if (input.hardLimitMinor !== undefined) {
+          const rows = await trx.ledgerEntry.findMany({
+            where: { accountId: accounts.reservedAccountId, currency },
+            select: { direction: true, amountMinor: true },
+          });
+          const net = rows.reduce(
+            (total, row) => total + (row.direction === 'DEBIT' ? row.amountMinor : -row.amountMinor),
+            0n,
+          );
+          assertWithinHardLimit(-net + input.maxAmountMinor, input.hardLimitMinor, 'reservation budget');
+        }
+
+        const reservation = await trx.ledgerReservation.create({
+          data: {
+            organizationId: input.organizationId,
+            userId: input.userId ?? null,
+            idempotencyKey: input.idempotencyKey,
+            requestHash,
+            operation: input.operation,
+            currency,
+            maxAmountMinor: input.maxAmountMinor,
+            rateCardVersion: input.rateCardVersion ?? null,
+            importJobId: input.importJobId ?? null,
+            expiresAt,
+          },
+        });
+
+        const posted = await this._postEntriesInTrx(trx, {
           organizationId: input.organizationId,
-          userId: input.userId ?? null,
-          idempotencyKey: input.idempotencyKey,
-          operation: input.operation,
-          currency,
-          maxAmountMinor: input.maxAmountMinor,
-          rateCardVersion: input.rateCardVersion ?? null,
-          importJobId: input.importJobId ?? null,
-          expiresAt: new Date(input.expiresAt),
-        },
+          reason: 'reservation.reserve',
+          idempotencyKey: `reserve:${reservation.id}:v0`,
+          rateCardVersion: input.rateCardVersion,
+          entries: reserveEntries(accounts, input.maxAmountMinor, currency),
+          metadata: { reservationId: reservation.id, operation: input.operation, requestHash },
+        });
+        await trx.ledgerReservation.update({ where: { id: reservation.id }, data: { reserveTxId: posted.id } });
+
+        return { id: reservation.id, status: reservation.status, created: true };
       });
     } catch (error) {
       if (isUniqueViolation(error)) {
-        const row = await this.db.ledgerReservation.findUniqueOrThrow({
-          where: { organizationId_idempotencyKey: { organizationId: input.organizationId, idempotencyKey: input.idempotencyKey } },
+        const row = await this._db.ledgerReservation.findUniqueOrThrow({
+          where: {
+            organizationId_idempotencyKey: {
+              organizationId: input.organizationId,
+              idempotencyKey: input.idempotencyKey,
+            },
+          },
         });
+        this._assertReservationReplayMatches(row, request, requestHash);
+
         return { id: row.id, status: row.status, created: false };
       }
 
       throw error;
     }
-
-    const posted = await this.postTransaction({
-      organizationId: input.organizationId,
-      reason: 'reservation.reserve',
-      idempotencyKey: `reserve:${reservation.id}`,
-      rateCardVersion: input.rateCardVersion,
-      entries: reserveEntries(accounts, input.maxAmountMinor, currency),
-      metadata: { reservationId: reservation.id, operation: input.operation },
-    });
-
-    await this.db.ledgerReservation.update({ where: { id: reservation.id }, data: { reserveTxId: posted.id } });
-
-    return { id: reservation.id, status: 'ACTIVE', created: true };
-  }
-
-  /** Atomic compare-and-set reservation transition. Returns true iff this caller won. */
-  private async transition(id: string, from: string[], data: Prisma.LedgerReservationUpdateManyMutationInput): Promise<boolean> {
-    const res = await this.db.ledgerReservation.updateMany({ where: { id, status: { in: from as never } }, data });
-    return res.count === 1;
   }
 
   /**
@@ -280,41 +551,76 @@ export class LedgerStore {
     actualAmountMinor: bigint;
     taxMinor?: bigint;
   }): Promise<{ committedMinor: bigint; replayed: boolean }> {
-    const reservation = await this.db.ledgerReservation.findUniqueOrThrow({ where: { id: input.reservationId } });
+    return this._db.$transaction(async (trx) => {
+      await trx.$queryRaw`SELECT "id" FROM "LedgerReservation" WHERE "id" = ${input.reservationId} FOR UPDATE`;
 
-    if (reservation.status === 'COMMITTED') {
-      return { committedMinor: reservation.committedMinor ?? 0n, replayed: true };
-    }
+      const reservation = await trx.ledgerReservation.findUniqueOrThrow({ where: { id: input.reservationId } });
 
-    if (reservation.status !== 'ACTIVE') {
-      throw new LedgerError(`Reservation ${input.reservationId} is ${reservation.status}, cannot commit`, 'LEDGER_RESERVATION_NOT_ACTIVE');
-    }
+      const committed =
+        input.actualAmountMinor > reservation.maxAmountMinor ? reservation.maxAmountMinor : input.actualAmountMinor;
 
-    const committed = input.actualAmountMinor > reservation.maxAmountMinor ? reservation.maxAmountMinor : input.actualAmountMinor;
-    const won = await this.transition(input.reservationId, ['ACTIVE'], {
-      status: 'COMMITTED',
-      committedMinor: committed,
-      committedAt: new Date(),
+      const taxMinor = input.taxMinor ?? 0n;
+
+      if (reservation.status === 'COMMITTED') {
+        const settle = reservation.settleTxId
+          ? await trx.ledgerTransaction.findUnique({
+              where: { id: reservation.settleTxId },
+              select: { metadata: true },
+            })
+          : null;
+        const metadata =
+          typeof settle?.metadata === 'object' && settle.metadata !== null && !Array.isArray(settle.metadata)
+            ? (settle.metadata as Record<string, unknown>)
+            : undefined;
+
+        if (reservation.committedMinor !== committed || metadata?.tax !== taxMinor.toString()) {
+          throw conflict('Reservation commit replay differs from the settled request', 'LEDGER_COMMIT_CONFLICT');
+        }
+
+        return { committedMinor: reservation.committedMinor ?? 0n, replayed: true };
+      }
+
+      if (reservation.status !== 'ACTIVE') {
+        throw new LedgerError('Reservation is not active and cannot be committed', 'LEDGER_RESERVATION_NOT_ACTIVE');
+      }
+
+      const now = await databaseNow(trx);
+
+      if (reservation.expiresAt <= now) {
+        throw conflict('Expired reservation cannot be committed', 'LEDGER_RESERVATION_EXPIRED');
+      }
+
+      const accounts = await this._reservationAccountsInTrx(trx, reservation.organizationId, reservation.currency);
+      await this._lockReservationBalance(trx, accounts.reservedAccountId);
+
+      const entries = settleEntries(accounts, reservation.maxAmountMinor, committed, reservation.currency, taxMinor);
+
+      const cas = await trx.ledgerReservation.updateMany({
+        where: { id: reservation.id, status: 'ACTIVE', version: reservation.version, expiresAt: { gt: now } },
+        data: {
+          status: 'COMMITTED',
+          committedMinor: committed,
+          committedAt: now,
+          version: { increment: 1 },
+        },
+      });
+
+      if (cas.count !== 1) {
+        throw conflict('Reservation commit ownership was lost', 'LEDGER_RESERVATION_FENCE_LOST');
+      }
+
+      const posted = await this._postEntriesInTrx(trx, {
+        organizationId: reservation.organizationId,
+        reason: 'reservation.settle',
+        idempotencyKey: `settle:${reservation.id}:v${reservation.version}`,
+        rateCardVersion: reservation.rateCardVersion ?? undefined,
+        entries,
+        metadata: { reservationId: reservation.id, committed: committed.toString(), tax: taxMinor.toString() },
+      });
+      await trx.ledgerReservation.update({ where: { id: reservation.id }, data: { settleTxId: posted.id } });
+
+      return { committedMinor: committed, replayed: false };
     });
-
-    if (!won) {
-      const again = await this.db.ledgerReservation.findUniqueOrThrow({ where: { id: input.reservationId } });
-      return { committedMinor: again.committedMinor ?? 0n, replayed: true };
-    }
-
-    const accounts = await this.reservationAccounts(reservation.organizationId, reservation.currency);
-    const posted = await this.postTransaction({
-      organizationId: reservation.organizationId,
-      reason: 'reservation.settle',
-      idempotencyKey: `settle:${reservation.id}`,
-      rateCardVersion: reservation.rateCardVersion ?? undefined,
-      entries: settleEntries(accounts, reservation.maxAmountMinor, committed, reservation.currency, input.taxMinor ?? 0n),
-      metadata: { reservationId: reservation.id, committed: committed.toString(), tax: (input.taxMinor ?? 0n).toString() },
-    });
-
-    await this.db.ledgerReservation.update({ where: { id: reservation.id }, data: { settleTxId: posted.id } });
-
-    return { committedMinor: committed, replayed: false };
   }
 
   /**
@@ -322,88 +628,263 @@ export class LedgerStore {
    * REVERSE entry (refund to available credits), never mutating the settle. The
    * compensation transaction is linked to the settle via reversalOfId.
    */
-  async compensateReservation(reservationId: string, taxMinor = 0n): Promise<{ compensated: boolean }> {
-    const reservation = await this.db.ledgerReservation.findUniqueOrThrow({ where: { id: reservationId } });
+  async compensateReservation(reservationId: string): Promise<{ compensated: boolean }> {
+    return this._db.$transaction(async (trx) => {
+      await trx.$queryRaw`SELECT "id" FROM "LedgerReservation" WHERE "id" = ${reservationId} FOR UPDATE`;
 
-    if (reservation.status === 'COMPENSATED') {
-      return { compensated: false };
-    }
+      const reservation = await trx.ledgerReservation.findUniqueOrThrow({ where: { id: reservationId } });
 
-    if (reservation.status !== 'COMMITTED') {
-      throw new LedgerError(`Reservation ${reservationId} is ${reservation.status}, only a COMMITTED reservation is compensated`, 'LEDGER_RESERVATION_NOT_COMMITTED');
-    }
+      if (reservation.status === 'COMPENSATED') {
+        return { compensated: false };
+      }
 
-    const committed = reservation.committedMinor ?? 0n;
-    const won = await this.transition(reservationId, ['COMMITTED'], {
-      status: 'COMPENSATED',
-      releasedAt: new Date(),
-      releaseReason: 'compensation',
-    });
+      if (reservation.status !== 'COMMITTED') {
+        throw new LedgerError('Only a committed reservation can be compensated', 'LEDGER_RESERVATION_NOT_COMMITTED');
+      }
 
-    if (!won) {
-      return { compensated: false };
-    }
+      const accounts = await this._reservationAccountsInTrx(trx, reservation.organizationId, reservation.currency);
+      await this._lockReservationBalance(trx, accounts.reservedAccountId);
 
-    if (committed > 0n) {
-      const accounts = await this.reservationAccounts(reservation.organizationId, reservation.currency);
-      const posted = await this.postTransaction({
-        organizationId: reservation.organizationId,
-        reason: 'reservation.compensate',
-        idempotencyKey: `compensate:${reservation.id}`,
-        reversalOfId: reservation.settleTxId ?? undefined,
-        entries: compensateEntries(accounts, committed, reservation.currency, taxMinor),
-        metadata: { reservationId: reservation.id, refunded: committed.toString() },
+      const settlement = reservation.settleTxId
+        ? await trx.ledgerTransaction.findUnique({
+            where: { id: reservation.settleTxId },
+            include: {
+              entries: { select: { accountId: true, direction: true, amountMinor: true, currency: true } },
+            },
+          })
+        : null;
+      const settlementMetadata =
+        typeof settlement?.metadata === 'object' && settlement.metadata !== null && !Array.isArray(settlement.metadata)
+          ? (settlement.metadata as Record<string, unknown>)
+          : undefined;
+
+      if (
+        !settlement ||
+        settlement.organizationId !== reservation.organizationId ||
+        settlement.reason !== 'reservation.settle' ||
+        settlementMetadata?.reservationId !== reservation.id
+      ) {
+        throw new LedgerError('Committed reservation has no valid settlement transaction', 'LEDGER_SETTLEMENT_CORRUPT');
+      }
+
+      const persistedSettle = settlement.entries;
+
+      const entries = deriveCompensationEntries(persistedSettle, accounts);
+
+      const derivedRefund = entries
+        .filter((entry) => entry.accountId === accounts.userCreditsAccountId && entry.direction === 'CREDIT')
+        .reduce((sum, entry) => sum + entry.amountMinor, 0n);
+
+      if (derivedRefund !== (reservation.committedMinor ?? 0n)) {
+        throw new LedgerError('Committed reservation has no valid settlement entries', 'LEDGER_SETTLEMENT_CORRUPT');
+      }
+
+      const now = await databaseNow(trx);
+
+      const cas = await trx.ledgerReservation.updateMany({
+        where: { id: reservation.id, status: 'COMMITTED', version: reservation.version },
+        data: {
+          status: 'COMPENSATED',
+          releasedAt: now,
+          releaseReason: 'compensation',
+          version: { increment: 1 },
+        },
       });
-      await this.db.ledgerReservation.update({ where: { id: reservation.id }, data: { compensateTxId: posted.id } });
-    }
 
-    return { compensated: true };
+      if (cas.count !== 1) {
+        return { compensated: false };
+      }
+
+      if (entries.length > 0) {
+        const posted = await this._postEntriesInTrx(trx, {
+          organizationId: reservation.organizationId,
+          reason: 'reservation.compensate',
+          idempotencyKey: `compensate:${reservation.id}:v${reservation.version}`,
+          reversalOfId: reservation.settleTxId ?? undefined,
+          entries,
+          metadata: {
+            reservationId: reservation.id,
+            refunded: (reservation.committedMinor ?? 0n).toString(),
+            derivedFromSettle: true,
+          },
+        });
+        await trx.ledgerReservation.update({ where: { id: reservation.id }, data: { compensateTxId: posted.id } });
+      }
+
+      return { compensated: true };
+    });
   }
 
   /**
    * RELEASE — ACTIVE → RELEASED (cancel/failure) or EXPIRED (timeout). Returns the
    * whole hold to available credits. No commit ⇒ no revenue was ever recognised.
    */
-  async releaseReservation(reservationId: string, reason: 'cancel' | 'failure' | 'timeout'): Promise<{ released: boolean }> {
-    const reservation = await this.db.ledgerReservation.findUniqueOrThrow({ where: { id: reservationId } });
+  async releaseReservation(
+    reservationId: string,
+    reason: 'cancel' | 'failure' | 'timeout',
+    opts: { expectedVersion?: number } = {},
+  ): Promise<{ released: boolean }> {
+    return this._db.$transaction(async (trx) => {
+      await trx.$queryRaw`SELECT "id" FROM "LedgerReservation" WHERE "id" = ${reservationId} FOR UPDATE`;
 
-    if (reservation.status !== 'ACTIVE') {
-      return { released: false };
-    }
+      const reservation = await trx.ledgerReservation.findUniqueOrThrow({ where: { id: reservationId } });
 
-    const nextStatus = reason === 'timeout' ? 'EXPIRED' : 'RELEASED';
-    const won = await this.transition(reservationId, ['ACTIVE'], {
-      status: nextStatus,
-      releasedAt: new Date(),
-      releaseReason: reason,
+      if (reservation.status !== 'ACTIVE') {
+        return { released: false };
+      }
+
+      if (opts.expectedVersion !== undefined && reservation.version !== opts.expectedVersion) {
+        return { released: false };
+      }
+
+      const now = await databaseNow(trx);
+
+      if (reason === 'timeout' && reservation.expiresAt > now) {
+        return { released: false };
+      }
+
+      const accounts = await this._reservationAccountsInTrx(trx, reservation.organizationId, reservation.currency);
+      await this._lockReservationBalance(trx, accounts.reservedAccountId);
+
+      const cas = await trx.ledgerReservation.updateMany({
+        where: {
+          id: reservation.id,
+          status: 'ACTIVE',
+          version: reservation.version,
+          ...(reason === 'timeout' ? { expiresAt: { lte: now } } : {}),
+        },
+        data: {
+          status: reason === 'timeout' ? 'EXPIRED' : 'RELEASED',
+          releasedAt: now,
+          releaseReason: reason,
+          version: { increment: 1 },
+        },
+      });
+
+      if (cas.count !== 1) {
+        return { released: false };
+      }
+
+      await this._postEntriesInTrx(trx, {
+        organizationId: reservation.organizationId,
+        reason: `reservation.release.${reason}`,
+        idempotencyKey: `release:${reservation.id}:v${reservation.version}`,
+        entries: releaseEntries(accounts, reservation.maxAmountMinor, reservation.currency),
+        metadata: { reservationId: reservation.id, reason, version: reservation.version },
+      });
+
+      return { released: true };
     });
-
-    if (!won) {
-      return { released: false };
-    }
-
-    const accounts = await this.reservationAccounts(reservation.organizationId, reservation.currency);
-    await this.postTransaction({
-      organizationId: reservation.organizationId,
-      reason: `reservation.release.${reason}`,
-      idempotencyKey: `release:${reservation.id}`,
-      entries: releaseEntries(accounts, reservation.maxAmountMinor, reservation.currency),
-      metadata: { reservationId: reservation.id, reason },
-    });
-
-    return { released: true };
   }
 
-  /** Sweep ACTIVE reservations past expiry to EXPIRED + release their hold. */
-  async reapExpiredReservations(nowIso: string): Promise<string[]> {
-    const due = await this.db.ledgerReservation.findMany({
-      where: { status: 'ACTIVE', expiresAt: { lte: new Date(nowIso) } },
-      select: { id: true },
+  /** Recover an unattached orphan without trusting an API process clock. */
+  async reviveReservation(input: {
+    reservationId: string;
+    expiresInMs?: number;
+
+    /** Legacy absolute deadline. Prefer expiresInMs. */
+    expiresAt?: string;
+
+    /** Retained for source compatibility; PostgreSQL remains authoritative. */
+    nowIso?: string;
+  }): Promise<boolean> {
+    return this._db.$transaction(async (trx) => {
+      await trx.$queryRaw`SELECT "id" FROM "LedgerReservation" WHERE "id" = ${input.reservationId} FOR UPDATE`;
+
+      const reservation = await trx.ledgerReservation.findUnique({ where: { id: input.reservationId } });
+
+      if (!reservation || reservation.importJobId !== null) {
+        return false;
+      }
+
+      const now = await databaseNow(trx);
+
+      const expiresAt =
+        input.expiresInMs !== undefined
+          ? boundedDeadline(now, input.expiresInMs)
+          : input.expiresAt
+            ? new Date(input.expiresAt)
+            : boundedDeadline(now, 60 * 60_000);
+
+      if (Number.isNaN(expiresAt.getTime()) || expiresAt <= now) {
+        throw new LedgerError('Revived reservation needs a future deadline', 'LEDGER_BAD_EXPIRY');
+      }
+
+      if (reservation.status === 'ACTIVE') {
+        if (reservation.expiresAt > now) {
+          return false;
+        }
+
+        const extended = await trx.ledgerReservation.updateMany({
+          where: {
+            id: reservation.id,
+            status: 'ACTIVE',
+            version: reservation.version,
+            importJobId: null,
+            expiresAt: { lte: now },
+          },
+          data: { expiresAt, version: { increment: 1 } },
+        });
+
+        return extended.count === 1;
+      }
+
+      if (reservation.status !== 'EXPIRED' && reservation.status !== 'RELEASED') {
+        return false;
+      }
+
+      const accounts = await this._reservationAccountsInTrx(trx, reservation.organizationId, reservation.currency);
+      await this._lockReservationBalance(trx, accounts.reservedAccountId);
+
+      const cas = await trx.ledgerReservation.updateMany({
+        where: {
+          id: reservation.id,
+          status: reservation.status,
+          version: reservation.version,
+          importJobId: null,
+        },
+        data: {
+          status: 'ACTIVE',
+          expiresAt,
+          releasedAt: null,
+          releaseReason: null,
+          version: { increment: 1 },
+        },
+      });
+
+      if (cas.count !== 1) {
+        return false;
+      }
+
+      const posted = await this._postEntriesInTrx(trx, {
+        organizationId: reservation.organizationId,
+        reason: RESERVATION_REVIVE_REASON,
+        idempotencyKey: `reserve:${reservation.id}:v${reservation.version + 1}`,
+        entries: reserveEntries(accounts, reservation.maxAmountMinor, reservation.currency),
+        metadata: { reservationId: reservation.id, revived: true, version: reservation.version + 1 },
+      });
+      await trx.ledgerReservation.update({ where: { id: reservation.id }, data: { reserveTxId: posted.id } });
+
+      return true;
     });
+  }
+
+  /** Sweep using only PostgreSQL time; an API clock cannot expire a live hold. */
+  async reapExpiredReservations(_nowIso?: string): Promise<string[]> {
+    const due = await this._db.$queryRaw<Array<{ id: string; version: number }>>(Prisma.sql`
+      SELECT "id", "version"
+      FROM "LedgerReservation"
+      WHERE "status" = 'ACTIVE'
+        AND "expiresAt" <= clock_timestamp()
+      ORDER BY "expiresAt" ASC
+      LIMIT 100
+    `);
 
     const reaped: string[] = [];
-    for (const { id } of due) {
-      const { released } = await this.releaseReservation(id, 'timeout');
+
+    for (const { id, version } of due) {
+      const { released } = await this.releaseReservation(id, 'timeout', { expectedVersion: version });
+
       if (released) {
         reaped.push(id);
       }
@@ -413,7 +894,7 @@ export class LedgerStore {
   }
 
   async getReservation(id: string) {
-    return this.db.ledgerReservation.findUnique({ where: { id } });
+    return this._db.ledgerReservation.findUnique({ where: { id } });
   }
 
   /** Persist a reconciliation run (OK or DISCREPANCY) for audit. */
@@ -425,7 +906,7 @@ export class LedgerStore {
     discrepancies?: unknown;
     metadata?: Record<string, unknown>;
   }): Promise<{ id: string }> {
-    const run = await this.db.ledgerReconciliationRun.create({
+    const run = await this._db.ledgerReconciliationRun.create({
       data: {
         organizationId: input.organizationId ?? null,
         source: input.source,

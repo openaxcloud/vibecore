@@ -1,7 +1,10 @@
 import { createDatabaseClient } from '@vibecore/database';
 import { describe, expect, it } from 'vitest';
 
+/* This DB suite is nested below API modules; Vitest does not map the app-only alias. */
+// eslint-disable-next-line no-restricted-imports
 import { reconcile, type ReconciliationLine } from '../ledger-reconciliation.js';
+// eslint-disable-next-line no-restricted-imports
 import { LedgerStore } from '../ledger-store.js';
 
 /*
@@ -23,6 +26,7 @@ async function canReachDatabase() {
   }
 
   const prisma = createDatabaseClient();
+
   try {
     await prisma.$queryRaw`SELECT 1`;
     return true;
@@ -41,6 +45,7 @@ const HOUR = () => new Date(Date.now() + 3600_000).toISOString();
 runDbTests('Canonical double-entry ledger — durable proofs (real Postgres)', () => {
   it('(1) posts a BALANCED transaction (persists) and REFUSES an unbalanced one', async () => {
     const prisma = createDatabaseClient();
+
     try {
       const store = new LedgerStore(prisma);
       const org = uniqueOrg();
@@ -77,6 +82,7 @@ runDbTests('Canonical double-entry ledger — durable proofs (real Postgres)', (
   it('(2) a reservation SURVIVES A RESTART: written by client A, read by independent client B', async () => {
     const prismaA = createDatabaseClient();
     const prismaB = createDatabaseClient();
+
     try {
       const storeA = new LedgerStore(prismaA);
       const storeB = new LedgerStore(prismaB);
@@ -109,6 +115,7 @@ runDbTests('Canonical double-entry ledger — durable proofs (real Postgres)', (
 
   it('(3) COMPENSATION is a reverse entry: nets every account to zero, original settle INTACT', async () => {
     const prisma = createDatabaseClient();
+
     try {
       const store = new LedgerStore(prisma);
       const org = uniqueOrg();
@@ -124,16 +131,24 @@ runDbTests('Canonical double-entry ledger — durable proofs (real Postgres)', (
 
       const settle = await store.getReservation(r.id);
       const settleTxId = settle?.settleTxId as string;
-      const settleEntriesBefore = await prisma.ledgerEntry.findMany({ where: { transactionId: settleTxId }, orderBy: { id: 'asc' } });
+
+      const settleEntriesBefore = await prisma.ledgerEntry.findMany({
+        where: { transactionId: settleTxId },
+        orderBy: { id: 'asc' },
+      });
 
       await store.compensateReservation(r.id);
 
       // The settle transaction's entries are byte-for-byte unchanged.
-      const settleEntriesAfter = await prisma.ledgerEntry.findMany({ where: { transactionId: settleTxId }, orderBy: { id: 'asc' } });
+      const settleEntriesAfter = await prisma.ledgerEntry.findMany({
+        where: { transactionId: settleTxId },
+        orderBy: { id: 'asc' },
+      });
       expect(settleEntriesAfter).toEqual(settleEntriesBefore);
 
       // Every account for this org nets to ZERO after compensation.
       const accounts = await prisma.ledgerAccount.findMany({ where: { organizationId: org } });
+
       for (const acc of accounts) {
         const bal = await store.accountBalanceMinor(acc.id, acc.currency);
         expect(bal, `account ${acc.key} should net to zero`).toBe(0n);
@@ -151,11 +166,13 @@ runDbTests('Canonical double-entry ledger — durable proofs (real Postgres)', (
 
   it('(4) a posted entry CANNOT be mutated (append-only DB trigger)', async () => {
     const prisma = createDatabaseClient();
+
     try {
       const store = new LedgerStore(prisma);
       const org = uniqueOrg();
       const a = await store.getOrCreateAccount(org, 'user_credits', 'usd');
       const b = await store.getOrCreateAccount(org, 'revenue', 'usd');
+
       const posted = await store.postTransaction({
         organizationId: org,
         reason: 'test.immutable',
@@ -181,9 +198,11 @@ runDbTests('Canonical double-entry ledger — durable proofs (real Postgres)', (
 
   it('(5) reconciliation DETECTS a discrepancy between the ledger and an external source', async () => {
     const prisma = createDatabaseClient();
+
     try {
       const store = new LedgerStore(prisma);
       const org = uniqueOrg();
+
       const r = await store.reserveUsage({
         organizationId: org,
         idempotencyKey: 'import:job-3',
@@ -210,8 +229,14 @@ runDbTests('Canonical double-entry ledger — durable proofs (real Postgres)', (
         source: 'STRIPE',
         status: result.status,
         discrepancyCount: result.discrepancies.length,
-        discrepancies: result.discrepancies.map((d) => ({ ...d, ledgerMinor: d.ledgerMinor.toString(), externalMinor: d.externalMinor.toString(), deltaMinor: d.deltaMinor.toString() })),
+        discrepancies: result.discrepancies.map((d) => ({
+          ...d,
+          ledgerMinor: d.ledgerMinor.toString(),
+          externalMinor: d.externalMinor.toString(),
+          deltaMinor: d.deltaMinor.toString(),
+        })),
       });
+
       const persisted = await prisma.ledgerReconciliationRun.findUnique({ where: { id: run.id } });
       expect(persisted).toMatchObject({ status: 'DISCREPANCY', discrepancyCount: 1 });
     } finally {
@@ -221,6 +246,7 @@ runDbTests('Canonical double-entry ledger — durable proofs (real Postgres)', (
 
   it('(6) a HARD LIMIT is refused whole — nothing is posted past the safe boundary', async () => {
     const prisma = createDatabaseClient();
+
     try {
       const store = new LedgerStore(prisma);
       const org = uniqueOrg();
@@ -248,7 +274,9 @@ runDbTests('Canonical double-entry ledger — durable proofs (real Postgres)', (
       ).rejects.toThrow(/LEDGER_HARD_LIMIT|limit breached/);
 
       // Nothing was posted for the refused reservation: it doesn't exist.
-      const k2 = await prisma.ledgerReservation.findUnique({ where: { organizationId_idempotencyKey: { organizationId: org, idempotencyKey: 'k2' } } });
+      const k2 = await prisma.ledgerReservation.findUnique({
+        where: { organizationId_idempotencyKey: { organizationId: org, idempotencyKey: 'k2' } },
+      });
       expect(k2).toBeNull();
     } finally {
       await prisma.$disconnect();
@@ -257,17 +285,192 @@ runDbTests('Canonical double-entry ledger — durable proofs (real Postgres)', (
 
   it('(neg) reserve idempotency — same key returns the SAME reservation, no double hold', async () => {
     const prisma = createDatabaseClient();
+
     try {
       const store = new LedgerStore(prisma);
       const org = uniqueOrg();
-      const first = await store.reserveUsage({ organizationId: org, idempotencyKey: 'dup', operation: 'import', maxAmountMinor: 50n, expiresAt: HOUR() });
-      const second = await store.reserveUsage({ organizationId: org, idempotencyKey: 'dup', operation: 'import', maxAmountMinor: 50n, expiresAt: HOUR() });
+
+      const first = await store.reserveUsage({
+        organizationId: org,
+        idempotencyKey: 'dup',
+        operation: 'import',
+        maxAmountMinor: 50n,
+        expiresAt: HOUR(),
+      });
+      const second = await store.reserveUsage({
+        organizationId: org,
+        idempotencyKey: 'dup',
+        operation: 'import',
+        maxAmountMinor: 50n,
+        expiresAt: HOUR(),
+      });
       expect(second.id).toBe(first.id);
       expect(second.created).toBe(false);
 
       // Exactly ONE reserve transaction exists (no double hold).
-      const reserveTxs = await prisma.ledgerTransaction.count({ where: { organizationId: org, reason: 'reservation.reserve' } });
+      const reserveTxs = await prisma.ledgerTransaction.count({
+        where: { organizationId: org, reason: 'reservation.reserve' },
+      });
       expect(reserveTxs).toBe(1);
+    } finally {
+      await prisma.$disconnect();
+    }
+  });
+
+  it('(7) concurrent reserve and commit have exactly one hold and one atomic settlement', async () => {
+    const prismaA = createDatabaseClient();
+    const prismaB = createDatabaseClient();
+
+    try {
+      const org = uniqueOrg();
+      const storeA = new LedgerStore(prismaA);
+      const storeB = new LedgerStore(prismaB);
+
+      const request = {
+        organizationId: org,
+        idempotencyKey: 'concurrent-reserve',
+        operation: 'import',
+        maxAmountMinor: 90n,
+        expiresInMs: 60 * 60_000,
+        requestHash: 'same-import-request',
+      };
+
+      const [left, right] = await Promise.all([storeA.reserveUsage(request), storeB.reserveUsage(request)]);
+
+      expect(new Set([left.id, right.id]).size).toBe(1);
+      expect([left.created, right.created].sort()).toEqual([false, true]);
+
+      const [commitA, commitB] = await Promise.all([
+        storeA.commitReservation({ reservationId: left.id, actualAmountMinor: 70n }),
+        storeB.commitReservation({ reservationId: right.id, actualAmountMinor: 70n }),
+      ]);
+      expect([commitA.replayed, commitB.replayed].sort()).toEqual([false, true]);
+      expect(
+        await prismaA.ledgerTransaction.count({ where: { organizationId: org, reason: 'reservation.settle' } }),
+      ).toBe(1);
+      expect(
+        await prismaA.ledgerReservation.count({
+          where: { id: left.id, status: 'COMMITTED', settleTxId: { not: null } },
+        }),
+      ).toBe(1);
+    } finally {
+      await prismaA.$disconnect();
+      await prismaB.$disconnect();
+    }
+  });
+
+  it('(8) refuses idempotency-key reuse with another amount or transaction body', async () => {
+    const prisma = createDatabaseClient();
+
+    try {
+      const store = new LedgerStore(prisma);
+      const org = uniqueOrg();
+      await store.reserveUsage({
+        organizationId: org,
+        idempotencyKey: 'request-fingerprint',
+        operation: 'import',
+        maxAmountMinor: 20n,
+        expiresInMs: 60_000,
+        requestHash: 'request-a',
+      });
+      await expect(
+        store.reserveUsage({
+          organizationId: org,
+          idempotencyKey: 'request-fingerprint',
+          operation: 'import',
+          maxAmountMinor: 21n,
+          expiresInMs: 60_000,
+          requestHash: 'request-b',
+        }),
+      ).rejects.toMatchObject({ code: 'LEDGER_IDEMPOTENCY_CONFLICT' });
+
+      const debit = await store.getOrCreateAccount(org, 'user_credits', 'usd');
+      const credit = await store.getOrCreateAccount(org, 'revenue', 'usd');
+      await store.postTransaction({
+        organizationId: org,
+        reason: 'fingerprinted.post',
+        idempotencyKey: 'post-once',
+        entries: [
+          { accountId: debit.id, direction: 'DEBIT', amountMinor: 3n, currency: 'usd' },
+          { accountId: credit.id, direction: 'CREDIT', amountMinor: 3n, currency: 'usd' },
+        ],
+      });
+      await expect(
+        store.postTransaction({
+          organizationId: org,
+          reason: 'fingerprinted.post',
+          idempotencyKey: 'post-once',
+          entries: [
+            { accountId: debit.id, direction: 'DEBIT', amountMinor: 4n, currency: 'usd' },
+            { accountId: credit.id, direction: 'CREDIT', amountMinor: 4n, currency: 'usd' },
+          ],
+        }),
+      ).rejects.toMatchObject({ code: 'LEDGER_IDEMPOTENCY_CONFLICT' });
+    } finally {
+      await prisma.$disconnect();
+    }
+  });
+
+  it('(9) PostgreSQL time, not a fast or slow API clock, decides reservation expiry', async () => {
+    const prisma = createDatabaseClient();
+
+    try {
+      const store = new LedgerStore(prisma);
+      const org = uniqueOrg();
+
+      const reservation = await store.reserveUsage({
+        organizationId: org,
+        idempotencyKey: 'database-clock',
+        operation: 'import',
+        maxAmountMinor: 10n,
+        expiresInMs: 60_000,
+      });
+
+      expect(await store.reapExpiredReservations('9999-12-31T23:59:59.999Z')).not.toContain(reservation.id);
+      await prisma.$executeRaw`
+        UPDATE "LedgerReservation"
+        SET "expiresAt" = clock_timestamp() - interval '1 second'
+        WHERE "id" = ${reservation.id}
+      `;
+      expect(await store.reapExpiredReservations('1970-01-01T00:00:00.000Z')).toContain(reservation.id);
+      expect((await store.getReservation(reservation.id))?.status).toBe('EXPIRED');
+    } finally {
+      await prisma.$disconnect();
+    }
+  });
+
+  it('(10) validates account tenant and currency before persisting any transaction', async () => {
+    const prisma = createDatabaseClient();
+
+    try {
+      const store = new LedgerStore(prisma);
+      const orgA = uniqueOrg();
+      const orgB = uniqueOrg();
+      const accountA = await store.getOrCreateAccount(orgA, 'user_credits', 'usd');
+      const foreign = await store.getOrCreateAccount(orgB, 'revenue', 'usd');
+      const wrongCurrency = await store.getOrCreateAccount(orgA, 'revenue', 'eur');
+
+      await expect(
+        store.postTransaction({
+          organizationId: orgA,
+          reason: 'cross-tenant-refused',
+          entries: [
+            { accountId: accountA.id, direction: 'DEBIT', amountMinor: 5n, currency: 'usd' },
+            { accountId: foreign.id, direction: 'CREDIT', amountMinor: 5n, currency: 'usd' },
+          ],
+        }),
+      ).rejects.toMatchObject({ code: 'LEDGER_ACCOUNT_ORG_MISMATCH' });
+      await expect(
+        store.postTransaction({
+          organizationId: orgA,
+          reason: 'cross-currency-refused',
+          entries: [
+            { accountId: accountA.id, direction: 'DEBIT', amountMinor: 5n, currency: 'usd' },
+            { accountId: wrongCurrency.id, direction: 'CREDIT', amountMinor: 5n, currency: 'usd' },
+          ],
+        }),
+      ).rejects.toMatchObject({ code: 'LEDGER_ACCOUNT_CURRENCY_MISMATCH' });
+      expect(await prisma.ledgerTransaction.count({ where: { organizationId: orgA } })).toBe(0);
     } finally {
       await prisma.$disconnect();
     }

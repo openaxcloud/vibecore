@@ -162241,12 +162241,14 @@ export namespace Prisma {
   }
 
   export type LedgerReservationAvgAggregateOutputType = {
+    version: number | null
     maxAmountMinor: number | null
     committedMinor: number | null
     rateCardVersion: number | null
   }
 
   export type LedgerReservationSumAggregateOutputType = {
+    version: number | null
     maxAmountMinor: bigint | null
     committedMinor: bigint | null
     rateCardVersion: number | null
@@ -162257,8 +162259,10 @@ export namespace Prisma {
     organizationId: string | null
     userId: string | null
     idempotencyKey: string | null
+    requestHash: string | null
     operation: string | null
     status: $Enums.LedgerReservationStatus | null
+    version: number | null
     currency: string | null
     maxAmountMinor: bigint | null
     committedMinor: bigint | null
@@ -162280,8 +162284,10 @@ export namespace Prisma {
     organizationId: string | null
     userId: string | null
     idempotencyKey: string | null
+    requestHash: string | null
     operation: string | null
     status: $Enums.LedgerReservationStatus | null
+    version: number | null
     currency: string | null
     maxAmountMinor: bigint | null
     committedMinor: bigint | null
@@ -162303,8 +162309,10 @@ export namespace Prisma {
     organizationId: number
     userId: number
     idempotencyKey: number
+    requestHash: number
     operation: number
     status: number
+    version: number
     currency: number
     maxAmountMinor: number
     committedMinor: number
@@ -162325,12 +162333,14 @@ export namespace Prisma {
 
 
   export type LedgerReservationAvgAggregateInputType = {
+    version?: true
     maxAmountMinor?: true
     committedMinor?: true
     rateCardVersion?: true
   }
 
   export type LedgerReservationSumAggregateInputType = {
+    version?: true
     maxAmountMinor?: true
     committedMinor?: true
     rateCardVersion?: true
@@ -162341,8 +162351,10 @@ export namespace Prisma {
     organizationId?: true
     userId?: true
     idempotencyKey?: true
+    requestHash?: true
     operation?: true
     status?: true
+    version?: true
     currency?: true
     maxAmountMinor?: true
     committedMinor?: true
@@ -162364,8 +162376,10 @@ export namespace Prisma {
     organizationId?: true
     userId?: true
     idempotencyKey?: true
+    requestHash?: true
     operation?: true
     status?: true
+    version?: true
     currency?: true
     maxAmountMinor?: true
     committedMinor?: true
@@ -162387,8 +162401,10 @@ export namespace Prisma {
     organizationId?: true
     userId?: true
     idempotencyKey?: true
+    requestHash?: true
     operation?: true
     status?: true
+    version?: true
     currency?: true
     maxAmountMinor?: true
     committedMinor?: true
@@ -162498,8 +162514,10 @@ export namespace Prisma {
     organizationId: string
     userId: string | null
     idempotencyKey: string
+    requestHash: string | null
     operation: string
     status: $Enums.LedgerReservationStatus
+    version: number
     currency: string
     maxAmountMinor: bigint
     committedMinor: bigint | null
@@ -162541,8 +162559,10 @@ export namespace Prisma {
     organizationId?: boolean
     userId?: boolean
     idempotencyKey?: boolean
+    requestHash?: boolean
     operation?: boolean
     status?: boolean
+    version?: boolean
     currency?: boolean
     maxAmountMinor?: boolean
     committedMinor?: boolean
@@ -162565,8 +162585,10 @@ export namespace Prisma {
     organizationId?: boolean
     userId?: boolean
     idempotencyKey?: boolean
+    requestHash?: boolean
     operation?: boolean
     status?: boolean
+    version?: boolean
     currency?: boolean
     maxAmountMinor?: boolean
     committedMinor?: boolean
@@ -162589,8 +162611,10 @@ export namespace Prisma {
     organizationId?: boolean
     userId?: boolean
     idempotencyKey?: boolean
+    requestHash?: boolean
     operation?: boolean
     status?: boolean
+    version?: boolean
     currency?: boolean
     maxAmountMinor?: boolean
     committedMinor?: boolean
@@ -162613,8 +162637,10 @@ export namespace Prisma {
     organizationId?: boolean
     userId?: boolean
     idempotencyKey?: boolean
+    requestHash?: boolean
     operation?: boolean
     status?: boolean
+    version?: boolean
     currency?: boolean
     maxAmountMinor?: boolean
     committedMinor?: boolean
@@ -162632,7 +162658,7 @@ export namespace Prisma {
     updatedAt?: boolean
   }
 
-  export type LedgerReservationOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "organizationId" | "userId" | "idempotencyKey" | "operation" | "status" | "currency" | "maxAmountMinor" | "committedMinor" | "rateCardVersion" | "importJobId" | "reserveTxId" | "settleTxId" | "compensateTxId" | "expiresAt" | "committedAt" | "releasedAt" | "releaseReason" | "metadata" | "createdAt" | "updatedAt", ExtArgs["result"]["ledgerReservation"]>
+  export type LedgerReservationOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "organizationId" | "userId" | "idempotencyKey" | "requestHash" | "operation" | "status" | "version" | "currency" | "maxAmountMinor" | "committedMinor" | "rateCardVersion" | "importJobId" | "reserveTxId" | "settleTxId" | "compensateTxId" | "expiresAt" | "committedAt" | "releasedAt" | "releaseReason" | "metadata" | "createdAt" | "updatedAt", ExtArgs["result"]["ledgerReservation"]>
 
   export type $LedgerReservationPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "LedgerReservation"
@@ -162645,8 +162671,17 @@ export namespace Prisma {
        * Idempotency key, unique per org: a replay returns the SAME reservation.
        */
       idempotencyKey: string
+      /**
+       * SHA-256 of the normalized business request. Reusing the key with another
+       * amount, tenant, user, operation, rate card or import job fails closed.
+       */
+      requestHash: string | null
       operation: string
       status: $Enums.LedgerReservationStatus
+      /**
+       * Optimistic fencing generation, incremented on every lifecycle transition.
+       */
+      version: number
       currency: string
       /**
        * Authorized ceiling (hold, not a debit).
@@ -163098,8 +163133,10 @@ export namespace Prisma {
     readonly organizationId: FieldRef<"LedgerReservation", 'String'>
     readonly userId: FieldRef<"LedgerReservation", 'String'>
     readonly idempotencyKey: FieldRef<"LedgerReservation", 'String'>
+    readonly requestHash: FieldRef<"LedgerReservation", 'String'>
     readonly operation: FieldRef<"LedgerReservation", 'String'>
     readonly status: FieldRef<"LedgerReservation", 'LedgerReservationStatus'>
+    readonly version: FieldRef<"LedgerReservation", 'Int'>
     readonly currency: FieldRef<"LedgerReservation", 'String'>
     readonly maxAmountMinor: FieldRef<"LedgerReservation", 'BigInt'>
     readonly committedMinor: FieldRef<"LedgerReservation", 'BigInt'>
@@ -182427,8 +182464,10 @@ export namespace Prisma {
     organizationId: 'organizationId',
     userId: 'userId',
     idempotencyKey: 'idempotencyKey',
+    requestHash: 'requestHash',
     operation: 'operation',
     status: 'status',
+    version: 'version',
     currency: 'currency',
     maxAmountMinor: 'maxAmountMinor',
     committedMinor: 'committedMinor',
@@ -193976,8 +194015,10 @@ export namespace Prisma {
     organizationId?: StringFilter<"LedgerReservation"> | string
     userId?: StringNullableFilter<"LedgerReservation"> | string | null
     idempotencyKey?: StringFilter<"LedgerReservation"> | string
+    requestHash?: StringNullableFilter<"LedgerReservation"> | string | null
     operation?: StringFilter<"LedgerReservation"> | string
     status?: EnumLedgerReservationStatusFilter<"LedgerReservation"> | $Enums.LedgerReservationStatus
+    version?: IntFilter<"LedgerReservation"> | number
     currency?: StringFilter<"LedgerReservation"> | string
     maxAmountMinor?: BigIntFilter<"LedgerReservation"> | bigint | number
     committedMinor?: BigIntNullableFilter<"LedgerReservation"> | bigint | number | null
@@ -194000,8 +194041,10 @@ export namespace Prisma {
     organizationId?: SortOrder
     userId?: SortOrderInput | SortOrder
     idempotencyKey?: SortOrder
+    requestHash?: SortOrderInput | SortOrder
     operation?: SortOrder
     status?: SortOrder
+    version?: SortOrder
     currency?: SortOrder
     maxAmountMinor?: SortOrder
     committedMinor?: SortOrderInput | SortOrder
@@ -194028,8 +194071,10 @@ export namespace Prisma {
     organizationId?: StringFilter<"LedgerReservation"> | string
     userId?: StringNullableFilter<"LedgerReservation"> | string | null
     idempotencyKey?: StringFilter<"LedgerReservation"> | string
+    requestHash?: StringNullableFilter<"LedgerReservation"> | string | null
     operation?: StringFilter<"LedgerReservation"> | string
     status?: EnumLedgerReservationStatusFilter<"LedgerReservation"> | $Enums.LedgerReservationStatus
+    version?: IntFilter<"LedgerReservation"> | number
     currency?: StringFilter<"LedgerReservation"> | string
     maxAmountMinor?: BigIntFilter<"LedgerReservation"> | bigint | number
     committedMinor?: BigIntNullableFilter<"LedgerReservation"> | bigint | number | null
@@ -194052,8 +194097,10 @@ export namespace Prisma {
     organizationId?: SortOrder
     userId?: SortOrderInput | SortOrder
     idempotencyKey?: SortOrder
+    requestHash?: SortOrderInput | SortOrder
     operation?: SortOrder
     status?: SortOrder
+    version?: SortOrder
     currency?: SortOrder
     maxAmountMinor?: SortOrder
     committedMinor?: SortOrderInput | SortOrder
@@ -194084,8 +194131,10 @@ export namespace Prisma {
     organizationId?: StringWithAggregatesFilter<"LedgerReservation"> | string
     userId?: StringNullableWithAggregatesFilter<"LedgerReservation"> | string | null
     idempotencyKey?: StringWithAggregatesFilter<"LedgerReservation"> | string
+    requestHash?: StringNullableWithAggregatesFilter<"LedgerReservation"> | string | null
     operation?: StringWithAggregatesFilter<"LedgerReservation"> | string
     status?: EnumLedgerReservationStatusWithAggregatesFilter<"LedgerReservation"> | $Enums.LedgerReservationStatus
+    version?: IntWithAggregatesFilter<"LedgerReservation"> | number
     currency?: StringWithAggregatesFilter<"LedgerReservation"> | string
     maxAmountMinor?: BigIntWithAggregatesFilter<"LedgerReservation"> | bigint | number
     committedMinor?: BigIntNullableWithAggregatesFilter<"LedgerReservation"> | bigint | number | null
@@ -207166,8 +207215,10 @@ export namespace Prisma {
     organizationId: string
     userId?: string | null
     idempotencyKey: string
+    requestHash?: string | null
     operation: string
     status?: $Enums.LedgerReservationStatus
+    version?: number
     currency?: string
     maxAmountMinor: bigint | number
     committedMinor?: bigint | number | null
@@ -207190,8 +207241,10 @@ export namespace Prisma {
     organizationId: string
     userId?: string | null
     idempotencyKey: string
+    requestHash?: string | null
     operation: string
     status?: $Enums.LedgerReservationStatus
+    version?: number
     currency?: string
     maxAmountMinor: bigint | number
     committedMinor?: bigint | number | null
@@ -207214,8 +207267,10 @@ export namespace Prisma {
     organizationId?: StringFieldUpdateOperationsInput | string
     userId?: NullableStringFieldUpdateOperationsInput | string | null
     idempotencyKey?: StringFieldUpdateOperationsInput | string
+    requestHash?: NullableStringFieldUpdateOperationsInput | string | null
     operation?: StringFieldUpdateOperationsInput | string
     status?: EnumLedgerReservationStatusFieldUpdateOperationsInput | $Enums.LedgerReservationStatus
+    version?: IntFieldUpdateOperationsInput | number
     currency?: StringFieldUpdateOperationsInput | string
     maxAmountMinor?: BigIntFieldUpdateOperationsInput | bigint | number
     committedMinor?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
@@ -207238,8 +207293,10 @@ export namespace Prisma {
     organizationId?: StringFieldUpdateOperationsInput | string
     userId?: NullableStringFieldUpdateOperationsInput | string | null
     idempotencyKey?: StringFieldUpdateOperationsInput | string
+    requestHash?: NullableStringFieldUpdateOperationsInput | string | null
     operation?: StringFieldUpdateOperationsInput | string
     status?: EnumLedgerReservationStatusFieldUpdateOperationsInput | $Enums.LedgerReservationStatus
+    version?: IntFieldUpdateOperationsInput | number
     currency?: StringFieldUpdateOperationsInput | string
     maxAmountMinor?: BigIntFieldUpdateOperationsInput | bigint | number
     committedMinor?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
@@ -207262,8 +207319,10 @@ export namespace Prisma {
     organizationId: string
     userId?: string | null
     idempotencyKey: string
+    requestHash?: string | null
     operation: string
     status?: $Enums.LedgerReservationStatus
+    version?: number
     currency?: string
     maxAmountMinor: bigint | number
     committedMinor?: bigint | number | null
@@ -207286,8 +207345,10 @@ export namespace Prisma {
     organizationId?: StringFieldUpdateOperationsInput | string
     userId?: NullableStringFieldUpdateOperationsInput | string | null
     idempotencyKey?: StringFieldUpdateOperationsInput | string
+    requestHash?: NullableStringFieldUpdateOperationsInput | string | null
     operation?: StringFieldUpdateOperationsInput | string
     status?: EnumLedgerReservationStatusFieldUpdateOperationsInput | $Enums.LedgerReservationStatus
+    version?: IntFieldUpdateOperationsInput | number
     currency?: StringFieldUpdateOperationsInput | string
     maxAmountMinor?: BigIntFieldUpdateOperationsInput | bigint | number
     committedMinor?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
@@ -207310,8 +207371,10 @@ export namespace Prisma {
     organizationId?: StringFieldUpdateOperationsInput | string
     userId?: NullableStringFieldUpdateOperationsInput | string | null
     idempotencyKey?: StringFieldUpdateOperationsInput | string
+    requestHash?: NullableStringFieldUpdateOperationsInput | string | null
     operation?: StringFieldUpdateOperationsInput | string
     status?: EnumLedgerReservationStatusFieldUpdateOperationsInput | $Enums.LedgerReservationStatus
+    version?: IntFieldUpdateOperationsInput | number
     currency?: StringFieldUpdateOperationsInput | string
     maxAmountMinor?: BigIntFieldUpdateOperationsInput | bigint | number
     committedMinor?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
@@ -216104,8 +216167,10 @@ export namespace Prisma {
     organizationId?: SortOrder
     userId?: SortOrder
     idempotencyKey?: SortOrder
+    requestHash?: SortOrder
     operation?: SortOrder
     status?: SortOrder
+    version?: SortOrder
     currency?: SortOrder
     maxAmountMinor?: SortOrder
     committedMinor?: SortOrder
@@ -216124,6 +216189,7 @@ export namespace Prisma {
   }
 
   export type LedgerReservationAvgOrderByAggregateInput = {
+    version?: SortOrder
     maxAmountMinor?: SortOrder
     committedMinor?: SortOrder
     rateCardVersion?: SortOrder
@@ -216134,8 +216200,10 @@ export namespace Prisma {
     organizationId?: SortOrder
     userId?: SortOrder
     idempotencyKey?: SortOrder
+    requestHash?: SortOrder
     operation?: SortOrder
     status?: SortOrder
+    version?: SortOrder
     currency?: SortOrder
     maxAmountMinor?: SortOrder
     committedMinor?: SortOrder
@@ -216157,8 +216225,10 @@ export namespace Prisma {
     organizationId?: SortOrder
     userId?: SortOrder
     idempotencyKey?: SortOrder
+    requestHash?: SortOrder
     operation?: SortOrder
     status?: SortOrder
+    version?: SortOrder
     currency?: SortOrder
     maxAmountMinor?: SortOrder
     committedMinor?: SortOrder
@@ -216176,6 +216246,7 @@ export namespace Prisma {
   }
 
   export type LedgerReservationSumOrderByAggregateInput = {
+    version?: SortOrder
     maxAmountMinor?: SortOrder
     committedMinor?: SortOrder
     rateCardVersion?: SortOrder
