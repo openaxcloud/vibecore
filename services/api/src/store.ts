@@ -1,6 +1,12 @@
 import { redactAuditMetadata, type AuditEvent } from '@vibecore/audit';
 import { hashToken } from '@vibecore/auth';
-import type { PlanKey, QuotaKey } from '@vibecore/billing';
+import {
+  PLAN_ENTITLEMENTS_VERSION,
+  type PlanEntitlements,
+  type PlanKey,
+  type QuotaKey,
+  type QuotaOverrideKey,
+} from '@vibecore/billing';
 import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
 import type { AccountPurgePreview, PurgeStorageDeps, PurgeUserAccountResult } from './account-purge.js';
 import type { DeploymentAccessMode, DeploymentAccessPolicyRecord } from './deployment-access.js';
@@ -837,7 +843,67 @@ export interface ReleaseManifestRecord {
   configDigest?: string;
   dbMigrationPoint?: string;
   accessPolicyVersion: number;
+  /** Immutable publication policy; legacy NULL rows are deliberately not rollback-capable. */
+  planEntitlements?: ReleasePlanEntitlementsPin;
+  /** Exact ProjectManifest revision validated by the release fence. */
+  projectManifestDigest?: string;
   createdAt: string;
+}
+
+/**
+ * Server-authoritative publication policy copied into every immutable release.
+ * Keeping this contract in the store layer lets static, server-image, access
+ * policy and Reserved VM publishers all persist the same exact pin.
+ */
+export interface ReleasePlanEntitlementsPin {
+  version: typeof PLAN_ENTITLEMENTS_VERSION;
+  plan: PlanEntitlements['plan'];
+  badgeRequired: boolean;
+  publishRegion: string;
+  publishRegions: PlanEntitlements['publishRegions'];
+}
+
+/** Parse and canonicalize the only release-pin contract this binary understands. */
+export function parseReleasePlanEntitlementsPin(value: unknown): ReleasePlanEntitlementsPin | undefined {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return undefined;
+  }
+
+  const pin = value as Partial<ReleasePlanEntitlementsPin>;
+  const publishRegion = typeof pin.publishRegion === 'string' ? pin.publishRegion.trim().toLowerCase() : '';
+
+  if (
+    pin.version !== PLAN_ENTITLEMENTS_VERSION ||
+    !['starter', 'core', 'pro', 'enterprise'].includes(pin.plan ?? '') ||
+    typeof pin.badgeRequired !== 'boolean' ||
+    !/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(publishRegion) ||
+    !['single', 'all', 'custom'].includes(pin.publishRegions ?? '')
+  ) {
+    return undefined;
+  }
+
+  return {
+    version: PLAN_ENTITLEMENTS_VERSION,
+    plan: pin.plan as PlanEntitlements['plan'],
+    badgeRequired: pin.badgeRequired,
+    publishRegion,
+    publishRegions: pin.publishRegions as PlanEntitlements['publishRegions'],
+  };
+}
+
+export function sameReleasePlanEntitlementsPin(left: unknown, right: unknown): boolean {
+  const a = parseReleasePlanEntitlementsPin(left);
+  const b = parseReleasePlanEntitlementsPin(right);
+
+  return Boolean(
+    a &&
+      b &&
+      a.version === b.version &&
+      a.plan === b.plan &&
+      a.badgeRequired === b.badgeRequired &&
+      a.publishRegion === b.publishRegion &&
+      a.publishRegions === b.publishRegions,
+  );
 }
 
 /**
@@ -938,6 +1004,32 @@ export interface StaticRollbackReleaseCommitInput extends RollbackLeaseFence {
   logs: DeploymentRecord['logs'];
   finishedAt: string;
   releaseFence: ProjectReleaseFence;
+}
+
+/** Atomic READY + immutable manifest commit for ordinary static publishes/redeploys. */
+export interface StaticReleaseCommitInput {
+  projectId: string;
+  deploymentId: string;
+  environment: DeploymentRecord['environment'];
+  artifactRef: string;
+  artifactDigest: string;
+  storeGeneration?: string;
+  configDigest?: string;
+  dbMigrationPoint?: string;
+  accessPolicyVersion: number;
+  url: string;
+  previewUrl?: string;
+  productionUrl?: string;
+  metadata: Record<string, unknown>;
+  logs: DeploymentRecord['logs'];
+  finishedAt: string;
+  releaseFence: ProjectReleaseFence;
+}
+
+export interface StaticReleaseCommitResult {
+  committed: boolean;
+  deployment: DeploymentRecord;
+  manifest?: ReleaseManifestRecord;
 }
 
 export interface DeploymentAccessContext {
@@ -1084,6 +1176,20 @@ export interface SecurityEventResolutionRecord {
   resolvedByUserId?: string;
   resolvedAt: string;
   createdAt: string;
+}
+
+export interface SecurityAuditEventPage {
+  events: Array<
+    AuditEvent & {
+      id: string;
+      createdAt: string;
+      resolved: boolean;
+      note?: string;
+      resolvedAt?: string;
+    }
+  >;
+  openCount: number;
+  nextCursor?: { createdAt: string; id: string };
 }
 
 export interface AbuseEventRecord {
@@ -1399,6 +1505,52 @@ export interface UserSpendLimitRecord {
   limitCents: number;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface CanonicalUserSpendReservationRecord {
+  id: string;
+  status: string;
+  created: boolean;
+}
+
+export interface CanonicalAiUsageInput {
+  callId: string;
+  kind: 'planner' | 'agent-lane' | 'summary' | 'context' | 'main' | 'classifier' | 'crash-recovery';
+  /** Operator-only calls are receipted but do not settle against user spend. */
+  billedToUser?: boolean;
+  projectId: string;
+  conversationId?: string;
+  messageId?: string;
+  provider: string;
+  model: string;
+  inputTokens: number;
+  outputTokens: number;
+  costCents: number;
+  reason: string;
+}
+
+export interface CanonicalAiUsageBatchInput {
+  reservationId: string;
+  organizationId: string;
+  userId: string;
+  requestId: string;
+  executionToken: string;
+  projectId: string;
+  calls: CanonicalAiUsageInput[];
+}
+
+export interface CanonicalAiClassifierRoutingSelection {
+  mode: 'lite' | 'economy' | 'power';
+  highEffort: boolean;
+  turbo: boolean;
+  lineKey: 'classifier';
+  routingCardVersion: number;
+  source: string;
+}
+
+export interface CanonicalAiClassifierRouting extends CanonicalAiClassifierRoutingSelection {
+  costInMillicentsPerM: number;
+  costOutMillicentsPerM: number;
 }
 
 export interface CreditWalletRecord {
@@ -1814,6 +1966,8 @@ export interface SubscriptionRecord {
   organizationId: string;
   planId: string;
   planKey: PlanKey;
+  /** Canonical persisted Plan.monthlyCents, independent of Stripe billing interval. */
+  planMonthlyCents: number;
   externalId?: string;
   status: 'TRIALING' | 'ACTIVE' | 'PAST_DUE' | 'CANCELED' | 'UNPAID';
   cancelAtPeriodEnd: boolean;
@@ -1838,7 +1992,7 @@ export interface UsageEventRecord {
 export interface QuotaOverrideRecord {
   id: string;
   organizationId: string;
-  key: QuotaKey;
+  key: QuotaOverrideKey;
   limit: number;
   reason: string;
   createdByUserId?: string;
@@ -1901,6 +2055,9 @@ export interface ApiStore {
    * inferring it from environment-variable presence.
    */
   ping(): Promise<void>;
+
+  /** PostgreSQL clock snapshot used by period-bound entitlement claims. */
+  getDatabaseClock(): Promise<{ now: string; monthStart: string }>;
 
   /**
    * Serialize a read-modify-write critical section across all pods using a
@@ -2565,6 +2722,17 @@ export interface ApiStore {
     expiresAt?: Date | null;
   }): Promise<ProjectCollaboratorRecord>;
   listProjectCollaborators(projectId: string): Promise<ProjectCollaboratorRecord[]>;
+  /** Active by database clock; used by share redemption and viewer enforcement. */
+  getActiveProjectCollaborator(projectId: string, userId: string): Promise<ProjectCollaboratorRecord | undefined>;
+  /**
+   * Distinct users with active read-only project access across collaborators,
+   * direct access grants and live group grants, evaluated by database clock.
+   * `excludeGroupId` removes that group's grant edges so a SCIM replacement can
+   * calculate its complete post-mutation audience before writing it.
+   */
+  listActiveOrganizationViewerUserIds(organizationId: string, options?: { excludeGroupId?: string }): Promise<string[]>;
+  /** Whether this live group currently confers guest/viewer access to any live project. */
+  groupHasActiveReadOnlyProjectGrant(organizationId: string, groupId: string): Promise<boolean>;
   removeProjectCollaborator(input: { projectId: string; userId: string }): Promise<boolean>;
   createCollaborationGroup(input: {
     organizationId: string;
@@ -3261,8 +3429,8 @@ export interface ApiStore {
 
         /** Plan de l'org, uniquement si l'abonnement est ACTIF. */
         planKey?: string;
-        /** Metadata retained for status consumers and rolling compatibility. */
-        metadata?: Record<string, unknown>;
+        /** Metadata retained for status consumers, including the immutable publication policy pin. */
+        metadata?: unknown;
       }
     | undefined
   >;
@@ -3335,6 +3503,8 @@ export interface ApiStore {
     configDigest?: string;
     dbMigrationPoint?: string;
     accessPolicyVersion: number;
+    planEntitlements: ReleasePlanEntitlementsPin;
+    projectManifestDigest: string;
   }): Promise<ReleaseManifestRecord>;
   listReleaseManifests(
     projectId: string,
@@ -3418,6 +3588,8 @@ export interface ApiStore {
     deployment: DeploymentRecord;
     manifest: ReleaseManifestRecord;
   }>;
+  /** Atomically append an ordinary static manifest and transition to READY. */
+  commitStaticRelease(input: StaticReleaseCommitInput): Promise<StaticReleaseCommitResult>;
   /** Atomically append the server-image manifest and transition to READY. */
   commitServerImageRelease(input: ServerImageReleaseCommitInput): Promise<ServerImageReleaseCommitResult>;
   /** Atomically revalidate org/manifest/fence and publish a legacy server runtime. */
@@ -3456,6 +3628,9 @@ export interface ApiStore {
    * caller falls back to the built-in card from packages/billing).
    */
   getActiveAgentRoutingCard(): Promise<{ version: number; data: unknown } | undefined>;
+
+  /** One immutable historical routing card, used to replay a pinned provider intent. */
+  getAgentRoutingCard(version: number): Promise<{ version: number; data: unknown } | undefined>;
 
   /** Number of routing card versions stored (0 = seed the built-in v1). */
   countAgentRoutingCards(): Promise<number>;
@@ -3899,7 +4074,112 @@ export interface ApiStore {
   clearUserSpendLimit(organizationId: string, userId: string): Promise<void>;
   listUserSpendLimits(organizationId: string): Promise<UserSpendLimitRecord[]>;
 
-  /** Sum a member's settled checkpoint credit spend since `sinceMs` (their period spend). */
+  /** Reserve a bounded AI charge in the canonical 0095 ledger. */
+  reserveCanonicalUserSpend(input: {
+    organizationId: string;
+    userId: string;
+    projectId: string;
+    idempotencyKey: string;
+    maxAmountCents: number;
+    periodStart?: string;
+    expiresInMs: number;
+    requestHash: string;
+    enforceUserSpendLimit: boolean;
+  }): Promise<CanonicalUserSpendReservationRecord>;
+
+  /** Durable DB-clock latch written immediately before the first provider call. */
+  claimCanonicalAiExecution(input: {
+    reservationId: string;
+    organizationId: string;
+    userId: string;
+    projectId: string;
+    requestId: string;
+    claimOwnerId: string;
+    claimLeaseMs: number;
+  }): Promise<{
+    claimedAt: string;
+    leaseExpiresAt: string;
+    executionToken: string;
+    replayed: boolean;
+    reservationStatus: string;
+    platformReceipt?: { state: 'exact' | 'recovered'; outcome?: 'hard' | 'easy' };
+  }>;
+
+  /** User-spend latch written immediately before the first user-billed provider call. */
+  markCanonicalUserSpendStarted(input: {
+    reservationId: string;
+    organizationId: string;
+    userId: string;
+    projectId: string;
+    requestId: string;
+    executionToken: string;
+    reconcileAfterMs: number;
+  }): Promise<{ startedAt: string; replayed: boolean }>;
+
+  /** Idempotent platform-cost receipt (for example the non-user-billed classifier). */
+  markCanonicalPlatformAiUsageStarted(input: {
+    reservationId: string;
+    organizationId: string;
+    userId: string;
+    requestId: string;
+    executionToken: string;
+    projectId: string;
+    callId: string;
+    provider: string;
+    model: string;
+    maxInputTokens: number;
+    maxOutputTokens: number;
+    maxCostCents: number;
+    agentRouting: CanonicalAiClassifierRouting;
+    reconcileAfterMs: number;
+  }): Promise<{ startedAt: string; replayed: boolean }>;
+
+  /** Idempotent platform-cost receipt (for example the non-user-billed classifier). */
+  recordCanonicalPlatformAiUsage(input: {
+    reservationId: string;
+    organizationId: string;
+    userId: string;
+    requestId: string;
+    executionToken: string;
+    projectId: string;
+    call: CanonicalAiUsageInput;
+    outcome: 'hard' | 'easy';
+    agentRouting: CanonicalAiClassifierRoutingSelection & { escalated: boolean };
+  }): Promise<{ usage: AiCostLedgerRecord; replayed: boolean }>;
+
+  /** Persist every provider-priced call, then settle one canonical reservation. */
+  commitCanonicalUserSpendBatch(
+    input: CanonicalAiUsageBatchInput,
+  ): Promise<{ committedCents: number; replayed: boolean; usages: AiCostLedgerRecord[] }>;
+
+  /** DB-clock, cross-replica recovery for STARTED/received AI reservations. */
+  reconcileCanonicalUserSpend(options?: { take?: number }): Promise<{
+    scanned: number;
+    settled: number;
+    recoveredAtCeiling: number;
+    recoveredPlatformAtCeiling: number;
+    manualRecovery: number;
+    retryableFailures: number;
+    reservationIds: string[];
+  }>;
+
+  /** Release expired generic holds; STARTED canonical AI holds remain protected. */
+  reapExpiredLedgerReservations(): Promise<string[]>;
+
+  /** Settle the exact charge and release the unused reservation remainder. */
+  commitCanonicalUserSpend(input: {
+    reservationId: string;
+    organizationId: string;
+    userId: string;
+    /** Undefined when the observed provider/model cannot be authoritatively priced. */
+    actualAmountCents?: number;
+    usage: Omit<CanonicalAiUsageInput, 'callId' | 'kind'>;
+  }): Promise<{ committedCents: number; replayed: boolean; usage: AiCostLedgerRecord }>;
+
+  /** Release a failed/cancelled generation's canonical reservation. */
+  releaseCanonicalUserSpend(reservationId: string): Promise<{ released: boolean }>;
+
+  /** Legacy wallet/checkpoint projection; never authoritative for plan enforcement. */
   sumUserSpendSince(organizationId: string, userId: string, sinceMs: number): Promise<number>;
 
   /**
@@ -4101,20 +4381,26 @@ export interface ApiStore {
     metadata?: unknown;
   }): Promise<UsageEventRecord>;
   listUsageEvents(organizationId: string, options?: { take?: number }): Promise<UsageEventRecord[]>;
+  findUsageEventByReference(input: {
+    organizationId: string;
+    type: string;
+    reference: string;
+    since: Date;
+  }): Promise<UsageEventRecord | undefined>;
 
   /** True if a usage event of `type` was recorded for the org at/after `sinceMs` — used to dedup the daily storage meter. */
   hasUsageEventSince(organizationId: string, type: string, sinceMs: number): Promise<boolean>;
   sumUsage(organizationId: string, type: string, since?: Date): Promise<number>;
   createQuotaOverride(input: {
     organizationId: string;
-    key: QuotaKey;
+    key: QuotaOverrideKey;
     limit: number;
     reason: string;
     createdByUserId?: string;
     expiresAt?: Date;
   }): Promise<QuotaOverrideRecord>;
   listQuotaOverrides(organizationId: string): Promise<QuotaOverrideRecord[]>;
-  getQuotaOverride(organizationId: string, key: QuotaKey): Promise<QuotaOverrideRecord | undefined>;
+  getQuotaOverride(organizationId: string, key: QuotaOverrideKey): Promise<QuotaOverrideRecord | undefined>;
   recordStripeEvent(input: {
     id: string;
     organizationId?: string;
@@ -4206,6 +4492,13 @@ export interface ApiStore {
 
   /** F23: security-relevant audit rows WITH their ids (so a resolution can key off them). */
   listSecurityAuditEvents(): Promise<Array<AuditEvent & { id: string; createdAt: string }>>;
+
+  /** Tenant-scoped, stable keyset page for the customer Security Center. */
+  listOrganizationSecurityAuditEventsPage(input: {
+    organizationId: string;
+    limit: number;
+    cursor?: { createdAt: string; id: string };
+  }): Promise<SecurityAuditEventPage>;
 
   /** F23: resolution overlay for security events (derived from AuditLog). */
   listSecurityEventResolutions(): Promise<SecurityEventResolutionRecord[]>;

@@ -32,6 +32,9 @@ export interface DeployBuildJobInput {
   machineSize?: string;
   runtimeKind?: 'autoscale' | 'reserved-vm';
   reservedVmTier?: 'shared-0.5' | 'dedicated-1' | 'dedicated-2' | 'dedicated-4';
+  /** Resolved server-authoritative publication choices, persisted for exact recovery/replay. */
+  publishRegion?: string;
+  removeBrandingBadge?: boolean;
   githubIntegration?: { repositoryUrl?: string; branch?: string };
 
   /**

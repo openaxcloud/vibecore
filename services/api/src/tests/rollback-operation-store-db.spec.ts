@@ -1,4 +1,5 @@
 import { createDatabaseClient } from '@vibecore/database';
+import { PLAN_ENTITLEMENTS_VERSION } from '@vibecore/billing';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 // eslint-disable-next-line no-restricted-imports -- this service has no ~/ path alias; keep the DB spec service-local.
@@ -30,6 +31,13 @@ const runDbTests = (await canReachDatabase()) ? describe.sequential : describe.s
 const FINGERPRINT = 'a'.repeat(64);
 const SOURCE_DIGEST = `sha256:${'b'.repeat(64)}`;
 const CONFIG_DIGEST = `sha256:${'c'.repeat(64)}`;
+const PLAN_ENTITLEMENTS = {
+  version: PLAN_ENTITLEMENTS_VERSION,
+  plan: 'pro' as const,
+  badgeRequired: false,
+  publishRegion: 'platform-default',
+  publishRegions: 'all' as const,
+};
 
 function suffix() {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
@@ -66,6 +74,7 @@ async function seedStaticHistory(store: PrismaApiStore, label: string) {
     environment: 'preview',
     status: 'READY',
     accessPolicy: { mode: 'PUBLIC' },
+    metadata: { planEntitlements: PLAN_ENTITLEMENTS, projectManifestDigest: manifestDigest },
   });
   const current = await store.createDeployment({
     projectId: project.id,
@@ -73,6 +82,7 @@ async function seedStaticHistory(store: PrismaApiStore, label: string) {
     environment: 'preview',
     status: 'READY',
     accessPolicyVersion: previous.accessPolicyVersion,
+    metadata: { planEntitlements: PLAN_ENTITLEMENTS, projectManifestDigest: manifestDigest },
   });
   const sourceManifest = await store.createReleaseManifest({
     projectId: project.id,
@@ -85,6 +95,8 @@ async function seedStaticHistory(store: PrismaApiStore, label: string) {
     artifactDigest: SOURCE_DIGEST,
     configDigest: CONFIG_DIGEST,
     accessPolicyVersion: previous.accessPolicyVersion,
+    planEntitlements: PLAN_ENTITLEMENTS,
+    projectManifestDigest: manifestDigest,
   });
   await store.createReleaseManifest({
     projectId: project.id,
@@ -96,6 +108,8 @@ async function seedStaticHistory(store: PrismaApiStore, label: string) {
     artifactRef: `static-deployments/${current.id}`,
     artifactDigest: `sha256:${'d'.repeat(64)}`,
     accessPolicyVersion: current.accessPolicyVersion,
+    planEntitlements: PLAN_ENTITLEMENTS,
+    projectManifestDigest: manifestDigest,
   });
 
   return { actor, organization, project, previous, current, sourceManifest, manifestDigest };
@@ -105,6 +119,7 @@ function rollbackMetadata(input: { operationId: string; projectManifestDigest: s
   return {
     rollbackToPrevious: true,
     rollbackOperationId: input.operationId,
+    planEntitlements: PLAN_ENTITLEMENTS,
     projectManifestDigest: input.projectManifestDigest,
     restoredFromVersion: 1,
     restoredFromDeploymentId: input.sourceDeploymentId,
@@ -499,6 +514,15 @@ runDbTests('rollback operation — real PostgreSQL clock, lease, and release CAS
         data: { organizationId: organization.id, name: 'Reserved rollback', slug: `reserved-rollback-${unique}` },
       });
       projectId = project.id;
+      const manifest = createDefaultProjectManifest(project.id);
+      const manifestDigest = projectManifestDigest(manifest);
+      await store.createProjectManifestRevision({
+        projectId: project.id,
+        schemaVersion: manifest.schemaVersion,
+        manifestVersion: manifest.manifestVersion,
+        digest: manifestDigest,
+        manifest,
+      });
       const created = await store.createDeployment({
         projectId: project.id,
         provider: 'server',
@@ -506,6 +530,7 @@ runDbTests('rollback operation — real PostgreSQL clock, lease, and release CAS
         status: 'READY',
         machineSize: 'dedicated-1',
         accessPolicy: { mode: 'PUBLIC' },
+        metadata: { planEntitlements: PLAN_ENTITLEMENTS, projectManifestDigest: manifestDigest },
       });
       const claim = `reserved-data-${created.id}`;
       await prisma.deployment.update({
@@ -527,6 +552,8 @@ runDbTests('rollback operation — real PostgreSQL clock, lease, and release CAS
           artifactRef: `registry.example.test/reserved@sha256:${String(version).repeat(64)}`,
           artifactDigest: `sha256:${String(version).repeat(64)}`,
           accessPolicyVersion: created.accessPolicyVersion,
+          planEntitlements: PLAN_ENTITLEMENTS,
+          projectManifestDigest: manifestDigest,
         });
       }
 
@@ -541,9 +568,7 @@ runDbTests('rollback operation — real PostgreSQL clock, lease, and release CAS
           leaseDurationMs: 30_000,
         }),
       ).rejects.toMatchObject({ code: 'RESERVED_VM_ROLLBACK_UNPINNED', statusCode: 409 });
-      await expect(
-        prisma.rollbackIdempotencyRequest.count({ where: { projectId: project.id } }),
-      ).resolves.toBe(0);
+      await expect(prisma.rollbackIdempotencyRequest.count({ where: { projectId: project.id } })).resolves.toBe(0);
       await expect(prisma.deployment.findUnique({ where: { id: created.id } })).resolves.toMatchObject({
         runtimeKind: 'reserved-vm',
         persistentStorageClaim: claim,

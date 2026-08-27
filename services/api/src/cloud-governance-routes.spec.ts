@@ -9,7 +9,11 @@ afterEach(async () => {
   await Promise.allSettled(apps.splice(0).map((app) => app.close()));
 });
 
-function build(service: Partial<CloudGovernanceService>, order: string[] = []) {
+function build(
+  service: Partial<CloudGovernanceService>,
+  order: string[] = [],
+  authorizeTenantProvisioning: (request: FastifyRequest, organizationId: string) => Promise<void> = async () => {},
+) {
   const app = Fastify();
   apps.push(app);
   const audit = vi.fn(async (_request, entry: { action: string }) => {
@@ -30,6 +34,7 @@ function build(service: Partial<CloudGovernanceService>, order: string[] = []) {
         currentSession: { lastReauthAt: new Date() },
       });
     },
+    authorizeTenantProvisioning,
     audit,
   });
   return { app, audit };
@@ -76,6 +81,43 @@ describe('Cloud governance routes — admin, reauth, idempotency and audit', () 
     });
     expect(response.statusCode).toBe(400);
     expect(response.json()).toMatchObject({ code: 'IDEMPOTENCY_KEY_REQUIRED' });
+    expect(createTenant).not.toHaveBeenCalled();
+  });
+
+  it('does not let platform-admin privilege bypass an unprovisioned single-tenant contract', async () => {
+    const createTenant = vi.fn();
+    const authorizeTenantProvisioning = vi.fn(async () => {
+      throw new CloudGovernanceError(
+        'ENTERPRISE_CAPABILITY_OPERATOR_REQUIRED',
+        'Enterprise operator provisioning is required',
+        403,
+      );
+    });
+    const { app } = build(
+      { createTenant } as Partial<CloudGovernanceService>,
+      [],
+      authorizeTenantProvisioning,
+    );
+    const response = await app.inject({
+      method: 'POST',
+      url: '/admin/cloud-tenants',
+      headers: {
+        'x-test-admin': 'true',
+        'x-test-reauth': 'true',
+        'idempotency-key': 'tenant-create-request-0001',
+      },
+      payload: {
+        organizationId: 'org-1',
+        customerBoundaryType: 'WORKSPACE',
+        ownerPrincipalId: 'user:owner@example.com',
+        billingPrincipalId: 'group:billing@example.com',
+        billingAccountId: 'AAAAAA-BBBBBB-CCCCCC',
+      },
+    });
+
+    expect(response.statusCode).toBe(403);
+    expect(response.json()).toMatchObject({ code: 'ENTERPRISE_CAPABILITY_OPERATOR_REQUIRED' });
+    expect(authorizeTenantProvisioning).toHaveBeenCalledWith(expect.anything(), 'org-1');
     expect(createTenant).not.toHaveBeenCalled();
   });
 

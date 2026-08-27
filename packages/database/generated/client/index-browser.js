@@ -707,6 +707,8 @@ exports.Prisma.ReleaseManifestScalarFieldEnum = {
   configDigest: 'configDigest',
   dbMigrationPoint: 'dbMigrationPoint',
   accessPolicyVersion: 'accessPolicyVersion',
+  planEntitlements: 'planEntitlements',
+  projectManifestDigest: 'projectManifestDigest',
   createdAt: 'createdAt'
 };
 

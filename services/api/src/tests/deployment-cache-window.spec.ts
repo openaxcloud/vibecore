@@ -27,6 +27,7 @@ import { createServer, request as httpRequest, type Server } from 'node:http';
 import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { PLAN_ENTITLEMENTS_VERSION } from '@vibecore/billing';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { buildApiApp } from '../app.js';
 import { computeStaticSnapshotDigest, staticDeploymentSnapshotDir } from '../deployments.js';
@@ -38,6 +39,14 @@ class QuietEmailProvider implements EmailProvider {
 }
 
 type CacheEntry = { status: number; headers: Record<string, string>; body: Buffer; freshUntil: number };
+
+const RELEASE_PLAN_ENTITLEMENTS = {
+  version: PLAN_ENTITLEMENTS_VERSION,
+  plan: 'pro' as const,
+  badgeRequired: false,
+  publishRegion: 'platform-default',
+  publishRegions: 'all' as const,
+};
 
 /** Minimal shared cache. Returns `x-cache: HIT | MISS | REVALIDATED`. */
 function startSharedCache(originPort: number): Promise<{ server: Server; port: number; clear: () => void }> {
@@ -163,6 +172,8 @@ describe('SEC-8 cache window — real api behind a real shared cache', () => {
       payload: { name: 'C Project' },
     });
     const projectId = (proj.json() as { project: { id: string } }).project.id;
+    const projectManifest = await store.getLatestProjectManifest(projectId);
+    if (!projectManifest) throw new Error('TEST_PROJECT_MANIFEST_MISSING');
 
     const deployment = await store.createDeployment({
       projectId,
@@ -170,6 +181,10 @@ describe('SEC-8 cache window — real api behind a real shared cache', () => {
       environment: 'preview',
       status: 'READY',
       url: 'https://example.test/x',
+      metadata: {
+        planEntitlements: RELEASE_PLAN_ENTITLEMENTS,
+        projectManifestDigest: projectManifest.digest,
+      },
     });
     const dir = staticDeploymentSnapshotDir(deployment.id);
     await mkdir(dir, { recursive: true });
@@ -184,12 +199,19 @@ describe('SEC-8 cache window — real api behind a real shared cache', () => {
       artifactRef: `static-deployments/${deployment.id}`,
       artifactDigest: (await computeStaticSnapshotDigest(deployment.id))!,
       accessPolicyVersion: deployment.accessPolicyVersion,
+      planEntitlements: RELEASE_PLAN_ENTITLEMENTS,
+      projectManifestDigest: projectManifest.digest,
     });
 
     const throughCache = async (path: string) => {
       const res = await fetch(`http://127.0.0.1:${cache.port}${path}`);
 
-      return { status: res.status, cache: res.headers.get('x-cache'), cc: res.headers.get('cache-control'), body: await res.text() };
+      return {
+        status: res.status,
+        cache: res.headers.get('x-cache'),
+        cc: res.headers.get('cache-control'),
+        body: await res.text(),
+      };
     };
 
     const activate = () =>

@@ -67,6 +67,41 @@ export const platformMetricDefinitions: MetricDefinition[] = [
   { name: 'ai_tokens_total', help: 'AI token usage.', type: 'counter' },
   { name: 'ai_provider_latency_seconds', help: 'AI provider latency.', type: 'histogram', buckets: defaultBuckets },
   { name: 'ai_provider_errors_total', help: 'AI provider errors.', type: 'counter' },
+  {
+    name: 'ai_usage_reconciliation_runs_total',
+    help: 'Canonical AI usage reconciliation sweeps by outcome.',
+    type: 'counter',
+  },
+  {
+    name: 'ai_usage_recovered_at_ceiling_total',
+    help: 'User-billed AI provider operations recovered conservatively at their reserved ceiling.',
+    type: 'counter',
+  },
+  {
+    name: 'ai_platform_usage_recovered_at_ceiling_total',
+    help: 'Platform-billed AI provider operations recovered conservatively at their pinned ceiling.',
+    type: 'counter',
+  },
+  {
+    name: 'ai_usage_manual_recovery_total',
+    help: 'Canonical AI receipts quarantined for operator recovery.',
+    type: 'counter',
+  },
+  {
+    name: 'ai_usage_reconciliation_retryable_total',
+    help: 'Transient canonical AI reconciliation failures scheduled for retry.',
+    type: 'counter',
+  },
+  {
+    name: 'ledger_reservation_reap_runs_total',
+    help: 'Expired ledger reservation reaper sweeps by outcome.',
+    type: 'counter',
+  },
+  {
+    name: 'ledger_reservations_expired_total',
+    help: 'Unstarted ledger reservations released after expiration.',
+    type: 'counter',
+  },
   { name: 'stripe_webhook_failures_total', help: 'Stripe webhook failures.', type: 'counter' },
   { name: 'resend_webhook_events_total', help: 'Resend transactional-email webhook events received.', type: 'counter' },
   { name: 'abuse_events_total', help: 'Abuse events.', type: 'counter' },

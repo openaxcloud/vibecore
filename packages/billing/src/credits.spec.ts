@@ -207,7 +207,7 @@ describe('org budget $500 increments', () => {
 });
 
 describe('premiumAgentModesEligible (Turbo / high-power gating)', () => {
-  it('blocks only the unambiguous free tier', () => {
+  it('blocks the free tier', () => {
     expect(premiumAgentModesEligible('free')).toBe(false);
     expect(premiumAgentModesEligible('starter')).toBe(false);
     expect(premiumAgentModesEligible('STARTER')).toBe(false);
@@ -219,11 +219,11 @@ describe('premiumAgentModesEligible (Turbo / high-power gating)', () => {
     }
   });
 
-  it('fails open for unknown / undefined plans (never block a paying user)', () => {
-    expect(premiumAgentModesEligible(undefined)).toBe(true);
-    expect(premiumAgentModesEligible(null)).toBe(true);
-    expect(premiumAgentModesEligible('')).toBe(true);
-    expect(premiumAgentModesEligible('some-future-plan')).toBe(true);
+  it('fails closed for unknown / undefined plans', () => {
+    expect(premiumAgentModesEligible(undefined)).toBe(false);
+    expect(premiumAgentModesEligible(null)).toBe(false);
+    expect(premiumAgentModesEligible('')).toBe(false);
+    expect(premiumAgentModesEligible('some-future-plan')).toBe(false);
   });
 });
 

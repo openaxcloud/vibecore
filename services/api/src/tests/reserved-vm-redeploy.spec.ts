@@ -1,4 +1,5 @@
 import { hashPassword } from '@vibecore/auth';
+import { PLAN_ENTITLEMENTS_VERSION } from '@vibecore/billing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const pipeline = vi.hoisted(() => ({
@@ -50,6 +51,13 @@ const ENV_KEYS = [
 ] as const;
 const originalEnv = Object.fromEntries(ENV_KEYS.map((key) => [key, process.env[key]]));
 const originalFetch = globalThis.fetch;
+const PLAN_ENTITLEMENTS = {
+  version: PLAN_ENTITLEMENTS_VERSION,
+  plan: 'pro' as const,
+  badgeRequired: false,
+  publishRegion: 'platform-default',
+  publishRegions: 'all' as const,
+};
 
 function promotionManifest(input: {
   promotionId: string;
@@ -150,6 +158,7 @@ async function seedCurrentReservedVm(input: Awaited<ReturnType<typeof setup>>) {
     outputDirectory: 'dist',
     machineSize: 'dedicated-1',
     metadata: {
+      planEntitlements: PLAN_ENTITLEMENTS,
       projectManifestDigest: projectManifest.digest,
       serverDeploy: {
         host: 'stable-reserved.preview.e-code.ai',
@@ -201,6 +210,8 @@ async function seedCurrentReservedVm(input: Awaited<ReturnType<typeof setup>>) {
     artifactDigest: oldDigest,
     configDigest: `sha256:${'b'.repeat(64)}`,
     accessPolicyVersion: deployment.accessPolicyVersion,
+    planEntitlements: PLAN_ENTITLEMENTS,
+    projectManifestDigest: projectManifest.digest,
   });
 
   return { deployment: durable, oldDigest, sourceRepo, targetRepo };

@@ -76,7 +76,10 @@ function harness(
     }
 
     if (url.endsWith('/serving-state')) {
-      return Response.json({ state: 'live' });
+      return Response.json({
+        state: 'live',
+        planEntitlements: { version: '2026-08-27.1', badgeRequired: false },
+      });
     }
 
     applicationRequests.push({ url, headers });

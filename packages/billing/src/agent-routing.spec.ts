@@ -165,6 +165,20 @@ describe('validateAgentRoutingCard', () => {
     expect(errors.some((e) => e.line === 'power')).toBe(true);
   });
 
+  it('rejects provider costs that cannot be represented exactly in millicents', () => {
+    const invalid = structuredClone(BUILTIN_AGENT_ROUTING_CARD);
+    invalid.lines.find((line) => line.key === 'classifier')!.costInCentsPerM = 0.3333;
+    expect(validateAgentRoutingCard(invalid).some((error) => error.line === 'classifier')).toBe(true);
+
+    const valid = structuredClone(BUILTIN_AGENT_ROUTING_CARD);
+    valid.lines.find((line) => line.key === 'classifier')!.costInCentsPerM = 0.333;
+    expect(validateAgentRoutingCard(valid)).toEqual([]);
+
+    const unsafe = structuredClone(BUILTIN_AGENT_ROUTING_CARD);
+    unsafe.lines.find((line) => line.key === 'classifier')!.costInCentsPerM = Number.MAX_SAFE_INTEGER;
+    expect(validateAgentRoutingCard(unsafe).some((error) => error.line === 'classifier')).toBe(true);
+  });
+
   it('localizes French validation copy without translating schema identifiers', () => {
     const card = structuredClone(BUILTIN_AGENT_ROUTING_CARD);
     card.lines = card.lines.filter((line) => line.key !== 'turbo');

@@ -66,6 +66,7 @@ import {
   type AgentRoutingLineKey,
   type AiPlanKey,
   type CreditPlanKey,
+  type EnterpriseCapability,
   type PlanKey,
   type QuotaKey,
 } from '@vibecore/billing';
@@ -132,6 +133,7 @@ import {
 import {
   agentRoutingCardSchema,
   getActiveAgentRoutingCard,
+  getAgentRoutingCardByVersion,
   resetAgentRoutingCache,
   seedAgentRoutingCard,
 } from './agent-routing-service.js';
@@ -309,6 +311,8 @@ import {
   createDeploymentLogs,
   deployProviderConfigError,
   pollProviderDeploymentStatus,
+  providerSupportedPublishRegions,
+  providerHasAuthoritativePlanEdge,
   removeStaticDeploymentSnapshot,
   restoreStaticSnapshotInto,
   runStaticBuild,
@@ -359,7 +363,7 @@ import {
 import { vercelConnector } from './integrations/providers/vercel.js';
 import { registerCloudGovernanceRoutes } from './cloud-governance-routes.js';
 import { CloudGovernanceService } from './cloud-governance-service.js';
-import { PrismaCloudGovernanceStore } from './cloud-governance-store.js';
+import { CloudGovernanceError, PrismaCloudGovernanceStore } from './cloud-governance-store.js';
 import { RestGcpCloudClient } from './gcp-cloud-client.js';
 import {
   McpMarketplaceService,
@@ -485,6 +489,15 @@ import {
   type SandboxExec,
   type WorkflowResolver,
 } from './scheduled-tasks.js';
+import {
+  addProjectCollaboratorWithEntitlements,
+  checkViewerLinkEntitlement,
+  ENTERPRISE_CAPABILITIES,
+  isEnterpriseCapabilityProvisioned,
+  readDeploymentPlanEntitlementsPin,
+  resolveDeploymentPlanEntitlementsPin,
+  resolveOrganizationEntitlements,
+} from './plan-entitlements-service.js';
 import { nextSpendAlertPct, spendAlertEmailContent } from './spend-alerts.js';
 import {
   RESERVED_VM_PUBLIC_TIERS,
@@ -1928,41 +1941,111 @@ const providerMetricSchema = z.object({
   source: z.string().min(1).optional(),
 });
 
-const aiRecordUsageSchema = z.object({
-  conversationId: z.string().min(1).optional(),
-  messageId: z.string().min(1).optional(),
+const aiUsageCallSchema = z.object({
+  callId: z.string().min(1).max(200),
+  kind: z.enum(['planner', 'agent-lane', 'summary', 'context', 'main', 'classifier']),
+  billedToUser: z.boolean().default(true),
   provider: z.string().min(1),
   model: z.string().min(1),
   inputTokens: z.number().int().nonnegative(),
   outputTokens: z.number().int().nonnegative(),
-  finishReason: z.string().optional(),
-  source: z.string().min(1).default('remix-chat'),
+});
 
-  // Replit-parity per-request power controls (effort-based checkpoint).
-  highPowerModel: z.boolean().optional(),
-  extendedThinking: z.boolean().optional(),
-  buildTier: z.enum(['lite', 'economy', 'power']).optional(),
-  turboMode: z.boolean().optional(),
+const aiAgentRoutingMetadataSchema = z.object({
+  mode: z.enum(['lite', 'economy', 'power']),
+  highEffort: z.boolean().default(false),
+  escalated: z.boolean().default(false),
+  turbo: z.boolean().default(false),
+  lineKey: z.enum(['lite', 'economy', 'power', 'high-effort', 'turbo', 'classifier']),
+  routingCardVersion: z.number().int().positive(),
+  source: z.string().min(1).default('chat'),
+});
 
-  /*
-   * Agent mode routing metadata (AGM): which mode/switch line actually served
-   * this call. Credits + margin are recomputed server-side from the ACTIVE
-   * routing card — the client payload is descriptive, never authoritative.
-   */
-  agentRouting: z
-    .object({
-      mode: z.enum(['lite', 'economy', 'power']),
-      highEffort: z.boolean().default(false),
-      escalated: z.boolean().default(false),
-      turbo: z.boolean().default(false),
-      lineKey: z.enum(['lite', 'economy', 'power', 'high-effort', 'turbo', 'classifier']),
-      source: z.string().min(1).default('chat'),
-    })
-    .optional(),
+const aiRecordUsageSchema = z
+  .object({
+    conversationId: z.string().min(1).optional(),
+    messageId: z.string().min(1).optional(),
+    provider: z.string().min(1).optional(),
+    model: z.string().min(1).optional(),
+    inputTokens: z.number().int().nonnegative().optional(),
+    outputTokens: z.number().int().nonnegative().optional(),
+    requestId: z.string().min(8).max(200).optional(),
+    executionToken: z.string().uuid().optional(),
+    calls: z.array(aiUsageCallSchema).min(1).max(32).optional(),
+    finishReason: z.string().optional(),
+    source: z.string().min(1).default('remix-chat'),
+    userSpendReservationId: z.string().min(1).optional(),
+
+    // Replit-parity per-request power controls (effort-based checkpoint).
+    highPowerModel: z.boolean().optional(),
+    extendedThinking: z.boolean().optional(),
+    buildTier: z.enum(['lite', 'economy', 'power']).optional(),
+    turboMode: z.boolean().optional(),
+
+    /*
+     * Agent mode routing metadata (AGM): which mode/switch line actually served
+     * this call. Credits + margin are recomputed server-side from the ACTIVE
+     * routing card — the client payload is descriptive, never authoritative.
+     */
+    agentRouting: aiAgentRoutingMetadataSchema.optional(),
+  })
+  .superRefine((value, context) => {
+    const hasSingle =
+      value.provider !== undefined &&
+      value.model !== undefined &&
+      value.inputTokens !== undefined &&
+      value.outputTokens !== undefined;
+    if (!value.calls && !hasSingle) {
+      context.addIssue({ code: z.ZodIssueCode.custom, message: appPublicEnglish('VALIDATION_FAILED') });
+    }
+    if (value.calls && (!value.requestId || !value.executionToken)) {
+      context.addIssue({ code: z.ZodIssueCode.custom, message: appPublicEnglish('VALIDATION_FAILED') });
+    }
+  });
+
+const aiClaimSchema = z.object({
+  userSpendReservationId: z.string().min(1),
+  requestId: z.string().min(8).max(200),
+  claimOwnerId: z.string().min(8).max(200),
+});
+
+const aiMarkStartedSchema = z.object({
+  userSpendReservationId: z.string().min(1),
+  requestId: z.string().min(8).max(200),
+  executionToken: z.string().uuid(),
+});
+
+const aiPlatformUsageStartSchema = aiMarkStartedSchema.extend({
+  agentRouting: aiAgentRoutingMetadataSchema
+    .omit({ escalated: true })
+    .extend({ lineKey: z.literal('classifier'), source: z.literal('classifier') }),
+  call: z.object({
+    callId: z.literal('classifier'),
+    provider: z.string().min(1),
+    model: z.string().min(1),
+    maxInputTokens: z.number().int().nonnegative().max(2_000_000),
+    maxOutputTokens: z.number().int().nonnegative().max(2_000_000),
+  }),
+});
+
+const aiPlatformUsageSchema = aiMarkStartedSchema.extend({
+  outcome: z.enum(['hard', 'easy']),
+  agentRouting: aiAgentRoutingMetadataSchema.extend({
+    lineKey: z.literal('classifier'),
+    source: z.literal('classifier'),
+  }),
+  call: aiUsageCallSchema.extend({
+    kind: z.literal('classifier'),
+    billedToUser: z.literal(false),
+  }),
 });
 
 const aiCheckQuotaSchema = z.object({
-  estimatedInputTokens: z.number().int().nonnegative().default(0),
+  estimatedInputTokens: z.number().int().nonnegative().max(2_000_000).default(0),
+  estimatedOutputTokens: z.number().int().nonnegative().max(2_000_000).default(0),
+  requestedParallelAgents: z.number().int().min(1).max(10).default(1),
+  idempotencyKey: z.string().min(8).max(200),
+  requestHash: z.string().regex(/^[a-f0-9]{64}$/),
   model: z.string().optional(),
   provider: z.string().optional(),
 });
@@ -3711,6 +3794,33 @@ function requireInternalSecret(request: FastifyRequest) {
 }
 
 /*
+ * Canonical AI mutations carry the user's session in Authorization for project
+ * ACLs, so their service proof must use a separate header. This prevents a
+ * browser caller that obtained a reservation/execution token from forging
+ * provider-start latches or billing receipts.
+ */
+function requireInternalMutationSecret(request: FastifyRequest) {
+  const expected = (process.env.INTERNAL_API_SHARED_SECRET || process.env.WORKSPACE_MANAGER_SHARED_SECRET || '').trim();
+  const raw = request.headers['x-vibecore-internal-secret'];
+  const provided = typeof raw === 'string' ? raw.trim() : '';
+  const fail = () =>
+    Object.assign(new Error(appPublicEnglish('INTERNAL_AUTH_REQUIRED')), {
+      statusCode: 401,
+      code: 'INTERNAL_AUTH_REQUIRED',
+    });
+
+  if (Buffer.byteLength(expected, 'utf8') < 32 || !provided) {
+    throw fail();
+  }
+
+  const expectedBuf = Buffer.from(expected);
+  const providedBuf = Buffer.from(provided);
+  if (expectedBuf.length !== providedBuf.length || !timingSafeEqual(expectedBuf, providedBuf)) {
+    throw fail();
+  }
+}
+
+/*
  * Auth for the preview-proxy → api internal call (port-access). The preview-proxy
  * only carries PREVIEW_PROXY_SHARED_SECRET (not the control-plane manager secret),
  * so this accepts that secret specifically — kept separate from
@@ -4374,6 +4484,12 @@ async function commitPromotedServerImageRelease(input: {
   releaseFence: ProjectReleaseFence;
   reservedVmFence?: ServerImageReleaseCommitInput['reservedVmFence'];
 }): Promise<DeploymentRecord> {
+  if (!readDeploymentPlanEntitlementsPin(input.deployment.metadata)) {
+    throw Object.assign(new Error(appPublicEnglish('PUBLISH_ENTITLEMENTS_PIN_MISSING')), {
+      code: 'PUBLISH_ENTITLEMENTS_PIN_MISSING',
+      statusCode: 409,
+    });
+  }
   const release = requireCommittedServerImagePromotion(input.deployment, input.organizationId);
 
   const metadata = {
@@ -8055,72 +8171,6 @@ function serverDeployRevisionEnabledForProject(projectId: string | undefined): b
   );
 }
 
-/**
- * P0-V3-08: append the immutable ReleaseManifest row for a deployment that just
- * reached READY, so a later rollback is deterministic. This best-effort helper
- * is STATIC-only. Server-image releases use `commitServerImageRelease`, where
- * READY + ReleaseManifest commit in one transaction; making that write
- * best-effort would recreate the exact false-release bug this gate closes.
- */
-async function writeReleaseManifest(
-  store: ApiStore,
-  logger: { warn: (obj: unknown, msg?: string) => void },
-  deployment: DeploymentRecord,
-  envVars: Record<string, string> | undefined,
-): Promise<void> {
-  try {
-    if (deployment.status !== 'READY') {
-      return;
-    }
-
-    let artifactKind: 'static-snapshot' | 'server-image';
-    let artifactRef: string;
-    let artifactDigest: string;
-    let storeGeneration: string | undefined;
-
-    if (deployment.provider === 'static') {
-      const digest = await computeStaticSnapshotDigest(deployment.id);
-
-      if (!digest) {
-        logger.warn({ deploymentId: deployment.id }, 'release_manifest.no_static_snapshot');
-        return;
-      }
-
-      artifactKind = 'static-snapshot';
-      artifactRef = `static-deployments/${deployment.id}`;
-      artifactDigest = digest;
-    } else if (deployment.provider === 'server') {
-      return;
-    } else {
-      return;
-    }
-
-    const environment = deployment.environment ?? 'preview';
-    const cfgDigest = configDigest(envVars ?? {});
-
-    await store.withSerializedMutation(`release-manifest:${deployment.projectId}:${environment}`, async () => {
-      const latest = await store.listReleaseManifests(deployment.projectId, environment, { take: 1 });
-      const nextVersion = (latest[0]?.version ?? 0) + 1;
-
-      await store.createReleaseManifest({
-        projectId: deployment.projectId,
-        deploymentId: deployment.id,
-        environment,
-        version: nextVersion,
-        provider: deployment.provider,
-        artifactKind,
-        artifactRef,
-        artifactDigest,
-        ...(storeGeneration ? { storeGeneration } : {}),
-        configDigest: cfgDigest,
-        accessPolicyVersion: deployment.accessPolicyVersion,
-      });
-    });
-  } catch (error) {
-    logger.warn({ err: error, deploymentId: deployment.id }, 'release_manifest.append_failed');
-  }
-}
-
 /*
  * Run ONE isolated build pod via the workspace-manager (synchronous, like the
  * scheduled-jobs transport): revision in, docker-context artifact out. The HTTP
@@ -10675,6 +10725,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return reply.send({ state: 'not-found' satisfies ServingState });
     }
 
+    const publicationEntitlements = readDeploymentPlanEntitlementsPin(owner.metadata);
+
+    if (!publicationEntitlements) {
+      reply.header('cache-control', 'no-store');
+      return reply.send({ state: 'policy-invalid' });
+    }
+
     const state = servingState({
       candidate: {
         environmentName: owner.environmentName,
@@ -10693,7 +10750,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      */
     reply.header('cache-control', 'public, max-age=15');
 
-    return reply.send({ state });
+    return reply.send({ state, planEntitlements: publicationEntitlements });
   });
 
   app.get('/static-deployments/:deploymentId/*', async (request, reply) => {
@@ -10756,6 +10813,30 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         code: 'STATIC_DEPLOY_ARTIFACT_NOT_FOUND',
       });
     }
+
+    const publicationEntitlements = readDeploymentPlanEntitlementsPin(ownerStatus.metadata);
+
+    if (!publicationEntitlements) {
+      reply.header('cache-control', 'private, no-store');
+      return reply.code(503).send({
+        error: appPublicCopy('PUBLISH_ENTITLEMENTS_PIN_MISSING', transactionalLocaleForRequest(request)),
+        code: 'PUBLISH_ENTITLEMENTS_PIN_MISSING',
+        retryable: false,
+      });
+    }
+
+    /*
+     * A mandatory badge is composed only by preview-proxy's isolated parent
+     * shell. Never expose the raw artifact through the API-origin escape hatch:
+     * every byte (HTML and subresources) must arrive through the authenticated
+     * platform edge, while the dedicated raw iframe call carries the same proof.
+     */
+    if (publicationEntitlements.badgeRequired) {
+      requirePreviewProxySecret(request);
+    }
+
+    reply.header('x-vibecore-plan-entitlements-version', publicationEntitlements.version);
+    reply.header('x-vibecore-published-badge-required', publicationEntitlements.badgeRequired ? '1' : '0');
 
     /*
      * EXTINCTION RÉELLE de la publication Starter arrivée à 30 jours. 410 Gone
@@ -10889,11 +10970,19 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      */
     const dedicatedOrigin = staticDeployDedicatedOrigin(deploymentId);
 
-    const onDedicatedHost = isDedicatedStaticDeployHost(
-      request.headers.host,
-      deploymentId,
-      request.headers['x-forwarded-host'] as string | undefined,
-    );
+    const badgeFrameRequest = request.headers['x-vibecore-published-badge-frame'] === '1';
+
+    if (badgeFrameRequest) {
+      requirePreviewProxySecret(request);
+    }
+
+    const onDedicatedHost =
+      badgeFrameRequest ||
+      isDedicatedStaticDeployHost(
+        request.headers.host,
+        deploymentId,
+        request.headers['x-forwarded-host'] as string | undefined,
+      );
 
     if (dedicatedOrigin && !onDedicatedHost) {
       const search = request.url.includes('?') ? request.url.slice(request.url.indexOf('?')) : '';
@@ -10929,7 +11018,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      */
     reply.header('cross-origin-resource-policy', 'cross-origin');
     reply.header('access-control-allow-origin', '*');
-    reply.type(staticDeploymentMimeType(filePath));
+    const contentType = staticDeploymentMimeType(filePath);
+    reply.type(contentType);
 
     return reply.send(createReadStream(realFile));
   });
@@ -21634,6 +21724,109 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return { invitation: { ...invitation, tokenHash: undefined } };
   });
 
+  async function resolveEnterpriseCapabilityOrUnavailable(organizationId: string) {
+    try {
+      return await resolveOrganizationEntitlements(store, organizationId);
+    } catch {
+      throw Object.assign(new Error(appPublicEnglish('PLAN_ENTITLEMENT_CHECK_UNAVAILABLE')), {
+        statusCode: 503,
+        code: 'ENTERPRISE_CAPABILITY_CHECK_UNAVAILABLE',
+      });
+    }
+  }
+
+  async function requireProvisionedEnterpriseCapability(organizationId: string, capability: EnterpriseCapability) {
+    const entitlements = await resolveEnterpriseCapabilityOrUnavailable(organizationId);
+
+    if (!isEnterpriseCapabilityProvisioned(entitlements, capability)) {
+      throw Object.assign(new Error(appPublicEnglish('ENTERPRISE_CAPABILITY_OPERATOR_REQUIRED')), {
+        statusCode: 403,
+        code: 'ENTERPRISE_CAPABILITY_OPERATOR_REQUIRED',
+      });
+    }
+
+    return entitlements;
+  }
+
+  app.get('/orgs/:orgId/enterprise-capabilities', async (request) => {
+    const { orgId } = parse(orgParams, request.params);
+    await requireOrg(request, store, orgId, 'enterprise:read');
+    const entitlements = await resolveEnterpriseCapabilityOrUnavailable(orgId);
+    const tenantFactoryAvailable =
+      process.env.CLOUD_TENANT_FACTORY_ENABLED === 'true' &&
+      Boolean(options.cloudGovernanceService || store instanceof PrismaApiStore);
+
+    return {
+      version: entitlements.version,
+      plan: entitlements.plan,
+      capabilities: ENTERPRISE_CAPABILITIES.map((capability) => {
+        const entitled = entitlements.plan === 'enterprise' && entitlements.enterpriseCapabilities.includes(capability);
+        const provisioned = isEnterpriseCapabilityProvisioned(entitlements, capability);
+        const hasRealSurface =
+          capability === 'security-center' || (capability === 'single-tenant' && tenantFactoryAvailable);
+
+        return {
+          key: capability,
+          entitled,
+          provisioned,
+          state: !entitled ? 'not-entitled' : provisioned && hasRealSurface ? 'ready' : 'operator-required',
+          surface:
+            provisioned && hasRealSurface
+              ? capability === 'security-center'
+                ? 'security-center-events'
+                : 'cloud-tenant-factory'
+              : null,
+        };
+      }),
+    };
+  });
+
+  const securityEventCursorSchema = z
+    .object({
+      createdAt: z.string().datetime(),
+      id: z.string().min(1).max(200),
+    })
+    .strict();
+
+  const decodeSecurityEventCursor = (cursor: string) => {
+    try {
+      return securityEventCursorSchema.parse(JSON.parse(Buffer.from(cursor, 'base64url').toString('utf8')));
+    } catch {
+      throw Object.assign(new Error(appPublicEnglish('VALIDATION_FAILED')), {
+        statusCode: 400,
+        code: 'SECURITY_EVENT_CURSOR_INVALID',
+      });
+    }
+  };
+
+  const encodeSecurityEventCursor = (cursor: { createdAt: string; id: string }) =>
+    Buffer.from(JSON.stringify(cursor), 'utf8').toString('base64url');
+
+  app.get('/orgs/:orgId/security-center/events', async (request) => {
+    const { orgId } = parse(orgParams, request.params);
+    await requireOrg(request, store, orgId, 'enterprise:read');
+    await requireProvisionedEnterpriseCapability(orgId, 'security-center');
+    const query = parse(
+      z.object({
+        limit: z.coerce.number().int().min(1).max(100).default(25),
+        cursor: z.string().min(1).max(500).optional(),
+      }),
+      request.query ?? {},
+    );
+    const limit = query.limit ?? 25;
+    const page = await store.listOrganizationSecurityAuditEventsPage({
+      organizationId: orgId,
+      limit,
+      cursor: query.cursor ? decodeSecurityEventCursor(query.cursor) : undefined,
+    });
+    return {
+      events: page.events,
+      openCount: page.openCount,
+      nextCursor: page.nextCursor ? encodeSecurityEventCursor(page.nextCursor) : null,
+      limit,
+    };
+  });
+
   app.get('/orgs/:orgId/enterprise-settings', async (request) => {
     const { orgId } = parse(orgParams, request.params);
     await requireOrg(request, store, orgId, 'enterprise:read');
@@ -25762,11 +25955,37 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         .send({ error: appPublicEnglish('COLLABORATOR_NOT_ORGANIZATION_MEMBER'), code: 'COLLABORATOR_NOT_ORG_MEMBER' });
     }
 
-    const collaborator = await store.addProjectCollaborator({
-      projectId: project.id,
-      userId: targetUser.id,
-      roleKey: body.roleKey,
-    });
+    let claim;
+    try {
+      claim = await addProjectCollaboratorWithEntitlements({
+        store,
+        project,
+        userId: targetUser.id,
+        roleKey: body.roleKey,
+      });
+    } catch (error) {
+      request.log.warn(
+        { err: error, organizationId: project.organizationId },
+        'project viewer entitlement lookup failed',
+      );
+      return reply.code(503).send({
+        error: appPublicEnglish('PLAN_ENTITLEMENT_CHECK_UNAVAILABLE'),
+        code: 'PLAN_ENTITLEMENT_CHECK_UNAVAILABLE',
+        retryable: true,
+      });
+    }
+
+    if (!claim.allowed) {
+      return reply.code(403).send({
+        error: appPublicEnglish('PLAN_VIEWER_LIMIT_REACHED', { value1: claim.limit }),
+        code: 'PLAN_VIEWER_LIMIT_REACHED',
+        limit: claim.limit,
+        activeViewers: claim.activeViewers,
+        plan: claim.entitlements.plan,
+        entitlementsVersion: claim.entitlements.version,
+      });
+    }
+    const collaborator = claim.collaborator;
     await store.recordProjectActivity({
       projectId: project.id,
       actorUserId: request.currentUser!.id,
@@ -26154,6 +26373,36 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const roleKey = body.roleKey ?? 'viewer';
     const expiresInMinutes = body.expiresInMinutes ?? 60 * 24;
 
+    if (roleKey === 'viewer') {
+      let entitlement;
+      try {
+        entitlement = await checkViewerLinkEntitlement({
+          store,
+          organizationId: project.organizationId,
+        });
+      } catch (error) {
+        request.log.warn(
+          { err: error, organizationId: project.organizationId },
+          'viewer share-link entitlement lookup failed',
+        );
+        return reply.code(503).send({
+          error: appPublicEnglish('PLAN_ENTITLEMENT_CHECK_UNAVAILABLE'),
+          code: 'PLAN_ENTITLEMENT_CHECK_UNAVAILABLE',
+          retryable: true,
+        });
+      }
+      if (!entitlement.allowed) {
+        return reply.code(403).send({
+          error: appPublicEnglish('PLAN_VIEWER_LIMIT_REACHED', { value1: entitlement.limit }),
+          code: 'PLAN_VIEWER_LIMIT_REACHED',
+          limit: entitlement.limit,
+          activeViewers: entitlement.activeViewers,
+          plan: entitlement.entitlements.plan,
+          entitlementsVersion: entitlement.entitlements.version,
+        });
+      }
+    }
+
     const link = await store.createProjectShareLink({
       projectId: project.id,
       tokenHash: hashToken(token),
@@ -26243,21 +26492,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     const userId = request.currentUser!.id;
-    const collaborators = await store.listProjectCollaborators(project.id);
-
-    /*
-     * Only an ACTIVE grant blocks re-redeem. listProjectCollaborators returns
-     * expired rows too; matching on userId alone meant that once a user's prior
-     * time-limited grant lapsed, re-redeeming a still-valid link was a no-op
-     * (the expired row was never refreshed) — a permanent lockout. Treat an
-     * expired grant as absent so addProjectCollaborator upserts a fresh expiry.
-     */
-    const now = Date.now();
-
-    const alreadyCollaborator = collaborators.some(
-      (collaborator) =>
-        collaborator.userId === userId && (!collaborator.expiresAt || new Date(collaborator.expiresAt).getTime() > now),
-    );
+    // Active expiry is evaluated by PostgreSQL NOW(), not an API-pod clock.
+    const alreadyCollaborator = await store.getActiveProjectCollaborator(project.id, userId);
 
     let redeemed = false;
 
@@ -26266,12 +26502,40 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        * Inherit the share link's expiry so a TIME-LIMITED link doesn't grant
        * PERMANENT access. projectCollaborationRole ignores expired grants.
        */
-      await store.addProjectCollaborator({
-        projectId: project.id,
-        userId,
-        roleKey: link.roleKey,
-        expiresAt: link.expiresAt ? new Date(link.expiresAt) : null,
-      });
+      let claim;
+      try {
+        claim = await addProjectCollaboratorWithEntitlements({
+          store,
+          project,
+          userId,
+          roleKey: link.roleKey,
+          expiresAt: link.expiresAt ? new Date(link.expiresAt) : null,
+        });
+      } catch (error) {
+        request.log.warn(
+          { err: error, organizationId: project.organizationId },
+          'share-link redemption entitlement lookup failed',
+        );
+        return reply.code(503).send({
+          error: {
+            code: 'PLAN_ENTITLEMENT_CHECK_UNAVAILABLE',
+            message: appPublicEnglish('PLAN_ENTITLEMENT_CHECK_UNAVAILABLE'),
+            retryable: true,
+          },
+        });
+      }
+      if (!claim.allowed) {
+        return reply.code(403).send({
+          error: {
+            code: 'PLAN_VIEWER_LIMIT_REACHED',
+            message: appPublicEnglish('PLAN_VIEWER_LIMIT_REACHED', { value1: claim.limit }),
+            limit: claim.limit,
+            activeViewers: claim.activeViewers,
+            plan: claim.entitlements.plan,
+            entitlementsVersion: claim.entitlements.version,
+          },
+        });
+      }
       await store.recordProjectActivity({
         projectId: project.id,
         actorUserId: userId,
@@ -29699,49 +29963,110 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * error code QUOTA_EXCEEDED, which the Fastify error handler will
    * pass through and Remix will surface as a chat-error annotation.
    */
-  app.post('/projects/:projectId/ai/check-quota', async (request) => {
+  app.post('/projects/:projectId/ai/check-quota', async (request, reply) => {
     const { projectId } = parse(projectParams, request.params);
     const project = await requireProject(request, store, projectId, 'workspaces:read');
+    requireInternalMutationSecret(request);
     const body = parse(aiCheckQuotaSchema, request.body ?? {});
 
-    /*
-     * Replit-parity per-user (Enterprise) spend cap: block THIS member once their
-     * own usage-based spend for the billing period reaches the limit an admin
-     * assigned them — the per-member override beats the org budget. Gated: dormant
-     * unless BILLING_CREDITS_ENABLED. Fail-open — any lookup error never blocks.
-     */
-    if (process.env.BILLING_CREDITS_ENABLED === 'true' && request.currentUser?.id) {
-      const limit = await store
-        .getUserSpendLimit(project.organizationId, request.currentUser.id)
-        .catch(() => undefined);
+    let entitlements;
+    try {
+      entitlements = await resolveOrganizationEntitlements(store, project.organizationId);
+    } catch (error) {
+      request.log.warn({ err: error, organizationId: project.organizationId }, 'Agent plan entitlement lookup failed');
+      return reply.code(503).send({
+        error: appPublicEnglish('PLAN_ENTITLEMENT_CHECK_UNAVAILABLE'),
+        code: 'PLAN_ENTITLEMENT_CHECK_UNAVAILABLE',
+        retryable: true,
+      });
+    }
 
-      if (limit) {
-        const periodStartMs = (
-          await resolveUsagePeriodStart(project.organizationId).catch(() => new Date(0))
-        ).getTime();
-        const spent = await store
-          .sumUserSpendSince(project.organizationId, request.currentUser.id, periodStartMs)
-          .catch(() => 0);
+    const authorizedParallelAgents = Math.min(body.requestedParallelAgents ?? 1, entitlements.parallelAgents);
+    const reservationComponents = {
+      planner: 1,
+      agentLanes: authorizedParallelAgents,
+      summary: 1,
+      context: 1,
+      // Initial segment plus the eight bounded continuations in api.chat.
+      main: 9,
+    } as const;
+    const maxProviderCalls = Object.values(reservationComponents).reduce((sum, count) => sum + count, 0);
+    const estimatedInputTokens = (body.estimatedInputTokens ?? 0) * maxProviderCalls;
+    const estimatedOutputTokens = (body.estimatedOutputTokens ?? 0) * maxProviderCalls;
+    const maxInputCentsPerMillion = Math.max(...aiModelCatalog.map((model) => model.inputCentsPerMillion));
+    const maxOutputCentsPerMillion = Math.max(...aiModelCatalog.map((model) => model.outputCentsPerMillion));
+    const maximumCostCents = Math.ceil(
+      (estimatedInputTokens * maxInputCentsPerMillion + estimatedOutputTokens * maxOutputCentsPerMillion) / 1_000_000,
+    );
+    const reservationBudget = {
+      version: entitlements.version,
+      components: reservationComponents,
+      maxProviderCalls,
+      estimatedInputTokens,
+      estimatedOutputTokens,
+      maximumCostCents,
+    };
 
-        if (spent >= limit.limitCents) {
-          throw Object.assign(new Error(appPublicEnglish('USER_SPEND_LIMIT_REACHED')), {
-            statusCode: 429,
-            code: 'USER_SPEND_LIMIT_REACHED',
-          });
-        }
-      }
+    /* Check quota before placing a hold, so a denied request leaves no orphan. */
+    const estimated = body.estimatedInputTokens ?? 0;
+    await ensureQuota(request, project.organizationId, 'ai.messages', 1);
+    if (estimated > 0) {
+      await ensureQuota(request, project.organizationId, 'ai.inputTokens', estimated);
     }
 
     /*
-     * Always charge 1 message against the daily ai.messages cap. This is
-     * checked even when estimatedInputTokens is 0 so a barely-typed
-     * "..." still trips the rate-limit at a sane upper bound.
+     * Every managed run gets a canonical reservation/receipt identity. Enterprise
+     * enables the additional per-user cap inside the same 0095 transaction; the
+     * other plans still receive crash-safe, idempotent usage settlement.
      */
-    const estimated = body.estimatedInputTokens ?? 0;
-    await ensureQuota(request, project.organizationId, 'ai.messages', 1);
-
-    if (estimated > 0) {
-      await ensureQuota(request, project.organizationId, 'ai.inputTokens', estimated);
+    let userSpendReservationId: string | undefined;
+    if (!request.currentUser?.id || !Number.isSafeInteger(maximumCostCents) || maximumCostCents < 1) {
+      return reply.code(503).send({
+        error: appPublicEnglish('PLAN_ENTITLEMENT_CHECK_UNAVAILABLE'),
+        code: 'PLAN_ENTITLEMENT_CHECK_UNAVAILABLE',
+        retryable: true,
+      });
+    }
+    try {
+      const requestHash = createHash('sha256')
+        .update(
+          JSON.stringify({
+            version: reservationBudget.version,
+            organizationId: project.organizationId,
+            userId: request.currentUser.id,
+            projectId: project.id,
+            idempotencyKey: body.idempotencyKey,
+            upstreamRequestHash: body.requestHash,
+            reservationBudget,
+          }),
+        )
+        .digest('hex');
+      const reservation = await store.reserveCanonicalUserSpend({
+        organizationId: project.organizationId,
+        userId: request.currentUser.id,
+        projectId: project.id,
+        idempotencyKey: `ai-chat:${body.idempotencyKey}`,
+        maxAmountCents: maximumCostCents,
+        periodStart: entitlements.perUserSpendLimits ? entitlements.currentPeriodStart : undefined,
+        expiresInMs: 2 * 60 * 60_000,
+        requestHash,
+        enforceUserSpendLimit: entitlements.perUserSpendLimits,
+      });
+      userSpendReservationId = reservation.id;
+    } catch (error) {
+      const code =
+        typeof error === 'object' && error !== null && 'code' in error
+          ? String((error as { code: unknown }).code)
+          : undefined;
+      if (code === 'USER_SPEND_LIMIT_REACHED') {
+        return reply.code(429).send({ error: appPublicEnglish('USER_SPEND_LIMIT_REACHED'), code });
+      }
+      request.log.warn({ err: error }, 'Canonical AI usage reservation failed');
+      return reply.code(503).send({
+        error: appPublicEnglish('PLAN_ENTITLEMENT_CHECK_UNAVAILABLE'),
+        code: 'PLAN_ENTITLEMENT_CHECK_UNAVAILABLE',
+        retryable: true,
+      });
     }
 
     /*
@@ -29774,7 +30099,6 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * Override via the ENTERPRISE_FORCE_MANAGED_KEYS env knob if a
      * specific deployment wants everyone on managed.
      */
-    const byokAllowedPlans: PlanKey[] = ['team', 'enterprise'];
     const forceManaged = process.env.ENTERPRISE_FORCE_MANAGED_KEYS === 'true';
 
     /*
@@ -29784,10 +30108,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * Fail-open: a lookup error never blocks the request.
      */
     const orgBlocksExternalAi =
-      (await store.findFeatureFlag('block_external_ai', project.organizationId).catch(() => undefined))?.enabled ===
-      true;
+      (await store.findFeatureFlag('block_external_ai', project.organizationId))?.enabled === true;
 
-    const byokAllowed = !forceManaged && !orgBlocksExternalAi && byokAllowedPlans.includes(plan.key);
+    const byokAllowed =
+      !forceManaged && !orgBlocksExternalAi && (entitlements.plan === 'pro' || entitlements.plan === 'enterprise');
 
     return {
       ok: true,
@@ -29806,22 +30130,238 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       byok: {
         allowed: byokAllowed,
         reason: byokAllowed ? 'plan-allows-byok' : orgBlocksExternalAi ? 'org-blocks-external-ai' : 'managed-mode-plan',
-        plan: plan.key,
+        plan: entitlements.plan,
       },
+      entitlements: {
+        version: entitlements.version,
+        plan: entitlements.plan,
+        parallelAgents: entitlements.parallelAgents,
+      },
+      userSpendReservationId,
+      reservationBudget,
     };
   });
 
   /*
-   * C1.b.2 — Record-usage endpoint called by the Remix chat route after a
-   * Bolt streamText() completes. Today the Remix chat bypasses
-   * services/ai-gateway (Bolt's inherited code calls the providers
-   * directly), so the only way to charge the cost ledger + enforce
-   * quotas is to have Remix POST here in onFinish. Auth is the standard
-   * project ACL (the Remix loader forwards the user's session cookie),
-   * so a malicious caller can only inflate their *own* org's usage.
-   * Once C1.b.4 reroutes the stream through ai-gateway, this endpoint
-   * becomes redundant and the gateway records usage directly.
+   * Canonical AI execution mutations are server-to-server only. The Remix SSR
+   * route forwards the user's session for tenant ACLs and a distinct internal
+   * proof for mutation authority; neither an execution token nor a browser
+   * session alone can create latches or receipts.
    */
+  app.post('/projects/:projectId/ai/execution-claim', async (request, reply) => {
+    const { projectId } = parse(projectParams, request.params);
+    const project = await requireProject(request, store, projectId, 'workspaces:read');
+    requireInternalMutationSecret(request);
+    await requireOrganizationNotSuspended(store, project.organizationId);
+    const body = parse(aiClaimSchema, request.body ?? {});
+
+    try {
+      const claimed = await store.claimCanonicalAiExecution({
+        reservationId: body.userSpendReservationId,
+        organizationId: project.organizationId,
+        userId: request.currentUser!.id,
+        projectId: project.id,
+        requestId: body.requestId,
+        claimOwnerId: body.claimOwnerId,
+        claimLeaseMs: 60_000,
+      });
+      return { claimed: true, requestId: body.requestId, executionStatus: 'in-progress', ...claimed };
+    } catch (error) {
+      const code =
+        typeof error === 'object' && error !== null && 'code' in error
+          ? String((error as { code: unknown }).code)
+          : 'CANONICAL_AI_PROVIDER_START_FAILED';
+      request.log.warn({ err: error }, 'Canonical AI execution claim failed');
+      return reply.code(code.endsWith('_CONFLICT') ? 409 : 503).send({
+        error: appPublicEnglish('PLAN_ENTITLEMENT_CHECK_UNAVAILABLE'),
+        code,
+        retryable: !code.endsWith('_CONFLICT'),
+      });
+    }
+  });
+
+  app.post('/projects/:projectId/ai/provider-started', async (request, reply) => {
+    const { projectId } = parse(projectParams, request.params);
+    const project = await requireProject(request, store, projectId, 'workspaces:read');
+    requireInternalMutationSecret(request);
+    await requireOrganizationNotSuspended(store, project.organizationId);
+    const body = parse(aiMarkStartedSchema, request.body ?? {});
+    try {
+      const started = await store.markCanonicalUserSpendStarted({
+        reservationId: body.userSpendReservationId,
+        organizationId: project.organizationId,
+        userId: request.currentUser!.id,
+        projectId: project.id,
+        requestId: body.requestId,
+        executionToken: body.executionToken,
+        reconcileAfterMs: 2 * 60 * 60_000,
+      });
+      return { started: true, ...started };
+    } catch (error) {
+      const code =
+        typeof error === 'object' && error !== null && 'code' in error
+          ? String((error as { code: unknown }).code)
+          : 'CANONICAL_AI_PROVIDER_START_FAILED';
+      request.log.warn({ err: error }, 'Canonical AI user-billed provider start latch failed');
+      return reply.code(code.endsWith('_CONFLICT') ? 409 : 503).send({
+        error: appPublicEnglish('PLAN_ENTITLEMENT_CHECK_UNAVAILABLE'),
+        code,
+        retryable: !code.endsWith('_CONFLICT'),
+      });
+    }
+  });
+
+  app.post('/projects/:projectId/ai/platform-usage-started', async (request, reply) => {
+    const { projectId } = parse(projectParams, request.params);
+    const project = await requireProject(request, store, projectId, 'workspaces:read');
+    requireInternalMutationSecret(request);
+    await requireOrganizationNotSuspended(store, project.organizationId);
+    const body = parse(aiPlatformUsageStartSchema, request.body ?? {});
+    const priced = computeAiCostCents({
+      provider: body.call.provider as Parameters<typeof computeAiCostCents>[0]['provider'],
+      model: body.call.model,
+      inputTokens: body.call.maxInputTokens,
+      outputTokens: body.call.maxOutputTokens,
+    });
+    if (!priced.matched) {
+      return reply.code(503).send({
+        error: appPublicEnglish('PLAN_ENTITLEMENT_CHECK_UNAVAILABLE'),
+        code: 'CANONICAL_AI_USAGE_UNPRICED',
+        retryable: true,
+      });
+    }
+    const routingCard = await getAgentRoutingCardByVersion(store, body.agentRouting.routingCardVersion);
+    const classifierLine = routingCard ? routingLine(routingCard, 'classifier') : undefined;
+    const costInMillicentsPerM = classifierLine ? classifierLine.costInCentsPerM * 1000 : Number.NaN;
+    const costOutMillicentsPerM = classifierLine ? classifierLine.costOutCentsPerM * 1000 : Number.NaN;
+    const maxAgentCostMillicents =
+      Number.isSafeInteger(costInMillicentsPerM) && Number.isSafeInteger(costOutMillicentsPerM)
+        ? (BigInt(body.call.maxInputTokens) * BigInt(costInMillicentsPerM) +
+            BigInt(body.call.maxOutputTokens) * BigInt(costOutMillicentsPerM) +
+            500_000n) /
+          1_000_000n
+        : undefined;
+    if (
+      !routingCard ||
+      !classifierLine ||
+      !classifierLine.active ||
+      classifierLine.billedToUser ||
+      routingCard.version !== body.agentRouting.routingCardVersion ||
+      classifierLine.provider !== body.call.provider ||
+      classifierLine.model !== body.call.model ||
+      !Number.isSafeInteger(costInMillicentsPerM) ||
+      costInMillicentsPerM < 0 ||
+      !Number.isSafeInteger(costOutMillicentsPerM) ||
+      costOutMillicentsPerM < 0 ||
+      maxAgentCostMillicents === undefined ||
+      maxAgentCostMillicents > 2_147_483_647n
+    ) {
+      return reply.code(409).send({
+        error: appPublicEnglish('PLAN_ENTITLEMENT_CHECK_UNAVAILABLE'),
+        code: 'CANONICAL_AI_ROUTING_PIN_CONFLICT',
+        retryable: false,
+      });
+    }
+    try {
+      const started = await store.markCanonicalPlatformAiUsageStarted({
+        reservationId: body.userSpendReservationId,
+        organizationId: project.organizationId,
+        userId: request.currentUser!.id,
+        projectId: project.id,
+        requestId: body.requestId,
+        executionToken: body.executionToken,
+        callId: body.call.callId,
+        provider: body.call.provider,
+        model: body.call.model,
+        maxInputTokens: body.call.maxInputTokens,
+        maxOutputTokens: body.call.maxOutputTokens,
+        maxCostCents: priced.costCents,
+        agentRouting: {
+          mode: body.agentRouting.mode,
+          highEffort: body.agentRouting.highEffort ?? false,
+          turbo: body.agentRouting.turbo ?? false,
+          lineKey: 'classifier',
+          routingCardVersion: body.agentRouting.routingCardVersion,
+          source: 'classifier',
+          costInMillicentsPerM,
+          costOutMillicentsPerM,
+        },
+        reconcileAfterMs: 5 * 60_000,
+      });
+      return { started: true, ...started };
+    } catch (error) {
+      const code =
+        typeof error === 'object' && error !== null && 'code' in error
+          ? String((error as { code: unknown }).code)
+          : 'CANONICAL_PLATFORM_USAGE_START_FAILED';
+      return reply.code(code.endsWith('_CONFLICT') ? 409 : 503).send({
+        error: appPublicEnglish('PLAN_ENTITLEMENT_CHECK_UNAVAILABLE'),
+        code,
+        retryable: !code.endsWith('_CONFLICT'),
+      });
+    }
+  });
+
+  app.post('/projects/:projectId/ai/record-platform-usage', async (request, reply) => {
+    const { projectId } = parse(projectParams, request.params);
+    const project = await requireProject(request, store, projectId, 'workspaces:read');
+    requireInternalMutationSecret(request);
+    await requireOrganizationNotSuspended(store, project.organizationId);
+    const body = parse(aiPlatformUsageSchema, request.body ?? {});
+    const priced = computeAiCostCents({
+      provider: body.call.provider as Parameters<typeof computeAiCostCents>[0]['provider'],
+      model: body.call.model,
+      inputTokens: body.call.inputTokens,
+      outputTokens: body.call.outputTokens,
+    });
+    if (!priced.matched) {
+      return reply.code(503).send({
+        error: appPublicEnglish('PLAN_ENTITLEMENT_CHECK_UNAVAILABLE'),
+        code: 'CANONICAL_AI_USAGE_UNPRICED',
+        retryable: true,
+      });
+    }
+    try {
+      const receipt = await store.recordCanonicalPlatformAiUsage({
+        reservationId: body.userSpendReservationId,
+        organizationId: project.organizationId,
+        userId: request.currentUser!.id,
+        requestId: body.requestId,
+        executionToken: body.executionToken,
+        projectId: project.id,
+        call: {
+          ...body.call,
+          projectId: project.id,
+          conversationId: undefined,
+          messageId: undefined,
+          costCents: priced.costCents,
+          reason: 'chat.completion.operator',
+        },
+        outcome: body.outcome,
+        agentRouting: {
+          mode: body.agentRouting.mode,
+          highEffort: body.agentRouting.highEffort ?? false,
+          escalated: body.agentRouting.escalated ?? false,
+          turbo: body.agentRouting.turbo ?? false,
+          lineKey: 'classifier',
+          routingCardVersion: body.agentRouting.routingCardVersion,
+          source: 'classifier',
+        },
+      });
+      return { recorded: true, replayed: receipt.replayed };
+    } catch (error) {
+      const code =
+        typeof error === 'object' && error !== null && 'code' in error
+          ? String((error as { code: unknown }).code)
+          : 'CANONICAL_PLATFORM_USAGE_FAILED';
+      return reply.code(code.endsWith('_CONFLICT') ? 409 : 503).send({
+        error: appPublicEnglish('PLAN_ENTITLEMENT_CHECK_UNAVAILABLE'),
+        code,
+        retryable: !code.endsWith('_CONFLICT'),
+      });
+    }
+  });
+
   /*
    * F18 — record ONE provider request outcome (latency + errored), decoupled from
    * billing so it fires on BOTH success and failure (an errored request has no tokens
@@ -29831,6 +30371,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   app.post('/projects/:projectId/ai/provider-metric', async (request, reply) => {
     const { projectId } = parse(projectParams, request.params);
     const project = await requireProject(request, store, projectId, 'workspaces:read');
+    requireInternalMutationSecret(request);
     await requireOrganizationNotSuspended(store, project.organizationId);
 
     const body = parse(providerMetricSchema, request.body ?? {});
@@ -30052,9 +30593,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     };
   });
 
-  app.post('/projects/:projectId/ai/record-usage', async (request) => {
+  app.post('/projects/:projectId/ai/record-usage', async (request, reply) => {
     const { projectId } = parse(projectParams, request.params);
     const project = await requireProject(request, store, projectId, 'workspaces:read');
+    requireInternalMutationSecret(request);
 
     /*
      * This endpoint writes billing rows + usage counters, so a suspended org must
@@ -30065,41 +30607,106 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const body = parse(aiRecordUsageSchema, request.body ?? {});
 
-    const { costCents, matched } = computeAiCostCents({
-      model: body.model,
-      provider: body.provider as Parameters<typeof computeAiCostCents>[0]['provider'],
-      inputTokens: body.inputTokens,
-      outputTokens: body.outputTokens,
+    const usageCalls = body.calls ?? [
+      {
+        callId: 'legacy-main',
+        kind: 'main' as const,
+        provider: body.provider!,
+        model: body.model!,
+        inputTokens: body.inputTokens!,
+        outputTokens: body.outputTokens!,
+      },
+    ];
+    const pricedCalls = usageCalls.map((call) => {
+      const priced = computeAiCostCents({
+        model: call.model,
+        provider: call.provider as Parameters<typeof computeAiCostCents>[0]['provider'],
+        inputTokens: call.inputTokens,
+        outputTokens: call.outputTokens,
+      });
+      return { ...call, costCents: priced.costCents, matched: priced.matched };
     });
+    const matched = pricedCalls.every((call) => call.matched);
+    const costCents = pricedCalls.reduce((sum, call) => sum + (call.billedToUser === false ? 0 : call.costCents), 0);
+    const inputTokens = usageCalls.reduce((sum, call) => sum + (call.billedToUser === false ? 0 : call.inputTokens), 0);
+    const outputTokens = usageCalls.reduce(
+      (sum, call) => sum + (call.billedToUser === false ? 0 : call.outputTokens),
+      0,
+    );
+    const primaryCall = usageCalls[usageCalls.length - 1]!;
+    let canonicalReplay = false;
 
-    await store.recordAiCost({
-      organizationId: project.organizationId,
-      projectId: project.id,
-      conversationId: body.conversationId,
-      messageId: body.messageId,
-      provider: body.provider,
-      model: body.model,
-      inputTokens: body.inputTokens,
-      outputTokens: body.outputTokens,
-      costCents,
-      reason: `chat.completion.${body.source}`,
-    });
+    if (!body.userSpendReservationId || !body.requestId || !body.executionToken || !request.currentUser?.id) {
+      return reply.code(409).send({
+        error: appPublicEnglish('PLAN_ENTITLEMENT_CHECK_UNAVAILABLE'),
+        code: 'CANONICAL_USER_SPEND_RESERVATION_REQUIRED',
+        retryable: false,
+      });
+    }
+    if (!matched) {
+      return reply.code(503).send({
+        error: appPublicEnglish('PLAN_ENTITLEMENT_CHECK_UNAVAILABLE'),
+        code: 'CANONICAL_AI_USAGE_UNPRICED',
+        retryable: true,
+      });
+    }
+    try {
+      /*
+       * The store first writes an idempotent receipt for every provider call,
+       * then attempts purge-fenced settlement. The same contract applies to
+       * plans without a user cap; the cap only changes admission, never
+       * durability or replay semantics.
+       */
+      const committed = await store.commitCanonicalUserSpendBatch({
+        reservationId: body.userSpendReservationId,
+        organizationId: project.organizationId,
+        userId: request.currentUser.id,
+        requestId: body.requestId,
+        executionToken: body.executionToken,
+        projectId: project.id,
+        calls: pricedCalls.map((call) => ({
+          callId: call.callId,
+          kind: call.kind,
+          billedToUser: call.billedToUser,
+          projectId: project.id,
+          conversationId: body.conversationId,
+          messageId: body.messageId,
+          provider: call.provider,
+          model: call.model,
+          inputTokens: call.inputTokens,
+          outputTokens: call.outputTokens,
+          costCents: call.costCents,
+          reason: `chat.completion.${body.source}`,
+        })),
+      });
+      canonicalReplay = committed.replayed;
+    } catch (error) {
+      request.log.error({ err: error }, 'Canonical user spend settlement failed after usage receipt');
+      const statusCode =
+        typeof error === 'object' && error !== null && 'statusCode' in error
+          ? Number((error as { statusCode: unknown }).statusCode)
+          : 503;
+      const code =
+        typeof error === 'object' && error !== null && 'code' in error
+          ? String((error as { code: unknown }).code)
+          : 'CANONICAL_USER_SPEND_SETTLEMENT_FAILED';
+      return reply.code(statusCode === 409 ? 409 : 503).send({
+        error: appPublicEnglish('PLAN_ENTITLEMENT_CHECK_UNAVAILABLE'),
+        code,
+        retryable: statusCode !== 409,
+      });
+    }
 
     /*
      * AGM per-call log (admin-only): stamp the REAL provider+model this call
      * used, the mode/switch that routed it, and card-priced cost/credit/margin.
      * Best-effort — the log must never break usage recording.
      */
-    if (body.agentRouting) {
+    if (body.agentRouting && !canonicalReplay) {
       try {
         const routingCard = await getActiveAgentRoutingCard(store);
 
-        const callBilling = computeAgentCallBilling(
-          routingCard,
-          body.agentRouting.lineKey,
-          body.inputTokens,
-          body.outputTokens,
-        );
+        const callBilling = computeAgentCallBilling(routingCard, body.agentRouting.lineKey, inputTokens, outputTokens);
 
         if (callBilling) {
           await store.recordAgentCall({
@@ -30111,10 +30718,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             escalated: body.agentRouting.escalated ?? false,
             turbo: body.agentRouting.turbo ?? false,
             lineKey: body.agentRouting.lineKey,
-            provider: body.provider,
-            model: body.model,
-            tokensIn: body.inputTokens,
-            tokensOut: body.outputTokens,
+            provider: primaryCall.provider,
+            model: primaryCall.model,
+            tokensIn: inputTokens,
+            tokensOut: outputTokens,
             costMillicents: Math.round(callBilling.costCents * 1000),
             creditCents: callBilling.creditCents,
             marginMillicents: Math.round(callBilling.marginCents * 1000),
@@ -30128,27 +30735,21 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       }
     }
 
-    await recordUsage(request, project.organizationId, 'ai.messages');
-
-    if (body.inputTokens > 0) {
-      await recordUsage(request, project.organizationId, 'ai.inputTokens', body.inputTokens);
+    if (!canonicalReplay) {
+      for (const call of pricedCalls) {
+        metrics.increment(
+          'ai_tokens_total',
+          { provider: call.provider, model: call.model, direction: 'input' },
+          call.inputTokens,
+        );
+        metrics.increment(
+          'ai_tokens_total',
+          { provider: call.provider, model: call.model, direction: 'output' },
+          call.outputTokens,
+        );
+      }
+      metrics.setGauge('cost_estimate_cents', { organizationId: project.organizationId, source: 'ai' }, costCents);
     }
-
-    if (body.outputTokens > 0) {
-      await recordUsage(request, project.organizationId, 'ai.outputTokens', body.outputTokens);
-    }
-
-    metrics.increment(
-      'ai_tokens_total',
-      { provider: body.provider, model: body.model, direction: 'input' },
-      body.inputTokens,
-    );
-    metrics.increment(
-      'ai_tokens_total',
-      { provider: body.provider, model: body.model, direction: 'output' },
-      body.outputTokens,
-    );
-    metrics.setGauge('cost_estimate_cents', { organizationId: project.organizationId, source: 'ai' }, costCents);
 
     /*
      * Replit-parity effort-based checkpoint. Records one checkpoint per request
@@ -30159,7 +30760,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      */
     let checkpointCreditCents: number | undefined;
 
-    if (process.env.BILLING_CREDITS_ENABLED === 'true' || process.env.BILLING_CREDITS_SHADOW === 'true') {
+    if (
+      !canonicalReplay &&
+      (process.env.BILLING_CREDITS_ENABLED === 'true' || process.env.BILLING_CREDITS_SHADOW === 'true')
+    ) {
       try {
         const shadow = process.env.BILLING_CREDITS_ENABLED !== 'true';
 
@@ -30198,8 +30802,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         const settled = await settleCheckpoint(store, {
           checkpointId: checkpoint.id,
           organizationId: project.organizationId,
-          inputTokens: body.inputTokens,
-          outputTokens: body.outputTokens,
+          inputTokens,
+          outputTokens,
           rawProviderCents: costCents,
           margin: Number(process.env.AI_MARGIN),
           shadow,
@@ -30685,6 +31289,23 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const { orgId } = parse(orgParams, request.params);
     await requireOrg(request, store, orgId, 'usage:read');
 
+    let entitlements;
+    try {
+      entitlements = await resolveOrganizationEntitlements(store, orgId);
+    } catch (error) {
+      request.log.warn({ err: error }, 'User spend entitlement lookup failed');
+      throw Object.assign(new Error(appPublicEnglish('PLAN_ENTITLEMENT_CHECK_UNAVAILABLE')), {
+        statusCode: 503,
+        code: 'PLAN_ENTITLEMENT_CHECK_UNAVAILABLE',
+      });
+    }
+    if (!entitlements.perUserSpendLimits) {
+      throw Object.assign(new Error(appPublicEnglish('USER_SPEND_LIMIT_ENTERPRISE_REQUIRED')), {
+        statusCode: 403,
+        code: 'USER_SPEND_LIMIT_ENTERPRISE_REQUIRED',
+      });
+    }
+
     const [limits, members] = await Promise.all([store.listUserSpendLimits(orgId), store.listMembers(orgId)]);
 
     return { limits, members };
@@ -30693,6 +31314,23 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   app.put('/orgs/:orgId/usage/limits/:userId', async (request) => {
     const { orgId, userId } = parse(z.object({ orgId: z.string().min(1), userId: z.string().min(1) }), request.params);
     await requireOrg(request, store, orgId, 'billing:manage');
+
+    let entitlements;
+    try {
+      entitlements = await resolveOrganizationEntitlements(store, orgId);
+    } catch (error) {
+      request.log.warn({ err: error }, 'User spend entitlement lookup failed');
+      throw Object.assign(new Error(appPublicEnglish('PLAN_ENTITLEMENT_CHECK_UNAVAILABLE')), {
+        statusCode: 503,
+        code: 'PLAN_ENTITLEMENT_CHECK_UNAVAILABLE',
+      });
+    }
+    if (!entitlements.perUserSpendLimits) {
+      throw Object.assign(new Error(appPublicEnglish('USER_SPEND_LIMIT_ENTERPRISE_REQUIRED')), {
+        statusCode: 403,
+        code: 'USER_SPEND_LIMIT_ENTERPRISE_REQUIRED',
+      });
+    }
 
     // The target must be a member of this org (limits are per-membership).
     const membership = await store.getMembership(userId, orgId);
@@ -34403,22 +35041,40 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return { kind: body.kind, shadow, result };
     }
 
+    if ((body.egressGib ?? 0) > 0) {
+      /*
+       * No deployment surface currently emits an authoritative cumulative byte
+       * watermark. Accepting caller-injected GiB here would create a synthetic
+       * allowance claim followed by a non-atomic wallet debit. Keep ordinary
+       * publishing/compute metering available, but refuse all automatic egress
+       * claims until the controlled edge can supply a durable watermark and the
+       * claim+charge saga has an exactly-once receipt.
+       */
+      return reply.code(503).send({
+        error: appPublicEnglish('PLAN_ENTITLEMENT_CHECK_UNAVAILABLE'),
+        code: 'EGRESS_METERING_OPERATOR_REQUIRED',
+        retryable: false,
+        operatorRequired: true,
+      });
+    }
+
     const result = await meterDeployment(store, {
       organizationId: body.organizationId,
       kind: body.deploymentKind,
       computeUnits: body.computeUnits,
       requests: body.requests,
-      egressGib: body.egressGib,
+      egressGib: undefined,
       reservedTier: body.reservedTier,
       includeBase: body.includeBase,
       shadow,
       nowMs,
       paygReference,
+      metadata: { egressMetering: 'operator-required' },
     });
 
     await reportPayg(result);
 
-    return { kind: body.kind, shadow, result };
+    return { kind: body.kind, shadow, result, egressAllowance: { state: 'operator-required' } };
   });
 
   /**
@@ -37128,6 +37784,29 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         ],
       });
     };
+    const queuedEntitlementsPin = readDeploymentPlanEntitlementsPin(queued.metadata);
+
+    if (!queuedEntitlementsPin) {
+      if (isReservedVmRedeploy) {
+        return failReservedVmRedeploy(
+          'PUBLISH_ENTITLEMENTS_PIN_MISSING',
+          appPublicEnglish('PUBLISH_ENTITLEMENTS_PIN_MISSING'),
+        );
+      }
+
+      return store.updateDeployment(project.id, queued.id, {
+        status: 'FAILED',
+        logs: [
+          ...queued.logs,
+          {
+            timestamp: new Date().toISOString(),
+            level: 'error',
+            message: appPublicEnglish('PUBLISH_ENTITLEMENTS_PIN_MISSING'),
+          },
+        ],
+        finishedAt: new Date().toISOString(),
+      });
+    }
 
     /*
      * The queue payload can wait or retry while a collaborator edits the
@@ -37142,7 +37821,6 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const manifestBindingValid =
       typeof queuedManifestDigest === 'string' && PROJECT_MANIFEST_DIGEST_PATTERN.test(queuedManifestDigest);
-    const legacyNonServerRow = queuedManifestDigest === undefined && body.provider !== 'server';
 
     if (manifestBindingValid) {
       try {
@@ -37160,10 +37838,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       }
     }
 
-    if (
-      (!manifestBindingValid && !legacyNonServerRow) ||
-      (manifestBindingValid && currentDigest !== queuedManifestDigest)
-    ) {
+    if (!manifestBindingValid || currentDigest !== queuedManifestDigest) {
       if (isReservedVmRedeploy) {
         return failReservedVmRedeploy('PROJECT_MANIFEST_CHANGED_BEFORE_DEPLOY', failureMessage);
       }
@@ -37182,9 +37857,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
     }
 
-    const expectedManifestDigest = manifestBindingValid
-      ? (queuedManifestDigest as string)
-      : (await currentProjectManifest(store, project)).digest;
+    const expectedManifestDigest = queuedManifestDigest;
 
     try {
       return await withProjectReleaseBarrier(
@@ -38426,11 +39099,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           }
 
           await releaseGuard.assert();
-          const hookResult = await triggerProviderDeployHook(body.provider);
+          const hookResult = await triggerProviderDeployHook(body.provider, fetch, process.env, {
+            publishRegion: queuedEntitlementsPin.publishRegion,
+          });
 
           let staticBuildFailed = false;
           let staticBuildLogs: Array<{ timestamp: string; level: 'info' | 'error'; message: string }> = [];
           let workspaceBuildTempDir: string | undefined;
+          let staticArtifactDigest: string | undefined;
 
           if (body.provider === 'static') {
             /*
@@ -38514,6 +39190,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                     level: 'info',
                     message: appPublicEnglish('STATIC_DEPLOY_CANCELED_SNAPSHOT'),
                   });
+                } else {
+                  staticArtifactDigest = await computeStaticSnapshotDigest(queued.id);
+
+                  if (!staticArtifactDigest) {
+                    throw new Error('STATIC_RELEASE_ARTIFACT_DIGEST_MISSING');
+                  }
                 }
               } catch (error) {
                 staticBuildFailed = true;
@@ -38603,27 +39285,49 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                 : undefined;
 
           await releaseGuard.assert();
-          const ready = await store.updateDeployment(project.id, queued.id, {
-            status,
-            url: resolvedUrl,
-            previewUrl: isReady && body.environment !== 'production' ? resolvedUrl : undefined,
-            productionUrl: isReady && body.environment === 'production' ? resolvedUrl : undefined,
-            metadata: {
-              ...(queued.metadata as Record<string, unknown>),
-              projectManifestDigest: expectedManifestDigest,
-              providerBuildId: hookResult?.buildId,
-              hookStatus: hookResult?.status,
-              staticBuildOk: body.provider === 'static' ? !staticBuildFailed : undefined,
-            },
-            logs: augmentedLogs,
-            finishedAt: status === 'BUILDING' ? undefined : new Date().toISOString(),
-          });
+          const finalMetadata = {
+            ...(queued.metadata as Record<string, unknown>),
+            projectManifestDigest: expectedManifestDigest,
+            providerBuildId: hookResult?.buildId,
+            hookStatus: hookResult?.status,
+            staticBuildOk: body.provider === 'static' ? !staticBuildFailed : undefined,
+          };
+          const finishedAt = status === 'BUILDING' ? undefined : new Date().toISOString();
+          let ready: DeploymentRecord;
 
-          /*
-           * P0-V3-08: record the immutable release manifest for a successful publish so
-           * a later rollback is deterministic + fail-closed. Best-effort; never blocks.
-           */
-          await writeReleaseManifest(store, app.log, ready, body.envVars);
+          if (body.provider === 'static' && status === 'READY') {
+            if (!resolvedUrl || !finishedAt || !staticArtifactDigest) {
+              throw new Error('STATIC_RELEASE_ARTIFACT_DIGEST_MISSING');
+            }
+
+            const committed = await store.commitStaticRelease({
+              projectId: project.id,
+              deploymentId: queued.id,
+              environment: body.environment,
+              artifactRef: `static-deployments/${queued.id}`,
+              artifactDigest: staticArtifactDigest,
+              configDigest: configDigest(body.envVars ?? {}),
+              accessPolicyVersion: queued.accessPolicyVersion,
+              url: resolvedUrl,
+              previewUrl: body.environment !== 'production' ? resolvedUrl : undefined,
+              productionUrl: body.environment === 'production' ? resolvedUrl : undefined,
+              metadata: finalMetadata,
+              logs: augmentedLogs,
+              finishedAt,
+              releaseFence: releaseGuard.fence,
+            });
+            ready = committed.deployment;
+          } else {
+            ready = await store.updateDeployment(project.id, queued.id, {
+              status,
+              url: resolvedUrl,
+              previewUrl: isReady && body.environment !== 'production' ? resolvedUrl : undefined,
+              productionUrl: isReady && body.environment === 'production' ? resolvedUrl : undefined,
+              metadata: finalMetadata,
+              logs: augmentedLogs,
+              finishedAt,
+            });
+          }
 
           /*
            * Bill against the PERSISTED status, not the locally-computed `status`. The
@@ -38834,6 +39538,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       injectSecrets: [],
       ...parsedDeploymentBody,
       runtimeKind: parsedDeploymentBody.runtimeKind ?? 'autoscale',
+      removeBrandingBadge: parsedDeploymentBody.removeBrandingBadge ?? false,
       accessMode: (parsedDeploymentBody.accessMode ??
         (deploymentAccessActivationEnabled(isProduction) ? 'INVITE_ONLY' : 'PUBLIC')) as DeploymentAccessMode,
     };
@@ -39015,6 +39720,55 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         if (accepted) return sendAcceptedReservedVmCreate(accepted);
       }
       throw error;
+    }
+
+    let deploymentEntitlements;
+    try {
+      deploymentEntitlements = await resolveOrganizationEntitlements(store, project.organizationId);
+    } catch (error) {
+      request.log.warn({ err: error }, 'Deployment entitlement lookup failed');
+      return reply.code(503).send({
+        error: appPublicCopy('PLAN_ENTITLEMENT_CHECK_UNAVAILABLE', transactionalLocaleForRequest(request)),
+        code: 'PLAN_ENTITLEMENT_CHECK_UNAVAILABLE',
+        retryable: true,
+      });
+    }
+
+    let deploymentEntitlementsPin;
+    try {
+      deploymentEntitlementsPin = resolveDeploymentPlanEntitlementsPin({
+        entitlements: deploymentEntitlements,
+        providerSupportedRegions: providerSupportedPublishRegions(body.provider),
+        requestedRegion: body.publishRegion,
+        removeBrandingBadge: body.removeBrandingBadge,
+      });
+      if (deploymentEntitlementsPin.badgeRequired && !providerHasAuthoritativePlanEdge(body.provider)) {
+        return reply.code(503).send({
+          error: appPublicCopy('PUBLISH_PROVIDER_PLAN_EDGE_REQUIRED', transactionalLocaleForRequest(request)),
+          code: 'PUBLISH_PROVIDER_PLAN_EDGE_REQUIRED',
+          retryable: false,
+        });
+      }
+      // Provider hooks consume the exact resolved value, never the raw request.
+      body.publishRegion = deploymentEntitlementsPin.publishRegion;
+    } catch (error) {
+      const code =
+        typeof error === 'object' && error !== null && 'code' in error
+          ? String((error as { code: unknown }).code)
+          : 'PUBLISH_REGION_OPERATOR_REQUIRED';
+      const copyKey =
+        code === 'PUBLISH_BADGE_REQUIRED'
+          ? 'PUBLISH_BADGE_REQUIRED'
+          : code === 'PUBLISH_REGION_UNAVAILABLE'
+            ? 'PUBLISH_REGION_UNAVAILABLE'
+            : code === 'PUBLISH_REGION_PLAN_RESTRICTED'
+              ? 'PUBLISH_REGION_PLAN_RESTRICTED'
+              : 'PUBLISH_REGION_OPERATOR_REQUIRED';
+      return reply.code(code === 'PUBLISH_REGION_OPERATOR_REQUIRED' ? 503 : 403).send({
+        error: appPublicCopy(copyKey, transactionalLocaleForRequest(request)),
+        code,
+        retryable: code === 'PUBLISH_REGION_OPERATOR_REQUIRED',
+      });
     }
 
     /*
@@ -39247,6 +40001,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             createdByUserId: request.currentUser?.id,
           },
           metadata: {
+            planEntitlements: deploymentEntitlementsPin,
             projectManifestDigest: boundProjectManifest.digest,
             projectManifestVersion: boundProjectManifest.manifest.manifestVersion,
             projectManifestSchemaVersion: boundProjectManifest.manifest.schemaVersion,
@@ -40559,6 +41314,59 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       request.log.error({ err: error }, 'server-deploy runtime metering sweep failed');
     }
 
+    /*
+     * The same production CronJob also resumes canonical AI sagas. The scan is
+     * bounded and each reservation is row-locked/CAS-settled, so overlapping
+     * deploy.reap workers cannot double-charge. Keep it isolated from deploy
+     * cleanup: either sweep remains actionable if the other one is degraded.
+     */
+    let aiUsageReconciliation:
+      | Awaited<ReturnType<ApiStore['reconcileCanonicalUserSpend']>>
+      | { error: 'AI_USAGE_RECONCILIATION_FAILED' };
+    try {
+      aiUsageReconciliation = await store.reconcileCanonicalUserSpend({ take: 100 });
+      metrics.increment('ai_usage_reconciliation_runs_total', { outcome: 'success' });
+      if (aiUsageReconciliation.recoveredAtCeiling > 0) {
+        metrics.increment('ai_usage_recovered_at_ceiling_total', {}, aiUsageReconciliation.recoveredAtCeiling);
+      }
+      if (aiUsageReconciliation.recoveredPlatformAtCeiling > 0) {
+        metrics.increment(
+          'ai_platform_usage_recovered_at_ceiling_total',
+          {},
+          aiUsageReconciliation.recoveredPlatformAtCeiling,
+        );
+      }
+      if (aiUsageReconciliation.manualRecovery > 0) {
+        metrics.increment('ai_usage_manual_recovery_total', {}, aiUsageReconciliation.manualRecovery);
+      }
+      if (aiUsageReconciliation.retryableFailures > 0) {
+        metrics.increment('ai_usage_reconciliation_retryable_total', {}, aiUsageReconciliation.retryableFailures);
+      }
+    } catch (error) {
+      aiUsageReconciliation = { error: 'AI_USAGE_RECONCILIATION_FAILED' };
+      metrics.increment('ai_usage_reconciliation_runs_total', { outcome: 'error' });
+      request.log.error({ err: error }, 'canonical AI usage reconciliation sweep failed');
+    }
+
+    /*
+     * Release generic expired holds only after STARTED/platform intents have
+     * had a chance to produce their durable receipts. LedgerStore excludes
+     * unresolved provider latches under the same row lock, so an overlapping
+     * worker can never free a reservation between provider start and recovery.
+     */
+    let expiredLedgerReservations: string[] | { error: 'LEDGER_RESERVATION_REAP_FAILED' };
+    try {
+      expiredLedgerReservations = await store.reapExpiredLedgerReservations();
+      metrics.increment('ledger_reservation_reap_runs_total', { outcome: 'success' });
+      if (expiredLedgerReservations.length > 0) {
+        metrics.increment('ledger_reservations_expired_total', {}, expiredLedgerReservations.length);
+      }
+    } catch (error) {
+      expiredLedgerReservations = { error: 'LEDGER_RESERVATION_REAP_FAILED' };
+      metrics.increment('ledger_reservation_reap_runs_total', { outcome: 'error' });
+      request.log.error({ err: error }, 'expired ledger reservation sweep failed');
+    }
+
     return {
       ...reaped,
       runtimeMetering,
@@ -40570,6 +41378,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       reservedVmDecommissionRecovery,
       reservedVmRenewal,
       reservedVmComputeStop,
+      aiUsageReconciliation,
+      expiredLedgerReservations,
     };
   });
 
@@ -40636,6 +41446,71 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           };
         }),
       },
+    };
+  });
+
+  /*
+   * Server-authoritative publish controls for the Deploy panel. The UI must
+   * never infer badge or region rights from marketing plan names. A provider
+   * is ready only when its concrete adapter is both plan-admissible and served
+   * through an edge that can enforce the pinned contract.
+   */
+  app.get('/projects/:projectId/deployments/plan-entitlements', async (request, reply) => {
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:read',
+    );
+    const { provider } = parse(
+      z.object({ provider: z.enum(deploymentProviders).default('static') }),
+      request.query ?? {},
+    );
+
+    let entitlements;
+    try {
+      entitlements = await resolveOrganizationEntitlements(store, project.organizationId);
+    } catch (error) {
+      request.log.warn({ err: error }, 'Deployment entitlement lookup failed');
+      return reply.code(503).send({
+        error: appPublicCopy('PLAN_ENTITLEMENT_CHECK_UNAVAILABLE', transactionalLocaleForRequest(request)),
+        code: 'PLAN_ENTITLEMENT_CHECK_UNAVAILABLE',
+        retryable: true,
+      });
+    }
+
+    const resolvedProvider = provider ?? 'static';
+    const supportedRegions = providerSupportedPublishRegions(resolvedProvider);
+    const publishRegions =
+      entitlements.publishRegions === 'single'
+        ? supportedRegions.slice(0, 1)
+        : entitlements.publishRegions === 'custom'
+          ? supportedRegions.filter((region) => entitlements.customPublishRegions.includes(region))
+          : supportedRegions;
+    const hasAuthoritativeEdge = providerHasAuthoritativePlanEdge(resolvedProvider);
+    /*
+     * External adapters remain usable for a paid plan only when the caller
+     * explicitly removes branding on create. They cannot attest a mandatory
+     * badge, so Starter stays fail-closed without disabling paid publishing.
+     */
+    const hasSatisfiableBadgePolicy = hasAuthoritativeEdge || entitlements.badgeRemovable;
+    const providerReady = hasSatisfiableBadgePolicy && publishRegions.length > 0;
+
+    return {
+      version: entitlements.version,
+      plan: entitlements.plan,
+      provider: resolvedProvider,
+      providerReady,
+      unavailableReason: providerReady
+        ? null
+        : hasSatisfiableBadgePolicy
+          ? 'region-operator-required'
+          : 'plan-edge-operator-required',
+      publishRegionMode: entitlements.publishRegions,
+      publishRegions,
+      defaultPublishRegion: publishRegions[0] ?? null,
+      badgeRemovable: entitlements.badgeRemovable,
+      badgeRequired: !entitlements.badgeRemovable,
     };
   });
 
@@ -41339,21 +42214,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const boundManifestDigest = (source.metadata as Record<string, unknown> | undefined)?.projectManifestDigest;
 
-    const legacyNonServerPublish = boundManifestDigest === undefined && source.provider !== 'server';
-
-    if (
-      (!legacyNonServerPublish && typeof boundManifestDigest !== 'string') ||
-      (typeof boundManifestDigest === 'string' && !PROJECT_MANIFEST_DIGEST_PATTERN.test(boundManifestDigest))
-    ) {
+    if (typeof boundManifestDigest !== 'string' || !PROJECT_MANIFEST_DIGEST_PATTERN.test(boundManifestDigest)) {
       return reply.code(409).send({
         error: appPublicCopy('PROJECT_MANIFEST_CHANGED_BEFORE_PUBLISH', locale),
         code: 'PROJECT_MANIFEST_CHANGED_BEFORE_PUBLISH',
       });
     }
-    const expectedManifestDigest =
-      typeof boundManifestDigest === 'string'
-        ? boundManifestDigest
-        : (await currentProjectManifest(store, project)).digest;
+    const expectedManifestDigest = boundManifestDigest;
 
     return withProjectReleaseBarrier(
       store,
@@ -42140,6 +43007,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         code: 'PROJECT_MANIFEST_CHANGED_BEFORE_PUBLISH',
       });
     }
+    const redeployProjectManifest = await currentProjectManifest(store, project);
 
     // A suspended org must not queue new builds (matches the create route).
     await requireOrganizationNotSuspended(store, project.organizationId);
@@ -42185,6 +43053,52 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       } as never,
       redeployPlanKey,
     );
+
+    let redeployEntitlements;
+    try {
+      redeployEntitlements = await resolveOrganizationEntitlements(store, project.organizationId);
+    } catch (error) {
+      request.log.warn({ err: error }, 'Redeploy entitlement lookup failed');
+      return reply.code(503).send({
+        error: appPublicCopy('PLAN_ENTITLEMENT_CHECK_UNAVAILABLE', transactionalLocaleForRequest(request)),
+        code: 'PLAN_ENTITLEMENT_CHECK_UNAVAILABLE',
+        retryable: true,
+      });
+    }
+    const sourceEntitlementsPin = readDeploymentPlanEntitlementsPin(source.metadata);
+    let redeployEntitlementsPin;
+    try {
+      redeployEntitlementsPin = resolveDeploymentPlanEntitlementsPin({
+        entitlements: redeployEntitlements,
+        providerSupportedRegions: providerSupportedPublishRegions(sourceProvider),
+        requestedRegion: sourceEntitlementsPin?.publishRegion,
+        removeBrandingBadge: sourceEntitlementsPin?.badgeRequired === false,
+      });
+      if (redeployEntitlementsPin.badgeRequired && !providerHasAuthoritativePlanEdge(sourceProvider)) {
+        return reply.code(503).send({
+          error: appPublicCopy('PUBLISH_PROVIDER_PLAN_EDGE_REQUIRED', transactionalLocaleForRequest(request)),
+          code: 'PUBLISH_PROVIDER_PLAN_EDGE_REQUIRED',
+          retryable: false,
+        });
+      }
+    } catch (error) {
+      const code =
+        typeof error === 'object' && error !== null && 'code' in error
+          ? String((error as { code: unknown }).code)
+          : 'PUBLISH_REGION_OPERATOR_REQUIRED';
+      const copyKey =
+        code === 'PUBLISH_BADGE_REQUIRED'
+          ? 'PUBLISH_BADGE_REQUIRED'
+          : code === 'PUBLISH_REGION_UNAVAILABLE'
+            ? 'PUBLISH_REGION_UNAVAILABLE'
+            : code === 'PUBLISH_REGION_PLAN_RESTRICTED'
+              ? 'PUBLISH_REGION_PLAN_RESTRICTED'
+              : 'PUBLISH_REGION_OPERATOR_REQUIRED';
+      return reply.code(code === 'PUBLISH_REGION_OPERATOR_REQUIRED' ? 503 : 403).send({
+        error: appPublicCopy(copyKey, transactionalLocaleForRequest(request)),
+        code,
+      });
+    }
 
     /*
      * Resolve the source workspace BEFORE creating the QUEUED row. resolveGitWorkspaceId
@@ -42264,6 +43178,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         machineSize: source.machineSize,
         runtimeKind: 'reserved-vm',
         reservedVmTier: source.reservedVmTier,
+        publishRegion: redeployEntitlementsPin.publishRegion,
+        removeBrandingBadge: !redeployEntitlementsPin.badgeRequired,
         ...(secondaryWorkspaceId ? { secondaryWorkspaceId } : {}),
       };
       const requestHash = reservedVmRequestHash({
@@ -42401,6 +43317,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           accessPolicyVersion: source.accessPolicyVersion,
           metadata: {
             ...source.metadata,
+            planEntitlements: redeployEntitlementsPin,
+            projectManifestDigest: redeployProjectManifest.digest,
             publishMigrationPlan: redeployMigrationPlan ?? null,
             redeployedFromId: source.id,
           },
@@ -42468,6 +43386,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           injectSecrets: [],
           machineSize: source.machineSize,
           runtimeKind: 'autoscale',
+          publishRegion: redeployEntitlementsPin.publishRegion,
+          removeBrandingBadge: !redeployEntitlementsPin.badgeRequired,
         },
       });
       await audit(request, store, {
@@ -42483,10 +43403,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         .send({ deployment: localizeDeploymentRecord(rebuilt, transactionalLocaleForRequest(request)) });
     }
 
-    const hookResult = await triggerProviderDeployHook(sourceProvider);
+    const hookResult = await triggerProviderDeployHook(sourceProvider, fetch, process.env, {
+      publishRegion: redeployEntitlementsPin.publishRegion,
+    });
 
     let staticBuildFailed = false;
     let workspaceBuildTempDir: string | undefined;
+    let staticArtifactDigest: string | undefined;
 
     const rebuildLogs: Array<{ timestamp: string; level: 'info' | 'error'; message: string }> = [];
 
@@ -42550,6 +43473,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
               level: 'info',
               message: appPublicEnglish('STATIC_DEPLOY_CANCELED_SNAPSHOT'),
             });
+          } else {
+            staticArtifactDigest = await computeStaticSnapshotDigest(redeploy.id);
+
+            if (!staticArtifactDigest) {
+              throw new Error('STATIC_RELEASE_ARTIFACT_DIGEST_MISSING');
+            }
           }
         } catch (error) {
           staticBuildFailed = true;
@@ -42613,23 +43542,87 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           ? url
           : undefined;
 
-    const ready = await store.updateDeployment(project.id, redeploy.id, {
-      status: redeployStatus,
-      url: resolvedUrl,
-      previewUrl: redeployReady && redeploy.environment !== 'production' ? resolvedUrl : undefined,
-      productionUrl: redeployReady && redeploy.environment === 'production' ? resolvedUrl : undefined,
-      metadata: {
-        ...(redeploy.metadata as Record<string, unknown>),
-        providerBuildId: hookResult?.buildId,
-        hookStatus: hookResult?.status,
-        staticBuildOk: source.provider === 'static' ? !staticBuildFailed : undefined,
-      },
-      logs: [...redeploy.logs, ...rebuildLogs],
-      finishedAt: redeployStatus === 'BUILDING' ? undefined : new Date().toISOString(),
-    });
+    const finalMetadata = {
+      ...(redeploy.metadata as Record<string, unknown>),
+      providerBuildId: hookResult?.buildId,
+      hookStatus: hookResult?.status,
+      staticBuildOk: source.provider === 'static' ? !staticBuildFailed : undefined,
+    };
+    const finishedAt = redeployStatus === 'BUILDING' ? undefined : new Date().toISOString();
+    let ready: DeploymentRecord;
 
-    // P0-V3-08: a redeploy is a new published version too — record its manifest.
-    await writeReleaseManifest(store, app.log, ready, sourceEnvVars);
+    try {
+      ready = await withProjectReleaseBarrier(
+        store,
+        {
+          projectId: project.id,
+          expectedOrganizationId: project.organizationId,
+          expectedManifestDigest: redeployProjectManifest.digest,
+          operationId: `deployment-redeploy:${redeploy.id}`,
+        },
+        async (releaseGuard) => {
+          await releaseGuard.assert();
+
+          if (source.provider === 'static' && redeployStatus === 'READY') {
+            if (!resolvedUrl || !finishedAt || !staticArtifactDigest) {
+              throw new Error('STATIC_RELEASE_ARTIFACT_DIGEST_MISSING');
+            }
+
+            const committed = await store.commitStaticRelease({
+              projectId: project.id,
+              deploymentId: redeploy.id,
+              environment: redeploy.environment,
+              artifactRef: `static-deployments/${redeploy.id}`,
+              artifactDigest: staticArtifactDigest,
+              configDigest: configDigest(sourceEnvVars),
+              accessPolicyVersion: redeploy.accessPolicyVersion,
+              url: resolvedUrl,
+              previewUrl: redeploy.environment !== 'production' ? resolvedUrl : undefined,
+              productionUrl: redeploy.environment === 'production' ? resolvedUrl : undefined,
+              metadata: finalMetadata,
+              logs: [...redeploy.logs, ...rebuildLogs],
+              finishedAt,
+              releaseFence: releaseGuard.fence,
+            });
+
+            return committed.deployment;
+          }
+
+          return store.updateDeployment(project.id, redeploy.id, {
+            status: redeployStatus,
+            url: resolvedUrl,
+            previewUrl: redeployReady && redeploy.environment !== 'production' ? resolvedUrl : undefined,
+            productionUrl: redeployReady && redeploy.environment === 'production' ? resolvedUrl : undefined,
+            metadata: finalMetadata,
+            logs: [...redeploy.logs, ...rebuildLogs],
+            finishedAt,
+          });
+        },
+      );
+    } catch (error) {
+      if (source.provider === 'static') {
+        await removeStaticDeploymentSnapshot(redeploy.id).catch(() => undefined);
+      }
+      await store
+        .updateDeployment(project.id, redeploy.id, {
+          status: 'FAILED',
+          url: undefined,
+          previewUrl: undefined,
+          productionUrl: undefined,
+          logs: [
+            ...redeploy.logs,
+            ...rebuildLogs,
+            {
+              timestamp: new Date().toISOString(),
+              level: 'error',
+              message: appPublicEnglish('PUBLISH_ENTITLEMENTS_PIN_MISSING'),
+            },
+          ],
+          finishedAt: new Date().toISOString(),
+        })
+        .catch(() => undefined);
+      throw error;
+    }
 
     /*
      * Bill against the PERSISTED status (see create handler): a rebuild canceled
@@ -42973,19 +43966,23 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
     }
 
-    const previousDeploymentForManifest = await store.getDeployment(project.id, previous.deploymentId);
+    const previousEntitlementsPin = previous.planEntitlements;
 
-    if (
-      previousDeploymentForManifest &&
-      !(await deploymentProjectManifestIsCurrent(store, project, previousDeploymentForManifest))
-    ) {
+    if (!previousEntitlementsPin) {
+      return reply.code(409).send({
+        error: appPublicCopy('PUBLISH_ENTITLEMENTS_PIN_MISSING', locale),
+        code: 'PUBLISH_ENTITLEMENTS_PIN_MISSING',
+      });
+    }
+
+    const liveProjectManifest = await currentProjectManifest(store, project);
+
+    if (!previous.projectManifestDigest || previous.projectManifestDigest !== liveProjectManifest.digest) {
       return reply.code(409).send({
         error: appPublicCopy('PROJECT_MANIFEST_CHANGED_BEFORE_PUBLISH', locale),
         code: 'PROJECT_MANIFEST_CHANGED_BEFORE_PUBLISH',
       });
     }
-
-    const liveProjectManifest = await currentProjectManifest(store, project);
 
     if (operation.projectManifestDigest && operation.projectManifestDigest !== liveProjectManifest.digest) {
       return reply.code(409).send({
@@ -43051,6 +44048,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           }
 
           const rollbackMetadata = {
+            planEntitlements: previousEntitlementsPin,
             rollbackToPrevious: true,
             rollbackOperationId: operation.id,
             projectManifestDigest: operation.projectManifestDigest,
@@ -43304,6 +44302,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           const rollbackDefaultVcpu = machineSizeFromCard(await getActiveRateCard(store), undefined).vcpu;
 
           const rollbackMetadata = {
+            planEntitlements: previousEntitlementsPin,
             rollbackToPrevious: true,
             rollbackOperationId: operation.id,
             projectManifestDigest: operation.projectManifestDigest,
@@ -43605,6 +44604,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return reply.code(409).send({
         error: appPublicEnglish('DEPLOYMENT_ROLLBACK_TARGET_NOT_SUCCESSFUL'),
         code: 'DEPLOYMENT_ROLLBACK_TARGET_NOT_READY',
+      });
+    }
+
+    if (!readDeploymentPlanEntitlementsPin(target.metadata)) {
+      return reply.code(409).send({
+        error: appPublicCopy('PUBLISH_ENTITLEMENTS_PIN_MISSING', transactionalLocaleForRequest(request)),
+        code: 'PUBLISH_ENTITLEMENTS_PIN_MISSING',
       });
     }
 
@@ -44433,6 +45439,28 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
       if (guard.reauth) {
         await requireRecentAdminReauth(request);
+      }
+    },
+    authorizeTenantProvisioning: async (_request, organizationId) => {
+      let entitlements;
+
+      try {
+        entitlements = await resolveOrganizationEntitlements(store, organizationId);
+      } catch {
+        throw new CloudGovernanceError(
+          'ENTERPRISE_CAPABILITY_CHECK_UNAVAILABLE',
+          appPublicEnglish('PLAN_ENTITLEMENT_CHECK_UNAVAILABLE'),
+          503,
+          true,
+        );
+      }
+
+      if (!isEnterpriseCapabilityProvisioned(entitlements, 'single-tenant')) {
+        throw new CloudGovernanceError(
+          'ENTERPRISE_CAPABILITY_OPERATOR_REQUIRED',
+          appPublicEnglish('ENTERPRISE_CAPABILITY_OPERATOR_REQUIRED'),
+          403,
+        );
       }
     },
     audit: async (request, entry) => {

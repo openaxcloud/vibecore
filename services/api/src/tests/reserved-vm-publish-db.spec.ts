@@ -1,4 +1,5 @@
 import { createDatabaseClient } from '@vibecore/database';
+import { PLAN_ENTITLEMENTS_VERSION } from '@vibecore/billing';
 import { describe, expect, it } from 'vitest';
 
 import { createDefaultProjectManifest, projectManifestDigest } from '../project-manifest.js';
@@ -8,6 +9,13 @@ import type { ProjectReleaseFence } from '../store.js';
 const runDbTests = process.env.DATABASE_URL ? describe : describe.skip;
 const DIGEST = `sha256:${'a'.repeat(64)}`;
 const TERMS = 'reserved-vm-monthly-v1';
+const PLAN_ENTITLEMENTS = {
+  version: PLAN_ENTITLEMENTS_VERSION,
+  plan: 'pro' as const,
+  badgeRequired: false,
+  publishRegion: 'platform-default',
+  publishRegions: 'all' as const,
+};
 
 function suffix() {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
@@ -73,6 +81,7 @@ async function seedReservedPreview(
     machineSize: 'shared-0.5',
     accessPolicy: { mode: 'INVITE_ONLY', createdByUserId: actor.id },
     metadata: {
+      planEntitlements: PLAN_ENTITLEMENTS,
       projectManifestDigest: manifestDigest,
       serverDeploy: {
         image: { imageRef, imageDigest: DIGEST },
@@ -129,6 +138,8 @@ async function seedReservedPreview(
     configDigest: 'config-v1',
     dbMigrationPoint: 'migration-v1',
     accessPolicyVersion: readyDeployment.accessPolicyVersion,
+    planEntitlements: PLAN_ENTITLEMENTS,
+    projectManifestDigest: manifestDigest,
   });
 
   return { actor, organization, project, manifest, manifestDigest, deployment: readyDeployment, releaseSource };

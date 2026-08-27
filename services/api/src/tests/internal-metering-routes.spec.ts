@@ -103,6 +103,39 @@ describe('internal metering ingest', () => {
     expect(types).toContain('database.activeHours');
   });
 
+  it('refuses synthetic egress claims for every deployment kind until a durable byte producer exists', async () => {
+    const { app, store, org } = await setup();
+    const kinds = ['autoscale', 'scheduled', 'static', 'reserved-vm'] as const;
+    const responses = await Promise.all(
+      kinds.map((deploymentKind) =>
+        app.inject({
+          method: 'POST',
+          url: '/internal/metering',
+          headers: internalAuth,
+          payload: {
+            kind: 'deployment',
+            organizationId: org.id,
+            deploymentKind,
+            egressGib: 3,
+            reference: `egress-${deploymentKind}`,
+          },
+        }),
+      ),
+    );
+    expect(responses.every((response) => response.statusCode === 503)).toBe(true);
+    expect(
+      responses.every(
+        (response) =>
+          response.json().code === 'EGRESS_METERING_OPERATOR_REQUIRED' &&
+          response.json().operatorRequired === true &&
+          response.json().retryable === false,
+      ),
+    ).toBe(true);
+    const events = await store.listUsageEvents(org.id);
+    expect(events.some((event) => event.type === 'deployment.egressMib')).toBe(false);
+    expect(events.some((event) => event.type === 'deployment.compute')).toBe(false);
+  });
+
   it('records a per-event database-storage meter (33 MB floor)', async () => {
     const { app, store, org } = await setup();
     const res = await app.inject({

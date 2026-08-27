@@ -405,11 +405,29 @@ export function validateAgentRoutingCard(
       errors.push({ line: key, message: agentRoutingValidationMessage('providerModelRequired', locale) });
     }
 
-    if (!Number.isFinite(line.costInCentsPerM) || line.costInCentsPerM < 0) {
+    if (
+      !Number.isFinite(line.costInCentsPerM) ||
+      line.costInCentsPerM < 0 ||
+      !Number.isSafeInteger(line.costInCentsPerM * 1000)
+    ) {
       errors.push({ line: key, message: agentRoutingValidationMessage('inputCost', locale) });
     }
 
-    if (!Number.isFinite(line.costOutCentsPerM) || line.costOutCentsPerM < 0) {
+    if (
+      !Number.isFinite(line.costOutCentsPerM) ||
+      line.costOutCentsPerM < 0 ||
+      !Number.isSafeInteger(line.costOutCentsPerM * 1000)
+    ) {
+      errors.push({ line: key, message: agentRoutingValidationMessage('outputCost', locale) });
+    }
+
+    const costInMillicentsPerM = line.costInCentsPerM * 1000;
+    const costOutMillicentsPerM = line.costOutCentsPerM * 1000;
+    if (
+      Number.isSafeInteger(costInMillicentsPerM) &&
+      Number.isSafeInteger(costOutMillicentsPerM) &&
+      BigInt(costInMillicentsPerM) * 2n + BigInt(costOutMillicentsPerM) * 2n > 2_147_483_647n
+    ) {
       errors.push({ line: key, message: agentRoutingValidationMessage('outputCost', locale) });
     }
 
