@@ -2554,5 +2554,29 @@
   "DATABASE_PROVISION_UNAVAILABLE": {
     "en": "The managed database could not be provisioned, so nothing was created. This is usually temporary — try again in a moment.",
     "fr": "La base de données managée n'a pas pu être provisionnée, rien n'a donc été créé. C'est généralement temporaire : réessayez dans un instant."
+  },
+  "DEPLOYMENT_ACCESS_LOCKED": {
+    "en": "This deployment is locked.",
+    "fr": "Ce déploiement est verrouillé."
+  },
+  "DEPLOYMENT_PASSWORD_INCORRECT": {
+    "en": "Incorrect password",
+    "fr": "Mot de passe incorrect."
+  },
+  "DEPLOYMENT_PASSWORD_REQUIRED": {
+    "en": "Password required",
+    "fr": "Mot de passe requis."
+  },
+  "DEPLOYMENT_ACCESS_PASSWORD_REQUIRED": {
+    "en": "A password is required for mode=password",
+    "fr": "Un mot de passe est requis pour le mode « password »."
+  },
+  "DEPLOYMENT_ACCESS_ACTIVATION_DISABLED": {
+    "en": "Password protection cannot be activated yet: the deployment cache-drain window has not elapsed. Retry shortly.",
+    "fr": "La protection par mot de passe ne peut pas encore être activée : la fenêtre de purge du cache de déploiement n’est pas écoulée. Réessayez dans un instant."
+  },
+  "DEPLOYMENT_ACCESS_UNSUPPORTED_PROVIDER": {
+    "en": "Password protection is only available for static deployments. This deployment is served from another domain, where the password gate cannot be enforced.",
+    "fr": "La protection par mot de passe n’est disponible que pour les déploiements statiques. Ce déploiement est servi depuis un autre domaine, où la porte de mot de passe ne peut pas être appliquée."
   }
 }

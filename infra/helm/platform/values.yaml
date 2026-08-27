@@ -113,6 +113,13 @@ platformEnv:
     # reviving the silent URL-copy row this replaced. Required by
     # values.schema.json so an upgrade can never drop it unnoticed.
     serverDeployRollbackFromDigest: '1'
+    # P104 / SEC-8: two-phase activation interlock for deployment password
+    # protection. '0' (the chart default, fail-closed) = the api refuses to
+    # ACTIVATE protection (503); '1' = activation open. Enforcement of an
+    # already-protected deployment is never gated by this. Only
+    # .github/workflows/deploy-main.yml flips it to '1', and only after the last
+    # pre-cutover pod is gone and its last `max-age=60` response has expired.
+    deploymentAccessActivationEnabled: '0'
   email:
     httpEndpoint: ''
     from: ''

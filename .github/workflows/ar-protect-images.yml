@@ -106,10 +106,47 @@ jobs:
           set -euo pipefail
           # Includes scaled-to-zero apps: their Deployment object still carries
           # the image, and the scale-to-zero wake path must be able to pull it.
-          kubectl -n workspaces get deploy \
-            -o jsonpath='{range .items[*]}{.spec.template.spec.containers[0].image}{"\n"}{end}' \
-            | grep "$REPO_APPS" | sort -u | while read -r img; do
-            pkg="${img#"$REPO_APPS"/}"; pkg="${pkg%%:*}"
-            tag="${img##*:}"
-            gcloud artifacts docker tags add "$img" "$REPO_APPS/$pkg:active-$tag" --quiet
-          done
+          #
+          # A Deployment may pin its image either way:
+          #   by tag     repo/p-<projectId>:<deploymentId>
+          #   by digest  repo/p-<projectId>@sha256:<hex>
+          # Splitting on ":" alone mangles the digest form (package becomes
+          # "p-<projectId>@sha256"), so read the deployment name alongside the
+          # image and derive the protection suffix from the reference kind.
+          deployments=$(kubectl -n workspaces get deploy \
+            -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.spec.template.spec.containers[0].image}{"\n"}{end}')
+
+          tagged=0; skipped=0
+          while IFS=$'\t' read -r name img; do
+            [ -n "${img:-}" ] || continue
+            case "$img" in "$REPO_APPS"/*) ;; *) continue ;; esac
+            ref="${img#"$REPO_APPS"/}"
+            case "$ref" in
+              *@*) pkg="${ref%%@*}"; suffix="$name" ;;
+              *)   pkg="${ref%%:*}"; suffix="${ref##*:}" ;;
+            esac
+
+            if err=$(gcloud artifacts docker tags add "$img" \
+                       "$REPO_APPS/$pkg:active-$suffix" --quiet 2>&1); then
+              tagged=$((tagged + 1))
+              continue
+            fi
+
+            # A workspace can be deleted (and its image swept by the DELETE
+            # policy) between listing the Deployments and tagging. A vanished
+            # image protects nothing, so skip it — every other failure is real
+            # and must still fail the run.
+            case "$err" in
+              *"not found"*|*"NOT_FOUND"*|*"does not exist"*)
+                echo "::notice::skipping vanished image $img"
+                skipped=$((skipped + 1))
+                ;;
+              *)
+                echo "::error::failed to tag $img"
+                printf '%s\n' "$err" >&2
+                exit 1
+                ;;
+            esac
+          done <<< "$deployments"
+
+          echo "active-* tags written: $tagged, skipped (image gone): $skipped"
