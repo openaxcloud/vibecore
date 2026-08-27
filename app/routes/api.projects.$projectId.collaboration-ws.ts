@@ -1,4 +1,5 @@
 import { apiBaseUrl, apiRequest, json, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
+import { remainingApiErrorResponse } from '~/lib/i18n/catalogs/remaining-api-routes';
 
 function firstForwardedValue(value: string | null) {
   return value?.split(',')[0]?.trim() || undefined;
@@ -83,7 +84,7 @@ function apiWebSocketBase(request: Request) {
 
 export async function loader({ request, params }: EnterpriseLoaderArgs) {
   if (!params.projectId) {
-    return json({ ok: false, error: 'Project not found' }, { status: 404 });
+    return remainingApiErrorResponse(request, 'PROJECT_NOT_FOUND', 404, { extra: { ok: false } });
   }
 
   const url = new URL(request.url);

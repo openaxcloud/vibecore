@@ -1,4 +1,17 @@
+import rawMetadataCopy from './metadata.copy.json' with { type: 'json' };
 import type { GalleryDemoAppSummary } from './types.js';
+
+export const GALLERY_DEMO_APP_LOCALES = ['en', 'fr'] as const;
+export type GalleryDemoAppLocale = (typeof GALLERY_DEMO_APP_LOCALES)[number];
+
+type LocalizedSummaryCopy = Readonly<{ name: string; description: string }>;
+type SummarySeed = Omit<GalleryDemoAppSummary, 'author' | 'description' | 'name' | 'previewUrl' | 'thumbnailUrl'>;
+
+const DEFAULT_LOCALE: GalleryDemoAppLocale = 'en';
+
+const METADATA_COPY = rawMetadataCopy as Readonly<
+  Record<GalleryDemoAppLocale, Readonly<Record<string, LocalizedSummaryCopy>>>
+>;
 
 const ECODE_AUTHOR = Object.freeze({
   id: 'ecode-studio',
@@ -7,24 +20,37 @@ const ECODE_AUTHOR = Object.freeze({
   verified: true,
 });
 
-const app = (value: Omit<GalleryDemoAppSummary, 'author' | 'thumbnailUrl' | 'previewUrl'>): GalleryDemoAppSummary =>
-  Object.freeze({
-    ...value,
-    author: ECODE_AUTHOR,
-    technologies: Object.freeze([...value.technologies]),
-    thumbnailUrl: `/gallery-apps/${value.id}/thumbnail.png`,
-    previewUrl: `/gallery-apps/${value.id}/preview/`,
-  });
-
-/** Working applications published to seed the remix Gallery. Every app is proven install→start→HTTP 200→DOM before listing. */
-export const GALLERY_DEMO_APP_SUMMARIES = Object.freeze([
-  app({
+const SUMMARY_SEEDS = Object.freeze([
+  {
+    id: 'docs-copilot',
+    key: 'demo-docs-copilot',
+    slug: 'docs-copilot',
+    artifactType: 'productivity-app',
+    category: 'productivity',
+    technologies: ['React', 'TypeScript', 'Vite', 'Document Retrieval'],
+    publishedAt: '2026-08-24T10:00:00.000Z',
+    remixCount: 41,
+    featured: true,
+    remixAllowed: true,
+    moderationStatus: 'approved',
+  },
+  {
+    id: 'neon-trivia-arena',
+    key: 'demo-neon-trivia-arena',
+    slug: 'neon-trivia-arena',
+    artifactType: 'game',
+    category: 'gaming',
+    technologies: ['React', 'TypeScript', 'Vite', 'Web Storage'],
+    publishedAt: '2026-08-24T09:00:00.000Z',
+    remixCount: 34,
+    featured: true,
+    remixAllowed: true,
+    moderationStatus: 'approved',
+  },
+  {
     id: 'vendor-risk-review',
     key: 'demo-vendor-risk-review',
     slug: 'vendor-risk-review',
-    name: 'Vendor Risk Review',
-    description:
-      'Every new vendor is a risk nobody has time to assess. Score them in five minutes, route approval to the right level, and pull the audit trail the day the regulator asks for it.',
     artifactType: 'business-app',
     category: 'compliance',
     technologies: ['React', 'TypeScript', 'Express', 'SQLite', 'Vite'],
@@ -33,14 +59,11 @@ export const GALLERY_DEMO_APP_SUMMARIES = Object.freeze([
     featured: true,
     remixAllowed: true,
     moderationStatus: 'approved',
-  }),
-  app({
+  },
+  {
     id: 'field-service-inspector',
     key: 'demo-field-service-inspector',
     slug: 'field-service-inspector',
-    name: 'Field Service Inspector',
-    description:
-      'Your technicians work where there is no signal. Inspections, photos, customer signature: everything works offline and syncs the moment the 4G comes back.',
     artifactType: 'mobile-app',
     category: 'field-service',
     technologies: ['Expo', 'React Native', 'TypeScript', 'Metro'],
@@ -49,14 +72,11 @@ export const GALLERY_DEMO_APP_SUMMARIES = Object.freeze([
     featured: true,
     remixAllowed: true,
     moderationStatus: 'approved',
-  }),
-  app({
+  },
+  {
     id: 'revenue-cohort-explorer',
     key: 'demo-revenue-cohort-explorer',
     slug: 'revenue-cohort-explorer',
-    name: 'Revenue Cohort Explorer',
-    description:
-      'You know what you invoice. Do you know which cohort is still making you money eighteen months later? Click through the chart all the way down to the customer.',
     artifactType: 'data-viz',
     category: 'analytics',
     technologies: ['React', 'TypeScript', 'Vite', 'SVG'],
@@ -65,14 +85,11 @@ export const GALLERY_DEMO_APP_SUMMARIES = Object.freeze([
     featured: true,
     remixAllowed: true,
     moderationStatus: 'approved',
-  }),
-  app({
+  },
+  {
     id: 'qbr-generator',
     key: 'demo-qbr-generator',
     slug: 'qbr-generator',
-    name: 'QBR Generator',
-    description:
-      'The quarterly business review, generated from your real numbers instead of being retyped by hand the night before. Two artifacts — the deck and the data appendix — share one backend.',
     artifactType: 'slide-deck',
     category: 'reporting',
     technologies: ['React', 'TypeScript', 'Express', 'Vite'],
@@ -81,14 +98,11 @@ export const GALLERY_DEMO_APP_SUMMARIES = Object.freeze([
     featured: false,
     remixAllowed: true,
     moderationStatus: 'approved',
-  }),
-  app({
+  },
+  {
     id: 'incident-postmortem-explainer',
     key: 'demo-incident-postmortem-explainer',
     slug: 'incident-postmortem-explainer',
-    name: 'Incident Postmortem Explainer',
-    description:
-      'An incident explained in thirty animated seconds instead of twelve pages nobody reads. Scrub the timeline, replay each phase, share the story.',
     artifactType: 'animation',
     category: 'incident-response',
     technologies: ['React', 'TypeScript', 'Vite', 'Web Animations'],
@@ -97,14 +111,11 @@ export const GALLERY_DEMO_APP_SUMMARIES = Object.freeze([
     featured: false,
     remixAllowed: true,
     moderationStatus: 'approved',
-  }),
-  app({
+  },
+  {
     id: 'warehouse-layout-planner',
     key: 'demo-warehouse-layout-planner',
     slug: 'warehouse-layout-planner',
-    name: 'Warehouse Layout Planner',
-    description:
-      'Move an aisle and see immediately what you gain in capacity — before moving a single pallet. A live 3D model of your floor with real rack math.',
     artifactType: 'three-d',
     category: 'logistics',
     technologies: ['Three.js', 'React', 'TypeScript', 'Vite'],
@@ -113,14 +124,11 @@ export const GALLERY_DEMO_APP_SUMMARIES = Object.freeze([
     featured: true,
     remixAllowed: true,
     moderationStatus: 'approved',
-  }),
-  app({
+  },
+  {
     id: 'pipeline-crm',
     key: 'demo-pipeline-crm',
     slug: 'pipeline-crm',
-    name: 'Pipeline CRM',
-    description:
-      'The CRM your team will actually use: accounts, contacts, opportunities and forecasts. Without the six-month integration project or the per-seat invoice.',
     artifactType: 'crm',
     category: 'sales',
     technologies: ['React', 'TypeScript', 'Vite'],
@@ -129,14 +137,11 @@ export const GALLERY_DEMO_APP_SUMMARIES = Object.freeze([
     featured: false,
     remixAllowed: true,
     moderationStatus: 'approved',
-  }),
-  app({
+  },
+  {
     id: 'storefront',
     key: 'demo-storefront',
     slug: 'storefront',
-    name: 'Storefront',
-    description:
-      'Catalog, cart, Stripe checkout, orders, inventory and a back office. A store that takes real test-mode payments — not a mockup.',
     artifactType: 'ecommerce',
     category: 'commerce',
     technologies: ['React', 'TypeScript', 'Express', 'Stripe', 'SQLite', 'Vite'],
@@ -145,13 +150,11 @@ export const GALLERY_DEMO_APP_SUMMARIES = Object.freeze([
     featured: true,
     remixAllowed: true,
     moderationStatus: 'approved',
-  }),
-  app({
+  },
+  {
     id: 'react-saas',
     key: 'demo-react-saas-crm',
     slug: 'orbit-crm',
-    name: 'Orbit CRM',
-    description: 'A working sales workspace for contacts, pipeline stages, follow-ups and revenue visibility.',
     artifactType: 'business-app',
     category: 'sales',
     technologies: ['React', 'Vite', 'TypeScript'],
@@ -160,13 +163,11 @@ export const GALLERY_DEMO_APP_SUMMARIES = Object.freeze([
     featured: true,
     remixAllowed: true,
     moderationStatus: 'approved',
-  }),
-  app({
+  },
+  {
     id: 'next-dashboard',
     key: 'demo-next-operations-dashboard',
     slug: 'northstar-operations',
-    name: 'Northstar Operations',
-    description: 'An incident and service operations dashboard with live health, ownership and resolution workflows.',
     artifactType: 'dashboard',
     category: 'operations',
     technologies: ['Next.js', 'React', 'TypeScript'],
@@ -175,13 +176,11 @@ export const GALLERY_DEMO_APP_SUMMARIES = Object.freeze([
     featured: true,
     remixAllowed: true,
     moderationStatus: 'approved',
-  }),
-  app({
+  },
+  {
     id: 'fastify-api',
     key: 'demo-fastify-api-monitor',
     slug: 'pulse-api-monitor',
-    name: 'Pulse API Monitor',
-    description: 'A self-contained API monitoring tool that runs endpoint checks and surfaces latency and failures.',
     artifactType: 'developer-tool',
     category: 'developer-tools',
     technologies: ['Fastify', 'Node.js', 'TypeScript'],
@@ -190,28 +189,24 @@ export const GALLERY_DEMO_APP_SUMMARIES = Object.freeze([
     featured: false,
     remixAllowed: true,
     moderationStatus: 'approved',
-  }),
-  app({
+  },
+  {
     id: 'ai-agent',
     key: 'demo-ai-launch-planner',
     slug: 'launchline-planner',
-    name: 'Launchline Planner',
-    description: 'A collaborative launch planner that turns milestones into a focused, executable release checklist.',
     artifactType: 'productivity-app',
     category: 'productivity',
-    technologies: ['React', 'Vite', 'TypeScript'],
+    technologies: ['OpenAI', 'Anthropic', 'TypeScript'],
     publishedAt: '2026-07-07T16:45:00.000Z',
     remixCount: 265,
     featured: true,
     remixAllowed: true,
     moderationStatus: 'approved',
-  }),
-  app({
+  },
+  {
     id: 'landing-page',
     key: 'demo-booking-customer-app',
     slug: 'kindred-booking',
-    name: 'Kindred Booking',
-    description: 'A customer booking experience with real time-slot selection, contact capture and confirmation.',
     artifactType: 'customer-app',
     category: 'booking',
     technologies: ['Vite', 'JavaScript', 'CSS'],
@@ -220,13 +215,11 @@ export const GALLERY_DEMO_APP_SUMMARIES = Object.freeze([
     featured: true,
     remixAllowed: true,
     moderationStatus: 'approved',
-  }),
-  app({
+  },
+  {
     id: 'mobile-starter',
     key: 'demo-field-service-pwa',
     slug: 'relay-field-service',
-    name: 'Relay Field Service',
-    description: 'An installable field-service PWA for daily jobs, technician notes and offline-ready status updates.',
     artifactType: 'pwa',
     category: 'field-service',
     technologies: ['React', 'Vite', 'TypeScript', 'PWA'],
@@ -235,20 +228,66 @@ export const GALLERY_DEMO_APP_SUMMARIES = Object.freeze([
     featured: false,
     remixAllowed: true,
     moderationStatus: 'approved',
-  }),
-] satisfies readonly GalleryDemoAppSummary[]);
+  },
+] satisfies readonly SummarySeed[]);
 
-const summariesByKey = new Map<string, GalleryDemoAppSummary>();
-for (const item of GALLERY_DEMO_APP_SUMMARIES) {
-  summariesByKey.set(item.id, item);
-  summariesByKey.set(item.key, item);
-  summariesByKey.set(item.slug, item);
+export function normalizeGalleryDemoAppLocale(locale?: string | null): GalleryDemoAppLocale {
+  return locale?.trim().toLowerCase().split(/[-_]/)[0] === 'fr' ? 'fr' : DEFAULT_LOCALE;
 }
 
-export function listGalleryDemoAppSummaries(): readonly GalleryDemoAppSummary[] {
-  return GALLERY_DEMO_APP_SUMMARIES;
+function buildSummaries(locale: GalleryDemoAppLocale): readonly GalleryDemoAppSummary[] {
+  return Object.freeze(
+    SUMMARY_SEEDS.map((value) => {
+      const copy = METADATA_COPY[locale][value.id] ?? METADATA_COPY.en[value.id];
+
+      if (!copy) {
+        throw new Error(`Missing gallery metadata copy: ${value.id}`);
+      }
+
+      return Object.freeze({
+        ...value,
+        ...copy,
+        author: ECODE_AUTHOR,
+        technologies: Object.freeze([...value.technologies]),
+        thumbnailUrl: `/gallery-apps/${value.id}/thumbnail.png`,
+        previewUrl: `/gallery-apps/${value.id}/preview/`,
+      });
+    }),
+  );
 }
 
-export function getGalleryDemoAppSummary(idKeyOrSlug: string): GalleryDemoAppSummary | undefined {
-  return summariesByKey.get(idKeyOrSlug.trim().toLowerCase());
+const SUMMARIES_BY_LOCALE = Object.freeze({
+  en: buildSummaries('en'),
+  fr: buildSummaries('fr'),
+}) satisfies Readonly<Record<GalleryDemoAppLocale, readonly GalleryDemoAppSummary[]>>;
+
+/** Backward-compatible English catalogue for consumers that do not negotiate a locale. */
+export const GALLERY_DEMO_APP_SUMMARIES = SUMMARIES_BY_LOCALE.en;
+
+function buildLookup(summaries: readonly GalleryDemoAppSummary[]): ReadonlyMap<string, GalleryDemoAppSummary> {
+  const lookup = new Map<string, GalleryDemoAppSummary>();
+
+  for (const item of summaries) {
+    lookup.set(item.id, item);
+    lookup.set(item.key, item);
+    lookup.set(item.slug, item);
+  }
+
+  return lookup;
+}
+
+const SUMMARY_LOOKUPS = Object.freeze({
+  en: buildLookup(SUMMARIES_BY_LOCALE.en),
+  fr: buildLookup(SUMMARIES_BY_LOCALE.fr),
+}) satisfies Readonly<Record<GalleryDemoAppLocale, ReadonlyMap<string, GalleryDemoAppSummary>>>;
+
+export function listGalleryDemoAppSummaries(locale?: string | null): readonly GalleryDemoAppSummary[] {
+  return SUMMARIES_BY_LOCALE[normalizeGalleryDemoAppLocale(locale)];
+}
+
+export function getGalleryDemoAppSummary(
+  idKeyOrSlug: string,
+  locale?: string | null,
+): GalleryDemoAppSummary | undefined {
+  return SUMMARY_LOOKUPS[normalizeGalleryDemoAppLocale(locale)].get(idKeyOrSlug.trim().toLowerCase());
 }

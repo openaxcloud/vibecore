@@ -19,12 +19,19 @@ export type SupportedLanguage = (typeof SUPPORTED_LANGUAGES)[number];
 
 export const USER_LANGUAGE_STORAGE_KEY = 'vibecore:user-language';
 export const USER_LANGUAGE_COOKIE = 'vibecore-lang';
+export const AUTO_LANGUAGE_COOKIE = 'vibecore-auto-lang';
 
-function isSupported(candidate: string): candidate is SupportedLanguage {
+export function isSupportedLanguage(candidate: string): candidate is SupportedLanguage {
   return (SUPPORTED_LANGUAGES as readonly string[]).includes(candidate);
 }
 
-function readLanguageCookie(): string | undefined {
+export function normalizeSupportedLanguage(candidate: string | null | undefined): SupportedLanguage | undefined {
+  const primary = candidate?.trim().toLowerCase().split(/[-_]/)[0];
+
+  return primary && isSupportedLanguage(primary) ? primary : undefined;
+}
+
+function readCookie(name: string): string | undefined {
   if (typeof globalThis === 'undefined' || typeof globalThis.document === 'undefined') {
     return undefined;
   }
@@ -38,11 +45,11 @@ function readLanguageCookie(): string | undefined {
   for (const segment of raw.split(';')) {
     const trimmed = segment.trim();
 
-    if (!trimmed.startsWith(`${USER_LANGUAGE_COOKIE}=`)) {
+    if (!trimmed.startsWith(`${name}=`)) {
       continue;
     }
 
-    const value = trimmed.slice(USER_LANGUAGE_COOKIE.length + 1);
+    const value = trimmed.slice(name.length + 1);
 
     try {
       return decodeURIComponent(value);
@@ -55,9 +62,9 @@ function readLanguageCookie(): string | undefined {
 }
 
 export function detectUserLanguage(): SupportedLanguage {
-  const fromCookie = readLanguageCookie();
+  const fromCookie = normalizeSupportedLanguage(readCookie(USER_LANGUAGE_COOKIE));
 
-  if (fromCookie && isSupported(fromCookie)) {
+  if (fromCookie) {
     return fromCookie;
   }
 
@@ -65,7 +72,7 @@ export function detectUserLanguage(): SupportedLanguage {
     try {
       const stored = globalThis.localStorage.getItem(USER_LANGUAGE_STORAGE_KEY);
 
-      if (stored && isSupported(stored)) {
+      if (stored && isSupportedLanguage(stored)) {
         return stored;
       }
     } catch {
@@ -73,26 +80,72 @@ export function detectUserLanguage(): SupportedLanguage {
     }
   }
 
-  if (typeof globalThis !== 'undefined' && typeof globalThis.navigator !== 'undefined') {
-    const raw = globalThis.navigator.language ?? '';
-    const primary = raw.split('-')[0].toLowerCase();
+  const fromAutomaticCookie = normalizeSupportedLanguage(readCookie(AUTO_LANGUAGE_COOKIE));
 
-    if (isSupported(primary)) {
-      return primary;
-    }
+  if (fromAutomaticCookie) {
+    return fromAutomaticCookie === 'fr' ? 'fr' : 'en';
+  }
+
+  if (typeof globalThis !== 'undefined' && typeof globalThis.navigator !== 'undefined') {
+    const detected = normalizeSupportedLanguage(globalThis.navigator.language);
+
+    return detected === 'fr' ? 'fr' : 'en';
   }
 
   return 'en';
 }
 
-export function setUserLanguagePreference(language: SupportedLanguage): void {
-  if (typeof globalThis === 'undefined' || typeof globalThis.localStorage === 'undefined') {
+/**
+ * Efface le choix explicite pour revenir à la détection automatique.
+ *
+ * Sans cela, « Automatique » ne serait pas réellement atteignable : une fois le
+ * cookie `vibecore-lang` posé, il gagne sur tout le reste — y compris sur
+ * `navigator.language` — et l'utilisateur resterait figé dans la langue choisie
+ * une fois, sans moyen de rendre la main au navigateur.
+ *
+ * Le cookie est expiré sur les deux portées possibles (hôte courant ET
+ * `.e-code.ai`), parce que `setUserLanguagePreference` pose la variante à
+ * domaine sur la production : n'en effacer qu'une laisserait l'autre décider.
+ */
+export function clearUserLanguagePreference(): void {
+  if (typeof globalThis === 'undefined') {
     return;
   }
 
-  try {
-    globalThis.localStorage.setItem(USER_LANGUAGE_STORAGE_KEY, language);
-  } catch {
-    // localStorage write failures are non-fatal — runtime stays in memory
+  if (typeof globalThis.localStorage !== 'undefined') {
+    try {
+      globalThis.localStorage.removeItem(USER_LANGUAGE_STORAGE_KEY);
+    } catch {
+      // Même raison qu'à l'écriture : le cookie reste la source qui fait foi.
+    }
+  }
+
+  if (typeof globalThis.document !== 'undefined') {
+    const secure = globalThis.location?.protocol === 'https:' ? '; Secure' : '';
+    const expire = `${USER_LANGUAGE_COOKIE}=; Path=/; Max-Age=0; SameSite=Lax`;
+
+    globalThis.document.cookie = `${expire}${secure}`;
+    globalThis.document.cookie = `${expire}; Domain=.e-code.ai${secure}`;
+  }
+}
+
+export function setUserLanguagePreference(language: SupportedLanguage): void {
+  if (typeof globalThis === 'undefined') {
+    return;
+  }
+
+  if (typeof globalThis.localStorage !== 'undefined') {
+    try {
+      globalThis.localStorage.setItem(USER_LANGUAGE_STORAGE_KEY, language);
+    } catch {
+      // localStorage write failures are non-fatal — the cookie remains authoritative
+    }
+  }
+
+  if (typeof globalThis.document !== 'undefined') {
+    const secure = globalThis.location?.protocol === 'https:' ? '; Secure' : '';
+    const hostname = globalThis.location?.hostname?.toLowerCase() ?? '';
+    const domain = hostname === 'e-code.ai' || hostname.endsWith('.e-code.ai') ? '; Domain=.e-code.ai' : '';
+    globalThis.document.cookie = `${USER_LANGUAGE_COOKIE}=${encodeURIComponent(language)}; Path=/; Max-Age=31536000; SameSite=Lax${domain}${secure}`;
   }
 }

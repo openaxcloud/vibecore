@@ -55,4 +55,13 @@ describe('compact preview run state', () => {
     expect(compactPreviewRunAriaLabel(state)).toBe('Retry run');
     expect(compactPreviewRunIcon(state)).toBe('i-ph:warning-fill');
   });
+
+  it('localizes compact preview controls when French is active', () => {
+    expect(compactPreviewRunAriaLabel('starting', 'fr-FR')).toBe('Démarrage du projet');
+    expect(compactPreviewRunText('starting', 'fr-FR')).toBe('Démarrage');
+    expect(compactPreviewRunAriaLabel('running', 'fr-FR')).toBe('Arrêter l’exécution');
+    expect(compactPreviewRunText('running', 'fr-FR')).toBe('Arrêter');
+    expect(compactPreviewRunAriaLabel('error', 'fr-FR')).toBe('Relancer le projet');
+    expect(compactPreviewRunText('error', 'fr-FR')).toBe('Réessayer');
+  });
 });

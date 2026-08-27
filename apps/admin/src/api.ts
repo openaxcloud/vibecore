@@ -102,7 +102,7 @@ export async function exportCsv(path: string, filename: string) {
   });
 
   if (!response.ok) {
-    throw new Error(`CSV export failed with ${response.status}`);
+    throw Object.assign(new Error(), { code: 'CSV_EXPORT_FAILED', status: response.status });
   }
 
   const blob = new Blob([await response.text()], { type: 'text/csv' });

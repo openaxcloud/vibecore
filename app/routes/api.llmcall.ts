@@ -10,6 +10,8 @@ import { removeUnsupportedModelSettings } from '~/lib/.server/llm/model-compat';
 import { streamText } from '~/lib/.server/llm/stream-text';
 import { requireWebSession } from '~/lib/.server/require-session';
 import { getApiKeysFromCookie, getProviderSettingsFromCookie } from '~/lib/api/cookies';
+import { getApiRuntimeRoutesCopy } from '~/lib/i18n/catalogs/api-runtime-routes';
+import { localeResponseHeaders, resolveRequestLocale } from '~/lib/i18n/request-locale';
 import { LLMManager } from '~/lib/modules/llm/manager';
 import type { ModelInfo } from '~/lib/modules/llm/types';
 import type { IProviderSetting, ProviderInfo } from '~/types/model';
@@ -48,7 +50,7 @@ function getCompletionTokenLimit(modelDetails: ModelInfo): number {
   return Math.min(MAX_TOKENS, 16384);
 }
 
-function validateTokenLimits(modelDetails: ModelInfo, requestedTokens: number): { valid: boolean; error?: string } {
+function validateTokenLimits(modelDetails: ModelInfo, requestedTokens: number): { valid: boolean } {
   const modelMaxTokens = modelDetails.maxTokenAllowed || 128000;
   const maxCompletionTokens = getCompletionTokenLimit(modelDetails);
 
@@ -56,7 +58,6 @@ function validateTokenLimits(modelDetails: ModelInfo, requestedTokens: number): 
   if (requestedTokens > modelMaxTokens) {
     return {
       valid: false,
-      error: `Requested tokens (${requestedTokens}) exceed model's context window (${modelMaxTokens}). Please reduce your request size.`,
     };
   }
 
@@ -64,7 +65,6 @@ function validateTokenLimits(modelDetails: ModelInfo, requestedTokens: number): 
   if (requestedTokens > maxCompletionTokens) {
     return {
       valid: false,
-      error: `Requested tokens (${requestedTokens}) exceed model's completion limit (${maxCompletionTokens}). Consider using a model with higher token limits.`,
     };
   }
 
@@ -72,8 +72,37 @@ function validateTokenLimits(modelDetails: ModelInfo, requestedTokens: number): 
 }
 
 async function llmCallAction({ context, request }: ActionFunctionArgs) {
+  const localeResolution = resolveRequestLocale(request);
+  const copy = getApiRuntimeRoutesCopy(localeResolution.language);
+
+  const responseHeaders = (initial?: HeadersInit) => {
+    const headers = localeResponseHeaders(request, localeResolution);
+
+    new Headers(initial).forEach((value, key) => headers.set(key, value));
+
+    return headers;
+  };
+
   // Gate the platform's managed provider keys behind a valid session.
-  await requireWebSession(request);
+  try {
+    await requireWebSession(request);
+  } catch (error) {
+    if (error instanceof Response) {
+      logger.warn(`LLM session validation failed with status ${error.status}`);
+
+      const message =
+        error.status === 503
+          ? copy['apiRuntime.generic.authenticationUnavailable']
+          : copy['apiRuntime.generic.authenticationRequired'];
+
+      throw new Response(JSON.stringify({ error: message, code: 'AUTH_REQUIRED' }), {
+        status: error.status,
+        headers: responseHeaders({ 'Content-Type': 'application/json; charset=utf-8' }),
+      });
+    }
+
+    throw error;
+  }
 
   let body: {
     system: string;
@@ -86,9 +115,9 @@ async function llmCallAction({ context, request }: ActionFunctionArgs) {
   try {
     body = await request.json();
   } catch {
-    throw new Response('Invalid JSON body', {
+    throw new Response(copy['apiRuntime.generic.invalidJson'], {
       status: 400,
-      statusText: 'Bad Request',
+      headers: responseHeaders({ 'Content-Type': 'text/plain; charset=utf-8' }),
     });
   }
 
@@ -96,9 +125,9 @@ async function llmCallAction({ context, request }: ActionFunctionArgs) {
 
   // validate 'model' and 'provider' fields
   if (!model || typeof model !== 'string') {
-    throw new Response('Invalid or missing model', {
+    throw new Response(copy['apiRuntime.generic.invalidModel'], {
       status: 400,
-      statusText: 'Bad Request',
+      headers: responseHeaders({ 'Content-Type': 'text/plain; charset=utf-8' }),
     });
   }
 
@@ -107,18 +136,18 @@ async function llmCallAction({ context, request }: ActionFunctionArgs) {
    * non-object would throw a TypeError before validation, escaping as a 500.
    */
   if (!provider || typeof provider !== 'object') {
-    throw new Response('Invalid or missing provider', {
+    throw new Response(copy['apiRuntime.generic.invalidProvider'], {
       status: 400,
-      statusText: 'Bad Request',
+      headers: responseHeaders({ 'Content-Type': 'text/plain; charset=utf-8' }),
     });
   }
 
   const { name: providerName } = provider;
 
   if (!providerName || typeof providerName !== 'string') {
-    throw new Response('Invalid or missing provider', {
+    throw new Response(copy['apiRuntime.generic.invalidProvider'], {
       status: 400,
-      statusText: 'Bad Request',
+      headers: responseHeaders({ 'Content-Type': 'text/plain; charset=utf-8' }),
     });
   }
 
@@ -159,16 +188,16 @@ async function llmCallAction({ context, request }: ActionFunctionArgs) {
       return new Response(result.textStream, {
         status: 200,
         headers: {
-          'Content-Type': 'text/plain; charset=utf-8',
+          ...Object.fromEntries(responseHeaders({ 'Content-Type': 'text/plain; charset=utf-8' })),
         },
       });
     } catch (error: unknown) {
-      console.log(error);
+      logger.error('Streaming LLM request failed', error);
 
       if (error instanceof Error && error.message?.includes('API key')) {
-        throw new Response('Invalid or missing API key', {
+        throw new Response(copy['apiRuntime.generic.invalidApiKey'], {
           status: 401,
-          statusText: 'Unauthorized',
+          headers: responseHeaders({ 'Content-Type': 'text/plain; charset=utf-8' }),
         });
       }
 
@@ -180,18 +209,15 @@ async function llmCallAction({ context, request }: ActionFunctionArgs) {
           error.message?.includes('exceeds') ||
           error.message?.includes('maximum'))
       ) {
-        throw new Response(
-          `Token limit error: ${error.message}. Try reducing your request size or using a model with higher token limits.`,
-          {
-            status: 400,
-            statusText: 'Token Limit Exceeded',
-          },
-        );
+        throw new Response(copy['apiRuntime.generic.tokenLimit'], {
+          status: 400,
+          headers: responseHeaders({ 'Content-Type': 'text/plain; charset=utf-8' }),
+        });
       }
 
-      throw new Response(null, {
+      throw new Response(copy['apiRuntime.generic.requestFailed'], {
         status: 500,
-        statusText: 'Internal Server Error',
+        headers: responseHeaders({ 'Content-Type': 'text/plain; charset=utf-8' }),
       });
     }
   } else {
@@ -204,7 +230,7 @@ async function llmCallAction({ context, request }: ActionFunctionArgs) {
         modelDetails = models.find((m: ModelInfo) => m.provider === provider.name) || models[0];
 
         if (!modelDetails) {
-          throw new Error('Model not found');
+          throw Object.assign(new Error(), { code: 'MODEL_NOT_FOUND' });
         }
 
         logger.warn(`Model ${model} not found for ${provider.name}; falling back to ${modelDetails.name}`);
@@ -216,16 +242,16 @@ async function llmCallAction({ context, request }: ActionFunctionArgs) {
       const validation = validateTokenLimits(modelDetails, dynamicMaxTokens);
 
       if (!validation.valid) {
-        throw new Response(validation.error, {
+        throw new Response(copy['apiRuntime.generic.tokenLimit'], {
           status: 400,
-          statusText: 'Token Limit Exceeded',
+          headers: responseHeaders({ 'Content-Type': 'text/plain; charset=utf-8' }),
         });
       }
 
       const providerInfo = PROVIDER_LIST.find((p) => p.name === provider.name);
 
       if (!providerInfo) {
-        throw new Error('Provider not found');
+        throw Object.assign(new Error(), { code: 'PROVIDER_NOT_FOUND' });
       }
 
       logger.info(`Generating response Provider: ${provider.name}, Model: ${modelDetails.name}`);
@@ -291,16 +317,16 @@ async function llmCallAction({ context, request }: ActionFunctionArgs) {
       return new Response(JSON.stringify(result), {
         status: 200,
         headers: {
-          'Content-Type': 'application/json',
+          ...Object.fromEntries(responseHeaders({ 'Content-Type': 'application/json; charset=utf-8' })),
         },
       });
     } catch (error: unknown) {
-      console.log(error);
+      logger.error('LLM request failed', error);
 
       const errorResponse = {
         error: true,
-        message: error instanceof Error ? error.message : 'An unexpected error occurred',
-        statusCode: (error as any).statusCode || 500,
+        message: copy['apiRuntime.generic.requestFailed'],
+        statusCode: normalizeErrorStatus(error),
         isRetryable: (error as any).isRetryable !== false,
         provider: (error as any).provider || 'unknown',
       };
@@ -309,14 +335,13 @@ async function llmCallAction({ context, request }: ActionFunctionArgs) {
         return new Response(
           JSON.stringify({
             ...errorResponse,
-            message: 'Invalid or missing API key',
+            message: copy['apiRuntime.generic.invalidApiKey'],
             statusCode: 401,
             isRetryable: false,
           }),
           {
             status: 401,
-            headers: { 'Content-Type': 'application/json' },
-            statusText: 'Unauthorized',
+            headers: responseHeaders({ 'Content-Type': 'application/json; charset=utf-8' }),
           },
         );
       }
@@ -332,23 +357,33 @@ async function llmCallAction({ context, request }: ActionFunctionArgs) {
         return new Response(
           JSON.stringify({
             ...errorResponse,
-            message: `Token limit error: ${error.message}. Try reducing your request size or using a model with higher token limits.`,
+            message: copy['apiRuntime.generic.tokenLimit'],
             statusCode: 400,
             isRetryable: false,
           }),
           {
             status: 400,
-            headers: { 'Content-Type': 'application/json' },
-            statusText: 'Token Limit Exceeded',
+            headers: responseHeaders({ 'Content-Type': 'application/json; charset=utf-8' }),
           },
         );
       }
 
       return new Response(JSON.stringify(errorResponse), {
         status: errorResponse.statusCode,
-        headers: { 'Content-Type': 'application/json' },
-        statusText: 'Error',
+        headers: responseHeaders({ 'Content-Type': 'application/json; charset=utf-8' }),
       });
     }
   }
+}
+
+function normalizeErrorStatus(error: unknown): number {
+  const status = Number((error as { statusCode?: unknown; status?: unknown } | undefined)?.statusCode);
+
+  if (Number.isInteger(status) && status >= 400 && status <= 599) {
+    return status;
+  }
+
+  const responseStatus = Number((error as { status?: unknown } | undefined)?.status);
+
+  return Number.isInteger(responseStatus) && responseStatus >= 400 && responseStatus <= 599 ? responseStatus : 500;
 }

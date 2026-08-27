@@ -13,6 +13,9 @@ const NEW_APP_IDS = [
   'storefront',
 ] as const;
 
+const GAME_APP_IDS = ['neon-trivia-arena'] as const;
+const SUPPORT_APP_IDS = ['docs-copilot'] as const;
+
 const HISTORICAL_IDS = [
   'react-saas',
   'next-dashboard',
@@ -22,7 +25,7 @@ const HISTORICAL_IDS = [
   'mobile-starter',
 ] as const;
 
-const REQUIRED_IDS = [...NEW_APP_IDS, ...HISTORICAL_IDS] as const;
+const REQUIRED_IDS = [...SUPPORT_APP_IDS, ...GAME_APP_IDS, ...NEW_APP_IDS, ...HISTORICAL_IDS] as const;
 
 describe('published Gallery demo applications', () => {
   it('exposes application—not framework—cards for every published demo app', () => {
@@ -70,6 +73,32 @@ describe('published Gallery demo applications', () => {
   it('keeps executable files out of the client-safe entrypoint', () => {
     expect('files' in GALLERY_DEMO_APP_SUMMARIES[0]).toBe(false);
     expect('runCommand' in GALLERY_DEMO_APP_SUMMARIES[0]).toBe(false);
+  });
+
+  it('serves professional French metadata while preserving technical identity', () => {
+    const english = getGalleryDemoAppSummary('vendor-risk-review', 'en-US');
+    const french = getGalleryDemoAppSummary('vendor-risk-review', 'fr-FR');
+    const frenchDescriptions = listGalleryDemoAppSummaries('fr').map((item) => item.description);
+
+    expect(english?.description).toContain('Every new vendor');
+    expect(french?.description).toContain('Chaque nouveau fournisseur');
+    expect(french).toMatchObject({
+      id: english?.id,
+      key: english?.key,
+      slug: english?.slug,
+      name: english?.name,
+      technologies: english?.technologies,
+    });
+    expect(listGalleryDemoAppSummaries('fr')).toHaveLength(GALLERY_DEMO_APP_SUMMARIES.length);
+    expect(frenchDescriptions.join(' ')).not.toMatch(
+      /\b(?:backend|back-office|checklist|endpoints?|preview|logs?|marketplace|snapshots?|packages?|builds?|workspace|runtime|stack|starter|typecheck|full-stack|tokens?|tags?|tenants?)\b|feature flag/iu,
+    );
+  });
+
+  it('falls back to English for unsupported or missing locales', () => {
+    expect(getGalleryDemoAppSummary('react-saas', 'de-DE')?.description).toBe(
+      getGalleryDemoAppSummary('react-saas', 'en')?.description,
+    );
   });
 
   it('materializes every app into a distinct, immutable JS/TS snapshot', () => {
@@ -150,7 +179,7 @@ describe('published Gallery demo applications', () => {
       const source = Object.values(snapshot.files).join('\n');
       expect(source).toMatch(/onClick|onChange|onSubmit|onPress|addEventListener/);
 
-      if ((NEW_APP_IDS as readonly string[]).includes(id)) {
+      if (([...SUPPORT_APP_IDS, ...GAME_APP_IDS, ...NEW_APP_IDS] as readonly string[]).includes(id)) {
         expect(paths.some((path) => /(^|\/)README\.md$/.test(path))).toBe(true);
       }
     }
@@ -161,6 +190,58 @@ describe('published Gallery demo applications', () => {
     expect(materializeGalleryDemoApp('mobile-starter')?.files['public/sw.js']).toContain(
       "self.addEventListener('fetch'",
     );
+  });
+
+  it('ships Neon Trivia Arena as a strict, playable Game Builder application', () => {
+    const definition = getGalleryDemoApp('neon-trivia-arena');
+    const snapshot = materializeGalleryDemoApp('demo-neon-trivia-arena');
+    const packageJson = JSON.parse(snapshot?.files['package.json'] ?? '{}') as {
+      scripts?: Record<string, string>;
+    };
+
+    expect(definition).toMatchObject({
+      artifactType: 'game',
+      category: 'gaming',
+      language: 'typescript',
+      runtime: 'node',
+      previewUrl: '/gallery-apps/neon-trivia-arena/preview/',
+      thumbnailUrl: '/gallery-apps/neon-trivia-arena/thumbnail.png',
+    });
+    expect(packageJson.scripts).toMatchObject({
+      build: 'tsc -b && vite build',
+      typecheck: 'tsc --noEmit',
+    });
+    expect(snapshot?.files['tsconfig.json']).toContain('"strict": true');
+    expect(snapshot?.files['src/game.ts']).toContain('scoreAnswer');
+    expect(snapshot?.files['src/App.tsx']).toContain('useLifeline');
+    expect(snapshot?.files['src/App.tsx']).toContain('localStorage');
+    expect(snapshot?.files['src/App.tsx']).toContain('data-gallery-app-id="neon-trivia-arena"');
+  });
+
+  it('ships Docs Copilot as a strict, grounded Chatbot Builder application', () => {
+    const definition = getGalleryDemoApp('docs-copilot');
+    const snapshot = materializeGalleryDemoApp('demo-docs-copilot');
+    const packageJson = JSON.parse(snapshot?.files['package.json'] ?? '{}') as {
+      scripts?: Record<string, string>;
+    };
+
+    expect(definition).toMatchObject({
+      artifactType: 'productivity-app',
+      category: 'productivity',
+      language: 'typescript',
+      runtime: 'node',
+      previewUrl: '/gallery-apps/docs-copilot/preview/',
+      thumbnailUrl: '/gallery-apps/docs-copilot/thumbnail.png',
+    });
+    expect(packageJson.scripts).toMatchObject({
+      build: 'tsc -b && vite build',
+      typecheck: 'tsc --noEmit',
+      test: 'vitest run',
+    });
+    expect(snapshot?.files['tsconfig.json']).toContain('"strict": true');
+    expect(snapshot?.files['src/lib/answer-engine.ts']).toContain('rankArticles');
+    expect(snapshot?.files['src/lib/answer-engine.ts']).toContain('without guessing');
+    expect(snapshot?.files['src/App.tsx']).toContain('data-gallery-app-id="docs-copilot"');
   });
 
   it('keeps the mobile chip on a real Expo + Metro application and the animation chip off Remotion', () => {

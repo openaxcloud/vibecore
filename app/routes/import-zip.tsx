@@ -1,5 +1,6 @@
 import { FileArchive } from 'lucide-react';
 import { useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { MetaFunction } from 'react-router';
 import { Form, useActionData, useLoaderData, useNavigation } from 'react-router';
 import { AppShell } from '~/components/dashboard/SaaSLayout';
@@ -8,14 +9,48 @@ import {
   apiRequest,
   firstOrganization,
   firstOrganizationOrNull,
+  json,
   redirect,
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
-import { resolveImportActionError } from '~/lib/import-action-error';
+import {
+  formatImportArchiveSize,
+  formatImportRoutesCopy,
+  getImportRoutesCopy,
+  type ImportRoutesCopy,
+} from '~/lib/i18n/catalogs/import-routes';
+import { localeResponseHeaders, resolveRequestLocale } from '~/lib/i18n/request-locale';
+import { isReauthRedirect } from '~/lib/route-reauth';
 import { projectIdePath } from '~/utils/project-url';
 
-export const meta: MetaFunction = () => [{ title: 'Import zip - E-Code' }];
+const IMPORT_ZIP_CANONICAL_URL = 'https://e-code.ai/import-zip';
+
+export const meta: MetaFunction<typeof loader> = ({ data, matches }) => {
+  const rootData = matches.find((match) => match.id === 'root')?.data as { language?: string } | undefined;
+  const language = data?.language ?? rootData?.language;
+  const copy = getImportRoutesCopy(language);
+  const title = copy['importRoutes.zip.meta.title'];
+  const description = copy['importRoutes.zip.meta.description'];
+  const french = language === 'fr';
+
+  return [
+    { title },
+    { name: 'description', content: description },
+    { property: 'og:title', content: title },
+    { property: 'og:description', content: description },
+    { property: 'og:type', content: 'website' },
+    { property: 'og:url', content: IMPORT_ZIP_CANONICAL_URL },
+    { property: 'og:locale', content: french ? 'fr_FR' : 'en_US' },
+    { property: 'og:locale:alternate', content: french ? 'en_US' : 'fr_FR' },
+    { name: 'twitter:title', content: title },
+    { name: 'twitter:description', content: description },
+    { tagName: 'link', rel: 'canonical', href: IMPORT_ZIP_CANONICAL_URL },
+    { tagName: 'link', rel: 'alternate', hrefLang: 'en', href: `${IMPORT_ZIP_CANONICAL_URL}?lang=en` },
+    { tagName: 'link', rel: 'alternate', hrefLang: 'fr', href: `${IMPORT_ZIP_CANONICAL_URL}?lang=fr` },
+    { tagName: 'link', rel: 'alternate', hrefLang: 'x-default', href: IMPORT_ZIP_CANONICAL_URL },
+  ];
+};
 
 /*
  * The archive is base64-encoded and uploaded inside a single JSON request body.
@@ -25,9 +60,11 @@ export const meta: MetaFunction = () => [{ title: 'Import zip - E-Code' }];
  * instead of firing a doomed multi-second upload.
  */
 const MAX_ARCHIVE_BYTES = 18 * 1024 * 1024;
-const formatMb = (bytes: number) => `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 
 type Project = { id: string; slug?: string };
+type ImportZipSource = 'bolt' | 'lovable' | 'base44' | 'previous-agent-export';
+type ImportZipErrorCode = 'archiveRequired' | 'importFailed';
+type ImportZipActionData = { errorCode: ImportZipErrorCode };
 
 function base64FromArrayBuffer(buffer: ArrayBuffer) {
   const bytes = new Uint8Array(buffer);
@@ -47,67 +84,90 @@ function base64FromArrayBuffer(buffer: ArrayBuffer) {
  * secret scan). The `?source=` param only reframes the copy so the hub tile
  * lands on an honestly-labelled screen — the import path is identical.
  */
-const EXPORT_SOURCE_LABELS: Record<string, string> = {
-  bolt: 'Bolt',
-  lovable: 'Lovable',
-  base44: 'Base44',
-  'previous-agent-export': 'Previous Agent export',
-};
+const IMPORT_ZIP_SOURCES = new Set<ImportZipSource>(['bolt', 'lovable', 'base44', 'previous-agent-export']);
+
+function importSourceLabel(copy: ImportRoutesCopy, source: ImportZipSource | null): string | null {
+  if (!source) {
+    return null;
+  }
+
+  if (source === 'previous-agent-export') {
+    return copy['importRoutes.zip.source.previousAgent'];
+  }
+
+  return source === 'bolt' ? 'Bolt' : source === 'lovable' ? 'Lovable' : 'Base44';
+}
 
 export async function loader({ request }: EnterpriseLoaderArgs) {
+  const localeResolution = resolveRequestLocale(request);
   const organization = await firstOrganizationOrNull(request);
 
   if (!organization) {
     return redirect('/');
   }
 
-  const source = new URL(request.url).searchParams.get('source') ?? '';
+  const requestedSource = new URL(request.url).searchParams.get('source');
 
-  return { sourceLabel: EXPORT_SOURCE_LABELS[source] ?? null };
+  const source = IMPORT_ZIP_SOURCES.has(requestedSource as ImportZipSource)
+    ? (requestedSource as ImportZipSource)
+    : null;
+
+  return json(
+    { language: localeResolution.language, source },
+    { headers: localeResponseHeaders(request, localeResolution) },
+  );
 }
 
 export async function action({ request }: EnterpriseActionArgs) {
-  const organization = await firstOrganization(request);
+  const localeResolution = resolveRequestLocale(request);
+
+  const actionError = (errorCode: ImportZipErrorCode, status: number) =>
+    json<ImportZipActionData>({ errorCode }, { status, headers: localeResponseHeaders(request, localeResolution) });
+
   const formData = await request.formData();
   const archive = formData.get('archive');
   const name = String(formData.get('name') ?? '').trim() || undefined;
 
   if (!(archive instanceof File) || archive.size === 0) {
-    return { error: 'A zip archive is required.' };
+    return actionError('archiveRequired', 400);
   }
 
   let result: { project: Project };
 
   try {
+    const organization = await firstOrganization(request);
     result = await apiRequest<{ project: Project }>(request, `/orgs/${organization.id}/projects/import/zip`, {
       method: 'POST',
       body: JSON.stringify({ name, zipBase64: base64FromArrayBuffer(await archive.arrayBuffer()) }),
     });
-  } catch (error) {
-    const resolved = await resolveImportActionError(error, 'Failed to import zip.');
 
-    if (resolved.rethrow) {
+    return redirect(
+      projectIdePath({ id: result.project.id, slug: result.project.slug, organizationSlug: organization.slug }),
+    );
+  } catch (error) {
+    if (isReauthRedirect(error) || (error instanceof Response && error.status === 401)) {
       throw error;
     }
 
-    return { error: resolved.error };
+    return actionError('importFailed', error instanceof Response ? error.status : 500);
   }
-
-  return redirect(
-    projectIdePath({ id: result.project.id, slug: result.project.slug, organizationSlug: organization.slug }),
-  );
 }
 
 export default function ImportZipPage() {
-  const actionData = useActionData<typeof action>() as { error?: string } | undefined;
-  const { sourceLabel } = useLoaderData<typeof loader>();
+  const { i18n } = useTranslation();
+  const language = i18n.resolvedLanguage ?? i18n.language;
+  const copy = getImportRoutesCopy(language);
+  const actionData = useActionData<typeof action>() as ImportZipActionData | undefined;
+  const { source } = useLoaderData<typeof loader>();
   const navigation = useNavigation();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [fileName, setFileName] = useState('');
   const [sizeError, setSizeError] = useState<string | null>(null);
+  const sourceLabel = importSourceLabel(copy, source);
 
   const importing = navigation.state === 'submitting';
   const canImport = Boolean(fileName) && !sizeError && !importing;
+  const actionError = actionData?.errorCode ? copy[`importRoutes.zip.error.${actionData.errorCode}`] : null;
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.currentTarget.files?.[0];
@@ -115,8 +175,10 @@ export default function ImportZipPage() {
 
     if (file && file.size > MAX_ARCHIVE_BYTES) {
       setSizeError(
-        `That archive is ${formatMb(file.size)}. Zip imports must be under ${formatMb(MAX_ARCHIVE_BYTES)} ` +
-          '(they are uploaded in a single request). Trim the archive or import a smaller subset.',
+        formatImportRoutesCopy(copy['importRoutes.zip.error.tooLarge'], {
+          size: formatImportArchiveSize(file.size, language),
+          limit: formatImportArchiveSize(MAX_ARCHIVE_BYTES, language),
+        }),
       );
     } else {
       setSizeError(null);
@@ -125,11 +187,15 @@ export default function ImportZipPage() {
 
   return (
     <AppShell
-      title={sourceLabel ? `Import ${sourceLabel}` : 'Import zip'}
+      title={
+        sourceLabel
+          ? formatImportRoutesCopy(copy['importRoutes.zip.page.sourceTitle'], { source: sourceLabel })
+          : copy['importRoutes.zip.page.title']
+      }
       description={
         sourceLabel
-          ? `Upload your ${sourceLabel} export (.zip). Files are staged and scanned for secrets before they land in a persistent E-Code project.`
-          : 'Upload an archive and convert it into a persistent E-Code project.'
+          ? formatImportRoutesCopy(copy['importRoutes.zip.page.sourceDescription'], { source: sourceLabel })
+          : copy['importRoutes.zip.page.description']
       }
     >
       <Form
@@ -147,13 +213,13 @@ export default function ImportZipPage() {
           <p role="alert" className="mb-4 text-sm text-[var(--status-error-text)]">
             {sizeError}
           </p>
-        ) : actionData?.error ? (
+        ) : actionError ? (
           <p role="alert" className="mb-4 text-sm text-[var(--status-error-text)]">
-            {actionData.error}
+            {actionError}
           </p>
         ) : null}
         <div className="grid gap-2 text-sm font-medium">
-          <span>Project archive</span>
+          <span>{copy['importRoutes.zip.form.archive']}</span>
           {/* Custom themed file picker (English) so the native browser button/label
               (localised, e.g. "Choisir un fichier / aucun fichier") never renders and
               the control can't push its intrinsic width past the card at 390. */}
@@ -165,39 +231,46 @@ export default function ImportZipPage() {
             accept=".zip"
             onChange={handleFileChange}
           />
-          <div className="flex w-full min-w-0 max-w-full items-center gap-2 overflow-hidden rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-1.5">
+          <div className="flex w-full min-w-0 max-w-full flex-wrap items-center gap-2 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-1.5 sm:flex-nowrap">
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="shrink-0 rounded bg-bolt-elements-background-depth-3 px-3 py-1.5 text-sm font-medium text-bolt-elements-textPrimary hover:bg-bolt-elements-borderColor focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]"
+              className="min-h-11 shrink-0 rounded bg-bolt-elements-background-depth-3 px-3 py-2 text-sm font-medium text-bolt-elements-textPrimary hover:bg-bolt-elements-borderColor focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]"
             >
-              Choose file
+              {copy['importRoutes.zip.form.chooseFile']}
             </button>
-            <span className="min-w-0 flex-1 truncate text-sm text-bolt-elements-textSecondary">
-              {fileName || 'No file selected'}
+            <span className="min-w-0 flex-[1_1_12rem] break-all text-sm text-bolt-elements-textSecondary">
+              {fileName || copy['importRoutes.zip.form.noFile']}
             </span>
           </div>
           <p className="text-xs font-normal text-bolt-elements-textTertiary">
-            .zip up to {formatMb(MAX_ARCHIVE_BYTES)}.
+            {formatImportRoutesCopy(copy['importRoutes.zip.form.limit'], {
+              size: formatImportArchiveSize(MAX_ARCHIVE_BYTES, language),
+            })}
           </p>
         </div>
         <label className="mt-4 grid gap-2 text-sm font-medium">
-          Project name
+          {copy['importRoutes.zip.form.projectName']}
           <input
-            className="h-10 w-full max-w-full min-w-0 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 text-base outline-none sm:text-sm"
+            className="min-h-11 w-full max-w-full min-w-0 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 text-base outline-none sm:text-sm"
             name="name"
-            placeholder="Zip import"
+            placeholder={copy['importRoutes.zip.form.projectPlaceholder']}
           />
         </label>
         <div className="mt-5">
-          <Button type="submit" className="w-full sm:w-auto" disabled={!canImport} aria-busy={importing}>
-            {importing ? 'Importing…' : 'Import zip'}
+          <Button
+            type="submit"
+            className="min-h-11 w-full whitespace-normal sm:w-auto"
+            disabled={!canImport}
+            aria-busy={importing}
+          >
+            {importing ? copy['importRoutes.zip.form.importing'] : copy['importRoutes.zip.form.submit']}
           </Button>
           {importing ? (
             <div
               className="mt-3 h-1 w-full overflow-hidden rounded-full bg-bolt-elements-background-depth-1"
               role="progressbar"
-              aria-label="Importing archive"
+              aria-label={copy['importRoutes.zip.form.progress']}
             >
               <div className="h-full w-full animate-pulse rounded-full bg-[var(--vc-ide-accent-action)]" />
             </div>

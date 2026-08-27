@@ -2,6 +2,7 @@ import * as RadixDialog from '@radix-ui/react-dialog';
 import { Archive, ArchiveRestore, Copy, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import type React from 'react';
+import { useTranslation } from 'react-i18next';
 import { useFetcher } from 'react-router';
 import { toast } from 'react-toastify';
 import type { ProjectCard } from '~/components/dashboard/SaaSLayout';
@@ -9,6 +10,12 @@ import { Button } from '~/components/ui/Button';
 import { Dialog, DialogDescription, DialogTitle } from '~/components/ui/Dialog';
 import { Dropdown, DropdownItem, DropdownSeparator } from '~/components/ui/Dropdown';
 import { Input } from '~/components/ui/Input';
+import {
+  formatProjectCardMenuCopy,
+  getProjectCardMenuCopy,
+  type ProjectCardMenuCopy,
+} from '~/lib/i18n/catalogs/project-card-menu';
+import { classNames } from '~/utils/classNames';
 
 /*
  * E16 — shared ⋯ menu for project cards (grid cards on /dashboard,
@@ -36,6 +43,8 @@ function stopCardNavigation(event: React.MouseEvent) {
 }
 
 export function ProjectCardMenu({ project, onRename }: { project: ProjectCard; onRename: () => void }) {
+  const { i18n } = useTranslation();
+  const copy = getProjectCardMenuCopy(i18n.resolvedLanguage ?? i18n.language);
   const fetcher = useFetcher<ProjectActionResult>();
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const lastIntentRef = useRef<ProjectActionIntent | null>(null);
@@ -44,7 +53,12 @@ export function ProjectCardMenu({ project, onRename }: { project: ProjectCard; o
     lastIntentRef.current = intent;
 
     const payload: Record<string, string> =
-      intent === 'duplicate' ? { intent, name: `${project.name} Copy` } : { intent };
+      intent === 'duplicate'
+        ? {
+            intent,
+            name: formatProjectCardMenuCopy(copy['projectCardMenu.duplicate.name'], { name: project.name }),
+          }
+        : { intent };
 
     fetcher.submit(payload, { method: 'post', action: projectActionPath(project) });
   };
@@ -63,7 +77,7 @@ export function ProjectCardMenu({ project, onRename }: { project: ProjectCard; o
     lastIntentRef.current = null;
 
     if (fetcher.data.ok === false) {
-      toast.error(fetcher.data.error ?? 'Project action failed');
+      toast.error(copy['projectCardMenu.error.actionFailed']);
       return;
     }
 
@@ -73,15 +87,17 @@ export function ProjectCardMenu({ project, onRename }: { project: ProjectCard; o
        * ToastContainer tree, so it survives this card unmounting when the
        * archived project leaves the list.
        */
-      toast(({ closeToast }) => <UndoArchiveToast project={project} closeToast={closeToast} />, { autoClose: 5000 });
+      toast(({ closeToast }) => <UndoArchiveToast project={project} closeToast={closeToast} copy={copy} />, {
+        autoClose: 5000,
+      });
     } else if (intent === 'unarchive') {
-      toast.success(`Restored “${project.name}”`);
+      toast.success(formatProjectCardMenuCopy(copy['projectCardMenu.toast.restored'], { name: project.name }));
     } else if (intent === 'duplicate') {
-      toast.success(`Duplicated “${project.name}”`);
+      toast.success(formatProjectCardMenuCopy(copy['projectCardMenu.toast.duplicated'], { name: project.name }));
     } else if (intent === 'delete-permanent') {
-      toast.success(`Deleted “${project.name}”`);
+      toast.success(formatProjectCardMenuCopy(copy['projectCardMenu.toast.deleted'], { name: project.name }));
     }
-  }, [fetcher.data, project]);
+  }, [copy, fetcher.data, project]);
 
   const archived = project.lifecycle === 'archived';
 
@@ -91,8 +107,10 @@ export function ProjectCardMenu({ project, onRename }: { project: ProjectCard; o
         trigger={
           <button
             type="button"
-            aria-label={`Project actions for ${project.name}`}
-            className="flex h-[44px] w-[44px] shrink-0 items-center justify-center rounded-md text-bolt-elements-textSecondary transition-colors hover:bg-bolt-elements-background-depth-1 hover:text-bolt-elements-textPrimary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bolt-elements-borderColorActive"
+            aria-label={formatProjectCardMenuCopy(copy['projectCardMenu.actions.ariaLabel'], {
+              name: project.name,
+            })}
+            className="flex h-[44px] w-[44px] shrink-0 items-center justify-center rounded-md text-bolt-elements-textSecondary transition-colors hover:bg-bolt-elements-background-depth-1 hover:text-bolt-elements-textPrimary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]"
             onClick={stopCardNavigation}
           >
             <MoreHorizontal className="h-4 w-4" aria-hidden />
@@ -101,28 +119,28 @@ export function ProjectCardMenu({ project, onRename }: { project: ProjectCard; o
       >
         <DropdownItem onSelect={onRename} className="min-h-[44px]">
           <Pencil className="h-4 w-4" aria-hidden />
-          Rename
+          {copy['projectCardMenu.actions.rename']}
         </DropdownItem>
         <DropdownItem onSelect={() => submit('duplicate')} className="min-h-[44px]">
           <Copy className="h-4 w-4" aria-hidden />
-          Duplicate
+          {copy['projectCardMenu.actions.duplicate']}
         </DropdownItem>
         {archived ? (
           <DropdownItem onSelect={() => submit('unarchive')} className="min-h-[44px]">
             <ArchiveRestore className="h-4 w-4" aria-hidden />
-            Restore
+            {copy['projectCardMenu.actions.restore']}
           </DropdownItem>
         ) : (
           <DropdownItem onSelect={() => submit('archive')} className="min-h-[44px]">
             <Archive className="h-4 w-4" aria-hidden />
-            Archive
+            {copy['projectCardMenu.actions.archive']}
           </DropdownItem>
         )}
         <DropdownSeparator />
         <DropdownItem onSelect={() => setConfirmingDelete(true)} className="min-h-[44px]">
           <span className="flex items-center gap-2" style={destructiveStyle}>
             <Trash2 className="h-4 w-4" aria-hidden />
-            Delete
+            {copy['projectCardMenu.actions.delete']}
           </span>
         </DropdownItem>
       </Dropdown>
@@ -131,6 +149,7 @@ export function ProjectCardMenu({ project, onRename }: { project: ProjectCard; o
         open={confirmingDelete}
         pending={fetcher.state !== 'idle'}
         onClose={() => setConfirmingDelete(false)}
+        copy={copy}
         onConfirm={() => {
           submit('delete-permanent');
           setConfirmingDelete(false);
@@ -145,7 +164,15 @@ export function ProjectCardMenu({ project, onRename }: { project: ProjectCard; o
  * fetcher alive independently of the archived card. Kept open while the
  * restore is in flight; success/failure is reported via a follow-up toast.
  */
-function UndoArchiveToast({ project, closeToast }: { project: ProjectCard; closeToast?: () => void }) {
+function UndoArchiveToast({
+  project,
+  closeToast,
+  copy,
+}: {
+  project: ProjectCard;
+  closeToast?: () => void;
+  copy: ProjectCardMenuCopy;
+}) {
   const fetcher = useFetcher<ProjectActionResult>();
 
   useEffect(() => {
@@ -154,24 +181,26 @@ function UndoArchiveToast({ project, closeToast }: { project: ProjectCard; close
     }
 
     if (fetcher.data.ok === false) {
-      toast.error(fetcher.data.error ?? 'Could not restore the project');
+      toast.error(copy['projectCardMenu.error.restoreFailed']);
     } else {
-      toast.success(`Restored “${project.name}”`);
+      toast.success(formatProjectCardMenuCopy(copy['projectCardMenu.toast.restored'], { name: project.name }));
     }
 
     closeToast?.();
-  }, [fetcher.data, project.name, closeToast]);
+  }, [closeToast, copy, fetcher.data, project.name]);
 
   return (
     <div className="flex items-center justify-between gap-3">
-      <span className="min-w-0 truncate">Archived “{project.name}”</span>
+      <span className="min-w-0 break-words">
+        {formatProjectCardMenuCopy(copy['projectCardMenu.toast.archived'], { name: project.name })}
+      </span>
       <button
         type="button"
         disabled={fetcher.state !== 'idle'}
         className="min-h-[44px] shrink-0 rounded-md border border-bolt-elements-borderColor px-3 py-1 text-xs font-medium text-[var(--vc-ide-accent-action)] hover:bg-bolt-elements-background-depth-3 disabled:opacity-60"
         onClick={() => fetcher.submit({ intent: 'unarchive' }, { method: 'post', action: projectActionPath(project) })}
       >
-        Undo
+        {copy['projectCardMenu.toast.undo']}
       </button>
     </div>
   );
@@ -183,12 +212,14 @@ function DeleteProjectDialog({
   pending,
   onClose,
   onConfirm,
+  copy,
 }: {
   project: ProjectCard;
   open: boolean;
   pending: boolean;
   onClose: () => void;
   onConfirm: () => void;
+  copy: ProjectCardMenuCopy;
 }) {
   /*
    * Projects with deployments are the highest-blast-radius case: require typing
@@ -215,33 +246,35 @@ function DeleteProjectDialog({
     >
       {open ? (
         <Dialog showCloseButton={false} onBackdrop={onClose}>
-          <div className="p-6">
-            <DialogTitle>Delete project</DialogTitle>
-            <DialogDescription className="mb-4">
-              This permanently deletes “{project.name}” and all of its data. This cannot be undone.
-              {requiresName ? ' This project has an active deployment — type its name below to confirm.' : ''}
+          <div className="min-w-0 p-4 sm:p-6">
+            <DialogTitle>{copy['projectCardMenu.delete.title']}</DialogTitle>
+            <DialogDescription className="mb-4 break-words">
+              {formatProjectCardMenuCopy(copy['projectCardMenu.delete.description'], { name: project.name })}
+              {requiresName ? ` ${copy['projectCardMenu.delete.deploymentWarning']}` : ''}
             </DialogDescription>
             {requiresName ? (
               <Input
                 value={typedName}
                 onChange={(event) => setTypedName(event.target.value)}
                 placeholder={project.name}
-                aria-label={`Type ${project.name} to confirm deletion`}
+                aria-label={formatProjectCardMenuCopy(copy['projectCardMenu.delete.typeName'], {
+                  name: project.name,
+                })}
                 autoFocus
                 className="mb-4 min-h-[44px]"
               />
             ) : null}
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={onClose} disabled={pending} className="min-h-[44px]">
-                Cancel
+            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <Button variant="outline" onClick={onClose} disabled={pending} className="min-h-[44px] whitespace-normal">
+                {copy['projectCardMenu.delete.cancel']}
               </Button>
               <Button
                 variant="outline"
                 onClick={onConfirm}
                 disabled={!canConfirm}
-                className="min-h-[44px] border-[color-mix(in_srgb,var(--status-error-text)_45%,transparent)] text-[var(--status-error-text)] hover:bg-[color-mix(in_srgb,var(--status-error-text)_10%,transparent)] hover:text-[var(--status-error-text)]"
+                className="min-h-[44px] whitespace-normal border-[color-mix(in_srgb,var(--status-error-text)_45%,transparent)] text-[var(--status-error-text)] hover:bg-[color-mix(in_srgb,var(--status-error-text)_10%,transparent)] hover:text-[var(--status-error-text)]"
               >
-                Delete project
+                {copy['projectCardMenu.delete.confirm']}
               </Button>
             </div>
           </div>
@@ -260,6 +293,8 @@ export function ProjectRenameForm({
   onDone: () => void;
   className?: string;
 }) {
+  const { i18n } = useTranslation();
+  const copy = getProjectCardMenuCopy(i18n.resolvedLanguage ?? i18n.language);
   const fetcher = useFetcher<ProjectActionResult>();
   const [name, setName] = useState(project.name);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -272,13 +307,13 @@ export function ProjectRenameForm({
   useEffect(() => {
     if (fetcher.state === 'idle' && fetcher.data) {
       if (fetcher.data.ok === false) {
-        toast.error(fetcher.data.error ?? 'Could not rename the project');
+        toast.error(copy['projectCardMenu.error.renameFailed']);
       }
 
       // Success: the route loaders revalidate and the card shows the new name.
       onDone();
     }
-  }, [fetcher.state, fetcher.data, onDone]);
+  }, [copy, fetcher.state, fetcher.data, onDone]);
 
   const commit = () => {
     const trimmed = name.trim();
@@ -296,7 +331,9 @@ export function ProjectRenameForm({
       ref={inputRef}
       value={name}
       disabled={pending}
-      aria-label={`Rename project ${project.name}`}
+      aria-label={formatProjectCardMenuCopy(copy['projectCardMenu.rename.ariaLabel'], {
+        name: project.name,
+      })}
       onChange={(event) => setName(event.target.value)}
       onClick={(event) => event.stopPropagation()}
       onKeyDown={(event) => {
@@ -309,7 +346,7 @@ export function ProjectRenameForm({
         }
       }}
       onBlur={commit}
-      className={className ?? 'h-[44px] text-sm font-semibold'}
+      className={classNames('h-[44px] text-sm font-semibold', className)}
     />
   );
 }

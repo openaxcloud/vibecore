@@ -10,6 +10,7 @@ import { useStore } from '@nanostores/react';
 import type { JSONValue } from 'ai';
 import type { Message } from 'ai';
 import { memo, Fragment, useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import { toast } from 'react-toastify';
 import { Markdown } from './Markdown';
@@ -26,6 +27,16 @@ import { SecretRequestCard } from './connector-cards/SecretRequestCard';
 import Popover from '~/components/ui/Popover';
 import WithTooltip from '~/components/ui/Tooltip';
 import { extractAndStripPlanChecklist } from '~/lib/chat/plan-checklist';
+import {
+  formatAssistantCost,
+  formatAssistantDuration,
+  formatAssistantMessageCopy,
+  formatAssistantTasksAgents,
+  formatAssistantUsageNumber,
+  getAssistantMessageCopy,
+  localizeAssistantEnum,
+  selectAssistantMessagePlural,
+} from '~/lib/i18n/catalogs/assistant-message';
 import { chatId } from '~/lib/persistence/useChatHistory';
 import { streamingState } from '~/lib/stores/streaming';
 import { workbenchStore } from '~/lib/stores/workbench';
@@ -75,22 +86,6 @@ function normalizedFilePath(path: string) {
   return normalizedPath;
 }
 
-function formatUsageNumber(value: number | undefined) {
-  if (typeof value !== 'number' || Number.isNaN(value)) {
-    return undefined;
-  }
-
-  return value >= 1000 ? `${(value / 1000).toFixed(value >= 10000 ? 0 : 1)}k` : String(value);
-}
-
-function formatDurationMs(value: number | undefined) {
-  if (typeof value !== 'number' || Number.isNaN(value)) {
-    return undefined;
-  }
-
-  return value >= 1000 ? `${(value / 1000).toFixed(1)}s` : `${Math.round(value)}ms`;
-}
-
 export const AssistantMessage = memo(
   ({
     content,
@@ -106,6 +101,13 @@ export const AssistantMessage = memo(
     parts,
     addToolResult,
   }: AssistantMessageProps) => {
+    const { i18n } = useTranslation();
+    const language = i18n.resolvedLanguage ?? i18n.language ?? 'en';
+    const copy = getAssistantMessageCopy(language);
+
+    const text = (template: string, values: Readonly<Record<string, string | number>> = {}) =>
+      formatAssistantMessageCopy(template, values);
+
     /*
      * Global streaming flag (set by Chat.client while a chat request is in
      * flight). Used to decide whether a parallel-agent lane still marked
@@ -195,7 +197,7 @@ export const AssistantMessage = memo(
       agentLaneStreams?.map((lane) => ({
         id: lane.roleId,
         title: lane.title ?? lane.roleId,
-        responsibility: 'Specialist lane is streaming live.',
+        responsibility: copy['assistantMessage.defaultLaneResponsibility'],
       })) ??
       [];
 
@@ -231,15 +233,18 @@ export const AssistantMessage = memo(
 
     const agentModeChipText = agentModeRouting
       ? [
-          agentModeRouting.mode ? agentModeRouting.mode[0].toUpperCase() + agentModeRouting.mode.slice(1) : null,
-          agentModeRouting.turbo ? 'Turbo' : null,
+          agentModeRouting.mode
+            ? (copy[`assistantMessage.mode.${agentModeRouting.mode}` as keyof typeof copy] ??
+              agentModeRouting.mode[0].toUpperCase() + agentModeRouting.mode.slice(1))
+            : null,
+          agentModeRouting.turbo ? copy['assistantMessage.mode.turbo'] : null,
           typeof agentModeRouting.multiplier === 'number' && agentModeRouting.multiplier !== 1
             ? `×${agentModeRouting.multiplier}`
             : null,
           agentModeRouting.highEffort
             ? agentModeRouting.escalated
-              ? 'High effort: escalated'
-              : 'High effort: +0 credit on this task (no escalation needed)'
+              ? copy['assistantMessage.mode.escalated']
+              : copy['assistantMessage.mode.noEscalation']
             : null,
         ]
           .filter(Boolean)
@@ -248,9 +253,13 @@ export const AssistantMessage = memo(
 
     const usageChipText = usage
       ? [
-          typeof usage.cost === 'number' ? `$${usage.cost.toFixed(2)}` : (usage.cost ?? null),
-          usage.totalTokens ? `${formatUsageNumber(usage.totalTokens)} tokens` : null,
-          usage.durationMs ? formatDurationMs(usage.durationMs) : null,
+          typeof usage.cost === 'number' ? formatAssistantCost(usage.cost, language) : (usage.cost ?? null),
+          usage.totalTokens
+            ? text(copy['assistantMessage.usage.tokens'], {
+                count: formatAssistantUsageNumber(usage.totalTokens, language) ?? usage.totalTokens,
+              })
+            : null,
+          usage.durationMs ? formatAssistantDuration(usage.durationMs, language) : null,
         ]
           .filter(Boolean)
           .join(' · ')
@@ -301,7 +310,7 @@ export const AssistantMessage = memo(
         <>
           <div className="bolt-assistant-message-mobile-head" aria-hidden>
             <span className="i-ph:sparkle" />
-            <strong>Agent</strong>
+            <strong>{copy['assistantMessage.agent']}</strong>
           </div>
           <div className="flex gap-1.5 items-center text-sm text-bolt-elements-textSecondary mb-1">
             {(codeContext || chatSummary || agentOrchestration || agentExecution || agentMemory || agentRules) && (
@@ -315,7 +324,7 @@ export const AssistantMessage = memo(
                   <button
                     type="button"
                     className="bolt-message-context-trigger"
-                    aria-label="Show agent message context"
+                    aria-label={copy['assistantMessage.context.show']}
                   >
                     <span className="i-ph:info" aria-hidden />
                   </button>
@@ -325,9 +334,20 @@ export const AssistantMessage = memo(
                   {agentMemory && (
                     <div className="agent-memory bolt-message-context-card">
                       <div>
-                        <h2 className="bolt-message-context-title">Agent memory</h2>
+                        <h2 className="bolt-message-context-title">{copy['assistantMessage.context.memoryTitle']}</h2>
                         <p className="bolt-message-context-subtitle">
-                          {agentMemory.memories.length} persistent memories used for this response
+                          {text(
+                            selectAssistantMessagePlural(
+                              copy,
+                              'assistantMessage.context.memoriesUsed',
+                              agentMemory.memories.length,
+                            ),
+                            {
+                              count:
+                                formatAssistantUsageNumber(agentMemory.memories.length, language) ??
+                                agentMemory.memories.length,
+                            },
+                          )}
                         </p>
                       </div>
                       <div className="grid gap-2">
@@ -335,17 +355,30 @@ export const AssistantMessage = memo(
                           <div key={memory.id} className="bolt-message-context-item">
                             <div className="text-xs font-medium text-bolt-elements-textPrimary">{memory.summary}</div>
                             <div className="bolt-message-context-meta">
-                              {memory.scope}
-                              {memory.memoryType ? ` · ${memory.memoryType}` : ''}
-                              {typeof memory.score === 'number' ? ` · ${Math.round(memory.score * 100)}% match` : ''}
-                              {typeof memory.accessCount === 'number' ? ` · used ${memory.accessCount}x` : ''}
+                              {localizeAssistantEnum(copy, 'memoryScope', memory.scope)}
+                              {memory.memoryType
+                                ? ` · ${localizeAssistantEnum(copy, 'memoryType', memory.memoryType)}`
+                                : ''}
+                              {typeof memory.score === 'number'
+                                ? ` · ${text(copy['assistantMessage.context.match'], {
+                                    score:
+                                      formatAssistantUsageNumber(Math.round(memory.score * 100), language) ??
+                                      Math.round(memory.score * 100),
+                                  })}`
+                                : ''}
+                              {typeof memory.accessCount === 'number'
+                                ? ` · ${text(copy['assistantMessage.context.used'], {
+                                    count:
+                                      formatAssistantUsageNumber(memory.accessCount, language) ?? memory.accessCount,
+                                  })}`
+                                : ''}
                             </div>
                             {memory.tags?.length ? (
                               <div className="mt-1 flex flex-wrap gap-1">
                                 {memory.tags.map((tag) => (
                                   <span
                                     key={tag}
-                                    className="rounded border border-bolt-elements-borderColor px-1 py-0.5 text-[10px] text-bolt-elements-textSecondary"
+                                    className="rounded border border-bolt-elements-borderColor px-1 py-0.5 text-[11px] text-bolt-elements-textSecondary"
                                   >
                                     {tag}
                                   </span>
@@ -360,17 +393,27 @@ export const AssistantMessage = memo(
                   {agentRules && agentRules.files.length > 0 && (
                     <div className="agent-rules bolt-message-context-card">
                       <div>
-                        <h2 className="bolt-message-context-title">Project rules</h2>
+                        <h2 className="bolt-message-context-title">{copy['assistantMessage.context.projectRules']}</h2>
                         <p className="bolt-message-context-subtitle">
-                          Applied {agentRules.files.length} project rules file
-                          {agentRules.files.length === 1 ? '' : 's'} to this response
+                          {text(
+                            selectAssistantMessagePlural(
+                              copy,
+                              'assistantMessage.context.rulesApplied',
+                              agentRules.files.length,
+                            ),
+                            {
+                              count:
+                                formatAssistantUsageNumber(agentRules.files.length, language) ??
+                                agentRules.files.length,
+                            },
+                          )}
                         </p>
                       </div>
                       <div className="mt-1 flex flex-wrap gap-1">
                         {agentRules.files.map((path) => (
                           <span
                             key={path}
-                            className="rounded border border-bolt-elements-borderColor px-1.5 py-0.5 text-[10px] font-medium text-bolt-elements-textSecondary"
+                            className="rounded border border-bolt-elements-borderColor px-1.5 py-0.5 text-[11px] font-medium text-bolt-elements-textSecondary"
                           >
                             {path}
                           </span>
@@ -381,16 +424,22 @@ export const AssistantMessage = memo(
                   {agentExecution && (
                     <div className="agent-execution bolt-message-context-card">
                       <div>
-                        <h2 className="bolt-message-context-title">Sub-agent execution</h2>
+                        <h2 className="bolt-message-context-title">
+                          {copy['assistantMessage.context.executionTitle']}
+                        </h2>
                         <p className="bolt-message-context-subtitle">
-                          Run {agentExecution.runId} finished with status {agentExecution.status}
+                          {text(copy['assistantMessage.context.executionFinished'], {
+                            runId: agentExecution.runId,
+                            status: localizeAssistantEnum(copy, 'status', agentExecution.status),
+                          })}
                         </p>
                       </div>
                       <div className="grid gap-2">
                         {agentExecution.results.map((result) => (
                           <div key={result.roleId} className="bolt-message-context-item">
                             <div className="text-xs font-medium text-bolt-elements-textPrimary">
-                              {result.roleId} · {result.status}
+                              {localizeAssistantEnum(copy, 'role', result.roleId)} ·{' '}
+                              {localizeAssistantEnum(copy, 'status', result.status)}
                             </div>
                             <div className="bolt-message-context-meta">{result.summary}</div>
                           </div>
@@ -400,32 +449,60 @@ export const AssistantMessage = memo(
                         <div className="agent-consensus mt-3 pt-3 border-t border-bolt-elements-borderColor">
                           <div className="flex items-center justify-between flex-wrap gap-2 mb-2">
                             <h3 className="text-xs font-medium text-bolt-elements-textPrimary">
-                              Consensus · {agentExecution.consensus.algorithm.toLowerCase().replace('_', ' ')}
+                              {text(copy['assistantMessage.context.consensus'], {
+                                algorithm: agentExecution.consensus.algorithm.toLowerCase().replaceAll('_', ' '),
+                              })}
                             </h3>
                             <div className="flex min-w-0 flex-wrap items-center gap-2">
                               <span
                                 className={
                                   agentExecution.consensus.outcome === 'ACCEPTED'
-                                    ? 'whitespace-nowrap text-[10px] font-medium px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                                    ? 'whitespace-nowrap text-[11px] font-medium px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
                                     : agentExecution.consensus.outcome === 'REJECTED'
-                                      ? 'whitespace-nowrap text-[10px] font-medium px-1.5 py-0.5 rounded bg-red-500/10 text-[var(--status-error-text)]'
-                                      : 'whitespace-nowrap text-[10px] font-medium px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                                      ? 'whitespace-nowrap text-[11px] font-medium px-1.5 py-0.5 rounded bg-red-500/10 text-[var(--status-error-text)]'
+                                      : 'whitespace-nowrap text-[11px] font-medium px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400'
                                 }
                               >
-                                {agentExecution.consensus.outcome}
+                                {localizeAssistantEnum(copy, 'outcome', agentExecution.consensus.outcome)}
                               </span>
-                              <span className="text-[10px] text-bolt-elements-textTertiary">
-                                {Math.round(agentExecution.consensus.agreementScore * 100)}% agreement ·{' '}
-                                {agentExecution.consensus.rounds} round
-                                {agentExecution.consensus.rounds === 1 ? '' : 's'}
+                              <span className="text-[11px] text-bolt-elements-textTertiary">
+                                {text(
+                                  selectAssistantMessagePlural(
+                                    copy,
+                                    'assistantMessage.context.agreementRounds',
+                                    agentExecution.consensus.rounds,
+                                  ),
+                                  {
+                                    score:
+                                      formatAssistantUsageNumber(
+                                        Math.round(agentExecution.consensus.agreementScore * 100),
+                                        language,
+                                      ) ?? Math.round(agentExecution.consensus.agreementScore * 100),
+                                    count:
+                                      formatAssistantUsageNumber(agentExecution.consensus.rounds, language) ??
+                                      agentExecution.consensus.rounds,
+                                  },
+                                )}
                               </span>
                             </div>
                           </div>
                           {agentExecution.consensus.claimVotes.length > 0 && (
                             <details className="text-xs">
                               <summary className="cursor-pointer text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary">
-                                {agentExecution.consensus.claimVotes.length} claim
-                                {agentExecution.consensus.claimVotes.length === 1 ? '' : 's'} voted
+                                {text(
+                                  selectAssistantMessagePlural(
+                                    copy,
+                                    'assistantMessage.context.claimsVoted',
+                                    agentExecution.consensus.claimVotes.length,
+                                  ),
+                                  {
+                                    count:
+                                      formatAssistantUsageNumber(
+                                        agentExecution.consensus.claimVotes.length,
+                                        language,
+                                      ) ?? agentExecution.consensus.claimVotes.length,
+                                  },
+                                )}
                               </summary>
                               <ul className="mt-2 space-y-1 pl-3">
                                 {agentExecution.consensus.claimVotes.map((vote, idx) => (
@@ -441,13 +518,13 @@ export const AssistantMessage = memo(
                                             ? 'inline-block w-1.5 h-1.5 rounded-full bg-red-500 mr-1.5 align-middle'
                                             : 'inline-block w-1.5 h-1.5 rounded-full bg-zinc-400 mr-1.5 align-middle'
                                       }
-                                      aria-label={vote.decision}
+                                      aria-label={localizeAssistantEnum(copy, 'decision', vote.decision)}
                                     />
-                                    <span className="font-mono text-[10px] text-bolt-elements-textTertiary">
-                                      [{vote.type}]
+                                    <span className="font-mono text-[11px] text-bolt-elements-textTertiary">
+                                      [{localizeAssistantEnum(copy, 'voteType', vote.type)}]
                                     </span>{' '}
                                     {vote.claim}{' '}
-                                    <span className="text-[10px] text-bolt-elements-textTertiary">
+                                    <span className="text-[11px] text-bolt-elements-textTertiary">
                                       ({vote.supporters.length}/{vote.supporters.length + vote.dissenters.length})
                                     </span>
                                   </li>
@@ -458,8 +535,18 @@ export const AssistantMessage = memo(
                           {agentExecution.consensus.conflicts.length > 0 && (
                             <details className="text-xs mt-2">
                               <summary className="cursor-pointer text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary">
-                                {agentExecution.consensus.conflicts.length} conflict
-                                {agentExecution.consensus.conflicts.length === 1 ? '' : 's'} detected
+                                {text(
+                                  selectAssistantMessagePlural(
+                                    copy,
+                                    'assistantMessage.context.conflictsDetected',
+                                    agentExecution.consensus.conflicts.length,
+                                  ),
+                                  {
+                                    count:
+                                      formatAssistantUsageNumber(agentExecution.consensus.conflicts.length, language) ??
+                                      agentExecution.consensus.conflicts.length,
+                                  },
+                                )}
                               </summary>
                               <ul className="mt-2 space-y-1 pl-3">
                                 {agentExecution.consensus.conflicts.map((conflict, idx) => (
@@ -472,10 +559,12 @@ export const AssistantMessage = memo(
                                             ? 'inline-block w-1.5 h-1.5 rounded-full bg-amber-500 mr-1.5 align-middle'
                                             : 'inline-block w-1.5 h-1.5 rounded-full bg-zinc-400 mr-1.5 align-middle'
                                       }
-                                      aria-label={`severity ${conflict.severity}`}
+                                      aria-label={text(copy['assistantMessage.context.severity'], {
+                                        severity: localizeAssistantEnum(copy, 'severity', conflict.severity),
+                                      })}
                                     />
-                                    <span className="font-mono text-[10px] text-bolt-elements-textTertiary">
-                                      [{conflict.type}]
+                                    <span className="font-mono text-[11px] text-bolt-elements-textTertiary">
+                                      [{localizeAssistantEnum(copy, 'conflictType', conflict.type)}]
                                     </span>{' '}
                                     {conflict.description}
                                   </li>
@@ -490,11 +579,11 @@ export const AssistantMessage = memo(
                   {agentOrchestration && (
                     <div className="agent-orchestration bolt-message-context-card">
                       <div>
-                        <h2 className="bolt-message-context-title">Agent orchestration</h2>
+                        <h2 className="bolt-message-context-title">{copy['assistantMessage.context.orchestration']}</h2>
                         <p className="bolt-message-context-subtitle">
                           {agentOrchestration.mode === 'parallel-subagents'
-                            ? 'Parallel specialist agents planned'
-                            : 'Specialist lanes planned inside the active model'}
+                            ? copy['assistantMessage.context.parallelPlanned']
+                            : copy['assistantMessage.context.lanesPlanned']}
                         </p>
                       </div>
                       <div className="grid gap-2">
@@ -509,7 +598,7 @@ export const AssistantMessage = memo(
                   )}
                   {chatSummary && (
                     <div className="summary bolt-message-context-card">
-                      <h2 className="bolt-message-context-title">Summary</h2>
+                      <h2 className="bolt-message-context-title">{copy['assistantMessage.context.summary']}</h2>
                       <div className="bolt-message-context-markdown">
                         <Markdown>{chatSummary}</Markdown>
                       </div>
@@ -517,7 +606,7 @@ export const AssistantMessage = memo(
                   )}
                   {codeContext && (
                     <div className="code-context bolt-message-context-card">
-                      <h2 className="bolt-message-context-title">Context</h2>
+                      <h2 className="bolt-message-context-title">{copy['assistantMessage.context.codeContext']}</h2>
                       <div className="bolt-message-context-file-list">
                         {codeContext.map((x) => {
                           const normalized = normalizedFilePath(x);
@@ -547,7 +636,11 @@ export const AssistantMessage = memo(
               <div className="flex flex-wrap items-center gap-2">
                 {agentMemory && (
                   <span className="rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-2 py-1 text-xs text-bolt-elements-textSecondary">
-                    Memory used: {agentMemory.memories.length}
+                    {text(copy['assistantMessage.context.memoryUsed'], {
+                      count:
+                        formatAssistantUsageNumber(agentMemory.memories.length, language) ??
+                        agentMemory.memories.length,
+                    })}
                   </span>
                 )}
               </div>
@@ -604,13 +697,20 @@ export const AssistantMessage = memo(
                 >
                   <div className="mb-2 flex items-center gap-2 text-sm font-medium text-bolt-elements-textPrimary">
                     <span className="i-ph:list-checks text-bolt-elements-item-contentAccent" aria-hidden />
-                    <span>Plan</span>
+                    <span>{copy['assistantMessage.plan.title']}</span>
                     <span className="[margin-inline-start:auto] text-[11px] font-normal text-bolt-elements-textSecondary">
                       {hasLaneData
-                        ? `${completed}/${agentPlan.tasks.length} done`
-                        : `${agentPlan.tasks.length} task${agentPlan.tasks.length === 1 ? '' : 's'} · ${
-                            new Set(agentPlan.tasks.map((task) => task.roleId)).size
-                          } agents`}
+                        ? text(copy['assistantMessage.plan.done'], {
+                            completed: formatAssistantUsageNumber(completed, language) ?? completed,
+                            total:
+                              formatAssistantUsageNumber(agentPlan.tasks.length, language) ?? agentPlan.tasks.length,
+                          })
+                        : formatAssistantTasksAgents(
+                            copy,
+                            agentPlan.tasks.length,
+                            new Set(agentPlan.tasks.map((task) => task.roleId)).size,
+                            language,
+                          )}
                     </span>
                   </div>
                   <ol className="space-y-1">
@@ -625,12 +725,15 @@ export const AssistantMessage = memo(
                           data-state={state ?? 'proposed'}
                         >
                           {state ? (
-                            <span className={`mt-[1px] shrink-0 ${iconForState(state)}`} aria-label={state} />
+                            <span
+                              className={`mt-[1px] shrink-0 ${iconForState(state)}`}
+                              aria-label={localizeAssistantEnum(copy, 'status', state)}
+                            />
                           ) : (
                             <span className="mt-[1px] shrink-0 text-bolt-elements-textTertiary">{index + 1}.</span>
                           )}
-                          <span className="rounded bg-bolt-elements-background-depth-2 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-bolt-elements-item-contentAccent">
-                            {task.roleId}
+                          <span className="rounded bg-bolt-elements-background-depth-2 px-1.5 py-0.5 text-[11px] font-medium uppercase tracking-wide text-bolt-elements-item-contentAccent">
+                            {localizeAssistantEnum(copy, 'role', task.roleId)}
                           </span>
                           <span className="min-w-0 flex-1 break-words text-bolt-elements-textSecondary">
                             {task.title}
@@ -642,7 +745,7 @@ export const AssistantMessage = memo(
                   {agentPlan.needsApproval ? (
                     <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-bolt-elements-borderColor pt-2">
                       <span className="text-[11px] text-bolt-elements-textSecondary">
-                        Review the plan, then build — or refine it by sending another message.
+                        {copy['assistantMessage.plan.review']}
                       </span>
                       <button
                         type="button"
@@ -657,7 +760,7 @@ export const AssistantMessage = memo(
                           );
                         }}
                       >
-                        Approve & build
+                        {copy['assistantMessage.plan.approve']}
                       </button>
                     </div>
                   ) : null}
@@ -674,15 +777,19 @@ export const AssistantMessage = memo(
             >
               <div className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm font-medium text-bolt-elements-textPrimary">
                 <span className="i-ph:users-three text-bolt-elements-item-contentAccent" aria-hidden />
-                <span>Parallel agents</span>
+                <span>{copy['assistantMessage.lanes.title']}</span>
                 <span className="min-w-0 truncate [margin-inline-start:auto] text-[11px] font-normal text-bolt-elements-textSecondary">
                   {agentExecution
-                    ? `consensus: ${(agentExecution.consensus?.outcome ?? agentExecution.status).toString().toLowerCase()}`
+                    ? text(copy['assistantMessage.lanes.consensusStatus'], {
+                        status: agentExecution.consensus?.outcome
+                          ? localizeAssistantEnum(copy, 'outcome', agentExecution.consensus.outcome)
+                          : localizeAssistantEnum(copy, 'status', agentExecution.status),
+                      })
                     : agentLaneStreams?.some((lane) => lane.status === 'running')
                       ? isStreaming
-                        ? 'running in parallel...'
-                        : 'stopped'
-                      : 'finalizing consensus...'}
+                        ? copy['assistantMessage.lanes.running']
+                        : copy['assistantMessage.lanes.stopped']
+                      : copy['assistantMessage.lanes.finalizing']}
                 </span>
               </div>
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-3">
@@ -730,9 +837,13 @@ export const AssistantMessage = memo(
               </div>
               {agentExecution?.consensus && (
                 <div className="mt-2 text-[11px] text-bolt-elements-textSecondary">
-                  Consensus · {agentExecution.consensus.algorithm.toLowerCase().replace(/_/g, ' ')} ·{' '}
-                  <span className="font-medium text-bolt-elements-textPrimary">{agentExecution.consensus.outcome}</span>{' '}
-                  · {Math.round(agentExecution.consensus.agreementScore * 100)}% agreement
+                  {text(copy['assistantMessage.lanes.consensusSummary'], {
+                    algorithm: agentExecution.consensus.algorithm.toLowerCase().replaceAll('_', ' '),
+                    outcome: localizeAssistantEnum(copy, 'outcome', agentExecution.consensus.outcome),
+                    score:
+                      formatAssistantUsageNumber(Math.round(agentExecution.consensus.agreementScore * 100), language) ??
+                      Math.round(agentExecution.consensus.agreementScore * 100),
+                  })}
                 </div>
               )}
             </div>
@@ -740,7 +851,7 @@ export const AssistantMessage = memo(
         {reasoningTexts.length > 0 && (
           <div className="bolt-assistant-reasoning my-2 space-y-2">
             {reasoningTexts.map((text, i) => (
-              <ThoughtBox key={`reasoning-${i}`} title="Reasoning">
+              <ThoughtBox key={`reasoning-${i}`} title={copy['assistantMessage.reasoning']}>
                 <div className="whitespace-pre-wrap text-sm leading-relaxed text-bolt-elements-textSecondary">
                   {text}
                 </div>
@@ -812,7 +923,7 @@ export const AssistantMessage = memo(
             className="mt-2 inline-flex items-center gap-1 text-[11px] text-bolt-elements-textTertiary"
             style={{ fontFamily: 'var(--vc-font-code)' }}
             data-testid="agent-mode-chip"
-            title="Agent mode used for this response"
+            title={copy['assistantMessage.mode.tooltip']}
           >
             {agentModeChipText}
           </div>
@@ -822,8 +933,12 @@ export const AssistantMessage = memo(
             to="/usage"
             className="mt-2 inline-flex items-center gap-1 text-[11px] text-bolt-elements-textTertiary transition-colors hover:text-bolt-elements-textSecondary"
             style={{ fontFamily: 'var(--vc-font-code)' }}
-            title={`This run: prompt ${usage?.promptTokens ?? 0} / completion ${usage?.completionTokens ?? 0} tokens — open the usage page`}
-            aria-label={`Run usage ${usageChipText} — open the usage page`}
+            title={text(copy['assistantMessage.usage.tooltip'], {
+              prompt: formatAssistantUsageNumber(usage?.promptTokens ?? 0, language) ?? usage?.promptTokens ?? 0,
+              completion:
+                formatAssistantUsageNumber(usage?.completionTokens ?? 0, language) ?? usage?.completionTokens ?? 0,
+            })}
+            aria-label={text(copy['assistantMessage.usage.aria'], { usage: usageChipText })}
           >
             {usageChipText}
           </Link>
@@ -874,6 +989,16 @@ function AssistantMessageFooter({
   onRewind?: (messageId: string) => void;
   onFork?: (messageId: string) => void;
 }) {
+  const { i18n } = useTranslation();
+  const language = i18n.resolvedLanguage ?? i18n.language ?? 'en';
+  const copy = getAssistantMessageCopy(language);
+
+  const text = useCallback(
+    (template: string, values: Readonly<Record<string, string | number>> = {}) =>
+      formatAssistantMessageCopy(template, values),
+    [],
+  );
+
   const [feedback, setFeedback] = useState<Feedback>(null);
   const [copied, setCopied] = useState(false);
 
@@ -937,26 +1062,33 @@ function AssistantMessageFooter({
       if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(content ?? '');
       } else {
-        throw new Error('Clipboard API unavailable');
+        throw new Error(copy['assistantMessage.footer.clipboardUnavailable']);
       }
 
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1200);
     } catch (error) {
-      toast.error(`Copy failed: ${(error as Error).message}`);
+      const fallback = copy['assistantMessage.footer.copyFailedSafe'];
+      toast.error(
+        language.toLowerCase().startsWith('fr')
+          ? fallback
+          : text(copy['assistantMessage.footer.copyFailed'], {
+              reason: error instanceof Error && error.message ? error.message : fallback,
+            }),
+      );
     }
-  }, [content]);
+  }, [content, copy, language, text]);
 
   if (!content && !messageId) {
     return null;
   }
 
   return (
-    <div className="bolt-assistant-message-footer" role="group" aria-label="Message actions">
-      <WithTooltip tooltip={copied ? 'Copied' : 'Copy message'}>
+    <div className="bolt-assistant-message-footer" role="group" aria-label={copy['assistantMessage.footer.group']}>
+      <WithTooltip tooltip={copied ? copy['assistantMessage.footer.copied'] : copy['assistantMessage.footer.copy']}>
         <button
           type="button"
-          aria-label="Copy message"
+          aria-label={copy['assistantMessage.footer.copy']}
           className="bolt-assistant-message-action"
           data-copied={copied ? 'true' : 'false'}
           onClick={copyMarkdown}
@@ -965,10 +1097,10 @@ function AssistantMessageFooter({
         </button>
       </WithTooltip>
       {onRewind && messageId ? (
-        <WithTooltip tooltip="Regenerate from this prompt">
+        <WithTooltip tooltip={copy['assistantMessage.footer.regenerate']}>
           <button
             type="button"
-            aria-label="Regenerate from this prompt"
+            aria-label={copy['assistantMessage.footer.regenerate']}
             className="bolt-assistant-message-action"
             onClick={() => onRewind(messageId)}
           >
@@ -977,10 +1109,10 @@ function AssistantMessageFooter({
         </WithTooltip>
       ) : null}
       {onFork && messageId ? (
-        <WithTooltip tooltip="Edit prompt and fork the conversation">
+        <WithTooltip tooltip={copy['assistantMessage.footer.forkTooltip']}>
           <button
             type="button"
-            aria-label="Edit prompt and fork conversation"
+            aria-label={copy['assistantMessage.footer.forkAria']}
             className="bolt-assistant-message-action"
             onClick={() => onFork(messageId)}
           >
@@ -989,10 +1121,10 @@ function AssistantMessageFooter({
         </WithTooltip>
       ) : null}
       <span className="bolt-assistant-message-action-divider" aria-hidden />
-      <WithTooltip tooltip="Helpful">
+      <WithTooltip tooltip={copy['assistantMessage.footer.helpful']}>
         <button
           type="button"
-          aria-label="Mark response as helpful"
+          aria-label={copy['assistantMessage.footer.helpfulAria']}
           aria-pressed={feedback === 'up'}
           className="bolt-assistant-message-action"
           data-active={feedback === 'up' ? 'true' : 'false'}
@@ -1001,10 +1133,10 @@ function AssistantMessageFooter({
           <span className="i-ph:thumbs-up" aria-hidden />
         </button>
       </WithTooltip>
-      <WithTooltip tooltip="Needs improvement">
+      <WithTooltip tooltip={copy['assistantMessage.footer.improve']}>
         <button
           type="button"
-          aria-label="Mark response as needing improvement"
+          aria-label={copy['assistantMessage.footer.improveAria']}
           aria-pressed={feedback === 'down'}
           className="bolt-assistant-message-action"
           data-active={feedback === 'down' ? 'true' : 'false'}

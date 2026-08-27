@@ -22,6 +22,7 @@ import {
   type ImageContextStorage,
   type SnapshotAgent,
 } from './server-deploy-transfer.js';
+import { appPublicEnglish } from './app-public-copy.js';
 import { assertValidObjectKey } from './object-storage.js';
 
 /*
@@ -120,7 +121,7 @@ export async function buildImageContextFromRevision(opts: {
     return {
       ok: false,
       error: 'STORAGE_UNAVAILABLE',
-      message: 'Revision-based deploys need object storage.',
+      message: appPublicEnglish('SERVER_REVISION_STORAGE_REQUIRED'),
     };
   }
 
@@ -151,7 +152,7 @@ export async function buildImageContextFromRevision(opts: {
     return {
       ok: false,
       error: 'STORAGE_UNAVAILABLE',
-      message: `Could not sign the build transfer URLs (${(error as Error).message ?? 'unknown error'}).`,
+      message: appPublicEnglish('SERVER_REVISION_SIGN_FAILED'),
     };
   }
 
@@ -182,7 +183,7 @@ export async function buildImageContextFromRevision(opts: {
     return {
       ok: false,
       error: 'SNAPSHOT_FAILED',
-      message: `The isolated build could not be run (${(error as Error).message ?? 'unknown error'}).`,
+      message: appPublicEnglish('SERVER_REVISION_BUILD_FAILED'),
     };
   }
 
@@ -197,7 +198,7 @@ export async function buildImageContextFromRevision(opts: {
     return {
       ok: false,
       error: 'SNAPSHOT_FAILED',
-      message: `The isolated build timed out after ${timeoutSeconds}s.`,
+      message: appPublicEnglish('SERVER_REVISION_BUILD_TIMEOUT'),
     };
   }
 
@@ -205,7 +206,7 @@ export async function buildImageContextFromRevision(opts: {
     return {
       ok: false,
       error: 'SNAPSHOT_FAILED',
-      message: `The isolated build failed (exit ${build.exitCode}). Check the build log.`,
+      message: appPublicEnglish('SERVER_REVISION_BUILD_FAILED'),
     };
   }
 

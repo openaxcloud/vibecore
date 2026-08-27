@@ -1,5 +1,6 @@
 import { makeMarketingMeta, MarketingStaticPage, newsletterPages } from '~/components/marketing/EcodeMarketingPages';
 import { apiRequest, json, type EnterpriseActionArgs } from '~/lib/enterprise-api.server';
+import { remainingApiErrorResponse } from '~/lib/i18n/catalogs/remaining-api-routes';
 
 export const meta = makeMarketingMeta(newsletterPages.index);
 
@@ -19,7 +20,7 @@ export async function action({ request }: EnterpriseActionArgs) {
   const email = String(form.get('email') ?? '').trim();
 
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return json({ ok: false, error: 'Enter a valid email address.' }, { status: 400 });
+    return remainingApiErrorResponse(request, 'NEWSLETTER_EMAIL_INVALID', 400, { extra: { ok: false } });
   }
 
   // Whitelisted so the stored analytics dimension can't be polluted by crafted posts.
@@ -35,10 +36,10 @@ export async function action({ request }: EnterpriseActionArgs) {
     return json({ ok: true });
   } catch (error) {
     if (error instanceof Response && error.status === 429) {
-      return json({ ok: false, error: 'Too many attempts — try again in a minute.' }, { status: 429 });
+      return remainingApiErrorResponse(request, 'CONTACT_RATE_LIMIT', 429, { extra: { ok: false } });
     }
 
-    return json({ ok: false, error: 'Subscription failed. Please try again.' }, { status: 502 });
+    return remainingApiErrorResponse(request, 'NEWSLETTER_SUBSCRIBE_FAILED', 502, { extra: { ok: false } });
   }
 }
 

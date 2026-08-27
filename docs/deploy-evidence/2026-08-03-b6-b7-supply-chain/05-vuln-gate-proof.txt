@@ -1,0 +1,16 @@
+### B6 vulnerability gate (Trivy) — exit codes captured directly, no pipe
+### date: 2026-08-03T13:48:26Z
+
+--- A. REAL prod images WITH the justified allowlist (expect exit 0 = deploy proceeds)
+    api EXIT=0
+    web EXIT=0
+    worker EXIT=0
+    ai-gateway EXIT=0
+    workspace-manager EXIT=0
+    preview-proxy EXIT=0
+
+--- B. NEGATIVE: a genuinely vulnerable image (expect exit 1 = deploy BLOCKED)
+    alpine:3.12 EXIT=1
+Total: 1 (CRITICAL: 1)
+│ zlib    │ CVE-2022-37434 │ CRITICAL │ fixed  │ 1.2.12-r0         │ 1.2.12-r2     │ zlib: heap-based buffer over-read and overflow in inflate() │
+    debian:10 EXIT=0

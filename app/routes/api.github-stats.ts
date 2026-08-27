@@ -6,6 +6,7 @@ import {
   mapRecentActivity,
   mapWithConcurrency,
 } from '~/lib/github-stats-metrics';
+import { webApiErrorResponse, webApiLocaleHeaders } from '~/lib/i18n/catalogs/web-api-routes';
 import { json } from '~/lib/json-response';
 import { withSecurity } from '~/lib/security';
 import type { GitHubUserResponse, GitHubStats } from '~/types/GitHub';
@@ -23,7 +24,8 @@ async function githubJson<T>(token: string, path: string): Promise<T> {
   });
 
   if (!response.ok) {
-    throw new Error(`GitHub API error: ${response.status}`);
+    console.error('GitHub request failed:', { path, status: response.status });
+    throw new Error();
   }
 
   return response.json() as Promise<T>;
@@ -87,7 +89,7 @@ async function githubStatsLoader({ request }: { request: Request; context?: unkn
     try {
       const upstream = await apiRequest<GitHubStats>(request, '/api/github-stats');
 
-      return json(upstream);
+      return json(upstream, { headers: webApiLocaleHeaders(request) });
     } catch (error) {
       if (!(error instanceof Response) || error.status !== 401) {
         throw error;
@@ -108,7 +110,7 @@ async function githubStatsLoader({ request }: { request: Request; context?: unkn
     const githubToken = apiKeys.GITHUB_API_KEY || apiKeys.VITE_GITHUB_ACCESS_TOKEN;
 
     if (!githubToken) {
-      return json({ error: 'GitHub token not found' }, { status: 401 });
+      return webApiErrorResponse(request, 'GITHUB_TOKEN_MISSING', 401);
     }
 
     const userResponse = await fetch('https://api.github.com/user', {
@@ -118,10 +120,11 @@ async function githubStatsLoader({ request }: { request: Request; context?: unkn
 
     if (!userResponse.ok) {
       if (userResponse.status === 401) {
-        return json({ error: 'Invalid GitHub token' }, { status: 401 });
+        return webApiErrorResponse(request, 'GITHUB_TOKEN_INVALID', 401);
       }
 
-      throw new Error(`GitHub API error: ${userResponse.status}`);
+      console.error('GitHub user request failed:', { status: userResponse.status });
+      throw new Error();
     }
 
     const user = (await userResponse.json()) as GitHubUserResponse;
@@ -238,16 +241,10 @@ async function githubStatsLoader({ request }: { request: Request; context?: unkn
         .slice(0, 20),
     };
 
-    return json(stats);
+    return json(stats, { headers: webApiLocaleHeaders(request) });
   } catch (error) {
     console.error('Error fetching GitHub stats:', error);
-    return json(
-      {
-        error: 'Failed to fetch GitHub statistics',
-        details: error instanceof Error ? error.message : String(error),
-      },
-      { status: 500 },
-    );
+    return webApiErrorResponse(request, 'GITHUB_STATS_FAILED', 503);
   }
 }
 

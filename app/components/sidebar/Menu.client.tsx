@@ -1,6 +1,7 @@
 import { useStore } from '@nanostores/react';
 import { motion, type Variants } from 'framer-motion';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
 import { HistoryItem } from './HistoryItem';
 import { binDates } from './date-binning';
@@ -8,9 +9,18 @@ import { ControlPanel } from '~/components/@settings/core/ControlPanel';
 import { ACCOUNT_MENU_LINKS, resolveAccountMenuLink } from '~/components/@settings/core/account-menu-links';
 import { Button } from '~/components/ui/Button';
 import { Dialog, DialogButton, DialogDescription, DialogRoot, DialogTitle } from '~/components/ui/Dialog';
-import { SettingsButton, HelpButton } from '~/components/ui/SettingsButton';
+import { IconButton } from '~/components/ui/IconButton';
 import { ThemeSwitch } from '~/components/ui/ThemeSwitch';
 import { useSearchFilter } from '~/lib/hooks/useSearchFilter';
+import {
+  formatSidebarMenuDate,
+  formatSidebarMenuNumber,
+  formatSidebarMenuPlural,
+  formatSidebarMenuTime,
+  getSidebarMenuCopy,
+  interpolateSidebarMenuCopy,
+  resolveSidebarMenuLanguage,
+} from '~/lib/i18n/catalogs/sidebar-menu';
 import { db, deleteById, getAll, chatId, type ChatHistoryItem, useChatHistory } from '~/lib/persistence';
 import { sidebarMenuStore } from '~/lib/stores/menu';
 import { profileStore } from '~/lib/stores/profile';
@@ -43,8 +53,11 @@ type DialogContent =
   | { type: 'bulkDelete'; items: ChatHistoryItem[] }
   | null;
 
-function CurrentDateTime() {
+type HistoryLoadState = 'idle' | 'loading' | 'ready' | 'error';
+
+function CurrentDateTime({ language }: { language: string }) {
   const [dateTime, setDateTime] = useState(new Date());
+  const copy = getSidebarMenuCopy(language).sidebarMenu.header;
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -55,20 +68,28 @@ function CurrentDateTime() {
   }, []);
 
   return (
-    <div className="flex items-center gap-2 px-4 py-2 text-sm text-bolt-elements-textSecondary border-b border-bolt-elements-borderColor">
-      <div className="h-4 w-4 i-ph:clock opacity-80" />
-      <div className="flex gap-2">
-        <span>{dateTime.toLocaleDateString()}</span>
-        <span>{dateTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-      </div>
-    </div>
+    <time
+      dateTime={dateTime.toISOString()}
+      aria-label={copy.currentDateTime}
+      className="flex min-w-0 items-center gap-2 border-b border-bolt-elements-borderColor px-4 py-2 text-sm text-bolt-elements-textSecondary"
+    >
+      <span className="h-4 w-4 shrink-0 i-ph:clock opacity-80" aria-hidden="true" />
+      <span className="flex min-w-0 flex-wrap gap-x-2 gap-y-1">
+        <span>{formatSidebarMenuDate(dateTime, language)}</span>
+        <span>{formatSidebarMenuTime(dateTime, language)}</span>
+      </span>
+    </time>
   );
 }
 
 export const Menu = () => {
+  const { i18n } = useTranslation();
+  const language = resolveSidebarMenuLanguage(i18n.resolvedLanguage ?? i18n.language);
+  const copy = getSidebarMenuCopy(language).sidebarMenu;
   const { duplicateCurrentChat, exportChat } = useChatHistory();
   const menuRef = useRef<HTMLDivElement>(null);
   const [list, setList] = useState<ChatHistoryItem[]>([]);
+  const [historyLoadState, setHistoryLoadState] = useState<HistoryLoadState>('idle');
 
   // Drawer open state lives in a shared store so the header toggle stays in sync.
   const open = useStore(sidebarMenuStore);
@@ -84,19 +105,31 @@ export const Menu = () => {
     searchFields: ['description'],
   });
 
-  const loadEntries = useCallback(() => {
-    if (db) {
-      getAll(db)
-        .then((list) => list.filter((item) => item.urlId && item.description))
-        .then(setList)
-        .catch((error) => toast.error(error.message));
+  const loadEntries = useCallback(async () => {
+    setHistoryLoadState('loading');
+
+    if (!db) {
+      setList([]);
+      setHistoryLoadState('ready');
+
+      return;
     }
-  }, []);
+
+    try {
+      const entries = await getAll(db);
+      setList(entries.filter((item) => item.urlId && item.description));
+      setHistoryLoadState('ready');
+    } catch (error) {
+      console.error('Failed to load chat history:', error);
+      setHistoryLoadState('error');
+      toast.error(copy.toasts.loadFailed);
+    }
+  }, [copy.toasts.loadFailed]);
 
   const deleteChat = useCallback(
     async (id: string): Promise<void> => {
       if (!db) {
-        throw new Error('Database not available');
+        throw new Error(copy.errors.databaseUnavailable);
       }
 
       // Delete chat snapshot from localStorage
@@ -110,7 +143,7 @@ export const Menu = () => {
       // Delete the chat from the database
       await deleteById(db, id);
     },
-    [db],
+    [copy.errors.databaseUnavailable],
   );
 
   const deleteItem = useCallback(
@@ -120,13 +153,13 @@ export const Menu = () => {
 
       deleteChat(item.id)
         .then(() => {
-          toast.success('Chat deleted successfully', {
+          toast.success(copy.toasts.deleteSuccess, {
             position: 'bottom-right',
             autoClose: 3000,
           });
 
           // Always refresh the list
-          loadEntries();
+          void loadEntries();
 
           if (chatId.get() === item.id) {
             // hard page navigation to clear the stores
@@ -135,16 +168,16 @@ export const Menu = () => {
         })
         .catch((error) => {
           console.error('Failed to delete chat:', error);
-          toast.error('Failed to delete conversation', {
+          toast.error(copy.toasts.deleteFailed, {
             position: 'bottom-right',
             autoClose: 3000,
           });
 
           // Still try to reload entries in case data has changed
-          loadEntries();
+          void loadEntries();
         });
     },
-    [loadEntries, deleteChat],
+    [copy.toasts.deleteFailed, copy.toasts.deleteSuccess, loadEntries, deleteChat],
   );
 
   const deleteSelectedItems = useCallback(
@@ -177,11 +210,18 @@ export const Menu = () => {
 
       // Show appropriate toast message
       if (errors.length === 0) {
-        toast.success(`${deletedCount} chat${deletedCount === 1 ? '' : 's'} deleted successfully`);
+        toast.success(formatSidebarMenuPlural(language, deletedCount, copy.toasts.bulkDeleteSuccess));
       } else {
-        toast.warning(`Deleted ${deletedCount} of ${itemsToDeleteIds.length} chats. ${errors.length} failed.`, {
-          autoClose: 5000,
-        });
+        toast.warning(
+          interpolateSidebarMenuCopy(copy.toasts.bulkDeletePartial, {
+            deleted: formatSidebarMenuNumber(deletedCount, language),
+            total: formatSidebarMenuNumber(itemsToDeleteIds.length, language),
+            failed: formatSidebarMenuNumber(errors.length, language),
+          }),
+          {
+            autoClose: 5000,
+          },
+        );
       }
 
       // Reload the list after all deletions
@@ -196,7 +236,7 @@ export const Menu = () => {
         window.location.pathname = '/';
       }
     },
-    [deleteChat, loadEntries, db],
+    [copy.toasts.bulkDeletePartial, copy.toasts.bulkDeleteSuccess, deleteChat, language, loadEntries],
   );
 
   const closeDialog = () => {
@@ -218,19 +258,19 @@ export const Menu = () => {
 
   const handleBulkDeleteClick = useCallback(() => {
     if (selectedItems.length === 0) {
-      toast.info('Select at least one chat to delete');
+      toast.info(copy.toasts.selectionRequired);
       return;
     }
 
     const selectedChats = list.filter((item) => selectedItems.includes(item.id));
 
     if (selectedChats.length === 0) {
-      toast.error('Could not find selected chats');
+      toast.error(copy.toasts.selectionNotFound);
       return;
     }
 
     setDialogContent({ type: 'bulkDelete', items: selectedChats });
-  }, [selectedItems, list]); // Keep list dependency
+  }, [copy.toasts.selectionNotFound, copy.toasts.selectionRequired, selectedItems, list]); // Keep list dependency
 
   const selectAll = useCallback(() => {
     const allFilteredIds = filteredList.map((item) => item.id);
@@ -249,7 +289,7 @@ export const Menu = () => {
 
   useEffect(() => {
     if (open) {
-      loadEntries();
+      void loadEntries();
     }
   }, [open, loadEntries]);
 
@@ -305,8 +345,13 @@ export const Menu = () => {
   }, [open, isSettingsOpen, dialogContent]);
 
   const handleDuplicate = async (id: string) => {
-    await duplicateCurrentChat(id);
-    loadEntries(); // Reload the list after duplication
+    try {
+      await duplicateCurrentChat(id);
+      await loadEntries(); // Reload the list after duplication
+    } catch (error) {
+      console.error('Failed to duplicate chat:', error);
+      toast.error(copy.toasts.duplicateFailed);
+    }
   };
 
   const handleSettingsClick = () => {
@@ -317,6 +362,9 @@ export const Menu = () => {
   const handleSettingsClose = () => {
     setIsSettingsOpen(false);
   };
+
+  const allFilteredAreSelected =
+    filteredList.length > 0 && filteredList.every((item) => selectedItems.includes(item.id));
 
   return (
     <>
@@ -336,11 +384,13 @@ export const Menu = () => {
         <button
           type="button"
           onClick={() => setOpen(true)}
-          aria-label="Open menu"
+          aria-label={copy.aria.openMenu}
+          title={copy.aria.openMenu}
           aria-expanded={open}
-          className="fixed top-3 [inset-inline-start:0.75rem] z-sidebar flex lg:hidden items-center justify-center w-10 h-10 rounded-lg bg-bolt-elements-background-depth-1 border border-bolt-elements-borderColor shadow-sm text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-2 transition-colors"
+          aria-controls="chat-history-sidebar"
+          className="vc-focus-ring fixed top-3 [inset-inline-start:0.75rem] z-sidebar flex lg:hidden items-center justify-center w-11 h-11 rounded-lg bg-bolt-elements-background-depth-1 border border-bolt-elements-borderColor shadow-sm text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-2 transition-colors"
         >
-          <span className="i-ph:list text-xl" />
+          <span className="i-ph:list text-xl" aria-hidden="true" />
         </button>
       )}
 
@@ -354,151 +404,213 @@ export const Menu = () => {
       )}
 
       <motion.div
+        id="chat-history-sidebar"
         ref={menuRef}
+        role="navigation"
+        aria-label={copy.aria.navigation}
+        aria-hidden={!open}
         initial="closed"
         animate={open ? 'open' : 'closed'}
         variants={menuVariants}
         style={{ width: '340px', maxWidth: '90vw' }}
         className={classNames(
-          'flex selection-accent flex-col side-menu fixed top-0 h-full rounded-r-2xl',
+          'flex selection-accent flex-col side-menu fixed top-0 h-dvh max-h-dvh overflow-hidden rounded-r-2xl',
           'bg-bolt-elements-background-depth-1 border-r border-bolt-elements-borderColor',
           'shadow-sm text-sm',
           isSettingsOpen ? 'z-40' : 'z-sidebar',
         )}
       >
-        <div className="h-12 flex items-center justify-between px-4 border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 rounded-tr-2xl">
-          <div className="text-bolt-elements-textPrimary font-medium"></div>
-          <div className="flex items-center gap-3">
-            <HelpButton
+        <div className="min-h-14 flex min-w-0 items-center justify-between gap-2 px-3 border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 rounded-tr-2xl">
+          <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
+            <IconButton
+              icon="i-ph:question"
+              size="xl"
+              title={copy.header.help}
+              data-testid="help-button"
+              className="h-11 w-11 shrink-0 text-bolt-elements-textTertiary hover:text-bolt-elements-textPrimary hover:bg-bolt-elements-item-backgroundActive/10 transition-colors"
               onClick={() =>
                 window.open(resolveAccountMenuLink(ACCOUNT_MENU_LINKS.helpDocs), '_blank', 'noopener,noreferrer')
               }
             />
-            <span className="font-medium text-sm text-bolt-elements-textPrimary truncate">
-              {profile?.username || 'Guest User'}
+            <span className="min-w-0 flex-1 font-medium text-sm text-bolt-elements-textPrimary truncate">
+              {profile?.username || copy.header.guestUser}
             </span>
             <div className="flex items-center justify-center w-[32px] h-[32px] overflow-hidden bg-bolt-elements-background-depth-3 text-bolt-elements-textSecondary rounded-full shrink-0">
               {profile?.avatar ? (
                 <img
                   src={profile.avatar}
-                  alt={profile?.username || 'User'}
+                  alt={interpolateSidebarMenuCopy(copy.aria.userAvatar, {
+                    name: profile?.username || copy.header.fallbackUser,
+                  })}
                   className="w-full h-full object-cover"
                   loading="eager"
                   decoding="sync"
                 />
               ) : (
-                <div className="i-ph:user-fill text-lg" />
+                <div className="i-ph:user-fill text-lg" aria-hidden="true" />
               )}
             </div>
+            <IconButton
+              icon="i-ph:x"
+              size="xl"
+              title={copy.aria.closeMenu}
+              className="h-11 w-11 shrink-0 lg:hidden"
+              onClick={() => setOpen(false)}
+            />
           </div>
         </div>
-        <CurrentDateTime />
+        <CurrentDateTime language={language} />
         <div className="flex-1 flex flex-col h-full w-full overflow-hidden">
           <div className="p-4 space-y-3">
             <div className="flex gap-2">
               <a
                 href="/"
-                className="flex-1 flex gap-2 items-center bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent hover:bg-bolt-elements-item-backgroundActive rounded-lg px-4 py-2 transition-colors"
+                className="vc-focus-ring min-h-11 min-w-0 flex-1 flex gap-2 items-center bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent hover:bg-bolt-elements-item-backgroundActive rounded-lg px-4 py-2 transition-colors"
               >
-                <span className="inline-block i-ph:plus-circle h-4 w-4" />
-                <span className="text-sm font-medium">Start new chat</span>
+                <span className="inline-block i-ph:plus-circle h-4 w-4 shrink-0" aria-hidden="true" />
+                <span className="min-w-0 whitespace-normal text-sm font-medium">{copy.history.startNewChat}</span>
               </a>
               <button
+                type="button"
                 onClick={toggleSelectionMode}
                 className={classNames(
-                  'flex gap-1 items-center rounded-lg px-3 py-2 transition-colors',
+                  'vc-focus-ring flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-lg px-3 py-2 transition-colors',
                   selectionMode
                     ? 'bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent border border-[var(--vc-ide-accent-action)]'
                     : 'bg-bolt-elements-background-depth-2 text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3 border border-bolt-elements-borderColor',
                 )}
-                aria-label={selectionMode ? 'Exit selection mode' : 'Enter selection mode'}
+                aria-label={selectionMode ? copy.aria.exitSelectionMode : copy.aria.enterSelectionMode}
+                title={selectionMode ? copy.aria.exitSelectionMode : copy.aria.enterSelectionMode}
+                aria-pressed={selectionMode}
               >
-                <span className={selectionMode ? 'i-ph:x h-4 w-4' : 'i-ph:check-square h-4 w-4'} />
+                <span className={selectionMode ? 'i-ph:x h-4 w-4' : 'i-ph:check-square h-4 w-4'} aria-hidden="true" />
               </button>
             </div>
             <div className="relative w-full">
               <div className="absolute [inset-inline-start:0.75rem] top-1/2 -translate-y-1/2">
-                <span className="i-ph:magnifying-glass h-4 w-4 text-bolt-elements-textTertiary" />
+                <span className="i-ph:magnifying-glass h-4 w-4 text-bolt-elements-textTertiary" aria-hidden="true" />
               </div>
               <input
-                className="w-full bg-bolt-elements-background-depth-2 relative [padding-inline-start:2.25rem] [padding-inline-end:0.75rem] py-2 rounded-lg focus:outline-none focus:ring-1 focus:ring-bolt-elements-focus text-sm text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary border border-bolt-elements-borderColor"
+                className="min-h-11 w-full bg-bolt-elements-background-depth-2 relative [padding-inline-start:2.25rem] [padding-inline-end:0.75rem] py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-bolt-elements-focus text-sm text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary border border-bolt-elements-borderColor"
                 type="search"
-                placeholder="Search chats..."
+                placeholder={copy.history.searchPlaceholder}
                 onChange={handleSearchChange}
-                aria-label="Search chats"
+                aria-label={copy.aria.searchChats}
               />
             </div>
           </div>
-          <div className="flex items-center justify-between text-sm px-4 py-2">
-            <div className="font-medium text-bolt-elements-textSecondary">Your Chats</div>
+          <div className="flex min-w-0 flex-wrap items-center justify-between gap-2 px-4 py-2 text-sm">
+            <div className="min-w-0 font-medium text-bolt-elements-textSecondary">{copy.history.title}</div>
             {selectionMode && (
-              <div className="flex items-center gap-2">
-                <Button variant="ghost" size="sm" onClick={selectAll}>
-                  {filteredList.length > 0 && filteredList.every((item) => selectedItems.includes(item.id))
-                    ? 'Deselect all'
-                    : 'Select all'}
+              <div className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-2">
+                <span className="w-full text-end text-xs text-bolt-elements-textTertiary" aria-live="polite">
+                  {formatSidebarMenuPlural(language, selectedItems.length, copy.history.selectedCount)}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={selectAll}
+                  className="min-h-11 whitespace-normal text-center"
+                >
+                  {allFilteredAreSelected ? copy.history.deselectAll : copy.history.selectAll}
                 </Button>
                 <Button
                   variant="destructive"
                   size="sm"
                   onClick={handleBulkDeleteClick}
                   disabled={selectedItems.length === 0}
+                  className="min-h-11 whitespace-normal text-center"
                 >
-                  Delete selected
+                  {copy.history.deleteSelected}
                 </Button>
               </div>
             )}
           </div>
-          <div className="flex-1 overflow-auto px-3 pb-3">
-            {filteredList.length === 0 && (
-              <div className="px-4 text-bolt-elements-textTertiary text-sm">
-                {list.length === 0 ? 'No previous conversations' : 'No matches found'}
+          <div
+            className="min-h-0 flex-1 overflow-auto px-3 pb-3"
+            aria-busy={historyLoadState === 'loading'}
+            aria-live="polite"
+          >
+            {historyLoadState === 'loading' && (
+              <div role="status" className="space-y-2 px-1 py-2">
+                <span className="sr-only">{copy.history.loading}</span>
+                {[0, 1, 2].map((item) => (
+                  <div
+                    key={item}
+                    className="h-11 animate-pulse rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2"
+                    aria-hidden="true"
+                  />
+                ))}
+              </div>
+            )}
+            {historyLoadState === 'error' && (
+              <div
+                role="alert"
+                className="mx-1 rounded-lg border border-[var(--status-error-border)] bg-[var(--status-error-bg)] p-4 text-sm text-[var(--status-error-text)]"
+              >
+                <p>{copy.history.loadError}</p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-3 min-h-11 whitespace-normal"
+                  onClick={() => void loadEntries()}
+                >
+                  {copy.history.retry}
+                </Button>
+              </div>
+            )}
+            {historyLoadState === 'ready' && filteredList.length === 0 && (
+              <div role="status" className="px-4 py-3 text-bolt-elements-textTertiary text-sm">
+                {list.length === 0 ? copy.history.empty : copy.history.noMatches}
               </div>
             )}
             <DialogRoot open={dialogContent !== null}>
-              {binDates(filteredList).map(({ category, items }) => (
-                <div key={category} className="mt-2 first:mt-0 space-y-1">
-                  <div className="text-xs font-medium text-bolt-elements-textTertiary sticky top-0 z-1 bg-bolt-elements-background-depth-1 px-4 py-1">
-                    {category}
+              {historyLoadState === 'ready' &&
+                binDates(filteredList, language).map(({ category, items }) => (
+                  <div key={category} className="mt-2 first:mt-0 space-y-1">
+                    <div className="text-xs font-medium text-bolt-elements-textTertiary sticky top-0 z-1 bg-bolt-elements-background-depth-1 px-4 py-1">
+                      {category}
+                    </div>
+                    <div className="space-y-0.5 pr-1">
+                      {items.map((item) => (
+                        <HistoryItem
+                          key={item.id}
+                          item={item}
+                          exportChat={exportChat}
+                          onDelete={(event) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            setDialogContent({ type: 'delete', item });
+                          }}
+                          onDuplicate={() => handleDuplicate(item.id)}
+                          selectionMode={selectionMode}
+                          isSelected={selectedItems.includes(item.id)}
+                          onToggleSelection={toggleItemSelection}
+                        />
+                      ))}
+                    </div>
                   </div>
-                  <div className="space-y-0.5 pr-1">
-                    {items.map((item) => (
-                      <HistoryItem
-                        key={item.id}
-                        item={item}
-                        exportChat={exportChat}
-                        onDelete={(event) => {
-                          event.preventDefault();
-                          event.stopPropagation();
-                          setDialogContent({ type: 'delete', item });
-                        }}
-                        onDuplicate={() => handleDuplicate(item.id)}
-                        selectionMode={selectionMode}
-                        isSelected={selectedItems.includes(item.id)}
-                        onToggleSelection={toggleItemSelection}
-                      />
-                    ))}
-                  </div>
-                </div>
-              ))}
+                ))}
               <Dialog onBackdrop={closeDialog} onClose={closeDialog}>
                 {dialogContent?.type === 'delete' && (
                   <>
                     <div className="p-6 bg-bolt-elements-background-depth-1">
-                      <DialogTitle className="text-bolt-elements-textPrimary">Delete Chat?</DialogTitle>
-                      <DialogDescription className="mt-2 text-bolt-elements-textSecondary">
-                        <p>
-                          You are about to delete{' '}
-                          <span className="font-medium text-bolt-elements-textPrimary">
-                            {dialogContent.item.description}
-                          </span>
-                        </p>
-                        <p className="mt-2">Are you sure you want to delete this chat?</p>
+                      <DialogTitle className="text-bolt-elements-textPrimary">{copy.dialogs.singleTitle}</DialogTitle>
+                      <DialogDescription asChild className="mt-2 text-bolt-elements-textSecondary">
+                        <div>
+                          <p>
+                            {copy.dialogs.singleLead}{' '}
+                            <span className="break-words font-medium text-bolt-elements-textPrimary">
+                              {dialogContent.item.description}
+                            </span>
+                          </p>
+                          <p className="mt-2">{copy.dialogs.singleQuestion}</p>
+                        </div>
                       </DialogDescription>
                     </div>
-                    <div className="flex justify-end gap-3 px-6 py-4 bg-bolt-elements-background-depth-2 border-t border-bolt-elements-borderColor">
+                    <div className="flex flex-wrap justify-end gap-3 px-6 py-4 bg-bolt-elements-background-depth-2 border-t border-bolt-elements-borderColor">
                       <DialogButton type="secondary" onClick={closeDialog}>
-                        Cancel
+                        <span className="inline-flex min-h-7 items-center">{copy.dialogs.cancel}</span>
                       </DialogButton>
                       <DialogButton
                         type="danger"
@@ -507,7 +619,7 @@ export const Menu = () => {
                           closeDialog();
                         }}
                       >
-                        Delete
+                        <span className="inline-flex min-h-7 items-center">{copy.dialogs.delete}</span>
                       </DialogButton>
                     </div>
                   </>
@@ -515,27 +627,26 @@ export const Menu = () => {
                 {dialogContent?.type === 'bulkDelete' && (
                   <>
                     <div className="p-6 bg-bolt-elements-background-depth-1">
-                      <DialogTitle className="text-bolt-elements-textPrimary">Delete Selected Chats?</DialogTitle>
-                      <DialogDescription className="mt-2 text-bolt-elements-textSecondary">
-                        <p>
-                          You are about to delete {dialogContent.items.length}{' '}
-                          {dialogContent.items.length === 1 ? 'chat' : 'chats'}:
-                        </p>
-                        <div className="mt-2 max-h-32 overflow-auto border border-bolt-elements-borderColor rounded-md bg-bolt-elements-background-depth-2 p-2">
-                          <ul className="list-disc pl-5 space-y-1">
-                            {dialogContent.items.map((item) => (
-                              <li key={item.id} className="text-sm">
-                                <span className="font-medium text-bolt-elements-textPrimary">{item.description}</span>
-                              </li>
-                            ))}
-                          </ul>
+                      <DialogTitle className="text-bolt-elements-textPrimary">{copy.dialogs.bulkTitle}</DialogTitle>
+                      <DialogDescription asChild className="mt-2 text-bolt-elements-textSecondary">
+                        <div>
+                          <p>{formatSidebarMenuPlural(language, dialogContent.items.length, copy.dialogs.bulkLead)}</p>
+                          <div className="mt-2 max-h-32 overflow-auto border border-bolt-elements-borderColor rounded-md bg-bolt-elements-background-depth-2 p-2">
+                            <ul className="list-disc pl-5 space-y-1">
+                              {dialogContent.items.map((item) => (
+                                <li key={item.id} className="break-words text-sm">
+                                  <span className="font-medium text-bolt-elements-textPrimary">{item.description}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                          <p className="mt-3">{copy.dialogs.bulkQuestion}</p>
                         </div>
-                        <p className="mt-3">Are you sure you want to delete these chats?</p>
                       </DialogDescription>
                     </div>
-                    <div className="flex justify-end gap-3 px-6 py-4 bg-bolt-elements-background-depth-2 border-t border-bolt-elements-borderColor">
+                    <div className="flex flex-wrap justify-end gap-3 px-6 py-4 bg-bolt-elements-background-depth-2 border-t border-bolt-elements-borderColor">
                       <DialogButton type="secondary" onClick={closeDialog}>
-                        Cancel
+                        <span className="inline-flex min-h-7 items-center">{copy.dialogs.cancel}</span>
                       </DialogButton>
                       <DialogButton
                         type="danger"
@@ -549,7 +660,7 @@ export const Menu = () => {
                           closeDialog();
                         }}
                       >
-                        Delete
+                        <span className="inline-flex min-h-7 items-center">{copy.dialogs.delete}</span>
                       </DialogButton>
                     </div>
                   </>
@@ -559,9 +670,16 @@ export const Menu = () => {
           </div>
           <div className="flex items-center justify-between border-t border-bolt-elements-borderColor px-4 py-3">
             <div className="flex items-center gap-3">
-              <SettingsButton onClick={handleSettingsClick} />
+              <IconButton
+                onClick={handleSettingsClick}
+                icon="i-ph:gear"
+                size="xl"
+                title={copy.header.settings}
+                data-testid="settings-button"
+                className="h-11 w-11 text-bolt-elements-textTertiary hover:text-bolt-elements-textPrimary hover:bg-bolt-elements-item-backgroundActive/10 transition-colors"
+              />
             </div>
-            <ThemeSwitch />
+            <ThemeSwitch title={copy.header.toggleTheme} className="h-11 w-11" />
           </div>
         </div>
       </motion.div>

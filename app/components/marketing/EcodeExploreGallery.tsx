@@ -1,7 +1,16 @@
 import { GitFork, Play, Search, SearchX, Sparkles, Star, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link, useSearchParams } from 'react-router';
 import { PublicShell } from '~/components/dashboard/SaaSLayout';
+import {
+  formatPublicGalleryCopy,
+  formatPublicGalleryNumber,
+  formatPublicGalleryPercent,
+  getPublicGalleryCopy,
+  type PublicGalleryCopy,
+} from '~/lib/i18n/catalogs/public-gallery';
+import { getPublicTemplateTagLabel } from '~/lib/i18n/catalogs/public-template-tags';
 import { classNames } from '~/utils/classNames';
 
 /*
@@ -38,12 +47,6 @@ type ExplorePageProps = {
   categories: PublicExploreCategory[];
 };
 
-const numberFormatter = new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 });
-
-function formatCount(value: number): string {
-  return numberFormatter.format(value);
-}
-
 /* A signed-out visitor picking a project is routed to sign-in, then to fork it. */
 function projectReturnTo(slug: string): string {
   return `/login?returnTo=${encodeURIComponent(`/projects/new?template=${slug}`)}`;
@@ -54,11 +57,13 @@ function CategoryChip({
   count,
   active,
   onClick,
+  language,
 }: {
   label: string;
   count?: number;
   active: boolean;
   onClick: () => void;
+  language: string;
 }) {
   return (
     <button
@@ -68,33 +73,51 @@ function CategoryChip({
       className={classNames(
         'inline-flex min-h-[36px] items-center gap-1.5 rounded-full border px-4 text-[13px] font-semibold transition',
         active
-          ? 'border-[var(--ecode-accent)] bg-[var(--ecode-accent)] text-white'
+          ? 'border-[var(--ecode-accent)] bg-[var(--vc-action-primary-strong)] text-white'
           : 'border-[var(--ecode-border)] bg-[var(--ecode-surface)] text-[var(--ecode-text-secondary)] hover:border-[var(--ecode-accent)] hover:text-[var(--ecode-text)]',
       )}
     >
       {label}
       {typeof count === 'number' ? (
         <span className={classNames('text-[11px]', active ? 'text-white/80' : 'text-[var(--ecode-text-muted)]')}>
-          {count}
+          {formatPublicGalleryNumber(language, count)}
         </span>
       ) : null}
     </button>
   );
 }
 
-function ProjectStat({ icon, value, label }: { icon: React.ReactNode; value: number; label: string }) {
+function ProjectStat({
+  icon,
+  value,
+  label,
+  language,
+}: {
+  icon: React.ReactNode;
+  value: number;
+  label: string;
+  language: string;
+}) {
   return (
     <span
       className="inline-flex items-center gap-1 text-[12px] text-[var(--ecode-text-muted)]"
-      title={`${value.toLocaleString()} ${label}`}
+      title={`${formatPublicGalleryNumber(language, value)} ${label}`}
     >
       {icon}
-      {formatCount(value)}
+      {formatPublicGalleryNumber(language, value, true)}
     </span>
   );
 }
 
-function ExploreProjectCard({ project }: { project: PublicExploreProject }) {
+function ExploreProjectCard({
+  project,
+  copy,
+  language,
+}: {
+  project: PublicExploreProject;
+  copy: PublicGalleryCopy;
+  language: string;
+}) {
   return (
     <Link
       to={projectReturnTo(project.slug)}
@@ -122,18 +145,35 @@ function ExploreProjectCard({ project }: { project: PublicExploreProject }) {
               key={tag}
               className="rounded-full bg-[var(--ecode-background)] px-2 py-0.5 text-[11px] text-[var(--ecode-text-muted)]"
             >
-              {tag}
+              {getPublicTemplateTagLabel(tag, language)}
             </span>
           ))}
         </div>
       ) : null}
 
       <div className="mt-4 flex items-center justify-between border-t border-[var(--ecode-border)] pt-3">
-        <span className="truncate text-[12px] text-[var(--ecode-text-muted)]">by {project.author}</span>
+        <span className="min-w-0 break-words text-[12px] text-[var(--ecode-text-muted)]">
+          {formatPublicGalleryCopy(copy['publicGallery.card.author'], { author: project.author })}
+        </span>
         <span className="flex items-center gap-3">
-          <ProjectStat icon={<Star className="h-3.5 w-3.5" aria-hidden />} value={project.stars} label="stars" />
-          <ProjectStat icon={<GitFork className="h-3.5 w-3.5" aria-hidden />} value={project.forks} label="forks" />
-          <ProjectStat icon={<Play className="h-3.5 w-3.5" aria-hidden />} value={project.runs} label="runs" />
+          <ProjectStat
+            icon={<Star className="h-3.5 w-3.5" aria-hidden />}
+            value={project.stars}
+            label={copy[`publicGallery.stat.stars_${project.stars === 1 ? 'one' : 'other'}`]}
+            language={language}
+          />
+          <ProjectStat
+            icon={<GitFork className="h-3.5 w-3.5" aria-hidden />}
+            value={project.forks}
+            label={copy[`publicGallery.stat.forks_${project.forks === 1 ? 'one' : 'other'}`]}
+            language={language}
+          />
+          <ProjectStat
+            icon={<Play className="h-3.5 w-3.5" aria-hidden />}
+            value={project.runs}
+            label={copy[`publicGallery.stat.runs_${project.runs === 1 ? 'one' : 'other'}`]}
+            language={language}
+          />
         </span>
       </div>
     </Link>
@@ -141,6 +181,9 @@ function ExploreProjectCard({ project }: { project: PublicExploreProject }) {
 }
 
 export function ExploreMarketingPage({ projects, categories }: ExplorePageProps) {
+  const { i18n } = useTranslation();
+  const language = i18n.resolvedLanguage ?? i18n.language;
+  const copy = getPublicGalleryCopy(language);
   const [searchParams, setSearchParams] = useSearchParams();
   const [query, setQuery] = useState(searchParams.get('q') ?? '');
   const activeCategory = (searchParams.get('category') ?? 'all').trim().toLowerCase();
@@ -211,11 +254,13 @@ export function ExploreMarketingPage({ projects, categories }: ExplorePageProps)
         return true;
       }
 
-      return [project.name, project.description, project.categoryName, project.language, ...project.tags]
+      const searchableTags = project.tags.flatMap((tag) => [tag, getPublicTemplateTagLabel(tag, language)]);
+
+      return [project.name, project.description, project.categoryName, project.language, ...searchableTags]
         .filter(Boolean)
         .some((value) => value.toLowerCase().includes(normalizedQuery));
     });
-  }, [projects, activeCategory, normalizedQuery]);
+  }, [projects, activeCategory, normalizedQuery, language]);
 
   const isFiltering = Boolean(normalizedQuery) || activeCategory !== 'all';
   const noMatches = filteredProjects.length === 0;
@@ -230,21 +275,27 @@ export function ExploreMarketingPage({ projects, categories }: ExplorePageProps)
             <div className="max-w-4xl">
               <span className="inline-flex items-center gap-2 rounded-full border border-[var(--ecode-border)] bg-[var(--ecode-surface)] px-4 py-2 text-[13px] font-semibold uppercase tracking-[0.24em] text-[var(--ecode-accent)]">
                 <Sparkles className="h-5 w-5" aria-hidden />
-                Explore
+                {copy['publicGallery.explore.badge']}
               </span>
-              <h1 className="mt-8 max-w-4xl mkt-h1 text-[var(--ecode-text)]">
-                Discover what the E-Code community is building
-              </h1>
+              <h1 className="mt-8 max-w-4xl mkt-h1 text-[var(--ecode-text)]">{copy['publicGallery.explore.title']}</h1>
               <p className="mt-6 max-w-3xl mkt-lead text-[var(--ecode-text-secondary)]">
-                Browse real, production-ready E-Code projects. Fork one to open the preserved IDE with typed code,
-                preview and deployment workflows already wired up.
+                {copy['publicGallery.explore.description']}
               </p>
             </div>
             <div className="mt-12 grid gap-4 sm:grid-cols-3">
               {[
-                { label: 'Public projects', value: projects.length.toString() },
-                { label: 'Categories', value: categories.length.toString() },
-                { label: 'Fork-ready', value: '100%' },
+                {
+                  label: copy['publicGallery.explore.metric.publicProjects'],
+                  value: formatPublicGalleryNumber(language, projects.length),
+                },
+                {
+                  label: copy['publicGallery.explore.metric.categories'],
+                  value: formatPublicGalleryNumber(language, categories.length),
+                },
+                {
+                  label: copy['publicGallery.explore.metric.forkReady'],
+                  value: formatPublicGalleryPercent(language, 1),
+                },
               ].map((metric) => (
                 <div
                   key={metric.label}
@@ -263,7 +314,7 @@ export function ExploreMarketingPage({ projects, categories }: ExplorePageProps)
         <section className="container-responsive py-16 sm:py-24">
           <div className="flex flex-col gap-4">
             <label className="relative block max-w-xl">
-              <span className="sr-only">Search projects</span>
+              <span className="sr-only">{copy['publicGallery.explore.searchLabel']}</span>
               <Search
                 className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--ecode-text-muted)]"
                 aria-hidden
@@ -271,7 +322,7 @@ export function ExploreMarketingPage({ projects, categories }: ExplorePageProps)
               <input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search projects, stacks or tags..."
+                placeholder={copy['publicGallery.explore.searchPlaceholder']}
                 className="min-h-[48px] w-full rounded-md border border-[var(--ecode-border)] bg-[var(--ecode-surface)] px-11 text-[15px] text-[var(--ecode-text)] outline-none transition placeholder:text-[var(--ecode-text-muted)] focus:border-[var(--ecode-accent)]"
                 data-testid="input-search-explore"
               />
@@ -279,7 +330,7 @@ export function ExploreMarketingPage({ projects, categories }: ExplorePageProps)
                 <button
                   type="button"
                   onClick={() => setQuery('')}
-                  aria-label="Clear search"
+                  aria-label={copy['publicGallery.explore.clearSearch']}
                   className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-[var(--ecode-text-muted)] transition hover:text-[var(--ecode-text)]"
                 >
                   <X className="h-4 w-4" aria-hidden />
@@ -287,8 +338,17 @@ export function ExploreMarketingPage({ projects, categories }: ExplorePageProps)
               ) : null}
             </label>
 
-            <div className="flex flex-wrap gap-2" role="group" aria-label="Filter projects by category">
-              <CategoryChip label="All" active={activeCategory === 'all'} onClick={() => setCategory('all')} />
+            <div
+              className="flex flex-wrap gap-2"
+              role="group"
+              aria-label={copy['publicGallery.explore.categoryFilter']}
+            >
+              <CategoryChip
+                label={copy['publicGallery.explore.all']}
+                active={activeCategory === 'all'}
+                onClick={() => setCategory('all')}
+                language={language}
+              />
               {categories.map((category) => (
                 <CategoryChip
                   key={category.slug}
@@ -296,6 +356,7 @@ export function ExploreMarketingPage({ projects, categories }: ExplorePageProps)
                   count={category.count}
                   active={activeCategory === category.slug.toLowerCase()}
                   onClick={() => setCategory(activeCategory === category.slug.toLowerCase() ? 'all' : category.slug)}
+                  language={language}
                 />
               ))}
             </div>
@@ -308,10 +369,12 @@ export function ExploreMarketingPage({ projects, categories }: ExplorePageProps)
             >
               <SearchX className="mx-auto h-8 w-8 text-[var(--ecode-text-muted)]" aria-hidden />
               <h3 className="mt-4 text-lg font-bold text-[var(--ecode-text)]">
-                {normalizedQuery ? `No projects match “${query.trim()}”` : 'No projects in this category yet'}
+                {normalizedQuery
+                  ? formatPublicGalleryCopy(copy['publicGallery.explore.emptyQuery'], { query: query.trim() })
+                  : copy['publicGallery.explore.emptyCategory']}
               </h3>
               <p className="mx-auto mt-2 max-w-lg text-[13px] leading-6 text-[var(--ecode-text-secondary)]">
-                Try a different search or category, or clear the filters to browse every project.
+                {copy['publicGallery.explore.emptyDescription']}
               </p>
               {isFiltering ? (
                 <div className="mt-5">
@@ -320,7 +383,7 @@ export function ExploreMarketingPage({ projects, categories }: ExplorePageProps)
                     onClick={clearFilters}
                     className="inline-flex min-h-[44px] items-center justify-center rounded-md border border-[var(--ecode-border)] bg-transparent px-5 py-3 text-[13px] font-semibold text-[var(--ecode-text)] transition hover:border-[var(--ecode-accent)] hover:text-[var(--ecode-accent)]"
                   >
-                    Clear filters
+                    {copy['publicGallery.explore.clearFilters']}
                   </button>
                 </div>
               ) : null}
@@ -329,13 +392,15 @@ export function ExploreMarketingPage({ projects, categories }: ExplorePageProps)
             <>
               {isFiltering ? (
                 <p className="mt-6 text-[13px] text-[var(--ecode-text-muted)]" aria-live="polite">
-                  {filteredProjects.length} {filteredProjects.length === 1 ? 'project matches' : 'projects match'} your
-                  filters.
+                  {formatPublicGalleryCopy(
+                    copy[`publicGallery.explore.matches_${filteredProjects.length === 1 ? 'one' : 'other'}`],
+                    { count: formatPublicGalleryNumber(language, filteredProjects.length) },
+                  )}
                 </p>
               ) : null}
               <div className={classNames('grid gap-5 md:grid-cols-2 xl:grid-cols-3', isFiltering ? 'mt-5' : 'mt-10')}>
                 {filteredProjects.map((project) => (
-                  <ExploreProjectCard key={project.id} project={project} />
+                  <ExploreProjectCard key={project.id} project={project} copy={copy} language={language} />
                 ))}
               </div>
             </>

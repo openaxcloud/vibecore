@@ -20,6 +20,12 @@ const skipBuild = process.argv.includes('--skip-build');
 const portArgument = process.argv.find((argument) => argument.startsWith('--port='))?.split('=')[1];
 const defaultPort = portArgument ? Number.parseInt(portArgument, 10) : 43_100;
 
+function sanitizeEvidenceLog(value: string): string {
+  return value
+    .replaceAll(rootDirectory, '<workspace>')
+    .replace(/^\s*➜\s+Network:\s+http:\/\/[^\n]+$/gmu, '  ➜  Network: <redacted local address>');
+}
+
 interface ValidationResult {
   id: string;
   contentHash: string;
@@ -192,9 +198,9 @@ async function validateGalleryApp(app: GalleryDemoAppDefinition, port: number) {
           thumbnailPath: path.relative(rootDirectory, thumbnailPath),
           textLength: probe.textLength,
           visualElements: probe.visualElements,
-          installLogTail: installLogTail.slice(-4_000),
-          buildLogTail: buildLogTail.slice(-4_000),
-          previewLogTail: preview.validationLogs.join('').slice(-4_000),
+          installLogTail: sanitizeEvidenceLog(installLogTail.slice(-4_000)),
+          buildLogTail: sanitizeEvidenceLog(buildLogTail.slice(-4_000)),
+          previewLogTail: sanitizeEvidenceLog(preview.validationLogs.join('').slice(-4_000)),
         } satisfies ValidationResult;
       } finally {
         await page.close();

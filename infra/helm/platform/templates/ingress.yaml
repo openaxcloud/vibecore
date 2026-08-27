@@ -29,6 +29,30 @@ metadata:
     nginx.ingress.kubernetes.io/session-cookie-path: "/"
     nginx.ingress.kubernetes.io/session-cookie-max-age: "3600"
     nginx.ingress.kubernetes.io/session-cookie-samesite: "Lax"
+{{- if .Values.global.marketingWwwRedirect }}
+    # `www.<hôte>` -> `<hôte>`, en préservant chemin ET query.
+    #
+    # Pourquoi cette annotation et pas `permanent-redirect` : mesuré sur
+    # ingress-nginx 1.15.1 (la version de prod), `permanent-redirect` REFUSE
+    # `$request_uri` — le webhook d'admission rejette l'Ingress
+    # (« annotation ... contains invalid value ») — et avec une URL nue il perd
+    # le chemin : /pricing atterrit sur la racine. `from-to-www-redirect`
+    # préserve les deux. Les snippets nginx, qui auraient permis un `return 301`
+    # sur mesure, sont désactivés depuis ingress-nginx 1.9
+    # (`allow-snippet-annotations: false`, CVE-2021-25742) et le contrôleur de
+    # prod n'a pas d'override.
+    #
+    # ⚠️ Le code renvoyé est **308**, pas 301 : c'est le défaut du contrôleur
+    # (`http-redirect-code`, non défini ici). 308 est un permanent au même titre
+    # que 301 pour les navigateurs et l'indexation, à ceci près qu'il préserve la
+    # méthode HTTP. Le passer à 301 se ferait par la ConfigMap du contrôleur,
+    # donc GLOBALEMENT sur toutes les redirections — changement volontairement
+    # écarté ici.
+    #
+    # Le `Location` contient `:443` (`https://<hôte>:443/chemin`) — cosmétique,
+    # valide, les navigateurs le suivent sans broncher.
+    nginx.ingress.kubernetes.io/from-to-www-redirect: "true"
+{{- end }}
   labels:
     app.kubernetes.io/part-of: vibecore
 spec:
@@ -44,6 +68,14 @@ spec:
         {{- end }}
         {{- with .Values.global.workspaceManagerDomain }}
         - {{ . | quote }}
+        {{- end }}
+        {{- if .Values.global.marketingWwwRedirect }}
+        {{- with .Values.global.marketingDomain }}
+        # La redirection s'opère APRÈS la terminaison TLS : sans `www` dans le
+        # certificat, le navigateur se prend une erreur de certificat avant même
+        # de voir le 308. L'hôte doit donc figurer ici.
+        - {{ printf "www.%s" . | quote }}
+        {{- end }}
         {{- end }}
       secretName: {{ .Values.ingress.tlsSecretName }}
   rules:
@@ -110,6 +142,14 @@ metadata:
     cert-manager.io/cluster-issuer: {{ .Values.ingress.issuerName | quote }}
     # Match the -app limit so uploads to a running preview app aren't 413'd at 1 MB.
     nginx.ingress.kubernetes.io/proxy-body-size: {{ .Values.ingress.proxyBodySize | default "26m" | quote }}
+    # The proxy answers a sleeping / booting / wedged app with its own branded
+    # holding page inside SERVER_DEPLOY_WAKE_WAIT_MS + the upstream budget. State
+    # the read timeout explicitly (rather than inheriting nginx's default) so the
+    # relationship between the two is deliberate: nginx must outlast the proxy,
+    # or the browser gets a raw `504 Gateway Time-out` instead — proven live
+    # 2026-08-06 (BUG-DEPLOY-003).
+    nginx.ingress.kubernetes.io/proxy-read-timeout: {{ .Values.ingress.previewProxyReadTimeout | default "75" | quote }}
+    nginx.ingress.kubernetes.io/proxy-send-timeout: {{ .Values.ingress.previewProxyReadTimeout | default "75" | quote }}
   labels:
     app.kubernetes.io/part-of: vibecore
 spec:

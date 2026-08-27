@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { awaitTransaction } from '~/lib/hooks/awaitTransaction';
+import { persistenceRuntimeEn } from '~/lib/i18n/catalogs/persistence-runtime';
 
 /**
  * Minimal fake of the IDBTransaction surface awaitTransaction touches.
@@ -61,7 +62,7 @@ describe('awaitTransaction', () => {
 
     tx.onabort?.();
 
-    await expect(promise).rejects.toThrow('Transaction aborted');
+    await expect(promise).rejects.toThrow(persistenceRuntimeEn['persistence.error.transactionAborted']);
   });
 
   it('wires all three terminal handlers', () => {

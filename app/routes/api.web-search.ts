@@ -1,6 +1,12 @@
 import { lookup } from 'node:dns/promises';
 import { data as json } from 'react-router';
 import type { ActionFunctionArgs } from 'react-router';
+import {
+  formatApiRuntimeRoutesCopy,
+  getApiRuntimeRoutesCopy,
+  type ApiRuntimeRoutesKey,
+} from '~/lib/i18n/catalogs/api-runtime-routes';
+import { localeResponseHeaders, resolveRequestLocale } from '~/lib/i18n/request-locale';
 import { collectCappedBody } from '~/lib/web-search-body';
 import { isAllowedUrl, isPrivateIp } from '~/utils/url';
 
@@ -11,7 +17,6 @@ const FETCH_HEADERS = {
   'User-Agent':
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
   Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-  'Accept-Language': 'en-US,en;q=0.5',
 };
 
 function extractTitle(html: string): string {
@@ -56,9 +61,28 @@ function extractTextContent(html: string): string {
  * public hostname that maps to a private/link-local/loopback IP (DNS rebinding,
  * or a redirect into the metadata server) is blocked.
  */
-async function assertHostAllowed(rawUrl: string): Promise<{ ok: true } | { ok: false; error: string }> {
+type WebFetchErrorCode =
+  | 'FETCH_FAILED'
+  | 'HOST_UNRESOLVED'
+  | 'INTERNAL_ADDRESS'
+  | 'PAGE_TOO_LARGE'
+  | 'TIMEOUT'
+  | 'TOO_MANY_REDIRECTS'
+  | 'URL_NOT_ALLOWED';
+
+const WEB_FETCH_ERROR_KEYS: Readonly<Record<WebFetchErrorCode, ApiRuntimeRoutesKey>> = {
+  FETCH_FAILED: 'apiRuntime.web.fetchFailed',
+  HOST_UNRESOLVED: 'apiRuntime.web.hostUnresolved',
+  INTERNAL_ADDRESS: 'apiRuntime.web.internalAddress',
+  PAGE_TOO_LARGE: 'apiRuntime.web.pageTooLarge',
+  TIMEOUT: 'apiRuntime.web.timeout',
+  TOO_MANY_REDIRECTS: 'apiRuntime.web.tooManyRedirects',
+  URL_NOT_ALLOWED: 'apiRuntime.web.urlNotAllowed',
+};
+
+async function assertHostAllowed(rawUrl: string): Promise<{ ok: true } | { ok: false; code: WebFetchErrorCode }> {
   if (!isAllowedUrl(rawUrl)) {
-    return { ok: false, error: 'URL is not allowed. Only public HTTP/HTTPS URLs are accepted.' };
+    return { ok: false, code: 'URL_NOT_ALLOWED' };
   }
 
   const hostname = new URL(rawUrl).hostname;
@@ -67,10 +91,10 @@ async function assertHostAllowed(rawUrl: string): Promise<{ ok: true } | { ok: f
     const records = await lookup(hostname, { all: true });
 
     if (records.length === 0 || records.some((record) => isPrivateIp(record.address))) {
-      return { ok: false, error: 'URL resolves to a disallowed (internal) address.' };
+      return { ok: false, code: 'INTERNAL_ADDRESS' };
     }
   } catch {
-    return { ok: false, error: 'Could not resolve the URL host.' };
+    return { ok: false, code: 'HOST_UNRESOLVED' };
   }
 
   return { ok: true };
@@ -80,7 +104,7 @@ const MAX_FETCH_BYTES = 5 * 1024 * 1024;
 
 type SafeFetchResult =
   | { ok: true; status: number; statusText: string; contentType: string; html: string }
-  | { ok: false; status: number; error: string };
+  | { ok: false; status: number; code: WebFetchErrorCode };
 
 /**
  * One HTTP(S) GET with connect-time DNS validation. node:* modules are imported
@@ -97,6 +121,7 @@ type SafeFetchResult =
  */
 async function httpGetOnce(
   targetUrl: string,
+  acceptLanguage: string,
 ): Promise<
   | { kind: 'redirect'; location: string }
   | { kind: 'body'; status: number; statusText: string; contentType: string; html: string }
@@ -122,7 +147,7 @@ async function httpGetOnce(
       const list = Array.isArray(addresses) ? addresses : [];
 
       if (list.length === 0 || list.some((entry) => isPrivateIp(entry.address))) {
-        callback(Object.assign(new Error('Resolved to a disallowed (internal) address'), { code: 'SSRF_BLOCKED' }));
+        callback(Object.assign(new Error(), { code: 'SSRF_BLOCKED' }));
         return;
       }
 
@@ -135,7 +160,12 @@ async function httpGetOnce(
 
     const req = requestImpl(
       targetUrl,
-      { method: 'GET', headers: FETCH_HEADERS, lookup: validatingLookup as never, timeout: 10_000 },
+      {
+        method: 'GET',
+        headers: { ...FETCH_HEADERS, 'Accept-Language': acceptLanguage },
+        lookup: validatingLookup as never,
+        timeout: 10_000,
+      },
       (res) => {
         const status = res.statusCode ?? 0;
         const location = res.headers.location;
@@ -174,7 +204,7 @@ async function httpGetOnce(
       },
     );
 
-    req.on('timeout', () => req.destroy(Object.assign(new Error('timeout'), { name: 'TimeoutError' })));
+    req.on('timeout', () => req.destroy(Object.assign(new Error(), { name: 'TimeoutError' })));
     req.on('error', reject);
     req.end();
   });
@@ -185,34 +215,36 @@ async function httpGetOnce(
  * against the SSRF allow-list (scheme/host) AND connect-time-validated (resolved
  * IP), closing both the open-redirect and DNS-rebinding windows.
  */
-async function safeFetch(initialUrl: string): Promise<SafeFetchResult> {
+async function safeFetch(initialUrl: string, acceptLanguage: string): Promise<SafeFetchResult> {
   let currentUrl = initialUrl;
 
   for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
     const guard = await assertHostAllowed(currentUrl);
 
     if (!guard.ok) {
-      return { ok: false, status: 400, error: guard.error };
+      return { ok: false, status: 400, code: guard.code };
     }
 
     let result;
 
     try {
-      result = await httpGetOnce(currentUrl);
+      result = await httpGetOnce(currentUrl, acceptLanguage);
     } catch (error) {
       if ((error as { code?: string })?.code === 'SSRF_BLOCKED') {
-        return { ok: false, status: 400, error: 'URL resolves to a disallowed (internal) address.' };
+        return { ok: false, status: 400, code: 'INTERNAL_ADDRESS' };
       }
 
       if ((error as Error)?.name === 'TimeoutError') {
-        return { ok: false, status: 504, error: 'Request timed out after 10 seconds' };
+        return { ok: false, status: 504, code: 'TIMEOUT' };
       }
 
-      return { ok: false, status: 502, error: (error as Error)?.message ?? 'Failed to fetch URL' };
+      console.error('Web URL fetch transport error:', error);
+
+      return { ok: false, status: 502, code: 'FETCH_FAILED' };
     }
 
     if (result.kind === 'too-large') {
-      return { ok: false, status: 413, error: 'Page too large' };
+      return { ok: false, status: 413, code: 'PAGE_TOO_LARGE' };
     }
 
     if (result.kind === 'redirect') {
@@ -229,33 +261,69 @@ async function safeFetch(initialUrl: string): Promise<SafeFetchResult> {
     };
   }
 
-  return { ok: false, status: 502, error: 'Too many redirects' };
+  return { ok: false, status: 502, code: 'TOO_MANY_REDIRECTS' };
 }
 
 export async function action({ request }: ActionFunctionArgs) {
+  const localeResolution = resolveRequestLocale(request);
+  const copy = getApiRuntimeRoutesCopy(localeResolution.language);
+
+  const localizedJson = (data: unknown, init?: Parameters<typeof json>[1]) => {
+    const responseInit = typeof init === 'number' ? { status: init } : init;
+
+    return json(data, {
+      ...responseInit,
+      headers: localeResponseHeaders(request, localeResolution),
+    });
+  };
+
   if (request.method !== 'POST') {
-    return json({ error: 'Method not allowed' }, { status: 405 });
+    return localizedJson(
+      { error: copy['apiRuntime.generic.methodNotAllowed'], code: 'METHOD_NOT_ALLOWED' },
+      { status: 405 },
+    );
   }
 
   try {
-    const { url } = (await request.json()) as { url?: string };
+    let payload: unknown;
 
-    if (!url || typeof url !== 'string') {
-      return json({ error: 'URL is required' }, { status: 400 });
+    try {
+      payload = await request.json();
+    } catch {
+      return localizedJson({ error: copy['apiRuntime.generic.invalidJson'], code: 'INVALID_JSON' }, { status: 400 });
     }
 
-    const fetched = await safeFetch(url);
+    const { url } = (payload ?? {}) as { url?: string };
+
+    if (!url || typeof url !== 'string') {
+      return localizedJson({ error: copy['apiRuntime.web.urlRequired'], code: 'URL_REQUIRED' }, { status: 400 });
+    }
+
+    const acceptLanguage = localeResolution.language === 'fr' ? 'fr-FR,fr;q=0.9,en;q=0.5' : 'en-US,en;q=0.9';
+    const fetched = await safeFetch(url, acceptLanguage);
 
     if (!fetched.ok) {
-      return json({ error: fetched.error }, { status: fetched.status });
+      return localizedJson(
+        { error: copy[WEB_FETCH_ERROR_KEYS[fetched.code]], code: fetched.code },
+        { status: fetched.status },
+      );
     }
 
     if (fetched.status < 200 || fetched.status >= 300) {
-      return json({ error: `Failed to fetch URL: ${fetched.status} ${fetched.statusText}` }, { status: 502 });
+      return localizedJson(
+        {
+          error: formatApiRuntimeRoutesCopy(copy['apiRuntime.web.httpFailure'], { status: fetched.status }),
+          code: 'UPSTREAM_HTTP_ERROR',
+        },
+        { status: 502 },
+      );
     }
 
     if (!fetched.contentType.includes('text/html') && !fetched.contentType.includes('text/plain')) {
-      return json({ error: 'URL must point to an HTML or text page' }, { status: 400 });
+      return localizedJson(
+        { error: copy['apiRuntime.web.unsupportedContent'], code: 'UNSUPPORTED_CONTENT_TYPE' },
+        { status: 400 },
+      );
     }
 
     const html = fetched.html;
@@ -264,7 +332,7 @@ export async function action({ request }: ActionFunctionArgs) {
     const description = extractMetaDescription(html);
     const content = extractTextContent(html);
 
-    return json({
+    return localizedJson({
       success: true,
       data: {
         title,
@@ -275,11 +343,11 @@ export async function action({ request }: ActionFunctionArgs) {
     });
   } catch (error) {
     if (error instanceof DOMException && error.name === 'TimeoutError') {
-      return json({ error: 'Request timed out after 10 seconds' }, { status: 504 });
+      return localizedJson({ error: copy['apiRuntime.web.timeout'], code: 'TIMEOUT' }, { status: 504 });
     }
 
     console.error('Web search error:', error);
 
-    return json({ error: error instanceof Error ? error.message : 'Failed to fetch URL' }, { status: 500 });
+    return localizedJson({ error: copy['apiRuntime.web.fetchFailed'], code: 'FETCH_FAILED' }, { status: 500 });
   }
 }

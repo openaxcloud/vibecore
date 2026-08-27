@@ -1,3 +1,4 @@
+import { appPublicEnglish } from './app-public-copy.js';
 import type { ApiStore } from './store.js';
 
 /*
@@ -56,8 +57,7 @@ export async function reapStaleDeployments(
           {
             timestamp: now.toISOString(),
             level: 'error' as const,
-            message:
-              'Build interrupted — please retry. The deployment exceeded the maximum build time without completing.',
+            message: appPublicEnglish('DEPLOYMENT_BUILD_TIMEOUT'),
           },
         ],
       });

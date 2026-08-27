@@ -1,13 +1,38 @@
 import { Users, Rocket, FileCode2, TrendingUp } from 'lucide-react';
+import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
+import {
+  getMarketingLandingRemainingCopy,
+  type MarketingLandingRemainingKey,
+} from '~/lib/i18n/catalogs/marketing-landing-remaining';
 
-const stats = [
-  { label: 'Active Developers', value: '2M+', icon: <Users className="h-5 w-5" /> },
-  { label: 'Apps Deployed', value: '10M+', icon: <Rocket className="h-5 w-5" /> },
-  { label: 'Lines of Code', value: '5B+', icon: <FileCode2 className="h-5 w-5" /> },
-  { label: 'Uptime SLA', value: '99.99%', icon: <TrendingUp className="h-5 w-5" /> },
+const stats: Array<{ labelKey: MarketingLandingRemainingKey; value: string; icon: ReactNode }> = [
+  {
+    labelKey: 'marketingLanding.stats.activeDevelopers',
+    value: '2M+',
+    icon: <Users className="h-5 w-5" aria-hidden />,
+  },
+  {
+    labelKey: 'marketingLanding.stats.appsDeployed',
+    value: '10M+',
+    icon: <Rocket className="h-5 w-5" aria-hidden />,
+  },
+  {
+    labelKey: 'marketingLanding.stats.linesOfCode',
+    value: '5B+',
+    icon: <FileCode2 className="h-5 w-5" aria-hidden />,
+  },
+  {
+    labelKey: 'marketingLanding.stats.uptimeSla',
+    value: '99.99%',
+    icon: <TrendingUp className="h-5 w-5" aria-hidden />,
+  },
 ];
 
 export default function LandingStats() {
+  const { i18n } = useTranslation();
+  const copy = getMarketingLandingRemainingCopy(i18n.resolvedLanguage ?? i18n.language);
+
   return (
     <section
       className="py-20 bg-gradient-to-b from-[var(--ecode-background)] to-[var(--ecode-surface-tertiary)]"
@@ -34,8 +59,11 @@ export default function LandingStats() {
               >
                 {stat.value}
               </div>
-              <div className="text-[13px] text-[var(--ecode-text-muted)] mt-1" data-testid={`text-stat-label-${index}`}>
-                {stat.label}
+              <div
+                className="mt-1 break-words text-[13px] leading-relaxed text-[var(--ecode-text-muted)]"
+                data-testid={`text-stat-label-${index}`}
+              >
+                {copy[stat.labelKey]}
               </div>
             </div>
           ))}

@@ -1,4 +1,5 @@
-import { apiErrorMessage, apiRequest, json, type EnterpriseActionArgs } from '~/lib/enterprise-api.server';
+import { apiRequest, json, type EnterpriseActionArgs } from '~/lib/enterprise-api.server';
+import { remainingApiErrorResponse } from '~/lib/i18n/catalogs/remaining-api-routes';
 
 /*
  * P11 preview-ready trigger (client half). The IDE posts here once a project's
@@ -10,14 +11,14 @@ import { apiErrorMessage, apiRequest, json, type EnterpriseActionArgs } from '~/
  */
 export async function action({ request, params }: EnterpriseActionArgs) {
   if (!params.projectId) {
-    return json({ ok: false, error: 'Project not found' }, { status: 404 });
+    return remainingApiErrorResponse(request, 'PROJECT_NOT_FOUND', 404, { extra: { ok: false } });
   }
 
   const form = await request.formData().catch(() => null);
   const url = form?.get('url');
 
   if (typeof url !== 'string' || !url) {
-    return json({ ok: false, error: 'A preview url is required.' }, { status: 400 });
+    return remainingApiErrorResponse(request, 'THUMBNAIL_PREVIEW_URL_REQUIRED', 400, { extra: { ok: false } });
   }
 
   try {
@@ -35,6 +36,6 @@ export async function action({ request, params }: EnterpriseActionArgs) {
       return json({ ok: false, enabled: false }, { status: 404 });
     }
 
-    return json({ ok: false, error: await apiErrorMessage(error, 'Thumbnail refresh is unavailable.') }, { status });
+    return remainingApiErrorResponse(request, 'THUMBNAIL_REFRESH_FAILED', status, { extra: { ok: false } });
   }
 }

@@ -106,8 +106,46 @@ const TRANSIENT_RUNTIME_ERROR_PATTERN =
 
 const ANSI_ESCAPE_SEQUENCE = /\x1B\[[0-?]*[ -/]*[@-~]/g;
 
+/*
+ * A dev-server BUILD error names the module it failed on. Unlike a runtime
+ * exception these are *fixable*: the moment the user repairs the file, the dev
+ * server transforms it successfully and the error is dead. `workspaceLogs` is an
+ * append-only ring buffer, though, so the error line stays in it forever — which
+ * left Problems showing a red error count over already-fixed code until the page
+ * was reloaded (audit cluster D, BUG-IDE-003). Recognise the error and its
+ * recovery so a later success can retire the earlier failure.
+ */
+const BUILD_ERROR_FILE_PATTERN =
+  /(?:pre-transform error|transform failed|internal server error|failed to (?:load|resolve|transform))[^\n]*?((?:\/|\.{0,2}\/)?[\w@][\w@./-]*\.[a-z]{1,6})\b/i;
+
+/*
+ * Vite announces a SUCCESSFUL re-transform of a module as an hmr update / page
+ * reload for that path. Both carry the same module id the failure did, so they
+ * are the recovery signal for `BUILD_ERROR_FILE_PATTERN`.
+ */
+const BUILD_RECOVERY_FILE_PATTERN =
+  /\b(?:hmr update|page reload|hot updated)\b[^\n]*?((?:\/|\.{0,2}\/)?[\w@][\w@./-]*\.[a-z]{1,6})\b/i;
+
 function normalizeRuntimeLine(line: string) {
   return line.replace(ANSI_ESCAPE_SEQUENCE, '').replace(/\s+/g, ' ').trim();
+}
+
+/*
+ * Module ids appear with different prefixes for the same file — Vite logs the
+ * absolute `/workspace/src/App.tsx` on a transform error but the served id
+ * `/src/App.tsx` on the hmr update. Compare on the trailing path so the recovery
+ * still matches the failure it resolves.
+ */
+function moduleKey(filePath: string) {
+  return filePath.replace(/^.*?((?:src|app|pages|components|lib)\/)/i, '$1').replace(/^\/+/, '');
+}
+
+function buildErrorModule(line: string) {
+  return BUILD_ERROR_FILE_PATTERN.exec(line)?.[1];
+}
+
+function buildRecoveryModule(line: string) {
+  return BUILD_RECOVERY_FILE_PATTERN.exec(line)?.[1];
 }
 
 function stableDiagnosticId(source: string, severity: DiagnosticSeverity, message: string) {
@@ -117,10 +155,28 @@ function stableDiagnosticId(source: string, severity: DiagnosticSeverity, messag
 export function buildRuntimeDiagnostics({
   workspaceError,
   workspaceLogs,
+  quotaWarning,
+  quotaUpgrade,
   previewLive = false,
 }: {
   workspaceError?: string | Error | null;
   workspaceLogs: string[];
+
+  /*
+   * Quota refusal (HTTP 429 QUOTA_EXCEEDED on workspace start) and its upgrade
+   * copy. Both were computed and stored, then rendered ONLY as a bare "!" glyph
+   * on a status-bar pill plus a `title` tooltip. Measured on the audit env: a
+   * project whose workspace start was refused showed « Aucun problème détecté ·
+   * 0 erreurs · 0 avertissements » with the word "quota" absent from the whole
+   * page, while the console carried the 429. A refusal the user cannot act on
+   * is indistinguishable from a product that is simply broken, so it belongs in
+   * Problems like any other blocking condition.
+   *
+   * Unlike a cold-start blip this is NOT transient: it stays until the user
+   * frees a workspace or upgrades.
+   */
+  quotaWarning?: string | null;
+  quotaUpgrade?: string | null;
 
   /*
    * When a forwarded port is genuinely serving the app, transient cold-start
@@ -132,6 +188,9 @@ export function buildRuntimeDiagnostics({
 }) {
   const now = Date.now();
   const diagnosticsById = new Map<string, Diagnostic>();
+
+  // moduleKey -> ids of the build errors currently blamed on that module.
+  const buildErrorIdsByModule = new Map<string, Set<string>>();
 
   const addDiagnostic = (severity: DiagnosticSeverity, message: string, detail?: string) => {
     const normalizedMessage = normalizeRuntimeLine(message);
@@ -168,14 +227,49 @@ export function buildRuntimeDiagnostics({
       firstSeenAt: existing?.firstSeenAt ?? now,
       lastSeenAt: now,
     });
+
+    if (severity === 'error') {
+      const failedModule = buildErrorModule(normalizedMessage);
+
+      if (failedModule) {
+        const key = moduleKey(failedModule);
+        const ids = buildErrorIdsByModule.get(key) ?? new Set<string>();
+        ids.add(id);
+        buildErrorIdsByModule.set(key, ids);
+      }
+    }
   };
 
   if (workspaceError) {
     addDiagnostic('error', workspaceError instanceof Error ? workspaceError.message : workspaceError);
   }
 
+  if (quotaWarning) {
+    addDiagnostic('error', quotaWarning, quotaUpgrade ?? undefined);
+  }
+
   for (const line of workspaceLogs) {
     const normalizedLine = normalizeRuntimeLine(line);
+
+    /*
+     * Retire build errors for a module as soon as the dev server reports a
+     * successful re-transform of it. Ordered scan, so only failures logged
+     * BEFORE the recovery are dropped — a module that breaks again after an
+     * hmr update re-adds its error on the next pass.
+     */
+    const recoveredModule = buildRecoveryModule(normalizedLine);
+
+    if (recoveredModule) {
+      const resolvedIds = buildErrorIdsByModule.get(moduleKey(recoveredModule));
+
+      if (resolvedIds) {
+        for (const resolvedId of resolvedIds) {
+          diagnosticsById.delete(resolvedId);
+        }
+
+        resolvedIds.clear();
+      }
+    }
 
     if (BLANK_PREVIEW_PATTERN.test(normalizedLine) || RUNTIME_ERROR_PATTERN.test(normalizedLine)) {
       addDiagnostic('error', normalizedLine);

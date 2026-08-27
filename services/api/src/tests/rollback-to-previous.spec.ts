@@ -101,19 +101,21 @@ describe('static rollback-to-previous (deterministic, fail-closed)', () => {
     const res = await app.inject({
       method: 'POST',
       url: `/projects/${projectId}/deployments/rollback-to-previous`,
-      headers: { authorization: `Bearer ${auth.token}` },
+      headers: { authorization: `Bearer ${auth.token}`, 'accept-language': 'fr-FR, en;q=0.8' },
       payload: { environment: 'preview' },
     });
 
     expect(res.statusCode).toBe(201);
     const body = res.json() as {
-      deployment: { id: string; status: string };
+      deployment: { id: string; status: string; logs: Array<{ message: string }> };
       restoredFromVersion: number;
       verifiedArtifactDigest: string;
     };
+    expect(res.headers['content-language']).toBe('fr');
     expect(body.restoredFromVersion).toBe(1);
     expect(body.verifiedArtifactDigest).toBe(v1.artifactDigest);
     expect(body.deployment.status).toBe('READY');
+    expect(body.deployment.logs.at(-1)?.message).toContain('Retour effectué vers la version v1');
 
     // The rollback deployment serves v1's bytes.
     const restoredHtml = await readFile(join(staticDeploymentSnapshotDir(body.deployment.id), 'index.html'), 'utf8');
@@ -133,12 +135,16 @@ describe('static rollback-to-previous (deterministic, fail-closed)', () => {
     const res = await app.inject({
       method: 'POST',
       url: `/projects/${projectId}/deployments/rollback-to-previous`,
-      headers: { authorization: `Bearer ${auth.token}` },
+      headers: { authorization: `Bearer ${auth.token}`, 'accept-language': 'fr' },
       payload: { environment: 'preview' },
     });
 
     expect(res.statusCode).toBe(409);
-    expect((res.json() as { code: string }).code).toBe('ROLLBACK_NO_PREVIOUS_MANIFEST');
+    expect(res.headers['content-language']).toBe('fr');
+    expect(res.json()).toMatchObject({
+      code: 'ROLLBACK_NO_PREVIOUS_MANIFEST',
+      error: 'Une seule version existe ; aucune version précédente n’est disponible pour le retour arrière.',
+    });
   });
 
   it('fails closed (409) when the previous artifact no longer matches its manifest', async () => {

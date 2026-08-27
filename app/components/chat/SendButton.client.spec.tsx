@@ -7,6 +7,10 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { SendButton } from './SendButton.client';
 
+vi.mock('react-i18next', () => ({
+  useTranslation: () => ({ i18n: { language: 'en', resolvedLanguage: 'en' } }),
+}));
+
 describe('<SendButton />', () => {
   afterEach(() => {
     cleanup();

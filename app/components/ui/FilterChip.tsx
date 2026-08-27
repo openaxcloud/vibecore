@@ -1,4 +1,6 @@
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
+import { formatClientAstResidualCopy, getClientAstResidualCopy } from '~/lib/i18n/catalogs/client-ast-residual';
 import { classNames } from '~/utils/classNames';
 
 interface FilterChipProps {
@@ -20,6 +22,13 @@ interface FilterChipProps {
   /** Optional icon to display before the label */
   icon?: string;
 
+  /**
+   * Disables the toggle button (clickable chips only). Used by scoped toggles
+   * whose target does not exist yet (e.g. Skills "Install to: Workspace"
+   * without a workspace).
+   */
+  disabled?: boolean;
+
   /** Additional class name */
   className?: string;
 }
@@ -38,7 +47,19 @@ const variants = {
  * buttons (aria-pressed) with the app's blue action accent when active, per
  * docs/DESIGN_ACCENTS.md.
  */
-export function FilterChip({ label, value, onClick, onRemove, active = false, icon, className }: FilterChipProps) {
+export function FilterChip({
+  label,
+  value,
+  onClick,
+  onRemove,
+  active = false,
+  icon,
+  disabled,
+  className,
+}: FilterChipProps) {
+  const { i18n } = useTranslation();
+  const copy = getClientAstResidualCopy(i18n.resolvedLanguage ?? i18n.language);
+
   const content = (
     <>
       {/* Icon */}
@@ -68,7 +89,7 @@ export function FilterChip({ label, value, onClick, onRemove, active = false, ic
             'ml-1 p-0.5 rounded-full hover:bg-bolt-elements-background-depth-3 dark:hover:bg-bolt-elements-background-depth-4 transition-colors',
             active ? 'text-inherit' : 'text-bolt-elements-textTertiary dark:text-bolt-elements-textTertiary-dark',
           )}
-          aria-label={`Remove ${label} filter`}
+          aria-label={formatClientAstResidualCopy(copy['clientAst.ui.filter.remove'], { label })}
         >
           <span className="i-ph:x w-3 h-3" />
         </button>
@@ -95,6 +116,7 @@ export function FilterChip({ label, value, onClick, onRemove, active = false, ic
         type="button"
         aria-pressed={active}
         onClick={onClick}
+        disabled={disabled}
         initial="initial"
         animate="animate"
         exit="exit"
@@ -103,6 +125,7 @@ export function FilterChip({ label, value, onClick, onRemove, active = false, ic
         className={classNames(
           chipClasses,
           'cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]',
+          'disabled:cursor-not-allowed disabled:opacity-50',
         )}
         style={activeBackground}
       >

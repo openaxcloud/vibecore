@@ -10,6 +10,7 @@ import {
   setProjectIdeMemorySaveDebounceMsForTest,
   setProjectIdeMemoryUnloadingForTest,
 } from './projectIdeMemory';
+import { persistenceRuntimeEn } from '~/lib/i18n/catalogs/persistence-runtime';
 
 function makeHeaders(entries: Record<string, string> = {}) {
   const normalized = new Map<string, string>();
@@ -645,7 +646,7 @@ describe('project IDE memory save debouncing', () => {
     await vi.advanceTimersByTimeAsync(4_000);
     await vi.advanceTimersByTimeAsync(12_000);
 
-    await expect(observed).resolves.toMatch(/Failed to save project IDE memory/);
+    await expect(observed).resolves.toBe(persistenceRuntimeEn['persistence.ide.saveFailed'].replace('{status}', '400'));
   });
 
   it('keeps the chat REPLACE flag on the coalesced PUT when a later ordinary save lands in the debounce window', async () => {
@@ -815,6 +816,59 @@ describe('project IDE memory ETag / If-Match', () => {
     const restored = await getProjectIdeMemory(projectId);
     expect(restored.ui?.agentWidth).toBe(800);
     expect(restored.ui?.terminalBottomHeight).toBe(222);
+  });
+
+  it('does not throw on a persistent 412 conflict — the re-merged state stays pending for the next flush', async () => {
+    let putCount = 0;
+    let serverVersion = 3;
+
+    const fetchMock = vi.fn(async (_url: unknown, init?: { method?: string; headers?: Record<string, string> }) => {
+      if (!init || (init.method ?? 'GET').toUpperCase() === 'GET') {
+        return {
+          ok: true,
+          status: 200,
+          headers: makeHeaders({ etag: `"${serverVersion}"` }),
+          json: async () => ({ ideState: { state: { ui: { agentWidth: 200 } }, version: serverVersion } }),
+        };
+      }
+
+      /*
+       * Every PUT loses the version race — a sustained conflict (agent + IDE both
+       * writing during generation). Bump the server version each time so If-Match
+       * never matches.
+       */
+      putCount += 1;
+      serverVersion += 1;
+
+      return {
+        ok: false,
+        status: 412,
+        headers: makeHeaders({ etag: `"${serverVersion}"` }),
+        json: async () => ({
+          error: 'IDE state was modified by another session',
+          code: 'IDE_STATE_PRECONDITION_FAILED',
+          ideState: { state: { ui: { agentWidth: 111 } }, version: serverVersion },
+        }),
+      };
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const projectId = 'project-etag-412-persistent';
+
+    await getProjectIdeMemory(projectId);
+
+    /*
+     * The key assertion: a persistent 412 must NOT surface as a thrown error that
+     * breaks the IDE — it resolves, leaving the merged state durably pending.
+     */
+    await expect(saveProjectIdeMemory(projectId, { ui: { agentWidth: 800 } })).resolves.toBeUndefined();
+
+    // It really did exhaust its retry budget on 412s (not a single lucky success).
+    expect(putCount).toBeGreaterThan(1);
+
+    // The local patch survives in the cache for the next flush to re-send.
+    const restored = await getProjectIdeMemory(projectId);
+    expect(restored.ui?.agentWidth).toBe(800);
   });
 
   it('carries the chat REPLACE flag onto the re-PUT after a 412 conflict', async () => {

@@ -1,4 +1,5 @@
 import type { MetaFunction } from 'react-router';
+import { buildRemainingRouteMeta, getRemainingRouteShellsCopy } from '~/lib/i18n/catalogs/remaining-route-shells';
 
 /*
  * bolt.diy-heritage compatibility route for /u/:username/:projectname public
@@ -17,10 +18,21 @@ import type { MetaFunction } from 'react-router';
  * backed by a route module.
  */
 export const loader = () => {
-  throw new Response('Not Found', { status: 404, statusText: 'Not Found' });
+  throw new Response(null, { status: 404 });
 };
 
-export const meta: MetaFunction = () => [{ title: 'Project not found - E-Code' }];
+export const meta: MetaFunction = ({ matches, params }) => {
+  const rootData = matches.find((match) => match.id === 'root')?.data as { language?: string } | undefined;
+  const copy = getRemainingRouteShellsCopy(rootData?.language);
+
+  return buildRemainingRouteMeta({
+    title: copy['remainingRoutes.projectNotFound.title'],
+    description: copy['remainingRoutes.projectNotFound.description'],
+    path: `/u/${encodeURIComponent(params.username ?? '')}/${encodeURIComponent(params.projectname ?? '')}`,
+    language: rootData?.language,
+    noindex: true,
+  });
+};
 
 export default function PublicUserProjectPage() {
   // Unreachable: the loader always throws; the root ErrorBoundary renders.

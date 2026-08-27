@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { classNames } from '~/utils/classNames';
 
 export interface ConnectionTestResult {
@@ -14,6 +15,8 @@ interface ConnectionTestIndicatorProps {
 }
 
 export function ConnectionTestIndicator({ testResult, className }: ConnectionTestIndicatorProps) {
+  const { i18n } = useTranslation();
+
   if (!testResult) {
     return null;
   }
@@ -57,7 +60,7 @@ export function ConnectionTestIndicator({ testResult, className }: ConnectionTes
       </div>
       {testResult.timestamp && (
         <p className="text-xs text-bolt-elements-textTertiary mt-1">
-          {new Date(testResult.timestamp).toLocaleString()}
+          {new Date(testResult.timestamp).toLocaleString(i18n.resolvedLanguage ?? i18n.language)}
         </p>
       )}
     </motion.div>

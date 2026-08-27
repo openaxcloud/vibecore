@@ -19,7 +19,7 @@ describe('parseAndValidateBedrockConfig', () => {
   });
 
   it('throws a friendly error for non-JSON input', () => {
-    expect(() => parseAndValidateBedrockConfig('not json')).toThrow(/Invalid AWS Bedrock configuration format/);
+    expect(() => parseAndValidateBedrockConfig('not json', 'en')).toThrow(/Invalid AWS Bedrock configuration/);
   });
 
   /*
@@ -27,22 +27,31 @@ describe('parseAndValidateBedrockConfig', () => {
    * the friendly format error, never a TypeError from destructuring `null`.
    */
   it('throws the format error for a bare JSON null (no TypeError)', () => {
-    expect(() => parseAndValidateBedrockConfig('null')).toThrow(/Invalid AWS Bedrock configuration format/);
+    expect(() => parseAndValidateBedrockConfig('null', 'en')).toThrow(/Invalid AWS Bedrock configuration/);
   });
 
   it('throws the format error for a bare JSON number', () => {
-    expect(() => parseAndValidateBedrockConfig('42')).toThrow(/Invalid AWS Bedrock configuration format/);
+    expect(() => parseAndValidateBedrockConfig('42', 'en')).toThrow(/Invalid AWS Bedrock configuration/);
   });
 
   it('throws the format error for a bare JSON string', () => {
-    expect(() => parseAndValidateBedrockConfig('"foo"')).toThrow(/Invalid AWS Bedrock configuration format/);
+    expect(() => parseAndValidateBedrockConfig('"foo"', 'en')).toThrow(/Invalid AWS Bedrock configuration/);
   });
 
   it('throws the format error for a JSON array', () => {
-    expect(() => parseAndValidateBedrockConfig('[1,2,3]')).toThrow(/Invalid AWS Bedrock configuration format/);
+    expect(() => parseAndValidateBedrockConfig('[1,2,3]', 'en')).toThrow(/Invalid AWS Bedrock configuration/);
   });
 
   it('throws missing-credentials error for an object lacking required fields', () => {
-    expect(() => parseAndValidateBedrockConfig('{}')).toThrow(/Missing required AWS credentials/);
+    expect(() => parseAndValidateBedrockConfig('{}', 'en')).toThrow(/AWS credentials are incomplete/);
+  });
+
+  it('localizes validation while preserving AWS credential field identifiers', () => {
+    expect(() => parseAndValidateBedrockConfig('not json', 'fr')).toThrow(
+      'La configuration AWS Bedrock n’est pas valide. Saisissez un JSON valide contenant region, accessKeyId et secretAccessKey.',
+    );
+    expect(() => parseAndValidateBedrockConfig('{}', 'fr')).toThrow(
+      'Les identifiants AWS sont incomplets. Ajoutez region, accessKeyId et secretAccessKey.',
+    );
   });
 });

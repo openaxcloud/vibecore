@@ -1,4 +1,11 @@
 import { getApiKeysFromCookie, getProviderSettingsFromCookie } from '~/lib/api/cookies';
+import {
+  getModelApiCopy,
+  localizeModelInfo,
+  localizeProviderInfo,
+  resolveModelApiLanguage,
+} from '~/lib/i18n/catalogs/model-api';
+import { localeResponseHeaders, resolveRequestLocale } from '~/lib/i18n/request-locale';
 import { json } from '~/lib/json-response';
 import {
   getPlatformKeyedProviderNames,
@@ -9,6 +16,9 @@ import { LLMManager } from '~/lib/modules/llm/manager';
 import { fetchAdminEnabledProviders } from '~/lib/modules/llm/provider-visibility.server';
 import type { ModelInfo } from '~/lib/modules/llm/types';
 import type { ProviderInfo } from '~/types/model';
+import { createScopedLogger } from '~/utils/logger';
+
+const logger = createScopedLogger('api.models');
 
 /**
  * Shape consumed by the public marketing landing's AI model selector widget
@@ -32,12 +42,19 @@ interface ModelsResponse {
   defaultProvider: ProviderInfo;
 }
 
-function toPublicModelSummaries(modelList: ModelInfo[]): PublicModelSummary[] {
+interface ModelsErrorResponse {
+  code: 'MODEL_CATALOG_UNAVAILABLE' | 'MODEL_PROVIDER_NOT_FOUND';
+  error: string;
+}
+
+export function toPublicModelSummaries(modelList: ModelInfo[], language?: string | null): PublicModelSummary[] {
+  const copy = getModelApiCopy(language);
+
   return modelList.map((model) => ({
     id: model.name,
-    name: model.label ?? model.name,
-    provider: model.provider ?? 'Unknown',
-    description: model.label ?? model.name,
+    name: model.label || model.name,
+    provider: model.provider || copy['modelApi.unknownProvider'],
+    description: model.label || model.name,
     supportsStreaming: true,
   }));
 }
@@ -83,74 +100,102 @@ export async function loader({
     };
   };
 }): Promise<Response> {
-  const llmManager = LLMManager.getInstance(context.cloudflare?.env);
+  const localeResolution = resolveRequestLocale(request);
+  const language = resolveModelApiLanguage(localeResolution.language);
+  const copy = getModelApiCopy(language);
+  const headers = localeResponseHeaders(request, { ...localeResolution, language });
 
-  // Get client side maintained API keys and provider settings from cookies
-  const cookieHeader = request.headers.get('Cookie');
-  const apiKeys = getApiKeysFromCookie(cookieHeader);
-  const providerSettings = getProviderSettingsFromCookie(cookieHeader);
+  headers.set('Cache-Control', 'private, no-store');
 
-  let { providers, defaultProvider } = getProviderInfo(llmManager);
+  try {
+    const llmManager = LLMManager.getInstance(context.cloudflare?.env);
 
-  let modelList: ModelInfo[] = [];
+    // Get client side maintained API keys and provider settings from cookies
+    const cookieHeader = request.headers.get('Cookie');
+    const apiKeys = getApiKeysFromCookie(cookieHeader);
+    const providerSettings = getProviderSettingsFromCookie(cookieHeader);
 
-  if (params.provider) {
-    // Only update models for the specific provider
-    const provider = llmManager.getProvider(params.provider);
+    let { providers, defaultProvider } = getProviderInfo(llmManager);
 
-    if (provider) {
+    let modelList: ModelInfo[] = [];
+
+    if (params.provider) {
+      // Only update models for the specific provider
+      const provider = llmManager.getProvider(params.provider);
+
+      if (!provider) {
+        return json<ModelsErrorResponse>(
+          { code: 'MODEL_PROVIDER_NOT_FOUND', error: copy['modelApi.providerNotFound'] },
+          { status: 404, headers },
+        );
+      }
+
       modelList = await llmManager.getModelListFromProvider(provider, {
         apiKeys,
         providerSettings,
         serverEnv: context.cloudflare?.env,
       });
+    } else {
+      // Update all models
+      modelList = await llmManager.updateModelList({
+        apiKeys,
+        providerSettings,
+        serverEnv: context.cloudflare?.env,
+      });
     }
-  } else {
-    // Update all models
-    modelList = await llmManager.updateModelList({
-      apiKeys,
-      providerSettings,
-      serverEnv: context.cloudflare?.env,
+
+    /*
+     * Managed (Replit-parity) mode: the model selector must list ONLY usable
+     * models = providers with a configured platform key. Hide providers without a
+     * platform key (e.g. Groq/Mistral/OpenRouter when those secrets aren't set) so
+     * a user — who has no BYOK key entry anymore — can't pick a dead provider.
+     * Off by default (full legacy/BYOK list) so dev / self-host is unchanged.
+     */
+    if (isManagedModelsMode(context.cloudflare?.env)) {
+      const usableProviderNames = getPlatformKeyedProviderNames(llmManager.getAllProviders(), context.cloudflare?.env);
+      ({ modelList, providers, defaultProvider } = trimToUsableProviders({
+        modelList,
+        providers,
+        defaultProvider,
+        usableProviderNames,
+      }));
+    }
+
+    /*
+     * Apply the admin provider visibility toggle on top of the key-based trim: a
+     * provider an admin disabled is hidden from the selector even if it has a key.
+     * Fail-open (null) leaves the list untouched, so a broken table never hides all.
+     */
+    const adminEnabled = await fetchAdminEnabledProviders(request);
+
+    if (adminEnabled) {
+      ({ modelList, providers, defaultProvider } = trimToUsableProviders({
+        modelList,
+        providers,
+        defaultProvider,
+        usableProviderNames: adminEnabled,
+      }));
+    }
+
+    const localizedModelList = modelList.map((model) => localizeModelInfo(model, language));
+
+    return json<ModelsResponse>(
+      {
+        modelList: localizedModelList,
+        models: toPublicModelSummaries(localizedModelList, language),
+        providers: providers.map((provider) => localizeProviderInfo(provider, language)),
+        defaultProvider: localizeProviderInfo(defaultProvider, language),
+      },
+      { headers },
+    );
+  } catch (error) {
+    logger.error('MODEL_CATALOG_UNAVAILABLE', {
+      kind: error instanceof Error ? error.name : typeof error,
     });
+
+    return json<ModelsErrorResponse>(
+      { code: 'MODEL_CATALOG_UNAVAILABLE', error: copy['modelApi.catalogUnavailable'] },
+      { status: 503, headers },
+    );
   }
-
-  /*
-   * Managed (Replit-parity) mode: the model selector must list ONLY usable
-   * models = providers with a configured platform key. Hide providers without a
-   * platform key (e.g. Groq/Mistral/OpenRouter when those secrets aren't set) so
-   * a user — who has no BYOK key entry anymore — can't pick a dead provider.
-   * Off by default (full legacy/BYOK list) so dev / self-host is unchanged.
-   */
-  if (isManagedModelsMode(context.cloudflare?.env)) {
-    const usableProviderNames = getPlatformKeyedProviderNames(llmManager.getAllProviders(), context.cloudflare?.env);
-    ({ modelList, providers, defaultProvider } = trimToUsableProviders({
-      modelList,
-      providers,
-      defaultProvider,
-      usableProviderNames,
-    }));
-  }
-
-  /*
-   * Apply the admin provider visibility toggle on top of the key-based trim: a
-   * provider an admin disabled is hidden from the selector even if it has a key.
-   * Fail-open (null) leaves the list untouched, so a broken table never hides all.
-   */
-  const adminEnabled = await fetchAdminEnabledProviders(request);
-
-  if (adminEnabled) {
-    ({ modelList, providers, defaultProvider } = trimToUsableProviders({
-      modelList,
-      providers,
-      defaultProvider,
-      usableProviderNames: adminEnabled,
-    }));
-  }
-
-  return json<ModelsResponse>({
-    modelList,
-    models: toPublicModelSummaries(modelList),
-    providers,
-    defaultProvider,
-  });
 }

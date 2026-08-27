@@ -14,7 +14,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   const projectSlug = slugifyProjectUrlSegment(params.projectSlug ?? '');
 
   if (!accountSlug || !projectSlug) {
-    throw new Response('Project not found', { status: 404 });
+    throw new Response(null, { status: 404 });
   }
 
   let resolved: ResolveProjectResponse;

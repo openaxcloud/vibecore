@@ -9,6 +9,26 @@ afterEach(() => {
 });
 
 describe('GitHubApiServiceClass.getAllUserRepositories', () => {
+  it('returns a reviewed French error without exposing the upstream response body', async () => {
+    vi.stubGlobal('navigator', { language: 'fr-FR' });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => Response.json({ message: 'Bad credentials secret=raw' }, { status: 401 })),
+    );
+
+    const service = new GitHubApiServiceClass({ token: 'ghp_test', tokenType: 'classic' });
+
+    await expect(service.getAuthenticatedUser()).rejects.toMatchObject({
+      message: 'La requête à l’API GitHub a échoué (HTTP 401).',
+      status: 401,
+    });
+
+    await service.getAuthenticatedUser().catch((error: { message?: string }) => {
+      expect(error.message).not.toContain('Bad credentials');
+      expect(error.message).not.toContain('secret=raw');
+    });
+  });
+
   it('caps pagination at 50 pages even when every page is full (no runaway loop)', async () => {
     let callCount = 0;
 

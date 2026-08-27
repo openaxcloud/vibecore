@@ -100913,7 +100913,9 @@ export namespace Prisma {
     id: string | null
     slug: string | null
     name: string | null
+    nameFr: string | null
     description: string | null
+    descriptionFr: string | null
     domain: $Enums.McpDomain | null
     author: string | null
     homepageUrl: string | null
@@ -100933,7 +100935,9 @@ export namespace Prisma {
     id: string | null
     slug: string | null
     name: string | null
+    nameFr: string | null
     description: string | null
+    descriptionFr: string | null
     domain: $Enums.McpDomain | null
     author: string | null
     homepageUrl: string | null
@@ -100953,9 +100957,12 @@ export namespace Prisma {
     id: number
     slug: number
     name: number
+    nameFr: number
     description: number
+    descriptionFr: number
     domain: number
     tags: number
+    tagsFr: number
     author: number
     homepageUrl: number
     iconUrl: number
@@ -100963,6 +100970,7 @@ export namespace Prisma {
     transport: number
     configTemplate: number
     configSchema: number
+    configSchemaFr: number
     installCount: number
     featured: number
     verified: number
@@ -100986,7 +100994,9 @@ export namespace Prisma {
     id?: true
     slug?: true
     name?: true
+    nameFr?: true
     description?: true
+    descriptionFr?: true
     domain?: true
     author?: true
     homepageUrl?: true
@@ -101006,7 +101016,9 @@ export namespace Prisma {
     id?: true
     slug?: true
     name?: true
+    nameFr?: true
     description?: true
+    descriptionFr?: true
     domain?: true
     author?: true
     homepageUrl?: true
@@ -101026,9 +101038,12 @@ export namespace Prisma {
     id?: true
     slug?: true
     name?: true
+    nameFr?: true
     description?: true
+    descriptionFr?: true
     domain?: true
     tags?: true
+    tagsFr?: true
     author?: true
     homepageUrl?: true
     iconUrl?: true
@@ -101036,6 +101051,7 @@ export namespace Prisma {
     transport?: true
     configTemplate?: true
     configSchema?: true
+    configSchemaFr?: true
     installCount?: true
     featured?: true
     verified?: true
@@ -101136,9 +101152,12 @@ export namespace Prisma {
     id: string
     slug: string
     name: string
+    nameFr: string | null
     description: string
+    descriptionFr: string | null
     domain: $Enums.McpDomain
     tags: string[]
+    tagsFr: string[]
     author: string
     homepageUrl: string | null
     iconUrl: string | null
@@ -101146,6 +101165,7 @@ export namespace Prisma {
     transport: $Enums.McpTransport
     configTemplate: JsonValue
     configSchema: JsonValue
+    configSchemaFr: JsonValue
     installCount: number
     featured: boolean
     verified: boolean
@@ -101178,9 +101198,12 @@ export namespace Prisma {
     id?: boolean
     slug?: boolean
     name?: boolean
+    nameFr?: boolean
     description?: boolean
+    descriptionFr?: boolean
     domain?: boolean
     tags?: boolean
+    tagsFr?: boolean
     author?: boolean
     homepageUrl?: boolean
     iconUrl?: boolean
@@ -101188,6 +101211,7 @@ export namespace Prisma {
     transport?: boolean
     configTemplate?: boolean
     configSchema?: boolean
+    configSchemaFr?: boolean
     installCount?: boolean
     featured?: boolean
     verified?: boolean
@@ -101203,9 +101227,12 @@ export namespace Prisma {
     id?: boolean
     slug?: boolean
     name?: boolean
+    nameFr?: boolean
     description?: boolean
+    descriptionFr?: boolean
     domain?: boolean
     tags?: boolean
+    tagsFr?: boolean
     author?: boolean
     homepageUrl?: boolean
     iconUrl?: boolean
@@ -101213,6 +101240,7 @@ export namespace Prisma {
     transport?: boolean
     configTemplate?: boolean
     configSchema?: boolean
+    configSchemaFr?: boolean
     installCount?: boolean
     featured?: boolean
     verified?: boolean
@@ -101226,9 +101254,12 @@ export namespace Prisma {
     id?: boolean
     slug?: boolean
     name?: boolean
+    nameFr?: boolean
     description?: boolean
+    descriptionFr?: boolean
     domain?: boolean
     tags?: boolean
+    tagsFr?: boolean
     author?: boolean
     homepageUrl?: boolean
     iconUrl?: boolean
@@ -101236,6 +101267,7 @@ export namespace Prisma {
     transport?: boolean
     configTemplate?: boolean
     configSchema?: boolean
+    configSchemaFr?: boolean
     installCount?: boolean
     featured?: boolean
     verified?: boolean
@@ -101249,9 +101281,12 @@ export namespace Prisma {
     id?: boolean
     slug?: boolean
     name?: boolean
+    nameFr?: boolean
     description?: boolean
+    descriptionFr?: boolean
     domain?: boolean
     tags?: boolean
+    tagsFr?: boolean
     author?: boolean
     homepageUrl?: boolean
     iconUrl?: boolean
@@ -101259,6 +101294,7 @@ export namespace Prisma {
     transport?: boolean
     configTemplate?: boolean
     configSchema?: boolean
+    configSchemaFr?: boolean
     installCount?: boolean
     featured?: boolean
     verified?: boolean
@@ -101268,7 +101304,7 @@ export namespace Prisma {
     updatedAt?: boolean
   }
 
-  export type McpCatalogEntryOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "slug" | "name" | "description" | "domain" | "tags" | "author" | "homepageUrl" | "iconUrl" | "version" | "transport" | "configTemplate" | "configSchema" | "installCount" | "featured" | "verified" | "featuredForIdePanel" | "enabled" | "publishedAt" | "updatedAt", ExtArgs["result"]["mcpCatalogEntry"]>
+  export type McpCatalogEntryOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "slug" | "name" | "nameFr" | "description" | "descriptionFr" | "domain" | "tags" | "tagsFr" | "author" | "homepageUrl" | "iconUrl" | "version" | "transport" | "configTemplate" | "configSchema" | "configSchemaFr" | "installCount" | "featured" | "verified" | "featuredForIdePanel" | "enabled" | "publishedAt" | "updatedAt", ExtArgs["result"]["mcpCatalogEntry"]>
   export type McpCatalogEntryInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     installs?: boolean | McpCatalogEntry$installsArgs<ExtArgs>
     _count?: boolean | McpCatalogEntryCountOutputTypeDefaultArgs<ExtArgs>
@@ -101285,9 +101321,12 @@ export namespace Prisma {
       id: string
       slug: string
       name: string
+      nameFr: string | null
       description: string
+      descriptionFr: string | null
       domain: $Enums.McpDomain
       tags: string[]
+      tagsFr: string[]
       author: string
       homepageUrl: string | null
       iconUrl: string | null
@@ -101295,6 +101334,7 @@ export namespace Prisma {
       transport: $Enums.McpTransport
       configTemplate: Prisma.JsonValue
       configSchema: Prisma.JsonValue
+      configSchemaFr: Prisma.JsonValue
       installCount: number
       featured: boolean
       verified: boolean
@@ -101729,9 +101769,12 @@ export namespace Prisma {
     readonly id: FieldRef<"McpCatalogEntry", 'String'>
     readonly slug: FieldRef<"McpCatalogEntry", 'String'>
     readonly name: FieldRef<"McpCatalogEntry", 'String'>
+    readonly nameFr: FieldRef<"McpCatalogEntry", 'String'>
     readonly description: FieldRef<"McpCatalogEntry", 'String'>
+    readonly descriptionFr: FieldRef<"McpCatalogEntry", 'String'>
     readonly domain: FieldRef<"McpCatalogEntry", 'McpDomain'>
     readonly tags: FieldRef<"McpCatalogEntry", 'String[]'>
+    readonly tagsFr: FieldRef<"McpCatalogEntry", 'String[]'>
     readonly author: FieldRef<"McpCatalogEntry", 'String'>
     readonly homepageUrl: FieldRef<"McpCatalogEntry", 'String'>
     readonly iconUrl: FieldRef<"McpCatalogEntry", 'String'>
@@ -101739,6 +101782,7 @@ export namespace Prisma {
     readonly transport: FieldRef<"McpCatalogEntry", 'McpTransport'>
     readonly configTemplate: FieldRef<"McpCatalogEntry", 'Json'>
     readonly configSchema: FieldRef<"McpCatalogEntry", 'Json'>
+    readonly configSchemaFr: FieldRef<"McpCatalogEntry", 'Json'>
     readonly installCount: FieldRef<"McpCatalogEntry", 'Int'>
     readonly featured: FieldRef<"McpCatalogEntry", 'Boolean'>
     readonly verified: FieldRef<"McpCatalogEntry", 'Boolean'>
@@ -118373,6 +118417,7 @@ export namespace Prisma {
     category: string | null
     title: string | null
     body: string | null
+    messageKey: string | null
     linkUrl: string | null
     readAt: Date | null
     createdAt: Date | null
@@ -118384,6 +118429,7 @@ export namespace Prisma {
     category: string | null
     title: string | null
     body: string | null
+    messageKey: string | null
     linkUrl: string | null
     readAt: Date | null
     createdAt: Date | null
@@ -118395,6 +118441,8 @@ export namespace Prisma {
     category: number
     title: number
     body: number
+    messageKey: number
+    messageParams: number
     linkUrl: number
     metadata: number
     readAt: number
@@ -118409,6 +118457,7 @@ export namespace Prisma {
     category?: true
     title?: true
     body?: true
+    messageKey?: true
     linkUrl?: true
     readAt?: true
     createdAt?: true
@@ -118420,6 +118469,7 @@ export namespace Prisma {
     category?: true
     title?: true
     body?: true
+    messageKey?: true
     linkUrl?: true
     readAt?: true
     createdAt?: true
@@ -118431,6 +118481,8 @@ export namespace Prisma {
     category?: true
     title?: true
     body?: true
+    messageKey?: true
+    messageParams?: true
     linkUrl?: true
     metadata?: true
     readAt?: true
@@ -118516,6 +118568,8 @@ export namespace Prisma {
     category: string
     title: string
     body: string | null
+    messageKey: string | null
+    messageParams: JsonValue | null
     linkUrl: string | null
     metadata: JsonValue | null
     readAt: Date | null
@@ -118545,6 +118599,8 @@ export namespace Prisma {
     category?: boolean
     title?: boolean
     body?: boolean
+    messageKey?: boolean
+    messageParams?: boolean
     linkUrl?: boolean
     metadata?: boolean
     readAt?: boolean
@@ -118558,6 +118614,8 @@ export namespace Prisma {
     category?: boolean
     title?: boolean
     body?: boolean
+    messageKey?: boolean
+    messageParams?: boolean
     linkUrl?: boolean
     metadata?: boolean
     readAt?: boolean
@@ -118571,6 +118629,8 @@ export namespace Prisma {
     category?: boolean
     title?: boolean
     body?: boolean
+    messageKey?: boolean
+    messageParams?: boolean
     linkUrl?: boolean
     metadata?: boolean
     readAt?: boolean
@@ -118584,13 +118644,15 @@ export namespace Prisma {
     category?: boolean
     title?: boolean
     body?: boolean
+    messageKey?: boolean
+    messageParams?: boolean
     linkUrl?: boolean
     metadata?: boolean
     readAt?: boolean
     createdAt?: boolean
   }
 
-  export type NotificationOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "userId" | "category" | "title" | "body" | "linkUrl" | "metadata" | "readAt" | "createdAt", ExtArgs["result"]["notification"]>
+  export type NotificationOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "userId" | "category" | "title" | "body" | "messageKey" | "messageParams" | "linkUrl" | "metadata" | "readAt" | "createdAt", ExtArgs["result"]["notification"]>
   export type NotificationInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     user?: boolean | UserDefaultArgs<ExtArgs>
   }
@@ -118616,6 +118678,12 @@ export namespace Prisma {
       category: string
       title: string
       body: string | null
+      /**
+       * Stable i18n descriptor for newly-produced notifications. Nullable keeps
+       * every historical row and older producer compatible with title/body.
+       */
+      messageKey: string | null
+      messageParams: Prisma.JsonValue | null
       /**
        * Optional in-app link the notification points at (e.g. /account/connections).
        */
@@ -119056,6 +119124,8 @@ export namespace Prisma {
     readonly category: FieldRef<"Notification", 'String'>
     readonly title: FieldRef<"Notification", 'String'>
     readonly body: FieldRef<"Notification", 'String'>
+    readonly messageKey: FieldRef<"Notification", 'String'>
+    readonly messageParams: FieldRef<"Notification", 'Json'>
     readonly linkUrl: FieldRef<"Notification", 'String'>
     readonly metadata: FieldRef<"Notification", 'Json'>
     readonly readAt: FieldRef<"Notification", 'DateTime'>
@@ -155738,9 +155808,12 @@ export namespace Prisma {
     id: 'id',
     slug: 'slug',
     name: 'name',
+    nameFr: 'nameFr',
     description: 'description',
+    descriptionFr: 'descriptionFr',
     domain: 'domain',
     tags: 'tags',
+    tagsFr: 'tagsFr',
     author: 'author',
     homepageUrl: 'homepageUrl',
     iconUrl: 'iconUrl',
@@ -155748,6 +155821,7 @@ export namespace Prisma {
     transport: 'transport',
     configTemplate: 'configTemplate',
     configSchema: 'configSchema',
+    configSchemaFr: 'configSchemaFr',
     installCount: 'installCount',
     featured: 'featured',
     verified: 'verified',
@@ -156013,6 +156087,8 @@ export namespace Prisma {
     category: 'category',
     title: 'title',
     body: 'body',
+    messageKey: 'messageKey',
+    messageParams: 'messageParams',
     linkUrl: 'linkUrl',
     metadata: 'metadata',
     readAt: 'readAt',
@@ -162771,9 +162847,12 @@ export namespace Prisma {
     id?: StringFilter<"McpCatalogEntry"> | string
     slug?: StringFilter<"McpCatalogEntry"> | string
     name?: StringFilter<"McpCatalogEntry"> | string
+    nameFr?: StringNullableFilter<"McpCatalogEntry"> | string | null
     description?: StringFilter<"McpCatalogEntry"> | string
+    descriptionFr?: StringNullableFilter<"McpCatalogEntry"> | string | null
     domain?: EnumMcpDomainFilter<"McpCatalogEntry"> | $Enums.McpDomain
     tags?: StringNullableListFilter<"McpCatalogEntry">
+    tagsFr?: StringNullableListFilter<"McpCatalogEntry">
     author?: StringFilter<"McpCatalogEntry"> | string
     homepageUrl?: StringNullableFilter<"McpCatalogEntry"> | string | null
     iconUrl?: StringNullableFilter<"McpCatalogEntry"> | string | null
@@ -162781,6 +162860,7 @@ export namespace Prisma {
     transport?: EnumMcpTransportFilter<"McpCatalogEntry"> | $Enums.McpTransport
     configTemplate?: JsonFilter<"McpCatalogEntry">
     configSchema?: JsonFilter<"McpCatalogEntry">
+    configSchemaFr?: JsonFilter<"McpCatalogEntry">
     installCount?: IntFilter<"McpCatalogEntry"> | number
     featured?: BoolFilter<"McpCatalogEntry"> | boolean
     verified?: BoolFilter<"McpCatalogEntry"> | boolean
@@ -162795,9 +162875,12 @@ export namespace Prisma {
     id?: SortOrder
     slug?: SortOrder
     name?: SortOrder
+    nameFr?: SortOrderInput | SortOrder
     description?: SortOrder
+    descriptionFr?: SortOrderInput | SortOrder
     domain?: SortOrder
     tags?: SortOrder
+    tagsFr?: SortOrder
     author?: SortOrder
     homepageUrl?: SortOrderInput | SortOrder
     iconUrl?: SortOrderInput | SortOrder
@@ -162805,6 +162888,7 @@ export namespace Prisma {
     transport?: SortOrder
     configTemplate?: SortOrder
     configSchema?: SortOrder
+    configSchemaFr?: SortOrder
     installCount?: SortOrder
     featured?: SortOrder
     verified?: SortOrder
@@ -162822,9 +162906,12 @@ export namespace Prisma {
     OR?: McpCatalogEntryWhereInput[]
     NOT?: McpCatalogEntryWhereInput | McpCatalogEntryWhereInput[]
     name?: StringFilter<"McpCatalogEntry"> | string
+    nameFr?: StringNullableFilter<"McpCatalogEntry"> | string | null
     description?: StringFilter<"McpCatalogEntry"> | string
+    descriptionFr?: StringNullableFilter<"McpCatalogEntry"> | string | null
     domain?: EnumMcpDomainFilter<"McpCatalogEntry"> | $Enums.McpDomain
     tags?: StringNullableListFilter<"McpCatalogEntry">
+    tagsFr?: StringNullableListFilter<"McpCatalogEntry">
     author?: StringFilter<"McpCatalogEntry"> | string
     homepageUrl?: StringNullableFilter<"McpCatalogEntry"> | string | null
     iconUrl?: StringNullableFilter<"McpCatalogEntry"> | string | null
@@ -162832,6 +162919,7 @@ export namespace Prisma {
     transport?: EnumMcpTransportFilter<"McpCatalogEntry"> | $Enums.McpTransport
     configTemplate?: JsonFilter<"McpCatalogEntry">
     configSchema?: JsonFilter<"McpCatalogEntry">
+    configSchemaFr?: JsonFilter<"McpCatalogEntry">
     installCount?: IntFilter<"McpCatalogEntry"> | number
     featured?: BoolFilter<"McpCatalogEntry"> | boolean
     verified?: BoolFilter<"McpCatalogEntry"> | boolean
@@ -162846,9 +162934,12 @@ export namespace Prisma {
     id?: SortOrder
     slug?: SortOrder
     name?: SortOrder
+    nameFr?: SortOrderInput | SortOrder
     description?: SortOrder
+    descriptionFr?: SortOrderInput | SortOrder
     domain?: SortOrder
     tags?: SortOrder
+    tagsFr?: SortOrder
     author?: SortOrder
     homepageUrl?: SortOrderInput | SortOrder
     iconUrl?: SortOrderInput | SortOrder
@@ -162856,6 +162947,7 @@ export namespace Prisma {
     transport?: SortOrder
     configTemplate?: SortOrder
     configSchema?: SortOrder
+    configSchemaFr?: SortOrder
     installCount?: SortOrder
     featured?: SortOrder
     verified?: SortOrder
@@ -162877,9 +162969,12 @@ export namespace Prisma {
     id?: StringWithAggregatesFilter<"McpCatalogEntry"> | string
     slug?: StringWithAggregatesFilter<"McpCatalogEntry"> | string
     name?: StringWithAggregatesFilter<"McpCatalogEntry"> | string
+    nameFr?: StringNullableWithAggregatesFilter<"McpCatalogEntry"> | string | null
     description?: StringWithAggregatesFilter<"McpCatalogEntry"> | string
+    descriptionFr?: StringNullableWithAggregatesFilter<"McpCatalogEntry"> | string | null
     domain?: EnumMcpDomainWithAggregatesFilter<"McpCatalogEntry"> | $Enums.McpDomain
     tags?: StringNullableListFilter<"McpCatalogEntry">
+    tagsFr?: StringNullableListFilter<"McpCatalogEntry">
     author?: StringWithAggregatesFilter<"McpCatalogEntry"> | string
     homepageUrl?: StringNullableWithAggregatesFilter<"McpCatalogEntry"> | string | null
     iconUrl?: StringNullableWithAggregatesFilter<"McpCatalogEntry"> | string | null
@@ -162887,6 +162982,7 @@ export namespace Prisma {
     transport?: EnumMcpTransportWithAggregatesFilter<"McpCatalogEntry"> | $Enums.McpTransport
     configTemplate?: JsonWithAggregatesFilter<"McpCatalogEntry">
     configSchema?: JsonWithAggregatesFilter<"McpCatalogEntry">
+    configSchemaFr?: JsonWithAggregatesFilter<"McpCatalogEntry">
     installCount?: IntWithAggregatesFilter<"McpCatalogEntry"> | number
     featured?: BoolWithAggregatesFilter<"McpCatalogEntry"> | boolean
     verified?: BoolWithAggregatesFilter<"McpCatalogEntry"> | boolean
@@ -164178,6 +164274,8 @@ export namespace Prisma {
     category?: StringFilter<"Notification"> | string
     title?: StringFilter<"Notification"> | string
     body?: StringNullableFilter<"Notification"> | string | null
+    messageKey?: StringNullableFilter<"Notification"> | string | null
+    messageParams?: JsonNullableFilter<"Notification">
     linkUrl?: StringNullableFilter<"Notification"> | string | null
     metadata?: JsonNullableFilter<"Notification">
     readAt?: DateTimeNullableFilter<"Notification"> | Date | string | null
@@ -164191,6 +164289,8 @@ export namespace Prisma {
     category?: SortOrder
     title?: SortOrder
     body?: SortOrderInput | SortOrder
+    messageKey?: SortOrderInput | SortOrder
+    messageParams?: SortOrderInput | SortOrder
     linkUrl?: SortOrderInput | SortOrder
     metadata?: SortOrderInput | SortOrder
     readAt?: SortOrderInput | SortOrder
@@ -164207,6 +164307,8 @@ export namespace Prisma {
     category?: StringFilter<"Notification"> | string
     title?: StringFilter<"Notification"> | string
     body?: StringNullableFilter<"Notification"> | string | null
+    messageKey?: StringNullableFilter<"Notification"> | string | null
+    messageParams?: JsonNullableFilter<"Notification">
     linkUrl?: StringNullableFilter<"Notification"> | string | null
     metadata?: JsonNullableFilter<"Notification">
     readAt?: DateTimeNullableFilter<"Notification"> | Date | string | null
@@ -164220,6 +164322,8 @@ export namespace Prisma {
     category?: SortOrder
     title?: SortOrder
     body?: SortOrderInput | SortOrder
+    messageKey?: SortOrderInput | SortOrder
+    messageParams?: SortOrderInput | SortOrder
     linkUrl?: SortOrderInput | SortOrder
     metadata?: SortOrderInput | SortOrder
     readAt?: SortOrderInput | SortOrder
@@ -164238,6 +164342,8 @@ export namespace Prisma {
     category?: StringWithAggregatesFilter<"Notification"> | string
     title?: StringWithAggregatesFilter<"Notification"> | string
     body?: StringNullableWithAggregatesFilter<"Notification"> | string | null
+    messageKey?: StringNullableWithAggregatesFilter<"Notification"> | string | null
+    messageParams?: JsonNullableWithAggregatesFilter<"Notification">
     linkUrl?: StringNullableWithAggregatesFilter<"Notification"> | string | null
     metadata?: JsonNullableWithAggregatesFilter<"Notification">
     readAt?: DateTimeNullableWithAggregatesFilter<"Notification"> | Date | string | null
@@ -173137,9 +173243,12 @@ export namespace Prisma {
     id?: string
     slug: string
     name: string
+    nameFr?: string | null
     description: string
+    descriptionFr?: string | null
     domain: $Enums.McpDomain
     tags?: McpCatalogEntryCreatetagsInput | string[]
+    tagsFr?: McpCatalogEntryCreatetagsFrInput | string[]
     author: string
     homepageUrl?: string | null
     iconUrl?: string | null
@@ -173147,6 +173256,7 @@ export namespace Prisma {
     transport: $Enums.McpTransport
     configTemplate: JsonNullValueInput | InputJsonValue
     configSchema?: JsonNullValueInput | InputJsonValue
+    configSchemaFr?: JsonNullValueInput | InputJsonValue
     installCount?: number
     featured?: boolean
     verified?: boolean
@@ -173161,9 +173271,12 @@ export namespace Prisma {
     id?: string
     slug: string
     name: string
+    nameFr?: string | null
     description: string
+    descriptionFr?: string | null
     domain: $Enums.McpDomain
     tags?: McpCatalogEntryCreatetagsInput | string[]
+    tagsFr?: McpCatalogEntryCreatetagsFrInput | string[]
     author: string
     homepageUrl?: string | null
     iconUrl?: string | null
@@ -173171,6 +173284,7 @@ export namespace Prisma {
     transport: $Enums.McpTransport
     configTemplate: JsonNullValueInput | InputJsonValue
     configSchema?: JsonNullValueInput | InputJsonValue
+    configSchemaFr?: JsonNullValueInput | InputJsonValue
     installCount?: number
     featured?: boolean
     verified?: boolean
@@ -173185,9 +173299,12 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
+    nameFr?: NullableStringFieldUpdateOperationsInput | string | null
     description?: StringFieldUpdateOperationsInput | string
+    descriptionFr?: NullableStringFieldUpdateOperationsInput | string | null
     domain?: EnumMcpDomainFieldUpdateOperationsInput | $Enums.McpDomain
     tags?: McpCatalogEntryUpdatetagsInput | string[]
+    tagsFr?: McpCatalogEntryUpdatetagsFrInput | string[]
     author?: StringFieldUpdateOperationsInput | string
     homepageUrl?: NullableStringFieldUpdateOperationsInput | string | null
     iconUrl?: NullableStringFieldUpdateOperationsInput | string | null
@@ -173195,6 +173312,7 @@ export namespace Prisma {
     transport?: EnumMcpTransportFieldUpdateOperationsInput | $Enums.McpTransport
     configTemplate?: JsonNullValueInput | InputJsonValue
     configSchema?: JsonNullValueInput | InputJsonValue
+    configSchemaFr?: JsonNullValueInput | InputJsonValue
     installCount?: IntFieldUpdateOperationsInput | number
     featured?: BoolFieldUpdateOperationsInput | boolean
     verified?: BoolFieldUpdateOperationsInput | boolean
@@ -173209,9 +173327,12 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
+    nameFr?: NullableStringFieldUpdateOperationsInput | string | null
     description?: StringFieldUpdateOperationsInput | string
+    descriptionFr?: NullableStringFieldUpdateOperationsInput | string | null
     domain?: EnumMcpDomainFieldUpdateOperationsInput | $Enums.McpDomain
     tags?: McpCatalogEntryUpdatetagsInput | string[]
+    tagsFr?: McpCatalogEntryUpdatetagsFrInput | string[]
     author?: StringFieldUpdateOperationsInput | string
     homepageUrl?: NullableStringFieldUpdateOperationsInput | string | null
     iconUrl?: NullableStringFieldUpdateOperationsInput | string | null
@@ -173219,6 +173340,7 @@ export namespace Prisma {
     transport?: EnumMcpTransportFieldUpdateOperationsInput | $Enums.McpTransport
     configTemplate?: JsonNullValueInput | InputJsonValue
     configSchema?: JsonNullValueInput | InputJsonValue
+    configSchemaFr?: JsonNullValueInput | InputJsonValue
     installCount?: IntFieldUpdateOperationsInput | number
     featured?: BoolFieldUpdateOperationsInput | boolean
     verified?: BoolFieldUpdateOperationsInput | boolean
@@ -173233,9 +173355,12 @@ export namespace Prisma {
     id?: string
     slug: string
     name: string
+    nameFr?: string | null
     description: string
+    descriptionFr?: string | null
     domain: $Enums.McpDomain
     tags?: McpCatalogEntryCreatetagsInput | string[]
+    tagsFr?: McpCatalogEntryCreatetagsFrInput | string[]
     author: string
     homepageUrl?: string | null
     iconUrl?: string | null
@@ -173243,6 +173368,7 @@ export namespace Prisma {
     transport: $Enums.McpTransport
     configTemplate: JsonNullValueInput | InputJsonValue
     configSchema?: JsonNullValueInput | InputJsonValue
+    configSchemaFr?: JsonNullValueInput | InputJsonValue
     installCount?: number
     featured?: boolean
     verified?: boolean
@@ -173256,9 +173382,12 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
+    nameFr?: NullableStringFieldUpdateOperationsInput | string | null
     description?: StringFieldUpdateOperationsInput | string
+    descriptionFr?: NullableStringFieldUpdateOperationsInput | string | null
     domain?: EnumMcpDomainFieldUpdateOperationsInput | $Enums.McpDomain
     tags?: McpCatalogEntryUpdatetagsInput | string[]
+    tagsFr?: McpCatalogEntryUpdatetagsFrInput | string[]
     author?: StringFieldUpdateOperationsInput | string
     homepageUrl?: NullableStringFieldUpdateOperationsInput | string | null
     iconUrl?: NullableStringFieldUpdateOperationsInput | string | null
@@ -173266,6 +173395,7 @@ export namespace Prisma {
     transport?: EnumMcpTransportFieldUpdateOperationsInput | $Enums.McpTransport
     configTemplate?: JsonNullValueInput | InputJsonValue
     configSchema?: JsonNullValueInput | InputJsonValue
+    configSchemaFr?: JsonNullValueInput | InputJsonValue
     installCount?: IntFieldUpdateOperationsInput | number
     featured?: BoolFieldUpdateOperationsInput | boolean
     verified?: BoolFieldUpdateOperationsInput | boolean
@@ -173279,9 +173409,12 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
+    nameFr?: NullableStringFieldUpdateOperationsInput | string | null
     description?: StringFieldUpdateOperationsInput | string
+    descriptionFr?: NullableStringFieldUpdateOperationsInput | string | null
     domain?: EnumMcpDomainFieldUpdateOperationsInput | $Enums.McpDomain
     tags?: McpCatalogEntryUpdatetagsInput | string[]
+    tagsFr?: McpCatalogEntryUpdatetagsFrInput | string[]
     author?: StringFieldUpdateOperationsInput | string
     homepageUrl?: NullableStringFieldUpdateOperationsInput | string | null
     iconUrl?: NullableStringFieldUpdateOperationsInput | string | null
@@ -173289,6 +173422,7 @@ export namespace Prisma {
     transport?: EnumMcpTransportFieldUpdateOperationsInput | $Enums.McpTransport
     configTemplate?: JsonNullValueInput | InputJsonValue
     configSchema?: JsonNullValueInput | InputJsonValue
+    configSchemaFr?: JsonNullValueInput | InputJsonValue
     installCount?: IntFieldUpdateOperationsInput | number
     featured?: BoolFieldUpdateOperationsInput | boolean
     verified?: BoolFieldUpdateOperationsInput | boolean
@@ -174741,6 +174875,8 @@ export namespace Prisma {
     category?: string
     title: string
     body?: string | null
+    messageKey?: string | null
+    messageParams?: NullableJsonNullValueInput | InputJsonValue
     linkUrl?: string | null
     metadata?: NullableJsonNullValueInput | InputJsonValue
     readAt?: Date | string | null
@@ -174754,6 +174890,8 @@ export namespace Prisma {
     category?: string
     title: string
     body?: string | null
+    messageKey?: string | null
+    messageParams?: NullableJsonNullValueInput | InputJsonValue
     linkUrl?: string | null
     metadata?: NullableJsonNullValueInput | InputJsonValue
     readAt?: Date | string | null
@@ -174765,6 +174903,8 @@ export namespace Prisma {
     category?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     body?: NullableStringFieldUpdateOperationsInput | string | null
+    messageKey?: NullableStringFieldUpdateOperationsInput | string | null
+    messageParams?: NullableJsonNullValueInput | InputJsonValue
     linkUrl?: NullableStringFieldUpdateOperationsInput | string | null
     metadata?: NullableJsonNullValueInput | InputJsonValue
     readAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -174778,6 +174918,8 @@ export namespace Prisma {
     category?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     body?: NullableStringFieldUpdateOperationsInput | string | null
+    messageKey?: NullableStringFieldUpdateOperationsInput | string | null
+    messageParams?: NullableJsonNullValueInput | InputJsonValue
     linkUrl?: NullableStringFieldUpdateOperationsInput | string | null
     metadata?: NullableJsonNullValueInput | InputJsonValue
     readAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -174790,6 +174932,8 @@ export namespace Prisma {
     category?: string
     title: string
     body?: string | null
+    messageKey?: string | null
+    messageParams?: NullableJsonNullValueInput | InputJsonValue
     linkUrl?: string | null
     metadata?: NullableJsonNullValueInput | InputJsonValue
     readAt?: Date | string | null
@@ -174801,6 +174945,8 @@ export namespace Prisma {
     category?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     body?: NullableStringFieldUpdateOperationsInput | string | null
+    messageKey?: NullableStringFieldUpdateOperationsInput | string | null
+    messageParams?: NullableJsonNullValueInput | InputJsonValue
     linkUrl?: NullableStringFieldUpdateOperationsInput | string | null
     metadata?: NullableJsonNullValueInput | InputJsonValue
     readAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -174813,6 +174959,8 @@ export namespace Prisma {
     category?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     body?: NullableStringFieldUpdateOperationsInput | string | null
+    messageKey?: NullableStringFieldUpdateOperationsInput | string | null
+    messageParams?: NullableJsonNullValueInput | InputJsonValue
     linkUrl?: NullableStringFieldUpdateOperationsInput | string | null
     metadata?: NullableJsonNullValueInput | InputJsonValue
     readAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -181929,9 +182077,12 @@ export namespace Prisma {
     id?: SortOrder
     slug?: SortOrder
     name?: SortOrder
+    nameFr?: SortOrder
     description?: SortOrder
+    descriptionFr?: SortOrder
     domain?: SortOrder
     tags?: SortOrder
+    tagsFr?: SortOrder
     author?: SortOrder
     homepageUrl?: SortOrder
     iconUrl?: SortOrder
@@ -181939,6 +182090,7 @@ export namespace Prisma {
     transport?: SortOrder
     configTemplate?: SortOrder
     configSchema?: SortOrder
+    configSchemaFr?: SortOrder
     installCount?: SortOrder
     featured?: SortOrder
     verified?: SortOrder
@@ -181956,7 +182108,9 @@ export namespace Prisma {
     id?: SortOrder
     slug?: SortOrder
     name?: SortOrder
+    nameFr?: SortOrder
     description?: SortOrder
+    descriptionFr?: SortOrder
     domain?: SortOrder
     author?: SortOrder
     homepageUrl?: SortOrder
@@ -181976,7 +182130,9 @@ export namespace Prisma {
     id?: SortOrder
     slug?: SortOrder
     name?: SortOrder
+    nameFr?: SortOrder
     description?: SortOrder
+    descriptionFr?: SortOrder
     domain?: SortOrder
     author?: SortOrder
     homepageUrl?: SortOrder
@@ -182777,6 +182933,8 @@ export namespace Prisma {
     category?: SortOrder
     title?: SortOrder
     body?: SortOrder
+    messageKey?: SortOrder
+    messageParams?: SortOrder
     linkUrl?: SortOrder
     metadata?: SortOrder
     readAt?: SortOrder
@@ -182789,6 +182947,7 @@ export namespace Prisma {
     category?: SortOrder
     title?: SortOrder
     body?: SortOrder
+    messageKey?: SortOrder
     linkUrl?: SortOrder
     readAt?: SortOrder
     createdAt?: SortOrder
@@ -182800,6 +182959,7 @@ export namespace Prisma {
     category?: SortOrder
     title?: SortOrder
     body?: SortOrder
+    messageKey?: SortOrder
     linkUrl?: SortOrder
     readAt?: SortOrder
     createdAt?: SortOrder
@@ -190456,6 +190616,10 @@ export namespace Prisma {
     set: string[]
   }
 
+  export type McpCatalogEntryCreatetagsFrInput = {
+    set: string[]
+  }
+
   export type McpInstallCreateNestedManyWithoutCatalogEntryInput = {
     create?: XOR<McpInstallCreateWithoutCatalogEntryInput, McpInstallUncheckedCreateWithoutCatalogEntryInput> | McpInstallCreateWithoutCatalogEntryInput[] | McpInstallUncheckedCreateWithoutCatalogEntryInput[]
     connectOrCreate?: McpInstallCreateOrConnectWithoutCatalogEntryInput | McpInstallCreateOrConnectWithoutCatalogEntryInput[]
@@ -190475,6 +190639,11 @@ export namespace Prisma {
   }
 
   export type McpCatalogEntryUpdatetagsInput = {
+    set?: string[]
+    push?: string | string[]
+  }
+
+  export type McpCatalogEntryUpdatetagsFrInput = {
     set?: string[]
     push?: string | string[]
   }
@@ -193376,6 +193545,8 @@ export namespace Prisma {
     category?: string
     title: string
     body?: string | null
+    messageKey?: string | null
+    messageParams?: NullableJsonNullValueInput | InputJsonValue
     linkUrl?: string | null
     metadata?: NullableJsonNullValueInput | InputJsonValue
     readAt?: Date | string | null
@@ -193387,6 +193558,8 @@ export namespace Prisma {
     category?: string
     title: string
     body?: string | null
+    messageKey?: string | null
+    messageParams?: NullableJsonNullValueInput | InputJsonValue
     linkUrl?: string | null
     metadata?: NullableJsonNullValueInput | InputJsonValue
     readAt?: Date | string | null
@@ -194417,6 +194590,8 @@ export namespace Prisma {
     category?: StringFilter<"Notification"> | string
     title?: StringFilter<"Notification"> | string
     body?: StringNullableFilter<"Notification"> | string | null
+    messageKey?: StringNullableFilter<"Notification"> | string | null
+    messageParams?: JsonNullableFilter<"Notification">
     linkUrl?: StringNullableFilter<"Notification"> | string | null
     metadata?: JsonNullableFilter<"Notification">
     readAt?: DateTimeNullableFilter<"Notification"> | Date | string | null
@@ -212835,9 +213010,12 @@ export namespace Prisma {
     id?: string
     slug: string
     name: string
+    nameFr?: string | null
     description: string
+    descriptionFr?: string | null
     domain: $Enums.McpDomain
     tags?: McpCatalogEntryCreatetagsInput | string[]
+    tagsFr?: McpCatalogEntryCreatetagsFrInput | string[]
     author: string
     homepageUrl?: string | null
     iconUrl?: string | null
@@ -212845,6 +213023,7 @@ export namespace Prisma {
     transport: $Enums.McpTransport
     configTemplate: JsonNullValueInput | InputJsonValue
     configSchema?: JsonNullValueInput | InputJsonValue
+    configSchemaFr?: JsonNullValueInput | InputJsonValue
     installCount?: number
     featured?: boolean
     verified?: boolean
@@ -212858,9 +213037,12 @@ export namespace Prisma {
     id?: string
     slug: string
     name: string
+    nameFr?: string | null
     description: string
+    descriptionFr?: string | null
     domain: $Enums.McpDomain
     tags?: McpCatalogEntryCreatetagsInput | string[]
+    tagsFr?: McpCatalogEntryCreatetagsFrInput | string[]
     author: string
     homepageUrl?: string | null
     iconUrl?: string | null
@@ -212868,6 +213050,7 @@ export namespace Prisma {
     transport: $Enums.McpTransport
     configTemplate: JsonNullValueInput | InputJsonValue
     configSchema?: JsonNullValueInput | InputJsonValue
+    configSchemaFr?: JsonNullValueInput | InputJsonValue
     installCount?: number
     featured?: boolean
     verified?: boolean
@@ -213089,9 +213272,12 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
+    nameFr?: NullableStringFieldUpdateOperationsInput | string | null
     description?: StringFieldUpdateOperationsInput | string
+    descriptionFr?: NullableStringFieldUpdateOperationsInput | string | null
     domain?: EnumMcpDomainFieldUpdateOperationsInput | $Enums.McpDomain
     tags?: McpCatalogEntryUpdatetagsInput | string[]
+    tagsFr?: McpCatalogEntryUpdatetagsFrInput | string[]
     author?: StringFieldUpdateOperationsInput | string
     homepageUrl?: NullableStringFieldUpdateOperationsInput | string | null
     iconUrl?: NullableStringFieldUpdateOperationsInput | string | null
@@ -213099,6 +213285,7 @@ export namespace Prisma {
     transport?: EnumMcpTransportFieldUpdateOperationsInput | $Enums.McpTransport
     configTemplate?: JsonNullValueInput | InputJsonValue
     configSchema?: JsonNullValueInput | InputJsonValue
+    configSchemaFr?: JsonNullValueInput | InputJsonValue
     installCount?: IntFieldUpdateOperationsInput | number
     featured?: BoolFieldUpdateOperationsInput | boolean
     verified?: BoolFieldUpdateOperationsInput | boolean
@@ -213112,9 +213299,12 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
+    nameFr?: NullableStringFieldUpdateOperationsInput | string | null
     description?: StringFieldUpdateOperationsInput | string
+    descriptionFr?: NullableStringFieldUpdateOperationsInput | string | null
     domain?: EnumMcpDomainFieldUpdateOperationsInput | $Enums.McpDomain
     tags?: McpCatalogEntryUpdatetagsInput | string[]
+    tagsFr?: McpCatalogEntryUpdatetagsFrInput | string[]
     author?: StringFieldUpdateOperationsInput | string
     homepageUrl?: NullableStringFieldUpdateOperationsInput | string | null
     iconUrl?: NullableStringFieldUpdateOperationsInput | string | null
@@ -213122,6 +213312,7 @@ export namespace Prisma {
     transport?: EnumMcpTransportFieldUpdateOperationsInput | $Enums.McpTransport
     configTemplate?: JsonNullValueInput | InputJsonValue
     configSchema?: JsonNullValueInput | InputJsonValue
+    configSchemaFr?: JsonNullValueInput | InputJsonValue
     installCount?: IntFieldUpdateOperationsInput | number
     featured?: BoolFieldUpdateOperationsInput | boolean
     verified?: BoolFieldUpdateOperationsInput | boolean
@@ -220115,6 +220306,8 @@ export namespace Prisma {
     category?: string
     title: string
     body?: string | null
+    messageKey?: string | null
+    messageParams?: NullableJsonNullValueInput | InputJsonValue
     linkUrl?: string | null
     metadata?: NullableJsonNullValueInput | InputJsonValue
     readAt?: Date | string | null
@@ -221134,6 +221327,8 @@ export namespace Prisma {
     category?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     body?: NullableStringFieldUpdateOperationsInput | string | null
+    messageKey?: NullableStringFieldUpdateOperationsInput | string | null
+    messageParams?: NullableJsonNullValueInput | InputJsonValue
     linkUrl?: NullableStringFieldUpdateOperationsInput | string | null
     metadata?: NullableJsonNullValueInput | InputJsonValue
     readAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -221145,6 +221340,8 @@ export namespace Prisma {
     category?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     body?: NullableStringFieldUpdateOperationsInput | string | null
+    messageKey?: NullableStringFieldUpdateOperationsInput | string | null
+    messageParams?: NullableJsonNullValueInput | InputJsonValue
     linkUrl?: NullableStringFieldUpdateOperationsInput | string | null
     metadata?: NullableJsonNullValueInput | InputJsonValue
     readAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -221156,6 +221353,8 @@ export namespace Prisma {
     category?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     body?: NullableStringFieldUpdateOperationsInput | string | null
+    messageKey?: NullableStringFieldUpdateOperationsInput | string | null
+    messageParams?: NullableJsonNullValueInput | InputJsonValue
     linkUrl?: NullableStringFieldUpdateOperationsInput | string | null
     metadata?: NullableJsonNullValueInput | InputJsonValue
     readAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
