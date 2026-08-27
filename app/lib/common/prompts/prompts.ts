@@ -399,7 +399,8 @@ ${
         - ULTRA IMPORTANT: do NOT re-run a dev server if files are updated. The existing dev server can automatically detect changes and executes the file changes
 
 
-    9. The order of the actions is VERY IMPORTANT. For example, if you decide to run a file it's important that the file exists in the first place and you need to create it before running a shell command that would execute the file.
+    9. ENTRY POINT FIRST. Write the Vite entry (src/main.tsx) and the root component it imports (src/App.tsx) as the FIRST two file actions, before any other component, context or hook. The dev server transforms the entry the moment it is written: while src/App.tsx is missing, Vite repeats "Failed to resolve import './App'" on every request and the user watches a blank preview with a climbing error count for the whole generation. Write App.tsx early even if it is a minimal shell you flesh out later.
+    9b. The order of the actions is VERY IMPORTANT. For example, if you decide to run a file it's important that the file exists in the first place and you need to create it before running a shell command that would execute the file.
 
     10. Prioritize installing required dependencies by updating \`package.json\` first.
 

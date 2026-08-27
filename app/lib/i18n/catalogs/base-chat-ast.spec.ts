@@ -132,14 +132,56 @@ describe('BaseChat strengthened-AST catalog', () => {
     expect(result.parseErrors).toEqual([]);
 
     /*
-     * Empreinte du bloc mobile Terminal/en-tête GELÉ, re-scellée après la seule
-     * modification autorisée : l'externalisation des libellés visibles vers le
-     * catalogue FR (étape 3/3). La structure, la mise en page et le comportement
-     * sont inchangés — seul le texte affiché passe par `t()`. Toute évolution du
-     * hash sans changement de libellé signale une dérive de mise en page à
-     * refuser.
+     * Empreinte du bloc mobile Terminal/en-tête GELÉ. Re-scellée deux fois, et
+     * seulement sur une modification autorisée par le propriétaire :
+     *
+     * 1. externalisation des libellés visibles vers le catalogue FR (étape 3/3) —
+     *    structure, mise en page et comportement inchangés, seul le texte
+     *    affiché passe par `t()` ;
+     * 2. demande d'Avi du 19/08 — la rangée du dock porte désormais TROIS
+     *    onglets fixes (Webview · Agent · Déploiement) au lieu de quatre, via
+     *    `ECODE_MOBILE_DEFAULT_TABS` passé en onglets épinglés à
+     *    `selectVisibleMobileBottomTabs`. L'onglet Terminal, lui, reste gelé :
+     *    c'est la composition de la rangée qui a été rouverte, pas le Terminal.
+     * 3. demande d'Avi du 20/08 (SCR-006) — la zone d'identité de l'en-tête
+     *    devient le déclencheur de la recherche : `<div>` → `<button>` portant
+     *    `aria-label` et l'ouverture de la palette. Mesuré live avant le
+     *    correctif : sur les coques mobile ET tablette, la palette n'était pas
+     *    dans le DOM, `Cmd+K` laissait le focus sur `BODY`, et le bouton du nom
+     *    de projet du bandeau bureau existait sans être visible. Le TEXTE
+     *    affiché et la mise en page ne changent pas — l'élément reste le même,
+     *    aux mêmes classes, et des règles CSS de spécificité supérieure
+     *    neutralisent les styles génériques de bouton de l'en-tête.
+     * 4. bug remonté par Avi (BUG-IDE-PANEL-REPROVISION-RELOAD-001, « ouvrir
+     *    certains panneaux recharge tout l'IDE ») — le Workbench mobile passe
+     *    en keep-alive : une fois ouvert il reste monté et n'est que masqué
+     *    (`.bolt-workbench-mobile-keepalive[data-active='false']`, visibility)
+     *    quand Agent/gestion/locks est actif, au lieu d'être démonté puis
+     *    remonté à froid à chaque retour (Suspense plein écran + relance de la
+     *    boucle de démarrage de la Preview → re-provisionnement du pod).
+     *    L'onglet Terminal (ShellPanel), l'en-tête et le dock sont inchangés :
+     *    seule la stratégie de montage du conteneur workbench change, dans la
+     *    même région de source. Voir mobile-workbench-keepalive.ts.
+     *
+     * 5. bug remonté par Avi (BUG-MOB-PALETTE-KEYBOARD-001, « ouvrir un panneau
+     *    depuis la palette Commandes ne bascule pas la vue / la palette
+     *    reste », iPhone ~390 px) — le champ de recherche de la palette passe
+     *    de `autoFocus` inconditionnel à `autoFocus={commandPaletteAutoFocus}`.
+     *    Sur un appareil PUREMENT tactile, l'auto-focus levait le clavier
+     *    logiciel dès l'ouverture : il masque la moitié basse de la liste (la
+     *    feuille est en `position: fixed` ancrée au viewport de MISE EN PAGE,
+     *    que le clavier ne réduit pas) et, à sa fermeture, la mise en page se
+     *    ré-étale entre le toucher et le `click`, qui atterrit alors sur une
+     *    autre cible. Un pointeur fin (souris, trackpad — y compris tablette
+     *    avec clavier, cas voulu par SCR-006) garde l'auto-focus à l'identique.
+     *    Aucun texte, aucune classe, aucun élément ne change : seule la valeur
+     *    d'un attribut de comportement devient conditionnelle. Voir
+     *    `~/lib/command-palette-focus`.
+     *
+     * Toute évolution du hash hors d'une demande explicite du propriétaire
+     * signale une dérive de mise en page à refuser.
      */
-    expect(frozenHash).toBe('ea1ba7dc96f9d7bff2cf1dc948d98b4860e263c247e7d208f34f7536f85d0929');
+    expect(frozenHash).toBe('509abbb9f97fb6ddf80c54d7dbc7736a2220db0386b7eea05486ba5f7d2cd15e');
     expect(outsideFrozen).toEqual([]);
 
     // The mobile header/dock labels are now localized via t(); no raw English remains.

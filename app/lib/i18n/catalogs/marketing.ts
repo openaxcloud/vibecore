@@ -1248,10 +1248,10 @@ export const marketingSolutionCardCopyEn = {
 
 export const marketingSolutionCardCopyFr = {
   'app-builder': {
-    title: 'App Builder',
+    title: 'Générateur d’applications',
     eyebrow: 'Solutions',
     description:
-      'Décrivez votre processus, vos utilisateurs, vos données et vos règles. E-Code les transforme en fichiers source modifiables, écrans reliés, aperçu actif, export et publication des builds statiques pris en charge.',
+      'Décrivez votre processus, vos utilisateurs, vos données et vos règles. E-Code les transforme en fichiers source modifiables, écrans reliés, aperçu actif, export et publication des compilations statiques prises en charge.',
     highlights: [
       'Écrans et routes reliés',
       'Modèles de données inspectables',
@@ -1261,7 +1261,7 @@ export const marketingSolutionCardCopyFr = {
     sections: [
       {
         title: 'Ce que vous pouvez créer',
-        body: 'App Builder offre aux équipes un chemin plus rapide de l’idée à un projet typé et vérifiable, avec un aperçu en cours d’exécution.',
+        body: 'Générateur d’applications offre aux équipes un chemin plus rapide de l’idée à un projet typé et vérifiable, avec un aperçu en cours d’exécution.',
         items: [
           'Écrans et routes reliés',
           'Modèles de données inspectables',
@@ -1287,7 +1287,7 @@ export const marketingSolutionCardCopyFr = {
     title: 'Générateur de site',
     eyebrow: 'Solutions',
     description:
-      'Décrivez les pages, les sections et le contenu de votre site. E-Code les transforme en un site responsive dans des fichiers source modifiables, avec un aperçu actif, l’export du projet et la publication des builds statiques pris en charge.',
+      'Décrivez les pages, les sections et le contenu de votre site. E-Code les transforme en un site adaptatif dans des fichiers source modifiables, avec un aperçu actif, l’export du projet et la publication des compilations statiques prises en charge.',
     highlights: [
       'Portfolio et études de cas',
       'Un contenu modifiable',
@@ -1396,12 +1396,12 @@ export const marketingSolutionCardCopyFr = {
     eyebrow: 'Solutions',
     description:
       'Décrivez l’assistant de support recherché. E-Code crée un projet d’agent modifiable avec prompts, limites d’outils, adaptateurs de sources et logique de transfert relisibles. Connectez puis testez votre modèle, votre documentation et votre destination de support avant le lancement.',
-    highlights: ['Réponses depuis vos docs', 'Prompts relisibles', 'Outils déclarés', 'Mémoire inspectable'],
+    highlights: ['Réponses depuis votre documentation', 'Prompts relisibles', 'Outils déclarés', 'Mémoire inspectable'],
     sections: [
       {
         title: 'Ce que vous pouvez créer',
         body: 'Générateur de chatbot et d’agent IA offre aux équipes un chemin plus rapide de l’idée à un projet typé et vérifiable, avec un aperçu en cours d’exécution.',
-        items: ['Réponses depuis vos docs', 'Prompts relisibles', 'Outils déclarés', 'Mémoire inspectable'],
+        items: ['Réponses depuis votre documentation', 'Prompts relisibles', 'Outils déclarés', 'Mémoire inspectable'],
       },
       {
         title: 'Flux de production',
@@ -1457,9 +1457,9 @@ export const marketingSolutionCardCopyFr = {
     title: 'Startups',
     eyebrow: 'Solutions',
     description:
-      'Décrivez le MVP que votre startup doit démontrer. E-Code le transforme en fichiers source modifiables avec un aperçu hébergé, un lien de revue partageable, l’export du projet et la publication guidée pour les builds pris en charge.',
+      'Décrivez le MVP que votre startup doit démontrer. E-Code le transforme en fichiers source modifiables avec un aperçu hébergé, un lien de revue partageable, l’export du projet et la publication guidée pour les compilations prises en charge.',
     highlights: [
-      'Templates et génération IA',
+      'Modèles et génération IA',
       'Aperçus hébergés',
       'Démos investisseurs partageables',
       'Authentification et tableaux de bord',
@@ -1469,7 +1469,7 @@ export const marketingSolutionCardCopyFr = {
         title: 'Ce que vous pouvez créer',
         body: 'Startups offre aux équipes un chemin plus rapide de l’idée à un projet typé et vérifiable, avec un aperçu en cours d’exécution.',
         items: [
-          'Templates et génération IA',
+          'Modèles et génération IA',
           'Aperçus hébergés',
           'Démos investisseurs partageables',
           'Authentification et tableaux de bord',
@@ -1493,7 +1493,7 @@ export const marketingSolutionCardCopyFr = {
     title: 'Freelances',
     eyebrow: 'Solutions',
     description:
-      'Démarrez chaque projet client depuis des modèles réutilisables, partagez des liens d’aperçu pour la revue et transmettez un code source modifiable. E-Code transforme un brief en une application fonctionnelle dans de vrais fichiers, avec un aperçu actif, l’export du projet et la publication des builds pris en charge.',
+      'Démarrez chaque projet client depuis des modèles réutilisables, partagez des liens d’aperçu pour la revue et transmettez un code source modifiable. E-Code transforme un brief en une application fonctionnelle dans de vrais fichiers, avec un aperçu actif, l’export du projet et la publication des compilations prises en charge.',
     highlights: [
       'Modèles réutilisables',
       'Liens d’aperçu pour la revue',

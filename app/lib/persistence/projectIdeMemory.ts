@@ -1,5 +1,6 @@
 import type { Message } from 'ai';
 import type { IChatMetadata } from './db';
+import { pruneToBudget, writeWithinBudget } from './ide-memory-budget';
 import { formatPersistenceRuntimeCopy, getPersistenceRuntimeCopy } from '~/lib/i18n/catalogs/persistence-runtime';
 
 export type ProjectIdePanel = 'webview' | 'console' | 'network' | 'files';
@@ -433,10 +434,90 @@ function writeLocalProjectIdeMemory(scope: string, memory: ProjectIdeMemory) {
     return;
   }
 
+  /*
+   * Écriture SOUS BUDGET, et qui ne lève jamais.
+   *
+   * Un simple `try/catch` ne suffisait pas : il évitait la levée mais laissait le
+   * stockage saturé, donc TOUTES les écritures suivantes échouaient en silence et
+   * la mémoire IDE devenait inutile. `writeWithinBudget` fait de la place en
+   * évinçant les autres projets, puis retente une fois.
+   */
   try {
-    globalThis.localStorage.setItem(storageKeyForScope(scope), JSON.stringify(memory));
+    const key = storageKeyForScope(scope);
+
+    const outcome = writeWithinBudget(
+      globalThis.localStorage,
+      PROJECT_IDE_MEMORY_STORAGE_PREFIX,
+      key,
+      JSON.stringify(memory),
+    );
+
+    if (outcome !== 'written') {
+      console.warn('Project IDE memory write degraded', { scope, outcome });
+    }
   } catch (error) {
+    /*
+     * Filet de dernier recours. `writeWithinBudget` est écrit pour ne pas lever,
+     * mais cette écriture est appelée depuis la boucle de génération : une
+     * exception ici la casserait, et c'est précisément le défaut d'origine.
+     */
     console.error('Failed to write local project IDE memory', error);
+  }
+}
+
+/*
+ * Purge déclenchée au CHARGEMENT DU MODULE, côté navigateur uniquement.
+ *
+ * Placée ici et pas dans un composant : ce module est importé par tout ce qui lit
+ * la mémoire IDE, donc aucun appelant ne peut l'oublier. `localStorageAvailable()`
+ * la rend inerte au rendu serveur, et le drapeau la rend idempotente — un second
+ * import ne repurge pas.
+ */
+if (
+  typeof globalThis !== 'undefined' &&
+  typeof (globalThis as { localStorage?: unknown }).localStorage !== 'undefined'
+) {
+  queueMicrotask(() => {
+    pruneProjectIdeMemoryOnBoot();
+  });
+}
+
+/**
+ * Purge au démarrage : sans elle, un navigateur DÉJÀ saturé reste cassé jusqu'à
+ * une purge manuelle. C'est exactement ce qu'il a fallu faire à la main en
+ * production, sur un stockage arrivé à 10 Mo pour 64 projets.
+ *
+ * Idempotente et silencieuse : sous le budget, elle ne fait rien.
+ */
+let purgeFaite = false;
+
+export function pruneProjectIdeMemoryOnBoot(): string[] {
+  if (purgeFaite) {
+    return [];
+  }
+
+  purgeFaite = true;
+
+  return prunerMaintenant();
+}
+
+function prunerMaintenant(): string[] {
+  if (!localStorageAvailable()) {
+    return [];
+  }
+
+  try {
+    const evicted = pruneToBudget(globalThis.localStorage, PROJECT_IDE_MEMORY_STORAGE_PREFIX);
+
+    if (evicted.length > 0) {
+      console.warn(`Project IDE memory: evicted ${evicted.length} stale project entr(y|ies) to stay within budget`);
+    }
+
+    return evicted;
+  } catch (error) {
+    console.error('Project IDE memory prune skipped', error);
+
+    return [];
   }
 }
 

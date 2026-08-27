@@ -123,7 +123,7 @@ export default function Blog() {
                     aria-pressed={isActive}
                     className={`inline-flex min-h-[44px] shrink-0 cursor-pointer items-center rounded-full px-4 py-2 text-[13px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ecode-accent focus-visible:ring-offset-2 ${
                       isActive
-                        ? 'bg-ecode-accent text-white hover:bg-ecode-accent-hover'
+                        ? 'bg-[var(--vc-action-primary-strong)] text-white hover:brightness-90'
                         : 'bg-muted text-muted-foreground hover:bg-muted/70 hover:text-foreground'
                     }`}
                     data-testid={`filter-${category.id.toLowerCase().replace(/\s+/g, '-')}`}

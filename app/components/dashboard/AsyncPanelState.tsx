@@ -79,7 +79,12 @@ export function AsyncPanelError({
         tone === 'warning'
           ? 'border-[var(--status-warning-border)] bg-[var(--status-warning-bg)] text-[var(--status-warning-text)]'
           : 'border-[var(--status-error-border)] bg-[var(--status-error-bg)] text-[var(--status-error-text)]',
-        compact ? 'p-3' : 'p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6',
+
+        /*
+         * Même padding compact que `AsyncPanelSkeleton` : les deux états se
+         * remplacent au même emplacement, le panneau ne doit pas sauter.
+         */
+        compact ? 'p-4' : 'p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6',
         className,
       )}
     >
