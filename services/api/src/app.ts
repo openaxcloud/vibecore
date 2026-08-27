@@ -8370,8 +8370,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    */
   const diagnosticsDb = store instanceof PrismaApiStore ? store.prisma : undefined;
 
-  const projectStorage = options.projectStorage ?? new LocalProjectStorage();
-
+  /**
    * `rawProjectStorage` = accès direct, réservé à l'orchestrateur de checkpoint :
    * lui seul doit pouvoir écrire l'arbre pendant que SA propre barrière tient
    * (restauration). Tout le reste du processus passe par `projectStorage`, qui
