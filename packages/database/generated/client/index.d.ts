@@ -220,6 +220,16 @@ export type ProjectStorageObject = $Result.DefaultSelection<Prisma.$ProjectStora
  */
 export type Deployment = $Result.DefaultSelection<Prisma.$DeploymentPayload>
 /**
+ * Model ReservedVmOperation
+ * 
+ */
+export type ReservedVmOperation = $Result.DefaultSelection<Prisma.$ReservedVmOperationPayload>
+/**
+ * Model ReservedVmBillingPeriod
+ * 
+ */
+export type ReservedVmBillingPeriod = $Result.DefaultSelection<Prisma.$ReservedVmBillingPeriodPayload>
+/**
  * Model DeploymentEnvironment
  * 
  */
@@ -1939,6 +1949,26 @@ export class PrismaClient<
   get deployment(): Prisma.DeploymentDelegate<ExtArgs, ClientOptions>;
 
   /**
+   * `prisma.reservedVmOperation`: Exposes CRUD operations for the **ReservedVmOperation** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more ReservedVmOperations
+    * const reservedVmOperations = await prisma.reservedVmOperation.findMany()
+    * ```
+    */
+  get reservedVmOperation(): Prisma.ReservedVmOperationDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.reservedVmBillingPeriod`: Exposes CRUD operations for the **ReservedVmBillingPeriod** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more ReservedVmBillingPeriods
+    * const reservedVmBillingPeriods = await prisma.reservedVmBillingPeriod.findMany()
+    * ```
+    */
+  get reservedVmBillingPeriod(): Prisma.ReservedVmBillingPeriodDelegate<ExtArgs, ClientOptions>;
+
+  /**
    * `prisma.deploymentEnvironment`: Exposes CRUD operations for the **DeploymentEnvironment** model.
     * Example usage:
     * ```ts
@@ -3481,6 +3511,8 @@ export namespace Prisma {
     ProjectManifestRevision: 'ProjectManifestRevision',
     ProjectStorageObject: 'ProjectStorageObject',
     Deployment: 'Deployment',
+    ReservedVmOperation: 'ReservedVmOperation',
+    ReservedVmBillingPeriod: 'ReservedVmBillingPeriod',
     DeploymentEnvironment: 'DeploymentEnvironment',
     ReleaseManifest: 'ReleaseManifest',
     RollbackIdempotencyRequest: 'RollbackIdempotencyRequest',
@@ -3603,7 +3635,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "projectSlugRedirect" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "installedSkill" | "skillAuditEvent" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "collaborationGroup" | "collaborationGroupMember" | "resourceAccessGrant" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectManifestRevision" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "releaseManifest" | "rollbackIdempotencyRequest" | "deploymentAccessPolicy" | "deploymentAccessExchangeTicket" | "rateCard" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "providerRequestMetric" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "runtimeWebSocketTicket" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "mcpGlobalPolicy" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore" | "dBMigrationExecution" | "scheduledTask" | "scheduledTaskRun" | "agentRoutingCard" | "agentCallLog" | "projectCheckpoint" | "remixJob" | "remixStorageShare" | "importJob" | "importCreditReservation" | "galleryListing" | "ledgerAccount" | "ledgerTransaction" | "ledgerEntry" | "ledgerReservation" | "ledgerFxRate" | "ledgerReconciliationRun" | "previewReadinessBeacon" | "workspaceLifecycleEvent" | "workspacePostMortem" | "cloudTenant" | "cloudProjectBinding" | "cloudProjectFactoryEvent" | "cloudOperation" | "cloudOperationEvent" | "cloudTenantTransfer" | "cloudTeardownRecord" | "platformIamIdentity" | "platformIamImpersonationAudit" | "purgePlan" | "purgeFreeze" | "purgeEffect" | "purgeReceipt"
+      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "projectSlugRedirect" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "installedSkill" | "skillAuditEvent" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "collaborationGroup" | "collaborationGroupMember" | "resourceAccessGrant" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectManifestRevision" | "projectStorageObject" | "deployment" | "reservedVmOperation" | "reservedVmBillingPeriod" | "deploymentEnvironment" | "releaseManifest" | "rollbackIdempotencyRequest" | "deploymentAccessPolicy" | "deploymentAccessExchangeTicket" | "rateCard" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "providerRequestMetric" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "runtimeWebSocketTicket" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "mcpGlobalPolicy" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore" | "dBMigrationExecution" | "scheduledTask" | "scheduledTaskRun" | "agentRoutingCard" | "agentCallLog" | "projectCheckpoint" | "remixJob" | "remixStorageShare" | "importJob" | "importCreditReservation" | "galleryListing" | "ledgerAccount" | "ledgerTransaction" | "ledgerEntry" | "ledgerReservation" | "ledgerFxRate" | "ledgerReconciliationRun" | "previewReadinessBeacon" | "workspaceLifecycleEvent" | "workspacePostMortem" | "cloudTenant" | "cloudProjectBinding" | "cloudProjectFactoryEvent" | "cloudOperation" | "cloudOperationEvent" | "cloudTenantTransfer" | "cloudTeardownRecord" | "platformIamIdentity" | "platformIamImpersonationAudit" | "purgePlan" | "purgeFreeze" | "purgeEffect" | "purgeReceipt"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -6548,6 +6580,154 @@ export namespace Prisma {
           count: {
             args: Prisma.DeploymentCountArgs<ExtArgs>
             result: $Utils.Optional<DeploymentCountAggregateOutputType> | number
+          }
+        }
+      }
+      ReservedVmOperation: {
+        payload: Prisma.$ReservedVmOperationPayload<ExtArgs>
+        fields: Prisma.ReservedVmOperationFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.ReservedVmOperationFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ReservedVmOperationPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.ReservedVmOperationFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ReservedVmOperationPayload>
+          }
+          findFirst: {
+            args: Prisma.ReservedVmOperationFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ReservedVmOperationPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.ReservedVmOperationFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ReservedVmOperationPayload>
+          }
+          findMany: {
+            args: Prisma.ReservedVmOperationFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ReservedVmOperationPayload>[]
+          }
+          create: {
+            args: Prisma.ReservedVmOperationCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ReservedVmOperationPayload>
+          }
+          createMany: {
+            args: Prisma.ReservedVmOperationCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.ReservedVmOperationCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ReservedVmOperationPayload>[]
+          }
+          delete: {
+            args: Prisma.ReservedVmOperationDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ReservedVmOperationPayload>
+          }
+          update: {
+            args: Prisma.ReservedVmOperationUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ReservedVmOperationPayload>
+          }
+          deleteMany: {
+            args: Prisma.ReservedVmOperationDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.ReservedVmOperationUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.ReservedVmOperationUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ReservedVmOperationPayload>[]
+          }
+          upsert: {
+            args: Prisma.ReservedVmOperationUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ReservedVmOperationPayload>
+          }
+          aggregate: {
+            args: Prisma.ReservedVmOperationAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateReservedVmOperation>
+          }
+          groupBy: {
+            args: Prisma.ReservedVmOperationGroupByArgs<ExtArgs>
+            result: $Utils.Optional<ReservedVmOperationGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.ReservedVmOperationCountArgs<ExtArgs>
+            result: $Utils.Optional<ReservedVmOperationCountAggregateOutputType> | number
+          }
+        }
+      }
+      ReservedVmBillingPeriod: {
+        payload: Prisma.$ReservedVmBillingPeriodPayload<ExtArgs>
+        fields: Prisma.ReservedVmBillingPeriodFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.ReservedVmBillingPeriodFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ReservedVmBillingPeriodPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.ReservedVmBillingPeriodFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ReservedVmBillingPeriodPayload>
+          }
+          findFirst: {
+            args: Prisma.ReservedVmBillingPeriodFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ReservedVmBillingPeriodPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.ReservedVmBillingPeriodFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ReservedVmBillingPeriodPayload>
+          }
+          findMany: {
+            args: Prisma.ReservedVmBillingPeriodFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ReservedVmBillingPeriodPayload>[]
+          }
+          create: {
+            args: Prisma.ReservedVmBillingPeriodCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ReservedVmBillingPeriodPayload>
+          }
+          createMany: {
+            args: Prisma.ReservedVmBillingPeriodCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.ReservedVmBillingPeriodCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ReservedVmBillingPeriodPayload>[]
+          }
+          delete: {
+            args: Prisma.ReservedVmBillingPeriodDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ReservedVmBillingPeriodPayload>
+          }
+          update: {
+            args: Prisma.ReservedVmBillingPeriodUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ReservedVmBillingPeriodPayload>
+          }
+          deleteMany: {
+            args: Prisma.ReservedVmBillingPeriodDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.ReservedVmBillingPeriodUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.ReservedVmBillingPeriodUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ReservedVmBillingPeriodPayload>[]
+          }
+          upsert: {
+            args: Prisma.ReservedVmBillingPeriodUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ReservedVmBillingPeriodPayload>
+          }
+          aggregate: {
+            args: Prisma.ReservedVmBillingPeriodAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateReservedVmBillingPeriod>
+          }
+          groupBy: {
+            args: Prisma.ReservedVmBillingPeriodGroupByArgs<ExtArgs>
+            result: $Utils.Optional<ReservedVmBillingPeriodGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.ReservedVmBillingPeriodCountArgs<ExtArgs>
+            result: $Utils.Optional<ReservedVmBillingPeriodCountAggregateOutputType> | number
           }
         }
       }
@@ -14617,6 +14797,8 @@ export namespace Prisma {
     projectManifestRevision?: ProjectManifestRevisionOmit
     projectStorageObject?: ProjectStorageObjectOmit
     deployment?: DeploymentOmit
+    reservedVmOperation?: ReservedVmOperationOmit
+    reservedVmBillingPeriod?: ReservedVmBillingPeriodOmit
     deploymentEnvironment?: DeploymentEnvironmentOmit
     releaseManifest?: ReleaseManifestOmit
     rollbackIdempotencyRequest?: RollbackIdempotencyRequestOmit
@@ -15682,6 +15864,7 @@ export namespace Prisma {
     manifestRevisions: number
     storageObjects: number
     deployments: number
+    reservedVmBillingPeriods: number
     rollbackOperations: number
     fileSnapshots: number
     conversations: number
@@ -15717,6 +15900,7 @@ export namespace Prisma {
     manifestRevisions?: boolean | ProjectCountOutputTypeCountManifestRevisionsArgs
     storageObjects?: boolean | ProjectCountOutputTypeCountStorageObjectsArgs
     deployments?: boolean | ProjectCountOutputTypeCountDeploymentsArgs
+    reservedVmBillingPeriods?: boolean | ProjectCountOutputTypeCountReservedVmBillingPeriodsArgs
     rollbackOperations?: boolean | ProjectCountOutputTypeCountRollbackOperationsArgs
     fileSnapshots?: boolean | ProjectCountOutputTypeCountFileSnapshotsArgs
     conversations?: boolean | ProjectCountOutputTypeCountConversationsArgs
@@ -15832,6 +16016,13 @@ export namespace Prisma {
    */
   export type ProjectCountOutputTypeCountDeploymentsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: DeploymentWhereInput
+  }
+
+  /**
+   * ProjectCountOutputType without action
+   */
+  export type ProjectCountOutputTypeCountReservedVmBillingPeriodsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ReservedVmBillingPeriodWhereInput
   }
 
   /**
@@ -16088,6 +16279,37 @@ export namespace Prisma {
    */
   export type WorkspaceCountOutputTypeCountPostMortemsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: WorkspacePostMortemWhereInput
+  }
+
+
+  /**
+   * Count Type DeploymentCountOutputType
+   */
+
+  export type DeploymentCountOutputType = {
+    reservedVmBillingPeriods: number
+  }
+
+  export type DeploymentCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    reservedVmBillingPeriods?: boolean | DeploymentCountOutputTypeCountReservedVmBillingPeriodsArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * DeploymentCountOutputType without action
+   */
+  export type DeploymentCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DeploymentCountOutputType
+     */
+    select?: DeploymentCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * DeploymentCountOutputType without action
+   */
+  export type DeploymentCountOutputTypeCountReservedVmBillingPeriodsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ReservedVmBillingPeriodWhereInput
   }
 
 
@@ -29429,6 +29651,7 @@ export namespace Prisma {
     manifestRevisions?: boolean | Project$manifestRevisionsArgs<ExtArgs>
     storageObjects?: boolean | Project$storageObjectsArgs<ExtArgs>
     deployments?: boolean | Project$deploymentsArgs<ExtArgs>
+    reservedVmBillingPeriods?: boolean | Project$reservedVmBillingPeriodsArgs<ExtArgs>
     rollbackOperations?: boolean | Project$rollbackOperationsArgs<ExtArgs>
     fileSnapshots?: boolean | Project$fileSnapshotsArgs<ExtArgs>
     conversations?: boolean | Project$conversationsArgs<ExtArgs>
@@ -29525,6 +29748,7 @@ export namespace Prisma {
     manifestRevisions?: boolean | Project$manifestRevisionsArgs<ExtArgs>
     storageObjects?: boolean | Project$storageObjectsArgs<ExtArgs>
     deployments?: boolean | Project$deploymentsArgs<ExtArgs>
+    reservedVmBillingPeriods?: boolean | Project$reservedVmBillingPeriodsArgs<ExtArgs>
     rollbackOperations?: boolean | Project$rollbackOperationsArgs<ExtArgs>
     fileSnapshots?: boolean | Project$fileSnapshotsArgs<ExtArgs>
     conversations?: boolean | Project$conversationsArgs<ExtArgs>
@@ -29572,6 +29796,7 @@ export namespace Prisma {
       manifestRevisions: Prisma.$ProjectManifestRevisionPayload<ExtArgs>[]
       storageObjects: Prisma.$ProjectStorageObjectPayload<ExtArgs>[]
       deployments: Prisma.$DeploymentPayload<ExtArgs>[]
+      reservedVmBillingPeriods: Prisma.$ReservedVmBillingPeriodPayload<ExtArgs>[]
       rollbackOperations: Prisma.$RollbackIdempotencyRequestPayload<ExtArgs>[]
       fileSnapshots: Prisma.$FileSnapshotPayload<ExtArgs>[]
       conversations: Prisma.$AiConversationPayload<ExtArgs>[]
@@ -30018,6 +30243,7 @@ export namespace Prisma {
     manifestRevisions<T extends Project$manifestRevisionsArgs<ExtArgs> = {}>(args?: Subset<T, Project$manifestRevisionsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectManifestRevisionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     storageObjects<T extends Project$storageObjectsArgs<ExtArgs> = {}>(args?: Subset<T, Project$storageObjectsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectStorageObjectPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     deployments<T extends Project$deploymentsArgs<ExtArgs> = {}>(args?: Subset<T, Project$deploymentsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DeploymentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    reservedVmBillingPeriods<T extends Project$reservedVmBillingPeriodsArgs<ExtArgs> = {}>(args?: Subset<T, Project$reservedVmBillingPeriodsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ReservedVmBillingPeriodPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     rollbackOperations<T extends Project$rollbackOperationsArgs<ExtArgs> = {}>(args?: Subset<T, Project$rollbackOperationsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$RollbackIdempotencyRequestPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     fileSnapshots<T extends Project$fileSnapshotsArgs<ExtArgs> = {}>(args?: Subset<T, Project$fileSnapshotsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$FileSnapshotPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     conversations<T extends Project$conversationsArgs<ExtArgs> = {}>(args?: Subset<T, Project$conversationsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AiConversationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -30770,6 +30996,30 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: DeploymentScalarFieldEnum | DeploymentScalarFieldEnum[]
+  }
+
+  /**
+   * Project.reservedVmBillingPeriods
+   */
+  export type Project$reservedVmBillingPeriodsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ReservedVmBillingPeriod
+     */
+    select?: ReservedVmBillingPeriodSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ReservedVmBillingPeriod
+     */
+    omit?: ReservedVmBillingPeriodOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ReservedVmBillingPeriodInclude<ExtArgs> | null
+    where?: ReservedVmBillingPeriodWhereInput
+    orderBy?: ReservedVmBillingPeriodOrderByWithRelationInput | ReservedVmBillingPeriodOrderByWithRelationInput[]
+    cursor?: ReservedVmBillingPeriodWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: ReservedVmBillingPeriodScalarFieldEnum | ReservedVmBillingPeriodScalarFieldEnum[]
   }
 
   /**
@@ -64340,10 +64590,16 @@ export namespace Prisma {
   }
 
   export type DeploymentAvgAggregateOutputType = {
+    runtimeVersion: number | null
+    reservedVmPriceCents: number | null
+    reservedVmRateCardVersion: number | null
     accessPolicyVersion: number | null
   }
 
   export type DeploymentSumAggregateOutputType = {
+    runtimeVersion: number | null
+    reservedVmPriceCents: number | null
+    reservedVmRateCardVersion: number | null
     accessPolicyVersion: number | null
   }
 
@@ -64368,6 +64624,19 @@ export namespace Prisma {
     parentDeploymentId: string | null
     lastMeteredAt: Date | null
     machineSize: string | null
+    runtimeKind: string | null
+    runtimeVersion: number | null
+    reservedVmTier: string | null
+    reservedVmPriceCents: number | null
+    reservedVmTermsVersion: string | null
+    reservedVmRateCardVersion: number | null
+    reservedVmBillingReservationId: string | null
+    reservedVmBillingState: string | null
+    reservedVmCurrentPeriodStart: Date | null
+    reservedVmNextChargeAt: Date | null
+    reservedVmGraceEndsAt: Date | null
+    reservedVmStopRequestedAt: Date | null
+    persistentStorageClaim: string | null
     accessPolicyVersion: number | null
     startedAt: Date | null
     finishedAt: Date | null
@@ -64397,6 +64666,19 @@ export namespace Prisma {
     parentDeploymentId: string | null
     lastMeteredAt: Date | null
     machineSize: string | null
+    runtimeKind: string | null
+    runtimeVersion: number | null
+    reservedVmTier: string | null
+    reservedVmPriceCents: number | null
+    reservedVmTermsVersion: string | null
+    reservedVmRateCardVersion: number | null
+    reservedVmBillingReservationId: string | null
+    reservedVmBillingState: string | null
+    reservedVmCurrentPeriodStart: Date | null
+    reservedVmNextChargeAt: Date | null
+    reservedVmGraceEndsAt: Date | null
+    reservedVmStopRequestedAt: Date | null
+    persistentStorageClaim: string | null
     accessPolicyVersion: number | null
     startedAt: Date | null
     finishedAt: Date | null
@@ -64428,6 +64710,19 @@ export namespace Prisma {
     parentDeploymentId: number
     lastMeteredAt: number
     machineSize: number
+    runtimeKind: number
+    runtimeVersion: number
+    reservedVmTier: number
+    reservedVmPriceCents: number
+    reservedVmTermsVersion: number
+    reservedVmRateCardVersion: number
+    reservedVmBillingReservationId: number
+    reservedVmBillingState: number
+    reservedVmCurrentPeriodStart: number
+    reservedVmNextChargeAt: number
+    reservedVmGraceEndsAt: number
+    reservedVmStopRequestedAt: number
+    persistentStorageClaim: number
     accessPolicyVersion: number
     startedAt: number
     finishedAt: number
@@ -64439,10 +64734,16 @@ export namespace Prisma {
 
 
   export type DeploymentAvgAggregateInputType = {
+    runtimeVersion?: true
+    reservedVmPriceCents?: true
+    reservedVmRateCardVersion?: true
     accessPolicyVersion?: true
   }
 
   export type DeploymentSumAggregateInputType = {
+    runtimeVersion?: true
+    reservedVmPriceCents?: true
+    reservedVmRateCardVersion?: true
     accessPolicyVersion?: true
   }
 
@@ -64467,6 +64768,19 @@ export namespace Prisma {
     parentDeploymentId?: true
     lastMeteredAt?: true
     machineSize?: true
+    runtimeKind?: true
+    runtimeVersion?: true
+    reservedVmTier?: true
+    reservedVmPriceCents?: true
+    reservedVmTermsVersion?: true
+    reservedVmRateCardVersion?: true
+    reservedVmBillingReservationId?: true
+    reservedVmBillingState?: true
+    reservedVmCurrentPeriodStart?: true
+    reservedVmNextChargeAt?: true
+    reservedVmGraceEndsAt?: true
+    reservedVmStopRequestedAt?: true
+    persistentStorageClaim?: true
     accessPolicyVersion?: true
     startedAt?: true
     finishedAt?: true
@@ -64496,6 +64810,19 @@ export namespace Prisma {
     parentDeploymentId?: true
     lastMeteredAt?: true
     machineSize?: true
+    runtimeKind?: true
+    runtimeVersion?: true
+    reservedVmTier?: true
+    reservedVmPriceCents?: true
+    reservedVmTermsVersion?: true
+    reservedVmRateCardVersion?: true
+    reservedVmBillingReservationId?: true
+    reservedVmBillingState?: true
+    reservedVmCurrentPeriodStart?: true
+    reservedVmNextChargeAt?: true
+    reservedVmGraceEndsAt?: true
+    reservedVmStopRequestedAt?: true
+    persistentStorageClaim?: true
     accessPolicyVersion?: true
     startedAt?: true
     finishedAt?: true
@@ -64527,6 +64854,19 @@ export namespace Prisma {
     parentDeploymentId?: true
     lastMeteredAt?: true
     machineSize?: true
+    runtimeKind?: true
+    runtimeVersion?: true
+    reservedVmTier?: true
+    reservedVmPriceCents?: true
+    reservedVmTermsVersion?: true
+    reservedVmRateCardVersion?: true
+    reservedVmBillingReservationId?: true
+    reservedVmBillingState?: true
+    reservedVmCurrentPeriodStart?: true
+    reservedVmNextChargeAt?: true
+    reservedVmGraceEndsAt?: true
+    reservedVmStopRequestedAt?: true
+    persistentStorageClaim?: true
     accessPolicyVersion?: true
     startedAt?: true
     finishedAt?: true
@@ -64645,6 +64985,19 @@ export namespace Prisma {
     parentDeploymentId: string | null
     lastMeteredAt: Date | null
     machineSize: string
+    runtimeKind: string
+    runtimeVersion: number
+    reservedVmTier: string | null
+    reservedVmPriceCents: number | null
+    reservedVmTermsVersion: string | null
+    reservedVmRateCardVersion: number | null
+    reservedVmBillingReservationId: string | null
+    reservedVmBillingState: string | null
+    reservedVmCurrentPeriodStart: Date | null
+    reservedVmNextChargeAt: Date | null
+    reservedVmGraceEndsAt: Date | null
+    reservedVmStopRequestedAt: Date | null
+    persistentStorageClaim: string | null
     accessPolicyVersion: number
     startedAt: Date | null
     finishedAt: Date | null
@@ -64695,6 +65048,19 @@ export namespace Prisma {
     parentDeploymentId?: boolean
     lastMeteredAt?: boolean
     machineSize?: boolean
+    runtimeKind?: boolean
+    runtimeVersion?: boolean
+    reservedVmTier?: boolean
+    reservedVmPriceCents?: boolean
+    reservedVmTermsVersion?: boolean
+    reservedVmRateCardVersion?: boolean
+    reservedVmBillingReservationId?: boolean
+    reservedVmBillingState?: boolean
+    reservedVmCurrentPeriodStart?: boolean
+    reservedVmNextChargeAt?: boolean
+    reservedVmGraceEndsAt?: boolean
+    reservedVmStopRequestedAt?: boolean
+    persistentStorageClaim?: boolean
     accessPolicyVersion?: boolean
     startedAt?: boolean
     finishedAt?: boolean
@@ -64703,6 +65069,8 @@ export namespace Prisma {
     updatedAt?: boolean
     project?: boolean | ProjectDefaultArgs<ExtArgs>
     environment?: boolean | Deployment$environmentArgs<ExtArgs>
+    reservedVmBillingPeriods?: boolean | Deployment$reservedVmBillingPeriodsArgs<ExtArgs>
+    _count?: boolean | DeploymentCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["deployment"]>
 
   export type DeploymentSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -64728,6 +65096,19 @@ export namespace Prisma {
     parentDeploymentId?: boolean
     lastMeteredAt?: boolean
     machineSize?: boolean
+    runtimeKind?: boolean
+    runtimeVersion?: boolean
+    reservedVmTier?: boolean
+    reservedVmPriceCents?: boolean
+    reservedVmTermsVersion?: boolean
+    reservedVmRateCardVersion?: boolean
+    reservedVmBillingReservationId?: boolean
+    reservedVmBillingState?: boolean
+    reservedVmCurrentPeriodStart?: boolean
+    reservedVmNextChargeAt?: boolean
+    reservedVmGraceEndsAt?: boolean
+    reservedVmStopRequestedAt?: boolean
+    persistentStorageClaim?: boolean
     accessPolicyVersion?: boolean
     startedAt?: boolean
     finishedAt?: boolean
@@ -64761,6 +65142,19 @@ export namespace Prisma {
     parentDeploymentId?: boolean
     lastMeteredAt?: boolean
     machineSize?: boolean
+    runtimeKind?: boolean
+    runtimeVersion?: boolean
+    reservedVmTier?: boolean
+    reservedVmPriceCents?: boolean
+    reservedVmTermsVersion?: boolean
+    reservedVmRateCardVersion?: boolean
+    reservedVmBillingReservationId?: boolean
+    reservedVmBillingState?: boolean
+    reservedVmCurrentPeriodStart?: boolean
+    reservedVmNextChargeAt?: boolean
+    reservedVmGraceEndsAt?: boolean
+    reservedVmStopRequestedAt?: boolean
+    persistentStorageClaim?: boolean
     accessPolicyVersion?: boolean
     startedAt?: boolean
     finishedAt?: boolean
@@ -64794,6 +65188,19 @@ export namespace Prisma {
     parentDeploymentId?: boolean
     lastMeteredAt?: boolean
     machineSize?: boolean
+    runtimeKind?: boolean
+    runtimeVersion?: boolean
+    reservedVmTier?: boolean
+    reservedVmPriceCents?: boolean
+    reservedVmTermsVersion?: boolean
+    reservedVmRateCardVersion?: boolean
+    reservedVmBillingReservationId?: boolean
+    reservedVmBillingState?: boolean
+    reservedVmCurrentPeriodStart?: boolean
+    reservedVmNextChargeAt?: boolean
+    reservedVmGraceEndsAt?: boolean
+    reservedVmStopRequestedAt?: boolean
+    persistentStorageClaim?: boolean
     accessPolicyVersion?: boolean
     startedAt?: boolean
     finishedAt?: boolean
@@ -64802,10 +65209,12 @@ export namespace Prisma {
     updatedAt?: boolean
   }
 
-  export type DeploymentOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "projectId" | "workspaceId" | "environmentId" | "environmentName" | "status" | "provider" | "url" | "previewUrl" | "productionUrl" | "framework" | "buildCommand" | "outputDirectory" | "branch" | "commitSha" | "customDomain" | "logs" | "metadata" | "rolledBackFromId" | "parentDeploymentId" | "lastMeteredAt" | "machineSize" | "accessPolicyVersion" | "startedAt" | "finishedAt" | "canceledAt" | "createdAt" | "updatedAt", ExtArgs["result"]["deployment"]>
+  export type DeploymentOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "projectId" | "workspaceId" | "environmentId" | "environmentName" | "status" | "provider" | "url" | "previewUrl" | "productionUrl" | "framework" | "buildCommand" | "outputDirectory" | "branch" | "commitSha" | "customDomain" | "logs" | "metadata" | "rolledBackFromId" | "parentDeploymentId" | "lastMeteredAt" | "machineSize" | "runtimeKind" | "runtimeVersion" | "reservedVmTier" | "reservedVmPriceCents" | "reservedVmTermsVersion" | "reservedVmRateCardVersion" | "reservedVmBillingReservationId" | "reservedVmBillingState" | "reservedVmCurrentPeriodStart" | "reservedVmNextChargeAt" | "reservedVmGraceEndsAt" | "reservedVmStopRequestedAt" | "persistentStorageClaim" | "accessPolicyVersion" | "startedAt" | "finishedAt" | "canceledAt" | "createdAt" | "updatedAt", ExtArgs["result"]["deployment"]>
   export type DeploymentInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     project?: boolean | ProjectDefaultArgs<ExtArgs>
     environment?: boolean | Deployment$environmentArgs<ExtArgs>
+    reservedVmBillingPeriods?: boolean | Deployment$reservedVmBillingPeriodsArgs<ExtArgs>
+    _count?: boolean | DeploymentCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type DeploymentIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     project?: boolean | ProjectDefaultArgs<ExtArgs>
@@ -64821,6 +65230,7 @@ export namespace Prisma {
     objects: {
       project: Prisma.$ProjectPayload<ExtArgs>
       environment: Prisma.$DeploymentEnvironmentPayload<ExtArgs> | null
+      reservedVmBillingPeriods: Prisma.$ReservedVmBillingPeriodPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -64845,6 +65255,19 @@ export namespace Prisma {
       parentDeploymentId: string | null
       lastMeteredAt: Date | null
       machineSize: string
+      runtimeKind: string
+      runtimeVersion: number
+      reservedVmTier: string | null
+      reservedVmPriceCents: number | null
+      reservedVmTermsVersion: string | null
+      reservedVmRateCardVersion: number | null
+      reservedVmBillingReservationId: string | null
+      reservedVmBillingState: string | null
+      reservedVmCurrentPeriodStart: Date | null
+      reservedVmNextChargeAt: Date | null
+      reservedVmGraceEndsAt: Date | null
+      reservedVmStopRequestedAt: Date | null
+      persistentStorageClaim: string | null
       accessPolicyVersion: number
       startedAt: Date | null
       finishedAt: Date | null
@@ -65247,6 +65670,7 @@ export namespace Prisma {
     readonly [Symbol.toStringTag]: "PrismaPromise"
     project<T extends ProjectDefaultArgs<ExtArgs> = {}>(args?: Subset<T, ProjectDefaultArgs<ExtArgs>>): Prisma__ProjectClient<$Result.GetResult<Prisma.$ProjectPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
     environment<T extends Deployment$environmentArgs<ExtArgs> = {}>(args?: Subset<T, Deployment$environmentArgs<ExtArgs>>): Prisma__DeploymentEnvironmentClient<$Result.GetResult<Prisma.$DeploymentEnvironmentPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    reservedVmBillingPeriods<T extends Deployment$reservedVmBillingPeriodsArgs<ExtArgs> = {}>(args?: Subset<T, Deployment$reservedVmBillingPeriodsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ReservedVmBillingPeriodPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -65298,6 +65722,19 @@ export namespace Prisma {
     readonly parentDeploymentId: FieldRef<"Deployment", 'String'>
     readonly lastMeteredAt: FieldRef<"Deployment", 'DateTime'>
     readonly machineSize: FieldRef<"Deployment", 'String'>
+    readonly runtimeKind: FieldRef<"Deployment", 'String'>
+    readonly runtimeVersion: FieldRef<"Deployment", 'Int'>
+    readonly reservedVmTier: FieldRef<"Deployment", 'String'>
+    readonly reservedVmPriceCents: FieldRef<"Deployment", 'Int'>
+    readonly reservedVmTermsVersion: FieldRef<"Deployment", 'String'>
+    readonly reservedVmRateCardVersion: FieldRef<"Deployment", 'Int'>
+    readonly reservedVmBillingReservationId: FieldRef<"Deployment", 'String'>
+    readonly reservedVmBillingState: FieldRef<"Deployment", 'String'>
+    readonly reservedVmCurrentPeriodStart: FieldRef<"Deployment", 'DateTime'>
+    readonly reservedVmNextChargeAt: FieldRef<"Deployment", 'DateTime'>
+    readonly reservedVmGraceEndsAt: FieldRef<"Deployment", 'DateTime'>
+    readonly reservedVmStopRequestedAt: FieldRef<"Deployment", 'DateTime'>
+    readonly persistentStorageClaim: FieldRef<"Deployment", 'String'>
     readonly accessPolicyVersion: FieldRef<"Deployment", 'Int'>
     readonly startedAt: FieldRef<"Deployment", 'DateTime'>
     readonly finishedAt: FieldRef<"Deployment", 'DateTime'>
@@ -65724,6 +66161,30 @@ export namespace Prisma {
   }
 
   /**
+   * Deployment.reservedVmBillingPeriods
+   */
+  export type Deployment$reservedVmBillingPeriodsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ReservedVmBillingPeriod
+     */
+    select?: ReservedVmBillingPeriodSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ReservedVmBillingPeriod
+     */
+    omit?: ReservedVmBillingPeriodOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ReservedVmBillingPeriodInclude<ExtArgs> | null
+    where?: ReservedVmBillingPeriodWhereInput
+    orderBy?: ReservedVmBillingPeriodOrderByWithRelationInput | ReservedVmBillingPeriodOrderByWithRelationInput[]
+    cursor?: ReservedVmBillingPeriodWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: ReservedVmBillingPeriodScalarFieldEnum | ReservedVmBillingPeriodScalarFieldEnum[]
+  }
+
+  /**
    * Deployment without action
    */
   export type DeploymentDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -65739,6 +66200,2745 @@ export namespace Prisma {
      * Choose, which related nodes to fetch as well
      */
     include?: DeploymentInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model ReservedVmOperation
+   */
+
+  export type AggregateReservedVmOperation = {
+    _count: ReservedVmOperationCountAggregateOutputType | null
+    _avg: ReservedVmOperationAvgAggregateOutputType | null
+    _sum: ReservedVmOperationSumAggregateOutputType | null
+    _min: ReservedVmOperationMinAggregateOutputType | null
+    _max: ReservedVmOperationMaxAggregateOutputType | null
+  }
+
+  export type ReservedVmOperationAvgAggregateOutputType = {
+    targetPriceCents: number | null
+    billingAmountCents: number | null
+    rateCardVersion: number | null
+    expectedRuntimeVersion: number | null
+    fencingToken: number | null
+  }
+
+  export type ReservedVmOperationSumAggregateOutputType = {
+    targetPriceCents: number | null
+    billingAmountCents: number | null
+    rateCardVersion: number | null
+    expectedRuntimeVersion: number | null
+    fencingToken: number | null
+  }
+
+  export type ReservedVmOperationMinAggregateOutputType = {
+    id: string | null
+    projectId: string | null
+    deploymentId: string | null
+    organizationId: string | null
+    actorUserId: string | null
+    idempotencyKey: string | null
+    requestHash: string | null
+    kind: string | null
+    status: string | null
+    phase: string | null
+    fromRuntimeKind: string | null
+    fromTier: string | null
+    targetRuntimeKind: string | null
+    targetTier: string | null
+    targetMachineSize: string | null
+    targetPriceCents: number | null
+    billingAmountCents: number | null
+    termsVersion: string | null
+    rateCardVersion: number | null
+    expectedRuntimeVersion: number | null
+    leaseOwner: string | null
+    leaseExpiresAt: Date | null
+    fencingToken: number | null
+    billingReservationId: string | null
+    errorCode: string | null
+    errorMessage: string | null
+    completedAt: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type ReservedVmOperationMaxAggregateOutputType = {
+    id: string | null
+    projectId: string | null
+    deploymentId: string | null
+    organizationId: string | null
+    actorUserId: string | null
+    idempotencyKey: string | null
+    requestHash: string | null
+    kind: string | null
+    status: string | null
+    phase: string | null
+    fromRuntimeKind: string | null
+    fromTier: string | null
+    targetRuntimeKind: string | null
+    targetTier: string | null
+    targetMachineSize: string | null
+    targetPriceCents: number | null
+    billingAmountCents: number | null
+    termsVersion: string | null
+    rateCardVersion: number | null
+    expectedRuntimeVersion: number | null
+    leaseOwner: string | null
+    leaseExpiresAt: Date | null
+    fencingToken: number | null
+    billingReservationId: string | null
+    errorCode: string | null
+    errorMessage: string | null
+    completedAt: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type ReservedVmOperationCountAggregateOutputType = {
+    id: number
+    projectId: number
+    deploymentId: number
+    organizationId: number
+    actorUserId: number
+    idempotencyKey: number
+    requestHash: number
+    kind: number
+    status: number
+    phase: number
+    fromRuntimeKind: number
+    fromTier: number
+    targetRuntimeKind: number
+    targetTier: number
+    targetMachineSize: number
+    targetPriceCents: number
+    billingAmountCents: number
+    termsVersion: number
+    rateCardVersion: number
+    expectedRuntimeVersion: number
+    leaseOwner: number
+    leaseExpiresAt: number
+    fencingToken: number
+    billingReservationId: number
+    response: number
+    errorCode: number
+    errorMessage: number
+    completedAt: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type ReservedVmOperationAvgAggregateInputType = {
+    targetPriceCents?: true
+    billingAmountCents?: true
+    rateCardVersion?: true
+    expectedRuntimeVersion?: true
+    fencingToken?: true
+  }
+
+  export type ReservedVmOperationSumAggregateInputType = {
+    targetPriceCents?: true
+    billingAmountCents?: true
+    rateCardVersion?: true
+    expectedRuntimeVersion?: true
+    fencingToken?: true
+  }
+
+  export type ReservedVmOperationMinAggregateInputType = {
+    id?: true
+    projectId?: true
+    deploymentId?: true
+    organizationId?: true
+    actorUserId?: true
+    idempotencyKey?: true
+    requestHash?: true
+    kind?: true
+    status?: true
+    phase?: true
+    fromRuntimeKind?: true
+    fromTier?: true
+    targetRuntimeKind?: true
+    targetTier?: true
+    targetMachineSize?: true
+    targetPriceCents?: true
+    billingAmountCents?: true
+    termsVersion?: true
+    rateCardVersion?: true
+    expectedRuntimeVersion?: true
+    leaseOwner?: true
+    leaseExpiresAt?: true
+    fencingToken?: true
+    billingReservationId?: true
+    errorCode?: true
+    errorMessage?: true
+    completedAt?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type ReservedVmOperationMaxAggregateInputType = {
+    id?: true
+    projectId?: true
+    deploymentId?: true
+    organizationId?: true
+    actorUserId?: true
+    idempotencyKey?: true
+    requestHash?: true
+    kind?: true
+    status?: true
+    phase?: true
+    fromRuntimeKind?: true
+    fromTier?: true
+    targetRuntimeKind?: true
+    targetTier?: true
+    targetMachineSize?: true
+    targetPriceCents?: true
+    billingAmountCents?: true
+    termsVersion?: true
+    rateCardVersion?: true
+    expectedRuntimeVersion?: true
+    leaseOwner?: true
+    leaseExpiresAt?: true
+    fencingToken?: true
+    billingReservationId?: true
+    errorCode?: true
+    errorMessage?: true
+    completedAt?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type ReservedVmOperationCountAggregateInputType = {
+    id?: true
+    projectId?: true
+    deploymentId?: true
+    organizationId?: true
+    actorUserId?: true
+    idempotencyKey?: true
+    requestHash?: true
+    kind?: true
+    status?: true
+    phase?: true
+    fromRuntimeKind?: true
+    fromTier?: true
+    targetRuntimeKind?: true
+    targetTier?: true
+    targetMachineSize?: true
+    targetPriceCents?: true
+    billingAmountCents?: true
+    termsVersion?: true
+    rateCardVersion?: true
+    expectedRuntimeVersion?: true
+    leaseOwner?: true
+    leaseExpiresAt?: true
+    fencingToken?: true
+    billingReservationId?: true
+    response?: true
+    errorCode?: true
+    errorMessage?: true
+    completedAt?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type ReservedVmOperationAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ReservedVmOperation to aggregate.
+     */
+    where?: ReservedVmOperationWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ReservedVmOperations to fetch.
+     */
+    orderBy?: ReservedVmOperationOrderByWithRelationInput | ReservedVmOperationOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: ReservedVmOperationWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ReservedVmOperations from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ReservedVmOperations.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned ReservedVmOperations
+    **/
+    _count?: true | ReservedVmOperationCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: ReservedVmOperationAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: ReservedVmOperationSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: ReservedVmOperationMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: ReservedVmOperationMaxAggregateInputType
+  }
+
+  export type GetReservedVmOperationAggregateType<T extends ReservedVmOperationAggregateArgs> = {
+        [P in keyof T & keyof AggregateReservedVmOperation]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateReservedVmOperation[P]>
+      : GetScalarType<T[P], AggregateReservedVmOperation[P]>
+  }
+
+
+
+
+  export type ReservedVmOperationGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ReservedVmOperationWhereInput
+    orderBy?: ReservedVmOperationOrderByWithAggregationInput | ReservedVmOperationOrderByWithAggregationInput[]
+    by: ReservedVmOperationScalarFieldEnum[] | ReservedVmOperationScalarFieldEnum
+    having?: ReservedVmOperationScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: ReservedVmOperationCountAggregateInputType | true
+    _avg?: ReservedVmOperationAvgAggregateInputType
+    _sum?: ReservedVmOperationSumAggregateInputType
+    _min?: ReservedVmOperationMinAggregateInputType
+    _max?: ReservedVmOperationMaxAggregateInputType
+  }
+
+  export type ReservedVmOperationGroupByOutputType = {
+    id: string
+    projectId: string
+    deploymentId: string
+    organizationId: string
+    actorUserId: string | null
+    idempotencyKey: string
+    requestHash: string
+    kind: string
+    status: string
+    phase: string
+    fromRuntimeKind: string | null
+    fromTier: string | null
+    targetRuntimeKind: string
+    targetTier: string | null
+    targetMachineSize: string
+    targetPriceCents: number
+    billingAmountCents: number
+    termsVersion: string
+    rateCardVersion: number
+    expectedRuntimeVersion: number
+    leaseOwner: string | null
+    leaseExpiresAt: Date | null
+    fencingToken: number
+    billingReservationId: string | null
+    response: JsonValue | null
+    errorCode: string | null
+    errorMessage: string | null
+    completedAt: Date | null
+    createdAt: Date
+    updatedAt: Date
+    _count: ReservedVmOperationCountAggregateOutputType | null
+    _avg: ReservedVmOperationAvgAggregateOutputType | null
+    _sum: ReservedVmOperationSumAggregateOutputType | null
+    _min: ReservedVmOperationMinAggregateOutputType | null
+    _max: ReservedVmOperationMaxAggregateOutputType | null
+  }
+
+  type GetReservedVmOperationGroupByPayload<T extends ReservedVmOperationGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<ReservedVmOperationGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof ReservedVmOperationGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], ReservedVmOperationGroupByOutputType[P]>
+            : GetScalarType<T[P], ReservedVmOperationGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type ReservedVmOperationSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    projectId?: boolean
+    deploymentId?: boolean
+    organizationId?: boolean
+    actorUserId?: boolean
+    idempotencyKey?: boolean
+    requestHash?: boolean
+    kind?: boolean
+    status?: boolean
+    phase?: boolean
+    fromRuntimeKind?: boolean
+    fromTier?: boolean
+    targetRuntimeKind?: boolean
+    targetTier?: boolean
+    targetMachineSize?: boolean
+    targetPriceCents?: boolean
+    billingAmountCents?: boolean
+    termsVersion?: boolean
+    rateCardVersion?: boolean
+    expectedRuntimeVersion?: boolean
+    leaseOwner?: boolean
+    leaseExpiresAt?: boolean
+    fencingToken?: boolean
+    billingReservationId?: boolean
+    response?: boolean
+    errorCode?: boolean
+    errorMessage?: boolean
+    completedAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["reservedVmOperation"]>
+
+  export type ReservedVmOperationSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    projectId?: boolean
+    deploymentId?: boolean
+    organizationId?: boolean
+    actorUserId?: boolean
+    idempotencyKey?: boolean
+    requestHash?: boolean
+    kind?: boolean
+    status?: boolean
+    phase?: boolean
+    fromRuntimeKind?: boolean
+    fromTier?: boolean
+    targetRuntimeKind?: boolean
+    targetTier?: boolean
+    targetMachineSize?: boolean
+    targetPriceCents?: boolean
+    billingAmountCents?: boolean
+    termsVersion?: boolean
+    rateCardVersion?: boolean
+    expectedRuntimeVersion?: boolean
+    leaseOwner?: boolean
+    leaseExpiresAt?: boolean
+    fencingToken?: boolean
+    billingReservationId?: boolean
+    response?: boolean
+    errorCode?: boolean
+    errorMessage?: boolean
+    completedAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["reservedVmOperation"]>
+
+  export type ReservedVmOperationSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    projectId?: boolean
+    deploymentId?: boolean
+    organizationId?: boolean
+    actorUserId?: boolean
+    idempotencyKey?: boolean
+    requestHash?: boolean
+    kind?: boolean
+    status?: boolean
+    phase?: boolean
+    fromRuntimeKind?: boolean
+    fromTier?: boolean
+    targetRuntimeKind?: boolean
+    targetTier?: boolean
+    targetMachineSize?: boolean
+    targetPriceCents?: boolean
+    billingAmountCents?: boolean
+    termsVersion?: boolean
+    rateCardVersion?: boolean
+    expectedRuntimeVersion?: boolean
+    leaseOwner?: boolean
+    leaseExpiresAt?: boolean
+    fencingToken?: boolean
+    billingReservationId?: boolean
+    response?: boolean
+    errorCode?: boolean
+    errorMessage?: boolean
+    completedAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["reservedVmOperation"]>
+
+  export type ReservedVmOperationSelectScalar = {
+    id?: boolean
+    projectId?: boolean
+    deploymentId?: boolean
+    organizationId?: boolean
+    actorUserId?: boolean
+    idempotencyKey?: boolean
+    requestHash?: boolean
+    kind?: boolean
+    status?: boolean
+    phase?: boolean
+    fromRuntimeKind?: boolean
+    fromTier?: boolean
+    targetRuntimeKind?: boolean
+    targetTier?: boolean
+    targetMachineSize?: boolean
+    targetPriceCents?: boolean
+    billingAmountCents?: boolean
+    termsVersion?: boolean
+    rateCardVersion?: boolean
+    expectedRuntimeVersion?: boolean
+    leaseOwner?: boolean
+    leaseExpiresAt?: boolean
+    fencingToken?: boolean
+    billingReservationId?: boolean
+    response?: boolean
+    errorCode?: boolean
+    errorMessage?: boolean
+    completedAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type ReservedVmOperationOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "projectId" | "deploymentId" | "organizationId" | "actorUserId" | "idempotencyKey" | "requestHash" | "kind" | "status" | "phase" | "fromRuntimeKind" | "fromTier" | "targetRuntimeKind" | "targetTier" | "targetMachineSize" | "targetPriceCents" | "billingAmountCents" | "termsVersion" | "rateCardVersion" | "expectedRuntimeVersion" | "leaseOwner" | "leaseExpiresAt" | "fencingToken" | "billingReservationId" | "response" | "errorCode" | "errorMessage" | "completedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["reservedVmOperation"]>
+
+  export type $ReservedVmOperationPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "ReservedVmOperation"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      projectId: string
+      deploymentId: string
+      organizationId: string
+      actorUserId: string | null
+      idempotencyKey: string
+      requestHash: string
+      kind: string
+      status: string
+      phase: string
+      fromRuntimeKind: string | null
+      fromTier: string | null
+      targetRuntimeKind: string
+      targetTier: string | null
+      targetMachineSize: string
+      targetPriceCents: number
+      billingAmountCents: number
+      termsVersion: string
+      rateCardVersion: number
+      expectedRuntimeVersion: number
+      leaseOwner: string | null
+      leaseExpiresAt: Date | null
+      fencingToken: number
+      billingReservationId: string | null
+      response: Prisma.JsonValue | null
+      errorCode: string | null
+      errorMessage: string | null
+      completedAt: Date | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["reservedVmOperation"]>
+    composites: {}
+  }
+
+  type ReservedVmOperationGetPayload<S extends boolean | null | undefined | ReservedVmOperationDefaultArgs> = $Result.GetResult<Prisma.$ReservedVmOperationPayload, S>
+
+  type ReservedVmOperationCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<ReservedVmOperationFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: ReservedVmOperationCountAggregateInputType | true
+    }
+
+  export interface ReservedVmOperationDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['ReservedVmOperation'], meta: { name: 'ReservedVmOperation' } }
+    /**
+     * Find zero or one ReservedVmOperation that matches the filter.
+     * @param {ReservedVmOperationFindUniqueArgs} args - Arguments to find a ReservedVmOperation
+     * @example
+     * // Get one ReservedVmOperation
+     * const reservedVmOperation = await prisma.reservedVmOperation.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends ReservedVmOperationFindUniqueArgs>(args: SelectSubset<T, ReservedVmOperationFindUniqueArgs<ExtArgs>>): Prisma__ReservedVmOperationClient<$Result.GetResult<Prisma.$ReservedVmOperationPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one ReservedVmOperation that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {ReservedVmOperationFindUniqueOrThrowArgs} args - Arguments to find a ReservedVmOperation
+     * @example
+     * // Get one ReservedVmOperation
+     * const reservedVmOperation = await prisma.reservedVmOperation.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends ReservedVmOperationFindUniqueOrThrowArgs>(args: SelectSubset<T, ReservedVmOperationFindUniqueOrThrowArgs<ExtArgs>>): Prisma__ReservedVmOperationClient<$Result.GetResult<Prisma.$ReservedVmOperationPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ReservedVmOperation that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ReservedVmOperationFindFirstArgs} args - Arguments to find a ReservedVmOperation
+     * @example
+     * // Get one ReservedVmOperation
+     * const reservedVmOperation = await prisma.reservedVmOperation.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends ReservedVmOperationFindFirstArgs>(args?: SelectSubset<T, ReservedVmOperationFindFirstArgs<ExtArgs>>): Prisma__ReservedVmOperationClient<$Result.GetResult<Prisma.$ReservedVmOperationPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ReservedVmOperation that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ReservedVmOperationFindFirstOrThrowArgs} args - Arguments to find a ReservedVmOperation
+     * @example
+     * // Get one ReservedVmOperation
+     * const reservedVmOperation = await prisma.reservedVmOperation.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends ReservedVmOperationFindFirstOrThrowArgs>(args?: SelectSubset<T, ReservedVmOperationFindFirstOrThrowArgs<ExtArgs>>): Prisma__ReservedVmOperationClient<$Result.GetResult<Prisma.$ReservedVmOperationPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more ReservedVmOperations that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ReservedVmOperationFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all ReservedVmOperations
+     * const reservedVmOperations = await prisma.reservedVmOperation.findMany()
+     * 
+     * // Get first 10 ReservedVmOperations
+     * const reservedVmOperations = await prisma.reservedVmOperation.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const reservedVmOperationWithIdOnly = await prisma.reservedVmOperation.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends ReservedVmOperationFindManyArgs>(args?: SelectSubset<T, ReservedVmOperationFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ReservedVmOperationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a ReservedVmOperation.
+     * @param {ReservedVmOperationCreateArgs} args - Arguments to create a ReservedVmOperation.
+     * @example
+     * // Create one ReservedVmOperation
+     * const ReservedVmOperation = await prisma.reservedVmOperation.create({
+     *   data: {
+     *     // ... data to create a ReservedVmOperation
+     *   }
+     * })
+     * 
+     */
+    create<T extends ReservedVmOperationCreateArgs>(args: SelectSubset<T, ReservedVmOperationCreateArgs<ExtArgs>>): Prisma__ReservedVmOperationClient<$Result.GetResult<Prisma.$ReservedVmOperationPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many ReservedVmOperations.
+     * @param {ReservedVmOperationCreateManyArgs} args - Arguments to create many ReservedVmOperations.
+     * @example
+     * // Create many ReservedVmOperations
+     * const reservedVmOperation = await prisma.reservedVmOperation.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends ReservedVmOperationCreateManyArgs>(args?: SelectSubset<T, ReservedVmOperationCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many ReservedVmOperations and returns the data saved in the database.
+     * @param {ReservedVmOperationCreateManyAndReturnArgs} args - Arguments to create many ReservedVmOperations.
+     * @example
+     * // Create many ReservedVmOperations
+     * const reservedVmOperation = await prisma.reservedVmOperation.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many ReservedVmOperations and only return the `id`
+     * const reservedVmOperationWithIdOnly = await prisma.reservedVmOperation.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends ReservedVmOperationCreateManyAndReturnArgs>(args?: SelectSubset<T, ReservedVmOperationCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ReservedVmOperationPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a ReservedVmOperation.
+     * @param {ReservedVmOperationDeleteArgs} args - Arguments to delete one ReservedVmOperation.
+     * @example
+     * // Delete one ReservedVmOperation
+     * const ReservedVmOperation = await prisma.reservedVmOperation.delete({
+     *   where: {
+     *     // ... filter to delete one ReservedVmOperation
+     *   }
+     * })
+     * 
+     */
+    delete<T extends ReservedVmOperationDeleteArgs>(args: SelectSubset<T, ReservedVmOperationDeleteArgs<ExtArgs>>): Prisma__ReservedVmOperationClient<$Result.GetResult<Prisma.$ReservedVmOperationPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one ReservedVmOperation.
+     * @param {ReservedVmOperationUpdateArgs} args - Arguments to update one ReservedVmOperation.
+     * @example
+     * // Update one ReservedVmOperation
+     * const reservedVmOperation = await prisma.reservedVmOperation.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends ReservedVmOperationUpdateArgs>(args: SelectSubset<T, ReservedVmOperationUpdateArgs<ExtArgs>>): Prisma__ReservedVmOperationClient<$Result.GetResult<Prisma.$ReservedVmOperationPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more ReservedVmOperations.
+     * @param {ReservedVmOperationDeleteManyArgs} args - Arguments to filter ReservedVmOperations to delete.
+     * @example
+     * // Delete a few ReservedVmOperations
+     * const { count } = await prisma.reservedVmOperation.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends ReservedVmOperationDeleteManyArgs>(args?: SelectSubset<T, ReservedVmOperationDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ReservedVmOperations.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ReservedVmOperationUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many ReservedVmOperations
+     * const reservedVmOperation = await prisma.reservedVmOperation.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends ReservedVmOperationUpdateManyArgs>(args: SelectSubset<T, ReservedVmOperationUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ReservedVmOperations and returns the data updated in the database.
+     * @param {ReservedVmOperationUpdateManyAndReturnArgs} args - Arguments to update many ReservedVmOperations.
+     * @example
+     * // Update many ReservedVmOperations
+     * const reservedVmOperation = await prisma.reservedVmOperation.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more ReservedVmOperations and only return the `id`
+     * const reservedVmOperationWithIdOnly = await prisma.reservedVmOperation.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends ReservedVmOperationUpdateManyAndReturnArgs>(args: SelectSubset<T, ReservedVmOperationUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ReservedVmOperationPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one ReservedVmOperation.
+     * @param {ReservedVmOperationUpsertArgs} args - Arguments to update or create a ReservedVmOperation.
+     * @example
+     * // Update or create a ReservedVmOperation
+     * const reservedVmOperation = await prisma.reservedVmOperation.upsert({
+     *   create: {
+     *     // ... data to create a ReservedVmOperation
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the ReservedVmOperation we want to update
+     *   }
+     * })
+     */
+    upsert<T extends ReservedVmOperationUpsertArgs>(args: SelectSubset<T, ReservedVmOperationUpsertArgs<ExtArgs>>): Prisma__ReservedVmOperationClient<$Result.GetResult<Prisma.$ReservedVmOperationPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of ReservedVmOperations.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ReservedVmOperationCountArgs} args - Arguments to filter ReservedVmOperations to count.
+     * @example
+     * // Count the number of ReservedVmOperations
+     * const count = await prisma.reservedVmOperation.count({
+     *   where: {
+     *     // ... the filter for the ReservedVmOperations we want to count
+     *   }
+     * })
+    **/
+    count<T extends ReservedVmOperationCountArgs>(
+      args?: Subset<T, ReservedVmOperationCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], ReservedVmOperationCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a ReservedVmOperation.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ReservedVmOperationAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends ReservedVmOperationAggregateArgs>(args: Subset<T, ReservedVmOperationAggregateArgs>): Prisma.PrismaPromise<GetReservedVmOperationAggregateType<T>>
+
+    /**
+     * Group by ReservedVmOperation.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ReservedVmOperationGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends ReservedVmOperationGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: ReservedVmOperationGroupByArgs['orderBy'] }
+        : { orderBy?: ReservedVmOperationGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, ReservedVmOperationGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetReservedVmOperationGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the ReservedVmOperation model
+   */
+  readonly fields: ReservedVmOperationFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for ReservedVmOperation.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__ReservedVmOperationClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the ReservedVmOperation model
+   */
+  interface ReservedVmOperationFieldRefs {
+    readonly id: FieldRef<"ReservedVmOperation", 'String'>
+    readonly projectId: FieldRef<"ReservedVmOperation", 'String'>
+    readonly deploymentId: FieldRef<"ReservedVmOperation", 'String'>
+    readonly organizationId: FieldRef<"ReservedVmOperation", 'String'>
+    readonly actorUserId: FieldRef<"ReservedVmOperation", 'String'>
+    readonly idempotencyKey: FieldRef<"ReservedVmOperation", 'String'>
+    readonly requestHash: FieldRef<"ReservedVmOperation", 'String'>
+    readonly kind: FieldRef<"ReservedVmOperation", 'String'>
+    readonly status: FieldRef<"ReservedVmOperation", 'String'>
+    readonly phase: FieldRef<"ReservedVmOperation", 'String'>
+    readonly fromRuntimeKind: FieldRef<"ReservedVmOperation", 'String'>
+    readonly fromTier: FieldRef<"ReservedVmOperation", 'String'>
+    readonly targetRuntimeKind: FieldRef<"ReservedVmOperation", 'String'>
+    readonly targetTier: FieldRef<"ReservedVmOperation", 'String'>
+    readonly targetMachineSize: FieldRef<"ReservedVmOperation", 'String'>
+    readonly targetPriceCents: FieldRef<"ReservedVmOperation", 'Int'>
+    readonly billingAmountCents: FieldRef<"ReservedVmOperation", 'Int'>
+    readonly termsVersion: FieldRef<"ReservedVmOperation", 'String'>
+    readonly rateCardVersion: FieldRef<"ReservedVmOperation", 'Int'>
+    readonly expectedRuntimeVersion: FieldRef<"ReservedVmOperation", 'Int'>
+    readonly leaseOwner: FieldRef<"ReservedVmOperation", 'String'>
+    readonly leaseExpiresAt: FieldRef<"ReservedVmOperation", 'DateTime'>
+    readonly fencingToken: FieldRef<"ReservedVmOperation", 'Int'>
+    readonly billingReservationId: FieldRef<"ReservedVmOperation", 'String'>
+    readonly response: FieldRef<"ReservedVmOperation", 'Json'>
+    readonly errorCode: FieldRef<"ReservedVmOperation", 'String'>
+    readonly errorMessage: FieldRef<"ReservedVmOperation", 'String'>
+    readonly completedAt: FieldRef<"ReservedVmOperation", 'DateTime'>
+    readonly createdAt: FieldRef<"ReservedVmOperation", 'DateTime'>
+    readonly updatedAt: FieldRef<"ReservedVmOperation", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * ReservedVmOperation findUnique
+   */
+  export type ReservedVmOperationFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ReservedVmOperation
+     */
+    select?: ReservedVmOperationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ReservedVmOperation
+     */
+    omit?: ReservedVmOperationOmit<ExtArgs> | null
+    /**
+     * Filter, which ReservedVmOperation to fetch.
+     */
+    where: ReservedVmOperationWhereUniqueInput
+  }
+
+  /**
+   * ReservedVmOperation findUniqueOrThrow
+   */
+  export type ReservedVmOperationFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ReservedVmOperation
+     */
+    select?: ReservedVmOperationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ReservedVmOperation
+     */
+    omit?: ReservedVmOperationOmit<ExtArgs> | null
+    /**
+     * Filter, which ReservedVmOperation to fetch.
+     */
+    where: ReservedVmOperationWhereUniqueInput
+  }
+
+  /**
+   * ReservedVmOperation findFirst
+   */
+  export type ReservedVmOperationFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ReservedVmOperation
+     */
+    select?: ReservedVmOperationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ReservedVmOperation
+     */
+    omit?: ReservedVmOperationOmit<ExtArgs> | null
+    /**
+     * Filter, which ReservedVmOperation to fetch.
+     */
+    where?: ReservedVmOperationWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ReservedVmOperations to fetch.
+     */
+    orderBy?: ReservedVmOperationOrderByWithRelationInput | ReservedVmOperationOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ReservedVmOperations.
+     */
+    cursor?: ReservedVmOperationWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ReservedVmOperations from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ReservedVmOperations.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ReservedVmOperations.
+     */
+    distinct?: ReservedVmOperationScalarFieldEnum | ReservedVmOperationScalarFieldEnum[]
+  }
+
+  /**
+   * ReservedVmOperation findFirstOrThrow
+   */
+  export type ReservedVmOperationFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ReservedVmOperation
+     */
+    select?: ReservedVmOperationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ReservedVmOperation
+     */
+    omit?: ReservedVmOperationOmit<ExtArgs> | null
+    /**
+     * Filter, which ReservedVmOperation to fetch.
+     */
+    where?: ReservedVmOperationWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ReservedVmOperations to fetch.
+     */
+    orderBy?: ReservedVmOperationOrderByWithRelationInput | ReservedVmOperationOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ReservedVmOperations.
+     */
+    cursor?: ReservedVmOperationWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ReservedVmOperations from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ReservedVmOperations.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ReservedVmOperations.
+     */
+    distinct?: ReservedVmOperationScalarFieldEnum | ReservedVmOperationScalarFieldEnum[]
+  }
+
+  /**
+   * ReservedVmOperation findMany
+   */
+  export type ReservedVmOperationFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ReservedVmOperation
+     */
+    select?: ReservedVmOperationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ReservedVmOperation
+     */
+    omit?: ReservedVmOperationOmit<ExtArgs> | null
+    /**
+     * Filter, which ReservedVmOperations to fetch.
+     */
+    where?: ReservedVmOperationWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ReservedVmOperations to fetch.
+     */
+    orderBy?: ReservedVmOperationOrderByWithRelationInput | ReservedVmOperationOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing ReservedVmOperations.
+     */
+    cursor?: ReservedVmOperationWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ReservedVmOperations from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ReservedVmOperations.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ReservedVmOperations.
+     */
+    distinct?: ReservedVmOperationScalarFieldEnum | ReservedVmOperationScalarFieldEnum[]
+  }
+
+  /**
+   * ReservedVmOperation create
+   */
+  export type ReservedVmOperationCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ReservedVmOperation
+     */
+    select?: ReservedVmOperationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ReservedVmOperation
+     */
+    omit?: ReservedVmOperationOmit<ExtArgs> | null
+    /**
+     * The data needed to create a ReservedVmOperation.
+     */
+    data: XOR<ReservedVmOperationCreateInput, ReservedVmOperationUncheckedCreateInput>
+  }
+
+  /**
+   * ReservedVmOperation createMany
+   */
+  export type ReservedVmOperationCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many ReservedVmOperations.
+     */
+    data: ReservedVmOperationCreateManyInput | ReservedVmOperationCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * ReservedVmOperation createManyAndReturn
+   */
+  export type ReservedVmOperationCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ReservedVmOperation
+     */
+    select?: ReservedVmOperationSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ReservedVmOperation
+     */
+    omit?: ReservedVmOperationOmit<ExtArgs> | null
+    /**
+     * The data used to create many ReservedVmOperations.
+     */
+    data: ReservedVmOperationCreateManyInput | ReservedVmOperationCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * ReservedVmOperation update
+   */
+  export type ReservedVmOperationUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ReservedVmOperation
+     */
+    select?: ReservedVmOperationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ReservedVmOperation
+     */
+    omit?: ReservedVmOperationOmit<ExtArgs> | null
+    /**
+     * The data needed to update a ReservedVmOperation.
+     */
+    data: XOR<ReservedVmOperationUpdateInput, ReservedVmOperationUncheckedUpdateInput>
+    /**
+     * Choose, which ReservedVmOperation to update.
+     */
+    where: ReservedVmOperationWhereUniqueInput
+  }
+
+  /**
+   * ReservedVmOperation updateMany
+   */
+  export type ReservedVmOperationUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update ReservedVmOperations.
+     */
+    data: XOR<ReservedVmOperationUpdateManyMutationInput, ReservedVmOperationUncheckedUpdateManyInput>
+    /**
+     * Filter which ReservedVmOperations to update
+     */
+    where?: ReservedVmOperationWhereInput
+    /**
+     * Limit how many ReservedVmOperations to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * ReservedVmOperation updateManyAndReturn
+   */
+  export type ReservedVmOperationUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ReservedVmOperation
+     */
+    select?: ReservedVmOperationSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ReservedVmOperation
+     */
+    omit?: ReservedVmOperationOmit<ExtArgs> | null
+    /**
+     * The data used to update ReservedVmOperations.
+     */
+    data: XOR<ReservedVmOperationUpdateManyMutationInput, ReservedVmOperationUncheckedUpdateManyInput>
+    /**
+     * Filter which ReservedVmOperations to update
+     */
+    where?: ReservedVmOperationWhereInput
+    /**
+     * Limit how many ReservedVmOperations to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * ReservedVmOperation upsert
+   */
+  export type ReservedVmOperationUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ReservedVmOperation
+     */
+    select?: ReservedVmOperationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ReservedVmOperation
+     */
+    omit?: ReservedVmOperationOmit<ExtArgs> | null
+    /**
+     * The filter to search for the ReservedVmOperation to update in case it exists.
+     */
+    where: ReservedVmOperationWhereUniqueInput
+    /**
+     * In case the ReservedVmOperation found by the `where` argument doesn't exist, create a new ReservedVmOperation with this data.
+     */
+    create: XOR<ReservedVmOperationCreateInput, ReservedVmOperationUncheckedCreateInput>
+    /**
+     * In case the ReservedVmOperation was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<ReservedVmOperationUpdateInput, ReservedVmOperationUncheckedUpdateInput>
+  }
+
+  /**
+   * ReservedVmOperation delete
+   */
+  export type ReservedVmOperationDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ReservedVmOperation
+     */
+    select?: ReservedVmOperationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ReservedVmOperation
+     */
+    omit?: ReservedVmOperationOmit<ExtArgs> | null
+    /**
+     * Filter which ReservedVmOperation to delete.
+     */
+    where: ReservedVmOperationWhereUniqueInput
+  }
+
+  /**
+   * ReservedVmOperation deleteMany
+   */
+  export type ReservedVmOperationDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ReservedVmOperations to delete
+     */
+    where?: ReservedVmOperationWhereInput
+    /**
+     * Limit how many ReservedVmOperations to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * ReservedVmOperation without action
+   */
+  export type ReservedVmOperationDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ReservedVmOperation
+     */
+    select?: ReservedVmOperationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ReservedVmOperation
+     */
+    omit?: ReservedVmOperationOmit<ExtArgs> | null
+  }
+
+
+  /**
+   * Model ReservedVmBillingPeriod
+   */
+
+  export type AggregateReservedVmBillingPeriod = {
+    _count: ReservedVmBillingPeriodCountAggregateOutputType | null
+    _avg: ReservedVmBillingPeriodAvgAggregateOutputType | null
+    _sum: ReservedVmBillingPeriodSumAggregateOutputType | null
+    _min: ReservedVmBillingPeriodMinAggregateOutputType | null
+    _max: ReservedVmBillingPeriodMaxAggregateOutputType | null
+  }
+
+  export type ReservedVmBillingPeriodAvgAggregateOutputType = {
+    priceCents: number | null
+    rateCardVersion: number | null
+    attemptCount: number | null
+    reservationGeneration: number | null
+    fencingToken: number | null
+  }
+
+  export type ReservedVmBillingPeriodSumAggregateOutputType = {
+    priceCents: number | null
+    rateCardVersion: number | null
+    attemptCount: number | null
+    reservationGeneration: number | null
+    fencingToken: number | null
+  }
+
+  export type ReservedVmBillingPeriodMinAggregateOutputType = {
+    id: string | null
+    projectId: string | null
+    deploymentId: string | null
+    organizationId: string | null
+    periodStart: Date | null
+    periodEnd: Date | null
+    tier: string | null
+    priceCents: number | null
+    termsVersion: string | null
+    rateCardVersion: number | null
+    status: string | null
+    attemptCount: number | null
+    reservationGeneration: number | null
+    leaseOwner: string | null
+    leaseExpiresAt: Date | null
+    fencingToken: number | null
+    billingReservationId: string | null
+    graceEndsAt: Date | null
+    stopRequestedAt: Date | null
+    settledAt: Date | null
+    lastErrorCode: string | null
+    lastErrorMessage: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type ReservedVmBillingPeriodMaxAggregateOutputType = {
+    id: string | null
+    projectId: string | null
+    deploymentId: string | null
+    organizationId: string | null
+    periodStart: Date | null
+    periodEnd: Date | null
+    tier: string | null
+    priceCents: number | null
+    termsVersion: string | null
+    rateCardVersion: number | null
+    status: string | null
+    attemptCount: number | null
+    reservationGeneration: number | null
+    leaseOwner: string | null
+    leaseExpiresAt: Date | null
+    fencingToken: number | null
+    billingReservationId: string | null
+    graceEndsAt: Date | null
+    stopRequestedAt: Date | null
+    settledAt: Date | null
+    lastErrorCode: string | null
+    lastErrorMessage: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type ReservedVmBillingPeriodCountAggregateOutputType = {
+    id: number
+    projectId: number
+    deploymentId: number
+    organizationId: number
+    periodStart: number
+    periodEnd: number
+    tier: number
+    priceCents: number
+    termsVersion: number
+    rateCardVersion: number
+    status: number
+    attemptCount: number
+    reservationGeneration: number
+    leaseOwner: number
+    leaseExpiresAt: number
+    fencingToken: number
+    billingReservationId: number
+    graceEndsAt: number
+    stopRequestedAt: number
+    settledAt: number
+    lastErrorCode: number
+    lastErrorMessage: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type ReservedVmBillingPeriodAvgAggregateInputType = {
+    priceCents?: true
+    rateCardVersion?: true
+    attemptCount?: true
+    reservationGeneration?: true
+    fencingToken?: true
+  }
+
+  export type ReservedVmBillingPeriodSumAggregateInputType = {
+    priceCents?: true
+    rateCardVersion?: true
+    attemptCount?: true
+    reservationGeneration?: true
+    fencingToken?: true
+  }
+
+  export type ReservedVmBillingPeriodMinAggregateInputType = {
+    id?: true
+    projectId?: true
+    deploymentId?: true
+    organizationId?: true
+    periodStart?: true
+    periodEnd?: true
+    tier?: true
+    priceCents?: true
+    termsVersion?: true
+    rateCardVersion?: true
+    status?: true
+    attemptCount?: true
+    reservationGeneration?: true
+    leaseOwner?: true
+    leaseExpiresAt?: true
+    fencingToken?: true
+    billingReservationId?: true
+    graceEndsAt?: true
+    stopRequestedAt?: true
+    settledAt?: true
+    lastErrorCode?: true
+    lastErrorMessage?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type ReservedVmBillingPeriodMaxAggregateInputType = {
+    id?: true
+    projectId?: true
+    deploymentId?: true
+    organizationId?: true
+    periodStart?: true
+    periodEnd?: true
+    tier?: true
+    priceCents?: true
+    termsVersion?: true
+    rateCardVersion?: true
+    status?: true
+    attemptCount?: true
+    reservationGeneration?: true
+    leaseOwner?: true
+    leaseExpiresAt?: true
+    fencingToken?: true
+    billingReservationId?: true
+    graceEndsAt?: true
+    stopRequestedAt?: true
+    settledAt?: true
+    lastErrorCode?: true
+    lastErrorMessage?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type ReservedVmBillingPeriodCountAggregateInputType = {
+    id?: true
+    projectId?: true
+    deploymentId?: true
+    organizationId?: true
+    periodStart?: true
+    periodEnd?: true
+    tier?: true
+    priceCents?: true
+    termsVersion?: true
+    rateCardVersion?: true
+    status?: true
+    attemptCount?: true
+    reservationGeneration?: true
+    leaseOwner?: true
+    leaseExpiresAt?: true
+    fencingToken?: true
+    billingReservationId?: true
+    graceEndsAt?: true
+    stopRequestedAt?: true
+    settledAt?: true
+    lastErrorCode?: true
+    lastErrorMessage?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type ReservedVmBillingPeriodAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ReservedVmBillingPeriod to aggregate.
+     */
+    where?: ReservedVmBillingPeriodWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ReservedVmBillingPeriods to fetch.
+     */
+    orderBy?: ReservedVmBillingPeriodOrderByWithRelationInput | ReservedVmBillingPeriodOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: ReservedVmBillingPeriodWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ReservedVmBillingPeriods from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ReservedVmBillingPeriods.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned ReservedVmBillingPeriods
+    **/
+    _count?: true | ReservedVmBillingPeriodCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: ReservedVmBillingPeriodAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: ReservedVmBillingPeriodSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: ReservedVmBillingPeriodMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: ReservedVmBillingPeriodMaxAggregateInputType
+  }
+
+  export type GetReservedVmBillingPeriodAggregateType<T extends ReservedVmBillingPeriodAggregateArgs> = {
+        [P in keyof T & keyof AggregateReservedVmBillingPeriod]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateReservedVmBillingPeriod[P]>
+      : GetScalarType<T[P], AggregateReservedVmBillingPeriod[P]>
+  }
+
+
+
+
+  export type ReservedVmBillingPeriodGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ReservedVmBillingPeriodWhereInput
+    orderBy?: ReservedVmBillingPeriodOrderByWithAggregationInput | ReservedVmBillingPeriodOrderByWithAggregationInput[]
+    by: ReservedVmBillingPeriodScalarFieldEnum[] | ReservedVmBillingPeriodScalarFieldEnum
+    having?: ReservedVmBillingPeriodScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: ReservedVmBillingPeriodCountAggregateInputType | true
+    _avg?: ReservedVmBillingPeriodAvgAggregateInputType
+    _sum?: ReservedVmBillingPeriodSumAggregateInputType
+    _min?: ReservedVmBillingPeriodMinAggregateInputType
+    _max?: ReservedVmBillingPeriodMaxAggregateInputType
+  }
+
+  export type ReservedVmBillingPeriodGroupByOutputType = {
+    id: string
+    projectId: string
+    deploymentId: string
+    organizationId: string
+    periodStart: Date
+    periodEnd: Date
+    tier: string
+    priceCents: number
+    termsVersion: string
+    rateCardVersion: number
+    status: string
+    attemptCount: number
+    reservationGeneration: number
+    leaseOwner: string | null
+    leaseExpiresAt: Date | null
+    fencingToken: number
+    billingReservationId: string | null
+    graceEndsAt: Date | null
+    stopRequestedAt: Date | null
+    settledAt: Date | null
+    lastErrorCode: string | null
+    lastErrorMessage: string | null
+    createdAt: Date
+    updatedAt: Date
+    _count: ReservedVmBillingPeriodCountAggregateOutputType | null
+    _avg: ReservedVmBillingPeriodAvgAggregateOutputType | null
+    _sum: ReservedVmBillingPeriodSumAggregateOutputType | null
+    _min: ReservedVmBillingPeriodMinAggregateOutputType | null
+    _max: ReservedVmBillingPeriodMaxAggregateOutputType | null
+  }
+
+  type GetReservedVmBillingPeriodGroupByPayload<T extends ReservedVmBillingPeriodGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<ReservedVmBillingPeriodGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof ReservedVmBillingPeriodGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], ReservedVmBillingPeriodGroupByOutputType[P]>
+            : GetScalarType<T[P], ReservedVmBillingPeriodGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type ReservedVmBillingPeriodSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    projectId?: boolean
+    deploymentId?: boolean
+    organizationId?: boolean
+    periodStart?: boolean
+    periodEnd?: boolean
+    tier?: boolean
+    priceCents?: boolean
+    termsVersion?: boolean
+    rateCardVersion?: boolean
+    status?: boolean
+    attemptCount?: boolean
+    reservationGeneration?: boolean
+    leaseOwner?: boolean
+    leaseExpiresAt?: boolean
+    fencingToken?: boolean
+    billingReservationId?: boolean
+    graceEndsAt?: boolean
+    stopRequestedAt?: boolean
+    settledAt?: boolean
+    lastErrorCode?: boolean
+    lastErrorMessage?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+    deployment?: boolean | DeploymentDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["reservedVmBillingPeriod"]>
+
+  export type ReservedVmBillingPeriodSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    projectId?: boolean
+    deploymentId?: boolean
+    organizationId?: boolean
+    periodStart?: boolean
+    periodEnd?: boolean
+    tier?: boolean
+    priceCents?: boolean
+    termsVersion?: boolean
+    rateCardVersion?: boolean
+    status?: boolean
+    attemptCount?: boolean
+    reservationGeneration?: boolean
+    leaseOwner?: boolean
+    leaseExpiresAt?: boolean
+    fencingToken?: boolean
+    billingReservationId?: boolean
+    graceEndsAt?: boolean
+    stopRequestedAt?: boolean
+    settledAt?: boolean
+    lastErrorCode?: boolean
+    lastErrorMessage?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+    deployment?: boolean | DeploymentDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["reservedVmBillingPeriod"]>
+
+  export type ReservedVmBillingPeriodSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    projectId?: boolean
+    deploymentId?: boolean
+    organizationId?: boolean
+    periodStart?: boolean
+    periodEnd?: boolean
+    tier?: boolean
+    priceCents?: boolean
+    termsVersion?: boolean
+    rateCardVersion?: boolean
+    status?: boolean
+    attemptCount?: boolean
+    reservationGeneration?: boolean
+    leaseOwner?: boolean
+    leaseExpiresAt?: boolean
+    fencingToken?: boolean
+    billingReservationId?: boolean
+    graceEndsAt?: boolean
+    stopRequestedAt?: boolean
+    settledAt?: boolean
+    lastErrorCode?: boolean
+    lastErrorMessage?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+    deployment?: boolean | DeploymentDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["reservedVmBillingPeriod"]>
+
+  export type ReservedVmBillingPeriodSelectScalar = {
+    id?: boolean
+    projectId?: boolean
+    deploymentId?: boolean
+    organizationId?: boolean
+    periodStart?: boolean
+    periodEnd?: boolean
+    tier?: boolean
+    priceCents?: boolean
+    termsVersion?: boolean
+    rateCardVersion?: boolean
+    status?: boolean
+    attemptCount?: boolean
+    reservationGeneration?: boolean
+    leaseOwner?: boolean
+    leaseExpiresAt?: boolean
+    fencingToken?: boolean
+    billingReservationId?: boolean
+    graceEndsAt?: boolean
+    stopRequestedAt?: boolean
+    settledAt?: boolean
+    lastErrorCode?: boolean
+    lastErrorMessage?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type ReservedVmBillingPeriodOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "projectId" | "deploymentId" | "organizationId" | "periodStart" | "periodEnd" | "tier" | "priceCents" | "termsVersion" | "rateCardVersion" | "status" | "attemptCount" | "reservationGeneration" | "leaseOwner" | "leaseExpiresAt" | "fencingToken" | "billingReservationId" | "graceEndsAt" | "stopRequestedAt" | "settledAt" | "lastErrorCode" | "lastErrorMessage" | "createdAt" | "updatedAt", ExtArgs["result"]["reservedVmBillingPeriod"]>
+  export type ReservedVmBillingPeriodInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+    deployment?: boolean | DeploymentDefaultArgs<ExtArgs>
+  }
+  export type ReservedVmBillingPeriodIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+    deployment?: boolean | DeploymentDefaultArgs<ExtArgs>
+  }
+  export type ReservedVmBillingPeriodIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+    deployment?: boolean | DeploymentDefaultArgs<ExtArgs>
+  }
+
+  export type $ReservedVmBillingPeriodPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "ReservedVmBillingPeriod"
+    objects: {
+      project: Prisma.$ProjectPayload<ExtArgs>
+      deployment: Prisma.$DeploymentPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      projectId: string
+      deploymentId: string
+      organizationId: string
+      periodStart: Date
+      periodEnd: Date
+      tier: string
+      priceCents: number
+      termsVersion: string
+      rateCardVersion: number
+      status: string
+      attemptCount: number
+      reservationGeneration: number
+      leaseOwner: string | null
+      leaseExpiresAt: Date | null
+      fencingToken: number
+      billingReservationId: string | null
+      graceEndsAt: Date | null
+      stopRequestedAt: Date | null
+      settledAt: Date | null
+      lastErrorCode: string | null
+      lastErrorMessage: string | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["reservedVmBillingPeriod"]>
+    composites: {}
+  }
+
+  type ReservedVmBillingPeriodGetPayload<S extends boolean | null | undefined | ReservedVmBillingPeriodDefaultArgs> = $Result.GetResult<Prisma.$ReservedVmBillingPeriodPayload, S>
+
+  type ReservedVmBillingPeriodCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<ReservedVmBillingPeriodFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: ReservedVmBillingPeriodCountAggregateInputType | true
+    }
+
+  export interface ReservedVmBillingPeriodDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['ReservedVmBillingPeriod'], meta: { name: 'ReservedVmBillingPeriod' } }
+    /**
+     * Find zero or one ReservedVmBillingPeriod that matches the filter.
+     * @param {ReservedVmBillingPeriodFindUniqueArgs} args - Arguments to find a ReservedVmBillingPeriod
+     * @example
+     * // Get one ReservedVmBillingPeriod
+     * const reservedVmBillingPeriod = await prisma.reservedVmBillingPeriod.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends ReservedVmBillingPeriodFindUniqueArgs>(args: SelectSubset<T, ReservedVmBillingPeriodFindUniqueArgs<ExtArgs>>): Prisma__ReservedVmBillingPeriodClient<$Result.GetResult<Prisma.$ReservedVmBillingPeriodPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one ReservedVmBillingPeriod that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {ReservedVmBillingPeriodFindUniqueOrThrowArgs} args - Arguments to find a ReservedVmBillingPeriod
+     * @example
+     * // Get one ReservedVmBillingPeriod
+     * const reservedVmBillingPeriod = await prisma.reservedVmBillingPeriod.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends ReservedVmBillingPeriodFindUniqueOrThrowArgs>(args: SelectSubset<T, ReservedVmBillingPeriodFindUniqueOrThrowArgs<ExtArgs>>): Prisma__ReservedVmBillingPeriodClient<$Result.GetResult<Prisma.$ReservedVmBillingPeriodPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ReservedVmBillingPeriod that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ReservedVmBillingPeriodFindFirstArgs} args - Arguments to find a ReservedVmBillingPeriod
+     * @example
+     * // Get one ReservedVmBillingPeriod
+     * const reservedVmBillingPeriod = await prisma.reservedVmBillingPeriod.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends ReservedVmBillingPeriodFindFirstArgs>(args?: SelectSubset<T, ReservedVmBillingPeriodFindFirstArgs<ExtArgs>>): Prisma__ReservedVmBillingPeriodClient<$Result.GetResult<Prisma.$ReservedVmBillingPeriodPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ReservedVmBillingPeriod that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ReservedVmBillingPeriodFindFirstOrThrowArgs} args - Arguments to find a ReservedVmBillingPeriod
+     * @example
+     * // Get one ReservedVmBillingPeriod
+     * const reservedVmBillingPeriod = await prisma.reservedVmBillingPeriod.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends ReservedVmBillingPeriodFindFirstOrThrowArgs>(args?: SelectSubset<T, ReservedVmBillingPeriodFindFirstOrThrowArgs<ExtArgs>>): Prisma__ReservedVmBillingPeriodClient<$Result.GetResult<Prisma.$ReservedVmBillingPeriodPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more ReservedVmBillingPeriods that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ReservedVmBillingPeriodFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all ReservedVmBillingPeriods
+     * const reservedVmBillingPeriods = await prisma.reservedVmBillingPeriod.findMany()
+     * 
+     * // Get first 10 ReservedVmBillingPeriods
+     * const reservedVmBillingPeriods = await prisma.reservedVmBillingPeriod.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const reservedVmBillingPeriodWithIdOnly = await prisma.reservedVmBillingPeriod.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends ReservedVmBillingPeriodFindManyArgs>(args?: SelectSubset<T, ReservedVmBillingPeriodFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ReservedVmBillingPeriodPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a ReservedVmBillingPeriod.
+     * @param {ReservedVmBillingPeriodCreateArgs} args - Arguments to create a ReservedVmBillingPeriod.
+     * @example
+     * // Create one ReservedVmBillingPeriod
+     * const ReservedVmBillingPeriod = await prisma.reservedVmBillingPeriod.create({
+     *   data: {
+     *     // ... data to create a ReservedVmBillingPeriod
+     *   }
+     * })
+     * 
+     */
+    create<T extends ReservedVmBillingPeriodCreateArgs>(args: SelectSubset<T, ReservedVmBillingPeriodCreateArgs<ExtArgs>>): Prisma__ReservedVmBillingPeriodClient<$Result.GetResult<Prisma.$ReservedVmBillingPeriodPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many ReservedVmBillingPeriods.
+     * @param {ReservedVmBillingPeriodCreateManyArgs} args - Arguments to create many ReservedVmBillingPeriods.
+     * @example
+     * // Create many ReservedVmBillingPeriods
+     * const reservedVmBillingPeriod = await prisma.reservedVmBillingPeriod.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends ReservedVmBillingPeriodCreateManyArgs>(args?: SelectSubset<T, ReservedVmBillingPeriodCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many ReservedVmBillingPeriods and returns the data saved in the database.
+     * @param {ReservedVmBillingPeriodCreateManyAndReturnArgs} args - Arguments to create many ReservedVmBillingPeriods.
+     * @example
+     * // Create many ReservedVmBillingPeriods
+     * const reservedVmBillingPeriod = await prisma.reservedVmBillingPeriod.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many ReservedVmBillingPeriods and only return the `id`
+     * const reservedVmBillingPeriodWithIdOnly = await prisma.reservedVmBillingPeriod.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends ReservedVmBillingPeriodCreateManyAndReturnArgs>(args?: SelectSubset<T, ReservedVmBillingPeriodCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ReservedVmBillingPeriodPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a ReservedVmBillingPeriod.
+     * @param {ReservedVmBillingPeriodDeleteArgs} args - Arguments to delete one ReservedVmBillingPeriod.
+     * @example
+     * // Delete one ReservedVmBillingPeriod
+     * const ReservedVmBillingPeriod = await prisma.reservedVmBillingPeriod.delete({
+     *   where: {
+     *     // ... filter to delete one ReservedVmBillingPeriod
+     *   }
+     * })
+     * 
+     */
+    delete<T extends ReservedVmBillingPeriodDeleteArgs>(args: SelectSubset<T, ReservedVmBillingPeriodDeleteArgs<ExtArgs>>): Prisma__ReservedVmBillingPeriodClient<$Result.GetResult<Prisma.$ReservedVmBillingPeriodPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one ReservedVmBillingPeriod.
+     * @param {ReservedVmBillingPeriodUpdateArgs} args - Arguments to update one ReservedVmBillingPeriod.
+     * @example
+     * // Update one ReservedVmBillingPeriod
+     * const reservedVmBillingPeriod = await prisma.reservedVmBillingPeriod.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends ReservedVmBillingPeriodUpdateArgs>(args: SelectSubset<T, ReservedVmBillingPeriodUpdateArgs<ExtArgs>>): Prisma__ReservedVmBillingPeriodClient<$Result.GetResult<Prisma.$ReservedVmBillingPeriodPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more ReservedVmBillingPeriods.
+     * @param {ReservedVmBillingPeriodDeleteManyArgs} args - Arguments to filter ReservedVmBillingPeriods to delete.
+     * @example
+     * // Delete a few ReservedVmBillingPeriods
+     * const { count } = await prisma.reservedVmBillingPeriod.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends ReservedVmBillingPeriodDeleteManyArgs>(args?: SelectSubset<T, ReservedVmBillingPeriodDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ReservedVmBillingPeriods.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ReservedVmBillingPeriodUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many ReservedVmBillingPeriods
+     * const reservedVmBillingPeriod = await prisma.reservedVmBillingPeriod.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends ReservedVmBillingPeriodUpdateManyArgs>(args: SelectSubset<T, ReservedVmBillingPeriodUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ReservedVmBillingPeriods and returns the data updated in the database.
+     * @param {ReservedVmBillingPeriodUpdateManyAndReturnArgs} args - Arguments to update many ReservedVmBillingPeriods.
+     * @example
+     * // Update many ReservedVmBillingPeriods
+     * const reservedVmBillingPeriod = await prisma.reservedVmBillingPeriod.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more ReservedVmBillingPeriods and only return the `id`
+     * const reservedVmBillingPeriodWithIdOnly = await prisma.reservedVmBillingPeriod.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends ReservedVmBillingPeriodUpdateManyAndReturnArgs>(args: SelectSubset<T, ReservedVmBillingPeriodUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ReservedVmBillingPeriodPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one ReservedVmBillingPeriod.
+     * @param {ReservedVmBillingPeriodUpsertArgs} args - Arguments to update or create a ReservedVmBillingPeriod.
+     * @example
+     * // Update or create a ReservedVmBillingPeriod
+     * const reservedVmBillingPeriod = await prisma.reservedVmBillingPeriod.upsert({
+     *   create: {
+     *     // ... data to create a ReservedVmBillingPeriod
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the ReservedVmBillingPeriod we want to update
+     *   }
+     * })
+     */
+    upsert<T extends ReservedVmBillingPeriodUpsertArgs>(args: SelectSubset<T, ReservedVmBillingPeriodUpsertArgs<ExtArgs>>): Prisma__ReservedVmBillingPeriodClient<$Result.GetResult<Prisma.$ReservedVmBillingPeriodPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of ReservedVmBillingPeriods.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ReservedVmBillingPeriodCountArgs} args - Arguments to filter ReservedVmBillingPeriods to count.
+     * @example
+     * // Count the number of ReservedVmBillingPeriods
+     * const count = await prisma.reservedVmBillingPeriod.count({
+     *   where: {
+     *     // ... the filter for the ReservedVmBillingPeriods we want to count
+     *   }
+     * })
+    **/
+    count<T extends ReservedVmBillingPeriodCountArgs>(
+      args?: Subset<T, ReservedVmBillingPeriodCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], ReservedVmBillingPeriodCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a ReservedVmBillingPeriod.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ReservedVmBillingPeriodAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends ReservedVmBillingPeriodAggregateArgs>(args: Subset<T, ReservedVmBillingPeriodAggregateArgs>): Prisma.PrismaPromise<GetReservedVmBillingPeriodAggregateType<T>>
+
+    /**
+     * Group by ReservedVmBillingPeriod.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ReservedVmBillingPeriodGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends ReservedVmBillingPeriodGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: ReservedVmBillingPeriodGroupByArgs['orderBy'] }
+        : { orderBy?: ReservedVmBillingPeriodGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, ReservedVmBillingPeriodGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetReservedVmBillingPeriodGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the ReservedVmBillingPeriod model
+   */
+  readonly fields: ReservedVmBillingPeriodFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for ReservedVmBillingPeriod.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__ReservedVmBillingPeriodClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    project<T extends ProjectDefaultArgs<ExtArgs> = {}>(args?: Subset<T, ProjectDefaultArgs<ExtArgs>>): Prisma__ProjectClient<$Result.GetResult<Prisma.$ProjectPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    deployment<T extends DeploymentDefaultArgs<ExtArgs> = {}>(args?: Subset<T, DeploymentDefaultArgs<ExtArgs>>): Prisma__DeploymentClient<$Result.GetResult<Prisma.$DeploymentPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the ReservedVmBillingPeriod model
+   */
+  interface ReservedVmBillingPeriodFieldRefs {
+    readonly id: FieldRef<"ReservedVmBillingPeriod", 'String'>
+    readonly projectId: FieldRef<"ReservedVmBillingPeriod", 'String'>
+    readonly deploymentId: FieldRef<"ReservedVmBillingPeriod", 'String'>
+    readonly organizationId: FieldRef<"ReservedVmBillingPeriod", 'String'>
+    readonly periodStart: FieldRef<"ReservedVmBillingPeriod", 'DateTime'>
+    readonly periodEnd: FieldRef<"ReservedVmBillingPeriod", 'DateTime'>
+    readonly tier: FieldRef<"ReservedVmBillingPeriod", 'String'>
+    readonly priceCents: FieldRef<"ReservedVmBillingPeriod", 'Int'>
+    readonly termsVersion: FieldRef<"ReservedVmBillingPeriod", 'String'>
+    readonly rateCardVersion: FieldRef<"ReservedVmBillingPeriod", 'Int'>
+    readonly status: FieldRef<"ReservedVmBillingPeriod", 'String'>
+    readonly attemptCount: FieldRef<"ReservedVmBillingPeriod", 'Int'>
+    readonly reservationGeneration: FieldRef<"ReservedVmBillingPeriod", 'Int'>
+    readonly leaseOwner: FieldRef<"ReservedVmBillingPeriod", 'String'>
+    readonly leaseExpiresAt: FieldRef<"ReservedVmBillingPeriod", 'DateTime'>
+    readonly fencingToken: FieldRef<"ReservedVmBillingPeriod", 'Int'>
+    readonly billingReservationId: FieldRef<"ReservedVmBillingPeriod", 'String'>
+    readonly graceEndsAt: FieldRef<"ReservedVmBillingPeriod", 'DateTime'>
+    readonly stopRequestedAt: FieldRef<"ReservedVmBillingPeriod", 'DateTime'>
+    readonly settledAt: FieldRef<"ReservedVmBillingPeriod", 'DateTime'>
+    readonly lastErrorCode: FieldRef<"ReservedVmBillingPeriod", 'String'>
+    readonly lastErrorMessage: FieldRef<"ReservedVmBillingPeriod", 'String'>
+    readonly createdAt: FieldRef<"ReservedVmBillingPeriod", 'DateTime'>
+    readonly updatedAt: FieldRef<"ReservedVmBillingPeriod", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * ReservedVmBillingPeriod findUnique
+   */
+  export type ReservedVmBillingPeriodFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ReservedVmBillingPeriod
+     */
+    select?: ReservedVmBillingPeriodSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ReservedVmBillingPeriod
+     */
+    omit?: ReservedVmBillingPeriodOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ReservedVmBillingPeriodInclude<ExtArgs> | null
+    /**
+     * Filter, which ReservedVmBillingPeriod to fetch.
+     */
+    where: ReservedVmBillingPeriodWhereUniqueInput
+  }
+
+  /**
+   * ReservedVmBillingPeriod findUniqueOrThrow
+   */
+  export type ReservedVmBillingPeriodFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ReservedVmBillingPeriod
+     */
+    select?: ReservedVmBillingPeriodSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ReservedVmBillingPeriod
+     */
+    omit?: ReservedVmBillingPeriodOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ReservedVmBillingPeriodInclude<ExtArgs> | null
+    /**
+     * Filter, which ReservedVmBillingPeriod to fetch.
+     */
+    where: ReservedVmBillingPeriodWhereUniqueInput
+  }
+
+  /**
+   * ReservedVmBillingPeriod findFirst
+   */
+  export type ReservedVmBillingPeriodFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ReservedVmBillingPeriod
+     */
+    select?: ReservedVmBillingPeriodSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ReservedVmBillingPeriod
+     */
+    omit?: ReservedVmBillingPeriodOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ReservedVmBillingPeriodInclude<ExtArgs> | null
+    /**
+     * Filter, which ReservedVmBillingPeriod to fetch.
+     */
+    where?: ReservedVmBillingPeriodWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ReservedVmBillingPeriods to fetch.
+     */
+    orderBy?: ReservedVmBillingPeriodOrderByWithRelationInput | ReservedVmBillingPeriodOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ReservedVmBillingPeriods.
+     */
+    cursor?: ReservedVmBillingPeriodWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ReservedVmBillingPeriods from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ReservedVmBillingPeriods.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ReservedVmBillingPeriods.
+     */
+    distinct?: ReservedVmBillingPeriodScalarFieldEnum | ReservedVmBillingPeriodScalarFieldEnum[]
+  }
+
+  /**
+   * ReservedVmBillingPeriod findFirstOrThrow
+   */
+  export type ReservedVmBillingPeriodFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ReservedVmBillingPeriod
+     */
+    select?: ReservedVmBillingPeriodSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ReservedVmBillingPeriod
+     */
+    omit?: ReservedVmBillingPeriodOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ReservedVmBillingPeriodInclude<ExtArgs> | null
+    /**
+     * Filter, which ReservedVmBillingPeriod to fetch.
+     */
+    where?: ReservedVmBillingPeriodWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ReservedVmBillingPeriods to fetch.
+     */
+    orderBy?: ReservedVmBillingPeriodOrderByWithRelationInput | ReservedVmBillingPeriodOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ReservedVmBillingPeriods.
+     */
+    cursor?: ReservedVmBillingPeriodWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ReservedVmBillingPeriods from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ReservedVmBillingPeriods.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ReservedVmBillingPeriods.
+     */
+    distinct?: ReservedVmBillingPeriodScalarFieldEnum | ReservedVmBillingPeriodScalarFieldEnum[]
+  }
+
+  /**
+   * ReservedVmBillingPeriod findMany
+   */
+  export type ReservedVmBillingPeriodFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ReservedVmBillingPeriod
+     */
+    select?: ReservedVmBillingPeriodSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ReservedVmBillingPeriod
+     */
+    omit?: ReservedVmBillingPeriodOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ReservedVmBillingPeriodInclude<ExtArgs> | null
+    /**
+     * Filter, which ReservedVmBillingPeriods to fetch.
+     */
+    where?: ReservedVmBillingPeriodWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ReservedVmBillingPeriods to fetch.
+     */
+    orderBy?: ReservedVmBillingPeriodOrderByWithRelationInput | ReservedVmBillingPeriodOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing ReservedVmBillingPeriods.
+     */
+    cursor?: ReservedVmBillingPeriodWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ReservedVmBillingPeriods from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ReservedVmBillingPeriods.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ReservedVmBillingPeriods.
+     */
+    distinct?: ReservedVmBillingPeriodScalarFieldEnum | ReservedVmBillingPeriodScalarFieldEnum[]
+  }
+
+  /**
+   * ReservedVmBillingPeriod create
+   */
+  export type ReservedVmBillingPeriodCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ReservedVmBillingPeriod
+     */
+    select?: ReservedVmBillingPeriodSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ReservedVmBillingPeriod
+     */
+    omit?: ReservedVmBillingPeriodOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ReservedVmBillingPeriodInclude<ExtArgs> | null
+    /**
+     * The data needed to create a ReservedVmBillingPeriod.
+     */
+    data: XOR<ReservedVmBillingPeriodCreateInput, ReservedVmBillingPeriodUncheckedCreateInput>
+  }
+
+  /**
+   * ReservedVmBillingPeriod createMany
+   */
+  export type ReservedVmBillingPeriodCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many ReservedVmBillingPeriods.
+     */
+    data: ReservedVmBillingPeriodCreateManyInput | ReservedVmBillingPeriodCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * ReservedVmBillingPeriod createManyAndReturn
+   */
+  export type ReservedVmBillingPeriodCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ReservedVmBillingPeriod
+     */
+    select?: ReservedVmBillingPeriodSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ReservedVmBillingPeriod
+     */
+    omit?: ReservedVmBillingPeriodOmit<ExtArgs> | null
+    /**
+     * The data used to create many ReservedVmBillingPeriods.
+     */
+    data: ReservedVmBillingPeriodCreateManyInput | ReservedVmBillingPeriodCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ReservedVmBillingPeriodIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * ReservedVmBillingPeriod update
+   */
+  export type ReservedVmBillingPeriodUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ReservedVmBillingPeriod
+     */
+    select?: ReservedVmBillingPeriodSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ReservedVmBillingPeriod
+     */
+    omit?: ReservedVmBillingPeriodOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ReservedVmBillingPeriodInclude<ExtArgs> | null
+    /**
+     * The data needed to update a ReservedVmBillingPeriod.
+     */
+    data: XOR<ReservedVmBillingPeriodUpdateInput, ReservedVmBillingPeriodUncheckedUpdateInput>
+    /**
+     * Choose, which ReservedVmBillingPeriod to update.
+     */
+    where: ReservedVmBillingPeriodWhereUniqueInput
+  }
+
+  /**
+   * ReservedVmBillingPeriod updateMany
+   */
+  export type ReservedVmBillingPeriodUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update ReservedVmBillingPeriods.
+     */
+    data: XOR<ReservedVmBillingPeriodUpdateManyMutationInput, ReservedVmBillingPeriodUncheckedUpdateManyInput>
+    /**
+     * Filter which ReservedVmBillingPeriods to update
+     */
+    where?: ReservedVmBillingPeriodWhereInput
+    /**
+     * Limit how many ReservedVmBillingPeriods to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * ReservedVmBillingPeriod updateManyAndReturn
+   */
+  export type ReservedVmBillingPeriodUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ReservedVmBillingPeriod
+     */
+    select?: ReservedVmBillingPeriodSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ReservedVmBillingPeriod
+     */
+    omit?: ReservedVmBillingPeriodOmit<ExtArgs> | null
+    /**
+     * The data used to update ReservedVmBillingPeriods.
+     */
+    data: XOR<ReservedVmBillingPeriodUpdateManyMutationInput, ReservedVmBillingPeriodUncheckedUpdateManyInput>
+    /**
+     * Filter which ReservedVmBillingPeriods to update
+     */
+    where?: ReservedVmBillingPeriodWhereInput
+    /**
+     * Limit how many ReservedVmBillingPeriods to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ReservedVmBillingPeriodIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * ReservedVmBillingPeriod upsert
+   */
+  export type ReservedVmBillingPeriodUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ReservedVmBillingPeriod
+     */
+    select?: ReservedVmBillingPeriodSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ReservedVmBillingPeriod
+     */
+    omit?: ReservedVmBillingPeriodOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ReservedVmBillingPeriodInclude<ExtArgs> | null
+    /**
+     * The filter to search for the ReservedVmBillingPeriod to update in case it exists.
+     */
+    where: ReservedVmBillingPeriodWhereUniqueInput
+    /**
+     * In case the ReservedVmBillingPeriod found by the `where` argument doesn't exist, create a new ReservedVmBillingPeriod with this data.
+     */
+    create: XOR<ReservedVmBillingPeriodCreateInput, ReservedVmBillingPeriodUncheckedCreateInput>
+    /**
+     * In case the ReservedVmBillingPeriod was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<ReservedVmBillingPeriodUpdateInput, ReservedVmBillingPeriodUncheckedUpdateInput>
+  }
+
+  /**
+   * ReservedVmBillingPeriod delete
+   */
+  export type ReservedVmBillingPeriodDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ReservedVmBillingPeriod
+     */
+    select?: ReservedVmBillingPeriodSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ReservedVmBillingPeriod
+     */
+    omit?: ReservedVmBillingPeriodOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ReservedVmBillingPeriodInclude<ExtArgs> | null
+    /**
+     * Filter which ReservedVmBillingPeriod to delete.
+     */
+    where: ReservedVmBillingPeriodWhereUniqueInput
+  }
+
+  /**
+   * ReservedVmBillingPeriod deleteMany
+   */
+  export type ReservedVmBillingPeriodDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ReservedVmBillingPeriods to delete
+     */
+    where?: ReservedVmBillingPeriodWhereInput
+    /**
+     * Limit how many ReservedVmBillingPeriods to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * ReservedVmBillingPeriod without action
+   */
+  export type ReservedVmBillingPeriodDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ReservedVmBillingPeriod
+     */
+    select?: ReservedVmBillingPeriodSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ReservedVmBillingPeriod
+     */
+    omit?: ReservedVmBillingPeriodOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ReservedVmBillingPeriodInclude<ExtArgs> | null
   }
 
 
@@ -190769,6 +193969,19 @@ export namespace Prisma {
     parentDeploymentId: 'parentDeploymentId',
     lastMeteredAt: 'lastMeteredAt',
     machineSize: 'machineSize',
+    runtimeKind: 'runtimeKind',
+    runtimeVersion: 'runtimeVersion',
+    reservedVmTier: 'reservedVmTier',
+    reservedVmPriceCents: 'reservedVmPriceCents',
+    reservedVmTermsVersion: 'reservedVmTermsVersion',
+    reservedVmRateCardVersion: 'reservedVmRateCardVersion',
+    reservedVmBillingReservationId: 'reservedVmBillingReservationId',
+    reservedVmBillingState: 'reservedVmBillingState',
+    reservedVmCurrentPeriodStart: 'reservedVmCurrentPeriodStart',
+    reservedVmNextChargeAt: 'reservedVmNextChargeAt',
+    reservedVmGraceEndsAt: 'reservedVmGraceEndsAt',
+    reservedVmStopRequestedAt: 'reservedVmStopRequestedAt',
+    persistentStorageClaim: 'persistentStorageClaim',
     accessPolicyVersion: 'accessPolicyVersion',
     startedAt: 'startedAt',
     finishedAt: 'finishedAt',
@@ -190778,6 +193991,72 @@ export namespace Prisma {
   };
 
   export type DeploymentScalarFieldEnum = (typeof DeploymentScalarFieldEnum)[keyof typeof DeploymentScalarFieldEnum]
+
+
+  export const ReservedVmOperationScalarFieldEnum: {
+    id: 'id',
+    projectId: 'projectId',
+    deploymentId: 'deploymentId',
+    organizationId: 'organizationId',
+    actorUserId: 'actorUserId',
+    idempotencyKey: 'idempotencyKey',
+    requestHash: 'requestHash',
+    kind: 'kind',
+    status: 'status',
+    phase: 'phase',
+    fromRuntimeKind: 'fromRuntimeKind',
+    fromTier: 'fromTier',
+    targetRuntimeKind: 'targetRuntimeKind',
+    targetTier: 'targetTier',
+    targetMachineSize: 'targetMachineSize',
+    targetPriceCents: 'targetPriceCents',
+    billingAmountCents: 'billingAmountCents',
+    termsVersion: 'termsVersion',
+    rateCardVersion: 'rateCardVersion',
+    expectedRuntimeVersion: 'expectedRuntimeVersion',
+    leaseOwner: 'leaseOwner',
+    leaseExpiresAt: 'leaseExpiresAt',
+    fencingToken: 'fencingToken',
+    billingReservationId: 'billingReservationId',
+    response: 'response',
+    errorCode: 'errorCode',
+    errorMessage: 'errorMessage',
+    completedAt: 'completedAt',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type ReservedVmOperationScalarFieldEnum = (typeof ReservedVmOperationScalarFieldEnum)[keyof typeof ReservedVmOperationScalarFieldEnum]
+
+
+  export const ReservedVmBillingPeriodScalarFieldEnum: {
+    id: 'id',
+    projectId: 'projectId',
+    deploymentId: 'deploymentId',
+    organizationId: 'organizationId',
+    periodStart: 'periodStart',
+    periodEnd: 'periodEnd',
+    tier: 'tier',
+    priceCents: 'priceCents',
+    termsVersion: 'termsVersion',
+    rateCardVersion: 'rateCardVersion',
+    status: 'status',
+    attemptCount: 'attemptCount',
+    reservationGeneration: 'reservationGeneration',
+    leaseOwner: 'leaseOwner',
+    leaseExpiresAt: 'leaseExpiresAt',
+    fencingToken: 'fencingToken',
+    billingReservationId: 'billingReservationId',
+    graceEndsAt: 'graceEndsAt',
+    stopRequestedAt: 'stopRequestedAt',
+    settledAt: 'settledAt',
+    lastErrorCode: 'lastErrorCode',
+    lastErrorMessage: 'lastErrorMessage',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type ReservedVmBillingPeriodScalarFieldEnum = (typeof ReservedVmBillingPeriodScalarFieldEnum)[keyof typeof ReservedVmBillingPeriodScalarFieldEnum]
 
 
   export const DeploymentEnvironmentScalarFieldEnum: {
@@ -194115,6 +197394,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionListRelationFilter
     storageObjects?: ProjectStorageObjectListRelationFilter
     deployments?: DeploymentListRelationFilter
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodListRelationFilter
     rollbackOperations?: RollbackIdempotencyRequestListRelationFilter
     fileSnapshots?: FileSnapshotListRelationFilter
     conversations?: AiConversationListRelationFilter
@@ -194168,6 +197448,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionOrderByRelationAggregateInput
     storageObjects?: ProjectStorageObjectOrderByRelationAggregateInput
     deployments?: DeploymentOrderByRelationAggregateInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodOrderByRelationAggregateInput
     rollbackOperations?: RollbackIdempotencyRequestOrderByRelationAggregateInput
     fileSnapshots?: FileSnapshotOrderByRelationAggregateInput
     conversations?: AiConversationOrderByRelationAggregateInput
@@ -194225,6 +197506,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionListRelationFilter
     storageObjects?: ProjectStorageObjectListRelationFilter
     deployments?: DeploymentListRelationFilter
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodListRelationFilter
     rollbackOperations?: RollbackIdempotencyRequestListRelationFilter
     fileSnapshots?: FileSnapshotListRelationFilter
     conversations?: AiConversationListRelationFilter
@@ -196621,6 +199903,19 @@ export namespace Prisma {
     parentDeploymentId?: StringNullableFilter<"Deployment"> | string | null
     lastMeteredAt?: DateTimeNullableFilter<"Deployment"> | Date | string | null
     machineSize?: StringFilter<"Deployment"> | string
+    runtimeKind?: StringFilter<"Deployment"> | string
+    runtimeVersion?: IntFilter<"Deployment"> | number
+    reservedVmTier?: StringNullableFilter<"Deployment"> | string | null
+    reservedVmPriceCents?: IntNullableFilter<"Deployment"> | number | null
+    reservedVmTermsVersion?: StringNullableFilter<"Deployment"> | string | null
+    reservedVmRateCardVersion?: IntNullableFilter<"Deployment"> | number | null
+    reservedVmBillingReservationId?: StringNullableFilter<"Deployment"> | string | null
+    reservedVmBillingState?: StringNullableFilter<"Deployment"> | string | null
+    reservedVmCurrentPeriodStart?: DateTimeNullableFilter<"Deployment"> | Date | string | null
+    reservedVmNextChargeAt?: DateTimeNullableFilter<"Deployment"> | Date | string | null
+    reservedVmGraceEndsAt?: DateTimeNullableFilter<"Deployment"> | Date | string | null
+    reservedVmStopRequestedAt?: DateTimeNullableFilter<"Deployment"> | Date | string | null
+    persistentStorageClaim?: StringNullableFilter<"Deployment"> | string | null
     accessPolicyVersion?: IntFilter<"Deployment"> | number
     startedAt?: DateTimeNullableFilter<"Deployment"> | Date | string | null
     finishedAt?: DateTimeNullableFilter<"Deployment"> | Date | string | null
@@ -196629,6 +199924,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFilter<"Deployment"> | Date | string
     project?: XOR<ProjectScalarRelationFilter, ProjectWhereInput>
     environment?: XOR<DeploymentEnvironmentNullableScalarRelationFilter, DeploymentEnvironmentWhereInput> | null
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodListRelationFilter
   }
 
   export type DeploymentOrderByWithRelationInput = {
@@ -196654,6 +199950,19 @@ export namespace Prisma {
     parentDeploymentId?: SortOrderInput | SortOrder
     lastMeteredAt?: SortOrderInput | SortOrder
     machineSize?: SortOrder
+    runtimeKind?: SortOrder
+    runtimeVersion?: SortOrder
+    reservedVmTier?: SortOrderInput | SortOrder
+    reservedVmPriceCents?: SortOrderInput | SortOrder
+    reservedVmTermsVersion?: SortOrderInput | SortOrder
+    reservedVmRateCardVersion?: SortOrderInput | SortOrder
+    reservedVmBillingReservationId?: SortOrderInput | SortOrder
+    reservedVmBillingState?: SortOrderInput | SortOrder
+    reservedVmCurrentPeriodStart?: SortOrderInput | SortOrder
+    reservedVmNextChargeAt?: SortOrderInput | SortOrder
+    reservedVmGraceEndsAt?: SortOrderInput | SortOrder
+    reservedVmStopRequestedAt?: SortOrderInput | SortOrder
+    persistentStorageClaim?: SortOrderInput | SortOrder
     accessPolicyVersion?: SortOrder
     startedAt?: SortOrderInput | SortOrder
     finishedAt?: SortOrderInput | SortOrder
@@ -196662,10 +199971,12 @@ export namespace Prisma {
     updatedAt?: SortOrder
     project?: ProjectOrderByWithRelationInput
     environment?: DeploymentEnvironmentOrderByWithRelationInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodOrderByRelationAggregateInput
   }
 
   export type DeploymentWhereUniqueInput = Prisma.AtLeast<{
     id?: string
+    reservedVmBillingReservationId?: string
     AND?: DeploymentWhereInput | DeploymentWhereInput[]
     OR?: DeploymentWhereInput[]
     NOT?: DeploymentWhereInput | DeploymentWhereInput[]
@@ -196690,6 +200001,18 @@ export namespace Prisma {
     parentDeploymentId?: StringNullableFilter<"Deployment"> | string | null
     lastMeteredAt?: DateTimeNullableFilter<"Deployment"> | Date | string | null
     machineSize?: StringFilter<"Deployment"> | string
+    runtimeKind?: StringFilter<"Deployment"> | string
+    runtimeVersion?: IntFilter<"Deployment"> | number
+    reservedVmTier?: StringNullableFilter<"Deployment"> | string | null
+    reservedVmPriceCents?: IntNullableFilter<"Deployment"> | number | null
+    reservedVmTermsVersion?: StringNullableFilter<"Deployment"> | string | null
+    reservedVmRateCardVersion?: IntNullableFilter<"Deployment"> | number | null
+    reservedVmBillingState?: StringNullableFilter<"Deployment"> | string | null
+    reservedVmCurrentPeriodStart?: DateTimeNullableFilter<"Deployment"> | Date | string | null
+    reservedVmNextChargeAt?: DateTimeNullableFilter<"Deployment"> | Date | string | null
+    reservedVmGraceEndsAt?: DateTimeNullableFilter<"Deployment"> | Date | string | null
+    reservedVmStopRequestedAt?: DateTimeNullableFilter<"Deployment"> | Date | string | null
+    persistentStorageClaim?: StringNullableFilter<"Deployment"> | string | null
     accessPolicyVersion?: IntFilter<"Deployment"> | number
     startedAt?: DateTimeNullableFilter<"Deployment"> | Date | string | null
     finishedAt?: DateTimeNullableFilter<"Deployment"> | Date | string | null
@@ -196698,7 +200021,8 @@ export namespace Prisma {
     updatedAt?: DateTimeFilter<"Deployment"> | Date | string
     project?: XOR<ProjectScalarRelationFilter, ProjectWhereInput>
     environment?: XOR<DeploymentEnvironmentNullableScalarRelationFilter, DeploymentEnvironmentWhereInput> | null
-  }, "id">
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodListRelationFilter
+  }, "id" | "reservedVmBillingReservationId">
 
   export type DeploymentOrderByWithAggregationInput = {
     id?: SortOrder
@@ -196723,6 +200047,19 @@ export namespace Prisma {
     parentDeploymentId?: SortOrderInput | SortOrder
     lastMeteredAt?: SortOrderInput | SortOrder
     machineSize?: SortOrder
+    runtimeKind?: SortOrder
+    runtimeVersion?: SortOrder
+    reservedVmTier?: SortOrderInput | SortOrder
+    reservedVmPriceCents?: SortOrderInput | SortOrder
+    reservedVmTermsVersion?: SortOrderInput | SortOrder
+    reservedVmRateCardVersion?: SortOrderInput | SortOrder
+    reservedVmBillingReservationId?: SortOrderInput | SortOrder
+    reservedVmBillingState?: SortOrderInput | SortOrder
+    reservedVmCurrentPeriodStart?: SortOrderInput | SortOrder
+    reservedVmNextChargeAt?: SortOrderInput | SortOrder
+    reservedVmGraceEndsAt?: SortOrderInput | SortOrder
+    reservedVmStopRequestedAt?: SortOrderInput | SortOrder
+    persistentStorageClaim?: SortOrderInput | SortOrder
     accessPolicyVersion?: SortOrder
     startedAt?: SortOrderInput | SortOrder
     finishedAt?: SortOrderInput | SortOrder
@@ -196762,12 +200099,361 @@ export namespace Prisma {
     parentDeploymentId?: StringNullableWithAggregatesFilter<"Deployment"> | string | null
     lastMeteredAt?: DateTimeNullableWithAggregatesFilter<"Deployment"> | Date | string | null
     machineSize?: StringWithAggregatesFilter<"Deployment"> | string
+    runtimeKind?: StringWithAggregatesFilter<"Deployment"> | string
+    runtimeVersion?: IntWithAggregatesFilter<"Deployment"> | number
+    reservedVmTier?: StringNullableWithAggregatesFilter<"Deployment"> | string | null
+    reservedVmPriceCents?: IntNullableWithAggregatesFilter<"Deployment"> | number | null
+    reservedVmTermsVersion?: StringNullableWithAggregatesFilter<"Deployment"> | string | null
+    reservedVmRateCardVersion?: IntNullableWithAggregatesFilter<"Deployment"> | number | null
+    reservedVmBillingReservationId?: StringNullableWithAggregatesFilter<"Deployment"> | string | null
+    reservedVmBillingState?: StringNullableWithAggregatesFilter<"Deployment"> | string | null
+    reservedVmCurrentPeriodStart?: DateTimeNullableWithAggregatesFilter<"Deployment"> | Date | string | null
+    reservedVmNextChargeAt?: DateTimeNullableWithAggregatesFilter<"Deployment"> | Date | string | null
+    reservedVmGraceEndsAt?: DateTimeNullableWithAggregatesFilter<"Deployment"> | Date | string | null
+    reservedVmStopRequestedAt?: DateTimeNullableWithAggregatesFilter<"Deployment"> | Date | string | null
+    persistentStorageClaim?: StringNullableWithAggregatesFilter<"Deployment"> | string | null
     accessPolicyVersion?: IntWithAggregatesFilter<"Deployment"> | number
     startedAt?: DateTimeNullableWithAggregatesFilter<"Deployment"> | Date | string | null
     finishedAt?: DateTimeNullableWithAggregatesFilter<"Deployment"> | Date | string | null
     canceledAt?: DateTimeNullableWithAggregatesFilter<"Deployment"> | Date | string | null
     createdAt?: DateTimeWithAggregatesFilter<"Deployment"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"Deployment"> | Date | string
+  }
+
+  export type ReservedVmOperationWhereInput = {
+    AND?: ReservedVmOperationWhereInput | ReservedVmOperationWhereInput[]
+    OR?: ReservedVmOperationWhereInput[]
+    NOT?: ReservedVmOperationWhereInput | ReservedVmOperationWhereInput[]
+    id?: StringFilter<"ReservedVmOperation"> | string
+    projectId?: StringFilter<"ReservedVmOperation"> | string
+    deploymentId?: StringFilter<"ReservedVmOperation"> | string
+    organizationId?: StringFilter<"ReservedVmOperation"> | string
+    actorUserId?: StringNullableFilter<"ReservedVmOperation"> | string | null
+    idempotencyKey?: StringFilter<"ReservedVmOperation"> | string
+    requestHash?: StringFilter<"ReservedVmOperation"> | string
+    kind?: StringFilter<"ReservedVmOperation"> | string
+    status?: StringFilter<"ReservedVmOperation"> | string
+    phase?: StringFilter<"ReservedVmOperation"> | string
+    fromRuntimeKind?: StringNullableFilter<"ReservedVmOperation"> | string | null
+    fromTier?: StringNullableFilter<"ReservedVmOperation"> | string | null
+    targetRuntimeKind?: StringFilter<"ReservedVmOperation"> | string
+    targetTier?: StringNullableFilter<"ReservedVmOperation"> | string | null
+    targetMachineSize?: StringFilter<"ReservedVmOperation"> | string
+    targetPriceCents?: IntFilter<"ReservedVmOperation"> | number
+    billingAmountCents?: IntFilter<"ReservedVmOperation"> | number
+    termsVersion?: StringFilter<"ReservedVmOperation"> | string
+    rateCardVersion?: IntFilter<"ReservedVmOperation"> | number
+    expectedRuntimeVersion?: IntFilter<"ReservedVmOperation"> | number
+    leaseOwner?: StringNullableFilter<"ReservedVmOperation"> | string | null
+    leaseExpiresAt?: DateTimeNullableFilter<"ReservedVmOperation"> | Date | string | null
+    fencingToken?: IntFilter<"ReservedVmOperation"> | number
+    billingReservationId?: StringNullableFilter<"ReservedVmOperation"> | string | null
+    response?: JsonNullableFilter<"ReservedVmOperation">
+    errorCode?: StringNullableFilter<"ReservedVmOperation"> | string | null
+    errorMessage?: StringNullableFilter<"ReservedVmOperation"> | string | null
+    completedAt?: DateTimeNullableFilter<"ReservedVmOperation"> | Date | string | null
+    createdAt?: DateTimeFilter<"ReservedVmOperation"> | Date | string
+    updatedAt?: DateTimeFilter<"ReservedVmOperation"> | Date | string
+  }
+
+  export type ReservedVmOperationOrderByWithRelationInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    deploymentId?: SortOrder
+    organizationId?: SortOrder
+    actorUserId?: SortOrderInput | SortOrder
+    idempotencyKey?: SortOrder
+    requestHash?: SortOrder
+    kind?: SortOrder
+    status?: SortOrder
+    phase?: SortOrder
+    fromRuntimeKind?: SortOrderInput | SortOrder
+    fromTier?: SortOrderInput | SortOrder
+    targetRuntimeKind?: SortOrder
+    targetTier?: SortOrderInput | SortOrder
+    targetMachineSize?: SortOrder
+    targetPriceCents?: SortOrder
+    billingAmountCents?: SortOrder
+    termsVersion?: SortOrder
+    rateCardVersion?: SortOrder
+    expectedRuntimeVersion?: SortOrder
+    leaseOwner?: SortOrderInput | SortOrder
+    leaseExpiresAt?: SortOrderInput | SortOrder
+    fencingToken?: SortOrder
+    billingReservationId?: SortOrderInput | SortOrder
+    response?: SortOrderInput | SortOrder
+    errorCode?: SortOrderInput | SortOrder
+    errorMessage?: SortOrderInput | SortOrder
+    completedAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ReservedVmOperationWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    billingReservationId?: string
+    projectId_idempotencyKey?: ReservedVmOperationProjectIdIdempotencyKeyCompoundUniqueInput
+    AND?: ReservedVmOperationWhereInput | ReservedVmOperationWhereInput[]
+    OR?: ReservedVmOperationWhereInput[]
+    NOT?: ReservedVmOperationWhereInput | ReservedVmOperationWhereInput[]
+    projectId?: StringFilter<"ReservedVmOperation"> | string
+    deploymentId?: StringFilter<"ReservedVmOperation"> | string
+    organizationId?: StringFilter<"ReservedVmOperation"> | string
+    actorUserId?: StringNullableFilter<"ReservedVmOperation"> | string | null
+    idempotencyKey?: StringFilter<"ReservedVmOperation"> | string
+    requestHash?: StringFilter<"ReservedVmOperation"> | string
+    kind?: StringFilter<"ReservedVmOperation"> | string
+    status?: StringFilter<"ReservedVmOperation"> | string
+    phase?: StringFilter<"ReservedVmOperation"> | string
+    fromRuntimeKind?: StringNullableFilter<"ReservedVmOperation"> | string | null
+    fromTier?: StringNullableFilter<"ReservedVmOperation"> | string | null
+    targetRuntimeKind?: StringFilter<"ReservedVmOperation"> | string
+    targetTier?: StringNullableFilter<"ReservedVmOperation"> | string | null
+    targetMachineSize?: StringFilter<"ReservedVmOperation"> | string
+    targetPriceCents?: IntFilter<"ReservedVmOperation"> | number
+    billingAmountCents?: IntFilter<"ReservedVmOperation"> | number
+    termsVersion?: StringFilter<"ReservedVmOperation"> | string
+    rateCardVersion?: IntFilter<"ReservedVmOperation"> | number
+    expectedRuntimeVersion?: IntFilter<"ReservedVmOperation"> | number
+    leaseOwner?: StringNullableFilter<"ReservedVmOperation"> | string | null
+    leaseExpiresAt?: DateTimeNullableFilter<"ReservedVmOperation"> | Date | string | null
+    fencingToken?: IntFilter<"ReservedVmOperation"> | number
+    response?: JsonNullableFilter<"ReservedVmOperation">
+    errorCode?: StringNullableFilter<"ReservedVmOperation"> | string | null
+    errorMessage?: StringNullableFilter<"ReservedVmOperation"> | string | null
+    completedAt?: DateTimeNullableFilter<"ReservedVmOperation"> | Date | string | null
+    createdAt?: DateTimeFilter<"ReservedVmOperation"> | Date | string
+    updatedAt?: DateTimeFilter<"ReservedVmOperation"> | Date | string
+  }, "id" | "billingReservationId" | "projectId_idempotencyKey">
+
+  export type ReservedVmOperationOrderByWithAggregationInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    deploymentId?: SortOrder
+    organizationId?: SortOrder
+    actorUserId?: SortOrderInput | SortOrder
+    idempotencyKey?: SortOrder
+    requestHash?: SortOrder
+    kind?: SortOrder
+    status?: SortOrder
+    phase?: SortOrder
+    fromRuntimeKind?: SortOrderInput | SortOrder
+    fromTier?: SortOrderInput | SortOrder
+    targetRuntimeKind?: SortOrder
+    targetTier?: SortOrderInput | SortOrder
+    targetMachineSize?: SortOrder
+    targetPriceCents?: SortOrder
+    billingAmountCents?: SortOrder
+    termsVersion?: SortOrder
+    rateCardVersion?: SortOrder
+    expectedRuntimeVersion?: SortOrder
+    leaseOwner?: SortOrderInput | SortOrder
+    leaseExpiresAt?: SortOrderInput | SortOrder
+    fencingToken?: SortOrder
+    billingReservationId?: SortOrderInput | SortOrder
+    response?: SortOrderInput | SortOrder
+    errorCode?: SortOrderInput | SortOrder
+    errorMessage?: SortOrderInput | SortOrder
+    completedAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: ReservedVmOperationCountOrderByAggregateInput
+    _avg?: ReservedVmOperationAvgOrderByAggregateInput
+    _max?: ReservedVmOperationMaxOrderByAggregateInput
+    _min?: ReservedVmOperationMinOrderByAggregateInput
+    _sum?: ReservedVmOperationSumOrderByAggregateInput
+  }
+
+  export type ReservedVmOperationScalarWhereWithAggregatesInput = {
+    AND?: ReservedVmOperationScalarWhereWithAggregatesInput | ReservedVmOperationScalarWhereWithAggregatesInput[]
+    OR?: ReservedVmOperationScalarWhereWithAggregatesInput[]
+    NOT?: ReservedVmOperationScalarWhereWithAggregatesInput | ReservedVmOperationScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"ReservedVmOperation"> | string
+    projectId?: StringWithAggregatesFilter<"ReservedVmOperation"> | string
+    deploymentId?: StringWithAggregatesFilter<"ReservedVmOperation"> | string
+    organizationId?: StringWithAggregatesFilter<"ReservedVmOperation"> | string
+    actorUserId?: StringNullableWithAggregatesFilter<"ReservedVmOperation"> | string | null
+    idempotencyKey?: StringWithAggregatesFilter<"ReservedVmOperation"> | string
+    requestHash?: StringWithAggregatesFilter<"ReservedVmOperation"> | string
+    kind?: StringWithAggregatesFilter<"ReservedVmOperation"> | string
+    status?: StringWithAggregatesFilter<"ReservedVmOperation"> | string
+    phase?: StringWithAggregatesFilter<"ReservedVmOperation"> | string
+    fromRuntimeKind?: StringNullableWithAggregatesFilter<"ReservedVmOperation"> | string | null
+    fromTier?: StringNullableWithAggregatesFilter<"ReservedVmOperation"> | string | null
+    targetRuntimeKind?: StringWithAggregatesFilter<"ReservedVmOperation"> | string
+    targetTier?: StringNullableWithAggregatesFilter<"ReservedVmOperation"> | string | null
+    targetMachineSize?: StringWithAggregatesFilter<"ReservedVmOperation"> | string
+    targetPriceCents?: IntWithAggregatesFilter<"ReservedVmOperation"> | number
+    billingAmountCents?: IntWithAggregatesFilter<"ReservedVmOperation"> | number
+    termsVersion?: StringWithAggregatesFilter<"ReservedVmOperation"> | string
+    rateCardVersion?: IntWithAggregatesFilter<"ReservedVmOperation"> | number
+    expectedRuntimeVersion?: IntWithAggregatesFilter<"ReservedVmOperation"> | number
+    leaseOwner?: StringNullableWithAggregatesFilter<"ReservedVmOperation"> | string | null
+    leaseExpiresAt?: DateTimeNullableWithAggregatesFilter<"ReservedVmOperation"> | Date | string | null
+    fencingToken?: IntWithAggregatesFilter<"ReservedVmOperation"> | number
+    billingReservationId?: StringNullableWithAggregatesFilter<"ReservedVmOperation"> | string | null
+    response?: JsonNullableWithAggregatesFilter<"ReservedVmOperation">
+    errorCode?: StringNullableWithAggregatesFilter<"ReservedVmOperation"> | string | null
+    errorMessage?: StringNullableWithAggregatesFilter<"ReservedVmOperation"> | string | null
+    completedAt?: DateTimeNullableWithAggregatesFilter<"ReservedVmOperation"> | Date | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"ReservedVmOperation"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"ReservedVmOperation"> | Date | string
+  }
+
+  export type ReservedVmBillingPeriodWhereInput = {
+    AND?: ReservedVmBillingPeriodWhereInput | ReservedVmBillingPeriodWhereInput[]
+    OR?: ReservedVmBillingPeriodWhereInput[]
+    NOT?: ReservedVmBillingPeriodWhereInput | ReservedVmBillingPeriodWhereInput[]
+    id?: StringFilter<"ReservedVmBillingPeriod"> | string
+    projectId?: StringFilter<"ReservedVmBillingPeriod"> | string
+    deploymentId?: StringFilter<"ReservedVmBillingPeriod"> | string
+    organizationId?: StringFilter<"ReservedVmBillingPeriod"> | string
+    periodStart?: DateTimeFilter<"ReservedVmBillingPeriod"> | Date | string
+    periodEnd?: DateTimeFilter<"ReservedVmBillingPeriod"> | Date | string
+    tier?: StringFilter<"ReservedVmBillingPeriod"> | string
+    priceCents?: IntFilter<"ReservedVmBillingPeriod"> | number
+    termsVersion?: StringFilter<"ReservedVmBillingPeriod"> | string
+    rateCardVersion?: IntFilter<"ReservedVmBillingPeriod"> | number
+    status?: StringFilter<"ReservedVmBillingPeriod"> | string
+    attemptCount?: IntFilter<"ReservedVmBillingPeriod"> | number
+    reservationGeneration?: IntFilter<"ReservedVmBillingPeriod"> | number
+    leaseOwner?: StringNullableFilter<"ReservedVmBillingPeriod"> | string | null
+    leaseExpiresAt?: DateTimeNullableFilter<"ReservedVmBillingPeriod"> | Date | string | null
+    fencingToken?: IntFilter<"ReservedVmBillingPeriod"> | number
+    billingReservationId?: StringNullableFilter<"ReservedVmBillingPeriod"> | string | null
+    graceEndsAt?: DateTimeNullableFilter<"ReservedVmBillingPeriod"> | Date | string | null
+    stopRequestedAt?: DateTimeNullableFilter<"ReservedVmBillingPeriod"> | Date | string | null
+    settledAt?: DateTimeNullableFilter<"ReservedVmBillingPeriod"> | Date | string | null
+    lastErrorCode?: StringNullableFilter<"ReservedVmBillingPeriod"> | string | null
+    lastErrorMessage?: StringNullableFilter<"ReservedVmBillingPeriod"> | string | null
+    createdAt?: DateTimeFilter<"ReservedVmBillingPeriod"> | Date | string
+    updatedAt?: DateTimeFilter<"ReservedVmBillingPeriod"> | Date | string
+    project?: XOR<ProjectScalarRelationFilter, ProjectWhereInput>
+    deployment?: XOR<DeploymentScalarRelationFilter, DeploymentWhereInput>
+  }
+
+  export type ReservedVmBillingPeriodOrderByWithRelationInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    deploymentId?: SortOrder
+    organizationId?: SortOrder
+    periodStart?: SortOrder
+    periodEnd?: SortOrder
+    tier?: SortOrder
+    priceCents?: SortOrder
+    termsVersion?: SortOrder
+    rateCardVersion?: SortOrder
+    status?: SortOrder
+    attemptCount?: SortOrder
+    reservationGeneration?: SortOrder
+    leaseOwner?: SortOrderInput | SortOrder
+    leaseExpiresAt?: SortOrderInput | SortOrder
+    fencingToken?: SortOrder
+    billingReservationId?: SortOrderInput | SortOrder
+    graceEndsAt?: SortOrderInput | SortOrder
+    stopRequestedAt?: SortOrderInput | SortOrder
+    settledAt?: SortOrderInput | SortOrder
+    lastErrorCode?: SortOrderInput | SortOrder
+    lastErrorMessage?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    project?: ProjectOrderByWithRelationInput
+    deployment?: DeploymentOrderByWithRelationInput
+  }
+
+  export type ReservedVmBillingPeriodWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    billingReservationId?: string
+    deploymentId_periodStart?: ReservedVmBillingPeriodDeploymentIdPeriodStartCompoundUniqueInput
+    AND?: ReservedVmBillingPeriodWhereInput | ReservedVmBillingPeriodWhereInput[]
+    OR?: ReservedVmBillingPeriodWhereInput[]
+    NOT?: ReservedVmBillingPeriodWhereInput | ReservedVmBillingPeriodWhereInput[]
+    projectId?: StringFilter<"ReservedVmBillingPeriod"> | string
+    deploymentId?: StringFilter<"ReservedVmBillingPeriod"> | string
+    organizationId?: StringFilter<"ReservedVmBillingPeriod"> | string
+    periodStart?: DateTimeFilter<"ReservedVmBillingPeriod"> | Date | string
+    periodEnd?: DateTimeFilter<"ReservedVmBillingPeriod"> | Date | string
+    tier?: StringFilter<"ReservedVmBillingPeriod"> | string
+    priceCents?: IntFilter<"ReservedVmBillingPeriod"> | number
+    termsVersion?: StringFilter<"ReservedVmBillingPeriod"> | string
+    rateCardVersion?: IntFilter<"ReservedVmBillingPeriod"> | number
+    status?: StringFilter<"ReservedVmBillingPeriod"> | string
+    attemptCount?: IntFilter<"ReservedVmBillingPeriod"> | number
+    reservationGeneration?: IntFilter<"ReservedVmBillingPeriod"> | number
+    leaseOwner?: StringNullableFilter<"ReservedVmBillingPeriod"> | string | null
+    leaseExpiresAt?: DateTimeNullableFilter<"ReservedVmBillingPeriod"> | Date | string | null
+    fencingToken?: IntFilter<"ReservedVmBillingPeriod"> | number
+    graceEndsAt?: DateTimeNullableFilter<"ReservedVmBillingPeriod"> | Date | string | null
+    stopRequestedAt?: DateTimeNullableFilter<"ReservedVmBillingPeriod"> | Date | string | null
+    settledAt?: DateTimeNullableFilter<"ReservedVmBillingPeriod"> | Date | string | null
+    lastErrorCode?: StringNullableFilter<"ReservedVmBillingPeriod"> | string | null
+    lastErrorMessage?: StringNullableFilter<"ReservedVmBillingPeriod"> | string | null
+    createdAt?: DateTimeFilter<"ReservedVmBillingPeriod"> | Date | string
+    updatedAt?: DateTimeFilter<"ReservedVmBillingPeriod"> | Date | string
+    project?: XOR<ProjectScalarRelationFilter, ProjectWhereInput>
+    deployment?: XOR<DeploymentScalarRelationFilter, DeploymentWhereInput>
+  }, "id" | "billingReservationId" | "deploymentId_periodStart">
+
+  export type ReservedVmBillingPeriodOrderByWithAggregationInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    deploymentId?: SortOrder
+    organizationId?: SortOrder
+    periodStart?: SortOrder
+    periodEnd?: SortOrder
+    tier?: SortOrder
+    priceCents?: SortOrder
+    termsVersion?: SortOrder
+    rateCardVersion?: SortOrder
+    status?: SortOrder
+    attemptCount?: SortOrder
+    reservationGeneration?: SortOrder
+    leaseOwner?: SortOrderInput | SortOrder
+    leaseExpiresAt?: SortOrderInput | SortOrder
+    fencingToken?: SortOrder
+    billingReservationId?: SortOrderInput | SortOrder
+    graceEndsAt?: SortOrderInput | SortOrder
+    stopRequestedAt?: SortOrderInput | SortOrder
+    settledAt?: SortOrderInput | SortOrder
+    lastErrorCode?: SortOrderInput | SortOrder
+    lastErrorMessage?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: ReservedVmBillingPeriodCountOrderByAggregateInput
+    _avg?: ReservedVmBillingPeriodAvgOrderByAggregateInput
+    _max?: ReservedVmBillingPeriodMaxOrderByAggregateInput
+    _min?: ReservedVmBillingPeriodMinOrderByAggregateInput
+    _sum?: ReservedVmBillingPeriodSumOrderByAggregateInput
+  }
+
+  export type ReservedVmBillingPeriodScalarWhereWithAggregatesInput = {
+    AND?: ReservedVmBillingPeriodScalarWhereWithAggregatesInput | ReservedVmBillingPeriodScalarWhereWithAggregatesInput[]
+    OR?: ReservedVmBillingPeriodScalarWhereWithAggregatesInput[]
+    NOT?: ReservedVmBillingPeriodScalarWhereWithAggregatesInput | ReservedVmBillingPeriodScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"ReservedVmBillingPeriod"> | string
+    projectId?: StringWithAggregatesFilter<"ReservedVmBillingPeriod"> | string
+    deploymentId?: StringWithAggregatesFilter<"ReservedVmBillingPeriod"> | string
+    organizationId?: StringWithAggregatesFilter<"ReservedVmBillingPeriod"> | string
+    periodStart?: DateTimeWithAggregatesFilter<"ReservedVmBillingPeriod"> | Date | string
+    periodEnd?: DateTimeWithAggregatesFilter<"ReservedVmBillingPeriod"> | Date | string
+    tier?: StringWithAggregatesFilter<"ReservedVmBillingPeriod"> | string
+    priceCents?: IntWithAggregatesFilter<"ReservedVmBillingPeriod"> | number
+    termsVersion?: StringWithAggregatesFilter<"ReservedVmBillingPeriod"> | string
+    rateCardVersion?: IntWithAggregatesFilter<"ReservedVmBillingPeriod"> | number
+    status?: StringWithAggregatesFilter<"ReservedVmBillingPeriod"> | string
+    attemptCount?: IntWithAggregatesFilter<"ReservedVmBillingPeriod"> | number
+    reservationGeneration?: IntWithAggregatesFilter<"ReservedVmBillingPeriod"> | number
+    leaseOwner?: StringNullableWithAggregatesFilter<"ReservedVmBillingPeriod"> | string | null
+    leaseExpiresAt?: DateTimeNullableWithAggregatesFilter<"ReservedVmBillingPeriod"> | Date | string | null
+    fencingToken?: IntWithAggregatesFilter<"ReservedVmBillingPeriod"> | number
+    billingReservationId?: StringNullableWithAggregatesFilter<"ReservedVmBillingPeriod"> | string | null
+    graceEndsAt?: DateTimeNullableWithAggregatesFilter<"ReservedVmBillingPeriod"> | Date | string | null
+    stopRequestedAt?: DateTimeNullableWithAggregatesFilter<"ReservedVmBillingPeriod"> | Date | string | null
+    settledAt?: DateTimeNullableWithAggregatesFilter<"ReservedVmBillingPeriod"> | Date | string | null
+    lastErrorCode?: StringNullableWithAggregatesFilter<"ReservedVmBillingPeriod"> | string | null
+    lastErrorMessage?: StringNullableWithAggregatesFilter<"ReservedVmBillingPeriod"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"ReservedVmBillingPeriod"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"ReservedVmBillingPeriod"> | Date | string
   }
 
   export type DeploymentEnvironmentWhereInput = {
@@ -207014,6 +210700,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodCreateNestedManyWithoutProjectInput
     rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
@@ -207066,6 +210753,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedCreateNestedManyWithoutProjectInput
     rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
@@ -207118,6 +210806,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUpdateManyWithoutProjectNestedInput
     rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
@@ -207170,6 +210859,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedUpdateManyWithoutProjectNestedInput
     rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
@@ -209645,6 +213335,19 @@ export namespace Prisma {
     parentDeploymentId?: string | null
     lastMeteredAt?: Date | string | null
     machineSize?: string
+    runtimeKind?: string
+    runtimeVersion?: number
+    reservedVmTier?: string | null
+    reservedVmPriceCents?: number | null
+    reservedVmTermsVersion?: string | null
+    reservedVmRateCardVersion?: number | null
+    reservedVmBillingReservationId?: string | null
+    reservedVmBillingState?: string | null
+    reservedVmCurrentPeriodStart?: Date | string | null
+    reservedVmNextChargeAt?: Date | string | null
+    reservedVmGraceEndsAt?: Date | string | null
+    reservedVmStopRequestedAt?: Date | string | null
+    persistentStorageClaim?: string | null
     accessPolicyVersion?: number
     startedAt?: Date | string | null
     finishedAt?: Date | string | null
@@ -209653,6 +213356,7 @@ export namespace Prisma {
     updatedAt?: Date | string
     project: ProjectCreateNestedOneWithoutDeploymentsInput
     environment?: DeploymentEnvironmentCreateNestedOneWithoutDeploymentsInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodCreateNestedManyWithoutDeploymentInput
   }
 
   export type DeploymentUncheckedCreateInput = {
@@ -209678,12 +213382,26 @@ export namespace Prisma {
     parentDeploymentId?: string | null
     lastMeteredAt?: Date | string | null
     machineSize?: string
+    runtimeKind?: string
+    runtimeVersion?: number
+    reservedVmTier?: string | null
+    reservedVmPriceCents?: number | null
+    reservedVmTermsVersion?: string | null
+    reservedVmRateCardVersion?: number | null
+    reservedVmBillingReservationId?: string | null
+    reservedVmBillingState?: string | null
+    reservedVmCurrentPeriodStart?: Date | string | null
+    reservedVmNextChargeAt?: Date | string | null
+    reservedVmGraceEndsAt?: Date | string | null
+    reservedVmStopRequestedAt?: Date | string | null
+    persistentStorageClaim?: string | null
     accessPolicyVersion?: number
     startedAt?: Date | string | null
     finishedAt?: Date | string | null
     canceledAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedCreateNestedManyWithoutDeploymentInput
   }
 
   export type DeploymentUpdateInput = {
@@ -209707,6 +213425,19 @@ export namespace Prisma {
     parentDeploymentId?: NullableStringFieldUpdateOperationsInput | string | null
     lastMeteredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     machineSize?: StringFieldUpdateOperationsInput | string
+    runtimeKind?: StringFieldUpdateOperationsInput | string
+    runtimeVersion?: IntFieldUpdateOperationsInput | number
+    reservedVmTier?: NullableStringFieldUpdateOperationsInput | string | null
+    reservedVmPriceCents?: NullableIntFieldUpdateOperationsInput | number | null
+    reservedVmTermsVersion?: NullableStringFieldUpdateOperationsInput | string | null
+    reservedVmRateCardVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    reservedVmBillingReservationId?: NullableStringFieldUpdateOperationsInput | string | null
+    reservedVmBillingState?: NullableStringFieldUpdateOperationsInput | string | null
+    reservedVmCurrentPeriodStart?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reservedVmNextChargeAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reservedVmGraceEndsAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reservedVmStopRequestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    persistentStorageClaim?: NullableStringFieldUpdateOperationsInput | string | null
     accessPolicyVersion?: IntFieldUpdateOperationsInput | number
     startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     finishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -209715,6 +213446,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     project?: ProjectUpdateOneRequiredWithoutDeploymentsNestedInput
     environment?: DeploymentEnvironmentUpdateOneWithoutDeploymentsNestedInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUpdateManyWithoutDeploymentNestedInput
   }
 
   export type DeploymentUncheckedUpdateInput = {
@@ -209740,12 +213472,26 @@ export namespace Prisma {
     parentDeploymentId?: NullableStringFieldUpdateOperationsInput | string | null
     lastMeteredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     machineSize?: StringFieldUpdateOperationsInput | string
+    runtimeKind?: StringFieldUpdateOperationsInput | string
+    runtimeVersion?: IntFieldUpdateOperationsInput | number
+    reservedVmTier?: NullableStringFieldUpdateOperationsInput | string | null
+    reservedVmPriceCents?: NullableIntFieldUpdateOperationsInput | number | null
+    reservedVmTermsVersion?: NullableStringFieldUpdateOperationsInput | string | null
+    reservedVmRateCardVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    reservedVmBillingReservationId?: NullableStringFieldUpdateOperationsInput | string | null
+    reservedVmBillingState?: NullableStringFieldUpdateOperationsInput | string | null
+    reservedVmCurrentPeriodStart?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reservedVmNextChargeAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reservedVmGraceEndsAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reservedVmStopRequestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    persistentStorageClaim?: NullableStringFieldUpdateOperationsInput | string | null
     accessPolicyVersion?: IntFieldUpdateOperationsInput | number
     startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     finishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     canceledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedUpdateManyWithoutDeploymentNestedInput
   }
 
   export type DeploymentCreateManyInput = {
@@ -209771,6 +213517,19 @@ export namespace Prisma {
     parentDeploymentId?: string | null
     lastMeteredAt?: Date | string | null
     machineSize?: string
+    runtimeKind?: string
+    runtimeVersion?: number
+    reservedVmTier?: string | null
+    reservedVmPriceCents?: number | null
+    reservedVmTermsVersion?: string | null
+    reservedVmRateCardVersion?: number | null
+    reservedVmBillingReservationId?: string | null
+    reservedVmBillingState?: string | null
+    reservedVmCurrentPeriodStart?: Date | string | null
+    reservedVmNextChargeAt?: Date | string | null
+    reservedVmGraceEndsAt?: Date | string | null
+    reservedVmStopRequestedAt?: Date | string | null
+    persistentStorageClaim?: string | null
     accessPolicyVersion?: number
     startedAt?: Date | string | null
     finishedAt?: Date | string | null
@@ -209800,6 +213559,19 @@ export namespace Prisma {
     parentDeploymentId?: NullableStringFieldUpdateOperationsInput | string | null
     lastMeteredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     machineSize?: StringFieldUpdateOperationsInput | string
+    runtimeKind?: StringFieldUpdateOperationsInput | string
+    runtimeVersion?: IntFieldUpdateOperationsInput | number
+    reservedVmTier?: NullableStringFieldUpdateOperationsInput | string | null
+    reservedVmPriceCents?: NullableIntFieldUpdateOperationsInput | number | null
+    reservedVmTermsVersion?: NullableStringFieldUpdateOperationsInput | string | null
+    reservedVmRateCardVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    reservedVmBillingReservationId?: NullableStringFieldUpdateOperationsInput | string | null
+    reservedVmBillingState?: NullableStringFieldUpdateOperationsInput | string | null
+    reservedVmCurrentPeriodStart?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reservedVmNextChargeAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reservedVmGraceEndsAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reservedVmStopRequestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    persistentStorageClaim?: NullableStringFieldUpdateOperationsInput | string | null
     accessPolicyVersion?: IntFieldUpdateOperationsInput | number
     startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     finishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -209831,10 +213603,441 @@ export namespace Prisma {
     parentDeploymentId?: NullableStringFieldUpdateOperationsInput | string | null
     lastMeteredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     machineSize?: StringFieldUpdateOperationsInput | string
+    runtimeKind?: StringFieldUpdateOperationsInput | string
+    runtimeVersion?: IntFieldUpdateOperationsInput | number
+    reservedVmTier?: NullableStringFieldUpdateOperationsInput | string | null
+    reservedVmPriceCents?: NullableIntFieldUpdateOperationsInput | number | null
+    reservedVmTermsVersion?: NullableStringFieldUpdateOperationsInput | string | null
+    reservedVmRateCardVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    reservedVmBillingReservationId?: NullableStringFieldUpdateOperationsInput | string | null
+    reservedVmBillingState?: NullableStringFieldUpdateOperationsInput | string | null
+    reservedVmCurrentPeriodStart?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reservedVmNextChargeAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reservedVmGraceEndsAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reservedVmStopRequestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    persistentStorageClaim?: NullableStringFieldUpdateOperationsInput | string | null
     accessPolicyVersion?: IntFieldUpdateOperationsInput | number
     startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     finishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     canceledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ReservedVmOperationCreateInput = {
+    id?: string
+    projectId: string
+    deploymentId: string
+    organizationId: string
+    actorUserId?: string | null
+    idempotencyKey: string
+    requestHash: string
+    kind: string
+    status?: string
+    phase?: string
+    fromRuntimeKind?: string | null
+    fromTier?: string | null
+    targetRuntimeKind: string
+    targetTier?: string | null
+    targetMachineSize: string
+    targetPriceCents: number
+    billingAmountCents: number
+    termsVersion: string
+    rateCardVersion: number
+    expectedRuntimeVersion: number
+    leaseOwner?: string | null
+    leaseExpiresAt?: Date | string | null
+    fencingToken?: number
+    billingReservationId?: string | null
+    response?: NullableJsonNullValueInput | InputJsonValue
+    errorCode?: string | null
+    errorMessage?: string | null
+    completedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ReservedVmOperationUncheckedCreateInput = {
+    id?: string
+    projectId: string
+    deploymentId: string
+    organizationId: string
+    actorUserId?: string | null
+    idempotencyKey: string
+    requestHash: string
+    kind: string
+    status?: string
+    phase?: string
+    fromRuntimeKind?: string | null
+    fromTier?: string | null
+    targetRuntimeKind: string
+    targetTier?: string | null
+    targetMachineSize: string
+    targetPriceCents: number
+    billingAmountCents: number
+    termsVersion: string
+    rateCardVersion: number
+    expectedRuntimeVersion: number
+    leaseOwner?: string | null
+    leaseExpiresAt?: Date | string | null
+    fencingToken?: number
+    billingReservationId?: string | null
+    response?: NullableJsonNullValueInput | InputJsonValue
+    errorCode?: string | null
+    errorMessage?: string | null
+    completedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ReservedVmOperationUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    deploymentId?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    actorUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    requestHash?: StringFieldUpdateOperationsInput | string
+    kind?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    phase?: StringFieldUpdateOperationsInput | string
+    fromRuntimeKind?: NullableStringFieldUpdateOperationsInput | string | null
+    fromTier?: NullableStringFieldUpdateOperationsInput | string | null
+    targetRuntimeKind?: StringFieldUpdateOperationsInput | string
+    targetTier?: NullableStringFieldUpdateOperationsInput | string | null
+    targetMachineSize?: StringFieldUpdateOperationsInput | string
+    targetPriceCents?: IntFieldUpdateOperationsInput | number
+    billingAmountCents?: IntFieldUpdateOperationsInput | number
+    termsVersion?: StringFieldUpdateOperationsInput | string
+    rateCardVersion?: IntFieldUpdateOperationsInput | number
+    expectedRuntimeVersion?: IntFieldUpdateOperationsInput | number
+    leaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
+    leaseExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fencingToken?: IntFieldUpdateOperationsInput | number
+    billingReservationId?: NullableStringFieldUpdateOperationsInput | string | null
+    response?: NullableJsonNullValueInput | InputJsonValue
+    errorCode?: NullableStringFieldUpdateOperationsInput | string | null
+    errorMessage?: NullableStringFieldUpdateOperationsInput | string | null
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ReservedVmOperationUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    deploymentId?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    actorUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    requestHash?: StringFieldUpdateOperationsInput | string
+    kind?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    phase?: StringFieldUpdateOperationsInput | string
+    fromRuntimeKind?: NullableStringFieldUpdateOperationsInput | string | null
+    fromTier?: NullableStringFieldUpdateOperationsInput | string | null
+    targetRuntimeKind?: StringFieldUpdateOperationsInput | string
+    targetTier?: NullableStringFieldUpdateOperationsInput | string | null
+    targetMachineSize?: StringFieldUpdateOperationsInput | string
+    targetPriceCents?: IntFieldUpdateOperationsInput | number
+    billingAmountCents?: IntFieldUpdateOperationsInput | number
+    termsVersion?: StringFieldUpdateOperationsInput | string
+    rateCardVersion?: IntFieldUpdateOperationsInput | number
+    expectedRuntimeVersion?: IntFieldUpdateOperationsInput | number
+    leaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
+    leaseExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fencingToken?: IntFieldUpdateOperationsInput | number
+    billingReservationId?: NullableStringFieldUpdateOperationsInput | string | null
+    response?: NullableJsonNullValueInput | InputJsonValue
+    errorCode?: NullableStringFieldUpdateOperationsInput | string | null
+    errorMessage?: NullableStringFieldUpdateOperationsInput | string | null
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ReservedVmOperationCreateManyInput = {
+    id?: string
+    projectId: string
+    deploymentId: string
+    organizationId: string
+    actorUserId?: string | null
+    idempotencyKey: string
+    requestHash: string
+    kind: string
+    status?: string
+    phase?: string
+    fromRuntimeKind?: string | null
+    fromTier?: string | null
+    targetRuntimeKind: string
+    targetTier?: string | null
+    targetMachineSize: string
+    targetPriceCents: number
+    billingAmountCents: number
+    termsVersion: string
+    rateCardVersion: number
+    expectedRuntimeVersion: number
+    leaseOwner?: string | null
+    leaseExpiresAt?: Date | string | null
+    fencingToken?: number
+    billingReservationId?: string | null
+    response?: NullableJsonNullValueInput | InputJsonValue
+    errorCode?: string | null
+    errorMessage?: string | null
+    completedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ReservedVmOperationUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    deploymentId?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    actorUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    requestHash?: StringFieldUpdateOperationsInput | string
+    kind?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    phase?: StringFieldUpdateOperationsInput | string
+    fromRuntimeKind?: NullableStringFieldUpdateOperationsInput | string | null
+    fromTier?: NullableStringFieldUpdateOperationsInput | string | null
+    targetRuntimeKind?: StringFieldUpdateOperationsInput | string
+    targetTier?: NullableStringFieldUpdateOperationsInput | string | null
+    targetMachineSize?: StringFieldUpdateOperationsInput | string
+    targetPriceCents?: IntFieldUpdateOperationsInput | number
+    billingAmountCents?: IntFieldUpdateOperationsInput | number
+    termsVersion?: StringFieldUpdateOperationsInput | string
+    rateCardVersion?: IntFieldUpdateOperationsInput | number
+    expectedRuntimeVersion?: IntFieldUpdateOperationsInput | number
+    leaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
+    leaseExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fencingToken?: IntFieldUpdateOperationsInput | number
+    billingReservationId?: NullableStringFieldUpdateOperationsInput | string | null
+    response?: NullableJsonNullValueInput | InputJsonValue
+    errorCode?: NullableStringFieldUpdateOperationsInput | string | null
+    errorMessage?: NullableStringFieldUpdateOperationsInput | string | null
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ReservedVmOperationUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    deploymentId?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    actorUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    requestHash?: StringFieldUpdateOperationsInput | string
+    kind?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    phase?: StringFieldUpdateOperationsInput | string
+    fromRuntimeKind?: NullableStringFieldUpdateOperationsInput | string | null
+    fromTier?: NullableStringFieldUpdateOperationsInput | string | null
+    targetRuntimeKind?: StringFieldUpdateOperationsInput | string
+    targetTier?: NullableStringFieldUpdateOperationsInput | string | null
+    targetMachineSize?: StringFieldUpdateOperationsInput | string
+    targetPriceCents?: IntFieldUpdateOperationsInput | number
+    billingAmountCents?: IntFieldUpdateOperationsInput | number
+    termsVersion?: StringFieldUpdateOperationsInput | string
+    rateCardVersion?: IntFieldUpdateOperationsInput | number
+    expectedRuntimeVersion?: IntFieldUpdateOperationsInput | number
+    leaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
+    leaseExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fencingToken?: IntFieldUpdateOperationsInput | number
+    billingReservationId?: NullableStringFieldUpdateOperationsInput | string | null
+    response?: NullableJsonNullValueInput | InputJsonValue
+    errorCode?: NullableStringFieldUpdateOperationsInput | string | null
+    errorMessage?: NullableStringFieldUpdateOperationsInput | string | null
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ReservedVmBillingPeriodCreateInput = {
+    id?: string
+    organizationId: string
+    periodStart: Date | string
+    periodEnd: Date | string
+    tier: string
+    priceCents: number
+    termsVersion: string
+    rateCardVersion: number
+    status?: string
+    attemptCount?: number
+    reservationGeneration?: number
+    leaseOwner?: string | null
+    leaseExpiresAt?: Date | string | null
+    fencingToken?: number
+    billingReservationId?: string | null
+    graceEndsAt?: Date | string | null
+    stopRequestedAt?: Date | string | null
+    settledAt?: Date | string | null
+    lastErrorCode?: string | null
+    lastErrorMessage?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    project: ProjectCreateNestedOneWithoutReservedVmBillingPeriodsInput
+    deployment: DeploymentCreateNestedOneWithoutReservedVmBillingPeriodsInput
+  }
+
+  export type ReservedVmBillingPeriodUncheckedCreateInput = {
+    id?: string
+    projectId: string
+    deploymentId: string
+    organizationId: string
+    periodStart: Date | string
+    periodEnd: Date | string
+    tier: string
+    priceCents: number
+    termsVersion: string
+    rateCardVersion: number
+    status?: string
+    attemptCount?: number
+    reservationGeneration?: number
+    leaseOwner?: string | null
+    leaseExpiresAt?: Date | string | null
+    fencingToken?: number
+    billingReservationId?: string | null
+    graceEndsAt?: Date | string | null
+    stopRequestedAt?: Date | string | null
+    settledAt?: Date | string | null
+    lastErrorCode?: string | null
+    lastErrorMessage?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ReservedVmBillingPeriodUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    periodStart?: DateTimeFieldUpdateOperationsInput | Date | string
+    periodEnd?: DateTimeFieldUpdateOperationsInput | Date | string
+    tier?: StringFieldUpdateOperationsInput | string
+    priceCents?: IntFieldUpdateOperationsInput | number
+    termsVersion?: StringFieldUpdateOperationsInput | string
+    rateCardVersion?: IntFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    attemptCount?: IntFieldUpdateOperationsInput | number
+    reservationGeneration?: IntFieldUpdateOperationsInput | number
+    leaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
+    leaseExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fencingToken?: IntFieldUpdateOperationsInput | number
+    billingReservationId?: NullableStringFieldUpdateOperationsInput | string | null
+    graceEndsAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    stopRequestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    settledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastErrorCode?: NullableStringFieldUpdateOperationsInput | string | null
+    lastErrorMessage?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    project?: ProjectUpdateOneRequiredWithoutReservedVmBillingPeriodsNestedInput
+    deployment?: DeploymentUpdateOneRequiredWithoutReservedVmBillingPeriodsNestedInput
+  }
+
+  export type ReservedVmBillingPeriodUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    deploymentId?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    periodStart?: DateTimeFieldUpdateOperationsInput | Date | string
+    periodEnd?: DateTimeFieldUpdateOperationsInput | Date | string
+    tier?: StringFieldUpdateOperationsInput | string
+    priceCents?: IntFieldUpdateOperationsInput | number
+    termsVersion?: StringFieldUpdateOperationsInput | string
+    rateCardVersion?: IntFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    attemptCount?: IntFieldUpdateOperationsInput | number
+    reservationGeneration?: IntFieldUpdateOperationsInput | number
+    leaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
+    leaseExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fencingToken?: IntFieldUpdateOperationsInput | number
+    billingReservationId?: NullableStringFieldUpdateOperationsInput | string | null
+    graceEndsAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    stopRequestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    settledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastErrorCode?: NullableStringFieldUpdateOperationsInput | string | null
+    lastErrorMessage?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ReservedVmBillingPeriodCreateManyInput = {
+    id?: string
+    projectId: string
+    deploymentId: string
+    organizationId: string
+    periodStart: Date | string
+    periodEnd: Date | string
+    tier: string
+    priceCents: number
+    termsVersion: string
+    rateCardVersion: number
+    status?: string
+    attemptCount?: number
+    reservationGeneration?: number
+    leaseOwner?: string | null
+    leaseExpiresAt?: Date | string | null
+    fencingToken?: number
+    billingReservationId?: string | null
+    graceEndsAt?: Date | string | null
+    stopRequestedAt?: Date | string | null
+    settledAt?: Date | string | null
+    lastErrorCode?: string | null
+    lastErrorMessage?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ReservedVmBillingPeriodUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    periodStart?: DateTimeFieldUpdateOperationsInput | Date | string
+    periodEnd?: DateTimeFieldUpdateOperationsInput | Date | string
+    tier?: StringFieldUpdateOperationsInput | string
+    priceCents?: IntFieldUpdateOperationsInput | number
+    termsVersion?: StringFieldUpdateOperationsInput | string
+    rateCardVersion?: IntFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    attemptCount?: IntFieldUpdateOperationsInput | number
+    reservationGeneration?: IntFieldUpdateOperationsInput | number
+    leaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
+    leaseExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fencingToken?: IntFieldUpdateOperationsInput | number
+    billingReservationId?: NullableStringFieldUpdateOperationsInput | string | null
+    graceEndsAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    stopRequestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    settledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastErrorCode?: NullableStringFieldUpdateOperationsInput | string | null
+    lastErrorMessage?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ReservedVmBillingPeriodUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    deploymentId?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    periodStart?: DateTimeFieldUpdateOperationsInput | Date | string
+    periodEnd?: DateTimeFieldUpdateOperationsInput | Date | string
+    tier?: StringFieldUpdateOperationsInput | string
+    priceCents?: IntFieldUpdateOperationsInput | number
+    termsVersion?: StringFieldUpdateOperationsInput | string
+    rateCardVersion?: IntFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    attemptCount?: IntFieldUpdateOperationsInput | number
+    reservationGeneration?: IntFieldUpdateOperationsInput | number
+    leaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
+    leaseExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fencingToken?: IntFieldUpdateOperationsInput | number
+    billingReservationId?: NullableStringFieldUpdateOperationsInput | string | null
+    graceEndsAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    stopRequestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    settledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastErrorCode?: NullableStringFieldUpdateOperationsInput | string | null
+    lastErrorMessage?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -221375,6 +225578,12 @@ export namespace Prisma {
     none?: DeploymentWhereInput
   }
 
+  export type ReservedVmBillingPeriodListRelationFilter = {
+    every?: ReservedVmBillingPeriodWhereInput
+    some?: ReservedVmBillingPeriodWhereInput
+    none?: ReservedVmBillingPeriodWhereInput
+  }
+
   export type FileSnapshotListRelationFilter = {
     every?: FileSnapshotWhereInput
     some?: FileSnapshotWhereInput
@@ -221452,6 +225661,10 @@ export namespace Prisma {
   }
 
   export type DeploymentOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type ReservedVmBillingPeriodOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -223085,6 +227298,19 @@ export namespace Prisma {
     parentDeploymentId?: SortOrder
     lastMeteredAt?: SortOrder
     machineSize?: SortOrder
+    runtimeKind?: SortOrder
+    runtimeVersion?: SortOrder
+    reservedVmTier?: SortOrder
+    reservedVmPriceCents?: SortOrder
+    reservedVmTermsVersion?: SortOrder
+    reservedVmRateCardVersion?: SortOrder
+    reservedVmBillingReservationId?: SortOrder
+    reservedVmBillingState?: SortOrder
+    reservedVmCurrentPeriodStart?: SortOrder
+    reservedVmNextChargeAt?: SortOrder
+    reservedVmGraceEndsAt?: SortOrder
+    reservedVmStopRequestedAt?: SortOrder
+    persistentStorageClaim?: SortOrder
     accessPolicyVersion?: SortOrder
     startedAt?: SortOrder
     finishedAt?: SortOrder
@@ -223094,6 +227320,9 @@ export namespace Prisma {
   }
 
   export type DeploymentAvgOrderByAggregateInput = {
+    runtimeVersion?: SortOrder
+    reservedVmPriceCents?: SortOrder
+    reservedVmRateCardVersion?: SortOrder
     accessPolicyVersion?: SortOrder
   }
 
@@ -223118,6 +227347,19 @@ export namespace Prisma {
     parentDeploymentId?: SortOrder
     lastMeteredAt?: SortOrder
     machineSize?: SortOrder
+    runtimeKind?: SortOrder
+    runtimeVersion?: SortOrder
+    reservedVmTier?: SortOrder
+    reservedVmPriceCents?: SortOrder
+    reservedVmTermsVersion?: SortOrder
+    reservedVmRateCardVersion?: SortOrder
+    reservedVmBillingReservationId?: SortOrder
+    reservedVmBillingState?: SortOrder
+    reservedVmCurrentPeriodStart?: SortOrder
+    reservedVmNextChargeAt?: SortOrder
+    reservedVmGraceEndsAt?: SortOrder
+    reservedVmStopRequestedAt?: SortOrder
+    persistentStorageClaim?: SortOrder
     accessPolicyVersion?: SortOrder
     startedAt?: SortOrder
     finishedAt?: SortOrder
@@ -223147,6 +227389,19 @@ export namespace Prisma {
     parentDeploymentId?: SortOrder
     lastMeteredAt?: SortOrder
     machineSize?: SortOrder
+    runtimeKind?: SortOrder
+    runtimeVersion?: SortOrder
+    reservedVmTier?: SortOrder
+    reservedVmPriceCents?: SortOrder
+    reservedVmTermsVersion?: SortOrder
+    reservedVmRateCardVersion?: SortOrder
+    reservedVmBillingReservationId?: SortOrder
+    reservedVmBillingState?: SortOrder
+    reservedVmCurrentPeriodStart?: SortOrder
+    reservedVmNextChargeAt?: SortOrder
+    reservedVmGraceEndsAt?: SortOrder
+    reservedVmStopRequestedAt?: SortOrder
+    persistentStorageClaim?: SortOrder
     accessPolicyVersion?: SortOrder
     startedAt?: SortOrder
     finishedAt?: SortOrder
@@ -223156,6 +227411,9 @@ export namespace Prisma {
   }
 
   export type DeploymentSumOrderByAggregateInput = {
+    runtimeVersion?: SortOrder
+    reservedVmPriceCents?: SortOrder
+    reservedVmRateCardVersion?: SortOrder
     accessPolicyVersion?: SortOrder
   }
 
@@ -223167,6 +227425,231 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumDeploymentStatusFilter<$PrismaModel>
     _max?: NestedEnumDeploymentStatusFilter<$PrismaModel>
+  }
+
+  export type ReservedVmOperationProjectIdIdempotencyKeyCompoundUniqueInput = {
+    projectId: string
+    idempotencyKey: string
+  }
+
+  export type ReservedVmOperationCountOrderByAggregateInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    deploymentId?: SortOrder
+    organizationId?: SortOrder
+    actorUserId?: SortOrder
+    idempotencyKey?: SortOrder
+    requestHash?: SortOrder
+    kind?: SortOrder
+    status?: SortOrder
+    phase?: SortOrder
+    fromRuntimeKind?: SortOrder
+    fromTier?: SortOrder
+    targetRuntimeKind?: SortOrder
+    targetTier?: SortOrder
+    targetMachineSize?: SortOrder
+    targetPriceCents?: SortOrder
+    billingAmountCents?: SortOrder
+    termsVersion?: SortOrder
+    rateCardVersion?: SortOrder
+    expectedRuntimeVersion?: SortOrder
+    leaseOwner?: SortOrder
+    leaseExpiresAt?: SortOrder
+    fencingToken?: SortOrder
+    billingReservationId?: SortOrder
+    response?: SortOrder
+    errorCode?: SortOrder
+    errorMessage?: SortOrder
+    completedAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ReservedVmOperationAvgOrderByAggregateInput = {
+    targetPriceCents?: SortOrder
+    billingAmountCents?: SortOrder
+    rateCardVersion?: SortOrder
+    expectedRuntimeVersion?: SortOrder
+    fencingToken?: SortOrder
+  }
+
+  export type ReservedVmOperationMaxOrderByAggregateInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    deploymentId?: SortOrder
+    organizationId?: SortOrder
+    actorUserId?: SortOrder
+    idempotencyKey?: SortOrder
+    requestHash?: SortOrder
+    kind?: SortOrder
+    status?: SortOrder
+    phase?: SortOrder
+    fromRuntimeKind?: SortOrder
+    fromTier?: SortOrder
+    targetRuntimeKind?: SortOrder
+    targetTier?: SortOrder
+    targetMachineSize?: SortOrder
+    targetPriceCents?: SortOrder
+    billingAmountCents?: SortOrder
+    termsVersion?: SortOrder
+    rateCardVersion?: SortOrder
+    expectedRuntimeVersion?: SortOrder
+    leaseOwner?: SortOrder
+    leaseExpiresAt?: SortOrder
+    fencingToken?: SortOrder
+    billingReservationId?: SortOrder
+    errorCode?: SortOrder
+    errorMessage?: SortOrder
+    completedAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ReservedVmOperationMinOrderByAggregateInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    deploymentId?: SortOrder
+    organizationId?: SortOrder
+    actorUserId?: SortOrder
+    idempotencyKey?: SortOrder
+    requestHash?: SortOrder
+    kind?: SortOrder
+    status?: SortOrder
+    phase?: SortOrder
+    fromRuntimeKind?: SortOrder
+    fromTier?: SortOrder
+    targetRuntimeKind?: SortOrder
+    targetTier?: SortOrder
+    targetMachineSize?: SortOrder
+    targetPriceCents?: SortOrder
+    billingAmountCents?: SortOrder
+    termsVersion?: SortOrder
+    rateCardVersion?: SortOrder
+    expectedRuntimeVersion?: SortOrder
+    leaseOwner?: SortOrder
+    leaseExpiresAt?: SortOrder
+    fencingToken?: SortOrder
+    billingReservationId?: SortOrder
+    errorCode?: SortOrder
+    errorMessage?: SortOrder
+    completedAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ReservedVmOperationSumOrderByAggregateInput = {
+    targetPriceCents?: SortOrder
+    billingAmountCents?: SortOrder
+    rateCardVersion?: SortOrder
+    expectedRuntimeVersion?: SortOrder
+    fencingToken?: SortOrder
+  }
+
+  export type DeploymentScalarRelationFilter = {
+    is?: DeploymentWhereInput
+    isNot?: DeploymentWhereInput
+  }
+
+  export type ReservedVmBillingPeriodDeploymentIdPeriodStartCompoundUniqueInput = {
+    deploymentId: string
+    periodStart: Date | string
+  }
+
+  export type ReservedVmBillingPeriodCountOrderByAggregateInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    deploymentId?: SortOrder
+    organizationId?: SortOrder
+    periodStart?: SortOrder
+    periodEnd?: SortOrder
+    tier?: SortOrder
+    priceCents?: SortOrder
+    termsVersion?: SortOrder
+    rateCardVersion?: SortOrder
+    status?: SortOrder
+    attemptCount?: SortOrder
+    reservationGeneration?: SortOrder
+    leaseOwner?: SortOrder
+    leaseExpiresAt?: SortOrder
+    fencingToken?: SortOrder
+    billingReservationId?: SortOrder
+    graceEndsAt?: SortOrder
+    stopRequestedAt?: SortOrder
+    settledAt?: SortOrder
+    lastErrorCode?: SortOrder
+    lastErrorMessage?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ReservedVmBillingPeriodAvgOrderByAggregateInput = {
+    priceCents?: SortOrder
+    rateCardVersion?: SortOrder
+    attemptCount?: SortOrder
+    reservationGeneration?: SortOrder
+    fencingToken?: SortOrder
+  }
+
+  export type ReservedVmBillingPeriodMaxOrderByAggregateInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    deploymentId?: SortOrder
+    organizationId?: SortOrder
+    periodStart?: SortOrder
+    periodEnd?: SortOrder
+    tier?: SortOrder
+    priceCents?: SortOrder
+    termsVersion?: SortOrder
+    rateCardVersion?: SortOrder
+    status?: SortOrder
+    attemptCount?: SortOrder
+    reservationGeneration?: SortOrder
+    leaseOwner?: SortOrder
+    leaseExpiresAt?: SortOrder
+    fencingToken?: SortOrder
+    billingReservationId?: SortOrder
+    graceEndsAt?: SortOrder
+    stopRequestedAt?: SortOrder
+    settledAt?: SortOrder
+    lastErrorCode?: SortOrder
+    lastErrorMessage?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ReservedVmBillingPeriodMinOrderByAggregateInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    deploymentId?: SortOrder
+    organizationId?: SortOrder
+    periodStart?: SortOrder
+    periodEnd?: SortOrder
+    tier?: SortOrder
+    priceCents?: SortOrder
+    termsVersion?: SortOrder
+    rateCardVersion?: SortOrder
+    status?: SortOrder
+    attemptCount?: SortOrder
+    reservationGeneration?: SortOrder
+    leaseOwner?: SortOrder
+    leaseExpiresAt?: SortOrder
+    fencingToken?: SortOrder
+    billingReservationId?: SortOrder
+    graceEndsAt?: SortOrder
+    stopRequestedAt?: SortOrder
+    settledAt?: SortOrder
+    lastErrorCode?: SortOrder
+    lastErrorMessage?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ReservedVmBillingPeriodSumOrderByAggregateInput = {
+    priceCents?: SortOrder
+    rateCardVersion?: SortOrder
+    attemptCount?: SortOrder
+    reservationGeneration?: SortOrder
+    fencingToken?: SortOrder
   }
 
   export type DeploymentEnvironmentCountOrderByAggregateInput = {
@@ -232998,6 +237481,13 @@ export namespace Prisma {
     connect?: DeploymentWhereUniqueInput | DeploymentWhereUniqueInput[]
   }
 
+  export type ReservedVmBillingPeriodCreateNestedManyWithoutProjectInput = {
+    create?: XOR<ReservedVmBillingPeriodCreateWithoutProjectInput, ReservedVmBillingPeriodUncheckedCreateWithoutProjectInput> | ReservedVmBillingPeriodCreateWithoutProjectInput[] | ReservedVmBillingPeriodUncheckedCreateWithoutProjectInput[]
+    connectOrCreate?: ReservedVmBillingPeriodCreateOrConnectWithoutProjectInput | ReservedVmBillingPeriodCreateOrConnectWithoutProjectInput[]
+    createMany?: ReservedVmBillingPeriodCreateManyProjectInputEnvelope
+    connect?: ReservedVmBillingPeriodWhereUniqueInput | ReservedVmBillingPeriodWhereUniqueInput[]
+  }
+
   export type RollbackIdempotencyRequestCreateNestedManyWithoutProjectInput = {
     create?: XOR<RollbackIdempotencyRequestCreateWithoutProjectInput, RollbackIdempotencyRequestUncheckedCreateWithoutProjectInput> | RollbackIdempotencyRequestCreateWithoutProjectInput[] | RollbackIdempotencyRequestUncheckedCreateWithoutProjectInput[]
     connectOrCreate?: RollbackIdempotencyRequestCreateOrConnectWithoutProjectInput | RollbackIdempotencyRequestCreateOrConnectWithoutProjectInput[]
@@ -233229,6 +237719,13 @@ export namespace Prisma {
     connectOrCreate?: DeploymentCreateOrConnectWithoutProjectInput | DeploymentCreateOrConnectWithoutProjectInput[]
     createMany?: DeploymentCreateManyProjectInputEnvelope
     connect?: DeploymentWhereUniqueInput | DeploymentWhereUniqueInput[]
+  }
+
+  export type ReservedVmBillingPeriodUncheckedCreateNestedManyWithoutProjectInput = {
+    create?: XOR<ReservedVmBillingPeriodCreateWithoutProjectInput, ReservedVmBillingPeriodUncheckedCreateWithoutProjectInput> | ReservedVmBillingPeriodCreateWithoutProjectInput[] | ReservedVmBillingPeriodUncheckedCreateWithoutProjectInput[]
+    connectOrCreate?: ReservedVmBillingPeriodCreateOrConnectWithoutProjectInput | ReservedVmBillingPeriodCreateOrConnectWithoutProjectInput[]
+    createMany?: ReservedVmBillingPeriodCreateManyProjectInputEnvelope
+    connect?: ReservedVmBillingPeriodWhereUniqueInput | ReservedVmBillingPeriodWhereUniqueInput[]
   }
 
   export type RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutProjectInput = {
@@ -233554,6 +238051,20 @@ export namespace Prisma {
     update?: DeploymentUpdateWithWhereUniqueWithoutProjectInput | DeploymentUpdateWithWhereUniqueWithoutProjectInput[]
     updateMany?: DeploymentUpdateManyWithWhereWithoutProjectInput | DeploymentUpdateManyWithWhereWithoutProjectInput[]
     deleteMany?: DeploymentScalarWhereInput | DeploymentScalarWhereInput[]
+  }
+
+  export type ReservedVmBillingPeriodUpdateManyWithoutProjectNestedInput = {
+    create?: XOR<ReservedVmBillingPeriodCreateWithoutProjectInput, ReservedVmBillingPeriodUncheckedCreateWithoutProjectInput> | ReservedVmBillingPeriodCreateWithoutProjectInput[] | ReservedVmBillingPeriodUncheckedCreateWithoutProjectInput[]
+    connectOrCreate?: ReservedVmBillingPeriodCreateOrConnectWithoutProjectInput | ReservedVmBillingPeriodCreateOrConnectWithoutProjectInput[]
+    upsert?: ReservedVmBillingPeriodUpsertWithWhereUniqueWithoutProjectInput | ReservedVmBillingPeriodUpsertWithWhereUniqueWithoutProjectInput[]
+    createMany?: ReservedVmBillingPeriodCreateManyProjectInputEnvelope
+    set?: ReservedVmBillingPeriodWhereUniqueInput | ReservedVmBillingPeriodWhereUniqueInput[]
+    disconnect?: ReservedVmBillingPeriodWhereUniqueInput | ReservedVmBillingPeriodWhereUniqueInput[]
+    delete?: ReservedVmBillingPeriodWhereUniqueInput | ReservedVmBillingPeriodWhereUniqueInput[]
+    connect?: ReservedVmBillingPeriodWhereUniqueInput | ReservedVmBillingPeriodWhereUniqueInput[]
+    update?: ReservedVmBillingPeriodUpdateWithWhereUniqueWithoutProjectInput | ReservedVmBillingPeriodUpdateWithWhereUniqueWithoutProjectInput[]
+    updateMany?: ReservedVmBillingPeriodUpdateManyWithWhereWithoutProjectInput | ReservedVmBillingPeriodUpdateManyWithWhereWithoutProjectInput[]
+    deleteMany?: ReservedVmBillingPeriodScalarWhereInput | ReservedVmBillingPeriodScalarWhereInput[]
   }
 
   export type RollbackIdempotencyRequestUpdateManyWithoutProjectNestedInput = {
@@ -234018,6 +238529,20 @@ export namespace Prisma {
     update?: DeploymentUpdateWithWhereUniqueWithoutProjectInput | DeploymentUpdateWithWhereUniqueWithoutProjectInput[]
     updateMany?: DeploymentUpdateManyWithWhereWithoutProjectInput | DeploymentUpdateManyWithWhereWithoutProjectInput[]
     deleteMany?: DeploymentScalarWhereInput | DeploymentScalarWhereInput[]
+  }
+
+  export type ReservedVmBillingPeriodUncheckedUpdateManyWithoutProjectNestedInput = {
+    create?: XOR<ReservedVmBillingPeriodCreateWithoutProjectInput, ReservedVmBillingPeriodUncheckedCreateWithoutProjectInput> | ReservedVmBillingPeriodCreateWithoutProjectInput[] | ReservedVmBillingPeriodUncheckedCreateWithoutProjectInput[]
+    connectOrCreate?: ReservedVmBillingPeriodCreateOrConnectWithoutProjectInput | ReservedVmBillingPeriodCreateOrConnectWithoutProjectInput[]
+    upsert?: ReservedVmBillingPeriodUpsertWithWhereUniqueWithoutProjectInput | ReservedVmBillingPeriodUpsertWithWhereUniqueWithoutProjectInput[]
+    createMany?: ReservedVmBillingPeriodCreateManyProjectInputEnvelope
+    set?: ReservedVmBillingPeriodWhereUniqueInput | ReservedVmBillingPeriodWhereUniqueInput[]
+    disconnect?: ReservedVmBillingPeriodWhereUniqueInput | ReservedVmBillingPeriodWhereUniqueInput[]
+    delete?: ReservedVmBillingPeriodWhereUniqueInput | ReservedVmBillingPeriodWhereUniqueInput[]
+    connect?: ReservedVmBillingPeriodWhereUniqueInput | ReservedVmBillingPeriodWhereUniqueInput[]
+    update?: ReservedVmBillingPeriodUpdateWithWhereUniqueWithoutProjectInput | ReservedVmBillingPeriodUpdateWithWhereUniqueWithoutProjectInput[]
+    updateMany?: ReservedVmBillingPeriodUpdateManyWithWhereWithoutProjectInput | ReservedVmBillingPeriodUpdateManyWithWhereWithoutProjectInput[]
+    deleteMany?: ReservedVmBillingPeriodScalarWhereInput | ReservedVmBillingPeriodScalarWhereInput[]
   }
 
   export type RollbackIdempotencyRequestUncheckedUpdateManyWithoutProjectNestedInput = {
@@ -235388,6 +239913,20 @@ export namespace Prisma {
     connect?: DeploymentEnvironmentWhereUniqueInput
   }
 
+  export type ReservedVmBillingPeriodCreateNestedManyWithoutDeploymentInput = {
+    create?: XOR<ReservedVmBillingPeriodCreateWithoutDeploymentInput, ReservedVmBillingPeriodUncheckedCreateWithoutDeploymentInput> | ReservedVmBillingPeriodCreateWithoutDeploymentInput[] | ReservedVmBillingPeriodUncheckedCreateWithoutDeploymentInput[]
+    connectOrCreate?: ReservedVmBillingPeriodCreateOrConnectWithoutDeploymentInput | ReservedVmBillingPeriodCreateOrConnectWithoutDeploymentInput[]
+    createMany?: ReservedVmBillingPeriodCreateManyDeploymentInputEnvelope
+    connect?: ReservedVmBillingPeriodWhereUniqueInput | ReservedVmBillingPeriodWhereUniqueInput[]
+  }
+
+  export type ReservedVmBillingPeriodUncheckedCreateNestedManyWithoutDeploymentInput = {
+    create?: XOR<ReservedVmBillingPeriodCreateWithoutDeploymentInput, ReservedVmBillingPeriodUncheckedCreateWithoutDeploymentInput> | ReservedVmBillingPeriodCreateWithoutDeploymentInput[] | ReservedVmBillingPeriodUncheckedCreateWithoutDeploymentInput[]
+    connectOrCreate?: ReservedVmBillingPeriodCreateOrConnectWithoutDeploymentInput | ReservedVmBillingPeriodCreateOrConnectWithoutDeploymentInput[]
+    createMany?: ReservedVmBillingPeriodCreateManyDeploymentInputEnvelope
+    connect?: ReservedVmBillingPeriodWhereUniqueInput | ReservedVmBillingPeriodWhereUniqueInput[]
+  }
+
   export type EnumDeploymentStatusFieldUpdateOperationsInput = {
     set?: $Enums.DeploymentStatus
   }
@@ -235408,6 +239947,62 @@ export namespace Prisma {
     delete?: DeploymentEnvironmentWhereInput | boolean
     connect?: DeploymentEnvironmentWhereUniqueInput
     update?: XOR<XOR<DeploymentEnvironmentUpdateToOneWithWhereWithoutDeploymentsInput, DeploymentEnvironmentUpdateWithoutDeploymentsInput>, DeploymentEnvironmentUncheckedUpdateWithoutDeploymentsInput>
+  }
+
+  export type ReservedVmBillingPeriodUpdateManyWithoutDeploymentNestedInput = {
+    create?: XOR<ReservedVmBillingPeriodCreateWithoutDeploymentInput, ReservedVmBillingPeriodUncheckedCreateWithoutDeploymentInput> | ReservedVmBillingPeriodCreateWithoutDeploymentInput[] | ReservedVmBillingPeriodUncheckedCreateWithoutDeploymentInput[]
+    connectOrCreate?: ReservedVmBillingPeriodCreateOrConnectWithoutDeploymentInput | ReservedVmBillingPeriodCreateOrConnectWithoutDeploymentInput[]
+    upsert?: ReservedVmBillingPeriodUpsertWithWhereUniqueWithoutDeploymentInput | ReservedVmBillingPeriodUpsertWithWhereUniqueWithoutDeploymentInput[]
+    createMany?: ReservedVmBillingPeriodCreateManyDeploymentInputEnvelope
+    set?: ReservedVmBillingPeriodWhereUniqueInput | ReservedVmBillingPeriodWhereUniqueInput[]
+    disconnect?: ReservedVmBillingPeriodWhereUniqueInput | ReservedVmBillingPeriodWhereUniqueInput[]
+    delete?: ReservedVmBillingPeriodWhereUniqueInput | ReservedVmBillingPeriodWhereUniqueInput[]
+    connect?: ReservedVmBillingPeriodWhereUniqueInput | ReservedVmBillingPeriodWhereUniqueInput[]
+    update?: ReservedVmBillingPeriodUpdateWithWhereUniqueWithoutDeploymentInput | ReservedVmBillingPeriodUpdateWithWhereUniqueWithoutDeploymentInput[]
+    updateMany?: ReservedVmBillingPeriodUpdateManyWithWhereWithoutDeploymentInput | ReservedVmBillingPeriodUpdateManyWithWhereWithoutDeploymentInput[]
+    deleteMany?: ReservedVmBillingPeriodScalarWhereInput | ReservedVmBillingPeriodScalarWhereInput[]
+  }
+
+  export type ReservedVmBillingPeriodUncheckedUpdateManyWithoutDeploymentNestedInput = {
+    create?: XOR<ReservedVmBillingPeriodCreateWithoutDeploymentInput, ReservedVmBillingPeriodUncheckedCreateWithoutDeploymentInput> | ReservedVmBillingPeriodCreateWithoutDeploymentInput[] | ReservedVmBillingPeriodUncheckedCreateWithoutDeploymentInput[]
+    connectOrCreate?: ReservedVmBillingPeriodCreateOrConnectWithoutDeploymentInput | ReservedVmBillingPeriodCreateOrConnectWithoutDeploymentInput[]
+    upsert?: ReservedVmBillingPeriodUpsertWithWhereUniqueWithoutDeploymentInput | ReservedVmBillingPeriodUpsertWithWhereUniqueWithoutDeploymentInput[]
+    createMany?: ReservedVmBillingPeriodCreateManyDeploymentInputEnvelope
+    set?: ReservedVmBillingPeriodWhereUniqueInput | ReservedVmBillingPeriodWhereUniqueInput[]
+    disconnect?: ReservedVmBillingPeriodWhereUniqueInput | ReservedVmBillingPeriodWhereUniqueInput[]
+    delete?: ReservedVmBillingPeriodWhereUniqueInput | ReservedVmBillingPeriodWhereUniqueInput[]
+    connect?: ReservedVmBillingPeriodWhereUniqueInput | ReservedVmBillingPeriodWhereUniqueInput[]
+    update?: ReservedVmBillingPeriodUpdateWithWhereUniqueWithoutDeploymentInput | ReservedVmBillingPeriodUpdateWithWhereUniqueWithoutDeploymentInput[]
+    updateMany?: ReservedVmBillingPeriodUpdateManyWithWhereWithoutDeploymentInput | ReservedVmBillingPeriodUpdateManyWithWhereWithoutDeploymentInput[]
+    deleteMany?: ReservedVmBillingPeriodScalarWhereInput | ReservedVmBillingPeriodScalarWhereInput[]
+  }
+
+  export type ProjectCreateNestedOneWithoutReservedVmBillingPeriodsInput = {
+    create?: XOR<ProjectCreateWithoutReservedVmBillingPeriodsInput, ProjectUncheckedCreateWithoutReservedVmBillingPeriodsInput>
+    connectOrCreate?: ProjectCreateOrConnectWithoutReservedVmBillingPeriodsInput
+    connect?: ProjectWhereUniqueInput
+  }
+
+  export type DeploymentCreateNestedOneWithoutReservedVmBillingPeriodsInput = {
+    create?: XOR<DeploymentCreateWithoutReservedVmBillingPeriodsInput, DeploymentUncheckedCreateWithoutReservedVmBillingPeriodsInput>
+    connectOrCreate?: DeploymentCreateOrConnectWithoutReservedVmBillingPeriodsInput
+    connect?: DeploymentWhereUniqueInput
+  }
+
+  export type ProjectUpdateOneRequiredWithoutReservedVmBillingPeriodsNestedInput = {
+    create?: XOR<ProjectCreateWithoutReservedVmBillingPeriodsInput, ProjectUncheckedCreateWithoutReservedVmBillingPeriodsInput>
+    connectOrCreate?: ProjectCreateOrConnectWithoutReservedVmBillingPeriodsInput
+    upsert?: ProjectUpsertWithoutReservedVmBillingPeriodsInput
+    connect?: ProjectWhereUniqueInput
+    update?: XOR<XOR<ProjectUpdateToOneWithWhereWithoutReservedVmBillingPeriodsInput, ProjectUpdateWithoutReservedVmBillingPeriodsInput>, ProjectUncheckedUpdateWithoutReservedVmBillingPeriodsInput>
+  }
+
+  export type DeploymentUpdateOneRequiredWithoutReservedVmBillingPeriodsNestedInput = {
+    create?: XOR<DeploymentCreateWithoutReservedVmBillingPeriodsInput, DeploymentUncheckedCreateWithoutReservedVmBillingPeriodsInput>
+    connectOrCreate?: DeploymentCreateOrConnectWithoutReservedVmBillingPeriodsInput
+    upsert?: DeploymentUpsertWithoutReservedVmBillingPeriodsInput
+    connect?: DeploymentWhereUniqueInput
+    update?: XOR<XOR<DeploymentUpdateToOneWithWhereWithoutReservedVmBillingPeriodsInput, DeploymentUpdateWithoutReservedVmBillingPeriodsInput>, DeploymentUncheckedUpdateWithoutReservedVmBillingPeriodsInput>
   }
 
   export type DeploymentCreateNestedManyWithoutEnvironmentInput = {
@@ -243568,6 +248163,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodCreateNestedManyWithoutProjectInput
     rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
@@ -243619,6 +248215,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedCreateNestedManyWithoutProjectInput
     rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
@@ -247996,6 +252593,19 @@ export namespace Prisma {
     parentDeploymentId?: string | null
     lastMeteredAt?: Date | string | null
     machineSize?: string
+    runtimeKind?: string
+    runtimeVersion?: number
+    reservedVmTier?: string | null
+    reservedVmPriceCents?: number | null
+    reservedVmTermsVersion?: string | null
+    reservedVmRateCardVersion?: number | null
+    reservedVmBillingReservationId?: string | null
+    reservedVmBillingState?: string | null
+    reservedVmCurrentPeriodStart?: Date | string | null
+    reservedVmNextChargeAt?: Date | string | null
+    reservedVmGraceEndsAt?: Date | string | null
+    reservedVmStopRequestedAt?: Date | string | null
+    persistentStorageClaim?: string | null
     accessPolicyVersion?: number
     startedAt?: Date | string | null
     finishedAt?: Date | string | null
@@ -248003,6 +252613,7 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     environment?: DeploymentEnvironmentCreateNestedOneWithoutDeploymentsInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodCreateNestedManyWithoutDeploymentInput
   }
 
   export type DeploymentUncheckedCreateWithoutProjectInput = {
@@ -248027,12 +252638,26 @@ export namespace Prisma {
     parentDeploymentId?: string | null
     lastMeteredAt?: Date | string | null
     machineSize?: string
+    runtimeKind?: string
+    runtimeVersion?: number
+    reservedVmTier?: string | null
+    reservedVmPriceCents?: number | null
+    reservedVmTermsVersion?: string | null
+    reservedVmRateCardVersion?: number | null
+    reservedVmBillingReservationId?: string | null
+    reservedVmBillingState?: string | null
+    reservedVmCurrentPeriodStart?: Date | string | null
+    reservedVmNextChargeAt?: Date | string | null
+    reservedVmGraceEndsAt?: Date | string | null
+    reservedVmStopRequestedAt?: Date | string | null
+    persistentStorageClaim?: string | null
     accessPolicyVersion?: number
     startedAt?: Date | string | null
     finishedAt?: Date | string | null
     canceledAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedCreateNestedManyWithoutDeploymentInput
   }
 
   export type DeploymentCreateOrConnectWithoutProjectInput = {
@@ -248042,6 +252667,68 @@ export namespace Prisma {
 
   export type DeploymentCreateManyProjectInputEnvelope = {
     data: DeploymentCreateManyProjectInput | DeploymentCreateManyProjectInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type ReservedVmBillingPeriodCreateWithoutProjectInput = {
+    id?: string
+    organizationId: string
+    periodStart: Date | string
+    periodEnd: Date | string
+    tier: string
+    priceCents: number
+    termsVersion: string
+    rateCardVersion: number
+    status?: string
+    attemptCount?: number
+    reservationGeneration?: number
+    leaseOwner?: string | null
+    leaseExpiresAt?: Date | string | null
+    fencingToken?: number
+    billingReservationId?: string | null
+    graceEndsAt?: Date | string | null
+    stopRequestedAt?: Date | string | null
+    settledAt?: Date | string | null
+    lastErrorCode?: string | null
+    lastErrorMessage?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    deployment: DeploymentCreateNestedOneWithoutReservedVmBillingPeriodsInput
+  }
+
+  export type ReservedVmBillingPeriodUncheckedCreateWithoutProjectInput = {
+    id?: string
+    deploymentId: string
+    organizationId: string
+    periodStart: Date | string
+    periodEnd: Date | string
+    tier: string
+    priceCents: number
+    termsVersion: string
+    rateCardVersion: number
+    status?: string
+    attemptCount?: number
+    reservationGeneration?: number
+    leaseOwner?: string | null
+    leaseExpiresAt?: Date | string | null
+    fencingToken?: number
+    billingReservationId?: string | null
+    graceEndsAt?: Date | string | null
+    stopRequestedAt?: Date | string | null
+    settledAt?: Date | string | null
+    lastErrorCode?: string | null
+    lastErrorMessage?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ReservedVmBillingPeriodCreateOrConnectWithoutProjectInput = {
+    where: ReservedVmBillingPeriodWhereUniqueInput
+    create: XOR<ReservedVmBillingPeriodCreateWithoutProjectInput, ReservedVmBillingPeriodUncheckedCreateWithoutProjectInput>
+  }
+
+  export type ReservedVmBillingPeriodCreateManyProjectInputEnvelope = {
+    data: ReservedVmBillingPeriodCreateManyProjectInput | ReservedVmBillingPeriodCreateManyProjectInput[]
     skipDuplicates?: boolean
   }
 
@@ -249278,12 +253965,71 @@ export namespace Prisma {
     parentDeploymentId?: StringNullableFilter<"Deployment"> | string | null
     lastMeteredAt?: DateTimeNullableFilter<"Deployment"> | Date | string | null
     machineSize?: StringFilter<"Deployment"> | string
+    runtimeKind?: StringFilter<"Deployment"> | string
+    runtimeVersion?: IntFilter<"Deployment"> | number
+    reservedVmTier?: StringNullableFilter<"Deployment"> | string | null
+    reservedVmPriceCents?: IntNullableFilter<"Deployment"> | number | null
+    reservedVmTermsVersion?: StringNullableFilter<"Deployment"> | string | null
+    reservedVmRateCardVersion?: IntNullableFilter<"Deployment"> | number | null
+    reservedVmBillingReservationId?: StringNullableFilter<"Deployment"> | string | null
+    reservedVmBillingState?: StringNullableFilter<"Deployment"> | string | null
+    reservedVmCurrentPeriodStart?: DateTimeNullableFilter<"Deployment"> | Date | string | null
+    reservedVmNextChargeAt?: DateTimeNullableFilter<"Deployment"> | Date | string | null
+    reservedVmGraceEndsAt?: DateTimeNullableFilter<"Deployment"> | Date | string | null
+    reservedVmStopRequestedAt?: DateTimeNullableFilter<"Deployment"> | Date | string | null
+    persistentStorageClaim?: StringNullableFilter<"Deployment"> | string | null
     accessPolicyVersion?: IntFilter<"Deployment"> | number
     startedAt?: DateTimeNullableFilter<"Deployment"> | Date | string | null
     finishedAt?: DateTimeNullableFilter<"Deployment"> | Date | string | null
     canceledAt?: DateTimeNullableFilter<"Deployment"> | Date | string | null
     createdAt?: DateTimeFilter<"Deployment"> | Date | string
     updatedAt?: DateTimeFilter<"Deployment"> | Date | string
+  }
+
+  export type ReservedVmBillingPeriodUpsertWithWhereUniqueWithoutProjectInput = {
+    where: ReservedVmBillingPeriodWhereUniqueInput
+    update: XOR<ReservedVmBillingPeriodUpdateWithoutProjectInput, ReservedVmBillingPeriodUncheckedUpdateWithoutProjectInput>
+    create: XOR<ReservedVmBillingPeriodCreateWithoutProjectInput, ReservedVmBillingPeriodUncheckedCreateWithoutProjectInput>
+  }
+
+  export type ReservedVmBillingPeriodUpdateWithWhereUniqueWithoutProjectInput = {
+    where: ReservedVmBillingPeriodWhereUniqueInput
+    data: XOR<ReservedVmBillingPeriodUpdateWithoutProjectInput, ReservedVmBillingPeriodUncheckedUpdateWithoutProjectInput>
+  }
+
+  export type ReservedVmBillingPeriodUpdateManyWithWhereWithoutProjectInput = {
+    where: ReservedVmBillingPeriodScalarWhereInput
+    data: XOR<ReservedVmBillingPeriodUpdateManyMutationInput, ReservedVmBillingPeriodUncheckedUpdateManyWithoutProjectInput>
+  }
+
+  export type ReservedVmBillingPeriodScalarWhereInput = {
+    AND?: ReservedVmBillingPeriodScalarWhereInput | ReservedVmBillingPeriodScalarWhereInput[]
+    OR?: ReservedVmBillingPeriodScalarWhereInput[]
+    NOT?: ReservedVmBillingPeriodScalarWhereInput | ReservedVmBillingPeriodScalarWhereInput[]
+    id?: StringFilter<"ReservedVmBillingPeriod"> | string
+    projectId?: StringFilter<"ReservedVmBillingPeriod"> | string
+    deploymentId?: StringFilter<"ReservedVmBillingPeriod"> | string
+    organizationId?: StringFilter<"ReservedVmBillingPeriod"> | string
+    periodStart?: DateTimeFilter<"ReservedVmBillingPeriod"> | Date | string
+    periodEnd?: DateTimeFilter<"ReservedVmBillingPeriod"> | Date | string
+    tier?: StringFilter<"ReservedVmBillingPeriod"> | string
+    priceCents?: IntFilter<"ReservedVmBillingPeriod"> | number
+    termsVersion?: StringFilter<"ReservedVmBillingPeriod"> | string
+    rateCardVersion?: IntFilter<"ReservedVmBillingPeriod"> | number
+    status?: StringFilter<"ReservedVmBillingPeriod"> | string
+    attemptCount?: IntFilter<"ReservedVmBillingPeriod"> | number
+    reservationGeneration?: IntFilter<"ReservedVmBillingPeriod"> | number
+    leaseOwner?: StringNullableFilter<"ReservedVmBillingPeriod"> | string | null
+    leaseExpiresAt?: DateTimeNullableFilter<"ReservedVmBillingPeriod"> | Date | string | null
+    fencingToken?: IntFilter<"ReservedVmBillingPeriod"> | number
+    billingReservationId?: StringNullableFilter<"ReservedVmBillingPeriod"> | string | null
+    graceEndsAt?: DateTimeNullableFilter<"ReservedVmBillingPeriod"> | Date | string | null
+    stopRequestedAt?: DateTimeNullableFilter<"ReservedVmBillingPeriod"> | Date | string | null
+    settledAt?: DateTimeNullableFilter<"ReservedVmBillingPeriod"> | Date | string | null
+    lastErrorCode?: StringNullableFilter<"ReservedVmBillingPeriod"> | string | null
+    lastErrorMessage?: StringNullableFilter<"ReservedVmBillingPeriod"> | string | null
+    createdAt?: DateTimeFilter<"ReservedVmBillingPeriod"> | Date | string
+    updatedAt?: DateTimeFilter<"ReservedVmBillingPeriod"> | Date | string
   }
 
   export type RollbackIdempotencyRequestUpsertWithWhereUniqueWithoutProjectInput = {
@@ -249846,6 +254592,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodCreateNestedManyWithoutProjectInput
     rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
@@ -249897,6 +254644,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedCreateNestedManyWithoutProjectInput
     rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
@@ -249964,6 +254712,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUpdateManyWithoutProjectNestedInput
     rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
@@ -250015,6 +254764,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedUpdateManyWithoutProjectNestedInput
     rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
@@ -250530,6 +255280,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodCreateNestedManyWithoutProjectInput
     rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
@@ -250581,6 +255332,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedCreateNestedManyWithoutProjectInput
     rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
@@ -250648,6 +255400,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUpdateManyWithoutProjectNestedInput
     rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
@@ -250699,6 +255452,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedUpdateManyWithoutProjectNestedInput
     rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
@@ -250976,6 +255730,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodCreateNestedManyWithoutProjectInput
     rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
@@ -251027,6 +255782,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedCreateNestedManyWithoutProjectInput
     rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
@@ -251332,6 +256088,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUpdateManyWithoutProjectNestedInput
     rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
@@ -251383,6 +256140,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedUpdateManyWithoutProjectNestedInput
     rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
@@ -251434,6 +256192,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodCreateNestedManyWithoutProjectInput
     rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
@@ -251485,6 +256244,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedCreateNestedManyWithoutProjectInput
     rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
@@ -251677,6 +256437,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUpdateManyWithoutProjectNestedInput
     rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
@@ -251728,6 +256489,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedUpdateManyWithoutProjectNestedInput
     rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
@@ -251910,6 +256672,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodCreateNestedManyWithoutProjectInput
     rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
@@ -251961,6 +256724,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedCreateNestedManyWithoutProjectInput
     rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
@@ -252028,6 +256792,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUpdateManyWithoutProjectNestedInput
     rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
@@ -252079,6 +256844,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedUpdateManyWithoutProjectNestedInput
     rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
@@ -252130,6 +256896,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodCreateNestedManyWithoutProjectInput
     rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
@@ -252181,6 +256948,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedCreateNestedManyWithoutProjectInput
     rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
@@ -252248,6 +257016,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUpdateManyWithoutProjectNestedInput
     rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
@@ -252299,6 +257068,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedUpdateManyWithoutProjectNestedInput
     rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
@@ -252350,6 +257120,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodCreateNestedManyWithoutProjectInput
     rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
@@ -252401,6 +257172,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedCreateNestedManyWithoutProjectInput
     rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
@@ -252468,6 +257240,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUpdateManyWithoutProjectNestedInput
     rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
@@ -252519,6 +257292,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedUpdateManyWithoutProjectNestedInput
     rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
@@ -252569,6 +257343,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodCreateNestedManyWithoutProjectInput
     rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
@@ -252620,6 +257395,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedCreateNestedManyWithoutProjectInput
     rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
@@ -252687,6 +257463,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUpdateManyWithoutProjectNestedInput
     rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
@@ -252738,6 +257515,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedUpdateManyWithoutProjectNestedInput
     rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
@@ -252789,6 +257567,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodCreateNestedManyWithoutProjectInput
     rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
@@ -252840,6 +257619,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedCreateNestedManyWithoutProjectInput
     rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
@@ -252907,6 +257687,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUpdateManyWithoutProjectNestedInput
     rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
@@ -252958,6 +257739,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedUpdateManyWithoutProjectNestedInput
     rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
@@ -253009,6 +257791,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodCreateNestedManyWithoutProjectInput
     rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
@@ -253060,6 +257843,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedCreateNestedManyWithoutProjectInput
     rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
@@ -253127,6 +257911,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUpdateManyWithoutProjectNestedInput
     rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
@@ -253178,6 +257963,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedUpdateManyWithoutProjectNestedInput
     rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
@@ -253229,6 +258015,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodCreateNestedManyWithoutProjectInput
     rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
@@ -253280,6 +258067,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedCreateNestedManyWithoutProjectInput
     rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
@@ -253472,6 +258260,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUpdateManyWithoutProjectNestedInput
     rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
@@ -253523,6 +258312,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedUpdateManyWithoutProjectNestedInput
     rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
@@ -253705,6 +258495,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodCreateNestedManyWithoutProjectInput
     rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
@@ -253756,6 +258547,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedCreateNestedManyWithoutProjectInput
     rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
@@ -253948,6 +258740,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUpdateManyWithoutProjectNestedInput
     rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
@@ -253999,6 +258792,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedUpdateManyWithoutProjectNestedInput
     rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
@@ -254182,6 +258976,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodCreateNestedManyWithoutProjectInput
     rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
@@ -254233,6 +259028,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedCreateNestedManyWithoutProjectInput
     rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
@@ -254425,6 +259221,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUpdateManyWithoutProjectNestedInput
     rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
@@ -254476,6 +259273,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedUpdateManyWithoutProjectNestedInput
     rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
@@ -254658,6 +259456,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodCreateNestedManyWithoutProjectInput
     rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
@@ -254709,6 +259508,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedCreateNestedManyWithoutProjectInput
     rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
@@ -254901,6 +259701,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUpdateManyWithoutProjectNestedInput
     rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
@@ -254952,6 +259753,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedUpdateManyWithoutProjectNestedInput
     rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
@@ -255134,6 +259936,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodCreateNestedManyWithoutProjectInput
     rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
@@ -255185,6 +259988,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedCreateNestedManyWithoutProjectInput
     rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
@@ -255377,6 +260181,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUpdateManyWithoutProjectNestedInput
     rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
@@ -255428,6 +260233,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedUpdateManyWithoutProjectNestedInput
     rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
@@ -257096,6 +261902,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodCreateNestedManyWithoutProjectInput
     rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
@@ -257147,6 +261954,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedCreateNestedManyWithoutProjectInput
     rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
@@ -257315,6 +262123,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUpdateManyWithoutProjectNestedInput
     rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
@@ -257366,6 +262175,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedUpdateManyWithoutProjectNestedInput
     rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
@@ -257524,6 +262334,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodCreateNestedManyWithoutProjectInput
     rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
@@ -257575,6 +262386,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedCreateNestedManyWithoutProjectInput
     rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
@@ -257829,6 +262641,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUpdateManyWithoutProjectNestedInput
     rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
@@ -257880,6 +262693,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedUpdateManyWithoutProjectNestedInput
     rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
@@ -258394,6 +263208,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodCreateNestedManyWithoutProjectInput
     rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
@@ -258445,6 +263260,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedCreateNestedManyWithoutProjectInput
     rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
@@ -258555,6 +263371,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUpdateManyWithoutProjectNestedInput
     rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
@@ -258606,6 +263423,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedUpdateManyWithoutProjectNestedInput
     rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
@@ -258705,6 +263523,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodCreateNestedManyWithoutProjectInput
     rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
@@ -258756,6 +263575,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedCreateNestedManyWithoutProjectInput
     rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
@@ -258948,6 +263768,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUpdateManyWithoutProjectNestedInput
     rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
@@ -258999,6 +263820,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedUpdateManyWithoutProjectNestedInput
     rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
@@ -259181,6 +264003,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodCreateNestedManyWithoutProjectInput
     rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
@@ -259232,6 +264055,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedCreateNestedManyWithoutProjectInput
     rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
@@ -259299,6 +264123,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUpdateManyWithoutProjectNestedInput
     rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
@@ -259350,6 +264175,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedUpdateManyWithoutProjectNestedInput
     rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
@@ -259401,6 +264227,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     manifestRevisions?: ProjectManifestRevisionCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodCreateNestedManyWithoutProjectInput
     rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
@@ -259452,6 +264279,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     manifestRevisions?: ProjectManifestRevisionUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedCreateNestedManyWithoutProjectInput
     rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
@@ -259519,6 +264347,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     manifestRevisions?: ProjectManifestRevisionUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUpdateManyWithoutProjectNestedInput
     rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
@@ -259570,6 +264399,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     manifestRevisions?: ProjectManifestRevisionUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedUpdateManyWithoutProjectNestedInput
     rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
@@ -259621,6 +264451,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     manifestRevisions?: ProjectManifestRevisionCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodCreateNestedManyWithoutProjectInput
     rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
@@ -259672,6 +264503,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     manifestRevisions?: ProjectManifestRevisionUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedCreateNestedManyWithoutProjectInput
     rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
@@ -259716,6 +264548,68 @@ export namespace Prisma {
     create: XOR<DeploymentEnvironmentCreateWithoutDeploymentsInput, DeploymentEnvironmentUncheckedCreateWithoutDeploymentsInput>
   }
 
+  export type ReservedVmBillingPeriodCreateWithoutDeploymentInput = {
+    id?: string
+    organizationId: string
+    periodStart: Date | string
+    periodEnd: Date | string
+    tier: string
+    priceCents: number
+    termsVersion: string
+    rateCardVersion: number
+    status?: string
+    attemptCount?: number
+    reservationGeneration?: number
+    leaseOwner?: string | null
+    leaseExpiresAt?: Date | string | null
+    fencingToken?: number
+    billingReservationId?: string | null
+    graceEndsAt?: Date | string | null
+    stopRequestedAt?: Date | string | null
+    settledAt?: Date | string | null
+    lastErrorCode?: string | null
+    lastErrorMessage?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    project: ProjectCreateNestedOneWithoutReservedVmBillingPeriodsInput
+  }
+
+  export type ReservedVmBillingPeriodUncheckedCreateWithoutDeploymentInput = {
+    id?: string
+    projectId: string
+    organizationId: string
+    periodStart: Date | string
+    periodEnd: Date | string
+    tier: string
+    priceCents: number
+    termsVersion: string
+    rateCardVersion: number
+    status?: string
+    attemptCount?: number
+    reservationGeneration?: number
+    leaseOwner?: string | null
+    leaseExpiresAt?: Date | string | null
+    fencingToken?: number
+    billingReservationId?: string | null
+    graceEndsAt?: Date | string | null
+    stopRequestedAt?: Date | string | null
+    settledAt?: Date | string | null
+    lastErrorCode?: string | null
+    lastErrorMessage?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ReservedVmBillingPeriodCreateOrConnectWithoutDeploymentInput = {
+    where: ReservedVmBillingPeriodWhereUniqueInput
+    create: XOR<ReservedVmBillingPeriodCreateWithoutDeploymentInput, ReservedVmBillingPeriodUncheckedCreateWithoutDeploymentInput>
+  }
+
+  export type ReservedVmBillingPeriodCreateManyDeploymentInputEnvelope = {
+    data: ReservedVmBillingPeriodCreateManyDeploymentInput | ReservedVmBillingPeriodCreateManyDeploymentInput[]
+    skipDuplicates?: boolean
+  }
+
   export type ProjectUpsertWithoutDeploymentsInput = {
     update: XOR<ProjectUpdateWithoutDeploymentsInput, ProjectUncheckedUpdateWithoutDeploymentsInput>
     create: XOR<ProjectCreateWithoutDeploymentsInput, ProjectUncheckedCreateWithoutDeploymentsInput>
@@ -259754,6 +264648,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     manifestRevisions?: ProjectManifestRevisionUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUpdateManyWithoutProjectNestedInput
     rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
@@ -259805,6 +264700,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     manifestRevisions?: ProjectManifestRevisionUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedUpdateManyWithoutProjectNestedInput
     rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
@@ -259850,6 +264746,438 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
   }
 
+  export type ReservedVmBillingPeriodUpsertWithWhereUniqueWithoutDeploymentInput = {
+    where: ReservedVmBillingPeriodWhereUniqueInput
+    update: XOR<ReservedVmBillingPeriodUpdateWithoutDeploymentInput, ReservedVmBillingPeriodUncheckedUpdateWithoutDeploymentInput>
+    create: XOR<ReservedVmBillingPeriodCreateWithoutDeploymentInput, ReservedVmBillingPeriodUncheckedCreateWithoutDeploymentInput>
+  }
+
+  export type ReservedVmBillingPeriodUpdateWithWhereUniqueWithoutDeploymentInput = {
+    where: ReservedVmBillingPeriodWhereUniqueInput
+    data: XOR<ReservedVmBillingPeriodUpdateWithoutDeploymentInput, ReservedVmBillingPeriodUncheckedUpdateWithoutDeploymentInput>
+  }
+
+  export type ReservedVmBillingPeriodUpdateManyWithWhereWithoutDeploymentInput = {
+    where: ReservedVmBillingPeriodScalarWhereInput
+    data: XOR<ReservedVmBillingPeriodUpdateManyMutationInput, ReservedVmBillingPeriodUncheckedUpdateManyWithoutDeploymentInput>
+  }
+
+  export type ProjectCreateWithoutReservedVmBillingPeriodsInput = {
+    id?: string
+    name: string
+    slug: string
+    description?: string | null
+    sourceType?: string
+    templateName?: string | null
+    gitRepositoryUrl?: string | null
+    gitDefaultBranch?: string | null
+    persistentVolumeClaim?: string | null
+    thumbnailUrl?: string | null
+    thumbnailUpdatedAt?: Date | string | null
+    deletedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    organization: OrganizationCreateNestedOneWithoutProjectsInput
+    environments?: ProjectEnvironmentCreateNestedManyWithoutProjectInput
+    envVars?: ProjectEnvVarCreateNestedManyWithoutProjectInput
+    secrets?: ProjectSecretCreateNestedManyWithoutProjectInput
+    collaborators?: ProjectCollaboratorCreateNestedManyWithoutProjectInput
+    activity?: ProjectActivityCreateNestedManyWithoutProjectInput
+    templates?: ProjectTemplateCreateNestedManyWithoutSourceProjectInput
+    galleryListings?: GalleryListingCreateNestedManyWithoutSourceProjectInput
+    workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
+    snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
+    manifestRevisions?: ProjectManifestRevisionCreateNestedManyWithoutProjectInput
+    storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
+    deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutProjectInput
+    fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
+    conversations?: AiConversationCreateNestedManyWithoutProjectInput
+    ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
+    collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutProjectInput
+    collaborationComments?: CollaborationCommentCreateNestedManyWithoutProjectInput
+    shareLinks?: ProjectShareLinkCreateNestedManyWithoutProjectInput
+    agentMemories?: AgentMemoryCreateNestedManyWithoutProjectInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
+    agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
+    connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
+    databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
+    skills?: ProjectSkillCreateNestedManyWithoutProjectInput
+    repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
+    slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
+    importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
+    targetRemixJobs?: RemixJobCreateNestedManyWithoutTargetProjectInput
+    sourceRemixShares?: RemixStorageShareCreateNestedManyWithoutSourceProjectInput
+    targetRemixShares?: RemixStorageShareCreateNestedManyWithoutTargetProjectInput
+    cloudBinding?: CloudProjectBindingCreateNestedOneWithoutProjectInput
+    checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
+  }
+
+  export type ProjectUncheckedCreateWithoutReservedVmBillingPeriodsInput = {
+    id?: string
+    organizationId: string
+    name: string
+    slug: string
+    description?: string | null
+    sourceType?: string
+    templateName?: string | null
+    gitRepositoryUrl?: string | null
+    gitDefaultBranch?: string | null
+    persistentVolumeClaim?: string | null
+    thumbnailUrl?: string | null
+    thumbnailUpdatedAt?: Date | string | null
+    deletedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    environments?: ProjectEnvironmentUncheckedCreateNestedManyWithoutProjectInput
+    envVars?: ProjectEnvVarUncheckedCreateNestedManyWithoutProjectInput
+    secrets?: ProjectSecretUncheckedCreateNestedManyWithoutProjectInput
+    collaborators?: ProjectCollaboratorUncheckedCreateNestedManyWithoutProjectInput
+    activity?: ProjectActivityUncheckedCreateNestedManyWithoutProjectInput
+    templates?: ProjectTemplateUncheckedCreateNestedManyWithoutSourceProjectInput
+    galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutSourceProjectInput
+    workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
+    snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
+    manifestRevisions?: ProjectManifestRevisionUncheckedCreateNestedManyWithoutProjectInput
+    storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
+    deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutProjectInput
+    fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
+    conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
+    ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
+    collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutProjectInput
+    collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutProjectInput
+    shareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutProjectInput
+    agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutProjectInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
+    agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
+    connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
+    databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
+    skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
+    repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
+    slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    targetRemixJobs?: RemixJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    sourceRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutSourceProjectInput
+    targetRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetProjectInput
+    cloudBinding?: CloudProjectBindingUncheckedCreateNestedOneWithoutProjectInput
+    checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
+  }
+
+  export type ProjectCreateOrConnectWithoutReservedVmBillingPeriodsInput = {
+    where: ProjectWhereUniqueInput
+    create: XOR<ProjectCreateWithoutReservedVmBillingPeriodsInput, ProjectUncheckedCreateWithoutReservedVmBillingPeriodsInput>
+  }
+
+  export type DeploymentCreateWithoutReservedVmBillingPeriodsInput = {
+    id?: string
+    workspaceId?: string | null
+    environmentName?: string
+    status?: $Enums.DeploymentStatus
+    provider: string
+    url?: string | null
+    previewUrl?: string | null
+    productionUrl?: string | null
+    framework?: string | null
+    buildCommand?: string | null
+    outputDirectory?: string | null
+    branch?: string | null
+    commitSha?: string | null
+    customDomain?: string | null
+    logs?: JsonNullValueInput | InputJsonValue
+    metadata?: JsonNullValueInput | InputJsonValue
+    rolledBackFromId?: string | null
+    parentDeploymentId?: string | null
+    lastMeteredAt?: Date | string | null
+    machineSize?: string
+    runtimeKind?: string
+    runtimeVersion?: number
+    reservedVmTier?: string | null
+    reservedVmPriceCents?: number | null
+    reservedVmTermsVersion?: string | null
+    reservedVmRateCardVersion?: number | null
+    reservedVmBillingReservationId?: string | null
+    reservedVmBillingState?: string | null
+    reservedVmCurrentPeriodStart?: Date | string | null
+    reservedVmNextChargeAt?: Date | string | null
+    reservedVmGraceEndsAt?: Date | string | null
+    reservedVmStopRequestedAt?: Date | string | null
+    persistentStorageClaim?: string | null
+    accessPolicyVersion?: number
+    startedAt?: Date | string | null
+    finishedAt?: Date | string | null
+    canceledAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    project: ProjectCreateNestedOneWithoutDeploymentsInput
+    environment?: DeploymentEnvironmentCreateNestedOneWithoutDeploymentsInput
+  }
+
+  export type DeploymentUncheckedCreateWithoutReservedVmBillingPeriodsInput = {
+    id?: string
+    projectId: string
+    workspaceId?: string | null
+    environmentId?: string | null
+    environmentName?: string
+    status?: $Enums.DeploymentStatus
+    provider: string
+    url?: string | null
+    previewUrl?: string | null
+    productionUrl?: string | null
+    framework?: string | null
+    buildCommand?: string | null
+    outputDirectory?: string | null
+    branch?: string | null
+    commitSha?: string | null
+    customDomain?: string | null
+    logs?: JsonNullValueInput | InputJsonValue
+    metadata?: JsonNullValueInput | InputJsonValue
+    rolledBackFromId?: string | null
+    parentDeploymentId?: string | null
+    lastMeteredAt?: Date | string | null
+    machineSize?: string
+    runtimeKind?: string
+    runtimeVersion?: number
+    reservedVmTier?: string | null
+    reservedVmPriceCents?: number | null
+    reservedVmTermsVersion?: string | null
+    reservedVmRateCardVersion?: number | null
+    reservedVmBillingReservationId?: string | null
+    reservedVmBillingState?: string | null
+    reservedVmCurrentPeriodStart?: Date | string | null
+    reservedVmNextChargeAt?: Date | string | null
+    reservedVmGraceEndsAt?: Date | string | null
+    reservedVmStopRequestedAt?: Date | string | null
+    persistentStorageClaim?: string | null
+    accessPolicyVersion?: number
+    startedAt?: Date | string | null
+    finishedAt?: Date | string | null
+    canceledAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type DeploymentCreateOrConnectWithoutReservedVmBillingPeriodsInput = {
+    where: DeploymentWhereUniqueInput
+    create: XOR<DeploymentCreateWithoutReservedVmBillingPeriodsInput, DeploymentUncheckedCreateWithoutReservedVmBillingPeriodsInput>
+  }
+
+  export type ProjectUpsertWithoutReservedVmBillingPeriodsInput = {
+    update: XOR<ProjectUpdateWithoutReservedVmBillingPeriodsInput, ProjectUncheckedUpdateWithoutReservedVmBillingPeriodsInput>
+    create: XOR<ProjectCreateWithoutReservedVmBillingPeriodsInput, ProjectUncheckedCreateWithoutReservedVmBillingPeriodsInput>
+    where?: ProjectWhereInput
+  }
+
+  export type ProjectUpdateToOneWithWhereWithoutReservedVmBillingPeriodsInput = {
+    where?: ProjectWhereInput
+    data: XOR<ProjectUpdateWithoutReservedVmBillingPeriodsInput, ProjectUncheckedUpdateWithoutReservedVmBillingPeriodsInput>
+  }
+
+  export type ProjectUpdateWithoutReservedVmBillingPeriodsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceType?: StringFieldUpdateOperationsInput | string
+    templateName?: NullableStringFieldUpdateOperationsInput | string | null
+    gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
+    persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    organization?: OrganizationUpdateOneRequiredWithoutProjectsNestedInput
+    environments?: ProjectEnvironmentUpdateManyWithoutProjectNestedInput
+    envVars?: ProjectEnvVarUpdateManyWithoutProjectNestedInput
+    secrets?: ProjectSecretUpdateManyWithoutProjectNestedInput
+    collaborators?: ProjectCollaboratorUpdateManyWithoutProjectNestedInput
+    activity?: ProjectActivityUpdateManyWithoutProjectNestedInput
+    templates?: ProjectTemplateUpdateManyWithoutSourceProjectNestedInput
+    galleryListings?: GalleryListingUpdateManyWithoutSourceProjectNestedInput
+    workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
+    snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
+    manifestRevisions?: ProjectManifestRevisionUpdateManyWithoutProjectNestedInput
+    storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
+    deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutProjectNestedInput
+    fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
+    conversations?: AiConversationUpdateManyWithoutProjectNestedInput
+    ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
+    collaborationPresence?: CollaborationPresenceUpdateManyWithoutProjectNestedInput
+    collaborationComments?: CollaborationCommentUpdateManyWithoutProjectNestedInput
+    shareLinks?: ProjectShareLinkUpdateManyWithoutProjectNestedInput
+    agentMemories?: AgentMemoryUpdateManyWithoutProjectNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
+    agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
+    connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
+    databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
+    skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
+    repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
+    slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
+    importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
+    targetRemixJobs?: RemixJobUpdateManyWithoutTargetProjectNestedInput
+    sourceRemixShares?: RemixStorageShareUpdateManyWithoutSourceProjectNestedInput
+    targetRemixShares?: RemixStorageShareUpdateManyWithoutTargetProjectNestedInput
+    cloudBinding?: CloudProjectBindingUpdateOneWithoutProjectNestedInput
+    checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
+  }
+
+  export type ProjectUncheckedUpdateWithoutReservedVmBillingPeriodsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceType?: StringFieldUpdateOperationsInput | string
+    templateName?: NullableStringFieldUpdateOperationsInput | string | null
+    gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
+    persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    environments?: ProjectEnvironmentUncheckedUpdateManyWithoutProjectNestedInput
+    envVars?: ProjectEnvVarUncheckedUpdateManyWithoutProjectNestedInput
+    secrets?: ProjectSecretUncheckedUpdateManyWithoutProjectNestedInput
+    collaborators?: ProjectCollaboratorUncheckedUpdateManyWithoutProjectNestedInput
+    activity?: ProjectActivityUncheckedUpdateManyWithoutProjectNestedInput
+    templates?: ProjectTemplateUncheckedUpdateManyWithoutSourceProjectNestedInput
+    galleryListings?: GalleryListingUncheckedUpdateManyWithoutSourceProjectNestedInput
+    workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
+    snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
+    manifestRevisions?: ProjectManifestRevisionUncheckedUpdateManyWithoutProjectNestedInput
+    storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
+    deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutProjectNestedInput
+    fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
+    conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
+    ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
+    collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutProjectNestedInput
+    collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutProjectNestedInput
+    shareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutProjectNestedInput
+    agentMemories?: AgentMemoryUncheckedUpdateManyWithoutProjectNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
+    agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
+    connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
+    databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
+    skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
+    repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
+    slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    targetRemixJobs?: RemixJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    sourceRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutSourceProjectNestedInput
+    targetRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutTargetProjectNestedInput
+    cloudBinding?: CloudProjectBindingUncheckedUpdateOneWithoutProjectNestedInput
+    checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
+  }
+
+  export type DeploymentUpsertWithoutReservedVmBillingPeriodsInput = {
+    update: XOR<DeploymentUpdateWithoutReservedVmBillingPeriodsInput, DeploymentUncheckedUpdateWithoutReservedVmBillingPeriodsInput>
+    create: XOR<DeploymentCreateWithoutReservedVmBillingPeriodsInput, DeploymentUncheckedCreateWithoutReservedVmBillingPeriodsInput>
+    where?: DeploymentWhereInput
+  }
+
+  export type DeploymentUpdateToOneWithWhereWithoutReservedVmBillingPeriodsInput = {
+    where?: DeploymentWhereInput
+    data: XOR<DeploymentUpdateWithoutReservedVmBillingPeriodsInput, DeploymentUncheckedUpdateWithoutReservedVmBillingPeriodsInput>
+  }
+
+  export type DeploymentUpdateWithoutReservedVmBillingPeriodsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    workspaceId?: NullableStringFieldUpdateOperationsInput | string | null
+    environmentName?: StringFieldUpdateOperationsInput | string
+    status?: EnumDeploymentStatusFieldUpdateOperationsInput | $Enums.DeploymentStatus
+    provider?: StringFieldUpdateOperationsInput | string
+    url?: NullableStringFieldUpdateOperationsInput | string | null
+    previewUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    productionUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    framework?: NullableStringFieldUpdateOperationsInput | string | null
+    buildCommand?: NullableStringFieldUpdateOperationsInput | string | null
+    outputDirectory?: NullableStringFieldUpdateOperationsInput | string | null
+    branch?: NullableStringFieldUpdateOperationsInput | string | null
+    commitSha?: NullableStringFieldUpdateOperationsInput | string | null
+    customDomain?: NullableStringFieldUpdateOperationsInput | string | null
+    logs?: JsonNullValueInput | InputJsonValue
+    metadata?: JsonNullValueInput | InputJsonValue
+    rolledBackFromId?: NullableStringFieldUpdateOperationsInput | string | null
+    parentDeploymentId?: NullableStringFieldUpdateOperationsInput | string | null
+    lastMeteredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    machineSize?: StringFieldUpdateOperationsInput | string
+    runtimeKind?: StringFieldUpdateOperationsInput | string
+    runtimeVersion?: IntFieldUpdateOperationsInput | number
+    reservedVmTier?: NullableStringFieldUpdateOperationsInput | string | null
+    reservedVmPriceCents?: NullableIntFieldUpdateOperationsInput | number | null
+    reservedVmTermsVersion?: NullableStringFieldUpdateOperationsInput | string | null
+    reservedVmRateCardVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    reservedVmBillingReservationId?: NullableStringFieldUpdateOperationsInput | string | null
+    reservedVmBillingState?: NullableStringFieldUpdateOperationsInput | string | null
+    reservedVmCurrentPeriodStart?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reservedVmNextChargeAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reservedVmGraceEndsAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reservedVmStopRequestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    persistentStorageClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    accessPolicyVersion?: IntFieldUpdateOperationsInput | number
+    startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    finishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    canceledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    project?: ProjectUpdateOneRequiredWithoutDeploymentsNestedInput
+    environment?: DeploymentEnvironmentUpdateOneWithoutDeploymentsNestedInput
+  }
+
+  export type DeploymentUncheckedUpdateWithoutReservedVmBillingPeriodsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    workspaceId?: NullableStringFieldUpdateOperationsInput | string | null
+    environmentId?: NullableStringFieldUpdateOperationsInput | string | null
+    environmentName?: StringFieldUpdateOperationsInput | string
+    status?: EnumDeploymentStatusFieldUpdateOperationsInput | $Enums.DeploymentStatus
+    provider?: StringFieldUpdateOperationsInput | string
+    url?: NullableStringFieldUpdateOperationsInput | string | null
+    previewUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    productionUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    framework?: NullableStringFieldUpdateOperationsInput | string | null
+    buildCommand?: NullableStringFieldUpdateOperationsInput | string | null
+    outputDirectory?: NullableStringFieldUpdateOperationsInput | string | null
+    branch?: NullableStringFieldUpdateOperationsInput | string | null
+    commitSha?: NullableStringFieldUpdateOperationsInput | string | null
+    customDomain?: NullableStringFieldUpdateOperationsInput | string | null
+    logs?: JsonNullValueInput | InputJsonValue
+    metadata?: JsonNullValueInput | InputJsonValue
+    rolledBackFromId?: NullableStringFieldUpdateOperationsInput | string | null
+    parentDeploymentId?: NullableStringFieldUpdateOperationsInput | string | null
+    lastMeteredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    machineSize?: StringFieldUpdateOperationsInput | string
+    runtimeKind?: StringFieldUpdateOperationsInput | string
+    runtimeVersion?: IntFieldUpdateOperationsInput | number
+    reservedVmTier?: NullableStringFieldUpdateOperationsInput | string | null
+    reservedVmPriceCents?: NullableIntFieldUpdateOperationsInput | number | null
+    reservedVmTermsVersion?: NullableStringFieldUpdateOperationsInput | string | null
+    reservedVmRateCardVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    reservedVmBillingReservationId?: NullableStringFieldUpdateOperationsInput | string | null
+    reservedVmBillingState?: NullableStringFieldUpdateOperationsInput | string | null
+    reservedVmCurrentPeriodStart?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reservedVmNextChargeAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reservedVmGraceEndsAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reservedVmStopRequestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    persistentStorageClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    accessPolicyVersion?: IntFieldUpdateOperationsInput | number
+    startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    finishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    canceledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type DeploymentCreateWithoutEnvironmentInput = {
     id?: string
     workspaceId?: string | null
@@ -259871,6 +265199,19 @@ export namespace Prisma {
     parentDeploymentId?: string | null
     lastMeteredAt?: Date | string | null
     machineSize?: string
+    runtimeKind?: string
+    runtimeVersion?: number
+    reservedVmTier?: string | null
+    reservedVmPriceCents?: number | null
+    reservedVmTermsVersion?: string | null
+    reservedVmRateCardVersion?: number | null
+    reservedVmBillingReservationId?: string | null
+    reservedVmBillingState?: string | null
+    reservedVmCurrentPeriodStart?: Date | string | null
+    reservedVmNextChargeAt?: Date | string | null
+    reservedVmGraceEndsAt?: Date | string | null
+    reservedVmStopRequestedAt?: Date | string | null
+    persistentStorageClaim?: string | null
     accessPolicyVersion?: number
     startedAt?: Date | string | null
     finishedAt?: Date | string | null
@@ -259878,6 +265219,7 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     project: ProjectCreateNestedOneWithoutDeploymentsInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodCreateNestedManyWithoutDeploymentInput
   }
 
   export type DeploymentUncheckedCreateWithoutEnvironmentInput = {
@@ -259902,12 +265244,26 @@ export namespace Prisma {
     parentDeploymentId?: string | null
     lastMeteredAt?: Date | string | null
     machineSize?: string
+    runtimeKind?: string
+    runtimeVersion?: number
+    reservedVmTier?: string | null
+    reservedVmPriceCents?: number | null
+    reservedVmTermsVersion?: string | null
+    reservedVmRateCardVersion?: number | null
+    reservedVmBillingReservationId?: string | null
+    reservedVmBillingState?: string | null
+    reservedVmCurrentPeriodStart?: Date | string | null
+    reservedVmNextChargeAt?: Date | string | null
+    reservedVmGraceEndsAt?: Date | string | null
+    reservedVmStopRequestedAt?: Date | string | null
+    persistentStorageClaim?: string | null
     accessPolicyVersion?: number
     startedAt?: Date | string | null
     finishedAt?: Date | string | null
     canceledAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedCreateNestedManyWithoutDeploymentInput
   }
 
   export type DeploymentCreateOrConnectWithoutEnvironmentInput = {
@@ -259964,6 +265320,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
@@ -260015,6 +265372,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
@@ -260207,6 +265565,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
@@ -260258,6 +265617,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
@@ -262534,6 +267894,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodCreateNestedManyWithoutProjectInput
     rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
@@ -262585,6 +267946,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedCreateNestedManyWithoutProjectInput
     rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
@@ -262805,6 +268167,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUpdateManyWithoutProjectNestedInput
     rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
@@ -262856,6 +268219,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedUpdateManyWithoutProjectNestedInput
     rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
@@ -265166,6 +270530,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodCreateNestedManyWithoutProjectInput
     rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
@@ -265217,6 +270582,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedCreateNestedManyWithoutProjectInput
     rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
@@ -265415,6 +270781,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUpdateManyWithoutProjectNestedInput
     rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
@@ -265466,6 +270833,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedUpdateManyWithoutProjectNestedInput
     rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
@@ -270189,6 +275557,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodCreateNestedManyWithoutProjectInput
     rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
@@ -270240,6 +275609,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedCreateNestedManyWithoutProjectInput
     rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
@@ -270485,6 +275855,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUpdateManyWithoutProjectNestedInput
     rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
@@ -270536,6 +275907,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedUpdateManyWithoutProjectNestedInput
     rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
@@ -273916,6 +279288,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodCreateNestedManyWithoutProjectInput
     rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
@@ -273967,6 +279340,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedCreateNestedManyWithoutProjectInput
     rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
@@ -274182,6 +279556,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUpdateManyWithoutProjectNestedInput
     rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
@@ -274233,6 +279608,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedUpdateManyWithoutProjectNestedInput
     rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
@@ -275014,6 +280390,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodCreateNestedManyWithoutProjectInput
     rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
@@ -275065,6 +280442,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedCreateNestedManyWithoutProjectInput
     rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
@@ -275257,6 +280635,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUpdateManyWithoutProjectNestedInput
     rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
@@ -275308,6 +280687,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedUpdateManyWithoutProjectNestedInput
     rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
@@ -275490,6 +280870,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodCreateNestedManyWithoutProjectInput
     rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
@@ -275541,6 +280922,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedCreateNestedManyWithoutProjectInput
     rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
@@ -275690,6 +281072,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUpdateManyWithoutProjectNestedInput
     rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
@@ -275741,6 +281124,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedUpdateManyWithoutProjectNestedInput
     rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
@@ -275886,6 +281270,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodCreateNestedManyWithoutProjectInput
     rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
@@ -275937,6 +281322,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedCreateNestedManyWithoutProjectInput
     rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
@@ -275993,6 +281379,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodCreateNestedManyWithoutProjectInput
     rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
@@ -276044,6 +281431,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedCreateNestedManyWithoutProjectInput
     rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
@@ -276518,6 +281906,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUpdateManyWithoutProjectNestedInput
     rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
@@ -276569,6 +281958,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedUpdateManyWithoutProjectNestedInput
     rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
@@ -276631,6 +282021,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUpdateManyWithoutProjectNestedInput
     rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
@@ -276682,6 +282073,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedUpdateManyWithoutProjectNestedInput
     rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
@@ -277320,6 +282712,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodCreateNestedManyWithoutProjectInput
     rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
@@ -277371,6 +282764,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedCreateNestedManyWithoutProjectInput
     rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
@@ -277705,6 +283099,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUpdateManyWithoutProjectNestedInput
     rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
@@ -277756,6 +283151,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedUpdateManyWithoutProjectNestedInput
     rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
@@ -277965,6 +283361,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodCreateNestedManyWithoutProjectInput
     rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
@@ -278016,6 +283413,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedCreateNestedManyWithoutProjectInput
     rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
@@ -278208,6 +283606,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUpdateManyWithoutProjectNestedInput
     rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
@@ -278259,6 +283658,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedUpdateManyWithoutProjectNestedInput
     rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
@@ -280086,6 +285486,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodCreateNestedManyWithoutProjectInput
     rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
@@ -280137,6 +285538,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedCreateNestedManyWithoutProjectInput
     rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
@@ -280449,6 +285851,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUpdateManyWithoutProjectNestedInput
     rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
@@ -280500,6 +285903,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedUpdateManyWithoutProjectNestedInput
     rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
@@ -286022,6 +291426,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUpdateManyWithoutProjectNestedInput
     rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
@@ -286073,6 +291478,7 @@ export namespace Prisma {
     manifestRevisions?: ProjectManifestRevisionUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedUpdateManyWithoutProjectNestedInput
     rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
@@ -287621,10 +293027,49 @@ export namespace Prisma {
     parentDeploymentId?: string | null
     lastMeteredAt?: Date | string | null
     machineSize?: string
+    runtimeKind?: string
+    runtimeVersion?: number
+    reservedVmTier?: string | null
+    reservedVmPriceCents?: number | null
+    reservedVmTermsVersion?: string | null
+    reservedVmRateCardVersion?: number | null
+    reservedVmBillingReservationId?: string | null
+    reservedVmBillingState?: string | null
+    reservedVmCurrentPeriodStart?: Date | string | null
+    reservedVmNextChargeAt?: Date | string | null
+    reservedVmGraceEndsAt?: Date | string | null
+    reservedVmStopRequestedAt?: Date | string | null
+    persistentStorageClaim?: string | null
     accessPolicyVersion?: number
     startedAt?: Date | string | null
     finishedAt?: Date | string | null
     canceledAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ReservedVmBillingPeriodCreateManyProjectInput = {
+    id?: string
+    deploymentId: string
+    organizationId: string
+    periodStart: Date | string
+    periodEnd: Date | string
+    tier: string
+    priceCents: number
+    termsVersion: string
+    rateCardVersion: number
+    status?: string
+    attemptCount?: number
+    reservationGeneration?: number
+    leaseOwner?: string | null
+    leaseExpiresAt?: Date | string | null
+    fencingToken?: number
+    billingReservationId?: string | null
+    graceEndsAt?: Date | string | null
+    stopRequestedAt?: Date | string | null
+    settledAt?: Date | string | null
+    lastErrorCode?: string | null
+    lastErrorMessage?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -288306,6 +293751,19 @@ export namespace Prisma {
     parentDeploymentId?: NullableStringFieldUpdateOperationsInput | string | null
     lastMeteredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     machineSize?: StringFieldUpdateOperationsInput | string
+    runtimeKind?: StringFieldUpdateOperationsInput | string
+    runtimeVersion?: IntFieldUpdateOperationsInput | number
+    reservedVmTier?: NullableStringFieldUpdateOperationsInput | string | null
+    reservedVmPriceCents?: NullableIntFieldUpdateOperationsInput | number | null
+    reservedVmTermsVersion?: NullableStringFieldUpdateOperationsInput | string | null
+    reservedVmRateCardVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    reservedVmBillingReservationId?: NullableStringFieldUpdateOperationsInput | string | null
+    reservedVmBillingState?: NullableStringFieldUpdateOperationsInput | string | null
+    reservedVmCurrentPeriodStart?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reservedVmNextChargeAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reservedVmGraceEndsAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reservedVmStopRequestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    persistentStorageClaim?: NullableStringFieldUpdateOperationsInput | string | null
     accessPolicyVersion?: IntFieldUpdateOperationsInput | number
     startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     finishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -288313,6 +293771,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     environment?: DeploymentEnvironmentUpdateOneWithoutDeploymentsNestedInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUpdateManyWithoutDeploymentNestedInput
   }
 
   export type DeploymentUncheckedUpdateWithoutProjectInput = {
@@ -288337,12 +293796,26 @@ export namespace Prisma {
     parentDeploymentId?: NullableStringFieldUpdateOperationsInput | string | null
     lastMeteredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     machineSize?: StringFieldUpdateOperationsInput | string
+    runtimeKind?: StringFieldUpdateOperationsInput | string
+    runtimeVersion?: IntFieldUpdateOperationsInput | number
+    reservedVmTier?: NullableStringFieldUpdateOperationsInput | string | null
+    reservedVmPriceCents?: NullableIntFieldUpdateOperationsInput | number | null
+    reservedVmTermsVersion?: NullableStringFieldUpdateOperationsInput | string | null
+    reservedVmRateCardVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    reservedVmBillingReservationId?: NullableStringFieldUpdateOperationsInput | string | null
+    reservedVmBillingState?: NullableStringFieldUpdateOperationsInput | string | null
+    reservedVmCurrentPeriodStart?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reservedVmNextChargeAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reservedVmGraceEndsAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reservedVmStopRequestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    persistentStorageClaim?: NullableStringFieldUpdateOperationsInput | string | null
     accessPolicyVersion?: IntFieldUpdateOperationsInput | number
     startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     finishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     canceledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedUpdateManyWithoutDeploymentNestedInput
   }
 
   export type DeploymentUncheckedUpdateManyWithoutProjectInput = {
@@ -288367,10 +293840,101 @@ export namespace Prisma {
     parentDeploymentId?: NullableStringFieldUpdateOperationsInput | string | null
     lastMeteredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     machineSize?: StringFieldUpdateOperationsInput | string
+    runtimeKind?: StringFieldUpdateOperationsInput | string
+    runtimeVersion?: IntFieldUpdateOperationsInput | number
+    reservedVmTier?: NullableStringFieldUpdateOperationsInput | string | null
+    reservedVmPriceCents?: NullableIntFieldUpdateOperationsInput | number | null
+    reservedVmTermsVersion?: NullableStringFieldUpdateOperationsInput | string | null
+    reservedVmRateCardVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    reservedVmBillingReservationId?: NullableStringFieldUpdateOperationsInput | string | null
+    reservedVmBillingState?: NullableStringFieldUpdateOperationsInput | string | null
+    reservedVmCurrentPeriodStart?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reservedVmNextChargeAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reservedVmGraceEndsAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reservedVmStopRequestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    persistentStorageClaim?: NullableStringFieldUpdateOperationsInput | string | null
     accessPolicyVersion?: IntFieldUpdateOperationsInput | number
     startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     finishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     canceledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ReservedVmBillingPeriodUpdateWithoutProjectInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    periodStart?: DateTimeFieldUpdateOperationsInput | Date | string
+    periodEnd?: DateTimeFieldUpdateOperationsInput | Date | string
+    tier?: StringFieldUpdateOperationsInput | string
+    priceCents?: IntFieldUpdateOperationsInput | number
+    termsVersion?: StringFieldUpdateOperationsInput | string
+    rateCardVersion?: IntFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    attemptCount?: IntFieldUpdateOperationsInput | number
+    reservationGeneration?: IntFieldUpdateOperationsInput | number
+    leaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
+    leaseExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fencingToken?: IntFieldUpdateOperationsInput | number
+    billingReservationId?: NullableStringFieldUpdateOperationsInput | string | null
+    graceEndsAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    stopRequestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    settledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastErrorCode?: NullableStringFieldUpdateOperationsInput | string | null
+    lastErrorMessage?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    deployment?: DeploymentUpdateOneRequiredWithoutReservedVmBillingPeriodsNestedInput
+  }
+
+  export type ReservedVmBillingPeriodUncheckedUpdateWithoutProjectInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    deploymentId?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    periodStart?: DateTimeFieldUpdateOperationsInput | Date | string
+    periodEnd?: DateTimeFieldUpdateOperationsInput | Date | string
+    tier?: StringFieldUpdateOperationsInput | string
+    priceCents?: IntFieldUpdateOperationsInput | number
+    termsVersion?: StringFieldUpdateOperationsInput | string
+    rateCardVersion?: IntFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    attemptCount?: IntFieldUpdateOperationsInput | number
+    reservationGeneration?: IntFieldUpdateOperationsInput | number
+    leaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
+    leaseExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fencingToken?: IntFieldUpdateOperationsInput | number
+    billingReservationId?: NullableStringFieldUpdateOperationsInput | string | null
+    graceEndsAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    stopRequestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    settledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastErrorCode?: NullableStringFieldUpdateOperationsInput | string | null
+    lastErrorMessage?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ReservedVmBillingPeriodUncheckedUpdateManyWithoutProjectInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    deploymentId?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    periodStart?: DateTimeFieldUpdateOperationsInput | Date | string
+    periodEnd?: DateTimeFieldUpdateOperationsInput | Date | string
+    tier?: StringFieldUpdateOperationsInput | string
+    priceCents?: IntFieldUpdateOperationsInput | number
+    termsVersion?: StringFieldUpdateOperationsInput | string
+    rateCardVersion?: IntFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    attemptCount?: IntFieldUpdateOperationsInput | number
+    reservationGeneration?: IntFieldUpdateOperationsInput | number
+    leaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
+    leaseExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fencingToken?: IntFieldUpdateOperationsInput | number
+    billingReservationId?: NullableStringFieldUpdateOperationsInput | string | null
+    graceEndsAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    stopRequestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    settledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastErrorCode?: NullableStringFieldUpdateOperationsInput | string | null
+    lastErrorMessage?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -289610,6 +295174,110 @@ export namespace Prisma {
     capturedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type ReservedVmBillingPeriodCreateManyDeploymentInput = {
+    id?: string
+    projectId: string
+    organizationId: string
+    periodStart: Date | string
+    periodEnd: Date | string
+    tier: string
+    priceCents: number
+    termsVersion: string
+    rateCardVersion: number
+    status?: string
+    attemptCount?: number
+    reservationGeneration?: number
+    leaseOwner?: string | null
+    leaseExpiresAt?: Date | string | null
+    fencingToken?: number
+    billingReservationId?: string | null
+    graceEndsAt?: Date | string | null
+    stopRequestedAt?: Date | string | null
+    settledAt?: Date | string | null
+    lastErrorCode?: string | null
+    lastErrorMessage?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ReservedVmBillingPeriodUpdateWithoutDeploymentInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    periodStart?: DateTimeFieldUpdateOperationsInput | Date | string
+    periodEnd?: DateTimeFieldUpdateOperationsInput | Date | string
+    tier?: StringFieldUpdateOperationsInput | string
+    priceCents?: IntFieldUpdateOperationsInput | number
+    termsVersion?: StringFieldUpdateOperationsInput | string
+    rateCardVersion?: IntFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    attemptCount?: IntFieldUpdateOperationsInput | number
+    reservationGeneration?: IntFieldUpdateOperationsInput | number
+    leaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
+    leaseExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fencingToken?: IntFieldUpdateOperationsInput | number
+    billingReservationId?: NullableStringFieldUpdateOperationsInput | string | null
+    graceEndsAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    stopRequestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    settledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastErrorCode?: NullableStringFieldUpdateOperationsInput | string | null
+    lastErrorMessage?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    project?: ProjectUpdateOneRequiredWithoutReservedVmBillingPeriodsNestedInput
+  }
+
+  export type ReservedVmBillingPeriodUncheckedUpdateWithoutDeploymentInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    periodStart?: DateTimeFieldUpdateOperationsInput | Date | string
+    periodEnd?: DateTimeFieldUpdateOperationsInput | Date | string
+    tier?: StringFieldUpdateOperationsInput | string
+    priceCents?: IntFieldUpdateOperationsInput | number
+    termsVersion?: StringFieldUpdateOperationsInput | string
+    rateCardVersion?: IntFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    attemptCount?: IntFieldUpdateOperationsInput | number
+    reservationGeneration?: IntFieldUpdateOperationsInput | number
+    leaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
+    leaseExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fencingToken?: IntFieldUpdateOperationsInput | number
+    billingReservationId?: NullableStringFieldUpdateOperationsInput | string | null
+    graceEndsAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    stopRequestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    settledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastErrorCode?: NullableStringFieldUpdateOperationsInput | string | null
+    lastErrorMessage?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ReservedVmBillingPeriodUncheckedUpdateManyWithoutDeploymentInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    periodStart?: DateTimeFieldUpdateOperationsInput | Date | string
+    periodEnd?: DateTimeFieldUpdateOperationsInput | Date | string
+    tier?: StringFieldUpdateOperationsInput | string
+    priceCents?: IntFieldUpdateOperationsInput | number
+    termsVersion?: StringFieldUpdateOperationsInput | string
+    rateCardVersion?: IntFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    attemptCount?: IntFieldUpdateOperationsInput | number
+    reservationGeneration?: IntFieldUpdateOperationsInput | number
+    leaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
+    leaseExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fencingToken?: IntFieldUpdateOperationsInput | number
+    billingReservationId?: NullableStringFieldUpdateOperationsInput | string | null
+    graceEndsAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    stopRequestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    settledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastErrorCode?: NullableStringFieldUpdateOperationsInput | string | null
+    lastErrorMessage?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type DeploymentCreateManyEnvironmentInput = {
     id?: string
     projectId: string
@@ -289632,6 +295300,19 @@ export namespace Prisma {
     parentDeploymentId?: string | null
     lastMeteredAt?: Date | string | null
     machineSize?: string
+    runtimeKind?: string
+    runtimeVersion?: number
+    reservedVmTier?: string | null
+    reservedVmPriceCents?: number | null
+    reservedVmTermsVersion?: string | null
+    reservedVmRateCardVersion?: number | null
+    reservedVmBillingReservationId?: string | null
+    reservedVmBillingState?: string | null
+    reservedVmCurrentPeriodStart?: Date | string | null
+    reservedVmNextChargeAt?: Date | string | null
+    reservedVmGraceEndsAt?: Date | string | null
+    reservedVmStopRequestedAt?: Date | string | null
+    persistentStorageClaim?: string | null
     accessPolicyVersion?: number
     startedAt?: Date | string | null
     finishedAt?: Date | string | null
@@ -289661,6 +295342,19 @@ export namespace Prisma {
     parentDeploymentId?: NullableStringFieldUpdateOperationsInput | string | null
     lastMeteredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     machineSize?: StringFieldUpdateOperationsInput | string
+    runtimeKind?: StringFieldUpdateOperationsInput | string
+    runtimeVersion?: IntFieldUpdateOperationsInput | number
+    reservedVmTier?: NullableStringFieldUpdateOperationsInput | string | null
+    reservedVmPriceCents?: NullableIntFieldUpdateOperationsInput | number | null
+    reservedVmTermsVersion?: NullableStringFieldUpdateOperationsInput | string | null
+    reservedVmRateCardVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    reservedVmBillingReservationId?: NullableStringFieldUpdateOperationsInput | string | null
+    reservedVmBillingState?: NullableStringFieldUpdateOperationsInput | string | null
+    reservedVmCurrentPeriodStart?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reservedVmNextChargeAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reservedVmGraceEndsAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reservedVmStopRequestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    persistentStorageClaim?: NullableStringFieldUpdateOperationsInput | string | null
     accessPolicyVersion?: IntFieldUpdateOperationsInput | number
     startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     finishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -289668,6 +295362,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     project?: ProjectUpdateOneRequiredWithoutDeploymentsNestedInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUpdateManyWithoutDeploymentNestedInput
   }
 
   export type DeploymentUncheckedUpdateWithoutEnvironmentInput = {
@@ -289692,12 +295387,26 @@ export namespace Prisma {
     parentDeploymentId?: NullableStringFieldUpdateOperationsInput | string | null
     lastMeteredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     machineSize?: StringFieldUpdateOperationsInput | string
+    runtimeKind?: StringFieldUpdateOperationsInput | string
+    runtimeVersion?: IntFieldUpdateOperationsInput | number
+    reservedVmTier?: NullableStringFieldUpdateOperationsInput | string | null
+    reservedVmPriceCents?: NullableIntFieldUpdateOperationsInput | number | null
+    reservedVmTermsVersion?: NullableStringFieldUpdateOperationsInput | string | null
+    reservedVmRateCardVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    reservedVmBillingReservationId?: NullableStringFieldUpdateOperationsInput | string | null
+    reservedVmBillingState?: NullableStringFieldUpdateOperationsInput | string | null
+    reservedVmCurrentPeriodStart?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reservedVmNextChargeAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reservedVmGraceEndsAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reservedVmStopRequestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    persistentStorageClaim?: NullableStringFieldUpdateOperationsInput | string | null
     accessPolicyVersion?: IntFieldUpdateOperationsInput | number
     startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     finishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     canceledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedUpdateManyWithoutDeploymentNestedInput
   }
 
   export type DeploymentUncheckedUpdateManyWithoutEnvironmentInput = {
@@ -289722,6 +295431,19 @@ export namespace Prisma {
     parentDeploymentId?: NullableStringFieldUpdateOperationsInput | string | null
     lastMeteredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     machineSize?: StringFieldUpdateOperationsInput | string
+    runtimeKind?: StringFieldUpdateOperationsInput | string
+    runtimeVersion?: IntFieldUpdateOperationsInput | number
+    reservedVmTier?: NullableStringFieldUpdateOperationsInput | string | null
+    reservedVmPriceCents?: NullableIntFieldUpdateOperationsInput | number | null
+    reservedVmTermsVersion?: NullableStringFieldUpdateOperationsInput | string | null
+    reservedVmRateCardVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    reservedVmBillingReservationId?: NullableStringFieldUpdateOperationsInput | string | null
+    reservedVmBillingState?: NullableStringFieldUpdateOperationsInput | string | null
+    reservedVmCurrentPeriodStart?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reservedVmNextChargeAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reservedVmGraceEndsAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reservedVmStopRequestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    persistentStorageClaim?: NullableStringFieldUpdateOperationsInput | string | null
     accessPolicyVersion?: IntFieldUpdateOperationsInput | number
     startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     finishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
