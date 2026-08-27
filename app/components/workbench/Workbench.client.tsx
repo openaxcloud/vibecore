@@ -51,6 +51,7 @@ import { getLanguageFromExtension } from '~/utils/getLanguageFromExtension';
 import { type MobileWorkbenchPanel, resolveActiveWorkbenchView } from './active-workbench-view';
 import { shouldAutoRunPreview } from './preview-frame-recovery';
 
+/* Libellé du Terminal mobile — surface GELÉE par Avi (ref IMG_9149). */
 const SHELL_TERMINAL_LABEL = 'Shell (Terminal)';
 
 interface WorkspaceProps {
@@ -152,7 +153,7 @@ const FileModifiedDropdown = memo(
               <Popover.Button className="flex min-h-[36px] items-center gap-2 rounded-lg bg-bolt-elements-background-depth-2 px-3 py-1.5 text-sm text-bolt-elements-item-contentDefault transition-colors hover:bg-bolt-elements-background-depth-3">
                 <span className="whitespace-normal text-left">{copy['workbenchSurface.files.changes']}</span>
                 {hasChanges && (
-                  <span className="w-5 h-5 rounded-full bg-accent-500/20 text-accent-500 text-xs flex items-center justify-center border border-accent-500/30">
+                  <span className="w-5 h-5 rounded-full bg-[color-mix(in_srgb,var(--vc-action-primary)_20%,transparent)] text-[var(--vc-action-primary)] text-xs flex items-center justify-center border border-[color-mix(in_srgb,var(--vc-action-primary)_30%,transparent)]">
                     {formatWorkbenchSurfaceNumber(language, modifiedFiles.length)}
                   </span>
                 )}
@@ -344,7 +345,7 @@ const FileModifiedDropdown = memo(
                             ?.writeText(filteredFiles.map(([filePath]) => filePath).join('\n'))
                             ?.then(() => {
                               toast(copy['workbenchSurface.files.copySuccess'], {
-                                icon: <div className="i-ph:check-circle text-accent-500" />,
+                                icon: <div className="i-ph:check-circle text-[var(--vc-action-primary)]" />,
                               });
                             })
                             ?.catch(() => {
@@ -604,7 +605,13 @@ export const Workbench = memo(
       selectedView,
     });
 
-    const showWorkbenchToolbar = !useMobileWorkbench || mobilePanel !== 'terminal';
+    /*
+     * AV-UX point 1 — on mobile the toolbar's sidebar toggle and close button
+     * are display:none'd by the responsive stylesheet, so for every panel but
+     * the editor (Run/Review actions) the row rendered as an EMPTY 48px strip
+     * under the mobile header (seen on Webview). Only the editor keeps it.
+     */
+    const showWorkbenchToolbar = !useMobileWorkbench || mobilePanel === 'editor';
 
     return (
       chatStarted && (
@@ -645,23 +652,27 @@ export const Workbench = memo(
                       }}
                     />
                     {!useMobileWorkbench && <WorkbenchTabBar selected={selectedView} onSelect={setSelectedView} />}
-                    {useMobileWorkbench && (
+                    {/*
+                     * SCR-002 — « supprimer la ligne redondante "Aperçu" sous l'en-tête
+                     * Webview, et tout sous-titre qui répète le titre de son panneau ».
+                     *
+                     * Cette ligne redisait le nom du panneau actif alors que l'en-tête
+                     * mobile l'affiche déjà, une trentaine de pixels plus haut : mesuré
+                     * en production à 390 px, « Webview » à y=14 et « Aperçu » à y=62 —
+                     * deux fois la même information, pour deux rangées de hauteur prises
+                     * à l'aperçu lui-même. Le nom vient de `ECODE_MOBILE_TAB_META`, qui
+                     * couvre exactement les mêmes panneaux : rien n'est perdu.
+                     *
+                     * Les libellés du catalogue restent en place — ils servent aux
+                     * étiquettes d'accessibilité de la coque mobile.
+                     *
+                     * SEULE EXCEPTION : le Terminal. Sa surface mobile est GELÉE par Avi
+                     * (ref IMG_9149) ; lui retirer son en-tête la modifierait. Il garde
+                     * donc son libellé, et lui seul.
+                     */}
+                    {useMobileWorkbench && mobilePanel === 'terminal' && (
                       <div className="flex min-w-0 items-center gap-2 text-sm font-medium text-bolt-elements-textPrimary">
-                        <span className="truncate">
-                          {mobilePanel === 'files'
-                            ? copy['workbenchSurface.mobile.files']
-                            : mobilePanel === 'search'
-                              ? copy['workbenchSurface.mobile.search']
-                              : mobilePanel === 'locks'
-                                ? copy['workbenchSurface.mobile.locks']
-                                : mobilePanel === 'terminal'
-                                  ? SHELL_TERMINAL_LABEL
-                                  : mobilePanel === 'preview'
-                                    ? copy['workbenchSurface.mobile.preview']
-                                    : mobilePanel === 'deploy'
-                                      ? copy['workbenchSurface.mobile.deploy']
-                                      : copy['workbenchSurface.mobile.editor']}
-                        </span>
+                        <span className="truncate">{SHELL_TERMINAL_LABEL}</span>
                       </div>
                     )}
                     <div className="ml-auto" />

@@ -51,7 +51,7 @@ export interface ProviderRoute {
  * therefore NEVER routed; a simple turn on them keeps the frontier model.
  */
 export const DEFAULT_ROUTE_TABLE: Record<string, ProviderRoute> = {
-  Anthropic: { frontier: 'claude-sonnet-4-5-20250929', small: 'claude-haiku-4-5-20251001' },
+  Anthropic: { frontier: 'claude-opus-5', small: 'claude-haiku-4-5-20251001' },
   OpenAI: { frontier: 'gpt-4.1', small: 'gpt-4.1-mini' },
   Google: { frontier: 'gemini-2.5-pro', small: 'gemini-2.5-flash' },
 };

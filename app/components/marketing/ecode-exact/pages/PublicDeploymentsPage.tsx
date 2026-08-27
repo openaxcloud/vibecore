@@ -59,13 +59,14 @@ export default function PublicDeploymentsPage() {
               <Link href="/contact-sales">
                 <Button
                   size="lg"
-                  className="bg-[var(--ecode-accent)] text-white hover:bg-[var(--ecode-accent-hover)]"
+                  className="bg-[var(--vc-action-primary-strong)] text-white hover:brightness-90"
                   data-testid="button-contact-sales"
                 >
                   {copy.page.talkToExpert}
                 </Button>
               </Link>
-              <Link href="/docs/deployments">
+              {/* /docs/deployments n'existe pas (splat 404) — /docs est le hub docs réel. */}
+              <Link href="/docs">
                 <Button
                   size="lg"
                   variant="outline"

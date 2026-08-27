@@ -1,4 +1,5 @@
 export const workbenchSearchEn = {
+  'workbenchSearch.panel.title': 'Search',
   'workbenchSearch.search.placeholder': 'Search files',
   'workbenchSearch.search.aria': 'Search files',
   'workbenchSearch.search.toggleCase': 'Toggle case-sensitive search',
@@ -42,6 +43,7 @@ export type WorkbenchSearchKey = keyof typeof workbenchSearchEn;
 export type WorkbenchSearchCopy = Readonly<Record<WorkbenchSearchKey, string>>;
 
 export const workbenchSearchFr: WorkbenchSearchCopy = {
+  'workbenchSearch.panel.title': 'Recherche',
   'workbenchSearch.search.placeholder': 'Rechercher dans les fichiers',
   'workbenchSearch.search.aria': 'Rechercher dans les fichiers',
   'workbenchSearch.search.toggleCase': 'Activer ou désactiver la recherche sensible à la casse',

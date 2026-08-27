@@ -20,8 +20,8 @@ export const SendButton = ({ show, isStreaming, disabled, variant = 'overlay', o
   const accessibleLabel = isStreaming ? copy['clientAst.chat.send.stop'] : copy['clientAst.chat.send.message'];
 
   const buttonClassName = isToolbarVariant
-    ? 'bolt-composer-send-button bolt-composer-send-button-toolbar relative z-20 flex h-9 w-9 items-center justify-center rounded-md bg-accent-500 p-1 color-white shadow-sm transition-theme hover:brightness-94 disabled:cursor-not-allowed disabled:opacity-50'
-    : 'bolt-composer-send-button absolute bottom-2 right-2 z-20 flex h-10 w-10 items-center justify-center rounded-md bg-accent-500 p-1 color-white shadow-sm transition-theme hover:brightness-94 disabled:cursor-not-allowed disabled:opacity-50';
+    ? 'bolt-composer-send-button bolt-composer-send-button-toolbar relative z-20 flex h-9 w-9 items-center justify-center rounded-md bg-[var(--vc-action-primary)] p-1 text-[var(--vc-action-primary-foreground)] shadow-sm transition-theme hover:brightness-94 disabled:cursor-not-allowed disabled:opacity-50'
+    : 'bolt-composer-send-button absolute bottom-2 right-2 z-20 flex h-10 w-10 items-center justify-center rounded-md bg-[var(--vc-action-primary)] p-1 text-[var(--vc-action-primary-foreground)] shadow-sm transition-theme hover:brightness-94 disabled:cursor-not-allowed disabled:opacity-50';
 
   return (
     <AnimatePresence>

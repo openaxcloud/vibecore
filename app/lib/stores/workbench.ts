@@ -6,6 +6,7 @@ import Cookies from 'js-cookie';
 import JSZip from 'jszip';
 import { atom, map, type MapStore, type ReadableAtom, type WritableAtom } from 'nanostores';
 import { toast } from 'react-toastify';
+import { confirmWriteWithinDeadline, WRITE_CONFIRMATION_TIMEOUT_MS } from '~/lib/runtime/confirm-write';
 import { EditorStore } from './editor';
 import { fileHistoryStore } from './fileHistory';
 import { FilesStore, type FileMap, type ProjectStorageFile, type SaveFileOptions } from './files';
@@ -16,6 +17,7 @@ import {
   shouldUseExistingPreviewServer,
   workspaceNeedsReprovision,
 } from './preview-recovery';
+import { isPreviewHealthy, shouldAutoDismissPreviewAlert } from './preview-alert-autodismiss';
 import { PreviewsStore } from './previews';
 import { TerminalStore } from './terminal';
 import type { EditorDocument, ScrollPosition } from '~/components/editor/codemirror/CodeMirrorEditor';
@@ -65,6 +67,11 @@ import {
 } from '~/utils/agent-patch-logs';
 import { mergeJsonContent } from '~/lib/chat/merge-json-content';
 import { resolveFailedAgentPatchContent } from '~/lib/stores/agent-patch-fallback';
+import {
+  AgentPatchFloodGuard,
+  patchContentFingerprint,
+  type PatchAdmission,
+} from '~/lib/stores/agent-patch-flood-guard';
 import { reconcileRemoteWrite } from '~/lib/stores/reconcile-remote-write';
 import { KeyedMutex } from '~/lib/common/keyed-mutex';
 import { createSampler } from '~/utils/sampler';
@@ -317,6 +324,31 @@ export class WorkbenchStore {
    * that surfaced as "Remote file changed since it was loaded".
    */
   #agentPatchApplyMutex = new KeyedMutex();
+
+  /*
+   * BUG-SELFREPAIR-RUNAWAY-LOOP-001 — bounded admission for the proposal /
+   * silent auto-apply pipeline. The generator re-emits file actions with fresh
+   * actionIds for identical content (measured: ~90 duplicate proposals for one
+   * CSS file in a single run); without this guard every duplicate became a new
+   * pending proposal, the auto-applier accepted each one ("AI patch accepted"
+   * ×90), and follow-up commands — including `start` — stayed starved behind
+   * the never-draining review queue.
+   */
+  #agentPatchFloodGuard = new AgentPatchFloodGuard();
+
+  /** Paths whose duplicate-skip has already been logged (one line, not a storm). */
+  #agentPatchSkipLogged = new Set<string>();
+
+  /** Halt escalations already surfaced (per scope/path), to alert exactly once. */
+  #agentPatchHaltAlerted = new Set<string>();
+
+  /**
+   * `start` actions skipped because proposals were open for their artifact.
+   * Re-dispatched (via the tracked startPreviewServer launcher) as soon as the
+   * artifact's review queue drains — before this, the skipped start was marked
+   * "complete" ("Start application — Done") while `npm run dev` never ran.
+   */
+  #deferredStartArtifacts = new Set<string>();
   #runtimeFilesLoadedProjectId: string | undefined;
   #globalExecutionQueue = Promise.resolve();
   constructor() {
@@ -412,6 +444,31 @@ export class WorkbenchStore {
         estimatedTokensSaved: payload.estimatedTokensSaved,
       });
     });
+
+    /*
+     * BUG-UX-PREVIEW-ERROR-STICKY — la carte « Erreur d'aperçu » se retire toute
+     * seule quand l'aperçu redevient sain. Détection par FRONT malade → sain sur
+     * le store des previews (un port `ready` réapparaît) : voir
+     * preview-alert-autodismiss.ts pour la règle exacte et pourquoi une alerte
+     * posée pendant que l'aperçu est déjà sain n'est jamais balayée.
+     */
+    let previewWasHealthy = isPreviewHealthy(this.previews.get());
+
+    this.previews.subscribe((previews) => {
+      const previewIsHealthy = isPreviewHealthy(previews);
+
+      if (
+        shouldAutoDismissPreviewAlert({
+          wasHealthy: previewWasHealthy,
+          isHealthy: previewIsHealthy,
+          alert: this.actionAlert.get(),
+        })
+      ) {
+        this.actionAlert.set(undefined);
+      }
+
+      previewWasHealthy = previewIsHealthy;
+    });
   }
 
   requestProjectFilesPanel(open?: boolean) {
@@ -468,6 +525,10 @@ export class WorkbenchStore {
   #resetProjectScopedState() {
     this.agentPatchProposals.set({});
     this.#agentPatchOriginals.clear();
+    this.#agentPatchFloodGuard.reset();
+    this.#agentPatchSkipLogged.clear();
+    this.#agentPatchHaltAlerted.clear();
+    this.#deferredStartArtifacts.clear();
     this.agentPatchSelfRepair.set({});
     this.unsavedFiles.set(new Set<string>());
 
@@ -681,7 +742,15 @@ export class WorkbenchStore {
   async refreshRuntimePorts() {
     await this.#previewsStore.refreshPorts();
 
-    if (this.previews.get().some((preview) => preview.ready !== false)) {
+    /*
+     * BUG-UX-DEV-BLOCKED-STUCK: a latched `error` state (transient "stream
+     * closed" on reopen, a dead first launch…) must RESOLVE the moment a port is
+     * really up. `serving === true` (HTTP answers + live process, server-side
+     * probe) counts even while the aggregate `ready` is still vetoed by a
+     * lagging manager status / stale client beacon — otherwise the status bar
+     * sat on "Dev: blocked" over a serving app.
+     */
+    if (this.previews.get().some((preview) => preview.ready !== false || preview.serving === true)) {
       const current = this.previewServerState.get();
       this.previewServerState.set({ status: 'running', command: current.command });
     }
@@ -731,6 +800,36 @@ export class WorkbenchStore {
         status: 'starting',
         command: previousPreviewState.command ?? workbenchText('workbenchRuntime.preview.detecting'),
       });
+    }
+
+    /*
+     * BUG-IDE-PANEL-RECLICK-REPROVISION-001 — reattach fast-path evaluated
+     * BEFORE any recovery. A redundant, NON-forced start against an
+     * already-serving preview (re-clicking the active Webview tab, a panel
+     * re-activation, a stray auto-kick) must be a strict no-op: no
+     * #ensureWorkspaceProvisioned (a stale stopped/error status in the store
+     * would replace the LIVE pod), no manifest sync, no install and no
+     * stopPreviewServer (which killed the healthy dev command mid-stream).
+     * Live repro (24/08, desktop prod): re-clicking the active Webview tab
+     * reprovisioned the workspace, collapsed the file tree from 12 to 1 file
+     * and killed the running preview command ("Command stream closed before
+     * completion / exited with code 1"). The ports snapshot is refreshed first
+     * so the decision sees reality, and a genuinely dead pod fails the
+     * ready/deps probes and falls through to the recovery path below.
+     */
+    if (!forceInstall && !forceRestart) {
+      await this.refreshRuntimePorts().catch(() => undefined);
+
+      if (this.#previewStartPromise) {
+        return this.#previewStartPromise;
+      }
+
+      if (await this.#canShortCircuitToExistingPreview()) {
+        this.previewServerState.set({ status: 'running' });
+        this.appendWorkspaceLog(workbenchText('workbenchRuntime.preview.reattached'));
+
+        return workbenchText('workbenchRuntime.preview.reattachedResult');
+      }
     }
 
     /*
@@ -967,7 +1066,9 @@ export class WorkbenchStore {
 
         if (this.previewServerState.get().status !== 'error') {
           this.previewServerState.set({
-            status: this.previews.get().some((preview) => preview.ready !== false) ? 'running' : 'idle',
+            status: this.previews.get().some((preview) => preview.ready !== false || preview.serving === true)
+              ? 'running'
+              : 'idle',
             command: command.label,
           });
         }
@@ -1865,8 +1966,8 @@ export class WorkbenchStore {
     this.#terminalStore.toggleTerminal(value);
   }
 
-  attachTerminal(terminal: ITerminal, command?: string) {
-    this.#terminalStore.attachTerminal(terminal, command);
+  attachTerminal(terminal: ITerminal, command?: string, paneKey?: number) {
+    this.#terminalStore.attachTerminal(terminal, command, paneKey);
   }
   attachBoltTerminal(terminal: ITerminal) {
     this.#terminalStore.attachBoltTerminal(terminal);
@@ -2195,6 +2296,7 @@ export class WorkbenchStore {
     });
     this.#syncAgentPatchProposalToServer(proposalId);
     this.#dropResolvedAgentPatchLogs(proposal.relativePath);
+    this.#maybeRunDeferredStart(proposal.artifactId);
     this.appendWorkspaceLog(workbenchText('workbenchRuntime.patch.rejected', { file: proposal.relativePath }));
   }
 
@@ -2259,6 +2361,18 @@ export class WorkbenchStore {
      * interleave; different paths still apply concurrently.
      */
     return this.#agentPatchApplyMutex.run(proposal.filePath, async () => {
+      /*
+       * BUG-SELFREPAIR-RUNAWAY-LOOP-001 — per-file backoff. Once the same file
+       * has been patched several times inside the window, each further apply
+       * waits exponentially longer (capped), so a repair loop drains slowly and
+       * visibly instead of hammering write/reload/checkpoint back-to-back.
+       */
+      const backoffMs = this.#agentPatchFloodGuard.backoffDelayMs(proposal.relativePath);
+
+      if (backoffMs > 0) {
+        await new Promise((resolve) => setTimeout(resolve, backoffMs));
+      }
+
       try {
         let acceptedContent = applyReviewableDiffHunks({
           originalContent: proposal.originalContent,
@@ -2361,6 +2475,8 @@ export class WorkbenchStore {
         });
         this.#dropResolvedAgentPatchLogs(proposal.relativePath);
         this.#dropResolvedMissingImportFailures();
+        this.#agentPatchFloodGuard.recordAccepted(proposal.relativePath, patchContentFingerprint(acceptedContent));
+        this.#maybeRunDeferredStart(proposal.artifactId);
         this.appendWorkspaceLog(workbenchText('workbenchRuntime.patch.accepted', { file: proposal.relativePath }));
 
         await this.#createProjectAgentCheckpoint(
@@ -2379,6 +2495,8 @@ export class WorkbenchStore {
           error: message,
         });
         this.#syncAgentPatchProposalToServer(proposalId);
+        this.#agentPatchFloodGuard.recordFailure(proposal.relativePath);
+        this.#maybeRunDeferredStart(proposal.artifactId);
         this.appendWorkspaceLog(workbenchText('workbenchRuntime.patch.failedLog', { file: proposal.relativePath }));
 
         return 'failed';
@@ -3021,10 +3139,22 @@ export class WorkbenchStore {
        * rewrites the payload (content sanitizer, self-repair loop), so comparing
        * against `data.action.content` would cry wolf on every repaired file.
        */
-      try {
-        await this.#runtime.readFile(data.action.filePath);
-      } catch {
-        const message = workbenchText('workbenchRuntime.write.failed', { file: data.action.filePath });
+      /*
+       * Le chemin est capturé AVANT la closure : dans `() => …`, TypeScript perd
+       * le rétrécissement de `data.action` vers une action de fichier, puisque
+       * l'appel est différé.
+       */
+      const cheminEcrit = data.action.filePath;
+      const confirmation = await confirmWriteWithinDeadline(() => this.#runtime.readFile(cheminEcrit));
+
+      if (confirmation !== 'confirmed') {
+        const message =
+          confirmation === 'timeout'
+            ? workbenchText('workbenchRuntime.write.notConfirmed', {
+                file: data.action.filePath,
+                seconds: Math.round(WRITE_CONFIRMATION_TIMEOUT_MS / 1000),
+              })
+            : workbenchText('workbenchRuntime.write.failed', { file: data.action.filePath });
 
         artifact.runner.failAction(data.actionId, message);
         this.actionAlert.set({
@@ -3053,6 +3183,17 @@ export class WorkbenchStore {
       this.#dropResolvedMissingImportFailures();
     } else {
       if (this.agentPatchReviewRequired.get() && this.#hasOpenAgentPatchProposalsForArtifact(artifactId)) {
+        /*
+         * A skipped `start` is remembered and re-dispatched once the review
+         * queue drains. skipAction marks the action "complete", so without this
+         * the UI showed "Start application — Done" while `npm run dev` never
+         * ran and the preview stayed on `preview.proxy.unreachable` (live
+         * incident 24/08 — see BUG-SELFREPAIR-RUNAWAY-LOOP-001).
+         */
+        if (data.action.type === 'start') {
+          this.#deferredStartArtifacts.add(artifactId);
+        }
+
         artifact.runner.skipAction(data.actionId);
         this.appendWorkspaceLog(workbenchText('workbenchRuntime.write.commandReviewPending'));
 
@@ -3173,10 +3314,52 @@ export class WorkbenchStore {
         );
       }
     }
+
+    this.#maybeRunDeferredStart(artifactId);
   }
 
   #queueAgentPatchProposal(data: ActionCallbackData, isStreaming: boolean) {
     if (data.action.type !== 'file') {
+      return;
+    }
+
+    /*
+     * BUG-SELFREPAIR-RUNAWAY-LOOP-001 — admission control BEFORE a proposal is
+     * created. A re-emitted action with byte-identical content (fresh actionId,
+     * same bytes — the measured ×90 duplicate storm) must not spawn yet another
+     * pending proposal for the auto-applier to accept; and a file that keeps
+     * being re-patched without converging must stop cleanly and escalate
+     * instead of looping. The caller (`_runAction`) already skips the action
+     * for the non-streaming close, so returning here is a clean no-op.
+     */
+    const fingerprint = patchContentFingerprint(data.action.content);
+
+    /*
+     * Only the authoritative non-streaming close COUNTS toward the bounds: a
+     * streamed file arrives as dozens of partial chunks (measured: 55 writes
+     * for one file), and counting those would exhaust the per-file budget on a
+     * single legitimate generation. Streaming uses the non-counting probe so a
+     * halted path still stops updating and identical bytes are still skipped.
+     */
+    const admission = isStreaming
+      ? this.#agentPatchFloodGuard.probe(data.action.filePath, fingerprint)
+      : this.#agentPatchFloodGuard.admit(data.action.filePath, fingerprint);
+
+    if (admission.kind === 'skip-identical') {
+      if (!isStreaming && !this.#agentPatchSkipLogged.has(data.action.filePath)) {
+        this.#agentPatchSkipLogged.add(data.action.filePath);
+        this.appendWorkspaceLog(
+          workbenchText('workbenchRuntime.patch.duplicateSkippedLog', { file: data.action.filePath }),
+        );
+      }
+
+      this.#maybeRunDeferredStart(data.artifactId);
+
+      return;
+    }
+
+    if (admission.kind === 'halt') {
+      this.#escalateAgentPatchHalt(data.action.filePath, data.artifactId, admission);
       return;
     }
 
@@ -3226,6 +3409,99 @@ export class WorkbenchStore {
         workbenchText('workbenchRuntime.validation.waitingForReview', { file: data.action.filePath }),
       );
     }
+  }
+
+  /**
+   * A patch-flood bound was hit: stop cleanly and escalate. Any still-open
+   * proposal for the path is failed (so the review queue drains and skipped
+   * commands can unblock), one workspace-log line + one alert are surfaced per
+   * scope/path, and the deferred start is given a chance to run.
+   */
+  #escalateAgentPatchHalt(
+    relativePath: string,
+    artifactId: string,
+    admission: Extract<PatchAdmission, { kind: 'halt' }>,
+  ) {
+    const values = { file: relativePath, attempts: admission.attempts, limit: admission.limit };
+    const alertKey = admission.scope === 'global' ? 'global' : `file:${relativePath}`;
+
+    for (const proposal of Object.values(this.agentPatchProposals.get())) {
+      if (proposal.relativePath !== relativePath || isTerminalAgentPatchStatus(proposal.status)) {
+        continue;
+      }
+
+      const artifact = this.#getArtifact(proposal.artifactId);
+
+      artifact?.runner.skipAction(proposal.actionId);
+      this.agentPatchProposals.setKey(proposal.id, {
+        ...proposal,
+        status: 'failed',
+        updatedAt: new Date().toISOString(),
+        error: workbenchText(
+          admission.scope === 'global' ? 'workbenchRuntime.patch.haltGlobal' : 'workbenchRuntime.patch.haltFile',
+          values,
+        ),
+      });
+      this.#syncAgentPatchProposalToServer(proposal.id);
+    }
+
+    if (!this.#agentPatchHaltAlerted.has(alertKey)) {
+      this.#agentPatchHaltAlerted.add(alertKey);
+
+      const description = workbenchText(
+        admission.scope === 'global' ? 'workbenchRuntime.patch.haltGlobal' : 'workbenchRuntime.patch.haltFile',
+        values,
+      );
+
+      this.appendWorkspaceLog(
+        workbenchText(
+          admission.scope === 'global' ? 'workbenchRuntime.patch.haltGlobalLog' : 'workbenchRuntime.patch.haltFileLog',
+          values,
+        ),
+      );
+      this.actionAlert.set({
+        type: 'error',
+        title: workbenchText('workbenchRuntime.patch.haltTitle'),
+        description,
+        content: description,
+        source: 'preview',
+      });
+    }
+
+    this.#maybeRunDeferredStart(artifactId);
+  }
+
+  /**
+   * Launch the tracked dev-server start that was skipped while the artifact's
+   * review queue was open. Runs at most once per artifact and only when no
+   * proposal for the artifact is still pending/applying; startPreviewServer
+   * itself is guarded/idempotent (in-flight promise + reattach short-circuit).
+   *
+   * NOTE: this deliberately does NOT reuse #hasOpenAgentPatchProposalsForArtifact
+   * — that predicate (via isTerminalAgentPatchStatus) treats a 'failed'
+   * proposal as still open, which is exactly how a failing patch used to
+   * starve the start command FOREVER. A failed proposal must not keep the dev
+   * server from launching.
+   */
+  #maybeRunDeferredStart(artifactId: string) {
+    if (!this.#deferredStartArtifacts.has(artifactId)) {
+      return;
+    }
+
+    const stillBlocking = Object.values(this.agentPatchProposals.get()).some(
+      (proposal) =>
+        proposal.artifactId === artifactId && (proposal.status === 'pending' || proposal.status === 'applying'),
+    );
+
+    if (stillBlocking) {
+      return;
+    }
+
+    this.#deferredStartArtifacts.delete(artifactId);
+    this.appendWorkspaceLog(workbenchText('workbenchRuntime.patch.deferredStartLog'));
+    void this.startPreviewServer().catch(() => {
+      this.appendWorkspaceLog(workbenchText('workbenchRuntime.preview.startFailed'));
+    });
   }
 
   async #refreshPreviewAfterArtifactClose(artifactId: string) {

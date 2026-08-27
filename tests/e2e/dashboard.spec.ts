@@ -961,7 +961,7 @@ test('IDE applies the full 2026 color theme tokens', async ({ page, isMobile }) 
       borderVisible: '#2b3245',
       textPrimary: '#f5f9fc',
       textSecondary: '#c2c8cc',
-      textMuted: '#6e7681',
+      textMuted: '#7d8590',
       aiStart: '#7b61ff',
       aiEnd: '#ff6b9d',
       success: '#3fb950',
@@ -1115,7 +1115,7 @@ test('IDE panels, agent input and feature tools keep the platform theme in light
       hoverBorder: 'rgb(26, 32, 48)',
       visibleBorder: 'rgb(43, 50, 69)',
       secondaryText: 'rgb(194, 200, 204)',
-      mutedText: 'rgb(110, 118, 129)',
+      mutedText: 'rgb(125, 133, 144)',
       primaryText: 'rgb(245, 249, 252)',
       forbiddenPanelBackgrounds: [] as string[],
     },
@@ -1360,9 +1360,26 @@ test('platform typography tokens apply to the web IDE', async ({ page, isMobile 
       labelSample.style.left = '-9999px';
       element.appendChild(labelSample);
 
+      /*
+       * The heading used to be read from `element.querySelector('h2')`, i.e. an
+       * h2 that happened to be in the panels at that instant. Which one — or
+       * whether any — depends on the view the IDE settled on and on the guided
+       * tour, whose dialog carries the page's only h2 while it is open. When the
+       * panels held none, `getComputedStyle(null)` threw
+       * "parameter 1 is not of type 'Element'" and the test failed on timing
+       * rather than on typography. Sample our own heading, exactly as this test
+       * already does for the code and label samples.
+       */
+      const headingSample = document.createElement('h2');
+      headingSample.textContent = 'Typography heading sample';
+      headingSample.style.position = 'absolute';
+      headingSample.style.left = '-9999px';
+      headingSample.setAttribute('data-testid', 'typography-heading-sample');
+      element.appendChild(headingSample);
+
       const root = window.getComputedStyle(document.documentElement);
       const shell = window.getComputedStyle(element);
-      const heading = window.getComputedStyle(element.querySelector('h2')!);
+      const heading = window.getComputedStyle(headingSample);
       const label = window.getComputedStyle(labelSample);
       const code = window.getComputedStyle(codeSample);
 

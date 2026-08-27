@@ -17,6 +17,7 @@ export const GALLERY_DEMO_APP_ARTIFACT_TYPES = [
   'three-d',
   'crm',
   'ecommerce',
+  'game',
 ] as const;
 
 export type GalleryDemoAppArtifactType = (typeof GALLERY_DEMO_APP_ARTIFACT_TYPES)[number];
@@ -34,6 +35,7 @@ export const GALLERY_DEMO_APP_CATEGORIES = [
   'incident-response',
   'logistics',
   'commerce',
+  'gaming',
 ] as const;
 
 export type GalleryDemoAppCategory = (typeof GALLERY_DEMO_APP_CATEGORIES)[number];

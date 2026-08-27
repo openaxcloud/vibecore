@@ -133,12 +133,27 @@ export const REPORTER_SCRIPT = `(function () {
       wrap.style.cssText = 'position:fixed;inset:0;z-index:2147483646;display:flex;align-items:center;justify-content:center;box-sizing:border-box;padding:24px;background:#0d1117;color:#c9d1d9;font-family:ui-sans-serif,system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased;';
       var card = document.createElement('div');
       card.style.cssText = 'max-width:520px;width:100%;';
+      /*
+       * Cet overlay est injecté DANS la page de l'application : il n'a ni React
+       * ni le catalogue i18n de la plateforme. Il choisit donc sa langue à la
+       * source la plus fiable disponible ici — la langue du document si le
+       * gabarit en déclare une, sinon celle du navigateur.
+       */
+      var fr = false;
+      try {
+        var tag = (document.documentElement.getAttribute('lang') || navigator.language || '').toLowerCase();
+        fr = tag.indexOf('fr') === 0;
+      } catch (error) {
+        fr = false;
+      }
       var h = document.createElement('div');
       h.style.cssText = 'font-size:15px;font-weight:600;margin:0 0 8px;color:#f0f6fc;';
-      h.textContent = 'This preview failed to load';
+      h.textContent = fr ? 'Cet aperçu n\u2019a pas pu se charger' : 'This preview failed to load';
       var p = document.createElement('div');
       p.style.cssText = 'font-size:13px;line-height:1.5;color:#8b949e;margin:0 0 14px;';
-      p.textContent = 'The dev server is running but the app never rendered — an error in the app code stopped it before it could mount.';
+      p.textContent = fr
+        ? 'Le serveur de développement tourne, mais l\u2019application ne s\u2019est jamais affichée \u2014 une erreur dans son code l\u2019a arrêtée avant qu\u2019elle ne démarre.'
+        : 'The dev server is running but the app never rendered — an error in the app code stopped it before it could mount.';
       card.appendChild(h);
       card.appendChild(p);
       if (detail) {
@@ -149,7 +164,7 @@ export const REPORTER_SCRIPT = `(function () {
       }
       var btn = document.createElement('button');
       btn.type = 'button';
-      btn.textContent = 'Reload preview';
+      btn.textContent = fr ? 'Recharger l\u2019aperçu' : 'Reload preview';
       btn.style.cssText = 'font:inherit;font-size:13px;font-weight:500;color:#fff;background:#238636;border:0;border-radius:6px;padding:8px 14px;cursor:pointer;';
       btn.addEventListener('click', function () {
         try {

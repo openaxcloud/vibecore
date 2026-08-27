@@ -331,7 +331,7 @@ function ActionDurationBadge({
 
   return (
     <span
-      className="ml-1 inline-flex items-center rounded-full border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-1.5 py-0 text-[10px] font-medium leading-4 text-bolt-elements-textSecondary"
+      className="ml-1 inline-flex items-center rounded-full border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-1.5 py-0 text-[11px] font-medium leading-4 text-bolt-elements-textSecondary"
       aria-label={formatChatRenderersCopy(copy['chatRenderers.artifact.duration'], { duration: label })}
     >
       {label}
@@ -429,7 +429,7 @@ const ActionList = memo(({ actions }: ActionListProps) => {
                 {statusText ? (
                   <span
                     className={classNames(
-                      'shrink-0 rounded-full border px-1.5 py-0 text-[10px] font-medium leading-4',
+                      'shrink-0 rounded-full border px-1.5 py-0 text-[11px] font-medium leading-4',
                       'border-bolt-elements-borderColor bg-bolt-elements-background-depth-2',
                       status === 'complete'
                         ? 'text-bolt-elements-icon-success'

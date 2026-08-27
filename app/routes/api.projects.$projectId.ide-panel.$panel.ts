@@ -21,7 +21,12 @@ import {
 } from '~/lib/i18n/catalogs/api-runtime-routes';
 import { localeResponseHeaders, resolveRequestLocale } from '~/lib/i18n/request-locale';
 import { reconcileDebugSessions } from '~/lib/ide/debug-session-status';
-import { isSecurityScheduleDue, vulnerabilitiesFromSecretScan } from '~/lib/ide-panel-security';
+import {
+  extractGrepMatchLines,
+  isGrepMatchLine,
+  isSecurityScheduleDue,
+  vulnerabilitiesFromSecretScan,
+} from '~/lib/ide-panel-security';
 import {
   computeNextRunFromCron,
   defaultWorkflowSchedule,
@@ -223,6 +228,42 @@ async function resolvePanelWorkspace(
   return { workspaceList, primaryWorkspaceId, activeWorkspaceId, selectedWorkspaceId };
 }
 
+/*
+ * SCR-008 — jauges RAM / CPU / stockage de « Vue d'ensemble ».
+ *
+ * Rien n'est fabriqué ici : la valeur vient du lecteur cgroup du
+ * workspace-agent, relayé par `/api/runtime/workspaces/:id/resources`. Un projet
+ * sans espace de travail, ou un agent injoignable, rend des jauges VIDES
+ * (`null`) marquées `unavailable` — surtout pas des zéros, qui se liraient
+ * « rien n'est consommé » alors que la vraie information est « on ne sait pas ».
+ *
+ * L'appel rejoint le fan-out existant du panneau et échoue toujours ouvert :
+ * une ligne d'affichage secondaire ne doit jamais empêcher « Vue d'ensemble »
+ * de s'ouvrir.
+ */
+function unavailableOverviewResources() {
+  return {
+    memory: { used: null, limit: null },
+    cpu: { ratio: null, limitCores: null },
+    storage: { used: null, limit: null },
+    unavailable: true,
+  };
+}
+
+async function loadOverviewResources(request: Request, projectId: string) {
+  try {
+    const { selectedWorkspaceId } = await resolvePanelWorkspace(request, projectId);
+
+    if (!selectedWorkspaceId) {
+      return unavailableOverviewResources();
+    }
+
+    return await apiRequest(request, `/api/runtime/workspaces/${encodeURIComponent(selectedWorkspaceId)}/resources`);
+  } catch {
+    return unavailableOverviewResources();
+  }
+}
+
 async function loadOverviewPanelEnvelope(
   request: Request,
   projectId: string,
@@ -230,7 +271,7 @@ async function loadOverviewPanelEnvelope(
   language?: string | null,
 ) {
   try {
-    const [dashboard, packages, collaborators, gitGraph, envVars] = await Promise.all([
+    const [dashboard, packages, collaborators, gitGraph, envVars, resources] = await Promise.all([
       apiRequest(request, `/projects/${projectId}/dashboard`).catch((error) => ({
         error: panelErrorMessage(error, language),
       })),
@@ -241,6 +282,7 @@ async function loadOverviewPanelEnvelope(
         envVars: [],
         error: panelErrorMessage(error, language),
       })),
+      loadOverviewResources(request, projectId),
     ]);
 
     const dashboardData = dashboard as Record<string, any>;
@@ -265,6 +307,7 @@ async function loadOverviewPanelEnvelope(
         gitGraph: gitGraphData as any,
         collaboration: collaborationData as any,
       }),
+      resources,
       workflowsState: readWorkflowsState(envVars, language),
       terminalState: readTerminalState(envVars, language),
       packagesState: readPackagesState(envVars),
@@ -272,6 +315,7 @@ async function loadOverviewPanelEnvelope(
   } catch (error) {
     return panelEnvelope('overview', project, {
       overview: buildProjectOverviewInsights({ project: project as any, language }),
+      resources: unavailableOverviewResources(),
       loadError: panelErrorMessage(error, language),
       workflowsState: defaultWorkflowsState(language),
       terminalState: defaultTerminalState(),
@@ -3286,6 +3330,36 @@ async function runLocalizedRoute<TArgs extends EnterpriseLoaderArgs | Enterprise
 
     console.error('IDE panel route failed:', error);
 
+    /*
+     * Upstream codes the USER can act on. Two things used to go wrong at once
+     * when provisioning a project database failed:
+     *
+     *  - the API answered `503 DATABASE_PROVISION_UNAVAILABLE` with a `reason`,
+     *    and this handler flattened it into "the panel service is temporarily
+     *    unavailable, please retry" — advice that is simply false, because no
+     *    retry can ever succeed while the platform is missing its shared-tenant
+     *    configuration;
+     *  - and because the failure was THROWN as a Response, the whole panel
+     *    unmounted, leaving a blank IDE with no error and no way back.
+     *
+     * So for these codes: keep the real code and message, and RETURN the
+     * payload instead of throwing. The panels already render `ok === false`
+     * (DatabasePanel has a `role="alert"` failure state) — they simply never
+     * received it. Every other failure keeps the existing masked behaviour.
+     */
+    if (error instanceof Response) {
+      const upstream = await error
+        .clone()
+        .json()
+        .catch(() => undefined);
+
+      const passthrough = actionablePanelFailure(upstream);
+
+      if (passthrough) {
+        return json(passthrough, { status: error.status, headers: mergeLocaleHeaders(request) });
+      }
+    }
+
     const status =
       error instanceof Response
         ? error.status
@@ -3313,6 +3387,39 @@ async function runLocalizedRoute<TArgs extends EnterpriseLoaderArgs | Enterprise
       { status, headers: mergeLocaleHeaders(request) },
     );
   }
+}
+
+/**
+ * Upstream failures a USER can act on, which must keep their identity instead of
+ * being flattened into the catch-all "panel service temporarily unavailable —
+ * please retry". Provisioning a project database is the case that exposed this:
+ * the API answers `503 DATABASE_PROVISION_UNAVAILABLE` with a `reason`, and the
+ * generic message told users to retry something that can never succeed until the
+ * platform is configured.
+ *
+ * Returning a payload (rather than throwing) also keeps the panel mounted: the
+ * panels already render `ok === false` — DatabasePanel has a `role="alert"`
+ * failure block — they simply never received it, so an action failure tore the
+ * whole panel out of the DOM and left a blank IDE.
+ */
+export const ACTIONABLE_PANEL_CODES = new Set(['DATABASE_PROVISION_UNAVAILABLE', 'FEATURE_NOT_ENABLED']);
+
+export function actionablePanelFailure(upstream: unknown) {
+  const code = (upstream as { code?: unknown } | undefined)?.code;
+
+  if (typeof code !== 'string' || !ACTIONABLE_PANEL_CODES.has(code)) {
+    return undefined;
+  }
+
+  const error = (upstream as { error?: unknown }).error;
+  const reason = (upstream as { reason?: unknown }).reason;
+
+  return {
+    ok: false as const,
+    code,
+    error: typeof error === 'string' && error.trim() ? error : code,
+    ...(typeof reason === 'string' && reason ? { reason } : {}),
+  };
 }
 
 export async function loader(args: EnterpriseLoaderArgs) {
@@ -4531,34 +4638,56 @@ async function runSecurityScan(
 
   const findings = vulnerabilitiesFromAuditOutput(auditRun.output, now, language);
 
+  /*
+   * BUG-SEC-SCANNER-PHANTOM-FINDING: `2>/dev/null` keeps grep's own error/usage
+   * text (unsupported option on BusyBox grep, permission errors, …) out of the
+   * captured output — the runtime merges stdout+stderr — so tool noise can never
+   * be parsed into findings. A failed sub-command is logged and skipped instead
+   * of being reported as vulnerabilities (extractGrepMatchLines is the second
+   * line of defence for anything that still slips through on stdout).
+   */
   if (runSecretScan) {
     const secretRun = await runTerminalCommand(
       request,
       workspaceId,
-      "grep -RInE '(api[_-]?key|secret|password|token)\\s*[:=]' . --exclude-dir=node_modules --exclude-dir=.git | head -50 || true",
+      "grep -RInE '(api[_-]?key|secret|password|token)\\s*[:=]' . --exclude-dir=node_modules --exclude-dir=.git 2>/dev/null | head -50 || true",
       copy['apiRuntime.panel.securitySecretScan'],
       now,
       language,
     );
-    findings.push(
-      ...vulnerabilitiesFromSecretScan(secretRun.output, now).map((finding) => ({
-        ...finding,
-        title: copy['apiRuntime.panel.securitySecretFinding'],
-        recommendation: copy['apiRuntime.panel.securitySecretAdvice'],
-      })),
-    );
+
+    if (secretRun.status !== 'succeeded') {
+      console.error(
+        `Security secret scan command failed (exit ${secretRun.exitCode}); output ignored, not reported as findings`,
+      );
+    } else {
+      findings.push(
+        ...vulnerabilitiesFromSecretScan(secretRun.output, now).map((finding) => ({
+          ...finding,
+          title: copy['apiRuntime.panel.securitySecretFinding'],
+          recommendation: copy['apiRuntime.panel.securitySecretAdvice'],
+        })),
+      );
+    }
   }
 
   if (runSastScan) {
     const sastRun = await runTerminalCommand(
       request,
       workspaceId,
-      "grep -RInE '(dangerouslySetInnerHTML|eval\\(|new Function\\(|innerHTML\\s*=|document\\.write\\(|child_process|exec\\(|spawn\\(|cors\\(|Access-Control-Allow-Origin)' . --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=dist --exclude-dir=build | head -80 || true",
+      "grep -RInE '(dangerouslySetInnerHTML|eval\\(|new Function\\(|innerHTML\\s*=|document\\.write\\(|child_process|exec\\(|spawn\\(|cors\\(|Access-Control-Allow-Origin)' . --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=dist --exclude-dir=build 2>/dev/null | head -80 || true",
       copy['apiRuntime.panel.securityStaticScan'],
       now,
       language,
     );
-    findings.push(...vulnerabilitiesFromSastOutput(sastRun.output, now, language));
+
+    if (sastRun.status !== 'succeeded') {
+      console.error(
+        `Security static scan command failed (exit ${sastRun.exitCode}); output ignored, not reported as findings`,
+      );
+    } else {
+      findings.push(...vulnerabilitiesFromSastOutput(sastRun.output, now, language));
+    }
   }
 
   const existingById = new Map(state.vulnerabilities.map((item: any) => [item.id, item]));
@@ -4674,56 +4803,70 @@ function normalizeSecurityState(input: any, language?: string | null) {
         }))
       : fallback.scans,
     vulnerabilities: Array.isArray(input?.vulnerabilities)
-      ? input.vulnerabilities.map((vulnerability: any) => ({
-          id: String(vulnerability.id || randomUUID()),
-          packageName: String(vulnerability.packageName || vulnerability.title || 'workspace'),
-          title: String(
-            vulnerability.title === `${vulnerability.packageName} dependency advisory`
-              ? formatApiRuntimeRoutesCopy(copy['apiRuntime.panel.securityDependencyAdvisory'], {
-                  name: vulnerability.packageName,
-                })
-              : localizedSecurityText(
-                  localizedSecurityText(
+      ? input.vulnerabilities
+          .map((vulnerability: any) => ({
+            id: String(vulnerability.id || randomUUID()),
+            packageName: String(vulnerability.packageName || vulnerability.title || 'workspace'),
+            title: String(
+              vulnerability.title === `${vulnerability.packageName} dependency advisory`
+                ? formatApiRuntimeRoutesCopy(copy['apiRuntime.panel.securityDependencyAdvisory'], {
+                    name: vulnerability.packageName,
+                  })
+                : localizedSecurityText(
                     localizedSecurityText(
-                      localizedSecurityText(vulnerability.title, 'apiRuntime.panel.securitySecretFinding'),
-                      'apiRuntime.panel.securityCommandFinding',
+                      localizedSecurityText(
+                        localizedSecurityText(vulnerability.title, 'apiRuntime.panel.securitySecretFinding'),
+                        'apiRuntime.panel.securityCommandFinding',
+                      ),
+                      'apiRuntime.panel.securityDomFinding',
                     ),
-                    'apiRuntime.panel.securityDomFinding',
-                  ),
-                  'apiRuntime.panel.securityReviewFinding',
-                ) ||
-                  vulnerability.packageName ||
-                  copy['apiRuntime.panel.securityFinding'],
-          ),
-          severity: ['critical', 'high', 'moderate', 'low', 'info'].includes(vulnerability.severity)
-            ? vulnerability.severity
-            : 'info',
-          status: ['open', 'fixed', 'ignored'].includes(vulnerability.status) ? vulnerability.status : 'open',
-          hidden: Boolean(vulnerability.hidden),
-          source: String(vulnerability.source || 'workspace-runtime'),
-          details: String(vulnerability.details || ''),
-          recommendation: vulnerability.recommendation
-            ? String(
-                localizedSecurityText(
+                    'apiRuntime.panel.securityReviewFinding',
+                  ) ||
+                    vulnerability.packageName ||
+                    copy['apiRuntime.panel.securityFinding'],
+            ),
+            severity: ['critical', 'high', 'moderate', 'low', 'info'].includes(vulnerability.severity)
+              ? vulnerability.severity
+              : 'info',
+            status: ['open', 'fixed', 'ignored'].includes(vulnerability.status) ? vulnerability.status : 'open',
+            hidden: Boolean(vulnerability.hidden),
+            source: String(vulnerability.source || 'workspace-runtime'),
+            details: String(vulnerability.details || ''),
+            recommendation: vulnerability.recommendation
+              ? String(
                   localizedSecurityText(
                     localizedSecurityText(
                       localizedSecurityText(
-                        localizedSecurityText(vulnerability.recommendation, 'apiRuntime.panel.securitySecretAdvice'),
-                        'apiRuntime.panel.securityUpdateRemediation',
+                        localizedSecurityText(
+                          localizedSecurityText(vulnerability.recommendation, 'apiRuntime.panel.securitySecretAdvice'),
+                          'apiRuntime.panel.securityUpdateRemediation',
+                        ),
+                        'apiRuntime.panel.securityPinRemediation',
                       ),
-                      'apiRuntime.panel.securityPinRemediation',
+                      'apiRuntime.panel.securityCommandAdvice',
                     ),
-                    'apiRuntime.panel.securityCommandAdvice',
+                    vulnerability.recommendation === apiRuntimeRoutesEn['apiRuntime.panel.securityDomAdvice']
+                      ? 'apiRuntime.panel.securityDomAdvice'
+                      : 'apiRuntime.panel.securityReviewAdvice',
                   ),
-                  vulnerability.recommendation === apiRuntimeRoutesEn['apiRuntime.panel.securityDomAdvice']
-                    ? 'apiRuntime.panel.securityDomAdvice'
-                    : 'apiRuntime.panel.securityReviewAdvice',
-                ),
-              )
-            : undefined,
-          createdAt: vulnerability.createdAt,
-          updatedAt: vulnerability.updatedAt,
-        }))
+                )
+              : undefined,
+            createdAt: vulnerability.createdAt,
+            updatedAt: vulnerability.updatedAt,
+          }))
+          /*
+           * BUG-SEC-SCANNER-PHANTOM-FINDING: earlier scans persisted grep's own
+           * error/usage text ("Usage: grep [-HhnlLoqvsrRiwFE] …") as findings.
+           * Grep-based findings (sast / secret-scan) always carry a
+           * `path:lineno:` details prefix; anything else in the stored state is
+           * scanner noise — drop it on read so the panel is clean immediately,
+           * without waiting for a rescan.
+           */
+          .filter(
+            (vulnerability: any) =>
+              !['sast', 'secret-scan'].includes(vulnerability.source) ||
+              isGrepMatchLine(String(vulnerability.details ?? '')),
+          )
       : fallback.vulnerabilities,
   };
 }
@@ -4763,10 +4906,7 @@ function vulnerabilitiesFromAuditOutput(output: string, timestamp: string, langu
 function vulnerabilitiesFromSastOutput(output: string, timestamp: string, language?: string | null) {
   const copy = getApiRuntimeRoutesCopy(language);
 
-  return output
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean)
+  return extractGrepMatchLines(output)
     .slice(0, 80)
     .map((line, index) => {
       const isCommandExecution = /\b(child_process|exec\(|spawn\(|new Function\(|eval\()/i.test(line);
@@ -4826,7 +4966,17 @@ function normalizeSeverity(value: unknown) {
   return ['critical', 'high', 'moderate', 'low', 'info'].includes(severity) ? severity : 'info';
 }
 
-function defaultWorkflowsState(language?: string | null) {
+/*
+ * A freshly provisioned workspace has the project's SOURCE but no
+ * `node_modules`, so the Run button's `npm run dev` died on every brand-new
+ * project with `sh: vite: not found` (exit 127) — the workflow panel simply
+ * never worked out of the box. Install first, and only when the directory is
+ * actually missing so re-runs stay fast and work offline.
+ */
+const RUN_BUTTON_DEV_COMMAND = 'npm run dev';
+const RUN_BUTTON_INSTALL_COMMAND = '[ -d node_modules ] || npm install --no-audit --no-fund';
+
+export function defaultWorkflowsState(language?: string | null) {
   const copy = getApiRuntimeRoutesCopy(language);
 
   return {
@@ -4846,7 +4996,14 @@ function defaultWorkflowsState(language?: string | null) {
             id: 1002,
             orderIndex: 0,
             taskType: 'shell',
-            command: 'npm run dev',
+            command: RUN_BUTTON_INSTALL_COMMAND,
+            targetWorkflowId: null,
+          },
+          {
+            id: 1003,
+            orderIndex: 1,
+            taskType: 'shell',
+            command: RUN_BUTTON_DEV_COMMAND,
             targetWorkflowId: null,
           },
         ],
@@ -4856,7 +5013,37 @@ function defaultWorkflowsState(language?: string | null) {
   };
 }
 
-function readWorkflowsState(envVarsResponse: unknown, language?: string | null) {
+/**
+ * Repair the seeded Run-button workflow of projects created BEFORE the install
+ * step existed. Their `VIBECORE_WORKFLOWS_STATE` is already persisted, so the
+ * new default alone would never reach them and their Run button would keep
+ * failing forever.
+ *
+ * Deliberately narrow: only the system-owned Run-button workflow, and only when
+ * its steps are still exactly the single bare `npm run dev`. A workflow the user
+ * has edited — even by adding one step — is left untouched.
+ */
+export function withRunButtonInstallStep(workflow: any) {
+  if (!workflow?.isSystem || !workflow?.isRunButton) {
+    return workflow;
+  }
+
+  const tasks = Array.isArray(workflow.tasks) ? workflow.tasks : [];
+
+  if (tasks.length !== 1 || String(tasks[0]?.command ?? '').trim() !== RUN_BUTTON_DEV_COMMAND) {
+    return workflow;
+  }
+
+  return {
+    ...workflow,
+    tasks: [
+      { id: 1002, orderIndex: 0, taskType: 'shell', command: RUN_BUTTON_INSTALL_COMMAND, targetWorkflowId: null },
+      { ...tasks[0], orderIndex: 1 },
+    ],
+  };
+}
+
+export function readWorkflowsState(envVarsResponse: unknown, language?: string | null) {
   const envVars = (envVarsResponse as any)?.envVars ?? [];
   const raw = envVars.find((item: any) => item.key === WORKFLOWS_STATE_ENV_KEY)?.value;
 
@@ -4877,7 +5064,7 @@ function normalizeWorkflowsState(input: any, language?: string | null) {
   const workflows = Array.isArray(input?.workflows) ? input.workflows : fallback.workflows;
 
   return {
-    workflows: workflows.map((workflow: any, index: number) => ({
+    workflows: workflows.map(withRunButtonInstallStep).map((workflow: any, index: number) => ({
       id: Number(workflow.id) || Date.now() + index,
       projectId: workflow.projectId ?? null,
       name: String(

@@ -1,4 +1,5 @@
 import { Worker } from 'bullmq';
+import { resolveApiBaseUrl } from './api-base-url.js';
 import { Redis } from 'ioredis';
 import { createHmac } from 'node:crypto';
 import { writeFileSync } from 'node:fs';
@@ -285,9 +286,10 @@ export async function triggerWorkspaceGarbageCollect(jobData: Record<string, unk
  * stay in the api with the store abstraction. Auth = internal shared secret.
  */
 export async function triggerInactivityGc(jobData: Record<string, unknown> = {}) {
-  const baseUrl = process.env.API_INTERNAL_URL ?? process.env.API_URL;
+  const baseUrl = resolveApiBaseUrl();
+
   if (!baseUrl) {
-    throw new Error('API_INTERNAL_URL (or API_URL) is required to trigger inactivity.gc');
+    throw new Error('API_INTERNAL_URL, API_URL, SAAS_API_URL or API_BASE_URL is required to trigger inactivity.gc');
   }
 
   const secret = (process.env.INTERNAL_API_SHARED_SECRET ?? process.env.WORKSPACE_MANAGER_SHARED_SECRET)?.trim();
@@ -323,9 +325,10 @@ export async function triggerInactivityGc(jobData: Record<string, unknown> = {})
  * internal shared secret. SHADOW-safe (api decides shadow unless billing live).
  */
 export async function triggerObjectStorageMetering(jobData: Record<string, unknown> = {}) {
-  const baseUrl = process.env.API_INTERNAL_URL ?? process.env.API_URL;
+  const baseUrl = resolveApiBaseUrl();
+
   if (!baseUrl) {
-    throw new Error('API_INTERNAL_URL (or API_URL) is required to trigger metering.objectStorage');
+    throw new Error('API_INTERNAL_URL, API_URL, SAAS_API_URL or API_BASE_URL is required to trigger metering.objectStorage');
   }
 
   const secret = (process.env.INTERNAL_API_SHARED_SECRET ?? process.env.WORKSPACE_MANAGER_SHARED_SECRET)?.trim();
@@ -361,9 +364,10 @@ export async function triggerObjectStorageMetering(jobData: Record<string, unkno
  * metering.objectStorage.
  */
 export async function triggerDatabaseStorageMetering(jobData: Record<string, unknown> = {}) {
-  const baseUrl = process.env.API_INTERNAL_URL ?? process.env.API_URL;
+  const baseUrl = resolveApiBaseUrl();
+
   if (!baseUrl) {
-    throw new Error('API_INTERNAL_URL (or API_URL) is required to trigger metering.databaseStorage');
+    throw new Error('API_INTERNAL_URL, API_URL, SAAS_API_URL or API_BASE_URL is required to trigger metering.databaseStorage');
   }
 
   const secret = (process.env.INTERNAL_API_SHARED_SECRET ?? process.env.WORKSPACE_MANAGER_SHARED_SECRET)?.trim();
@@ -398,9 +402,10 @@ export async function triggerDatabaseStorageMetering(jobData: Record<string, unk
  * DB_ROLLBACK_ENABLED is off (the api returns skipped:true). Auth = internal secret.
  */
 export async function triggerDatabaseMaintenance(jobData: Record<string, unknown> = {}) {
-  const baseUrl = process.env.API_INTERNAL_URL ?? process.env.API_URL;
+  const baseUrl = resolveApiBaseUrl();
+
   if (!baseUrl) {
-    throw new Error('API_INTERNAL_URL (or API_URL) is required to trigger database.maintenance');
+    throw new Error('API_INTERNAL_URL, API_URL, SAAS_API_URL or API_BASE_URL is required to trigger database.maintenance');
   }
 
   const secret = (process.env.INTERNAL_API_SHARED_SECRET ?? process.env.WORKSPACE_MANAGER_SHARED_SECRET)?.trim();

@@ -31,7 +31,7 @@
   overflow: hidden;
   border-bottom: 1px solid var(--ecode-border);
   background:
-    radial-gradient(circle at 84% 14%, color-mix(in srgb, var(--status-info-text) 12%, transparent), transparent 34%),
+    radial-gradient(circle at 84% 14%, color-mix(in srgb, var(--ecode-accent) 12%, transparent), transparent 34%),
     linear-gradient(
       180deg,
       var(--ecode-background),
@@ -64,58 +64,33 @@
   min-width: 0;
 }
 
-.app-builder-language-switch {
-  display: inline-flex;
-  min-height: 44px;
-  align-items: center;
-  gap: 0.25rem;
-  margin-bottom: 1.25rem;
-  border: 1px solid var(--ecode-border-strong);
-  border-radius: 0.65rem;
-  padding: 0.2rem;
-  background: color-mix(in srgb, var(--ecode-surface) 88%, transparent);
-}
-
-.app-builder-language-switch a {
-  display: inline-flex;
-  min-width: 72px;
-  min-height: 44px;
-  align-items: center;
-  justify-content: center;
-  border-radius: 0.45rem;
-  padding-inline: 0.85rem;
-  color: var(--ecode-text-secondary);
-  font-size: 0.8125rem;
-  font-weight: 700;
-  line-height: 1;
-  text-decoration: none;
-  transition:
-    background-color 150ms ease,
-    color 150ms ease,
-    box-shadow 150ms ease;
-}
-
-.app-builder-language-switch a:hover {
-  color: var(--ecode-text);
-}
-
-.app-builder-language-switch a[aria-current='page'] {
-  background: var(--ecode-accent);
-  color: var(--ecode-accent-contrast);
-  box-shadow: 0 6px 16px color-mix(in srgb, var(--ecode-accent) 22%, transparent);
-}
-
+/*
+ * Même correction que `solution-sales.css` — ce fichier en est une copie, au
+ * numéro de ligne près : accent de MARQUE, pas statut « info ». Voir le
+ * commentaire détaillé là-bas pour le raisonnement et les mesures.
+ */
 .app-builder-eyebrow {
   display: inline-flex;
   min-height: 2rem;
   align-items: center;
   gap: 0.55rem;
-  color: var(--status-info-text);
+  color: var(--ecode-accent-text);
   font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.13em;
   line-height: 1.4;
   text-transform: uppercase;
+}
+
+/*
+ * Contraste AA — identique à `solution-sales.css` : `--ecode-accent-text`
+ * (#c74e00) est l'orange AA sur du BLANC, mais le héros est sur #f7f8f9 où il
+ * retombe à 4,37:1, sous le plancher de 4,5 pour cette accroche de 14px gras.
+ * Assombri de 10 % sur le thème clair uniquement.
+ */
+:root[data-theme='light']
+  :where(.app-builder-eyebrow, .app-builder-product-visual figcaption > span, .app-builder-icon-tile) {
+  color: color-mix(in srgb, var(--ecode-accent-text), #000 10%);
 }
 
 .app-builder-eyebrow svg {
@@ -227,7 +202,7 @@
   height: 1rem;
   flex: none;
   margin-top: 0.1rem;
-  color: var(--status-info-text);
+  color: var(--ecode-accent-text);
 }
 
 .app-builder-product-visual {
@@ -263,7 +238,7 @@
 }
 
 .app-builder-product-visual figcaption > span {
-  color: var(--status-info-text);
+  color: var(--ecode-accent-text);
   font-size: 0.65rem;
   font-weight: 700;
   letter-spacing: 0.11em;
@@ -468,10 +443,11 @@
   flex: none;
   align-items: center;
   justify-content: center;
-  border: 1px solid var(--status-info-border);
+  /* Tuiles d'icônes du CONTENU : accent de marque, mêmes opacités qu'avant. */
+  border: 1px solid color-mix(in srgb, var(--ecode-accent) 38%, transparent);
   border-radius: 0.65rem;
-  background: var(--status-info-bg);
-  color: var(--status-info-text);
+  background: color-mix(in srgb, var(--ecode-accent) 10%, transparent);
+  color: var(--ecode-accent-text);
 }
 
 .app-builder-icon-tile svg {

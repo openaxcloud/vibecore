@@ -30,7 +30,8 @@ export default function CommercialAgreement() {
           <div className="max-w-4xl mx-auto">
             <div className="flex items-center gap-3 mb-4">
               <FileText className="h-8 w-8 text-primary" aria-hidden />
-              <h1 className="text-4xl font-bold" data-testid="heading-commercial-agreement">
+              {/* Échelle h1 de la famille légale : responsive (24→48px), pas un 36px figé à 390. */}
+              <h1 className="break-words text-responsive-2xl font-bold" data-testid="heading-commercial-agreement">
                 {copy.title}
               </h1>
             </div>
