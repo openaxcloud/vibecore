@@ -1149,19 +1149,25 @@ jobs:
           WSAGENT_DIGEST="$(jq -r '.services[] | select(.service == "workspaceAgent") | .digest' release-manifest.json)"
           if [ -n "${WSAGENT_DIGEST}" ]; then
             SETS+=( --set-string "platformEnv.runtime.workspaceAgentImage=${REG}/workspace-agent@${WSAGENT_DIGEST}" )
+          fi
 
           # Repris de main : ces valeurs de configmap sont RÉ-AFFIRMÉES à chaque
           # upgrade parce que `--reuse-values` ignore values-prod.yaml — sans quoi
           # elles resteraient figées sur ce que la release avait stocké. Le digest
           # du screenshotter, lui, arrive par la boucle ci-dessus : c'est un chart
           # service comme un autre, il n'a donc pas besoin d'imageTag ici.
+          #
+          # HORS du `if` ci-dessus : ces valeurs ne dépendent pas du
+          # workspace-agent. Les laisser dedans les aurait rendues
+          # conditionnelles à la présence de son digest — le screenshotter aurait
+          # perdu sa configuration sur tout run où le workspace-agent n'est pas
+          # reconstruit.
           SETS+=(
             --set "services.screenshotter.enabled=true"
             --set-string "platformEnv.screenshotterUrl=http://vibecore-vibecore-platform-screenshotter.vibecore.svc.cluster.local:8080"
             --set-string "platformEnv.screenshotterAllowedHosts=preview.e-code.ai"
             --set-string "platformEnv.screenshotterPreviewProxyUrl=http://vibecore-vibecore-platform-preview-proxy.vibecore.svc.cluster.local:8080"
           )
-          fi
 
           echo "helm --set args: ${SETS[*]}"
           helm upgrade "${HELM_RELEASE}" infra/helm/platform \
