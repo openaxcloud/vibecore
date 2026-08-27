@@ -4,6 +4,7 @@
 ALTER TABLE "Deployment"
   ADD COLUMN "runtimeKind" TEXT NOT NULL DEFAULT 'autoscale',
   ADD COLUMN "runtimeVersion" INTEGER NOT NULL DEFAULT 0,
+  ADD COLUMN "runtimeFencingToken" INTEGER NOT NULL DEFAULT 0,
   ADD COLUMN "reservedVmTier" TEXT,
   ADD COLUMN "reservedVmPriceCents" INTEGER,
   ADD COLUMN "reservedVmTermsVersion" TEXT,
@@ -21,6 +22,8 @@ ALTER TABLE "Deployment"
     CHECK ("runtimeKind" IN ('autoscale', 'reserved-vm')),
   ADD CONSTRAINT "Deployment_runtimeVersion_check"
     CHECK ("runtimeVersion" >= 0),
+  ADD CONSTRAINT "Deployment_runtimeFencingToken_check"
+    CHECK ("runtimeFencingToken" >= 0),
   ADD CONSTRAINT "Deployment_reservedVmTier_check"
     CHECK ("reservedVmTier" IS NULL OR "reservedVmTier" IN ('shared-0.5', 'dedicated-1', 'dedicated-2', 'dedicated-4')),
   ADD CONSTRAINT "Deployment_reservedVmPriceCents_check"
@@ -28,7 +31,7 @@ ALTER TABLE "Deployment"
   ADD CONSTRAINT "Deployment_reservedVmRateCardVersion_check"
     CHECK ("reservedVmRateCardVersion" IS NULL OR "reservedVmRateCardVersion" > 0),
   ADD CONSTRAINT "Deployment_reservedVmBillingState_check"
-    CHECK ("reservedVmBillingState" IS NULL OR "reservedVmBillingState" IN ('CURRENT', 'PAST_DUE', 'STOP_REQUIRED')),
+    CHECK ("reservedVmBillingState" IS NULL OR "reservedVmBillingState" IN ('CURRENT', 'PAST_DUE', 'STOP_REQUIRED', 'SUSPENDED')),
   ADD CONSTRAINT "Deployment_reservedVmBillingWindow_check"
     CHECK (
       "reservedVmCurrentPeriodStart" IS NULL
@@ -56,10 +59,22 @@ ALTER TABLE "Deployment"
         AND "reservedVmGraceEndsAt" IS NOT NULL
         AND "reservedVmStopRequestedAt" IS NOT NULL
       )
+      OR (
+        "reservedVmBillingState" = 'SUSPENDED'
+        AND "reservedVmCurrentPeriodStart" IS NULL
+        AND "reservedVmNextChargeAt" IS NULL
+        AND "reservedVmGraceEndsAt" IS NULL
+        AND "reservedVmStopRequestedAt" IS NULL
+      )
     );
 
 CREATE UNIQUE INDEX "Deployment_reservedVmBillingReservationId_key"
   ON "Deployment"("reservedVmBillingReservationId");
+
+ALTER TABLE "Deployment"
+  ADD CONSTRAINT "Deployment_reservedVmBillingReservationId_fkey"
+  FOREIGN KEY ("reservedVmBillingReservationId") REFERENCES "LedgerReservation"("id")
+  ON DELETE RESTRICT ON UPDATE CASCADE;
 
 CREATE TABLE "ReservedVmOperation" (
   "id" TEXT NOT NULL,
@@ -77,6 +92,8 @@ CREATE TABLE "ReservedVmOperation" (
   "targetRuntimeKind" TEXT NOT NULL,
   "targetTier" TEXT,
   "targetMachineSize" TEXT NOT NULL,
+  "targetCpuMillicores" INTEGER NOT NULL,
+  "targetMemoryMb" INTEGER NOT NULL,
   "targetPriceCents" INTEGER NOT NULL,
   "billingAmountCents" INTEGER NOT NULL,
   "termsVersion" TEXT NOT NULL,
@@ -93,7 +110,7 @@ CREATE TABLE "ReservedVmOperation" (
   "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "updatedAt" TIMESTAMP(3) NOT NULL,
   CONSTRAINT "ReservedVmOperation_pkey" PRIMARY KEY ("id"),
-  CONSTRAINT "ReservedVmOperation_kind_check" CHECK ("kind" IN ('CREATE', 'CHANGE')),
+  CONSTRAINT "ReservedVmOperation_kind_check" CHECK ("kind" IN ('CREATE', 'CHANGE', 'REDEPLOY', 'DECOMMISSION')),
   CONSTRAINT "ReservedVmOperation_status_check" CHECK ("status" IN ('PENDING', 'APPLYING', 'COMPLETED', 'FAILED')),
   CONSTRAINT "ReservedVmOperation_phase_check" CHECK ("phase" IN ('RESERVED', 'LEASED', 'RUNTIME_APPLIED', 'COMMITTED', 'ROLLED_BACK')),
   CONSTRAINT "ReservedVmOperation_fromRuntimeKind_check" CHECK ("fromRuntimeKind" IS NULL OR "fromRuntimeKind" IN ('autoscale', 'reserved-vm')),
@@ -101,6 +118,7 @@ CREATE TABLE "ReservedVmOperation" (
   CONSTRAINT "ReservedVmOperation_targetTier_check" CHECK ("targetTier" IS NULL OR "targetTier" IN ('shared-0.5', 'dedicated-1', 'dedicated-2', 'dedicated-4')),
   CONSTRAINT "ReservedVmOperation_price_check" CHECK ("targetPriceCents" IN (0, 2000, 4000, 8000, 16000)),
   CONSTRAINT "ReservedVmOperation_billingAmount_check" CHECK ("billingAmountCents" >= 0 AND "billingAmountCents" <= 16000),
+  CONSTRAINT "ReservedVmOperation_resources_check" CHECK ("targetCpuMillicores" > 0 AND "targetMemoryMb" > 0),
   CONSTRAINT "ReservedVmOperation_rateCardVersion_check" CHECK ("rateCardVersion" > 0),
   CONSTRAINT "ReservedVmOperation_runtime_shape_check" CHECK (
     ("targetRuntimeKind" = 'autoscale' AND "targetTier" IS NULL AND "targetPriceCents" = 0)
@@ -129,6 +147,7 @@ CREATE TABLE "ReservedVmBillingPeriod" (
   "projectId" TEXT NOT NULL,
   "deploymentId" TEXT NOT NULL,
   "organizationId" TEXT NOT NULL,
+  "actorUserId" TEXT,
   "periodStart" TIMESTAMP(3) NOT NULL,
   "periodEnd" TIMESTAMP(3) NOT NULL,
   "tier" TEXT NOT NULL,
@@ -162,7 +181,6 @@ CREATE TABLE "ReservedVmBillingPeriod" (
     "status" = 'DUE'
     OR (
       "status" = 'PROCESSING'
-      AND "billingReservationId" IS NOT NULL
       AND "leaseOwner" IS NOT NULL
       AND "leaseExpiresAt" IS NOT NULL
     )
@@ -175,7 +193,6 @@ CREATE TABLE "ReservedVmBillingPeriod" (
     )
     OR (
       "status" = 'PAST_DUE'
-      AND "billingReservationId" IS NOT NULL
       AND "graceEndsAt" IS NOT NULL
       AND "leaseOwner" IS NULL
       AND "leaseExpiresAt" IS NULL
@@ -184,13 +201,16 @@ CREATE TABLE "ReservedVmBillingPeriod" (
       "status" = 'STOP_REQUIRED'
       AND "graceEndsAt" IS NOT NULL
       AND "stopRequestedAt" IS NOT NULL
-      AND "leaseOwner" IS NULL
-      AND "leaseExpiresAt" IS NULL
+      AND (
+        ("leaseOwner" IS NULL AND "leaseExpiresAt" IS NULL)
+        OR ("leaseOwner" IS NOT NULL AND "leaseExpiresAt" IS NOT NULL)
+      )
     )
     OR "status" = 'CANCELED'
   ),
   CONSTRAINT "ReservedVmBillingPeriod_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "Project"("id") ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT "ReservedVmBillingPeriod_deploymentId_fkey" FOREIGN KEY ("deploymentId") REFERENCES "Deployment"("id") ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT "ReservedVmBillingPeriod_actorUserId_fkey" FOREIGN KEY ("actorUserId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE,
   CONSTRAINT "ReservedVmBillingPeriod_billingReservationId_fkey" FOREIGN KEY ("billingReservationId") REFERENCES "LedgerReservation"("id") ON DELETE RESTRICT ON UPDATE CASCADE
 );
 
@@ -202,5 +222,7 @@ CREATE INDEX "ReservedVmBillingPeriod_status_leaseExpiresAt_idx"
   ON "ReservedVmBillingPeriod"("status", "leaseExpiresAt");
 CREATE INDEX "ReservedVmBillingPeriod_organizationId_status_idx"
   ON "ReservedVmBillingPeriod"("organizationId", "status");
+CREATE INDEX "ReservedVmBillingPeriod_actorUserId_status_idx"
+  ON "ReservedVmBillingPeriod"("actorUserId", "status");
 CREATE INDEX "ReservedVmBillingPeriod_deploymentId_status_idx"
   ON "ReservedVmBillingPeriod"("deploymentId", "status");
