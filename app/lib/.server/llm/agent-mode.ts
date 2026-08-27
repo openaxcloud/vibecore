@@ -239,11 +239,36 @@ export async function decideTaskHardness(input: {
   apiKeys?: Record<string, string>;
   providerSettings?: Record<string, unknown>;
   serverEnv?: Record<string, string>;
+  classifierReplay?: { state: 'exact' | 'recovered'; outcome?: 'hard' | 'easy' };
+  onClassifierStart?: (intent: {
+    callId: 'classifier';
+    provider: string;
+    model: string;
+    maxInputTokens: number;
+    maxOutputTokens: number;
+  }) => Promise<void>;
 }): Promise<HardnessDecision> {
   const taskClass = classifyTask(input.task);
   const heuristicHard = taskClass === 'build' || taskClass === 'scaffold';
 
   if (!heuristicHard || !input.classifier) {
+    return { hard: heuristicHard, decidedBy: 'heuristic', taskClass };
+  }
+
+  if (input.classifierReplay) {
+    if (input.classifierReplay.state === 'exact' && input.classifierReplay.outcome) {
+      return {
+        hard: input.classifierReplay.outcome === 'hard',
+        decidedBy: 'llm',
+        taskClass,
+      };
+    }
+
+    /*
+     * A crash-recovered ceiling proves a provider call happened but cannot
+     * reconstruct its verdict; reuse the pre-provider heuristic without
+     * charging or invoking the classifier twice.
+     */
     return { hard: heuristicHard, decidedBy: 'heuristic', taskClass };
   }
 
@@ -253,6 +278,29 @@ export async function decideTaskHardness(input: {
       requestedModel: input.classifier.model,
       apiKeys: input.apiKeys,
       serverEnv: input.serverEnv,
+    });
+
+    const system =
+      'You classify coding tasks by difficulty for model routing. Answer with EXACTLY one word: ' +
+      '"hard" when the task needs deep multi-step reasoning (new app from scratch, architecture change, ' +
+      'new integration, database schema change, large refactor), otherwise "easy". No other output.';
+
+    const prompt = input.lastUserMessage.slice(0, 4000);
+    const actualProvider = resolved.provider.name;
+    const maxOutputTokens = 8;
+
+    /*
+     * Persist the platform-cost intent before the classifier can reach the
+     * provider. Four UTF-16 code units per token is a typical estimate; divide
+     * by three here to keep the crash-recovery ceiling deliberately
+     * conservative without trusting caller-supplied usage.
+     */
+    await input.onClassifierStart?.({
+      callId: 'classifier',
+      provider: actualProvider,
+      model: resolved.model,
+      maxInputTokens: Math.ceil((system.length + prompt.length) / 3),
+      maxOutputTokens,
     });
 
     const response = await generateText({
@@ -266,12 +314,9 @@ export async function decideTaskHardness(input: {
         resolved.model,
         resolved.provider.name,
       ),
-      system:
-        'You classify coding tasks by difficulty for model routing. Answer with EXACTLY one word: ' +
-        '"hard" when the task needs deep multi-step reasoning (new app from scratch, architecture change, ' +
-        'new integration, database schema change, large refactor), otherwise "easy". No other output.',
-      prompt: input.lastUserMessage.slice(0, 4000),
-      maxTokens: 8,
+      system,
+      prompt,
+      maxTokens: maxOutputTokens,
     });
 
     const verdict = response.text.trim().toLowerCase();
@@ -282,7 +327,7 @@ export async function decideTaskHardness(input: {
       decidedBy: 'llm',
       taskClass,
       classifierUsage: {
-        provider: input.classifier.provider,
+        provider: actualProvider,
         model: resolved.model,
         inputTokens: response.usage?.promptTokens ?? 0,
         outputTokens: response.usage?.completionTokens ?? 0,

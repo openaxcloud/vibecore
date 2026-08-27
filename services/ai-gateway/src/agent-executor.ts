@@ -14,7 +14,17 @@ import { summarizeRunTokenUsage, type LaneTokenUsage } from './token-usage.js';
 
 export type { AgentRunPersistence } from './agent-run-persistence.js';
 
-export type AgentRoleId = 'architect' | 'frontend' | 'backend' | 'devops' | 'qa';
+export type AgentRoleId =
+  | 'architect'
+  | 'frontend'
+  | 'backend'
+  | 'database'
+  | 'security'
+  | 'devops'
+  | 'performance'
+  | 'accessibility'
+  | 'qa'
+  | 'reviewer';
 
 export interface AgentRunRole {
   id: AgentRoleId;
@@ -72,16 +82,47 @@ export interface AgentRunResult {
   files?: string[];
   risks?: string[];
   verification?: string[];
+  /**
+   * Provider-authoritative usage for this paid specialist call. Failed lanes may
+   * omit it when the provider never returned a terminal usage frame.
+   */
+  usage?: AgentProviderCallUsage;
 }
+
+export interface AgentProviderCallUsage extends LaneTokenUsage {
+  callId: string;
+  kind: 'agent-lane';
+  roleId: AgentRoleId;
+  provider: string;
+  model: string;
+  /** True only when a broken provider stream forced a local token estimate. */
+  estimated: boolean;
+}
+
+export type AgentRunUsage = ReturnType<typeof summarizeRunTokenUsage> & {
+  calls: AgentProviderCallUsage[];
+};
 
 export interface AgentRunResponse {
   runId: string;
   status: 'complete' | 'partial' | 'failed';
   results: AgentRunResult[];
   consensus: ConsensusOutput;
+  usage: AgentRunUsage;
 }
 
-const roleIds = new Set<AgentRoleId>(['architect', 'frontend', 'backend', 'devops', 'qa']);
+const roleIds = new Set<AgentRoleId>([
+  'architect',
+  'frontend',
+  'backend',
+  'database',
+  'security',
+  'devops',
+  'performance',
+  'accessibility',
+  'qa',
+  'reviewer',
+]);
 const maxAgentRoles = roleIds.size;
 const maxAgentMessages = 30;
 const maxAgentInputCharacters = 200_000;
@@ -533,6 +574,13 @@ function aggregateStatus(results: AgentRunResult[]): AgentRunResponse['status'] 
   return 'partial';
 }
 
+function summarizeAgentRunUsage(calls: AgentProviderCallUsage[], sharedContextTokens: number): AgentRunUsage {
+  return {
+    ...summarizeRunTokenUsage(calls, sharedContextTokens),
+    calls,
+  };
+}
+
 export async function executeAgentRun(input: {
   gateway: AiGateway;
   request: AgentRunRequest;
@@ -543,7 +591,7 @@ export async function executeAgentRun(input: {
   const startedAt = new Date();
 
   const laneOutputs = await Promise.all(
-    input.request.roles.map(async (role): Promise<{ result: AgentRunResult; usage?: LaneTokenUsage }> => {
+    input.request.roles.map(async (role): Promise<{ result: AgentRunResult; usage?: AgentProviderCallUsage }> => {
       try {
         const completion = await input.gateway.complete(
           {
@@ -566,9 +614,21 @@ export async function executeAgentRun(input: {
           input.signal,
         );
 
+        const usage: AgentProviderCallUsage = {
+          callId: `agent:${runId}:${role.id}`,
+          kind: 'agent-lane',
+          roleId: role.id,
+          provider: completion.provider,
+          model: completion.model,
+          inputTokens: completion.usage.inputTokens,
+          outputTokens: completion.usage.outputTokens,
+          estimatedCostCents: completion.usage.estimatedCostCents,
+          estimated: false,
+        };
+
         return {
-          result: normalizeAgentOutput(role.id, completion.content, input.request.locale),
-          usage: completion.usage,
+          result: { ...normalizeAgentOutput(role.id, completion.content, input.request.locale), usage },
+          usage,
         };
       } catch (error) {
         return {
@@ -591,19 +651,19 @@ export async function executeAgentRun(input: {
    * The algorithmic consensus below spends NO tokens (no model call). Log-only —
    * never throws.
    */
-  try {
-    const sharedContextTokens = countTokens(input.request.messages);
-    const tokenUsage = summarizeRunTokenUsage(
-      laneOutputs.map((output) => output.usage),
-      sharedContextTokens,
-    );
+  const sharedContextTokens = countTokens(input.request.messages);
+  const usage = summarizeAgentRunUsage(
+    laneOutputs.flatMap((output) => (output.usage ? [output.usage] : [])),
+    sharedContextTokens,
+  );
 
+  try {
     console.info('[agent-executor] token usage', {
       runId,
       model: input.request.model,
       provider: input.request.provider,
       roles: input.request.roles.length,
-      ...tokenUsage,
+      ...usage,
     });
   } catch (error) {
     console.warn('[agent-executor] token usage logging failed', error);
@@ -627,7 +687,7 @@ export async function executeAgentRun(input: {
     threshold: input.request.consensusThreshold,
   });
 
-  const response: AgentRunResponse = { runId, status, results, consensus };
+  const response: AgentRunResponse = { runId, status, results, consensus, usage };
 
   /*
    * Skip persistence only for a run that BOTH was aborted AND didn't complete:
@@ -651,6 +711,7 @@ export async function executeAgentRun(input: {
           plan: input.request.plan,
           provider: input.request.provider,
           model: input.request.model,
+          usage,
         },
       });
     } catch (error) {
@@ -676,6 +737,7 @@ export type AgentRunStreamEvent =
       status: AgentRunResponse['status'];
       results: AgentRunResult[];
       consensus: ConsensusOutput;
+      usage: AgentRunUsage;
     };
 
 /**
@@ -736,6 +798,17 @@ export async function* executeAgentRunStream(input: {
   for (const role of roles) {
     void (async () => {
       let content = '';
+      let terminalUsage:
+        | {
+            provider: string;
+            model: string;
+            inputTokens: number;
+            outputTokens: number;
+            estimatedCostCents: number;
+          }
+        | undefined;
+      let observedProvider: string | undefined;
+      let observedModel: string | undefined;
 
       try {
         for await (const chunk of input.gateway.stream(
@@ -755,20 +828,70 @@ export async function* executeAgentRunStream(input: {
         )) {
           if (chunk.type === 'delta' && chunk.content) {
             content += chunk.content;
+            observedProvider = chunk.provider ?? observedProvider;
+            observedModel = chunk.model ?? observedModel;
             emit({ type: 'lane-delta', roleId: role.id, content: chunk.content });
           } else if (chunk.type === 'error') {
+            observedProvider = chunk.provider ?? observedProvider;
+            observedModel = chunk.model ?? observedModel;
             throw new Error(chunk.error ?? aiGatewayMessage('subagentStreamError', input.request.locale));
+          } else if (chunk.type === 'done' && chunk.usage && chunk.provider && chunk.model) {
+            terminalUsage = {
+              provider: chunk.provider,
+              model: chunk.model,
+              inputTokens: chunk.usage.inputTokens,
+              outputTokens: chunk.usage.outputTokens,
+              estimatedCostCents: chunk.usage.estimatedCostCents,
+            };
           }
         }
 
-        const result = normalizeAgentOutput(role.id, content, input.request.locale);
+        const fallbackProvider = observedProvider ?? input.request.provider;
+        const fallbackModel = observedModel ?? input.request.model;
+        const usage: AgentProviderCallUsage | undefined = terminalUsage
+          ? {
+              callId: `agent:${runId}:${role.id}`,
+              kind: 'agent-lane',
+              roleId: role.id,
+              ...terminalUsage,
+              estimated: false,
+            }
+          : fallbackProvider && fallbackModel
+            ? {
+                callId: `agent:${runId}:${role.id}`,
+                kind: 'agent-lane',
+                roleId: role.id,
+                provider: fallbackProvider,
+                model: fallbackModel,
+                inputTokens: countTokens(buildRoleMessages(input.request, role)),
+                outputTokens: countTokens([{ role: 'assistant', content }]),
+                estimatedCostCents: 0,
+                estimated: true,
+              }
+            : undefined;
+        const result = { ...normalizeAgentOutput(role.id, content, input.request.locale), ...(usage ? { usage } : {}) };
         results.push(result);
         emit({ type: 'lane-done', roleId: role.id, result });
       } catch (error) {
+        const usage: AgentProviderCallUsage | undefined =
+          content && observedProvider && observedModel
+            ? {
+                callId: `agent:${runId}:${role.id}`,
+                kind: 'agent-lane',
+                roleId: role.id,
+                provider: observedProvider,
+                model: observedModel,
+                inputTokens: countTokens(buildRoleMessages(input.request, role)),
+                outputTokens: countTokens([{ role: 'assistant', content }]),
+                estimatedCostCents: 0,
+                estimated: true,
+              }
+            : undefined;
         const result: AgentRunResult = {
           roleId: role.id,
           status: 'failed',
           summary: localizedAiGatewayError(error, input.request.locale ?? 'en', 'agentExecutionFailed'),
+          ...(usage ? { usage } : {}),
         };
         results.push(result);
         emit({ type: 'lane-done', roleId: role.id, result });
@@ -826,7 +949,11 @@ export async function* executeAgentRunStream(input: {
     locale: input.request.locale,
     threshold: input.request.consensusThreshold,
   });
-  const response: AgentRunResponse = { runId, status, results: ordered, consensus };
+  const usage = summarizeAgentRunUsage(
+    ordered.flatMap((result) => (result.usage ? [result.usage] : [])),
+    countTokens(input.request.messages),
+  );
+  const response: AgentRunResponse = { runId, status, results: ordered, consensus, usage };
 
   if (input.persistence && (status !== 'failed' || !input.signal?.aborted)) {
     try {
@@ -841,6 +968,7 @@ export async function* executeAgentRunStream(input: {
           plan: input.request.plan,
           provider: input.request.provider,
           model: input.request.model,
+          usage,
         },
       });
     } catch (error) {
@@ -848,5 +976,5 @@ export async function* executeAgentRunStream(input: {
     }
   }
 
-  yield { type: 'run-done', runId, status, results: ordered, consensus };
+  yield { type: 'run-done', runId, status, results: ordered, consensus, usage };
 }

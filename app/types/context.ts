@@ -1,3 +1,15 @@
+export type AgentRoleId =
+  | 'architect'
+  | 'frontend'
+  | 'backend'
+  | 'database'
+  | 'security'
+  | 'devops'
+  | 'performance'
+  | 'accessibility'
+  | 'qa'
+  | 'reviewer';
+
 export type ContextAnnotation =
   | {
       type: 'codeContext';
@@ -13,7 +25,7 @@ export type ContextAnnotation =
       mode: 'parallel-subagents' | 'single-model-lanes';
       reason: string;
       roles: Array<{
-        id: 'architect' | 'frontend' | 'backend' | 'devops' | 'qa';
+        id: AgentRoleId;
         title: string;
         responsibility: string;
       }>;
@@ -23,7 +35,7 @@ export type ContextAnnotation =
       runId: string;
       status: 'complete' | 'partial' | 'failed';
       results: Array<{
-        roleId: 'architect' | 'frontend' | 'backend' | 'devops' | 'qa';
+        roleId: AgentRoleId;
         status: 'complete' | 'partial' | 'failed';
         summary: string;
         files?: string[];
@@ -40,15 +52,15 @@ export type ContextAnnotation =
         claimVotes: Array<{
           claim: string;
           type: 'risk' | 'verification' | 'file';
-          supporters: Array<'architect' | 'frontend' | 'backend' | 'devops' | 'qa'>;
-          dissenters: Array<'architect' | 'frontend' | 'backend' | 'devops' | 'qa'>;
+          supporters: AgentRoleId[];
+          dissenters: AgentRoleId[];
           agreementRatio: number;
           decision: 'accepted' | 'rejected' | 'inconclusive';
         }>;
         conflicts: Array<{
           type: 'file-overlap' | 'risk-disagreement' | 'verification-gap' | 'role-failure';
           description: string;
-          involvedRoles: Array<'architect' | 'frontend' | 'backend' | 'devops' | 'qa'>;
+          involvedRoles: AgentRoleId[];
           severity: 'low' | 'medium' | 'high';
         }>;
       };
@@ -63,7 +75,7 @@ export type ContextAnnotation =
       needsApproval?: boolean;
       tasks: Array<{
         title: string;
-        roleId: 'architect' | 'frontend' | 'backend' | 'devops' | 'qa';
+        roleId: AgentRoleId;
       }>;
     }
   | {
@@ -87,19 +99,19 @@ export type ContextAnnotation =
   | {
       type: 'agentLaneStream';
       kind: 'start';
-      roleId: 'architect' | 'frontend' | 'backend' | 'devops' | 'qa';
+      roleId: AgentRoleId;
       title: string;
     }
   | {
       type: 'agentLaneStream';
       kind: 'delta';
-      roleId: 'architect' | 'frontend' | 'backend' | 'devops' | 'qa';
+      roleId: AgentRoleId;
       text: string;
     }
   | {
       type: 'agentLaneStream';
       kind: 'done';
-      roleId: 'architect' | 'frontend' | 'backend' | 'devops' | 'qa';
+      roleId: AgentRoleId;
       status: 'complete' | 'partial' | 'failed';
       summary: string;
     };

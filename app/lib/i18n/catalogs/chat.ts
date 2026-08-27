@@ -1187,6 +1187,11 @@ export const chatEn = {
   'chat.copy.projectTimeline_307c9b37': 'Project timeline',
   'chat.copy.publishYourApp_84e20c23': 'Publish your app',
   'chat.copy.qa_d851aefa': 'QA',
+  'chat.copy.databaseLane_65830b36': 'Database',
+  'chat.copy.securityLane_cbdf9862': 'Security',
+  'chat.copy.performanceLane_65f03aba': 'Performance',
+  'chat.copy.accessibilityLane_f062cddb': 'Accessibility',
+  'chat.copy.reviewerLane_704bd6aa': 'Reviewer',
   'chat.copy.quorum_fdaafe2d': 'Quorum',
   'chat.copy.readAndCreateTheSupportTickets_edcf0535':
     'Read and create the support tickets and customer records you authorize',
@@ -2803,6 +2808,11 @@ export const chatFr = {
   'chat.copy.projectTimeline_307c9b37': 'Chronologie du projet',
   'chat.copy.publishYourApp_84e20c23': 'Publiez votre application',
   'chat.copy.qa_d851aefa': 'QA',
+  'chat.copy.databaseLane_65830b36': 'Base de données',
+  'chat.copy.securityLane_cbdf9862': 'Sécurité',
+  'chat.copy.performanceLane_65f03aba': 'Performance',
+  'chat.copy.accessibilityLane_f062cddb': 'Accessibilité',
+  'chat.copy.reviewerLane_704bd6aa': 'Révision',
   'chat.copy.quorum_fdaafe2d': 'Quorum',
   'chat.copy.readAndCreateTheSupportTickets_edcf0535':
     "Lisez et créez les tickets d'assistance et les enregistrements clients que vous autorisez",

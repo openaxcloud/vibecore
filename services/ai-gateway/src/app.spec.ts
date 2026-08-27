@@ -145,8 +145,18 @@ describe('AI gateway app', () => {
 
   it('streams valid agent runs as SSE with rate-limit headers', async () => {
     const stream = vi.fn(async function* () {
-      yield { type: 'delta' as const, content: '{"summary":"streamed architect complete"}' };
-      yield { type: 'done' as const };
+      yield {
+        type: 'delta' as const,
+        content: '{"summary":"streamed architect complete"}',
+        provider: 'openai' as const,
+        model: 'gpt-4.1-mini',
+      };
+      yield {
+        type: 'done' as const,
+        provider: 'openai' as const,
+        model: 'gpt-4.1-mini',
+        usage: { inputTokens: 17, outputTokens: 9, estimatedCostCents: 1 },
+      };
     });
     const app = await buildAiGatewayApp({
       gateway: { ...fakeGateway(), stream } as unknown as AiGateway,
@@ -176,6 +186,13 @@ describe('AI gateway app', () => {
       type: 'run-done',
       status: 'complete',
       results: [{ roleId: 'architect', summary: 'streamed architect complete' }],
+      usage: {
+        laneCount: 1,
+        inputTokens: 17,
+        outputTokens: 9,
+        totalTokens: 26,
+        calls: [expect.objectContaining({ provider: 'openai', model: 'gpt-4.1-mini', estimated: false })],
+      },
     });
 
     await app.close();

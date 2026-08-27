@@ -8,8 +8,10 @@ import {
   fingerprintPrompt,
   getCompletionTokenLimit,
   isModelRoutingDisabled,
+  probeStreamProvider,
   resolveStreamMaxRetries,
   resolveTurnModel,
+  startProviderStream,
 } from './stream-text';
 import { DEFAULT_MODEL } from '~/utils/constants';
 
@@ -70,6 +72,55 @@ describe('resolveStreamMaxRetries', () => {
     expect(resolveStreamMaxRetries({ STREAM_MAX_RETRIES: 'abc' })).toBe(DEFAULT_STREAM_MAX_RETRIES);
     expect(resolveStreamMaxRetries({ STREAM_MAX_RETRIES: '-3' })).toBe(DEFAULT_STREAM_MAX_RETRIES);
     expect(resolveStreamMaxRetries({})).toBe(DEFAULT_STREAM_MAX_RETRIES);
+  });
+});
+
+describe('startProviderStream', () => {
+  it('does not run the unreceipted health probe for a canonical managed stream', async () => {
+    const probe = vi.fn(async () => undefined);
+
+    await probeStreamProvider({ skipProviderProbe: true, probe });
+
+    expect(probe).not.toHaveBeenCalled();
+  });
+
+  it('preserves the health probe for non-canonical callers', async () => {
+    const probe = vi.fn(async () => undefined);
+
+    await probeStreamProvider({ probe });
+
+    expect(probe).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not start the provider when the durable billing latch fails', async () => {
+    const provider = vi.fn();
+
+    await expect(
+      startProviderStream({
+        onProviderStart: async () => {
+          throw new Error('durable latch unavailable');
+        },
+        stream: provider,
+      }),
+    ).rejects.toThrow('durable latch unavailable');
+    expect(provider).not.toHaveBeenCalled();
+  });
+
+  it('starts exactly once and only after the durable latch resolves', async () => {
+    const order: string[] = [];
+
+    const result = await startProviderStream({
+      onProviderStart: async () => {
+        order.push('started');
+      },
+      stream: () => {
+        order.push('provider');
+        return 'stream';
+      },
+    });
+
+    expect(result).toBe('stream');
+    expect(order).toEqual(['started', 'provider']);
   });
 });
 

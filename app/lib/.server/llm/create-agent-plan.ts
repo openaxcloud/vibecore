@@ -24,6 +24,77 @@ export interface AgentPlan {
 
   /** Distinct specialist roles actually needed for this request (the fan-out roster). */
   roleIds: AgentRoleId[];
+
+  /** Paid provider call that produced this decomposition. Kept server-side. */
+  usage?: AgentPlannerUsage;
+}
+
+export interface AgentPlannerUsage {
+  callId: 'planner';
+  kind: 'planner';
+  provider: string;
+  model: string;
+  inputTokens: number;
+  outputTokens: number;
+}
+
+export function buildAgentPlannerUsage(input: {
+  provider: string;
+  model: string;
+  usage?: { promptTokens?: number; completionTokens?: number };
+}): AgentPlannerUsage {
+  const safeTokens = (value: number | undefined) =>
+    typeof value === 'number' && Number.isFinite(value) ? Math.max(0, Math.trunc(value)) : 0;
+
+  return {
+    callId: 'planner',
+    kind: 'planner',
+    provider: input.provider,
+    model: input.model,
+    inputTokens: safeTokens(input.usage?.promptTokens),
+    outputTokens: safeTokens(input.usage?.completionTokens),
+  };
+}
+
+/**
+ * Finalize a paid planner response before returning to the orchestration layer.
+ * Usage is emitted first so an invalid JSON payload cannot erase a provider call
+ * that already consumed tokens.
+ */
+export function finalizeAgentPlannerResponse(input: {
+  text: string;
+  provider: string;
+  model: string;
+  usage?: { promptTokens?: number; completionTokens?: number };
+  roleCap: number;
+  onUsage?: (usage: AgentPlannerUsage) => void;
+}): AgentPlan | undefined {
+  const plannerUsage = buildAgentPlannerUsage(input);
+
+  try {
+    input.onUsage?.(plannerUsage);
+  } catch (error) {
+    // Accounting observers cannot turn a usable provider response into a failed plan.
+    logger.warn(`Agent planner usage collector failed: ${error instanceof Error ? error.message : error}`);
+  }
+
+  const plan = parseAgentPlan(input.text);
+
+  if (!plan) {
+    return undefined;
+  }
+
+  if (plan.roleIds.length > input.roleCap) {
+    const allowed = new Set(plan.roleIds.slice(0, input.roleCap));
+
+    return {
+      roleIds: plan.roleIds.slice(0, input.roleCap),
+      tasks: plan.tasks.filter((task) => allowed.has(task.roleId)),
+      usage: plannerUsage,
+    };
+  }
+
+  return { ...plan, usage: plannerUsage };
 }
 
 const VALID_ROLE_IDS = new Set<AgentRoleId>(ECODE_AGENT_ROLES.map((role) => role.id));
@@ -160,8 +231,26 @@ export async function createAgentPlan(props: {
    * construire, elle, doit être en français.
    */
   language?: string;
+
+  /**
+   * Receives usage even when the model output cannot be parsed into a plan. This
+   * closes the otherwise-unbillable "provider succeeded, planner JSON invalid"
+   * path while preserving createAgentPlan's fail-open return contract.
+   */
+  onUsage?: (usage: AgentPlannerUsage) => void;
+  onProviderStart?: () => Promise<void>;
 }): Promise<AgentPlan | undefined> {
-  const { messages, env: serverEnv, apiKeys, providerSettings, abortSignal, maxRoles, language } = props;
+  const {
+    messages,
+    env: serverEnv,
+    apiKeys,
+    providerSettings,
+    abortSignal,
+    maxRoles,
+    language,
+    onUsage,
+    onProviderStart,
+  } = props;
 
   const lastUser = [...messages].reverse().find((message) => message.role === 'user');
 
@@ -250,6 +339,8 @@ export async function createAgentPlan(props: {
 
     const roleCap = Math.max(1, Math.min(maxRoles ?? ECODE_AGENT_ROLES.length, ECODE_AGENT_ROLES.length));
 
+    await onProviderStart?.();
+
     const resp = await generateText({
       system: `You are the planning layer of an autonomous coding agent. Given a build request, decompose it into the specialist sub-tasks needed to deliver it, and assign each sub-task to ONE specialist role.
 
@@ -280,21 +371,18 @@ ${buildPlanLanguageRule(language)}- Output STRICT JSON only, no prose, no code f
       ...(abortSignal ? { abortSignal } : {}),
     });
 
-    const plan = parseAgentPlan(resp.text);
+    const plan = finalizeAgentPlannerResponse({
+      text: resp.text,
+      provider: resolvedProvider.name,
+      model: modelDetails.name,
+      usage: resp.usage,
+      roleCap,
+      onUsage,
+    });
 
     if (!plan) {
       logger.warn('Agent planner returned no usable plan; falling back to full roster.');
       return undefined;
-    }
-
-    // Respect the role cap (entitlement / power tier) on the produced roster.
-    if (plan.roleIds.length > roleCap) {
-      const allowed = new Set(plan.roleIds.slice(0, roleCap));
-
-      return {
-        roleIds: plan.roleIds.slice(0, roleCap),
-        tasks: plan.tasks.filter((task) => allowed.has(task.roleId)),
-      };
     }
 
     return plan;

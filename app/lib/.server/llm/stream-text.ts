@@ -64,6 +64,29 @@ export interface StreamingOptions extends Omit<Parameters<typeof _streamText>[0]
   };
 }
 
+/**
+ * Keep the durable billing latch at the last possible boundary before the
+ * provider call. A rejected latch must guarantee that no provider request was
+ * started.
+ */
+export async function startProviderStream<T>(input: {
+  onProviderStart?: () => Promise<void>;
+  stream: () => T;
+}): Promise<Awaited<T>> {
+  await input.onProviderStart?.();
+  return await input.stream();
+}
+
+/** Testable policy seam for managed runs that must not emit an unreceipted probe. */
+export async function probeStreamProvider(input: {
+  skipProviderProbe?: boolean;
+  probe: () => Promise<void>;
+}): Promise<void> {
+  if (!input.skipProviderProbe) {
+    await input.probe();
+  }
+}
+
 const logger = createScopedLogger('stream-text');
 
 /**
@@ -332,6 +355,16 @@ export async function streamText(props: {
    */
   onModelDecision?: (decidedModel: string, decidedProvider: string) => void;
 
+  /**
+   * Canonical managed runs cannot execute the one-token health probe because
+   * that provider effect has no durable usage receipt. Their caller sets this
+   * flag and relies on the normal provider fallback after the real call.
+   */
+  skipProviderProbe?: boolean;
+
+  /** Durable user-spend latch, invoked immediately before the real stream. */
+  onProviderStart?: () => Promise<void>;
+
   /*
    * AGM mode routing: when the chat route resolved a mode (Lite/Economy/Power
    * + switches) against the api's routing card, the concrete provider+model
@@ -452,12 +485,16 @@ export async function streamText(props: {
    * les cinq minutes ; un échec qui ne désigne pas le fournisseur (prompt,
    * abandon client) ne déclenche aucune bascule.
    */
-  await ensureProviderProbed({
-    provider: resolved.provider,
-    model: resolved.model,
-    apiKeys,
-    serverEnv: effectiveServerEnv as Record<string, string> | undefined,
-    abortSignal,
+  await probeStreamProvider({
+    skipProviderProbe: props.skipProviderProbe,
+    probe: () =>
+      ensureProviderProbed({
+        provider: resolved.provider,
+        model: resolved.model,
+        apiKeys,
+        serverEnv: effectiveServerEnv as Record<string, string> | undefined,
+        abortSignal,
+      }),
   });
 
   const runtimeChoice = resolveRuntimeProvider({
@@ -968,5 +1005,8 @@ ${props.summary}
     }),
   );
 
-  return await _streamText(streamParams);
+  return startProviderStream({
+    onProviderStart: props.onProviderStart,
+    stream: () => _streamText(streamParams),
+  });
 }
