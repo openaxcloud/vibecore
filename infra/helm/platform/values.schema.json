@@ -16,14 +16,34 @@
         },
         "runtime": {
           "type": "object",
-          "required": ["serverDeployRollbackFromDigest"],
+          "required": ["serverDeployRollbackFromDigest", "reservedVmEnabled", "reservedVmPayloadEncryptionKeyId"],
           "properties": {
             "serverDeployRollbackFromDigest": {
               "type": "string",
               "enum": ["0", "1"],
               "description": "D2 (approved 2026-07-17): '1' = server rollback re-deploys the retained image by digest (I-REL-1, fail-closed). '0' = explicit kill switch — the api refuses server rollbacks (409) rather than reviving the URL-copy row that re-deploys nothing. Any other value (including '' or a bare boolean) is rejected at upgrade time."
+            },
+            "reservedVmEnabled": {
+              "type": "string",
+              "enum": ["false", "true"],
+              "description": "Operator activation gate. Enabling also requires the dedicated Secret-backed payload keyring and live node-pool capability."
+            },
+            "reservedVmPayloadEncryptionKeyId": {
+              "type": "string",
+              "pattern": "^$|^[A-Za-z0-9._:-]{1,64}$",
+              "description": "Non-secret identifier for the active Reserved VM recovery-payload key. Key material stays in the Kubernetes Secret."
             }
-          }
+          },
+          "allOf": [
+            {
+              "if": { "properties": { "reservedVmEnabled": { "const": "true" } } },
+              "then": {
+                "properties": {
+                  "reservedVmPayloadEncryptionKeyId": { "minLength": 1 }
+                }
+              }
+            }
+          ]
         }
       }
     }

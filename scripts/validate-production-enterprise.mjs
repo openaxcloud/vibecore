@@ -77,19 +77,40 @@ const groups = [
   {
     id: 'google-oauth',
     label: 'Google OAuth',
-    required: ['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'GOOGLE_REDIRECT_URI', 'GOOGLE_TOKEN_URL', 'GOOGLE_USERINFO_URL'],
+    required: [
+      'GOOGLE_CLIENT_ID',
+      'GOOGLE_CLIENT_SECRET',
+      'GOOGLE_REDIRECT_URI',
+      'GOOGLE_TOKEN_URL',
+      'GOOGLE_USERINFO_URL',
+    ],
     live: [{ kind: 'well-known', url: 'https://accounts.google.com/.well-known/openid-configuration' }],
   },
   {
     id: 'github-oauth',
     label: 'GitHub OAuth',
-    required: ['GITHUB_CLIENT_ID', 'GITHUB_CLIENT_SECRET', 'GITHUB_REDIRECT_URI', 'GITHUB_TOKEN_URL', 'GITHUB_USERINFO_URL'],
+    required: [
+      'GITHUB_CLIENT_ID',
+      'GITHUB_CLIENT_SECRET',
+      'GITHUB_REDIRECT_URI',
+      'GITHUB_TOKEN_URL',
+      'GITHUB_USERINFO_URL',
+    ],
     live: [{ kind: 'head', url: 'https://github.com/login/oauth/authorize' }],
   },
   {
     id: 'entra-oidc',
     label: 'Microsoft Entra / OIDC',
-    required: ['OIDC_CLIENT_ID', 'OIDC_CLIENT_SECRET', 'OIDC_REDIRECT_URI', 'OIDC_ISSUER_URL', 'OIDC_AUTHORIZATION_URL', 'OIDC_TOKEN_URL', 'OIDC_USERINFO_URL', 'OIDC_JWKS_URL'],
+    required: [
+      'OIDC_CLIENT_ID',
+      'OIDC_CLIENT_SECRET',
+      'OIDC_REDIRECT_URI',
+      'OIDC_ISSUER_URL',
+      'OIDC_AUTHORIZATION_URL',
+      'OIDC_TOKEN_URL',
+      'OIDC_USERINFO_URL',
+      'OIDC_JWKS_URL',
+    ],
     live: [{ kind: 'oidc-issuer', env: 'OIDC_ISSUER_URL' }],
   },
   {
@@ -150,6 +171,11 @@ const groups = [
       'PREVIEW_URL_TEMPLATE',
     ],
     custom: validateRuntimeMode,
+  },
+  {
+    id: 'reserved-vm-payload-encryption',
+    label: 'Reserved VM durable payload encryption',
+    custom: validateReservedVmPayloadEncryption,
   },
   {
     id: 'stripe-catalog',
@@ -314,7 +340,9 @@ function validateRequiredAny(options, problems) {
 
   const expected = options.map((vars) => vars.join(' + ')).join(' OR ');
   problems.push(`one complete provider set is required: ${expected}`);
-  problems.push(...results.flatMap((result) => result.localProblems.map((problem) => `${result.vars.join('/')}: ${problem}`)));
+  problems.push(
+    ...results.flatMap((result) => result.localProblems.map((problem) => `${result.vars.join('/')}: ${problem}`)),
+  );
 }
 
 function configuredDeploymentProviders() {
@@ -334,7 +362,9 @@ function validateDeploymentProviders(problems) {
   const providers = configuredDeploymentProviders();
 
   if (providers.length === 0) {
-    problems.push('DEPLOYMENT_PROVIDERS_ENABLED is required and must list beta/production providers, e.g. static,vercel');
+    problems.push(
+      'DEPLOYMENT_PROVIDERS_ENABLED is required and must list beta/production providers, e.g. static,vercel',
+    );
     return;
   }
 
@@ -365,7 +395,9 @@ function validateRuntimeMode(problems) {
 
   const runtimeApiBaseUrl = requireUrl('VITE_RUNTIME_API_BASE_URL', problems);
   if (runtimeApiBaseUrl && runtimeApiBaseUrl.pathname.replace(/\/+$/, '') !== '/api/runtime') {
-    problems.push('VITE_RUNTIME_API_BASE_URL must point to the runtime API prefix, e.g. https://api.e-code.ai/api/runtime');
+    problems.push(
+      'VITE_RUNTIME_API_BASE_URL must point to the runtime API prefix, e.g. https://api.e-code.ai/api/runtime',
+    );
   }
 
   const workspaceManagerUrl = requireUrl('WORKSPACE_MANAGER_URL', problems);
@@ -391,6 +423,53 @@ function validateRuntimeMode(problems) {
 
   if (valueOf('WORKSPACE_AGENT_IMAGE')?.endsWith(':latest')) {
     problems.push('WORKSPACE_AGENT_IMAGE must be pinned and must not use :latest');
+  }
+}
+
+function validateReservedVmPayloadEncryption(problems) {
+  const enabled = valueOf('RESERVED_VM_RUNTIME_ENABLED');
+
+  if (enabled !== 'true' && enabled !== 'false') {
+    problems.push('RESERVED_VM_RUNTIME_ENABLED must be explicitly true or false');
+    return;
+  }
+
+  if (enabled === 'false') {
+    return;
+  }
+
+  const currentId = valueOf('RESERVED_VM_PAYLOAD_ENCRYPTION_KEY_ID');
+  const currentSecret = valueOf('RESERVED_VM_PAYLOAD_ENCRYPTION_KEY');
+  const previousRaw = valueOf('RESERVED_VM_PAYLOAD_DECRYPTION_KEYS_JSON');
+
+  if (!currentId || !/^[A-Za-z0-9._:-]{1,64}$/.test(currentId)) {
+    problems.push('RESERVED_VM_PAYLOAD_ENCRYPTION_KEY_ID must be a 1..64 character safe key id');
+  }
+  if (!currentSecret || currentSecret.length < 32) {
+    problems.push('RESERVED_VM_PAYLOAD_ENCRYPTION_KEY must contain at least 32 characters');
+  }
+  if (!previousRaw) {
+    problems.push('RESERVED_VM_PAYLOAD_DECRYPTION_KEYS_JSON is required (use {} before the first rotation)');
+    return;
+  }
+
+  try {
+    const parsed = JSON.parse(previousRaw);
+
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      throw new TypeError('keyring must be an object');
+    }
+
+    for (const [keyId, secret] of Object.entries(parsed)) {
+      if (!/^[A-Za-z0-9._:-]{1,64}$/.test(keyId) || typeof secret !== 'string' || secret.length < 32) {
+        throw new TypeError('invalid keyring entry');
+      }
+      if (currentId && keyId === currentId) {
+        problems.push('RESERVED_VM_PAYLOAD_DECRYPTION_KEYS_JSON must not repeat the active key id');
+      }
+    }
+  } catch {
+    problems.push('RESERVED_VM_PAYLOAD_DECRYPTION_KEYS_JSON must be a JSON object of keyId -> 32+ character secret');
   }
 }
 
@@ -572,7 +651,9 @@ async function runLiveChecks(report) {
         }
       } catch (error) {
         item.ok = false;
-        item.problems.push(`external connectivity check failed for ${group.label}: ${error instanceof Error ? error.message : String(error)}`);
+        item.problems.push(
+          `external connectivity check failed for ${group.label}: ${error instanceof Error ? error.message : String(error)}`,
+        );
       }
     }
   }
@@ -601,7 +682,9 @@ function printReport(report) {
     return;
   }
 
-  console.log(`Production enterprise validation (${strict ? 'strict' : 'report-only'}${live ? ', live checks enabled' : ''})`);
+  console.log(
+    `Production enterprise validation (${strict ? 'strict' : 'report-only'}${live ? ', live checks enabled' : ''})`,
+  );
 
   for (const group of report.groups) {
     console.log(`${group.ok ? 'OK' : 'FAIL'} ${group.label}`);
@@ -673,6 +756,10 @@ function selfTest() {
     COOKIE_SECRET: 'cookie-secret-prod-123456',
     CONFIG_ENCRYPTION_KEY: 'config-encryption-prod-123456',
     WORKSPACE_AGENT_TOKEN_SECRET: 'agent-token-prod-123456',
+    RESERVED_VM_RUNTIME_ENABLED: 'true',
+    RESERVED_VM_PAYLOAD_ENCRYPTION_KEY_ID: 'reserved-vm-2026-08',
+    RESERVED_VM_PAYLOAD_ENCRYPTION_KEY: 'reserved-vm-current-key-material-123456',
+    RESERVED_VM_PAYLOAD_DECRYPTION_KEYS_JSON: '{}',
     WORKSPACE_MANAGER_URL: 'https://workspace-manager.vibecore.com',
     WORKSPACE_RUNTIME_NAMESPACE: 'workspaces',
     WORKSPACE_AGENT_IMAGE: 'registry.company.com/vibecore/workspace-agent:sha-prod123456',
@@ -695,7 +782,8 @@ function selfTest() {
     GITHUB_DEPLOY_TOKEN: 'ghp_productiondeploytoken123456',
     GITHUB_PAGES_REPO: 'vibecore/www',
     GITHUB_PAGES_WORKFLOW: 'pages.yml',
-    CLOUD_RUN_BUILD_TRIGGER_URL: 'https://cloudbuild.googleapis.com/v1/projects/vibecore-prod/triggers/app:webhook?key=prod',
+    CLOUD_RUN_BUILD_TRIGGER_URL:
+      'https://cloudbuild.googleapis.com/v1/projects/vibecore-prod/triggers/app:webhook?key=prod',
     GCP_OAUTH_TOKEN: 'ya29.production-token-123456',
     OPENAI_API_KEY: 'sk-live-openai-prod-123456',
     OTEL_SERVICE_NAME: 'vibecore-api',
@@ -714,10 +802,19 @@ function selfTest() {
   const passing = withEnv(minimum, () => buildReport());
 
   if (!passing.ok) {
-    throw new Error(`expected complete production config to pass: ${JSON.stringify(passing.groups.filter((group) => !group.ok), null, 2)}`);
+    throw new Error(
+      `expected complete production config to pass: ${JSON.stringify(
+        passing.groups.filter((group) => !group.ok),
+        null,
+        2,
+      )}`,
+    );
   }
 
-  const failing = withEnv({ ...minimum, GOOGLE_CLIENT_SECRET: 'change-me', OIDC_ISSUER_URL: 'http://localhost:8080' }, () => buildReport());
+  const failing = withEnv(
+    { ...minimum, GOOGLE_CLIENT_SECRET: 'change-me', OIDC_ISSUER_URL: 'http://localhost:8080' },
+    () => buildReport(),
+  );
 
   if (failing.ok) {
     throw new Error('expected placeholder and local OIDC config to fail');
@@ -744,10 +841,35 @@ function selfTest() {
     throw new Error('expected production WebContainer runtime mode to fail');
   }
 
-  const failingRuntimeBase = withEnv({ ...minimum, VITE_RUNTIME_API_BASE_URL: 'https://api.vibecore.com' }, () => buildReport());
+  const failingRuntimeBase = withEnv({ ...minimum, VITE_RUNTIME_API_BASE_URL: 'https://api.vibecore.com' }, () =>
+    buildReport(),
+  );
 
   if (failingRuntimeBase.ok) {
     throw new Error('expected runtime API base URL without /api/runtime to fail');
+  }
+
+  const failingReservedVmMissing = withEnv(
+    { ...minimum, RESERVED_VM_PAYLOAD_ENCRYPTION_KEY: '', RESERVED_VM_PAYLOAD_DECRYPTION_KEYS_JSON: '' },
+    () => buildReport(),
+  );
+
+  if (failingReservedVmMissing.ok) {
+    throw new Error('expected enabled Reserved VM without its Secret-backed keyring to fail');
+  }
+
+  const failingReservedVmInvalid = withEnv(
+    {
+      ...minimum,
+      RESERVED_VM_PAYLOAD_ENCRYPTION_KEY_ID: 'invalid key id',
+      RESERVED_VM_PAYLOAD_ENCRYPTION_KEY: 'weak',
+      RESERVED_VM_PAYLOAD_DECRYPTION_KEYS_JSON: '{"old":"weak"}',
+    },
+    () => buildReport(),
+  );
+
+  if (failingReservedVmInvalid.ok) {
+    throw new Error('expected weak or malformed Reserved VM payload keys to fail');
   }
 
   const passingInternalWorkspaceManager = withEnv(

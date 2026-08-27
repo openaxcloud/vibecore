@@ -274,6 +274,12 @@ data:
   # URL-copy row that re-deploys nothing.
   SERVER_DEPLOY_ROLLBACK_FROM_DIGEST: {{ .Values.platformEnv.runtime.serverDeployRollbackFromDigest | default "1" | quote }}
 
+  # Reserved VM stays fail-closed until the operator explicitly activates the
+  # runtime. Only the public key identifier is in this ConfigMap; current and
+  # historical AES-GCM keys are Secret-sourced env vars.
+  RESERVED_VM_RUNTIME_ENABLED: {{ .Values.platformEnv.runtime.reservedVmEnabled | default "false" | quote }}
+  RESERVED_VM_PAYLOAD_ENCRYPTION_KEY_ID: {{ .Values.platformEnv.runtime.reservedVmPayloadEncryptionKeyId | default "" | quote }}
+
   {{- if .Values.platformEnv.runtime.nixStorePvc }}
   # Shared RO Nix store (candidate E) — per-project rollout gate. The api
   # threads the PVC into workspace pods AND published-app pods for the projects

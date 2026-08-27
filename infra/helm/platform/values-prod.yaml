@@ -85,6 +85,11 @@ secrets:
     # the bearer ONLY from this var — so it MUST be provisioned on every fresh/DR
     # install, not hand-patched out-of-band. Same value across api, worker, ws-mgr.
     WORKSPACE_MANAGER_SHARED_SECRET: vibecore-prod-workspace-manager-shared-secret
+    # Dedicated AES-GCM envelope keys for durable Reserved VM CREATE/REDEPLOY
+    # recovery payloads. The JSON keyring contains prior decrypt-only keys
+    # during rotation; neither value may ever be copied into a ConfigMap.
+    RESERVED_VM_PAYLOAD_ENCRYPTION_KEY: vibecore-prod-reserved-vm-payload-encryption-key
+    RESERVED_VM_PAYLOAD_DECRYPTION_KEYS_JSON: vibecore-prod-reserved-vm-payload-decryption-keyring
     # Svix-format signing secret from the Resend dashboard. Verifies POSTs
     # to /webhooks/resend (services/api/src/app.ts:5217); the route returns
     # 503 WEBHOOK_NOT_CONFIGURED until this is populated.
@@ -176,6 +181,11 @@ platformEnv:
     # Reproducible pipeline: per-project allowlist ('*' = all). Rolled out
     # project-by-project after live proof; empty = Phase-A snapshot path.
     serverDeployRevisionProjects: ''
+    # Dark by default: activation is an operator change only after node-pool
+    # capability is proven. Before flipping this flag, provision both Secret
+    # Manager entries above and set a new immutable key id here.
+    reservedVmEnabled: 'false'
+    reservedVmPayloadEncryptionKeyId: ''
     # Shared RO Nix store (candidate E) rollout gate: PVC in ns `workspaces`.
     # Resynced 2026-07-20 to the LIVE generation-2 PVC (the file said
     # `nix-store-spike-pvc` while prod ran v2 via --set — a full-values manual
