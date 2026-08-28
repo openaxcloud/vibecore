@@ -7,7 +7,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { eraseLocalAccountStorage } from '../account-local-storage-purge.js';
 import type { PurgeEffectDescriptor, PurgeLeaseContext } from '../account-purge.js';
 import { restoreStaticSnapshotInto, snapshotStaticBuild } from '../deployments.js';
-import { GitCliProvider, LocalProjectStorage } from '../project-storage.js';
+import { GitCliProvider, LocalProjectStorage, withProjectLock } from '../project-storage.js';
 import type { ProjectMutationCoordinator } from '../project-storage.js';
 
 function deferred() {
@@ -292,10 +292,11 @@ describe.sequential('account purge — disposable local filesystem proof', () =>
       if (validatedWriters.size === expectedWriters.size) allWritersValidated.resolve();
       await writerRelease.promise;
     };
-    const coordinateProjectMutation: ProjectMutationCoordinator = async (scope, effect) => {
-      await validateWriter(scope.projectId);
-      return effect();
-    };
+    const coordinateProjectMutation: ProjectMutationCoordinator = (scope, effect) =>
+      withProjectLock(scope.projectId, async () => {
+        await validateWriter(scope.projectId);
+        return effect();
+      });
 
     vi.stubEnv('PROJECT_STORAGE_DIR', projectRoot);
     vi.stubEnv('STATIC_DEPLOY_STORAGE_DIR', staticRoot);

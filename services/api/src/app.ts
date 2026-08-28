@@ -28939,8 +28939,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
               staticArtifactSummary: filesystem.staticArtifactSummary,
             },
             gcs: { bucketAbsent: true, objectCount: 0 },
-            cloudBuild: producerErasureProof.cloudBuild,
-            artifactRegistry: producerErasureProof.registry,
+            projectImages: {
+              schemaVersion: 1,
+              projectId: input.projectId,
+              operationId: lease.operationId,
+              cloudBuild: producerErasureProof.cloudBuild,
+              registry: producerErasureProof.registry,
+            },
             workspaceManager,
           },
         };
