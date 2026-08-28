@@ -97,6 +97,7 @@ describe('project settings and lifecycle transfer fences', () => {
     const fixture = await seedFixture('project-writes-stale');
     const workspace = await fixture.store.createWorkspace({
       projectId: fixture.project.id,
+      expectedOrganizationId: fixture.sourceOrganization.id,
       name: 'Stopped checkout',
       runtimeMode: 'remote',
       initialStatus: 'STOPPED',

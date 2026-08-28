@@ -290,6 +290,8 @@ describe('localized backend route families', () => {
       name: 'Deuxième projet',
       slug: 'deuxieme-projet',
     });
+    const sourceProjectManifest = await store.getLatestProjectManifest(sourceProject.id);
+    expect(sourceProjectManifest).toBeDefined();
     const sourceDeployment = await store.createDeployment({
       projectId: sourceProject.id,
       expectedOrganizationId: sourceProject.organizationId,
@@ -297,6 +299,7 @@ describe('localized backend route families', () => {
       environment: 'preview',
       status: 'READY',
       url: 'https://preview.example.test',
+      metadata: { projectManifestDigest: sourceProjectManifest!.digest },
     });
     const appLimit = await app.inject({
       method: 'POST',

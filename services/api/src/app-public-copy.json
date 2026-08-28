@@ -561,7 +561,7 @@
   },
   "PUBLISH_BADGE_REQUIRED": {
     "en": "Starter publications must display the E-Code badge.",
-    "fr": "Les publications Starter doivent afficher le badge E-Code."
+    "fr": "Les publications du forfait de démarrage doivent afficher le badge E-Code."
   },
   "PUBLISH_BADGE_LABEL": {
     "en": "Built with E-Code",
@@ -1705,7 +1705,7 @@
   },
   "ACCOUNT_PURGE_RESERVED_VM_RUNTIME_ACTIVE": {
     "en": "Account deletion is blocked while a Reserved VM runtime is active. Decommission it and remove its persistent storage before retrying.",
-    "fr": "La suppression du compte est bloquée tant qu’un runtime de VM réservée est actif. Décommissionnez-le et supprimez son stockage persistant avant de réessayer."
+    "fr": "La suppression du compte est bloquée tant qu’un environnement d’exécution de VM réservée est actif. Décommissionnez-le et supprimez son stockage persistant avant de réessayer."
   },
   "ACCOUNT_PURGE_STATE_MACHINE_TARGET_VISIBLE": {
     "en": "Account purge refused a partial state-machine target that is still visible.",
@@ -2953,7 +2953,7 @@
   },
   "ROLLBACK_MANIFEST_PIN_MISMATCH": {
     "en": "The retained release pins do not match the tenant, project, runtime or artifact.",
-    "fr": "Les références conservées ne correspondent pas au tenant, au projet, au runtime ou à l’artefact."
+    "fr": "Les références conservées ne correspondent pas à l’organisation, au projet, à l’environnement d’exécution ou à l’artefact."
   },
   "ROLLBACK_MANIFEST_KEYRING_INVALID": {
     "en": "The rollback encryption keyring is unavailable or invalid.",
@@ -2961,15 +2961,15 @@
   },
   "ROLLBACK_RUNTIME_SPEC_MISSING": {
     "en": "The retained release has no deterministic runtime specification.",
-    "fr": "La publication conservée ne possède aucune spécification de runtime déterministe."
+    "fr": "La publication conservée ne possède aucune spécification déterministe d’environnement d’exécution."
   },
   "ROLLBACK_RUNTIME_SPEC_INVALID": {
     "en": "The retained runtime specification is malformed or uses an unsupported version.",
-    "fr": "La spécification de runtime conservée est mal formée ou utilise une version non prise en charge."
+    "fr": "La spécification conservée de l’environnement d’exécution est mal formée ou utilise une version non prise en charge."
   },
   "ROLLBACK_RUNTIME_SPEC_TAMPERED": {
     "en": "The retained runtime specification failed its integrity check.",
-    "fr": "La spécification de runtime conservée a échoué à son contrôle d’intégrité."
+    "fr": "La spécification conservée de l’environnement d’exécution a échoué à son contrôle d’intégrité."
   },
   "ROLLBACK_RUNTIME_SPEC_MACHINE_INVALID": {
     "en": "The retained machine resources do not match their immutable rate card.",
@@ -2977,19 +2977,19 @@
   },
   "ROLLBACK_RUNTIME_SPEC_ENV_INVALID": {
     "en": "The retained runtime environment overrides are invalid.",
-    "fr": "Les variables d’environnement conservées pour le runtime sont invalides."
+    "fr": "Les variables conservées de l’environnement d’exécution sont invalides."
   },
   "ROLLBACK_RUNTIME_SPEC_ENV_TAMPERED": {
     "en": "The retained runtime environment reference failed its integrity check.",
-    "fr": "La référence d’environnement conservée pour le runtime a échoué à son contrôle d’intégrité."
+    "fr": "La référence conservée de l’environnement d’exécution a échoué à son contrôle d’intégrité."
   },
   "ROLLBACK_RUNTIME_SPEC_ENV_DECRYPTION_FAILED": {
     "en": "The retained runtime environment could not be decrypted.",
-    "fr": "L’environnement conservé pour le runtime n’a pas pu être déchiffré."
+    "fr": "L’environnement d’exécution conservé n’a pas pu être déchiffré."
   },
   "ROLLBACK_RUNTIME_SPEC_KEY_UNAVAILABLE": {
     "en": "The decryption key for this retained runtime is no longer available.",
-    "fr": "La clé de déchiffrement de ce runtime conservé n’est plus disponible."
+    "fr": "La clé de déchiffrement de cet environnement d’exécution conservé n’est plus disponible."
   },
   "ROLLBACK_PROMOTION_EVIDENCE_MISSING": {
     "en": "The retained release has no immutable promotion evidence.",
@@ -3029,7 +3029,7 @@
   },
   "ROLLBACK_DB_LEDGER_PIN_MISMATCH": {
     "en": "The release database mode no longer matches the effective runtime database.",
-    "fr": "Le mode de base de données de la publication ne correspond plus à la base réellement utilisée par le runtime."
+    "fr": "Le mode de base de données de la publication ne correspond plus à la base réellement utilisée par l’environnement d’exécution."
   },
   "ROLLBACK_DB_LEDGER_MISMATCH": {
     "en": "The effective database migration ledger no longer matches the retained release.",
@@ -3581,7 +3581,7 @@
   },
   "RESERVED_VM_FIELDS_REQUIRE_RESERVED_RUNTIME": {
     "en": "Reserved VM fields require the Reserved VM runtime.",
-    "fr": "Les champs de VM réservée nécessitent le runtime VM réservée."
+    "fr": "Les champs de VM réservée nécessitent l’environnement d’exécution de VM réservée."
   },
   "RESERVED_VM_SERVER_PROVIDER_REQUIRED": {
     "en": "Reserved VM requires the server deployment provider.",
@@ -3589,7 +3589,7 @@
   },
   "RESERVED_VM_RUNTIME_NOT_READY": {
     "en": "Only a ready server deployment can change runtime in place.",
-    "fr": "Seul un déploiement serveur prêt peut changer de runtime sur place."
+    "fr": "Seul un déploiement serveur prêt peut changer d’environnement d’exécution sur place."
   },
   "RESERVED_VM_AUTOSCALE_FIELDS_INVALID": {
     "en": "Autoscale cannot carry Reserved VM confirmation fields.",
@@ -3621,6 +3621,114 @@
   },
   "RESERVED_VM_ROLLBACK_UNPINNED": {
     "en": "This Reserved VM release does not pin the exact runtime configuration and secrets required for a safe rollback. Redeploy a verified revision instead.",
-    "fr": "Cette version de VM réservée ne référence pas la configuration de runtime et les secrets exacts nécessaires à une restauration sûre. Redéployez plutôt une révision vérifiée."
+    "fr": "Cette version de VM réservée ne référence pas la configuration de l’environnement d’exécution et les secrets exacts nécessaires à une restauration sûre. Redéployez plutôt une révision vérifiée."
+  },
+  "DEPLOYMENT_ACCESS_UNSUPPORTED_PROVIDER": {
+    "en": "Password protection is only available for static deployments. This deployment is served from another domain, where the password gate cannot be enforced.",
+    "fr": "La protection par mot de passe n’est disponible que pour les déploiements statiques. Ce déploiement est servi depuis un autre domaine, où la porte de mot de passe ne peut pas être appliquée."
+  },
+  "RATE_LIMIT_STORE_UNAVAILABLE_ADMIN": {
+    "en": "Rate limiting is temporarily unavailable — admin mutations are refused.",
+    "fr": "La limitation de débit est momentanément indisponible — les modifications d’administration sont refusées."
+  },
+  "RATE_LIMIT_STORE_UNAVAILABLE_REQUEST": {
+    "en": "Rate limiting is temporarily unavailable — request refused.",
+    "fr": "La limitation de débit est momentanément indisponible — requête refusée."
+  },
+  "RATE_LIMIT_STORE_UNREACHABLE_INTERNAL": {
+    "en": "The rate-limit store is unreachable — request refused (fail-closed).",
+    "fr": "Le store de limitation de débit est injoignable — requête refusée (fail-closed)."
+  },
+  "RATE_LIMIT_BACKEND_MISSING_INTERNAL": {
+    "en": "FastifyRateLimitSharedStore: no backend was provided.",
+    "fr": "FastifyRateLimitSharedStore : aucun backend fourni."
+  },
+  "RATE_LIMIT_NON_NUMERIC_COUNT_INTERNAL": {
+    "en": "The redis rate-limit returned a non-numeric count.",
+    "fr": "La limitation de débit redis a renvoyé un compteur non numérique."
+  },
+  "OBJECT_STORAGE_CAPABILITY_ISSUANCE_IN_PROGRESS": {
+    "en": "Another object-storage capability is currently being issued.",
+    "fr": "Une autre autorisation de stockage d’objets est en cours d’émission."
+  },
+  "OBJECT_STORAGE_CAPABILITY_MANUAL_RECOVERY_REQUIRED": {
+    "en": "This object-storage capability requires manual recovery.",
+    "fr": "Cette autorisation de stockage d’objets nécessite une récupération manuelle."
+  },
+  "OBJECT_STORAGE_OPERATION_IDEMPOTENCY_CONFLICT": {
+    "en": "This idempotency key belongs to a different object-storage request.",
+    "fr": "Cette clé d’idempotence appartient à une autre requête de stockage d’objets."
+  },
+  "OBJECT_STORAGE_OPERATION_INTENT_HASH_INVALID": {
+    "en": "The object-storage request identity is invalid.",
+    "fr": "L’identité de la requête de stockage d’objets est invalide."
+  },
+  "PROJECT_PERMANENT_DELETION_IN_PROGRESS": {
+    "en": "Permanent project deletion is already in progress.",
+    "fr": "La suppression définitive du projet est déjà en cours."
+  },
+  "PROJECT_PERMANENT_DELETION_MANUAL_RECOVERY": {
+    "en": "Permanent project deletion requires manual recovery.",
+    "fr": "La suppression définitive du projet nécessite une récupération manuelle."
+  },
+  "PROJECT_PERMANENT_DELETION_RECEIPT_CORRUPT": {
+    "en": "The permanent-deletion receipt is invalid.",
+    "fr": "Le reçu de suppression définitive est invalide."
+  },
+  "PROJECT_PERMANENT_DELETION_RECEIPT_MISSING": {
+    "en": "The permanent-deletion receipt is unavailable.",
+    "fr": "Le reçu de suppression définitive est indisponible."
+  },
+  "PROJECT_PERMANENT_DELETION_REQUEST_HASH_MISMATCH": {
+    "en": "The permanent-deletion request does not match its durable identity.",
+    "fr": "La demande de suppression définitive ne correspond pas à son identité durable."
+  },
+  "PROJECT_STATIC_ERASURE_ARTIFACT_REF_INVALID": {
+    "en": "A static artifact reference is invalid.",
+    "fr": "Une référence d’artefact statique est invalide."
+  },
+  "PROJECT_STATIC_ERASURE_AUTHORITY_UNAVAILABLE": {
+    "en": "Static project erasure cannot be authorized right now.",
+    "fr": "La suppression statique du projet ne peut pas être autorisée pour le moment."
+  },
+  "PROJECT_TRANSFER_OPERATION_UNAVAILABLE": {
+    "en": "The project transfer operation cannot be acquired right now.",
+    "fr": "L’opération de transfert du projet ne peut pas être acquise pour le moment."
+  },
+  "OBJECT_STORAGE_BUCKET_VERSIONING_VERIFICATION_FAILED": {
+    "en": "The object-storage bucket does not have verified versioning enabled.",
+    "fr": "La gestion des versions du conteneur de stockage d’objets n’a pas pu être vérifiée."
+  },
+  "OBJECT_STORAGE_BUCKET_NOT_PROVISIONED": {
+    "en": "The object-storage bucket is not provisioned.",
+    "fr": "Le conteneur de stockage d’objets n’est pas provisionné."
+  },
+  "OBJECT_STORAGE_BUCKET_DELETE_INCOMPLETE": {
+    "en": "The object-storage bucket deletion is incomplete.",
+    "fr": "La suppression du conteneur de stockage d’objets est incomplète."
+  },
+  "OBJECT_STORAGE_MOVE_VERIFICATION_FAILED": {
+    "en": "The object move could not be verified.",
+    "fr": "Le déplacement de l’objet n’a pas pu être vérifié."
+  },
+  "OBJECT_STORAGE_DELETE_VERIFICATION_FAILED": {
+    "en": "The object deletion could not be verified.",
+    "fr": "La suppression de l’objet n’a pas pu être vérifiée."
+  },
+  "OBJECT_STORAGE_PREFIX_DELETE_INCOMPLETE": {
+    "en": "Objects remain under the storage prefix after deletion.",
+    "fr": "Des objets subsistent sous le préfixe de stockage après la suppression."
+  },
+  "OBJECT_STORAGE_PUT_VERIFICATION_FAILED": {
+    "en": "The uploaded object could not be verified.",
+    "fr": "L’objet téléversé n’a pas pu être vérifié."
+  },
+  "OBJECT_STORAGE_CLONE_VERIFICATION_FAILED": {
+    "en": "The object-storage clone could not be verified.",
+    "fr": "La copie du stockage d’objets n’a pas pu être vérifiée."
+  },
+  "OBJECT_STORAGE_COMMAND_RECEIPT_MISMATCH": {
+    "en": "The object-storage command receipt does not match the command.",
+    "fr": "Le reçu de la commande de stockage d’objets ne correspond pas à la commande."
   }
 }

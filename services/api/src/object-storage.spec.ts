@@ -62,9 +62,9 @@ describe('persisted PUT recovery causality', () => {
       contentHash: 'sha256:stable-body',
     });
 
-    await expect(recoverPersistedObjectStorageCommand(storage, { payload })).rejects.toThrow(
-      'OBJECT_STORAGE_PUT_VERIFICATION_FAILED',
-    );
+    await expect(recoverPersistedObjectStorageCommand(storage, { payload })).rejects.toMatchObject({
+      code: 'OBJECT_STORAGE_PUT_VERIFICATION_FAILED',
+    });
   });
 
   it('certifies an overwrite only when the provider exposes a new generation', async () => {

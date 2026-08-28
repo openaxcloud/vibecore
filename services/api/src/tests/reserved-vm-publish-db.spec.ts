@@ -542,6 +542,7 @@ runDbTests('Reserved VM in-place publish — PostgreSQL release barrier', () => 
       const targetManifestDigest = projectManifestDigest(targetManifest);
       await store.createProjectManifestRevision({
         projectId: seeded.project.id,
+        expectedOrganizationId: seeded.organization.id,
         schemaVersion: targetManifest.schemaVersion,
         manifestVersion: targetManifest.manifestVersion,
         digest: targetManifestDigest,

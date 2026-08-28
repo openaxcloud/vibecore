@@ -107,8 +107,11 @@ runDbTests('project tenant-transfer mutation fences', () => {
       gate = await projectRowGate(gatePrisma, seeded.project.id);
       const transfer = storeB.transferProject({
         projectId: seeded.project.id,
+        expectedOrganizationId: seeded.organizationA.id,
         targetOrganizationId: seeded.organizationB.id,
         actorUserId: seeded.owner.id,
+        assertExternalStorageDetached: async () => undefined,
+        validateTargetAdmission: async () => undefined,
       });
       await waitForTopologyHolder(prismaA);
 
@@ -163,8 +166,9 @@ runDbTests('project tenant-transfer mutation fences', () => {
       await expect(transfer).resolves.toMatchObject({ organizationId: seeded.organizationB.id });
       const results = await staleMutationResults;
       expect(results).toHaveLength(6);
-      for (const result of results) {
-        expect(result.status).toBe('rejected');
+      const mutationNames = ['collaborator', 'share-link', 'comment', 'ide-state', 'presence', 'chat-share'] as const;
+      for (const [index, result] of results.entries()) {
+        expect(result.status, mutationNames[index]).toBe('rejected');
         if (result.status === 'rejected') {
           expect(result.reason).toMatchObject({ code: 'PROJECT_ORGANIZATION_CHANGED_DURING_MUTATION' });
         }
@@ -262,7 +266,7 @@ runDbTests('project tenant-transfer mutation fences', () => {
       });
       await storeA.updateWorkspaceGitRepositoryUrl({
         workspaceId: workspace.id,
-        expectedProjectId: seeded.project.id,
+        projectId: seeded.project.id,
         expectedOrganizationId: seeded.organizationA.id,
         gitRepositoryUrl: 'https://example.test/original.git',
       });
@@ -270,8 +274,11 @@ runDbTests('project tenant-transfer mutation fences', () => {
       await expect(
         storeB.transferProject({
           projectId: seeded.project.id,
+          expectedOrganizationId: seeded.organizationA.id,
           targetOrganizationId: seeded.organizationB.id,
           actorUserId: seeded.owner.id,
+          assertExternalStorageDetached: async () => undefined,
+          validateTargetAdmission: async () => undefined,
         }),
       ).rejects.toMatchObject({ code: 'PROJECT_TRANSFER_MANAGED_RESOURCES_ACTIVE' });
       await storeA.updateWorkspaceStatus({
@@ -296,17 +303,31 @@ runDbTests('project tenant-transfer mutation fences', () => {
       await expect(
         storeB.transferProject({
           projectId: seeded.project.id,
+          expectedOrganizationId: seeded.organizationA.id,
           targetOrganizationId: seeded.organizationB.id,
           actorUserId: seeded.owner.id,
+          assertExternalStorageDetached: async () => undefined,
+          validateTargetAdmission: async () => undefined,
         }),
       ).rejects.toMatchObject({ code: 'PROJECT_TRANSFER_MANAGED_RESOURCES_ACTIVE' });
       await prismaA.workspaceRuntime.update({ where: { id: workspace.id }, data: { status: 'DELETED' } });
+      expect(
+        await prismaA.workspace.count({
+          where: { projectId: seeded.project.id, status: { in: ['PENDING', 'STARTING', 'RUNNING'] } },
+        }),
+      ).toBe(0);
+      expect(
+        await prismaA.workspaceRuntime.count({ where: { projectId: seeded.project.id, status: { not: 'DELETED' } } }),
+      ).toBe(0);
 
       gate = await projectRowGate(gatePrisma, seeded.project.id);
       const transfer = storeB.transferProject({
         projectId: seeded.project.id,
+        expectedOrganizationId: seeded.organizationA.id,
         targetOrganizationId: seeded.organizationB.id,
         actorUserId: seeded.owner.id,
+        assertExternalStorageDetached: async () => undefined,
+        validateTargetAdmission: async () => undefined,
       });
       await waitForTopologyHolder(prismaA);
       const staleWorkspaceResults = Promise.allSettled([
@@ -325,7 +346,7 @@ runDbTests('project tenant-transfer mutation fences', () => {
         }),
         storeA.updateWorkspaceGitRepositoryUrl({
           workspaceId: workspace.id,
-          expectedProjectId: seeded.project.id,
+          projectId: seeded.project.id,
           expectedOrganizationId: seeded.organizationA.id,
           gitRepositoryUrl: 'https://example.test/stale.git',
         }),

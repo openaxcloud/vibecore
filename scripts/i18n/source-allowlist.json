@@ -734,7 +734,7 @@
       "id": "generated-app-object-storage-sdk-diagnostics",
       "path": "packages/sdk/src/object-storage.ts",
       "rule": "error-message",
-      "textPattern": "^ObjectStorageClient: (?:apiUrl is required \\(set OBJECT_STORAGE_API_URL or pass apiUrl\\)\\.|accessToken is required \\(set OBJECT_STORAGE_ACCESS_TOKEN or pass accessToken\\)\\.|projectId is required \\(set PROJECT_ID or pass projectId\\)\\.|no fetch implementation available; pass options\\.fetch\\.)$",
+      "textPattern": "^ObjectStorageClient: (?:apiUrl is required \\(set OBJECT_STORAGE_API_URL or pass apiUrl\\)\\.|accessToken is required \\(set OBJECT_STORAGE_ACCESS_TOKEN or pass accessToken\\)\\.|projectId is required \\(set PROJECT_ID or pass projectId\\)\\.|no fetch implementation available; pass options\\.fetch\\.|idempotencyKey must contain 16 to 128 safe characters\\.)$",
       "justification": "These are developer exceptions from the private generated-app SDK, containing exact constructor/environment identifiers. They are not an E-Code HTTP/DOM surface and translating the code identifiers would make remediation unsafe.",
       "owner": "sdk-platform",
       "expiresOn": "2027-08-05"
@@ -1094,7 +1094,7 @@
       "id": "object-storage-sdk-token-verification-reasons",
       "path": "packages/sdk/src/token.ts",
       "rule": "visible-object-copy",
-      "textPattern": "^(?:missing|malformed|invalid_signature|expired|project_mismatch)$",
+      "textPattern": "^(?:missing|malformed|invalid_signature|expired|project_mismatch|organization_mismatch)$",
       "justification": "These union members are object-storage HMAC verification machine outcomes. API authorization maps failure to stable localized public contracts and does not render the raw reason.",
       "owner": "sdk-platform-and-security",
       "expiresOn": "2027-08-05"

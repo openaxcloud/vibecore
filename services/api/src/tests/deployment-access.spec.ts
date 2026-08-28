@@ -186,6 +186,7 @@ describe('deployment access API', () => {
     try {
       const deployment = await store.createDeployment({
         projectId: project.id,
+        expectedOrganizationId: project.organizationId,
         provider: 'server',
         environment: 'preview',
         status: 'BUILDING',

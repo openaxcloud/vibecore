@@ -66,6 +66,9 @@ const fakeStorage = {
   async bucketExists() {
     return true;
   },
+  async bucketVersioningEnabled() {
+    return true;
+  },
   async listObjects() {
     return { objects: [{ key: 'a.txt', size: 3, updated: null, contentType: null, etag: null }], folders: ['src/'] };
   },

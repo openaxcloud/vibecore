@@ -3124,8 +3124,6 @@ export interface ApiStore {
     projectId: string;
     expectedOrganizationId: string;
     workspaceId: string;
-    expectedProjectId: string;
-    expectedOrganizationId: string;
     gitRepositoryUrl: string | null;
   }): Promise<WorkspaceRecord>;
   upsertCollaborationPresence(input: {

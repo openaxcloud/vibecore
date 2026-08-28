@@ -81,7 +81,6 @@ export interface RemixPhysicalServiceDeps {
   loadSourceSnapshot(snapshotId: string, sourceProjectId: string, sourceOrganizationId: string): Promise<ProjectFile[]>;
   /** Build the exact canonical IDE/file manifest that finalize will publish. */
   buildTargetIdeState(files: ProjectFile[]): unknown;
-  persistTargetManifest(projectId: string, files: ProjectFile[], actorUserId?: string): Promise<void>;
   recordCompleted(input: { job: RemixJobRecord; targetProject: ProjectRecord }): Promise<void>;
   warn?(context: Record<string, unknown>, message: string): void;
 }
@@ -818,7 +817,6 @@ export async function executePhysicalRemix(
         const acquisition = await deps.store.acquireClaimedRemixDatabase({
           remixJobId: current.id,
           projectId: current.targetProjectId,
-          expectedOrganizationId: current.organizationId,
           organizationId: current.organizationId,
           operationToken,
           expectedVersion: current.version,

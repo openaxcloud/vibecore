@@ -389,6 +389,7 @@ describe('server deploy reconcile-on-read (false-FAILED self-heal)', () => {
     });
     const deployment = await store.createDeployment({
       projectId,
+      expectedOrganizationId: auth.organization.id,
       provider: 'server',
       environment: 'preview',
       status: 'BUILDING',

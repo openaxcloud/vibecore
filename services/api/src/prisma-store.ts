@@ -2611,7 +2611,7 @@ function projectFromPermanentDeletionSnapshot(
     !/^[0-9a-f]{64}$/.test(snapshot.projectRecordHash) ||
     snapshot.state !== 'PERMANENTLY_DELETED'
   ) {
-    throw Object.assign(new Error('PROJECT_PERMANENT_DELETION_RECEIPT_CORRUPT'), {
+    throw Object.assign(new Error(appPublicEnglish('PROJECT_PERMANENT_DELETION_RECEIPT_CORRUPT')), {
       code: 'PROJECT_PERMANENT_DELETION_RECEIPT_CORRUPT',
       statusCode: 500,
     });
@@ -2694,18 +2694,6 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
         statusCode: 409,
       });
     }
-  }
-
-  /**
-   * Environment/database topology mutations share the release-barrier lock
-   * order and must not change the DB injected into an in-flight release.
-   */
-  private async lockExpectedProjectTenantMutation(
-    tx: Prisma.TransactionClient,
-    input: { projectId: string; expectedOrganizationId: string },
-  ): Promise<void> {
-    await this.lockProjectTenantMutation(tx, input);
-    await assertNoActiveProjectReleaseBarrier(tx, input.projectId);
   }
 
   async ping(): Promise<void> {
@@ -3236,14 +3224,14 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
         });
 
         if (claimed.kind === 'BUSY') {
-          throw Object.assign(new Error('OBJECT_STORAGE_CAPABILITY_ISSUANCE_IN_PROGRESS'), {
+          throw Object.assign(new Error(appPublicEnglish('OBJECT_STORAGE_CAPABILITY_ISSUANCE_IN_PROGRESS')), {
             code: 'OBJECT_STORAGE_CAPABILITY_ISSUANCE_IN_PROGRESS',
             statusCode: 409,
             retryAt: claimed.retryAt,
           });
         }
         if (claimed.kind === 'VERIFY_FIRST' || claimed.kind === 'MANUAL_RECOVERY') {
-          throw Object.assign(new Error('OBJECT_STORAGE_CAPABILITY_MANUAL_RECOVERY_REQUIRED'), {
+          throw Object.assign(new Error(appPublicEnglish('OBJECT_STORAGE_CAPABILITY_MANUAL_RECOVERY_REQUIRED')), {
             code: 'OBJECT_STORAGE_CAPABILITY_MANUAL_RECOVERY_REQUIRED',
             statusCode: 409,
           });
@@ -3310,7 +3298,7 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
 
       const transportIntentHash = objectStorageCloneIntentHash(input.command);
       if (input.transportIntentHash && input.transportIntentHash !== transportIntentHash) {
-        throw Object.assign(new Error('OBJECT_STORAGE_OPERATION_INTENT_HASH_INVALID'), {
+        throw Object.assign(new Error(appPublicEnglish('OBJECT_STORAGE_OPERATION_INTENT_HASH_INVALID')), {
           code: 'OBJECT_STORAGE_OPERATION_INTENT_HASH_INVALID',
           statusCode: 400,
         });
@@ -3583,7 +3571,7 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
     transportIntentHash: string;
   }): Promise<ObjectStorageCommandExecution | undefined> {
     if (!/^[0-9a-f]{64}$/.test(input.transportIntentHash)) {
-      throw Object.assign(new Error('OBJECT_STORAGE_OPERATION_INTENT_HASH_INVALID'), {
+      throw Object.assign(new Error(appPublicEnglish('OBJECT_STORAGE_OPERATION_INTENT_HASH_INVALID')), {
         code: 'OBJECT_STORAGE_OPERATION_INTENT_HASH_INVALID',
         statusCode: 400,
       });
@@ -3616,7 +3604,7 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
       if (!row) return undefined;
       const preconditions = row.preconditions as Record<string, unknown> | null;
       if (preconditions?.transportIntentHash !== input.transportIntentHash) {
-        throw Object.assign(new Error('OBJECT_STORAGE_OPERATION_IDEMPOTENCY_CONFLICT'), {
+        throw Object.assign(new Error(appPublicEnglish('OBJECT_STORAGE_OPERATION_IDEMPOTENCY_CONFLICT')), {
           code: 'OBJECT_STORAGE_OPERATION_IDEMPOTENCY_CONFLICT',
           statusCode: 409,
         });
@@ -5009,7 +4997,7 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
       select: { permanentDeletionStartedAt: true },
     });
     if (!project?.permanentDeletionStartedAt) {
-      throw Object.assign(new Error('PROJECT_STATIC_ERASURE_AUTHORITY_UNAVAILABLE'), {
+      throw Object.assign(new Error(appPublicEnglish('PROJECT_STATIC_ERASURE_AUTHORITY_UNAVAILABLE')), {
         code: 'PROJECT_STATIC_ERASURE_AUTHORITY_UNAVAILABLE',
         statusCode: 503,
       });
@@ -5072,7 +5060,7 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
     artifactRef: string,
   ): Promise<ProjectStaticArtifactAuthority | undefined> {
     if (!/^static-artifacts\/sha256\/[a-f0-9]{64}$/u.test(artifactRef)) {
-      throw Object.assign(new Error('PROJECT_STATIC_ERASURE_ARTIFACT_REF_INVALID'), {
+      throw Object.assign(new Error(appPublicEnglish('PROJECT_STATIC_ERASURE_ARTIFACT_REF_INVALID')), {
         code: 'PROJECT_STATIC_ERASURE_ARTIFACT_REF_INVALID',
         statusCode: 400,
       });
@@ -5118,7 +5106,7 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
 
     const identity = rows[0];
     if (identity && !/^[0-9a-f]{64}$/.test(identity.expectedProjectNameHash)) {
-      throw Object.assign(new Error('PROJECT_PERMANENT_DELETION_RECEIPT_CORRUPT'), {
+      throw Object.assign(new Error(appPublicEnglish('PROJECT_PERMANENT_DELETION_RECEIPT_CORRUPT')), {
         code: 'PROJECT_PERMANENT_DELETION_RECEIPT_CORRUPT',
         statusCode: 500,
       });
@@ -5168,7 +5156,7 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
     });
 
     if (requestHash !== input.requestHash) {
-      throw Object.assign(new Error('PROJECT_PERMANENT_DELETION_REQUEST_HASH_MISMATCH'), {
+      throw Object.assign(new Error(appPublicEnglish('PROJECT_PERMANENT_DELETION_REQUEST_HASH_MISMATCH')), {
         code: 'PROJECT_PERMANENT_DELETION_REQUEST_HASH_MISMATCH',
         statusCode: 409,
       });
@@ -5253,18 +5241,18 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
             idempotencyKey: input.idempotencyKey,
             requestHash: input.requestHash,
           });
-          if (!replayed) throw new Error('PROJECT_PERMANENT_DELETION_RECEIPT_MISSING');
+          if (!replayed) throw new Error(appPublicEnglish('PROJECT_PERMANENT_DELETION_RECEIPT_MISSING'));
           return replayed;
         }
         if (claimed.kind === 'BUSY') {
-          throw Object.assign(new Error('PROJECT_PERMANENT_DELETION_IN_PROGRESS'), {
+          throw Object.assign(new Error(appPublicEnglish('PROJECT_PERMANENT_DELETION_IN_PROGRESS')), {
             code: 'PROJECT_PERMANENT_DELETION_IN_PROGRESS',
             statusCode: 409,
             retryAt: claimed.retryAt,
           });
         }
         if (claimed.kind === 'MANUAL_RECOVERY') {
-          throw Object.assign(new Error('PROJECT_PERMANENT_DELETION_MANUAL_RECOVERY'), {
+          throw Object.assign(new Error(appPublicEnglish('PROJECT_PERMANENT_DELETION_MANUAL_RECOVERY')), {
             code: 'PROJECT_PERMANENT_DELETION_MANUAL_RECOVERY',
             statusCode: 409,
           });
@@ -5289,18 +5277,18 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
               idempotencyKey: input.idempotencyKey,
               requestHash: input.requestHash,
             });
-            if (!replayed) throw new Error('PROJECT_PERMANENT_DELETION_RECEIPT_MISSING');
+            if (!replayed) throw new Error(appPublicEnglish('PROJECT_PERMANENT_DELETION_RECEIPT_MISSING'));
             return replayed;
           }
           if (claimed.kind === 'BUSY') {
-            throw Object.assign(new Error('PROJECT_PERMANENT_DELETION_IN_PROGRESS'), {
+            throw Object.assign(new Error(appPublicEnglish('PROJECT_PERMANENT_DELETION_IN_PROGRESS')), {
               code: 'PROJECT_PERMANENT_DELETION_IN_PROGRESS',
               statusCode: 409,
               retryAt: claimed.retryAt,
             });
           }
           if (claimed.kind === 'MANUAL_RECOVERY') {
-            throw Object.assign(new Error('PROJECT_PERMANENT_DELETION_MANUAL_RECOVERY'), {
+            throw Object.assign(new Error(appPublicEnglish('PROJECT_PERMANENT_DELETION_MANUAL_RECOVERY')), {
               code: 'PROJECT_PERMANENT_DELETION_MANUAL_RECOVERY',
               statusCode: 409,
             });
@@ -5384,7 +5372,7 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
             });
           });
 
-          if (!replay) throw new Error('PROJECT_PERMANENT_DELETION_RECEIPT_MISSING');
+          if (!replay) throw new Error(appPublicEnglish('PROJECT_PERMANENT_DELETION_RECEIPT_MISSING'));
           return mapPermanentDeletionReplay(replay, {
             idempotencyKey: input.idempotencyKey,
             requestHash: input.requestHash,
@@ -5456,7 +5444,7 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
       );
       if (claimed.kind !== 'ACQUIRED') {
         const retryAt = claimed.kind === 'BUSY' ? claimed.retryAt : undefined;
-        throw Object.assign(new Error('PROJECT_TRANSFER_OPERATION_UNAVAILABLE'), {
+        throw Object.assign(new Error(appPublicEnglish('PROJECT_TRANSFER_OPERATION_UNAVAILABLE')), {
           code: 'PROJECT_TRANSFER_OPERATION_UNAVAILABLE',
           statusCode: 409,
           ...(retryAt ? { retryAt } : {}),
@@ -5497,6 +5485,7 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
                  * preflight through this ownership commit.
                  */
                 await assertAccountPurgeMutationAllowed(tx, { organizationIds: [input.targetOrganizationId] });
+                await lockProjectAfterPurgeTopology(tx, input.projectId);
 
                 const locked = assertFound(
                   await tx.project.findUnique({ where: { id: input.projectId } }),

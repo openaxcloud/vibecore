@@ -574,8 +574,11 @@ describe('P0-EX-07 identity collaboration', () => {
       await expect(
         store.transferProject({
           projectId,
+          expectedOrganizationId: owner.organization.id,
           targetOrganizationId: targetOwner.organization.id,
           actorUserId: owner.user.id,
+          assertExternalStorageDetached: async () => undefined,
+          validateTargetAdmission: async () => undefined,
         }),
       ).resolves.toMatchObject({ organizationId: targetOwner.organization.id });
 

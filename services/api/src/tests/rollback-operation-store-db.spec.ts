@@ -538,6 +538,7 @@ runDbTests('rollback operation — real PostgreSQL clock, lease, and release CAS
       const manifestDigest = projectManifestDigest(manifest);
       await store.createProjectManifestRevision({
         projectId: project.id,
+        expectedOrganizationId: project.organizationId,
         schemaVersion: manifest.schemaVersion,
         manifestVersion: manifest.manifestVersion,
         digest: manifestDigest,

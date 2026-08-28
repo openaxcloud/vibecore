@@ -53,6 +53,7 @@ describe('durable rollback operation — lease, fencing, and frozen target', () 
     });
     const deployment = await store.createDeployment({
       projectId: project.id,
+      expectedOrganizationId: project.organizationId,
       provider: 'static',
       environment: 'preview',
       status: 'BUILDING',

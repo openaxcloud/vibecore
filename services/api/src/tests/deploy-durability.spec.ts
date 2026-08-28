@@ -311,7 +311,7 @@ describe('internal deploy build + reap endpoints', () => {
 
   it('never exposes READY or a manifest when the atomic static append fails', async () => {
     const store = new StaticManifestAppendFailingStore();
-    const { app, auth, projectId } = await setup({
+    const { app, auth, projectId, organizationId } = await setup({
       store,
       staticBuildRunner: async (input) => {
         const root = await mkdtemp(join(tmpdir(), `vc-build-${input.projectId}-`));
@@ -323,6 +323,7 @@ describe('internal deploy build + reap endpoints', () => {
     });
     const queued = await store.createDeployment({
       projectId,
+      expectedOrganizationId: organizationId,
       provider: 'static',
       status: 'QUEUED',
       buildCommand: 'npm run build',
@@ -442,7 +443,9 @@ describe('internal deploy build + reap endpoints', () => {
   });
 
   it('runs bounded static artifact GC from the production reaper and preserves manifest references', async () => {
-    const { app, store, projectId } = await setup({ staticBuildRunner: async () => ({ ok: true, logs: [] }) });
+    const { app, store, projectId, organizationId } = await setup({
+      staticBuildRunner: async () => ({ ok: true, logs: [] }),
+    });
     const orphanDigest = 'c'.repeat(64);
     const retainedDigest = 'd'.repeat(64);
     const orphanRef = `static-artifacts/sha256/${orphanDigest}`;
@@ -459,6 +462,7 @@ describe('internal deploy build + reap endpoints', () => {
     if (!projectManifest) throw new Error('missing project manifest fixture');
     const retainedDeployment = await store.createDeployment({
       projectId,
+      expectedOrganizationId: organizationId,
       provider: 'static',
       environment: 'preview',
       status: 'READY',

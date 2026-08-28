@@ -771,9 +771,13 @@ function persistedNullableString(payload: ObjectStorageJsonObject, key: string):
   return value;
 }
 
+function objectStorageCommandError(code: Parameters<typeof appPublicEnglish>[0]): Error & { code: string } {
+  return Object.assign(new Error(appPublicEnglish(code)), { code });
+}
+
 async function assertBucketVersioningEnabled(storage: ObjectStorage, projectId: string): Promise<void> {
   if (!storage.bucketVersioningEnabled || !(await storage.bucketVersioningEnabled(projectId))) {
-    throw new Error('OBJECT_STORAGE_BUCKET_VERSIONING_VERIFICATION_FAILED');
+    throw objectStorageCommandError('OBJECT_STORAGE_BUCKET_VERSIONING_VERIFICATION_FAILED');
   }
 }
 
@@ -794,7 +798,9 @@ export async function recoverPersistedObjectStorageCommand(
 
   switch (command) {
     case 'ENSURE_BUCKET': {
-      if (!(await storage.bucketExists(projectId))) throw new Error('OBJECT_STORAGE_BUCKET_NOT_PROVISIONED');
+      if (!(await storage.bucketExists(projectId))) {
+        throw objectStorageCommandError('OBJECT_STORAGE_BUCKET_NOT_PROVISIONED');
+      }
       await assertBucketVersioningEnabled(storage, projectId);
       const bucketExistedBefore = persistedBoolean(input.payload, 'bucketExistedBefore');
       execution = {
@@ -809,7 +815,9 @@ export async function recoverPersistedObjectStorageCommand(
       break;
     }
     case 'DELETE_BUCKET': {
-      if (await storage.bucketExists(projectId)) throw new Error('OBJECT_STORAGE_BUCKET_DELETE_INCOMPLETE');
+      if (await storage.bucketExists(projectId)) {
+        throw objectStorageCommandError('OBJECT_STORAGE_BUCKET_DELETE_INCOMPLETE');
+      }
       execution = {
         type: command,
         result: {
@@ -831,7 +839,7 @@ export async function recoverPersistedObjectStorageCommand(
       const sourceObject = exactObject(source.objects, from);
       const targetObject = exactObject(target.objects, to);
       if (sourceObject || !targetObject?.generation || targetObject.contentHash !== expectedHash) {
-        throw new Error('OBJECT_STORAGE_MOVE_VERIFICATION_FAILED');
+        throw objectStorageCommandError('OBJECT_STORAGE_MOVE_VERIFICATION_FAILED');
       }
       execution = {
         type: command,
@@ -848,7 +856,9 @@ export async function recoverPersistedObjectStorageCommand(
     case 'DELETE_OBJECT': {
       const key = persistedString(input.payload, 'key');
       const listed = await storage.listObjects(projectId, { prefix: key });
-      if (exactObject(listed.objects, key)) throw new Error('OBJECT_STORAGE_DELETE_VERIFICATION_FAILED');
+      if (exactObject(listed.objects, key)) {
+        throw objectStorageCommandError('OBJECT_STORAGE_DELETE_VERIFICATION_FAILED');
+      }
       const objectExistedBefore = persistedBoolean(input.payload, 'objectExistedBefore');
       execution = {
         type: command,
@@ -860,7 +870,9 @@ export async function recoverPersistedObjectStorageCommand(
     case 'DELETE_PREFIX': {
       const prefix = persistedString(input.payload, 'prefix');
       const listed = await listObjectVersions(storage, projectId, prefix);
-      if (listed.objects.length > 0) throw new Error('OBJECT_STORAGE_PREFIX_DELETE_INCOMPLETE');
+      if (listed.objects.length > 0) {
+        throw objectStorageCommandError('OBJECT_STORAGE_PREFIX_DELETE_INCOMPLETE');
+      }
       const count = persistedNumber(input.payload, 'prefixObjectCountBefore');
       const deletedVersionCount = persistedNumber(input.payload, 'prefixVersionCountBefore');
       execution = { type: command, result: { deleted: true, count } };
@@ -888,7 +900,7 @@ export async function recoverPersistedObjectStorageCommand(
         object.contentHash !== expectedContentHash ||
         (expectedTargetGeneration !== null && object.generation === expectedTargetGeneration)
       ) {
-        throw new Error('OBJECT_STORAGE_PUT_VERIFICATION_FAILED');
+        throw objectStorageCommandError('OBJECT_STORAGE_PUT_VERIFICATION_FAILED');
       }
       execution = {
         type: command,
@@ -913,7 +925,9 @@ export async function recoverPersistedObjectStorageCommand(
       if (!input.pinnedInventory) throw new TypeError('OBJECT_STORAGE_COMMAND_RECOVERY_INVENTORY_REQUIRED');
       const actual = await storage.inventoryProjectObjects(projectId);
       const expected: ObjectStorageInventory = input.pinnedInventory;
-      if (!inventoriesEquivalent(expected, actual)) throw new Error('OBJECT_STORAGE_CLONE_VERIFICATION_FAILED');
+      if (!inventoriesEquivalent(expected, actual)) {
+        throw objectStorageCommandError('OBJECT_STORAGE_CLONE_VERIFICATION_FAILED');
+      }
       const expectedDigest = objectStoragePinnedInventoryDigest(input.pinnedInventory);
       if (persistedString(input.payload, 'inventoryDigest') !== expectedDigest) {
         throw new TypeError('OBJECT_STORAGE_COMMAND_RECOVERY_INVENTORY_MISMATCH');
@@ -1071,23 +1085,31 @@ export async function verifyObjectStorageCommand(
   command: TenantObjectStorageCommand,
   execution: ObjectStorageCommandExecution,
 ): Promise<ObjectStorageVerification> {
-  if (execution.type !== command.type) throw new Error('OBJECT_STORAGE_COMMAND_RECEIPT_MISMATCH');
+  if (execution.type !== command.type) {
+    throw objectStorageCommandError('OBJECT_STORAGE_COMMAND_RECEIPT_MISMATCH');
+  }
   let evidence: Record<string, boolean | number | string | null>;
 
   switch (command.type) {
     case 'ENSURE_BUCKET': {
-      if (!(await storage.bucketExists(command.projectId))) throw new Error('OBJECT_STORAGE_BUCKET_NOT_PROVISIONED');
+      if (!(await storage.bucketExists(command.projectId))) {
+        throw objectStorageCommandError('OBJECT_STORAGE_BUCKET_NOT_PROVISIONED');
+      }
       await assertBucketVersioningEnabled(storage, command.projectId);
       evidence = { bucketExists: true, bucketVersioningEnabled: true };
       break;
     }
     case 'DELETE_BUCKET': {
-      if (await storage.bucketExists(command.projectId)) throw new Error('OBJECT_STORAGE_BUCKET_DELETE_INCOMPLETE');
+      if (await storage.bucketExists(command.projectId)) {
+        throw objectStorageCommandError('OBJECT_STORAGE_BUCKET_DELETE_INCOMPLETE');
+      }
       evidence = { bucketAbsent: true, objectCount: 0 };
       break;
     }
     case 'MOVE_OBJECT': {
-      if (execution.type !== 'MOVE_OBJECT') throw new Error('OBJECT_STORAGE_COMMAND_RECEIPT_MISMATCH');
+      if (execution.type !== 'MOVE_OBJECT') {
+        throw objectStorageCommandError('OBJECT_STORAGE_COMMAND_RECEIPT_MISMATCH');
+      }
       const { objects } = await storage.listObjects(command.projectId, { prefix: command.from });
       const source = exactObject(objects, command.from);
       const targetObjects = await storage.listObjects(command.projectId, { prefix: command.to });
@@ -1098,14 +1120,16 @@ export async function verifyObjectStorageCommand(
         target.contentHash !== command.sourceContentHash ||
         (execution.result.generation && target.generation !== execution.result.generation)
       ) {
-        throw new Error('OBJECT_STORAGE_MOVE_VERIFICATION_FAILED');
+        throw objectStorageCommandError('OBJECT_STORAGE_MOVE_VERIFICATION_FAILED');
       }
       evidence = { sourceAbsent: true, targetGeneration: target.generation };
       break;
     }
     case 'DELETE_OBJECT': {
       const { objects } = await storage.listObjects(command.projectId, { prefix: command.key });
-      if (exactObject(objects, command.key)) throw new Error('OBJECT_STORAGE_DELETE_VERIFICATION_FAILED');
+      if (exactObject(objects, command.key)) {
+        throw objectStorageCommandError('OBJECT_STORAGE_DELETE_VERIFICATION_FAILED');
+      }
       evidence = { objectAbsent: true };
       break;
     }
@@ -1114,7 +1138,9 @@ export async function verifyObjectStorageCommand(
         throw new TypeError('OBJECT_STORAGE_COMMAND_RECOVERY_PRECONDITION_REQUIRED');
       }
       const { objects } = await listObjectVersions(storage, command.projectId, command.prefix);
-      if (objects.length > 0) throw new Error('OBJECT_STORAGE_PREFIX_DELETE_INCOMPLETE');
+      if (objects.length > 0) {
+        throw objectStorageCommandError('OBJECT_STORAGE_PREFIX_DELETE_INCOMPLETE');
+      }
       evidence = {
         prefixAbsent: true,
         allVersionsAbsent: true,
@@ -1125,7 +1151,9 @@ export async function verifyObjectStorageCommand(
       break;
     }
     case 'PUT_OBJECT': {
-      if (execution.type !== 'PUT_OBJECT') throw new Error('OBJECT_STORAGE_COMMAND_RECEIPT_MISMATCH');
+      if (execution.type !== 'PUT_OBJECT') {
+        throw objectStorageCommandError('OBJECT_STORAGE_COMMAND_RECEIPT_MISMATCH');
+      }
       const { objects } = await storage.listObjects(command.projectId, { prefix: command.key });
       const object = exactObject(objects, command.key);
       if (
@@ -1135,7 +1163,7 @@ export async function verifyObjectStorageCommand(
         execution.result.contentHash !== execution.result.expectedContentHash ||
         object.contentHash !== execution.result.expectedContentHash
       ) {
-        throw new Error('OBJECT_STORAGE_PUT_VERIFICATION_FAILED');
+        throw objectStorageCommandError('OBJECT_STORAGE_PUT_VERIFICATION_FAILED');
       }
       evidence = {
         objectPresent: true,
@@ -1146,7 +1174,9 @@ export async function verifyObjectStorageCommand(
       break;
     }
     case 'CLONE_PROJECT': {
-      if (execution.type !== 'CLONE_PROJECT') throw new Error('OBJECT_STORAGE_COMMAND_RECEIPT_MISMATCH');
+      if (execution.type !== 'CLONE_PROJECT') {
+        throw objectStorageCommandError('OBJECT_STORAGE_COMMAND_RECEIPT_MISMATCH');
+      }
       const actual = await storage.inventoryProjectObjects(command.targetProjectId);
       const summary = storageInventorySummary(actual);
       if (
@@ -1155,7 +1185,7 @@ export async function verifyObjectStorageCommand(
         summary.objectCount !== execution.result.objectCount ||
         summary.inventoryDigest !== execution.result.inventoryDigest
       ) {
-        throw new Error('OBJECT_STORAGE_CLONE_VERIFICATION_FAILED');
+        throw objectStorageCommandError('OBJECT_STORAGE_CLONE_VERIFICATION_FAILED');
       }
       evidence = {
         inventoryVerified: true,

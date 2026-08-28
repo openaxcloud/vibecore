@@ -137,6 +137,7 @@ describe('server rollback re-deploys the retained image by digest (wiring)', () 
     if (!image || typeof image !== 'object' || typeof (image as { imageDigest?: unknown }).imageDigest !== 'string') {
       return store.createDeployment({
         projectId,
+        expectedOrganizationId: project!.organizationId,
         provider: 'server',
         environment: 'preview',
         status: 'READY',
@@ -398,6 +399,7 @@ describe('server rollback re-deploys the retained image by digest (wiring)', () 
     });
     const reservedDraft = await store.createDeployment({
       projectId,
+      expectedOrganizationId: project!.organizationId,
       provider: 'server',
       environment: 'preview',
       status: 'BUILDING',

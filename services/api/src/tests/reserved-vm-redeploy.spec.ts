@@ -363,6 +363,7 @@ async function executeForwardServerImageBuild(input: {
   if (!projectManifest) throw new Error('missing project manifest fixture');
   const queued = await runtime.store.createDeployment({
     projectId: runtime.project.id,
+    expectedOrganizationId: runtime.organization.id,
     workspaceId: runtime.workspace.id,
     provider: 'server',
     environment: 'preview',

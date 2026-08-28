@@ -9376,7 +9376,6 @@ export class TestApiStore implements ApiStore {
     this.projectSecrets.set(secretKey, {
       id: existingSecret?.id ?? id('secret'),
       projectId: input.projectId,
-      expectedOrganizationId: input.organizationId,
       key: 'DATABASE_URL',
       valueEncrypted: input.valueEncrypted,
       createdAt: existingSecret?.createdAt ?? now(),
