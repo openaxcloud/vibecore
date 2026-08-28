@@ -69,9 +69,9 @@ documents:
     repoCommit: fee92bd0b09159247383814023ae63db8875dd7d
     reviewer: UNKNOWN
   - file: CHECKPOINT_CONTRACT.md
-    sha256: "d134ba7803fb30de059eb4ebee43392ee7a5cc48e436fefbae15697f6c068e18"
-    schemaVersion: 2
-    repoCommit: 1692f981
+    sha256: "c6ce68fdd4c6906abed00983e38332d56339228031d6d985d33bcd1cb4f0c946"
+    schemaVersion: 3
+    repoCommit: 912c9b33
     reviewer: UNKNOWN
   - file: CI_ATTESTATION.yaml
     sha256: "4bdc8f9d0d1cfc0b0488389cd73df31ed1e5a996bb3c8f68b9bae03eb05d1589"
@@ -89,7 +89,7 @@ documents:
     repoCommit: 42a48091
     reviewer: UNKNOWN
   - file: CONTRACT_REGISTRY.yaml
-    sha256: "1d8bbca5670fd976b69e8cb678e791f92a4296b138ccde7e9b50fee6a576dbbe"
+    sha256: "82f13613278864e508c1aebbaf14b04cedcdf012d84b86f8164094340c77819c"
     schemaVersion: 1
     repoCommit: 1692f981
     reviewer: UNKNOWN
@@ -224,7 +224,7 @@ documents:
     repoCommit: d1063912
     reviewer: UNKNOWN
   - file: P0_REGISTRY.yaml
-    sha256: "3692d4a9caecafb185a3a2cf5643faf5b513286007a78a38af0ad0b136d2110e"
+    sha256: "51fda7a1a763ecdf8c6ed0c0ea8441e6c2ead11b78e3ec469ed41497f1a9d822"
     schemaVersion: 1
     repoCommit: 07ced1c56bdbcb3ce77e883704342b71a2ad0961
     reviewer: UNKNOWN

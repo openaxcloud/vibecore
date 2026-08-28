@@ -2194,6 +2194,56 @@ export class TestApiStore implements ApiStore {
     return active ? { version: active.version, data: active.data } : undefined;
   }
 
+  projectCheckpoints = new Map<
+    string,
+    {
+      id: string;
+      projectId: string;
+      state: string;
+      logicalBarrierId?: string;
+      consistencyLevel?: string;
+      manifest?: unknown;
+      error?: string;
+      expiresAt?: string;
+      barrierExpiresAt?: string | null;
+      createdAt: string;
+    }
+  >();
+
+  async createProjectCheckpoint(input: { projectId: string; createdByUserId?: string }) {
+    const row = { id: id('ckpt'), projectId: input.projectId, state: 'PREPARING', createdAt: now() };
+    this.projectCheckpoints.set(row.id, row);
+    return { id: row.id, state: row.state };
+  }
+
+  async updateProjectCheckpoint(idv: string, patch: Record<string, unknown>) {
+    const row = this.projectCheckpoints.get(idv);
+    if (row) Object.assign(row, patch);
+  }
+
+  /** Mirrors PrismaApiStore: barrier read from the shared row, expiry = thaw. */
+  async getActiveCheckpointBarrier(projectId: string) {
+    const rows = [...this.projectCheckpoints.values()]
+      .filter(
+        (r) =>
+          r.projectId === projectId &&
+          r.barrierExpiresAt != null &&
+          new Date(r.barrierExpiresAt).getTime() > Date.now() &&
+          r.logicalBarrierId,
+      )
+      .sort((a, b) => new Date(b.barrierExpiresAt!).getTime() - new Date(a.barrierExpiresAt!).getTime());
+
+    const row = rows[0];
+
+    return row
+      ? { checkpointId: row.id, barrierId: row.logicalBarrierId!, expiresAt: row.barrierExpiresAt! }
+      : undefined;
+  }
+
+  async getProjectCheckpoint(idv: string) {
+    return this.projectCheckpoints.get(idv);
+  }
+
   remixJobs = new Map<
     string,
     {

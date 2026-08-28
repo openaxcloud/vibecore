@@ -116,13 +116,14 @@ contracts:
     openDependencies: "inventaire exhaustif + négatif PAR identité + WIF 3 chemins (chantier D)"
   - contractId: CTR-CHECKPOINT
     file: CHECKPOINT_CONTRACT.md
-    contractVersion: 2
+    contractVersion: 3
     refusalReasonV1: "tests unitaires mais aucun câblage réel"
+    refusalReasonV2: "barrière 2 phases prouvée mais pas le niveau « transaction-consistent » revendiqué (P0-V3-09)"
     hardeningStatus: HARDENED_PENDING_REVIEW
-    anchor: "CÂBLÉ (PR #32, NON MERGÉE) : endpoints réels + barrière 423/dégel garanti + restore vérifié en projet jetable — 18 tests"
+    anchor: "v3 (PR #78) : niveau DÉRIVÉ de la portée réelle de la barrière (crash-consistent, notClaimed=[application-consistent, transaction-consistent], crossComponentAtomic=false) + RESTORE RÉEL prouvé par re-hash du stockage après casse + barrière PERSISTÉE cross-replica posée au point d'étranglement du stockage — 36 tests"
     expectedReviewer: OpenAI-Codex
     signatureResult: PENDING_REVIEW
-    openDependencies: "snapshot DB physique CNPG dormant (DB_ROLLBACK_ENABLED) + preuve PITR live (PR-DR)"
+    openDependencies: "couverture BASE non prouvée (backup CNPG soumis, ni attendu ni rejoué ; PITR live à jouer) + gel des écrivains in-pod non implémenté + instant commun fichiers↔base non implémenté"
   - contractId: CTR-SECURITY-PRIVACY
     file: SECURITY_PRIVACY_COMPLIANCE.md
     contractVersion: 2

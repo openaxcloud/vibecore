@@ -216,6 +216,23 @@ import {
 } from './import-pipeline.js';
 import { ImportCreditLedger, estimateImportReservation } from './import-billing.js';
 import {
+  CHECKPOINT_ORDER,
+  assertCheckpointTransition,
+  checkpointManifestVisible,
+  projectCheckpointAdmissible,
+  quiesceAdmissible,
+  type CheckpointComponentSnapshot,
+  type CheckpointState,
+} from './lifecycle-state-machines.js';
+import { CheckpointBarrierError, withCheckpointBarrier } from './checkpoint-barrier-storage.js';
+import {
+  declareCheckpointConsistency,
+  declareDatabaseConsistency,
+  declareFilesConsistency,
+  type BarrierScope,
+  type ConsistencyDeclaration,
+} from './checkpoint-consistency.js';
+import {
   REMIX_CONSENT_VERSION,
   RemixInvariantError,
   assertRemixTransition,
@@ -8373,7 +8390,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    */
   const diagnosticsDb = store instanceof PrismaApiStore ? store.prisma : undefined;
 
-  const projectStorage = options.projectStorage ?? new LocalProjectStorage();
+  /**
+   * `rawProjectStorage` = accès direct, réservé à l'orchestrateur de checkpoint :
+   * lui seul doit pouvoir écrire l'arbre pendant que SA propre barrière tient
+   * (restauration). Tout le reste du processus passe par `projectStorage`, qui
+   * refuse les mutations d'arbre sous barrière — garde posée au point
+   * d'étranglement et non route par route (checkpoint-barrier-storage.ts).
+   */
+  const rawProjectStorage = options.projectStorage ?? new LocalProjectStorage();
+  const projectStorage = withCheckpointBarrier(rawProjectStorage, (projectId) =>
+    store.getActiveCheckpointBarrier(projectId),
+  );
   const gitProvider = options.gitProvider ?? new GitCliProvider();
   const staticBuildRunner = options.staticBuildRunner ?? runStaticBuild;
   /**
@@ -9004,6 +9031,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         code: error.code,
         retryable: true,
       });
+    }
+
+    /*
+     * Refus au point d'étranglement du stockage : la barrière peut être levée
+     * loin du handler (helper, écriture depuis un GET). Sans cette branche, un
+     * gel légitime remonterait en 500 au lieu du 423 contractuel.
+     */
+    if (error instanceof CheckpointBarrierError) {
+      return reply.code(423).send({ error: error.message, code: error.code, barrierId: error.barrierId });
     }
 
     const statusCode = typeof error.statusCode === 'number' ? error.statusCode : 500;
@@ -16876,6 +16912,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const { workspaceId } = parse(workspaceParams, request.params);
     const body = parse(runtimeFileWriteSchema, request.body);
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:write');
+
+    // Barrière de checkpoint (plan §15) : écritures gelées pendant le quiesce.
+    if (authorized.projectId && (await rejectIfCheckpointBarrier(reply, authorized.projectId))) {
+      return reply;
+    }
     await agentMutateEnsuring(request, authorized, '/files/write', { method: 'POST', body: JSON.stringify(body) });
     await audit(request, store, {
       organizationId: authorized.organizationId,
@@ -22436,13 +22477,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return { revision: projectFilesRevision(files) };
   });
-  app.post('/projects/:projectId/files/import/zip', async (request) => {
+  app.post('/projects/:projectId/files/import/zip', async (request, reply) => {
     const project = await requireProject(
       request,
       store,
       parse(projectParams, request.params).projectId,
       'projects:write',
     );
+
+    // Barrière de checkpoint (plan §15) : écritures gelées pendant le quiesce.
+    if (await rejectIfCheckpointBarrier(reply, project.id)) {
+      return reply;
+    }
 
     const body = parse(zipImportSchema.pick({ zipBase64: true, replaceExisting: true }), request.body);
 
@@ -24111,6 +24157,483 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     });
 
     return { project: transferred };
+  });
+  /*
+   * ---- Checkpoint PROJET coordonné (plan §15, CTR-CHECKPOINT) ----
+   * Câblage RÉEL de la machine lifecycle-state-machines : barrière d'écriture
+   * à timeout avec DÉGEL GARANTI (finally), snapshots par composant sous la
+   * MÊME barrière logique, manifeste visible seulement une fois tout vérifié.
+   * Un snapshot de pod seul n'est JAMAIS un checkpoint projet.
+   */
+  /*
+   * La barrière est PERSISTÉE (ProjectCheckpoint.barrierExpiresAt), pas gardée en
+   * mémoire de processus. L'API tourne en 2 replicas (HPA → 6) en prod
+   * (values-prod.yaml) : une Map in-process n'est vue que par le pod qui la pose,
+   * donc les écritures routées vers un autre replica passaient à travers la
+   * « barrière ». Le bail en base est commun à tous les replicas ; son expiration
+   * EST le dégel garanti si le processus porteur meurt en vol.
+   */
+  const activeCheckpointBarrier = (projectId: string) => store.getActiveCheckpointBarrier(projectId);
+
+  /** 423 pendant la barrière : les écritures API attendent le dégel. */
+  const rejectIfCheckpointBarrier = async (reply: FastifyReply, projectId: string) => {
+    const b = await activeCheckpointBarrier(projectId);
+
+    if (b) {
+      reply.status(423).send({
+        // `reply.request` : ce helper ne reçoit que la réponse, mais Fastify
+        // expose la requête associée — la locale reste donc celle de l'appelant.
+        error: appPublicCopy('CHECKPOINT_PROJECT_QUIESCED', transactionalLocaleForRequest(reply.request)),
+        code: 'CHECKPOINT_BARRIER_ACTIVE',
+        barrierId: b.barrierId,
+      });
+      return true;
+    }
+
+    return false;
+  };
+
+  const CHECKPOINT_QUIESCE_TIMEOUT_MS = 30_000;
+  const CHECKPOINT_TTL_DAYS = 30;
+
+  const runProjectCheckpoint = async (params: {
+    request: FastifyRequest;
+    projectId: string;
+    includePod?: boolean;
+  }): Promise<{ ok: true; checkpointId: string; manifest: unknown } | { ok: false; code: string; error: string }> => {
+    const { request, projectId } = params;
+    const ckpt = await store.createProjectCheckpoint({ projectId, createdByUserId: request.currentUser?.id });
+
+    let state: CheckpointState = 'PREPARING';
+    const advance = async (to: CheckpointState, patch: Record<string, unknown> = {}) => {
+      assertCheckpointTransition(state, to);
+      state = to;
+      await store.updateProjectCheckpoint(ckpt.id, { state: to, ...patch });
+    };
+
+    // Quiesce admissible AVANT tout gel : timeout fini + dégel garanti.
+    if (!quiesceAdmissible({ timeoutMs: CHECKPOINT_QUIESCE_TIMEOUT_MS, thawGuaranteed: true })) {
+      await store.updateProjectCheckpoint(ckpt.id, { state: 'ABORTING', error: 'quiesce inadmissible' });
+      await store.updateProjectCheckpoint(ckpt.id, { state: 'CLEANED' });
+      return { ok: false, code: 'CHECKPOINT_QUIESCE_INADMISSIBLE', error: 'quiesce without finite timeout + guaranteed thaw' };
+    }
+
+    const barrierId = `bar_${randomUUID()}`;
+
+    try {
+      await advance('QUIESCING');
+      /*
+       * BARRIÈRE RÉELLE, PERSISTÉE : les endpoints d'écriture fichiers renvoient
+       * 423 tant que le bail tient, sur TOUS les replicas API (il est lu en base,
+       * pas en mémoire). L'expiration du bail = dégel garanti même si ce
+       * processus meurt en vol.
+       */
+      await store.updateProjectCheckpoint(ckpt.id, {
+        logicalBarrierId: barrierId,
+        barrierExpiresAt: new Date(Date.now() + CHECKPOINT_QUIESCE_TIMEOUT_MS).toISOString(),
+      });
+      await advance('BARRIER_ESTABLISHED', { logicalBarrierId: barrierId });
+
+      const startedAt = new Date().toISOString();
+      const components: CheckpointComponentSnapshot[] = [];
+      /*
+       * Portée RÉELLE de la barrière, source unique du niveau annoncé (P0-V3-09).
+       * `inPodWritersReachable` est vrai dès qu'un workspace existe : on ne peut
+       * pas prouver qu'un dev server / terminal / agent est muet, donc on suppose
+       * qu'il écrit — c'est l'hypothèse qui sous-revendique, jamais l'inverse.
+       */
+      const workspacesForProject = await store.listWorkspaces(projectId).catch(() => []);
+      const barrierScope: BarrierScope = {
+        apiWritesFrozenAllReplicas: true, // bail persisté, lu par tous les replicas
+        inPodWritersReachable: workspacesForProject.length > 0,
+        dbClientWritesReachable: true,
+      };
+      const componentConsistency: Array<{ componentKind: string; consistency: ConsistencyDeclaration }> = [];
+      /** Composants tentés mais NON prouvés — consignés, jamais comptés comme couverture. */
+      const bestEffortComponents: Array<Record<string, unknown>> = [];
+
+      // (1) VOLUME (fichiers projet) — snapshot réel + hash du contenu archivé.
+      await advance('VOLUME_SNAPSHOTTING');
+      // rawProjectStorage : l'orchestrateur écrit LÉGITIMEMENT sous sa propre barrière.
+      const files = await listProjectFilesIncludingIdeState(store, rawProjectStorage, projectId);
+      const archive = await rawProjectStorage.createSnapshot({ projectId, label: `checkpoint ${barrierId}`, files });
+      const filesHash = createHash('sha256')
+        .update(files.map((f) => `${f.path}\n${f.content}`).join('\x00'))
+        .digest('hex');
+      const fileSnapshot = await store.createSnapshot({
+        projectId,
+        kind: 'manual',
+        manifest: { checkpoint: true, files: files.map((f) => f.path), logicalBarrierId: barrierId, contentHash: filesHash },
+        storageKey: archive.storageKey,
+        byteLength: archive.byteLength,
+        createdByUserId: request.currentUser?.id,
+      });
+      const filesConsistency = declareFilesConsistency(barrierScope);
+      componentConsistency.push({ componentKind: 'FILES', consistency: filesConsistency });
+      components.push({
+        componentKind: 'FILES',
+        snapshotId: fileSnapshot.id,
+        logicalBarrierId: barrierId,
+        startedAt,
+        completedAt: new Date().toISOString(),
+        consistencyLevel: filesConsistency.level,
+        consistencyBasis: filesConsistency.basis,
+        unfrozenWriters: filesConsistency.unfrozenWriters,
+        encryptionKeyVersion: 'storage-default',
+        restoreCompatibility: 'project-files-v1',
+        verified: false,
+      });
+
+      // (2) DATABASE — backup physique CNPG si flag actif + base provisionnée ;
+      // sinon DÉPENDANCE DÉCLARÉE (jamais un silence).
+      await advance('DB_SNAPSHOTTING');
+      const dbInstance = await store.getDatabaseInstanceByProject(projectId).catch(() => undefined);
+      const databaseProvisioned = Boolean(dbInstance);
+      let databaseDependencyDeclared = false;
+
+      /*
+       * Le backup CNPG est soumis quand le flag est actif, mais il n'est JAMAIS
+       * compté comme composant vérifié du checkpoint : `takeSnapshot` rend la main
+       * dès que le CR `Backup` est accepté (database-provisioner.ts) — il n'attend
+       * ni la fin du backup ni sa restaurabilité. Le compter « verified » ferait
+       * croire à une couverture base prouvée. Il est donc consigné en
+       * `bestEffortComponents` avec son état exact, et la base est déclarée en
+       * dépendance ouverte dans les deux cas.
+       */
+      if (databaseProvisioned && isDatabaseRollbackEnabled()) {
+        const provisioner = resolveDefaultDatabaseProvisioner();
+        const dbSnapId = `ckdb_${randomUUID().slice(0, 12)}`;
+        const applied = await provisioner.takeSnapshot({ projectId, snapshotId: dbSnapId });
+        const dbConsistency = declareDatabaseConsistency(barrierScope);
+        bestEffortComponents.push({
+          componentKind: 'DATABASE',
+          snapshotId: dbSnapId,
+          logicalBarrierId: barrierId,
+          backupRequestAccepted: applied.applied,
+          /*
+           * Ni le CR terminé ni un restore rejoué : on ne sait pas si ce backup est
+           * restaurable, donc on l'écrit au lieu de le taire.
+           */
+          completionAwaited: false,
+          restoreProven: false,
+          consistencyLevelIfRestorable: dbConsistency.level,
+          consistencyBasis: dbConsistency.basis,
+          restoreCompatibility: 'cnpg-pitr-v1',
+        });
+        databaseDependencyDeclared = true;
+      } else if (databaseProvisioned) {
+        // Base réelle mais infra de snapshot DORMANTE (DB_ROLLBACK_ENABLED off).
+        databaseDependencyDeclared = true;
+      }
+
+      if (params.includePod) {
+        await advance('POD_SNAPSHOTTING');
+        // Un snapshot de pod n'est PAS implémenté — le déclarer serait mentir.
+      }
+
+      await advance('VERIFYING');
+      // VÉRIFICATION RÉELLE : relire l'archive et recomparer le hash du contenu.
+      const reread = await projectStorage.getSnapshotFiles(archive.storageKey);
+      const rereadHash = createHash('sha256')
+        .update(reread.map((f) => `${f.path}\n${f.content}`).join('\x00'))
+        .digest('hex');
+
+      for (const c of components) {
+        if (c.componentKind === 'FILES') {
+          // Seule vérification réellement faite : relecture de l'archive + re-hash.
+          c.verified = rereadHash === filesHash;
+          c.verificationMethod = 'archive-reread-sha256-match';
+        }
+      }
+
+      const admissible = projectCheckpointAdmissible(components, {
+        databaseProvisioned,
+        databaseDependencyDeclared,
+      });
+
+      if (!admissible.admissible) {
+        throw Object.assign(new Error(admissible.reason ?? 'checkpoint inadmissible'), {
+          code: 'CHECKPOINT_INADMISSIBLE',
+        });
+      }
+
+      const visibility = checkpointManifestVisible(components, barrierId);
+
+      if (!visibility.visible) {
+        throw Object.assign(new Error(visibility.reason ?? 'manifest not visible'), {
+          code: 'CHECKPOINT_UNVERIFIED',
+        });
+      }
+
+      /*
+       * Niveau DÉRIVÉ du composant le plus faible, jamais du plus fort, et
+       * accompagné de sa justification + des niveaux explicitement non
+       * revendiqués. C'est la réponse directe au refus P0-V3-09.
+       */
+      const consistency = declareCheckpointConsistency(componentConsistency);
+
+      const manifest = {
+        logicalBarrierId: barrierId,
+        consistencyLevel: consistency.level,
+        consistencyBasis: consistency.basis,
+        /*
+         * Les composants sont snapshottés en SÉQUENCE : partager un
+         * `logicalBarrierId` ordonne les étapes, ça ne crée pas un instant
+         * atomique commun. Dit tel quel plutôt que sous-entendu.
+         */
+        crossComponentAtomic: consistency.crossComponentAtomic,
+        notClaimed: consistency.notClaimed,
+        barrierScope: {
+          apiWritesFrozenAllReplicas: barrierScope.apiWritesFrozenAllReplicas,
+          inPodWritersReachable: barrierScope.inPodWritersReachable,
+          dbClientWritesReachable: barrierScope.dbClientWritesReachable,
+        },
+        components,
+        bestEffortComponents,
+        contentHashes: { files: filesHash },
+        restoreCompatibility: { files: 'project-files-v1', database: databaseProvisioned ? 'cnpg-pitr-v1' : 'n/a' },
+        dependenciesDeclared: databaseDependencyDeclared
+          ? [
+              isDatabaseRollbackEnabled()
+                ? 'DATABASE : backup CNPG soumis mais NI attendu NI rejoué — couverture base non prouvée, checkpoint restaurable sur les FICHIERS seulement'
+                : 'DATABASE : base provisionnée mais snapshot CNPG dormant (DB_ROLLBACK_ENABLED off) — checkpoint fichiers-seuls, dit tel quel',
+            ]
+          : [],
+        expiresAt: new Date(Date.now() + CHECKPOINT_TTL_DAYS * 86_400_000).toISOString(),
+      };
+
+      await advance('COMMITTED', {
+        consistencyLevel: manifest.consistencyLevel,
+        manifest,
+        expiresAt: manifest.expiresAt,
+      });
+
+      await audit(request, store, {
+        action: 'project.checkpoint',
+        resourceType: 'project',
+        resourceId: projectId,
+        metadata: { checkpointId: ckpt.id, logicalBarrierId: barrierId, consistencyLevel: manifest.consistencyLevel },
+      });
+
+      return { ok: true, checkpointId: ckpt.id, manifest };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      await store.updateProjectCheckpoint(ckpt.id, { state: 'ABORTING', error: message }).catch(() => undefined);
+      await store.updateProjectCheckpoint(ckpt.id, { state: 'CLEANED' }).catch(() => undefined);
+      return { ok: false, code: (error as { code?: string }).code ?? 'CHECKPOINT_FAILED', error: message };
+    } finally {
+      // DÉGEL GARANTI — chemin succès ET échec (I-CKP quiesce). Le bail est
+      // relâché en base pour que tous les replicas dégèlent, pas juste celui-ci.
+      await store.updateProjectCheckpoint(ckpt.id, { barrierExpiresAt: null }).catch(() => undefined);
+    }
+  };
+
+  app.post('/projects/:projectId/checkpoints', async (request, reply) => {
+    const project = await requireProject(request, store, parse(projectParams, request.params).projectId, 'projects:write');
+    await requireOrg(request, store, project.organizationId, 'projects:write');
+
+    const result = await runProjectCheckpoint({ request, projectId: project.id });
+
+    if (!result.ok) {
+      return reply.status(result.code === 'CHECKPOINT_INADMISSIBLE' ? 422 : 500).send({ error: result.error, code: result.code });
+    }
+
+    const ckpt = await store.getProjectCheckpoint(result.checkpointId);
+    return reply.code(201).send({ checkpoint: ckpt });
+  });
+
+  app.get('/projects/:projectId/checkpoints/:checkpointId', async (request, reply) => {
+    const project = await requireProject(request, store, parse(projectParams, request.params).projectId, 'projects:read');
+    const ckptId = z.string().min(1).parse((request.params as { checkpointId: string }).checkpointId);
+    const ckpt = await store.getProjectCheckpoint(ckptId);
+
+    if (!ckpt || ckpt.projectId !== project.id) {
+      return reply.status(404).send({ error: appPublicCopy('CHECKPOINT_NOT_FOUND_MESSAGE', transactionalLocaleForRequest(request)), code: 'CHECKPOINT_NOT_FOUND' });
+    }
+
+    return { checkpoint: ckpt };
+  });
+
+  /*
+   * Restore VÉRIFIÉ : rejoue le composant FILES dans un projet JETABLE tout
+   * neuf et compare le hash de contenu au manifeste — le restore n'écrase
+   * jamais le projet source. (Restore DB = PITR CNPG, chantier flag dormant.)
+   */
+  app.post('/projects/:projectId/checkpoints/:checkpointId/restore-verify', async (request, reply) => {
+    const project = await requireProject(request, store, parse(projectParams, request.params).projectId, 'projects:write');
+    await requireOrg(request, store, project.organizationId, 'projects:write');
+
+    const ckptId = z.string().min(1).parse((request.params as { checkpointId: string }).checkpointId);
+    const ckpt = await store.getProjectCheckpoint(ckptId);
+
+    if (!ckpt || ckpt.projectId !== project.id || ckpt.state !== 'COMMITTED') {
+      return reply.status(404).send({ error: appPublicCopy('CHECKPOINT_COMMITTED_NOT_FOUND_MESSAGE', transactionalLocaleForRequest(request)), code: 'CHECKPOINT_NOT_FOUND' });
+    }
+
+    const manifest = ckpt.manifest as {
+      components: Array<{ componentKind: string; snapshotId: string }>;
+      contentHashes: { files: string };
+    };
+    const filesComponent = manifest.components.find((c) => c.componentKind === 'FILES');
+
+    if (!filesComponent) {
+      return reply.status(422).send({ error: appPublicCopy('CHECKPOINT_NO_FILES_MESSAGE', transactionalLocaleForRequest(request)), code: 'CHECKPOINT_NO_FILES' });
+    }
+
+    const snapshot = await store.getSnapshot(filesComponent.snapshotId);
+
+    if (!snapshot) {
+      return reply.status(409).send({ error: appPublicCopy('CHECKPOINT_SNAPSHOT_MISSING_MESSAGE', transactionalLocaleForRequest(request)), code: 'CHECKPOINT_SNAPSHOT_MISSING' });
+    }
+
+    const files = await getSnapshotFiles(snapshot);
+    const restoredHash = createHash('sha256')
+      .update(files.map((f) => `${f.path}\n${f.content}`).join('\x00'))
+      .digest('hex');
+    const matches = restoredHash === manifest.contentHashes.files;
+
+    // Restore effectif dans un projet jetable (preuve de restaurabilité).
+    const target = await store.withSerializedMutation(`projects:${project.organizationId}`, async () => {
+      await ensureQuota(request, project.organizationId, 'projects.count');
+      return store.duplicateProject({
+        projectId: project.id,
+        organizationId: project.organizationId,
+        name: `${project.name} (restore-verify)`,
+        slug: `restore-verify-${Date.now().toString(36)}`,
+      });
+    });
+    await projectStorage.writeFiles(target.id, files);
+
+    await audit(request, store, {
+      action: 'project.checkpoint.restore_verify',
+      resourceType: 'project',
+      resourceId: project.id,
+      metadata: { checkpointId: ckpt.id, targetProjectId: target.id, hashMatches: matches },
+    });
+
+    return { restoreVerified: matches, restoredHash, expectedHash: manifest.contentHashes.files, targetProjectId: target.id };
+  });
+
+  /*
+   * RESTORE RÉEL (P0-V3-09) — remet le PROJET LUI-MÊME dans l'état du checkpoint.
+   *
+   * `restore-verify` ci-dessus prouve seulement qu'une archive est relisible dans
+   * un projet jetable ; il ne prouve pas qu'on sait *ramener* un projet cassé.
+   * Ce chemin-ci écrase le projet source, donc il est encadré :
+   *   1. un checkpoint de SÛRETÉ est pris d'abord — sans point de retour on ne
+   *      détruit rien (si sa prise échoue, le restore est refusé) ;
+   *   2. la barrière est réarmée pendant la restauration, sinon une écriture
+   *      concurrente atterrit au milieu de l'arbre en cours de réécriture ;
+   *   3. l'état APRÈS restauration est relu depuis le stockage et re-hashé : la
+   *      réussite est prouvée par le contenu réel, pas par l'absence d'erreur ;
+   *   4. un hash divergent renvoie 409 et le dit — jamais un succès silencieux.
+   */
+  app.post('/projects/:projectId/checkpoints/:checkpointId/restore', async (request, reply) => {
+    const project = await requireProject(request, store, parse(projectParams, request.params).projectId, 'projects:write');
+    await requireOrg(request, store, project.organizationId, 'projects:write');
+
+    const ckptId = z.string().min(1).parse((request.params as { checkpointId: string }).checkpointId);
+    const ckpt = await store.getProjectCheckpoint(ckptId);
+
+    if (!ckpt || ckpt.projectId !== project.id || ckpt.state !== 'COMMITTED') {
+      return reply.status(404).send({ error: appPublicCopy('CHECKPOINT_COMMITTED_NOT_FOUND_MESSAGE', transactionalLocaleForRequest(request)), code: 'CHECKPOINT_NOT_FOUND' });
+    }
+
+    const manifest = ckpt.manifest as {
+      components: Array<{ componentKind: string; snapshotId: string }>;
+      contentHashes: { files: string };
+      dependenciesDeclared?: string[];
+    };
+    const filesComponent = manifest.components.find((c) => c.componentKind === 'FILES');
+
+    if (!filesComponent) {
+      return reply.status(422).send({ error: appPublicCopy('CHECKPOINT_NO_FILES_MESSAGE', transactionalLocaleForRequest(request)), code: 'CHECKPOINT_NO_FILES' });
+    }
+
+    const snapshot = await store.getSnapshot(filesComponent.snapshotId);
+
+    if (!snapshot) {
+      return reply.status(409).send({ error: appPublicCopy('CHECKPOINT_SNAPSHOT_MISSING_MESSAGE', transactionalLocaleForRequest(request)), code: 'CHECKPOINT_SNAPSHOT_MISSING' });
+    }
+
+    const files = await getSnapshotFiles(snapshot);
+
+    // (1) Point de retour AVANT toute écriture destructive.
+    const safety = await runProjectCheckpoint({ request, projectId: project.id });
+
+    if (!safety.ok) {
+      return reply.status(409).send({
+        error: appPublicCopy('CHECKPOINT_RESTORE_NO_FALLBACK', transactionalLocaleForRequest(request), {
+          reason: String(safety.error ?? ''),
+        }),
+        code: 'CHECKPOINT_SAFETY_FAILED',
+      });
+    }
+
+    // (2) Barrière réarmée sur la ligne du checkpoint de sûreté, le temps du restore.
+    await store.updateProjectCheckpoint(safety.checkpointId, {
+      barrierExpiresAt: new Date(Date.now() + CHECKPOINT_QUIESCE_TIMEOUT_MS).toISOString(),
+    });
+
+    try {
+      await rawProjectStorage.restoreSnapshot({ projectId: project.id, files });
+
+      // (3) Preuve par le contenu : relire le PROJET (pas l'archive) et re-hasher.
+      const afterRestore = await listProjectFilesIncludingIdeState(store, rawProjectStorage, project.id);
+      const restoredHash = createHash('sha256')
+        .update(afterRestore.map((f) => `${f.path}\n${f.content}`).join('\x00'))
+        .digest('hex');
+      const matches = restoredHash === manifest.contentHashes.files;
+
+      await audit(request, store, {
+        action: 'project.checkpoint.restore',
+        resourceType: 'project',
+        resourceId: project.id,
+        metadata: {
+          checkpointId: ckpt.id,
+          safetyCheckpointId: safety.checkpointId,
+          hashMatches: matches,
+          restoredHash,
+        },
+      });
+
+      if (!matches) {
+        // (4) Divergence dite, pas avalée : le point de retour reste exploitable.
+        return reply.status(409).send({
+          error: appPublicCopy('CHECKPOINT_RESTORE_HASH_MISMATCH', transactionalLocaleForRequest(request)),
+          code: 'CHECKPOINT_RESTORE_HASH_MISMATCH',
+          expectedHash: manifest.contentHashes.files,
+          restoredHash,
+          safetyCheckpointId: safety.checkpointId,
+        });
+      }
+
+      await store.recordProjectActivity({
+        projectId: project.id,
+        actorUserId: request.currentUser?.id,
+        action: 'project.checkpoint.restore',
+        metadata: { checkpointId: ckpt.id, safetyCheckpointId: safety.checkpointId },
+      });
+
+      return {
+        restored: true,
+        checkpointId: ckpt.id,
+        /** Point de retour pour annuler CE restore. */
+        safetyCheckpointId: safety.checkpointId,
+        restoredHash,
+        expectedHash: manifest.contentHashes.files,
+        fileCount: afterRestore.length,
+        /*
+         * Le restore ne couvre QUE les fichiers : la base n'est pas rejouée ici.
+         * Repris du manifeste pour que l'appelant ne déduise pas une couverture
+         * qu'il n'a pas.
+         */
+        dependenciesDeclared: manifest.dependenciesDeclared ?? [],
+      };
+    } finally {
+      // Dégel garanti, succès comme échec.
+      await store.updateProjectCheckpoint(safety.checkpointId, { barrierExpiresAt: null }).catch(() => undefined);
+    }
   });
 
   const remixSchema = z.object({
