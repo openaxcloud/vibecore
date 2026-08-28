@@ -43,15 +43,33 @@ export default defineConfig({
   ...baseConfig,
   webServer: [...auditWebServers, ...apiWebServer],
   workers: 1,
+  preserveOutput: 'always',
   /*
-   * Each test is an exhaustive multi-route collector that uses soft assertions
-   * so one pass already records every defect. Retrying the whole collector does
-   * not isolate a flaky route: it repeats up to 282 navigations, multiplies the
-   * proof files and can turn one failure into a 90-minute timeout. Keep this
-   * evidence suite single-attempt even though ordinary E2E tests retry in CI.
+   * Zéro reprise, contrairement au reste de la suite E2E (playwright.config.ts
+   * met `retries: 2` en CI). Deux raisons, toutes deux mesurées sur le shard
+   * `mobile-390` du run 33101508960 :
+   *
+   *   1. Budget. Le describe de l'audit est configuré à 30 min par test. Avec
+   *      deux reprises, un test qui dépasse son budget une fois consomme
+   *      30 x 3 = 90 min — exactement le `timeout-minutes` du job, donc un
+   *      timeout garanti. Le log de l'API archivé par ce run le montre
+   *      directement : le débit de requêtes change de régime à +30 min puis à
+   *      +60 min (~280, puis ~1000, puis ~1450 requêtes par tranche de 5 min,
+   *      les caches se réchauffant à chaque reprise). Trois segments de
+   *      30 minutes, et aucune accalmie : rien ne se bloque, la reprise
+   *      consomme simplement tout le budget du job.
+   *   2. Justesse de la preuve. `preserveOutput: 'always'` conserve la sortie
+   *      de CHAQUE tentative. Les captures et JSON d'une reprise s'ajoutent
+   *      donc à ceux de la tentative initiale, et l'étape « Verify complete
+   *      proof set » compare un total à une égalité stricte (282 / 564 / 2).
+   *      Une reprise fait mécaniquement échouer cette vérification, même
+   *      quand l'audit finit par passer.
+   *
+   * Une reprise n'a par ailleurs pas de sens ici : ce n'est pas un test de
+   * fonctionnalité sujet au flake, c'est une collecte de preuve déterministe.
+   * Si elle échoue, on veut la preuve de l'échec, pas un deuxième essai.
    */
   retries: 0,
-  preserveOutput: 'always',
   projects: [
     {
       name: 'desktop-1440',

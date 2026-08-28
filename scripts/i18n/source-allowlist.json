@@ -1130,7 +1130,7 @@
       "id": "api-auth-metric-reason-identifiers",
       "path": "services/api/src/app.ts",
       "rule": "visible-object-copy",
-      "textPattern": "^(?:invalid_credentials|mfa_required|invalid_mfa|suspended|sso_enforced)$",
+      "textPattern": "^(?:invalid_credentials|mfa_required|invalid_mfa|account_locked|suspended|sso_enforced)$",
       "justification": "These values are low-cardinality auth_failures_total metric labels. Login responses use the locale-aware app-public catalogue and do not expose metric dimensions.",
       "owner": "auth-observability-and-i18n",
       "expiresOn": "2027-08-05"

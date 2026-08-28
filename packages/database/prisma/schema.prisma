@@ -142,6 +142,24 @@ model User {
   accessGrantSubjects         ResourceAccessGrant[]          @relation("AccessGrantSubjectUser")
   accessGrantsCreated         ResourceAccessGrant[]          @relation("AccessGrantCreator")
   accessGrantsRevoked         ResourceAccessGrant[]          @relation("AccessGrantRevoker")
+  loginLockout                AccountLockout?
+}
+
+/**
+ * Per-account brute-force / credential-stuffing lock (defence-in-depth on top of
+ * the per-IP login rate limit). One row per user; the failed-login counter is
+ * incremented atomically in a row-locked transaction so concurrent attempts can't
+ * race it. See login-throttle.ts for the pure state machine.
+ */
+model AccountLockout {
+  userId        String    @id
+  failedCount   Int       @default(0)
+  firstFailedAt DateTime?
+  lockedUntil   DateTime?
+  updatedAt     DateTime  @updatedAt
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([lockedUntil])
 }
 
 model Account {
@@ -165,6 +183,10 @@ model Session {
   rotatedAt      DateTime?
   revokedAt      DateTime?
   lastReauthAt   DateTime?
+  // Last authenticated activity on this session; drives the idle/inactivity
+  // timeout (see session-idle.ts). Null on rows created before this column —
+  // treated as the session's createdAt for the idle check.
+  lastActiveAt   DateTime?
   // When set, this session is an admin impersonating another user; value = the
   // impersonating admin's user id (for audit / UI banner / traceability). P8.
   impersonatedBy String?
@@ -1139,7 +1161,7 @@ model ReleaseManifest {
 
   // P1-COV-05: immutable, versioned plan authority. Nullable only for legacy
   // rows created before 0099; all new publish/rollback paths reject null.
-  planEntitlements Json?
+  planEntitlements      Json?
   projectManifestDigest String?
 
   createdAt DateTime @default(now())

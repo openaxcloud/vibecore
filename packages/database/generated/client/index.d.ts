@@ -19,6 +19,15 @@ export type PrismaPromise<T> = $Public.PrismaPromise<T>
  */
 export type User = $Result.DefaultSelection<Prisma.$UserPayload>
 /**
+ * Model AccountLockout
+ * *
+ *  * Per-account brute-force / credential-stuffing lock (defence-in-depth on top of
+ *  * the per-IP login rate limit). One row per user; the failed-login counter is
+ *  * incremented atomically in a row-locked transaction so concurrent attempts can't
+ *  * race it. See login-throttle.ts for the pure state machine.
+ */
+export type AccountLockout = $Result.DefaultSelection<Prisma.$AccountLockoutPayload>
+/**
  * Model Account
  * 
  */
@@ -1557,6 +1566,16 @@ export class PrismaClient<
     * ```
     */
   get user(): Prisma.UserDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.accountLockout`: Exposes CRUD operations for the **AccountLockout** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more AccountLockouts
+    * const accountLockouts = await prisma.accountLockout.findMany()
+    * ```
+    */
+  get accountLockout(): Prisma.AccountLockoutDelegate<ExtArgs, ClientOptions>;
 
   /**
    * `prisma.account`: Exposes CRUD operations for the **Account** model.
@@ -3472,6 +3491,7 @@ export namespace Prisma {
 
   export const ModelName: {
     User: 'User',
+    AccountLockout: 'AccountLockout',
     Account: 'Account',
     Session: 'Session',
     Organization: 'Organization',
@@ -3635,7 +3655,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "projectSlugRedirect" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "installedSkill" | "skillAuditEvent" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "collaborationGroup" | "collaborationGroupMember" | "resourceAccessGrant" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectManifestRevision" | "projectStorageObject" | "deployment" | "reservedVmOperation" | "reservedVmBillingPeriod" | "deploymentEnvironment" | "releaseManifest" | "rollbackIdempotencyRequest" | "deploymentAccessPolicy" | "deploymentAccessExchangeTicket" | "rateCard" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "providerRequestMetric" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "runtimeWebSocketTicket" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "mcpGlobalPolicy" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore" | "dBMigrationExecution" | "scheduledTask" | "scheduledTaskRun" | "agentRoutingCard" | "agentCallLog" | "projectCheckpoint" | "remixJob" | "remixStorageShare" | "importJob" | "importCreditReservation" | "galleryListing" | "ledgerAccount" | "ledgerTransaction" | "ledgerEntry" | "ledgerReservation" | "ledgerFxRate" | "ledgerReconciliationRun" | "previewReadinessBeacon" | "workspaceLifecycleEvent" | "workspacePostMortem" | "cloudTenant" | "cloudProjectBinding" | "cloudProjectFactoryEvent" | "cloudOperation" | "cloudOperationEvent" | "cloudTenantTransfer" | "cloudTeardownRecord" | "platformIamIdentity" | "platformIamImpersonationAudit" | "purgePlan" | "purgeFreeze" | "purgeEffect" | "purgeReceipt"
+      modelProps: "user" | "accountLockout" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "projectSlugRedirect" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "installedSkill" | "skillAuditEvent" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "collaborationGroup" | "collaborationGroupMember" | "resourceAccessGrant" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectManifestRevision" | "projectStorageObject" | "deployment" | "reservedVmOperation" | "reservedVmBillingPeriod" | "deploymentEnvironment" | "releaseManifest" | "rollbackIdempotencyRequest" | "deploymentAccessPolicy" | "deploymentAccessExchangeTicket" | "rateCard" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "providerRequestMetric" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "runtimeWebSocketTicket" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "mcpGlobalPolicy" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore" | "dBMigrationExecution" | "scheduledTask" | "scheduledTaskRun" | "agentRoutingCard" | "agentCallLog" | "projectCheckpoint" | "remixJob" | "remixStorageShare" | "importJob" | "importCreditReservation" | "galleryListing" | "ledgerAccount" | "ledgerTransaction" | "ledgerEntry" | "ledgerReservation" | "ledgerFxRate" | "ledgerReconciliationRun" | "previewReadinessBeacon" | "workspaceLifecycleEvent" | "workspacePostMortem" | "cloudTenant" | "cloudProjectBinding" | "cloudProjectFactoryEvent" | "cloudOperation" | "cloudOperationEvent" | "cloudTenantTransfer" | "cloudTeardownRecord" | "platformIamIdentity" | "platformIamImpersonationAudit" | "purgePlan" | "purgeFreeze" | "purgeEffect" | "purgeReceipt"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -3710,6 +3730,80 @@ export namespace Prisma {
           count: {
             args: Prisma.UserCountArgs<ExtArgs>
             result: $Utils.Optional<UserCountAggregateOutputType> | number
+          }
+        }
+      }
+      AccountLockout: {
+        payload: Prisma.$AccountLockoutPayload<ExtArgs>
+        fields: Prisma.AccountLockoutFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.AccountLockoutFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AccountLockoutPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.AccountLockoutFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AccountLockoutPayload>
+          }
+          findFirst: {
+            args: Prisma.AccountLockoutFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AccountLockoutPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.AccountLockoutFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AccountLockoutPayload>
+          }
+          findMany: {
+            args: Prisma.AccountLockoutFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AccountLockoutPayload>[]
+          }
+          create: {
+            args: Prisma.AccountLockoutCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AccountLockoutPayload>
+          }
+          createMany: {
+            args: Prisma.AccountLockoutCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.AccountLockoutCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AccountLockoutPayload>[]
+          }
+          delete: {
+            args: Prisma.AccountLockoutDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AccountLockoutPayload>
+          }
+          update: {
+            args: Prisma.AccountLockoutUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AccountLockoutPayload>
+          }
+          deleteMany: {
+            args: Prisma.AccountLockoutDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.AccountLockoutUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.AccountLockoutUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AccountLockoutPayload>[]
+          }
+          upsert: {
+            args: Prisma.AccountLockoutUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AccountLockoutPayload>
+          }
+          aggregate: {
+            args: Prisma.AccountLockoutAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateAccountLockout>
+          }
+          groupBy: {
+            args: Prisma.AccountLockoutGroupByArgs<ExtArgs>
+            result: $Utils.Optional<AccountLockoutGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.AccountLockoutCountArgs<ExtArgs>
+            result: $Utils.Optional<AccountLockoutCountAggregateOutputType> | number
           }
         }
       }
@@ -14758,6 +14852,7 @@ export namespace Prisma {
   }
   export type GlobalOmitConfig = {
     user?: UserOmit
+    accountLockout?: AccountLockoutOmit
     account?: AccountOmit
     session?: SessionOmit
     organization?: OrganizationOmit
@@ -17417,6 +17512,7 @@ export namespace Prisma {
     accessGrantSubjects?: boolean | User$accessGrantSubjectsArgs<ExtArgs>
     accessGrantsCreated?: boolean | User$accessGrantsCreatedArgs<ExtArgs>
     accessGrantsRevoked?: boolean | User$accessGrantsRevokedArgs<ExtArgs>
+    loginLockout?: boolean | User$loginLockoutArgs<ExtArgs>
     _count?: boolean | UserCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["user"]>
 
@@ -17519,6 +17615,7 @@ export namespace Prisma {
     accessGrantSubjects?: boolean | User$accessGrantSubjectsArgs<ExtArgs>
     accessGrantsCreated?: boolean | User$accessGrantsCreatedArgs<ExtArgs>
     accessGrantsRevoked?: boolean | User$accessGrantsRevokedArgs<ExtArgs>
+    loginLockout?: boolean | User$loginLockoutArgs<ExtArgs>
     _count?: boolean | UserCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type UserIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
@@ -17573,6 +17670,7 @@ export namespace Prisma {
       accessGrantSubjects: Prisma.$ResourceAccessGrantPayload<ExtArgs>[]
       accessGrantsCreated: Prisma.$ResourceAccessGrantPayload<ExtArgs>[]
       accessGrantsRevoked: Prisma.$ResourceAccessGrantPayload<ExtArgs>[]
+      loginLockout: Prisma.$AccountLockoutPayload<ExtArgs> | null
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -18029,6 +18127,7 @@ export namespace Prisma {
     accessGrantSubjects<T extends User$accessGrantSubjectsArgs<ExtArgs> = {}>(args?: Subset<T, User$accessGrantSubjectsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ResourceAccessGrantPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     accessGrantsCreated<T extends User$accessGrantsCreatedArgs<ExtArgs> = {}>(args?: Subset<T, User$accessGrantsCreatedArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ResourceAccessGrantPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     accessGrantsRevoked<T extends User$accessGrantsRevokedArgs<ExtArgs> = {}>(args?: Subset<T, User$accessGrantsRevokedArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ResourceAccessGrantPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    loginLockout<T extends User$loginLockoutArgs<ExtArgs> = {}>(args?: Subset<T, User$loginLockoutArgs<ExtArgs>>): Prisma__AccountLockoutClient<$Result.GetResult<Prisma.$AccountLockoutPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -19564,6 +19663,25 @@ export namespace Prisma {
   }
 
   /**
+   * User.loginLockout
+   */
+  export type User$loginLockoutArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AccountLockout
+     */
+    select?: AccountLockoutSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AccountLockout
+     */
+    omit?: AccountLockoutOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AccountLockoutInclude<ExtArgs> | null
+    where?: AccountLockoutWhereInput
+  }
+
+  /**
    * User without action
    */
   export type UserDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -19579,6 +19697,1103 @@ export namespace Prisma {
      * Choose, which related nodes to fetch as well
      */
     include?: UserInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model AccountLockout
+   */
+
+  export type AggregateAccountLockout = {
+    _count: AccountLockoutCountAggregateOutputType | null
+    _avg: AccountLockoutAvgAggregateOutputType | null
+    _sum: AccountLockoutSumAggregateOutputType | null
+    _min: AccountLockoutMinAggregateOutputType | null
+    _max: AccountLockoutMaxAggregateOutputType | null
+  }
+
+  export type AccountLockoutAvgAggregateOutputType = {
+    failedCount: number | null
+  }
+
+  export type AccountLockoutSumAggregateOutputType = {
+    failedCount: number | null
+  }
+
+  export type AccountLockoutMinAggregateOutputType = {
+    userId: string | null
+    failedCount: number | null
+    firstFailedAt: Date | null
+    lockedUntil: Date | null
+    updatedAt: Date | null
+  }
+
+  export type AccountLockoutMaxAggregateOutputType = {
+    userId: string | null
+    failedCount: number | null
+    firstFailedAt: Date | null
+    lockedUntil: Date | null
+    updatedAt: Date | null
+  }
+
+  export type AccountLockoutCountAggregateOutputType = {
+    userId: number
+    failedCount: number
+    firstFailedAt: number
+    lockedUntil: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type AccountLockoutAvgAggregateInputType = {
+    failedCount?: true
+  }
+
+  export type AccountLockoutSumAggregateInputType = {
+    failedCount?: true
+  }
+
+  export type AccountLockoutMinAggregateInputType = {
+    userId?: true
+    failedCount?: true
+    firstFailedAt?: true
+    lockedUntil?: true
+    updatedAt?: true
+  }
+
+  export type AccountLockoutMaxAggregateInputType = {
+    userId?: true
+    failedCount?: true
+    firstFailedAt?: true
+    lockedUntil?: true
+    updatedAt?: true
+  }
+
+  export type AccountLockoutCountAggregateInputType = {
+    userId?: true
+    failedCount?: true
+    firstFailedAt?: true
+    lockedUntil?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type AccountLockoutAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which AccountLockout to aggregate.
+     */
+    where?: AccountLockoutWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AccountLockouts to fetch.
+     */
+    orderBy?: AccountLockoutOrderByWithRelationInput | AccountLockoutOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: AccountLockoutWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AccountLockouts from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AccountLockouts.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned AccountLockouts
+    **/
+    _count?: true | AccountLockoutCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: AccountLockoutAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: AccountLockoutSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: AccountLockoutMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: AccountLockoutMaxAggregateInputType
+  }
+
+  export type GetAccountLockoutAggregateType<T extends AccountLockoutAggregateArgs> = {
+        [P in keyof T & keyof AggregateAccountLockout]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateAccountLockout[P]>
+      : GetScalarType<T[P], AggregateAccountLockout[P]>
+  }
+
+
+
+
+  export type AccountLockoutGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: AccountLockoutWhereInput
+    orderBy?: AccountLockoutOrderByWithAggregationInput | AccountLockoutOrderByWithAggregationInput[]
+    by: AccountLockoutScalarFieldEnum[] | AccountLockoutScalarFieldEnum
+    having?: AccountLockoutScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: AccountLockoutCountAggregateInputType | true
+    _avg?: AccountLockoutAvgAggregateInputType
+    _sum?: AccountLockoutSumAggregateInputType
+    _min?: AccountLockoutMinAggregateInputType
+    _max?: AccountLockoutMaxAggregateInputType
+  }
+
+  export type AccountLockoutGroupByOutputType = {
+    userId: string
+    failedCount: number
+    firstFailedAt: Date | null
+    lockedUntil: Date | null
+    updatedAt: Date
+    _count: AccountLockoutCountAggregateOutputType | null
+    _avg: AccountLockoutAvgAggregateOutputType | null
+    _sum: AccountLockoutSumAggregateOutputType | null
+    _min: AccountLockoutMinAggregateOutputType | null
+    _max: AccountLockoutMaxAggregateOutputType | null
+  }
+
+  type GetAccountLockoutGroupByPayload<T extends AccountLockoutGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<AccountLockoutGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof AccountLockoutGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], AccountLockoutGroupByOutputType[P]>
+            : GetScalarType<T[P], AccountLockoutGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type AccountLockoutSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    userId?: boolean
+    failedCount?: boolean
+    firstFailedAt?: boolean
+    lockedUntil?: boolean
+    updatedAt?: boolean
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["accountLockout"]>
+
+  export type AccountLockoutSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    userId?: boolean
+    failedCount?: boolean
+    firstFailedAt?: boolean
+    lockedUntil?: boolean
+    updatedAt?: boolean
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["accountLockout"]>
+
+  export type AccountLockoutSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    userId?: boolean
+    failedCount?: boolean
+    firstFailedAt?: boolean
+    lockedUntil?: boolean
+    updatedAt?: boolean
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["accountLockout"]>
+
+  export type AccountLockoutSelectScalar = {
+    userId?: boolean
+    failedCount?: boolean
+    firstFailedAt?: boolean
+    lockedUntil?: boolean
+    updatedAt?: boolean
+  }
+
+  export type AccountLockoutOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"userId" | "failedCount" | "firstFailedAt" | "lockedUntil" | "updatedAt", ExtArgs["result"]["accountLockout"]>
+  export type AccountLockoutInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }
+  export type AccountLockoutIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }
+  export type AccountLockoutIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }
+
+  export type $AccountLockoutPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "AccountLockout"
+    objects: {
+      user: Prisma.$UserPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      userId: string
+      failedCount: number
+      firstFailedAt: Date | null
+      lockedUntil: Date | null
+      updatedAt: Date
+    }, ExtArgs["result"]["accountLockout"]>
+    composites: {}
+  }
+
+  type AccountLockoutGetPayload<S extends boolean | null | undefined | AccountLockoutDefaultArgs> = $Result.GetResult<Prisma.$AccountLockoutPayload, S>
+
+  type AccountLockoutCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<AccountLockoutFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: AccountLockoutCountAggregateInputType | true
+    }
+
+  export interface AccountLockoutDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['AccountLockout'], meta: { name: 'AccountLockout' } }
+    /**
+     * Find zero or one AccountLockout that matches the filter.
+     * @param {AccountLockoutFindUniqueArgs} args - Arguments to find a AccountLockout
+     * @example
+     * // Get one AccountLockout
+     * const accountLockout = await prisma.accountLockout.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends AccountLockoutFindUniqueArgs>(args: SelectSubset<T, AccountLockoutFindUniqueArgs<ExtArgs>>): Prisma__AccountLockoutClient<$Result.GetResult<Prisma.$AccountLockoutPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one AccountLockout that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {AccountLockoutFindUniqueOrThrowArgs} args - Arguments to find a AccountLockout
+     * @example
+     * // Get one AccountLockout
+     * const accountLockout = await prisma.accountLockout.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends AccountLockoutFindUniqueOrThrowArgs>(args: SelectSubset<T, AccountLockoutFindUniqueOrThrowArgs<ExtArgs>>): Prisma__AccountLockoutClient<$Result.GetResult<Prisma.$AccountLockoutPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first AccountLockout that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AccountLockoutFindFirstArgs} args - Arguments to find a AccountLockout
+     * @example
+     * // Get one AccountLockout
+     * const accountLockout = await prisma.accountLockout.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends AccountLockoutFindFirstArgs>(args?: SelectSubset<T, AccountLockoutFindFirstArgs<ExtArgs>>): Prisma__AccountLockoutClient<$Result.GetResult<Prisma.$AccountLockoutPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first AccountLockout that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AccountLockoutFindFirstOrThrowArgs} args - Arguments to find a AccountLockout
+     * @example
+     * // Get one AccountLockout
+     * const accountLockout = await prisma.accountLockout.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends AccountLockoutFindFirstOrThrowArgs>(args?: SelectSubset<T, AccountLockoutFindFirstOrThrowArgs<ExtArgs>>): Prisma__AccountLockoutClient<$Result.GetResult<Prisma.$AccountLockoutPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more AccountLockouts that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AccountLockoutFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all AccountLockouts
+     * const accountLockouts = await prisma.accountLockout.findMany()
+     * 
+     * // Get first 10 AccountLockouts
+     * const accountLockouts = await prisma.accountLockout.findMany({ take: 10 })
+     * 
+     * // Only select the `userId`
+     * const accountLockoutWithUserIdOnly = await prisma.accountLockout.findMany({ select: { userId: true } })
+     * 
+     */
+    findMany<T extends AccountLockoutFindManyArgs>(args?: SelectSubset<T, AccountLockoutFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AccountLockoutPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a AccountLockout.
+     * @param {AccountLockoutCreateArgs} args - Arguments to create a AccountLockout.
+     * @example
+     * // Create one AccountLockout
+     * const AccountLockout = await prisma.accountLockout.create({
+     *   data: {
+     *     // ... data to create a AccountLockout
+     *   }
+     * })
+     * 
+     */
+    create<T extends AccountLockoutCreateArgs>(args: SelectSubset<T, AccountLockoutCreateArgs<ExtArgs>>): Prisma__AccountLockoutClient<$Result.GetResult<Prisma.$AccountLockoutPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many AccountLockouts.
+     * @param {AccountLockoutCreateManyArgs} args - Arguments to create many AccountLockouts.
+     * @example
+     * // Create many AccountLockouts
+     * const accountLockout = await prisma.accountLockout.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends AccountLockoutCreateManyArgs>(args?: SelectSubset<T, AccountLockoutCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many AccountLockouts and returns the data saved in the database.
+     * @param {AccountLockoutCreateManyAndReturnArgs} args - Arguments to create many AccountLockouts.
+     * @example
+     * // Create many AccountLockouts
+     * const accountLockout = await prisma.accountLockout.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many AccountLockouts and only return the `userId`
+     * const accountLockoutWithUserIdOnly = await prisma.accountLockout.createManyAndReturn({
+     *   select: { userId: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends AccountLockoutCreateManyAndReturnArgs>(args?: SelectSubset<T, AccountLockoutCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AccountLockoutPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a AccountLockout.
+     * @param {AccountLockoutDeleteArgs} args - Arguments to delete one AccountLockout.
+     * @example
+     * // Delete one AccountLockout
+     * const AccountLockout = await prisma.accountLockout.delete({
+     *   where: {
+     *     // ... filter to delete one AccountLockout
+     *   }
+     * })
+     * 
+     */
+    delete<T extends AccountLockoutDeleteArgs>(args: SelectSubset<T, AccountLockoutDeleteArgs<ExtArgs>>): Prisma__AccountLockoutClient<$Result.GetResult<Prisma.$AccountLockoutPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one AccountLockout.
+     * @param {AccountLockoutUpdateArgs} args - Arguments to update one AccountLockout.
+     * @example
+     * // Update one AccountLockout
+     * const accountLockout = await prisma.accountLockout.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends AccountLockoutUpdateArgs>(args: SelectSubset<T, AccountLockoutUpdateArgs<ExtArgs>>): Prisma__AccountLockoutClient<$Result.GetResult<Prisma.$AccountLockoutPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more AccountLockouts.
+     * @param {AccountLockoutDeleteManyArgs} args - Arguments to filter AccountLockouts to delete.
+     * @example
+     * // Delete a few AccountLockouts
+     * const { count } = await prisma.accountLockout.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends AccountLockoutDeleteManyArgs>(args?: SelectSubset<T, AccountLockoutDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more AccountLockouts.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AccountLockoutUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many AccountLockouts
+     * const accountLockout = await prisma.accountLockout.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends AccountLockoutUpdateManyArgs>(args: SelectSubset<T, AccountLockoutUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more AccountLockouts and returns the data updated in the database.
+     * @param {AccountLockoutUpdateManyAndReturnArgs} args - Arguments to update many AccountLockouts.
+     * @example
+     * // Update many AccountLockouts
+     * const accountLockout = await prisma.accountLockout.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more AccountLockouts and only return the `userId`
+     * const accountLockoutWithUserIdOnly = await prisma.accountLockout.updateManyAndReturn({
+     *   select: { userId: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends AccountLockoutUpdateManyAndReturnArgs>(args: SelectSubset<T, AccountLockoutUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AccountLockoutPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one AccountLockout.
+     * @param {AccountLockoutUpsertArgs} args - Arguments to update or create a AccountLockout.
+     * @example
+     * // Update or create a AccountLockout
+     * const accountLockout = await prisma.accountLockout.upsert({
+     *   create: {
+     *     // ... data to create a AccountLockout
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the AccountLockout we want to update
+     *   }
+     * })
+     */
+    upsert<T extends AccountLockoutUpsertArgs>(args: SelectSubset<T, AccountLockoutUpsertArgs<ExtArgs>>): Prisma__AccountLockoutClient<$Result.GetResult<Prisma.$AccountLockoutPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of AccountLockouts.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AccountLockoutCountArgs} args - Arguments to filter AccountLockouts to count.
+     * @example
+     * // Count the number of AccountLockouts
+     * const count = await prisma.accountLockout.count({
+     *   where: {
+     *     // ... the filter for the AccountLockouts we want to count
+     *   }
+     * })
+    **/
+    count<T extends AccountLockoutCountArgs>(
+      args?: Subset<T, AccountLockoutCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], AccountLockoutCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a AccountLockout.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AccountLockoutAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends AccountLockoutAggregateArgs>(args: Subset<T, AccountLockoutAggregateArgs>): Prisma.PrismaPromise<GetAccountLockoutAggregateType<T>>
+
+    /**
+     * Group by AccountLockout.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AccountLockoutGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends AccountLockoutGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: AccountLockoutGroupByArgs['orderBy'] }
+        : { orderBy?: AccountLockoutGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, AccountLockoutGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetAccountLockoutGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the AccountLockout model
+   */
+  readonly fields: AccountLockoutFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for AccountLockout.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__AccountLockoutClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    user<T extends UserDefaultArgs<ExtArgs> = {}>(args?: Subset<T, UserDefaultArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the AccountLockout model
+   */
+  interface AccountLockoutFieldRefs {
+    readonly userId: FieldRef<"AccountLockout", 'String'>
+    readonly failedCount: FieldRef<"AccountLockout", 'Int'>
+    readonly firstFailedAt: FieldRef<"AccountLockout", 'DateTime'>
+    readonly lockedUntil: FieldRef<"AccountLockout", 'DateTime'>
+    readonly updatedAt: FieldRef<"AccountLockout", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * AccountLockout findUnique
+   */
+  export type AccountLockoutFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AccountLockout
+     */
+    select?: AccountLockoutSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AccountLockout
+     */
+    omit?: AccountLockoutOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AccountLockoutInclude<ExtArgs> | null
+    /**
+     * Filter, which AccountLockout to fetch.
+     */
+    where: AccountLockoutWhereUniqueInput
+  }
+
+  /**
+   * AccountLockout findUniqueOrThrow
+   */
+  export type AccountLockoutFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AccountLockout
+     */
+    select?: AccountLockoutSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AccountLockout
+     */
+    omit?: AccountLockoutOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AccountLockoutInclude<ExtArgs> | null
+    /**
+     * Filter, which AccountLockout to fetch.
+     */
+    where: AccountLockoutWhereUniqueInput
+  }
+
+  /**
+   * AccountLockout findFirst
+   */
+  export type AccountLockoutFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AccountLockout
+     */
+    select?: AccountLockoutSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AccountLockout
+     */
+    omit?: AccountLockoutOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AccountLockoutInclude<ExtArgs> | null
+    /**
+     * Filter, which AccountLockout to fetch.
+     */
+    where?: AccountLockoutWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AccountLockouts to fetch.
+     */
+    orderBy?: AccountLockoutOrderByWithRelationInput | AccountLockoutOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for AccountLockouts.
+     */
+    cursor?: AccountLockoutWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AccountLockouts from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AccountLockouts.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of AccountLockouts.
+     */
+    distinct?: AccountLockoutScalarFieldEnum | AccountLockoutScalarFieldEnum[]
+  }
+
+  /**
+   * AccountLockout findFirstOrThrow
+   */
+  export type AccountLockoutFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AccountLockout
+     */
+    select?: AccountLockoutSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AccountLockout
+     */
+    omit?: AccountLockoutOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AccountLockoutInclude<ExtArgs> | null
+    /**
+     * Filter, which AccountLockout to fetch.
+     */
+    where?: AccountLockoutWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AccountLockouts to fetch.
+     */
+    orderBy?: AccountLockoutOrderByWithRelationInput | AccountLockoutOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for AccountLockouts.
+     */
+    cursor?: AccountLockoutWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AccountLockouts from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AccountLockouts.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of AccountLockouts.
+     */
+    distinct?: AccountLockoutScalarFieldEnum | AccountLockoutScalarFieldEnum[]
+  }
+
+  /**
+   * AccountLockout findMany
+   */
+  export type AccountLockoutFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AccountLockout
+     */
+    select?: AccountLockoutSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AccountLockout
+     */
+    omit?: AccountLockoutOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AccountLockoutInclude<ExtArgs> | null
+    /**
+     * Filter, which AccountLockouts to fetch.
+     */
+    where?: AccountLockoutWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AccountLockouts to fetch.
+     */
+    orderBy?: AccountLockoutOrderByWithRelationInput | AccountLockoutOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing AccountLockouts.
+     */
+    cursor?: AccountLockoutWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AccountLockouts from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AccountLockouts.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of AccountLockouts.
+     */
+    distinct?: AccountLockoutScalarFieldEnum | AccountLockoutScalarFieldEnum[]
+  }
+
+  /**
+   * AccountLockout create
+   */
+  export type AccountLockoutCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AccountLockout
+     */
+    select?: AccountLockoutSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AccountLockout
+     */
+    omit?: AccountLockoutOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AccountLockoutInclude<ExtArgs> | null
+    /**
+     * The data needed to create a AccountLockout.
+     */
+    data: XOR<AccountLockoutCreateInput, AccountLockoutUncheckedCreateInput>
+  }
+
+  /**
+   * AccountLockout createMany
+   */
+  export type AccountLockoutCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many AccountLockouts.
+     */
+    data: AccountLockoutCreateManyInput | AccountLockoutCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * AccountLockout createManyAndReturn
+   */
+  export type AccountLockoutCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AccountLockout
+     */
+    select?: AccountLockoutSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the AccountLockout
+     */
+    omit?: AccountLockoutOmit<ExtArgs> | null
+    /**
+     * The data used to create many AccountLockouts.
+     */
+    data: AccountLockoutCreateManyInput | AccountLockoutCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AccountLockoutIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * AccountLockout update
+   */
+  export type AccountLockoutUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AccountLockout
+     */
+    select?: AccountLockoutSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AccountLockout
+     */
+    omit?: AccountLockoutOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AccountLockoutInclude<ExtArgs> | null
+    /**
+     * The data needed to update a AccountLockout.
+     */
+    data: XOR<AccountLockoutUpdateInput, AccountLockoutUncheckedUpdateInput>
+    /**
+     * Choose, which AccountLockout to update.
+     */
+    where: AccountLockoutWhereUniqueInput
+  }
+
+  /**
+   * AccountLockout updateMany
+   */
+  export type AccountLockoutUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update AccountLockouts.
+     */
+    data: XOR<AccountLockoutUpdateManyMutationInput, AccountLockoutUncheckedUpdateManyInput>
+    /**
+     * Filter which AccountLockouts to update
+     */
+    where?: AccountLockoutWhereInput
+    /**
+     * Limit how many AccountLockouts to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * AccountLockout updateManyAndReturn
+   */
+  export type AccountLockoutUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AccountLockout
+     */
+    select?: AccountLockoutSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the AccountLockout
+     */
+    omit?: AccountLockoutOmit<ExtArgs> | null
+    /**
+     * The data used to update AccountLockouts.
+     */
+    data: XOR<AccountLockoutUpdateManyMutationInput, AccountLockoutUncheckedUpdateManyInput>
+    /**
+     * Filter which AccountLockouts to update
+     */
+    where?: AccountLockoutWhereInput
+    /**
+     * Limit how many AccountLockouts to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AccountLockoutIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * AccountLockout upsert
+   */
+  export type AccountLockoutUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AccountLockout
+     */
+    select?: AccountLockoutSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AccountLockout
+     */
+    omit?: AccountLockoutOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AccountLockoutInclude<ExtArgs> | null
+    /**
+     * The filter to search for the AccountLockout to update in case it exists.
+     */
+    where: AccountLockoutWhereUniqueInput
+    /**
+     * In case the AccountLockout found by the `where` argument doesn't exist, create a new AccountLockout with this data.
+     */
+    create: XOR<AccountLockoutCreateInput, AccountLockoutUncheckedCreateInput>
+    /**
+     * In case the AccountLockout was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<AccountLockoutUpdateInput, AccountLockoutUncheckedUpdateInput>
+  }
+
+  /**
+   * AccountLockout delete
+   */
+  export type AccountLockoutDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AccountLockout
+     */
+    select?: AccountLockoutSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AccountLockout
+     */
+    omit?: AccountLockoutOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AccountLockoutInclude<ExtArgs> | null
+    /**
+     * Filter which AccountLockout to delete.
+     */
+    where: AccountLockoutWhereUniqueInput
+  }
+
+  /**
+   * AccountLockout deleteMany
+   */
+  export type AccountLockoutDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which AccountLockouts to delete
+     */
+    where?: AccountLockoutWhereInput
+    /**
+     * Limit how many AccountLockouts to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * AccountLockout without action
+   */
+  export type AccountLockoutDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AccountLockout
+     */
+    select?: AccountLockoutSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AccountLockout
+     */
+    omit?: AccountLockoutOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AccountLockoutInclude<ExtArgs> | null
   }
 
 
@@ -20664,6 +21879,7 @@ export namespace Prisma {
     rotatedAt: Date | null
     revokedAt: Date | null
     lastReauthAt: Date | null
+    lastActiveAt: Date | null
     impersonatedBy: string | null
     ipAddress: string | null
     userAgent: string | null
@@ -20679,6 +21895,7 @@ export namespace Prisma {
     rotatedAt: Date | null
     revokedAt: Date | null
     lastReauthAt: Date | null
+    lastActiveAt: Date | null
     impersonatedBy: string | null
     ipAddress: string | null
     userAgent: string | null
@@ -20694,6 +21911,7 @@ export namespace Prisma {
     rotatedAt: number
     revokedAt: number
     lastReauthAt: number
+    lastActiveAt: number
     impersonatedBy: number
     ipAddress: number
     userAgent: number
@@ -20711,6 +21929,7 @@ export namespace Prisma {
     rotatedAt?: true
     revokedAt?: true
     lastReauthAt?: true
+    lastActiveAt?: true
     impersonatedBy?: true
     ipAddress?: true
     userAgent?: true
@@ -20726,6 +21945,7 @@ export namespace Prisma {
     rotatedAt?: true
     revokedAt?: true
     lastReauthAt?: true
+    lastActiveAt?: true
     impersonatedBy?: true
     ipAddress?: true
     userAgent?: true
@@ -20741,6 +21961,7 @@ export namespace Prisma {
     rotatedAt?: true
     revokedAt?: true
     lastReauthAt?: true
+    lastActiveAt?: true
     impersonatedBy?: true
     ipAddress?: true
     userAgent?: true
@@ -20829,6 +22050,7 @@ export namespace Prisma {
     rotatedAt: Date | null
     revokedAt: Date | null
     lastReauthAt: Date | null
+    lastActiveAt: Date | null
     impersonatedBy: string | null
     ipAddress: string | null
     userAgent: string | null
@@ -20861,6 +22083,7 @@ export namespace Prisma {
     rotatedAt?: boolean
     revokedAt?: boolean
     lastReauthAt?: boolean
+    lastActiveAt?: boolean
     impersonatedBy?: boolean
     ipAddress?: boolean
     userAgent?: boolean
@@ -20877,6 +22100,7 @@ export namespace Prisma {
     rotatedAt?: boolean
     revokedAt?: boolean
     lastReauthAt?: boolean
+    lastActiveAt?: boolean
     impersonatedBy?: boolean
     ipAddress?: boolean
     userAgent?: boolean
@@ -20893,6 +22117,7 @@ export namespace Prisma {
     rotatedAt?: boolean
     revokedAt?: boolean
     lastReauthAt?: boolean
+    lastActiveAt?: boolean
     impersonatedBy?: boolean
     ipAddress?: boolean
     userAgent?: boolean
@@ -20909,13 +22134,14 @@ export namespace Prisma {
     rotatedAt?: boolean
     revokedAt?: boolean
     lastReauthAt?: boolean
+    lastActiveAt?: boolean
     impersonatedBy?: boolean
     ipAddress?: boolean
     userAgent?: boolean
     createdAt?: boolean
   }
 
-  export type SessionOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "userId" | "tokenHash" | "refreshHash" | "expiresAt" | "rotatedAt" | "revokedAt" | "lastReauthAt" | "impersonatedBy" | "ipAddress" | "userAgent" | "createdAt", ExtArgs["result"]["session"]>
+  export type SessionOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "userId" | "tokenHash" | "refreshHash" | "expiresAt" | "rotatedAt" | "revokedAt" | "lastReauthAt" | "lastActiveAt" | "impersonatedBy" | "ipAddress" | "userAgent" | "createdAt", ExtArgs["result"]["session"]>
   export type SessionInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     user?: boolean | UserDefaultArgs<ExtArgs>
   }
@@ -20940,6 +22166,7 @@ export namespace Prisma {
       rotatedAt: Date | null
       revokedAt: Date | null
       lastReauthAt: Date | null
+      lastActiveAt: Date | null
       impersonatedBy: string | null
       ipAddress: string | null
       userAgent: string | null
@@ -21376,6 +22603,7 @@ export namespace Prisma {
     readonly rotatedAt: FieldRef<"Session", 'DateTime'>
     readonly revokedAt: FieldRef<"Session", 'DateTime'>
     readonly lastReauthAt: FieldRef<"Session", 'DateTime'>
+    readonly lastActiveAt: FieldRef<"Session", 'DateTime'>
     readonly impersonatedBy: FieldRef<"Session", 'String'>
     readonly ipAddress: FieldRef<"Session", 'String'>
     readonly userAgent: FieldRef<"Session", 'String'>
@@ -193943,6 +195171,17 @@ export namespace Prisma {
   export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof UserScalarFieldEnum]
 
 
+  export const AccountLockoutScalarFieldEnum: {
+    userId: 'userId',
+    failedCount: 'failedCount',
+    firstFailedAt: 'firstFailedAt',
+    lockedUntil: 'lockedUntil',
+    updatedAt: 'updatedAt'
+  };
+
+  export type AccountLockoutScalarFieldEnum = (typeof AccountLockoutScalarFieldEnum)[keyof typeof AccountLockoutScalarFieldEnum]
+
+
   export const AccountScalarFieldEnum: {
     id: 'id',
     userId: 'userId',
@@ -193963,6 +195202,7 @@ export namespace Prisma {
     rotatedAt: 'rotatedAt',
     revokedAt: 'revokedAt',
     lastReauthAt: 'lastReauthAt',
+    lastActiveAt: 'lastActiveAt',
     impersonatedBy: 'impersonatedBy',
     ipAddress: 'ipAddress',
     userAgent: 'userAgent',
@@ -196512,20 +197752,6 @@ export namespace Prisma {
 
 
   /**
-   * Reference to a field of type 'OrganizationMembershipState'
-   */
-  export type EnumOrganizationMembershipStateFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'OrganizationMembershipState'>
-    
-
-
-  /**
-   * Reference to a field of type 'OrganizationMembershipState[]'
-   */
-  export type ListEnumOrganizationMembershipStateFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'OrganizationMembershipState[]'>
-    
-
-
-  /**
    * Reference to a field of type 'Int'
    */
   export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int'>
@@ -196536,6 +197762,20 @@ export namespace Prisma {
    * Reference to a field of type 'Int[]'
    */
   export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'OrganizationMembershipState'
+   */
+  export type EnumOrganizationMembershipStateFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'OrganizationMembershipState'>
+    
+
+
+  /**
+   * Reference to a field of type 'OrganizationMembershipState[]'
+   */
+  export type ListEnumOrganizationMembershipStateFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'OrganizationMembershipState[]'>
     
 
 
@@ -197124,6 +198364,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantListRelationFilter
     accessGrantsCreated?: ResourceAccessGrantListRelationFilter
     accessGrantsRevoked?: ResourceAccessGrantListRelationFilter
+    loginLockout?: XOR<AccountLockoutNullableScalarRelationFilter, AccountLockoutWhereInput> | null
   }
 
   export type UserOrderByWithRelationInput = {
@@ -197187,6 +198428,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantOrderByRelationAggregateInput
     accessGrantsCreated?: ResourceAccessGrantOrderByRelationAggregateInput
     accessGrantsRevoked?: ResourceAccessGrantOrderByRelationAggregateInput
+    loginLockout?: AccountLockoutOrderByWithRelationInput
   }
 
   export type UserWhereUniqueInput = Prisma.AtLeast<{
@@ -197253,6 +198495,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantListRelationFilter
     accessGrantsCreated?: ResourceAccessGrantListRelationFilter
     accessGrantsRevoked?: ResourceAccessGrantListRelationFilter
+    loginLockout?: XOR<AccountLockoutNullableScalarRelationFilter, AccountLockoutWhereInput> | null
   }, "id" | "email">
 
   export type UserOrderByWithAggregationInput = {
@@ -197293,6 +198536,63 @@ export namespace Prisma {
     lastActiveAt?: DateTimeNullableWithAggregatesFilter<"User"> | Date | string | null
     createdAt?: DateTimeWithAggregatesFilter<"User"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"User"> | Date | string
+  }
+
+  export type AccountLockoutWhereInput = {
+    AND?: AccountLockoutWhereInput | AccountLockoutWhereInput[]
+    OR?: AccountLockoutWhereInput[]
+    NOT?: AccountLockoutWhereInput | AccountLockoutWhereInput[]
+    userId?: StringFilter<"AccountLockout"> | string
+    failedCount?: IntFilter<"AccountLockout"> | number
+    firstFailedAt?: DateTimeNullableFilter<"AccountLockout"> | Date | string | null
+    lockedUntil?: DateTimeNullableFilter<"AccountLockout"> | Date | string | null
+    updatedAt?: DateTimeFilter<"AccountLockout"> | Date | string
+    user?: XOR<UserScalarRelationFilter, UserWhereInput>
+  }
+
+  export type AccountLockoutOrderByWithRelationInput = {
+    userId?: SortOrder
+    failedCount?: SortOrder
+    firstFailedAt?: SortOrderInput | SortOrder
+    lockedUntil?: SortOrderInput | SortOrder
+    updatedAt?: SortOrder
+    user?: UserOrderByWithRelationInput
+  }
+
+  export type AccountLockoutWhereUniqueInput = Prisma.AtLeast<{
+    userId?: string
+    AND?: AccountLockoutWhereInput | AccountLockoutWhereInput[]
+    OR?: AccountLockoutWhereInput[]
+    NOT?: AccountLockoutWhereInput | AccountLockoutWhereInput[]
+    failedCount?: IntFilter<"AccountLockout"> | number
+    firstFailedAt?: DateTimeNullableFilter<"AccountLockout"> | Date | string | null
+    lockedUntil?: DateTimeNullableFilter<"AccountLockout"> | Date | string | null
+    updatedAt?: DateTimeFilter<"AccountLockout"> | Date | string
+    user?: XOR<UserScalarRelationFilter, UserWhereInput>
+  }, "userId">
+
+  export type AccountLockoutOrderByWithAggregationInput = {
+    userId?: SortOrder
+    failedCount?: SortOrder
+    firstFailedAt?: SortOrderInput | SortOrder
+    lockedUntil?: SortOrderInput | SortOrder
+    updatedAt?: SortOrder
+    _count?: AccountLockoutCountOrderByAggregateInput
+    _avg?: AccountLockoutAvgOrderByAggregateInput
+    _max?: AccountLockoutMaxOrderByAggregateInput
+    _min?: AccountLockoutMinOrderByAggregateInput
+    _sum?: AccountLockoutSumOrderByAggregateInput
+  }
+
+  export type AccountLockoutScalarWhereWithAggregatesInput = {
+    AND?: AccountLockoutScalarWhereWithAggregatesInput | AccountLockoutScalarWhereWithAggregatesInput[]
+    OR?: AccountLockoutScalarWhereWithAggregatesInput[]
+    NOT?: AccountLockoutScalarWhereWithAggregatesInput | AccountLockoutScalarWhereWithAggregatesInput[]
+    userId?: StringWithAggregatesFilter<"AccountLockout"> | string
+    failedCount?: IntWithAggregatesFilter<"AccountLockout"> | number
+    firstFailedAt?: DateTimeNullableWithAggregatesFilter<"AccountLockout"> | Date | string | null
+    lockedUntil?: DateTimeNullableWithAggregatesFilter<"AccountLockout"> | Date | string | null
+    updatedAt?: DateTimeWithAggregatesFilter<"AccountLockout"> | Date | string
   }
 
   export type AccountWhereInput = {
@@ -197363,6 +198663,7 @@ export namespace Prisma {
     rotatedAt?: DateTimeNullableFilter<"Session"> | Date | string | null
     revokedAt?: DateTimeNullableFilter<"Session"> | Date | string | null
     lastReauthAt?: DateTimeNullableFilter<"Session"> | Date | string | null
+    lastActiveAt?: DateTimeNullableFilter<"Session"> | Date | string | null
     impersonatedBy?: StringNullableFilter<"Session"> | string | null
     ipAddress?: StringNullableFilter<"Session"> | string | null
     userAgent?: StringNullableFilter<"Session"> | string | null
@@ -197379,6 +198680,7 @@ export namespace Prisma {
     rotatedAt?: SortOrderInput | SortOrder
     revokedAt?: SortOrderInput | SortOrder
     lastReauthAt?: SortOrderInput | SortOrder
+    lastActiveAt?: SortOrderInput | SortOrder
     impersonatedBy?: SortOrderInput | SortOrder
     ipAddress?: SortOrderInput | SortOrder
     userAgent?: SortOrderInput | SortOrder
@@ -197398,6 +198700,7 @@ export namespace Prisma {
     rotatedAt?: DateTimeNullableFilter<"Session"> | Date | string | null
     revokedAt?: DateTimeNullableFilter<"Session"> | Date | string | null
     lastReauthAt?: DateTimeNullableFilter<"Session"> | Date | string | null
+    lastActiveAt?: DateTimeNullableFilter<"Session"> | Date | string | null
     impersonatedBy?: StringNullableFilter<"Session"> | string | null
     ipAddress?: StringNullableFilter<"Session"> | string | null
     userAgent?: StringNullableFilter<"Session"> | string | null
@@ -197414,6 +198717,7 @@ export namespace Prisma {
     rotatedAt?: SortOrderInput | SortOrder
     revokedAt?: SortOrderInput | SortOrder
     lastReauthAt?: SortOrderInput | SortOrder
+    lastActiveAt?: SortOrderInput | SortOrder
     impersonatedBy?: SortOrderInput | SortOrder
     ipAddress?: SortOrderInput | SortOrder
     userAgent?: SortOrderInput | SortOrder
@@ -197435,6 +198739,7 @@ export namespace Prisma {
     rotatedAt?: DateTimeNullableWithAggregatesFilter<"Session"> | Date | string | null
     revokedAt?: DateTimeNullableWithAggregatesFilter<"Session"> | Date | string | null
     lastReauthAt?: DateTimeNullableWithAggregatesFilter<"Session"> | Date | string | null
+    lastActiveAt?: DateTimeNullableWithAggregatesFilter<"Session"> | Date | string | null
     impersonatedBy?: StringNullableWithAggregatesFilter<"Session"> | string | null
     ipAddress?: StringNullableWithAggregatesFilter<"Session"> | string | null
     userAgent?: StringNullableWithAggregatesFilter<"Session"> | string | null
@@ -210389,6 +211694,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutCreateNestedOneWithoutUserInput
   }
 
   export type UserUncheckedCreateInput = {
@@ -210452,6 +211758,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutUncheckedCreateNestedOneWithoutUserInput
   }
 
   export type UserUpdateInput = {
@@ -210515,6 +211822,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUpdateOneWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateInput = {
@@ -210578,6 +211886,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUncheckedUpdateOneWithoutUserNestedInput
   }
 
   export type UserCreateManyInput = {
@@ -210628,6 +211937,61 @@ export namespace Prisma {
     preferences?: NullableJsonNullValueInput | InputJsonValue
     lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AccountLockoutCreateInput = {
+    failedCount?: number
+    firstFailedAt?: Date | string | null
+    lockedUntil?: Date | string | null
+    updatedAt?: Date | string
+    user: UserCreateNestedOneWithoutLoginLockoutInput
+  }
+
+  export type AccountLockoutUncheckedCreateInput = {
+    userId: string
+    failedCount?: number
+    firstFailedAt?: Date | string | null
+    lockedUntil?: Date | string | null
+    updatedAt?: Date | string
+  }
+
+  export type AccountLockoutUpdateInput = {
+    failedCount?: IntFieldUpdateOperationsInput | number
+    firstFailedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lockedUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    user?: UserUpdateOneRequiredWithoutLoginLockoutNestedInput
+  }
+
+  export type AccountLockoutUncheckedUpdateInput = {
+    userId?: StringFieldUpdateOperationsInput | string
+    failedCount?: IntFieldUpdateOperationsInput | number
+    firstFailedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lockedUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AccountLockoutCreateManyInput = {
+    userId: string
+    failedCount?: number
+    firstFailedAt?: Date | string | null
+    lockedUntil?: Date | string | null
+    updatedAt?: Date | string
+  }
+
+  export type AccountLockoutUpdateManyMutationInput = {
+    failedCount?: IntFieldUpdateOperationsInput | number
+    firstFailedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lockedUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AccountLockoutUncheckedUpdateManyInput = {
+    userId?: StringFieldUpdateOperationsInput | string
+    failedCount?: IntFieldUpdateOperationsInput | number
+    firstFailedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lockedUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -210694,6 +212058,7 @@ export namespace Prisma {
     rotatedAt?: Date | string | null
     revokedAt?: Date | string | null
     lastReauthAt?: Date | string | null
+    lastActiveAt?: Date | string | null
     impersonatedBy?: string | null
     ipAddress?: string | null
     userAgent?: string | null
@@ -210710,6 +212075,7 @@ export namespace Prisma {
     rotatedAt?: Date | string | null
     revokedAt?: Date | string | null
     lastReauthAt?: Date | string | null
+    lastActiveAt?: Date | string | null
     impersonatedBy?: string | null
     ipAddress?: string | null
     userAgent?: string | null
@@ -210724,6 +212090,7 @@ export namespace Prisma {
     rotatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     lastReauthAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     impersonatedBy?: NullableStringFieldUpdateOperationsInput | string | null
     ipAddress?: NullableStringFieldUpdateOperationsInput | string | null
     userAgent?: NullableStringFieldUpdateOperationsInput | string | null
@@ -210740,6 +212107,7 @@ export namespace Prisma {
     rotatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     lastReauthAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     impersonatedBy?: NullableStringFieldUpdateOperationsInput | string | null
     ipAddress?: NullableStringFieldUpdateOperationsInput | string | null
     userAgent?: NullableStringFieldUpdateOperationsInput | string | null
@@ -210755,6 +212123,7 @@ export namespace Prisma {
     rotatedAt?: Date | string | null
     revokedAt?: Date | string | null
     lastReauthAt?: Date | string | null
+    lastActiveAt?: Date | string | null
     impersonatedBy?: string | null
     ipAddress?: string | null
     userAgent?: string | null
@@ -210769,6 +212138,7 @@ export namespace Prisma {
     rotatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     lastReauthAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     impersonatedBy?: NullableStringFieldUpdateOperationsInput | string | null
     ipAddress?: NullableStringFieldUpdateOperationsInput | string | null
     userAgent?: NullableStringFieldUpdateOperationsInput | string | null
@@ -210784,6 +212154,7 @@ export namespace Prisma {
     rotatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     lastReauthAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     impersonatedBy?: NullableStringFieldUpdateOperationsInput | string | null
     ipAddress?: NullableStringFieldUpdateOperationsInput | string | null
     userAgent?: NullableStringFieldUpdateOperationsInput | string | null
@@ -225410,6 +226781,11 @@ export namespace Prisma {
     none?: ResourceAccessGrantWhereInput
   }
 
+  export type AccountLockoutNullableScalarRelationFilter = {
+    is?: AccountLockoutWhereInput | null
+    isNot?: AccountLockoutWhereInput | null
+  }
+
   export type SortOrderInput = {
     sort: SortOrder
     nulls?: NullsOrder
@@ -225730,9 +227106,68 @@ export namespace Prisma {
     _max?: NestedDateTimeFilter<$PrismaModel>
   }
 
+  export type IntFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel>
+    in?: number[] | ListIntFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntFilter<$PrismaModel> | number
+  }
+
   export type UserScalarRelationFilter = {
     is?: UserWhereInput
     isNot?: UserWhereInput
+  }
+
+  export type AccountLockoutCountOrderByAggregateInput = {
+    userId?: SortOrder
+    failedCount?: SortOrder
+    firstFailedAt?: SortOrder
+    lockedUntil?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type AccountLockoutAvgOrderByAggregateInput = {
+    failedCount?: SortOrder
+  }
+
+  export type AccountLockoutMaxOrderByAggregateInput = {
+    userId?: SortOrder
+    failedCount?: SortOrder
+    firstFailedAt?: SortOrder
+    lockedUntil?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type AccountLockoutMinOrderByAggregateInput = {
+    userId?: SortOrder
+    failedCount?: SortOrder
+    firstFailedAt?: SortOrder
+    lockedUntil?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type AccountLockoutSumOrderByAggregateInput = {
+    failedCount?: SortOrder
+  }
+
+  export type IntWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel>
+    in?: number[] | ListIntFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntWithAggregatesFilter<$PrismaModel> | number
+    _count?: NestedIntFilter<$PrismaModel>
+    _avg?: NestedFloatFilter<$PrismaModel>
+    _sum?: NestedIntFilter<$PrismaModel>
+    _min?: NestedIntFilter<$PrismaModel>
+    _max?: NestedIntFilter<$PrismaModel>
   }
 
   export type AccountProviderProviderAccountIdCompoundUniqueInput = {
@@ -225773,6 +227208,7 @@ export namespace Prisma {
     rotatedAt?: SortOrder
     revokedAt?: SortOrder
     lastReauthAt?: SortOrder
+    lastActiveAt?: SortOrder
     impersonatedBy?: SortOrder
     ipAddress?: SortOrder
     userAgent?: SortOrder
@@ -225788,6 +227224,7 @@ export namespace Prisma {
     rotatedAt?: SortOrder
     revokedAt?: SortOrder
     lastReauthAt?: SortOrder
+    lastActiveAt?: SortOrder
     impersonatedBy?: SortOrder
     ipAddress?: SortOrder
     userAgent?: SortOrder
@@ -225803,6 +227240,7 @@ export namespace Prisma {
     rotatedAt?: SortOrder
     revokedAt?: SortOrder
     lastReauthAt?: SortOrder
+    lastActiveAt?: SortOrder
     impersonatedBy?: SortOrder
     ipAddress?: SortOrder
     userAgent?: SortOrder
@@ -226493,17 +227931,6 @@ export namespace Prisma {
     expiresAt?: SortOrder
     createdAt?: SortOrder
   }
-
-  export type IntFilter<$PrismaModel = never> = {
-    equals?: number | IntFieldRefInput<$PrismaModel>
-    in?: number[] | ListIntFieldRefInput<$PrismaModel>
-    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
-    lt?: number | IntFieldRefInput<$PrismaModel>
-    lte?: number | IntFieldRefInput<$PrismaModel>
-    gt?: number | IntFieldRefInput<$PrismaModel>
-    gte?: number | IntFieldRefInput<$PrismaModel>
-    not?: NestedIntFilter<$PrismaModel> | number
-  }
   export type JsonFilter<$PrismaModel = never> =
     | PatchUndefined<
         Either<Required<JsonFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonFilterBase<$PrismaModel>>, 'path'>>,
@@ -226636,22 +228063,6 @@ export namespace Prisma {
     embeddingDimensions?: SortOrder
     importance?: SortOrder
     accessCount?: SortOrder
-  }
-
-  export type IntWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: number | IntFieldRefInput<$PrismaModel>
-    in?: number[] | ListIntFieldRefInput<$PrismaModel>
-    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
-    lt?: number | IntFieldRefInput<$PrismaModel>
-    lte?: number | IntFieldRefInput<$PrismaModel>
-    gt?: number | IntFieldRefInput<$PrismaModel>
-    gte?: number | IntFieldRefInput<$PrismaModel>
-    not?: NestedIntWithAggregatesFilter<$PrismaModel> | number
-    _count?: NestedIntFilter<$PrismaModel>
-    _avg?: NestedFloatFilter<$PrismaModel>
-    _sum?: NestedIntFilter<$PrismaModel>
-    _min?: NestedIntFilter<$PrismaModel>
-    _max?: NestedIntFilter<$PrismaModel>
   }
   export type JsonWithAggregatesFilter<$PrismaModel = never> =
     | PatchUndefined<
@@ -234614,6 +236025,12 @@ export namespace Prisma {
     connect?: ResourceAccessGrantWhereUniqueInput | ResourceAccessGrantWhereUniqueInput[]
   }
 
+  export type AccountLockoutCreateNestedOneWithoutUserInput = {
+    create?: XOR<AccountLockoutCreateWithoutUserInput, AccountLockoutUncheckedCreateWithoutUserInput>
+    connectOrCreate?: AccountLockoutCreateOrConnectWithoutUserInput
+    connect?: AccountLockoutWhereUniqueInput
+  }
+
   export type AccountUncheckedCreateNestedManyWithoutUserInput = {
     create?: XOR<AccountCreateWithoutUserInput, AccountUncheckedCreateWithoutUserInput> | AccountCreateWithoutUserInput[] | AccountUncheckedCreateWithoutUserInput[]
     connectOrCreate?: AccountCreateOrConnectWithoutUserInput | AccountCreateOrConnectWithoutUserInput[]
@@ -234930,6 +236347,12 @@ export namespace Prisma {
     connectOrCreate?: ResourceAccessGrantCreateOrConnectWithoutRevokedByInput | ResourceAccessGrantCreateOrConnectWithoutRevokedByInput[]
     createMany?: ResourceAccessGrantCreateManyRevokedByInputEnvelope
     connect?: ResourceAccessGrantWhereUniqueInput | ResourceAccessGrantWhereUniqueInput[]
+  }
+
+  export type AccountLockoutUncheckedCreateNestedOneWithoutUserInput = {
+    create?: XOR<AccountLockoutCreateWithoutUserInput, AccountLockoutUncheckedCreateWithoutUserInput>
+    connectOrCreate?: AccountLockoutCreateOrConnectWithoutUserInput
+    connect?: AccountLockoutWhereUniqueInput
   }
 
   export type StringFieldUpdateOperationsInput = {
@@ -235588,6 +237011,16 @@ export namespace Prisma {
     deleteMany?: ResourceAccessGrantScalarWhereInput | ResourceAccessGrantScalarWhereInput[]
   }
 
+  export type AccountLockoutUpdateOneWithoutUserNestedInput = {
+    create?: XOR<AccountLockoutCreateWithoutUserInput, AccountLockoutUncheckedCreateWithoutUserInput>
+    connectOrCreate?: AccountLockoutCreateOrConnectWithoutUserInput
+    upsert?: AccountLockoutUpsertWithoutUserInput
+    disconnect?: AccountLockoutWhereInput | boolean
+    delete?: AccountLockoutWhereInput | boolean
+    connect?: AccountLockoutWhereUniqueInput
+    update?: XOR<XOR<AccountLockoutUpdateToOneWithWhereWithoutUserInput, AccountLockoutUpdateWithoutUserInput>, AccountLockoutUncheckedUpdateWithoutUserInput>
+  }
+
   export type AccountUncheckedUpdateManyWithoutUserNestedInput = {
     create?: XOR<AccountCreateWithoutUserInput, AccountUncheckedCreateWithoutUserInput> | AccountCreateWithoutUserInput[] | AccountUncheckedCreateWithoutUserInput[]
     connectOrCreate?: AccountCreateOrConnectWithoutUserInput | AccountCreateOrConnectWithoutUserInput[]
@@ -236222,6 +237655,38 @@ export namespace Prisma {
     update?: ResourceAccessGrantUpdateWithWhereUniqueWithoutRevokedByInput | ResourceAccessGrantUpdateWithWhereUniqueWithoutRevokedByInput[]
     updateMany?: ResourceAccessGrantUpdateManyWithWhereWithoutRevokedByInput | ResourceAccessGrantUpdateManyWithWhereWithoutRevokedByInput[]
     deleteMany?: ResourceAccessGrantScalarWhereInput | ResourceAccessGrantScalarWhereInput[]
+  }
+
+  export type AccountLockoutUncheckedUpdateOneWithoutUserNestedInput = {
+    create?: XOR<AccountLockoutCreateWithoutUserInput, AccountLockoutUncheckedCreateWithoutUserInput>
+    connectOrCreate?: AccountLockoutCreateOrConnectWithoutUserInput
+    upsert?: AccountLockoutUpsertWithoutUserInput
+    disconnect?: AccountLockoutWhereInput | boolean
+    delete?: AccountLockoutWhereInput | boolean
+    connect?: AccountLockoutWhereUniqueInput
+    update?: XOR<XOR<AccountLockoutUpdateToOneWithWhereWithoutUserInput, AccountLockoutUpdateWithoutUserInput>, AccountLockoutUncheckedUpdateWithoutUserInput>
+  }
+
+  export type UserCreateNestedOneWithoutLoginLockoutInput = {
+    create?: XOR<UserCreateWithoutLoginLockoutInput, UserUncheckedCreateWithoutLoginLockoutInput>
+    connectOrCreate?: UserCreateOrConnectWithoutLoginLockoutInput
+    connect?: UserWhereUniqueInput
+  }
+
+  export type IntFieldUpdateOperationsInput = {
+    set?: number
+    increment?: number
+    decrement?: number
+    multiply?: number
+    divide?: number
+  }
+
+  export type UserUpdateOneRequiredWithoutLoginLockoutNestedInput = {
+    create?: XOR<UserCreateWithoutLoginLockoutInput, UserUncheckedCreateWithoutLoginLockoutInput>
+    connectOrCreate?: UserCreateOrConnectWithoutLoginLockoutInput
+    upsert?: UserUpsertWithoutLoginLockoutInput
+    connect?: UserWhereUniqueInput
+    update?: XOR<XOR<UserUpdateToOneWithWhereWithoutLoginLockoutInput, UserUpdateWithoutLoginLockoutInput>, UserUncheckedUpdateWithoutLoginLockoutInput>
   }
 
   export type UserCreateNestedOneWithoutAccountsInput = {
@@ -239726,14 +241191,6 @@ export namespace Prisma {
     upsert?: ProjectUpsertWithoutSlugRedirectsInput
     connect?: ProjectWhereUniqueInput
     update?: XOR<XOR<ProjectUpdateToOneWithWhereWithoutSlugRedirectsInput, ProjectUpdateWithoutSlugRedirectsInput>, ProjectUncheckedUpdateWithoutSlugRedirectsInput>
-  }
-
-  export type IntFieldUpdateOperationsInput = {
-    set?: number
-    increment?: number
-    decrement?: number
-    multiply?: number
-    divide?: number
   }
 
   export type AgentMemoryUpdatetagsInput = {
@@ -244941,6 +246398,33 @@ export namespace Prisma {
     _max?: NestedDateTimeFilter<$PrismaModel>
   }
 
+  export type NestedIntWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel>
+    in?: number[] | ListIntFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntWithAggregatesFilter<$PrismaModel> | number
+    _count?: NestedIntFilter<$PrismaModel>
+    _avg?: NestedFloatFilter<$PrismaModel>
+    _sum?: NestedIntFilter<$PrismaModel>
+    _min?: NestedIntFilter<$PrismaModel>
+    _max?: NestedIntFilter<$PrismaModel>
+  }
+
+  export type NestedFloatFilter<$PrismaModel = never> = {
+    equals?: number | FloatFieldRefInput<$PrismaModel>
+    in?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    lt?: number | FloatFieldRefInput<$PrismaModel>
+    lte?: number | FloatFieldRefInput<$PrismaModel>
+    gt?: number | FloatFieldRefInput<$PrismaModel>
+    gte?: number | FloatFieldRefInput<$PrismaModel>
+    not?: NestedFloatFilter<$PrismaModel> | number
+  }
+
   export type NestedEnumOrganizationMembershipStateFilter<$PrismaModel = never> = {
     equals?: $Enums.OrganizationMembershipState | EnumOrganizationMembershipStateFieldRefInput<$PrismaModel>
     in?: $Enums.OrganizationMembershipState[] | ListEnumOrganizationMembershipStateFieldRefInput<$PrismaModel>
@@ -244956,33 +246440,6 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumOrganizationMembershipStateFilter<$PrismaModel>
     _max?: NestedEnumOrganizationMembershipStateFilter<$PrismaModel>
-  }
-
-  export type NestedFloatFilter<$PrismaModel = never> = {
-    equals?: number | FloatFieldRefInput<$PrismaModel>
-    in?: number[] | ListFloatFieldRefInput<$PrismaModel>
-    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel>
-    lt?: number | FloatFieldRefInput<$PrismaModel>
-    lte?: number | FloatFieldRefInput<$PrismaModel>
-    gt?: number | FloatFieldRefInput<$PrismaModel>
-    gte?: number | FloatFieldRefInput<$PrismaModel>
-    not?: NestedFloatFilter<$PrismaModel> | number
-  }
-
-  export type NestedIntWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: number | IntFieldRefInput<$PrismaModel>
-    in?: number[] | ListIntFieldRefInput<$PrismaModel>
-    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
-    lt?: number | IntFieldRefInput<$PrismaModel>
-    lte?: number | IntFieldRefInput<$PrismaModel>
-    gt?: number | IntFieldRefInput<$PrismaModel>
-    gte?: number | IntFieldRefInput<$PrismaModel>
-    not?: NestedIntWithAggregatesFilter<$PrismaModel> | number
-    _count?: NestedIntFilter<$PrismaModel>
-    _avg?: NestedFloatFilter<$PrismaModel>
-    _sum?: NestedIntFilter<$PrismaModel>
-    _min?: NestedIntFilter<$PrismaModel>
-    _max?: NestedIntFilter<$PrismaModel>
   }
   export type NestedJsonFilter<$PrismaModel = never> =
     | PatchUndefined<
@@ -245748,6 +247205,7 @@ export namespace Prisma {
     rotatedAt?: Date | string | null
     revokedAt?: Date | string | null
     lastReauthAt?: Date | string | null
+    lastActiveAt?: Date | string | null
     impersonatedBy?: string | null
     ipAddress?: string | null
     userAgent?: string | null
@@ -245762,6 +247220,7 @@ export namespace Prisma {
     rotatedAt?: Date | string | null
     revokedAt?: Date | string | null
     lastReauthAt?: Date | string | null
+    lastActiveAt?: Date | string | null
     impersonatedBy?: string | null
     ipAddress?: string | null
     userAgent?: string | null
@@ -247431,6 +248890,25 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type AccountLockoutCreateWithoutUserInput = {
+    failedCount?: number
+    firstFailedAt?: Date | string | null
+    lockedUntil?: Date | string | null
+    updatedAt?: Date | string
+  }
+
+  export type AccountLockoutUncheckedCreateWithoutUserInput = {
+    failedCount?: number
+    firstFailedAt?: Date | string | null
+    lockedUntil?: Date | string | null
+    updatedAt?: Date | string
+  }
+
+  export type AccountLockoutCreateOrConnectWithoutUserInput = {
+    where: AccountLockoutWhereUniqueInput
+    create: XOR<AccountLockoutCreateWithoutUserInput, AccountLockoutUncheckedCreateWithoutUserInput>
+  }
+
   export type AccountUpsertWithWhereUniqueWithoutUserInput = {
     where: AccountWhereUniqueInput
     update: XOR<AccountUpdateWithoutUserInput, AccountUncheckedUpdateWithoutUserInput>
@@ -247486,6 +248964,7 @@ export namespace Prisma {
     rotatedAt?: DateTimeNullableFilter<"Session"> | Date | string | null
     revokedAt?: DateTimeNullableFilter<"Session"> | Date | string | null
     lastReauthAt?: DateTimeNullableFilter<"Session"> | Date | string | null
+    lastActiveAt?: DateTimeNullableFilter<"Session"> | Date | string | null
     impersonatedBy?: StringNullableFilter<"Session"> | string | null
     ipAddress?: StringNullableFilter<"Session"> | string | null
     userAgent?: StringNullableFilter<"Session"> | string | null
@@ -248922,6 +250401,299 @@ export namespace Prisma {
     data: XOR<ResourceAccessGrantUpdateManyMutationInput, ResourceAccessGrantUncheckedUpdateManyWithoutRevokedByInput>
   }
 
+  export type AccountLockoutUpsertWithoutUserInput = {
+    update: XOR<AccountLockoutUpdateWithoutUserInput, AccountLockoutUncheckedUpdateWithoutUserInput>
+    create: XOR<AccountLockoutCreateWithoutUserInput, AccountLockoutUncheckedCreateWithoutUserInput>
+    where?: AccountLockoutWhereInput
+  }
+
+  export type AccountLockoutUpdateToOneWithWhereWithoutUserInput = {
+    where?: AccountLockoutWhereInput
+    data: XOR<AccountLockoutUpdateWithoutUserInput, AccountLockoutUncheckedUpdateWithoutUserInput>
+  }
+
+  export type AccountLockoutUpdateWithoutUserInput = {
+    failedCount?: IntFieldUpdateOperationsInput | number
+    firstFailedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lockedUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AccountLockoutUncheckedUpdateWithoutUserInput = {
+    failedCount?: IntFieldUpdateOperationsInput | number
+    firstFailedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lockedUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type UserCreateWithoutLoginLockoutInput = {
+    id?: string
+    email: string
+    name?: string | null
+    passwordHash?: string | null
+    emailVerifiedAt?: Date | string | null
+    mfaEnabled?: boolean
+    mfaSecretCiphertext?: string | null
+    platformAdmin?: boolean
+    language?: string | null
+    timezone?: string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    accounts?: AccountCreateNestedManyWithoutUserInput
+    sessions?: SessionCreateNestedManyWithoutUserInput
+    memberships?: OrganizationMemberCreateNestedManyWithoutUserInput
+    apiKeys?: ApiKeyCreateNestedManyWithoutUserInput
+    auditLogs?: AuditLogCreateNestedManyWithoutActorInput
+    adminAuditLogs?: AdminAuditLogCreateNestedManyWithoutActorInput
+    conversations?: AiConversationCreateNestedManyWithoutUserInput
+    supportTickets?: SupportTicketCreateNestedManyWithoutUserInput
+    oauthConnections?: OAuthConnectionCreateNestedManyWithoutUserInput
+    emailVerificationTokens?: EmailVerificationTokenCreateNestedManyWithoutUserInput
+    passwordResetTokens?: PasswordResetTokenCreateNestedManyWithoutUserInput
+    recoveryCodes?: MfaRecoveryCodeCreateNestedManyWithoutUserInput
+    projectCollaborations?: ProjectCollaboratorCreateNestedManyWithoutUserInput
+    projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
+    projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
+    galleryListings?: GalleryListingCreateNestedManyWithoutAuthorInput
+    projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
+    collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
+    collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
+    collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
+    agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
+    mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
+    mcpUserConfig?: McpUserConfigCreateNestedOneWithoutUserInput
+    agentRuns?: AgentRunCreateNestedManyWithoutUserInput
+    userConnections?: UserConnectionCreateNestedManyWithoutUserInput
+    linkedProjectConnections?: ProjectConnectionLinkCreateNestedManyWithoutLinkedByUserInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutConfiguredByUserInput
+    integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
+    notifications?: NotificationCreateNestedManyWithoutUserInput
+    aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
+    spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
+    agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
+    importJobs?: ImportJobCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutActorInput
+    reservedVmOperations?: ReservedVmOperationCreateNestedManyWithoutActorUserInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodCreateNestedManyWithoutActorUserInput
+    cloudOperations?: CloudOperationCreateNestedManyWithoutActorInput
+    projectCheckpoints?: ProjectCheckpointCreateNestedManyWithoutCreatedByInput
+    invitedOrganizationMembers?: OrganizationMemberCreateNestedManyWithoutInvitedByInput
+    createdOrganizationInvites?: OrganizationInviteCreateNestedManyWithoutCreatedByInput
+    accessGrantSubjects?: ResourceAccessGrantCreateNestedManyWithoutSubjectUserInput
+    accessGrantsCreated?: ResourceAccessGrantCreateNestedManyWithoutGrantedByInput
+    accessGrantsRevoked?: ResourceAccessGrantCreateNestedManyWithoutRevokedByInput
+  }
+
+  export type UserUncheckedCreateWithoutLoginLockoutInput = {
+    id?: string
+    email: string
+    name?: string | null
+    passwordHash?: string | null
+    emailVerifiedAt?: Date | string | null
+    mfaEnabled?: boolean
+    mfaSecretCiphertext?: string | null
+    platformAdmin?: boolean
+    language?: string | null
+    timezone?: string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
+    sessions?: SessionUncheckedCreateNestedManyWithoutUserInput
+    memberships?: OrganizationMemberUncheckedCreateNestedManyWithoutUserInput
+    apiKeys?: ApiKeyUncheckedCreateNestedManyWithoutUserInput
+    auditLogs?: AuditLogUncheckedCreateNestedManyWithoutActorInput
+    adminAuditLogs?: AdminAuditLogUncheckedCreateNestedManyWithoutActorInput
+    conversations?: AiConversationUncheckedCreateNestedManyWithoutUserInput
+    supportTickets?: SupportTicketUncheckedCreateNestedManyWithoutUserInput
+    oauthConnections?: OAuthConnectionUncheckedCreateNestedManyWithoutUserInput
+    emailVerificationTokens?: EmailVerificationTokenUncheckedCreateNestedManyWithoutUserInput
+    passwordResetTokens?: PasswordResetTokenUncheckedCreateNestedManyWithoutUserInput
+    recoveryCodes?: MfaRecoveryCodeUncheckedCreateNestedManyWithoutUserInput
+    projectCollaborations?: ProjectCollaboratorUncheckedCreateNestedManyWithoutUserInput
+    projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
+    projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
+    galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutAuthorInput
+    projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
+    collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
+    collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
+    collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
+    agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
+    mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
+    mcpUserConfig?: McpUserConfigUncheckedCreateNestedOneWithoutUserInput
+    agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
+    userConnections?: UserConnectionUncheckedCreateNestedManyWithoutUserInput
+    linkedProjectConnections?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutLinkedByUserInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutConfiguredByUserInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
+    notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
+    aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
+    spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
+    agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedCreateNestedManyWithoutConsentedByInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutActorInput
+    reservedVmOperations?: ReservedVmOperationUncheckedCreateNestedManyWithoutActorUserInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedCreateNestedManyWithoutActorUserInput
+    cloudOperations?: CloudOperationUncheckedCreateNestedManyWithoutActorInput
+    projectCheckpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutCreatedByInput
+    invitedOrganizationMembers?: OrganizationMemberUncheckedCreateNestedManyWithoutInvitedByInput
+    createdOrganizationInvites?: OrganizationInviteUncheckedCreateNestedManyWithoutCreatedByInput
+    accessGrantSubjects?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectUserInput
+    accessGrantsCreated?: ResourceAccessGrantUncheckedCreateNestedManyWithoutGrantedByInput
+    accessGrantsRevoked?: ResourceAccessGrantUncheckedCreateNestedManyWithoutRevokedByInput
+  }
+
+  export type UserCreateOrConnectWithoutLoginLockoutInput = {
+    where: UserWhereUniqueInput
+    create: XOR<UserCreateWithoutLoginLockoutInput, UserUncheckedCreateWithoutLoginLockoutInput>
+  }
+
+  export type UserUpsertWithoutLoginLockoutInput = {
+    update: XOR<UserUpdateWithoutLoginLockoutInput, UserUncheckedUpdateWithoutLoginLockoutInput>
+    create: XOR<UserCreateWithoutLoginLockoutInput, UserUncheckedCreateWithoutLoginLockoutInput>
+    where?: UserWhereInput
+  }
+
+  export type UserUpdateToOneWithWhereWithoutLoginLockoutInput = {
+    where?: UserWhereInput
+    data: XOR<UserUpdateWithoutLoginLockoutInput, UserUncheckedUpdateWithoutLoginLockoutInput>
+  }
+
+  export type UserUpdateWithoutLoginLockoutInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    passwordHash?: NullableStringFieldUpdateOperationsInput | string | null
+    emailVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
+    mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
+    platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    accounts?: AccountUpdateManyWithoutUserNestedInput
+    sessions?: SessionUpdateManyWithoutUserNestedInput
+    memberships?: OrganizationMemberUpdateManyWithoutUserNestedInput
+    apiKeys?: ApiKeyUpdateManyWithoutUserNestedInput
+    auditLogs?: AuditLogUpdateManyWithoutActorNestedInput
+    adminAuditLogs?: AdminAuditLogUpdateManyWithoutActorNestedInput
+    conversations?: AiConversationUpdateManyWithoutUserNestedInput
+    supportTickets?: SupportTicketUpdateManyWithoutUserNestedInput
+    oauthConnections?: OAuthConnectionUpdateManyWithoutUserNestedInput
+    emailVerificationTokens?: EmailVerificationTokenUpdateManyWithoutUserNestedInput
+    passwordResetTokens?: PasswordResetTokenUpdateManyWithoutUserNestedInput
+    recoveryCodes?: MfaRecoveryCodeUpdateManyWithoutUserNestedInput
+    projectCollaborations?: ProjectCollaboratorUpdateManyWithoutUserNestedInput
+    projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
+    projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
+    galleryListings?: GalleryListingUpdateManyWithoutAuthorNestedInput
+    projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
+    collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
+    collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
+    collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
+    agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
+    mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
+    mcpUserConfig?: McpUserConfigUpdateOneWithoutUserNestedInput
+    agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
+    userConnections?: UserConnectionUpdateManyWithoutUserNestedInput
+    linkedProjectConnections?: ProjectConnectionLinkUpdateManyWithoutLinkedByUserNestedInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutConfiguredByUserNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
+    notifications?: NotificationUpdateManyWithoutUserNestedInput
+    aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
+    spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
+    agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
+    importJobs?: ImportJobUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutActorNestedInput
+    reservedVmOperations?: ReservedVmOperationUpdateManyWithoutActorUserNestedInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUpdateManyWithoutActorUserNestedInput
+    cloudOperations?: CloudOperationUpdateManyWithoutActorNestedInput
+    projectCheckpoints?: ProjectCheckpointUpdateManyWithoutCreatedByNestedInput
+    invitedOrganizationMembers?: OrganizationMemberUpdateManyWithoutInvitedByNestedInput
+    createdOrganizationInvites?: OrganizationInviteUpdateManyWithoutCreatedByNestedInput
+    accessGrantSubjects?: ResourceAccessGrantUpdateManyWithoutSubjectUserNestedInput
+    accessGrantsCreated?: ResourceAccessGrantUpdateManyWithoutGrantedByNestedInput
+    accessGrantsRevoked?: ResourceAccessGrantUpdateManyWithoutRevokedByNestedInput
+  }
+
+  export type UserUncheckedUpdateWithoutLoginLockoutInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    passwordHash?: NullableStringFieldUpdateOperationsInput | string | null
+    emailVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
+    mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
+    platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
+    sessions?: SessionUncheckedUpdateManyWithoutUserNestedInput
+    memberships?: OrganizationMemberUncheckedUpdateManyWithoutUserNestedInput
+    apiKeys?: ApiKeyUncheckedUpdateManyWithoutUserNestedInput
+    auditLogs?: AuditLogUncheckedUpdateManyWithoutActorNestedInput
+    adminAuditLogs?: AdminAuditLogUncheckedUpdateManyWithoutActorNestedInput
+    conversations?: AiConversationUncheckedUpdateManyWithoutUserNestedInput
+    supportTickets?: SupportTicketUncheckedUpdateManyWithoutUserNestedInput
+    oauthConnections?: OAuthConnectionUncheckedUpdateManyWithoutUserNestedInput
+    emailVerificationTokens?: EmailVerificationTokenUncheckedUpdateManyWithoutUserNestedInput
+    passwordResetTokens?: PasswordResetTokenUncheckedUpdateManyWithoutUserNestedInput
+    recoveryCodes?: MfaRecoveryCodeUncheckedUpdateManyWithoutUserNestedInput
+    projectCollaborations?: ProjectCollaboratorUncheckedUpdateManyWithoutUserNestedInput
+    projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
+    projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
+    galleryListings?: GalleryListingUncheckedUpdateManyWithoutAuthorNestedInput
+    projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
+    collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
+    collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
+    collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
+    agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
+    mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
+    mcpUserConfig?: McpUserConfigUncheckedUpdateOneWithoutUserNestedInput
+    agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
+    userConnections?: UserConnectionUncheckedUpdateManyWithoutUserNestedInput
+    linkedProjectConnections?: ProjectConnectionLinkUncheckedUpdateManyWithoutLinkedByUserNestedInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutConfiguredByUserNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
+    notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
+    aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
+    spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
+    agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
+    remixStorageSharesConsented?: RemixStorageShareUncheckedUpdateManyWithoutConsentedByNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutActorNestedInput
+    reservedVmOperations?: ReservedVmOperationUncheckedUpdateManyWithoutActorUserNestedInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedUpdateManyWithoutActorUserNestedInput
+    cloudOperations?: CloudOperationUncheckedUpdateManyWithoutActorNestedInput
+    projectCheckpoints?: ProjectCheckpointUncheckedUpdateManyWithoutCreatedByNestedInput
+    invitedOrganizationMembers?: OrganizationMemberUncheckedUpdateManyWithoutInvitedByNestedInput
+    createdOrganizationInvites?: OrganizationInviteUncheckedUpdateManyWithoutCreatedByNestedInput
+    accessGrantSubjects?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserNestedInput
+    accessGrantsCreated?: ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput
+    accessGrantsRevoked?: ResourceAccessGrantUncheckedUpdateManyWithoutRevokedByNestedInput
+  }
+
   export type UserCreateWithoutAccountsInput = {
     id?: string
     email: string
@@ -248982,6 +250754,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutCreateNestedOneWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutAccountsInput = {
@@ -249044,6 +250817,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutUncheckedCreateNestedOneWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutAccountsInput = {
@@ -249122,6 +250896,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUpdateOneWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAccountsInput = {
@@ -249184,6 +250959,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUncheckedUpdateOneWithoutUserNestedInput
   }
 
   export type UserCreateWithoutSessionsInput = {
@@ -249246,6 +251022,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutCreateNestedOneWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutSessionsInput = {
@@ -249308,6 +251085,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutUncheckedCreateNestedOneWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutSessionsInput = {
@@ -249386,6 +251164,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUpdateOneWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutSessionsInput = {
@@ -249448,6 +251227,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUncheckedUpdateOneWithoutUserNestedInput
   }
 
   export type OrganizationMemberCreateWithoutOrganizationInput = {
@@ -252043,6 +253823,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutCreateNestedOneWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutMembershipsInput = {
@@ -252105,6 +253886,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutUncheckedCreateNestedOneWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutMembershipsInput = {
@@ -252172,6 +253954,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutCreateNestedOneWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutInvitedOrganizationMembersInput = {
@@ -252234,6 +254017,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutUncheckedCreateNestedOneWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutInvitedOrganizationMembersInput = {
@@ -252464,6 +254248,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUpdateOneWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutMembershipsInput = {
@@ -252526,6 +254311,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUncheckedUpdateOneWithoutUserNestedInput
   }
 
   export type UserUpsertWithoutInvitedOrganizationMembersInput = {
@@ -252599,6 +254385,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUpdateOneWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutInvitedOrganizationMembersInput = {
@@ -252661,6 +254448,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUncheckedUpdateOneWithoutUserNestedInput
   }
 
   export type RoleUpsertWithoutMembersInput = {
@@ -252903,6 +254691,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutCreateNestedOneWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutCreatedOrganizationInvitesInput = {
@@ -252965,6 +254754,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutUncheckedCreateNestedOneWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutCreatedOrganizationInvitesInput = {
@@ -253179,6 +254969,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUpdateOneWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutCreatedOrganizationInvitesInput = {
@@ -253241,6 +255032,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUncheckedUpdateOneWithoutUserNestedInput
   }
 
   export type RolePermissionCreateWithoutRoleInput = {
@@ -256327,6 +258119,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutCreateNestedOneWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutAgentMemoriesInput = {
@@ -256389,6 +258182,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutUncheckedCreateNestedOneWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutAgentMemoriesInput = {
@@ -256467,6 +258261,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUpdateOneWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAgentMemoriesInput = {
@@ -256529,6 +258324,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUncheckedUpdateOneWithoutUserNestedInput
   }
 
   export type OrganizationCreateWithoutAgentMemoriesInput = {
@@ -257027,6 +258823,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutCreateNestedOneWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutAgentMemoryPreferencesInput = {
@@ -257089,6 +258886,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutUncheckedCreateNestedOneWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutAgentMemoryPreferencesInput = {
@@ -257379,6 +259177,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUpdateOneWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAgentMemoryPreferencesInput = {
@@ -257441,6 +259240,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUncheckedUpdateOneWithoutUserNestedInput
   }
 
   export type OrganizationUpsertWithoutAgentMemoryPreferencesInput = {
@@ -257838,6 +259638,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutCreateNestedOneWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutProjectIdeStateUpdatesInput = {
@@ -257900,6 +259701,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutUncheckedCreateNestedOneWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutProjectIdeStateUpdatesInput = {
@@ -258095,6 +259897,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUpdateOneWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutProjectIdeStateUpdatesInput = {
@@ -258157,6 +259960,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUncheckedUpdateOneWithoutUserNestedInput
   }
 
   export type ProjectCreateWithoutAgentPatchProposalsInput = {
@@ -259698,6 +261502,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutCreateNestedOneWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutProjectCollaborationsInput = {
@@ -259760,6 +261565,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutUncheckedCreateNestedOneWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutProjectCollaborationsInput = {
@@ -259955,6 +261761,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUpdateOneWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutProjectCollaborationsInput = {
@@ -260017,6 +261824,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUncheckedUpdateOneWithoutUserNestedInput
   }
 
   export type ProjectCreateWithoutActivityInput = {
@@ -260190,6 +261998,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutCreateNestedOneWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutProjectActivityInput = {
@@ -260252,6 +262061,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutUncheckedCreateNestedOneWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutProjectActivityInput = {
@@ -260447,6 +262257,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUpdateOneWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutProjectActivityInput = {
@@ -260509,6 +262320,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUncheckedUpdateOneWithoutUserNestedInput
   }
 
   export type ProjectCreateWithoutCollaborationPresenceInput = {
@@ -260682,6 +262494,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutCreateNestedOneWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutCollaborationPresenceInput = {
@@ -260744,6 +262557,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutUncheckedCreateNestedOneWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutCollaborationPresenceInput = {
@@ -260939,6 +262753,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUpdateOneWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutCollaborationPresenceInput = {
@@ -261001,6 +262816,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUncheckedUpdateOneWithoutUserNestedInput
   }
 
   export type ProjectCreateWithoutCollaborationCommentsInput = {
@@ -261174,6 +262990,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutCreateNestedOneWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutCollaborationCommentsInput = {
@@ -261236,6 +263053,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutUncheckedCreateNestedOneWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutCollaborationCommentsInput = {
@@ -261431,6 +263249,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUpdateOneWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutCollaborationCommentsInput = {
@@ -261493,6 +263312,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUncheckedUpdateOneWithoutUserNestedInput
   }
 
   export type ProjectCreateWithoutShareLinksInput = {
@@ -261666,6 +263486,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutCreateNestedOneWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutCollaborationShareLinksInput = {
@@ -261728,6 +263549,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutUncheckedCreateNestedOneWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutCollaborationShareLinksInput = {
@@ -261923,6 +263745,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUpdateOneWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutCollaborationShareLinksInput = {
@@ -261985,6 +263808,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUncheckedUpdateOneWithoutUserNestedInput
   }
 
   export type OrganizationCreateWithoutCollaborationGroupsInput = {
@@ -262591,6 +264415,7 @@ export namespace Prisma {
     createdOrganizationInvites?: OrganizationInviteCreateNestedManyWithoutCreatedByInput
     accessGrantsCreated?: ResourceAccessGrantCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutCreateNestedOneWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutAccessGrantSubjectsInput = {
@@ -262653,6 +264478,7 @@ export namespace Prisma {
     createdOrganizationInvites?: OrganizationInviteUncheckedCreateNestedManyWithoutCreatedByInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutUncheckedCreateNestedOneWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutAccessGrantSubjectsInput = {
@@ -262751,6 +264577,7 @@ export namespace Prisma {
     createdOrganizationInvites?: OrganizationInviteCreateNestedManyWithoutCreatedByInput
     accessGrantSubjects?: ResourceAccessGrantCreateNestedManyWithoutSubjectUserInput
     accessGrantsRevoked?: ResourceAccessGrantCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutCreateNestedOneWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutAccessGrantsCreatedInput = {
@@ -262813,6 +264640,7 @@ export namespace Prisma {
     createdOrganizationInvites?: OrganizationInviteUncheckedCreateNestedManyWithoutCreatedByInput
     accessGrantSubjects?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectUserInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutUncheckedCreateNestedOneWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutAccessGrantsCreatedInput = {
@@ -262880,6 +264708,7 @@ export namespace Prisma {
     createdOrganizationInvites?: OrganizationInviteCreateNestedManyWithoutCreatedByInput
     accessGrantSubjects?: ResourceAccessGrantCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantCreateNestedManyWithoutGrantedByInput
+    loginLockout?: AccountLockoutCreateNestedOneWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutAccessGrantsRevokedInput = {
@@ -262942,6 +264771,7 @@ export namespace Prisma {
     createdOrganizationInvites?: OrganizationInviteUncheckedCreateNestedManyWithoutCreatedByInput
     accessGrantSubjects?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedCreateNestedManyWithoutGrantedByInput
+    loginLockout?: AccountLockoutUncheckedCreateNestedOneWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutAccessGrantsRevokedInput = {
@@ -263127,6 +264957,7 @@ export namespace Prisma {
     createdOrganizationInvites?: OrganizationInviteUpdateManyWithoutCreatedByNestedInput
     accessGrantsCreated?: ResourceAccessGrantUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUpdateOneWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAccessGrantSubjectsInput = {
@@ -263189,6 +265020,7 @@ export namespace Prisma {
     createdOrganizationInvites?: OrganizationInviteUncheckedUpdateManyWithoutCreatedByNestedInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUncheckedUpdateOneWithoutUserNestedInput
   }
 
   export type CollaborationGroupUpsertWithoutAccessGrantsInput = {
@@ -263299,6 +265131,7 @@ export namespace Prisma {
     createdOrganizationInvites?: OrganizationInviteUpdateManyWithoutCreatedByNestedInput
     accessGrantSubjects?: ResourceAccessGrantUpdateManyWithoutSubjectUserNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUpdateOneWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAccessGrantsCreatedInput = {
@@ -263361,6 +265194,7 @@ export namespace Prisma {
     createdOrganizationInvites?: OrganizationInviteUncheckedUpdateManyWithoutCreatedByNestedInput
     accessGrantSubjects?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUncheckedUpdateOneWithoutUserNestedInput
   }
 
   export type UserUpsertWithoutAccessGrantsRevokedInput = {
@@ -263434,6 +265268,7 @@ export namespace Prisma {
     createdOrganizationInvites?: OrganizationInviteUpdateManyWithoutCreatedByNestedInput
     accessGrantSubjects?: ResourceAccessGrantUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUpdateManyWithoutGrantedByNestedInput
+    loginLockout?: AccountLockoutUpdateOneWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAccessGrantsRevokedInput = {
@@ -263496,6 +265331,7 @@ export namespace Prisma {
     createdOrganizationInvites?: OrganizationInviteUncheckedUpdateManyWithoutCreatedByNestedInput
     accessGrantSubjects?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput
+    loginLockout?: AccountLockoutUncheckedUpdateOneWithoutUserNestedInput
   }
 
   export type ProjectCreateWithoutTemplatesInput = {
@@ -265302,6 +267138,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutCreateNestedOneWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutProjectSnapshotsInput = {
@@ -265364,6 +267201,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutUncheckedCreateNestedOneWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutProjectSnapshotsInput = {
@@ -265559,6 +267397,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUpdateOneWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutProjectSnapshotsInput = {
@@ -265621,6 +267460,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUncheckedUpdateOneWithoutUserNestedInput
   }
 
   export type ProjectCreateWithoutManifestRevisionsInput = {
@@ -266913,6 +268753,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutCreateNestedOneWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutReservedVmOperationsInput = {
@@ -266975,6 +268816,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutUncheckedCreateNestedOneWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutReservedVmOperationsInput = {
@@ -267334,6 +269176,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUpdateOneWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutReservedVmOperationsInput = {
@@ -267396,6 +269239,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUncheckedUpdateOneWithoutUserNestedInput
   }
 
   export type LedgerReservationUpsertWithoutReservedVmOperationInput = {
@@ -267733,6 +269577,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutCreateNestedOneWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutReservedVmBillingPeriodsInput = {
@@ -267795,6 +269640,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutUncheckedCreateNestedOneWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutReservedVmBillingPeriodsInput = {
@@ -268154,6 +270000,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUpdateOneWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutReservedVmBillingPeriodsInput = {
@@ -268216,6 +270063,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUncheckedUpdateOneWithoutUserNestedInput
   }
 
   export type LedgerReservationUpsertWithoutReservedVmBillingPeriodInput = {
@@ -268574,6 +270422,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutCreateNestedOneWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutRollbackOperationsInput = {
@@ -268636,6 +270485,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutUncheckedCreateNestedOneWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutRollbackOperationsInput = {
@@ -268831,6 +270681,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUpdateOneWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutRollbackOperationsInput = {
@@ -268893,6 +270744,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUncheckedUpdateOneWithoutUserNestedInput
   }
 
   export type OrganizationCreateWithoutAuditLogsInput = {
@@ -269056,6 +270908,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutCreateNestedOneWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutAuditLogsInput = {
@@ -269118,6 +270971,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutUncheckedCreateNestedOneWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutAuditLogsInput = {
@@ -269303,6 +271157,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUpdateOneWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAuditLogsInput = {
@@ -269365,6 +271220,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUncheckedUpdateOneWithoutUserNestedInput
   }
 
   export type UserCreateWithoutAdminAuditLogsInput = {
@@ -269427,6 +271283,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutCreateNestedOneWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutAdminAuditLogsInput = {
@@ -269489,6 +271346,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutUncheckedCreateNestedOneWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutAdminAuditLogsInput = {
@@ -269567,6 +271425,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUpdateOneWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAdminAuditLogsInput = {
@@ -269629,6 +271488,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUncheckedUpdateOneWithoutUserNestedInput
   }
 
   export type OrganizationCreateWithoutBillingCustomerInput = {
@@ -271176,6 +273036,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutCreateNestedOneWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutConversationsInput = {
@@ -271238,6 +273099,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutUncheckedCreateNestedOneWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutConversationsInput = {
@@ -271461,6 +273323,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUpdateOneWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutConversationsInput = {
@@ -271523,6 +273386,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUncheckedUpdateOneWithoutUserNestedInput
   }
 
   export type AiMessageUpsertWithWhereUniqueWithoutConversationInput = {
@@ -271874,6 +273738,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutCreateNestedOneWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutAiMessageFeedbackInput = {
@@ -271936,6 +273801,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutUncheckedCreateNestedOneWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutAiMessageFeedbackInput = {
@@ -272014,6 +273880,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUpdateOneWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAiMessageFeedbackInput = {
@@ -272076,6 +273943,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUncheckedUpdateOneWithoutUserNestedInput
   }
 
   export type OrganizationCreateWithoutAiCostLedgerInput = {
@@ -272655,6 +274523,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutCreateNestedOneWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutSupportTicketsInput = {
@@ -272717,6 +274586,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutUncheckedCreateNestedOneWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutSupportTicketsInput = {
@@ -272928,6 +274798,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUpdateOneWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutSupportTicketsInput = {
@@ -272990,6 +274861,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUncheckedUpdateOneWithoutUserNestedInput
   }
 
   export type TicketMessageUpsertWithWhereUniqueWithoutTicketInput = {
@@ -273348,6 +275220,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutCreateNestedOneWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutEmailVerificationTokensInput = {
@@ -273410,6 +275283,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutUncheckedCreateNestedOneWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutEmailVerificationTokensInput = {
@@ -273488,6 +275362,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUpdateOneWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutEmailVerificationTokensInput = {
@@ -273550,6 +275425,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUncheckedUpdateOneWithoutUserNestedInput
   }
 
   export type UserCreateWithoutRuntimeWebSocketTicketsInput = {
@@ -273612,6 +275488,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutCreateNestedOneWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutRuntimeWebSocketTicketsInput = {
@@ -273674,6 +275551,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutUncheckedCreateNestedOneWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutRuntimeWebSocketTicketsInput = {
@@ -273863,6 +275741,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUpdateOneWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutRuntimeWebSocketTicketsInput = {
@@ -273925,6 +275804,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUncheckedUpdateOneWithoutUserNestedInput
   }
 
   export type ProjectUpsertWithoutRuntimeWebSocketTicketsInput = {
@@ -274104,6 +275984,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutCreateNestedOneWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutPasswordResetTokensInput = {
@@ -274166,6 +276047,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutUncheckedCreateNestedOneWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutPasswordResetTokensInput = {
@@ -274244,6 +276126,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUpdateOneWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutPasswordResetTokensInput = {
@@ -274306,6 +276189,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUncheckedUpdateOneWithoutUserNestedInput
   }
 
   export type UserCreateWithoutRecoveryCodesInput = {
@@ -274368,6 +276252,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutCreateNestedOneWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutRecoveryCodesInput = {
@@ -274430,6 +276315,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutUncheckedCreateNestedOneWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutRecoveryCodesInput = {
@@ -274508,6 +276394,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUpdateOneWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutRecoveryCodesInput = {
@@ -274570,6 +276457,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUncheckedUpdateOneWithoutUserNestedInput
   }
 
   export type OrganizationCreateWithoutEnterpriseSettingsInput = {
@@ -275981,6 +277869,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutCreateNestedOneWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutApiKeysInput = {
@@ -276043,6 +277932,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutUncheckedCreateNestedOneWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutApiKeysInput = {
@@ -276228,6 +278118,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUpdateOneWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutApiKeysInput = {
@@ -276290,6 +278181,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUncheckedUpdateOneWithoutUserNestedInput
   }
 
   export type UserCreateWithoutOauthConnectionsInput = {
@@ -276352,6 +278244,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutCreateNestedOneWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutOauthConnectionsInput = {
@@ -276414,6 +278307,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutUncheckedCreateNestedOneWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutOauthConnectionsInput = {
@@ -276492,6 +278386,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUpdateOneWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutOauthConnectionsInput = {
@@ -276554,6 +278449,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUncheckedUpdateOneWithoutUserNestedInput
   }
 
   export type McpInstallCreateWithoutCatalogEntryInput = {
@@ -276723,6 +278619,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutCreateNestedOneWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutMcpInstallsInput = {
@@ -276785,6 +278682,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutUncheckedCreateNestedOneWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutMcpInstallsInput = {
@@ -277029,6 +278927,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUpdateOneWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutMcpInstallsInput = {
@@ -277091,6 +278990,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUncheckedUpdateOneWithoutUserNestedInput
   }
 
   export type OrganizationUpsertWithoutMcpInstallsInput = {
@@ -277260,6 +279160,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutCreateNestedOneWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutMcpUserConfigInput = {
@@ -277322,6 +279223,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutUncheckedCreateNestedOneWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutMcpUserConfigInput = {
@@ -277400,6 +279302,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUpdateOneWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutMcpUserConfigInput = {
@@ -277462,6 +279365,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUncheckedUpdateOneWithoutUserNestedInput
   }
 
   export type AgentRunResultCreateWithoutRunInput = {
@@ -277595,6 +279499,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutCreateNestedOneWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutAgentRunsInput = {
@@ -277657,6 +279562,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutUncheckedCreateNestedOneWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutAgentRunsInput = {
@@ -277909,6 +279815,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUpdateOneWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAgentRunsInput = {
@@ -277971,6 +279878,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUncheckedUpdateOneWithoutUserNestedInput
   }
 
   export type OrganizationUpsertWithoutAgentRunsInput = {
@@ -278404,6 +280312,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutCreateNestedOneWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutUserConnectionsInput = {
@@ -278466,6 +280375,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutUncheckedCreateNestedOneWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutUserConnectionsInput = {
@@ -278631,6 +280541,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUpdateOneWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutUserConnectionsInput = {
@@ -278693,6 +280604,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUncheckedUpdateOneWithoutUserNestedInput
   }
 
   export type OrganizationOAuthAppOverrideUpsertWithoutUserConnectionsInput = {
@@ -279004,6 +280916,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutCreateNestedOneWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutLinkedProjectConnectionsInput = {
@@ -279066,6 +280979,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutUncheckedCreateNestedOneWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutLinkedProjectConnectionsInput = {
@@ -279320,6 +281234,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUpdateOneWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutLinkedProjectConnectionsInput = {
@@ -279382,6 +281297,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUncheckedUpdateOneWithoutUserNestedInput
   }
 
   export type OrganizationCreateWithoutOauthAppOverridesInput = {
@@ -279545,6 +281461,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutCreateNestedOneWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutConfiguredOauthAppOverridesInput = {
@@ -279607,6 +281524,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutUncheckedCreateNestedOneWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutConfiguredOauthAppOverridesInput = {
@@ -279850,6 +281768,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUpdateOneWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutConfiguredOauthAppOverridesInput = {
@@ -279912,6 +281831,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUncheckedUpdateOneWithoutUserNestedInput
   }
 
   export type UserConnectionUpsertWithWhereUniqueWithoutOauthAppOverrideInput = {
@@ -280310,6 +282230,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutCreateNestedOneWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutNotificationsInput = {
@@ -280372,6 +282293,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutUncheckedCreateNestedOneWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutNotificationsInput = {
@@ -280450,6 +282372,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUpdateOneWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutNotificationsInput = {
@@ -280512,6 +282435,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUncheckedUpdateOneWithoutUserNestedInput
   }
 
   export type UserCreateWithoutIntegrationFeatureRequestsInput = {
@@ -280574,6 +282498,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutCreateNestedOneWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutIntegrationFeatureRequestsInput = {
@@ -280636,6 +282561,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutUncheckedCreateNestedOneWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutIntegrationFeatureRequestsInput = {
@@ -280815,6 +282741,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUpdateOneWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutIntegrationFeatureRequestsInput = {
@@ -280877,6 +282804,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUncheckedUpdateOneWithoutUserNestedInput
   }
 
   export type OrganizationUpsertWithoutIntegrationFeatureRequestsInput = {
@@ -282101,6 +284029,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutCreateNestedOneWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutSpendLimitsInput = {
@@ -282163,6 +284092,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutUncheckedCreateNestedOneWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutSpendLimitsInput = {
@@ -282348,6 +284278,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUpdateOneWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutSpendLimitsInput = {
@@ -282410,6 +284341,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUncheckedUpdateOneWithoutUserNestedInput
   }
 
   export type ModelConfigCreateWithoutProviderConfigInput = {
@@ -283465,6 +285397,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutCreateNestedOneWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutAgentRoutingCardsInput = {
@@ -283527,6 +285460,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutUncheckedCreateNestedOneWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutAgentRoutingCardsInput = {
@@ -283605,6 +285539,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUpdateOneWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAgentRoutingCardsInput = {
@@ -283667,6 +285602,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUncheckedUpdateOneWithoutUserNestedInput
   }
 
   export type ProjectCreateWithoutCheckpointsInput = {
@@ -283840,6 +285776,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutCreateNestedOneWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutProjectCheckpointsInput = {
@@ -283902,6 +285839,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutUncheckedCreateNestedOneWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutProjectCheckpointsInput = {
@@ -284097,6 +286035,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUpdateOneWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutProjectCheckpointsInput = {
@@ -284159,6 +286098,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUncheckedUpdateOneWithoutUserNestedInput
   }
 
   export type ProjectCreateWithoutTargetRemixJobsInput = {
@@ -285049,6 +286989,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutCreateNestedOneWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutRemixStorageSharesConsentedInput = {
@@ -285111,6 +287052,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutUncheckedCreateNestedOneWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutRemixStorageSharesConsentedInput = {
@@ -285717,6 +287659,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUpdateOneWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutRemixStorageSharesConsentedInput = {
@@ -285779,6 +287722,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUncheckedUpdateOneWithoutUserNestedInput
   }
 
   export type RemixJobUpsertWithWhereUniqueWithoutStorageShareInput = {
@@ -285958,6 +287902,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutCreateNestedOneWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutImportJobsInput = {
@@ -286020,6 +287965,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutUncheckedCreateNestedOneWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutImportJobsInput = {
@@ -286345,6 +288291,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUpdateOneWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutImportJobsInput = {
@@ -286407,6 +288354,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUncheckedUpdateOneWithoutUserNestedInput
   }
 
   export type ProjectUpsertWithoutImportJobsInput = {
@@ -286856,6 +288804,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutCreateNestedOneWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutGalleryListingsInput = {
@@ -286918,6 +288867,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutUncheckedCreateNestedOneWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutGalleryListingsInput = {
@@ -287113,6 +289063,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUpdateOneWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutGalleryListingsInput = {
@@ -287175,6 +289126,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUncheckedUpdateOneWithoutUserNestedInput
   }
 
   export type LedgerEntryCreateWithoutAccountInput = {
@@ -290355,6 +292307,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutCreateNestedOneWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutCloudOperationsInput = {
@@ -290417,6 +292370,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedCreateNestedManyWithoutSubjectUserInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedCreateNestedManyWithoutGrantedByInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedCreateNestedManyWithoutRevokedByInput
+    loginLockout?: AccountLockoutUncheckedCreateNestedOneWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutCloudOperationsInput = {
@@ -290802,6 +292756,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUpdateOneWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutCloudOperationsInput = {
@@ -290864,6 +292819,7 @@ export namespace Prisma {
     accessGrantSubjects?: ResourceAccessGrantUncheckedUpdateManyWithoutSubjectUserNestedInput
     accessGrantsCreated?: ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedUpdateManyWithoutRevokedByNestedInput
+    loginLockout?: AccountLockoutUncheckedUpdateOneWithoutUserNestedInput
   }
 
   export type CloudOperationEventUpsertWithWhereUniqueWithoutOperationInput = {
@@ -292479,6 +294435,7 @@ export namespace Prisma {
     rotatedAt?: Date | string | null
     revokedAt?: Date | string | null
     lastReauthAt?: Date | string | null
+    lastActiveAt?: Date | string | null
     impersonatedBy?: string | null
     ipAddress?: string | null
     userAgent?: string | null
@@ -293105,6 +295062,7 @@ export namespace Prisma {
     rotatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     lastReauthAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     impersonatedBy?: NullableStringFieldUpdateOperationsInput | string | null
     ipAddress?: NullableStringFieldUpdateOperationsInput | string | null
     userAgent?: NullableStringFieldUpdateOperationsInput | string | null
@@ -293119,6 +295077,7 @@ export namespace Prisma {
     rotatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     lastReauthAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     impersonatedBy?: NullableStringFieldUpdateOperationsInput | string | null
     ipAddress?: NullableStringFieldUpdateOperationsInput | string | null
     userAgent?: NullableStringFieldUpdateOperationsInput | string | null
@@ -293133,6 +295092,7 @@ export namespace Prisma {
     rotatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     lastReauthAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     impersonatedBy?: NullableStringFieldUpdateOperationsInput | string | null
     ipAddress?: NullableStringFieldUpdateOperationsInput | string | null
     userAgent?: NullableStringFieldUpdateOperationsInput | string | null

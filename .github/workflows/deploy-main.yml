@@ -27,13 +27,33 @@ name: Deploy Production (Continuous)
 on:
   push:
     branches: [main]
-    # Doc/branding-only commits don't change any runtime image, so skip the
-    # (expensive) build+rollout for them. Anything under docs/ or any *.md file
-    # (README, CLAUDE.md, runbooks) is ignored; a commit that also touches code
-    # still deploys. Only affects CI triggering, never the runtime.
+    # Commits that cannot change a runtime image skip the (expensive)
+    # build+rollout. `paths-ignore` only skips when EVERY changed file matches,
+    # so a commit that also touches product code still deploys — this never
+    # trades away a real deployment.
+    #
+    # Why this list grew: on 2026-08-27, five deploys ran back to back and FOUR
+    # of them changed zero runtime files — a parity drift-check workflow, an
+    # i18n audit Playwright config, a deploy-workflow probe fix, a CI workflow.
+    # Each cost a full sequential Cloud Build of both tiers (~50 min), and since
+    # deploys are serialized, they were the critical path of the whole merge
+    # train while changing nothing that ships.
+    #
+    # Nothing here ends up inside an image: workflows and composite actions run
+    # on the runner, specs and tests are not bundled, and the Playwright configs
+    # only drive CI. A change to this very workflow takes effect on the next
+    # push regardless, since GitHub reads the workflow from the pushed ref — and
+    # `workflow_dispatch` below is always available to force a deploy on demand.
     paths-ignore:
       - '**/*.md'
       - 'docs/**'
+      - '.github/**'
+      - 'tests/**'
+      - '**/*.spec.ts'
+      - '**/*.spec.tsx'
+      - '**/*.spec.mjs'
+      - '**/*.spec.js'
+      - 'playwright*.config.ts'
   workflow_dispatch:
     inputs:
       target_sha:

@@ -10,6 +10,7 @@ import {
 import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
 import type { AccountPurgePreview, PurgeStorageDeps, PurgeUserAccountResult } from './account-purge.js';
 import type { DeploymentAccessMode, DeploymentAccessPolicyRecord } from './deployment-access.js';
+import type { LoginLockoutState, LoginThrottleConfig } from './login-throttle.js';
 
 export interface UserRecord {
   id: string;
@@ -58,7 +59,8 @@ export interface SessionRecord {
   userAgent?: string;
   revokedAt?: string;
   lastReauthAt?: string;
-
+  /** Last authenticated activity; drives the idle timeout. Null ⇒ use createdAt. */
+  lastActiveAt?: string | null;
   /** Set when an admin is impersonating another user; value = admin's user id. */
   impersonatedBy?: string;
 }
@@ -2143,6 +2145,8 @@ export interface ApiStore {
   listSessions(userId: string): Promise<SessionRecord[]>;
   revokeSession(userId: string, sessionId: string): Promise<boolean>;
   revokeAllSessions(userId: string, exceptSessionId?: string): Promise<number>;
+  /** Refresh a session's lastActiveAt (idle-timeout heartbeat); throttled write. */
+  touchSession(sessionId: string, nowMs: number, throttleMs?: number): Promise<void>;
   markSessionReauthenticated(sessionId: string): Promise<SessionRecord | undefined>;
   createRuntimeWebSocketTicket(input: {
     tokenHash: string;
@@ -2173,6 +2177,16 @@ export interface ApiStore {
   setRecoveryCodes(userId: string, codeHashes: string[]): Promise<RecoveryCodeRecord[]>;
   consumeRecoveryCode(userId: string, codeHash: string): Promise<boolean>;
   countUnusedRecoveryCodes(userId: string): Promise<number>;
+
+  /*
+   * Per-account brute-force lock (login-throttle). getLoginLockout reads the
+   * current state; recordFailedLogin atomically increments the failed counter
+   * (serialized per-user so concurrent attempts can't race it) and returns the
+   * new state; clearLoginLockout resets it on a successful login.
+   */
+  getLoginLockout(userId: string): Promise<LoginLockoutState | undefined>;
+  recordFailedLogin(userId: string, nowMs: number, config: LoginThrottleConfig): Promise<LoginLockoutState>;
+  clearLoginLockout(userId: string): Promise<void>;
   createOrganization(input: { name: string; slug: string; ownerUserId: string }): Promise<OrganizationRecord>;
   listOrganizations(userId: string): Promise<OrganizationRecord[]>;
   getOrganization(id: string): Promise<OrganizationRecord | undefined>;

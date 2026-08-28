@@ -137,6 +137,14 @@ exports.Prisma.UserScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.AccountLockoutScalarFieldEnum = {
+  userId: 'userId',
+  failedCount: 'failedCount',
+  firstFailedAt: 'firstFailedAt',
+  lockedUntil: 'lockedUntil',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.AccountScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
@@ -154,6 +162,7 @@ exports.Prisma.SessionScalarFieldEnum = {
   rotatedAt: 'rotatedAt',
   revokedAt: 'revokedAt',
   lastReauthAt: 'lastReauthAt',
+  lastActiveAt: 'lastActiveAt',
   impersonatedBy: 'impersonatedBy',
   ipAddress: 'ipAddress',
   userAgent: 'userAgent',
@@ -2475,6 +2484,7 @@ exports.PlatformIamComplianceStatus = exports.$Enums.PlatformIamComplianceStatus
 
 exports.Prisma.ModelName = {
   User: 'User',
+  AccountLockout: 'AccountLockout',
   Account: 'Account',
   Session: 'Session',
   Organization: 'Organization',
