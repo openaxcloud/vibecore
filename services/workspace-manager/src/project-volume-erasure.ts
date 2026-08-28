@@ -43,6 +43,15 @@ export interface ProjectVolumeSourceReference extends ProjectVolumeTenantScope {
   pvcName: string;
   expectedPvcUid?: string;
 
+  /**
+   * Durable producer evidence. These fields are mandatory deletion authority
+   * when the PVC has disappeared but a Retain/finalizer-blocked PV remains.
+   */
+  expectedPvUid?: string;
+  expectedCsiDriver?: string;
+  expectedCsiVolumeHandle?: string;
+  expectedProviderResourceId?: string;
+
   /** Required to authorize a pre-label-era claim. Label conflicts are never waived. */
   allowLegacyUnlabelled?: boolean;
 }
@@ -139,6 +148,12 @@ export interface ExactProviderVolumeDelete {
 
   /** Stable UUID, so provider retries cannot create a second delete operation. */
   requestId: string;
+
+  /**
+   * Revalidates the project creation drain immediately before the provider
+   * adapter's final identity GET and again immediately before DELETE.
+   */
+  assertCreationQuiescence: () => Promise<void>;
 }
 
 export interface ProjectVolumeProviderAdapter {
@@ -157,6 +172,16 @@ export interface ProjectVolumeLeaseGuard {
    * immediately before every Kubernetes/provider request, including poll reads.
    */
   assertLease(effect: ProjectVolumeExternalEffect): Promise<void>;
+}
+
+/**
+ * Durable authority proving every CSI producer for this project is drained.
+ * It is intentionally distinct from the request lease: a valid deletion lease
+ * alone cannot rule out a late producer dispatch.
+ */
+export interface ProjectVolumeCreationQuiescenceAuthority {
+  readonly quiescenceHash: string;
+  assertCreationQuiescence(): Promise<void>;
 }
 
 export type ProjectVolumeExternalEffect =
@@ -277,6 +302,33 @@ export interface ExecuteProjectVolumeErasureInput {
   kubernetes: ProjectVolumeKubernetesAdapter;
   providers: ProjectVolumeProviderResolver;
   leaseGuard: ProjectVolumeLeaseGuard;
+  creationQuiescence: ProjectVolumeCreationQuiescenceAuthority;
+  pollPolicy?: Partial<ProjectVolumeErasurePollPolicy>;
+  clock?: ProjectVolumeErasureClock;
+}
+
+export interface ProjectCsiSettlementEvidence extends ProjectVolumeTenantScope {
+  schemaVersion: 1;
+  namespace: string;
+  pvcName: string;
+  pvcUid: string;
+  pvcResourceVersion: string;
+  pvName: string;
+  pvUid: string;
+  pvResourceVersion: string;
+  csiDriver: string;
+  csiVolumeHandle: string;
+  providerResourceId: string;
+  evidenceHash: string;
+}
+
+export interface ObserveProjectCsiSettlementInput {
+  scope: ProjectVolumeTenantScope;
+  namespace: string;
+  pvcName: string;
+  kubernetes: ProjectVolumeKubernetesAdapter;
+  providers: ProjectVolumeProviderResolver;
+  assertCreationAuthority: () => Promise<void>;
   pollPolicy?: Partial<ProjectVolumeErasurePollPolicy>;
   clock?: ProjectVolumeErasureClock;
 }
@@ -299,12 +351,46 @@ export interface ProjectVolumeErasureEvidence {
   verificationHash: string;
 }
 
+export interface ProjectVolumeErasureFinalScanEvidence {
+  schemaVersion: 1;
+  inventoryHash: string;
+  quiescenceHash: string;
+  inspectedProviderVolumeCount: number;
+  persistentVolumeListingComplete: true;
+  verified: true;
+  finalScanHash: string;
+}
+
+/** Reusable receipt consumed by hard-delete, account purge, and CNPG cleanup. */
+export interface ProjectVolumeErasureReceipt extends ProjectVolumeTenantScope {
+  schemaVersion: 'project-volume-erasure-receipt-v1';
+  operationId: string;
+  inventoryHash: string;
+  verificationHash: string;
+  finalScanHash: string;
+  quiescenceHash: string;
+  entryCount: number;
+  erasedEntryCount: number;
+  alreadyAbsentEntryCount: number;
+  persistentVolumeClaimsAbsent: true;
+  persistentVolumesAbsent: true;
+  providerVolumesAbsent: true;
+}
+
 const DEFAULT_POLL_POLICY: ProjectVolumeErasurePollPolicy = {
   // One persisted entry is processed per manager request. Production adapters
   // use a 4s request deadline; six polls bound the complete PVC/provider/PV
   // entry below the API's 180s transport deadline even when every read times
   // out. A still-deleting disk is resumed from the sealed entry on replay.
   maxAttempts: 6,
+  initialDelayMs: 250,
+  maxDelayMs: 2_000,
+};
+
+const DEFAULT_SETTLEMENT_POLL_POLICY: ProjectVolumeErasurePollPolicy = {
+  // CNPG creates its PVCs asynchronously after Cluster admission. Stay inside
+  // the ten-minute producer lease while allowing a normal controller reconcile.
+  maxAttempts: 90,
   initialDelayMs: 250,
   maxDelayMs: 2_000,
 };
@@ -373,18 +459,18 @@ function canonicalize(value: unknown): string {
   throw erasureError('VOLUME_ERASURE_EVIDENCE_INVALID', 'Evidence contains an unsupported value.', 500);
 }
 
-function sha256(value: unknown): string {
+export function hashProjectVolumeEvidence(value: unknown): string {
   return createHash('sha256').update(canonicalize(value)).digest('hex');
 }
 
 function sealInventory(unsigned: UnsealedProjectVolumeErasureInventory): ProjectVolumeErasureInventory {
-  return { ...unsigned, inventoryHash: sha256(unsigned) };
+  return { ...unsigned, inventoryHash: hashProjectVolumeEvidence(unsigned) };
 }
 
 export function assertProjectVolumeErasureInventory(inventory: ProjectVolumeErasureInventory): void {
   const { inventoryHash, ...unsigned } = inventory;
 
-  if (!/^[a-f0-9]{64}$/u.test(inventoryHash) || sha256(unsigned) !== inventoryHash) {
+  if (!/^[a-f0-9]{64}$/u.test(inventoryHash) || hashProjectVolumeEvidence(unsigned) !== inventoryHash) {
     throw erasureError('VOLUME_ERASURE_INVENTORY_TAMPERED', 'The persisted volume inventory hash is invalid.');
   }
 }
@@ -489,7 +575,7 @@ function providerFor(resolver: ProjectVolumeProviderResolver, csiDriver: string)
 }
 
 function sourceReferenceEvidence(references: readonly ProjectVolumeSourceReference[]): string {
-  return sha256(
+  return hashProjectVolumeEvidence(
     [...references]
       .map((reference) => ({
         referenceId: reference.referenceId,
@@ -499,6 +585,10 @@ function sourceReferenceEvidence(references: readonly ProjectVolumeSourceReferen
         namespace: reference.namespace,
         pvcName: reference.pvcName,
         expectedPvcUid: reference.expectedPvcUid ?? null,
+        expectedPvUid: reference.expectedPvUid ?? null,
+        expectedCsiDriver: reference.expectedCsiDriver ?? null,
+        expectedCsiVolumeHandle: reference.expectedCsiVolumeHandle ?? null,
+        expectedProviderResourceId: reference.expectedProviderResourceId ?? null,
         allowLegacyUnlabelled: reference.allowLegacyUnlabelled === true,
       }))
       .sort((left, right) => left.referenceId.localeCompare(right.referenceId)),
@@ -506,7 +596,7 @@ function sourceReferenceEvidence(references: readonly ProjectVolumeSourceReferen
 }
 
 function referenceSnapshotEvidence(snapshot: CompleteProjectVolumeReferenceSnapshot): string {
-  return sha256({
+  return hashProjectVolumeEvidence({
     snapshotId: snapshot.snapshotId,
     completeness: snapshot.completeness,
     candidates: [...(snapshot.candidates ?? [])].sort(
@@ -562,6 +652,25 @@ function validateSourceSnapshot(
 
     if (reference.expectedPvcUid) {
       assertSafeId(reference.expectedPvcUid, 'expected PVC UID');
+    }
+
+    if (reference.expectedPvUid) assertSafeId(reference.expectedPvUid, 'expected PV UID');
+    if (reference.expectedCsiDriver) assertSafeId(reference.expectedCsiDriver, 'expected CSI driver');
+    if (reference.expectedProviderResourceId) {
+      assertSafeId(reference.expectedProviderResourceId, 'expected provider resource ID');
+    }
+
+    const bindingEvidence = [
+      reference.expectedPvUid,
+      reference.expectedCsiDriver,
+      reference.expectedCsiVolumeHandle,
+      reference.expectedProviderResourceId,
+    ];
+    if (bindingEvidence.some(Boolean) && bindingEvidence.some((value) => !value)) {
+      throw erasureError(
+        'VOLUME_ERASURE_SOURCE_SNAPSHOT_INVALID',
+        'Durable CSI producer evidence must contain the complete PV, handle, and provider identity.',
+      );
     }
 
     if (referenceIds.has(reference.referenceId)) {
@@ -636,6 +745,181 @@ function compactVolume(
   };
 }
 
+function projectVolumeLabelScope(volume: ProjectPersistentVolume): { projectId?: string; organizationId?: string } {
+  return {
+    projectId: labelValue(volume.metadata.labels, PROJECT_LABELS),
+    organizationId: labelValue(volume.metadata.labels, ORGANIZATION_LABELS),
+  };
+}
+
+/**
+ * Returns true only for this exact project. A globally unique project label
+ * that points at a sibling project is unrelated even when the organization
+ * label matches; otherwise deleting one project in a multi-project account
+ * would be permanently blocked. Partial labels that could refer to this
+ * project, or the same project paired with another tenant, remain fail-closed.
+ */
+function isPersistentVolumeLabelledForScope(volume: ProjectPersistentVolume, scope: ProjectVolumeTenantScope): boolean {
+  const labelled = projectVolumeLabelScope(volume);
+  if (!labelled.projectId && !labelled.organizationId) return false;
+
+  if (labelled.projectId === scope.projectId) {
+    if (labelled.organizationId !== scope.organizationId) {
+      throw erasureError(
+        'VOLUME_ERASURE_PV_TENANT_LABEL_CONFLICT',
+        'A project PV label is missing its organization or crosses tenant scope.',
+      );
+    }
+    return true;
+  }
+
+  if (!labelled.projectId && labelled.organizationId === scope.organizationId) {
+    throw erasureError(
+      'VOLUME_ERASURE_PV_TENANT_LABEL_CONFLICT',
+      'An organization PV label lacks the project identity required for exact erasure.',
+    );
+  }
+
+  return false;
+}
+
+/**
+ * Finds every cluster-scoped PV explicitly labelled for the project. The
+ * caller must union these claimRefs with its durable producer ledger before it
+ * freezes the inventory. A partially labelled or cross-tenant PV fails closed.
+ */
+export async function discoverProjectVolumeClaimRefs(input: {
+  scope: ProjectVolumeTenantScope;
+  kubernetes: ProjectVolumeKubernetesAdapter;
+  leaseGuard: ProjectVolumeLeaseGuard;
+}): Promise<WorkspaceProjectVolumeCandidateLike[]> {
+  assertScope(input.scope);
+  const volumes = await guarded(input.leaseGuard, 'kubernetes.list-pv', () => input.kubernetes.listPersistentVolumes());
+  const candidates = new Map<string, WorkspaceProjectVolumeCandidateLike>();
+  for (const volume of volumes) {
+    assertMetadata(volume.metadata, volume.metadata.name);
+    if (!isPersistentVolumeLabelledForScope(volume, input.scope)) continue;
+    const claimRef = volume.spec.claimRef;
+    if (!claimRef?.namespace || !claimRef.name || !claimRef.uid) {
+      throw erasureError(
+        'VOLUME_ERASURE_LABELLED_PV_CLAIMREF_MISSING',
+        'A project-labelled PV has no complete claimRef identity.',
+      );
+    }
+    assertKubernetesName(claimRef.namespace, 'PV claimRef namespace');
+    assertKubernetesName(claimRef.name, 'PV claimRef name');
+    assertSafeId(claimRef.uid, 'PV claimRef UID');
+    const key = claimKey(claimRef.namespace, claimRef.name);
+    const prior = candidates.get(key);
+    if (prior?.expectedPvcUid && prior.expectedPvcUid !== claimRef.uid) {
+      throw erasureError(
+        'VOLUME_ERASURE_LABELLED_PV_CLAIMREF_CONFLICT',
+        'Project-labelled PVs disagree on the historical PVC UID.',
+      );
+    }
+    candidates.set(key, {
+      namespace: claimRef.namespace,
+      pvcName: claimRef.name,
+      expectedPvcUid: claimRef.uid,
+    });
+  }
+  return [...candidates.values()].sort(
+    (left, right) => left.namespace.localeCompare(right.namespace) || left.pvcName.localeCompare(right.pvcName),
+  );
+}
+
+interface WorkspaceProjectVolumeCandidateLike {
+  namespace: string;
+  pvcName: string;
+  expectedPvcUid?: string;
+}
+
+/**
+ * Producer-side settlement observation. It runs only while the producer still
+ * owns the project creation barrier and returns a self-hashed durable receipt.
+ */
+export async function observeProjectCsiSettlement(
+  input: ObserveProjectCsiSettlementInput,
+): Promise<ProjectCsiSettlementEvidence> {
+  assertScope(input.scope);
+  assertKubernetesName(input.namespace, 'PVC namespace');
+  assertKubernetesName(input.pvcName, 'PVC name');
+  const policy = resolvedPollPolicy(input.pollPolicy, DEFAULT_SETTLEMENT_POLL_POLICY);
+  const clock = input.clock ?? DEFAULT_CLOCK;
+  let delay = policy.initialDelayMs;
+  let pendingError = erasureError('VOLUME_PROVISION_PVC_NOT_OBSERVABLE', 'The dispatched PVC is not observable.', 503);
+
+  for (let attempt = 0; attempt < policy.maxAttempts; attempt += 1) {
+    await input.assertCreationAuthority();
+    const pvc = await input.kubernetes.getPersistentVolumeClaim(input.namespace, input.pvcName);
+    if (!pvc) {
+      pendingError = erasureError('VOLUME_PROVISION_PVC_NOT_OBSERVABLE', 'The dispatched PVC is not observable.', 503);
+    } else {
+      assertMetadata(pvc.metadata, input.pvcName, input.namespace);
+      assertClaimOwnership(pvc, input.scope, false);
+      if (pvc.status?.phase !== 'Bound' || !pvc.spec.volumeName) {
+        pendingError = erasureError('VOLUME_PROVISION_PVC_NOT_BOUND', 'The dispatched PVC is not Bound.', 503);
+      } else {
+        await input.assertCreationAuthority();
+        const pv = await input.kubernetes.getPersistentVolume(pvc.spec.volumeName);
+        if (!pv) {
+          pendingError = erasureError('VOLUME_PROVISION_PV_NOT_OBSERVABLE', 'The bound PV is not observable.', 503);
+        } else {
+          assertMetadata(pv.metadata, pvc.spec.volumeName);
+          if (
+            pv.spec.claimRef?.namespace !== input.namespace ||
+            pv.spec.claimRef.name !== input.pvcName ||
+            pv.spec.claimRef.uid !== pvc.metadata.uid
+          ) {
+            throw erasureError('VOLUME_PROVISION_PV_CLAIM_CONFLICT', 'The PV claimRef does not match the PVC UID.');
+          }
+          const csiDriver = pv.spec.csi?.driver;
+          const csiVolumeHandle = pv.spec.csi?.volumeHandle;
+          if (!csiDriver || !csiVolumeHandle) {
+            throw erasureError('VOLUME_PROVISION_CSI_IDENTITY_MISSING', 'The Bound PV lacks CSI identity.', 503);
+          }
+          assertSafeId(csiDriver, 'CSI driver');
+
+          await input.assertCreationAuthority();
+          const provider = providerFor(input.providers, csiDriver);
+          const observation = await provider.inspect(csiVolumeHandle);
+          assertProviderObservation(observation);
+          if (!observation.exists || !observation.resourceId) {
+            pendingError = erasureError(
+              'VOLUME_PROVISION_PROVIDER_NOT_OBSERVABLE',
+              'The CSI provider volume is not observable.',
+              503,
+            );
+          } else {
+            const unsigned = {
+              schemaVersion: 1 as const,
+              organizationId: input.scope.organizationId,
+              projectId: input.scope.projectId,
+              namespace: input.namespace,
+              pvcName: input.pvcName,
+              pvcUid: pvc.metadata.uid,
+              pvcResourceVersion: pvc.metadata.resourceVersion,
+              pvName: pv.metadata.name,
+              pvUid: pv.metadata.uid,
+              pvResourceVersion: pv.metadata.resourceVersion,
+              csiDriver,
+              csiVolumeHandle,
+              providerResourceId: observation.resourceId,
+            };
+            return { ...unsigned, evidenceHash: hashProjectVolumeEvidence(unsigned) };
+          }
+        }
+      }
+    }
+
+    if (attempt + 1 >= policy.maxAttempts) break;
+    await clock.sleep(delay);
+    delay = nextDelay(delay, policy.maxDelayMs);
+  }
+
+  throw pendingError;
+}
+
 export async function captureProjectVolumeErasureInventory(
   input: CaptureProjectVolumeErasureInput,
 ): Promise<ProjectVolumeErasureInventory> {
@@ -665,6 +949,23 @@ export async function captureProjectVolumeErasureInventory(
     if (driver && handle) {
       const key = `${driver}\n${handle}`;
       handleReferenceCounts.set(key, (handleReferenceCounts.get(key) ?? 0) + 1);
+    }
+
+    if (isPersistentVolumeLabelledForScope(volume, input.scope)) {
+      const claimRef = volume.spec.claimRef;
+      if (!claimRef?.namespace || !claimRef.name || !claimRef.uid) {
+        throw erasureError(
+          'VOLUME_ERASURE_LABELLED_PV_CLAIMREF_MISSING',
+          'A project-labelled PV has no complete claimRef identity.',
+        );
+      }
+      const key = claimKey(claimRef.namespace, claimRef.name);
+      if (!referenceGroups.has(key)) {
+        throw erasureError(
+          'VOLUME_ERASURE_LABELLED_PV_NOT_IN_LEDGER',
+          'A project-labelled PV was not unioned into the durable inventory candidates.',
+        );
+      }
     }
   }
 
@@ -783,6 +1084,32 @@ export async function captureProjectVolumeErasureInventory(
           provider.inspect(volumeHandle),
         );
         assertProviderObservation(providerObservation);
+        const historical = targetReferences.filter(
+          (reference) =>
+            reference.expectedPvcUid === expectedPvcUid &&
+            reference.expectedPvUid === volume.metadata.uid &&
+            reference.expectedCsiDriver === driver &&
+            reference.expectedCsiVolumeHandle === volumeHandle &&
+            Boolean(reference.expectedProviderResourceId),
+        );
+        if (historical.length === 0) {
+          throw erasureError(
+            'VOLUME_ERASURE_ORPHAN_PROVIDER_IDENTITY_UNPROVEN',
+            'The PVC is absent and no durable producer evidence proves the PV, CSI handle, and provider identity.',
+          );
+        }
+        const historicalProviderIds = sortedUnique(
+          historical.map((reference) => reference.expectedProviderResourceId!).filter(Boolean),
+        );
+        if (
+          historicalProviderIds.length !== 1 ||
+          (providerObservation.exists && providerObservation.resourceId !== historicalProviderIds[0])
+        ) {
+          throw erasureError(
+            'VOLUME_ERASURE_ORPHAN_PROVIDER_IDENTITY_CONFLICT',
+            'Historical provider identity conflicts with the live retained volume.',
+          );
+        }
         orphanVolumes.push(compactVolume(volume, storageClass, providerObservation));
       }
 
@@ -802,28 +1129,12 @@ export async function captureProjectVolumeErasureInventory(
     const inventoryClaim = compactClaim(claim, ownership);
     const volumeName = claim.spec.volumeName;
 
-    if (!volumeName) {
-      const exclusionReason =
-        tenantKeys.size > 1
-          ? 'shared-source-reference'
-          : hasSharedMarker(claim.metadata.labels)
-            ? 'shared-storage-marker'
-            : undefined;
-
-      if (exclusionReason) {
-        entries.push({
-          ...base,
-          disposition: 'excluded-shared',
-          exclusionReason,
-          claim: inventoryClaim,
-          volume: null,
-          clusterVolumeHandleReferenceCount: 0,
-        });
-        continue;
-      }
-
-      entries.push({ ...base, disposition: 'erase', claim: inventoryClaim, volume: null });
-      continue;
+    if (claim.status?.phase !== 'Bound' || !volumeName) {
+      throw erasureError(
+        'VOLUME_ERASURE_PVC_NOT_BOUND',
+        'A project PVC is Pending or unbound; permanent deletion remains fail-closed until provisioning settles.',
+        503,
+      );
     }
 
     assertKubernetesName(volumeName, 'PV name');
@@ -932,8 +1243,9 @@ export async function captureProjectVolumeErasureInventory(
 
 function resolvedPollPolicy(
   input: Partial<ProjectVolumeErasurePollPolicy> | undefined,
+  defaults: ProjectVolumeErasurePollPolicy = DEFAULT_POLL_POLICY,
 ): ProjectVolumeErasurePollPolicy {
-  const result = { ...DEFAULT_POLL_POLICY, ...input };
+  const result = { ...defaults, ...input };
 
   if (
     !Number.isInteger(result.maxAttempts) ||
@@ -1129,11 +1441,13 @@ async function eraseProviderVolume(
     );
   }
 
+  await input.creationQuiescence.assertCreationQuiescence();
   await guarded(input.leaseGuard, 'provider.delete-volume', () =>
     provider.deleteExact({
       volumeHandle: volume.volumeHandle,
       expectedResourceId: volume.providerResourceId!,
       requestId: deterministicDeleteRequestId(volume.volumeHandle, volume.providerResourceId!),
+      assertCreationQuiescence: () => input.creationQuiescence.assertCreationQuiescence(),
     }),
   );
 
@@ -1346,6 +1660,15 @@ export async function executeProjectVolumeErasureEntry(
     throw erasureError('VOLUME_ERASURE_SCOPE_CONFLICT', 'The inventory entry does not match the caller.');
   }
 
+  if (!/^[a-f0-9]{64}$/u.test(input.creationQuiescence.quiescenceHash)) {
+    throw erasureError(
+      'VOLUME_ERASURE_CREATION_QUIESCENCE_CAPABILITY_UNAVAILABLE',
+      'Durable CSI creation quiescence authority is unavailable.',
+      503,
+    );
+  }
+  await input.creationQuiescence.assertCreationQuiescence();
+
   const policy = resolvedPollPolicy(input.pollPolicy);
   const clock = input.clock ?? DEFAULT_CLOCK;
   if (entry.disposition === 'erase') return eraseEntry(input, entry, policy, clock);
@@ -1391,7 +1714,7 @@ export function sealProjectVolumeErasureEvidence(
     entries: [...evidenceEntries],
     verified: true as const,
   };
-  return { ...unsignedEvidence, verificationHash: sha256(unsignedEvidence) };
+  return { ...unsignedEvidence, verificationHash: hashProjectVolumeEvidence(unsignedEvidence) };
 }
 
 export async function executeProjectVolumeErasure(
@@ -1414,6 +1737,144 @@ export async function executeProjectVolumeErasure(
     evidenceEntries.push(await executeProjectVolumeErasureEntry(input, entry));
   }
   return sealProjectVolumeErasureEvidence(input.inventory, evidenceEntries);
+}
+
+/**
+ * Full non-cached scan run immediately before proof/finalization. Every known
+ * provider handle is re-inspected even if its target already had persisted
+ * absence evidence, and the complete PV list is checked for recreations.
+ */
+export async function verifyProjectVolumeErasureFinalState(input: {
+  expectedScope: ProjectVolumeTenantScope;
+  inventory: ProjectVolumeErasureInventory;
+  kubernetes: ProjectVolumeKubernetesAdapter;
+  providers: ProjectVolumeProviderResolver;
+  leaseGuard: ProjectVolumeLeaseGuard;
+  creationQuiescence: ProjectVolumeCreationQuiescenceAuthority;
+}): Promise<ProjectVolumeErasureFinalScanEvidence> {
+  assertScope(input.expectedScope);
+  assertProjectVolumeErasureInventory(input.inventory);
+  if (
+    input.inventory.scope.projectId !== input.expectedScope.projectId ||
+    input.inventory.scope.organizationId !== input.expectedScope.organizationId ||
+    !/^[a-f0-9]{64}$/u.test(input.creationQuiescence.quiescenceHash)
+  ) {
+    throw erasureError('VOLUME_ERASURE_FINAL_SCAN_SCOPE_INVALID', 'Final scan scope or quiescence is invalid.');
+  }
+  await input.creationQuiescence.assertCreationQuiescence();
+  const volumes = await guarded(input.leaseGuard, 'kubernetes.list-pv', () => input.kubernetes.listPersistentVolumes());
+  const candidateKeys = new Set(input.inventory.entries.map((entry) => claimKey(entry.namespace, entry.pvcName)));
+  const providerBindings = new Map<string, { driver: string; handle: string; resourceId: string | null }>();
+
+  for (const entry of input.inventory.entries) {
+    await input.creationQuiescence.assertCreationQuiescence();
+    const pvc = await guarded(input.leaseGuard, 'kubernetes.read-pvc', () =>
+      input.kubernetes.getPersistentVolumeClaim(entry.namespace, entry.pvcName),
+    );
+    if (pvc) {
+      throw erasureError('VOLUME_ERASURE_FINAL_SCAN_PVC_RECREATED', 'A candidate PVC exists during final scan.');
+    }
+    const entryVolumes =
+      entry.disposition === 'erase-orphan'
+        ? entry.volumes
+        : entry.disposition === 'erase' && entry.volume
+          ? [entry.volume]
+          : entry.disposition === 'excluded-shared' && entry.volume
+            ? [entry.volume]
+            : [];
+    for (const volume of entryVolumes) {
+      providerBindings.set(`${volume.csiDriver}\n${volume.volumeHandle}`, {
+        driver: volume.csiDriver,
+        handle: volume.volumeHandle,
+        resourceId: 'providerResourceId' in volume ? volume.providerResourceId : null,
+      });
+    }
+  }
+
+  for (const volume of volumes) {
+    assertMetadata(volume.metadata, volume.metadata.name);
+    const labelledForScope = isPersistentVolumeLabelledForScope(volume, input.expectedScope);
+    const claimRef = volume.spec.claimRef;
+    const candidateClaim =
+      claimRef?.namespace && claimRef.name ? candidateKeys.has(claimKey(claimRef.namespace, claimRef.name)) : false;
+    if (candidateClaim || labelledForScope) {
+      throw erasureError(
+        'VOLUME_ERASURE_FINAL_SCAN_PV_RECREATED',
+        'A project-labelled or candidate-bound PV exists during final scan.',
+      );
+    }
+    const driver = volume.spec.csi?.driver;
+    const handle = volume.spec.csi?.volumeHandle;
+    if (driver && handle && providerBindings.has(`${driver}\n${handle}`)) {
+      throw erasureError(
+        'VOLUME_ERASURE_FINAL_SCAN_HANDLE_RECREATED',
+        'A known CSI handle is referenced by a live PV.',
+      );
+    }
+  }
+
+  for (const binding of providerBindings.values()) {
+    await input.creationQuiescence.assertCreationQuiescence();
+    const provider = providerFor(input.providers, binding.driver);
+    const observation = await guarded(input.leaseGuard, 'provider.inspect-volume', () =>
+      provider.inspect(binding.handle),
+    );
+    assertProviderObservation(observation);
+    if (observation.exists) {
+      throw erasureError(
+        observation.resourceId === binding.resourceId
+          ? 'VOLUME_ERASURE_FINAL_SCAN_PROVIDER_REMAINS'
+          : 'VOLUME_ERASURE_FINAL_SCAN_PROVIDER_RECREATED',
+        'A known provider handle resolves to a live volume during final scan.',
+      );
+    }
+  }
+
+  const unsigned = {
+    schemaVersion: 1 as const,
+    inventoryHash: input.inventory.inventoryHash,
+    quiescenceHash: input.creationQuiescence.quiescenceHash,
+    inspectedProviderVolumeCount: providerBindings.size,
+    persistentVolumeListingComplete: true as const,
+    verified: true as const,
+  };
+  return { ...unsigned, finalScanHash: hashProjectVolumeEvidence(unsigned) };
+}
+
+export function createProjectVolumeErasureReceipt(input: {
+  operationId: string;
+  scope: ProjectVolumeTenantScope;
+  inventory: ProjectVolumeErasureInventory;
+  evidence: ProjectVolumeErasureEvidence;
+  finalScan: ProjectVolumeErasureFinalScanEvidence;
+}): ProjectVolumeErasureReceipt {
+  assertSafeId(input.operationId, 'operation ID');
+  assertScope(input.scope);
+  assertProjectVolumeErasureInventory(input.inventory);
+  if (
+    input.evidence.inventoryHash !== input.inventory.inventoryHash ||
+    input.finalScan.inventoryHash !== input.inventory.inventoryHash ||
+    input.inventory.entries.some((entry) => entry.disposition === 'excluded-shared')
+  ) {
+    throw erasureError('VOLUME_ERASURE_RECEIPT_INVALID', 'Volume erasure evidence is incomplete.', 500);
+  }
+  return {
+    schemaVersion: 'project-volume-erasure-receipt-v1',
+    operationId: input.operationId,
+    ...input.scope,
+    inventoryHash: input.inventory.inventoryHash,
+    verificationHash: input.evidence.verificationHash,
+    finalScanHash: input.finalScan.finalScanHash,
+    quiescenceHash: input.finalScan.quiescenceHash,
+    entryCount: input.inventory.entries.length,
+    erasedEntryCount: input.inventory.entries.filter(
+      (entry) => entry.disposition === 'erase' || entry.disposition === 'erase-orphan',
+    ).length,
+    alreadyAbsentEntryCount: input.inventory.entries.filter((entry) => entry.disposition === 'already-absent').length,
+    persistentVolumeClaimsAbsent: true,
+    persistentVolumesAbsent: true,
+    providerVolumesAbsent: true,
+  };
 }
 
 export const projectVolumeErasureConstants = Object.freeze({

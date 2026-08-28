@@ -284,7 +284,7 @@ runDbTests('project runtime-effect ownership transfer (PostgreSQL)', () => {
             outcome: 'VERIFIED_ABSENT',
             verifier: 'runtime-effect-transfer-db-v1',
             evidence: {
-              schemaVersion: 'project-permanent-erasure-v2',
+              schemaVersion: 'project-permanent-erasure-v3',
               filesystem: {
                 projectTreeAbsent: true,
                 workspaceTreesAbsent: true,

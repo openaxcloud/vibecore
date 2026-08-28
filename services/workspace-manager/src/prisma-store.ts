@@ -12,6 +12,7 @@ import { Client } from 'pg';
 import type {
   ProjectRuntimeEffectDescriptor,
   ProjectRuntimeEffectTarget,
+  ProjectCsiProvisionEffectInput,
   WorkspacePurgeEffectDescriptor,
   WorkspacePurgeLease,
   WorkspaceProjectDeletionInventory,
@@ -19,15 +20,20 @@ import type {
   WorkspaceProjectDeletionState,
   WorkspaceProjectVolumeCandidate,
   WorkspaceProjectVolumeErasurePlan,
+  ProjectVolumeCreationQuiescenceSnapshot,
   WorkspaceRecord,
   WorkspaceStatus,
   WorkspaceStore,
 } from './manager.js';
 import {
   assertProjectVolumeErasureInventory,
+  hashProjectVolumeEvidence,
+  observeProjectCsiSettlement,
   type CompleteProjectVolumeReferenceSnapshot,
+  type ProjectCsiSettlementEvidence,
   type ProjectVolumeErasureEntryEvidence,
   type ProjectVolumeErasureEvidence,
+  type ProjectVolumeErasureFinalScanEvidence,
   type ProjectVolumeErasureInventory,
   type ProjectVolumeSourceReference,
 } from './project-volume-erasure.js';
@@ -51,9 +57,11 @@ const WORKSPACE_PURGE_STORE_INVARIANT = {
   projectRuntimeEffectActive: 'WORKSPACE_PROJECT_RUNTIME_EFFECT_ACTIVE',
   projectRuntimeEffectFenceLost: 'WORKSPACE_PROJECT_RUNTIME_EFFECT_FENCE_LOST',
   projectRuntimeEffectInFlight: 'WORKSPACE_PROJECT_RUNTIME_EFFECT_IN_FLIGHT',
+  projectRuntimeCsiCapabilityUnavailable: 'WORKSPACE_PROJECT_RUNTIME_CSI_CAPABILITY_UNAVAILABLE',
   projectVolumeErasureInvalid: 'WORKSPACE_PROJECT_VOLUME_ERASURE_INVALID',
   projectVolumeErasureRequired: 'WORKSPACE_PROJECT_VOLUME_ERASURE_REQUIRED',
   projectVolumeErasureFenceLost: 'WORKSPACE_PROJECT_VOLUME_ERASURE_FENCE_LOST',
+  projectVolumeQuiescenceUnavailable: 'WORKSPACE_PROJECT_VOLUME_QUIESCENCE_UNAVAILABLE',
 } as const;
 
 type WorkspacePurgeStoreInvariantCode =
@@ -148,7 +156,6 @@ function deploymentRuntimeTargets(deploymentId: string): ProjectRuntimeEffectTar
     { kind: 'Endpoints', namespace, name },
     { kind: 'Ingress', namespace, name },
     { kind: 'Secret', namespace, name: `app-secrets-${deploymentId}` },
-    { kind: 'PersistentVolumeClaim', namespace, name: `reserved-data-${deploymentId}` },
   ];
 }
 
@@ -199,9 +206,13 @@ interface ProjectVolumeErasureRow {
   namespace: string;
   state: string;
   sourceSnapshot: unknown;
+  quiescenceSnapshot: unknown | null;
+  quiescenceHash: string | null;
   inventory: unknown | null;
   evidence: unknown | null;
   verificationFencingToken: bigint | null;
+  finalScanEvidence: unknown | null;
+  finalScanFencingToken: bigint | null;
 }
 
 interface ProjectVolumeErasureTargetRow {
@@ -223,7 +234,13 @@ function parseProjectVolumeErasurePlan(
     });
   }
   const sourceSnapshot = row.sourceSnapshot as CompleteProjectVolumeReferenceSnapshot;
+  const quiescenceSnapshot = row.quiescenceSnapshot as ProjectVolumeCreationQuiescenceSnapshot | null;
   const inventory = row.inventory as ProjectVolumeErasureInventory | null;
+  if (!quiescenceSnapshot || !row.quiescenceHash) {
+    throw workspacePurgeStoreInvariantError(WORKSPACE_PURGE_STORE_INVARIANT.projectVolumeErasureInvalid, {
+      statusCode: 500,
+    });
+  }
   if (inventory) assertProjectVolumeErasureInventory(inventory);
   return {
     operationId: row.operationId,
@@ -233,9 +250,15 @@ function parseProjectVolumeErasurePlan(
     namespace: row.namespace,
     state: row.state as WorkspaceProjectVolumeErasurePlan['state'],
     sourceSnapshot,
+    quiescenceSnapshot,
+    quiescenceHash: row.quiescenceHash,
     ...(inventory ? { inventory } : {}),
     ...(row.evidence ? { evidence: row.evidence as ProjectVolumeErasureEvidence } : {}),
     ...(row.verificationFencingToken ? { verificationFencingToken: row.verificationFencingToken.toString() } : {}),
+    ...(row.finalScanEvidence
+      ? { finalScanEvidence: row.finalScanEvidence as ProjectVolumeErasureFinalScanEvidence }
+      : {}),
+    ...(row.finalScanFencingToken ? { finalScanFencingToken: row.finalScanFencingToken.toString() } : {}),
     targets: targets.map((target) => ({
       ordinal: target.ordinal,
       namespace: target.namespace,
@@ -379,7 +402,13 @@ function patchToData(patch: Partial<WorkspaceRecord>): Record<string, unknown> {
  *     update calls compose via column-level merges in the patch
  */
 export class PrismaWorkspaceStore implements WorkspaceStore {
-  constructor(private readonly prisma: DatabaseClient) {}
+  constructor(
+    private readonly prisma: DatabaseClient,
+    private readonly volumeSettlement?: {
+      kubernetes: import('./project-volume-erasure.js').ProjectVolumeKubernetesAdapter;
+      providers: import('./project-volume-erasure.js').ProjectVolumeProviderResolver;
+    },
+  ) {}
 
   private async withProjectProvisionBarrier<T>(
     input: {
@@ -397,6 +426,14 @@ export class PrismaWorkspaceStore implements WorkspaceStore {
     }
     const client = new Client({ connectionString, application_name: 'vibecore-workspace-project-effect' });
     const descriptor = normalizeRuntimeEffectDescriptor(input.descriptor);
+    const pvcTargets = descriptor.targets
+      .map((target, ordinal) => ({ target, ordinal }))
+      .filter(({ target }) => target.kind === 'PersistentVolumeClaim');
+    if (pvcTargets.length > 0 && !this.volumeSettlement) {
+      throw workspacePurgeStoreInvariantError(WORKSPACE_PURGE_STORE_INVARIANT.projectRuntimeCsiCapabilityUnavailable, {
+        statusCode: 503,
+      });
+    }
     const effectId = randomUUID();
     const ownerToken = randomUUID();
     let effectPrepared = false;
@@ -576,23 +613,78 @@ export class PrismaWorkspaceStore implements WorkspaceStore {
       try {
         const result = await effect(assertAuthority);
         await assertAuthority();
-        const settled = await this.prisma.$executeRaw(Prisma.sql`
-          UPDATE "ProjectRuntimeEffect"
-          SET "state" = 'SETTLED'::"ProjectRuntimeEffectState",
-              "ownerToken" = NULL,
-              "leaseExpiresAt" = NULL,
-              "providerReceipt" = jsonb_build_object('outcome', 'RETURNED'),
-              "settledAt" = clock_timestamp(),
-              "updatedAt" = clock_timestamp()
-          WHERE id = ${effectId}
-            AND "ownerToken" = ${ownerToken}
-            AND "state" = 'IN_FLIGHT'::"ProjectRuntimeEffectState"
-        `);
-        if (settled !== 1) {
-          throw workspacePurgeStoreInvariantError(WORKSPACE_PURGE_STORE_INVARIANT.projectRuntimeEffectFenceLost, {
-            statusCode: 409,
+        const volumeEvidence: Array<{ ordinal: number; evidence: ProjectCsiSettlementEvidence }> = [];
+        for (const { target, ordinal } of pvcTargets) {
+          volumeEvidence.push({
+            ordinal,
+            evidence: await observeProjectCsiSettlement({
+              scope: { projectId: input.projectId, organizationId: input.expectedOrganizationId },
+              namespace: target.namespace,
+              pvcName: target.name,
+              kubernetes: this.volumeSettlement!.kubernetes,
+              providers: this.volumeSettlement!.providers,
+              assertCreationAuthority: assertAuthority,
+            }),
           });
         }
+        await assertAuthority();
+        await this.prisma.$transaction(async (tx) => {
+          const liveEffects = await tx.$queryRaw<Array<{ id: string }>>`
+            SELECT "id" FROM "ProjectRuntimeEffect"
+            WHERE "id" = ${effectId} AND "ownerToken" = ${ownerToken}
+              AND "state" = 'IN_FLIGHT'::"ProjectRuntimeEffectState"
+            FOR UPDATE
+          `;
+          if (!liveEffects[0]) {
+            throw workspacePurgeStoreInvariantError(WORKSPACE_PURGE_STORE_INVARIANT.projectRuntimeEffectFenceLost, {
+              statusCode: 409,
+            });
+          }
+          for (const { ordinal, evidence } of volumeEvidence) {
+            await tx.$executeRaw(Prisma.sql`
+              INSERT INTO "ProjectRuntimeEffectVolumeEvidence" (
+                "effectId", "targetOrdinal", "pvcUid", "pvcResourceVersion", "pvName", "pvUid",
+                "pvResourceVersion", "csiDriver", "csiVolumeHandle", "providerResourceId", "evidenceHash"
+              ) VALUES (
+                ${effectId}, ${ordinal}, ${evidence.pvcUid}, ${evidence.pvcResourceVersion},
+                ${evidence.pvName}, ${evidence.pvUid}, ${evidence.pvResourceVersion}, ${evidence.csiDriver},
+                ${evidence.csiVolumeHandle}, ${evidence.providerResourceId}, ${evidence.evidenceHash}
+              )
+            `);
+          }
+          const evidenceAggregateHash =
+            volumeEvidence.length > 0
+              ? createHash('sha256')
+                  .update(JSON.stringify(volumeEvidence.map(({ evidence }) => evidence.evidenceHash).sort()))
+                  .digest('hex')
+              : null;
+          const receipt =
+            volumeEvidence.length > 0
+              ? {
+                  outcome: 'VERIFIED_BOUND_CSI',
+                  evidenceHash: evidenceAggregateHash,
+                  targetCount: volumeEvidence.length,
+                }
+              : { outcome: 'RETURNED' };
+          const settled = await tx.$executeRaw(Prisma.sql`
+            UPDATE "ProjectRuntimeEffect"
+            SET "state" = 'SETTLED'::"ProjectRuntimeEffectState",
+                "ownerToken" = NULL,
+                "leaseExpiresAt" = NULL,
+                "providerReceipt" = CAST(${JSON.stringify(receipt)} AS jsonb),
+                "operatorQuiescenceHash" = ${evidenceAggregateHash},
+                "settledAt" = clock_timestamp(),
+                "updatedAt" = clock_timestamp()
+            WHERE id = ${effectId}
+              AND "ownerToken" = ${ownerToken}
+              AND "state" = 'IN_FLIGHT'::"ProjectRuntimeEffectState"
+          `);
+          if (settled !== 1) {
+            throw workspacePurgeStoreInvariantError(WORKSPACE_PURGE_STORE_INVARIANT.projectRuntimeEffectFenceLost, {
+              statusCode: 409,
+            });
+          }
+        });
         return result;
       } catch (error) {
         if (lockHeld && connectionHealthy && effectDispatched) {
@@ -600,12 +692,7 @@ export class PrismaWorkspaceStore implements WorkspaceStore {
             .$executeRaw(
               Prisma.sql`
               UPDATE "ProjectRuntimeEffect"
-              SET "state" = 'SETTLED'::"ProjectRuntimeEffectState",
-                  "ownerToken" = NULL,
-                  "leaseExpiresAt" = NULL,
-                  "providerReceipt" = jsonb_build_object('outcome', 'RETURNED_ERROR'),
-                  "lastErrorCode" = ${purgeErrorCode(error)},
-                  "settledAt" = clock_timestamp(),
+              SET "lastErrorCode" = ${purgeErrorCode(error)},
                   "updatedAt" = clock_timestamp()
               WHERE id = ${effectId}
                 AND "ownerToken" = ${ownerToken}
@@ -761,7 +848,10 @@ export class PrismaWorkspaceStore implements WorkspaceStore {
     return result.count === 1;
   }
 
-  async executeProvisionEffect<T>(workspaceId: string, effect: () => Promise<T>): Promise<T> {
+  async executeProvisionEffect<T>(
+    workspaceId: string,
+    effect: (assertAuthority: () => Promise<void>) => Promise<T>,
+  ): Promise<T> {
     const observed = await this.prisma.workspaceRuntime.findUnique({
       where: { id: workspaceId },
       select: {
@@ -797,8 +887,30 @@ export class PrismaWorkspaceStore implements WorkspaceStore {
           throw workspacePurgeStoreInvariantError(WORKSPACE_PURGE_STORE_INVARIANT.frozen, { statusCode: 409 });
         }
         await assertAuthority();
-        return effect();
+        return effect(assertAuthority);
       },
+    );
+  }
+
+  executeProjectCsiProvisionEffect<T>(
+    input: ProjectCsiProvisionEffectInput,
+    effect: (assertAuthority: () => Promise<void>) => Promise<T>,
+  ): Promise<T> {
+    return this.withProjectProvisionBarrier(
+      {
+        projectId: input.projectId,
+        expectedOrganizationId: input.expectedOrganizationId,
+        descriptor: {
+          action: input.action,
+          resourceId: input.resourceId,
+          targets: input.targets.map((target) => ({
+            kind: 'PersistentVolumeClaim' as const,
+            namespace: target.namespace,
+            name: target.pvcName,
+          })),
+        },
+      },
+      effect,
     );
   }
 
@@ -1122,16 +1234,18 @@ export class PrismaWorkspaceStore implements WorkspaceStore {
     const rows = lock
       ? await tx.$queryRaw<ProjectVolumeErasureRow[]>`
           SELECT "operationId", "projectIdSnapshot", "organizationId", "ownershipEpoch", "namespace",
-                 "state"::text AS "state", "sourceSnapshot", "inventory", "evidence",
-                 "verificationFencingToken"
+                 "state"::text AS "state", "sourceSnapshot", "quiescenceSnapshot", "quiescenceHash",
+                 "inventory", "evidence", "verificationFencingToken", "finalScanEvidence",
+                 "finalScanFencingToken"
           FROM "ProjectVolumeErasure"
           WHERE "operationId" = ${operationId}
           FOR UPDATE
         `
       : await tx.$queryRaw<ProjectVolumeErasureRow[]>`
           SELECT "operationId", "projectIdSnapshot", "organizationId", "ownershipEpoch", "namespace",
-                 "state"::text AS "state", "sourceSnapshot", "inventory", "evidence",
-                 "verificationFencingToken"
+                 "state"::text AS "state", "sourceSnapshot", "quiescenceSnapshot", "quiescenceHash",
+                 "inventory", "evidence", "verificationFencingToken", "finalScanEvidence",
+                 "finalScanFencingToken"
           FROM "ProjectVolumeErasure"
           WHERE "operationId" = ${operationId}
         `;
@@ -1296,9 +1410,12 @@ export class PrismaWorkspaceStore implements WorkspaceStore {
       const runtimeEffectTargets = await tx.$queryRaw<
         Array<{ kind: string; namespace: string; name: string; expectedUid: string | null }>
       >`
-        SELECT target."kind", target."namespace", target."name", target."expectedUid"
+        SELECT target."kind", target."namespace", target."name",
+               COALESCE(evidence."pvcUid", target."expectedUid") AS "expectedUid"
         FROM "ProjectRuntimeEffectTarget" target
         JOIN "ProjectRuntimeEffect" effect ON effect.id = target."effectId"
+        LEFT JOIN "ProjectRuntimeEffectVolumeEvidence" evidence
+          ON evidence."effectId" = target."effectId" AND evidence."targetOrdinal" = target."ordinal"
         WHERE effect."projectId" = ${lease.projectId}
           AND effect."state" IN (
             'DRAINING'::"ProjectRuntimeEffectState",
@@ -1394,7 +1511,6 @@ export class PrismaWorkspaceStore implements WorkspaceStore {
       !VOLUME_KUBERNETES_NAME_RE.test(namespace) ||
       normalized.some(
         (candidate) =>
-          candidate.namespace !== namespace ||
           !VOLUME_KUBERNETES_NAME_RE.test(candidate.namespace) ||
           !VOLUME_KUBERNETES_NAME_RE.test(candidate.pvcName) ||
           (candidate.expectedPvcUid !== undefined && !VOLUME_UID_RE.test(candidate.expectedPvcUid)),
@@ -1425,10 +1541,65 @@ export class PrismaWorkspaceStore implements WorkspaceStore {
         });
       }
 
+      const csiProducerRows = await tx.$queryRaw<
+        Array<{
+          effectId: string;
+          state: string;
+          ownershipEpoch: number;
+          targetOrdinal: number;
+          namespace: string;
+          pvcName: string;
+          evidenceHash: string | null;
+        }>
+      >`
+        SELECT effect."id" AS "effectId", effect."state"::text AS "state", effect."ownershipEpoch",
+               target."ordinal" AS "targetOrdinal", target."namespace", target."name" AS "pvcName",
+               evidence."evidenceHash"
+        FROM "ProjectRuntimeEffect" effect
+        JOIN "ProjectRuntimeEffectTarget" target ON target."effectId" = effect."id"
+        LEFT JOIN "ProjectRuntimeEffectVolumeEvidence" evidence
+          ON evidence."effectId" = target."effectId" AND evidence."targetOrdinal" = target."ordinal"
+        WHERE effect."projectId" = ${lease.projectId}
+          AND target."kind" = 'PersistentVolumeClaim'
+          AND effect."state" <> 'ABORTED'::"ProjectRuntimeEffectState"
+        ORDER BY effect."id", target."ordinal"
+        FOR SHARE OF effect, target
+      `;
+      if (
+        csiProducerRows.some(
+          (row) =>
+            !['DRAINING', 'DRAINED'].includes(row.state) ||
+            row.ownershipEpoch !== project.ownershipEpoch ||
+            !row.evidenceHash,
+        )
+      ) {
+        throw workspacePurgeStoreInvariantError(WORKSPACE_PURGE_STORE_INVARIANT.projectVolumeQuiescenceUnavailable, {
+          statusCode: 409,
+        });
+      }
+      const quiescenceSnapshot: ProjectVolumeCreationQuiescenceSnapshot = {
+        schemaVersion: 1,
+        projectId: lease.projectId,
+        organizationId: lease.expectedOrganizationId,
+        ownershipEpoch: project.ownershipEpoch,
+        effects: csiProducerRows.map((row) => ({
+          effectId: row.effectId,
+          targetOrdinal: row.targetOrdinal,
+          namespace: row.namespace,
+          pvcName: row.pvcName,
+          evidenceHash: row.evidenceHash!,
+        })),
+      };
+      const quiescenceHash = hashProjectVolumeEvidence(quiescenceSnapshot);
+
       const existing = await this.readProjectVolumeErasurePlan(tx, lease.operationId, true);
       if (existing) {
         this.assertProjectVolumePlanScope(existing, lease);
-        if (existing.namespace !== namespace || existing.ownershipEpoch !== project.ownershipEpoch) {
+        if (
+          existing.namespace !== namespace ||
+          existing.ownershipEpoch !== project.ownershipEpoch ||
+          existing.quiescenceHash !== quiescenceHash
+        ) {
           throw workspacePurgeStoreInvariantError(WORKSPACE_PURGE_STORE_INVARIANT.projectVolumeErasureInvalid, {
             statusCode: 409,
           });
@@ -1446,6 +1617,10 @@ export class PrismaWorkspaceStore implements WorkspaceStore {
           namespace: string;
           pvcName: string;
           expectedPvcUid: string | null;
+          expectedPvUid: string | null;
+          expectedCsiDriver: string | null;
+          expectedCsiVolumeHandle: string | null;
+          expectedProviderResourceId: string | null;
           allowLegacyUnlabelled: boolean;
         }>
       >(Prisma.sql`
@@ -1457,32 +1632,42 @@ export class PrismaWorkspaceStore implements WorkspaceStore {
         SELECT 'workspace-runtime:' || runtime."id" AS "referenceId",
                'workspace-runtime' AS "sourceKind", runtime."orgId" AS "organizationId",
                runtime."projectId", candidate."namespace", runtime."pvcName", NULL::text AS "expectedPvcUid",
+               NULL::text AS "expectedPvUid", NULL::text AS "expectedCsiDriver",
+               NULL::text AS "expectedCsiVolumeHandle", NULL::text AS "expectedProviderResourceId",
                TRUE AS "allowLegacyUnlabelled"
         FROM "WorkspaceRuntime" runtime
-        JOIN candidates candidate ON candidate."pvcName" = runtime."pvcName"
+        JOIN candidates candidate ON candidate."pvcName" = runtime."pvcName" AND candidate."namespace" = ${namespace}
         UNION ALL
         SELECT 'project-pvc:' || project."id", 'project-persistent-volume', project."organizationId",
-               project."id", candidate."namespace", project."persistentVolumeClaim", NULL::text, TRUE
+               project."id", candidate."namespace", project."persistentVolumeClaim", NULL::text,
+               NULL::text, NULL::text, NULL::text, NULL::text, TRUE
         FROM "Project" project
-        JOIN candidates candidate ON candidate."pvcName" = project."persistentVolumeClaim"
+        JOIN candidates candidate
+          ON candidate."pvcName" = project."persistentVolumeClaim" AND candidate."namespace" = ${namespace}
         UNION ALL
         SELECT 'deployment-pvc:' || deployment."id", 'reserved-vm', project."organizationId",
-               project."id", candidate."namespace", deployment."persistentStorageClaim", NULL::text, TRUE
+               project."id", candidate."namespace", deployment."persistentStorageClaim", NULL::text,
+               NULL::text, NULL::text, NULL::text, NULL::text, TRUE
         FROM "Deployment" deployment
         JOIN "Project" project ON project."id" = deployment."projectId"
-        JOIN candidates candidate ON candidate."pvcName" = deployment."persistentStorageClaim"
+        JOIN candidates candidate
+          ON candidate."pvcName" = deployment."persistentStorageClaim" AND candidate."namespace" = ${namespace}
         UNION ALL
         SELECT 'runtime-effect:' || target."effectId" || ':' || target."ordinal"::text,
                'runtime-effect-target', effect."organizationId", effect."projectId", target."namespace",
-               target."name", target."expectedUid", target."expectedUid" IS NOT NULL
+               target."name", evidence."pvcUid", evidence."pvUid", evidence."csiDriver",
+               evidence."csiVolumeHandle", evidence."providerResourceId", evidence."pvcUid" IS NOT NULL
         FROM "ProjectRuntimeEffectTarget" target
         JOIN "ProjectRuntimeEffect" effect ON effect."id" = target."effectId"
+        LEFT JOIN "ProjectRuntimeEffectVolumeEvidence" evidence
+          ON evidence."effectId" = target."effectId" AND evidence."targetOrdinal" = target."ordinal"
         JOIN candidates candidate
           ON candidate."namespace" = target."namespace" AND candidate."pvcName" = target."name"
         WHERE target."kind" = 'PersistentVolumeClaim'
           AND effect."state" IN (
             'PREPARED'::"ProjectRuntimeEffectState", 'IN_FLIGHT'::"ProjectRuntimeEffectState",
-            'SETTLED'::"ProjectRuntimeEffectState", 'DRAINING'::"ProjectRuntimeEffectState"
+            'SETTLED'::"ProjectRuntimeEffectState", 'DRAINING'::"ProjectRuntimeEffectState",
+            'DRAINED'::"ProjectRuntimeEffectState"
           )
         ORDER BY "referenceId"
       `);
@@ -1494,6 +1679,10 @@ export class PrismaWorkspaceStore implements WorkspaceStore {
         namespace: row.namespace,
         pvcName: row.pvcName,
         ...(row.expectedPvcUid ? { expectedPvcUid: row.expectedPvcUid } : {}),
+        ...(row.expectedPvUid ? { expectedPvUid: row.expectedPvUid } : {}),
+        ...(row.expectedCsiDriver ? { expectedCsiDriver: row.expectedCsiDriver } : {}),
+        ...(row.expectedCsiVolumeHandle ? { expectedCsiVolumeHandle: row.expectedCsiVolumeHandle } : {}),
+        ...(row.expectedProviderResourceId ? { expectedProviderResourceId: row.expectedProviderResourceId } : {}),
         ...(row.allowLegacyUnlabelled ? { allowLegacyUnlabelled: true } : {}),
       }));
       const sourceSnapshot: CompleteProjectVolumeReferenceSnapshot = {
@@ -1505,11 +1694,11 @@ export class PrismaWorkspaceStore implements WorkspaceStore {
       await tx.$executeRaw(Prisma.sql`
         INSERT INTO "ProjectVolumeErasure" (
           "operationId", "projectIdSnapshot", "organizationId", "ownershipEpoch", "namespace",
-          "state", "sourceSnapshot", "updatedAt"
+          "state", "sourceSnapshot", "quiescenceSnapshot", "quiescenceHash", "updatedAt"
         ) VALUES (
           ${lease.operationId}, ${lease.projectId}, ${lease.expectedOrganizationId}, ${project.ownershipEpoch},
           ${namespace}, 'PREPARED'::"ProjectVolumeErasureState", CAST(${JSON.stringify(sourceSnapshot)} AS jsonb),
-          clock_timestamp()
+          CAST(${JSON.stringify(quiescenceSnapshot)} AS jsonb), ${quiescenceHash}, clock_timestamp()
         )
       `);
       for (const [ordinal, candidate] of normalized.entries()) {
@@ -1695,6 +1884,127 @@ export class PrismaWorkspaceStore implements WorkspaceStore {
     });
   }
 
+  async assertProjectVolumeCreationQuiescence(
+    lease: WorkspaceProjectDeletionLease,
+    expectedHash: string,
+  ): Promise<void> {
+    if (!/^[a-f0-9]{64}$/.test(expectedHash)) {
+      throw workspacePurgeStoreInvariantError(WORKSPACE_PURGE_STORE_INVARIANT.projectVolumeQuiescenceUnavailable, {
+        statusCode: 409,
+      });
+    }
+    await this.prisma.$transaction(async (tx) => {
+      await this.lockLiveProjectDeletionOperation(tx, lease, ['EFFECT_STARTED', 'VERIFYING']);
+      const roots = await tx.$queryRaw<Array<{ quiescenceHash: string | null; ownershipEpoch: number }>>`
+        SELECT root."quiescenceHash", root."ownershipEpoch"
+        FROM "ProjectVolumeErasure" root
+        JOIN "Project" project ON project."id" = root."projectIdSnapshot"
+        WHERE root."operationId" = ${lease.operationId}
+          AND root."projectIdSnapshot" = ${lease.projectId}
+          AND root."organizationId" = ${lease.expectedOrganizationId}
+          AND project."permanentDeletionStartedAt" IS NOT NULL
+        FOR SHARE OF root, project
+      `;
+      const root = roots[0];
+      if (!root || root.quiescenceHash !== expectedHash) {
+        throw workspacePurgeStoreInvariantError(WORKSPACE_PURGE_STORE_INVARIANT.projectVolumeQuiescenceUnavailable, {
+          statusCode: 409,
+        });
+      }
+      const rows = await tx.$queryRaw<
+        Array<{
+          effectId: string;
+          state: string;
+          ownershipEpoch: number;
+          targetOrdinal: number;
+          namespace: string;
+          pvcName: string;
+          evidenceHash: string | null;
+        }>
+      >`
+        SELECT effect."id" AS "effectId", effect."state"::text AS "state", effect."ownershipEpoch",
+               target."ordinal" AS "targetOrdinal", target."namespace", target."name" AS "pvcName",
+               evidence."evidenceHash"
+        FROM "ProjectRuntimeEffect" effect
+        JOIN "ProjectRuntimeEffectTarget" target ON target."effectId" = effect."id"
+        LEFT JOIN "ProjectRuntimeEffectVolumeEvidence" evidence
+          ON evidence."effectId" = target."effectId" AND evidence."targetOrdinal" = target."ordinal"
+        WHERE effect."projectId" = ${lease.projectId}
+          AND target."kind" = 'PersistentVolumeClaim'
+          AND effect."state" <> 'ABORTED'::"ProjectRuntimeEffectState"
+        ORDER BY effect."id", target."ordinal"
+        FOR SHARE OF effect, target
+      `;
+      if (
+        rows.some(
+          (row) =>
+            !['DRAINING', 'DRAINED'].includes(row.state) ||
+            row.ownershipEpoch !== root.ownershipEpoch ||
+            !row.evidenceHash,
+        )
+      ) {
+        throw workspacePurgeStoreInvariantError(WORKSPACE_PURGE_STORE_INVARIANT.projectVolumeQuiescenceUnavailable, {
+          statusCode: 409,
+        });
+      }
+      const snapshot: ProjectVolumeCreationQuiescenceSnapshot = {
+        schemaVersion: 1,
+        projectId: lease.projectId,
+        organizationId: lease.expectedOrganizationId,
+        ownershipEpoch: root.ownershipEpoch,
+        effects: rows.map((row) => ({
+          effectId: row.effectId,
+          targetOrdinal: row.targetOrdinal,
+          namespace: row.namespace,
+          pvcName: row.pvcName,
+          evidenceHash: row.evidenceHash!,
+        })),
+      };
+      if (hashProjectVolumeEvidence(snapshot) !== expectedHash) {
+        throw workspacePurgeStoreInvariantError(WORKSPACE_PURGE_STORE_INVARIANT.projectVolumeQuiescenceUnavailable, {
+          statusCode: 409,
+        });
+      }
+    });
+  }
+
+  async recordProjectVolumeFinalScan(
+    lease: WorkspaceProjectDeletionLease,
+    evidence: ProjectVolumeErasureFinalScanEvidence,
+  ): Promise<WorkspaceProjectVolumeErasurePlan> {
+    return this.prisma.$transaction(async (tx) => {
+      await this.lockLiveProjectDeletionOperation(tx, lease, ['EFFECT_STARTED', 'VERIFYING']);
+      const plan = await this.readProjectVolumeErasurePlan(tx, lease.operationId, true);
+      if (
+        !plan?.inventory ||
+        !plan.evidence ||
+        plan.state !== 'VERIFIED' ||
+        evidence.inventoryHash !== plan.inventory.inventoryHash ||
+        evidence.quiescenceHash !== plan.quiescenceHash ||
+        !/^[a-f0-9]{64}$/.test(evidence.finalScanHash)
+      ) {
+        throw workspacePurgeStoreInvariantError(WORKSPACE_PURGE_STORE_INVARIANT.projectVolumeErasureInvalid, {
+          statusCode: 409,
+        });
+      }
+      const token = BigInt(lease.fencingToken);
+      if (plan.finalScanFencingToken && BigInt(plan.finalScanFencingToken) > token) {
+        throw workspacePurgeStoreInvariantError(WORKSPACE_PURGE_STORE_INVARIANT.projectVolumeErasureFenceLost, {
+          statusCode: 409,
+        });
+      }
+      await tx.$executeRaw(Prisma.sql`
+        UPDATE "ProjectVolumeErasure"
+        SET "finalScanEvidence" = CAST(${JSON.stringify(evidence)} AS jsonb),
+            "finalScanHash" = ${evidence.finalScanHash}, "finalScanFencingToken" = ${token},
+            "finalScannedAt" = clock_timestamp(), "updatedAt" = clock_timestamp()
+        WHERE "operationId" = ${lease.operationId}
+          AND ("finalScanFencingToken" IS NULL OR "finalScanFencingToken" <= ${token})
+      `);
+      return (await this.readProjectVolumeErasurePlan(tx, lease.operationId, true))!;
+    });
+  }
+
   async completeProjectDeletion(lease: WorkspaceProjectDeletionLease): Promise<number> {
     return this.prisma.$transaction(async (tx) => {
       await this.lockLiveProjectDeletionOperation(tx, lease, ['EFFECT_STARTED', 'VERIFYING']);
@@ -1720,7 +2030,11 @@ export class PrismaWorkspaceStore implements WorkspaceStore {
         volumePlan.state !== 'VERIFIED' ||
         !volumePlan.inventory ||
         !volumePlan.evidence ||
+        !volumePlan.finalScanEvidence ||
         volumePlan.verificationFencingToken !== lease.fencingToken ||
+        volumePlan.finalScanFencingToken !== lease.fencingToken ||
+        volumePlan.finalScanEvidence.inventoryHash !== volumePlan.inventory.inventoryHash ||
+        volumePlan.finalScanEvidence.quiescenceHash !== volumePlan.quiescenceHash ||
         volumePlan.targets.some(
           (target) =>
             target.verifiedFencingToken !== lease.fencingToken ||
@@ -1826,9 +2140,12 @@ export class PrismaWorkspaceStore implements WorkspaceStore {
       const runtimeEffectTargets = await tx.$queryRaw<
         Array<{ kind: string; namespace: string; name: string; expectedUid: string | null }>
       >`
-        SELECT target."kind", target."namespace", target."name", target."expectedUid"
+        SELECT target."kind", target."namespace", target."name",
+               COALESCE(evidence."pvcUid", target."expectedUid") AS "expectedUid"
         FROM "ProjectRuntimeEffectTarget" target
         JOIN "ProjectRuntimeEffect" effect ON effect.id = target."effectId"
+        LEFT JOIN "ProjectRuntimeEffectVolumeEvidence" evidence
+          ON evidence."effectId" = target."effectId" AND evidence."targetOrdinal" = target."ordinal"
         WHERE effect."projectId" = ${lease.projectId}
           AND effect."state" IN (
             'DRAINING'::"ProjectRuntimeEffectState",

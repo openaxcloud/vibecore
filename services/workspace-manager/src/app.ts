@@ -65,6 +65,25 @@ const accountPurgeLeaseSchema = z.object({
   ownerToken: z.string().min(16).max(512),
 });
 
+const accountPurgeWorkspaceCompletionSchema = accountPurgeLeaseSchema.extend({
+  volumeReceipt: z.object({
+    schemaVersion: z.literal('project-volume-erasure-receipt-v1'),
+    operationId: z.string().min(1).max(512),
+    projectId: z.string().min(1).max(200),
+    organizationId: z.string().min(1).max(200),
+    inventoryHash: z.string().regex(/^[0-9a-f]{64}$/u),
+    verificationHash: z.string().regex(/^[0-9a-f]{64}$/u),
+    finalScanHash: z.string().regex(/^[0-9a-f]{64}$/u),
+    quiescenceHash: z.string().regex(/^[0-9a-f]{64}$/u),
+    entryCount: z.number().int().nonnegative(),
+    erasedEntryCount: z.number().int().nonnegative(),
+    alreadyAbsentEntryCount: z.number().int().nonnegative(),
+    persistentVolumeClaimsAbsent: z.literal(true),
+    persistentVolumesAbsent: z.literal(true),
+    providerVolumesAbsent: z.literal(true),
+  }),
+});
+
 const projectDeletionLeaseSchema = z.object({
   operationId: z.string().min(1).max(200),
   ownerToken: z.string().min(16).max(512),
@@ -700,8 +719,13 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
     return { frozen: true };
   });
   app.post('/workspaces/:workspaceId/purge', async (request) => {
-    const lease = accountPurgeLeaseSchema.parse(request.body);
-    return manager.purgeWorkspace(runtimeNamespace(), (request.params as any).workspaceId, lease);
+    const body = accountPurgeWorkspaceCompletionSchema.parse(request.body);
+    return manager.purgeWorkspace(
+      runtimeNamespace(),
+      (request.params as any).workspaceId,
+      { planId: body.planId, ownerToken: body.ownerToken },
+      body.volumeReceipt,
+    );
   });
   app.post('/workspaces/:workspaceId/unfreeze', async (request) => {
     const lease = accountPurgeLeaseSchema.parse(request.body);
@@ -865,6 +889,54 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
    */
   const DB_ROLLBACK_KINDS = new Set(['Cluster', 'ScheduledBackup', 'Backup', 'Pooler', 'Database']);
 
+  const cnpgCsiApplySchema = z.object({
+    manifest: z
+      .object({
+        apiVersion: z.string(),
+        kind: z.literal('Cluster'),
+        metadata: z
+          .object({
+            name: z
+              .string()
+              .min(1)
+              .max(63)
+              .regex(/^[a-z0-9](?:[-a-z0-9]*[a-z0-9])?$/u),
+            namespace: z.literal(DB_ROLLBACK_NAMESPACE),
+            labels: z.record(z.string()),
+          })
+          .passthrough(),
+        spec: z
+          .object({
+            instances: z.number().int().min(1).max(32).default(1),
+          })
+          .passthrough(),
+      })
+      .passthrough(),
+    projectId: z.string().min(1).max(200),
+    expectedOrganizationId: z.string().min(1).max(200),
+    action: z.enum(['CNPG_PROVISION', 'CNPG_RESTORE', 'CNPG_REMIX']),
+    resourceId: z.string().min(1).max(512),
+    targets: z
+      .array(
+        z.object({
+          namespace: z.literal(DB_ROLLBACK_NAMESPACE),
+          pvcName: z
+            .string()
+            .min(1)
+            .max(63)
+            .regex(/^[a-z0-9](?:[-a-z0-9]*[a-z0-9])?$/u),
+        }),
+      )
+      .min(1)
+      .max(32),
+  });
+
+  const rejectCnpgCsiApply = (reply: any, code: string) =>
+    reply.code(403).send({
+      error: workspaceManagerMessage('databaseResourceForbidden', 'en'),
+      code,
+    });
+
   const dbResourceGuard = (kind: string, namespace: string, reply: any): boolean => {
     if (namespace !== DB_ROLLBACK_NAMESPACE || !DB_ROLLBACK_KINDS.has(kind)) {
       reply
@@ -906,6 +978,83 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
     await manager.k8s.apply(manifest as any);
 
     return { applied: true };
+  });
+
+  /*
+   * CSI-producing CNPG applies must cross the durable project effect barrier.
+   * The caller declares the PVC names, but the manager derives the authoritative
+   * set from the Cluster name/instance count and rejects any disagreement before
+   * Kubernetes sees the manifest. The restricted manifest contract intentionally
+   * excludes CNPG walStorage/tablespaces: both can create additional PVCs whose
+   * identities are not represented by the declared `<cluster>-N` targets.
+   */
+  app.post('/databases/apply-csi', async (request, reply) => {
+    const body = cnpgCsiApplySchema.parse(request.body ?? {});
+    const { manifest } = body;
+
+    if (!/^postgresql\.cnpg\.io\//u.test(manifest.apiVersion)) {
+      return rejectCnpgCsiApply(reply, 'DB_CSI_API_VERSION_FORBIDDEN');
+    }
+    if (
+      manifest.metadata.labels['vibecore.ai/project-id'] !== body.projectId ||
+      manifest.metadata.labels['vibecore.ai/org-id'] !== body.expectedOrganizationId
+    ) {
+      return rejectCnpgCsiApply(reply, 'DB_CSI_TENANT_LABELS_FORBIDDEN');
+    }
+    if ('walStorage' in manifest.spec || 'tablespaces' in manifest.spec) {
+      return rejectCnpgCsiApply(reply, 'DB_CSI_UNDECLARED_VOLUME_SHAPE');
+    }
+
+    const expectedResourceId = (() => {
+      switch (body.action) {
+        case 'CNPG_PROVISION': {
+          const environment = body.resourceId.slice(`cnpg-provision:${body.projectId}:`.length);
+          return environment === 'development' || environment === 'production'
+            ? `cnpg-provision:${body.projectId}:${environment}`
+            : undefined;
+        }
+        case 'CNPG_RESTORE': {
+          const restoreId = manifest.metadata.labels['vibecore.ai/restore-id'];
+          return restoreId ? `cnpg-restore:${body.projectId}:${restoreId}` : undefined;
+        }
+        case 'CNPG_REMIX':
+          return manifest.metadata.labels['vibecore.ai/remix-source-project-id']
+            ? `cnpg-remix:${body.projectId}`
+            : undefined;
+      }
+    })();
+    if (!expectedResourceId || body.resourceId !== expectedResourceId) {
+      return rejectCnpgCsiApply(reply, 'DB_CSI_RESOURCE_ID_FORBIDDEN');
+    }
+
+    const targets = Array.from({ length: manifest.spec.instances }, (_, index) => ({
+      namespace: DB_ROLLBACK_NAMESPACE,
+      pvcName: `${manifest.metadata.name}-${index + 1}`,
+    }));
+    const suppliedTargetKeys = new Set(body.targets.map((target) => `${target.namespace}\n${target.pvcName}`));
+    if (
+      suppliedTargetKeys.size !== targets.length ||
+      targets.some((target) => !suppliedTargetKeys.has(`${target.namespace}\n${target.pvcName}`))
+    ) {
+      return rejectCnpgCsiApply(reply, 'DB_CSI_TARGETS_FORBIDDEN');
+    }
+
+    await manager.executeProjectCsiProvisionEffect(
+      {
+        projectId: body.projectId,
+        expectedOrganizationId: body.expectedOrganizationId,
+        action: body.action,
+        resourceId: body.resourceId,
+        targets,
+      },
+      async (assertAuthority) => {
+        await assertAuthority();
+        await manager.k8s.apply(manifest as any);
+        await assertAuthority();
+      },
+    );
+
+    return { applied: true, csiEvidencePersisted: true };
   });
 
   app.get('/databases/resource', async (request, reply) => {

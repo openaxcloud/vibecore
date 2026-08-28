@@ -302,7 +302,7 @@ function assertPermanentDeletionProof(
   }
   const complete =
     proof.outcome === 'VERIFIED_ABSENT' &&
-    proof.evidence.schemaVersion === 'project-permanent-erasure-v2' &&
+    proof.evidence.schemaVersion === 'project-permanent-erasure-v3' &&
     filesystem?.projectTreeAbsent === true &&
     filesystem.workspaceTreesAbsent === true &&
     filesystem.objectCacheAbsent === true &&
@@ -328,10 +328,11 @@ function assertPermanentDeletionProof(
     kubernetes.ingressesAbsent === true &&
     kubernetes.ownedRuntimeSecretsAbsent === true &&
     kubernetes.persistentVolumeClaimsAbsent === true &&
-    volumes?.schemaVersion === 1 &&
+    volumes?.schemaVersion === 'project-volume-erasure-receipt-v1' &&
     typeof volumes.inventoryHash === 'string' &&
     typeof volumes.verificationHash === 'string' &&
-    volumes.sharedExclusionCount === 0 &&
+    typeof volumes.finalScanHash === 'string' &&
+    typeof volumes.quiescenceHash === 'string' &&
     volumes.persistentVolumeClaimsAbsent === true &&
     volumes.persistentVolumesAbsent === true &&
     volumes.providerVolumesAbsent === true;

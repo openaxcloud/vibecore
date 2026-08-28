@@ -282,10 +282,16 @@ exports.Prisma.ProjectVolumeErasureScalarFieldEnum = {
   evidence: 'evidence',
   verificationHash: 'verificationHash',
   verificationFencingToken: 'verificationFencingToken',
+  quiescenceSnapshot: 'quiescenceSnapshot',
+  quiescenceHash: 'quiescenceHash',
+  finalScanEvidence: 'finalScanEvidence',
+  finalScanHash: 'finalScanHash',
+  finalScanFencingToken: 'finalScanFencingToken',
   preparedAt: 'preparedAt',
   inventoriedAt: 'inventoriedAt',
   erasingAt: 'erasingAt',
   verifiedAt: 'verifiedAt',
+  finalScannedAt: 'finalScannedAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -1508,6 +1514,21 @@ exports.Prisma.ProjectRuntimeEffectTargetScalarFieldEnum = {
   expectedUid: 'expectedUid',
   expectedResourceVersion: 'expectedResourceVersion',
   manifestDigest: 'manifestDigest'
+};
+
+exports.Prisma.ProjectRuntimeEffectVolumeEvidenceScalarFieldEnum = {
+  effectId: 'effectId',
+  targetOrdinal: 'targetOrdinal',
+  pvcUid: 'pvcUid',
+  pvcResourceVersion: 'pvcResourceVersion',
+  pvName: 'pvName',
+  pvUid: 'pvUid',
+  pvResourceVersion: 'pvResourceVersion',
+  csiDriver: 'csiDriver',
+  csiVolumeHandle: 'csiVolumeHandle',
+  providerResourceId: 'providerResourceId',
+  evidenceHash: 'evidenceHash',
+  observedAt: 'observedAt'
 };
 
 exports.Prisma.ConnectorCatalogScalarFieldEnum = {
@@ -2847,6 +2868,7 @@ exports.Prisma.ModelName = {
   WorkspaceRuntime: 'WorkspaceRuntime',
   ProjectRuntimeEffect: 'ProjectRuntimeEffect',
   ProjectRuntimeEffectTarget: 'ProjectRuntimeEffectTarget',
+  ProjectRuntimeEffectVolumeEvidence: 'ProjectRuntimeEffectVolumeEvidence',
   ConnectorCatalog: 'ConnectorCatalog',
   UserConnection: 'UserConnection',
   ProjectConnectionLink: 'ProjectConnectionLink',

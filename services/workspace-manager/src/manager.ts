@@ -34,12 +34,17 @@ import {
 } from './public-i18n.js';
 import {
   captureProjectVolumeErasureInventory,
+  createProjectVolumeErasureReceipt,
+  discoverProjectVolumeClaimRefs,
   executeProjectVolumeErasureEntry,
   sealProjectVolumeErasureEvidence,
+  verifyProjectVolumeErasureFinalState,
   type CompleteProjectVolumeReferenceSnapshot,
   type ProjectVolumeErasureEntryEvidence,
   type ProjectVolumeErasureEvidence,
+  type ProjectVolumeErasureFinalScanEvidence,
   type ProjectVolumeErasureInventory,
+  type ProjectVolumeErasureReceipt,
   type ProjectVolumeKubernetesAdapter,
   type ProjectVolumeProviderResolver,
 } from './project-volume-erasure.js';
@@ -72,6 +77,7 @@ const WORKSPACE_PURGE_INVARIANT = {
   workspaceNotFound: 'WORKSPACE_NOT_FOUND',
   projectDeletionAuthorityUnavailable: 'WORKSPACE_PROJECT_DELETION_AUTHORITY_UNAVAILABLE',
   projectDeletionResourceRemains: 'WORKSPACE_PROJECT_DELETION_RESOURCE_REMAINS',
+  volumeReceiptRequired: 'WORKSPACE_VOLUME_ERASURE_RECEIPT_REQUIRED',
 } as const;
 
 type WorkspacePurgeInvariantCode = (typeof WORKSPACE_PURGE_INVARIANT)[keyof typeof WORKSPACE_PURGE_INVARIANT];
@@ -209,6 +215,15 @@ export interface ProjectRuntimeEffectDescriptor {
   targets: ProjectRuntimeEffectTarget[];
 }
 
+/** Generic CSI producer seam used by workspace, CNPG, and future runtimes. */
+export interface ProjectCsiProvisionEffectInput {
+  projectId: string;
+  expectedOrganizationId: string;
+  action: string;
+  resourceId: string;
+  targets: readonly { namespace: string; pvcName: string }[];
+}
+
 export interface WorkspaceProjectDeletionProof {
   schemaVersion: 'workspace-project-erasure-v3';
   projectId: string;
@@ -226,18 +241,7 @@ export interface WorkspaceProjectDeletionProof {
     ownedRuntimeSecretsAbsent: true;
     persistentVolumeClaimsAbsent: true;
   };
-  volumes: {
-    schemaVersion: 1;
-    inventoryHash: string;
-    verificationHash: string;
-    entryCount: number;
-    erasedEntryCount: number;
-    alreadyAbsentEntryCount: number;
-    sharedExclusionCount: 0;
-    persistentVolumeClaimsAbsent: true;
-    persistentVolumesAbsent: true;
-    providerVolumesAbsent: true;
-  };
+  volumes: ProjectVolumeErasureReceipt;
 }
 
 export interface WorkspaceProjectDeletionProgress {
@@ -264,9 +268,13 @@ export interface WorkspaceProjectVolumeErasurePlan {
   namespace: string;
   state: 'PREPARED' | 'INVENTORIED' | 'ERASING' | 'VERIFIED';
   sourceSnapshot: CompleteProjectVolumeReferenceSnapshot;
+  quiescenceSnapshot: ProjectVolumeCreationQuiescenceSnapshot;
+  quiescenceHash: string;
   inventory?: ProjectVolumeErasureInventory;
   evidence?: ProjectVolumeErasureEvidence;
   verificationFencingToken?: string;
+  finalScanEvidence?: ProjectVolumeErasureFinalScanEvidence;
+  finalScanFencingToken?: string;
   targets: Array<{
     ordinal: number;
     namespace: string;
@@ -275,6 +283,23 @@ export interface WorkspaceProjectVolumeErasurePlan {
     evidence?: ProjectVolumeErasureEntryEvidence;
     verifiedFencingToken?: string;
   }>;
+}
+
+export interface ProjectVolumeCreationQuiescenceSnapshot extends ProjectVolumeTenantScopeLike {
+  schemaVersion: 1;
+  ownershipEpoch: number;
+  effects: readonly {
+    effectId: string;
+    targetOrdinal: number;
+    namespace: string;
+    pvcName: string;
+    evidenceHash: string;
+  }[];
+}
+
+interface ProjectVolumeTenantScopeLike {
+  projectId: string;
+  organizationId: string;
 }
 
 export interface ProjectVolumeErasureRuntime {
@@ -363,7 +388,18 @@ export interface WorkspaceStore {
    * Linearises a normal Kubernetes create/update against account-purge freeze.
    * Production holds the WorkspaceRuntime row lock for the whole provider call.
    */
-  executeProvisionEffect<T>(workspaceId: string, effect: () => Promise<T>): Promise<T>;
+  executeProvisionEffect<T>(
+    workspaceId: string,
+    effect: (assertAuthority: () => Promise<void>) => Promise<T>,
+  ): Promise<T>;
+  /**
+   * Production CSI producer contract. Completion means durable PVC→PV→CSI→
+   * provider evidence was persisted, not merely that Kubernetes accepted it.
+   */
+  executeProjectCsiProvisionEffect?<T>(
+    input: ProjectCsiProvisionEffectInput,
+    effect: (assertAuthority: () => Promise<void>) => Promise<T>,
+  ): Promise<T>;
   /**
    * Session-level project barrier shared with the API physical-mutation lock.
    * The callback receives a live authority assertion for multi-effect providers.
@@ -427,6 +463,11 @@ export interface WorkspaceStore {
   completeProjectVolumeErasure?(
     lease: WorkspaceProjectDeletionLease,
     evidence: ProjectVolumeErasureEvidence,
+  ): Promise<WorkspaceProjectVolumeErasurePlan>;
+  assertProjectVolumeCreationQuiescence?(lease: WorkspaceProjectDeletionLease, expectedHash: string): Promise<void>;
+  recordProjectVolumeFinalScan?(
+    lease: WorkspaceProjectDeletionLease,
+    evidence: ProjectVolumeErasureFinalScanEvidence,
   ): Promise<WorkspaceProjectVolumeErasurePlan>;
 }
 
@@ -504,12 +545,15 @@ export class JsonWorkspaceStore implements WorkspaceStore {
     return true;
   }
 
-  async executeProvisionEffect<T>(workspaceId: string, effect: () => Promise<T>): Promise<T> {
+  async executeProvisionEffect<T>(
+    workspaceId: string,
+    effect: (assertAuthority: () => Promise<void>) => Promise<T>,
+  ): Promise<T> {
     const workspace = (await this.read()).get(workspaceId);
     if (!workspace || workspace.purgeFrozen) {
       throw workspacePurgeInvariantError(WORKSPACE_PURGE_INVARIANT.frozen, { statusCode: 409 });
     }
-    return effect();
+    return effect(async () => undefined);
   }
 
   async executeProjectProvisionEffect<T>(
@@ -1212,37 +1256,40 @@ export class WorkspaceManager {
        * shrink-forbidden wedge (the exact bug this guard exists to avoid). Let it
        * propagate to the outer catch, which fails the start cleanly instead.
        */
-      const existingPvc = await this.k8s.get('PersistentVolumeClaim', input.namespace, pvc.metadata?.name ?? '');
+      await this.store.executeProvisionEffect(input.workspaceId, async (assertAuthority) => {
+        await assertAuthority();
+        const existingPvc = await this.k8s.get('PersistentVolumeClaim', input.namespace, pvc.metadata?.name ?? '');
 
-      if (!existingPvc) {
-        await this.store.executeProvisionEffect(input.workspaceId, () => this.k8s.apply(pvc));
-      }
-
-      await this.store.executeProvisionEffect(input.workspaceId, () =>
-        this.k8s.apply({
+        if (!existingPvc) {
+          await this.k8s.apply(pvc);
+        }
+        await assertAuthority();
+        await this.k8s.apply({
           ...workspaceAgentSecret(runtimeInput),
           stringData: { tokenSecret: this.tokenSecret, ...allowedSecrets },
-        }),
-      );
-      await this.store.executeProvisionEffect(input.workspaceId, () =>
-        this.#applyWorkspacePod(workspacePod(runtimeInput), input.namespace, record.podName),
-      );
-      await this.store.executeProvisionEffect(input.workspaceId, () => this.k8s.apply(workspaceService(runtimeInput)));
-      await this.assertNotPurgeFrozen(input.workspaceId);
-      await this.waitForReadiness(input.namespace, record.podName);
+        });
+        await assertAuthority();
+        await this.#applyWorkspacePod(workspacePod(runtimeInput), input.namespace, record.podName);
+        await assertAuthority();
+        await this.k8s.apply(workspaceService(runtimeInput));
+        await assertAuthority();
+        await this.assertNotPurgeFrozen(input.workspaceId);
+        await this.waitForReadiness(input.namespace, record.podName);
 
-      /*
-       * Pod-Ready is necessary but NOT sufficient: the manager, api and
-       * preview-proxy all reach the agent via the Service DNS the manager hands
-       * out (workspace-<id>.<ns>.svc:8080), and the Service Endpoints can lag a
-       * second or two before they route to the freshly (re)created pod IP. If we
-       * mark RUNNING the instant the pod is Ready, the client starts seeding and
-       * its first agent calls hit that window → connection refused → 502, which
-       * the IDE surfaces as a permanent "Crashed runtime". Confirm the agent
-       * actually answers THROUGH the Service before committing RUNNING so clients
-       * only ever see a workspace whose agent is routable.
-       */
-      await this.waitForAgentReachable(input.workspaceId, input.namespace);
+        /*
+         * Pod-Ready is necessary but NOT sufficient: the manager, api and
+         * preview-proxy all reach the agent via the Service DNS the manager hands
+         * out (workspace-<id>.<ns>.svc:8080), and the Service Endpoints can lag a
+         * second or two before they route to the freshly (re)created pod IP. If we
+         * mark RUNNING the instant the pod is Ready, the client starts seeding and
+         * its first agent calls hit that window → connection refused → 502, which
+         * the IDE surfaces as a permanent "Crashed runtime". Confirm the agent
+         * actually answers THROUGH the Service before committing RUNNING so clients
+         * only ever see a workspace whose agent is routable.
+         */
+        await this.waitForAgentReachable(input.workspaceId, input.namespace);
+        await assertAuthority();
+      });
 
       const running = await this.store.updateIfUnchanged(
         input.workspaceId,
@@ -3093,17 +3140,33 @@ export class WorkspaceManager {
     this.lastTouchAt.delete(workspaceId);
   }
 
-  async purgeWorkspace(namespace: string, workspaceId: string, lease: WorkspacePurgeLease): Promise<WorkspaceRecord> {
+  async purgeWorkspace(
+    namespace: string,
+    workspaceId: string,
+    lease: WorkspacePurgeLease,
+    volumeReceipt?: ProjectVolumeErasureReceipt,
+  ): Promise<WorkspaceRecord> {
     const workspace = await this.store.get(workspaceId);
     if (!workspace) {
       throw workspacePurgeInvariantError(WORKSPACE_PURGE_INVARIANT.workspaceNotFound, { statusCode: 404 });
+    }
+    if (
+      !volumeReceipt ||
+      volumeReceipt.schemaVersion !== 'project-volume-erasure-receipt-v1' ||
+      volumeReceipt.operationId !== `account-purge:${lease.planId}:${workspace.projectId}` ||
+      volumeReceipt.projectId !== workspace.projectId ||
+      volumeReceipt.organizationId !== workspace.orgId ||
+      !volumeReceipt.persistentVolumeClaimsAbsent ||
+      !volumeReceipt.persistentVolumesAbsent ||
+      !volumeReceipt.providerVolumesAbsent
+    ) {
+      throw workspacePurgeInvariantError(WORKSPACE_PURGE_INVARIANT.volumeReceiptRequired, { statusCode: 409 });
     }
 
     const targets: Array<{ kind: string; name: string; type: WorkspacePurgeEffectDescriptor['resourceType'] }> = [
       { kind: 'Service', name: workspace.serviceName, type: 'k8s_service' },
       { kind: 'Pod', name: workspace.podName, type: 'k8s_pod' },
       { kind: 'Secret', name: workspace.agentTokenSecretName, type: 'k8s_secret' },
-      { kind: 'PersistentVolumeClaim', name: workspace.pvcName, type: 'k8s_pvc' },
     ];
 
     for (const target of targets) {
@@ -3148,6 +3211,8 @@ export class WorkspaceManager {
       !store.markProjectVolumeErasing ||
       !store.recordProjectVolumeEntryEvidence ||
       !store.completeProjectVolumeErasure ||
+      !store.assertProjectVolumeCreationQuiescence ||
+      !store.recordProjectVolumeFinalScan ||
       !this.volumeErasure
     ) {
       throw workspacePurgeInvariantError(WORKSPACE_PURGE_INVARIANT.projectDeletionAuthorityUnavailable, {
@@ -3165,6 +3230,8 @@ export class WorkspaceManager {
       markVolumeErasing: store.markProjectVolumeErasing.bind(store),
       recordVolumeEvidence: store.recordProjectVolumeEntryEvidence.bind(store),
       completeVolumeErasure: store.completeProjectVolumeErasure.bind(store),
+      assertVolumeQuiescence: store.assertProjectVolumeCreationQuiescence.bind(store),
+      recordVolumeFinalScan: store.recordProjectVolumeFinalScan.bind(store),
       volumeErasure: this.volumeErasure,
     };
   }
@@ -3179,6 +3246,18 @@ export class WorkspaceManager {
       });
     }
     return this.store.executeProjectProvisionEffect(input, effect);
+  }
+
+  executeProjectCsiProvisionEffect<T>(
+    input: ProjectCsiProvisionEffectInput,
+    effect: (assertAuthority: () => Promise<void>) => Promise<T>,
+  ): Promise<T> {
+    if (!this.store.executeProjectCsiProvisionEffect) {
+      throw workspacePurgeInvariantError(WORKSPACE_PURGE_INVARIANT.projectDeletionAuthorityUnavailable, {
+        statusCode: 503,
+      });
+    }
+    return this.store.executeProjectCsiProvisionEffect(input, effect);
   }
 
   executeDeploymentProvisionEffect<T>(
@@ -3362,6 +3441,7 @@ export class WorkspaceManager {
     }
     for (const target of inventory.runtimeEffectTargets) {
       if (target.namespace !== namespace) {
+        if (target.kind === 'PersistentVolumeClaim') continue;
         throw workspacePurgeInvariantError(WORKSPACE_PURGE_INVARIANT.projectDeletionResourceRemains, {
           statusCode: 409,
         });
@@ -3398,20 +3478,59 @@ export class WorkspaceManager {
     let volumePlan = await authority.loadVolumePlan(lease);
     if (!volumePlan) {
       const candidateUids = new Map<string, string>();
+      const volumeCandidates = new Map<string, WorkspaceProjectVolumeCandidate>();
+      const mergeCandidate = (candidate: WorkspaceProjectVolumeCandidate) => {
+        const key = `${candidate.namespace}/${candidate.pvcName}`;
+        const previous = volumeCandidates.get(key);
+        if (
+          previous?.expectedPvcUid &&
+          candidate.expectedPvcUid &&
+          previous.expectedPvcUid !== candidate.expectedPvcUid
+        ) {
+          throw workspacePurgeInvariantError(WORKSPACE_PURGE_INVARIANT.projectDeletionResourceRemains, {
+            statusCode: 409,
+          });
+        }
+        volumeCandidates.set(key, {
+          namespace: candidate.namespace,
+          pvcName: candidate.pvcName,
+          ...(previous?.expectedPvcUid || candidate.expectedPvcUid
+            ? { expectedPvcUid: previous?.expectedPvcUid ?? candidate.expectedPvcUid! }
+            : {}),
+        });
+      };
       for (const target of inventory.runtimeEffectTargets) {
-        if (target.kind === 'PersistentVolumeClaim' && target.expectedUid) {
-          candidateUids.set(`${target.namespace}/${target.name}`, target.expectedUid);
+        if (target.kind === 'PersistentVolumeClaim') {
+          mergeCandidate({
+            namespace: target.namespace,
+            pvcName: target.name,
+            ...(target.expectedUid ? { expectedPvcUid: target.expectedUid } : {}),
+          });
         }
       }
-      const candidates = [...byIdentity.values()]
-        .filter((target) => target.kind === 'PersistentVolumeClaim')
-        .sort((left, right) => left.name.localeCompare(right.name));
+      for (const target of byIdentity.values()) {
+        if (target.kind === 'PersistentVolumeClaim') {
+          mergeCandidate({ namespace, pvcName: target.name });
+        }
+      }
+      const labelledPvCandidates = await discoverProjectVolumeClaimRefs({
+        scope: { projectId: lease.projectId, organizationId: lease.expectedOrganizationId },
+        kubernetes: authority.volumeErasure.kubernetes,
+        leaseGuard: { assertLease: async () => authority.assertLease(lease, allowedStatuses) },
+      });
+      for (const candidate of labelledPvCandidates) mergeCandidate(candidate);
+      const candidates = [...volumeCandidates.values()].sort(
+        (left, right) => left.namespace.localeCompare(right.namespace) || left.pvcName.localeCompare(right.pvcName),
+      );
       for (const candidate of candidates) {
         await authority.assertLease(lease, allowedStatuses);
-        const live = await authority.volumeErasure.kubernetes.getPersistentVolumeClaim(namespace, candidate.name);
+        const live = await authority.volumeErasure.kubernetes.getPersistentVolumeClaim(
+          candidate.namespace,
+          candidate.pvcName,
+        );
         if (live?.metadata.uid) {
-          const key = `${namespace}/${candidate.name}`;
-          const expected = candidateUids.get(key);
+          const key = `${candidate.namespace}/${candidate.pvcName}`;
+          const expected = candidate.expectedPvcUid;
           if (expected && expected !== live.metadata.uid) {
             throw workspacePurgeInvariantError(WORKSPACE_PURGE_INVARIANT.projectDeletionResourceRemains, {
               statusCode: 409,
@@ -3424,10 +3543,13 @@ export class WorkspaceManager {
         lease,
         namespace,
         candidates.map((candidate) => ({
-          namespace,
-          pvcName: candidate.name,
-          ...(candidateUids.get(`${namespace}/${candidate.name}`)
-            ? { expectedPvcUid: candidateUids.get(`${namespace}/${candidate.name}`)! }
+          namespace: candidate.namespace,
+          pvcName: candidate.pvcName,
+          ...(candidateUids.get(`${candidate.namespace}/${candidate.pvcName}`) || candidate.expectedPvcUid
+            ? {
+                expectedPvcUid:
+                  candidateUids.get(`${candidate.namespace}/${candidate.pvcName}`) ?? candidate.expectedPvcUid!,
+              }
             : {}),
         })),
       );
@@ -3437,7 +3559,12 @@ export class WorkspaceManager {
         statusCode: 409,
       });
     }
+    const creationQuiescence = {
+      quiescenceHash: volumePlan.quiescenceHash,
+      assertCreationQuiescence: () => authority.assertVolumeQuiescence(lease, volumePlan!.quiescenceHash),
+    };
     if (!volumePlan.inventory) {
+      await creationQuiescence.assertCreationQuiescence();
       const captured = await captureProjectVolumeErasureInventory({
         scope: { projectId: lease.projectId, organizationId: lease.expectedOrganizationId },
         sourceSnapshot: volumePlan.sourceSnapshot,
@@ -3525,6 +3652,7 @@ export class WorkspaceManager {
           kubernetes: authority.volumeErasure.kubernetes,
           providers: authority.volumeErasure.providers,
           leaseGuard: { assertLease: async () => authority.assertLease(lease, allowedStatuses) },
+          creationQuiescence,
         },
         entry,
       );
@@ -3553,6 +3681,24 @@ export class WorkspaceManager {
       evidenceEntries as ProjectVolumeErasureEntryEvidence[],
     );
     volumePlan = await authority.completeVolumeErasure(lease, sealedEvidence);
+    const completedInventory = volumePlan.inventory;
+    if (!completedInventory) {
+      throw workspacePurgeInvariantError(WORKSPACE_PURGE_INVARIANT.projectDeletionResourceRemains, {
+        statusCode: 500,
+      });
+    }
+    const finalScan = await verifyProjectVolumeErasureFinalState({
+      expectedScope: { projectId: lease.projectId, organizationId: lease.expectedOrganizationId },
+      inventory: completedInventory,
+      kubernetes: authority.volumeErasure.kubernetes,
+      providers: authority.volumeErasure.providers,
+      leaseGuard: { assertLease: async () => authority.assertLease(lease, allowedStatuses) },
+      creationQuiescence: {
+        quiescenceHash: volumePlan.quiescenceHash,
+        assertCreationQuiescence: () => authority.assertVolumeQuiescence(lease, volumePlan!.quiescenceHash),
+      },
+    });
+    volumePlan = await authority.recordVolumeFinalScan(lease, finalScan);
     await authority.complete(lease);
     return this.verifyProjectWorkspacesAbsent(namespace, lease, allowedStatuses, false);
   }
@@ -3566,7 +3712,7 @@ export class WorkspaceManager {
     const authority = this.projectDeletionStore();
     await authority.assertLease(lease, allowedStatuses);
     const state = await authority.inspect(lease);
-    const volumePlan = await authority.loadVolumePlan(lease);
+    let volumePlan = await authority.loadVolumePlan(lease);
     const [
       kubernetesObjects,
       legacyPersistentVolumeClaims,
@@ -3616,7 +3762,7 @@ export class WorkspaceManager {
       ),
       Promise.all(
         state.runtimeEffectTargets.map((target) => {
-          if (target.namespace !== namespace) {
+          if (target.namespace !== namespace && target.kind !== 'PersistentVolumeClaim') {
             throw workspacePurgeInvariantError(WORKSPACE_PURGE_INVARIANT.projectDeletionResourceRemains, {
               statusCode: 409,
             });
@@ -3626,6 +3772,20 @@ export class WorkspaceManager {
       ),
     ]);
     await authority.assertLease(lease, allowedStatuses);
+    if (volumePlan?.inventory && volumePlan.evidence && volumePlan.state === 'VERIFIED') {
+      const finalScan = await verifyProjectVolumeErasureFinalState({
+        expectedScope: { projectId: lease.projectId, organizationId: lease.expectedOrganizationId },
+        inventory: volumePlan.inventory,
+        kubernetes: authority.volumeErasure.kubernetes,
+        providers: authority.volumeErasure.providers,
+        leaseGuard: { assertLease: async () => authority.assertLease(lease, allowedStatuses) },
+        creationQuiescence: {
+          quiescenceHash: volumePlan.quiescenceHash,
+          assertCreationQuiescence: () => authority.assertVolumeQuiescence(lease, volumePlan!.quiescenceHash),
+        },
+      });
+      volumePlan = await authority.recordVolumeFinalScan(lease, finalScan);
+    }
     if (
       !state.runtimeEffectsDrained ||
       !volumePlan?.inventory ||
@@ -3635,6 +3795,8 @@ export class WorkspaceManager {
       volumePlan.namespace !== namespace ||
       volumePlan.state !== 'VERIFIED' ||
       volumePlan.verificationFencingToken !== lease.fencingToken ||
+      !volumePlan.finalScanEvidence ||
+      volumePlan.finalScanFencingToken !== lease.fencingToken ||
       volumePlan.targets.some(
         (target) =>
           target.verifiedFencingToken !== lease.fencingToken ||
@@ -3674,21 +3836,13 @@ export class WorkspaceManager {
         ownedRuntimeSecretsAbsent: true,
         persistentVolumeClaimsAbsent: true,
       },
-      volumes: {
-        schemaVersion: 1,
-        inventoryHash: volumePlan.inventory.inventoryHash,
-        verificationHash: volumePlan.evidence.verificationHash,
-        entryCount: volumePlan.inventory.entries.length,
-        erasedEntryCount: volumePlan.inventory.entries.filter(
-          (entry) => entry.disposition === 'erase' || entry.disposition === 'erase-orphan',
-        ).length,
-        alreadyAbsentEntryCount: volumePlan.inventory.entries.filter((entry) => entry.disposition === 'already-absent')
-          .length,
-        sharedExclusionCount: 0,
-        persistentVolumeClaimsAbsent: true,
-        persistentVolumesAbsent: true,
-        providerVolumesAbsent: true,
-      },
+      volumes: createProjectVolumeErasureReceipt({
+        operationId: lease.operationId,
+        scope: { projectId: lease.projectId, organizationId: lease.expectedOrganizationId },
+        inventory: volumePlan.inventory,
+        evidence: volumePlan.evidence,
+        finalScan: volumePlan.finalScanEvidence,
+      }),
     };
   }
 

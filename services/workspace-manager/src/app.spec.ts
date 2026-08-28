@@ -4,6 +4,7 @@ import { buildWorkspaceManagerApp } from './app.js';
 import {
   WorkspaceManager,
   type EventBus,
+  type ProjectCsiProvisionEffectInput,
   type WorkspaceProjectDeletionLease,
   type WorkspaceRecord,
   type WorkspaceStore,
@@ -21,6 +22,7 @@ class TestWorkspaceStore implements WorkspaceStore {
   readonly workspaces = new Map<string, WorkspaceRecord>();
   readonly purgeEffects = new Map<string, Record<string, unknown>>();
   readonly projectDeletionWorkspaceIds: string[] = [];
+  readonly csiProvisionEffects: ProjectCsiProvisionEffectInput[] = [];
 
   async create(input: Omit<WorkspaceRecord, 'createdAt' | 'lastActiveAt'>) {
     const now = new Date().toISOString();
@@ -84,15 +86,23 @@ class TestWorkspaceStore implements WorkspaceStore {
     return [...this.workspaces.values()].filter((workspace) => workspace.projectId === projectId);
   }
 
-  async executeProvisionEffect<T>(workspaceId: string, effect: () => Promise<T>) {
+  async executeProvisionEffect<T>(workspaceId: string, effect: (assertAuthority: () => Promise<void>) => Promise<T>) {
     if (this.workspaces.get(workspaceId)?.purgeFrozen) throw new Error('WORKSPACE_PURGE_FROZEN');
-    return effect();
+    return effect(async () => undefined);
   }
 
   async executeProjectProvisionEffect<T>(
     _input: { projectId: string; expectedOrganizationId: string },
     effect: (assertAuthority: () => Promise<void>) => Promise<T>,
   ) {
+    return effect(async () => undefined);
+  }
+
+  async executeProjectCsiProvisionEffect<T>(
+    input: ProjectCsiProvisionEffectInput,
+    effect: (assertAuthority: () => Promise<void>) => Promise<T>,
+  ) {
+    this.csiProvisionEffects.push(input);
     return effect(async () => undefined);
   }
 
@@ -508,10 +518,38 @@ describe('workspace-manager app', () => {
       expect(runtime.k8s.objects.has(`prod-workspaces:Secret:agent-token-${workspaceId}`)).toBe(false);
       expect(runtime.k8s.objects.has(`prod-workspaces:PersistentVolumeClaim:pvc-${workspaceId}`)).toBe(true);
 
-      const purged = await app.inject({
+      const unsafeLegacyPurge = await app.inject({
         method: 'POST',
         url: `/workspaces/${workspaceId}/purge`,
         payload: lease,
+      });
+      expect(unsafeLegacyPurge.statusCode).toBe(400);
+      expect(runtime.k8s.objects.has(`prod-workspaces:PersistentVolumeClaim:pvc-${workspaceId}`)).toBe(true);
+
+      // The project-scoped volume sub-saga owns PVC→PV→provider deletion. The
+      // legacy workspace purge may only commit the row after consuming it.
+      runtime.k8s.objects.delete(`prod-workspaces:PersistentVolumeClaim:pvc-${workspaceId}`);
+      const volumeReceipt = {
+        schemaVersion: 'project-volume-erasure-receipt-v1' as const,
+        operationId: `account-purge:${lease.planId}:project_1`,
+        projectId: 'project_1',
+        organizationId: 'org_1',
+        inventoryHash: 'a'.repeat(64),
+        verificationHash: 'b'.repeat(64),
+        finalScanHash: 'c'.repeat(64),
+        quiescenceHash: 'd'.repeat(64),
+        entryCount: 1,
+        erasedEntryCount: 1,
+        alreadyAbsentEntryCount: 0,
+        persistentVolumeClaimsAbsent: true as const,
+        persistentVolumesAbsent: true as const,
+        providerVolumesAbsent: true as const,
+      };
+
+      const purged = await app.inject({
+        method: 'POST',
+        url: `/workspaces/${workspaceId}/purge`,
+        payload: { ...lease, volumeReceipt },
       });
       expect(purged.statusCode).toBe(200);
       expect(purged.json()).toMatchObject({ status: 'DELETED', purgeFrozen: true });
@@ -790,6 +828,112 @@ describe('workspace-manager app', () => {
       const res = await app.inject({ method: 'POST', url: '/databases/apply', payload: { manifest: cnpgCluster } });
       expect(res.statusCode).toBe(200);
       expect(runtime.k8s.objects.has('project-databases:Cluster:db-p1')).toBe(true);
+      await app.close();
+    });
+
+    it('applies a CSI-producing CNPG Cluster only through the durable project effect seam', async () => {
+      const runtime = manager();
+      const app = buildWorkspaceManagerApp(runtime.manager);
+      const manifest = {
+        ...cnpgCluster,
+        metadata: {
+          ...cnpgCluster.metadata,
+          labels: {
+            'vibecore.ai/project-id': 'project-1',
+            'vibecore.ai/org-id': 'organization-1',
+          },
+        },
+        spec: { instances: 2, storage: { size: '10Gi' } },
+      };
+      const res = await app.inject({
+        method: 'POST',
+        url: '/databases/apply-csi',
+        payload: {
+          manifest,
+          projectId: 'project-1',
+          expectedOrganizationId: 'organization-1',
+          action: 'CNPG_PROVISION',
+          resourceId: 'cnpg-provision:project-1:development',
+          targets: [
+            { namespace: 'project-databases', pvcName: 'db-p1-2' },
+            { namespace: 'project-databases', pvcName: 'db-p1-1' },
+          ],
+        },
+      });
+
+      expect(res.statusCode).toBe(200);
+      expect(res.json()).toEqual({ applied: true, csiEvidencePersisted: true });
+      expect(runtime.k8s.objects.has('project-databases:Cluster:db-p1')).toBe(true);
+      expect(runtime.store.csiProvisionEffects).toEqual([
+        {
+          projectId: 'project-1',
+          expectedOrganizationId: 'organization-1',
+          action: 'CNPG_PROVISION',
+          resourceId: 'cnpg-provision:project-1:development',
+          targets: [
+            { namespace: 'project-databases', pvcName: 'db-p1-1' },
+            { namespace: 'project-databases', pvcName: 'db-p1-2' },
+          ],
+        },
+      ]);
+      await app.close();
+    });
+
+    it.each([
+      {
+        name: 'tenant labels disagree',
+        patch: { labels: { 'vibecore.ai/project-id': 'other', 'vibecore.ai/org-id': 'organization-1' } },
+        code: 'DB_CSI_TENANT_LABELS_FORBIDDEN',
+      },
+      {
+        name: 'a PVC target is omitted',
+        targets: [{ namespace: 'project-databases', pvcName: 'db-p1-1' }],
+        code: 'DB_CSI_TARGETS_FORBIDDEN',
+      },
+      {
+        name: 'the operation id is not deterministic',
+        resourceId: 'cnpg-provision:project-1:staging',
+        code: 'DB_CSI_RESOURCE_ID_FORBIDDEN',
+      },
+      {
+        name: 'the manifest can create undeclared WAL PVCs',
+        spec: { instances: 2, walStorage: { size: '10Gi' } },
+        code: 'DB_CSI_UNDECLARED_VOLUME_SHAPE',
+      },
+    ])('rejects a CSI-producing CNPG Cluster when $name', async ({ patch, targets, resourceId, spec, code }) => {
+      const runtime = manager();
+      const app = buildWorkspaceManagerApp(runtime.manager);
+      const manifest = {
+        ...cnpgCluster,
+        metadata: {
+          ...cnpgCluster.metadata,
+          labels: patch?.labels ?? {
+            'vibecore.ai/project-id': 'project-1',
+            'vibecore.ai/org-id': 'organization-1',
+          },
+        },
+        spec: spec ?? { instances: 2 },
+      };
+      const res = await app.inject({
+        method: 'POST',
+        url: '/databases/apply-csi',
+        payload: {
+          manifest,
+          projectId: 'project-1',
+          expectedOrganizationId: 'organization-1',
+          action: 'CNPG_PROVISION',
+          resourceId: resourceId ?? 'cnpg-provision:project-1:development',
+          targets: targets ?? [
+            { namespace: 'project-databases', pvcName: 'db-p1-1' },
+            { namespace: 'project-databases', pvcName: 'db-p1-2' },
+          ],
+        },
+      });
+
+      expect(res.statusCode).toBe(403);
+      expect(res.json().code).toBe(code);
+      expect(runtime.store.csiProvisionEffects).toEqual([]);
+      expect(runtime.k8s.objects.has('project-databases:Cluster:db-p1')).toBe(false);
       await app.close();
     });
 
