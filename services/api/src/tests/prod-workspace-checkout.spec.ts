@@ -24,13 +24,21 @@ class FakeProjectStorage {
     this.files.set(this.#key(projectId, workspaceId), files);
   }
 
-  async listFiles(projectId: string, workspaceId?: string) {
+  async listFiles(projectId: string, scope: { expectedOrganizationId: string; workspaceId?: string }) {
+    return this.listFilesWithinPhysicalAccess(projectId, scope.workspaceId);
+  }
+
+  async listFilesWithinPhysicalAccess(projectId: string, workspaceId?: string) {
     return (this.files.get(this.#key(projectId, workspaceId)) ?? []).map((file) => ({ ...file, encoding: 'utf8' }));
   }
 
-  async writeFiles(projectId: string, files: Array<{ path: string; content: string }>, workspaceId?: string) {
-    this.files.set(this.#key(projectId, workspaceId), files);
-    this.writes.push({ workspaceId, count: files.length });
+  async writeFiles(
+    projectId: string,
+    files: Array<{ path: string; content: string }>,
+    scope: { expectedOrganizationId: string; workspaceId?: string },
+  ) {
+    this.files.set(this.#key(projectId, scope.workspaceId), files);
+    this.writes.push({ workspaceId: scope.workspaceId, count: files.length });
 
     return files.map((file) => ({ ...file, encoding: 'utf8' }));
   }
@@ -66,6 +74,7 @@ describe('P2d production workspace checkout on publish', () => {
     ]);
     const source = await store.createDeployment({
       projectId: project.id,
+      expectedOrganizationId: project.organizationId,
       provider: 'static',
       environment: 'preview',
       status: 'READY',
@@ -90,7 +99,10 @@ describe('P2d production workspace checkout on publish', () => {
     // the published files were copied into the prod checkout
     const write = storage.writes.find((w) => w.workspaceId === prod!.id);
     expect(write?.count).toBe(2);
-    const prodFiles = await storage.listFiles(project.id, prod!.id);
+    const prodFiles = await storage.listFiles(project.id, {
+      expectedOrganizationId: project.organizationId,
+      workspaceId: prod!.id,
+    });
     expect(prodFiles.map((f) => f.path).sort()).toEqual(['index.html', 'src/app.ts']);
   });
 
@@ -100,6 +112,7 @@ describe('P2d production workspace checkout on publish', () => {
     const mkReady = () =>
       store.createDeployment({
         projectId: project.id,
+        expectedOrganizationId: project.organizationId,
         provider: 'static',
         environment: 'preview',
         status: 'READY',

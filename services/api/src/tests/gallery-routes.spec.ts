@@ -21,20 +21,36 @@ class SnapshotProjectStorage implements ProjectStorage {
   readonly snapshots = new Map<string, ProjectFile[]>();
   private seq = 0;
 
-  async writeFiles(projectId: string, files: Array<{ path: string; content: string }>) {
+  async writeFiles(
+    projectId: string,
+    files: Array<{ path: string; content: string }>,
+    _scope: { expectedOrganizationId: string; workspaceId?: string },
+  ) {
     const bucket = this.files.get(projectId) ?? new Map<string, string>();
     for (const file of files) bucket.set(file.path, file.content);
     this.files.set(projectId, bucket);
-    return this.listFiles(projectId);
+    return this.listFiles(projectId, _scope);
   }
 
-  async listFiles(projectId: string): Promise<ProjectFile[]> {
+  async listFiles(
+    projectId: string,
+    scope: { expectedOrganizationId: string; workspaceId?: string },
+  ): Promise<ProjectFile[]> {
+    return this.listFilesWithinPhysicalAccess(projectId, scope.workspaceId);
+  }
+
+  async listFilesWithinPhysicalAccess(projectId: string, _workspaceId?: string): Promise<ProjectFile[]> {
     const bucket = this.files.get(projectId) ?? new Map<string, string>();
     const updatedAt = new Date().toISOString();
     return [...bucket.entries()].map(([path, content]) => ({ path, content, updatedAt }));
   }
 
-  async createSnapshot(input: { projectId: string; label?: string; files: ProjectFile[] }) {
+  async createSnapshot(input: {
+    projectId: string;
+    expectedOrganizationId: string;
+    label?: string;
+    files: ProjectFile[];
+  }) {
     const storageKey = `snap-${(this.seq += 1)}`;
     // Deep-copy so a later live edit cannot mutate the pinned archive.
     this.snapshots.set(
@@ -44,7 +60,15 @@ class SnapshotProjectStorage implements ProjectStorage {
     return { id: storageKey, storageKey, byteLength: 1, createdAt: new Date().toISOString() };
   }
 
-  async getSnapshotFiles(storageKey: string): Promise<ProjectFile[]> {
+  async getSnapshotFiles(
+    projectId: string,
+    storageKey: string,
+    _scope: { expectedOrganizationId: string; workspaceId?: string },
+  ): Promise<ProjectFile[]> {
+    return this.getSnapshotFilesWithinPhysicalAccess(projectId, storageKey);
+  }
+
+  async getSnapshotFilesWithinPhysicalAccess(_projectId: string, storageKey: string): Promise<ProjectFile[]> {
     return (this.snapshots.get(storageKey) ?? []).map((f) => ({ ...f }));
   }
 
@@ -53,10 +77,15 @@ class SnapshotProjectStorage implements ProjectStorage {
     return undefined;
   }
   async deleteFiles() {}
-  async exportZip() {
+  async exportZip(_projectId: string, _scope: { expectedOrganizationId: string; workspaceId?: string }) {
     return { storageKey: 'export', byteLength: 0, base64: '', createdAt: new Date().toISOString() };
   }
-  async importZip() {
+  async importZip(
+    _projectId: string,
+    _base64: string,
+    _scope: { expectedOrganizationId: string; workspaceId?: string },
+    _options?: { replaceExisting?: boolean },
+  ) {
     return [];
   }
   async writeObject() {}
@@ -64,10 +93,21 @@ class SnapshotProjectStorage implements ProjectStorage {
     return undefined;
   }
   async deleteObject() {}
-  async restoreSnapshot() {
+  async restoreSnapshot(
+    _input: {
+      projectId: string;
+      expectedOrganizationId: string;
+      workspaceId?: string;
+      files: ProjectFile[];
+    },
+    _guard?: () => Promise<void>,
+  ) {
     return [];
   }
-  async deleteProjectFiles(projectId: string) {
+  async deleteProjectFiles(projectId: string, _scope: { expectedOrganizationId: string; workspaceId?: string }) {
+    this.files.delete(projectId);
+  }
+  async eraseProjectDataWithinPhysicalAccess(projectId: string) {
     this.files.delete(projectId);
   }
 }
@@ -97,10 +137,15 @@ async function seedGallery() {
     files: ProjectFile[];
   }) => {
     const project = await store.createProject({ organizationId: org.id, name: opts.title, slug: opts.slug });
-    await projectStorage.writeFiles(project.id, opts.files);
-    const archive = await projectStorage.createSnapshot({ projectId: project.id, files: opts.files });
+    await projectStorage.writeFiles(project.id, opts.files, { expectedOrganizationId: org.id });
+    const archive = await projectStorage.createSnapshot({
+      projectId: project.id,
+      expectedOrganizationId: org.id,
+      files: opts.files,
+    });
     const snapshot = await store.createSnapshot({
       projectId: project.id,
+      expectedOrganizationId: org.id,
       kind: 'manual',
       manifest: { files: opts.files.map((f) => f.path) },
       storageKey: archive.storageKey,
@@ -128,10 +173,29 @@ async function seedGallery() {
 describe('GET /gallery — public browse / search / categories / detail', () => {
   it('lists PUBLISHED listings with author + public stats and category facets', async () => {
     const { app, mkListing } = await seedGallery();
-    await mkListing({ slug: 'todo-app', title: 'Todo App', category: 'web', tags: ['react'], files: [{ path: 'a.ts', content: '1', updatedAt: '' }] });
-    await mkListing({ slug: 'chat-bot', title: 'Chat Bot', category: 'ml-ai', tags: ['python'], featured: true, files: [{ path: 'b.py', content: '1', updatedAt: '' }] });
+    await mkListing({
+      slug: 'todo-app',
+      title: 'Todo App',
+      category: 'web',
+      tags: ['react'],
+      files: [{ path: 'a.ts', content: '1', updatedAt: '' }],
+    });
+    await mkListing({
+      slug: 'chat-bot',
+      title: 'Chat Bot',
+      category: 'ml-ai',
+      tags: ['python'],
+      featured: true,
+      files: [{ path: 'b.py', content: '1', updatedAt: '' }],
+    });
     // A non-published (curated, pending) listing must NEVER show up publicly.
-    await mkListing({ slug: 'draft-app', title: 'Draft', category: 'web', status: 'PENDING_REVIEW', files: [{ path: 'c.ts', content: '1', updatedAt: '' }] });
+    await mkListing({
+      slug: 'draft-app',
+      title: 'Draft',
+      category: 'web',
+      status: 'PENDING_REVIEW',
+      files: [{ path: 'c.ts', content: '1', updatedAt: '' }],
+    });
 
     const res = await app.inject({ method: 'GET', url: '/gallery' });
     expect(res.statusCode).toBe(200);
@@ -157,8 +221,20 @@ describe('GET /gallery — public browse / search / categories / detail', () => 
 
   it('filters by category and by free-text search', async () => {
     const { app, mkListing } = await seedGallery();
-    await mkListing({ slug: 'todo-app', title: 'Todo App', category: 'web', tags: ['react'], files: [{ path: 'a', content: '1', updatedAt: '' }] });
-    await mkListing({ slug: 'chat-bot', title: 'Chat Bot', category: 'ml-ai', tags: ['python'], files: [{ path: 'b', content: '1', updatedAt: '' }] });
+    await mkListing({
+      slug: 'todo-app',
+      title: 'Todo App',
+      category: 'web',
+      tags: ['react'],
+      files: [{ path: 'a', content: '1', updatedAt: '' }],
+    });
+    await mkListing({
+      slug: 'chat-bot',
+      title: 'Chat Bot',
+      category: 'ml-ai',
+      tags: ['python'],
+      files: [{ path: 'b', content: '1', updatedAt: '' }],
+    });
 
     const byCat = await app.inject({ method: 'GET', url: '/gallery?category=ml-ai' });
     expect(byCat.json().results.map((r: { slug: string }) => r.slug)).toEqual(['chat-bot']);
@@ -169,7 +245,12 @@ describe('GET /gallery — public browse / search / categories / detail', () => 
 
   it('serves a detail page and counts a view; hides unpublished / unknown slugs', async () => {
     const { app, mkListing } = await seedGallery();
-    await mkListing({ slug: 'todo-app', title: 'Todo App', category: 'web', files: [{ path: 'a', content: '1', updatedAt: '' }] });
+    await mkListing({
+      slug: 'todo-app',
+      title: 'Todo App',
+      category: 'web',
+      files: [{ path: 'a', content: '1', updatedAt: '' }],
+    });
 
     const detail = await app.inject({ method: 'GET', url: '/gallery/todo-app' });
     expect(detail.statusCode).toBe(200);
@@ -197,20 +278,31 @@ describe('POST /gallery/:slug/remix — pinned, secure fork into the remixer org
     const source = await store.createProject({ organizationId: ctx.org.id, name: 'Paid App', slug: 'paid-app' });
     await store.upsertProjectSecret({
       projectId: source.id,
+      expectedOrganizationId: ctx.org.id,
       key: 'STRIPE_KEY',
       valueEncrypted: encryptJson({ value: SECRET_VALUE }),
     });
-    await store.upsertProjectEnvVar({ projectId: source.id, key: 'DATABASE_URL', value: ENV_VALUE });
+    await store.upsertProjectEnvVar({
+      projectId: source.id,
+      expectedOrganizationId: ctx.org.id,
+      key: 'DATABASE_URL',
+      value: ENV_VALUE,
+    });
 
     const snapshotFiles: ProjectFile[] = [
       { path: 'src/app.ts', content: 'console.log("SNAPSHOT_V1");\n', updatedAt: '' },
       { path: '.env', content: `PORT=3000\nSTRIPE_KEY=${SECRET_VALUE}\nDATABASE_URL=${ENV_VALUE}\n`, updatedAt: '' },
       { path: 'README.md', content: '# Paid App\n', updatedAt: '' },
     ];
-    await projectStorage.writeFiles(source.id, snapshotFiles);
-    const archive = await projectStorage.createSnapshot({ projectId: source.id, files: snapshotFiles });
+    await projectStorage.writeFiles(source.id, snapshotFiles, { expectedOrganizationId: ctx.org.id });
+    const archive = await projectStorage.createSnapshot({
+      projectId: source.id,
+      expectedOrganizationId: ctx.org.id,
+      files: snapshotFiles,
+    });
     const snapshot = await store.createSnapshot({
       projectId: source.id,
+      expectedOrganizationId: ctx.org.id,
       kind: 'manual',
       manifest: { files: snapshotFiles.map((f) => f.path) },
       storageKey: archive.storageKey,
@@ -232,9 +324,11 @@ describe('POST /gallery/:slug/remix — pinned, secure fork into the remixer org
     });
 
     // ---- Mutate the LIVE source AFTER the snapshot: the pin must ignore this. ----
-    await projectStorage.writeFiles(source.id, [
-      { path: 'src/app.ts', content: 'console.log("LIVE_EDIT_V2_AFTER_SNAPSHOT");\n' },
-    ]);
+    await projectStorage.writeFiles(
+      source.id,
+      [{ path: 'src/app.ts', content: 'console.log("LIVE_EDIT_V2_AFTER_SNAPSHOT");\n' }],
+      { expectedOrganizationId: ctx.org.id },
+    );
 
     // The remixer: a DIFFERENT user + org.
     const remixer = await store.createUser({
@@ -242,8 +336,16 @@ describe('POST /gallery/:slug/remix — pinned, secure fork into the remixer org
       name: 'Remixer',
       passwordHash: hashPassword('password123'),
     });
-    const remixerOrg = await store.createOrganization({ name: 'Remixer Org', slug: 'remixer-org', ownerUserId: remixer.id });
-    await store.createSession({ userId: remixer.id, token: 'remixer-token', expiresAt: new Date(Date.now() + 3600_000) });
+    const remixerOrg = await store.createOrganization({
+      name: 'Remixer Org',
+      slug: 'remixer-org',
+      ownerUserId: remixer.id,
+    });
+    await store.createSession({
+      userId: remixer.id,
+      token: 'remixer-token',
+      expiresAt: new Date(Date.now() + 3600_000),
+    });
 
     return { ...ctx, source, snapshot, listing, remixer, remixerOrg };
   }
@@ -273,7 +375,9 @@ describe('POST /gallery/:slug/remix — pinned, secure fork into the remixer org
     expect(job?.state).toBe('COMPLETED');
 
     // (3) IMMUTABLE PIN: the clone reflects the SNAPSHOT (V1), NOT the later live edit (V2).
-    const cloneFiles = await projectStorage.listFiles(cloneId);
+    const cloneFiles = await projectStorage.listFiles(cloneId, {
+      expectedOrganizationId: remixerOrg.id,
+    });
     const appFile = cloneFiles.find((f) => f.path === 'src/app.ts');
     expect(appFile?.content).toContain('SNAPSHOT_V1');
     expect(appFile?.content).not.toContain('LIVE_EDIT_V2_AFTER_SNAPSHOT');
@@ -319,10 +423,13 @@ describe('POST /gallery/:slug/remix — pinned, secure fork into the remixer org
       const text = typeof haystack === 'string' ? haystack : JSON.stringify(haystack ?? null);
       return SECRETS.filter((secret) => text.includes(secret));
     };
-    const asRecord = (v: unknown): Record<string, unknown> => (v && typeof v === 'object' ? (v as Record<string, unknown>) : {});
+    const asRecord = (v: unknown): Record<string, unknown> =>
+      v && typeof v === 'object' ? (v as Record<string, unknown>) : {};
 
     // ───────── SURFACE 1 · FILES (the clone's files, every one of them) ─────────
-    const cloneFiles = await projectStorage.listFiles(cloneId);
+    const cloneFiles = await projectStorage.listFiles(cloneId, {
+      expectedOrganizationId: remixerOrg.id,
+    });
     for (const file of cloneFiles) {
       expect(hunt(file.content), `secret leaked into clone file ${file.path}`).toEqual([]);
     }
@@ -410,7 +517,9 @@ describe('POST /gallery/:slug/remix — pinned, secure fork into the remixer org
 
     expect(leaks, `secret leaked outside the source into: ${leaks.join(', ') || '(none)'}`).toEqual([]);
     // Proof the hunt is NOT vacuous: it positively located the secret where it belongs.
-    expect(foundInSource, 'the hunt never found the secret even in the source — the search itself is broken').toBe(true);
+    expect(foundInSource, 'the hunt never found the secret even in the source — the search itself is broken').toBe(
+      true,
+    );
   });
 
   it('requires authentication (anonymous remix is rejected)', async () => {
@@ -456,10 +565,15 @@ describe('Gallery remix — versioned license + consent + PII masking (P0-V3-05 
       },
       { path: 'src/app.ts', content: 'export const CONTACT = "support@example.com";\n', updatedAt: '' },
     ];
-    await projectStorage.writeFiles(source.id, snapshotFiles);
-    const archive = await projectStorage.createSnapshot({ projectId: source.id, files: snapshotFiles });
+    await projectStorage.writeFiles(source.id, snapshotFiles, { expectedOrganizationId: ctx.org.id });
+    const archive = await projectStorage.createSnapshot({
+      projectId: source.id,
+      expectedOrganizationId: ctx.org.id,
+      files: snapshotFiles,
+    });
     const snapshot = await store.createSnapshot({
       projectId: source.id,
+      expectedOrganizationId: ctx.org.id,
       kind: 'manual',
       manifest: { files: snapshotFiles.map((f) => f.path) },
       storageKey: archive.storageKey,
@@ -577,7 +691,9 @@ describe('Gallery remix — versioned license + consent + PII masking (P0-V3-05 
     expect(res.statusCode).toBe(201);
     const body = res.json();
 
-    const cloneFiles = await projectStorage.listFiles(body.project.id);
+    const cloneFiles = await projectStorage.listFiles(body.project.id, {
+      expectedOrganizationId: remixerOrg.id,
+    });
     const allText = cloneFiles.map((f) => f.content).join('\n');
 
     // NON-VACUITÉ : sans ça, un clone vide ferait passer toutes les négations.
@@ -620,7 +736,9 @@ describe('Gallery remix — versioned license + consent + PII masking (P0-V3-05 
     expect(res.statusCode).toBe(201);
     const body = res.json();
 
-    const cloneFiles = await projectStorage.listFiles(body.project.id);
+    const cloneFiles = await projectStorage.listFiles(body.project.id, {
+      expectedOrganizationId: remixerOrg.id,
+    });
     const allText = cloneFiles.map((f) => f.content).join('\n');
     expect(allText).toContain(PII_EMAIL); // shipped as-is — author consented
     expect(body.remix.piiMaskedCount).toBe(0);
@@ -660,14 +778,29 @@ describe('POST /admin/gallery-listings — curator publish (no self-service)', (
     });
     await store.updateUser({ userId: admin.id, mfaEnabled: true });
     await store.createSession({ userId: admin.id, token: 'admin-token', expiresAt: new Date(Date.now() + 3600_000) });
-    await app.inject({ method: 'POST', url: '/auth/reauth', headers: auth('admin-token'), payload: { password: 'password123' } });
+    await app.inject({
+      method: 'POST',
+      url: '/auth/reauth',
+      headers: auth('admin-token'),
+      payload: { password: 'password123' },
+    });
 
     const org = await store.createOrganization({ name: 'Curator Org', slug: 'curator-org', ownerUserId: admin.id });
     const source = await store.createProject({ organizationId: org.id, name: 'Sample', slug: 'sample' });
     const files: ProjectFile[] = [{ path: 'index.js', content: 'console.log(1);\n', updatedAt: '' }];
-    await projectStorage.writeFiles(source.id, files);
-    const archive = await projectStorage.createSnapshot({ projectId: source.id, files });
-    const snapshot = await store.createSnapshot({ projectId: source.id, kind: 'manual', manifest: {}, storageKey: archive.storageKey });
+    await projectStorage.writeFiles(source.id, files, { expectedOrganizationId: org.id });
+    const archive = await projectStorage.createSnapshot({
+      projectId: source.id,
+      expectedOrganizationId: org.id,
+      files,
+    });
+    const snapshot = await store.createSnapshot({
+      projectId: source.id,
+      expectedOrganizationId: org.id,
+      kind: 'manual',
+      manifest: {},
+      storageKey: archive.storageKey,
+    });
 
     return { app, store, source, snapshot, admin };
   }
@@ -702,8 +835,18 @@ describe('POST /admin/gallery-listings — curator publish (no self-service)', (
 
   it('rejects a snapshot that does not belong to the source project (400)', async () => {
     const { app, store, source } = await setupCurator();
-    const otherProject = await store.createProject({ organizationId: source.organizationId, name: 'Other', slug: 'other' });
-    const otherSnap = await store.createSnapshot({ projectId: otherProject.id, kind: 'manual', manifest: {}, storageKey: 'x' });
+    const otherProject = await store.createProject({
+      organizationId: source.organizationId,
+      name: 'Other',
+      slug: 'other',
+    });
+    const otherSnap = await store.createSnapshot({
+      projectId: otherProject.id,
+      expectedOrganizationId: source.organizationId,
+      kind: 'manual',
+      manifest: {},
+      storageKey: 'x',
+    });
 
     const res = await app.inject({
       method: 'POST',
@@ -716,7 +859,11 @@ describe('POST /admin/gallery-listings — curator publish (no self-service)', (
 
   it('is NOT self-service — a non-admin user cannot create a listing', async () => {
     const { app, store, source, snapshot } = await setupCurator();
-    const user = await store.createUser({ email: 'joe@example.com', name: 'Joe', passwordHash: hashPassword('password123') });
+    const user = await store.createUser({
+      email: 'joe@example.com',
+      name: 'Joe',
+      passwordHash: hashPassword('password123'),
+    });
     await store.createSession({ userId: user.id, token: 'user-token', expiresAt: new Date(Date.now() + 3600_000) });
 
     const res = await app.inject({
@@ -743,19 +890,39 @@ describe('Politique licence FAIL-CLOSED (directive 20/07)', () => {
     });
     await store.updateUser({ userId: admin.id, mfaEnabled: true });
     await store.createSession({ userId: admin.id, token: 'admin-token', expiresAt: new Date(Date.now() + 3600_000) });
-    await app.inject({ method: 'POST', url: '/auth/reauth', headers: auth('admin-token'), payload: { password: 'password123' } });
+    await app.inject({
+      method: 'POST',
+      url: '/auth/reauth',
+      headers: auth('admin-token'),
+      payload: { password: 'password123' },
+    });
     const org = await store.createOrganization({ name: 'C2 Org', slug: 'c2-org', ownerUserId: admin.id });
     const source = await store.createProject({ organizationId: org.id, name: 'Sample2', slug: 'sample2' });
     const files: ProjectFile[] = [{ path: 'index.js', content: '1\n', updatedAt: '' }];
-    await projectStorage.writeFiles(source.id, files);
-    const archive = await projectStorage.createSnapshot({ projectId: source.id, files });
-    const snapshot = await store.createSnapshot({ projectId: source.id, kind: 'manual', manifest: {}, storageKey: archive.storageKey });
+    await projectStorage.writeFiles(source.id, files, { expectedOrganizationId: org.id });
+    const archive = await projectStorage.createSnapshot({
+      projectId: source.id,
+      expectedOrganizationId: org.id,
+      files,
+    });
+    const snapshot = await store.createSnapshot({
+      projectId: source.id,
+      expectedOrganizationId: org.id,
+      kind: 'manual',
+      manifest: {},
+      storageKey: archive.storageKey,
+    });
     return { app, store, source, snapshot, admin };
   }
 
   it('un listing créé SANS choix explicite est NON-remixable par défaut', async () => {
     const { app, mkListing } = await seedGallery();
-    await mkListing({ slug: 'plain-app', title: 'Plain App', category: 'web', files: [{ path: 'a', content: '1', updatedAt: '' }] });
+    await mkListing({
+      slug: 'plain-app',
+      title: 'Plain App',
+      category: 'web',
+      files: [{ path: 'a', content: '1', updatedAt: '' }],
+    });
 
     const detail = await app.inject({ method: 'GET', url: '/gallery/plain-app' });
     expect(detail.json().listing.remixAllowed).toBe(false); // ALL_RIGHTS_RESERVED par défaut
@@ -768,8 +935,13 @@ describe('Politique licence FAIL-CLOSED (directive 20/07)', () => {
       url: '/admin/gallery-listings',
       headers: auth('admin-token'),
       payload: {
-        slug: 'no-license', title: 'No License', description: 'x', category: 'web',
-        sourceProjectId: source.id, sourceSnapshotId: snapshot.id, authorName: 'A',
+        slug: 'no-license',
+        title: 'No License',
+        description: 'x',
+        category: 'web',
+        sourceProjectId: source.id,
+        sourceSnapshotId: snapshot.id,
+        authorName: 'A',
         remixAllowed: true,
       },
     });
@@ -784,9 +956,16 @@ describe('Politique licence FAIL-CLOSED (directive 20/07)', () => {
       url: '/admin/gallery-listings',
       headers: auth('admin-token'),
       payload: {
-        slug: 'no-rights', title: 'No Rights', description: 'x', category: 'web',
-        sourceProjectId: source.id, sourceSnapshotId: snapshot.id, authorName: 'A',
-        remixAllowed: true, licenseId: 'MIT', licenseText: 'MIT…',
+        slug: 'no-rights',
+        title: 'No Rights',
+        description: 'x',
+        category: 'web',
+        sourceProjectId: source.id,
+        sourceSnapshotId: snapshot.id,
+        authorName: 'A',
+        remixAllowed: true,
+        licenseId: 'MIT',
+        licenseText: 'MIT…',
       },
     });
     expect(res.statusCode).toBe(400);
@@ -798,21 +977,42 @@ describe('Politique licence FAIL-CLOSED (directive 20/07)', () => {
     const { store, projectStorage, app } = ctx;
     const project = await store.createProject({ organizationId: ctx.org.id, name: 'Forced', slug: 'forced' });
     const files: ProjectFile[] = [{ path: 'a', content: '1', updatedAt: '' }];
-    await projectStorage.writeFiles(project.id, files);
-    const archive = await projectStorage.createSnapshot({ projectId: project.id, files });
-    const snapshot = await store.createSnapshot({ projectId: project.id, kind: 'manual', manifest: {}, storageKey: archive.storageKey });
+    await projectStorage.writeFiles(project.id, files, { expectedOrganizationId: ctx.org.id });
+    const archive = await projectStorage.createSnapshot({
+      projectId: project.id,
+      expectedOrganizationId: ctx.org.id,
+      files,
+    });
+    const snapshot = await store.createSnapshot({
+      projectId: project.id,
+      expectedOrganizationId: ctx.org.id,
+      kind: 'manual',
+      manifest: {},
+      storageKey: archive.storageKey,
+    });
     // Contourne la route (écriture store directe) : remixable SANS licence.
     await store.createGalleryListing({
-      slug: 'forced-app', title: 'Forced', description: 'x', category: 'web',
-      sourceProjectId: project.id, sourceSnapshotId: snapshot.id, authorName: 'A',
+      slug: 'forced-app',
+      title: 'Forced',
+      description: 'x',
+      category: 'web',
+      sourceProjectId: project.id,
+      sourceSnapshotId: snapshot.id,
+      authorName: 'A',
       remixAllowed: true,
     });
-    const remixer = await store.createUser({ email: 'rx@example.com', name: 'Rx', passwordHash: hashPassword('password123') });
+    const remixer = await store.createUser({
+      email: 'rx@example.com',
+      name: 'Rx',
+      passwordHash: hashPassword('password123'),
+    });
     const remixerOrg = await store.createOrganization({ name: 'RxO', slug: 'rxo', ownerUserId: remixer.id });
     await store.createSession({ userId: remixer.id, token: 'rx-token', expiresAt: new Date(Date.now() + 3600_000) });
 
     const res = await app.inject({
-      method: 'POST', url: '/gallery/forced-app/remix', headers: auth('rx-token'),
+      method: 'POST',
+      url: '/gallery/forced-app/remix',
+      headers: auth('rx-token'),
       payload: { organizationId: remixerOrg.id, acceptLicense: true },
     });
     expect(res.statusCode).toBe(403);
@@ -828,12 +1028,19 @@ describe('Politique licence FAIL-CLOSED (directive 20/07)', () => {
       url: '/admin/gallery-listings',
       headers: auth('admin-token'),
       payload: {
-        slug: 'nd-app', title: 'ND App', description: 'x', category: 'web',
-        sourceProjectId: source.id, sourceSnapshotId: snapshot.id, authorName: 'A',
+        slug: 'nd-app',
+        title: 'ND App',
+        description: 'x',
+        category: 'web',
+        sourceProjectId: source.id,
+        sourceSnapshotId: snapshot.id,
+        authorName: 'A',
         remixAllowed: true,
         // Le contre-exemple de l'audit : chaîne libre qui passait tous les gates.
-        licenseId: 'PROPRIETARY — NO DERIVATIVES', licenseText: 'All rights reserved…',
-        rightsConfirmed: true, piiPolicyAccepted: true,
+        licenseId: 'PROPRIETARY — NO DERIVATIVES',
+        licenseText: 'All rights reserved…',
+        rightsConfirmed: true,
+        piiPolicyAccepted: true,
       },
     });
     expect(res.statusCode).toBe(400);
@@ -843,12 +1050,22 @@ describe('Politique licence FAIL-CLOSED (directive 20/07)', () => {
   it('curation : CC-BY-ND (no-derivatives) refusée avec la raison typée', async () => {
     const { app, source, snapshot } = await mkCurator();
     const res = await app.inject({
-      method: 'POST', url: '/admin/gallery-listings', headers: auth('admin-token'),
+      method: 'POST',
+      url: '/admin/gallery-listings',
+      headers: auth('admin-token'),
       payload: {
-        slug: 'ccnd-app', title: 'CC ND', description: 'x', category: 'web',
-        sourceProjectId: source.id, sourceSnapshotId: snapshot.id, authorName: 'A',
-        remixAllowed: true, licenseId: 'CC-BY-ND-4.0', licenseText: 'CC BY-ND…',
-        rightsConfirmed: true, piiPolicyAccepted: true,
+        slug: 'ccnd-app',
+        title: 'CC ND',
+        description: 'x',
+        category: 'web',
+        sourceProjectId: source.id,
+        sourceSnapshotId: snapshot.id,
+        authorName: 'A',
+        remixAllowed: true,
+        licenseId: 'CC-BY-ND-4.0',
+        licenseText: 'CC BY-ND…',
+        rightsConfirmed: true,
+        piiPolicyAccepted: true,
       },
     });
     expect(res.statusCode).toBe(400);
@@ -858,12 +1075,22 @@ describe('Politique licence FAIL-CLOSED (directive 20/07)', () => {
   it('curation : licence dérivable acceptée ET normalisée en SPDX canonique', async () => {
     const { app, source, snapshot } = await mkCurator();
     const res = await app.inject({
-      method: 'POST', url: '/admin/gallery-listings', headers: auth('admin-token'),
+      method: 'POST',
+      url: '/admin/gallery-listings',
+      headers: auth('admin-token'),
       payload: {
-        slug: 'ok-app', title: 'OK App', description: 'x', category: 'web',
-        sourceProjectId: source.id, sourceSnapshotId: snapshot.id, authorName: 'A',
-        remixAllowed: true, licenseId: 'apache 2.0', licenseText: 'Apache License…',
-        rightsConfirmed: true, piiPolicyAccepted: true,
+        slug: 'ok-app',
+        title: 'OK App',
+        description: 'x',
+        category: 'web',
+        sourceProjectId: source.id,
+        sourceSnapshotId: snapshot.id,
+        authorName: 'A',
+        remixAllowed: true,
+        licenseId: 'apache 2.0',
+        licenseText: 'Apache License…',
+        rightsConfirmed: true,
+        piiPolicyAccepted: true,
       },
     });
     expect(res.statusCode).toBe(201);
@@ -876,22 +1103,45 @@ describe('Politique licence FAIL-CLOSED (directive 20/07)', () => {
     const { store, projectStorage, app } = ctx;
     const project = await store.createProject({ organizationId: ctx.org.id, name: 'Legacy', slug: 'legacy' });
     const files: ProjectFile[] = [{ path: 'a', content: '1', updatedAt: '' }];
-    await projectStorage.writeFiles(project.id, files);
-    const archive = await projectStorage.createSnapshot({ projectId: project.id, files });
-    const snapshot = await store.createSnapshot({ projectId: project.id, kind: 'manual', manifest: {}, storageKey: archive.storageKey });
+    await projectStorage.writeFiles(project.id, files, { expectedOrganizationId: ctx.org.id });
+    const archive = await projectStorage.createSnapshot({
+      projectId: project.id,
+      expectedOrganizationId: ctx.org.id,
+      files,
+    });
+    const snapshot = await store.createSnapshot({
+      projectId: project.id,
+      expectedOrganizationId: ctx.org.id,
+      kind: 'manual',
+      manifest: {},
+      storageKey: archive.storageKey,
+    });
     // Écriture store directe : simule une ligne créée AVANT l'allowlist SPDX.
     await store.createGalleryListing({
-      slug: 'legacy-nd', title: 'Legacy ND', description: 'x', category: 'web',
-      sourceProjectId: project.id, sourceSnapshotId: snapshot.id, authorName: 'A',
-      remixAllowed: true, licenseId: 'CC-BY-NC-ND-4.0', licenseText: 'x',
+      slug: 'legacy-nd',
+      title: 'Legacy ND',
+      description: 'x',
+      category: 'web',
+      sourceProjectId: project.id,
+      sourceSnapshotId: snapshot.id,
+      authorName: 'A',
+      remixAllowed: true,
+      licenseId: 'CC-BY-NC-ND-4.0',
+      licenseText: 'x',
       licenseTextSha256: 'a'.repeat(64),
     });
-    const u = await store.createUser({ email: 'nd@example.com', name: 'Nd', passwordHash: hashPassword('password123') });
+    const u = await store.createUser({
+      email: 'nd@example.com',
+      name: 'Nd',
+      passwordHash: hashPassword('password123'),
+    });
     const o = await store.createOrganization({ name: 'NdO', slug: 'ndo', ownerUserId: u.id });
     await store.createSession({ userId: u.id, token: 'nd-token', expiresAt: new Date(Date.now() + 3600_000) });
 
     const res = await app.inject({
-      method: 'POST', url: '/gallery/legacy-nd/remix', headers: auth('nd-token'),
+      method: 'POST',
+      url: '/gallery/legacy-nd/remix',
+      headers: auth('nd-token'),
       payload: { organizationId: o.id, acceptLicense: true },
     });
     expect(res.statusCode).toBe(403);
@@ -904,12 +1154,22 @@ describe('Politique licence FAIL-CLOSED (directive 20/07)', () => {
     const { app, source, snapshot, store, admin } = await mkCurator();
     const before = Date.now();
     const res = await app.inject({
-      method: 'POST', url: '/admin/gallery-listings', headers: auth('admin-token'),
+      method: 'POST',
+      url: '/admin/gallery-listings',
+      headers: auth('admin-token'),
       payload: {
-        slug: 'traced-app', title: 'Traced', description: 'x', category: 'web',
-        sourceProjectId: source.id, sourceSnapshotId: snapshot.id, authorName: 'A',
-        remixAllowed: true, licenseId: 'MIT', licenseText: 'MIT…',
-        rightsConfirmed: true, piiPolicyAccepted: true,
+        slug: 'traced-app',
+        title: 'Traced',
+        description: 'x',
+        category: 'web',
+        sourceProjectId: source.id,
+        sourceSnapshotId: snapshot.id,
+        authorName: 'A',
+        remixAllowed: true,
+        licenseId: 'MIT',
+        licenseText: 'MIT…',
+        rightsConfirmed: true,
+        piiPolicyAccepted: true,
       },
     });
     expect(res.statusCode).toBe(201);
@@ -927,10 +1187,17 @@ describe('Politique licence FAIL-CLOSED (directive 20/07)', () => {
   it('un listing non-remixable ne porte AUCUNE trace de confirmation', async () => {
     const { app, source, snapshot, store } = await mkCurator();
     await app.inject({
-      method: 'POST', url: '/admin/gallery-listings', headers: auth('admin-token'),
+      method: 'POST',
+      url: '/admin/gallery-listings',
+      headers: auth('admin-token'),
       payload: {
-        slug: 'viewonly-app', title: 'View Only', description: 'x', category: 'web',
-        sourceProjectId: source.id, sourceSnapshotId: snapshot.id, authorName: 'A',
+        slug: 'viewonly-app',
+        title: 'View Only',
+        description: 'x',
+        category: 'web',
+        sourceProjectId: source.id,
+        sourceSnapshotId: snapshot.id,
+        authorName: 'A',
       },
     });
 

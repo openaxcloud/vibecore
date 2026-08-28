@@ -439,6 +439,14 @@
     "en": "Project name confirmation does not match.",
     "fr": "Le nom de projet saisi pour confirmation ne correspond pas."
   },
+  "PROJECT_PERMANENT_DELETE_IDEMPOTENCY_KEY_REQUIRED": {
+    "en": "Provide a valid Idempotency-Key containing 16 to 128 safe characters before permanently deleting a project.",
+    "fr": "Fournissez une clé Idempotency-Key valide de 16 à 128 caractères autorisés avant de supprimer définitivement un projet."
+  },
+  "OBJECT_STORAGE_IDEMPOTENCY_KEY_REQUIRED": {
+    "en": "Provide a valid Idempotency-Key containing 16 to 128 safe characters for this object-storage mutation.",
+    "fr": "Fournissez une clé Idempotency-Key valide de 16 à 128 caractères autorisés pour cette mutation du stockage objet."
+  },
   "REMIX_JOB_NOT_FOUND": {
     "en": "Remix job not found",
     "fr": "Tâche de remix introuvable."
@@ -3143,6 +3151,58 @@
     "en": "This project still owns managed database, cloud, or migration resources. Move those resources with the tenant transfer workflow before transferring the project.",
     "fr": "Ce projet possède encore des ressources gérées de base de données, de cloud ou de migration. Déplacez-les avec le processus de transfert d’organisation avant de transférer le projet."
   },
+  "PROJECT_TRANSFER_OBJECT_STORAGE_ACTIVE": {
+    "en": "This project has an object-storage bucket. Delete its bucket before transferring the project so outstanding upload links cannot cross organizations.",
+    "fr": "Ce projet possède un bucket de stockage d’objets. Supprimez-le avant le transfert afin qu’aucun lien d’envoi encore valide ne traverse les organisations."
+  },
+  "PROJECT_TRANSFER_OBJECT_STORAGE_CAPABILITY_ACTIVE": {
+    "en": "This project still has an unexpired object-storage link. Wait for it to expire, then retry the transfer.",
+    "fr": "Ce projet possède encore un lien de stockage d’objets non expiré. Attendez son expiration, puis réessayez le transfert."
+  },
+  "OBJECT_STORAGE_CAPABILITY_EXPIRY_INVALID": {
+    "en": "The object-storage provider returned an invalid signed-link expiry. No capability was issued.",
+    "fr": "Le fournisseur de stockage d’objets a renvoyé une échéance de lien signé invalide. Aucune capacité n’a été émise."
+  },
+  "OBJECT_STORAGE_CAPABILITY_ACTIVE": {
+    "en": "An unexpired object-storage capability still authorizes this project. Wait for it to expire before changing storage authority.",
+    "fr": "Une capacité de stockage d’objets non expirée autorise encore ce projet. Attendez son expiration avant de modifier l’autorité de stockage."
+  },
+  "OBJECT_STORAGE_TENANT_SCOPE_MISMATCH": {
+    "en": "The object-storage operation does not match its authorized project.",
+    "fr": "L’opération de stockage d’objets ne correspond pas au projet autorisé."
+  },
+  "OBJECT_STORAGE_BACKEND_REQUIRED": {
+    "en": "The configured object-storage backend is unavailable. No storage change was certified.",
+    "fr": "Le backend de stockage d’objets configuré est indisponible. Aucun changement de stockage n’a été certifié."
+  },
+  "OBJECT_STORAGE_OPERATION_IN_PROGRESS": {
+    "en": "This object-storage operation is already in progress. Retry after its lease expires.",
+    "fr": "Cette opération de stockage d’objets est déjà en cours. Réessayez après l’expiration de son bail."
+  },
+  "OBJECT_STORAGE_OPERATION_VERIFY_FIRST": {
+    "en": "The previous object-storage effect must be verified before this operation can continue.",
+    "fr": "L’effet précédent sur le stockage d’objets doit être vérifié avant de poursuivre cette opération."
+  },
+  "OBJECT_STORAGE_OPERATION_MANUAL_RECOVERY": {
+    "en": "This object-storage operation is frozen for manual recovery.",
+    "fr": "Cette opération de stockage d’objets est gelée pour une récupération manuelle."
+  },
+  "OBJECT_STORAGE_SOURCE_UNPINNABLE": {
+    "en": "The source object has no immutable provider generation and cannot be moved safely.",
+    "fr": "L’objet source ne possède pas de génération fournisseur immuable et ne peut pas être déplacé en toute sécurité."
+  },
+  "OBJECT_STORAGE_TARGET_UNPINNABLE": {
+    "en": "The target object has no immutable provider generation and cannot be replaced safely.",
+    "fr": "L’objet cible ne possède pas de génération fournisseur immuable et ne peut pas être remplacé en toute sécurité."
+  },
+  "OBJECT_STORAGE_SOURCE_PRECONDITION_CHANGED": {
+    "en": "The source object changed while this operation was waiting. Retry with the same intent and a new idempotency key.",
+    "fr": "L’objet source a changé pendant l’attente de cette opération. Réessayez avec la même intention et une nouvelle clé d’idempotence."
+  },
+  "OBJECT_STORAGE_TARGET_PRECONDITION_CHANGED": {
+    "en": "The target object changed while this operation was waiting. Retry with the same intent and a new idempotency key.",
+    "fr": "L’objet cible a changé pendant l’attente de cette opération. Réessayez avec la même intention et une nouvelle clé d’idempotence."
+  },
   "PROJECT_RELEASE_BARRIER_LOST": {
     "en": "Project release barrier was lost.",
     "fr": "Le verrou de publication du projet n’est plus détenu."
@@ -3150,6 +3210,10 @@
   "PROJECT_ORGANIZATION_CHANGED_DURING_RELEASE": {
     "en": "Project organization changed during release.",
     "fr": "L’organisation du projet a changé pendant la publication."
+  },
+  "PROJECT_ORGANIZATION_CHANGED_DURING_MUTATION": {
+    "en": "The project changed organization while this operation was waiting. Refresh the project and try again.",
+    "fr": "Le projet a changé d’organisation pendant l’attente de cette opération. Actualisez le projet puis réessayez."
   },
   "PROJECT_RELEASE_BARRIER_TTL_INVALID": {
     "en": "Project release barrier TTL must be between 10 and 300 seconds.",

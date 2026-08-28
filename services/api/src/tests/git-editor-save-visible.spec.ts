@@ -35,6 +35,7 @@ async function seedCommittedProject(label: string) {
   process.env.PROJECT_STORAGE_DIR = storage;
 
   const projectId = `${label}-project`;
+  const expectedOrganizationId = `${label}-organization`;
   const projectDir = join(storage, projectId);
   await mkdir(projectDir, { recursive: true });
   await writeFile(join(projectDir, 'App.tsx'), 'export const App = () => null;\n');
@@ -43,29 +44,30 @@ async function seedCommittedProject(label: string) {
 
   await provider.commit({
     projectId,
+    expectedOrganizationId,
     message: 'chore: initial scaffold',
     files: [file('App.tsx', 'export const App = () => null;\n')],
   });
 
-  return { provider, projectId, projectDir };
+  return { provider, projectId, expectedOrganizationId, projectDir };
 }
 
 describe('an edit saved in the editor is visible to Git', () => {
   it('reports the edited file as changed instead of "0 changes"', async () => {
-    const { provider, projectId } = await seedCommittedProject('git-status');
+    const { provider, projectId, expectedOrganizationId } = await seedCommittedProject('git-status');
+    const scope = { expectedOrganizationId };
 
-    const clean = await provider.status(projectId);
+    const clean = await provider.status(projectId, scope);
     expect(clean.changedFiles, 'a freshly committed project has nothing to report').toEqual([]);
 
     // What the IDE holds after the user typed and saved.
     const edited = [file('App.tsx', 'export const App = () => null;\n// QA edit\n')];
 
-    const dirty = await provider.status(projectId, undefined, edited);
+    const dirty = await provider.status(projectId, scope, edited);
 
     expect(dirty.changedFiles).toEqual(['App.tsx']);
     expect(dirty.fileStatuses?.[0]?.status).toBe('M');
   });
-
 
   /*
    * Found while writing the test above: `git()` trimmed ALL of git's output, and
@@ -76,9 +78,9 @@ describe('an edit saved in the editor is visible to Git', () => {
    * then targeted a file that does not exist.
    */
   it('reports the first changed path in full, not missing its first character', async () => {
-    const { provider, projectId } = await seedCommittedProject('git-porcelain-trim');
+    const { provider, projectId, expectedOrganizationId } = await seedCommittedProject('git-porcelain-trim');
 
-    const status = await provider.status(projectId, undefined, [
+    const status = await provider.status(projectId, { expectedOrganizationId }, [
       file('App.tsx', 'export const App = () => null;\n// edit\n'),
     ]);
 
@@ -88,9 +90,9 @@ describe('an edit saved in the editor is visible to Git', () => {
   });
 
   it('sees a file created in the editor that the working tree never had', async () => {
-    const { provider, projectId } = await seedCommittedProject('git-status-new');
+    const { provider, projectId, expectedOrganizationId } = await seedCommittedProject('git-status-new');
 
-    const withNewFile = await provider.status(projectId, undefined, [
+    const withNewFile = await provider.status(projectId, { expectedOrganizationId }, [
       file('App.tsx', 'export const App = () => null;\n'),
       file('src/added.ts', 'export const added = true;\n'),
     ]);
@@ -99,10 +101,11 @@ describe('an edit saved in the editor is visible to Git', () => {
   });
 
   it('commits the caller files rather than dying on an unchanged tree', async () => {
-    const { provider, projectId, projectDir } = await seedCommittedProject('git-commit');
+    const { provider, projectId, expectedOrganizationId, projectDir } = await seedCommittedProject('git-commit');
 
     const commit = await provider.commit({
       projectId,
+      expectedOrganizationId,
       message: 'feat: editor edit',
       files: [file('App.tsx', 'export const App = () => <div />;\n')],
     });
@@ -112,17 +115,17 @@ describe('an edit saved in the editor is visible to Git', () => {
 
     // The commit really carries the new content, and the tree is clean after it.
     expect((await readFile(join(projectDir, 'App.tsx'))).toString()).toContain('<div />');
-    expect((await provider.status(projectId)).changedFiles).toEqual([]);
+    expect((await provider.status(projectId, { expectedOrganizationId })).changedFiles).toEqual([]);
   });
 
   it('leaves the tree untouched when the files are identical, so polling status is not a write storm', async () => {
-    const { provider, projectId, projectDir } = await seedCommittedProject('git-idempotent');
+    const { provider, projectId, expectedOrganizationId, projectDir } = await seedCommittedProject('git-idempotent');
 
     const before = (await readFile(join(projectDir, 'App.tsx'))).toString();
     const unchanged = [file('App.tsx', before)];
 
-    expect((await provider.status(projectId, undefined, unchanged)).changedFiles).toEqual([]);
-    expect((await provider.status(projectId, undefined, unchanged)).changedFiles).toEqual([]);
+    expect((await provider.status(projectId, { expectedOrganizationId }, unchanged)).changedFiles).toEqual([]);
+    expect((await provider.status(projectId, { expectedOrganizationId }, unchanged)).changedFiles).toEqual([]);
     expect((await readFile(join(projectDir, 'App.tsx'))).toString()).toBe(before);
   });
 });

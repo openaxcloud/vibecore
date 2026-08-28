@@ -45,10 +45,24 @@ describe('account purge — production storage writer contract', () => {
 
     const digest = createHash('sha256').update(`${project.id}:${subject.id}`).digest('hex').slice(0, 16);
     const subjectWorkspaceId = `ws-${digest}`;
-    await expect(store.assertProjectStorageMutable(project.id, subjectWorkspaceId)).rejects.toMatchObject({
+    await expect(
+      store.assertProjectStorageMutable({
+        projectId: project.id,
+        expectedOrganizationId: organization.id,
+        workspaceId: subjectWorkspaceId,
+      }),
+    ).rejects.toMatchObject({
       code: 'PROJECT_STORAGE_FENCED_FOR_ACCOUNT_PURGE',
     });
-    await expect(store.assertProjectStorageMutable(project.id, 'ws-other-collaborator')).resolves.toBeUndefined();
-    await expect(store.assertProjectStorageMutable(project.id)).resolves.toBeUndefined();
+    await expect(
+      store.assertProjectStorageMutable({
+        projectId: project.id,
+        expectedOrganizationId: organization.id,
+        workspaceId: 'ws-other-collaborator',
+      }),
+    ).resolves.toBeUndefined();
+    await expect(
+      store.assertProjectStorageMutable({ projectId: project.id, expectedOrganizationId: organization.id }),
+    ).resolves.toBeUndefined();
   });
 });

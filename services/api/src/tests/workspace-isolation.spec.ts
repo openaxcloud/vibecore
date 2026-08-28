@@ -32,6 +32,7 @@ interface IsolationFixture {
   gitProvider: GitCliProvider;
   storage: string;
   projectId: string;
+  organizationId: string;
   workspaceA: { id: string; gitPath?: string };
   workspaceB: { id: string; gitPath?: string };
   token: string;
@@ -138,6 +139,7 @@ async function bootstrapTwoWorkspaceProject(suiteLabel: string): Promise<Isolati
     gitProvider,
     storage,
     projectId,
+    organizationId: auth.organization.id,
     workspaceA,
     workspaceB,
     token: auth.token,
@@ -255,6 +257,7 @@ describe('workspace isolation: two workspaces in the same project do not contami
 
       const commit = await fixture.gitProvider.commit({
         projectId: fixture.projectId,
+        expectedOrganizationId: fixture.organizationId,
         workspaceId: fixture.workspaceB.id,
         message: 'workspace-isolation-test-b-only',
         files: [],

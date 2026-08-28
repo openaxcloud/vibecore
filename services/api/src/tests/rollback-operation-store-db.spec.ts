@@ -62,6 +62,7 @@ async function seedStaticHistory(store: PrismaApiStore, label: string) {
 
   const previous = await store.createDeployment({
     projectId: project.id,
+    expectedOrganizationId: project.organizationId,
     provider: 'static',
     environment: 'preview',
     status: 'READY',
@@ -69,6 +70,7 @@ async function seedStaticHistory(store: PrismaApiStore, label: string) {
   });
   const current = await store.createDeployment({
     projectId: project.id,
+    expectedOrganizationId: project.organizationId,
     provider: 'static',
     environment: 'preview',
     status: 'READY',
@@ -501,6 +503,7 @@ runDbTests('rollback operation — real PostgreSQL clock, lease, and release CAS
       projectId = project.id;
       const created = await store.createDeployment({
         projectId: project.id,
+        expectedOrganizationId: project.organizationId,
         provider: 'server',
         environment: 'preview',
         status: 'READY',
@@ -541,9 +544,7 @@ runDbTests('rollback operation — real PostgreSQL clock, lease, and release CAS
           leaseDurationMs: 30_000,
         }),
       ).rejects.toMatchObject({ code: 'RESERVED_VM_ROLLBACK_UNPINNED', statusCode: 409 });
-      await expect(
-        prisma.rollbackIdempotencyRequest.count({ where: { projectId: project.id } }),
-      ).resolves.toBe(0);
+      await expect(prisma.rollbackIdempotencyRequest.count({ where: { projectId: project.id } })).resolves.toBe(0);
       await expect(prisma.deployment.findUnique({ where: { id: created.id } })).resolves.toMatchObject({
         runtimeKind: 'reserved-vm',
         persistentStorageClaim: claim,

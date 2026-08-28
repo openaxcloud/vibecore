@@ -5,7 +5,8 @@ import { decryptJson, encryptJson } from '@vibecore/security';
 import { appPublicEnglish } from './app-public-copy.js';
 import { databaseProvisionDeadline } from './database-provision-lifecycle.js';
 import type { DatabaseProvisioner } from './database-provisioner.js';
-import type { ObjectStorage, ObjectStorageInventory } from './object-storage.js';
+import type { ObjectStorageCommandExecution, TenantObjectStorageCommand } from './object-storage-command.js';
+import type { ObjectStorageInventory } from './object-storage.js';
 import { ObjectStorageError, parseObjectStorageInventory } from './object-storage.js';
 import type { ProjectFile, ProjectStorage } from './project-storage.js';
 import {
@@ -35,7 +36,21 @@ export interface PreparedRemixSourceArtifact {
 export interface RemixPhysicalServiceDeps {
   store: ApiStore;
   projectStorage: ProjectStorage;
-  objectStorage: ObjectStorage;
+  readObjectStorageInventory(scope: { projectId: string; expectedOrganizationId: string }): Promise<{
+    inventory: ObjectStorageInventory;
+    authoritySourceProjectId: string;
+    authoritySourceOrganizationId: string;
+  }>;
+  /** Enable and verify provider generation retention, then return the live source inventory. */
+  prepareObjectStorageShareSource(scope: {
+    projectId: string;
+    expectedOrganizationId: string;
+  }): Promise<ObjectStorageInventory>;
+  executeObjectStorageCommand(input: {
+    scopes: Array<{ projectId: string; expectedOrganizationId: string }>;
+    command: TenantObjectStorageCommand;
+    idempotencyKey: string;
+  }): Promise<ObjectStorageCommandExecution>;
   databaseProvisioner: DatabaseProvisioner;
   ensureProjectQuota(organizationId: string): Promise<void>;
   createSourceSnapshot(input: {
@@ -53,6 +68,7 @@ export interface RemixPhysicalServiceDeps {
   captureSourceSnapshot?(input: {
     remixJobId: string;
     sourceProjectId: string;
+    sourceOrganizationId: string;
     actorUserId?: string;
     guard: () => Promise<void>;
     prepare: (files: ProjectFile[]) => PreparedRemixSourceArtifact;
@@ -61,7 +77,7 @@ export interface RemixPhysicalServiceDeps {
     snapshotHash: string;
     prepared: PreparedRemixSourceArtifact;
   }>;
-  loadSourceSnapshot(snapshotId: string, sourceProjectId: string): Promise<ProjectFile[]>;
+  loadSourceSnapshot(snapshotId: string, sourceProjectId: string, sourceOrganizationId: string): Promise<ProjectFile[]>;
   persistTargetManifest(projectId: string, files: ProjectFile[], actorUserId?: string): Promise<void>;
   recordCompleted(input: { job: RemixJobRecord; targetProject: ProjectRecord }): Promise<void>;
   warn?(context: Record<string, unknown>, message: string): void;
@@ -114,6 +130,19 @@ export function remixFileSnapshotHash(files: ProjectFile[]): string {
 function inventoryFrom(value: unknown): ObjectStorageInventory | undefined {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
   return parseObjectStorageInventory((value as { source?: unknown }).source);
+}
+
+function storageAuthorityFrom(
+  value: unknown,
+): { authoritySourceProjectId: string; authoritySourceOrganizationId: string } | undefined {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
+  const record = value as Record<string, unknown>;
+  return typeof record.authoritySourceProjectId === 'string' && typeof record.authoritySourceOrganizationId === 'string'
+    ? {
+        authoritySourceProjectId: record.authoritySourceProjectId,
+        authoritySourceOrganizationId: record.authoritySourceOrganizationId,
+      }
+    : undefined;
 }
 
 function inventoriesEqual(left: ObjectStorageInventory, right: ObjectStorageInventory): boolean {
@@ -240,13 +269,13 @@ async function compensate(
     });
 
     if (ownedCleanup.storagePolicy === 'CLONE') {
-      if (!deps.objectStorage.active) {
-        throw new ObjectStorageError('Target clone cleanup needs the real backend', 'BACKEND_REQUIRED');
-      }
-      await deps.objectStorage.deleteBucket(targetProjectId, cleanupGuard);
-      if (await deps.objectStorage.bucketExists(targetProjectId)) {
-        throw new ObjectStorageError('Target bucket remains after compensation', 'CLEANUP_VERIFICATION_FAILED');
-      }
+      await cleanupGuard();
+      await deps.executeObjectStorageCommand({
+        scopes: [{ projectId: targetProjectId, expectedOrganizationId: ownedCleanup.organizationId }],
+        command: { type: 'DELETE_BUCKET', projectId: targetProjectId },
+        idempotencyKey: `remix-cleanup-bucket:${ownedCleanup.id}:${targetProjectId}`,
+      });
+      await cleanupGuard();
     }
 
     if (ownedCleanup.targetDatabaseInstanceId) {
@@ -258,8 +287,18 @@ async function compensate(
       await deps.databaseProvisioner.teardownFork({ targetProjectId, guard: cleanupGuard });
     }
 
-    await deps.projectStorage.deleteProjectFiles(targetProjectId, cleanupGuard);
-    if ((await deps.projectStorage.listFiles(targetProjectId)).length !== 0) {
+    await deps.projectStorage.deleteProjectFiles(
+      targetProjectId,
+      { expectedOrganizationId: ownedCleanup.organizationId },
+      cleanupGuard,
+    );
+    if (
+      (
+        await deps.projectStorage.listFiles(targetProjectId, {
+          expectedOrganizationId: ownedCleanup.organizationId,
+        })
+      ).length !== 0
+    ) {
       throw Object.assign(new Error(appPublicEnglish('REMIX_FILES_CLEANUP_INCOMPLETE')), {
         code: 'REMIX_FILES_CLEANUP_VERIFICATION_FAILED',
       });
@@ -397,7 +436,11 @@ export async function executePhysicalRemix(
         if (!current.sourceSnapshotId || !current.sourceSnapshotHash) {
           throw new RemixInvariantError('Pinned source snapshot metadata is incomplete', 'REMIX_SNAPSHOT_INCOMPLETE');
         }
-        pinnedFiles = await deps.loadSourceSnapshot(current.sourceSnapshotId, current.sourceProjectId);
+        pinnedFiles = await deps.loadSourceSnapshot(
+          current.sourceSnapshotId,
+          current.sourceProjectId,
+          input.sourceProject.organizationId,
+        );
         if (remixFileSnapshotHash(pinnedFiles) !== current.sourceSnapshotHash) {
           throw new RemixInvariantError('Pinned source snapshot digest mismatch', 'REMIX_SNAPSHOT_DIGEST_MISMATCH');
         }
@@ -484,7 +527,11 @@ export async function executePhysicalRemix(
     let sourceFilesForAttempt =
       current.state === 'PENDING'
         ? current.sourceSnapshotId
-          ? await deps.loadSourceSnapshot(current.sourceSnapshotId, current.sourceProjectId)
+          ? await deps.loadSourceSnapshot(
+              current.sourceSnapshotId,
+              current.sourceProjectId,
+              input.sourceProject.organizationId,
+            )
           : input.sourceFiles
         : await loadPinnedFiles();
 
@@ -497,6 +544,7 @@ export async function executePhysicalRemix(
       captured = await deps.captureSourceSnapshot({
         remixJobId: current.id,
         sourceProjectId: current.sourceProjectId,
+        sourceOrganizationId: input.sourceProject.organizationId,
         actorUserId: input.actorUserId,
         guard,
         prepare: prepareArtifact,
@@ -533,7 +581,11 @@ export async function executePhysicalRemix(
         });
         snapshotId = pinned.snapshotId;
         snapshotHash = pinned.snapshotHash;
-        pinnedFiles = await deps.loadSourceSnapshot(snapshotId, current.sourceProjectId);
+        pinnedFiles = await deps.loadSourceSnapshot(
+          snapshotId,
+          current.sourceProjectId,
+          input.sourceProject.organizationId,
+        );
 
         if (remixFileSnapshotHash(pinnedFiles) !== snapshotHash) {
           throw new RemixInvariantError('Pinned source snapshot digest mismatch', 'REMIX_SNAPSHOT_DIGEST_MISMATCH');
@@ -595,9 +647,16 @@ export async function executePhysicalRemix(
       });
       current = (await deps.store.getRemixJob(current.id, current.organizationId)) ?? current;
       await guard();
-      await deps.projectStorage.writeFiles(target.id, sanitizedFiles, undefined, guard);
+      await deps.projectStorage.writeFiles(
+        target.id,
+        sanitizedFiles,
+        { expectedOrganizationId: target.organizationId },
+        guard,
+      );
       await guard();
-      const verifiedFiles = await deps.projectStorage.listFiles(target.id);
+      const verifiedFiles = await deps.projectStorage.listFiles(target.id, {
+        expectedOrganizationId: target.organizationId,
+      });
       if (remixFileSnapshotHash(verifiedFiles) !== remixFileSnapshotHash(sanitizedFiles)) {
         throw new RemixInvariantError('Target file digest mismatch after clone', 'REMIX_TARGET_DIGEST_MISMATCH');
       }
@@ -617,13 +676,24 @@ export async function executePhysicalRemix(
 
     if (current.state === 'SCANNING') {
       let sourceInventory: ObjectStorageInventory = { bucketExists: false, objects: [] };
+      let authoritySourceProjectId = current.sourceProjectId;
+      let authoritySourceOrganizationId = input.sourceProject.organizationId;
       if (current.storagePolicy !== 'DETACH') {
-        if (!deps.objectStorage.active) {
-          throw new ObjectStorageError('A real backend is required for clone/share', 'BACKEND_REQUIRED');
-        }
-        sourceInventory = await deps.objectStorage.inventoryProjectObjects(current.sourceProjectId);
+        const authority = await deps.readObjectStorageInventory({
+          projectId: current.sourceProjectId,
+          expectedOrganizationId: input.sourceProject.organizationId,
+        });
+        sourceInventory = authority.inventory;
+        authoritySourceProjectId = authority.authoritySourceProjectId;
+        authoritySourceOrganizationId = authority.authoritySourceOrganizationId;
       }
-      await advance('STORAGE_PINNED', { storageInventory: { source: sourceInventory } });
+      await advance('STORAGE_PINNED', {
+        storageInventory: {
+          source: sourceInventory,
+          authoritySourceProjectId,
+          authoritySourceOrganizationId,
+        },
+      });
     }
 
     if (current.state === 'STORAGE_PINNED') {
@@ -631,20 +701,31 @@ export async function executePhysicalRemix(
         throw new RemixInvariantError('Target project missing before storage policy', 'REMIX_TARGET_MISSING');
       }
       const sourceInventory = inventoryFrom(current.storageInventory);
-      if (!sourceInventory) {
+      const storageAuthority = storageAuthorityFrom(current.storageInventory);
+      if (!sourceInventory || !storageAuthority) {
         throw new RemixInvariantError('Pinned object inventory is invalid', 'REMIX_STORAGE_INVENTORY_INVALID');
       }
 
       if (current.storagePolicy === 'CLONE') {
-        if (!deps.objectStorage.active) throw new ObjectStorageError('Clone backend unavailable', 'BACKEND_REQUIRED');
-        await deps.objectStorage.cloneProjectObjects(
-          current.sourceProjectId,
-          current.targetProjectId,
-          sourceInventory,
-          guard,
-        );
+        await guard();
+        await deps.executeObjectStorageCommand({
+          scopes: [
+            {
+              projectId: storageAuthority.authoritySourceProjectId,
+              expectedOrganizationId: storageAuthority.authoritySourceOrganizationId,
+            },
+            { projectId: current.targetProjectId, expectedOrganizationId: current.organizationId },
+          ],
+          command: {
+            type: 'CLONE_PROJECT',
+            sourceProjectId: storageAuthority.authoritySourceProjectId,
+            targetProjectId: current.targetProjectId,
+            inventory: sourceInventory,
+          },
+          idempotencyKey: `remix-clone:${current.id}:${current.sourceSnapshotHash ?? 'unpinned'}`,
+        });
+        await guard();
       } else if (current.storagePolicy === 'SHARE_WITH_CONSENT') {
-        if (!deps.objectStorage.active) throw new ObjectStorageError('Share backend unavailable', 'BACKEND_REQUIRED');
         if (!current.storageConsentVersion) {
           throw new RemixInvariantError('Storage share has no explicit consent', 'REMIX_STORAGE_CONSENT_REQUIRED');
         }
@@ -654,19 +735,31 @@ export async function executePhysicalRemix(
             'REMIX_STORAGE_SNAPSHOT_UNPINNABLE',
           );
         }
-        const live = await deps.objectStorage.inventoryProjectObjects(current.sourceProjectId);
-        if (!inventoriesEqual(sourceInventory, live)) {
+        const live = await deps.readObjectStorageInventory({
+          projectId: current.sourceProjectId,
+          expectedOrganizationId: input.sourceProject.organizationId,
+        });
+        if (
+          live.authoritySourceProjectId !== storageAuthority.authoritySourceProjectId ||
+          live.authoritySourceOrganizationId !== storageAuthority.authoritySourceOrganizationId ||
+          !inventoriesEqual(sourceInventory, live.inventory)
+        ) {
           throw new ObjectStorageError('Source object generations changed after consent pin', 'SOURCE_CHANGED');
         }
         await guard();
         const share = await deps.store.createRemixStorageShare({
-          sourceProjectId: current.sourceProjectId,
+          sourceProjectId: storageAuthority.authoritySourceProjectId,
           targetProjectId: current.targetProjectId,
-          sourceOrganizationId: input.sourceProject.organizationId,
+          sourceOrganizationId: storageAuthority.authoritySourceOrganizationId,
           targetOrganizationId: current.organizationId,
           consentVersion: current.storageConsentVersion,
           consentedByUserId: input.actorUserId,
           sourceInventory,
+          prepareSourceRetention: () =>
+            deps.prepareObjectStorageShareSource({
+              projectId: storageAuthority.authoritySourceProjectId,
+              expectedOrganizationId: storageAuthority.authoritySourceOrganizationId,
+            }),
         });
         current = (await deps.store.getRemixJob(current.id, current.organizationId)) ?? current;
         await advance('STORAGE_POLICY_APPLIED', { storageShareId: share.id });
@@ -715,6 +808,7 @@ export async function executePhysicalRemix(
         }
         const acquisition = await deps.store.acquireDatabaseProvisioning({
           projectId: current.targetProjectId,
+          expectedOrganizationId: current.organizationId,
           organizationId: current.organizationId,
           retentionDays: pin.retentionDays,
           environment: 'development',

@@ -32,6 +32,8 @@ export interface LocalAccountStorageInventory {
 
 export interface LocalAccountStoragePurgeOptions {
   lease: PurgeLeaseContext;
+  /** PostgreSQL cross-pod project barrier; purge freeze is already committed. */
+  withProjectPhysicalErasure?<T>(projectId: string, effect: () => Promise<T>): Promise<T>;
   /** Injectable roots keep filesystem tests disposable and independent. */
   projectRoot?: string;
   staticRoot?: string;
@@ -210,8 +212,9 @@ function classReport(dataClass: string, model: string, results: LocalPathErasure
 
 /**
  * Erase and re-count every API-local/NFS footprint of a purged subject. Each
- * path is mutated while its cross-replica filesystem lock and the 0093 plan-row
- * lock are both held. A reused durable receipt never substitutes for live
+ * path is mutated while its cross-replica filesystem lock and the committed
+ * purge freeze are both held. No Prisma transaction spans filesystem I/O. A
+ * reused durable receipt never substitutes for live
  * verification: if a path reappeared, the class remains non-zero and the purge
  * cannot be certified.
  */
@@ -236,9 +239,15 @@ export async function eraseLocalAccountStorage(
   }
 
   const effects: LocalPathEffect[] = [];
+  const projectErasureLock = <T>(projectId: string, effect: () => Promise<T>) => {
+    const withNfsLock = () => withProjectLock(projectId, effect);
+    return options.withProjectPhysicalErasure
+      ? options.withProjectPhysicalErasure(projectId, withNfsLock)
+      : withNfsLock();
+  };
 
   for (const projectId of ownedProjectIds) {
-    const projectLock = <T>(effect: () => Promise<T>) => withProjectLock(projectId, effect);
+    const projectLock = <T>(effect: () => Promise<T>) => projectErasureLock(projectId, effect);
     effects.push(
       {
         descriptor: {
@@ -298,7 +307,7 @@ export async function eraseLocalAccountStorage(
       kind: 'workspace_tree',
       resourceId: `${workspace.projectId}:${workspace.workspaceId}`,
       target: childPath(localRoot, workspace.projectId, SECONDARY_WORKSPACES_DIR, workspace.workspaceId),
-      lock: <T>(effect: () => Promise<T>) => withProjectLock(workspace.projectId, effect),
+      lock: <T>(effect: () => Promise<T>) => projectErasureLock(workspace.projectId, effect),
     });
   }
 

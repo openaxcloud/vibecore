@@ -42,6 +42,7 @@ runDbTests('Reserved VM durable saga — real PostgreSQL multi-client', () => {
       const [createdA, createdB] = await Promise.all([
         storeA.createDeployment({
           projectId: project.id,
+          expectedOrganizationId: project.organizationId,
           provider: 'server',
           status: 'BUILDING',
           machineSize: 'shared-0.5',
@@ -50,6 +51,7 @@ runDbTests('Reserved VM durable saga — real PostgreSQL multi-client', () => {
         }),
         storeB.createDeployment({
           projectId: project.id,
+          expectedOrganizationId: project.organizationId,
           provider: 'server',
           status: 'BUILDING',
           machineSize: 'shared-0.5',
@@ -138,6 +140,7 @@ runDbTests('Reserved VM durable saga — real PostgreSQL multi-client', () => {
       await expect(
         storeA.createDeployment({
           projectId: project.id,
+          expectedOrganizationId: project.organizationId,
           provider: 'server',
           reservedVm: { ...reservedVm, requestHash: 'b'.repeat(64) },
         }),
@@ -170,6 +173,7 @@ runDbTests('Reserved VM durable saga — real PostgreSQL multi-client', () => {
       const createKey = `reserved-upgrade-create-${token}`;
       const deployment = await storeA.createDeployment({
         projectId: project.id,
+        expectedOrganizationId: project.organizationId,
         provider: 'server',
         status: 'READY',
         url: 'https://unchanged.example.test',
@@ -428,7 +432,9 @@ runDbTests('Reserved VM durable saga — real PostgreSQL multi-client', () => {
         }),
       ).toBe(2);
 
-      await expect(storeA.softDeleteProject(project.id)).rejects.toMatchObject({
+      await expect(
+        storeA.softDeleteProject({ projectId: project.id, expectedOrganizationId: organization.id }),
+      ).rejects.toMatchObject({
         code: 'PROJECT_RESERVED_VM_DECOMMISSION_REQUIRED',
       });
       const decommissionKey = `reserved-decommission-${token}`;
@@ -491,7 +497,9 @@ runDbTests('Reserved VM durable saga — real PostgreSQL multi-client', () => {
           response: { ignored: true },
         }),
       ).resolves.toMatchObject({ deployment: { persistentStorageClaim: undefined } });
-      await expect(storeA.softDeleteProject(project.id)).resolves.toMatchObject({ id: project.id });
+      await expect(
+        storeA.softDeleteProject({ projectId: project.id, expectedOrganizationId: organization.id }),
+      ).resolves.toMatchObject({ id: project.id });
     } finally {
       if (organizationId) {
         await prismaA.organization.delete({ where: { id: organizationId } }).catch(() => undefined);
@@ -524,6 +532,7 @@ runDbTests('Reserved VM durable saga — real PostgreSQL multi-client', () => {
       await expect(
         store.createDeployment({
           projectId: project.id,
+          expectedOrganizationId: project.organizationId,
           provider: 'server',
           reservedVm: {
             organizationId: attacker.id,
@@ -574,6 +583,7 @@ runDbTests('Reserved VM durable saga — real PostgreSQL multi-client', () => {
       const createKey = `reserved-cancel-create-${token}`;
       const deployment = await storeA.createDeployment({
         projectId: project.id,
+        expectedOrganizationId: project.organizationId,
         provider: 'server',
         status: 'BUILDING',
         machineSize: 'shared-0.5',

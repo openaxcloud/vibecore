@@ -90,6 +90,7 @@ export async function reconcileDatabaseProvisioning(input: {
   if (uri) {
     const active = await input.store.completeDatabaseProvisioning(input.instance.id, {
       projectId: input.instance.projectId,
+      expectedOrganizationId: input.instance.organizationId,
       key: input.instance.environment === 'production' ? 'PROD_DATABASE_URL' : 'DATABASE_URL',
       valueEncrypted: input.encryptConnectionUri(uri),
     });
@@ -103,9 +104,7 @@ export async function reconcileDatabaseProvisioning(input: {
     const failed = await input.store.failDatabaseProvisioning(input.instance.id, {
       errorCode: DATABASE_PROVISION_FAILURE.timedOut,
       failedAt: new Date(nowMs).toISOString(),
-      ...(input.instance.provisioningDeadlineAt
-        ? { deadlineBefore: new Date(nowMs).toISOString() }
-        : {}),
+      ...(input.instance.provisioningDeadlineAt ? { deadlineBefore: new Date(nowMs).toISOString() } : {}),
     });
 
     if (failed) {

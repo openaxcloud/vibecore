@@ -22,6 +22,8 @@ export interface ThumbnailLogger {
 
 export interface ThumbnailCapturerDeps {
   storage: ObjectStorage;
+  /** Production path: persist the bytes through the typed durable storage command saga. */
+  storeThumbnail?: (scope: { projectId: string; expectedOrganizationId: string }, body: Uint8Array) => Promise<void>;
 
   /** In-cluster screenshotter base URL. Empty/undefined => feature disabled. */
   screenshotterUrl?: string;
@@ -66,7 +68,8 @@ export class ThumbnailCapturer {
    * a fresh screenshot was stored, false when skipped (disabled/debounced) or on
    * any recoverable failure — it never throws, so a caller can call it inline.
    */
-  async capture(projectId: string, previewUrl: string): Promise<boolean> {
+  async capture(scope: { projectId: string; expectedOrganizationId: string }, previewUrl: string): Promise<boolean> {
+    const { projectId } = scope;
     if (!this.enabled || !previewUrl || this.#shouldSkip(projectId)) {
       return false;
     }
@@ -106,11 +109,20 @@ export class ThumbnailCapturer {
         return false;
       }
 
-      await this.deps.storage.putObject(projectId, {
-        key: PROJECT_THUMBNAIL_KEY,
-        body,
-        contentType: 'image/png',
-      });
+      const storeThumbnailDirectly = async () => {
+        await this.deps.storage.ensureBucket(projectId);
+        await this.deps.storage.putObject(projectId, {
+          key: PROJECT_THUMBNAIL_KEY,
+          body,
+          contentType: 'image/png',
+        });
+      };
+
+      if (this.deps.storeThumbnail) {
+        await this.deps.storeThumbnail(scope, body);
+      } else {
+        await storeThumbnailDirectly();
+      }
 
       this.#lastCaptureMs.set(projectId, this.#now());
       this.deps.log?.info({ projectId, bytes: body.byteLength }, 'stored project thumbnail');
@@ -127,15 +139,20 @@ export class ThumbnailCapturer {
   }
 
   /** Fire-and-forget: schedule a capture without ever affecting the caller. */
-  schedule(projectId: string, previewUrl: string): void {
-    void this.capture(projectId, previewUrl).catch(() => {});
+  schedule(scope: { projectId: string; expectedOrganizationId: string }, previewUrl: string): void {
+    void this.capture(scope, previewUrl).catch(() => {});
   }
 }
 
 /** Build a capturer from process env; disabled unless SCREENSHOTTER_URL is set. */
-export function createThumbnailCapturer(storage: ObjectStorage, log?: ThumbnailLogger): ThumbnailCapturer {
+export function createThumbnailCapturer(
+  storage: ObjectStorage,
+  log?: ThumbnailLogger,
+  storeThumbnail?: ThumbnailCapturerDeps['storeThumbnail'],
+): ThumbnailCapturer {
   return new ThumbnailCapturer({
     storage,
+    storeThumbnail,
     screenshotterUrl: process.env.SCREENSHOTTER_URL?.trim() || undefined,
     sharedSecret: process.env.SCREENSHOTTER_SHARED_SECRET?.trim() || undefined,
     log,

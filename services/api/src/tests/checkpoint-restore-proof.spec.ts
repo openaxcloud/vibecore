@@ -34,22 +34,38 @@ class MemoryProjectStorage implements ProjectStorage {
   private seq = 0;
   corruptNextRestore = false;
 
-  async writeFiles(projectId: string, files: Array<{ path: string; content: string }>) {
+  async writeFiles(
+    projectId: string,
+    files: Array<{ path: string; content: string }>,
+    _scope: { expectedOrganizationId: string; workspaceId?: string },
+  ) {
     const bucket = this.files.get(projectId) ?? new Map<string, string>();
     for (const file of files) bucket.set(file.path, file.content);
     this.files.set(projectId, bucket);
 
-    return this.listFiles(projectId);
+    return this.listFiles(projectId, _scope);
   }
 
-  async listFiles(projectId: string): Promise<ProjectFile[]> {
+  async listFiles(
+    projectId: string,
+    scope: { expectedOrganizationId: string; workspaceId?: string },
+  ): Promise<ProjectFile[]> {
+    return this.listFilesWithinPhysicalAccess(projectId, scope.workspaceId);
+  }
+
+  async listFilesWithinPhysicalAccess(projectId: string, _workspaceId?: string): Promise<ProjectFile[]> {
     const bucket = this.files.get(projectId) ?? new Map<string, string>();
     const updatedAt = new Date().toISOString();
 
     return [...bucket.entries()].map(([path, content]) => ({ path, content, updatedAt }));
   }
 
-  async createSnapshot(input: { projectId: string; label?: string; files: ProjectFile[] }) {
+  async createSnapshot(input: {
+    projectId: string;
+    expectedOrganizationId: string;
+    label?: string;
+    files: ProjectFile[];
+  }) {
     const storageKey = `ckpt-snap-${(this.seq += 1)}`;
     this.snapshots.set(
       storageKey,
@@ -59,12 +75,28 @@ class MemoryProjectStorage implements ProjectStorage {
     return { id: storageKey, storageKey, byteLength: 1, createdAt: new Date().toISOString() };
   }
 
-  async getSnapshotFiles(storageKey: string): Promise<ProjectFile[]> {
+  async getSnapshotFiles(
+    projectId: string,
+    storageKey: string,
+    _scope: { expectedOrganizationId: string; workspaceId?: string },
+  ): Promise<ProjectFile[]> {
+    return this.getSnapshotFilesWithinPhysicalAccess(projectId, storageKey);
+  }
+
+  async getSnapshotFilesWithinPhysicalAccess(_projectId: string, storageKey: string): Promise<ProjectFile[]> {
     return (this.snapshots.get(storageKey) ?? []).map((f) => ({ ...f }));
   }
 
   /** REMPLACE l'arbre, comme le vrai stockage — pas une fusion. */
-  async restoreSnapshot(input: { projectId: string; files: ProjectFile[] }, guard?: () => Promise<void>) {
+  async restoreSnapshot(
+    input: {
+      projectId: string;
+      expectedOrganizationId: string;
+      workspaceId?: string;
+      files: ProjectFile[];
+    },
+    guard?: () => Promise<void>,
+  ) {
     await guard?.();
     const bucket = new Map<string, string>();
 
@@ -80,7 +112,7 @@ class MemoryProjectStorage implements ProjectStorage {
     }
     this.files.set(input.projectId, bucket);
 
-    return this.listFiles(input.projectId);
+    return this.listFiles(input.projectId, input);
   }
 
   async readFile() {
@@ -90,13 +122,21 @@ class MemoryProjectStorage implements ProjectStorage {
     const bucket = this.files.get(projectId);
     for (const p of paths) bucket?.delete(p);
   }
-  async deleteProjectFiles(projectId: string) {
+  async deleteProjectFiles(projectId: string, _scope: { expectedOrganizationId: string; workspaceId?: string }) {
     this.files.delete(projectId);
   }
-  async exportZip() {
+  async eraseProjectDataWithinPhysicalAccess(projectId: string) {
+    this.files.delete(projectId);
+  }
+  async exportZip(_projectId: string, _scope: { expectedOrganizationId: string; workspaceId?: string }) {
     return { storageKey: 'export', byteLength: 0, base64: '', createdAt: new Date().toISOString() };
   }
-  async importZip() {
+  async importZip(
+    _projectId: string,
+    _base64: string,
+    _scope: { expectedOrganizationId: string; workspaceId?: string },
+    _options?: { replaceExisting?: boolean },
+  ) {
     return [];
   }
   async writeObject() {}
@@ -128,7 +168,9 @@ async function setup() {
 describe('P0-V3-09 — restore RÉEL prouvé par le contenu', () => {
   it('un arbre déjà identique passe quand même par la barrière et le checkpoint de sûreté', async () => {
     const { app, projectStorage, project } = await setup();
-    await projectStorage.writeFiles(project.id, [{ path: 'same.txt', content: 'stable\n' }]);
+    await projectStorage.writeFiles(project.id, [{ path: 'same.txt', content: 'stable\n' }], {
+      expectedOrganizationId: project.organizationId,
+    });
     const checkpoint = (
       await app.inject({ method: 'POST', url: `/projects/${project.id}/checkpoints`, headers: auth('r-token') })
     ).json().checkpoint;
@@ -153,11 +195,15 @@ describe('P0-V3-09 — restore RÉEL prouvé par le contenu', () => {
     const { app, projectStorage, project } = await setup();
 
     // (1) CRÉER des données identifiables.
-    await projectStorage.writeFiles(project.id, [
-      { path: 'src/index.ts', content: 'export const ANSWER = 42;\n' },
-      { path: 'data/seed.json', content: '{"rows":[1,2,3]}\n' },
-      { path: 'README.md', content: '# original\n' },
-    ]);
+    await projectStorage.writeFiles(
+      project.id,
+      [
+        { path: 'src/index.ts', content: 'export const ANSWER = 42;\n' },
+        { path: 'data/seed.json', content: '{"rows":[1,2,3]}\n' },
+        { path: 'README.md', content: '# original\n' },
+      ],
+      { expectedOrganizationId: project.organizationId },
+    );
 
     // (2) CHECKPOINT.
     const created = await app.inject({
@@ -172,12 +218,15 @@ describe('P0-V3-09 — restore RÉEL prouvé par le contenu', () => {
     // (3) CASSER : une valeur modifiée, un fichier supprimé, un fichier parasite.
     await projectStorage.restoreSnapshot({
       projectId: project.id,
+      expectedOrganizationId: project.organizationId,
       files: [
         { path: 'src/index.ts', content: 'export const ANSWER = 0; // cassé\n', updatedAt: '' },
         { path: 'JUNK.txt', content: 'ne doit pas survivre au restore\n', updatedAt: '' },
       ],
     });
-    const broken = await projectStorage.listFiles(project.id);
+    const broken = await projectStorage.listFiles(project.id, {
+      expectedOrganizationId: project.organizationId,
+    });
     expect(broken.find((f) => f.path === 'src/index.ts')?.content).toContain('ANSWER = 0');
     expect(broken.find((f) => f.path === 'data/seed.json')).toBeUndefined();
 
@@ -195,7 +244,9 @@ describe('P0-V3-09 — restore RÉEL prouvé par le contenu', () => {
     expect(body.expectedHash).toBe(body.restoredHash);
 
     // (5) VÉRIFIER dans le stockage, pas seulement dans la réponse HTTP.
-    const after = await projectStorage.listFiles(project.id);
+    const after = await projectStorage.listFiles(project.id, {
+      expectedOrganizationId: project.organizationId,
+    });
     expect(after.find((f) => f.path === 'src/index.ts')?.content).toContain('ANSWER = 42');
     expect(after.find((f) => f.path === 'data/seed.json')?.content).toContain('"rows":[1,2,3]');
     expect(after.find((f) => f.path === 'README.md')?.content).toContain('# original');
@@ -207,13 +258,16 @@ describe('P0-V3-09 — restore RÉEL prouvé par le contenu', () => {
   it('le restore laisse un POINT DE RETOUR exploitable (on peut revenir à l état cassé)', async () => {
     const { app, projectStorage, project } = await setup();
 
-    await projectStorage.writeFiles(project.id, [{ path: 'a.txt', content: 'v1\n' }]);
+    await projectStorage.writeFiles(project.id, [{ path: 'a.txt', content: 'v1\n' }], {
+      expectedOrganizationId: project.organizationId,
+    });
     const first = (
       await app.inject({ method: 'POST', url: `/projects/${project.id}/checkpoints`, headers: auth('r-token') })
     ).json().checkpoint;
 
     await projectStorage.restoreSnapshot({
       projectId: project.id,
+      expectedOrganizationId: project.organizationId,
       files: [{ path: 'a.txt', content: 'v2-travail-en-cours\n', updatedAt: '' }],
     });
 
@@ -224,7 +278,9 @@ describe('P0-V3-09 — restore RÉEL prouvé par le contenu', () => {
     });
     const safetyId = restored.json().safetyCheckpointId;
     expect(safetyId).toBeTruthy();
-    expect((await projectStorage.listFiles(project.id))[0].content).toBe('v1\n');
+    expect(
+      (await projectStorage.listFiles(project.id, { expectedOrganizationId: project.organizationId }))[0].content,
+    ).toBe('v1\n');
 
     // Le checkpoint de sûreté a bien capturé l'état d'AVANT restauration : le
     // restore est annulable, il ne détruit pas le travail non sauvegardé.
@@ -234,17 +290,23 @@ describe('P0-V3-09 — restore RÉEL prouvé par le contenu', () => {
       headers: auth('r-token'),
     });
     expect(undo.statusCode).toBe(200);
-    expect((await projectStorage.listFiles(project.id))[0].content).toBe('v2-travail-en-cours\n');
+    expect(
+      (await projectStorage.listFiles(project.id, { expectedOrganizationId: project.organizationId }))[0].content,
+    ).toBe('v2-travail-en-cours\n');
   });
 
   it('un hash divergent restaure automatiquement les octets d origine sous la même barrière', async () => {
     const { app, projectStorage, project } = await setup();
-    await projectStorage.writeFiles(project.id, [{ path: 'state.txt', content: 'checkpoint target\n' }]);
+    await projectStorage.writeFiles(project.id, [{ path: 'state.txt', content: 'checkpoint target\n' }], {
+      expectedOrganizationId: project.organizationId,
+    });
     const checkpoint = (
       await app.inject({ method: 'POST', url: `/projects/${project.id}/checkpoints`, headers: auth('r-token') })
     ).json().checkpoint;
 
-    await projectStorage.writeFiles(project.id, [{ path: 'state.txt', content: 'original before restore\n' }]);
+    await projectStorage.writeFiles(project.id, [{ path: 'state.txt', content: 'original before restore\n' }], {
+      expectedOrganizationId: project.organizationId,
+    });
     projectStorage.corruptNextRestore = true;
     const restored = await app.inject({
       method: 'POST',
@@ -257,16 +319,21 @@ describe('P0-V3-09 — restore RÉEL prouvé par le contenu', () => {
       code: 'CHECKPOINT_RESTORE_HASH_MISMATCH',
       rollbackVerified: true,
     });
-    expect(await projectStorage.listFiles(project.id)).toEqual([
+    expect(await projectStorage.listFiles(project.id, { expectedOrganizationId: project.organizationId })).toEqual([
       expect.objectContaining({ path: 'state.txt', content: 'original before restore\n' }),
     ]);
   });
 
   it('REFUSE de restaurer un checkpoint non COMMITTED (404) — jamais depuis un état partiel', async () => {
     const { app, store, projectStorage, project } = await setup();
-    await projectStorage.writeFiles(project.id, [{ path: 'a.txt', content: 'v1\n' }]);
+    await projectStorage.writeFiles(project.id, [{ path: 'a.txt', content: 'v1\n' }], {
+      expectedOrganizationId: project.organizationId,
+    });
 
-    const partial = await store.createProjectCheckpoint({ projectId: project.id });
+    const partial = await store.createProjectCheckpoint({
+      projectId: project.id,
+      expectedOrganizationId: project.organizationId,
+    });
     await store.updateProjectCheckpoint(partial.id, { state: 'VOLUME_SNAPSHOTTING' });
 
     const res = await app.inject({
@@ -282,7 +349,9 @@ describe('P0-V3-09 — restore RÉEL prouvé par le contenu', () => {
 describe('P0-V3-09 — le manifeste ne sur-revendique pas', () => {
   it('annonce crash-consistent, JAMAIS application/transaction-consistent', async () => {
     const { app, projectStorage, project } = await setup();
-    await projectStorage.writeFiles(project.id, [{ path: 'a.txt', content: 'x\n' }]);
+    await projectStorage.writeFiles(project.id, [{ path: 'a.txt', content: 'x\n' }], {
+      expectedOrganizationId: project.organizationId,
+    });
 
     const ckpt = (
       await app.inject({ method: 'POST', url: `/projects/${project.id}/checkpoints`, headers: auth('r-token') })
@@ -306,7 +375,9 @@ describe('P0-V3-09 — le manifeste ne sur-revendique pas', () => {
 
   it('déclare explicitement l ABSENCE d atomicité inter-composants', async () => {
     const { app, projectStorage, project } = await setup();
-    await projectStorage.writeFiles(project.id, [{ path: 'a.txt', content: 'x\n' }]);
+    await projectStorage.writeFiles(project.id, [{ path: 'a.txt', content: 'x\n' }], {
+      expectedOrganizationId: project.organizationId,
+    });
 
     const ckpt = (
       await app.inject({ method: 'POST', url: `/projects/${project.id}/checkpoints`, headers: auth('r-token') })
@@ -320,7 +391,9 @@ describe('P0-V3-09 — le manifeste ne sur-revendique pas', () => {
 
   it('la vérification du composant FILES nomme sa MÉTHODE (pas un booléen nu)', async () => {
     const { app, projectStorage, project } = await setup();
-    await projectStorage.writeFiles(project.id, [{ path: 'a.txt', content: 'x\n' }]);
+    await projectStorage.writeFiles(project.id, [{ path: 'a.txt', content: 'x\n' }], {
+      expectedOrganizationId: project.organizationId,
+    });
 
     const ckpt = (
       await app.inject({ method: 'POST', url: `/projects/${project.id}/checkpoints`, headers: auth('r-token') })
@@ -335,7 +408,9 @@ describe('P0-V3-09 — le manifeste ne sur-revendique pas', () => {
 describe('P0-V3-09 — la barrière est PARTAGÉE et posée au point d étranglement', () => {
   it('une barrière posée par un replica gèle les écritures vues par un AUTRE replica', async () => {
     const { app, store, projectStorage, project } = await setup();
-    await projectStorage.writeFiles(project.id, [{ path: 'a.txt', content: 'x\n' }]);
+    await projectStorage.writeFiles(project.id, [{ path: 'a.txt', content: 'x\n' }], {
+      expectedOrganizationId: project.organizationId,
+    });
 
     /*
      * Deuxième instance d'app sur le MÊME store et le MÊME stockage : c'est le
@@ -344,7 +419,10 @@ describe('P0-V3-09 — la barrière est PARTAGÉE et posée au point d étrangle
      */
     const replicaB = await buildApiApp({ store, projectStorage, emailProvider: new QuietEmailProvider() });
 
-    const ckpt = await store.createProjectCheckpoint({ projectId: project.id });
+    const ckpt = await store.createProjectCheckpoint({
+      projectId: project.id,
+      expectedOrganizationId: project.organizationId,
+    });
     const lease = await store.acquireProjectCheckpointBarrier({
       checkpointId: ckpt.id,
       projectId: project.id,
@@ -380,9 +458,14 @@ describe('P0-V3-09 — la barrière est PARTAGÉE et posée au point d étrangle
 
   it('un bail EXPIRÉ dégèle tout seul (le processus porteur peut mourir en vol)', async () => {
     const { app, store, projectStorage, project } = await setup();
-    await projectStorage.writeFiles(project.id, [{ path: 'a.txt', content: 'x\n' }]);
+    await projectStorage.writeFiles(project.id, [{ path: 'a.txt', content: 'x\n' }], {
+      expectedOrganizationId: project.organizationId,
+    });
 
-    const ckpt = await store.createProjectCheckpoint({ projectId: project.id });
+    const ckpt = await store.createProjectCheckpoint({
+      projectId: project.id,
+      expectedOrganizationId: project.organizationId,
+    });
     const lease = await store.acquireProjectCheckpointBarrier({
       checkpointId: ckpt.id,
       projectId: project.id,
@@ -405,9 +488,14 @@ describe('P0-V3-09 — la barrière est PARTAGÉE et posée au point d étrangle
 
   it('la barrière tient AUSSI sur une route qui n a jamais eu de garde explicite', async () => {
     const { app, store, projectStorage, project } = await setup();
-    await projectStorage.writeFiles(project.id, [{ path: 'a.txt', content: 'x\n' }]);
+    await projectStorage.writeFiles(project.id, [{ path: 'a.txt', content: 'x\n' }], {
+      expectedOrganizationId: project.organizationId,
+    });
 
-    const ckpt = await store.createProjectCheckpoint({ projectId: project.id });
+    const ckpt = await store.createProjectCheckpoint({
+      projectId: project.id,
+      expectedOrganizationId: project.organizationId,
+    });
     const lease = await store.acquireProjectCheckpointBarrier({
       checkpointId: ckpt.id,
       projectId: project.id,
@@ -427,10 +515,12 @@ describe('P0-V3-09 — la barrière est PARTAGÉE et posée au point d étrangle
      */
     const archive = await projectStorage.createSnapshot({
       projectId: project.id,
+      expectedOrganizationId: project.organizationId,
       files: [{ path: 'a.txt', content: 'ancienne version\n', updatedAt: '' }],
     });
     const snap = await store.createSnapshot({
       projectId: project.id,
+      expectedOrganizationId: project.organizationId,
       kind: 'manual',
       manifest: { files: [] },
       storageKey: archive.storageKey,
@@ -446,6 +536,8 @@ describe('P0-V3-09 — la barrière est PARTAGÉE et posée au point d étrangle
     expect(res.json().code).toBe('CHECKPOINT_BARRIER_ACTIVE');
 
     // Et l'arbre n'a PAS été touché : le refus arrive avant l'écrasement.
-    expect((await projectStorage.listFiles(project.id))[0].content).toBe('x\n');
+    expect(
+      (await projectStorage.listFiles(project.id, { expectedOrganizationId: project.organizationId }))[0].content,
+    ).toBe('x\n');
   });
 });

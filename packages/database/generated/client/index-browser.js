@@ -223,9 +223,94 @@ exports.Prisma.ProjectScalarFieldEnum = {
   persistentVolumeClaim: 'persistentVolumeClaim',
   thumbnailUrl: 'thumbnailUrl',
   thumbnailUpdatedAt: 'thumbnailUpdatedAt',
+  objectStorageCapabilityExpiresAt: 'objectStorageCapabilityExpiresAt',
+  permanentDeletionStartedAt: 'permanentDeletionStartedAt',
   deletedAt: 'deletedAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
+};
+
+exports.Prisma.ObjectStorageOperationScalarFieldEnum = {
+  id: 'id',
+  kind: 'kind',
+  status: 'status',
+  scopeHash: 'scopeHash',
+  idempotencyScopeHash: 'idempotencyScopeHash',
+  idempotencyKey: 'idempotencyKey',
+  requestHash: 'requestHash',
+  payload: 'payload',
+  preconditions: 'preconditions',
+  evidence: 'evidence',
+  result: 'result',
+  reservedCapabilityExpiresAt: 'reservedCapabilityExpiresAt',
+  ownerToken: 'ownerToken',
+  fencingToken: 'fencingToken',
+  leaseExpiresAt: 'leaseExpiresAt',
+  attempts: 'attempts',
+  lastErrorCode: 'lastErrorCode',
+  lastErrorMessage: 'lastErrorMessage',
+  preparedAt: 'preparedAt',
+  effectStartedAt: 'effectStartedAt',
+  verificationStartedAt: 'verificationStartedAt',
+  committedAt: 'committedAt',
+  failedSafeAt: 'failedSafeAt',
+  manualRecoveryAt: 'manualRecoveryAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.ObjectStorageOperationPinnedObjectScalarFieldEnum = {
+  operationId: 'operationId',
+  ordinal: 'ordinal',
+  key: 'key',
+  size: 'size',
+  generation: 'generation',
+  contentHash: 'contentHash'
+};
+
+exports.Prisma.ObjectStorageCapabilityReservationScalarFieldEnum = {
+  id: 'id',
+  operationId: 'operationId',
+  attempt: 'attempt',
+  fencingToken: 'fencingToken',
+  authorizationTokenHash: 'authorizationTokenHash',
+  method: 'method',
+  objectKeyHash: 'objectKeyHash',
+  reservedExpiresAt: 'reservedExpiresAt',
+  status: 'status',
+  evidence: 'evidence',
+  reservedAt: 'reservedAt',
+  issuedAt: 'issuedAt'
+};
+
+exports.Prisma.ObjectStorageOperationProjectScopeScalarFieldEnum = {
+  operationId: 'operationId',
+  ordinal: 'ordinal',
+  projectIdSnapshot: 'projectIdSnapshot',
+  projectId: 'projectId',
+  expectedOrganizationId: 'expectedOrganizationId',
+  expectedDeletedAt: 'expectedDeletedAt',
+  expectedPermanentDeletionStartedAt: 'expectedPermanentDeletionStartedAt',
+  deletionFenceDeletedAt: 'deletionFenceDeletedAt',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.ProjectPermanentDeletionReceiptScalarFieldEnum = {
+  projectId: 'projectId',
+  operationId: 'operationId',
+  organizationId: 'organizationId',
+  scopeHash: 'scopeHash',
+  idempotencyScopeHash: 'idempotencyScopeHash',
+  idempotencyKey: 'idempotencyKey',
+  requestHash: 'requestHash',
+  capabilityUpperBoundAt: 'capabilityUpperBoundAt',
+  projectSnapshot: 'projectSnapshot',
+  state: 'state',
+  proof: 'proof',
+  result: 'result',
+  deletedAt: 'deletedAt',
+  completedAt: 'completedAt',
+  createdAt: 'createdAt'
 };
 
 exports.Prisma.ProjectSlugRedirectScalarFieldEnum = {
@@ -2191,6 +2276,30 @@ exports.OrganizationMembershipState = exports.$Enums.OrganizationMembershipState
   SUSPENDED: 'SUSPENDED'
 };
 
+exports.ObjectStorageOperationKind = exports.$Enums.ObjectStorageOperationKind = {
+  TENANT_MUTATION: 'TENANT_MUTATION',
+  SIGNED_UPLOAD_CAPABILITY: 'SIGNED_UPLOAD_CAPABILITY',
+  SIGNED_DOWNLOAD_CAPABILITY: 'SIGNED_DOWNLOAD_CAPABILITY',
+  PROJECT_TRANSFER: 'PROJECT_TRANSFER',
+  PROJECT_PERMANENT_DELETE: 'PROJECT_PERMANENT_DELETE',
+  PROJECT_REMIX_CLONE: 'PROJECT_REMIX_CLONE',
+  ACCOUNT_PURGE_ERASURE: 'ACCOUNT_PURGE_ERASURE'
+};
+
+exports.ObjectStorageOperationStatus = exports.$Enums.ObjectStorageOperationStatus = {
+  PREPARED: 'PREPARED',
+  EFFECT_STARTED: 'EFFECT_STARTED',
+  VERIFYING: 'VERIFYING',
+  COMMITTED: 'COMMITTED',
+  FAILED_SAFE: 'FAILED_SAFE',
+  MANUAL_RECOVERY: 'MANUAL_RECOVERY'
+};
+
+exports.ObjectStorageCapabilityReservationStatus = exports.$Enums.ObjectStorageCapabilityReservationStatus = {
+  RESERVED: 'RESERVED',
+  ISSUED: 'ISSUED'
+};
+
 exports.CollaborationGroupSource = exports.$Enums.CollaborationGroupSource = {
   MANUAL: 'MANUAL',
   SCIM: 'SCIM'
@@ -2482,6 +2591,11 @@ exports.Prisma.ModelName = {
   Permission: 'Permission',
   RolePermission: 'RolePermission',
   Project: 'Project',
+  ObjectStorageOperation: 'ObjectStorageOperation',
+  ObjectStorageOperationPinnedObject: 'ObjectStorageOperationPinnedObject',
+  ObjectStorageCapabilityReservation: 'ObjectStorageCapabilityReservation',
+  ObjectStorageOperationProjectScope: 'ObjectStorageOperationProjectScope',
+  ProjectPermanentDeletionReceipt: 'ProjectPermanentDeletionReceipt',
   ProjectSlugRedirect: 'ProjectSlugRedirect',
   AgentMemory: 'AgentMemory',
   AgentMemoryPreference: 'AgentMemoryPreference',

@@ -1,9 +1,10 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { promises as dnsPromises } from 'node:dns';
+import { Pool, type PoolClient } from 'pg';
 import { redactAuditMetadata, type AuditEvent } from '@vibecore/audit';
 import { hashToken } from '@vibecore/auth';
 import { RESERVED_VM_TIERS, type PlanKey, type QuotaKey } from '@vibecore/billing';
-import { createDatabaseClient, Prisma, type DatabaseClient } from '@vibecore/database';
+import { createDatabaseClient, getDatabaseUrl, Prisma, type DatabaseClient } from '@vibecore/database';
 import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
 import { assertAccountPurgeMutationAllowed, assertStateMachineNotPurged } from './account-purge-state-machine-fence.js';
 import { appPublicEnglish } from './app-public-copy.js';
@@ -28,6 +29,79 @@ import {
 } from './project-manifest.js';
 import { isCommittedPromotionForTenant, SERVER_IMAGE_RELEASE_AUDIT_ACTION } from './server-image-promotion.js';
 import { lockProjectAfterPurgeTopology, lockProjectMutation } from './project-mutation-lock.js';
+import {
+  assertNoActiveObjectStorageOperation,
+  assertObjectStorageOperationFence,
+  beginObjectStorageOperationVerification,
+  claimObjectStorageOperation,
+  deferLeasedObjectStorageOperationRecovery,
+  deferObjectStorageOperationRecovery,
+  expirePreparedObjectStorageOperationFailedSafe,
+  finalizeObjectStorageOperation,
+  getPermanentDeletionReplay,
+  heartbeatObjectStorageOperation,
+  inspectObjectStorageOperationRecovery,
+  listObjectStorageRecoveryCandidates,
+  markObjectStorageOperationEffectStarted,
+  markObjectStorageOperationFailedSafe,
+  markObjectStorageOperationManualRecovery,
+  markSignedCapabilityIssued,
+  objectStorageIdempotencyScopeHash,
+  objectStorageMutationAdvisoryKey,
+  objectStorageRequestHash,
+  quarantineObjectStorageOperationRecovery,
+  readObjectStorageOperationPinnedInventory,
+  reclaimObjectStorageOperationForVerification,
+  recordPermanentDeletionStaticArtifactPlan,
+  reserveSignedCapabilityAuthorization,
+  type ObjectStorageCheckpointBarrierAuthority,
+  type ObjectStorageOperationLease,
+  type ObjectStorageOperationRecord,
+  type ObjectStorageStaticArtifactSummary,
+  type ObjectStorageVerification,
+  type PermanentDeletionReplay,
+} from './object-storage-operation.js';
+import {
+  assertObjectStorageCommandPreconditions,
+  assertValidObjectStorageCommand,
+  assertValidObjectStorageCommandIntent,
+  executeObjectStorageCommand,
+  objectStorageCloneIntentHash,
+  objectStorageCommandIdentity,
+  objectStorageCommandIntentHash,
+  objectStorageCommandMutationProjectIds,
+  objectStorageCommandPinnedInventory,
+  objectStorageCommandProjectIds,
+  objectStorageCommandReceipt,
+  objectStorageCommandReceiptFromExecution,
+  parseObjectStorageCommandReceipt,
+  parseObjectStorageCommandReceiptByType,
+  pinObjectStorageCommand,
+  pinObjectStorageCommandIntent,
+  recoverPersistedObjectStorageCommand,
+  verifyObjectStorageCommand,
+  type ObjectStorageCommandExecution,
+  type TenantObjectStorageCommand,
+  type TenantObjectStorageCommandIntent,
+} from './object-storage-command.js';
+import {
+  assertValidObjectKey,
+  ObjectStorageError,
+  parseObjectStorageInventory,
+  SIGNED_URL_TTL_MS,
+  type ObjectStorage,
+  type ObjectStorageInventory,
+} from './object-storage.js';
+import {
+  projectPermanentDeletionOperationRequest,
+  projectPermanentDeletionRequestHash,
+} from './project-permanent-deletion.js';
+import { projectOrganizationChangedError, projectPhysicalMutationLockKey } from './project-physical-mutation.js';
+import {
+  withProjectLock,
+  type ProjectStaticArtifactAuthority,
+  type ProjectStaticErasureInventory,
+} from './project-storage.js';
 import { slugify } from './slugify.js';
 import { API_KEY_SCOPES, DEFAULT_ENV_VAR_SCOPE, ENV_VAR_SCOPES } from './store.js';
 import type {
@@ -103,6 +177,8 @@ import type {
   MembershipRecord,
   ResourceAccessGrantRecord,
   OAuthConnectionRecord,
+  ObjectStorageCapabilityCommand,
+  ObjectStorageRecoveryReport,
   OrganizationRecord,
   OrganizationInviteRecord,
   ProjectActivityListOptions,
@@ -117,6 +193,8 @@ import type {
   ProjectReleaseBarrierLease,
   ProjectReleaseFence,
   ProjectRecord,
+  ProjectPhysicalMutationScope,
+  ProjectPermanentDeletionResult,
   ProjectSecretRecord,
   ProjectShareLinkRecord,
   ChatShareRecord,
@@ -173,6 +251,27 @@ const RUNTIME_WEBSOCKET_TICKET_INSERT_EMPTY = 'RUNTIME_WEBSOCKET_TICKET_INSERT_E
 const DB_MIGRATION_STATE_CORRUPT = 'DB_MIGRATION_STATE_CORRUPT';
 const DB_MIGRATION_PLAN_CORRUPT = 'DB_MIGRATION_PLAN_CORRUPT';
 const DB_MIGRATION_EXECUTION_INSERT_EMPTY = 'DB_MIGRATION_EXECUTION_INSERT_EMPTY';
+const PROJECT_PHYSICAL_LOCK_ACQUIRE_TIMEOUT_MS = Math.max(
+  50,
+  Math.min(
+    Number(process.env.PROJECT_PHYSICAL_LOCK_ACQUIRE_TIMEOUT_MS) ||
+      Number(process.env.PROJECT_PHYSICAL_MUTATION_TIMEOUT_MS) ||
+      5 * 60_000,
+    15 * 60_000,
+  ),
+);
+const OBJECT_STORAGE_OPERATION_LEASE_TTL_SECONDS = Math.max(
+  30,
+  Math.min(Number(process.env.OBJECT_STORAGE_OPERATION_LEASE_TTL_SECONDS) || 300, 900),
+);
+const OBJECT_STORAGE_OPERATION_HEARTBEAT_MS = Math.max(
+  1_000,
+  Math.min(
+    Number(process.env.OBJECT_STORAGE_OPERATION_HEARTBEAT_MS) ||
+      Math.floor((OBJECT_STORAGE_OPERATION_LEASE_TTL_SECONDS * 1_000) / 3),
+    OBJECT_STORAGE_OPERATION_LEASE_TTL_SECONDS * 1_000 - 1_000,
+  ),
+);
 
 const ROLLBACK_STORE_FAILURE = {
   ownershipLost: 'ROLLBACK_OWNERSHIP_LOST',
@@ -238,6 +337,22 @@ async function databaseNow(tx: Prisma.TransactionClient): Promise<Date> {
 function databaseLeaseExpiry(now: Date, durationMs: number): Date {
   const bounded = Math.max(1_000, Math.min(Math.trunc(durationMs), 30 * 60_000));
   return new Date(now.getTime() + bounded);
+}
+
+const DEFAULT_PROJECT_SLUG_REDIRECT_TTL_DAYS = 30;
+const MAX_PROJECT_SLUG_REDIRECT_TTL_DAYS = 10 * 365;
+
+function projectSlugRedirectTtlMs(rawDays: number | undefined): number {
+  const days = rawDays ?? DEFAULT_PROJECT_SLUG_REDIRECT_TTL_DAYS;
+
+  if (!Number.isSafeInteger(days) || days < 1 || days > MAX_PROJECT_SLUG_REDIRECT_TTL_DAYS) {
+    throw Object.assign(new TypeError('PROJECT_SLUG_REDIRECT_TTL_INVALID'), {
+      code: 'PROJECT_SLUG_REDIRECT_TTL_INVALID',
+      statusCode: 400,
+    });
+  }
+
+  return days * 24 * 60 * 60 * 1000;
 }
 
 const RESERVED_VM_RENEWAL_RESERVATION_MS = 7 * 24 * 60 * 60_000;
@@ -1419,6 +1534,37 @@ function mapRemixStorageShare(row: any): RemixStorageShareRecord {
   };
 }
 
+function canonicalObjectStorageInventory(inventory: ObjectStorageInventory): ObjectStorageInventory {
+  return {
+    bucketExists: inventory.bucketExists,
+    objects: [...inventory.objects]
+      .map(({ key, size, generation, contentHash }) => ({ key, size, generation, contentHash }))
+      .sort((left, right) => left.key.localeCompare(right.key)),
+  };
+}
+
+function exactObjectStorageInventoriesEqual(left: ObjectStorageInventory, right: ObjectStorageInventory): boolean {
+  return (
+    JSON.stringify(canonicalObjectStorageInventory(left)) === JSON.stringify(canonicalObjectStorageInventory(right))
+  );
+}
+
+function parseRetainedRemixSourceInventory(value: unknown): ObjectStorageInventory {
+  const inventory = parseObjectStorageInventory(value);
+  if (
+    !inventory ||
+    inventory.objects.some(
+      (object) => object.generation === null || object.key === 'tmp' || object.key.startsWith('tmp/'),
+    )
+  ) {
+    throw Object.assign(new Error(appPublicEnglish('REMIX_STORAGE_SHARE_CONFLICT')), {
+      code: 'REMIX_STORAGE_SNAPSHOT_UNPINNABLE',
+      statusCode: 409,
+    });
+  }
+  return canonicalObjectStorageInventory(inventory);
+}
+
 function importStagedFiles(value: unknown): ImportStagedFile[] | undefined {
   if (!Array.isArray(value)) {
     return undefined;
@@ -1577,6 +1723,51 @@ function assertFound<T>(value: T | null | undefined, message: string, code: stri
   return value;
 }
 
+function projectFromPermanentDeletionSnapshot(
+  snapshot: Record<string, unknown>,
+): ProjectPermanentDeletionResult['project'] {
+  if (
+    typeof snapshot.id !== 'string' ||
+    typeof snapshot.organizationId !== 'string' ||
+    typeof snapshot.projectRecordHash !== 'string' ||
+    !/^[0-9a-f]{64}$/.test(snapshot.projectRecordHash) ||
+    snapshot.state !== 'PERMANENTLY_DELETED'
+  ) {
+    throw Object.assign(new Error('PROJECT_PERMANENT_DELETION_RECEIPT_CORRUPT'), {
+      code: 'PROJECT_PERMANENT_DELETION_RECEIPT_CORRUPT',
+      statusCode: 500,
+    });
+  }
+
+  return {
+    id: snapshot.id as string,
+    organizationId: snapshot.organizationId as string,
+    projectRecordHash: snapshot.projectRecordHash as string,
+    state: 'PERMANENTLY_DELETED',
+    ...(typeof snapshot.permanentDeletionStartedAt === 'string'
+      ? { permanentDeletionStartedAt: snapshot.permanentDeletionStartedAt }
+      : {}),
+    ...(typeof snapshot.deletedAt === 'string' ? { deletedAt: snapshot.deletedAt } : {}),
+  };
+}
+
+function mapPermanentDeletionReplay(
+  replay: PermanentDeletionReplay,
+  input: { idempotencyKey: string; requestHash: string; replayed: boolean },
+): ProjectPermanentDeletionResult {
+  return {
+    projectId: replay.projectId,
+    organizationId: replay.organizationId,
+    idempotencyKey: input.idempotencyKey,
+    requestHash: input.requestHash,
+    operationId: replay.operationId,
+    project: projectFromPermanentDeletionSnapshot(replay.projectSnapshot),
+    proof: replay.proof,
+    completedAt: replay.completedAt,
+    replayed: input.replayed,
+  };
+}
+
 export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
   constructor(
     readonly prisma: DatabaseClient = createDatabaseClient(),
@@ -1588,6 +1779,7 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
      */
     private readonly resolveTxt: (hostname: string) => Promise<string[][]> = dnsPromises.resolveTxt,
     private readonly accountPurgeLease?: AccountPurgeLeaseOptions,
+    private readonly projectPhysicalLock?: { acquireTimeoutMs?: number },
   ) {}
 
   #accountPurge?: AccountPurgeStore;
@@ -1634,6 +1826,195 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
     );
   }
 
+  protected async withProjectPhysicalBarriers<T>(projectIds: string[], effect: () => Promise<T>): Promise<T> {
+    const orderedProjectIds = [...new Set(projectIds)].sort();
+    const lockKeys = orderedProjectIds.map(projectPhysicalMutationLockKey);
+    let client: PoolClient | undefined;
+    const acquiredKeys: string[] = [];
+    let destroyClient = false;
+
+    try {
+      client = await this.physicalLockPool.connect();
+
+      try {
+        await client.query(`SELECT set_config('statement_timeout', $1, false)`, [
+          `${this.projectPhysicalLockAcquireTimeoutMs}ms`,
+        ]);
+        for (const lockKey of lockKeys) {
+          await client.query('SELECT pg_advisory_lock(hashtextextended($1, 0))', [lockKey]);
+          acquiredKeys.push(lockKey);
+        }
+        /* The timeout bounds lock acquisition only; the effect may be arbitrarily long. */
+        await client.query(`SELECT set_config('statement_timeout', '0', false)`);
+      } catch (error) {
+        throw Object.assign(
+          new Error(appPublicEnglish('PROJECT_LOCK_TIMEOUT', { projectId: orderedProjectIds[0] ?? 'unknown' })),
+          { code: 'PROJECT_LOCK_TIMEOUT', statusCode: 503, cause: error },
+        );
+      }
+
+      return await effect();
+    } finally {
+      if (client) {
+        for (const lockKey of acquiredKeys.reverse()) {
+          try {
+            const unlocked = await client.query<{ unlocked: boolean }>(
+              'SELECT pg_advisory_unlock(hashtextextended($1, 0)) AS unlocked',
+              [lockKey],
+            );
+            destroyClient ||= unlocked.rows[0]?.unlocked !== true;
+          } catch {
+            destroyClient = true;
+          }
+        }
+
+        if (!destroyClient) {
+          try {
+            await client.query(`SELECT set_config('statement_timeout', '0', false)`);
+          } catch {
+            destroyClient = true;
+          }
+        }
+
+        /* Destroying a suspect session releases every remaining advisory lock. */
+        client.release(destroyClient);
+      }
+    }
+  }
+
+  protected withProjectPhysicalBarrier<T>(projectId: string, effect: () => Promise<T>): Promise<T> {
+    return this.withProjectPhysicalBarriers([projectId], effect);
+  }
+
+  protected withProjectFilesystemLock<T>(projectId: string, effect: () => Promise<T>): Promise<T> {
+    return withProjectLock(projectId, effect);
+  }
+
+  async withProjectPhysicalMutation<T>(scope: ProjectPhysicalMutationScope, effect: () => Promise<T>): Promise<T> {
+    return this.withProjectPhysicalBarrier(scope.projectId, async () => {
+      /*
+       * Validate before waiting on NFS: purge acquisition may own topology,
+       * but never waits for the physical/NFS locks in that transaction. A
+       * session advisory lock can nevertheless disappear if its PG connection
+       * breaks, so tenant authority is checked again while NFS is held. That
+       * second check linearizes both outcomes: either this effect owns NFS
+       * first, or transfer owns it first and the stale scope is rejected.
+       *
+       * RELEASE_BARRIER is intentionally allowed here. It fences tenant and
+       * manifest authority, not already-materialized artifact snapshots. Tree
+       * mutations additionally run checkpointMutationGuard inside this NFS
+       * section and therefore still reject coordinated checkpoints.
+       */
+      await this.prisma.$transaction((tx) =>
+        this.lockExpectedProjectTenantMutation(tx, scope, { allowActiveCheckpoint: true }),
+      );
+      return this.withProjectFilesystemLock(scope.projectId, async () => {
+        await this.prisma.$transaction((tx) =>
+          this.lockExpectedProjectTenantMutation(tx, scope, { allowActiveCheckpoint: true }),
+        );
+        return effect();
+      });
+    });
+  }
+
+  async withProjectPhysicalAccess<T>(scope: ProjectPhysicalMutationScope, effect: () => Promise<T>): Promise<T> {
+    return this.withProjectPhysicalAccesses([scope], effect);
+  }
+
+  async withProjectPhysicalAccesses<T>(scopes: ProjectPhysicalMutationScope[], effect: () => Promise<T>): Promise<T> {
+    const byProjectId = new Map<string, ProjectPhysicalMutationScope>();
+    for (const scope of scopes) {
+      const existing = byProjectId.get(scope.projectId);
+      if (existing && existing.expectedOrganizationId !== scope.expectedOrganizationId) {
+        throw projectOrganizationChangedError();
+      }
+      byProjectId.set(scope.projectId, existing ?? scope);
+    }
+    const orderedScopes = [...byProjectId.values()].sort((left, right) =>
+      left.projectId.localeCompare(right.projectId),
+    );
+    if (orderedScopes.length === 0) {
+      throw new TypeError('PROJECT_PHYSICAL_ACCESS_SCOPE_REQUIRED');
+    }
+
+    return this.withProjectPhysicalBarriers(
+      orderedScopes.map(({ projectId }) => projectId),
+      async () => {
+        await this.prisma.$transaction(async (tx) => {
+          for (const scope of orderedScopes) {
+            await this.lockExpectedProjectTenantMutation(tx, scope, { allowActiveCheckpoint: true });
+          }
+        });
+
+        const lockFilesystem = async (index: number): Promise<T> => {
+          const scope = orderedScopes[index];
+          if (scope) return this.withProjectFilesystemLock(scope.projectId, () => lockFilesystem(index + 1));
+
+          await this.prisma.$transaction(async (tx) => {
+            for (const tenantScope of orderedScopes) {
+              await this.lockExpectedProjectTenantMutation(tx, tenantScope, { allowActiveCheckpoint: true });
+            }
+          });
+          return effect();
+        };
+        return lockFilesystem(0);
+      },
+    );
+  }
+
+  withProjectPhysicalErasure<T>(projectId: string, effect: () => Promise<T>): Promise<T> {
+    return this.withProjectPhysicalBarrier(projectId, effect);
+  }
+
+  private objectStorageOperationHeartbeat(initialLease: ObjectStorageOperationLease) {
+    let lease = initialLease;
+    let stopped = false;
+    let lost: unknown;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let wake: (() => void) | undefined;
+
+    const running = (async () => {
+      while (!stopped && !lost) {
+        await new Promise<void>((resolve) => {
+          wake = resolve;
+          timer = setTimeout(resolve, OBJECT_STORAGE_OPERATION_HEARTBEAT_MS);
+          timer.unref?.();
+        });
+        wake = undefined;
+        if (stopped || lost) break;
+
+        try {
+          lease = await this.prisma.$transaction((tx) =>
+            heartbeatObjectStorageOperation(tx, lease, OBJECT_STORAGE_OPERATION_LEASE_TTL_SECONDS),
+          );
+        } catch (error) {
+          lost = error;
+        }
+      }
+    })();
+
+    const assert = async () => {
+      if (lost) throw lost;
+      await this.prisma.$transaction((tx) => assertObjectStorageOperationFence(tx, lease));
+      if (lost) throw lost;
+    };
+
+    return {
+      lease: () => lease,
+      assert,
+      lost: () => lost,
+      async stop() {
+        stopped = true;
+        if (timer) clearTimeout(timer);
+        wake?.();
+        await running.catch((error) => {
+          lost ??= error;
+        });
+        if (lost) throw lost;
+      },
+    };
+  }
+
   /*
    * Lazily-created dedicated client for advisory-lock transactions (see
    * withSerializedMutation). Small pool: it only ever holds lock-wait/holder
@@ -1649,11 +2030,37 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
 
   #lockClient?: DatabaseClient;
 
+  private get projectPhysicalLockAcquireTimeoutMs(): number {
+    const configured = this.projectPhysicalLock?.acquireTimeoutMs ?? PROJECT_PHYSICAL_LOCK_ACQUIRE_TIMEOUT_MS;
+    return Math.max(50, Math.min(Number.isFinite(configured) ? Math.trunc(configured) : 5 * 60_000, 15 * 60_000));
+  }
+
+  private get physicalLockPool(): Pool {
+    if (!this.#physicalLockPool) {
+      const poolMax = Math.max(5, Math.min(Number(process.env.DATABASE_PHYSICAL_MUTATION_POOL_MAX) || 20, 100));
+      this.#physicalLockPool = new Pool({
+        connectionString: getDatabaseUrl(),
+        max: poolMax,
+        connectionTimeoutMillis: Number(process.env.DATABASE_CONNECTION_TIMEOUT_MS) || 10_000,
+        idleTimeoutMillis: Number(process.env.DATABASE_IDLE_TIMEOUT_MS) || 30_000,
+      });
+      this.#physicalLockPool.on('error', (error) => {
+        console.error('project physical lock pool idle client error', error);
+      });
+    }
+
+    return this.#physicalLockPool;
+  }
+
+  #physicalLockPool?: Pool;
+
   /** Release both pools during controlled shutdowns and real-Postgres tests. */
   async disconnect(): Promise<void> {
     const clients = [this.prisma, this.#lockClient].filter(Boolean) as DatabaseClient[];
+    const physicalLockPool = this.#physicalLockPool;
     this.#lockClient = undefined;
-    await Promise.all(clients.map((client) => client.$disconnect()));
+    this.#physicalLockPool = undefined;
+    await Promise.all([...clients.map((client) => client.$disconnect()), physicalLockPool?.end()]);
   }
 
   async createUser(input: {
@@ -1786,16 +2193,882 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
     return this.accountPurge.isObjectStorageFrozen(projectId);
   }
 
-  withObjectStorageProjectMutation<T>(projectId: string, effect: () => Promise<T>) {
-    return this.accountPurge.withObjectStorageMutation(projectId, effect);
+  private retainedRemixSourceError(): Error {
+    return Object.assign(
+      new ObjectStorageError(appPublicEnglish('OBJECT_STORAGE_SHARED_READ_ONLY'), 'SHARED_SOURCE_RETENTION_ACTIVE'),
+      { statusCode: 409 },
+    );
   }
 
-  withObjectStorageProjectMutations<T>(projectIds: string[], effect: () => Promise<T>) {
-    return this.accountPurge.withObjectStorageMutations(projectIds, effect);
+  private async assertNoActiveRemixSourceShare(tx: Prisma.TransactionClient, projectId: string): Promise<void> {
+    const active = await tx.remixStorageShare.findFirst({
+      where: { sourceProjectId: projectId, state: 'ACTIVE' },
+      select: { id: true },
+    });
+    if (active) throw this.retainedRemixSourceError();
   }
 
-  assertProjectStorageMutable(projectId: string, workspaceId?: string) {
-    return this.prisma.$transaction((tx) => this.accountPurge.assertProjectStorageMutable(tx, projectId, workspaceId));
+  private async assertObjectStorageCommandDoesNotDestroySharedSource(
+    tx: Prisma.TransactionClient,
+    command: TenantObjectStorageCommand,
+  ): Promise<void> {
+    if (command.type === 'ENSURE_BUCKET' || command.type === 'CLONE_PROJECT') return;
+    const shares = await tx.remixStorageShare.findMany({
+      where: { sourceProjectId: command.projectId, state: 'ACTIVE' },
+      select: { sourceInventory: true },
+    });
+    if (shares.length === 0) return;
+    if (command.type === 'DELETE_BUCKET') throw this.retainedRemixSourceError();
+
+    for (const share of shares) {
+      const inventory = parseObjectStorageInventory(share.sourceInventory);
+      if (!inventory) throw this.retainedRemixSourceError();
+      const retained = inventory.objects.some((object) => {
+        switch (command.type) {
+          case 'DELETE_OBJECT':
+            return (
+              command.expectedObjectGeneration !== null &&
+              command.expectedObjectGeneration !== undefined &&
+              object.key === command.key &&
+              object.generation === command.expectedObjectGeneration
+            );
+          case 'MOVE_OBJECT':
+            return object.key === command.from && object.generation === command.sourceGeneration;
+          case 'DELETE_PREFIX':
+            return object.key.startsWith(command.prefix);
+          case 'PUT_OBJECT':
+            return object.key === command.key;
+          default:
+            return false;
+        }
+      });
+      if (retained) throw this.retainedRemixSourceError();
+    }
+  }
+
+  issueSignedObjectStorageCapability<T extends { expiresAt: string }>(
+    command: ObjectStorageCapabilityCommand,
+    signer: (authorization: { expiresAt: string }) => Promise<T>,
+  ) {
+    return this.withProjectPhysicalMutation(command, () =>
+      this.issueSignedObjectStorageCapabilityWithinPhysicalAccess(command, signer),
+    );
+  }
+
+  issueSignedObjectStorageCapabilityWithinPhysicalAccess<T extends { expiresAt: string }>(
+    command: ObjectStorageCapabilityCommand,
+    signer: (authorization: { expiresAt: string }) => Promise<T>,
+  ) {
+    if (assertValidObjectKey(command.objectKey) !== command.objectKey) {
+      throw new ObjectStorageError('Object keys must not contain surrounding whitespace', 'INVALID_KEY');
+    }
+    const objectKeyHash = createHash('sha256').update(command.objectKey).digest('hex');
+    const commandIdentity = {
+      method: command.method,
+      objectKeyHash,
+      generation: command.generation ?? null,
+      contentType: command.contentType ?? null,
+    };
+    const operationRequest = {
+      kind: command.method === 'PUT' ? ('SIGNED_UPLOAD_CAPABILITY' as const) : ('SIGNED_DOWNLOAD_CAPABILITY' as const),
+      scopes: [
+        {
+          projectId: command.projectId,
+          expectedOrganizationId: command.expectedOrganizationId,
+        },
+      ],
+      payload: {
+        command: 'issue-signed-object-storage-capability',
+        ...commandIdentity,
+      },
+      preconditions: {
+        tenantMustMatch: true,
+        activeTargetShareForbidden: true,
+      },
+    };
+    const requestHash = objectStorageRequestHash(operationRequest);
+    const idempotencyKey = `signed-${command.method.toLowerCase()}-${createHash('sha256')
+      .update(JSON.stringify(commandIdentity))
+      .digest('hex')}`;
+    const authorizationToken = randomUUID();
+    const ownerToken = `signed-capability:${randomUUID()}`;
+
+    return (async () => {
+      const authorization = await this.prisma.$transaction(async (tx) => {
+        const claimed = await claimObjectStorageOperation(tx, {
+          ...operationRequest,
+          idempotencyKey,
+          requestHash,
+          ownerToken,
+          leaseTtlSeconds: OBJECT_STORAGE_OPERATION_LEASE_TTL_SECONDS,
+          ...(command.checkpointBarrierAuthority
+            ? { checkpointBarrierAuthority: command.checkpointBarrierAuthority }
+            : {}),
+        });
+
+        if (claimed.kind === 'BUSY') {
+          throw Object.assign(new Error('OBJECT_STORAGE_CAPABILITY_ISSUANCE_IN_PROGRESS'), {
+            code: 'OBJECT_STORAGE_CAPABILITY_ISSUANCE_IN_PROGRESS',
+            statusCode: 409,
+            retryAt: claimed.retryAt,
+          });
+        }
+        if (claimed.kind === 'VERIFY_FIRST' || claimed.kind === 'MANUAL_RECOVERY') {
+          throw Object.assign(new Error('OBJECT_STORAGE_CAPABILITY_MANUAL_RECOVERY_REQUIRED'), {
+            code: 'OBJECT_STORAGE_CAPABILITY_MANUAL_RECOVERY_REQUIRED',
+            statusCode: 409,
+          });
+        }
+
+        const activeTargetShare = await tx.remixStorageShare.findFirst({
+          where: { targetProjectId: command.projectId, state: 'ACTIVE' },
+          select: { id: true },
+        });
+        if (activeTargetShare) {
+          throw new ObjectStorageError(appPublicEnglish('OBJECT_STORAGE_SHARED_READ_ONLY'), 'SHARED_READ_ONLY');
+        }
+
+        const now = await databaseNow(tx);
+        const reservedCapabilityExpiresAt = new Date(now.getTime() + SIGNED_URL_TTL_MS).toISOString();
+        return reserveSignedCapabilityAuthorization(tx, {
+          operationId: claimed.operation.id,
+          requestHash,
+          scopeHash: claimed.operation.scopeHash,
+          authorizationToken,
+          reservedCapabilityExpiresAt,
+          ...(claimed.kind === 'ACQUIRED' ? { lease: claimed.lease } : {}),
+          ...(command.checkpointBarrierAuthority
+            ? { checkpointBarrierAuthority: command.checkpointBarrierAuthority }
+            : {}),
+        });
+      });
+
+      const result = await signer({ expiresAt: authorization.reservedCapabilityExpiresAt });
+      await this.prisma.$transaction((tx) =>
+        markSignedCapabilityIssued(tx, {
+          reservationId: authorization.reservationId,
+          operationId: authorization.operationId,
+          fencingToken: authorization.fencingToken,
+          authorizationToken,
+          method: command.method,
+          objectKeyHash,
+          providerExpiresAt: result.expiresAt,
+          evidence: {
+            command: 'signed-object-storage-capability-issued',
+            method: command.method,
+            objectKeyHash,
+          },
+        }),
+      );
+      return result;
+    })();
+  }
+
+  async executeTenantObjectStorageCommand(input: {
+    scopes: ProjectPhysicalMutationScope[];
+    command: TenantObjectStorageCommand;
+    storage: ObjectStorage;
+    idempotencyKey?: string;
+    checkpointBarrierAuthority?: ObjectStorageCheckpointBarrierAuthority;
+    transportIntentHash?: string;
+  }): Promise<ObjectStorageCommandExecution> {
+    assertValidObjectStorageCommand(input.command);
+    return this.withProjectPhysicalAccesses(input.scopes, async () => {
+      if (input.command.type !== 'CLONE_PROJECT') {
+        const command = await pinObjectStorageCommand(input.storage, input.command);
+        return this.executeTenantObjectStorageCommandWithinPhysicalAccess({ ...input, command });
+      }
+
+      const transportIntentHash = objectStorageCloneIntentHash(input.command);
+      if (input.transportIntentHash && input.transportIntentHash !== transportIntentHash) {
+        throw Object.assign(new Error('OBJECT_STORAGE_OPERATION_INTENT_HASH_INVALID'), {
+          code: 'OBJECT_STORAGE_OPERATION_INTENT_HASH_INVALID',
+          statusCode: 400,
+        });
+      }
+      const replayCommitted = () =>
+        input.idempotencyKey
+          ? this.replayTenantObjectStorageCommandWithinPhysicalAccess({
+              scopes: input.scopes,
+              idempotencyKey: input.idempotencyKey,
+              transportIntentHash,
+            })
+          : Promise.resolve(undefined);
+      const existing = await replayCommitted();
+      if (existing) return existing;
+
+      let command: TenantObjectStorageCommand;
+      try {
+        command = await pinObjectStorageCommand(input.storage, input.command);
+      } catch (error) {
+        const racedReplay = await replayCommitted();
+        if (racedReplay) return racedReplay;
+        throw error;
+      }
+
+      try {
+        return await this.executeTenantObjectStorageCommandWithinPhysicalAccess({
+          ...input,
+          command,
+          transportIntentHash,
+        });
+      } catch (error) {
+        const racedReplay = await replayCommitted();
+        if (racedReplay) return racedReplay;
+        throw error;
+      }
+    });
+  }
+
+  async executeTenantObjectStorageIntent(input: {
+    scope: ProjectPhysicalMutationScope;
+    intent: TenantObjectStorageCommandIntent;
+    storage: ObjectStorage;
+    idempotencyKey?: string;
+    checkpointBarrierAuthority?: ObjectStorageCheckpointBarrierAuthority;
+  }): Promise<ObjectStorageCommandExecution> {
+    assertValidObjectStorageCommandIntent(input.intent);
+    if (input.intent.projectId !== input.scope.projectId) {
+      throw Object.assign(new Error(appPublicEnglish('OBJECT_STORAGE_TENANT_SCOPE_MISMATCH')), {
+        code: 'TENANT_SCOPE_MISMATCH',
+        statusCode: 409,
+      });
+    }
+    const scopes = [input.scope];
+    const transportIntentHash = objectStorageCommandIntentHash(input.intent);
+
+    return this.withProjectPhysicalAccess(input.scope, async () => {
+      const replayCommitted = () =>
+        input.idempotencyKey
+          ? this.replayTenantObjectStorageCommandWithinPhysicalAccess({
+              scopes,
+              idempotencyKey: input.idempotencyKey,
+              transportIntentHash,
+            })
+          : Promise.resolve(undefined);
+      const existing = await replayCommitted();
+      if (existing) return existing;
+
+      let command: TenantObjectStorageCommand;
+      try {
+        command = await pinObjectStorageCommandIntent(input.storage, input.intent);
+      } catch (error) {
+        const racedReplay = await replayCommitted();
+        if (racedReplay) return racedReplay;
+        throw error;
+      }
+
+      try {
+        return await this.executeTenantObjectStorageCommandWithinPhysicalAccess({
+          scopes,
+          command,
+          storage: input.storage,
+          transportIntentHash,
+          ...(input.idempotencyKey ? { idempotencyKey: input.idempotencyKey } : {}),
+          ...(input.checkpointBarrierAuthority ? { checkpointBarrierAuthority: input.checkpointBarrierAuthority } : {}),
+        });
+      } catch (error) {
+        const racedReplay = await replayCommitted();
+        if (racedReplay) return racedReplay;
+        throw error;
+      }
+    });
+  }
+
+  private async executeTenantObjectStorageCommandWithinPhysicalAccess(input: {
+    scopes: ProjectPhysicalMutationScope[];
+    command: TenantObjectStorageCommand;
+    storage: ObjectStorage;
+    idempotencyKey?: string;
+    checkpointBarrierAuthority?: ObjectStorageCheckpointBarrierAuthority;
+    transportIntentHash?: string;
+  }): Promise<ObjectStorageCommandExecution> {
+    if (!input.storage.active) {
+      throw new ObjectStorageError(appPublicEnglish('OBJECT_STORAGE_BACKEND_REQUIRED'), 'BACKEND_REQUIRED');
+    }
+
+    const expectedProjectIds = [...new Set(objectStorageCommandProjectIds(input.command))].sort();
+    const scopesByProjectId = new Map<string, ProjectPhysicalMutationScope>();
+    for (const scope of input.scopes) {
+      const existing = scopesByProjectId.get(scope.projectId);
+      if (existing && existing.expectedOrganizationId !== scope.expectedOrganizationId) {
+        throw projectOrganizationChangedError();
+      }
+      scopesByProjectId.set(scope.projectId, existing ?? scope);
+    }
+    const scopes = [...scopesByProjectId.values()].sort((left, right) => left.projectId.localeCompare(right.projectId));
+    if (
+      scopes.length !== expectedProjectIds.length ||
+      scopes.some((scope, index) => scope.projectId !== expectedProjectIds[index])
+    ) {
+      throw Object.assign(new Error(appPublicEnglish('OBJECT_STORAGE_TENANT_SCOPE_MISMATCH')), {
+        code: 'TENANT_SCOPE_MISMATCH',
+        statusCode: 409,
+      });
+    }
+    if (
+      input.checkpointBarrierAuthority &&
+      (scopes.length !== 1 ||
+        input.checkpointBarrierAuthority.projectId !== scopes[0]?.projectId ||
+        input.checkpointBarrierAuthority.expectedOrganizationId !== scopes[0]?.expectedOrganizationId)
+    ) {
+      throw Object.assign(new Error(appPublicEnglish('OBJECT_STORAGE_TENANT_SCOPE_MISMATCH')), {
+        code: 'TENANT_SCOPE_MISMATCH',
+        statusCode: 409,
+      });
+    }
+
+    if (
+      input.command.type === 'CLONE_PROJECT' &&
+      input.command.inventory.objects.some((object) => object.generation === null || object.contentHash === null)
+    ) {
+      throw new ObjectStorageError(appPublicEnglish('OBJECT_STORAGE_SOURCE_UNPINNABLE'), 'SOURCE_UNPINNABLE');
+    }
+    const commandIdentity = objectStorageCommandIdentity(input.command);
+    const pinnedInventory = objectStorageCommandPinnedInventory(input.command);
+    const operationRequest = {
+      kind: input.command.type === 'CLONE_PROJECT' ? ('PROJECT_REMIX_CLONE' as const) : ('TENANT_MUTATION' as const),
+      scopes: scopes.map(({ projectId, expectedOrganizationId }) => ({ projectId, expectedOrganizationId })),
+      payload: commandIdentity,
+      preconditions: {
+        tenantMustMatch: true,
+        activeTargetShareForbidden: true,
+        capabilityDrainRequired: input.command.type !== 'ENSURE_BUCKET',
+        ...(input.transportIntentHash ? { transportIntentHash: input.transportIntentHash } : {}),
+        ...(input.checkpointBarrierAuthority ? { releaseBarrierAuthority: input.checkpointBarrierAuthority } : {}),
+      },
+    };
+    const requestHash = objectStorageRequestHash(operationRequest);
+    const idempotencyKey = input.idempotencyKey ?? `object-command:${randomUUID()}`;
+    const ownerToken = `object-command:${randomUUID()}`;
+
+    const claimed = await this.prisma.$transaction(async (tx) => {
+      const operation = await claimObjectStorageOperation(tx, {
+        ...operationRequest,
+        idempotencyKey,
+        requestHash,
+        ownerToken,
+        leaseTtlSeconds: OBJECT_STORAGE_OPERATION_LEASE_TTL_SECONDS,
+        ...(pinnedInventory ? { pinnedInventory } : {}),
+        ...(input.checkpointBarrierAuthority ? { checkpointBarrierAuthority: input.checkpointBarrierAuthority } : {}),
+      });
+
+      if (operation.kind === 'ACQUIRED') {
+        await this.assertObjectStorageCommandDoesNotDestroySharedSource(tx, input.command);
+        const activeTargetShare = await tx.remixStorageShare.findFirst({
+          where: {
+            targetProjectId: { in: objectStorageCommandMutationProjectIds(input.command) },
+            state: 'ACTIVE',
+          },
+          select: { id: true },
+        });
+        if (activeTargetShare) {
+          throw new ObjectStorageError(appPublicEnglish('OBJECT_STORAGE_SHARED_READ_ONLY'), 'SHARED_READ_ONLY');
+        }
+      }
+      return operation;
+    });
+
+    if (claimed.kind === 'REPLAY') {
+      return parseObjectStorageCommandReceipt(input.command, claimed.result);
+    }
+    if (claimed.kind === 'BUSY') {
+      throw Object.assign(new Error(appPublicEnglish('OBJECT_STORAGE_OPERATION_IN_PROGRESS')), {
+        code: 'OBJECT_STORAGE_OPERATION_IN_PROGRESS',
+        statusCode: 409,
+        retryAt: claimed.retryAt,
+      });
+    }
+    if (claimed.kind === 'VERIFY_FIRST') {
+      throw Object.assign(new Error(appPublicEnglish('OBJECT_STORAGE_OPERATION_VERIFY_FIRST')), {
+        code: 'OBJECT_STORAGE_OPERATION_VERIFY_FIRST',
+        statusCode: 409,
+      });
+    }
+    if (claimed.kind === 'MANUAL_RECOVERY') {
+      throw Object.assign(new Error(appPublicEnglish('OBJECT_STORAGE_OPERATION_MANUAL_RECOVERY')), {
+        code: 'OBJECT_STORAGE_OPERATION_MANUAL_RECOVERY',
+        statusCode: 409,
+      });
+    }
+
+    const heartbeat = this.objectStorageOperationHeartbeat(claimed.lease);
+    try {
+      try {
+        await assertObjectStorageCommandPreconditions(input.storage, input.command);
+      } catch (error) {
+        await this.prisma.$transaction((tx) =>
+          markObjectStorageOperationFailedSafe(tx, heartbeat.lease(), {
+            errorCode: this.objectStorageRecoveryErrorCode(error),
+            error,
+          }),
+        );
+        await heartbeat.stop();
+        throw error;
+      }
+      await this.prisma.$transaction((tx) =>
+        markObjectStorageOperationEffectStarted(tx, heartbeat.lease(), {
+          command: input.command.type,
+          requestHash,
+        }),
+      );
+      const execution = await executeObjectStorageCommand(input.storage, input.command, heartbeat.assert);
+      await this.prisma.$transaction((tx) =>
+        beginObjectStorageOperationVerification(tx, heartbeat.lease(), {
+          command: input.command.type,
+        }),
+      );
+      const verification = await verifyObjectStorageCommand(input.storage, input.command, execution);
+      /*
+       * Drain a heartbeat already waiting on PostgreSQL before finalization.
+       * Otherwise that tick can observe COMMITTED/owner=NULL after the receipt
+       * transaction and turn a successful request into a spurious fence-loss.
+       */
+      await heartbeat.assert();
+      await heartbeat.stop();
+      await this.prisma.$transaction((tx) =>
+        finalizeObjectStorageOperation(tx, heartbeat.lease(), {
+          verification,
+          result: objectStorageCommandReceipt(input.command, execution),
+        }),
+      );
+      return execution;
+    } finally {
+      await heartbeat.stop();
+    }
+  }
+
+  async replayTenantObjectStorageCommand(input: {
+    scopes: ProjectPhysicalMutationScope[];
+    idempotencyKey: string;
+    transportIntentHash: string;
+  }): Promise<ObjectStorageCommandExecution | undefined> {
+    return this.withProjectPhysicalAccesses(input.scopes, () =>
+      this.replayTenantObjectStorageCommandWithinPhysicalAccess(input),
+    );
+  }
+
+  private async replayTenantObjectStorageCommandWithinPhysicalAccess(input: {
+    scopes: ProjectPhysicalMutationScope[];
+    idempotencyKey: string;
+    transportIntentHash: string;
+  }): Promise<ObjectStorageCommandExecution | undefined> {
+    if (!/^[0-9a-f]{64}$/.test(input.transportIntentHash)) {
+      throw Object.assign(new Error('OBJECT_STORAGE_OPERATION_INTENT_HASH_INVALID'), {
+        code: 'OBJECT_STORAGE_OPERATION_INTENT_HASH_INVALID',
+        statusCode: 400,
+      });
+    }
+    const byProjectId = new Map<string, ProjectPhysicalMutationScope>();
+    for (const scope of input.scopes) {
+      const existing = byProjectId.get(scope.projectId);
+      if (existing && existing.expectedOrganizationId !== scope.expectedOrganizationId) {
+        throw projectOrganizationChangedError();
+      }
+      byProjectId.set(scope.projectId, existing ?? scope);
+    }
+    const scopes = [...byProjectId.values()].sort((left, right) => left.projectId.localeCompare(right.projectId));
+    if (scopes.length === 0) throw new TypeError('OBJECT_STORAGE_OPERATION_SCOPE_REQUIRED');
+    const idempotencyScopeHash = objectStorageIdempotencyScopeHash(
+      scopes.map(({ projectId, expectedOrganizationId }) => ({ projectId, expectedOrganizationId })),
+    );
+
+    return this.prisma.$transaction(async (tx) => {
+      const rows = await tx.$queryRaw<
+        Array<{ status: string; payload: unknown; preconditions: unknown; result: unknown | null }>
+      >`
+          SELECT "status"::text AS "status", "payload", "preconditions", "result"
+          FROM "ObjectStorageOperation"
+          WHERE "idempotencyScopeHash" = ${idempotencyScopeHash}
+            AND "idempotencyKey" = ${input.idempotencyKey}
+          FOR UPDATE
+        `;
+      const row = rows[0];
+      if (!row) return undefined;
+      const preconditions = row.preconditions as Record<string, unknown> | null;
+      if (preconditions?.transportIntentHash !== input.transportIntentHash) {
+        throw Object.assign(new Error('OBJECT_STORAGE_OPERATION_IDEMPOTENCY_CONFLICT'), {
+          code: 'OBJECT_STORAGE_OPERATION_IDEMPOTENCY_CONFLICT',
+          statusCode: 409,
+        });
+      }
+      if (row.status !== 'COMMITTED') return undefined;
+      const payload = row.payload as Record<string, unknown> | null;
+      const command = payload?.command;
+      if (
+        command !== 'ENSURE_BUCKET' &&
+        command !== 'DELETE_BUCKET' &&
+        command !== 'MOVE_OBJECT' &&
+        command !== 'DELETE_OBJECT' &&
+        command !== 'DELETE_PREFIX' &&
+        command !== 'PUT_OBJECT' &&
+        command !== 'CLONE_PROJECT'
+      ) {
+        throw new TypeError('OBJECT_STORAGE_COMMAND_RECOVERY_PAYLOAD_INVALID');
+      }
+      if (row.result === null) throw new TypeError('OBJECT_STORAGE_COMMAND_RECEIPT_INVALID');
+      return parseObjectStorageCommandReceiptByType(command, row.result);
+    });
+  }
+
+  private async withObjectStorageRecoveryPhysicalScope<T>(
+    operation: ObjectStorageOperationRecord,
+    effect: () => Promise<T>,
+  ): Promise<T> {
+    const scopes = [...operation.scopes]
+      .map(({ projectId, expectedOrganizationId }) => ({ projectId, expectedOrganizationId }))
+      .sort((left, right) => left.projectId.localeCompare(right.projectId));
+    const allowDeletion = operation.kind === 'PROJECT_PERMANENT_DELETE';
+    const validate = () =>
+      this.prisma.$transaction(async (tx) => {
+        for (const scope of scopes) {
+          await this.lockExpectedProjectTenantMutation(tx, scope, {
+            allowActiveCheckpoint: true,
+            allowDeletedProject: allowDeletion,
+            allowPermanentDeletion: allowDeletion,
+            allowedObjectStorageOperationId: operation.id,
+          });
+        }
+      });
+
+    return this.withProjectPhysicalBarriers(
+      scopes.map(({ projectId }) => projectId),
+      async () => {
+        await validate();
+        const lockFilesystem = async (index: number): Promise<T> => {
+          const scope = scopes[index];
+          if (scope) return this.withProjectFilesystemLock(scope.projectId, () => lockFilesystem(index + 1));
+          /* Re-read every tenant/freeze after all NFS locks are held. */
+          await validate();
+          return effect();
+        };
+        return lockFilesystem(0);
+      },
+    );
+  }
+
+  private objectStorageRecoveryErrorCode(error: unknown): string {
+    const raw =
+      error && typeof error === 'object' && 'code' in error && typeof error.code === 'string'
+        ? error.code
+        : error instanceof Error
+          ? error.message
+          : 'OBJECT_STORAGE_RECOVERY_FAILED';
+    const normalized = raw
+      .toUpperCase()
+      .replace(/[^A-Z0-9_]/g, '_')
+      .slice(0, 128);
+    return /^[A-Z][A-Z0-9_]*$/.test(normalized) ? normalized : 'OBJECT_STORAGE_RECOVERY_FAILED';
+  }
+
+  private objectStorageRecoveryIsDeterministic(error: unknown): boolean {
+    const code = this.objectStorageRecoveryErrorCode(error);
+    return (
+      error instanceof TypeError ||
+      /(?:CORRUPT|INVALID|MISMATCH|VERIFICATION_FAILED|INCOMPLETE|UNSUPPORTED|UNPINNABLE|CHECKPOINT_AUTHORITY_LOST)/.test(
+        code,
+      )
+    );
+  }
+
+  async reconcileObjectStorageOperations(input: {
+    storage: ObjectStorage;
+    batchSize?: number;
+    maxCandidates?: number;
+  }): Promise<ObjectStorageRecoveryReport> {
+    const batchSize = Math.max(1, Math.min(input.batchSize ?? 100, 500));
+    const maxCandidates = Math.max(batchSize, Math.min(input.maxCandidates ?? 2_000, 10_000));
+    const report: ObjectStorageRecoveryReport = {
+      scanned: 0,
+      failedSafe: 0,
+      recovered: 0,
+      deferred: 0,
+      quarantined: 0,
+      replayed: 0,
+      busy: 0,
+      operationIds: [],
+    };
+    let after: { leaseExpiresAt: string; operationId: string } | undefined;
+
+    while (report.scanned < maxCandidates) {
+      const candidates = await this.prisma.$transaction((tx) =>
+        listObjectStorageRecoveryCandidates(tx, {
+          limit: Math.min(batchSize, maxCandidates - report.scanned),
+          ...(after ? { after } : {}),
+        }),
+      );
+      if (candidates.length === 0) break;
+
+      for (const candidate of candidates) {
+        report.scanned += 1;
+        report.operationIds.push(candidate.operationId);
+        after = { leaseExpiresAt: candidate.leaseExpiresAt, operationId: candidate.operationId };
+
+        let inspection: Awaited<ReturnType<typeof inspectObjectStorageOperationRecovery>>;
+        try {
+          inspection = await this.prisma.$transaction((tx) =>
+            inspectObjectStorageOperationRecovery(tx, {
+              operationId: candidate.operationId,
+              requestHash: candidate.requestHash,
+              scopeHash: candidate.scopeHash,
+            }),
+          );
+        } catch (error) {
+          const mutation = {
+            ...candidate,
+            errorCode: this.objectStorageRecoveryErrorCode(error),
+            error,
+          };
+          await this.prisma.$transaction((tx) =>
+            this.objectStorageRecoveryIsDeterministic(error)
+              ? quarantineObjectStorageOperationRecovery(tx, mutation)
+              : deferObjectStorageOperationRecovery(tx, { ...mutation, retryAfterSeconds: 30 }),
+          );
+          this.objectStorageRecoveryIsDeterministic(error) ? (report.quarantined += 1) : (report.deferred += 1);
+          continue;
+        }
+
+        if (inspection.action === 'REPLAY') {
+          report.replayed += 1;
+          continue;
+        }
+        if (inspection.action === 'BUSY') {
+          report.busy += 1;
+          continue;
+        }
+        if (inspection.action === 'MANUAL_RECOVERY') {
+          report.quarantined += 1;
+          continue;
+        }
+        if (
+          candidate.action === 'VERIFY_FIRST' &&
+          inspection.operation.kind !== 'TENANT_MUTATION' &&
+          inspection.operation.kind !== 'PROJECT_REMIX_CLONE'
+        ) {
+          /*
+           * Permanent deletion needs the route's complete local/static/GCS
+           * verifier. Do not steal or quarantine that lease with a partial
+           * provider-only verifier; an exact HTTP retry can reclaim it safely.
+           */
+          report.busy += 1;
+          continue;
+        }
+
+        try {
+          await this.withObjectStorageRecoveryPhysicalScope(inspection.operation, async () => {
+            if (candidate.action === 'FAIL_SAFE') {
+              await this.prisma.$transaction((tx) =>
+                expirePreparedObjectStorageOperationFailedSafe(tx, {
+                  operationId: candidate.operationId,
+                  requestHash: candidate.requestHash,
+                  scopeHash: candidate.scopeHash,
+                  fencingToken: candidate.fencingToken,
+                }),
+              );
+              report.failedSafe += 1;
+              return;
+            }
+
+            const ownerToken = `object-storage-recovery:${randomUUID()}`;
+            const reclaimed = await this.prisma.$transaction((tx) =>
+              reclaimObjectStorageOperationForVerification(tx, {
+                operationId: candidate.operationId,
+                requestHash: candidate.requestHash,
+                scopeHash: candidate.scopeHash,
+                ownerToken,
+                leaseTtlSeconds: OBJECT_STORAGE_OPERATION_LEASE_TTL_SECONDS,
+              }),
+            );
+            if (reclaimed.kind === 'REPLAY') {
+              report.replayed += 1;
+              return;
+            }
+            if (reclaimed.kind === 'BUSY') {
+              report.busy += 1;
+              return;
+            }
+            if (reclaimed.kind === 'MANUAL_RECOVERY') {
+              report.quarantined += 1;
+              return;
+            }
+
+            const heartbeat = this.objectStorageOperationHeartbeat(reclaimed.lease);
+            try {
+              const pinnedInventory =
+                reclaimed.operation.kind === 'PROJECT_REMIX_CLONE'
+                  ? await this.prisma.$transaction((tx) =>
+                      readObjectStorageOperationPinnedInventory(tx, reclaimed.operation.id),
+                    )
+                  : undefined;
+              const recovered = await recoverPersistedObjectStorageCommand(input.storage, {
+                payload: reclaimed.operation.payload,
+                ...(pinnedInventory ? { pinnedInventory } : {}),
+              });
+              await heartbeat.assert();
+              await heartbeat.stop();
+              await this.prisma.$transaction((tx) =>
+                finalizeObjectStorageOperation(tx, heartbeat.lease(), {
+                  verification: recovered.verification,
+                  result: objectStorageCommandReceiptFromExecution(recovered.execution),
+                }),
+              );
+              report.recovered += 1;
+            } catch (error) {
+              await heartbeat.stop().catch(() => undefined);
+              if (this.objectStorageRecoveryIsDeterministic(error)) {
+                await this.prisma.$transaction((tx) =>
+                  markObjectStorageOperationManualRecovery(tx, heartbeat.lease(), {
+                    errorCode: this.objectStorageRecoveryErrorCode(error),
+                    error,
+                    evidence: { verifier: 'api-object-storage-recovery-v1' },
+                  }),
+                );
+                report.quarantined += 1;
+              } else {
+                const retryAfterSeconds = Math.min(3_600, 5 * 2 ** Math.min(reclaimed.operation.attempts, 9));
+                await this.prisma.$transaction((tx) =>
+                  deferLeasedObjectStorageOperationRecovery(tx, heartbeat.lease(), {
+                    errorCode: this.objectStorageRecoveryErrorCode(error),
+                    error,
+                    retryAfterSeconds,
+                  }),
+                );
+                report.deferred += 1;
+              }
+            } finally {
+              await heartbeat.stop().catch(() => undefined);
+            }
+          });
+        } catch (error) {
+          const mutation = {
+            ...candidate,
+            errorCode: this.objectStorageRecoveryErrorCode(error),
+            error,
+          };
+          await this.prisma
+            .$transaction((tx) =>
+              this.objectStorageRecoveryIsDeterministic(error)
+                ? quarantineObjectStorageOperationRecovery(tx, mutation)
+                : deferObjectStorageOperationRecovery(tx, { ...mutation, retryAfterSeconds: 30 }),
+            )
+            .then(() => {
+              this.objectStorageRecoveryIsDeterministic(error) ? (report.quarantined += 1) : (report.deferred += 1);
+            })
+            .catch(() => {
+              report.busy += 1;
+            });
+        }
+      }
+
+      if (candidates.length < batchSize) break;
+    }
+    return report;
+  }
+
+  private async matchingActiveObjectStorageOperationId(
+    tx: Prisma.TransactionClient,
+    input: {
+      projectId: string;
+      expectedOrganizationId: string;
+      idempotencyKey: string;
+      requestHash: string;
+    },
+  ): Promise<string | undefined> {
+    const rows = await tx.$queryRaw<Array<{ id: string }>>`
+      SELECT operation."id"
+      FROM "ObjectStorageOperation" operation
+      JOIN "ObjectStorageOperationProjectScope" scope ON scope."operationId" = operation."id"
+      WHERE scope."projectIdSnapshot" = ${input.projectId}
+        AND scope."expectedOrganizationId" = ${input.expectedOrganizationId}
+        AND operation."idempotencyKey" = ${input.idempotencyKey}
+        AND operation."requestHash" = ${input.requestHash}
+        AND operation."status" IN (
+          'PREPARED'::"ObjectStorageOperationStatus",
+          'EFFECT_STARTED'::"ObjectStorageOperationStatus",
+          'VERIFYING'::"ObjectStorageOperationStatus",
+          'MANUAL_RECOVERY'::"ObjectStorageOperationStatus"
+        )
+      LIMIT 1
+    `;
+    return rows[0]?.id;
+  }
+
+  private async matchingPermanentDeletionScope(
+    tx: Prisma.TransactionClient,
+    input: {
+      projectId: string;
+      expectedOrganizationId: string;
+      idempotencyKey: string;
+      requestHash: string;
+    },
+  ): Promise<{ operationId: string; expectedDeletedAt: Date | null } | undefined> {
+    const rows = await tx.$queryRaw<Array<{ operationId: string; expectedDeletedAt: Date | null }>>`
+      SELECT operation."id" AS "operationId", scope."expectedDeletedAt"
+      FROM "ObjectStorageOperation" operation
+      JOIN "ObjectStorageOperationProjectScope" scope ON scope."operationId" = operation."id"
+      WHERE scope."projectIdSnapshot" = ${input.projectId}
+        AND scope."expectedOrganizationId" = ${input.expectedOrganizationId}
+        AND scope."ordinal" = 0
+        AND operation."kind" = 'PROJECT_PERMANENT_DELETE'::"ObjectStorageOperationKind"
+        AND operation."idempotencyKey" = ${input.idempotencyKey}
+        AND operation."requestHash" = ${input.requestHash}
+        AND operation."status" IN (
+          'PREPARED'::"ObjectStorageOperationStatus",
+          'EFFECT_STARTED'::"ObjectStorageOperationStatus",
+          'VERIFYING'::"ObjectStorageOperationStatus",
+          'MANUAL_RECOVERY'::"ObjectStorageOperationStatus"
+        )
+      LIMIT 1
+    `;
+    return rows[0];
+  }
+
+  private async lockExpectedProjectTenantMutation(
+    tx: Prisma.TransactionClient,
+    scope: ProjectPhysicalMutationScope,
+    options: {
+      allowActiveCheckpoint?: boolean;
+      allowDeletedProject?: boolean;
+      allowPermanentDeletion?: boolean;
+      allowedObjectStorageOperationId?: string;
+    } = {},
+  ): Promise<void> {
+    await this.accountPurge.assertProjectStorageMutable(tx, scope.projectId, scope.workspaceId);
+    await tx.$executeRawUnsafe(
+      'SELECT pg_advisory_xact_lock(hashtext($1))',
+      objectStorageMutationAdvisoryKey(scope.projectId),
+    );
+    await lockProjectAfterPurgeTopology(tx, scope.projectId);
+
+    const project = await tx.project.findUnique({
+      where: { id: scope.projectId },
+      select: { organizationId: true, deletedAt: true, permanentDeletionStartedAt: true },
+    });
+
+    if (
+      !project ||
+      (!options.allowDeletedProject && project.deletedAt) ||
+      project.organizationId !== scope.expectedOrganizationId
+    ) {
+      throw projectOrganizationChangedError();
+    }
+
+    if (project.permanentDeletionStartedAt && !options.allowPermanentDeletion) {
+      throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+        code: 'PROJECT_PERMANENT_DELETION_ACTIVE',
+        statusCode: 409,
+      });
+    }
+
+    await assertNoActiveObjectStorageOperation(tx, [scope.projectId], options.allowedObjectStorageOperationId);
+
+    if (!options.allowActiveCheckpoint) {
+      await assertNoActiveProjectReleaseBarrier(tx, scope.projectId);
+    }
+  }
+
+  assertProjectStorageMutable(scope: ProjectPhysicalMutationScope) {
+    return this.prisma.$transaction((tx) => this.lockExpectedProjectTenantMutation(tx, scope));
   }
 
   hasPurgeReceipt(userId: string) {
@@ -2452,60 +3725,70 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
 
   async updateProject(input: {
     projectId: string;
+    expectedOrganizationId: string;
     name?: string;
     description?: string;
     gitRepositoryUrl?: string;
     gitDefaultBranch?: string;
   }) {
-    return mapProject(
-      await this.prisma.project.update({
-        where: { id: input.projectId },
-        data: {
-          name: input.name,
-          description: input.description,
-          gitRepositoryUrl: input.gitRepositoryUrl,
-          gitDefaultBranch: input.gitDefaultBranch,
-        },
-      }),
-    );
+    return this.prisma.$transaction(async (tx) => {
+      await this.lockExpectedProjectTenantMutation(tx, input);
+      return mapProject(
+        await tx.project.update({
+          where: { id: input.projectId },
+          data: {
+            name: input.name,
+            description: input.description,
+            gitRepositoryUrl: input.gitRepositoryUrl,
+            gitDefaultBranch: input.gitDefaultBranch,
+          },
+        }),
+      );
+    });
   }
 
-  async renameProjectSlug(input: { projectId: string; newSlug: string; redirectTtlDays?: number }) {
-    const project = assertFound(
-      await this.prisma.project.findUnique({ where: { id: input.projectId } }),
-      'Project not found',
-      'PROJECT_NOT_FOUND',
-    );
-
-    /*
-     * No-op rename: don't mint a self-redirect (it would loop the old→new URL
-     * back onto itself) — just hand back the project unchanged.
-     */
-    if (project.slug === input.newSlug) {
-      return mapProject(project);
-    }
-
-    /*
-     * slug is only @@unique within an org, so a bare update would 500 on P2002.
-     * Surface the clash as a typed 409 the route can translate into an inline
-     * "slug already taken" message.
-     */
-    const clash = await this.prisma.project.findFirst({
-      where: { organizationId: project.organizationId, slug: input.newSlug, id: { not: project.id } },
-      select: { id: true },
-    });
-
-    if (clash) {
-      throw Object.assign(new Error(appPublicEnglish('PROJECT_SLUG_TAKEN')), {
-        statusCode: 409,
-        code: 'PROJECT_SLUG_TAKEN',
-      });
-    }
-
-    const ttlDays = input.redirectTtlDays ?? 30;
-    const expiresAt = new Date(Date.now() + ttlDays * 24 * 60 * 60 * 1000);
-
+  async renameProjectSlug(input: {
+    projectId: string;
+    expectedOrganizationId: string;
+    newSlug: string;
+    redirectTtlDays?: number;
+  }) {
     return this.prisma.$transaction(async (tx) => {
+      await this.lockExpectedProjectTenantMutation(tx, input);
+      const project = assertFound(
+        await tx.project.findUnique({ where: { id: input.projectId } }),
+        'Project not found',
+        'PROJECT_NOT_FOUND',
+      );
+
+      /*
+       * No-op rename: don't mint a self-redirect (it would loop the old→new URL
+       * back onto itself) — just hand back the project unchanged.
+       */
+      if (project.slug === input.newSlug) {
+        return mapProject(project);
+      }
+
+      /*
+       * slug is only @@unique within an org, so a bare update would 500 on P2002.
+       * Surface the clash as a typed 409 the route can translate into an inline
+       * "slug already taken" message.
+       */
+      const clash = await tx.project.findFirst({
+        where: { organizationId: project.organizationId, slug: input.newSlug, id: { not: project.id } },
+        select: { id: true },
+      });
+
+      if (clash) {
+        throw Object.assign(new Error(appPublicEnglish('PROJECT_SLUG_TAKEN')), {
+          statusCode: 409,
+          code: 'PROJECT_SLUG_TAKEN',
+        });
+      }
+
+      const redirectNow = await databaseNow(tx);
+      const expiresAt = new Date(redirectNow.getTime() + projectSlugRedirectTtlMs(input.redirectTtlDays));
+
       /*
        * Persist old → project redirect (upsert so a re-rename of the same old
        * slug just refreshes the 30-day window instead of P2002-ing).
@@ -2694,259 +3977,778 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
     };
   }
 
-  async softDeleteProject(projectId: string) {
-    return this.prisma.$transaction(async (tx) => {
-      await this.accountPurge.assertProjectMutable(tx, projectId);
-      await tx.$queryRawUnsafe('SELECT "id" FROM "Project" WHERE "id" = $1 FOR UPDATE', projectId);
-      await assertProjectReservedVmDecommissioned(tx, projectId);
-      return mapProject(await tx.project.update({ where: { id: projectId }, data: { deletedAt: new Date() } }));
-    });
-  }
-
-  async restoreProject(projectId: string) {
-    return mapProject(await this.prisma.project.update({ where: { id: projectId }, data: { deletedAt: null } }));
-  }
-
-  async hardDeleteProject(projectId: string) {
-    // Every child relation declares onDelete: Cascade (AiConversation: SetNull),
-    // so a plain delete removes the whole project graph atomically.
-    return this.prisma.$transaction(async (tx) => {
-      await this.accountPurge.assertProjectMutable(tx, projectId);
-      await tx.$queryRawUnsafe('SELECT "id" FROM "Project" WHERE "id" = $1 FOR UPDATE', projectId);
-      await assertProjectReservedVmDecommissioned(tx, projectId);
-      return mapProject(await tx.project.delete({ where: { id: projectId } }));
-    });
-  }
-
-  async transferProject(input: { projectId: string; targetOrganizationId: string; actorUserId?: string }) {
-    const current = assertFound(
-      await this.prisma.project.findUnique({ where: { id: input.projectId } }),
-      'Project not found',
-      'PROJECT_NOT_FOUND',
+  async softDeleteProject(input: ProjectPhysicalMutationScope) {
+    return this.withProjectPhysicalMutation(input, () =>
+      this.prisma.$transaction(async (tx) => {
+        await this.lockExpectedProjectTenantMutation(tx, input);
+        await assertProjectReservedVmDecommissioned(tx, input.projectId);
+        return mapProject(
+          await tx.project.update({ where: { id: input.projectId }, data: { deletedAt: await databaseNow(tx) } }),
+        );
+      }),
     );
+  }
 
-    if (current.organizationId === input.targetOrganizationId) {
-      return mapProject(current);
+  async restoreProject(input: ProjectPhysicalMutationScope) {
+    return this.withProjectPhysicalBarrier(input.projectId, async () => {
+      await this.prisma.$transaction((tx) =>
+        this.lockExpectedProjectTenantMutation(tx, input, { allowDeletedProject: true }),
+      );
+      return this.withProjectFilesystemLock(input.projectId, () =>
+        this.prisma.$transaction(async (tx) => {
+          await this.lockExpectedProjectTenantMutation(tx, input, { allowDeletedProject: true });
+          return mapProject(await tx.project.update({ where: { id: input.projectId }, data: { deletedAt: null } }));
+        }),
+      );
+    });
+  }
+
+  private async assertProjectStaticErasureFrozen(tx: Prisma.TransactionClient, projectId: string): Promise<void> {
+    const project = await tx.project.findUnique({
+      where: { id: projectId },
+      select: { permanentDeletionStartedAt: true },
+    });
+    if (!project?.permanentDeletionStartedAt) {
+      throw Object.assign(new Error('PROJECT_STATIC_ERASURE_AUTHORITY_UNAVAILABLE'), {
+        code: 'PROJECT_STATIC_ERASURE_AUTHORITY_UNAVAILABLE',
+        statusCode: 503,
+      });
+    }
+  }
+
+  async resolveProjectStaticErasureInventory(projectId: string): Promise<ProjectStaticErasureInventory> {
+    return this.prisma.$transaction(async (tx) => {
+      await this.assertProjectStaticErasureFrozen(tx, projectId);
+
+      const [deploymentRows, artifactRows] = await Promise.all([
+        tx.$queryRaw<Array<{ deploymentId: string }>>`
+          SELECT deployment."id" AS "deploymentId"
+          FROM "Deployment" deployment
+          WHERE deployment."projectId" = ${projectId}
+            AND deployment."provider" = 'static'
+          UNION
+          SELECT manifest."deploymentId"
+          FROM "ReleaseManifest" manifest
+          WHERE manifest."projectId" = ${projectId}
+            AND manifest."artifactKind" = 'static-snapshot'
+          ORDER BY "deploymentId" ASC
+        `,
+        tx.$queryRaw<
+          Array<{
+            artifactRef: string;
+            projectReferenceCount: number;
+            otherReferenceCount: number;
+          }>
+        >`
+          WITH owned AS (
+            SELECT DISTINCT manifest."artifactRef"
+            FROM "ReleaseManifest" manifest
+            WHERE manifest."projectId" = ${projectId}
+              AND manifest."artifactKind" = 'static-snapshot'
+              AND manifest."artifactRef" ~ '^static-artifacts/sha256/[a-f0-9]{64}$'
+          )
+          SELECT
+            manifest."artifactRef",
+            (count(*) FILTER (WHERE manifest."projectId" = ${projectId}))::int AS "projectReferenceCount",
+            (count(*) FILTER (WHERE manifest."projectId" <> ${projectId}))::int AS "otherReferenceCount"
+          FROM "ReleaseManifest" manifest
+          INNER JOIN owned ON owned."artifactRef" = manifest."artifactRef"
+          WHERE manifest."artifactKind" = 'static-snapshot'
+          GROUP BY manifest."artifactRef"
+          ORDER BY manifest."artifactRef" ASC
+        `,
+      ]);
+
+      return {
+        projectId,
+        deploymentIds: deploymentRows.map((row) => row.deploymentId),
+        artifacts: artifactRows,
+      };
+    });
+  }
+
+  async resolveProjectStaticArtifactAuthority(
+    projectId: string,
+    artifactRef: string,
+  ): Promise<ProjectStaticArtifactAuthority | undefined> {
+    if (!/^static-artifacts\/sha256\/[a-f0-9]{64}$/u.test(artifactRef)) {
+      throw Object.assign(new Error('PROJECT_STATIC_ERASURE_ARTIFACT_REF_INVALID'), {
+        code: 'PROJECT_STATIC_ERASURE_ARTIFACT_REF_INVALID',
+        statusCode: 400,
+      });
     }
 
-    /*
-     * The slug is only unique within an org, so the target org may already have a
-     * project with this slug — a bare update would then violate
-     * @@unique([organizationId, slug]) with an unhandled P2002 (500). Re-allocate
-     * a free slug in the target org and retry on the race, like createProject.
-     * The persistentVolumeClaim is intentionally left unchanged: it references an
-     * existing physical volume holding the project's data, so renaming it would
-     * orphan that volume.
-     */
-    for (let attempt = 0; ; attempt += 1) {
-      const slug = await this.nextProjectSlug(input.targetOrganizationId, current.slug);
+    return this.prisma.$transaction(async (tx) => {
+      await this.assertProjectStaticErasureFrozen(tx, projectId);
+      const rows = await tx.$queryRaw<
+        Array<{
+          artifactRef: string;
+          projectReferenceCount: number;
+          otherReferenceCount: number;
+        }>
+      >`
+        SELECT
+          manifest."artifactRef",
+          (count(*) FILTER (WHERE manifest."projectId" = ${projectId}))::int AS "projectReferenceCount",
+          (count(*) FILTER (WHERE manifest."projectId" <> ${projectId}))::int AS "otherReferenceCount"
+        FROM "ReleaseManifest" manifest
+        WHERE manifest."artifactKind" = 'static-snapshot'
+          AND manifest."artifactRef" = ${artifactRef}
+        GROUP BY manifest."artifactRef"
+        HAVING count(*) FILTER (WHERE manifest."projectId" = ${projectId}) > 0
+      `;
+      return rows[0];
+    });
+  }
 
-      try {
-        return await this.prisma.$transaction(async (tx) => {
-          /*
-           * The account-purge topology lock is always first. Grant creation,
-           * CloudTenant binding, release barriers, and transfer all follow
-           * topology -> checkpoint -> Project, so none can hold the Project
-           * row while waiting for topology (the former deadlock inversion).
-           */
-          await this.accountPurge.assertProjectMutable(tx, input.projectId);
-          await this.accountPurge.assertMembershipMutable(tx, input.targetOrganizationId);
-          await lockProjectMutation(tx, input.projectId);
+  async getProjectPermanentDeletionReceiptIdentity(projectId: string) {
+    const rows = await this.prisma.$queryRaw<
+      Array<{
+        projectId: string;
+        organizationId: string;
+        idempotencyKey: string;
+        requestHash: string;
+        expectedProjectNameHash: string;
+      }>
+    >`SELECT r."projectId", r."organizationId", r."idempotencyKey", r."requestHash",
+             o."payload"->>'expectedProjectNameHash' AS "expectedProjectNameHash"
+        FROM "ProjectPermanentDeletionReceipt" r
+        JOIN "ObjectStorageOperation" o ON o."id" = r."operationId"
+        WHERE r."projectId" = ${projectId}`;
 
-          const locked = assertFound(
-            await tx.project.findUnique({ where: { id: input.projectId } }),
-            'Project not found',
-            'PROJECT_NOT_FOUND',
-          );
+    const identity = rows[0];
+    if (identity && !/^[0-9a-f]{64}$/.test(identity.expectedProjectNameHash)) {
+      throw Object.assign(new Error('PROJECT_PERMANENT_DELETION_RECEIPT_CORRUPT'), {
+        code: 'PROJECT_PERMANENT_DELETION_RECEIPT_CORRUPT',
+        statusCode: 500,
+      });
+    }
+    return identity;
+  }
 
-          if (locked.organizationId === input.targetOrganizationId) {
-            return mapProject(locked);
-          }
+  async replayProjectPermanentDeletion(input: {
+    projectId: string;
+    expectedOrganizationId: string;
+    idempotencyKey: string;
+    requestHash: string;
+  }): Promise<ProjectPermanentDeletionResult | undefined> {
+    const replay = await this.prisma.$transaction((tx) => getPermanentDeletionReplay(tx, input));
+    return replay
+      ? mapPermanentDeletionReplay(replay, {
+          idempotencyKey: input.idempotencyKey,
+          requestHash: input.requestHash,
+          replayed: true,
+        })
+      : undefined;
+  }
 
-          const checkpointBarrier = await tx.projectCheckpoint.findFirst({
-            where: {
-              projectId: input.projectId,
-              barrierProjectId: input.projectId,
-              barrierExpiresAt: { gt: await databaseNow(tx) },
-            },
-            select: { id: true },
-          });
+  async hardDeleteProject(
+    input: ProjectPhysicalMutationScope & {
+      expectedProjectName: string;
+      idempotencyKey: string;
+      requestHash: string;
+      actorUserId: string;
+      ipAddress?: string;
+      preflightPhysicalErasure: () => Promise<ObjectStorageStaticArtifactSummary>;
+      erasePhysical: (assertLease: () => Promise<void>) => Promise<void>;
+      verifyPhysicalAbsence: () => Promise<ObjectStorageVerification>;
+    },
+  ): Promise<ProjectPermanentDeletionResult> {
+    const operationRequest = projectPermanentDeletionOperationRequest({
+      projectId: input.projectId,
+      organizationId: input.expectedOrganizationId,
+      actorUserId: input.actorUserId,
+      expectedProjectName: input.expectedProjectName,
+    });
+    const requestHash = projectPermanentDeletionRequestHash({
+      projectId: input.projectId,
+      organizationId: input.expectedOrganizationId,
+      actorUserId: input.actorUserId,
+      expectedProjectName: input.expectedProjectName,
+    });
 
-          if (checkpointBarrier) {
-            throw Object.assign(new Error(appPublicEnglish('CHECKPOINT_BARRIER_ACTIVE_MESSAGE')), {
-              statusCode: 423,
-              code: 'CHECKPOINT_BARRIER_ACTIVE',
-            });
-          }
+    if (requestHash !== input.requestHash) {
+      throw Object.assign(new Error('PROJECT_PERMANENT_DELETION_REQUEST_HASH_MISMATCH'), {
+        code: 'PROJECT_PERMANENT_DELETION_REQUEST_HASH_MISMATCH',
+        statusCode: 409,
+      });
+    }
 
-          /*
-           * A plain Organization reassignment cannot safely move resources
-           * whose ownership is enforced by another control plane. Relabeling
-           * the Project would leave CNPG metering on the source tenant, a GCP
-           * binding owned by the source CloudTenant, or a live schema migration
-           * crossing the boundary. Those moves must use the dedicated durable
-           * tenant/resource transfer workflow; fail before revoking grants or
-           * appending a manifest revision so this operation is all-or-nothing.
-           */
-          const [
-            managedDatabaseCount,
-            cloudBindingCount,
-            activeMigrationCount,
-            activeImportCount,
-            activeRemixCount,
-            activeStorageShareCount,
-            liveDeploymentCount,
-            releaseManifestCount,
-            nonTerminalReservedVmOperationCount,
-            activeReservedVmBillingPeriodCount,
-          ] = await Promise.all([
-            tx.databaseInstance.count({ where: { projectId: input.projectId, status: { not: 'DELETED' } } }),
-            tx.cloudProjectBinding.count({ where: { projectId: input.projectId } }),
-            tx.dBMigrationExecution.count({
-              where: {
-                projectId: input.projectId,
-                /*
-                 * Fail closed for future states too. MANUAL_RECOVERY is
-                 * deliberately not terminal-safe: the production schema may
-                 * still need operator repair under the source tenant.
-                 */
-                state: { notIn: ['COMMITTED', 'FAILED_SAFE'] },
-              },
-            }),
-            tx.importJob.count({
-              where: {
-                targetProjectId: input.projectId,
-                /* ROLLING_BACK/CLEANUP_PENDING still own and mutate the target. */
-                state: { notIn: ['COMMITTED', 'EXPIRED', 'CANCELLED', 'FAILED'] },
-              },
-            }),
-            tx.remixJob.count({
-              where: {
-                OR: [{ sourceProjectId: input.projectId }, { targetProjectId: input.projectId }],
-                state: { notIn: ['COMPLETED', 'FAILED'] },
-              },
-            }),
-            tx.remixStorageShare.count({
-              where: {
-                state: 'ACTIVE',
-                OR: [{ sourceProjectId: input.projectId }, { targetProjectId: input.projectId }],
-              },
-            }),
-            /* QUEUED/BUILDING still own an external build/runtime; future non-terminals fail closed too. */
-            tx.deployment.count({
-              where: { projectId: input.projectId, status: { notIn: ['FAILED', 'CANCELED'] } },
-            }),
-            tx.releaseManifest.count({ where: { projectId: input.projectId } }),
-            tx.reservedVmOperation.count({
-              where: { projectId: input.projectId, status: { notIn: ['COMPLETED', 'FAILED'] } },
-            }),
-            tx.reservedVmBillingPeriod.count({
-              where: { projectId: input.projectId, status: { not: 'CANCELED' } },
-            }),
-          ]);
-
-          if (
-            managedDatabaseCount +
-              cloudBindingCount +
-              activeMigrationCount +
-              activeImportCount +
-              activeRemixCount +
-              activeStorageShareCount +
-              liveDeploymentCount +
-              releaseManifestCount +
-              nonTerminalReservedVmOperationCount +
-              activeReservedVmBillingPeriodCount >
-            0
-          ) {
-            throw Object.assign(new Error(appPublicEnglish('PROJECT_TRANSFER_MANAGED_RESOURCES_ACTIVE')), {
-              statusCode: 409,
-              code: 'PROJECT_TRANSFER_MANAGED_RESOURCES_ACTIVE',
-            });
-          }
-
-          const sourceRevisionRow = await tx.projectManifestRevision.findFirst({
-            where: { projectId: input.projectId },
-            orderBy: { manifestVersion: 'desc' },
-          });
-          const sourceManifest = sourceRevisionRow
-            ? verifyStoredProjectManifestRevision(mapProjectManifestRevision(sourceRevisionRow), input.projectId)
-            : createDefaultProjectManifest(input.projectId);
-
-          const detachedSeed = projectManifestForClone(sourceManifest, input.projectId, 'DETACH_EXTERNALS');
-
-          const detachedManifest = canonicalizeProjectManifest({
-            ...detachedSeed,
-            manifestVersion: (sourceRevisionRow?.manifestVersion ?? 0) + 1,
-          });
-
-          /*
-           * Revoke all explicit ProjectCollaborator grants on transfer. They were
-           * issued to the SOURCE org's users; leaving them in place after the
-           * project moves to a different org keeps those (now cross-org) users with
-           * access to a project they no longer belong to. The target org's members
-           * get access via org membership; collaborators must be re-invited.
-           */
-          await tx.projectCollaborator.deleteMany({ where: { projectId: input.projectId } });
-
-          /*
-           * Share links are bearer capability tokens minted for the SOURCE org.
-           * GET /collaboration/share-links/:token resolves them by token alone
-           * (only revokedAt/expiry, not org) and mints a fresh collaborator grant,
-           * so a leaked/outstanding link would re-grant cross-org access after the
-           * project moves. Revoke them all on transfer (target org re-issues).
-           */
-          await tx.projectShareLink.deleteMany({ where: { projectId: input.projectId } });
-
-          /*
-           * Chat shares are bearer-token snapshots of the project's AI
-           * conversations, minted under the SOURCE org. findChatShareByTokenHash
-           * resolves them by token alone (no org check), so an outstanding link
-           * would keep leaking the source org's conversation data after the
-           * project moves to a different org. Revoke them all on transfer; the
-           * target org re-shares as needed.
-           */
-          await tx.chatShare.deleteMany({ where: { projectId: input.projectId } });
-
-          const revokedAt = await databaseNow(tx);
-          await tx.resourceAccessGrant.updateMany({
-            where: {
-              resourceType: 'PROJECT',
-              resourceId: input.projectId,
-              status: { in: ['PENDING_CONSENT', 'ACTIVE'] },
-            },
-            data: {
-              status: 'REVOKED',
-              revokedAt,
-              revokedByUserId: input.actorUserId,
-              revocationReason: 'PROJECT_TRANSFERRED',
-            },
-          });
-
-          const transferred = await tx.project.update({
-            where: { id: input.projectId },
-            data: { organizationId: input.targetOrganizationId, slug },
-          });
-          await tx.projectManifestRevision.create({
-            data: {
-              projectId: input.projectId,
-              schemaVersion: detachedManifest.schemaVersion,
-              manifestVersion: detachedManifest.manifestVersion,
-              digest: projectManifestDigest(detachedManifest),
-              manifest: detachedManifest as Prisma.InputJsonValue,
-              createdByUserId: input.actorUserId,
-            },
-          });
-
-          return mapProject(transferred);
+    return this.withProjectPhysicalBarrier(input.projectId, async () => {
+      /* Reject a stale tenant before waiting on NFS, but allow an idempotent retry. */
+      await this.prisma.$transaction(async (tx) => {
+        const allowedObjectStorageOperationId = await this.matchingActiveObjectStorageOperationId(tx, {
+          projectId: input.projectId,
+          expectedOrganizationId: input.expectedOrganizationId,
+          idempotencyKey: input.idempotencyKey,
+          requestHash: input.requestHash,
         });
-      } catch (error) {
-        if (isPrismaKnownRequestError(error) && error.code === 'P2002' && attempt < 5) {
-          continue;
+        await this.lockExpectedProjectTenantMutation(tx, input, {
+          allowDeletedProject: true,
+          allowPermanentDeletion: true,
+          allowedObjectStorageOperationId,
+        });
+        await assertProjectReservedVmDecommissioned(tx, input.projectId);
+        await this.assertNoActiveRemixSourceShare(tx, input.projectId);
+      });
+
+      return this.withProjectFilesystemLock(input.projectId, async () => {
+        const { current, expectedDeletedAt } = await this.prisma.$transaction(async (tx) => {
+          const matchingOperation = await this.matchingPermanentDeletionScope(tx, {
+            projectId: input.projectId,
+            expectedOrganizationId: input.expectedOrganizationId,
+            idempotencyKey: input.idempotencyKey,
+            requestHash: input.requestHash,
+          });
+          await this.lockExpectedProjectTenantMutation(tx, input, {
+            allowDeletedProject: true,
+            allowPermanentDeletion: true,
+            allowedObjectStorageOperationId: matchingOperation?.operationId,
+          });
+          await assertProjectReservedVmDecommissioned(tx, input.projectId);
+          await this.assertNoActiveRemixSourceShare(tx, input.projectId);
+          const current = await tx.project.findUniqueOrThrow({ where: { id: input.projectId } });
+          return {
+            current,
+            /*
+             * A first claim snapshots the caller-observed soft-delete state and
+             * then installs its irreversible deletion fence. A response-loss
+             * retry must replay that original scope; feeding the newly installed
+             * deletedAt back into claim would turn the same key/body into a false
+             * idempotency conflict before VERIFY_FIRST can inspect the effect.
+             */
+            expectedDeletedAt: matchingOperation ? matchingOperation.expectedDeletedAt : current.deletedAt,
+          };
+        });
+
+        if (current.name !== input.expectedProjectName) {
+          throw Object.assign(new Error(appPublicEnglish('PROJECT_NAME_MISMATCH')), {
+            code: 'PROJECT_NAME_MISMATCH',
+            statusCode: 409,
+          });
         }
 
-        throw error;
+        const ownerToken = `project-permanent-delete:${randomUUID()}`;
+        let claimed = await this.prisma.$transaction((tx) =>
+          claimObjectStorageOperation(tx, {
+            ...operationRequest,
+            scopes: [
+              {
+                projectId: input.projectId,
+                expectedOrganizationId: input.expectedOrganizationId,
+                expectedDeletedAt: expectedDeletedAt?.toISOString() ?? null,
+              },
+            ],
+            idempotencyKey: input.idempotencyKey,
+            requestHash: input.requestHash,
+            ownerToken,
+            leaseTtlSeconds: OBJECT_STORAGE_OPERATION_LEASE_TTL_SECONDS,
+          }),
+        );
+
+        if (claimed.kind === 'REPLAY') {
+          const replayed = await this.replayProjectPermanentDeletion({
+            projectId: input.projectId,
+            expectedOrganizationId: input.expectedOrganizationId,
+            idempotencyKey: input.idempotencyKey,
+            requestHash: input.requestHash,
+          });
+          if (!replayed) throw new Error('PROJECT_PERMANENT_DELETION_RECEIPT_MISSING');
+          return replayed;
+        }
+        if (claimed.kind === 'BUSY') {
+          throw Object.assign(new Error('PROJECT_PERMANENT_DELETION_IN_PROGRESS'), {
+            code: 'PROJECT_PERMANENT_DELETION_IN_PROGRESS',
+            statusCode: 409,
+            retryAt: claimed.retryAt,
+          });
+        }
+        if (claimed.kind === 'MANUAL_RECOVERY') {
+          throw Object.assign(new Error('PROJECT_PERMANENT_DELETION_MANUAL_RECOVERY'), {
+            code: 'PROJECT_PERMANENT_DELETION_MANUAL_RECOVERY',
+            statusCode: 409,
+          });
+        }
+
+        let recoveryVerificationOnly = claimed.kind === 'VERIFY_FIRST';
+        if (claimed.kind === 'VERIFY_FIRST') {
+          claimed = await this.prisma.$transaction((tx) =>
+            reclaimObjectStorageOperationForVerification(tx, {
+              operationId: claimed.operation.id,
+              requestHash: input.requestHash,
+              scopeHash: claimed.operation.scopeHash,
+              ownerToken,
+              leaseTtlSeconds: OBJECT_STORAGE_OPERATION_LEASE_TTL_SECONDS,
+            }),
+          );
+
+          if (claimed.kind === 'REPLAY') {
+            const replayed = await this.replayProjectPermanentDeletion({
+              projectId: input.projectId,
+              expectedOrganizationId: input.expectedOrganizationId,
+              idempotencyKey: input.idempotencyKey,
+              requestHash: input.requestHash,
+            });
+            if (!replayed) throw new Error('PROJECT_PERMANENT_DELETION_RECEIPT_MISSING');
+            return replayed;
+          }
+          if (claimed.kind === 'BUSY') {
+            throw Object.assign(new Error('PROJECT_PERMANENT_DELETION_IN_PROGRESS'), {
+              code: 'PROJECT_PERMANENT_DELETION_IN_PROGRESS',
+              statusCode: 409,
+              retryAt: claimed.retryAt,
+            });
+          }
+          if (claimed.kind === 'MANUAL_RECOVERY') {
+            throw Object.assign(new Error('PROJECT_PERMANENT_DELETION_MANUAL_RECOVERY'), {
+              code: 'PROJECT_PERMANENT_DELETION_MANUAL_RECOVERY',
+              statusCode: 409,
+            });
+          }
+        }
+
+        const heartbeat = this.objectStorageOperationHeartbeat(claimed.lease);
+
+        try {
+          if (!recoveryVerificationOnly) {
+            try {
+              const staticArtifactPlan = await input.preflightPhysicalErasure();
+              await heartbeat.assert();
+              await this.prisma.$transaction((tx) =>
+                recordPermanentDeletionStaticArtifactPlan(tx, heartbeat.lease(), staticArtifactPlan),
+              );
+            } catch (error) {
+              await this.prisma.$transaction((tx) =>
+                markObjectStorageOperationFailedSafe(tx, heartbeat.lease(), {
+                  errorCode: this.objectStorageRecoveryErrorCode(error),
+                  error,
+                }),
+              );
+              throw error;
+            }
+            await this.prisma.$transaction((tx) =>
+              markObjectStorageOperationEffectStarted(tx, heartbeat.lease(), {
+                command: 'project-permanent-delete',
+              }),
+            );
+            await input.erasePhysical(heartbeat.assert);
+            await heartbeat.assert();
+            await this.prisma.$transaction((tx) =>
+              beginObjectStorageOperationVerification(tx, heartbeat.lease(), {
+                command: 'project-permanent-delete-verify',
+              }),
+            );
+          }
+
+          let proof: ObjectStorageVerification;
+          try {
+            proof = await input.verifyPhysicalAbsence();
+          } catch (error) {
+            if (recoveryVerificationOnly) {
+              await this.prisma.$transaction((tx) =>
+                markObjectStorageOperationManualRecovery(tx, heartbeat.lease(), {
+                  errorCode: 'PROJECT_PERMANENT_DELETION_VERIFICATION_AMBIGUOUS',
+                  error,
+                  evidence: { verificationAttempted: true },
+                }),
+              );
+            }
+            throw error;
+          }
+
+          await heartbeat.assert();
+          await heartbeat.stop();
+
+          const replay = await this.prisma.$transaction(async (tx) => {
+            await finalizeObjectStorageOperation(tx, heartbeat.lease(), { verification: proof });
+            await tx.auditLog.create({
+              data: {
+                organizationId: input.expectedOrganizationId,
+                actorUserId: input.actorUserId,
+                action: 'project.hard_delete',
+                resourceType: 'project',
+                resourceId: input.projectId,
+                metadata: redactAuditMetadata({
+                  name: input.expectedProjectName,
+                  operationId: heartbeat.lease().operationId,
+                  idempotencyKey: input.idempotencyKey,
+                }) as Prisma.InputJsonValue,
+                ipAddress: input.ipAddress,
+              },
+            });
+            return getPermanentDeletionReplay(tx, {
+              projectId: input.projectId,
+              expectedOrganizationId: input.expectedOrganizationId,
+              idempotencyKey: input.idempotencyKey,
+              requestHash: input.requestHash,
+            });
+          });
+
+          if (!replay) throw new Error('PROJECT_PERMANENT_DELETION_RECEIPT_MISSING');
+          return mapPermanentDeletionReplay(replay, {
+            idempotencyKey: input.idempotencyKey,
+            requestHash: input.requestHash,
+            replayed: false,
+          });
+        } finally {
+          await heartbeat.stop().catch(() => undefined);
+        }
+      });
+    });
+  }
+
+  async transferProject(input: {
+    projectId: string;
+    expectedOrganizationId: string;
+    targetOrganizationId: string;
+    actorUserId?: string;
+    assertExternalStorageDetached: () => Promise<void>;
+    validateTargetAdmission: () => Promise<void>;
+  }) {
+    const physicalScope = {
+      projectId: input.projectId,
+      expectedOrganizationId: input.expectedOrganizationId,
+    };
+
+    return this.withProjectPhysicalMutation(physicalScope, async () => {
+      const current = assertFound(
+        await this.prisma.project.findUnique({ where: { id: input.projectId } }),
+        'Project not found',
+        'PROJECT_NOT_FOUND',
+      );
+
+      if (current.organizationId !== input.expectedOrganizationId) {
+        throw projectOrganizationChangedError();
       }
-    }
+
+      if (current.organizationId === input.targetOrganizationId) {
+        return mapProject(current);
+      }
+
+      const operationRequest = {
+        kind: 'PROJECT_TRANSFER' as const,
+        scopes: [
+          {
+            projectId: input.projectId,
+            expectedOrganizationId: input.expectedOrganizationId,
+          },
+        ],
+        payload: {
+          command: 'project-transfer',
+          sourceOrganizationId: input.expectedOrganizationId,
+          targetOrganizationId: input.targetOrganizationId,
+        },
+        preconditions: {
+          tenantMustMatch: true,
+          providerBucketMustBeAbsent: true,
+          capabilityMustBeExpired: true,
+        },
+      };
+      const requestHash = objectStorageRequestHash(operationRequest);
+      const claimed = await this.prisma.$transaction((tx) =>
+        claimObjectStorageOperation(tx, {
+          ...operationRequest,
+          idempotencyKey: `project-transfer:${input.expectedOrganizationId}:${input.targetOrganizationId}`,
+          requestHash,
+          ownerToken: `project-transfer:${randomUUID()}`,
+          leaseTtlSeconds: OBJECT_STORAGE_OPERATION_LEASE_TTL_SECONDS,
+        }),
+      );
+      if (claimed.kind !== 'ACQUIRED') {
+        const retryAt = claimed.kind === 'BUSY' ? claimed.retryAt : undefined;
+        throw Object.assign(new Error('PROJECT_TRANSFER_OPERATION_UNAVAILABLE'), {
+          code: 'PROJECT_TRANSFER_OPERATION_UNAVAILABLE',
+          statusCode: 409,
+          ...(retryAt ? { retryAt } : {}),
+        });
+      }
+      const heartbeat = this.objectStorageOperationHeartbeat(claimed.lease);
+
+      /*
+       * Provider I/O must never run inside the topology/object-storage database
+       * transaction. The physical + NFS barriers remain held across this probe,
+       * so no tenant-scoped issuer or mutation can race it. The transaction
+       * below then re-locks and revalidates tenant/capability state immediately
+       * before committing the ownership change.
+       */
+      try {
+        await input.assertExternalStorageDetached();
+
+        return await this.withSerializedMutation(`projects:${input.targetOrganizationId}`, async () => {
+          await input.validateTargetAdmission();
+
+          /*
+           * The slug is only unique within an org, so the target org may already have a
+           * project with this slug — a bare update would then violate
+           * @@unique([organizationId, slug]) with an unhandled P2002 (500). Re-allocate
+           * a free slug in the target org and retry on the race, like createProject.
+           * The persistentVolumeClaim is intentionally left unchanged: it references an
+           * existing physical volume holding the project's data, so renaming it would
+           * orphan that volume.
+           */
+          for (let attempt = 0; ; attempt += 1) {
+            const slug = await this.nextProjectSlug(input.targetOrganizationId, current.slug);
+
+            try {
+              return await this.prisma.$transaction(async (tx) => {
+                /*
+                 * The wrapper owns shared purge topology -> object storage ->
+                 * checkpoint -> Project. Physical + NFS remain held from the external
+                 * preflight through this ownership commit.
+                 */
+                await assertAccountPurgeMutationAllowed(tx, { organizationIds: [input.targetOrganizationId] });
+
+                const locked = assertFound(
+                  await tx.project.findUnique({ where: { id: input.projectId } }),
+                  'Project not found',
+                  'PROJECT_NOT_FOUND',
+                );
+
+                if (locked.organizationId === input.targetOrganizationId) {
+                  return mapProject(locked);
+                }
+
+                const transferNow = await databaseNow(tx);
+
+                if (locked.objectStorageCapabilityExpiresAt && locked.objectStorageCapabilityExpiresAt > transferNow) {
+                  throw Object.assign(
+                    new Error(appPublicEnglish('PROJECT_TRANSFER_OBJECT_STORAGE_CAPABILITY_ACTIVE')),
+                    {
+                      code: 'PROJECT_TRANSFER_OBJECT_STORAGE_CAPABILITY_ACTIVE',
+                      statusCode: 409,
+                    },
+                  );
+                }
+
+                /*
+                 * A plain Organization reassignment cannot safely move resources
+                 * whose ownership is enforced by another control plane. Relabeling
+                 * the Project would leave CNPG metering on the source tenant, a GCP
+                 * binding owned by the source CloudTenant, or a live schema migration
+                 * crossing the boundary. Those moves must use the dedicated durable
+                 * tenant/resource transfer workflow; fail before revoking grants or
+                 * appending a manifest revision so this operation is all-or-nothing.
+                 */
+                const [
+                  managedDatabaseCount,
+                  cloudBindingCount,
+                  activeMigrationCount,
+                  activeImportCount,
+                  activeRemixCount,
+                  activeStorageShareCount,
+                  activeWorkspaceCount,
+                  deploymentCount,
+                  releaseManifestCount,
+                  nonTerminalReservedVmOperationCount,
+                  activeReservedVmBillingPeriodCount,
+                  nonTerminalCheckpointCount,
+                  projectTemplateCount,
+                  aiConversationCount,
+                ] = await Promise.all([
+                  tx.databaseInstance.count({ where: { projectId: input.projectId, status: { not: 'DELETED' } } }),
+                  tx.cloudProjectBinding.count({ where: { projectId: input.projectId } }),
+                  tx.dBMigrationExecution.count({
+                    where: {
+                      projectId: input.projectId,
+                      /*
+                       * Fail closed for future states too. MANUAL_RECOVERY is
+                       * deliberately not terminal-safe: the production schema may
+                       * still need operator repair under the source tenant.
+                       */
+                      state: { notIn: ['COMMITTED', 'FAILED_SAFE'] },
+                    },
+                  }),
+                  tx.importJob.count({
+                    where: {
+                      targetProjectId: input.projectId,
+                      /* ROLLING_BACK/CLEANUP_PENDING still own and mutate the target. */
+                      state: { notIn: ['COMMITTED', 'EXPIRED', 'CANCELLED', 'FAILED'] },
+                    },
+                  }),
+                  tx.remixJob.count({
+                    where: {
+                      OR: [{ sourceProjectId: input.projectId }, { targetProjectId: input.projectId }],
+                      state: { notIn: ['COMPLETED', 'FAILED'] },
+                    },
+                  }),
+                  tx.remixStorageShare.count({
+                    where: {
+                      state: 'ACTIVE',
+                      OR: [{ sourceProjectId: input.projectId }, { targetProjectId: input.projectId }],
+                    },
+                  }),
+                  tx.workspace.count({
+                    where: { projectId: input.projectId, status: { in: ['STARTING', 'RUNNING'] } },
+                  }),
+                  /* Every row retains source-tenant logs, policy and late-callback authority. */
+                  tx.deployment.count({ where: { projectId: input.projectId } }),
+                  tx.releaseManifest.count({ where: { projectId: input.projectId } }),
+                  tx.reservedVmOperation.count({
+                    where: { projectId: input.projectId, status: { notIn: ['COMPLETED', 'FAILED'] } },
+                  }),
+                  tx.reservedVmBillingPeriod.count({
+                    where: { projectId: input.projectId, status: { not: 'CANCELED' } },
+                  }),
+                  tx.projectCheckpoint.count({
+                    where: {
+                      projectId: input.projectId,
+                      OR: [
+                        { state: { notIn: ['COMMITTED', 'CLEANED', 'MANUAL_INTERVENTION', 'RELEASE_BARRIER'] } },
+                        {
+                          state: 'RELEASE_BARRIER',
+                          OR: [{ barrierExpiresAt: null }, { barrierExpiresAt: { gt: transferNow } }],
+                        },
+                      ],
+                    },
+                  }),
+                  tx.projectTemplate.count({ where: { sourceProjectId: input.projectId } }),
+                  tx.aiConversation.count({ where: { projectId: input.projectId } }),
+                ]);
+
+                if (
+                  managedDatabaseCount +
+                    cloudBindingCount +
+                    activeMigrationCount +
+                    activeImportCount +
+                    activeRemixCount +
+                    activeStorageShareCount +
+                    activeWorkspaceCount +
+                    deploymentCount +
+                    releaseManifestCount +
+                    nonTerminalReservedVmOperationCount +
+                    activeReservedVmBillingPeriodCount +
+                    nonTerminalCheckpointCount +
+                    projectTemplateCount +
+                    aiConversationCount >
+                  0
+                ) {
+                  throw Object.assign(new Error(appPublicEnglish('PROJECT_TRANSFER_MANAGED_RESOURCES_ACTIVE')), {
+                    statusCode: 409,
+                    code: 'PROJECT_TRANSFER_MANAGED_RESOURCES_ACTIVE',
+                  });
+                }
+
+                const sourceRevisionRow = await tx.projectManifestRevision.findFirst({
+                  where: { projectId: input.projectId },
+                  orderBy: { manifestVersion: 'desc' },
+                });
+                const sourceManifest = sourceRevisionRow
+                  ? verifyStoredProjectManifestRevision(mapProjectManifestRevision(sourceRevisionRow), input.projectId)
+                  : createDefaultProjectManifest(input.projectId);
+
+                const detachedSeed = projectManifestForClone(sourceManifest, input.projectId, 'DETACH_EXTERNALS');
+
+                const detachedManifest = canonicalizeProjectManifest({
+                  ...detachedSeed,
+                  manifestVersion: (sourceRevisionRow?.manifestVersion ?? 0) + 1,
+                });
+
+                await markObjectStorageOperationEffectStarted(tx, heartbeat.lease(), {
+                  command: 'project-transfer-commit',
+                  targetOrganizationId: input.targetOrganizationId,
+                });
+                await beginObjectStorageOperationVerification(tx, heartbeat.lease(), {
+                  providerBucketAbsent: true,
+                });
+                await finalizeObjectStorageOperation(tx, heartbeat.lease(), {
+                  verification: {
+                    outcome: 'VERIFIED_ABSENT',
+                    verifier: 'api-project-transfer-v1',
+                    evidence: {
+                      providerBucketAbsent: true,
+                      capabilityUpperBoundExpired: true,
+                    },
+                  },
+                  result: {
+                    projectId: input.projectId,
+                    sourceOrganizationId: input.expectedOrganizationId,
+                    targetOrganizationId: input.targetOrganizationId,
+                  },
+                });
+
+                /*
+                 * Revoke all explicit ProjectCollaborator grants on transfer. They were
+                 * issued to the SOURCE org's users; leaving them in place after the
+                 * project moves to a different org keeps those (now cross-org) users with
+                 * access to a project they no longer belong to. The target org's members
+                 * get access via org membership; collaborators must be re-invited.
+                 */
+                await tx.projectCollaborator.deleteMany({ where: { projectId: input.projectId } });
+
+                /*
+                 * Share links are bearer capability tokens minted for the SOURCE org.
+                 * GET /collaboration/share-links/:token resolves them by token alone
+                 * (only revokedAt/expiry, not org) and mints a fresh collaborator grant,
+                 * so a leaked/outstanding link would re-grant cross-org access after the
+                 * project moves. Revoke them all on transfer (target org re-issues).
+                 */
+                await tx.projectShareLink.deleteMany({ where: { projectId: input.projectId } });
+
+                /*
+                 * Chat shares are bearer-token snapshots of the project's AI
+                 * conversations, minted under the SOURCE org. findChatShareByTokenHash
+                 * resolves them by token alone (no org check), so an outstanding link
+                 * would keep leaking the source org's conversation data after the
+                 * project moves to a different org. Revoke them all on transfer; the
+                 * target org re-shares as needed.
+                 */
+                await tx.chatShare.deleteMany({ where: { projectId: input.projectId } });
+
+                const revokedAt = await databaseNow(tx);
+                await tx.resourceAccessGrant.updateMany({
+                  where: {
+                    resourceType: 'PROJECT',
+                    resourceId: input.projectId,
+                    status: { in: ['PENDING_CONSENT', 'ACTIVE'] },
+                  },
+                  data: {
+                    status: 'REVOKED',
+                    revokedAt,
+                    revokedByUserId: input.actorUserId,
+                    revocationReason: 'PROJECT_TRANSFERRED',
+                  },
+                });
+
+                const transferred = await tx.project.update({
+                  where: { id: input.projectId },
+                  data: { organizationId: input.targetOrganizationId, slug },
+                });
+                await tx.projectManifestRevision.create({
+                  data: {
+                    projectId: input.projectId,
+                    schemaVersion: detachedManifest.schemaVersion,
+                    manifestVersion: detachedManifest.manifestVersion,
+                    digest: projectManifestDigest(detachedManifest),
+                    manifest: detachedManifest as Prisma.InputJsonValue,
+                    createdByUserId: input.actorUserId,
+                  },
+                });
+
+                return mapProject(transferred);
+              });
+            } catch (error) {
+              if (isPrismaKnownRequestError(error) && error.code === 'P2002' && attempt < 5) {
+                continue;
+              }
+
+              throw error;
+            }
+          }
+        });
+      } catch (error) {
+        await this.prisma
+          .$transaction((tx) =>
+            markObjectStorageOperationFailedSafe(tx, heartbeat.lease(), {
+              errorCode: 'PROJECT_TRANSFER_ABORTED_BEFORE_COMMIT',
+              error,
+            }),
+          )
+          .catch(() => undefined);
+        throw error;
+      } finally {
+        await heartbeat.stop().catch(() => undefined);
+      }
+    });
   }
 
   async duplicateProject(input: {
@@ -2983,11 +4785,30 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
 
   async createProjectTemplate(input: {
     sourceProjectId: string;
+    expectedSourceOrganizationId: string;
     organizationId: string;
     name: string;
     description?: string;
   }) {
-    const template = await this.prisma.projectTemplate.create({ data: input });
+    if (input.organizationId !== input.expectedSourceOrganizationId) {
+      throw projectOrganizationChangedError();
+    }
+
+    const template = await this.prisma.$transaction(async (tx) => {
+      await this.lockExpectedProjectTenantMutation(tx, {
+        projectId: input.sourceProjectId,
+        expectedOrganizationId: input.expectedSourceOrganizationId,
+      });
+
+      return tx.projectTemplate.create({
+        data: {
+          sourceProjectId: input.sourceProjectId,
+          organizationId: input.organizationId,
+          name: input.name,
+          description: input.description,
+        },
+      });
+    });
     return { ...template, description: template.description ?? undefined, createdAt: toIso(template.createdAt)! };
   }
 
@@ -3001,52 +4822,84 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
     );
   }
 
-  async upsertProjectEnvVar(input: { projectId: string; key: string; value: string; scope?: EnvVarScope }) {
+  async upsertProjectEnvVar(input: {
+    projectId: string;
+    expectedOrganizationId: string;
+    key: string;
+    value: string;
+    scope?: EnvVarScope;
+  }) {
     // Omitted scope defaults to production so pre-scope callers keep the same row.
     const scope = input.scope ?? DEFAULT_ENV_VAR_SCOPE;
 
-    return mapEnvVar(
-      await this.prisma.projectEnvVar.upsert({
-        where: { projectId_key_scope: { projectId: input.projectId, key: input.key, scope } },
-        create: { projectId: input.projectId, key: input.key, value: input.value, scope },
-        update: { value: input.value },
-      }),
-    );
+    return this.prisma.$transaction(async (tx) => {
+      await this.lockExpectedProjectTenantMutation(tx, input);
+      return mapEnvVar(
+        await tx.projectEnvVar.upsert({
+          where: { projectId_key_scope: { projectId: input.projectId, key: input.key, scope } },
+          create: { projectId: input.projectId, key: input.key, value: input.value, scope },
+          update: { value: input.value },
+        }),
+      );
+    });
   }
 
   async listProjectEnvVars(projectId: string) {
     return (await this.prisma.projectEnvVar.findMany({ where: { projectId } })).map(mapEnvVar);
   }
 
-  async deleteProjectEnvVar(projectId: string, key: string, scope?: EnvVarScope) {
+  async deleteProjectEnvVar(input: {
+    projectId: string;
+    expectedOrganizationId: string;
+    key: string;
+    scope?: EnvVarScope;
+  }) {
     // Omitted scope targets the production-scoped row (the pre-scope default).
-    const targetScope = scope ?? DEFAULT_ENV_VAR_SCOPE;
+    const targetScope = input.scope ?? DEFAULT_ENV_VAR_SCOPE;
 
-    /*
-     * find-then-delete raced a concurrent delete into an unhandled P2025; read
-     * the row, then deleteMany (count-gated) so a lost race is "already gone".
-     */
-    const existing = await this.prisma.projectEnvVar.findUnique({
-      where: { projectId_key_scope: { projectId, key, scope: targetScope } },
+    return this.prisma.$transaction(async (tx) => {
+      await this.lockExpectedProjectTenantMutation(tx, input);
+      /*
+       * find-then-delete raced a concurrent delete into an unhandled P2025;
+       * deleteMany keeps a lost race idempotent inside the tenant fence.
+       */
+      const existing = await tx.projectEnvVar.findUnique({
+        where: {
+          projectId_key_scope: { projectId: input.projectId, key: input.key, scope: targetScope },
+        },
+      });
+
+      if (!existing) return undefined;
+
+      const deleted = await tx.projectEnvVar.deleteMany({
+        where: { projectId: input.projectId, key: input.key, scope: targetScope },
+      });
+
+      return deleted.count > 0 ? mapEnvVar(existing) : undefined;
     });
-
-    if (!existing) {
-      return undefined;
-    }
-
-    const deleted = await this.prisma.projectEnvVar.deleteMany({ where: { projectId, key, scope: targetScope } });
-
-    return deleted.count > 0 ? mapEnvVar(existing) : undefined;
   }
 
-  async upsertProjectSecret(input: { projectId: string; key: string; valueEncrypted: string }) {
-    return mapSecret(
-      await this.prisma.projectSecret.upsert({
-        where: { projectId_key: { projectId: input.projectId, key: input.key } },
-        create: { ...input, valueHash: hashToken(input.valueEncrypted) },
-        update: { valueEncrypted: input.valueEncrypted, valueHash: hashToken(input.valueEncrypted) },
-      }),
-    );
+  async upsertProjectSecret(input: {
+    projectId: string;
+    expectedOrganizationId: string;
+    key: string;
+    valueEncrypted: string;
+  }) {
+    return this.prisma.$transaction(async (tx) => {
+      await this.lockExpectedProjectTenantMutation(tx, input);
+      return mapSecret(
+        await tx.projectSecret.upsert({
+          where: { projectId_key: { projectId: input.projectId, key: input.key } },
+          create: {
+            projectId: input.projectId,
+            key: input.key,
+            valueEncrypted: input.valueEncrypted,
+            valueHash: hashToken(input.valueEncrypted),
+          },
+          update: { valueEncrypted: input.valueEncrypted, valueHash: hashToken(input.valueEncrypted) },
+        }),
+      );
+    });
   }
 
   async listProjectSecrets(projectId: string) {
@@ -3076,6 +4929,7 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
 
   async createProjectCheckpoint(input: {
     projectId: string;
+    expectedOrganizationId: string;
     createdByUserId?: string;
     idempotencyKey?: string;
     requestHash?: string;
@@ -3083,6 +4937,9 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
     const requestHash = input.requestHash ?? hashToken(`project-checkpoint:${input.projectId}`);
 
     return this.prisma.$transaction(async (tx) => {
+      /* Tenant revalidation precedes even an idempotent replay. */
+      await this.lockExpectedProjectTenantMutation(tx, input);
+
       if (input.idempotencyKey) {
         await tx.$executeRaw`
           SELECT pg_advisory_xact_lock(hashtextextended(${`project-checkpoint-idempotency:${input.idempotencyKey}`}, 0))
@@ -3131,18 +4988,20 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
     });
     if (!scope) return undefined;
 
-    return this.prisma.$transaction(async (tx) => {
-      await assertAccountPurgeMutationAllowed(tx, {
-        userIds: [scope.createdByUserId],
-        projectIds: [scope.projectId, input.projectId],
-      });
-      await lockProjectAfterPurgeTopology(tx, input.projectId);
+    return this.withProjectPhysicalBarrier(input.projectId, () =>
+      this.withProjectFilesystemLock(input.projectId, () =>
+        this.prisma.$transaction(async (tx) => {
+          await assertAccountPurgeMutationAllowed(tx, {
+            userIds: [scope.createdByUserId],
+            projectIds: [scope.projectId, input.projectId],
+          });
+          await lockProjectAfterPurgeTopology(tx, input.projectId);
 
-      /*
-       * Expiry is a durable fail-open thaw. Clear a dead singleton while the
-       * same project lock is held so only one successor can take ownership.
-       */
-      await tx.$executeRaw`
+          /*
+           * Expiry is a durable fail-open thaw. Clear a dead singleton while the
+           * same project lock is held so only one successor can take ownership.
+           */
+          await tx.$executeRaw`
         UPDATE "ProjectCheckpoint"
         SET "barrierProjectId" = NULL,
             "barrierOwnerToken" = NULL,
@@ -3153,9 +5012,9 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
           AND "barrierExpiresAt" <= clock_timestamp()
       `;
 
-      const rows = await tx.$queryRaw<
-        Array<{ id: string; logicalBarrierId: string; barrierFence: number; barrierExpiresAt: Date }>
-      >`
+          const rows = await tx.$queryRaw<
+            Array<{ id: string; logicalBarrierId: string; barrierFence: number; barrierExpiresAt: Date }>
+          >`
         UPDATE "ProjectCheckpoint"
         SET "state" = 'BARRIER_ESTABLISHED',
             "logicalBarrierId" = ${input.barrierId},
@@ -3176,18 +5035,20 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
         RETURNING "id", "logicalBarrierId", "barrierFence", "barrierExpiresAt"
       `;
 
-      const row = rows[0];
+          const row = rows[0];
 
-      return row
-        ? {
-            checkpointId: row.id,
-            barrierId: row.logicalBarrierId,
-            ownerToken: input.ownerToken,
-            fence: row.barrierFence,
-            expiresAt: row.barrierExpiresAt.toISOString(),
-          }
-        : undefined;
-    });
+          return row
+            ? {
+                checkpointId: row.id,
+                barrierId: row.logicalBarrierId,
+                ownerToken: input.ownerToken,
+                fence: row.barrierFence,
+                expiresAt: row.barrierExpiresAt.toISOString(),
+              }
+            : undefined;
+        }),
+      ),
+    );
   }
 
   async renewProjectCheckpointBarrier(input: {
@@ -3387,48 +5248,50 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
       });
     }
 
-    return this.prisma.$transaction(async (tx) => {
-      await this.accountPurge.assertProjectMutable(tx, input.projectId);
-      await lockProjectMutation(tx, input.projectId);
+    return this.withProjectPhysicalBarrier(input.projectId, () =>
+      this.withProjectFilesystemLock(input.projectId, () =>
+        this.prisma.$transaction(async (tx) => {
+          await this.accountPurge.assertProjectMutable(tx, input.projectId);
+          await lockProjectMutation(tx, input.projectId);
 
-      const project = await tx.project.findUnique({
-        where: { id: input.projectId },
-        select: { organizationId: true },
-      });
+          const project = await tx.project.findUnique({
+            where: { id: input.projectId },
+            select: { organizationId: true },
+          });
 
-      if (!project) {
-        throw Object.assign(new Error(appPublicEnglish('PROJECT_NOT_FOUND')), {
-          code: 'PROJECT_NOT_FOUND',
-          statusCode: 404,
-        });
-      }
+          if (!project) {
+            throw Object.assign(new Error(appPublicEnglish('PROJECT_NOT_FOUND')), {
+              code: 'PROJECT_NOT_FOUND',
+              statusCode: 404,
+            });
+          }
 
-      if (project.organizationId !== input.expectedOrganizationId) {
-        throw Object.assign(new Error(appPublicEnglish('PROJECT_ORGANIZATION_CHANGED_BEFORE_RELEASE')), {
-          code: 'PROJECT_ORGANIZATION_CHANGED_DURING_RELEASE',
-          statusCode: 409,
-        });
-      }
+          if (project.organizationId !== input.expectedOrganizationId) {
+            throw Object.assign(new Error(appPublicEnglish('PROJECT_ORGANIZATION_CHANGED_BEFORE_RELEASE')), {
+              code: 'PROJECT_ORGANIZATION_CHANGED_DURING_RELEASE',
+              statusCode: 409,
+            });
+          }
 
-      const manifest = await tx.projectManifestRevision.findFirst({
-        where: { projectId: input.projectId },
-        orderBy: { manifestVersion: 'desc' },
-        select: { digest: true },
-      });
+          const manifest = await tx.projectManifestRevision.findFirst({
+            where: { projectId: input.projectId },
+            orderBy: { manifestVersion: 'desc' },
+            select: { digest: true },
+          });
 
-      if (!manifest || manifest.digest !== input.expectedManifestDigest) {
-        throw Object.assign(new Error(appPublicEnglish('PROJECT_MANIFEST_CHANGED_BEFORE_PUBLISH')), {
-          code: 'PROJECT_MANIFEST_CHANGED_BEFORE_PUBLISH',
-          statusCode: 409,
-        });
-      }
+          if (!manifest || manifest.digest !== input.expectedManifestDigest) {
+            throw Object.assign(new Error(appPublicEnglish('PROJECT_MANIFEST_CHANGED_BEFORE_PUBLISH')), {
+              code: 'PROJECT_MANIFEST_CHANGED_BEFORE_PUBLISH',
+              statusCode: 409,
+            });
+          }
 
-      /*
-       * Expired checkpoint barriers thaw in place; expired release-only rows
-       * are disposable. Both operations run under the same project lock before
-       * the unique barrierProjectId insert.
-       */
-      await tx.$executeRaw`
+          /*
+           * Expired checkpoint barriers thaw in place; expired release-only rows
+           * are disposable. Both operations run under the same project lock before
+           * the unique barrierProjectId insert.
+           */
+          await tx.$executeRaw`
         UPDATE "ProjectCheckpoint"
         SET "barrierProjectId" = NULL,
             "barrierOwnerToken" = NULL,
@@ -3440,18 +5303,18 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
           AND "barrierProjectId" = ${input.projectId}
           AND "barrierExpiresAt" <= clock_timestamp()
       `;
-      await tx.$executeRaw`
+          await tx.$executeRaw`
         DELETE FROM "ProjectCheckpoint"
         WHERE "projectId" = ${input.projectId}
           AND "state" = 'RELEASE_BARRIER'
           AND "barrierExpiresAt" <= clock_timestamp()
       `;
 
-      const checkpointId = `release_barrier_${randomUUID()}`;
-      const barrierId = `release:${input.operationId}`;
-      const rows = await tx.$queryRaw<
-        Array<{ id: string; logicalBarrierId: string; barrierFence: number; barrierExpiresAt: Date }>
-      >`
+          const checkpointId = `release_barrier_${randomUUID()}`;
+          const barrierId = `release:${input.operationId}`;
+          const rows = await tx.$queryRaw<
+            Array<{ id: string; logicalBarrierId: string; barrierFence: number; barrierExpiresAt: Date }>
+          >`
         INSERT INTO "ProjectCheckpoint" (
           "id", "projectId", "state", "logicalBarrierId", "requestHash",
           "barrierProjectId", "barrierOwnerToken", "barrierFence",
@@ -3472,19 +5335,21 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
         )
         RETURNING "id", "logicalBarrierId", "barrierFence", "barrierExpiresAt"
       `;
-      const row = rows[0];
+          const row = rows[0];
 
-      return row
-        ? {
-            checkpointId: row.id,
-            projectId: input.projectId,
-            barrierId: row.logicalBarrierId,
-            ownerToken: input.ownerToken,
-            fence: row.barrierFence,
-            expiresAt: row.barrierExpiresAt.toISOString(),
-          }
-        : undefined;
-    });
+          return row
+            ? {
+                checkpointId: row.id,
+                projectId: input.projectId,
+                barrierId: row.logicalBarrierId,
+                ownerToken: input.ownerToken,
+                fence: row.barrierFence,
+                expiresAt: row.barrierExpiresAt.toISOString(),
+              }
+            : undefined;
+        }),
+      ),
+    );
   }
 
   async assertProjectReleaseBarrier(input: {
@@ -4382,39 +6247,99 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
     consentVersion: string;
     consentedByUserId?: string;
     sourceInventory: unknown;
+    prepareSourceRetention: () => Promise<ObjectStorageInventory>;
   }) {
-    return this.prisma.$transaction(async (tx) => {
-      await assertAccountPurgeMutationAllowed(tx, {
-        userIds: [input.consentedByUserId],
-        organizationIds: [input.sourceOrganizationId, input.targetOrganizationId],
-        projectIds: [input.sourceProjectId, input.targetProjectId],
-      });
-      const existing = await tx.remixStorageShare.findUnique({ where: { targetProjectId: input.targetProjectId } });
+    const sourceInventory = parseRetainedRemixSourceInventory(input.sourceInventory);
+    const tenantScopes = [
+      { projectId: input.sourceProjectId, expectedOrganizationId: input.sourceOrganizationId },
+      { projectId: input.targetProjectId, expectedOrganizationId: input.targetOrganizationId },
+    ].sort((left, right) => left.projectId.localeCompare(right.projectId));
 
-      if (existing) {
+    return this.withProjectPhysicalAccesses(tenantScopes, async () => {
+      const liveInventory = canonicalObjectStorageInventory(await input.prepareSourceRetention());
+      if (!exactObjectStorageInventoriesEqual(sourceInventory, liveInventory)) {
+        throw Object.assign(new Error(appPublicEnglish('REMIX_STORAGE_SHARE_CONFLICT')), {
+          code: 'REMIX_STORAGE_SOURCE_CHANGED',
+          statusCode: 409,
+        });
+      }
+
+      return this.prisma.$transaction(async (tx) => {
+        for (const scope of tenantScopes) {
+          await this.lockExpectedProjectTenantMutation(tx, scope);
+        }
+
+        const projects = await tx.project.findMany({
+          where: { id: { in: [input.sourceProjectId, input.targetProjectId] } },
+          select: { id: true, objectStorageCapabilityExpiresAt: true },
+        });
+        const now = await databaseNow(tx);
         if (
-          existing.sourceProjectId !== input.sourceProjectId ||
-          existing.consentVersion !== input.consentVersion ||
-          existing.state !== 'ACTIVE'
+          projects.length !== 2 ||
+          projects.some(
+            (project) => project.objectStorageCapabilityExpiresAt && project.objectStorageCapabilityExpiresAt > now,
+          )
         ) {
-          throw Object.assign(new Error(appPublicEnglish('REMIX_STORAGE_SHARE_CONFLICT')), {
+          throw Object.assign(new Error(appPublicEnglish('OBJECT_STORAGE_CAPABILITY_ACTIVE')), {
+            code: 'OBJECT_STORAGE_CAPABILITY_ACTIVE',
             statusCode: 409,
-            code: 'REMIX_STORAGE_SHARE_CONFLICT',
           });
         }
 
-        return mapRemixStorageShare(existing);
-      }
+        await assertAccountPurgeMutationAllowed(tx, {
+          userIds: [input.consentedByUserId],
+          organizationIds: [input.sourceOrganizationId, input.targetOrganizationId],
+          projectIds: [input.sourceProjectId, input.targetProjectId],
+        });
+        const existing = await tx.remixStorageShare.findUnique({
+          where: { targetProjectId: input.targetProjectId },
+        });
 
-      return mapRemixStorageShare(
-        await tx.remixStorageShare.create({
-          data: {
-            ...input,
-            consentedByUserId: input.consentedByUserId ?? null,
-            sourceInventory: input.sourceInventory as Prisma.InputJsonValue,
-          },
-        }),
-      );
+        if (existing) {
+          if (
+            existing.sourceProjectId !== input.sourceProjectId ||
+            existing.sourceOrganizationId !== input.sourceOrganizationId ||
+            existing.targetOrganizationId !== input.targetOrganizationId ||
+            existing.consentVersion !== input.consentVersion ||
+            existing.state !== 'ACTIVE' ||
+            !exactObjectStorageInventoriesEqual(
+              sourceInventory,
+              parseRetainedRemixSourceInventory(existing.sourceInventory),
+            )
+          ) {
+            throw Object.assign(new Error(appPublicEnglish('REMIX_STORAGE_SHARE_CONFLICT')), {
+              statusCode: 409,
+              code: 'REMIX_STORAGE_SHARE_CONFLICT',
+            });
+          }
+
+          return mapRemixStorageShare(existing);
+        }
+
+        const storedSourceInventory = {
+          bucketExists: sourceInventory.bucketExists,
+          objects: sourceInventory.objects.map(({ key, size, generation, contentHash }) => ({
+            key,
+            size,
+            generation,
+            contentHash,
+          })),
+        } satisfies Prisma.InputJsonObject;
+
+        return mapRemixStorageShare(
+          await tx.remixStorageShare.create({
+            data: {
+              sourceProjectId: input.sourceProjectId,
+              targetProjectId: input.targetProjectId,
+              sourceOrganizationId: input.sourceOrganizationId,
+              targetOrganizationId: input.targetOrganizationId,
+              consentVersion: input.consentVersion,
+              consentedByUserId: input.consentedByUserId ?? null,
+              sourceInventory: storedSourceInventory,
+            },
+          }),
+        );
+      });
     });
   }
 
@@ -4428,27 +6353,36 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
       where: { targetProjectId: input.targetProjectId },
       select: { consentedByUserId: true, sourceProjectId: true, sourceOrganizationId: true },
     });
+    const tenantScopes = [
+      { projectId: input.targetProjectId, expectedOrganizationId: input.targetOrganizationId },
+      ...(scope ? [{ projectId: scope.sourceProjectId, expectedOrganizationId: scope.sourceOrganizationId }] : []),
+    ].sort((left, right) => left.projectId.localeCompare(right.projectId));
 
-    return this.prisma.$transaction(async (tx) => {
-      await assertAccountPurgeMutationAllowed(tx, {
-        userIds: [scope?.consentedByUserId],
-        organizationIds: [scope?.sourceOrganizationId, input.targetOrganizationId],
-        projectIds: [scope?.sourceProjectId, input.targetProjectId],
-      });
-      const updated = await tx.remixStorageShare.updateMany({
-        where: {
-          targetProjectId: input.targetProjectId,
-          targetOrganizationId: input.targetOrganizationId,
-          state: 'ACTIVE',
-        },
-        data: { state: 'REVOKED', revokedAt: new Date() },
-      });
+    return this.withProjectPhysicalAccesses(tenantScopes, () =>
+      this.prisma.$transaction(async (tx) => {
+        for (const tenantScope of tenantScopes) {
+          await this.lockExpectedProjectTenantMutation(tx, tenantScope);
+        }
+        await assertAccountPurgeMutationAllowed(tx, {
+          userIds: [scope?.consentedByUserId],
+          organizationIds: [scope?.sourceOrganizationId, input.targetOrganizationId],
+          projectIds: [scope?.sourceProjectId, input.targetProjectId],
+        });
+        const updated = await tx.remixStorageShare.updateMany({
+          where: {
+            targetProjectId: input.targetProjectId,
+            targetOrganizationId: input.targetOrganizationId,
+            state: 'ACTIVE',
+          },
+          data: { state: 'REVOKED', revokedAt: new Date() },
+        });
 
-      if (updated.count !== 1) return undefined;
+        if (updated.count !== 1) return undefined;
 
-      const row = await tx.remixStorageShare.findUnique({ where: { targetProjectId: input.targetProjectId } });
-      return row ? mapRemixStorageShare(row) : undefined;
-    });
+        const row = await tx.remixStorageShare.findUnique({ where: { targetProjectId: input.targetProjectId } });
+        return row ? mapRemixStorageShare(row) : undefined;
+      }),
+    );
   }
 
   async deleteClaimedRemixStorageShare(input: {
@@ -4461,39 +6395,55 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
       where: { id: input.remixJobId, organizationId: input.organizationId },
       select: { actorUserId: true, sourceProjectId: true, targetProjectId: true },
     });
-
-    return this.prisma.$transaction(async (tx) => {
-      await assertAccountPurgeMutationAllowed(tx, {
-        userIds: [scope?.actorUserId],
-        organizationIds: [input.organizationId],
-        projectIds: [scope?.sourceProjectId, scope?.targetProjectId, input.targetProjectId],
-      });
-      await tx.$queryRawUnsafe(
-        'SELECT "id" FROM "RemixJob" WHERE "id" = $1 AND "organizationId" = $2 FOR UPDATE',
-        input.remixJobId,
-        input.organizationId,
-      );
-
-      const now = await databaseNow(tx);
-
-      const job = await tx.remixJob.findFirst({
-        where: {
-          id: input.remixJobId,
-          organizationId: input.organizationId,
-          state: 'CLEANUP_PENDING',
-          operationToken: input.operationToken,
-          operationExpiresAt: { gt: now },
-          targetProjectId: input.targetProjectId,
-        },
-        select: { id: true },
-      });
-
-      if (!job) {
-        return false;
-      }
-
-      return (await tx.remixStorageShare.deleteMany({ where: { targetProjectId: input.targetProjectId } })).count > 0;
+    const shareScope = await this.prisma.remixStorageShare.findUnique({
+      where: { targetProjectId: input.targetProjectId },
+      select: { sourceProjectId: true, sourceOrganizationId: true, targetOrganizationId: true },
     });
+    const tenantScopes = [
+      { projectId: input.targetProjectId, expectedOrganizationId: input.organizationId },
+      ...(shareScope
+        ? [{ projectId: shareScope.sourceProjectId, expectedOrganizationId: shareScope.sourceOrganizationId }]
+        : []),
+    ].sort((left, right) => left.projectId.localeCompare(right.projectId));
+
+    return this.withProjectPhysicalAccesses(tenantScopes, () =>
+      this.prisma.$transaction(async (tx) => {
+        for (const tenantScope of tenantScopes) {
+          await this.lockExpectedProjectTenantMutation(tx, tenantScope);
+        }
+        await assertAccountPurgeMutationAllowed(tx, {
+          userIds: [scope?.actorUserId],
+          organizationIds: [input.organizationId],
+          projectIds: [scope?.sourceProjectId, scope?.targetProjectId, input.targetProjectId],
+        });
+        await tx.$queryRawUnsafe(
+          'SELECT "id" FROM "RemixJob" WHERE "id" = $1 AND "organizationId" = $2 FOR UPDATE',
+          input.remixJobId,
+          input.organizationId,
+        );
+
+        const now = await databaseNow(tx);
+
+        const job = await tx.remixJob.findFirst({
+          where: {
+            id: input.remixJobId,
+            organizationId: input.organizationId,
+            state: 'CLEANUP_PENDING',
+            operationToken: input.operationToken,
+            operationExpiresAt: { gt: now },
+            targetProjectId: input.targetProjectId,
+          },
+          select: { id: true },
+        });
+
+        if (!job) return false;
+        if (shareScope && shareScope.targetOrganizationId !== input.organizationId) {
+          throw projectOrganizationChangedError();
+        }
+
+        return (await tx.remixStorageShare.deleteMany({ where: { targetProjectId: input.targetProjectId } })).count > 0;
+      }),
+    );
   }
 
   private mapGalleryListing(row: {
@@ -5743,20 +7693,25 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
     return claimed;
   }
 
-  async deleteProjectSecret(projectId: string, key: string) {
-    /*
-     * find-then-delete raced a concurrent delete into an unhandled P2025; use a
-     * count-gated deleteMany so a lost race is reported as "already gone".
-     */
-    const existing = await this.prisma.projectSecret.findUnique({ where: { projectId_key: { projectId, key } } });
+  async deleteProjectSecret(input: { projectId: string; expectedOrganizationId: string; key: string }) {
+    return this.prisma.$transaction(async (tx) => {
+      await this.lockExpectedProjectTenantMutation(tx, input);
+      /*
+       * Count-gated deletion keeps a concurrent duplicate delete idempotent and
+       * remains inside the same tenant-validation transaction.
+       */
+      const existing = await tx.projectSecret.findUnique({
+        where: { projectId_key: { projectId: input.projectId, key: input.key } },
+      });
 
-    if (!existing) {
-      return undefined;
-    }
+      if (!existing) return undefined;
 
-    const deleted = await this.prisma.projectSecret.deleteMany({ where: { projectId, key } });
+      const deleted = await tx.projectSecret.deleteMany({
+        where: { projectId: input.projectId, key: input.key },
+      });
 
-    return deleted.count > 0 ? mapSecret(existing) : undefined;
+      return deleted.count > 0 ? mapSecret(existing) : undefined;
+    });
   }
 
   async addProjectCollaborator(input: { projectId: string; userId: string; roleKey: string; expiresAt?: Date | null }) {
@@ -6529,14 +8484,27 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
 
   async recordProjectActivity(input: {
     projectId: string;
+    expectedOrganizationId: string;
     actorUserId?: string;
     action: string;
     metadata?: Record<string, unknown>;
   }) {
-    const activity = await this.prisma.projectActivity.create({
-      data: { ...input, metadata: (input.metadata ?? undefined) as any },
+    return this.prisma.$transaction(async (tx) => {
+      await this.lockExpectedProjectTenantMutation(tx, input, {
+        allowActiveCheckpoint: true,
+        allowDeletedProject: true,
+      });
+
+      const activity = await tx.projectActivity.create({
+        data: {
+          projectId: input.projectId,
+          ...(input.actorUserId !== undefined ? { actorUserId: input.actorUserId } : {}),
+          action: input.action,
+          ...(input.metadata !== undefined ? { metadata: input.metadata as Prisma.InputJsonValue } : {}),
+        },
+      });
+      return mapProjectActivity(activity);
     });
-    return mapProjectActivity(activity);
   }
 
   async listProjectActivity(projectId: string, options: ProjectActivityListOptions = {}) {
@@ -6720,13 +8688,33 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
     );
   }
 
-  async updateWorkspaceGitRepositoryUrl(input: { workspaceId: string; gitRepositoryUrl: string | null }) {
-    return mapWorkspace(
-      await this.prisma.workspace.update({
-        where: { id: input.workspaceId },
-        data: { gitRepositoryUrl: input.gitRepositoryUrl },
-      }),
-    );
+  async updateWorkspaceGitRepositoryUrl(input: {
+    projectId: string;
+    expectedOrganizationId: string;
+    workspaceId: string;
+    gitRepositoryUrl: string | null;
+  }) {
+    return this.prisma.$transaction(async (tx) => {
+      await this.lockExpectedProjectTenantMutation(tx, input);
+      const workspace = await tx.workspace.findFirst({
+        where: { id: input.workspaceId, projectId: input.projectId },
+        select: { id: true },
+      });
+
+      if (!workspace) {
+        throw Object.assign(new Error(appPublicEnglish('WORKSPACE_NOT_FOUND')), {
+          statusCode: 404,
+          code: 'WORKSPACE_NOT_FOUND',
+        });
+      }
+
+      return mapWorkspace(
+        await tx.workspace.update({
+          where: { id: input.workspaceId },
+          data: { gitRepositoryUrl: input.gitRepositoryUrl },
+        }),
+      );
+    });
   }
 
   async upsertCollaborationPresence(input: {
@@ -6920,6 +8908,7 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
   async upsertAgentPatchProposal(input: {
     id: string;
     projectId: string;
+    expectedOrganizationId: string;
     artifactId: string;
     messageId: string;
     actionId: string;
@@ -6931,43 +8920,47 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
     status: AgentPatchProposalStatus;
     error?: string;
   }) {
-    const existing = await this.prisma.agentPatchProposal.findUnique({
-      where: { id: input.id },
-      select: { projectId: true },
-    });
+    return this.prisma.$transaction(async (tx) => {
+      await this.lockExpectedProjectTenantMutation(tx, input);
 
-    if (existing && existing.projectId !== input.projectId) {
-      throw Object.assign(new Error(appPublicEnglish('AGENT_PATCH_PROPOSAL_NOT_FOUND')), {
-        statusCode: 404,
-        code: 'AGENT_PATCH_PROPOSAL_NOT_FOUND',
-      });
-    }
-
-    return mapAgentPatchProposal(
-      await this.prisma.agentPatchProposal.upsert({
+      const existing = await tx.agentPatchProposal.findUnique({
         where: { id: input.id },
-        create: {
-          id: input.id,
-          projectId: input.projectId,
-          artifactId: input.artifactId,
-          messageId: input.messageId,
-          actionId: input.actionId,
-          filePath: input.filePath,
-          relativePath: input.relativePath,
-          originalContent: input.originalContent,
-          proposedContent: input.proposedContent,
-          hunks: input.hunks as any,
-          status: input.status,
-          error: input.error,
-        },
-        update: {
-          proposedContent: input.proposedContent,
-          hunks: input.hunks as any,
-          status: input.status,
-          error: input.error,
-        },
-      }),
-    );
+        select: { projectId: true },
+      });
+
+      if (existing && existing.projectId !== input.projectId) {
+        throw Object.assign(new Error(appPublicEnglish('AGENT_PATCH_PROPOSAL_NOT_FOUND')), {
+          statusCode: 404,
+          code: 'AGENT_PATCH_PROPOSAL_NOT_FOUND',
+        });
+      }
+
+      return mapAgentPatchProposal(
+        await tx.agentPatchProposal.upsert({
+          where: { id: input.id },
+          create: {
+            id: input.id,
+            projectId: input.projectId,
+            artifactId: input.artifactId,
+            messageId: input.messageId,
+            actionId: input.actionId,
+            filePath: input.filePath,
+            relativePath: input.relativePath,
+            originalContent: input.originalContent,
+            proposedContent: input.proposedContent,
+            hunks: input.hunks as any,
+            status: input.status,
+            error: input.error,
+          },
+          update: {
+            proposedContent: input.proposedContent,
+            hunks: input.hunks as any,
+            status: input.status,
+            error: input.error,
+          },
+        }),
+      );
+    });
   }
 
   async listOpenAgentPatchProposals(projectId: string) {
@@ -6986,6 +8979,7 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
 
   async recordAgentRepairEvent(input: {
     projectId: string;
+    expectedOrganizationId: string;
     messageId?: string;
     artifactId?: string;
     actionId?: string;
@@ -6995,21 +8989,24 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
     validationError?: string;
     repairError?: string;
   }) {
-    return mapAgentRepairEvent(
-      await this.prisma.agentRepairEvent.create({
-        data: {
-          projectId: input.projectId,
-          messageId: input.messageId,
-          artifactId: input.artifactId,
-          actionId: input.actionId,
-          relativePath: input.relativePath,
-          attempt: input.attempt ?? 1,
-          outcome: input.outcome,
-          validationError: input.validationError,
-          repairError: input.repairError,
-        },
-      }),
-    );
+    return this.prisma.$transaction(async (tx) => {
+      await this.lockExpectedProjectTenantMutation(tx, input);
+      return mapAgentRepairEvent(
+        await tx.agentRepairEvent.create({
+          data: {
+            projectId: input.projectId,
+            messageId: input.messageId,
+            artifactId: input.artifactId,
+            actionId: input.actionId,
+            relativePath: input.relativePath,
+            attempt: input.attempt ?? 1,
+            outcome: input.outcome,
+            validationError: input.validationError,
+            repairError: input.repairError,
+          },
+        }),
+      );
+    });
   }
 
   async listAgentRepairEvents(projectId: string, options?: { take?: number }) {
@@ -7060,15 +9057,23 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
     ).map((row) => ({ skillId: row.skillId, enabled: row.enabled, updatedAt: row.updatedAt.toISOString() }));
   }
 
-  async setProjectSkillEnabled(input: { projectId: string; skillId: string; enabled: boolean }) {
-    const row = await this.prisma.projectSkill.upsert({
-      where: { projectId_skillId: { projectId: input.projectId, skillId: input.skillId } },
-      create: { projectId: input.projectId, skillId: input.skillId, enabled: input.enabled },
-      update: { enabled: input.enabled },
-      select: { skillId: true, enabled: true, updatedAt: true },
-    });
+  async setProjectSkillEnabled(input: {
+    projectId: string;
+    expectedOrganizationId: string;
+    skillId: string;
+    enabled: boolean;
+  }) {
+    return this.prisma.$transaction(async (tx) => {
+      await this.lockExpectedProjectTenantMutation(tx, input);
+      const row = await tx.projectSkill.upsert({
+        where: { projectId_skillId: { projectId: input.projectId, skillId: input.skillId } },
+        create: { projectId: input.projectId, skillId: input.skillId, enabled: input.enabled },
+        update: { enabled: input.enabled },
+        select: { skillId: true, enabled: true, updatedAt: true },
+      });
 
-    return { skillId: row.skillId, enabled: row.enabled, updatedAt: row.updatedAt.toISOString() };
+      return { skillId: row.skillId, enabled: row.enabled, updatedAt: row.updatedAt.toISOString() };
+    });
   }
 
   async listInstalledSkills(scope: InstalledSkillScope, scopeId: string): Promise<InstalledSkillRecord[]> {
@@ -7344,6 +9349,59 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
     return mapWorkspace(updated);
   }
 
+  async latchProjectWorkspaceStart(input: {
+    workspaceId: string;
+    projectId: string;
+    expectedOrganizationId: string;
+    runtimeMode: string;
+    environment?: string;
+  }) {
+    return this.prisma.$transaction(async (tx) => {
+      await this.lockExpectedProjectTenantMutation(tx, {
+        projectId: input.projectId,
+        expectedOrganizationId: input.expectedOrganizationId,
+        workspaceId: input.workspaceId,
+      });
+
+      const existing = await tx.workspace.findUnique({ where: { id: input.workspaceId } });
+
+      if (existing && existing.projectId !== input.projectId) {
+        throw Object.assign(new Error(appPublicEnglish('WORKSPACE_PROJECT_MISMATCH')), {
+          statusCode: 403,
+          code: 'WORKSPACE_PROJECT_MISMATCH',
+        });
+      }
+
+      if (existing) {
+        return mapWorkspace(
+          await tx.workspace.update({
+            where: { id: input.workspaceId },
+            data: { status: 'STARTING' },
+          }),
+        );
+      }
+
+      const project = await tx.project.findUniqueOrThrow({
+        where: { id: input.projectId },
+        select: { name: true },
+      });
+
+      return mapWorkspace(
+        await tx.workspace.create({
+          data: {
+            id: input.workspaceId,
+            projectId: input.projectId,
+            name: `${project.name} runtime`,
+            runtimeMode: input.runtimeMode,
+            environment: input.environment ?? 'development',
+            status: 'STARTING',
+            gitPath: workspaceRelativeGitPath(input.workspaceId),
+          },
+        }),
+      );
+    });
+  }
+
   async getWorkspace(id: string) {
     const workspace = await this.prisma.workspace.findUnique({ where: { id } });
     return workspace ? mapWorkspace(workspace) : undefined;
@@ -7512,6 +9570,7 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
   async createSnapshot(input: {
     id?: string;
     projectId: string;
+    expectedOrganizationId: string;
     label?: string;
     kind?: SnapshotRecord['kind'];
     manifest: unknown;
@@ -7521,74 +9580,80 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
     conversationId?: string;
     turnIndex?: number;
   }) {
-    let latestManifest = await this.getLatestProjectManifest(input.projectId);
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        await this.lockExpectedProjectTenantMutation(tx, input);
 
-    if (!latestManifest && (await this.prisma.project.count({ where: { id: input.projectId } })) === 1) {
-      const initial = createDefaultProjectManifest(input.projectId);
-      latestManifest = await this.createProjectManifestRevision({
-        projectId: input.projectId,
-        schemaVersion: initial.schemaVersion,
-        manifestVersion: initial.manifestVersion,
-        digest: projectManifestDigest(initial),
-        manifest: initial,
-        createdByUserId: input.createdByUserId,
-      });
-    }
+        let latestManifestRow = await tx.projectManifestRevision.findFirst({
+          where: { projectId: input.projectId },
+          orderBy: { manifestVersion: 'desc' },
+        });
 
-    const manifestBase =
-      input.manifest && typeof input.manifest === 'object' && !Array.isArray(input.manifest)
-        ? (input.manifest as Record<string, unknown>)
-        : { snapshotData: input.manifest };
-    const snapshotManifest = latestManifest
-      ? {
+        if (!latestManifestRow) {
+          const initial = createDefaultProjectManifest(input.projectId);
+          latestManifestRow = await tx.projectManifestRevision.create({
+            data: {
+              projectId: input.projectId,
+              schemaVersion: initial.schemaVersion,
+              manifestVersion: initial.manifestVersion,
+              digest: projectManifestDigest(initial),
+              manifest: initial as Prisma.InputJsonValue,
+              createdByUserId: input.createdByUserId ?? null,
+            },
+          });
+        }
+
+        const latestManifest = mapProjectManifestRevision(latestManifestRow);
+        const manifestBase =
+          input.manifest && typeof input.manifest === 'object' && !Array.isArray(input.manifest)
+            ? (input.manifest as Record<string, unknown>)
+            : { snapshotData: input.manifest };
+        const snapshotManifest = {
           ...manifestBase,
           projectManifest: projectManifestSnapshotPin(latestManifest, input.projectId),
+        };
+        const data = {
+          ...(input.id ? { id: input.id } : {}),
+          projectId: input.projectId,
+          label: input.label,
+          kind: input.kind ?? 'manual',
+          manifest: snapshotManifest as Prisma.InputJsonValue,
+          storageKey: input.storageKey,
+          byteLength: input.byteLength,
+          createdByUserId: input.createdByUserId,
+          conversationId: input.conversationId,
+          turnIndex: input.turnIndex,
+        };
+
+        if (input.id) {
+          const existing = await tx.projectSnapshot.findUnique({ where: { id: input.id } });
+
+          if (existing) {
+            if (existing.projectId !== input.projectId || existing.storageKey !== input.storageKey) {
+              throw Object.assign(new Error(appPublicEnglish('SNAPSHOT_IDEMPOTENCY_CONFLICT')), {
+                statusCode: 409,
+                code: 'SNAPSHOT_IDEMPOTENCY_CONFLICT',
+              });
+            }
+
+            return mapSnapshot(existing);
+          }
         }
-      : manifestBase;
-    const data = {
-      ...(input.id ? { id: input.id } : {}),
-      projectId: input.projectId,
-      label: input.label,
-      kind: input.kind ?? 'manual',
-      manifest: snapshotManifest as Prisma.InputJsonValue,
-      storageKey: input.storageKey,
-      byteLength: input.byteLength,
-      createdByUserId: input.createdByUserId,
-      conversationId: input.conversationId,
-      turnIndex: input.turnIndex,
-    };
 
-    if (!input.id) {
-      return mapSnapshot(await this.prisma.projectSnapshot.create({ data }));
-    }
-
-    const existing = await this.prisma.projectSnapshot.findUnique({ where: { id: input.id } });
-
-    if (existing) {
-      if (existing.projectId !== input.projectId || existing.storageKey !== input.storageKey) {
-        throw Object.assign(new Error(appPublicEnglish('SNAPSHOT_IDEMPOTENCY_CONFLICT')), {
-          statusCode: 409,
-          code: 'SNAPSHOT_IDEMPOTENCY_CONFLICT',
-        });
-      }
-
-      return mapSnapshot(existing);
-    }
-
-    try {
-      return mapSnapshot(await this.prisma.projectSnapshot.create({ data }));
+        return mapSnapshot(await tx.projectSnapshot.create({ data }));
+      });
     } catch (error) {
-      if (!isPrismaKnownRequestError(error) || error.code !== 'P2002') {
+      if (!input.id || !isPrismaKnownRequestError(error) || error.code !== 'P2002') {
         throw error;
       }
 
-      const raced = await this.prisma.projectSnapshot.findUnique({ where: { id: input.id } });
+      return this.prisma.$transaction(async (tx) => {
+        await this.lockExpectedProjectTenantMutation(tx, input);
+        const raced = await tx.projectSnapshot.findUnique({ where: { id: input.id } });
 
-      if (!raced || raced.projectId !== input.projectId || raced.storageKey !== input.storageKey) {
-        throw error;
-      }
-
-      return mapSnapshot(raced);
+        if (!raced || raced.projectId !== input.projectId || raced.storageKey !== input.storageKey) throw error;
+        return mapSnapshot(raced);
+      });
     }
   }
 
@@ -7604,32 +9669,47 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
   }
 
   async putProjectStorageObject(input: {
-    projectId?: string;
+    projectId: string;
+    expectedOrganizationId: string;
     key: string;
     kind: ProjectStorageObjectRecord['kind'];
     contentBase64: string;
     byteLength: number;
     contentHash: string;
   }) {
-    return mapProjectStorageObject(
-      await this.prisma.projectStorageObject.upsert({
-        where: { key: input.key },
-        create: input,
-        update: {
-          projectId: input.projectId,
-          kind: input.kind,
-          contentBase64: input.contentBase64,
-          byteLength: input.byteLength,
-          contentHash: input.contentHash,
-        },
-      }),
-    );
+    return this.prisma.$transaction(async (tx) => {
+      await this.lockExpectedProjectTenantMutation(tx, input);
+      return mapProjectStorageObject(
+        await tx.projectStorageObject.upsert({
+          where: { key: input.key },
+          create: {
+            projectId: input.projectId,
+            key: input.key,
+            kind: input.kind,
+            contentBase64: input.contentBase64,
+            byteLength: input.byteLength,
+            contentHash: input.contentHash,
+          },
+          update: {
+            projectId: input.projectId,
+            kind: input.kind,
+            contentBase64: input.contentBase64,
+            byteLength: input.byteLength,
+            contentHash: input.contentHash,
+          },
+        }),
+      );
+    });
   }
 
-  async getProjectStorageObject(key: string) {
-    const object = await this.prisma.projectStorageObject.findUnique({ where: { key } });
+  async getProjectStorageObject(input: { projectId: string; expectedOrganizationId: string; key: string }) {
+    return this.withProjectPhysicalAccess(input, async () => {
+      const object = await this.prisma.projectStorageObject.findFirst({
+        where: { key: input.key, projectId: input.projectId },
+      });
 
-    return object ? mapProjectStorageObject(object) : undefined;
+      return object ? mapProjectStorageObject(object) : undefined;
+    });
   }
 
   async aggregateStorageBytesByOrg(): Promise<Array<{ organizationId: string; bytes: number }>> {
@@ -7898,77 +9978,108 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
 
   async createDatabaseInstance(input: {
     projectId: string;
+    expectedOrganizationId: string;
     organizationId: string;
     retentionDays: number;
     region?: string;
     environment?: string;
     provisioningDeadlineAt?: string;
   }): Promise<DatabaseInstanceRecord> {
-    const row = await this.prisma.databaseInstance.create({
-      data: {
-        projectId: input.projectId,
-        organizationId: input.organizationId,
-        environment: input.environment ?? 'development',
-        retentionDays: input.retentionDays,
-        region: input.region ?? null,
-        pitrEnabled: input.retentionDays > 0,
-        provisioningDeadlineAt: input.provisioningDeadlineAt ? new Date(input.provisioningDeadlineAt) : null,
-      },
-    });
+    if (input.organizationId !== input.expectedOrganizationId) {
+      throw projectOrganizationChangedError();
+    }
 
-    return mapDatabaseInstance(row);
+    return this.prisma.$transaction(async (tx) => {
+      await this.lockExpectedProjectTenantMutation(tx, input);
+      const row = await tx.databaseInstance.create({
+        data: {
+          projectId: input.projectId,
+          organizationId: input.expectedOrganizationId,
+          environment: input.environment ?? 'development',
+          retentionDays: input.retentionDays,
+          region: input.region ?? null,
+          pitrEnabled: input.retentionDays > 0,
+          provisioningDeadlineAt: input.provisioningDeadlineAt ? new Date(input.provisioningDeadlineAt) : null,
+        },
+      });
+
+      return mapDatabaseInstance(row);
+    });
   }
 
   async acquireDatabaseProvisioning(input: {
     projectId: string;
+    expectedOrganizationId: string;
     organizationId: string;
     retentionDays: number;
     region?: string;
     environment?: string;
     provisioningDeadlineAt: string;
   }): Promise<{ instance: DatabaseInstanceRecord; acquired: boolean; created: boolean }> {
-    const environment = input.environment ?? 'development';
-
-    try {
-      const instance = await this.createDatabaseInstance({ ...input, environment });
-
-      return { instance, acquired: true, created: true };
-    } catch (error) {
-      if (!isPrismaKnownRequestError(error) || error.code !== 'P2002') {
-        throw error;
-      }
+    if (input.organizationId !== input.expectedOrganizationId) {
+      throw projectOrganizationChangedError();
     }
 
-    const existing = await this.prisma.databaseInstance.findUniqueOrThrow({
-      where: { projectId_environment: { projectId: input.projectId, environment } },
-    });
-    const claimed = await this.prisma.databaseInstance.updateMany({
-      where: { id: existing.id, status: 'FAILED' },
-      data: {
-        status: 'PROVISIONING',
-        provisioningDeadlineAt: new Date(input.provisioningDeadlineAt),
-        lastErrorCode: null,
-        lastErrorAt: null,
-      },
-    });
+    const environment = input.environment ?? 'development';
 
-    /*
-     * Re-read on both paths. If another retry won the conditional update, the
-     * loser must return the winner's PROVISIONING state instead of a stale
-     * FAILED snapshot that would incorrectly invite another retry.
-     */
-    const current = await this.prisma.databaseInstance.findUniqueOrThrow({ where: { id: existing.id } });
+    return this.prisma.$transaction(async (tx) => {
+      await this.lockExpectedProjectTenantMutation(tx, input);
+      const existing = await tx.databaseInstance.findUnique({
+        where: { projectId_environment: { projectId: input.projectId, environment } },
+      });
 
-    return { instance: mapDatabaseInstance(current), acquired: claimed.count === 1, created: false };
+      if (!existing) {
+        const created = await tx.databaseInstance.create({
+          data: {
+            projectId: input.projectId,
+            organizationId: input.expectedOrganizationId,
+            environment,
+            retentionDays: input.retentionDays,
+            region: input.region ?? null,
+            pitrEnabled: input.retentionDays > 0,
+            provisioningDeadlineAt: new Date(input.provisioningDeadlineAt),
+          },
+        });
+
+        return { instance: mapDatabaseInstance(created), acquired: true, created: true };
+      }
+
+      if (existing.status !== 'FAILED') {
+        return { instance: mapDatabaseInstance(existing), acquired: false, created: false };
+      }
+
+      const claimed = await tx.databaseInstance.update({
+        where: { id: existing.id },
+        data: {
+          status: 'PROVISIONING',
+          provisioningDeadlineAt: new Date(input.provisioningDeadlineAt),
+          lastErrorCode: null,
+          lastErrorAt: null,
+        },
+      });
+
+      return { instance: mapDatabaseInstance(claimed), acquired: true, created: false };
+    });
   }
 
   async completeDatabaseProvisioning(
     id: string,
-    connection: { projectId: string; key: string; valueEncrypted: string },
+    connection: {
+      projectId: string;
+      expectedOrganizationId: string;
+      key: string;
+      valueEncrypted: string;
+    },
   ): Promise<DatabaseInstanceRecord | undefined> {
     const row = await this.prisma.$transaction(async (tx) => {
+      await this.lockExpectedProjectTenantMutation(tx, connection);
       const updated = await tx.databaseInstance.updateMany({
-        where: { id, projectId: connection.projectId, status: 'PROVISIONING' },
+        where: {
+          id,
+          projectId: connection.projectId,
+          organizationId: connection.expectedOrganizationId,
+          status: 'PROVISIONING',
+        },
         data: {
           status: 'ACTIVE',
           provisioningDeadlineAt: null,
@@ -8139,6 +10250,7 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
 
   async createDeployment(input: {
     projectId: string;
+    expectedOrganizationId: string;
     workspaceId?: string;
     provider: string;
     environment?: DeploymentRecord['environment'];
@@ -8176,6 +10288,9 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
     const ledger = new LedgerStore(this.prisma);
 
     return this.prisma.$transaction(async (tx) => {
+      /* Revalidate the route's tenant before any idempotency claim, policy row, billing reservation or deployment. */
+      await this.lockExpectedProjectTenantMutation(tx, input);
+
       if (input.reservedVm) {
         await tx.$executeRawUnsafe(
           'SELECT pg_advisory_xact_lock(hashtext($1))',
@@ -12176,6 +14291,7 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
 
   async createProjectManifestRevision(input: {
     projectId: string;
+    expectedOrganizationId: string;
     schemaVersion: number;
     manifestVersion: number;
     digest: string;
@@ -12192,31 +14308,7 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
        * under topology -> checkpoint -> Project we either append first, or
        * observe the durable live barrier and refuse the write.
        */
-      await this.accountPurge.assertProjectMutable(tx, input.projectId);
-      await lockProjectMutation(tx, input.projectId);
-
-      const project = await tx.project.findUnique({ where: { id: input.projectId }, select: { id: true } });
-
-      if (!project) {
-        throw Object.assign(new Error(appPublicEnglish('PROJECT_NOT_FOUND')), {
-          code: 'PROJECT_NOT_FOUND',
-          statusCode: 404,
-        });
-      }
-
-      const activeBarrier = await tx.$queryRaw<Array<{ id: string }>>`
-          SELECT "id" FROM "ProjectCheckpoint"
-          WHERE "barrierProjectId" = ${input.projectId}
-            AND "barrierExpiresAt" > clock_timestamp()
-          LIMIT 1
-        `;
-
-      if (activeBarrier[0]) {
-        throw Object.assign(new Error(appPublicEnglish('CHECKPOINT_BARRIER_ACTIVE_MESSAGE')), {
-          code: 'CHECKPOINT_BARRIER_ACTIVE',
-          statusCode: 423,
-        });
-      }
+      await this.lockExpectedProjectTenantMutation(tx, input);
 
       const latest = await tx.projectManifestRevision.findFirst({
         where: { projectId: input.projectId },
@@ -13619,8 +15711,28 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
     }
   }
 
-  async createAiConversation(input: { projectId?: string; userId: string; title?: string }) {
-    return mapAiConversation(await this.prisma.aiConversation.create({ data: input }));
+  async createAiConversation(
+    input:
+      | { projectId: string; expectedOrganizationId: string; userId: string; title?: string }
+      | { projectId?: undefined; expectedOrganizationId?: undefined; userId: string; title?: string },
+  ) {
+    if (!input.projectId) {
+      return mapAiConversation(
+        await this.prisma.aiConversation.create({ data: { userId: input.userId, title: input.title } }),
+      );
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      await this.lockExpectedProjectTenantMutation(tx, {
+        projectId: input.projectId,
+        expectedOrganizationId: input.expectedOrganizationId,
+      });
+      return mapAiConversation(
+        await tx.aiConversation.create({
+          data: { projectId: input.projectId, userId: input.userId, title: input.title },
+        }),
+      );
+    });
   }
 
   async getAiConversation(id: string) {
@@ -15391,6 +17503,7 @@ function mapProject(project: any): ProjectRecord {
     createdAt: toIso(project.createdAt)!,
     updatedAt: toIso(project.updatedAt)!,
     deletedAt: toIso(project.deletedAt),
+    permanentDeletionStartedAt: toIso(project.permanentDeletionStartedAt),
     ...(typeof project._count?.deployments === 'number' ? { deploymentCount: project._count.deployments } : {}),
   };
 }

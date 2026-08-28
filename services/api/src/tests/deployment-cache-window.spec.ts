@@ -166,6 +166,7 @@ describe('SEC-8 cache window — real api behind a real shared cache', () => {
 
     const deployment = await store.createDeployment({
       projectId,
+      expectedOrganizationId: auth.organization.id,
       provider: 'static',
       environment: 'preview',
       status: 'READY',
@@ -189,7 +190,12 @@ describe('SEC-8 cache window — real api behind a real shared cache', () => {
     const throughCache = async (path: string) => {
       const res = await fetch(`http://127.0.0.1:${cache.port}${path}`);
 
-      return { status: res.status, cache: res.headers.get('x-cache'), cc: res.headers.get('cache-control'), body: await res.text() };
+      return {
+        status: res.status,
+        cache: res.headers.get('x-cache'),
+        cc: res.headers.get('cache-control'),
+        body: await res.text(),
+      };
     };
 
     const activate = () =>

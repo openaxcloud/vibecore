@@ -22,6 +22,35 @@ function deterministicRuntimeWorkspaceId(projectId: string, userId: string) {
   return `ws-${createHash('sha256').update(`${projectId}:${userId}`).digest('hex').slice(0, 16)}`;
 }
 
+function deferred() {
+  let resolve!: () => void;
+  const promise = new Promise<void>((done) => {
+    resolve = done;
+  });
+  return { promise, resolve };
+}
+
+class PausingWorkspaceLatchStore extends TestApiStore {
+  readonly latchEntered = deferred();
+  readonly releaseLatch = deferred();
+  pause = true;
+
+  override async latchProjectWorkspaceStart(input: {
+    workspaceId: string;
+    projectId: string;
+    expectedOrganizationId: string;
+    runtimeMode: string;
+    environment?: string;
+  }) {
+    if (this.pause) {
+      this.pause = false;
+      this.latchEntered.resolve();
+      await this.releaseLatch.promise;
+    }
+    return super.latchProjectWorkspaceStart(input);
+  }
+}
+
 class TestEmailProvider implements EmailProvider {
   readonly messages: EmailMessage[] = [];
 
@@ -148,7 +177,11 @@ class MemoryProjectStorage implements ProjectStorage {
   readonly files = new Map<string, Map<string, string>>();
   readonly objects = new Map<string, Buffer>();
 
-  async writeFiles(projectId: string, files: Array<{ path: string; content: string }>) {
+  async writeFiles(
+    projectId: string,
+    files: Array<{ path: string; content: string }>,
+    _scope: { expectedOrganizationId: string; workspaceId?: string },
+  ) {
     const projectFiles = this.files.get(projectId) ?? new Map<string, string>();
 
     for (const file of files) {
@@ -157,20 +190,24 @@ class MemoryProjectStorage implements ProjectStorage {
 
     this.files.set(projectId, projectFiles);
 
-    return this.listFiles(projectId);
+    return this.listFiles(projectId, _scope);
   }
 
-  async listFiles(projectId: string) {
+  async listFiles(projectId: string, scope: { expectedOrganizationId: string; workspaceId?: string }) {
+    return this.listFilesWithinPhysicalAccess(projectId, scope.workspaceId);
+  }
+
+  async listFilesWithinPhysicalAccess(projectId: string, _workspaceId?: string) {
     const projectFiles = this.files.get(projectId) ?? new Map<string, string>();
     const updatedAt = new Date().toISOString();
 
     return [...projectFiles.entries()].map(([path, content]) => ({ path, content, updatedAt }));
   }
 
-  async exportZip(projectId: string) {
+  async exportZip(projectId: string, _scope: { expectedOrganizationId: string; workspaceId?: string }) {
     const zip = new JSZip();
 
-    for (const file of await this.listFiles(projectId)) {
+    for (const file of await this.listFiles(projectId, _scope)) {
       zip.file(file.path, file.content);
     }
 
@@ -186,7 +223,12 @@ class MemoryProjectStorage implements ProjectStorage {
     };
   }
 
-  async importZip(projectId: string, base64: string, options: { replaceExisting?: boolean } = {}) {
+  async importZip(
+    projectId: string,
+    base64: string,
+    scope: { expectedOrganizationId: string; workspaceId?: string },
+    options: { replaceExisting?: boolean } = {},
+  ) {
     const zip = await JSZip.loadAsync(Buffer.from(base64, 'base64'));
     const files: Array<{ path: string; content: string }> = [];
 
@@ -200,10 +242,14 @@ class MemoryProjectStorage implements ProjectStorage {
       this.files.delete(projectId);
     }
 
-    return this.writeFiles(projectId, files);
+    return this.writeFiles(projectId, files, scope);
   }
 
-  async createSnapshot(input: { projectId: string; files: ProjectFile[] }): Promise<StoredArchive> {
+  async createSnapshot(input: {
+    projectId: string;
+    expectedOrganizationId: string;
+    files: ProjectFile[];
+  }): Promise<StoredArchive> {
     const zip = new JSZip();
 
     for (const file of input.files) {
@@ -222,7 +268,11 @@ class MemoryProjectStorage implements ProjectStorage {
     };
   }
 
-  async getSnapshotFiles(storageKey: string) {
+  async getSnapshotFiles(projectId: string, storageKey: string, _scope: { expectedOrganizationId: string }) {
+    return this.getSnapshotFilesWithinPhysicalAccess(projectId, storageKey);
+  }
+
+  async getSnapshotFilesWithinPhysicalAccess(_projectId: string, storageKey: string) {
     const content = this.objects.get(storageKey);
 
     if (!content) {
@@ -241,14 +291,27 @@ class MemoryProjectStorage implements ProjectStorage {
     return files;
   }
 
-  async restoreSnapshot(input: { projectId: string; files: ProjectFile[] }) {
+  async restoreSnapshot(input: {
+    projectId: string;
+    expectedOrganizationId: string;
+    workspaceId?: string;
+    files: ProjectFile[];
+  }) {
     this.files.delete(input.projectId);
 
-    return this.writeFiles(input.projectId, input.files);
+    return this.writeFiles(input.projectId, input.files, input);
   }
 
-  async deleteProjectFiles(projectId: string) {
+  async deleteProjectFiles(projectId: string, _scope: { expectedOrganizationId: string; workspaceId?: string }) {
     this.files.delete(projectId);
+  }
+  async eraseProjectDataWithinPhysicalAccess(projectId: string) {
+    this.files.delete(projectId);
+    for (const key of this.objects.keys()) {
+      if (key.startsWith(`exports/${projectId}/`) || key.startsWith(`snapshots/${projectId}/`)) {
+        this.objects.delete(key);
+      }
+    }
   }
 }
 
@@ -263,6 +326,7 @@ async function startRuntimeServices(
     managerStopNotFound?: boolean;
     managerStatus?: 'STARTING' | 'RUNNING' | 'STOPPING' | 'STOPPED' | 'FAILED';
     agentTokenDelayMs?: number;
+    managerStartGate?: { entered: () => void; release: Promise<void> };
   } = {},
 ) {
   const files = new Map<string, string>([['README.md', '# Runtime project\n']]);
@@ -393,8 +457,13 @@ async function startRuntimeServices(
     request.on('data', (chunk) => {
       body += chunk.toString();
     });
-    request.on('end', () => {
+    request.on('end', async () => {
       managerCalls.push({ pathname: url.pathname, body: body ? JSON.parse(body) : {} });
+
+      if (url.pathname === '/workspaces/start' && options.managerStartGate) {
+        options.managerStartGate.entered();
+        await options.managerStartGate.release;
+      }
 
       if (url.pathname.endsWith('/agent-token')) {
         const sendToken = () => response.end(JSON.stringify({ token: 'runtime-token' }));
@@ -4553,7 +4622,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
       },
     });
     expect(saveIdeState.statusCode).toBe(200);
-    expect(await projectStorage.listFiles(projectId)).toEqual([]);
+    expect(await projectStorage.listFiles(projectId, { expectedOrganizationId: auth.organization.id })).toEqual([]);
 
     const exported = await app.inject({
       method: 'GET',
@@ -4564,9 +4633,11 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
 
     const zip = await JSZip.loadAsync(Buffer.from(exported.json().archive.base64, 'base64'));
     await expect(zip.file('src/main.tsx')!.async('string')).resolves.toContain('Recovered preview');
-    expect((await projectStorage.listFiles(projectId)).map((file) => file.path)).toEqual(
-      expect.arrayContaining(['package.json', 'index.html', 'src/main.tsx']),
-    );
+    expect(
+      (await projectStorage.listFiles(projectId, { expectedOrganizationId: auth.organization.id })).map(
+        (file) => file.path,
+      ),
+    ).toEqual(expect.arrayContaining(['package.json', 'index.html', 'src/main.tsx']));
 
     await app.close();
   });
@@ -4588,7 +4659,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     });
 
     const projectId = project.json().project.id;
-    await projectStorage.writeFiles(projectId, [{ path: 'README.md', content: '# Existing project\n' }]);
+    await projectStorage.writeFiles(projectId, [{ path: 'README.md', content: '# Existing project\n' }], {
+      expectedOrganizationId: auth.organization.id,
+    });
 
     const saveIdeState = await app.inject({
       method: 'PUT',
@@ -5065,7 +5138,12 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     expect(cancelReady.json().code).toBe('DEPLOYMENT_NOT_CANCELABLE');
 
     // An in-progress (QUEUED) deployment cancels successfully.
-    const queued = await store.createDeployment({ projectId, provider: 'static', status: 'QUEUED' });
+    const queued = await store.createDeployment({
+      projectId,
+      expectedOrganizationId: auth.organization.id,
+      provider: 'static',
+      status: 'QUEUED',
+    });
     const cancel = await app.inject({
       method: 'POST',
       url: `/projects/${projectId}/deployments/${queued.id}/cancel`,
@@ -5315,9 +5393,24 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     });
 
     const projectId = project.json().project.id as string;
-    const first = await store.createAiConversation({ projectId, userId: auth.user.id, title: 'First chat' });
-    const second = await store.createAiConversation({ projectId, userId: auth.user.id, title: 'Second chat' });
-    const leaked = await store.createAiConversation({ projectId, userId: otherUser.user.id, title: 'Other user chat' });
+    const first = await store.createAiConversation({
+      projectId,
+      expectedOrganizationId: auth.organization.id,
+      userId: auth.user.id,
+      title: 'First chat',
+    });
+    const second = await store.createAiConversation({
+      projectId,
+      expectedOrganizationId: auth.organization.id,
+      userId: auth.user.id,
+      title: 'Second chat',
+    });
+    const leaked = await store.createAiConversation({
+      projectId,
+      expectedOrganizationId: auth.organization.id,
+      userId: otherUser.user.id,
+      title: 'Other user chat',
+    });
 
     try {
       const limited = await app.inject({
@@ -5673,6 +5766,122 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
       );
       expect(tokenLookups).not.toContain(`/workspaces/${projectId}/agent-token`);
     } finally {
+      await runtime.close();
+      await app.close();
+    }
+  });
+
+  it('runs no workspace-manager effect when transfer commits before the durable STARTING latch', async () => {
+    const runtime = await startRuntimeServices();
+    const store = new PausingWorkspaceLatchStore();
+    const app = await buildTestApiApp({ store });
+    const auth = await register(app, {
+      email: 'runtime-transfer-first@example.test',
+      organizationName: 'Runtime transfer first source',
+    });
+    const target = await store.createOrganization({
+      name: 'Runtime transfer first target',
+      slug: 'runtime-transfer-first-target',
+      ownerUserId: auth.user.id,
+    });
+    const created = await app.inject({
+      method: 'POST',
+      url: `/orgs/${auth.organization.id}/projects`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { name: 'Runtime transfer first project' },
+    });
+    const projectId = created.json().project.id as string;
+    const workspaceId = deterministicRuntimeWorkspaceId(projectId, auth.user.id);
+
+    try {
+      const starting = app.inject({
+        method: 'POST',
+        url: '/api/runtime/workspaces',
+        headers: { authorization: `Bearer ${auth.token}` },
+        payload: { projectId },
+      });
+      await store.latchEntered.promise;
+
+      await expect(
+        store.transferProject({
+          projectId,
+          expectedOrganizationId: auth.organization.id,
+          targetOrganizationId: target.id,
+          actorUserId: auth.user.id,
+          assertExternalStorageDetached: async () => undefined,
+          validateTargetAdmission: async () => undefined,
+        }),
+      ).resolves.toMatchObject({ organizationId: target.id });
+      store.releaseLatch.resolve();
+
+      const staleStart = await starting;
+      expect(staleStart.statusCode).toBe(409);
+      expect(staleStart.json().code).toBe('PROJECT_ORGANIZATION_CHANGED_DURING_MUTATION');
+      expect(runtime.managerCalls.filter((call) => call.pathname === '/workspaces/start')).toHaveLength(0);
+      expect(await store.getWorkspace(workspaceId)).toBeUndefined();
+      await expect(store.getProject(projectId)).resolves.toMatchObject({ organizationId: target.id });
+    } finally {
+      store.releaseLatch.resolve();
+      await runtime.close();
+      await app.close();
+    }
+  });
+
+  it('keeps transfer rejected while the STARTING latch owns the manager provisioning lifetime', async () => {
+    const managerEntered = deferred();
+    const releaseManager = deferred();
+    const runtime = await startRuntimeServices({
+      managerStartGate: { entered: managerEntered.resolve, release: releaseManager.promise },
+    });
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+    const auth = await register(app, {
+      email: 'runtime-latch-first@example.test',
+      organizationName: 'Runtime latch first source',
+    });
+    const target = await store.createOrganization({
+      name: 'Runtime latch first target',
+      slug: 'runtime-latch-first-target',
+      ownerUserId: auth.user.id,
+    });
+    const created = await app.inject({
+      method: 'POST',
+      url: `/orgs/${auth.organization.id}/projects`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { name: 'Runtime latch first project' },
+    });
+    const projectId = created.json().project.id as string;
+    const workspaceId = deterministicRuntimeWorkspaceId(projectId, auth.user.id);
+
+    try {
+      const starting = app.inject({
+        method: 'POST',
+        url: '/api/runtime/workspaces',
+        headers: { authorization: `Bearer ${auth.token}` },
+        payload: { projectId },
+      });
+      await managerEntered.promise;
+
+      await expect(store.getWorkspace(workspaceId)).resolves.toMatchObject({ status: 'STARTING' });
+      await expect(
+        store.transferProject({
+          projectId,
+          expectedOrganizationId: auth.organization.id,
+          targetOrganizationId: target.id,
+          actorUserId: auth.user.id,
+          assertExternalStorageDetached: async () => undefined,
+          validateTargetAdmission: async () => undefined,
+        }),
+      ).rejects.toMatchObject({ code: 'PROJECT_TRANSFER_MANAGED_RESOURCES_ACTIVE', statusCode: 409 });
+      await expect(store.getProject(projectId)).resolves.toMatchObject({ organizationId: auth.organization.id });
+
+      releaseManager.resolve();
+      const started = await starting;
+      expect(started.statusCode).toBe(200);
+      expect(runtime.managerCalls.filter((call) => call.pathname === '/workspaces/start')).toHaveLength(1);
+      await expect(store.getWorkspace(workspaceId)).resolves.toMatchObject({ status: 'RUNNING' });
+    } finally {
+      releaseManager.resolve();
       await runtime.close();
       await app.close();
     }
@@ -6138,7 +6347,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     const workspaceId = workspace.json().workspace.id as string;
     expect(workspaceId).not.toBe(deterministicRuntimeWorkspaceId(projectId, auth.user.id));
 
-    await projectStorage.writeFiles(projectId, [{ path: 'package.json', content: '{\n  "name": "app"\n}\n' }]);
+    await projectStorage.writeFiles(projectId, [{ path: 'package.json', content: '{\n  "name": "app"\n}\n' }], {
+      expectedOrganizationId: auth.organization.id,
+    });
 
     try {
       const response = await app.inject({
@@ -6225,7 +6436,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     const projectId = project.json().project.id as string;
 
     // No lockfile → detection falls back to npm.
-    await projectStorage.writeFiles(projectId, [{ path: 'package.json', content: '{\n  "name": "app"\n}\n' }]);
+    await projectStorage.writeFiles(projectId, [{ path: 'package.json', content: '{\n  "name": "app"\n}\n' }], {
+      expectedOrganizationId: auth.organization.id,
+    });
 
     try {
       // Injection attempt must be rejected before any runtime dispatch.
@@ -6537,9 +6750,11 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     });
 
     const projectId = project.json().project.id as string;
-    await projectStorage.writeFiles(projectId, [
-      { path: 'package.json', content: '{\n  "name": "debugger-fallback"\n}\n' },
-    ]);
+    await projectStorage.writeFiles(
+      projectId,
+      [{ path: 'package.json', content: '{\n  "name": "debugger-fallback"\n}\n' }],
+      { expectedOrganizationId: auth.organization.id },
+    );
 
     try {
       const response = await app.inject({
@@ -6612,9 +6827,11 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     });
 
     const projectId = project.json().project.id as string;
-    await projectStorage.writeFiles(projectId, [
-      { path: 'package.json', content: '{\n  "scripts": { "dev": "vite" }\n}\n' },
-    ]);
+    await projectStorage.writeFiles(
+      projectId,
+      [{ path: 'package.json', content: '{\n  "scripts": { "dev": "vite" }\n}\n' }],
+      { expectedOrganizationId: auth.organization.id },
+    );
 
     try {
       const command = await app.inject({

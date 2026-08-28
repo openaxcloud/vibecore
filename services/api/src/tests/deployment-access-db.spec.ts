@@ -66,6 +66,7 @@ runDbTests('deployment access — durable PostgreSQL guarantees', () => {
 
       const deployment = await storeA.createDeployment({
         projectId: project.id,
+        expectedOrganizationId: project.organizationId,
         provider: 'static',
         environment: 'preview',
         status: 'BUILDING',

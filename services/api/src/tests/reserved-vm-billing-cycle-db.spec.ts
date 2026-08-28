@@ -47,6 +47,7 @@ async function createCommittedReservedVm(input: {
 
   const deployment = await input.store.createDeployment({
     projectId: input.projectId,
+    expectedOrganizationId: input.organizationId,
     provider: 'server',
     status: 'READY',
     url: 'https://reserved-cycle.example.test',

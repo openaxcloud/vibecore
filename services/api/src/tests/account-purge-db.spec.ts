@@ -8,6 +8,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { eraseLocalAccountStorage } from '../account-local-storage-purge.js';
 import type { PurgeStorageDeps } from '../account-purge.js';
+import type { ObjectStorage } from '../object-storage.js';
 import { PrismaApiStore } from '../prisma-store.js';
 
 async function canReachDatabase() {
@@ -82,14 +83,22 @@ async function createSessionFencePlan(tx: Prisma.TransactionClient, userId: stri
 }
 
 runDbTests('account purge — PostgreSQL multi-client fencing', () => {
-  it('permanently fences only the purged subject workspace in a retained project', async () => {
+  it('does not leave a surviving project fenced by completed purge inventory', async () => {
     const prisma = createDatabaseClient();
     const userIds: string[] = [];
+    const organizationIds: string[] = [];
 
     try {
       const subject = await seedDueUser(prisma);
       userIds.push(subject.id);
       const projectId = `retained-project-${suffix()}`;
+      const organization = await prisma.organization.create({
+        data: { name: `Retained ${projectId}`, slug: `retained-${suffix()}` },
+      });
+      organizationIds.push(organization.id);
+      await prisma.project.create({
+        data: { id: projectId, organizationId: organization.id, name: 'Retained project', slug: `project-${suffix()}` },
+      });
       const requestedAt = new Date(Date.now() - 15 * 24 * 60 * 60 * 1_000);
       await prisma.purgePlan.create({
         data: {
@@ -112,13 +121,46 @@ runDbTests('account purge — PostgreSQL multi-client fencing', () => {
       const store = new PrismaApiStore(prisma);
       const digest = createHash('sha256').update(`${projectId}:${subject.id}`).digest('hex').slice(0, 16);
 
-      await expect(store.assertProjectStorageMutable(projectId, `ws-${digest}`)).rejects.toMatchObject({
-        code: 'PROJECT_STORAGE_FENCED_FOR_ACCOUNT_PURGE',
+      await expect(
+        store.assertProjectStorageMutable({
+          projectId,
+          expectedOrganizationId: organization.id,
+          workspaceId: `ws-${digest}`,
+        }),
+      ).resolves.toBeUndefined();
+      await expect(
+        store.assertProjectStorageMutable({
+          projectId,
+          expectedOrganizationId: organization.id,
+          workspaceId: 'ws-other-collaborator',
+        }),
+      ).resolves.toBeUndefined();
+      await expect(
+        store.assertProjectStorageMutable({ projectId, expectedOrganizationId: organization.id }),
+      ).resolves.toBeUndefined();
+
+      let bucketExists = false;
+      const ensureBucket = vi.fn(async () => {
+        bucketExists = true;
+        return { bucket: `projects-${projectId}`, created: true, location: 'test' };
       });
-      await expect(store.assertProjectStorageMutable(projectId, 'ws-other-collaborator')).resolves.toBeUndefined();
-      await expect(store.assertProjectStorageMutable(projectId)).resolves.toBeUndefined();
+      const storage = {
+        active: true,
+        ensureBucket,
+        bucketExists: vi.fn(async () => bucketExists),
+      } as unknown as ObjectStorage;
+
+      await expect(
+        store.executeTenantObjectStorageCommand({
+          scopes: [{ projectId, expectedOrganizationId: organization.id }],
+          command: { type: 'ENSURE_BUCKET', projectId },
+          storage,
+          idempotencyKey: `completed-purge-${suffix()}`,
+        }),
+      ).resolves.toMatchObject({ type: 'ENSURE_BUCKET' });
+      expect(ensureBucket).toHaveBeenCalledOnce();
     } finally {
-      await cleanup(prisma, userIds).catch(() => undefined);
+      await cleanup(prisma, userIds, organizationIds).catch(() => undefined);
       await prisma.$disconnect();
     }
   });
@@ -337,7 +379,12 @@ runDbTests('account purge — PostgreSQL multi-client fencing', () => {
       for (const path of files) {
         await expect(lstat(path)).rejects.toMatchObject({ code: 'ENOENT' });
       }
-      await expect(store.assertProjectStorageMutable(project.id)).rejects.toMatchObject({
+      await expect(
+        store.assertProjectStorageMutable({
+          projectId: project.id,
+          expectedOrganizationId: organization.id,
+        }),
+      ).rejects.toMatchObject({
         code: 'PROJECT_STORAGE_FENCED_FOR_ACCOUNT_PURGE',
       });
     } finally {
@@ -357,20 +404,18 @@ runDbTests('account purge — PostgreSQL multi-client fencing', () => {
     }
   });
 
-  it('never reclaims a plan while its row lock encloses an irreversible provider effect', async () => {
+  it('runs irreversible provider I/O outside transactions and finalizes its durable receipt afterward', async () => {
     const prismaA = createDatabaseClient();
     const prismaB = createDatabaseClient();
     const userIds: string[] = [];
     const entered = deferred();
     const release = deferred();
-    let effectActive = false;
-    let reconcileResolvedDuringEffect = false;
 
     try {
       const user = await seedDueUser(prismaA);
       userIds.push(user.id);
-      const storeA = new PrismaApiStore(prismaA, undefined, lease);
-      const storeB = new PrismaApiStore(prismaB, undefined, lease);
+      const longLease = { ttlMs: 5_000, renewIntervalMs: 1_000, reclaimGraceMs: 0 };
+      const storeA = new PrismaApiStore(prismaA, undefined, longLease);
       const purge = storeA.purgeUserAccount(
         { userId: user.id, correlationId: `corr-${suffix()}` },
         {
@@ -378,10 +423,8 @@ runDbTests('account purge — PostgreSQL multi-client fencing', () => {
             await purgeLease.executeEffect(
               { key: 'gcs-bucket:test', resourceType: 'gcs_bucket', resourceId: 'test' },
               async () => {
-                effectActive = true;
                 entered.resolve();
                 await release.promise;
-                effectActive = false;
                 return { deleted: true, verifiedAbsent: true };
               },
             );
@@ -391,18 +434,20 @@ runDbTests('account purge — PostgreSQL multi-client fencing', () => {
       );
 
       await entered.promise;
-      await new Promise((resolve) => setTimeout(resolve, 200));
-      const reconcile = storeB.reconcilePurgeFreezes().then((result) => {
-        reconcileResolvedDuringEffect = effectActive;
-        return result;
-      });
-      await new Promise((resolve) => setTimeout(resolve, 40));
-      expect(reconcileResolvedDuringEffect).toBe(false);
+
+      /*
+       * NOWAIT would fail immediately if executeEffect still held the plan's
+       * FOR UPDATE transaction across provider I/O. Acquiring it here proves
+       * the effect latch has no open database transaction behind it.
+       */
+      await expect(
+        prismaB.$transaction(async (tx) => {
+          await tx.$queryRawUnsafe(`SELECT id FROM "PurgePlan" WHERE "userId" = $1 FOR UPDATE NOWAIT`, user.id);
+        }),
+      ).resolves.toBeUndefined();
 
       release.resolve();
       await expect(purge).rejects.toMatchObject({ code: expect.any(String) });
-      await reconcile;
-      expect(reconcileResolvedDuringEffect).toBe(false);
       expect(await prismaA.purgeEffect.findFirst({ where: { plan: { userId: user.id } } })).toMatchObject({
         status: 'SUCCEEDED',
         receipt: { deleted: true, verifiedAbsent: true },
@@ -462,6 +507,118 @@ runDbTests('account purge — PostgreSQL multi-client fencing', () => {
       expect(effect).toMatchObject({ status: 'SUCCEEDED', attempt: 1 });
     } finally {
       await cleanup(prismaA, userIds).catch(() => undefined);
+      await Promise.all([prismaA.$disconnect(), prismaB.$disconnect()]);
+    }
+  });
+
+  it('keeps the GCS freeze after a crash between provider success and receipt, then verifies live before retry certification', async () => {
+    const prismaA = createDatabaseClient();
+    const prismaB = createDatabaseClient();
+    const userIds: string[] = [];
+    const organizationIds: string[] = [];
+    let providerDeleted = false;
+    let providerCalls = 0;
+
+    try {
+      const user = await seedDueUser(prismaA);
+      userIds.push(user.id);
+      const role = await prismaA.role.upsert({
+        where: { key: 'owner' },
+        create: { key: 'owner', name: 'Owner' },
+        update: {},
+      });
+      const organization = await prismaA.organization.create({
+        data: {
+          name: 'Purge GCS recovery org',
+          slug: `purge-gcs-recovery-${suffix()}`,
+          members: { create: { userId: user.id, roleId: role.id } },
+          projects: { create: { name: 'GCS recovery project', slug: `gcs-recovery-${suffix()}` } },
+        },
+        include: { projects: true },
+      });
+      organizationIds.push(organization.id);
+      const project = organization.projects[0];
+      const slowRenewLease = { ttlMs: 5_000, renewIntervalMs: 60_000, reclaimGraceMs: 0 };
+      const storeA = new PrismaApiStore(prismaA, undefined, slowRenewLease);
+      const storeB = new PrismaApiStore(prismaB, undefined, slowRenewLease);
+      const effectDescriptor = {
+        key: `gcs-bucket:${project.id}`,
+        resourceType: 'gcs_bucket',
+        resourceId: project.id,
+      } as const;
+
+      await expect(
+        storeA.purgeUserAccount(
+          { userId: user.id },
+          {
+            eraseStorage: async (_inventory, purgeLease) => {
+              await purgeLease.executeEffect(effectDescriptor, async () => {
+                providerCalls += 1;
+                providerDeleted = true;
+
+                /* Simulate process/session loss after GCS accepted the delete. */
+                await prismaB.purgePlan.update({
+                  where: { userId: user.id },
+                  data: {
+                    ownerToken: `crashed-owner-${suffix()}`,
+                    leaseExpiresAt: new Date(Date.now() - 1_000),
+                  },
+                });
+                return { deleted: true, verifiedAbsent: true, bucketStillExists: false, objectsRemaining: 0 };
+              });
+              return { classes: [], verified: true };
+            },
+          },
+        ),
+      ).rejects.toMatchObject({ code: 'ACCOUNT_PURGE_LEASE_LOST' });
+
+      expect(providerDeleted).toBe(true);
+      expect(providerCalls).toBe(1);
+      await expect(prismaA.purgeReceipt.findUnique({ where: { userId: user.id } })).resolves.toBeNull();
+      await expect(
+        prismaA.purgeEffect.findFirstOrThrow({ where: { plan: { userId: user.id }, effectKey: effectDescriptor.key } }),
+      ).resolves.toMatchObject({ status: 'RUNNING', receipt: null });
+      await expect(
+        prismaA.purgeFreeze.findFirst({
+          where: {
+            plan: { userId: user.id },
+            resourceType: 'objectStorage',
+            resourceId: project.id,
+          },
+        }),
+      ).resolves.toBeTruthy();
+      await expect(prismaA.project.findUnique({ where: { id: project.id } })).resolves.toBeTruthy();
+
+      const recovered = await storeB.purgeUserAccount(
+        { userId: user.id },
+        {
+          eraseStorage: async (_inventory, purgeLease) => {
+            const execution = await purgeLease.executeEffect(effectDescriptor, async () => {
+              providerCalls += 1;
+
+              /* Recovery is delete-idempotent but still requires LIVE absence. */
+              if (!providerDeleted) throw new Error('GCS_BUCKET_STILL_PRESENT');
+              return { deleted: false, verifiedAbsent: true, bucketStillExists: false, objectsRemaining: 0 };
+            });
+            return {
+              classes: [],
+              verified:
+                execution.receipt.verifiedAbsent === true &&
+                execution.receipt.bucketStillExists === false &&
+                execution.receipt.objectsRemaining === 0,
+            };
+          },
+        },
+      );
+
+      expect(recovered.outcome).toBe('purged');
+      expect(providerCalls).toBe(2);
+      await expect(prismaA.purgeReceipt.findUnique({ where: { userId: user.id } })).resolves.toBeTruthy();
+      await expect(
+        prismaA.purgeEffect.findFirstOrThrow({ where: { plan: { userId: user.id }, effectKey: effectDescriptor.key } }),
+      ).resolves.toMatchObject({ status: 'SUCCEEDED', attempt: 2 });
+    } finally {
+      await cleanup(prismaA, userIds, organizationIds).catch(() => undefined);
       await Promise.all([prismaA.$disconnect(), prismaB.$disconnect()]);
     }
   });
@@ -783,7 +940,19 @@ runDbTests('account purge — PostgreSQL multi-client fencing', () => {
       ).rejects.toMatchObject({ code: 'USER_TOPOLOGY_FROZEN_FOR_ACCOUNT_PURGE' });
       const providerMutation = vi.fn(async () => 'mutated');
       await expect(
-        storeB.withObjectStorageProjectMutation(organization.projects[0].id, providerMutation),
+        storeB.executeTenantObjectStorageCommand({
+          scopes: [
+            {
+              projectId: organization.projects[0].id,
+              expectedOrganizationId: organization.id,
+            },
+          ],
+          command: { type: 'ENSURE_BUCKET', projectId: organization.projects[0].id },
+          storage: {
+            active: true,
+            ensureBucket: providerMutation,
+          } as unknown as ObjectStorage,
+        }),
       ).rejects.toMatchObject({ code: 'OBJECT_STORAGE_PURGE_FROZEN' });
       expect(providerMutation).not.toHaveBeenCalled();
 

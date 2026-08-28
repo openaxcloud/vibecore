@@ -4,9 +4,10 @@ import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { CheckpointBarrierError } from './checkpoint-barrier-storage.js';
-import { LocalProjectStorage, withProjectLock } from './project-storage.js';
+import { LocalProjectStorage, withProjectLock, type ProjectMutationCoordinator } from './project-storage.js';
 
 const temporaryRoots: string[] = [];
+const TEST_ORGANIZATION_ID = 'org_checkpoint_storage_fencing';
 
 async function temporaryStorageRoot() {
   const root = await mkdtemp(join(tmpdir(), 'vibecore-checkpoint-storage-'));
@@ -41,19 +42,24 @@ describe('checkpoint storage fencing at the tree mutation linearization point', 
 
     let holdFirstGuard = true;
 
-    const storage = new LocalProjectStorage(async () => {
-      if (activeBarrier) {
-        throw new CheckpointBarrierError('bar_test');
-      }
+    const coordinateMutation: ProjectMutationCoordinator = (scope, effect) =>
+      withProjectLock(scope.projectId, async () => {
+        if (activeBarrier) {
+          throw new CheckpointBarrierError('bar_test');
+        }
 
-      if (holdFirstGuard) {
-        holdFirstGuard = false;
-        guardEntered();
-        await guardGate;
-      }
+        if (holdFirstGuard) {
+          holdFirstGuard = false;
+          guardEntered();
+          await guardGate;
+        }
+        return effect();
+      });
+    const storage = new LocalProjectStorage(coordinateMutation);
+
+    const firstWrite = storage.writeFiles(projectId, [{ path: 'state.txt', content: 'before barrier' }], {
+      expectedOrganizationId: TEST_ORGANIZATION_ID,
     });
-
-    const firstWrite = storage.writeFiles(projectId, [{ path: 'state.txt', content: 'before barrier' }]);
     await entered;
 
     let barrierAcquired = false;
@@ -71,11 +77,17 @@ describe('checkpoint storage fencing at the tree mutation linearization point', 
     expect(barrierAcquired).toBe(true);
 
     await expect(
-      storage.writeFiles(projectId, [{ path: 'state.txt', content: 'must not land' }]),
+      storage.writeFiles(projectId, [{ path: 'state.txt', content: 'must not land' }], {
+        expectedOrganizationId: TEST_ORGANIZATION_ID,
+      }),
     ).rejects.toMatchObject({ code: 'CHECKPOINT_BARRIER_ACTIVE' });
-    expect((await storage.listFiles(projectId)).find((file) => file.path === 'state.txt')?.content).toBe(
-      'before barrier',
-    );
+    expect(
+      (
+        await storage.listFiles(projectId, {
+          expectedOrganizationId: TEST_ORGANIZATION_ID,
+        })
+      ).find((file) => file.path === 'state.txt')?.content,
+    ).toBe('before barrier');
   });
 
   it('revalidates immediately before clear and before every restore write, stopping permanently on loss', async () => {
@@ -83,10 +95,14 @@ describe('checkpoint storage fencing at the tree mutation linearization point', 
 
     const projectId = `project-restore-${Date.now()}`;
     const storage = new LocalProjectStorage();
-    await storage.writeFiles(projectId, [
-      { path: 'a.txt', content: 'old-a' },
-      { path: 'b.txt', content: 'old-b' },
-    ]);
+    await storage.writeFiles(
+      projectId,
+      [
+        { path: 'a.txt', content: 'old-a' },
+        { path: 'b.txt', content: 'old-b' },
+      ],
+      { expectedOrganizationId: TEST_ORGANIZATION_ID },
+    );
 
     let guards = 0;
 
@@ -102,6 +118,7 @@ describe('checkpoint storage fencing at the tree mutation linearization point', 
       storage.restoreSnapshot(
         {
           projectId,
+          expectedOrganizationId: TEST_ORGANIZATION_ID,
           files: [
             { path: 'a.txt', content: 'new-a', updatedAt: '' },
             { path: 'b.txt', content: 'new-b', updatedAt: '' },
@@ -112,7 +129,9 @@ describe('checkpoint storage fencing at the tree mutation linearization point', 
       ),
     ).rejects.toMatchObject({ code: 'CHECKPOINT_BARRIER_LOST' });
 
-    const after = await storage.listFiles(projectId);
+    const after = await storage.listFiles(projectId, {
+      expectedOrganizationId: TEST_ORGANIZATION_ID,
+    });
     expect(after).toEqual([{ path: 'a.txt', content: 'new-a', encoding: 'utf8', updatedAt: expect.any(String) }]);
     expect(guards).toBe(3);
   });

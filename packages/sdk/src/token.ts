@@ -8,6 +8,8 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
  */
 export interface ObjectStorageAccessTokenPayload {
   projectId: string;
+  /** Tenant authority at issuance; a project transfer permanently invalidates the token. */
+  organizationId: string;
   /** The user the workspace runs as (for audit); optional for service contexts. */
   userId?: string;
   /** The workspace the token was minted for (binding/audit). */
@@ -19,7 +21,7 @@ export interface ObjectStorageAccessTokenPayload {
 export interface VerifyObjectStorageAccessTokenResult {
   ok: boolean;
   payload?: ObjectStorageAccessTokenPayload;
-  reason?: 'missing' | 'malformed' | 'invalid_signature' | 'expired' | 'project_mismatch';
+  reason?: 'missing' | 'malformed' | 'invalid_signature' | 'expired' | 'project_mismatch' | 'organization_mismatch';
 }
 
 /**
@@ -45,6 +47,7 @@ export function verifyObjectStorageAccessToken(input: {
   token: string | undefined;
   secret: string;
   expectedProjectId?: string;
+  expectedOrganizationId?: string;
   now?: number;
 }): VerifyObjectStorageAccessTokenResult {
   if (!input.token) {
@@ -72,12 +75,26 @@ export function verifyObjectStorageAccessToken(input: {
     return { ok: false, reason: 'malformed' };
   }
 
+  if (
+    typeof parsed.projectId !== 'string' ||
+    !parsed.projectId ||
+    typeof parsed.organizationId !== 'string' ||
+    !parsed.organizationId ||
+    !Number.isFinite(parsed.expiresAt)
+  ) {
+    return { ok: false, reason: 'malformed' };
+  }
+
   if (parsed.expiresAt <= (input.now ?? Date.now())) {
     return { ok: false, reason: 'expired' };
   }
 
   if (input.expectedProjectId && parsed.projectId !== input.expectedProjectId) {
     return { ok: false, reason: 'project_mismatch' };
+  }
+
+  if (input.expectedOrganizationId && parsed.organizationId !== input.expectedOrganizationId) {
+    return { ok: false, reason: 'organization_mismatch' };
   }
 
   return { ok: true, payload: parsed };

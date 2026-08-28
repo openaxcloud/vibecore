@@ -1,4 +1,4 @@
-import { access, mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
+import { access, mkdir, mkdtemp, readFile, rm, utimes, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -12,10 +12,12 @@ import {
   filesFromZipBase64,
   GitCliProvider,
   LocalProjectStorage,
+  withProjectLock,
 } from '../project-storage.js';
 import { TestApiStore } from './test-api-store.js';
 
 const previousProjectStorageDir = process.env.PROJECT_STORAGE_DIR;
+const TEST_ORGANIZATION_ID = 'org_project_storage_tests';
 
 afterEach(() => {
   if (previousProjectStorageDir === undefined) {
@@ -30,6 +32,99 @@ async function pathExists(path: string) {
     .then(() => true)
     .catch(() => false);
 }
+
+function deferred() {
+  let resolve!: () => void;
+  const promise = new Promise<void>((done) => {
+    resolve = done;
+  });
+  return { promise, resolve };
+}
+
+function delay(milliseconds: number) {
+  return new Promise<void>((resolve) => setTimeout(resolve, milliseconds));
+}
+
+describe('NFS project lock lease heartbeat', () => {
+  it('keeps a waiter out for an effect longer than the configured stale window', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'vc-project-lock-heartbeat-'));
+    process.env.PROJECT_STORAGE_DIR = dir;
+    const holderEntered = deferred();
+    const releaseHolder = deferred();
+    let waiterEffects = 0;
+    const lockOptions = {
+      forceFileLock: true,
+      bypassProcessQueue: true,
+      staleMs: 80,
+      heartbeatMs: 20,
+      acquireTimeoutMs: 2_000,
+    } as const;
+
+    try {
+      const holder = withProjectLock(
+        'heartbeat-project',
+        async () => {
+          holderEntered.resolve();
+          await releaseHolder.promise;
+        },
+        lockOptions,
+      );
+      await holderEntered.promise;
+
+      const waiter = withProjectLock(
+        'heartbeat-project',
+        async () => {
+          waiterEffects += 1;
+        },
+        lockOptions,
+      );
+
+      await delay(300);
+      expect(waiterEffects).toBe(0);
+
+      releaseHolder.resolve();
+      await Promise.all([holder, waiter]);
+      expect(waiterEffects).toBe(1);
+    } finally {
+      releaseHolder.resolve();
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('reclaims a crashed owner whose lock has no heartbeat', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'vc-project-lock-reclaim-'));
+    process.env.PROJECT_STORAGE_DIR = dir;
+    const locksDir = join(dir, '_locks');
+    const lockPath = join(locksDir, 'crashed-project.lock');
+    let effects = 0;
+
+    try {
+      await mkdir(locksDir, { recursive: true });
+      await writeFile(lockPath, 'dead-owner\n', 'utf8');
+      const staleTimestamp = new Date(Date.now() - 10_000);
+      await utimes(lockPath, staleTimestamp, staleTimestamp);
+
+      await withProjectLock(
+        'crashed-project',
+        async () => {
+          effects += 1;
+        },
+        {
+          forceFileLock: true,
+          bypassProcessQueue: true,
+          staleMs: 50,
+          heartbeatMs: 15,
+          acquireTimeoutMs: 1_000,
+        },
+      );
+
+      expect(effects).toBe(1);
+      expect(await pathExists(lockPath)).toBe(false);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+});
 
 class TestEmailProvider implements EmailProvider {
   readonly messages: EmailMessage[] = [];
@@ -114,10 +209,12 @@ describe('binary file preservation (#16/#38)', () => {
     const storage = new LocalProjectStorage();
     const encoded = encodeFileBuffer(binaryBytes);
 
-    await storage.writeFiles('proj_bin', [
-      { path: 'img/icon.ico', content: encoded.content, encoding: encoded.encoding },
-    ]);
-    const listed = await storage.listFiles('proj_bin');
+    await storage.writeFiles(
+      'proj_bin',
+      [{ path: 'img/icon.ico', content: encoded.content, encoding: encoded.encoding }],
+      { expectedOrganizationId: TEST_ORGANIZATION_ID },
+    );
+    const listed = await storage.listFiles('proj_bin', { expectedOrganizationId: TEST_ORGANIZATION_ID });
     const icon = listed.find((f) => f.path === 'img/icon.ico')!;
 
     expect(icon.encoding).toBe('base64');
@@ -139,7 +236,7 @@ describe('LocalProjectStorage remix ownership guards', () => {
           { path: 'first.txt', content: 'first' },
           { path: 'second.txt', content: 'second' },
         ],
-        undefined,
+        { expectedOrganizationId: TEST_ORGANIZATION_ID },
         async () => {
           guardCalls += 1;
 
@@ -163,6 +260,7 @@ describe('LocalProjectStorage remix ownership guards', () => {
     await expect(
       storage.createSnapshot({
         projectId: 'source',
+        expectedOrganizationId: TEST_ORGANIZATION_ID,
         files: [{ path: 'index.ts', content: 'export {};', updatedAt: new Date().toISOString() }],
         storageKey,
         guard: async () => {
@@ -184,10 +282,14 @@ describe('LocalProjectStorage.restoreSnapshot preserves secondary workspaces', (
     const projectStorage = new LocalProjectStorage();
     const projectId = 'project-with-workspaces';
 
-    await projectStorage.writeFiles(projectId, [
-      { path: 'README.md', content: '# primary tree' },
-      { path: 'src/main.ts', content: 'console.log("primary");\n' },
-    ]);
+    await projectStorage.writeFiles(
+      projectId,
+      [
+        { path: 'README.md', content: '# primary tree' },
+        { path: 'src/main.ts', content: 'console.log("primary");\n' },
+      ],
+      { expectedOrganizationId: TEST_ORGANIZATION_ID },
+    );
 
     const workspaceId = 'workspace-alpha';
     const workspacePath = join(storage, projectId, '.vibecore-workspaces', workspaceId);
@@ -198,6 +300,7 @@ describe('LocalProjectStorage.restoreSnapshot preserves secondary workspaces', (
 
     await projectStorage.restoreSnapshot({
       projectId,
+      expectedOrganizationId: TEST_ORGANIZATION_ID,
       files: [
         { path: 'README.md', content: '# restored', updatedAt: new Date().toISOString() },
         { path: 'src/other.ts', content: '// fresh content\n', updatedAt: new Date().toISOString() },
@@ -221,13 +324,17 @@ describe('LocalProjectStorage.restoreSnapshot preserves secondary workspaces', (
     const projectStorage = new LocalProjectStorage();
     const projectId = 'isolated-listing';
 
-    await projectStorage.writeFiles(projectId, [{ path: 'index.html', content: 'primary' }]);
+    await projectStorage.writeFiles(projectId, [{ path: 'index.html', content: 'primary' }], {
+      expectedOrganizationId: TEST_ORGANIZATION_ID,
+    });
 
     const workspacePath = join(storage, projectId, '.vibecore-workspaces', 'workspace-beta');
     await mkdir(workspacePath, { recursive: true });
     await writeFile(join(workspacePath, 'secret.txt'), 'workspace-only');
 
-    const files = await projectStorage.listFiles(projectId);
+    const files = await projectStorage.listFiles(projectId, {
+      expectedOrganizationId: TEST_ORGANIZATION_ID,
+    });
     const paths = files.map((file) => file.path);
 
     expect(paths).toContain('index.html');
@@ -246,10 +353,13 @@ describe('LocalProjectStorage workspace-scoped writes', () => {
     const projectId = 'workspace-scoped-writes';
     const workspaceId = 'workspace-gamma';
 
-    await projectStorage.writeFiles(projectId, [{ path: 'primary.txt', content: 'primary' }]);
+    await projectStorage.writeFiles(projectId, [{ path: 'primary.txt', content: 'primary' }], {
+      expectedOrganizationId: TEST_ORGANIZATION_ID,
+    });
 
     await projectStorage.restoreSnapshot({
       projectId,
+      expectedOrganizationId: TEST_ORGANIZATION_ID,
       workspaceId,
       files: [{ path: 'app.ts', content: 'workspace-content', updatedAt: new Date().toISOString() }],
     });
@@ -260,7 +370,10 @@ describe('LocalProjectStorage workspace-scoped writes', () => {
     expect(await pathExists(join(storage, projectId, 'app.ts'))).toBe(false);
     expect(await readFile(join(storage, projectId, 'primary.txt'), 'utf8')).toBe('primary');
 
-    const workspaceFiles = await projectStorage.listFiles(projectId, workspaceId);
+    const workspaceFiles = await projectStorage.listFiles(projectId, {
+      expectedOrganizationId: TEST_ORGANIZATION_ID,
+      workspaceId,
+    });
     expect(workspaceFiles.map((file) => file.path)).toEqual(['app.ts']);
   });
 });

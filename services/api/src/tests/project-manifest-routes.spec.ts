@@ -5,6 +5,7 @@ import { hashPassword } from '@vibecore/auth';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { buildApiApp, type ApiAppOptions } from '../app.js';
 import type { EmailProvider } from '../email.js';
+import { NoopObjectStorage, type ObjectStorage } from '../object-storage.js';
 import {
   projectManifestDigest,
   verifyStoredProjectManifestRevision,
@@ -17,6 +18,15 @@ class QuietEmailProvider implements EmailProvider {
   async send() {
     return undefined;
   }
+}
+
+function activeEmptyObjectStorage(): ObjectStorage {
+  const storage = new NoopObjectStorage();
+  return new Proxy(storage, {
+    get(target, property, receiver) {
+      return property === 'active' ? true : Reflect.get(target, property, receiver);
+    },
+  });
 }
 
 const apps: Array<Awaited<ReturnType<typeof buildApiApp>>> = [];
@@ -43,7 +53,7 @@ afterEach(async () => {
   vi.restoreAllMocks();
 });
 
-async function setup(options: { asyncDeploy?: boolean } = {}) {
+async function setup(options: { asyncDeploy?: boolean; objectStorageActive?: boolean } = {}) {
   const store = new TestApiStore();
   const buildCalls: string[] = [];
   const queuedJobs: Array<Parameters<NonNullable<ApiAppOptions['enqueueDeployJob']>>[0]> = [];
@@ -80,6 +90,7 @@ async function setup(options: { asyncDeploy?: boolean } = {}) {
   } as unknown as GitProvider;
   const app = await buildApiApp({
     store,
+    objectStorage: options.objectStorageActive === false ? new NoopObjectStorage() : activeEmptyObjectStorage(),
     emailProvider: new QuietEmailProvider(),
     gitProvider,
     useWorkspacePodBuild: options.asyncDeploy,
@@ -252,6 +263,7 @@ describe('ProjectManifest API and deployment binding', () => {
     });
     await store.createDatabaseInstance({
       projectId: project.id,
+      expectedOrganizationId: organization.id,
       organizationId: organization.id,
       retentionDays: 7,
     });
@@ -270,18 +282,40 @@ describe('ProjectManifest API and deployment binding', () => {
     expect(await store.getLatestProjectManifest(project.id)).toEqual(before);
   });
 
+  it('fails closed when the live object-storage backend cannot prove bucket absence', async () => {
+    const { app, store, user, organization, project, auth } = await setup({ objectStorageActive: false });
+    const target = await store.createOrganization({
+      name: 'Unavailable storage transfer target',
+      slug: 'unavailable-storage-transfer-target',
+      ownerUserId: user.id,
+    });
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/projects/${project.id}/transfer`,
+      headers: auth,
+      payload: { targetOrganizationId: target.id },
+    });
+
+    expect(response.statusCode).toBe(503);
+    expect(response.json()).toMatchObject({ code: 'PROJECT_OBJECT_STORAGE_BACKEND_UNAVAILABLE' });
+    await expect(store.getProject(project.id)).resolves.toMatchObject({ organizationId: organization.id });
+  });
+
   it('recreates a detached target manifest when a remix resumes after the target row committed', async () => {
     const { store, project, organization } = await setup();
     const pinnedRevision = (await store.getLatestProjectManifest(project.id))!;
     const pinnedManifest = verifyStoredProjectManifestRevision(pinnedRevision, project.id);
     const snapshot = await store.createSnapshot({
       projectId: project.id,
+      expectedOrganizationId: organization.id,
       kind: 'manual',
       manifest: { files: [] },
     });
     const changedAfterPin = nextManifest(pinnedManifest, 'changed-after-pin');
     await store.createProjectManifestRevision({
       projectId: project.id,
+      expectedOrganizationId: organization.id,
       schemaVersion: changedAfterPin.schemaVersion,
       manifestVersion: changedAfterPin.manifestVersion,
       digest: projectManifestDigest(changedAfterPin),

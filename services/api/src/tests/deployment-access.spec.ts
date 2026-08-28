@@ -130,6 +130,7 @@ describe('deployment access API', () => {
 
     const deployment = await store.createDeployment({
       projectId: project.id,
+      expectedOrganizationId: project.organizationId,
       provider: 'static',
       environment: 'preview',
       status: 'READY',
@@ -389,6 +390,7 @@ describe('deployment access API', () => {
     try {
       const lookalike = await store.createDeployment({
         projectId: project.id,
+        expectedOrganizationId: project.organizationId,
         provider: 'static',
         environment: 'preview',
         status: 'READY',

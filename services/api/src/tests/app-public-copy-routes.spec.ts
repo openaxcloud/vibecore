@@ -278,6 +278,7 @@ describe('localized backend route families', () => {
     });
     await store.createDeployment({
       projectId: publishedProject.id,
+      expectedOrganizationId: publishedProject.organizationId,
       provider: 'static',
       environment: 'production',
       status: 'READY',
@@ -291,6 +292,7 @@ describe('localized backend route families', () => {
     });
     const sourceDeployment = await store.createDeployment({
       projectId: sourceProject.id,
+      expectedOrganizationId: sourceProject.organizationId,
       provider: 'static',
       environment: 'preview',
       status: 'READY',

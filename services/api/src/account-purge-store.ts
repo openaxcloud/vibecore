@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { Prisma, type DatabaseClient } from '@vibecore/database';
 import {
+  assertAccountPurgeMutationAllowed,
   assertAccountPurgeStateMachinesSafeToStart,
   fencePurgedUserStateMachines,
 } from './account-purge-state-machine-fence.js';
@@ -33,6 +34,15 @@ const PLAN_COMPLETED = 'COMPLETED';
 const CANCELLATION_NOT_REQUESTED = 'not_requested' as const;
 const CANCELLATION_NOT_CANCELLABLE = 'not_cancellable' as const;
 const ACTIVE_SUBSCRIPTION_STATES = ['TRIALING', 'ACTIVE', 'PAST_DUE', 'UNPAID'] as const;
+const RETRYABLE_VERIFIED_PURGE_EFFECT_TYPES = new Set([
+  'billing_subscription',
+  'gcs_bucket',
+  'local_project_storage',
+  'local_project_archive',
+  'local_project_snapshot',
+  'local_workspace_storage',
+  'static_deployment_snapshot',
+]);
 
 type ActiveSubscriptionStatus = (typeof ACTIVE_SUBSCRIPTION_STATES)[number];
 
@@ -222,43 +232,6 @@ export class AccountPurgeStore {
       'SELECT pg_advisory_xact_lock(hashtext($1))',
       `account-purge:object-storage:${projectId}`,
     );
-  }
-
-  /**
-   * Holds the same per-project locks used while installing purge freezes for the
-   * whole GCS mutation. Multi-bucket operations acquire one sorted lock set in a
-   * single transaction, avoiding both lock-order inversions and nested-transaction
-   * connection starvation.
-   */
-  async withObjectStorageMutations<T>(projectIds: string[], effect: () => Promise<T>): Promise<T> {
-    const lockedProjectIds = [...new Set(projectIds)].sort();
-    if (lockedProjectIds.length === 0) return effect();
-
-    return this.prisma.$transaction(
-      async (tx) => {
-        for (const projectId of lockedProjectIds) await this.lockObjectStorageProject(tx, projectId);
-        const frozen = await tx.purgeFreeze.findFirst({
-          where: {
-            resourceType: OBJECT_STORAGE_RESOURCE,
-            resourceId: { in: lockedProjectIds },
-            plan: { status: PLAN_ACTIVE },
-          },
-          select: { id: true },
-        });
-        if (frozen) {
-          throw Object.assign(new Error(appPublicEnglish('OBJECT_STORAGE_PURGE_FROZEN')), {
-            code: 'OBJECT_STORAGE_PURGE_FROZEN',
-            statusCode: 409,
-          });
-        }
-        return effect();
-      },
-      { timeout: 180_000, maxWait: 20_000 },
-    );
-  }
-
-  async withObjectStorageMutation<T>(projectId: string, effect: () => Promise<T>): Promise<T> {
-    return this.withObjectStorageMutations([projectId], effect);
   }
 
   private async resolveTopology(tx: Prisma.TransactionClient, userId: string): Promise<StorageTopology> {
@@ -562,29 +535,38 @@ export class AccountPurgeStore {
   }
 
   /**
-   * Storage writers are fenced permanently once a sole-owner project appears
-   * in a purge plan inventory. Active PurgeFreeze rows close the pre-plan race;
-   * the durable plan inventory closes delayed build/snapshot writers after the
-   * attempt failed or completed and its transient freezes were released.
+   * Storage writers are fenced while the owning purge plan is ACTIVE. A
+   * completed/abandoned plan is immutable audit history, not a permanent write
+   * denial for a surviving project that was conservatively inventoried.
    */
   async assertProjectStorageMutable(
     tx: Prisma.TransactionClient,
     projectId: string,
     workspaceId?: string,
   ): Promise<void> {
-    await this.assertProjectMutable(tx, projectId);
+    /*
+     * Physical writers already hold the project physical/NFS barrier. They use
+     * the shared topology lock here so purge can install its exclusive freeze
+     * as soon as an in-flight validation transaction commits; purge never waits
+     * for the physical/NFS lock while holding topology.
+     */
+    await assertAccountPurgeMutationAllowed(tx, { projectIds: [projectId] });
     const rows = await tx.$queryRawUnsafe<Array<{ planned: boolean }>>(
       `SELECT EXISTS (
          SELECT 1 FROM "PurgePlan"
           WHERE COALESCE(inventory->'bucketProjectIds', '[]'::jsonb) ? $1
+            AND status = $2
        ) AS planned`,
       projectId,
+      PLAN_ACTIVE,
     );
     const workspacePlans = workspaceId
       ? await tx.$queryRawUnsafe<Array<{ userId: string }>>(
           `SELECT "userId" FROM "PurgePlan"
-            WHERE COALESCE(inventory->'workspaceProjectIds', '[]'::jsonb) ? $1`,
+            WHERE COALESCE(inventory->'workspaceProjectIds', '[]'::jsonb) ? $1
+              AND status = $2`,
           projectId,
+          PLAN_ACTIVE,
         )
       : [];
     const subjectWorkspacePlanned = workspacePlans.some(
@@ -861,7 +843,19 @@ export class AccountPurgeStore {
     descriptor: PurgeEffectDescriptor,
     effect: () => Promise<T>,
   ): Promise<PurgeEffectExecution<T>> {
-    const outcome = await this.prisma.$transaction(
+    /*
+     * A RUNNING row after process death is ambiguous. Automatic retry is safe
+     * only for this closed set: billing uses the same provider idempotency key;
+     * every delete is idempotent and its callback verifies live absence before
+     * producing a receipt. Any future effect must use a verify-first saga.
+     */
+    if (!RETRYABLE_VERIFIED_PURGE_EFFECT_TYPES.has(descriptor.resourceType)) {
+      throw Object.assign(new Error(appPublicEnglish('ACCOUNT_PURGE_EFFECT_FAILED')), {
+        code: 'ACCOUNT_PURGE_EFFECT_REQUIRES_VERIFY_FIRST',
+      });
+    }
+
+    const prepared = await this.prisma.$transaction(
       async (tx) => {
         await this.lockedPlan(tx, guarantee);
         const existing = await tx.purgeEffect.findUnique({
@@ -879,7 +873,7 @@ export class AccountPurgeStore {
               code: 'ACCOUNT_PURGE_EFFECT_RECEIPT_CORRUPT',
             });
           }
-          return { ok: true as const, executed: false, receipt: existing.receipt as T };
+          return { kind: 'REPLAY' as const, receipt: existing.receipt as T };
         }
 
         const startedAt = await this.databaseNow(tx);
@@ -906,35 +900,82 @@ export class AccountPurgeStore {
           },
         });
 
-        try {
-          const receipt = await effect();
-          const completedAt = await this.databaseNow(tx);
-          await tx.purgeEffect.update({
-            where: { planId_effectKey: { planId: guarantee.planId, effectKey: descriptor.key } },
-            data: {
-              status: 'SUCCEEDED',
-              receipt: receipt as Prisma.InputJsonValue,
-              completedAt,
-              lastErrorCode: null,
-            },
-          });
-          return { ok: true as const, executed: true, receipt };
-        } catch (error) {
-          const completedAt = await this.databaseNow(tx);
-          const code = errorCode(error);
-          await tx.purgeEffect.update({
-            where: { planId_effectKey: { planId: guarantee.planId, effectKey: descriptor.key } },
-            data: { status: 'FAILED', completedAt, lastErrorCode: code },
-          });
-          return { ok: false as const, code };
-        }
+        return { kind: 'PREPARED' as const };
       },
-      { timeout: 180_000, maxWait: 20_000 },
+      { timeout: 30_000, maxWait: 20_000 },
     );
 
-    if (!outcome.ok)
-      throw Object.assign(new Error(appPublicEnglish('ACCOUNT_PURGE_EFFECT_FAILED')), { code: outcome.code });
-    return { executed: outcome.executed, receipt: outcome.receipt };
+    if (prepared.kind === 'REPLAY') {
+      return { executed: false, receipt: prepared.receipt };
+    }
+
+    /*
+     * Provider/NFS/Kubernetes I/O must never run inside a Prisma transaction.
+     * The short prepare transaction above persists intent under the live plan;
+     * the already-committed PurgeFreeze remains the durable write authority
+     * while this effect runs. The short completion transaction below refuses a
+     * stale owner, so a lost lease can never certify another owner's effect.
+     */
+    let receipt: T;
+
+    try {
+      receipt = await effect();
+    } catch (error) {
+      const code = errorCode(error);
+      await this.prisma
+        .$transaction(
+          async (tx) => {
+            await this.lockedPlan(tx, guarantee);
+            const completedAt = await this.databaseNow(tx);
+            await tx.purgeEffect.updateMany({
+              where: {
+                planId: guarantee.planId,
+                effectKey: descriptor.key,
+                status: 'RUNNING',
+              },
+              data: { status: 'FAILED', completedAt, lastErrorCode: code },
+            });
+          },
+          { timeout: 30_000, maxWait: 20_000 },
+        )
+        .catch(() => undefined);
+      throw Object.assign(new Error(appPublicEnglish('ACCOUNT_PURGE_EFFECT_FAILED')), { code, cause: error });
+    }
+
+    await this.prisma.$transaction(
+      async (tx) => {
+        await this.lockedPlan(tx, guarantee);
+        const current = await tx.purgeEffect.findUnique({
+          where: { planId_effectKey: { planId: guarantee.planId, effectKey: descriptor.key } },
+          select: { resourceType: true, resourceId: true, status: true },
+        });
+
+        if (
+          !current ||
+          current.status !== 'RUNNING' ||
+          current.resourceType !== descriptor.resourceType ||
+          current.resourceId !== descriptor.resourceId
+        ) {
+          throw Object.assign(new Error(appPublicEnglish('ACCOUNT_PURGE_EFFECT_DESCRIPTOR_MISMATCH')), {
+            code: 'ACCOUNT_PURGE_EFFECT_DESCRIPTOR_MISMATCH',
+          });
+        }
+
+        const completedAt = await this.databaseNow(tx);
+        await tx.purgeEffect.update({
+          where: { planId_effectKey: { planId: guarantee.planId, effectKey: descriptor.key } },
+          data: {
+            status: 'SUCCEEDED',
+            receipt: receipt as Prisma.InputJsonValue,
+            completedAt,
+            lastErrorCode: null,
+          },
+        });
+      },
+      { timeout: 30_000, maxWait: 20_000 },
+    );
+
+    return { executed: true, receipt };
   }
 
   private async abandon(guarantee: PurgeGuarantee, code: string): Promise<void> {
@@ -945,7 +986,17 @@ export class AccountPurgeStore {
           where: { id: guarantee.planId, ownerToken: guarantee.ownerToken, status: PLAN_ACTIVE },
           data: { status: PLAN_FAILED, leaseExpiresAt: now, lastErrorCode: code, version: { increment: 1 } },
         });
-        if (updated.count === 1) await tx.purgeFreeze.deleteMany({ where: { planId: guarantee.planId } });
+        if (updated.count === 1) {
+          const effectStarted = (await tx.purgeEffect.count({ where: { planId: guarantee.planId } })) > 0;
+
+          /*
+           * Once any physical/provider effect was attempted, a crash can leave
+           * an outcome that only live verification can classify. Never remove
+           * the durable write freeze in that state; the next idempotent purge
+           * attempt reclaims the same plan and verifies its receipts.
+           */
+          if (!effectStarted) await tx.purgeFreeze.deleteMany({ where: { planId: guarantee.planId } });
+        }
       })
       .catch(() => undefined);
   }
@@ -989,7 +1040,9 @@ export class AccountPurgeStore {
             version: { increment: 1 },
           },
         });
-        await tx.purgeFreeze.deleteMany({ where: { planId: candidate.id } });
+        const effectStarted = (await tx.purgeEffect.count({ where: { planId: candidate.id } })) > 0;
+
+        if (!effectStarted) await tx.purgeFreeze.deleteMany({ where: { planId: candidate.id } });
         return true;
       });
       if (changed) planIds.push(candidate.id);

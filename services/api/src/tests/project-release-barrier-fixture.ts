@@ -12,6 +12,7 @@ export async function acquireTestProjectReleaseFence(
     const manifest = createDefaultProjectManifest(input.projectId);
     revision = await store.createProjectManifestRevision({
       projectId: input.projectId,
+      expectedOrganizationId: input.organizationId,
       schemaVersion: manifest.schemaVersion,
       manifestVersion: manifest.manifestVersion,
       digest: projectManifestDigest(manifest),

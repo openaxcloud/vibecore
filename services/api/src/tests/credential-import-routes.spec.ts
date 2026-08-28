@@ -14,7 +14,11 @@ class QuietEmailProvider implements EmailProvider {
 class MemoryProjectStorage implements ProjectStorage {
   readonly files = new Map<string, Map<string, string>>();
 
-  async writeFiles(projectId: string, files: Array<{ path: string; content: string }>) {
+  async writeFiles(
+    projectId: string,
+    files: Array<{ path: string; content: string }>,
+    scope: { expectedOrganizationId: string; workspaceId?: string },
+  ) {
     const bucket = this.files.get(projectId) ?? new Map<string, string>();
 
     for (const file of files) {
@@ -22,10 +26,17 @@ class MemoryProjectStorage implements ProjectStorage {
     }
 
     this.files.set(projectId, bucket);
-    return this.listFiles(projectId);
+    return this.listFiles(projectId, scope);
   }
 
-  async listFiles(projectId: string): Promise<ProjectFile[]> {
+  async listFiles(
+    projectId: string,
+    scope: { expectedOrganizationId: string; workspaceId?: string },
+  ): Promise<ProjectFile[]> {
+    return this.listFilesWithinPhysicalAccess(projectId, scope.workspaceId);
+  }
+
+  async listFilesWithinPhysicalAccess(projectId: string, _workspaceId?: string): Promise<ProjectFile[]> {
     const bucket = this.files.get(projectId) ?? new Map<string, string>();
     const updatedAt = new Date().toISOString();
 
@@ -39,6 +50,9 @@ class MemoryProjectStorage implements ProjectStorage {
 
   async deleteFiles() {}
   async deleteProjectFiles(projectId: string) {
+    this.files.delete(projectId);
+  }
+  async eraseProjectDataWithinPhysicalAccess(projectId: string) {
     this.files.delete(projectId);
   }
   async exportZip() {
@@ -55,7 +69,14 @@ class MemoryProjectStorage implements ProjectStorage {
   async createSnapshot() {
     return { storageKey: 'snapshot', byteLength: 0, createdAt: new Date().toISOString() };
   }
-  async getSnapshotFiles() {
+  async getSnapshotFiles(
+    projectId: string,
+    storageKey: string,
+    _scope: { expectedOrganizationId: string; workspaceId?: string },
+  ) {
+    return this.getSnapshotFilesWithinPhysicalAccess(projectId, storageKey);
+  }
+  async getSnapshotFilesWithinPhysicalAccess(_projectId: string, _storageKey: string) {
     return [];
   }
   async restoreSnapshot() {

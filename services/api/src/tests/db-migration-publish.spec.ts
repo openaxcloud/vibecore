@@ -23,7 +23,11 @@ class QuietEmailProvider implements EmailProvider {
 
 class MemoryStorage implements ProjectStorage {
   readonly files = new Map<string, Map<string, string>>();
-  async writeFiles(projectId: string, files: Array<{ path: string; content: string }>) {
+  async writeFiles(
+    projectId: string,
+    files: Array<{ path: string; content: string }>,
+    _scope: { expectedOrganizationId: string; workspaceId?: string },
+  ) {
     const bucket = this.files.get(projectId) ?? new Map<string, string>();
 
     for (const file of files) {
@@ -31,22 +35,48 @@ class MemoryStorage implements ProjectStorage {
     }
     this.files.set(projectId, bucket);
 
-    return this.listFiles(projectId);
+    return this.listFiles(projectId, _scope);
   }
-  async listFiles(projectId: string): Promise<ProjectFile[]> {
+  async listFiles(
+    projectId: string,
+    scope: { expectedOrganizationId: string; workspaceId?: string },
+  ): Promise<ProjectFile[]> {
+    return this.listFilesWithinPhysicalAccess(projectId, scope.workspaceId);
+  }
+  async listFilesWithinPhysicalAccess(projectId: string, _workspaceId?: string): Promise<ProjectFile[]> {
     return [...(this.files.get(projectId) ?? new Map()).entries()].map(([path, content]) => ({
       path,
       content,
       updatedAt: '',
     }));
   }
-  async createSnapshot() {
+  async createSnapshot(_input: {
+    projectId: string;
+    expectedOrganizationId: string;
+    files: ProjectFile[];
+    storageKey?: string;
+  }) {
     return { id: 's', storageKey: 's', byteLength: 0, createdAt: '' };
   }
-  async getSnapshotFiles() {
+  async getSnapshotFiles(
+    projectId: string,
+    storageKey: string,
+    _scope: { expectedOrganizationId: string; workspaceId?: string },
+  ) {
+    return this.getSnapshotFilesWithinPhysicalAccess(projectId, storageKey);
+  }
+  async getSnapshotFilesWithinPhysicalAccess(_projectId: string, _storageKey: string) {
     return [];
   }
-  async restoreSnapshot() {
+  async restoreSnapshot(
+    _input: {
+      projectId: string;
+      expectedOrganizationId: string;
+      workspaceId?: string;
+      files: ProjectFile[];
+    },
+    _guard?: () => Promise<void>,
+  ) {
     return [];
   }
   async readFile() {
@@ -55,13 +85,21 @@ class MemoryStorage implements ProjectStorage {
   async deleteFiles() {
     return undefined;
   }
-  async deleteProjectFiles() {
+  async deleteProjectFiles(_projectId: string, _scope: { expectedOrganizationId: string; workspaceId?: string }) {
     return undefined;
   }
-  async exportZip() {
+  async eraseProjectDataWithinPhysicalAccess() {
+    return undefined;
+  }
+  async exportZip(_projectId: string, _scope: { expectedOrganizationId: string; workspaceId?: string }) {
     return { storageKey: '', byteLength: 0, base64: '', createdAt: '' };
   }
-  async importZip() {
+  async importZip(
+    _projectId: string,
+    _base64: string,
+    _scope: { expectedOrganizationId: string; workspaceId?: string },
+    _options?: { replaceExisting?: boolean },
+  ) {
     return [];
   }
   async writeObject() {
@@ -136,28 +174,33 @@ async function setup(
   if (options.withMigrations !== false) {
     const first = 'CREATE TABLE test_users (id bigint PRIMARY KEY);';
     const second = 'ALTER TABLE test_users ADD COLUMN name text;';
-    await projectStorage.writeFiles(project.id, [
-      { path: 'migrations/001_init.sql', content: first },
-      { path: 'migrations/002_add.sql', content: second },
-      {
-        path: 'migrations/ecode.publish.json',
-        content: JSON.stringify({
-          schemaVersion: 1,
-          mode: 'expand',
-          backwardCompatible: true,
-          forwardCompatible: false,
-          migrations: [
-            { name: '001_init.sql', sha256: sha256(first) },
-            { name: '002_add.sql', sha256: sha256(second) },
-          ],
-        }),
-      },
-    ]);
+    await projectStorage.writeFiles(
+      project.id,
+      [
+        { path: 'migrations/001_init.sql', content: first },
+        { path: 'migrations/002_add.sql', content: second },
+        {
+          path: 'migrations/ecode.publish.json',
+          content: JSON.stringify({
+            schemaVersion: 1,
+            mode: 'expand',
+            backwardCompatible: true,
+            forwardCompatible: false,
+            migrations: [
+              { name: '001_init.sql', sha256: sha256(first) },
+              { name: '002_add.sql', sha256: sha256(second) },
+            ],
+          }),
+        },
+      ],
+      { expectedOrganizationId: org.id },
+    );
   }
 
   if (options.connection !== false) {
     await store.upsertProjectSecret({
       projectId: project.id,
+      expectedOrganizationId: project.organizationId,
       key: 'PROD_DATABASE_URL',
       valueEncrypted: encryptJson({ value: 'postgres://user:pw@prod-host:5432/appdb' }),
     });
@@ -165,12 +208,12 @@ async function setup(
 
   const deployment = await store.createDeployment({
     projectId: project.id,
-    organizationId: org.id,
+    expectedOrganizationId: project.organizationId,
     environment: 'preview',
     status: 'READY',
     /* This suite isolates schema migration semantics from OCI promotion. */
     provider: 'vercel',
-  } as any);
+  });
 
   return { app, store, projectStorage, project, deployment, migrationApplier };
 }
@@ -265,7 +308,9 @@ describe('schema migration before publish route', () => {
 
   it('applies the immutable migration plan pinned to the deployment, never later workspace SQL', async () => {
     const run = await setup();
-    const pinnedFiles = await run.projectStorage.listFiles(run.project.id);
+    const pinnedFiles = await run.projectStorage.listFiles(run.project.id, {
+      expectedOrganizationId: run.project.organizationId,
+    });
     const pinnedMigrations = ['001_init.sql', '002_add.sql'].map((name) => {
       const sql = pinnedFiles.find((file) => file.path === `migrations/${name}`)?.content;
       if (!sql) throw new Error(`missing pinned migration fixture: ${name}`);
@@ -282,19 +327,23 @@ describe('schema migration before publish route', () => {
     });
 
     const laterSql = 'CREATE TABLE later_workspace_change (id bigint PRIMARY KEY);';
-    await run.projectStorage.writeFiles(run.project.id, [
-      { path: 'migrations/003_later.sql', content: laterSql },
-      {
-        path: 'migrations/ecode.publish.json',
-        content: JSON.stringify({
-          schemaVersion: 1,
-          mode: 'expand',
-          backwardCompatible: true,
-          forwardCompatible: false,
-          migrations: [{ name: '003_later.sql', sha256: sha256(laterSql) }],
-        }),
-      },
-    ]);
+    await run.projectStorage.writeFiles(
+      run.project.id,
+      [
+        { path: 'migrations/003_later.sql', content: laterSql },
+        {
+          path: 'migrations/ecode.publish.json',
+          content: JSON.stringify({
+            schemaVersion: 1,
+            mode: 'expand',
+            backwardCompatible: true,
+            forwardCompatible: false,
+            migrations: [{ name: '003_later.sql', sha256: sha256(laterSql) }],
+          }),
+        },
+      ],
+      { expectedOrganizationId: run.project.organizationId },
+    );
 
     expect((await publish(run.app, run.project.id, run.deployment.id)).statusCode).toBe(201);
     expect([...run.migrationApplier.ledger.keys()]).toEqual(['001_init.sql', '002_add.sql']);
@@ -333,6 +382,7 @@ describe('schema migration before publish route', () => {
     };
     await run.store.createProjectManifestRevision({
       projectId: run.project.id,
+      expectedOrganizationId: run.project.organizationId,
       schemaVersion: changedManifest.schemaVersion,
       manifestVersion: changedManifest.manifestVersion,
       digest: projectManifestDigest(changedManifest),
@@ -348,9 +398,11 @@ describe('schema migration before publish route', () => {
 
   it('refuses unmanifested SQL before touching the target', async () => {
     const run = await setup({ withMigrations: false });
-    await run.projectStorage.writeFiles(run.project.id, [
-      { path: 'migrations/001.sql', content: 'CREATE TABLE unsafe_unpinned (id int);' },
-    ]);
+    await run.projectStorage.writeFiles(
+      run.project.id,
+      [{ path: 'migrations/001.sql', content: 'CREATE TABLE unsafe_unpinned (id int);' }],
+      { expectedOrganizationId: run.project.organizationId },
+    );
 
     const response = await publish(run.app, run.project.id, run.deployment.id);
     expect(response.statusCode).toBe(409);

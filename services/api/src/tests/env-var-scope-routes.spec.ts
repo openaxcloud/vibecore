@@ -65,7 +65,12 @@ describe('F11 — per-scope project env vars', () => {
     const { app, store, project } = await setup();
 
     // Simulate a row created before scopes existed (store default fills it in).
-    await store.upsertProjectEnvVar({ projectId: project.id, key: 'OLD_ROW', value: 'kept' });
+    await store.upsertProjectEnvVar({
+      projectId: project.id,
+      expectedOrganizationId: project.organizationId,
+      key: 'OLD_ROW',
+      value: 'kept',
+    });
 
     const list = await app.inject({ method: 'GET', url: `/projects/${project.id}/env-vars`, headers: auth });
     const rows = list.json().envVars as Array<{ key: string; scope: string; value: string }>;

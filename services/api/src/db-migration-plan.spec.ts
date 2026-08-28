@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest';
 import { sha256 } from './db-migration-execution.js';
 import { collectPublishMigrationPlan, MigrationManifestError } from './db-migration-plan.js';
 
+const projectScope = { expectedOrganizationId: 'org' };
+
 function storage(files: Array<{ path: string; content: string }>) {
   return {
     async listFiles() {
@@ -34,6 +36,7 @@ describe('publish migration manifest', () => {
         ...entries.map(({ name, sql }) => ({ path: `migrations/${name}`, content: sql })),
       ]),
       'project',
+      projectScope,
     );
     expect(plan?.migrations.map(({ name }) => name)).toEqual(['001_users.sql', '002_email.sql']);
     expect(plan?.backwardCompatible).toBe(true);
@@ -58,6 +61,7 @@ describe('publish migration manifest', () => {
           { path: 'migrations/001_bad.sql', content: sql },
         ]),
         'project',
+        projectScope,
       ),
     ).rejects.toMatchObject({ code: 'MIGRATION_UNSAFE_PLAN' });
   });
@@ -85,7 +89,7 @@ describe('publish migration manifest', () => {
       ],
       [{ path: 'migrations/001.sql', content: sql }],
     ]) {
-      await expect(collectPublishMigrationPlan(storage(files), 'project')).rejects.toBeInstanceOf(
+      await expect(collectPublishMigrationPlan(storage(files), 'project', projectScope)).rejects.toBeInstanceOf(
         MigrationManifestError,
       );
     }
@@ -93,7 +97,7 @@ describe('publish migration manifest', () => {
 
   it('does nothing when the project has no migration files', async () => {
     await expect(
-      collectPublishMigrationPlan(storage([{ path: 'src/index.ts', content: 'export {}' }]), 'project'),
+      collectPublishMigrationPlan(storage([{ path: 'src/index.ts', content: 'export {}' }]), 'project', projectScope),
     ).resolves.toBeUndefined();
   });
 });

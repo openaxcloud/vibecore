@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
+import { recoverPersistedObjectStorageCommand } from './object-storage-command.js';
+
 import {
   GcsObjectStorage,
-  guardSharedObjectStorageWrites,
   listPinnedInventoryObjects,
   NoopObjectStorage,
   ObjectStorageError,
@@ -14,6 +15,75 @@ import {
   type StorageLike,
 } from './object-storage.js';
 
+class PutRecoveryStorage extends NoopObjectStorage {
+  override readonly active = true;
+
+  constructor(
+    private readonly object: {
+      key: string;
+      size: number;
+      generation: string;
+      contentHash: string;
+    },
+  ) {
+    super();
+  }
+
+  override async listObjects() {
+    return {
+      objects: [
+        {
+          ...this.object,
+          updated: '2026-08-28T00:00:00.000Z',
+          contentType: 'application/octet-stream',
+          etag: `etag-${this.object.generation}`,
+        },
+      ],
+      folders: [],
+    };
+  }
+}
+
+describe('persisted PUT recovery causality', () => {
+  const payload = {
+    command: 'PUT_OBJECT',
+    projectId: 'project-put-recovery',
+    key: 'artifact.bin',
+    expectedContentHash: 'sha256:stable-body',
+    byteLength: 4,
+    expectedTargetGeneration: 'G1',
+  } as const;
+
+  it('does not certify an unchanged pre-effect generation with the same bytes', async () => {
+    const storage = new PutRecoveryStorage({
+      key: 'artifact.bin',
+      size: 4,
+      generation: 'G1',
+      contentHash: 'sha256:stable-body',
+    });
+
+    await expect(recoverPersistedObjectStorageCommand(storage, { payload })).rejects.toThrow(
+      'OBJECT_STORAGE_PUT_VERIFICATION_FAILED',
+    );
+  });
+
+  it('certifies an overwrite only when the provider exposes a new generation', async () => {
+    const storage = new PutRecoveryStorage({
+      key: 'artifact.bin',
+      size: 4,
+      generation: 'G2',
+      contentHash: 'sha256:stable-body',
+    });
+
+    await expect(recoverPersistedObjectStorageCommand(storage, { payload })).resolves.toMatchObject({
+      execution: { type: 'PUT_OBJECT', result: { generation: 'G2' } },
+      verification: {
+        evidence: { expectedTargetGeneration: 'G1', generation: 'G2' },
+      },
+    });
+  });
+});
+
 /* ---------------------------- in-memory fake GCS ---------------------------- */
 
 interface FakeObject {
@@ -24,15 +94,23 @@ interface FakeObject {
   etag: string;
   generation: string;
   md5Hash: string;
+  sha256Hash?: string;
 }
 
 class FakeStorage implements StorageLike {
   readonly buckets = new Map<string, Map<string, FakeObject>>();
+  readonly versioning = new Map<string, boolean>();
   readonly created: Array<{ name: string; opts: Record<string, unknown> }> = [];
   readonly signed: Array<Record<string, unknown>> = [];
   readonly listQueries: Record<string, unknown>[] = [];
-  readonly copies: Array<{ sourceBucket: string; targetBucket: string; key: string; opts?: Record<string, unknown> }> =
-    [];
+  readonly copies: Array<{
+    sourceBucket: string;
+    sourceGeneration?: string | number;
+    targetBucket: string;
+    key: string;
+    opts?: Record<string, unknown>;
+  }> = [];
+  readonly deletes: Array<{ bucket: string; key: string; opts?: Record<string, unknown> }> = [];
   afterExists?: (bucketName: string) => void;
   afterDeleteFiles?: (bucketName: string) => void;
 
@@ -79,11 +157,27 @@ class FakeStorage implements StorageLike {
       async create(opts: Record<string, unknown>) {
         self.created.push({ name, opts });
         ensureMap();
+        self.versioning.set(
+          name,
+          Boolean(
+            opts.versioning && typeof opts.versioning === 'object' && Reflect.get(opts.versioning, 'enabled') === true,
+          ),
+        );
 
         return undefined;
       },
-      async setMetadata() {
+      async setMetadata(metadata: Record<string, unknown>) {
+        if (
+          metadata.versioning &&
+          typeof metadata.versioning === 'object' &&
+          Reflect.get(metadata.versioning, 'enabled') === true
+        ) {
+          self.versioning.set(name, true);
+        }
         return undefined;
+      },
+      async getMetadata() {
+        return [{ versioning: { enabled: self.versioning.get(name) === true } }];
       },
       async getFiles(query: Record<string, unknown>) {
         self.listQueries.push(query);
@@ -108,7 +202,12 @@ class FakeStorage implements StorageLike {
           files.push(self._file(name, object.name));
         }
 
-        return [files, undefined, { prefixes: [...prefixes] }] as [FileLike[], unknown, { prefixes?: string[] }];
+        const maxResults = typeof query.maxResults === 'number' ? query.maxResults : files.length;
+        return [files.slice(0, maxResults), undefined, { prefixes: [...prefixes] }] as [
+          FileLike[],
+          unknown,
+          { prefixes?: string[] },
+        ];
       },
       file(fileName: string, opts?: { generation?: string | number }) {
         return self._file(name, fileName, opts);
@@ -121,6 +220,7 @@ class FakeStorage implements StorageLike {
       },
       async delete() {
         self.buckets.delete(name);
+        self.versioning.delete(name);
 
         return undefined;
       },
@@ -141,8 +241,30 @@ class FakeStorage implements StorageLike {
             etag: self.buckets.get(bucketName)!.get(fileName)!.etag,
             generation: self.buckets.get(bucketName)!.get(fileName)!.generation,
             md5Hash: self.buckets.get(bucketName)!.get(fileName)!.md5Hash,
+            ...(self.buckets.get(bucketName)!.get(fileName)!.sha256Hash
+              ? { metadata: { 'vibecore-sha256': self.buckets.get(bucketName)!.get(fileName)!.sha256Hash } }
+              : {}),
           }
         : undefined,
+      async getMetadata() {
+        const object = self.buckets.get(bucketName)?.get(fileName);
+
+        if (!object) {
+          throw new ObjectStorageError('object not found', 'NOT_FOUND');
+        }
+
+        return [
+          {
+            size: object.size,
+            updated: object.updated,
+            contentType: object.contentType,
+            etag: object.etag,
+            generation: object.generation,
+            md5Hash: object.md5Hash,
+            ...(object.sha256Hash ? { metadata: { 'vibecore-sha256': object.sha256Hash } } : {}),
+          },
+        ];
+      },
       async getSignedUrl(signedOpts: Record<string, unknown>) {
         self.signed.push({ bucket: bucketName, file: fileName, generation: opts?.generation, ...signedOpts });
 
@@ -151,6 +273,15 @@ class FakeStorage implements StorageLike {
       async save(data: Uint8Array | Buffer | string, opts?: Record<string, unknown>) {
         const map = self.buckets.get(bucketName) ?? new Map<string, FakeObject>();
         const size = typeof data === 'string' ? Buffer.byteLength(data) : data.byteLength;
+        const expectedGeneration = (opts?.preconditionOpts as Record<string, unknown> | undefined)?.ifGenerationMatch;
+        const existing = map.get(fileName);
+        if (
+          (expectedGeneration === 0 && existing) ||
+          (typeof expectedGeneration === 'string' && existing?.generation !== expectedGeneration)
+        ) {
+          throw new ObjectStorageError('target generation changed', 'TARGET_CHANGED');
+        }
+        const customMetadata = opts?.metadata as Record<string, unknown> | undefined;
 
         map.set(fileName, {
           name: fileName,
@@ -158,8 +289,11 @@ class FakeStorage implements StorageLike {
           updated: '2026-06-29T00:00:00.000Z',
           contentType: (opts?.contentType as string | undefined) ?? 'application/octet-stream',
           etag: 'e',
-          generation: '8',
+          generation: String(Number(existing?.generation ?? 7) + 1),
           md5Hash: `hash-${fileName}`,
+          ...(typeof customMetadata?.['vibecore-sha256'] === 'string'
+            ? { sha256Hash: customMetadata['vibecore-sha256'] }
+            : {}),
         });
         self.buckets.set(bucketName, map);
 
@@ -176,19 +310,109 @@ class FakeStorage implements StorageLike {
         if (source) {
           const targetBucket = (destination as FileLike & { _bucketName: string })._bucketName;
           const target = self.buckets.get(targetBucket) ?? new Map<string, FakeObject>();
+          const preconditions = copyOpts?.preconditionOpts as Record<string, unknown> | undefined;
+
+          if (preconditions?.ifGenerationMatch === 0 && target.has(destination.name)) {
+            throw new ObjectStorageError('target already exists', 'TARGET_CHANGED');
+          }
+
           target.set(destination.name, { ...source, name: destination.name, generation: '1' });
           self.buckets.set(targetBucket, target);
-          self.copies.push({ sourceBucket: bucketName, targetBucket, key: fileName, opts: copyOpts });
+          self.copies.push({
+            sourceBucket: bucketName,
+            ...(opts?.generation ? { sourceGeneration: opts.generation } : {}),
+            targetBucket,
+            key: fileName,
+            opts: copyOpts,
+          });
         }
 
         return undefined;
       },
-      async delete() {
+      async delete(deleteOpts?: Record<string, unknown>) {
+        const current = self.buckets.get(bucketName)?.get(fileName);
+        if (!current) {
+          throw Object.assign(new Error('object not found'), { code: 404 });
+        }
+        const expectedGeneration = deleteOpts?.ifGenerationMatch;
+
+        if (expectedGeneration !== undefined && String(expectedGeneration) !== current?.generation) {
+          throw new ObjectStorageError('source generation changed', 'SOURCE_CHANGED');
+        }
+
+        self.deletes.push({ bucket: bucketName, key: fileName, opts: deleteOpts });
         self.buckets.get(bucketName)?.delete(fileName);
 
         return undefined;
       },
     } as FileLike;
+  }
+}
+
+class VersionedPrefixStorage implements StorageLike {
+  readonly generations = new Map<string, Map<string, { name: string; generation: string }>>();
+  readonly listQueries: Record<string, unknown>[] = [];
+
+  seed(key: string, generation: string): void {
+    const versions = this.generations.get(key) ?? new Map<string, { name: string; generation: string }>();
+    versions.set(generation, { name: key, generation });
+    this.generations.set(key, versions);
+  }
+
+  private file(key: string, generation: string): FileLike {
+    return {
+      name: key,
+      metadata: { size: 1, generation, md5Hash: `hash-${key}-${generation}` },
+      async getSignedUrl() {
+        throw new Error('not used');
+      },
+      async save() {
+        throw new Error('not used');
+      },
+      async copy() {
+        throw new Error('not used');
+      },
+      delete: async (options?: Record<string, unknown>) => {
+        if (String(options?.ifGenerationMatch) !== generation) {
+          throw new Error('GENERATION_PRECONDITION_REQUIRED');
+        }
+        this.generations.get(key)?.delete(generation);
+        if (this.generations.get(key)?.size === 0) this.generations.delete(key);
+      },
+    };
+  }
+
+  bucket(): BucketLike {
+    return {
+      exists: async () => [true],
+      create: async () => undefined,
+      setMetadata: async () => undefined,
+      getMetadata: async () => [{ versioning: { enabled: true } }],
+      getFiles: async (query) => {
+        this.listQueries.push(query);
+        const prefix = String(query.prefix ?? '');
+        const all = [...this.generations.entries()]
+          .filter(([key]) => key.startsWith(prefix))
+          .flatMap(([key, versions]) =>
+            query.versions === true
+              ? [...versions.keys()].map((generation) => this.file(key, generation))
+              : [...versions.keys()]
+                  .sort()
+                  .slice(-1)
+                  .map((generation) => this.file(key, generation)),
+          )
+          .sort(
+            (left, right) =>
+              left.name.localeCompare(right.name) ||
+              String(left.metadata?.generation).localeCompare(String(right.metadata?.generation)),
+          );
+        const maxResults = typeof query.maxResults === 'number' ? query.maxResults : all.length;
+        return [all.slice(0, maxResults), undefined, { prefixes: [] }];
+      },
+      file: (key, options) => this.file(key, String(options?.generation ?? '')),
+      deleteFiles: async () => this.generations.clear(),
+      delete: async () => undefined,
+    };
   }
 }
 
@@ -289,20 +513,23 @@ describe('GcsObjectStorage', () => {
   it('createUploadUrl returns a V4 write URL + headers', async () => {
     const storage = new FakeStorage();
     const svc = new GcsObjectStorage(storage);
+    const expiresAt = new Date(Date.now() + 60_000).toISOString();
 
-    const out = await svc.createUploadUrl(projectId, { key: 'a/b.bin', contentType: 'image/png' });
+    const out = await svc.createUploadUrl(projectId, { key: 'a/b.bin', contentType: 'image/png', expiresAt });
     expect(out.method).toBe('PUT');
     expect(out.headers).toEqual({ 'Content-Type': 'image/png' });
     expect(out.url).toContain('action=write');
     expect(storage.signed[0]).toMatchObject({ version: 'v4', action: 'write', contentType: 'image/png' });
-    expect(Date.parse(out.expiresAt)).toBeGreaterThan(Date.now());
+    expect(out.expiresAt).toBe(expiresAt);
+    expect(storage.signed[0]).toMatchObject({ expires: Date.parse(expiresAt) });
   });
 
   it('createDownloadUrl returns a V4 read URL', async () => {
     const storage = new FakeStorage();
     const svc = new GcsObjectStorage(storage);
+    const expiresAt = new Date(Date.now() + 60_000).toISOString();
 
-    const out = await svc.createDownloadUrl(projectId, { key: 'a/b.bin' });
+    const out = await svc.createDownloadUrl(projectId, { key: 'a/b.bin', expiresAt });
     expect(out.url).toContain('action=read');
     expect(storage.signed[0]).toMatchObject({ version: 'v4', action: 'read' });
   });
@@ -310,9 +537,34 @@ describe('GcsObjectStorage', () => {
   it('pins a shared download URL to the consented immutable generation', async () => {
     const storage = new FakeStorage();
     const svc = new GcsObjectStorage(storage);
+    const expiresAt = new Date(Date.now() + 60_000).toISOString();
 
-    await svc.createDownloadUrl(projectId, { key: 'a/b.bin', generation: '42' });
+    await svc.createDownloadUrl(projectId, { key: 'a/b.bin', generation: '42', expiresAt });
     expect(storage.signed[0]).toMatchObject({ action: 'read', generation: '42' });
+  });
+
+  it('refuses to sign without the absolute DB-reserved expiration', async () => {
+    const svc = new GcsObjectStorage(new FakeStorage());
+
+    await expect(svc.createUploadUrl(projectId, { key: 'a/b.bin' })).rejects.toMatchObject({
+      code: 'CAPABILITY_EXPIRY_REQUIRED',
+    });
+    await expect(svc.createDownloadUrl(projectId, { key: 'a/b.bin' })).rejects.toMatchObject({
+      code: 'CAPABILITY_EXPIRY_REQUIRED',
+    });
+  });
+
+  it('returns immutable provider generation and a server-computed content hash after direct writes', async () => {
+    const storage = new FakeStorage();
+    const svc = new GcsObjectStorage(storage);
+    const body = new TextEncoder().encode('exact bytes');
+
+    await expect(svc.putObject(projectId, { key: 'server/output.bin', body })).resolves.toEqual({
+      key: 'server/output.bin',
+      size: body.byteLength,
+      generation: '8',
+      contentHash: 'sha256:e38e581aade78b64cc86f7ac9f3555ca78c2dcca747942a7f1d9b3275a834f75',
+    });
   });
 
   it('moveObject copies then deletes the source', async () => {
@@ -321,11 +573,53 @@ describe('GcsObjectStorage', () => {
 
     const svc = new GcsObjectStorage(storage);
 
-    const out = await svc.moveObject(projectId, { from: 'old/name.txt', to: 'new/name.txt' });
-    expect(out).toEqual({ moved: true, key: 'new/name.txt' });
+    const out = await svc.moveObject(projectId, {
+      from: 'old/name.txt',
+      to: 'new/name.txt',
+      sourceGeneration: '7',
+    });
+    expect(out).toEqual({ moved: true, key: 'new/name.txt', generation: '1' });
+    expect(storage.copies[0]).toMatchObject({
+      sourceGeneration: '7',
+      opts: { preconditionOpts: { ifGenerationMatch: 0 } },
+    });
+    expect(storage.deletes[0]).toEqual({
+      bucket,
+      key: 'old/name.txt',
+      opts: { ifGenerationMatch: '7' },
+    });
 
     const keys = [...storage.buckets.get(bucket)!.keys()];
     expect(keys).toEqual(['new/name.txt']);
+  });
+
+  it('moveObject never overwrites an existing target or deletes the pinned source on copy failure', async () => {
+    const storage = new FakeStorage();
+    storage.seed(bucket, ['old/name.txt', 'new/name.txt']);
+    const svc = new GcsObjectStorage(storage);
+
+    await expect(svc.moveObject(projectId, { from: 'old/name.txt', to: 'new/name.txt' })).rejects.toMatchObject({
+      code: 'TARGET_CHANGED',
+    });
+    expect([...storage.buckets.get(bucket)!.keys()]).toEqual(['old/name.txt', 'new/name.txt']);
+    expect(storage.deletes).toEqual([]);
+  });
+
+  it('revalidates the durable lease after copy and never deletes the source with a lost fence', async () => {
+    const storage = new FakeStorage();
+    storage.seed(bucket, ['old/name.txt']);
+    const svc = new GcsObjectStorage(storage);
+    let guardCalls = 0;
+
+    await expect(
+      svc.moveObject(projectId, { from: 'old/name.txt', to: 'new/name.txt', sourceGeneration: '7' }, async () => {
+        guardCalls += 1;
+        if (guardCalls === 2) throw new Error('OBJECT_STORAGE_OPERATION_FENCE_LOST');
+      }),
+    ).rejects.toThrow('OBJECT_STORAGE_OPERATION_FENCE_LOST');
+    expect(storage.copies).toHaveLength(1);
+    expect(storage.deletes).toEqual([]);
+    expect([...storage.buckets.get(bucket)!.keys()].sort()).toEqual(['new/name.txt', 'old/name.txt']);
   });
 
   it('deleteObject removes one key', async () => {
@@ -339,6 +633,15 @@ describe('GcsObjectStorage', () => {
     expect([...storage.buckets.get(bucket)!.keys()]).toEqual(['stay.txt']);
   });
 
+  it('deleteObject treats an already-absent key as the exact idempotent result', async () => {
+    const svc = new GcsObjectStorage(new FakeStorage());
+
+    await expect(svc.deleteObject(projectId, { key: 'already-gone.txt' })).resolves.toEqual({
+      deleted: false,
+      count: 0,
+    });
+  });
+
   it('deletePrefix removes every object under a folder', async () => {
     const storage = new FakeStorage();
     storage.seed(bucket, ['logs/a', 'logs/b', 'logs/c', 'keep']);
@@ -348,6 +651,54 @@ describe('GcsObjectStorage', () => {
     const out = await svc.deletePrefix(projectId, { prefix: 'logs/' });
     expect(out).toEqual({ deleted: true, count: 3 });
     expect([...storage.buckets.get(bucket)!.keys()]).toEqual(['keep']);
+  });
+
+  it('deletePrefix exhausts every provider page instead of stopping at 1000 objects', async () => {
+    const storage = new FakeStorage();
+    storage.seed(bucket, [...Array.from({ length: 2_005 }, (_, index) => `logs/${index}`), 'keep']);
+    const svc = new GcsObjectStorage(storage);
+
+    await expect(svc.deletePrefix(projectId, { prefix: 'logs/' })).resolves.toEqual({
+      deleted: true,
+      count: 2_005,
+    });
+    expect([...storage.buckets.get(bucket)!.keys()]).toEqual(['keep']);
+    expect(storage.listQueries.filter((query) => query.prefix === 'logs/')).toHaveLength(4);
+  });
+
+  it('deletePrefix removes every live and noncurrent generation from a versioned bucket', async () => {
+    const storage = new VersionedPrefixStorage();
+    storage.seed('logs/versioned.txt', 'G1');
+    storage.seed('logs/versioned.txt', 'G2');
+    storage.seed('keep.txt', 'G1');
+    const svc = new GcsObjectStorage(storage);
+
+    await expect(svc.deletePrefix(projectId, { prefix: 'logs/' })).resolves.toEqual({ deleted: true, count: 2 });
+    await expect(svc.listObjectVersions(projectId, { prefix: 'logs/' })).resolves.toEqual({
+      objects: [],
+      folders: [],
+    });
+    expect(storage.generations.get('keep.txt')?.has('G1')).toBe(true);
+    expect(storage.listQueries.filter((query) => query.prefix === 'logs/')).not.toHaveLength(0);
+    expect(
+      storage.listQueries.filter((query) => query.prefix === 'logs/').every((query) => query.versions === true),
+    ).toBe(true);
+  });
+
+  it('stops prefix deletion after the first batch when the durable lease is lost', async () => {
+    const storage = new FakeStorage();
+    storage.seed(bucket, [...Array.from({ length: 2_005 }, (_, index) => `logs/${index}`), 'keep']);
+    const svc = new GcsObjectStorage(storage);
+    let guardCalls = 0;
+
+    await expect(
+      svc.deletePrefix(projectId, { prefix: 'logs/' }, async () => {
+        guardCalls += 1;
+        if (guardCalls === 3) throw new Error('OBJECT_STORAGE_OPERATION_FENCE_LOST');
+      }),
+    ).rejects.toThrow('OBJECT_STORAGE_OPERATION_FENCE_LOST');
+    expect(storage.listQueries.filter((query) => query.prefix === 'logs/')).toHaveLength(1);
+    expect([...storage.buckets.get(bucket)!.keys()].filter((key) => key.startsWith('logs/'))).toHaveLength(1_005);
   });
 
   it('rejects traversal keys before touching the backend', async () => {
@@ -432,12 +783,16 @@ describe('GcsObjectStorage', () => {
       guardCalls.push(1);
     });
 
-    expect(guardCalls).toHaveLength(inventory.objects.length + 2);
+    // target create + live versioning proof + one guard per copy + final verification
+    expect(guardCalls).toHaveLength(inventory.objects.length + 3);
     expect(verified.objects.map(({ key, contentHash }) => ({ key, contentHash }))).toEqual(
       inventory.objects.map(({ key, contentHash }) => ({ key, contentHash })),
     );
     expect(storage.copies.every(({ targetBucket }) => targetBucket === projectBucketName('target1'))).toBe(true);
-    expect(storage.copies[0].opts).toMatchObject({ preconditionOpts: { ifSourceGenerationMatch: '7' } });
+    expect(storage.copies[0]).toMatchObject({
+      sourceGeneration: '7',
+      opts: { preconditionOpts: { ifGenerationMatch: 0 } },
+    });
   });
 
   it('mutation guard: refuses a clone when the source generation changed after the inventory pin', async () => {
@@ -489,35 +844,6 @@ describe('GcsObjectStorage', () => {
 });
 
 describe('consented read-only storage snapshots', () => {
-  it('holds source and target purge fences in stable order for a full clone', async () => {
-    const sourceProjectId = 'source-z';
-    const targetProjectId = 'target-a';
-    const storage = new FakeStorage();
-    storage.seed(projectBucketName(sourceProjectId), ['data.json']);
-    const raw = new GcsObjectStorage(storage);
-    const inventory = await raw.inventoryProjectObjects(sourceProjectId);
-    const fenceOrder: string[] = [];
-    const guarded = guardSharedObjectStorageWrites(
-      raw,
-      async () => false,
-      async (projectIds, effect) => {
-        fenceOrder.push(`enter:${projectIds.join(',')}`);
-        try {
-          return await effect();
-        } finally {
-          fenceOrder.push(`leave:${projectIds.join(',')}`);
-        }
-      },
-    );
-
-    await guarded.cloneProjectObjects(sourceProjectId, targetProjectId, inventory);
-
-    expect(fenceOrder).toEqual([
-      `enter:${sourceProjectId},${targetProjectId}`,
-      `leave:${sourceProjectId},${targetProjectId}`,
-    ]);
-  });
-
   it('lists only pinned inventory paths with folder semantics', () => {
     const listed = listPinnedInventoryObjects(
       {
@@ -533,24 +859,5 @@ describe('consented read-only storage snapshots', () => {
 
     expect(listed.objects.map(({ key }) => key)).toEqual(['src/a.ts']);
     expect(listed.folders).toEqual(['src/deep/']);
-  });
-
-  it('blocks every target mutation while preserving read access', async () => {
-    const raw = new GcsObjectStorage(new FakeStorage());
-    const guarded = guardSharedObjectStorageWrites(raw, async (projectId) => projectId === 'shared');
-    const mutations = [
-      () => guarded.ensureBucket('shared'),
-      () => guarded.createUploadUrl('shared', { key: 'a' }),
-      () => guarded.putObject('shared', { key: 'a', body: new Uint8Array() }),
-      () => guarded.moveObject('shared', { from: 'a', to: 'b' }),
-      () => guarded.deleteObject('shared', { key: 'a' }),
-      () => guarded.deletePrefix('shared', { prefix: 'a/' }),
-      () => guarded.deleteBucket('shared'),
-    ];
-
-    for (const mutate of mutations) {
-      await expect(mutate()).rejects.toMatchObject({ code: 'SHARED_READ_ONLY' });
-    }
-    await expect(guarded.listObjects('shared')).resolves.toEqual({ objects: [], folders: [] });
   });
 });

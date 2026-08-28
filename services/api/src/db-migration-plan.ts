@@ -278,9 +278,9 @@ export function assertExpandOnlySql(sql: string): void {
 export async function collectPublishMigrationPlan(
   projectStorage: ProjectStorage,
   projectId: string,
-  workspaceId?: string,
+  scope: { expectedOrganizationId: string; workspaceId?: string },
 ): Promise<CollectedPublishMigrationPlan | undefined> {
-  const files = await projectStorage.listFiles(projectId, workspaceId);
+  const files = await projectStorage.listFiles(projectId, scope);
   const manifestFile = files.find((file) => file.path === MIGRATION_MANIFEST_PATH);
   const sqlFiles = files.filter((file) => /^migrations\/[^/]+\.sql$/i.test(file.path));
 

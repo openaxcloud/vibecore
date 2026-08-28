@@ -60,12 +60,16 @@ runDbTests('project checkpoint barrier — real PostgreSQL fencing', () => {
       const initial = createDefaultProjectManifest(project.id);
       const revision = await storeA.createProjectManifestRevision({
         projectId: project.id,
+        expectedOrganizationId: organization.id,
         schemaVersion: initial.schemaVersion,
         manifestVersion: initial.manifestVersion,
         digest: projectManifestDigest(initial),
         manifest: initial,
       });
-      const checkpoint = await storeA.createProjectCheckpoint({ projectId: project.id });
+      const checkpoint = await storeA.createProjectCheckpoint({
+        projectId: project.id,
+        expectedOrganizationId: organization.id,
+      });
       const transferTarget = await prismaA.organization.create({
         data: { name: `Checkpoint transfer ${suffix()}`, slug: `checkpoint-transfer-${suffix()}` },
       });
@@ -83,6 +87,7 @@ runDbTests('project checkpoint barrier — real PostgreSQL fencing', () => {
       await expect(
         storeB.createProjectManifestRevision({
           projectId: project.id,
+          expectedOrganizationId: organization.id,
           schemaVersion: next.schemaVersion,
           manifestVersion: next.manifestVersion,
           digest: projectManifestDigest(next),
@@ -92,7 +97,13 @@ runDbTests('project checkpoint barrier — real PostgreSQL fencing', () => {
       ).rejects.toMatchObject({ statusCode: 423, code: 'CHECKPOINT_BARRIER_ACTIVE' });
       expect(await prismaA.projectManifestRevision.count({ where: { projectId: project.id } })).toBe(1);
       await expect(
-        storeB.transferProject({ projectId: project.id, targetOrganizationId: transferTarget.id }),
+        storeB.transferProject({
+          projectId: project.id,
+          expectedOrganizationId: organization.id,
+          targetOrganizationId: transferTarget.id,
+          assertExternalStorageDetached: async () => undefined,
+          validateTargetAdmission: async () => undefined,
+        }),
       ).rejects.toMatchObject({ statusCode: 423, code: 'CHECKPOINT_BARRIER_ACTIVE' });
       await expect(prismaA.project.findUniqueOrThrow({ where: { id: project.id } })).resolves.toMatchObject({
         organizationId: organization.id,
@@ -106,6 +117,7 @@ runDbTests('project checkpoint barrier — real PostgreSQL fencing', () => {
       await expect(
         storeB.createProjectManifestRevision({
           projectId: project.id,
+          expectedOrganizationId: organization.id,
           schemaVersion: next.schemaVersion,
           manifestVersion: next.manifestVersion,
           digest: projectManifestDigest(next),
@@ -138,8 +150,8 @@ runDbTests('project checkpoint barrier — real PostgreSQL fencing', () => {
       const storeB = new PrismaApiStore(prismaB);
 
       const [checkpointA, checkpointB] = await Promise.all([
-        storeA.createProjectCheckpoint({ projectId: project.id }),
-        storeB.createProjectCheckpoint({ projectId: project.id }),
+        storeA.createProjectCheckpoint({ projectId: project.id, expectedOrganizationId: organization.id }),
+        storeB.createProjectCheckpoint({ projectId: project.id, expectedOrganizationId: organization.id }),
       ]);
 
       const [leaseA, leaseB] = await Promise.all([
@@ -169,11 +181,13 @@ runDbTests('project checkpoint barrier — real PostgreSQL fencing', () => {
 
       const keyed = await storeA.createProjectCheckpoint({
         projectId: project.id,
+        expectedOrganizationId: organization.id,
         idempotencyKey: `checkpoint-key-${suffix()}`,
         requestHash: 'a'.repeat(64),
       });
       const replay = await storeB.createProjectCheckpoint({
         projectId: project.id,
+        expectedOrganizationId: organization.id,
         idempotencyKey: (await prismaA.projectCheckpoint.findUniqueOrThrow({ where: { id: keyed.id } }))
           .idempotencyKey!,
         requestHash: 'a'.repeat(64),
@@ -182,6 +196,7 @@ runDbTests('project checkpoint barrier — real PostgreSQL fencing', () => {
       await expect(
         storeB.createProjectCheckpoint({
           projectId: project.id,
+          expectedOrganizationId: organization.id,
           idempotencyKey: (await prismaA.projectCheckpoint.findUniqueOrThrow({ where: { id: keyed.id } }))
             .idempotencyKey!,
           requestHash: 'b'.repeat(64),
@@ -208,7 +223,10 @@ runDbTests('project checkpoint barrier — real PostgreSQL fencing', () => {
 
       const storeA = new PrismaApiStore(prismaA);
       const storeB = new PrismaApiStore(prismaB);
-      const oldCheckpoint = await storeA.createProjectCheckpoint({ projectId: project.id });
+      const oldCheckpoint = await storeA.createProjectCheckpoint({
+        projectId: project.id,
+        expectedOrganizationId: organization.id,
+      });
 
       const oldLease = await storeA.acquireProjectCheckpointBarrier({
         checkpointId: oldCheckpoint.id,
@@ -233,7 +251,10 @@ runDbTests('project checkpoint barrier — real PostgreSQL fencing', () => {
         }),
       ).resolves.toBeUndefined();
 
-      const successor = await storeB.createProjectCheckpoint({ projectId: project.id });
+      const successor = await storeB.createProjectCheckpoint({
+        projectId: project.id,
+        expectedOrganizationId: organization.id,
+      });
 
       const successorLease = await storeB.acquireProjectCheckpointBarrier({
         checkpointId: successor.id,
@@ -271,7 +292,10 @@ runDbTests('project checkpoint barrier — real PostgreSQL fencing', () => {
 
       const storeA = new PrismaApiStore(prismaA);
       const storeB = new PrismaApiStore(prismaB);
-      const checkpoint = await storeA.createProjectCheckpoint({ projectId: project.id });
+      const checkpoint = await storeA.createProjectCheckpoint({
+        projectId: project.id,
+        expectedOrganizationId: organization.id,
+      });
 
       const lease = await storeA.acquireProjectCheckpointBarrier({
         checkpointId: checkpoint.id,
@@ -302,7 +326,10 @@ runDbTests('project checkpoint barrier — real PostgreSQL fencing', () => {
         barrierProjectId: null,
       });
 
-      const blockedCheckpoint = await storeA.createProjectCheckpoint({ projectId: project.id });
+      const blockedCheckpoint = await storeA.createProjectCheckpoint({
+        projectId: project.id,
+        expectedOrganizationId: organization.id,
+      });
 
       const blockedLease = await storeA.acquireProjectCheckpointBarrier({
         checkpointId: blockedCheckpoint.id,

@@ -112,11 +112,11 @@ export interface PurgeEffectExecution<T> {
 }
 
 /**
- * The only authority allowed to execute an irreversible physical effect. The
- * implementation locks the PurgePlan row, evaluates the lease on the PostgreSQL
- * clock, keeps that lock for the whole provider call, then commits its receipt.
- * Reclaim/renew therefore linearise either before or after the effect, never in
- * its middle.
+ * The only authority allowed to execute an irreversible physical effect. Its
+ * implementation persists RUNNING under the PostgreSQL-clock lease, commits,
+ * performs I/O outside every database transaction while the durable PurgeFreeze
+ * remains installed, then validates the same plan owner in a short receipt
+ * transaction. A lost lease can therefore never certify another owner's effect.
  */
 export type PurgeEffectExecutor = <T extends Record<string, unknown>>(
   descriptor: PurgeEffectDescriptor,

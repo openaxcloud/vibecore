@@ -319,10 +319,21 @@ runPrismaTests('PrismaApiStore integration', () => {
       });
       const sessionToken = `session-${suffix}`;
       await storeA.createSession({ userId: user.id, token: sessionToken, expiresAt: new Date(Date.now() + 60_000) });
-      await storeA.upsertProjectEnvVar({ projectId: project.id, key: 'PUBLIC_URL', value: 'https://example.com' });
-      await storeA.upsertProjectSecret({ projectId: project.id, key: 'API_KEY', valueEncrypted: 'ciphertext' });
+      await storeA.upsertProjectEnvVar({
+        projectId: project.id,
+        expectedOrganizationId: organization.id,
+        key: 'PUBLIC_URL',
+        value: 'https://example.com',
+      });
+      await storeA.upsertProjectSecret({
+        projectId: project.id,
+        expectedOrganizationId: organization.id,
+        key: 'API_KEY',
+        valueEncrypted: 'ciphertext',
+      });
       await storeA.createSnapshot({
         projectId: project.id,
+        expectedOrganizationId: organization.id,
         kind: 'manual',
         manifest: { files: ['README.md'] },
         storageKey: `snapshots/${suffix}.zip`,

@@ -8,6 +8,7 @@ import { eraseLocalAccountStorage } from '../account-local-storage-purge.js';
 import type { PurgeEffectDescriptor, PurgeLeaseContext } from '../account-purge.js';
 import { restoreStaticSnapshotInto, snapshotStaticBuild } from '../deployments.js';
 import { GitCliProvider, LocalProjectStorage } from '../project-storage.js';
+import type { ProjectMutationCoordinator } from '../project-storage.js';
 
 function deferred() {
   let resolve!: () => void;
@@ -171,6 +172,7 @@ describe.sequential('account purge — disposable local filesystem proof', () =>
     ]);
     const validatedWriters = new Set<string>();
     let purgeBarrierActive = false;
+    const tenantScope = { expectedOrganizationId: 'org-subject' };
 
     const validateWriter = async (resourceId: string) => {
       if (purgeBarrierActive) {
@@ -183,6 +185,10 @@ describe.sequential('account purge — disposable local filesystem proof', () =>
       if (validatedWriters.size === expectedWriters.size) allWritersValidated.resolve();
       await writerRelease.promise;
     };
+    const coordinateProjectMutation: ProjectMutationCoordinator = async (scope, effect) => {
+      await validateWriter(scope.projectId);
+      return effect();
+    };
 
     vi.stubEnv('PROJECT_STORAGE_DIR', projectRoot);
     vi.stubEnv('STATIC_DEPLOY_STORAGE_DIR', staticRoot);
@@ -194,16 +200,20 @@ describe.sequential('account purge — disposable local filesystem proof', () =>
         join(staticRoot, 'deployment-restore-source', 'index.html'),
         '<script src="/static-deployments/deployment-restore-source/assets.js"></script>',
       );
-      const storage = new LocalProjectStorage(validateWriter, validateWriter);
+      const storage = new LocalProjectStorage(coordinateProjectMutation, coordinateProjectMutation);
       const writers = [
-        storage.writeFiles('tree-project', [{ path: 'src/late.ts', content: 'late tree' }]),
-        storage.exportZip('archive-project'),
+        storage.writeFiles('tree-project', [{ path: 'src/late.ts', content: 'late tree' }], tenantScope),
+        storage.exportZip('archive-project', tenantScope),
         storage.createSnapshot({
           projectId: 'checkpoint-project',
+          expectedOrganizationId: tenantScope.expectedOrganizationId,
           storageKey: 'snapshots/checkpoint-project/stale.zip',
           files: [{ path: 'secret.txt', content: 'late checkpoint', updatedAt: new Date().toISOString() }],
         }),
-        storage.writeFiles('shared-project', [{ path: 'private.txt', content: 'late workspace' }], 'ws-subject'),
+        storage.writeFiles('shared-project', [{ path: 'private.txt', content: 'late workspace' }], {
+          ...tenantScope,
+          workspaceId: 'ws-subject',
+        }),
         snapshotStaticBuild('deployment-stale-writer', outputDir, () =>
           validateWriter('static:deployment-stale-writer'),
         ),
@@ -257,19 +267,23 @@ describe.sequential('account purge — disposable local filesystem proof', () =>
       await expect(exists(join(staticRoot, 'deployment-restore-target'))).resolves.toBe(false);
 
       await expect(
-        storage.writeFiles('tree-project', [{ path: 'src/resurrected.ts', content: 'blocked' }]),
+        storage.writeFiles('tree-project', [{ path: 'src/resurrected.ts', content: 'blocked' }], tenantScope),
       ).rejects.toMatchObject({ code: 'PROJECT_STORAGE_FENCED_FOR_ACCOUNT_PURGE' });
-      await expect(storage.exportZip('archive-project')).rejects.toMatchObject({
+      await expect(storage.exportZip('archive-project', tenantScope)).rejects.toMatchObject({
         code: 'PROJECT_STORAGE_FENCED_FOR_ACCOUNT_PURGE',
       });
       await expect(
         storage.createSnapshot({
           projectId: 'checkpoint-project',
+          expectedOrganizationId: tenantScope.expectedOrganizationId,
           files: [{ path: 'resurrected.txt', content: 'blocked', updatedAt: new Date().toISOString() }],
         }),
       ).rejects.toMatchObject({ code: 'PROJECT_STORAGE_FENCED_FOR_ACCOUNT_PURGE' });
       await expect(
-        storage.writeFiles('shared-project', [{ path: 'resurrected.txt', content: 'blocked' }], 'ws-subject'),
+        storage.writeFiles('shared-project', [{ path: 'resurrected.txt', content: 'blocked' }], {
+          ...tenantScope,
+          workspaceId: 'ws-subject',
+        }),
       ).rejects.toMatchObject({ code: 'PROJECT_STORAGE_FENCED_FOR_ACCOUNT_PURGE' });
       await expect(
         snapshotStaticBuild('deployment-stale-writer', outputDir, () =>
@@ -282,7 +296,9 @@ describe.sequential('account purge — disposable local filesystem proof', () =>
         ),
       ).rejects.toMatchObject({ code: 'PROJECT_STORAGE_FENCED_FOR_ACCOUNT_PURGE' });
       /* Even Git read surfaces call ensureRepository(), so they share the writer fence. */
-      await expect(new GitCliProvider(validateWriter).logGraph('tree-project')).rejects.toMatchObject({
+      await expect(
+        new GitCliProvider(coordinateProjectMutation).logGraph('tree-project', tenantScope),
+      ).rejects.toMatchObject({
         code: 'PROJECT_STORAGE_FENCED_FOR_ACCOUNT_PURGE',
       });
 

@@ -182,11 +182,12 @@ describe('Credit-pack purchase (Replit parity)', () => {
     });
   });
 
-  describe("contrat Starter au publish : projets publiés ACTIFS", () => {
+  describe('contrat Starter au publish : projets publiés ACTIFS', () => {
     async function publishableProject(store: any, orgId: string, name: string) {
       const project = await store.createProject({ organizationId: orgId, name, slug: name.toLowerCase() });
       const source = await store.createDeployment({
         projectId: project.id,
+        expectedOrganizationId: project.organizationId,
         provider: 'static',
         environment: 'preview',
         status: 'READY',
@@ -323,9 +324,7 @@ describe('Credit-pack purchase (Replit parity)', () => {
           ['P1', 'P2', 'P3', 'P4', 'P5'].map((n) => publishableProject(store, org.id, n)),
         );
 
-        const results = await Promise.all(
-          projects.map((p) => publish(app, token, p.project.id, p.source.id)),
-        );
+        const results = await Promise.all(projects.map((p) => publish(app, token, p.project.id, p.source.id)));
 
         expect(results.filter((r) => r.statusCode === 201)).toHaveLength(1);
         expect(results.filter((r) => r.statusCode === 402)).toHaveLength(4);

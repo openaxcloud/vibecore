@@ -44,6 +44,7 @@ describe('deployment metering emitter', () => {
 
     const deployment = await store.createDeployment({
       projectId: project.id,
+      expectedOrganizationId: project.organizationId,
       provider: 'static',
       status: 'READY',
       url: 'https://example.test',
@@ -70,7 +71,12 @@ describe('deployment metering emitter', () => {
     const { app, store, org, project } = await setup();
     await store.recordCreditEntry({ organizationId: org.id, deltaCents: 100_000, kind: 'GRANT', reason: 'grant' });
 
-    const deployment = await store.createDeployment({ projectId: project.id, provider: 'static', status: 'READY' });
+    const deployment = await store.createDeployment({
+      projectId: project.id,
+      expectedOrganizationId: project.organizationId,
+      provider: 'static',
+      status: 'READY',
+    });
     await app.inject({ method: 'GET', url: `/projects/${project.id}/deployments/${deployment.id}`, headers: auth });
 
     // Usage recorded, but wallet balance untouched (static deploy = $0 anyway, and SHADOW never debits).

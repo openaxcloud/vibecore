@@ -55,6 +55,7 @@ async function seedReservedPreview(
   const manifestDigest = projectManifestDigest(manifest);
   await store.createProjectManifestRevision({
     projectId: project.id,
+    expectedOrganizationId: organization.id,
     schemaVersion: manifest.schemaVersion,
     manifestVersion: manifest.manifestVersion,
     digest: manifestDigest,
@@ -65,6 +66,7 @@ async function seedReservedPreview(
   const previewUrl = `https://${project.id.toLowerCase()}.preview.example.test`;
   const deployment = await store.createDeployment({
     projectId: project.id,
+    expectedOrganizationId: organization.id,
     provider: 'server',
     environment: 'preview',
     status: 'BUILDING',
@@ -195,6 +197,7 @@ runDbTests('Reserved VM in-place publish — PostgreSQL release barrier', () => 
       await expect(
         storeB.createProjectManifestRevision({
           projectId: seeded.project.id,
+          expectedOrganizationId: seeded.organization.id,
           schemaVersion: nextManifest.schemaVersion,
           manifestVersion: nextManifest.manifestVersion,
           digest: projectManifestDigest(nextManifest),
@@ -205,8 +208,11 @@ runDbTests('Reserved VM in-place publish — PostgreSQL release barrier', () => 
       await expect(
         storeB.transferProject({
           projectId: seeded.project.id,
+          expectedOrganizationId: seeded.organization.id,
           targetOrganizationId: target.id,
           actorUserId: seeded.actor.id,
+          assertExternalStorageDetached: async () => undefined,
+          validateTargetAdmission: async () => undefined,
         }),
       ).rejects.toMatchObject({ code: 'CHECKPOINT_BARRIER_ACTIVE' });
 

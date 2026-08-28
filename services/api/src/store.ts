@@ -4,6 +4,18 @@ import type { PlanKey, QuotaKey } from '@vibecore/billing';
 import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
 import type { AccountPurgePreview, PurgeStorageDeps, PurgeUserAccountResult } from './account-purge.js';
 import type { DeploymentAccessMode, DeploymentAccessPolicyRecord } from './deployment-access.js';
+import type {
+  ObjectStorageCheckpointBarrierAuthority,
+  ObjectStorageStaticArtifactSummary,
+  ObjectStorageVerification,
+} from './object-storage-operation.js';
+import type {
+  ObjectStorageCommandExecution,
+  TenantObjectStorageCommand,
+  TenantObjectStorageCommandIntent,
+} from './object-storage-command.js';
+import type { ObjectStorage, ObjectStorageInventory } from './object-storage.js';
+import type { ProjectStaticArtifactAuthority, ProjectStaticErasureInventory } from './project-storage.js';
 
 export interface UserRecord {
   id: string;
@@ -131,9 +143,53 @@ export interface ProjectRecord {
   createdAt: string;
   updatedAt: string;
   deletedAt?: string;
+  /** Irreversible physical-erasure freeze; restore and every normal writer refuse it. */
+  permanentDeletionStartedAt?: string;
 
   /** Number of deployment records; drives the Deployed/Draft project filters. */
   deploymentCount?: number;
+}
+
+export interface ProjectPermanentDeletionReceiptRecord {
+  projectId: string;
+  organizationId: string;
+  idempotencyKey: string;
+  requestHash: string;
+  operationId: string;
+  project: {
+    id: string;
+    organizationId: string;
+    projectRecordHash: string;
+    state: 'PERMANENTLY_DELETED';
+    permanentDeletionStartedAt?: string;
+    deletedAt?: string;
+  };
+  proof: ObjectStorageVerification;
+  completedAt: string;
+}
+
+export interface ProjectPermanentDeletionResult extends ProjectPermanentDeletionReceiptRecord {
+  replayed: boolean;
+}
+
+export interface ObjectStorageCapabilityCommand extends ProjectPhysicalMutationScope {
+  method: 'GET' | 'PUT';
+  objectKey: string;
+  generation?: string;
+  contentType?: string;
+  /** Exact live release barrier allowed to issue this internal capability. */
+  checkpointBarrierAuthority?: ObjectStorageCheckpointBarrierAuthority;
+}
+
+export interface ObjectStorageRecoveryReport {
+  scanned: number;
+  failedSafe: number;
+  recovered: number;
+  deferred: number;
+  quarantined: number;
+  replayed: number;
+  busy: number;
+  operationIds: string[];
 }
 
 export interface ImportStagedFile {
@@ -379,6 +435,13 @@ export interface ProjectStorageObjectRecord {
   byteLength: number;
   contentHash: string;
   createdAt: string;
+}
+
+/** Server-captured tenant authority for a project-scoped physical mutation. */
+export interface ProjectPhysicalMutationScope {
+  projectId: string;
+  expectedOrganizationId: string;
+  workspaceId?: string;
 }
 
 /**
@@ -1912,6 +1975,14 @@ export interface ApiStore {
    * rollback must remain serialized, such as an OCI graph promotion.
    */
   withSerializedMutation<T>(key: string, fn: () => Promise<T>, options?: { transactionTimeoutMs?: number }): Promise<T>;
+  /** Hold the PostgreSQL + shared-filesystem project barrier for the whole effect. */
+  withProjectPhysicalMutation<T>(scope: ProjectPhysicalMutationScope, effect: () => Promise<T>): Promise<T>;
+  /** Linearize a tenant-scoped physical read with transfer under PG + NFS. */
+  withProjectPhysicalAccess<T>(scope: ProjectPhysicalMutationScope, effect: () => Promise<T>): Promise<T>;
+  /** Multi-project variant; scopes are deduplicated and locked in project-id order. */
+  withProjectPhysicalAccesses<T>(scopes: ProjectPhysicalMutationScope[], effect: () => Promise<T>): Promise<T>;
+  /** Purge-only physical barrier; authority was frozen durably before erasure. */
+  withProjectPhysicalErasure<T>(projectId: string, effect: () => Promise<T>): Promise<T>;
   createUser(input: {
     email: string;
     name?: string;
@@ -1949,10 +2020,53 @@ export interface ApiStore {
   ): Promise<PurgeUserAccountResult>;
   reconcilePurgeFreezes(): Promise<{ scanned: number; reconciled: number; planIds: string[] }>;
   isObjectStorageProjectPurgeFrozen(projectId: string): Promise<boolean>;
-  withObjectStorageProjectMutation<T>(projectId: string, effect: () => Promise<T>): Promise<T>;
-  withObjectStorageProjectMutations<T>(projectIds: string[], effect: () => Promise<T>): Promise<T>;
+  /** Reserve the DB-clock upper bound, sign outside a transaction, then persist non-secret issue evidence. */
+  issueSignedObjectStorageCapability<T extends { expiresAt: string }>(
+    command: ObjectStorageCapabilityCommand,
+    signer: (authorization: { expiresAt: string }) => Promise<T>,
+  ): Promise<T>;
+  /** Capability issuance when a multi-project physical access already owns every project lock. */
+  issueSignedObjectStorageCapabilityWithinPhysicalAccess<T extends { expiresAt: string }>(
+    command: ObjectStorageCapabilityCommand,
+    signer: (authorization: { expiresAt: string }) => Promise<T>,
+  ): Promise<T>;
+  /** Execute one exhaustively typed provider mutation through the durable operation saga. */
+  executeTenantObjectStorageCommand(input: {
+    scopes: ProjectPhysicalMutationScope[];
+    command: TenantObjectStorageCommand;
+    storage: ObjectStorage;
+    /** Stable caller identity when a lost response must replay the same command. */
+    idempotencyKey?: string;
+    /** Exact live release barrier allowed to own this internal provider effect. */
+    checkpointBarrierAuthority?: ObjectStorageCheckpointBarrierAuthority;
+    /** Stable body/intent hash that excludes live provider generation pins. */
+    transportIntentHash?: string;
+  }): Promise<ObjectStorageCommandExecution>;
+  /**
+   * Pin live provider generations and execute without releasing the physical/NFS
+   * fence between preflight and the durable claim.
+   */
+  executeTenantObjectStorageIntent(input: {
+    scope: ProjectPhysicalMutationScope;
+    intent: TenantObjectStorageCommandIntent;
+    storage: ObjectStorage;
+    idempotencyKey?: string;
+    checkpointBarrierAuthority?: ObjectStorageCheckpointBarrierAuthority;
+  }): Promise<ObjectStorageCommandExecution>;
+  /** Replay a committed exact transport intent before any live provider preflight. */
+  replayTenantObjectStorageCommand(input: {
+    scopes: ProjectPhysicalMutationScope[];
+    idempotencyKey: string;
+    transportIntentHash: string;
+  }): Promise<ObjectStorageCommandExecution | undefined>;
+  /** Bounded verify-first recovery for durable provider operations. */
+  reconcileObjectStorageOperations(input: {
+    storage: ObjectStorage;
+    batchSize?: number;
+    maxCandidates?: number;
+  }): Promise<ObjectStorageRecoveryReport>;
   /** Refuse every local/static storage write once project purge fencing begins. */
-  assertProjectStorageMutable(projectId: string, workspaceId?: string): Promise<void>;
+  assertProjectStorageMutable(scope: ProjectPhysicalMutationScope): Promise<void>;
   hasPurgeReceipt(userId: string): Promise<boolean>;
   findUserByEmail(email: string): Promise<UserRecord | undefined>;
   findUserById(id: string): Promise<UserRecord | undefined>;
@@ -2049,6 +2163,7 @@ export interface ApiStore {
   getProjectBySlugs(input: { organizationSlug: string; projectSlug: string }): Promise<ProjectRecord | undefined>;
   updateProject(input: {
     projectId: string;
+    expectedOrganizationId: string;
     name?: string;
     description?: string;
     gitRepositoryUrl?: string;
@@ -2062,7 +2177,12 @@ export interface ApiStore {
    * in the same org already owns `newSlug`. A no-op (same slug) returns the
    * project unchanged without minting a redirect.
    */
-  renameProjectSlug(input: { projectId: string; newSlug: string; redirectTtlDays?: number }): Promise<ProjectRecord>;
+  renameProjectSlug(input: {
+    projectId: string;
+    expectedOrganizationId: string;
+    newSlug: string;
+    redirectTtlDays?: number;
+  }): Promise<ProjectRecord>;
 
   /**
    * F13: resolve a project by an old slug via a non-expired ProjectSlugRedirect,
@@ -2107,19 +2227,57 @@ export interface ApiStore {
    * security boundary and would let newer low-severity rows bury an incident.
    */
   countRecentSevereAbuseEvents(organizationId: string, since: Date): Promise<number>;
-  softDeleteProject(projectId: string): Promise<ProjectRecord>;
-  restoreProject(projectId: string): Promise<ProjectRecord>;
+  softDeleteProject(input: ProjectPhysicalMutationScope): Promise<ProjectRecord>;
+  restoreProject(input: ProjectPhysicalMutationScope): Promise<ProjectRecord>;
 
   /**
    * Permanently removes the project row (child relations cascade at the DB
    * level). Backs the explicit card "Delete" action — distinct from
    * softDeleteProject, which is the recoverable "Archive" state.
    */
-  hardDeleteProject(projectId: string): Promise<ProjectRecord>;
+  getProjectPermanentDeletionReceiptIdentity(
+    projectId: string,
+  ): Promise<
+    | (Pick<
+        ProjectPermanentDeletionReceiptRecord,
+        'projectId' | 'organizationId' | 'idempotencyKey' | 'requestHash'
+      > & { expectedProjectNameHash: string })
+    | undefined
+  >;
+  replayProjectPermanentDeletion(input: {
+    projectId: string;
+    expectedOrganizationId: string;
+    idempotencyKey: string;
+    requestHash: string;
+  }): Promise<ProjectPermanentDeletionResult | undefined>;
+  /** Exhaustive DB authority for deleting project-owned static snapshots/aliases/artifacts. */
+  resolveProjectStaticErasureInventory(projectId: string): Promise<ProjectStaticErasureInventory>;
+  /** Re-read cross-project retention while the caller owns the artifact digest lock. */
+  resolveProjectStaticArtifactAuthority(
+    projectId: string,
+    artifactRef: string,
+  ): Promise<ProjectStaticArtifactAuthority | undefined>;
+  hardDeleteProject(
+    input: ProjectPhysicalMutationScope & {
+      expectedProjectName: string;
+      idempotencyKey: string;
+      requestHash: string;
+      actorUserId: string;
+      ipAddress?: string;
+      preflightPhysicalErasure: () => Promise<ObjectStorageStaticArtifactSummary>;
+      erasePhysical: (assertLease: () => Promise<void>) => Promise<void>;
+      verifyPhysicalAbsence: () => Promise<ObjectStorageVerification>;
+    },
+  ): Promise<ProjectPermanentDeletionResult>;
   transferProject(input: {
     projectId: string;
+    expectedOrganizationId: string;
     targetOrganizationId: string;
     actorUserId?: string;
+    /** Live provider check executed under physical + NFS barriers, outside any DB transaction. */
+    assertExternalStorageDetached: () => Promise<void>;
+    /** Re-evaluate target admission/quota after the provider probe, under target serialization. */
+    validateTargetAdmission: () => Promise<void>;
   }): Promise<ProjectRecord>;
   duplicateProject(input: {
     projectId: string;
@@ -2134,6 +2292,7 @@ export interface ApiStore {
   }): Promise<ProjectRecord>;
   createProjectTemplate(input: {
     sourceProjectId: string;
+    expectedSourceOrganizationId: string;
     organizationId: string;
     name: string;
     description?: string;
@@ -2141,17 +2300,24 @@ export interface ApiStore {
   listProjectTemplates(organizationId: string): Promise<ProjectTemplateRecord[]>;
   upsertProjectEnvVar(input: {
     projectId: string;
+    expectedOrganizationId: string;
     key: string;
     value: string;
     scope?: EnvVarScope;
   }): Promise<ProjectEnvironmentRecord>;
   listProjectEnvVars(projectId: string): Promise<ProjectEnvironmentRecord[]>;
-  deleteProjectEnvVar(
-    projectId: string,
-    key: string,
-    scope?: EnvVarScope,
-  ): Promise<ProjectEnvironmentRecord | undefined>;
-  upsertProjectSecret(input: { projectId: string; key: string; valueEncrypted: string }): Promise<ProjectSecretRecord>;
+  deleteProjectEnvVar(input: {
+    projectId: string;
+    expectedOrganizationId: string;
+    key: string;
+    scope?: EnvVarScope;
+  }): Promise<ProjectEnvironmentRecord | undefined>;
+  upsertProjectSecret(input: {
+    projectId: string;
+    expectedOrganizationId: string;
+    key: string;
+    valueEncrypted: string;
+  }): Promise<ProjectSecretRecord>;
   listProjectSecrets(projectId: string): Promise<Array<Omit<ProjectSecretRecord, 'valueEncrypted'>>>;
   getProjectSecret(projectId: string, key: string): Promise<ProjectSecretRecord | undefined>;
 
@@ -2160,6 +2326,7 @@ export interface ApiStore {
   getDatabaseTime(): Promise<string>;
   createProjectCheckpoint(input: {
     projectId: string;
+    expectedOrganizationId: string;
     createdByUserId?: string;
     idempotencyKey?: string;
     requestHash?: string;
@@ -2370,6 +2537,8 @@ export interface ApiStore {
     consentVersion: string;
     consentedByUserId?: string;
     sourceInventory: unknown;
+    /** Runs provider versioning + live inventory verification under source/target physical barriers, outside DB tx. */
+    prepareSourceRetention: () => Promise<ObjectStorageInventory>;
   }): Promise<RemixStorageShareRecord>;
   getRemixStorageShareByTarget(targetProjectId: string): Promise<RemixStorageShareRecord | undefined>;
   revokeRemixStorageShare(input: {
@@ -2557,7 +2726,11 @@ export interface ApiStore {
    * atomically in storage.
    */
   reapExpiredImportJobs(nowIso?: string): Promise<string[]>;
-  deleteProjectSecret(projectId: string, key: string): Promise<ProjectSecretRecord | undefined>;
+  deleteProjectSecret(input: {
+    projectId: string;
+    expectedOrganizationId: string;
+    key: string;
+  }): Promise<ProjectSecretRecord | undefined>;
   addProjectCollaborator(input: {
     projectId: string;
     userId: string;
@@ -2677,6 +2850,7 @@ export interface ApiStore {
   listActiveProjectAccessRoles(projectId: string, userId: string): Promise<string[]>;
   recordProjectActivity(input: {
     projectId: string;
+    expectedOrganizationId: string;
     actorUserId?: string;
     action: string;
     metadata?: Record<string, unknown>;
@@ -2704,6 +2878,8 @@ export interface ApiStore {
     expectedVersion?: number;
   }): Promise<WorkspaceIdeStateRecord>;
   updateWorkspaceGitRepositoryUrl(input: {
+    projectId: string;
+    expectedOrganizationId: string;
     workspaceId: string;
     gitRepositoryUrl: string | null;
   }): Promise<WorkspaceRecord>;
@@ -2777,6 +2953,7 @@ export interface ApiStore {
   upsertAgentPatchProposal(input: {
     id: string;
     projectId: string;
+    expectedOrganizationId: string;
     artifactId: string;
     messageId: string;
     actionId: string;
@@ -2794,6 +2971,7 @@ export interface ApiStore {
   /** Append an agent self-repair outcome to the durable history. */
   recordAgentRepairEvent(input: {
     projectId: string;
+    expectedOrganizationId: string;
     messageId?: string;
     artifactId?: string;
     actionId?: string;
@@ -2819,6 +2997,7 @@ export interface ApiStore {
   listProjectSkillOverrides(projectId: string): Promise<ProjectSkillOverrideRecord[]>;
   setProjectSkillEnabled(input: {
     projectId: string;
+    expectedOrganizationId: string;
     skillId: string;
     enabled: boolean;
   }): Promise<ProjectSkillOverrideRecord>;
@@ -2883,6 +3062,18 @@ export interface ApiStore {
     /** Non-running checkouts (for example production source trees) start STOPPED. */
     initialStatus?: WorkspaceRecord['status'];
   }): Promise<WorkspaceRecord>;
+  /**
+   * Persist the runtime-start fence before any workspace-manager side effect.
+   * Implementations must revalidate the exact tenant in the project mutation
+   * order; transfer treats STARTING/RUNNING workspaces as non-transferable.
+   */
+  latchProjectWorkspaceStart(input: {
+    workspaceId: string;
+    projectId: string;
+    expectedOrganizationId: string;
+    runtimeMode: string;
+    environment?: string;
+  }): Promise<WorkspaceRecord>;
   getWorkspace(id: string): Promise<WorkspaceRecord | undefined>;
   listWorkspaces(projectId: string): Promise<WorkspaceRecord[]>;
 
@@ -2940,6 +3131,7 @@ export interface ApiStore {
     /** Optional deterministic id for crash-safe idempotent snapshot creation. */
     id?: string;
     projectId: string;
+    expectedOrganizationId: string;
     label?: string;
     kind?: SnapshotRecord['kind'];
     manifest: unknown;
@@ -2952,14 +3144,19 @@ export interface ApiStore {
   getSnapshot(id: string): Promise<SnapshotRecord | undefined>;
   listSnapshots(projectId: string): Promise<SnapshotRecord[]>;
   putProjectStorageObject(input: {
-    projectId?: string;
+    projectId: string;
+    expectedOrganizationId: string;
     key: string;
     kind: ProjectStorageObjectRecord['kind'];
     contentBase64: string;
     byteLength: number;
     contentHash: string;
   }): Promise<ProjectStorageObjectRecord>;
-  getProjectStorageObject(key: string): Promise<ProjectStorageObjectRecord | undefined>;
+  getProjectStorageObject(input: {
+    projectId: string;
+    expectedOrganizationId: string;
+    key: string;
+  }): Promise<ProjectStorageObjectRecord | undefined>;
 
   /**
    * Total stored object bytes per organization (project storage objects joined
@@ -3040,6 +3237,7 @@ export interface ApiStore {
    */
   createDatabaseInstance(input: {
     projectId: string;
+    expectedOrganizationId: string;
     organizationId: string;
     retentionDays: number;
     region?: string;
@@ -3053,6 +3251,7 @@ export interface ApiStore {
    */
   acquireDatabaseProvisioning(input: {
     projectId: string;
+    expectedOrganizationId: string;
     organizationId: string;
     retentionDays: number;
     region?: string;
@@ -3061,7 +3260,12 @@ export interface ApiStore {
   }): Promise<{ instance: DatabaseInstanceRecord; acquired: boolean; created: boolean }>;
   completeDatabaseProvisioning(
     id: string,
-    connection: { projectId: string; key: string; valueEncrypted: string },
+    connection: {
+      projectId: string;
+      expectedOrganizationId: string;
+      key: string;
+      valueEncrypted: string;
+    },
   ): Promise<DatabaseInstanceRecord | undefined>;
   failDatabaseProvisioning(
     id: string,
@@ -3093,6 +3297,7 @@ export interface ApiStore {
   listPendingDatabaseRestores(take?: number): Promise<DatabaseRestoreRecord[]>;
   createDeployment(input: {
     projectId: string;
+    expectedOrganizationId: string;
     workspaceId?: string;
     provider: string;
     environment?: DeploymentRecord['environment'];
@@ -3437,6 +3642,7 @@ export interface ApiStore {
    */
   createProjectManifestRevision(input: {
     projectId: string;
+    expectedOrganizationId: string;
     schemaVersion: number;
     manifestVersion: number;
     digest: string;
@@ -3791,7 +3997,11 @@ export interface ApiStore {
   listUnresolvedReconnectionAlertsByUser(userId: string): Promise<ReconnectionAlertRecord[]>;
   getReconnectionAlertById(id: string): Promise<ReconnectionAlertRecord | undefined>;
   resolveReconnectionAlert(input: { id: string; resolvedAt?: Date }): Promise<ReconnectionAlertRecord | undefined>;
-  createAiConversation(input: { projectId?: string; userId: string; title?: string }): Promise<AiConversationRecord>;
+  createAiConversation(
+    input:
+      | { projectId: string; expectedOrganizationId: string; userId: string; title?: string }
+      | { projectId?: undefined; expectedOrganizationId?: undefined; userId: string; title?: string },
+  ): Promise<AiConversationRecord>;
   getAiConversation(id: string): Promise<AiConversationRecord | undefined>;
   listAiConversations(input: { projectId: string; userId: string; limit?: number }): Promise<AiConversationRecord[]>;
   createAiMessage(input: {

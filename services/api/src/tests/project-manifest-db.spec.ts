@@ -2,6 +2,8 @@ import { hashPassword } from '@vibecore/auth';
 import { createDatabaseClient } from '@vibecore/database';
 import { describe, expect, it } from 'vitest';
 import { PrismaApiStore } from '../prisma-store.js';
+import { objectStorageStaticArtifactSummary } from '../object-storage-operation.js';
+import { projectPermanentDeletionRequestHash } from '../project-permanent-deletion.js';
 import {
   canonicalizeProjectManifest,
   createDefaultProjectManifest,
@@ -27,6 +29,46 @@ async function canReachDatabase() {
 }
 
 const runWithPostgres = (await canReachDatabase()) ? describe : describe.skip;
+
+const emptyStaticArtifactSummary = objectStorageStaticArtifactSummary([]);
+
+function hardDeleteProject(
+  store: PrismaApiStore,
+  project: { id: string; organizationId: string; name: string },
+  actorUserId: string,
+) {
+  return store.hardDeleteProject({
+    projectId: project.id,
+    expectedOrganizationId: project.organizationId,
+    expectedProjectName: project.name,
+    actorUserId,
+    idempotencyKey: `manifest-test-delete-${project.id}`,
+    requestHash: projectPermanentDeletionRequestHash({
+      projectId: project.id,
+      organizationId: project.organizationId,
+      actorUserId,
+      expectedProjectName: project.name,
+    }),
+    preflightPhysicalErasure: async () => emptyStaticArtifactSummary,
+    erasePhysical: async () => undefined,
+    verifyPhysicalAbsence: async () => ({
+      outcome: 'VERIFIED_ABSENT',
+      verifier: 'project-manifest-db-test',
+      evidence: {
+        schemaVersion: 'project-permanent-erasure-v1',
+        filesystem: {
+          projectTreeAbsent: true,
+          workspaceTreesAbsent: true,
+          objectCacheAbsent: true,
+          staticSnapshotsAbsent: true,
+          staticAliasesAbsent: true,
+          staticArtifactSummary: emptyStaticArtifactSummary,
+        },
+        gcs: { bucketAbsent: true, objectCount: 0 },
+      },
+    }),
+  });
+}
 
 runWithPostgres('ProjectManifest — real PostgreSQL concurrency and constraints', () => {
   it('creates v1 atomically, admits exactly one stale v2 writer, and cascades history', async () => {
@@ -70,6 +112,7 @@ runWithPostgres('ProjectManifest — real PostgreSQL concurrency and constraints
         [storeA, storeB].map((store) =>
           store.createProjectManifestRevision({
             projectId: legacyProject.id,
+            expectedOrganizationId: organization.id,
             schemaVersion: legacyManifest.schemaVersion,
             manifestVersion: legacyManifest.manifestVersion,
             digest: legacyDigest,
@@ -120,6 +163,7 @@ runWithPostgres('ProjectManifest — real PostgreSQL concurrency and constraints
         candidates.map((candidate, index) =>
           (index === 0 ? storeA : storeB).createProjectManifestRevision({
             projectId: project.id,
+            expectedOrganizationId: organization.id,
             schemaVersion: candidate.manifest.schemaVersion,
             manifestVersion: candidate.manifest.manifestVersion,
             digest: candidate.digest,
@@ -180,10 +224,10 @@ runWithPostgres('ProjectManifest — real PostgreSQL concurrency and constraints
         /append-only/u,
       );
 
-      await storeA.hardDeleteProject(copy.id);
-      await storeA.hardDeleteProject(detached.id);
-      await storeA.hardDeleteProject(project.id);
-      await storeA.hardDeleteProject(legacyProject.id);
+      await hardDeleteProject(storeA, copy, user.id);
+      await hardDeleteProject(storeA, detached, user.id);
+      await hardDeleteProject(storeA, project, user.id);
+      await hardDeleteProject(storeA, legacyProject, user.id);
       await expect(prismaA.projectManifestRevision.count({ where: { projectId: project.id } })).resolves.toBe(0);
     } finally {
       await prismaA.$disconnect();
