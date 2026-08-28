@@ -472,4 +472,131 @@ describe('ArtifactRegistryOciAdapter', () => {
       });
     }
   });
+
+  it('exhaustively snapshots and idempotently deletes real Package, Tag and Version control-plane resources', async () => {
+    const packagePath = '/v1/projects/source-proj/locations/europe-west9/repositories/build-repo/packages/p-project1';
+    const first = `sha256:${'1'.repeat(64)}`;
+    const second = `sha256:${'2'.repeat(64)}`;
+    const versions = new Set([first, second]);
+    const tags = new Map([['active-promo-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', first]]);
+
+    let packageExists = true;
+
+    const fetchImpl = vi.fn(async (rawUrl: string | URL | Request, init: RequestInit = {}) => {
+      const url = new URL(typeof rawUrl === 'string' || rawUrl instanceof URL ? rawUrl : rawUrl.url);
+      expect(url.origin).toBe('https://artifactregistry.googleapis.com');
+      expect(new Headers(init.headers).get('authorization')).toBe('Bearer control-plane-token');
+
+      const method = (init.method ?? 'GET').toUpperCase();
+
+      if (url.pathname === packagePath && method === 'GET') {
+        return packageExists
+          ? new Response(JSON.stringify({ name: packagePath.slice('/v1/'.length) }), { status: 200 })
+          : new Response('', { status: 404 });
+      }
+
+      const tagPrefix = `${packagePath}/tags/`;
+
+      if (url.pathname.startsWith(tagPrefix) && method === 'GET') {
+        const tag = decodeURIComponent(url.pathname.slice(tagPrefix.length));
+
+        return tags.has(tag)
+          ? new Response(JSON.stringify({ name: `${packagePath.slice('/v1/'.length)}/tags/${tag}` }), {
+              status: 200,
+            })
+          : new Response('', { status: 404 });
+      }
+
+      if (url.pathname === `${packagePath}/versions` && method === 'GET') {
+        const pageToken = url.searchParams.get('pageToken');
+        const selected = pageToken ? [second] : [first];
+
+        return new Response(
+          JSON.stringify({
+            versions: selected
+              .filter((value) => versions.has(value))
+              .map((value) => ({ name: `${packagePath.slice('/v1/'.length)}/versions/${encodeURIComponent(value)}` })),
+            ...(pageToken ? {} : { nextPageToken: 'second-page' }),
+          }),
+          { status: 200 },
+        );
+      }
+
+      if (url.pathname === `${packagePath}/tags` && method === 'GET') {
+        return new Response(
+          JSON.stringify({
+            tags: [...tags].map(([name, version]) => ({
+              name: `${packagePath.slice('/v1/'.length)}/tags/${name}`,
+              version: `${packagePath.slice('/v1/'.length)}/versions/${encodeURIComponent(version)}`,
+            })),
+          }),
+          { status: 200 },
+        );
+      }
+
+      if (url.pathname.startsWith(tagPrefix) && method === 'DELETE') {
+        tags.delete(decodeURIComponent(url.pathname.slice(tagPrefix.length)));
+        return new Response(null, { status: 200 });
+      }
+
+      const versionPrefix = `${packagePath}/versions/`;
+
+      if (url.pathname.startsWith(versionPrefix) && method === 'DELETE') {
+        versions.delete(decodeURIComponent(url.pathname.slice(versionPrefix.length)));
+        return new Response(
+          JSON.stringify({
+            name: 'projects/source-proj/locations/europe-west9/operations/delete-version-1',
+            done: true,
+          }),
+          { status: 200 },
+        );
+      }
+
+      if (url.pathname === packagePath && method === 'DELETE') {
+        packageExists = false;
+        versions.clear();
+        tags.clear();
+
+        return new Response(
+          JSON.stringify({
+            name: 'projects/source-proj/locations/europe-west9/operations/delete-package-1',
+            done: true,
+          }),
+          { status: 200 },
+        );
+      }
+
+      return new Response('', { status: 404 });
+    }) as unknown as typeof fetch;
+
+    const adapter = new ArtifactRegistryOciAdapter({
+      fetchImpl,
+      tokenProvider: { getAccessToken: async () => 'control-plane-token' },
+      sleep: async () => undefined,
+    });
+
+    await expect(adapter.packageExists(SOURCE)).resolves.toBe(true);
+    await expect(adapter.tagExists(SOURCE, 'active-promo-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')).resolves.toBe(true);
+
+    await expect(adapter.snapshotPackage(SOURCE)).resolves.toEqual({
+      repository: SOURCE,
+      exists: true,
+      versions: [first, second],
+      tags: [{ name: 'active-promo-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', digest: first }],
+    });
+
+    await adapter.deleteTag(SOURCE, 'active-promo-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
+    await expect(adapter.tagExists(SOURCE, 'active-promo-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')).resolves.toBe(false);
+    await adapter.deleteVersion(SOURCE, first);
+    await adapter.deletePackage(SOURCE);
+    await expect(adapter.packageExists(SOURCE)).resolves.toBe(false);
+    await expect(adapter.snapshotPackage(SOURCE)).resolves.toEqual({
+      repository: SOURCE,
+      exists: false,
+      versions: [],
+      tags: [],
+    });
+
+    await expect(adapter.deletePackage(SOURCE)).resolves.toBeUndefined();
+  });
 });
