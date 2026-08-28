@@ -24,8 +24,9 @@ global:
   workloadIdentity:
     web: ''
     admin: ''
-    # ADC/WI identity used by the API for Artifact Registry and Binary
-    # Authorization. No JSON service-account key is mounted.
+    # ADC/WI identity used by the API for Artifact Registry, Cloud Build
+    # reconciliation/cancellation and Binary Authorization. Terraform grants
+    # repository-scoped repoAdmin; no JSON service-account key is mounted.
     api: 'vibecore-prod-platform@vibecore-495216.iam.gserviceaccount.com'
     worker: ''
     aiGateway: ''
@@ -166,7 +167,8 @@ platformEnv:
     # matches no route, so the app renders blank). Host-root works for relative
     # assets, root-relative assets, and client routing alike (verified live).
     previewUrlTemplate: 'https://{workspaceId}-{port}.preview.e-code.ai/'
-    # Snapshot-image server deploys (Publish = the workspace, imaged). ⚠️ CD
+    # Snapshot-image server deploys (Publish = the workspace, imaged). The API
+    # WI must retain repoAdmin here so hard-delete can sweep p-<project>. ⚠️ CD
     # upgrades with --reuse-values: these keys reach the release only via a
     # one-time manual `--set platformEnv.runtime.serverDeployImageRepo=...`.
     serverDeployImageRepo: 'europe-west9-docker.pkg.dev/vibecore-495216/vibecore-prod-apps'

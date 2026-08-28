@@ -30,7 +30,7 @@ variable "labels" {
 }
 
 variable "artifact_promotion_repositories" {
-  description = "Repository-scoped IAM grants for live OCI promotion (source reader; isolated targets repoAdmin for upload+rollback delete)."
+  description = "Repository-scoped API IAM grants for the OCI lifecycle. Every project-image source and target repo needs repoAdmin for promotion rollback and exact hard-delete erasure; reader is only valid for read-only inputs."
   type = list(object({
     project    = string
     location   = string
@@ -47,6 +47,16 @@ variable "artifact_promotion_repositories" {
       ], grant.role)
     ])
     error_message = "Artifact promotion repository roles are limited to reader or repoAdmin."
+  }
+}
+
+check "server_deploy_registry_erasure_grant" {
+  assert {
+    condition = var.server_deploy_builder_repository == null ? true : contains([
+      for grant in var.artifact_promotion_repositories :
+      "${grant.project}/${grant.location}/${grant.repository}/${grant.role}"
+    ], "${var.server_deploy_builder_repository.project}/${var.server_deploy_builder_repository.location}/${var.server_deploy_builder_repository.repository}/roles/artifactregistry.repoAdmin")
+    error_message = "The API platform identity needs roles/artifactregistry.repoAdmin on the server-deploy source repository so project hard-delete can inventory and erase it exactly."
   }
 }
 

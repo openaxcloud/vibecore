@@ -97,7 +97,8 @@ platformEnv:
     # (BrowserRouter sees '/p/<ws>/<port>/' → no route match → blank app).
     previewUrlTemplate: 'https://{workspaceId}-{port}.preview.staging.example.com/'
     # Snapshot-image server deploys: AR docker repo for published app images.
-    # Empty = pipeline off (boot-script server deploys). See configmap.yaml.
+    # The API Workload Identity needs repoAdmin on this repository for exact
+    # project hard-delete inventory/erasure. Empty = pipeline off.
     serverDeployImageRepo: ''
     serverDeploySnapshotImage: ''
     # Cloud KMS key reference used by the Cloud Build service account to sign
