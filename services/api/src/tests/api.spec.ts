@@ -10,6 +10,7 @@ import JSZip from 'jszip';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import WebSocket, { WebSocketServer } from 'ws';
 import { AI_GENERATION_SCAFFOLD_MARKER, buildApiApp, type ApiAppOptions } from '../app.js';
+import { registryMutationIntentHash } from '../registry-mutation.js';
 import { runtimeWebSocketProtocols } from '../runtime-websocket-ticket.js';
 import type { EmailMessage, EmailProvider } from '../email.js';
 import type { GitProvider, ProjectFile, ProjectStorage, StoredArchive } from '../project-storage.js';
@@ -2139,6 +2140,112 @@ describe('SaaS API', () => {
     expect((await store.listAdminAuditLogs()).some((event) => event.action === 'admin.platform_admin.grant')).toBe(
       true,
     );
+    delete process.env.PLATFORM_ADMIN_EMAILS;
+    await app.close();
+  });
+
+  it('gates registry recovery to a recently reauthenticated platform admin and links its AuditLog', async () => {
+    process.env.PLATFORM_ADMIN_EMAILS = 'registry-recovery-admin@example.com';
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+    const admin = await register(app, {
+      email: 'registry-recovery-admin@example.com',
+      organizationName: 'Registry Recovery Admin Org',
+    });
+    await verifyEmail(app, admin.verificationToken);
+    const normal = await register(app, {
+      email: 'registry-recovery-user@example.com',
+      organizationName: 'Registry Recovery User Org',
+    });
+    const project = await store.createProject({
+      organizationId: normal.organization.id,
+      name: 'Registry recovery project',
+      slug: `registry-recovery-${Date.now()}`,
+    });
+    const repository = `europe-west9-docker.pkg.dev/build-proj/build-repo/p-${project.id.toLowerCase()}`;
+    const operationId = `registry-mutation:erasure:test-${Date.now()}`;
+    const intent = {
+      operationId,
+      projectId: project.id,
+      organizationId: project.organizationId,
+      ownershipEpoch: 0,
+      kind: 'PROJECT_ERASURE' as const,
+      repositories: [repository],
+      intentHash: registryMutationIntentHash({ projectId: project.id, repository, purpose: 'route-recovery' }),
+    };
+    await expect(
+      store.withRegistryMutation(intent, async () => {
+        throw new Error('crash before provider request');
+      }),
+    ).rejects.toThrow('crash before provider request');
+    const endedAt = Date.now() - 1_000;
+    const body = {
+      resolution: 'FAILED_SAFE',
+      observationWindowStartedAt: new Date(endedAt - 180_000).toISOString(),
+      observationWindowEndedAt: new Date(endedAt).toISOString(),
+      providerQueries: [
+        { queriedAt: new Date(endedAt - 120_000).toISOString(), result: 'ABSENT' },
+        { queriedAt: new Date(endedAt - 60_000).toISOString(), result: 'ABSENT' },
+      ],
+    };
+
+    const denied = await app.inject({
+      method: 'POST',
+      url: `/admin/registry-mutations/${encodeURIComponent(operationId)}/recovery`,
+      headers: { authorization: `Bearer ${normal.token}` },
+      payload: body,
+    });
+    expect(denied.statusCode).toBe(403);
+
+    const stale = await app.inject({
+      method: 'POST',
+      url: `/admin/registry-mutations/${encodeURIComponent(operationId)}/recovery`,
+      headers: { authorization: `Bearer ${admin.token}` },
+      payload: body,
+    });
+    expect(stale.statusCode).toBe(403);
+    expect(stale.json().code).toBe('MFA_REQUIRED');
+
+    await reauth(app, admin.token);
+    const setup = await app.inject({
+      method: 'POST',
+      url: '/auth/mfa/setup',
+      headers: { authorization: `Bearer ${admin.token}` },
+    });
+    await app.inject({
+      method: 'POST',
+      url: '/auth/mfa/verify',
+      headers: { authorization: `Bearer ${admin.token}` },
+      payload: { code: createTotpCode(setup.json().secret) },
+    });
+    await reauth(app, admin.token);
+    const recovered = await app.inject({
+      method: 'POST',
+      url: `/admin/registry-mutations/${encodeURIComponent(operationId)}/recovery`,
+      headers: { authorization: `Bearer ${admin.token}` },
+      payload: body,
+    });
+    expect(recovered.statusCode, recovered.body).toBe(200);
+    expect(recovered.json().recovery).toMatchObject({
+      state: 'FAILED_SAFE',
+      operationId,
+      attemptId: `${operationId}:attempt:1:fence:1`,
+      attemptNumber: '1',
+    });
+    const auditLogId = recovered.json().recovery.auditLogId as string;
+    expect(store.auditLogs.find((event) => event.id === auditLogId)).toMatchObject({
+      organizationId: project.organizationId,
+      actorUserId: admin.user.id,
+      action: 'registry.mutation.recovery',
+      resourceType: 'registryMutationOperation',
+      resourceId: operationId,
+    });
+    expect(store.registryMutationOperations.get(operationId)?.recoveryEvidence).toMatchObject({
+      auditLogId,
+      operatorUserId: admin.user.id,
+      operationId,
+    });
+
     delete process.env.PLATFORM_ADMIN_EMAILS;
     await app.close();
   });

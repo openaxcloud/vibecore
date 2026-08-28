@@ -50,8 +50,14 @@ Build, trusted signing, promotion, release re-promotion and erasure use the
 same `artifact-registry-package:<repository>` session-lock namespace and a
 `RegistryMutationOperation` durable fence. Session loss aborts provider I/O and
 leaves `AMBIGUOUS`; another operation on the package and hard-delete both fail
-closed until an audited, exhaustive recovery proof resolves it. Provider I/O
-runs while the session lock is held but never inside a database transaction.
+closed until an audited, exhaustive recovery proof resolves it. A known
+provider operation without a durable receipt moves to `MANUAL_RECOVERY`; this
+is an explicit safe blockade, never an impossible pseudo-resolution. Every
+attempt has a durable `attemptNumber`, `attemptId` and fencing token. Only a
+`FAILED_SAFE` project erasure may reopen the same deterministic id, and only
+after its immutable inventory passes a read-only verify-first check under the
+package locks. Provider I/O runs while the session lock is held but never
+inside a database transaction.
 
 Project package names are database-enforced as `p-<projectId>`. A source,
 promotion or release row that points at another project's package is rejected;
@@ -60,7 +66,9 @@ GC never retains a cross-project last reference and silently leaks it.
 ## IAM and Helm prerequisites
 
 The API KSA must use the Terraform-managed platform Workload Identity; never
-mount a service-account JSON key. When snapshot publication is enabled:
+mount a service-account JSON key. Snapshot publication is disabled in both the
+production values and deploy workflow until provisioning plus the signed-image
+canary are complete. When an audited activation change enables it:
 
 - the platform GSA needs `roles/cloudbuild.builds.editor` in the build project
   to create, list, inspect and cancel durable builds;
@@ -106,9 +114,39 @@ inside the declared observation window, using the exact
 and audit-event id through the internal
 `resolveAppImageBuildSubmission` coordinator. `REJECTED_ABSENT` is accepted
 only when every recorded result is `ABSENT`. Resolve an `AMBIGUOUS` registry
-mutation only through `resolveAmbiguousRegistryMutation`; `VERIFIED` requires a
-matching stored provider receipt, while `FAILED_SAFE` requires exhaustive proof
-that no effect occurred. Keep the incident open if either proof is incomplete.
+mutation only through `POST /admin/registry-mutations/:operationId/recovery`.
+The route requires a platform-admin session, MFA when deployment policy
+requires it, and re-auth within 60 seconds. The store derives operation,
+tenant, intent, attempt and operator identities; it creates the immutable
+`AuditLog` and relational `RegistryMutationRecovery` row in the same
+transaction. `VERIFIED` requires a matching stored provider receipt,
+`FAILED_SAFE` requires exhaustive absence with no provider id/evidence, and
+unresolved observations (including a known provider id without a receipt) must
+use `MANUAL_RECOVERY`. Never paste or invent an audit id. Keep the incident
+open while it is in manual recovery.
+
+Example body (timestamps and observations must come from the provider query
+record, not the API pod clock):
+
+```json
+{
+  "resolution": "MANUAL_RECOVERY",
+  "observationWindowStartedAt": "2026-08-28T10:00:00.000Z",
+  "observationWindowEndedAt": "2026-08-28T10:05:00.000Z",
+  "providerQueries": [
+    {
+      "queriedAt": "2026-08-28T10:01:00.000Z",
+      "providerOperationId": "provider-operation-id",
+      "result": "UNRESOLVED"
+    },
+    {
+      "queriedAt": "2026-08-28T10:04:00.000Z",
+      "providerOperationId": "provider-operation-id",
+      "result": "UNRESOLVED"
+    }
+  ]
+}
+```
 
 Account purge must not create a second image ledger. For every owned project it
 creates/replays the existing `PROJECT_PERMANENT_DELETE` operation with key
@@ -122,11 +160,13 @@ Direct `Project.delete` fails with `PROJECT_IMAGE_ERASURE_RECEIPT_REQUIRED`
 while image lifecycle authority remains.
 
 Before rollout, apply migrations in lexical order:
-`0104_app_image_build_registry_erasure`,
-`0105_registry_recovery_enum_values`, then
-`0106_registry_mutation_counteraudit`. The enum migration is deliberately
-committed separately because PostgreSQL cannot safely consume a newly added
-enum value in the transaction that introduces it. Then verify:
+`0108_app_image_build_registry_erasure`,
+`0109_registry_recovery_enum_values`,
+`0110_registry_mutation_counteraudit`,
+`0111_registry_mutation_manual_recovery_enum`, then
+`0112_registry_mutation_recovery_attempts`. Both enum migrations are
+deliberately committed separately because PostgreSQL cannot safely consume a
+newly added enum value in the transaction that introduces it. Then verify:
 
 ```sql
 SELECT "phase", count(*)
@@ -143,6 +183,12 @@ SELECT "kind", "state", count(*)
 FROM "RegistryMutationOperation"
 GROUP BY "kind", "state"
 ORDER BY "kind", "state";
+
+SELECT recovery."operationId", recovery."attemptNumber", recovery."resolution",
+       recovery."auditLogId", audit."actorUserId", audit."createdAt"
+FROM "RegistryMutationRecovery" AS recovery
+JOIN "AuditLog" AS audit ON audit."id" = recovery."auditLogId"
+ORDER BY recovery."createdAt" DESC;
 ```
 
 An old `SUBMITTING` row, an `ERASING` row whose delete is not actively retrying,

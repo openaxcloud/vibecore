@@ -392,6 +392,7 @@ enum RegistryMutationState {
   PREPARED
   IN_FLIGHT
   AMBIGUOUS
+  MANUAL_RECOVERY
   VERIFIED
   FAILED_SAFE
 }
@@ -1572,15 +1573,17 @@ model AppImageBuildOperation {
 /// session-loss authority. AMBIGUOUS is intentionally non-terminal and blocks
 /// both a second publisher and project hard-delete until operator recovery.
 model RegistryMutationOperation {
-  id                  String                @id
+  id                  String                     @id
   projectId           String
   organizationId      String
   ownershipEpoch      Int
   kind                RegistryMutationKind
   repositories        Json
   intentHash          String
-  state               RegistryMutationState @default(PREPARED)
-  fencingToken        BigInt                @default(0)
+  state               RegistryMutationState      @default(PREPARED)
+  fencingToken        BigInt                     @default(0)
+  attemptNumber       BigInt                     @default(0)
+  attemptId           String?
   ownerToken          String?
   leaseExpiresAt      DateTime?
   backendPid          Int?
@@ -1593,13 +1596,32 @@ model RegistryMutationOperation {
   verifiedAt          DateTime?
   recoveredAt         DateTime?
   recoveryEvidence    Json?
-  createdAt           DateTime              @default(now())
-  updatedAt           DateTime              @updatedAt
-  project             Project               @relation(fields: [projectId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  createdAt           DateTime                   @default(now())
+  updatedAt           DateTime                   @updatedAt
+  project             Project                    @relation(fields: [projectId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  recoveries          RegistryMutationRecovery[]
 
   @@index([projectId, state, createdAt])
   @@index([state, leaseExpiresAt])
   @@index([providerOperationId])
+}
+
+/// Append-only operator recovery record. The FK to AuditLog makes the actor,
+/// tenant, request metadata and timestamp a database fact rather than a
+/// caller-supplied string embedded only in JSON evidence.
+model RegistryMutationRecovery {
+  id            String                    @id @default(cuid())
+  operationId   String
+  attemptNumber BigInt
+  resolution    RegistryMutationState
+  auditLogId    String                    @unique
+  evidence      Json
+  createdAt     DateTime                  @default(now())
+  operation     RegistryMutationOperation @relation(fields: [operationId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  auditLog      AuditLog                  @relation(fields: [auditLogId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@unique([operationId, attemptNumber, resolution])
+  @@index([operationId, createdAt])
 }
 
 // Durable execution + response ledger for POST
@@ -1691,17 +1713,18 @@ model RateCard {
 }
 
 model AuditLog {
-  id             String        @id @default(cuid())
-  organizationId String?
-  actorUserId    String?
-  action         String
-  resourceType   String
-  resourceId     String?
-  metadata       Json?
-  ipAddress      String?
-  createdAt      DateTime      @default(now())
-  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
-  actor          User?         @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+  id                         String                     @id @default(cuid())
+  organizationId             String?
+  actorUserId                String?
+  action                     String
+  resourceType               String
+  resourceId                 String?
+  metadata                   Json?
+  ipAddress                  String?
+  createdAt                  DateTime                   @default(now())
+  organization               Organization?              @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  actor                      User?                      @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+  registryMutationRecoveries RegistryMutationRecovery[]
 
   @@index([organizationId])
   @@index([actorUserId])

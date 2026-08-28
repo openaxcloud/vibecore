@@ -36,12 +36,15 @@ export function isRegistryMutationRecoveryEvidence(
   evidence: RegistryMutationRecoveryEvidence,
 ): evidence is RegistryMutationRecoveryEvidence {
   if (
-    evidence.schemaVersion !== 'registry-mutation-recovery-v1' ||
+    evidence.schemaVersion !== 'registry-mutation-recovery-v2' ||
     !evidence.operatorUserId.trim() ||
-    !evidence.auditEventId.trim() ||
+    !evidence.auditLogId.trim() ||
     !evidence.operationId.trim() ||
     !evidence.projectId.trim() ||
     !evidence.organizationId.trim() ||
+    !evidence.attemptId.trim() ||
+    !/^[1-9][0-9]*$/u.test(evidence.attemptNumber) ||
+    !/^[1-9][0-9]*$/u.test(evidence.fencingToken) ||
     !/^sha256:[a-f0-9]{64}$/u.test(evidence.intentHash) ||
     !canonicalTimestamp(evidence.observationWindowStartedAt) ||
     !canonicalTimestamp(evidence.observationWindowEndedAt) ||
@@ -60,6 +63,7 @@ export function isRegistryMutationRecoveryEvidence(
       !canonicalTimestamp(query.queriedAt) ||
       queryAt <= previousQueryAt ||
       queryAt > windowEnd ||
+      !['MATCHED_EFFECT', 'ABSENT', 'UNRESOLVED'].includes(query.result) ||
       (query.providerOperationId !== undefined && !query.providerOperationId.trim())
     ) {
       return false;
@@ -70,7 +74,10 @@ export function isRegistryMutationRecoveryEvidence(
   return evidence.resolution === 'VERIFIED'
     ? /^sha256:[a-f0-9]{64}$/u.test(evidence.providerEvidenceHash) &&
         evidence.providerQueries.every(({ result }) => result === 'MATCHED_EFFECT')
-    : evidence.resolution === 'FAILED_SAFE' &&
+    : evidence.resolution === 'FAILED_SAFE'
+      ? evidence.providerEvidenceHash === undefined &&
+        evidence.providerQueries.every(({ result }) => result === 'ABSENT')
+      : evidence.resolution === 'MANUAL_RECOVERY' &&
         evidence.providerEvidenceHash === undefined &&
-        evidence.providerQueries.every(({ result }) => result === 'ABSENT');
+        evidence.providerQueries.some(({ result }) => result === 'UNRESOLVED');
 }

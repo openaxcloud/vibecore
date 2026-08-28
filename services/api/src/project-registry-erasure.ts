@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 
-import type { OciAttachment } from './artifact-promotion.js';
+import type { OciAttachment, RegistryRequestOptions } from './artifact-promotion.js';
 import {
   assertSha256Digest,
   parseArtifactRegistryImageRepository,
@@ -65,15 +65,15 @@ export interface ProjectRegistryReferenceAuthority {
 
 /** Artifact Registry surface required by the erasure executor. */
 export interface ProjectRegistryErasureProvider {
-  snapshotPackage(repo: string): Promise<ArtifactRegistryPackageSnapshot>;
-  manifestExists(repo: string, digest: string): Promise<boolean>;
-  listReferrers(repo: string, digest: string): Promise<OciAttachment[]>;
-  tagExists(repo: string, tag: string): Promise<boolean>;
-  deleteTag(repo: string, tag: string): Promise<void>;
-  deleteReferrer(repo: string, digest: string): Promise<void>;
-  deleteImage(repo: string, digest: string): Promise<void>;
-  deleteVersion(repo: string, digest: string): Promise<void>;
-  deletePackage(repo: string): Promise<void>;
+  snapshotPackage(repo: string, options?: RegistryRequestOptions): Promise<ArtifactRegistryPackageSnapshot>;
+  manifestExists(repo: string, digest: string, options?: RegistryRequestOptions): Promise<boolean>;
+  listReferrers(repo: string, digest: string, options?: RegistryRequestOptions): Promise<OciAttachment[]>;
+  tagExists(repo: string, tag: string, options?: RegistryRequestOptions): Promise<boolean>;
+  deleteTag(repo: string, tag: string, options?: RegistryRequestOptions): Promise<void>;
+  deleteReferrer(repo: string, digest: string, options?: RegistryRequestOptions): Promise<void>;
+  deleteImage(repo: string, digest: string, options?: RegistryRequestOptions): Promise<void>;
+  deleteVersion(repo: string, digest: string, options?: RegistryRequestOptions): Promise<void>;
+  deletePackage(repo: string, options?: RegistryRequestOptions): Promise<void>;
 }
 
 /**
@@ -707,25 +707,20 @@ async function verifyRetainedReferrer(
 }
 
 /**
- * Idempotent provider executor. A replay reuses the same durable inventory;
- * resources already absent remain ERASED, while every live shared reference is
- * retained and verified. No timestamps, policy names, actor data or credentials
- * enter the compact receipt.
+ * Read-only replay gate used before a FAILED_SAFE outer ledger is reopened.
+ * It proves the provider has gained no content outside the immutable inventory
+ * and that no cross-project reference appeared. The caller must already hold
+ * the same package fences that will protect the subsequent attempt.
  */
-export async function executeProjectRegistryErasure(input: {
+export async function verifyProjectRegistryErasureReplaySafety(input: {
   inventory: ProjectRegistryErasureInventory;
   provider: ProjectRegistryErasureProvider;
   referenceAuthority: ProjectRegistryReferenceAuthority;
   guard: ProjectRegistryErasureGuard;
-}): Promise<ProjectRegistryErasureReceipt> {
+}): Promise<void> {
   validateProjectRegistryErasureInventory(input.inventory);
   await assertLease(input.guard, input.inventory);
 
-  const dispositions: Disposition[] = [];
-
-  /* Database corruption must be detected before the first provider mutation.
-   * The migration forbids new cross-project package references; this full
-   * preflight is the fail-closed guard for legacy/tampered rows. */
   for (const pkg of input.inventory.packages) {
     await input.guard.withPackageFence(pkg.repository, async () => {
       await assertLease(input.guard, input.inventory);
@@ -760,6 +755,29 @@ export async function executeProjectRegistryErasure(input: {
       }
     });
   }
+}
+
+/**
+ * Idempotent provider executor. A replay reuses the same durable inventory;
+ * resources already absent remain ERASED, while every live shared reference is
+ * retained and verified. No timestamps, policy names, actor data or credentials
+ * enter the compact receipt.
+ */
+export async function executeProjectRegistryErasure(input: {
+  inventory: ProjectRegistryErasureInventory;
+  provider: ProjectRegistryErasureProvider;
+  referenceAuthority: ProjectRegistryReferenceAuthority;
+  guard: ProjectRegistryErasureGuard;
+}): Promise<ProjectRegistryErasureReceipt> {
+  validateProjectRegistryErasureInventory(input.inventory);
+  await assertLease(input.guard, input.inventory);
+
+  const dispositions: Disposition[] = [];
+
+  /* Database corruption must be detected before the first provider mutation.
+   * The migration forbids new cross-project package references; this full
+   * preflight is the fail-closed guard for legacy/tampered rows. */
+  await verifyProjectRegistryErasureReplaySafety(input);
 
   for (const pkg of input.inventory.packages) {
     await input.guard.withPackageFence(pkg.repository, async () => {

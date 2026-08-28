@@ -338,6 +338,13 @@ export type AppImageBuildOperation = $Result.DefaultSelection<Prisma.$AppImageBu
  */
 export type RegistryMutationOperation = $Result.DefaultSelection<Prisma.$RegistryMutationOperationPayload>
 /**
+ * Model RegistryMutationRecovery
+ * Append-only operator recovery record. The FK to AuditLog makes the actor,
+ * tenant, request metadata and timestamp a database fact rather than a
+ * caller-supplied string embedded only in JSON evidence.
+ */
+export type RegistryMutationRecovery = $Result.DefaultSelection<Prisma.$RegistryMutationRecoveryPayload>
+/**
  * Model RollbackIdempotencyRequest
  * 
  */
@@ -1180,6 +1187,7 @@ export const RegistryMutationState: {
   PREPARED: 'PREPARED',
   IN_FLIGHT: 'IN_FLIGHT',
   AMBIGUOUS: 'AMBIGUOUS',
+  MANUAL_RECOVERY: 'MANUAL_RECOVERY',
   VERIFIED: 'VERIFIED',
   FAILED_SAFE: 'FAILED_SAFE'
 };
@@ -2368,6 +2376,16 @@ export class PrismaClient<
     * ```
     */
   get registryMutationOperation(): Prisma.RegistryMutationOperationDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.registryMutationRecovery`: Exposes CRUD operations for the **RegistryMutationRecovery** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more RegistryMutationRecoveries
+    * const registryMutationRecoveries = await prisma.registryMutationRecovery.findMany()
+    * ```
+    */
+  get registryMutationRecovery(): Prisma.RegistryMutationRecoveryDelegate<ExtArgs, ClientOptions>;
 
   /**
    * `prisma.rollbackIdempotencyRequest`: Exposes CRUD operations for the **RollbackIdempotencyRequest** model.
@@ -3928,6 +3946,7 @@ export namespace Prisma {
     ReleaseManifest: 'ReleaseManifest',
     AppImageBuildOperation: 'AppImageBuildOperation',
     RegistryMutationOperation: 'RegistryMutationOperation',
+    RegistryMutationRecovery: 'RegistryMutationRecovery',
     RollbackIdempotencyRequest: 'RollbackIdempotencyRequest',
     DeploymentAccessPolicy: 'DeploymentAccessPolicy',
     DeploymentAccessExchangeTicket: 'DeploymentAccessExchangeTicket',
@@ -4050,7 +4069,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "user" | "accountLockout" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "objectStorageOperation" | "objectStorageOperationPinnedObject" | "objectStorageOperationPinnedGeneration" | "projectPermanentDeletionArtifactPlan" | "objectStorageCapabilityReservation" | "objectStorageOperationProjectScope" | "objectStorageVersionGcSchedule" | "projectPermanentDeletionReceipt" | "projectRegistryErasure" | "projectSlugRedirect" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "installedSkill" | "skillAuditEvent" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "collaborationGroup" | "collaborationGroupMember" | "resourceAccessGrant" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectManifestRevision" | "projectStorageObject" | "deployment" | "reservedVmOperation" | "reservedVmBillingPeriod" | "deploymentEnvironment" | "releaseManifest" | "appImageBuildOperation" | "registryMutationOperation" | "rollbackIdempotencyRequest" | "deploymentAccessPolicy" | "deploymentAccessExchangeTicket" | "rateCard" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "providerRequestMetric" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "runtimeWebSocketTicket" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "mcpGlobalPolicy" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "projectRuntimeEffect" | "projectRuntimeEffectTarget" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore" | "dBMigrationExecution" | "scheduledTask" | "scheduledTaskRun" | "agentRoutingCard" | "agentCallLog" | "projectCheckpoint" | "remixJob" | "remixStorageShare" | "importJob" | "importCreditReservation" | "galleryListing" | "ledgerAccount" | "ledgerTransaction" | "ledgerEntry" | "ledgerReservation" | "ledgerFxRate" | "ledgerReconciliationRun" | "previewReadinessBeacon" | "workspaceLifecycleEvent" | "workspacePostMortem" | "cloudTenant" | "cloudProjectBinding" | "cloudProjectFactoryEvent" | "cloudOperation" | "cloudOperationEvent" | "cloudTenantTransfer" | "cloudTeardownRecord" | "platformIamIdentity" | "platformIamImpersonationAudit" | "purgePlan" | "purgeFreeze" | "purgeEffect" | "purgeReceipt"
+      modelProps: "user" | "accountLockout" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "objectStorageOperation" | "objectStorageOperationPinnedObject" | "objectStorageOperationPinnedGeneration" | "projectPermanentDeletionArtifactPlan" | "objectStorageCapabilityReservation" | "objectStorageOperationProjectScope" | "objectStorageVersionGcSchedule" | "projectPermanentDeletionReceipt" | "projectRegistryErasure" | "projectSlugRedirect" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "installedSkill" | "skillAuditEvent" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "collaborationGroup" | "collaborationGroupMember" | "resourceAccessGrant" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectManifestRevision" | "projectStorageObject" | "deployment" | "reservedVmOperation" | "reservedVmBillingPeriod" | "deploymentEnvironment" | "releaseManifest" | "appImageBuildOperation" | "registryMutationOperation" | "registryMutationRecovery" | "rollbackIdempotencyRequest" | "deploymentAccessPolicy" | "deploymentAccessExchangeTicket" | "rateCard" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "providerRequestMetric" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "runtimeWebSocketTicket" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "mcpGlobalPolicy" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "projectRuntimeEffect" | "projectRuntimeEffectTarget" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore" | "dBMigrationExecution" | "scheduledTask" | "scheduledTaskRun" | "agentRoutingCard" | "agentCallLog" | "projectCheckpoint" | "remixJob" | "remixStorageShare" | "importJob" | "importCreditReservation" | "galleryListing" | "ledgerAccount" | "ledgerTransaction" | "ledgerEntry" | "ledgerReservation" | "ledgerFxRate" | "ledgerReconciliationRun" | "previewReadinessBeacon" | "workspaceLifecycleEvent" | "workspacePostMortem" | "cloudTenant" | "cloudProjectBinding" | "cloudProjectFactoryEvent" | "cloudOperation" | "cloudOperationEvent" | "cloudTenantTransfer" | "cloudTeardownRecord" | "platformIamIdentity" | "platformIamImpersonationAudit" | "purgePlan" | "purgeFreeze" | "purgeEffect" | "purgeReceipt"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -8179,6 +8198,80 @@ export namespace Prisma {
           count: {
             args: Prisma.RegistryMutationOperationCountArgs<ExtArgs>
             result: $Utils.Optional<RegistryMutationOperationCountAggregateOutputType> | number
+          }
+        }
+      }
+      RegistryMutationRecovery: {
+        payload: Prisma.$RegistryMutationRecoveryPayload<ExtArgs>
+        fields: Prisma.RegistryMutationRecoveryFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.RegistryMutationRecoveryFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RegistryMutationRecoveryPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.RegistryMutationRecoveryFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RegistryMutationRecoveryPayload>
+          }
+          findFirst: {
+            args: Prisma.RegistryMutationRecoveryFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RegistryMutationRecoveryPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.RegistryMutationRecoveryFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RegistryMutationRecoveryPayload>
+          }
+          findMany: {
+            args: Prisma.RegistryMutationRecoveryFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RegistryMutationRecoveryPayload>[]
+          }
+          create: {
+            args: Prisma.RegistryMutationRecoveryCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RegistryMutationRecoveryPayload>
+          }
+          createMany: {
+            args: Prisma.RegistryMutationRecoveryCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.RegistryMutationRecoveryCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RegistryMutationRecoveryPayload>[]
+          }
+          delete: {
+            args: Prisma.RegistryMutationRecoveryDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RegistryMutationRecoveryPayload>
+          }
+          update: {
+            args: Prisma.RegistryMutationRecoveryUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RegistryMutationRecoveryPayload>
+          }
+          deleteMany: {
+            args: Prisma.RegistryMutationRecoveryDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.RegistryMutationRecoveryUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.RegistryMutationRecoveryUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RegistryMutationRecoveryPayload>[]
+          }
+          upsert: {
+            args: Prisma.RegistryMutationRecoveryUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RegistryMutationRecoveryPayload>
+          }
+          aggregate: {
+            args: Prisma.RegistryMutationRecoveryAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateRegistryMutationRecovery>
+          }
+          groupBy: {
+            args: Prisma.RegistryMutationRecoveryGroupByArgs<ExtArgs>
+            result: $Utils.Optional<RegistryMutationRecoveryGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.RegistryMutationRecoveryCountArgs<ExtArgs>
+            result: $Utils.Optional<RegistryMutationRecoveryCountAggregateOutputType> | number
           }
         }
       }
@@ -16264,6 +16357,7 @@ export namespace Prisma {
     releaseManifest?: ReleaseManifestOmit
     appImageBuildOperation?: AppImageBuildOperationOmit
     registryMutationOperation?: RegistryMutationOperationOmit
+    registryMutationRecovery?: RegistryMutationRecoveryOmit
     rollbackIdempotencyRequest?: RollbackIdempotencyRequestOmit
     deploymentAccessPolicy?: DeploymentAccessPolicyOmit
     deploymentAccessExchangeTicket?: DeploymentAccessExchangeTicketOmit
@@ -17963,6 +18057,68 @@ export namespace Prisma {
    */
   export type DeploymentEnvironmentCountOutputTypeCountDeploymentsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: DeploymentWhereInput
+  }
+
+
+  /**
+   * Count Type RegistryMutationOperationCountOutputType
+   */
+
+  export type RegistryMutationOperationCountOutputType = {
+    recoveries: number
+  }
+
+  export type RegistryMutationOperationCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    recoveries?: boolean | RegistryMutationOperationCountOutputTypeCountRecoveriesArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * RegistryMutationOperationCountOutputType without action
+   */
+  export type RegistryMutationOperationCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RegistryMutationOperationCountOutputType
+     */
+    select?: RegistryMutationOperationCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * RegistryMutationOperationCountOutputType without action
+   */
+  export type RegistryMutationOperationCountOutputTypeCountRecoveriesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: RegistryMutationRecoveryWhereInput
+  }
+
+
+  /**
+   * Count Type AuditLogCountOutputType
+   */
+
+  export type AuditLogCountOutputType = {
+    registryMutationRecoveries: number
+  }
+
+  export type AuditLogCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    registryMutationRecoveries?: boolean | AuditLogCountOutputTypeCountRegistryMutationRecoveriesArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * AuditLogCountOutputType without action
+   */
+  export type AuditLogCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AuditLogCountOutputType
+     */
+    select?: AuditLogCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * AuditLogCountOutputType without action
+   */
+  export type AuditLogCountOutputTypeCountRegistryMutationRecoveriesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: RegistryMutationRecoveryWhereInput
   }
 
 
@@ -87028,12 +87184,14 @@ export namespace Prisma {
   export type RegistryMutationOperationAvgAggregateOutputType = {
     ownershipEpoch: number | null
     fencingToken: number | null
+    attemptNumber: number | null
     backendPid: number | null
   }
 
   export type RegistryMutationOperationSumAggregateOutputType = {
     ownershipEpoch: number | null
     fencingToken: bigint | null
+    attemptNumber: bigint | null
     backendPid: number | null
   }
 
@@ -87046,6 +87204,8 @@ export namespace Prisma {
     intentHash: string | null
     state: $Enums.RegistryMutationState | null
     fencingToken: bigint | null
+    attemptNumber: bigint | null
+    attemptId: string | null
     ownerToken: string | null
     leaseExpiresAt: Date | null
     backendPid: number | null
@@ -87069,6 +87229,8 @@ export namespace Prisma {
     intentHash: string | null
     state: $Enums.RegistryMutationState | null
     fencingToken: bigint | null
+    attemptNumber: bigint | null
+    attemptId: string | null
     ownerToken: string | null
     leaseExpiresAt: Date | null
     backendPid: number | null
@@ -87093,6 +87255,8 @@ export namespace Prisma {
     intentHash: number
     state: number
     fencingToken: number
+    attemptNumber: number
+    attemptId: number
     ownerToken: number
     leaseExpiresAt: number
     backendPid: number
@@ -87114,12 +87278,14 @@ export namespace Prisma {
   export type RegistryMutationOperationAvgAggregateInputType = {
     ownershipEpoch?: true
     fencingToken?: true
+    attemptNumber?: true
     backendPid?: true
   }
 
   export type RegistryMutationOperationSumAggregateInputType = {
     ownershipEpoch?: true
     fencingToken?: true
+    attemptNumber?: true
     backendPid?: true
   }
 
@@ -87132,6 +87298,8 @@ export namespace Prisma {
     intentHash?: true
     state?: true
     fencingToken?: true
+    attemptNumber?: true
+    attemptId?: true
     ownerToken?: true
     leaseExpiresAt?: true
     backendPid?: true
@@ -87155,6 +87323,8 @@ export namespace Prisma {
     intentHash?: true
     state?: true
     fencingToken?: true
+    attemptNumber?: true
+    attemptId?: true
     ownerToken?: true
     leaseExpiresAt?: true
     backendPid?: true
@@ -87179,6 +87349,8 @@ export namespace Prisma {
     intentHash?: true
     state?: true
     fencingToken?: true
+    attemptNumber?: true
+    attemptId?: true
     ownerToken?: true
     leaseExpiresAt?: true
     backendPid?: true
@@ -87292,6 +87464,8 @@ export namespace Prisma {
     intentHash: string
     state: $Enums.RegistryMutationState
     fencingToken: bigint
+    attemptNumber: bigint
+    attemptId: string | null
     ownerToken: string | null
     leaseExpiresAt: Date | null
     backendPid: number | null
@@ -87337,6 +87511,8 @@ export namespace Prisma {
     intentHash?: boolean
     state?: boolean
     fencingToken?: boolean
+    attemptNumber?: boolean
+    attemptId?: boolean
     ownerToken?: boolean
     leaseExpiresAt?: boolean
     backendPid?: boolean
@@ -87352,6 +87528,8 @@ export namespace Prisma {
     createdAt?: boolean
     updatedAt?: boolean
     project?: boolean | ProjectDefaultArgs<ExtArgs>
+    recoveries?: boolean | RegistryMutationOperation$recoveriesArgs<ExtArgs>
+    _count?: boolean | RegistryMutationOperationCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["registryMutationOperation"]>
 
   export type RegistryMutationOperationSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -87364,6 +87542,8 @@ export namespace Prisma {
     intentHash?: boolean
     state?: boolean
     fencingToken?: boolean
+    attemptNumber?: boolean
+    attemptId?: boolean
     ownerToken?: boolean
     leaseExpiresAt?: boolean
     backendPid?: boolean
@@ -87391,6 +87571,8 @@ export namespace Prisma {
     intentHash?: boolean
     state?: boolean
     fencingToken?: boolean
+    attemptNumber?: boolean
+    attemptId?: boolean
     ownerToken?: boolean
     leaseExpiresAt?: boolean
     backendPid?: boolean
@@ -87418,6 +87600,8 @@ export namespace Prisma {
     intentHash?: boolean
     state?: boolean
     fencingToken?: boolean
+    attemptNumber?: boolean
+    attemptId?: boolean
     ownerToken?: boolean
     leaseExpiresAt?: boolean
     backendPid?: boolean
@@ -87434,9 +87618,11 @@ export namespace Prisma {
     updatedAt?: boolean
   }
 
-  export type RegistryMutationOperationOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "projectId" | "organizationId" | "ownershipEpoch" | "kind" | "repositories" | "intentHash" | "state" | "fencingToken" | "ownerToken" | "leaseExpiresAt" | "backendPid" | "providerOperationId" | "providerEvidence" | "lastErrorCode" | "effectStartedAt" | "heartbeatAt" | "ambiguousAt" | "verifiedAt" | "recoveredAt" | "recoveryEvidence" | "createdAt" | "updatedAt", ExtArgs["result"]["registryMutationOperation"]>
+  export type RegistryMutationOperationOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "projectId" | "organizationId" | "ownershipEpoch" | "kind" | "repositories" | "intentHash" | "state" | "fencingToken" | "attemptNumber" | "attemptId" | "ownerToken" | "leaseExpiresAt" | "backendPid" | "providerOperationId" | "providerEvidence" | "lastErrorCode" | "effectStartedAt" | "heartbeatAt" | "ambiguousAt" | "verifiedAt" | "recoveredAt" | "recoveryEvidence" | "createdAt" | "updatedAt", ExtArgs["result"]["registryMutationOperation"]>
   export type RegistryMutationOperationInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     project?: boolean | ProjectDefaultArgs<ExtArgs>
+    recoveries?: boolean | RegistryMutationOperation$recoveriesArgs<ExtArgs>
+    _count?: boolean | RegistryMutationOperationCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type RegistryMutationOperationIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     project?: boolean | ProjectDefaultArgs<ExtArgs>
@@ -87449,6 +87635,7 @@ export namespace Prisma {
     name: "RegistryMutationOperation"
     objects: {
       project: Prisma.$ProjectPayload<ExtArgs>
+      recoveries: Prisma.$RegistryMutationRecoveryPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -87460,6 +87647,8 @@ export namespace Prisma {
       intentHash: string
       state: $Enums.RegistryMutationState
       fencingToken: bigint
+      attemptNumber: bigint
+      attemptId: string | null
       ownerToken: string | null
       leaseExpiresAt: Date | null
       backendPid: number | null
@@ -87869,6 +88058,7 @@ export namespace Prisma {
   export interface Prisma__RegistryMutationOperationClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
     project<T extends ProjectDefaultArgs<ExtArgs> = {}>(args?: Subset<T, ProjectDefaultArgs<ExtArgs>>): Prisma__ProjectClient<$Result.GetResult<Prisma.$ProjectPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    recoveries<T extends RegistryMutationOperation$recoveriesArgs<ExtArgs> = {}>(args?: Subset<T, RegistryMutationOperation$recoveriesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$RegistryMutationRecoveryPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -87907,6 +88097,8 @@ export namespace Prisma {
     readonly intentHash: FieldRef<"RegistryMutationOperation", 'String'>
     readonly state: FieldRef<"RegistryMutationOperation", 'RegistryMutationState'>
     readonly fencingToken: FieldRef<"RegistryMutationOperation", 'BigInt'>
+    readonly attemptNumber: FieldRef<"RegistryMutationOperation", 'BigInt'>
+    readonly attemptId: FieldRef<"RegistryMutationOperation", 'String'>
     readonly ownerToken: FieldRef<"RegistryMutationOperation", 'String'>
     readonly leaseExpiresAt: FieldRef<"RegistryMutationOperation", 'DateTime'>
     readonly backendPid: FieldRef<"RegistryMutationOperation", 'Int'>
@@ -88322,6 +88514,30 @@ export namespace Prisma {
   }
 
   /**
+   * RegistryMutationOperation.recoveries
+   */
+  export type RegistryMutationOperation$recoveriesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RegistryMutationRecovery
+     */
+    select?: RegistryMutationRecoverySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RegistryMutationRecovery
+     */
+    omit?: RegistryMutationRecoveryOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RegistryMutationRecoveryInclude<ExtArgs> | null
+    where?: RegistryMutationRecoveryWhereInput
+    orderBy?: RegistryMutationRecoveryOrderByWithRelationInput | RegistryMutationRecoveryOrderByWithRelationInput[]
+    cursor?: RegistryMutationRecoveryWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: RegistryMutationRecoveryScalarFieldEnum | RegistryMutationRecoveryScalarFieldEnum[]
+  }
+
+  /**
    * RegistryMutationOperation without action
    */
   export type RegistryMutationOperationDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -88337,6 +88553,1133 @@ export namespace Prisma {
      * Choose, which related nodes to fetch as well
      */
     include?: RegistryMutationOperationInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model RegistryMutationRecovery
+   */
+
+  export type AggregateRegistryMutationRecovery = {
+    _count: RegistryMutationRecoveryCountAggregateOutputType | null
+    _avg: RegistryMutationRecoveryAvgAggregateOutputType | null
+    _sum: RegistryMutationRecoverySumAggregateOutputType | null
+    _min: RegistryMutationRecoveryMinAggregateOutputType | null
+    _max: RegistryMutationRecoveryMaxAggregateOutputType | null
+  }
+
+  export type RegistryMutationRecoveryAvgAggregateOutputType = {
+    attemptNumber: number | null
+  }
+
+  export type RegistryMutationRecoverySumAggregateOutputType = {
+    attemptNumber: bigint | null
+  }
+
+  export type RegistryMutationRecoveryMinAggregateOutputType = {
+    id: string | null
+    operationId: string | null
+    attemptNumber: bigint | null
+    resolution: $Enums.RegistryMutationState | null
+    auditLogId: string | null
+    createdAt: Date | null
+  }
+
+  export type RegistryMutationRecoveryMaxAggregateOutputType = {
+    id: string | null
+    operationId: string | null
+    attemptNumber: bigint | null
+    resolution: $Enums.RegistryMutationState | null
+    auditLogId: string | null
+    createdAt: Date | null
+  }
+
+  export type RegistryMutationRecoveryCountAggregateOutputType = {
+    id: number
+    operationId: number
+    attemptNumber: number
+    resolution: number
+    auditLogId: number
+    evidence: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type RegistryMutationRecoveryAvgAggregateInputType = {
+    attemptNumber?: true
+  }
+
+  export type RegistryMutationRecoverySumAggregateInputType = {
+    attemptNumber?: true
+  }
+
+  export type RegistryMutationRecoveryMinAggregateInputType = {
+    id?: true
+    operationId?: true
+    attemptNumber?: true
+    resolution?: true
+    auditLogId?: true
+    createdAt?: true
+  }
+
+  export type RegistryMutationRecoveryMaxAggregateInputType = {
+    id?: true
+    operationId?: true
+    attemptNumber?: true
+    resolution?: true
+    auditLogId?: true
+    createdAt?: true
+  }
+
+  export type RegistryMutationRecoveryCountAggregateInputType = {
+    id?: true
+    operationId?: true
+    attemptNumber?: true
+    resolution?: true
+    auditLogId?: true
+    evidence?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type RegistryMutationRecoveryAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which RegistryMutationRecovery to aggregate.
+     */
+    where?: RegistryMutationRecoveryWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of RegistryMutationRecoveries to fetch.
+     */
+    orderBy?: RegistryMutationRecoveryOrderByWithRelationInput | RegistryMutationRecoveryOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: RegistryMutationRecoveryWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` RegistryMutationRecoveries from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` RegistryMutationRecoveries.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned RegistryMutationRecoveries
+    **/
+    _count?: true | RegistryMutationRecoveryCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: RegistryMutationRecoveryAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: RegistryMutationRecoverySumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: RegistryMutationRecoveryMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: RegistryMutationRecoveryMaxAggregateInputType
+  }
+
+  export type GetRegistryMutationRecoveryAggregateType<T extends RegistryMutationRecoveryAggregateArgs> = {
+        [P in keyof T & keyof AggregateRegistryMutationRecovery]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateRegistryMutationRecovery[P]>
+      : GetScalarType<T[P], AggregateRegistryMutationRecovery[P]>
+  }
+
+
+
+
+  export type RegistryMutationRecoveryGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: RegistryMutationRecoveryWhereInput
+    orderBy?: RegistryMutationRecoveryOrderByWithAggregationInput | RegistryMutationRecoveryOrderByWithAggregationInput[]
+    by: RegistryMutationRecoveryScalarFieldEnum[] | RegistryMutationRecoveryScalarFieldEnum
+    having?: RegistryMutationRecoveryScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: RegistryMutationRecoveryCountAggregateInputType | true
+    _avg?: RegistryMutationRecoveryAvgAggregateInputType
+    _sum?: RegistryMutationRecoverySumAggregateInputType
+    _min?: RegistryMutationRecoveryMinAggregateInputType
+    _max?: RegistryMutationRecoveryMaxAggregateInputType
+  }
+
+  export type RegistryMutationRecoveryGroupByOutputType = {
+    id: string
+    operationId: string
+    attemptNumber: bigint
+    resolution: $Enums.RegistryMutationState
+    auditLogId: string
+    evidence: JsonValue
+    createdAt: Date
+    _count: RegistryMutationRecoveryCountAggregateOutputType | null
+    _avg: RegistryMutationRecoveryAvgAggregateOutputType | null
+    _sum: RegistryMutationRecoverySumAggregateOutputType | null
+    _min: RegistryMutationRecoveryMinAggregateOutputType | null
+    _max: RegistryMutationRecoveryMaxAggregateOutputType | null
+  }
+
+  type GetRegistryMutationRecoveryGroupByPayload<T extends RegistryMutationRecoveryGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<RegistryMutationRecoveryGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof RegistryMutationRecoveryGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], RegistryMutationRecoveryGroupByOutputType[P]>
+            : GetScalarType<T[P], RegistryMutationRecoveryGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type RegistryMutationRecoverySelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    operationId?: boolean
+    attemptNumber?: boolean
+    resolution?: boolean
+    auditLogId?: boolean
+    evidence?: boolean
+    createdAt?: boolean
+    operation?: boolean | RegistryMutationOperationDefaultArgs<ExtArgs>
+    auditLog?: boolean | AuditLogDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["registryMutationRecovery"]>
+
+  export type RegistryMutationRecoverySelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    operationId?: boolean
+    attemptNumber?: boolean
+    resolution?: boolean
+    auditLogId?: boolean
+    evidence?: boolean
+    createdAt?: boolean
+    operation?: boolean | RegistryMutationOperationDefaultArgs<ExtArgs>
+    auditLog?: boolean | AuditLogDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["registryMutationRecovery"]>
+
+  export type RegistryMutationRecoverySelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    operationId?: boolean
+    attemptNumber?: boolean
+    resolution?: boolean
+    auditLogId?: boolean
+    evidence?: boolean
+    createdAt?: boolean
+    operation?: boolean | RegistryMutationOperationDefaultArgs<ExtArgs>
+    auditLog?: boolean | AuditLogDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["registryMutationRecovery"]>
+
+  export type RegistryMutationRecoverySelectScalar = {
+    id?: boolean
+    operationId?: boolean
+    attemptNumber?: boolean
+    resolution?: boolean
+    auditLogId?: boolean
+    evidence?: boolean
+    createdAt?: boolean
+  }
+
+  export type RegistryMutationRecoveryOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "operationId" | "attemptNumber" | "resolution" | "auditLogId" | "evidence" | "createdAt", ExtArgs["result"]["registryMutationRecovery"]>
+  export type RegistryMutationRecoveryInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    operation?: boolean | RegistryMutationOperationDefaultArgs<ExtArgs>
+    auditLog?: boolean | AuditLogDefaultArgs<ExtArgs>
+  }
+  export type RegistryMutationRecoveryIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    operation?: boolean | RegistryMutationOperationDefaultArgs<ExtArgs>
+    auditLog?: boolean | AuditLogDefaultArgs<ExtArgs>
+  }
+  export type RegistryMutationRecoveryIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    operation?: boolean | RegistryMutationOperationDefaultArgs<ExtArgs>
+    auditLog?: boolean | AuditLogDefaultArgs<ExtArgs>
+  }
+
+  export type $RegistryMutationRecoveryPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "RegistryMutationRecovery"
+    objects: {
+      operation: Prisma.$RegistryMutationOperationPayload<ExtArgs>
+      auditLog: Prisma.$AuditLogPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      operationId: string
+      attemptNumber: bigint
+      resolution: $Enums.RegistryMutationState
+      auditLogId: string
+      evidence: Prisma.JsonValue
+      createdAt: Date
+    }, ExtArgs["result"]["registryMutationRecovery"]>
+    composites: {}
+  }
+
+  type RegistryMutationRecoveryGetPayload<S extends boolean | null | undefined | RegistryMutationRecoveryDefaultArgs> = $Result.GetResult<Prisma.$RegistryMutationRecoveryPayload, S>
+
+  type RegistryMutationRecoveryCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<RegistryMutationRecoveryFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: RegistryMutationRecoveryCountAggregateInputType | true
+    }
+
+  export interface RegistryMutationRecoveryDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['RegistryMutationRecovery'], meta: { name: 'RegistryMutationRecovery' } }
+    /**
+     * Find zero or one RegistryMutationRecovery that matches the filter.
+     * @param {RegistryMutationRecoveryFindUniqueArgs} args - Arguments to find a RegistryMutationRecovery
+     * @example
+     * // Get one RegistryMutationRecovery
+     * const registryMutationRecovery = await prisma.registryMutationRecovery.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends RegistryMutationRecoveryFindUniqueArgs>(args: SelectSubset<T, RegistryMutationRecoveryFindUniqueArgs<ExtArgs>>): Prisma__RegistryMutationRecoveryClient<$Result.GetResult<Prisma.$RegistryMutationRecoveryPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one RegistryMutationRecovery that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {RegistryMutationRecoveryFindUniqueOrThrowArgs} args - Arguments to find a RegistryMutationRecovery
+     * @example
+     * // Get one RegistryMutationRecovery
+     * const registryMutationRecovery = await prisma.registryMutationRecovery.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends RegistryMutationRecoveryFindUniqueOrThrowArgs>(args: SelectSubset<T, RegistryMutationRecoveryFindUniqueOrThrowArgs<ExtArgs>>): Prisma__RegistryMutationRecoveryClient<$Result.GetResult<Prisma.$RegistryMutationRecoveryPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first RegistryMutationRecovery that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {RegistryMutationRecoveryFindFirstArgs} args - Arguments to find a RegistryMutationRecovery
+     * @example
+     * // Get one RegistryMutationRecovery
+     * const registryMutationRecovery = await prisma.registryMutationRecovery.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends RegistryMutationRecoveryFindFirstArgs>(args?: SelectSubset<T, RegistryMutationRecoveryFindFirstArgs<ExtArgs>>): Prisma__RegistryMutationRecoveryClient<$Result.GetResult<Prisma.$RegistryMutationRecoveryPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first RegistryMutationRecovery that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {RegistryMutationRecoveryFindFirstOrThrowArgs} args - Arguments to find a RegistryMutationRecovery
+     * @example
+     * // Get one RegistryMutationRecovery
+     * const registryMutationRecovery = await prisma.registryMutationRecovery.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends RegistryMutationRecoveryFindFirstOrThrowArgs>(args?: SelectSubset<T, RegistryMutationRecoveryFindFirstOrThrowArgs<ExtArgs>>): Prisma__RegistryMutationRecoveryClient<$Result.GetResult<Prisma.$RegistryMutationRecoveryPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more RegistryMutationRecoveries that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {RegistryMutationRecoveryFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all RegistryMutationRecoveries
+     * const registryMutationRecoveries = await prisma.registryMutationRecovery.findMany()
+     * 
+     * // Get first 10 RegistryMutationRecoveries
+     * const registryMutationRecoveries = await prisma.registryMutationRecovery.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const registryMutationRecoveryWithIdOnly = await prisma.registryMutationRecovery.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends RegistryMutationRecoveryFindManyArgs>(args?: SelectSubset<T, RegistryMutationRecoveryFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$RegistryMutationRecoveryPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a RegistryMutationRecovery.
+     * @param {RegistryMutationRecoveryCreateArgs} args - Arguments to create a RegistryMutationRecovery.
+     * @example
+     * // Create one RegistryMutationRecovery
+     * const RegistryMutationRecovery = await prisma.registryMutationRecovery.create({
+     *   data: {
+     *     // ... data to create a RegistryMutationRecovery
+     *   }
+     * })
+     * 
+     */
+    create<T extends RegistryMutationRecoveryCreateArgs>(args: SelectSubset<T, RegistryMutationRecoveryCreateArgs<ExtArgs>>): Prisma__RegistryMutationRecoveryClient<$Result.GetResult<Prisma.$RegistryMutationRecoveryPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many RegistryMutationRecoveries.
+     * @param {RegistryMutationRecoveryCreateManyArgs} args - Arguments to create many RegistryMutationRecoveries.
+     * @example
+     * // Create many RegistryMutationRecoveries
+     * const registryMutationRecovery = await prisma.registryMutationRecovery.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends RegistryMutationRecoveryCreateManyArgs>(args?: SelectSubset<T, RegistryMutationRecoveryCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many RegistryMutationRecoveries and returns the data saved in the database.
+     * @param {RegistryMutationRecoveryCreateManyAndReturnArgs} args - Arguments to create many RegistryMutationRecoveries.
+     * @example
+     * // Create many RegistryMutationRecoveries
+     * const registryMutationRecovery = await prisma.registryMutationRecovery.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many RegistryMutationRecoveries and only return the `id`
+     * const registryMutationRecoveryWithIdOnly = await prisma.registryMutationRecovery.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends RegistryMutationRecoveryCreateManyAndReturnArgs>(args?: SelectSubset<T, RegistryMutationRecoveryCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$RegistryMutationRecoveryPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a RegistryMutationRecovery.
+     * @param {RegistryMutationRecoveryDeleteArgs} args - Arguments to delete one RegistryMutationRecovery.
+     * @example
+     * // Delete one RegistryMutationRecovery
+     * const RegistryMutationRecovery = await prisma.registryMutationRecovery.delete({
+     *   where: {
+     *     // ... filter to delete one RegistryMutationRecovery
+     *   }
+     * })
+     * 
+     */
+    delete<T extends RegistryMutationRecoveryDeleteArgs>(args: SelectSubset<T, RegistryMutationRecoveryDeleteArgs<ExtArgs>>): Prisma__RegistryMutationRecoveryClient<$Result.GetResult<Prisma.$RegistryMutationRecoveryPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one RegistryMutationRecovery.
+     * @param {RegistryMutationRecoveryUpdateArgs} args - Arguments to update one RegistryMutationRecovery.
+     * @example
+     * // Update one RegistryMutationRecovery
+     * const registryMutationRecovery = await prisma.registryMutationRecovery.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends RegistryMutationRecoveryUpdateArgs>(args: SelectSubset<T, RegistryMutationRecoveryUpdateArgs<ExtArgs>>): Prisma__RegistryMutationRecoveryClient<$Result.GetResult<Prisma.$RegistryMutationRecoveryPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more RegistryMutationRecoveries.
+     * @param {RegistryMutationRecoveryDeleteManyArgs} args - Arguments to filter RegistryMutationRecoveries to delete.
+     * @example
+     * // Delete a few RegistryMutationRecoveries
+     * const { count } = await prisma.registryMutationRecovery.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends RegistryMutationRecoveryDeleteManyArgs>(args?: SelectSubset<T, RegistryMutationRecoveryDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more RegistryMutationRecoveries.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {RegistryMutationRecoveryUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many RegistryMutationRecoveries
+     * const registryMutationRecovery = await prisma.registryMutationRecovery.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends RegistryMutationRecoveryUpdateManyArgs>(args: SelectSubset<T, RegistryMutationRecoveryUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more RegistryMutationRecoveries and returns the data updated in the database.
+     * @param {RegistryMutationRecoveryUpdateManyAndReturnArgs} args - Arguments to update many RegistryMutationRecoveries.
+     * @example
+     * // Update many RegistryMutationRecoveries
+     * const registryMutationRecovery = await prisma.registryMutationRecovery.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more RegistryMutationRecoveries and only return the `id`
+     * const registryMutationRecoveryWithIdOnly = await prisma.registryMutationRecovery.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends RegistryMutationRecoveryUpdateManyAndReturnArgs>(args: SelectSubset<T, RegistryMutationRecoveryUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$RegistryMutationRecoveryPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one RegistryMutationRecovery.
+     * @param {RegistryMutationRecoveryUpsertArgs} args - Arguments to update or create a RegistryMutationRecovery.
+     * @example
+     * // Update or create a RegistryMutationRecovery
+     * const registryMutationRecovery = await prisma.registryMutationRecovery.upsert({
+     *   create: {
+     *     // ... data to create a RegistryMutationRecovery
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the RegistryMutationRecovery we want to update
+     *   }
+     * })
+     */
+    upsert<T extends RegistryMutationRecoveryUpsertArgs>(args: SelectSubset<T, RegistryMutationRecoveryUpsertArgs<ExtArgs>>): Prisma__RegistryMutationRecoveryClient<$Result.GetResult<Prisma.$RegistryMutationRecoveryPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of RegistryMutationRecoveries.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {RegistryMutationRecoveryCountArgs} args - Arguments to filter RegistryMutationRecoveries to count.
+     * @example
+     * // Count the number of RegistryMutationRecoveries
+     * const count = await prisma.registryMutationRecovery.count({
+     *   where: {
+     *     // ... the filter for the RegistryMutationRecoveries we want to count
+     *   }
+     * })
+    **/
+    count<T extends RegistryMutationRecoveryCountArgs>(
+      args?: Subset<T, RegistryMutationRecoveryCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], RegistryMutationRecoveryCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a RegistryMutationRecovery.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {RegistryMutationRecoveryAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends RegistryMutationRecoveryAggregateArgs>(args: Subset<T, RegistryMutationRecoveryAggregateArgs>): Prisma.PrismaPromise<GetRegistryMutationRecoveryAggregateType<T>>
+
+    /**
+     * Group by RegistryMutationRecovery.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {RegistryMutationRecoveryGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends RegistryMutationRecoveryGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: RegistryMutationRecoveryGroupByArgs['orderBy'] }
+        : { orderBy?: RegistryMutationRecoveryGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, RegistryMutationRecoveryGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetRegistryMutationRecoveryGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the RegistryMutationRecovery model
+   */
+  readonly fields: RegistryMutationRecoveryFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for RegistryMutationRecovery.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__RegistryMutationRecoveryClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    operation<T extends RegistryMutationOperationDefaultArgs<ExtArgs> = {}>(args?: Subset<T, RegistryMutationOperationDefaultArgs<ExtArgs>>): Prisma__RegistryMutationOperationClient<$Result.GetResult<Prisma.$RegistryMutationOperationPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    auditLog<T extends AuditLogDefaultArgs<ExtArgs> = {}>(args?: Subset<T, AuditLogDefaultArgs<ExtArgs>>): Prisma__AuditLogClient<$Result.GetResult<Prisma.$AuditLogPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the RegistryMutationRecovery model
+   */
+  interface RegistryMutationRecoveryFieldRefs {
+    readonly id: FieldRef<"RegistryMutationRecovery", 'String'>
+    readonly operationId: FieldRef<"RegistryMutationRecovery", 'String'>
+    readonly attemptNumber: FieldRef<"RegistryMutationRecovery", 'BigInt'>
+    readonly resolution: FieldRef<"RegistryMutationRecovery", 'RegistryMutationState'>
+    readonly auditLogId: FieldRef<"RegistryMutationRecovery", 'String'>
+    readonly evidence: FieldRef<"RegistryMutationRecovery", 'Json'>
+    readonly createdAt: FieldRef<"RegistryMutationRecovery", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * RegistryMutationRecovery findUnique
+   */
+  export type RegistryMutationRecoveryFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RegistryMutationRecovery
+     */
+    select?: RegistryMutationRecoverySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RegistryMutationRecovery
+     */
+    omit?: RegistryMutationRecoveryOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RegistryMutationRecoveryInclude<ExtArgs> | null
+    /**
+     * Filter, which RegistryMutationRecovery to fetch.
+     */
+    where: RegistryMutationRecoveryWhereUniqueInput
+  }
+
+  /**
+   * RegistryMutationRecovery findUniqueOrThrow
+   */
+  export type RegistryMutationRecoveryFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RegistryMutationRecovery
+     */
+    select?: RegistryMutationRecoverySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RegistryMutationRecovery
+     */
+    omit?: RegistryMutationRecoveryOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RegistryMutationRecoveryInclude<ExtArgs> | null
+    /**
+     * Filter, which RegistryMutationRecovery to fetch.
+     */
+    where: RegistryMutationRecoveryWhereUniqueInput
+  }
+
+  /**
+   * RegistryMutationRecovery findFirst
+   */
+  export type RegistryMutationRecoveryFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RegistryMutationRecovery
+     */
+    select?: RegistryMutationRecoverySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RegistryMutationRecovery
+     */
+    omit?: RegistryMutationRecoveryOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RegistryMutationRecoveryInclude<ExtArgs> | null
+    /**
+     * Filter, which RegistryMutationRecovery to fetch.
+     */
+    where?: RegistryMutationRecoveryWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of RegistryMutationRecoveries to fetch.
+     */
+    orderBy?: RegistryMutationRecoveryOrderByWithRelationInput | RegistryMutationRecoveryOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for RegistryMutationRecoveries.
+     */
+    cursor?: RegistryMutationRecoveryWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` RegistryMutationRecoveries from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` RegistryMutationRecoveries.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of RegistryMutationRecoveries.
+     */
+    distinct?: RegistryMutationRecoveryScalarFieldEnum | RegistryMutationRecoveryScalarFieldEnum[]
+  }
+
+  /**
+   * RegistryMutationRecovery findFirstOrThrow
+   */
+  export type RegistryMutationRecoveryFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RegistryMutationRecovery
+     */
+    select?: RegistryMutationRecoverySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RegistryMutationRecovery
+     */
+    omit?: RegistryMutationRecoveryOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RegistryMutationRecoveryInclude<ExtArgs> | null
+    /**
+     * Filter, which RegistryMutationRecovery to fetch.
+     */
+    where?: RegistryMutationRecoveryWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of RegistryMutationRecoveries to fetch.
+     */
+    orderBy?: RegistryMutationRecoveryOrderByWithRelationInput | RegistryMutationRecoveryOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for RegistryMutationRecoveries.
+     */
+    cursor?: RegistryMutationRecoveryWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` RegistryMutationRecoveries from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` RegistryMutationRecoveries.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of RegistryMutationRecoveries.
+     */
+    distinct?: RegistryMutationRecoveryScalarFieldEnum | RegistryMutationRecoveryScalarFieldEnum[]
+  }
+
+  /**
+   * RegistryMutationRecovery findMany
+   */
+  export type RegistryMutationRecoveryFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RegistryMutationRecovery
+     */
+    select?: RegistryMutationRecoverySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RegistryMutationRecovery
+     */
+    omit?: RegistryMutationRecoveryOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RegistryMutationRecoveryInclude<ExtArgs> | null
+    /**
+     * Filter, which RegistryMutationRecoveries to fetch.
+     */
+    where?: RegistryMutationRecoveryWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of RegistryMutationRecoveries to fetch.
+     */
+    orderBy?: RegistryMutationRecoveryOrderByWithRelationInput | RegistryMutationRecoveryOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing RegistryMutationRecoveries.
+     */
+    cursor?: RegistryMutationRecoveryWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` RegistryMutationRecoveries from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` RegistryMutationRecoveries.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of RegistryMutationRecoveries.
+     */
+    distinct?: RegistryMutationRecoveryScalarFieldEnum | RegistryMutationRecoveryScalarFieldEnum[]
+  }
+
+  /**
+   * RegistryMutationRecovery create
+   */
+  export type RegistryMutationRecoveryCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RegistryMutationRecovery
+     */
+    select?: RegistryMutationRecoverySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RegistryMutationRecovery
+     */
+    omit?: RegistryMutationRecoveryOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RegistryMutationRecoveryInclude<ExtArgs> | null
+    /**
+     * The data needed to create a RegistryMutationRecovery.
+     */
+    data: XOR<RegistryMutationRecoveryCreateInput, RegistryMutationRecoveryUncheckedCreateInput>
+  }
+
+  /**
+   * RegistryMutationRecovery createMany
+   */
+  export type RegistryMutationRecoveryCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many RegistryMutationRecoveries.
+     */
+    data: RegistryMutationRecoveryCreateManyInput | RegistryMutationRecoveryCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * RegistryMutationRecovery createManyAndReturn
+   */
+  export type RegistryMutationRecoveryCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RegistryMutationRecovery
+     */
+    select?: RegistryMutationRecoverySelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the RegistryMutationRecovery
+     */
+    omit?: RegistryMutationRecoveryOmit<ExtArgs> | null
+    /**
+     * The data used to create many RegistryMutationRecoveries.
+     */
+    data: RegistryMutationRecoveryCreateManyInput | RegistryMutationRecoveryCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RegistryMutationRecoveryIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * RegistryMutationRecovery update
+   */
+  export type RegistryMutationRecoveryUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RegistryMutationRecovery
+     */
+    select?: RegistryMutationRecoverySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RegistryMutationRecovery
+     */
+    omit?: RegistryMutationRecoveryOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RegistryMutationRecoveryInclude<ExtArgs> | null
+    /**
+     * The data needed to update a RegistryMutationRecovery.
+     */
+    data: XOR<RegistryMutationRecoveryUpdateInput, RegistryMutationRecoveryUncheckedUpdateInput>
+    /**
+     * Choose, which RegistryMutationRecovery to update.
+     */
+    where: RegistryMutationRecoveryWhereUniqueInput
+  }
+
+  /**
+   * RegistryMutationRecovery updateMany
+   */
+  export type RegistryMutationRecoveryUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update RegistryMutationRecoveries.
+     */
+    data: XOR<RegistryMutationRecoveryUpdateManyMutationInput, RegistryMutationRecoveryUncheckedUpdateManyInput>
+    /**
+     * Filter which RegistryMutationRecoveries to update
+     */
+    where?: RegistryMutationRecoveryWhereInput
+    /**
+     * Limit how many RegistryMutationRecoveries to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * RegistryMutationRecovery updateManyAndReturn
+   */
+  export type RegistryMutationRecoveryUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RegistryMutationRecovery
+     */
+    select?: RegistryMutationRecoverySelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the RegistryMutationRecovery
+     */
+    omit?: RegistryMutationRecoveryOmit<ExtArgs> | null
+    /**
+     * The data used to update RegistryMutationRecoveries.
+     */
+    data: XOR<RegistryMutationRecoveryUpdateManyMutationInput, RegistryMutationRecoveryUncheckedUpdateManyInput>
+    /**
+     * Filter which RegistryMutationRecoveries to update
+     */
+    where?: RegistryMutationRecoveryWhereInput
+    /**
+     * Limit how many RegistryMutationRecoveries to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RegistryMutationRecoveryIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * RegistryMutationRecovery upsert
+   */
+  export type RegistryMutationRecoveryUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RegistryMutationRecovery
+     */
+    select?: RegistryMutationRecoverySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RegistryMutationRecovery
+     */
+    omit?: RegistryMutationRecoveryOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RegistryMutationRecoveryInclude<ExtArgs> | null
+    /**
+     * The filter to search for the RegistryMutationRecovery to update in case it exists.
+     */
+    where: RegistryMutationRecoveryWhereUniqueInput
+    /**
+     * In case the RegistryMutationRecovery found by the `where` argument doesn't exist, create a new RegistryMutationRecovery with this data.
+     */
+    create: XOR<RegistryMutationRecoveryCreateInput, RegistryMutationRecoveryUncheckedCreateInput>
+    /**
+     * In case the RegistryMutationRecovery was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<RegistryMutationRecoveryUpdateInput, RegistryMutationRecoveryUncheckedUpdateInput>
+  }
+
+  /**
+   * RegistryMutationRecovery delete
+   */
+  export type RegistryMutationRecoveryDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RegistryMutationRecovery
+     */
+    select?: RegistryMutationRecoverySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RegistryMutationRecovery
+     */
+    omit?: RegistryMutationRecoveryOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RegistryMutationRecoveryInclude<ExtArgs> | null
+    /**
+     * Filter which RegistryMutationRecovery to delete.
+     */
+    where: RegistryMutationRecoveryWhereUniqueInput
+  }
+
+  /**
+   * RegistryMutationRecovery deleteMany
+   */
+  export type RegistryMutationRecoveryDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which RegistryMutationRecoveries to delete
+     */
+    where?: RegistryMutationRecoveryWhereInput
+    /**
+     * Limit how many RegistryMutationRecoveries to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * RegistryMutationRecovery without action
+   */
+  export type RegistryMutationRecoveryDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RegistryMutationRecovery
+     */
+    select?: RegistryMutationRecoverySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RegistryMutationRecovery
+     */
+    omit?: RegistryMutationRecoveryOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RegistryMutationRecoveryInclude<ExtArgs> | null
   }
 
 
@@ -93102,6 +94445,8 @@ export namespace Prisma {
     createdAt?: boolean
     organization?: boolean | AuditLog$organizationArgs<ExtArgs>
     actor?: boolean | AuditLog$actorArgs<ExtArgs>
+    registryMutationRecoveries?: boolean | AuditLog$registryMutationRecoveriesArgs<ExtArgs>
+    _count?: boolean | AuditLogCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["auditLog"]>
 
   export type AuditLogSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -93148,6 +94493,8 @@ export namespace Prisma {
   export type AuditLogInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     organization?: boolean | AuditLog$organizationArgs<ExtArgs>
     actor?: boolean | AuditLog$actorArgs<ExtArgs>
+    registryMutationRecoveries?: boolean | AuditLog$registryMutationRecoveriesArgs<ExtArgs>
+    _count?: boolean | AuditLogCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type AuditLogIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     organization?: boolean | AuditLog$organizationArgs<ExtArgs>
@@ -93163,6 +94510,7 @@ export namespace Prisma {
     objects: {
       organization: Prisma.$OrganizationPayload<ExtArgs> | null
       actor: Prisma.$UserPayload<ExtArgs> | null
+      registryMutationRecoveries: Prisma.$RegistryMutationRecoveryPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -93570,6 +94918,7 @@ export namespace Prisma {
     readonly [Symbol.toStringTag]: "PrismaPromise"
     organization<T extends AuditLog$organizationArgs<ExtArgs> = {}>(args?: Subset<T, AuditLog$organizationArgs<ExtArgs>>): Prisma__OrganizationClient<$Result.GetResult<Prisma.$OrganizationPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
     actor<T extends AuditLog$actorArgs<ExtArgs> = {}>(args?: Subset<T, AuditLog$actorArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    registryMutationRecoveries<T extends AuditLog$registryMutationRecoveriesArgs<ExtArgs> = {}>(args?: Subset<T, AuditLog$registryMutationRecoveriesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$RegistryMutationRecoveryPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -94044,6 +95393,30 @@ export namespace Prisma {
      */
     include?: UserInclude<ExtArgs> | null
     where?: UserWhereInput
+  }
+
+  /**
+   * AuditLog.registryMutationRecoveries
+   */
+  export type AuditLog$registryMutationRecoveriesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RegistryMutationRecovery
+     */
+    select?: RegistryMutationRecoverySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RegistryMutationRecovery
+     */
+    omit?: RegistryMutationRecoveryOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RegistryMutationRecoveryInclude<ExtArgs> | null
+    where?: RegistryMutationRecoveryWhereInput
+    orderBy?: RegistryMutationRecoveryOrderByWithRelationInput | RegistryMutationRecoveryOrderByWithRelationInput[]
+    cursor?: RegistryMutationRecoveryWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: RegistryMutationRecoveryScalarFieldEnum | RegistryMutationRecoveryScalarFieldEnum[]
   }
 
   /**
@@ -214189,6 +215562,8 @@ export namespace Prisma {
     intentHash: 'intentHash',
     state: 'state',
     fencingToken: 'fencingToken',
+    attemptNumber: 'attemptNumber',
+    attemptId: 'attemptId',
     ownerToken: 'ownerToken',
     leaseExpiresAt: 'leaseExpiresAt',
     backendPid: 'backendPid',
@@ -214206,6 +215581,19 @@ export namespace Prisma {
   };
 
   export type RegistryMutationOperationScalarFieldEnum = (typeof RegistryMutationOperationScalarFieldEnum)[keyof typeof RegistryMutationOperationScalarFieldEnum]
+
+
+  export const RegistryMutationRecoveryScalarFieldEnum: {
+    id: 'id',
+    operationId: 'operationId',
+    attemptNumber: 'attemptNumber',
+    resolution: 'resolution',
+    auditLogId: 'auditLogId',
+    evidence: 'evidence',
+    createdAt: 'createdAt'
+  };
+
+  export type RegistryMutationRecoveryScalarFieldEnum = (typeof RegistryMutationRecoveryScalarFieldEnum)[keyof typeof RegistryMutationRecoveryScalarFieldEnum]
 
 
   export const RollbackIdempotencyRequestScalarFieldEnum: {
@@ -222174,6 +223562,8 @@ export namespace Prisma {
     intentHash?: StringFilter<"RegistryMutationOperation"> | string
     state?: EnumRegistryMutationStateFilter<"RegistryMutationOperation"> | $Enums.RegistryMutationState
     fencingToken?: BigIntFilter<"RegistryMutationOperation"> | bigint | number
+    attemptNumber?: BigIntFilter<"RegistryMutationOperation"> | bigint | number
+    attemptId?: StringNullableFilter<"RegistryMutationOperation"> | string | null
     ownerToken?: StringNullableFilter<"RegistryMutationOperation"> | string | null
     leaseExpiresAt?: DateTimeNullableFilter<"RegistryMutationOperation"> | Date | string | null
     backendPid?: IntNullableFilter<"RegistryMutationOperation"> | number | null
@@ -222189,6 +223579,7 @@ export namespace Prisma {
     createdAt?: DateTimeFilter<"RegistryMutationOperation"> | Date | string
     updatedAt?: DateTimeFilter<"RegistryMutationOperation"> | Date | string
     project?: XOR<ProjectScalarRelationFilter, ProjectWhereInput>
+    recoveries?: RegistryMutationRecoveryListRelationFilter
   }
 
   export type RegistryMutationOperationOrderByWithRelationInput = {
@@ -222201,6 +223592,8 @@ export namespace Prisma {
     intentHash?: SortOrder
     state?: SortOrder
     fencingToken?: SortOrder
+    attemptNumber?: SortOrder
+    attemptId?: SortOrderInput | SortOrder
     ownerToken?: SortOrderInput | SortOrder
     leaseExpiresAt?: SortOrderInput | SortOrder
     backendPid?: SortOrderInput | SortOrder
@@ -222216,6 +223609,7 @@ export namespace Prisma {
     createdAt?: SortOrder
     updatedAt?: SortOrder
     project?: ProjectOrderByWithRelationInput
+    recoveries?: RegistryMutationRecoveryOrderByRelationAggregateInput
   }
 
   export type RegistryMutationOperationWhereUniqueInput = Prisma.AtLeast<{
@@ -222231,6 +223625,8 @@ export namespace Prisma {
     intentHash?: StringFilter<"RegistryMutationOperation"> | string
     state?: EnumRegistryMutationStateFilter<"RegistryMutationOperation"> | $Enums.RegistryMutationState
     fencingToken?: BigIntFilter<"RegistryMutationOperation"> | bigint | number
+    attemptNumber?: BigIntFilter<"RegistryMutationOperation"> | bigint | number
+    attemptId?: StringNullableFilter<"RegistryMutationOperation"> | string | null
     ownerToken?: StringNullableFilter<"RegistryMutationOperation"> | string | null
     leaseExpiresAt?: DateTimeNullableFilter<"RegistryMutationOperation"> | Date | string | null
     backendPid?: IntNullableFilter<"RegistryMutationOperation"> | number | null
@@ -222246,6 +223642,7 @@ export namespace Prisma {
     createdAt?: DateTimeFilter<"RegistryMutationOperation"> | Date | string
     updatedAt?: DateTimeFilter<"RegistryMutationOperation"> | Date | string
     project?: XOR<ProjectScalarRelationFilter, ProjectWhereInput>
+    recoveries?: RegistryMutationRecoveryListRelationFilter
   }, "id">
 
   export type RegistryMutationOperationOrderByWithAggregationInput = {
@@ -222258,6 +223655,8 @@ export namespace Prisma {
     intentHash?: SortOrder
     state?: SortOrder
     fencingToken?: SortOrder
+    attemptNumber?: SortOrder
+    attemptId?: SortOrderInput | SortOrder
     ownerToken?: SortOrderInput | SortOrder
     leaseExpiresAt?: SortOrderInput | SortOrder
     backendPid?: SortOrderInput | SortOrder
@@ -222292,6 +223691,8 @@ export namespace Prisma {
     intentHash?: StringWithAggregatesFilter<"RegistryMutationOperation"> | string
     state?: EnumRegistryMutationStateWithAggregatesFilter<"RegistryMutationOperation"> | $Enums.RegistryMutationState
     fencingToken?: BigIntWithAggregatesFilter<"RegistryMutationOperation"> | bigint | number
+    attemptNumber?: BigIntWithAggregatesFilter<"RegistryMutationOperation"> | bigint | number
+    attemptId?: StringNullableWithAggregatesFilter<"RegistryMutationOperation"> | string | null
     ownerToken?: StringNullableWithAggregatesFilter<"RegistryMutationOperation"> | string | null
     leaseExpiresAt?: DateTimeNullableWithAggregatesFilter<"RegistryMutationOperation"> | Date | string | null
     backendPid?: IntNullableWithAggregatesFilter<"RegistryMutationOperation"> | number | null
@@ -222306,6 +223707,77 @@ export namespace Prisma {
     recoveryEvidence?: JsonNullableWithAggregatesFilter<"RegistryMutationOperation">
     createdAt?: DateTimeWithAggregatesFilter<"RegistryMutationOperation"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"RegistryMutationOperation"> | Date | string
+  }
+
+  export type RegistryMutationRecoveryWhereInput = {
+    AND?: RegistryMutationRecoveryWhereInput | RegistryMutationRecoveryWhereInput[]
+    OR?: RegistryMutationRecoveryWhereInput[]
+    NOT?: RegistryMutationRecoveryWhereInput | RegistryMutationRecoveryWhereInput[]
+    id?: StringFilter<"RegistryMutationRecovery"> | string
+    operationId?: StringFilter<"RegistryMutationRecovery"> | string
+    attemptNumber?: BigIntFilter<"RegistryMutationRecovery"> | bigint | number
+    resolution?: EnumRegistryMutationStateFilter<"RegistryMutationRecovery"> | $Enums.RegistryMutationState
+    auditLogId?: StringFilter<"RegistryMutationRecovery"> | string
+    evidence?: JsonFilter<"RegistryMutationRecovery">
+    createdAt?: DateTimeFilter<"RegistryMutationRecovery"> | Date | string
+    operation?: XOR<RegistryMutationOperationScalarRelationFilter, RegistryMutationOperationWhereInput>
+    auditLog?: XOR<AuditLogScalarRelationFilter, AuditLogWhereInput>
+  }
+
+  export type RegistryMutationRecoveryOrderByWithRelationInput = {
+    id?: SortOrder
+    operationId?: SortOrder
+    attemptNumber?: SortOrder
+    resolution?: SortOrder
+    auditLogId?: SortOrder
+    evidence?: SortOrder
+    createdAt?: SortOrder
+    operation?: RegistryMutationOperationOrderByWithRelationInput
+    auditLog?: AuditLogOrderByWithRelationInput
+  }
+
+  export type RegistryMutationRecoveryWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    auditLogId?: string
+    operationId_attemptNumber_resolution?: RegistryMutationRecoveryOperationIdAttemptNumberResolutionCompoundUniqueInput
+    AND?: RegistryMutationRecoveryWhereInput | RegistryMutationRecoveryWhereInput[]
+    OR?: RegistryMutationRecoveryWhereInput[]
+    NOT?: RegistryMutationRecoveryWhereInput | RegistryMutationRecoveryWhereInput[]
+    operationId?: StringFilter<"RegistryMutationRecovery"> | string
+    attemptNumber?: BigIntFilter<"RegistryMutationRecovery"> | bigint | number
+    resolution?: EnumRegistryMutationStateFilter<"RegistryMutationRecovery"> | $Enums.RegistryMutationState
+    evidence?: JsonFilter<"RegistryMutationRecovery">
+    createdAt?: DateTimeFilter<"RegistryMutationRecovery"> | Date | string
+    operation?: XOR<RegistryMutationOperationScalarRelationFilter, RegistryMutationOperationWhereInput>
+    auditLog?: XOR<AuditLogScalarRelationFilter, AuditLogWhereInput>
+  }, "id" | "auditLogId" | "operationId_attemptNumber_resolution">
+
+  export type RegistryMutationRecoveryOrderByWithAggregationInput = {
+    id?: SortOrder
+    operationId?: SortOrder
+    attemptNumber?: SortOrder
+    resolution?: SortOrder
+    auditLogId?: SortOrder
+    evidence?: SortOrder
+    createdAt?: SortOrder
+    _count?: RegistryMutationRecoveryCountOrderByAggregateInput
+    _avg?: RegistryMutationRecoveryAvgOrderByAggregateInput
+    _max?: RegistryMutationRecoveryMaxOrderByAggregateInput
+    _min?: RegistryMutationRecoveryMinOrderByAggregateInput
+    _sum?: RegistryMutationRecoverySumOrderByAggregateInput
+  }
+
+  export type RegistryMutationRecoveryScalarWhereWithAggregatesInput = {
+    AND?: RegistryMutationRecoveryScalarWhereWithAggregatesInput | RegistryMutationRecoveryScalarWhereWithAggregatesInput[]
+    OR?: RegistryMutationRecoveryScalarWhereWithAggregatesInput[]
+    NOT?: RegistryMutationRecoveryScalarWhereWithAggregatesInput | RegistryMutationRecoveryScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"RegistryMutationRecovery"> | string
+    operationId?: StringWithAggregatesFilter<"RegistryMutationRecovery"> | string
+    attemptNumber?: BigIntWithAggregatesFilter<"RegistryMutationRecovery"> | bigint | number
+    resolution?: EnumRegistryMutationStateWithAggregatesFilter<"RegistryMutationRecovery"> | $Enums.RegistryMutationState
+    auditLogId?: StringWithAggregatesFilter<"RegistryMutationRecovery"> | string
+    evidence?: JsonWithAggregatesFilter<"RegistryMutationRecovery">
+    createdAt?: DateTimeWithAggregatesFilter<"RegistryMutationRecovery"> | Date | string
   }
 
   export type RollbackIdempotencyRequestWhereInput = {
@@ -222677,6 +224149,7 @@ export namespace Prisma {
     createdAt?: DateTimeFilter<"AuditLog"> | Date | string
     organization?: XOR<OrganizationNullableScalarRelationFilter, OrganizationWhereInput> | null
     actor?: XOR<UserNullableScalarRelationFilter, UserWhereInput> | null
+    registryMutationRecoveries?: RegistryMutationRecoveryListRelationFilter
   }
 
   export type AuditLogOrderByWithRelationInput = {
@@ -222691,6 +224164,7 @@ export namespace Prisma {
     createdAt?: SortOrder
     organization?: OrganizationOrderByWithRelationInput
     actor?: UserOrderByWithRelationInput
+    registryMutationRecoveries?: RegistryMutationRecoveryOrderByRelationAggregateInput
   }
 
   export type AuditLogWhereUniqueInput = Prisma.AtLeast<{
@@ -222708,6 +224182,7 @@ export namespace Prisma {
     createdAt?: DateTimeFilter<"AuditLog"> | Date | string
     organization?: XOR<OrganizationNullableScalarRelationFilter, OrganizationWhereInput> | null
     actor?: XOR<UserNullableScalarRelationFilter, UserWhereInput> | null
+    registryMutationRecoveries?: RegistryMutationRecoveryListRelationFilter
   }, "id">
 
   export type AuditLogOrderByWithAggregationInput = {
@@ -237589,6 +239064,8 @@ export namespace Prisma {
     intentHash: string
     state?: $Enums.RegistryMutationState
     fencingToken?: bigint | number
+    attemptNumber?: bigint | number
+    attemptId?: string | null
     ownerToken?: string | null
     leaseExpiresAt?: Date | string | null
     backendPid?: number | null
@@ -237604,6 +239081,7 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     project: ProjectCreateNestedOneWithoutRegistryMutationsInput
+    recoveries?: RegistryMutationRecoveryCreateNestedManyWithoutOperationInput
   }
 
   export type RegistryMutationOperationUncheckedCreateInput = {
@@ -237616,6 +239094,8 @@ export namespace Prisma {
     intentHash: string
     state?: $Enums.RegistryMutationState
     fencingToken?: bigint | number
+    attemptNumber?: bigint | number
+    attemptId?: string | null
     ownerToken?: string | null
     leaseExpiresAt?: Date | string | null
     backendPid?: number | null
@@ -237630,6 +239110,7 @@ export namespace Prisma {
     recoveryEvidence?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
+    recoveries?: RegistryMutationRecoveryUncheckedCreateNestedManyWithoutOperationInput
   }
 
   export type RegistryMutationOperationUpdateInput = {
@@ -237641,6 +239122,8 @@ export namespace Prisma {
     intentHash?: StringFieldUpdateOperationsInput | string
     state?: EnumRegistryMutationStateFieldUpdateOperationsInput | $Enums.RegistryMutationState
     fencingToken?: BigIntFieldUpdateOperationsInput | bigint | number
+    attemptNumber?: BigIntFieldUpdateOperationsInput | bigint | number
+    attemptId?: NullableStringFieldUpdateOperationsInput | string | null
     ownerToken?: NullableStringFieldUpdateOperationsInput | string | null
     leaseExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     backendPid?: NullableIntFieldUpdateOperationsInput | number | null
@@ -237656,6 +239139,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     project?: ProjectUpdateOneRequiredWithoutRegistryMutationsNestedInput
+    recoveries?: RegistryMutationRecoveryUpdateManyWithoutOperationNestedInput
   }
 
   export type RegistryMutationOperationUncheckedUpdateInput = {
@@ -237668,6 +239152,8 @@ export namespace Prisma {
     intentHash?: StringFieldUpdateOperationsInput | string
     state?: EnumRegistryMutationStateFieldUpdateOperationsInput | $Enums.RegistryMutationState
     fencingToken?: BigIntFieldUpdateOperationsInput | bigint | number
+    attemptNumber?: BigIntFieldUpdateOperationsInput | bigint | number
+    attemptId?: NullableStringFieldUpdateOperationsInput | string | null
     ownerToken?: NullableStringFieldUpdateOperationsInput | string | null
     leaseExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     backendPid?: NullableIntFieldUpdateOperationsInput | number | null
@@ -237682,6 +239168,7 @@ export namespace Prisma {
     recoveryEvidence?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    recoveries?: RegistryMutationRecoveryUncheckedUpdateManyWithoutOperationNestedInput
   }
 
   export type RegistryMutationOperationCreateManyInput = {
@@ -237694,6 +239181,8 @@ export namespace Prisma {
     intentHash: string
     state?: $Enums.RegistryMutationState
     fencingToken?: bigint | number
+    attemptNumber?: bigint | number
+    attemptId?: string | null
     ownerToken?: string | null
     leaseExpiresAt?: Date | string | null
     backendPid?: number | null
@@ -237719,6 +239208,8 @@ export namespace Prisma {
     intentHash?: StringFieldUpdateOperationsInput | string
     state?: EnumRegistryMutationStateFieldUpdateOperationsInput | $Enums.RegistryMutationState
     fencingToken?: BigIntFieldUpdateOperationsInput | bigint | number
+    attemptNumber?: BigIntFieldUpdateOperationsInput | bigint | number
+    attemptId?: NullableStringFieldUpdateOperationsInput | string | null
     ownerToken?: NullableStringFieldUpdateOperationsInput | string | null
     leaseExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     backendPid?: NullableIntFieldUpdateOperationsInput | number | null
@@ -237745,6 +239236,8 @@ export namespace Prisma {
     intentHash?: StringFieldUpdateOperationsInput | string
     state?: EnumRegistryMutationStateFieldUpdateOperationsInput | $Enums.RegistryMutationState
     fencingToken?: BigIntFieldUpdateOperationsInput | bigint | number
+    attemptNumber?: BigIntFieldUpdateOperationsInput | bigint | number
+    attemptId?: NullableStringFieldUpdateOperationsInput | string | null
     ownerToken?: NullableStringFieldUpdateOperationsInput | string | null
     leaseExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     backendPid?: NullableIntFieldUpdateOperationsInput | number | null
@@ -237759,6 +239252,74 @@ export namespace Prisma {
     recoveryEvidence?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type RegistryMutationRecoveryCreateInput = {
+    id?: string
+    attemptNumber: bigint | number
+    resolution: $Enums.RegistryMutationState
+    evidence: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    operation: RegistryMutationOperationCreateNestedOneWithoutRecoveriesInput
+    auditLog: AuditLogCreateNestedOneWithoutRegistryMutationRecoveriesInput
+  }
+
+  export type RegistryMutationRecoveryUncheckedCreateInput = {
+    id?: string
+    operationId: string
+    attemptNumber: bigint | number
+    resolution: $Enums.RegistryMutationState
+    auditLogId: string
+    evidence: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+  }
+
+  export type RegistryMutationRecoveryUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    attemptNumber?: BigIntFieldUpdateOperationsInput | bigint | number
+    resolution?: EnumRegistryMutationStateFieldUpdateOperationsInput | $Enums.RegistryMutationState
+    evidence?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    operation?: RegistryMutationOperationUpdateOneRequiredWithoutRecoveriesNestedInput
+    auditLog?: AuditLogUpdateOneRequiredWithoutRegistryMutationRecoveriesNestedInput
+  }
+
+  export type RegistryMutationRecoveryUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    operationId?: StringFieldUpdateOperationsInput | string
+    attemptNumber?: BigIntFieldUpdateOperationsInput | bigint | number
+    resolution?: EnumRegistryMutationStateFieldUpdateOperationsInput | $Enums.RegistryMutationState
+    auditLogId?: StringFieldUpdateOperationsInput | string
+    evidence?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type RegistryMutationRecoveryCreateManyInput = {
+    id?: string
+    operationId: string
+    attemptNumber: bigint | number
+    resolution: $Enums.RegistryMutationState
+    auditLogId: string
+    evidence: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+  }
+
+  export type RegistryMutationRecoveryUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    attemptNumber?: BigIntFieldUpdateOperationsInput | bigint | number
+    resolution?: EnumRegistryMutationStateFieldUpdateOperationsInput | $Enums.RegistryMutationState
+    evidence?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type RegistryMutationRecoveryUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    operationId?: StringFieldUpdateOperationsInput | string
+    attemptNumber?: BigIntFieldUpdateOperationsInput | bigint | number
+    resolution?: EnumRegistryMutationStateFieldUpdateOperationsInput | $Enums.RegistryMutationState
+    auditLogId?: StringFieldUpdateOperationsInput | string
+    evidence?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type RollbackIdempotencyRequestCreateInput = {
@@ -238175,6 +239736,7 @@ export namespace Prisma {
     createdAt?: Date | string
     organization?: OrganizationCreateNestedOneWithoutAuditLogsInput
     actor?: UserCreateNestedOneWithoutAuditLogsInput
+    registryMutationRecoveries?: RegistryMutationRecoveryCreateNestedManyWithoutAuditLogInput
   }
 
   export type AuditLogUncheckedCreateInput = {
@@ -238187,6 +239749,7 @@ export namespace Prisma {
     metadata?: NullableJsonNullValueInput | InputJsonValue
     ipAddress?: string | null
     createdAt?: Date | string
+    registryMutationRecoveries?: RegistryMutationRecoveryUncheckedCreateNestedManyWithoutAuditLogInput
   }
 
   export type AuditLogUpdateInput = {
@@ -238199,6 +239762,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     organization?: OrganizationUpdateOneWithoutAuditLogsNestedInput
     actor?: UserUpdateOneWithoutAuditLogsNestedInput
+    registryMutationRecoveries?: RegistryMutationRecoveryUpdateManyWithoutAuditLogNestedInput
   }
 
   export type AuditLogUncheckedUpdateInput = {
@@ -238211,6 +239775,7 @@ export namespace Prisma {
     metadata?: NullableJsonNullValueInput | InputJsonValue
     ipAddress?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    registryMutationRecoveries?: RegistryMutationRecoveryUncheckedUpdateManyWithoutAuditLogNestedInput
   }
 
   export type AuditLogCreateManyInput = {
@@ -252623,6 +254188,16 @@ export namespace Prisma {
     not?: NestedEnumRegistryMutationStateFilter<$PrismaModel> | $Enums.RegistryMutationState
   }
 
+  export type RegistryMutationRecoveryListRelationFilter = {
+    every?: RegistryMutationRecoveryWhereInput
+    some?: RegistryMutationRecoveryWhereInput
+    none?: RegistryMutationRecoveryWhereInput
+  }
+
+  export type RegistryMutationRecoveryOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
   export type RegistryMutationOperationCountOrderByAggregateInput = {
     id?: SortOrder
     projectId?: SortOrder
@@ -252633,6 +254208,8 @@ export namespace Prisma {
     intentHash?: SortOrder
     state?: SortOrder
     fencingToken?: SortOrder
+    attemptNumber?: SortOrder
+    attemptId?: SortOrder
     ownerToken?: SortOrder
     leaseExpiresAt?: SortOrder
     backendPid?: SortOrder
@@ -252652,6 +254229,7 @@ export namespace Prisma {
   export type RegistryMutationOperationAvgOrderByAggregateInput = {
     ownershipEpoch?: SortOrder
     fencingToken?: SortOrder
+    attemptNumber?: SortOrder
     backendPid?: SortOrder
   }
 
@@ -252664,6 +254242,8 @@ export namespace Prisma {
     intentHash?: SortOrder
     state?: SortOrder
     fencingToken?: SortOrder
+    attemptNumber?: SortOrder
+    attemptId?: SortOrder
     ownerToken?: SortOrder
     leaseExpiresAt?: SortOrder
     backendPid?: SortOrder
@@ -252687,6 +254267,8 @@ export namespace Prisma {
     intentHash?: SortOrder
     state?: SortOrder
     fencingToken?: SortOrder
+    attemptNumber?: SortOrder
+    attemptId?: SortOrder
     ownerToken?: SortOrder
     leaseExpiresAt?: SortOrder
     backendPid?: SortOrder
@@ -252704,6 +254286,7 @@ export namespace Prisma {
   export type RegistryMutationOperationSumOrderByAggregateInput = {
     ownershipEpoch?: SortOrder
     fencingToken?: SortOrder
+    attemptNumber?: SortOrder
     backendPid?: SortOrder
   }
 
@@ -252725,6 +254308,58 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumRegistryMutationStateFilter<$PrismaModel>
     _max?: NestedEnumRegistryMutationStateFilter<$PrismaModel>
+  }
+
+  export type RegistryMutationOperationScalarRelationFilter = {
+    is?: RegistryMutationOperationWhereInput
+    isNot?: RegistryMutationOperationWhereInput
+  }
+
+  export type AuditLogScalarRelationFilter = {
+    is?: AuditLogWhereInput
+    isNot?: AuditLogWhereInput
+  }
+
+  export type RegistryMutationRecoveryOperationIdAttemptNumberResolutionCompoundUniqueInput = {
+    operationId: string
+    attemptNumber: bigint | number
+    resolution: $Enums.RegistryMutationState
+  }
+
+  export type RegistryMutationRecoveryCountOrderByAggregateInput = {
+    id?: SortOrder
+    operationId?: SortOrder
+    attemptNumber?: SortOrder
+    resolution?: SortOrder
+    auditLogId?: SortOrder
+    evidence?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type RegistryMutationRecoveryAvgOrderByAggregateInput = {
+    attemptNumber?: SortOrder
+  }
+
+  export type RegistryMutationRecoveryMaxOrderByAggregateInput = {
+    id?: SortOrder
+    operationId?: SortOrder
+    attemptNumber?: SortOrder
+    resolution?: SortOrder
+    auditLogId?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type RegistryMutationRecoveryMinOrderByAggregateInput = {
+    id?: SortOrder
+    operationId?: SortOrder
+    attemptNumber?: SortOrder
+    resolution?: SortOrder
+    auditLogId?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type RegistryMutationRecoverySumOrderByAggregateInput = {
+    attemptNumber?: SortOrder
   }
 
   export type RollbackIdempotencyRequestProjectIdIdempotencyKeyCompoundUniqueInput = {
@@ -266294,6 +267929,20 @@ export namespace Prisma {
     connect?: ProjectWhereUniqueInput
   }
 
+  export type RegistryMutationRecoveryCreateNestedManyWithoutOperationInput = {
+    create?: XOR<RegistryMutationRecoveryCreateWithoutOperationInput, RegistryMutationRecoveryUncheckedCreateWithoutOperationInput> | RegistryMutationRecoveryCreateWithoutOperationInput[] | RegistryMutationRecoveryUncheckedCreateWithoutOperationInput[]
+    connectOrCreate?: RegistryMutationRecoveryCreateOrConnectWithoutOperationInput | RegistryMutationRecoveryCreateOrConnectWithoutOperationInput[]
+    createMany?: RegistryMutationRecoveryCreateManyOperationInputEnvelope
+    connect?: RegistryMutationRecoveryWhereUniqueInput | RegistryMutationRecoveryWhereUniqueInput[]
+  }
+
+  export type RegistryMutationRecoveryUncheckedCreateNestedManyWithoutOperationInput = {
+    create?: XOR<RegistryMutationRecoveryCreateWithoutOperationInput, RegistryMutationRecoveryUncheckedCreateWithoutOperationInput> | RegistryMutationRecoveryCreateWithoutOperationInput[] | RegistryMutationRecoveryUncheckedCreateWithoutOperationInput[]
+    connectOrCreate?: RegistryMutationRecoveryCreateOrConnectWithoutOperationInput | RegistryMutationRecoveryCreateOrConnectWithoutOperationInput[]
+    createMany?: RegistryMutationRecoveryCreateManyOperationInputEnvelope
+    connect?: RegistryMutationRecoveryWhereUniqueInput | RegistryMutationRecoveryWhereUniqueInput[]
+  }
+
   export type EnumRegistryMutationKindFieldUpdateOperationsInput = {
     set?: $Enums.RegistryMutationKind
   }
@@ -266308,6 +267957,62 @@ export namespace Prisma {
     upsert?: ProjectUpsertWithoutRegistryMutationsInput
     connect?: ProjectWhereUniqueInput
     update?: XOR<XOR<ProjectUpdateToOneWithWhereWithoutRegistryMutationsInput, ProjectUpdateWithoutRegistryMutationsInput>, ProjectUncheckedUpdateWithoutRegistryMutationsInput>
+  }
+
+  export type RegistryMutationRecoveryUpdateManyWithoutOperationNestedInput = {
+    create?: XOR<RegistryMutationRecoveryCreateWithoutOperationInput, RegistryMutationRecoveryUncheckedCreateWithoutOperationInput> | RegistryMutationRecoveryCreateWithoutOperationInput[] | RegistryMutationRecoveryUncheckedCreateWithoutOperationInput[]
+    connectOrCreate?: RegistryMutationRecoveryCreateOrConnectWithoutOperationInput | RegistryMutationRecoveryCreateOrConnectWithoutOperationInput[]
+    upsert?: RegistryMutationRecoveryUpsertWithWhereUniqueWithoutOperationInput | RegistryMutationRecoveryUpsertWithWhereUniqueWithoutOperationInput[]
+    createMany?: RegistryMutationRecoveryCreateManyOperationInputEnvelope
+    set?: RegistryMutationRecoveryWhereUniqueInput | RegistryMutationRecoveryWhereUniqueInput[]
+    disconnect?: RegistryMutationRecoveryWhereUniqueInput | RegistryMutationRecoveryWhereUniqueInput[]
+    delete?: RegistryMutationRecoveryWhereUniqueInput | RegistryMutationRecoveryWhereUniqueInput[]
+    connect?: RegistryMutationRecoveryWhereUniqueInput | RegistryMutationRecoveryWhereUniqueInput[]
+    update?: RegistryMutationRecoveryUpdateWithWhereUniqueWithoutOperationInput | RegistryMutationRecoveryUpdateWithWhereUniqueWithoutOperationInput[]
+    updateMany?: RegistryMutationRecoveryUpdateManyWithWhereWithoutOperationInput | RegistryMutationRecoveryUpdateManyWithWhereWithoutOperationInput[]
+    deleteMany?: RegistryMutationRecoveryScalarWhereInput | RegistryMutationRecoveryScalarWhereInput[]
+  }
+
+  export type RegistryMutationRecoveryUncheckedUpdateManyWithoutOperationNestedInput = {
+    create?: XOR<RegistryMutationRecoveryCreateWithoutOperationInput, RegistryMutationRecoveryUncheckedCreateWithoutOperationInput> | RegistryMutationRecoveryCreateWithoutOperationInput[] | RegistryMutationRecoveryUncheckedCreateWithoutOperationInput[]
+    connectOrCreate?: RegistryMutationRecoveryCreateOrConnectWithoutOperationInput | RegistryMutationRecoveryCreateOrConnectWithoutOperationInput[]
+    upsert?: RegistryMutationRecoveryUpsertWithWhereUniqueWithoutOperationInput | RegistryMutationRecoveryUpsertWithWhereUniqueWithoutOperationInput[]
+    createMany?: RegistryMutationRecoveryCreateManyOperationInputEnvelope
+    set?: RegistryMutationRecoveryWhereUniqueInput | RegistryMutationRecoveryWhereUniqueInput[]
+    disconnect?: RegistryMutationRecoveryWhereUniqueInput | RegistryMutationRecoveryWhereUniqueInput[]
+    delete?: RegistryMutationRecoveryWhereUniqueInput | RegistryMutationRecoveryWhereUniqueInput[]
+    connect?: RegistryMutationRecoveryWhereUniqueInput | RegistryMutationRecoveryWhereUniqueInput[]
+    update?: RegistryMutationRecoveryUpdateWithWhereUniqueWithoutOperationInput | RegistryMutationRecoveryUpdateWithWhereUniqueWithoutOperationInput[]
+    updateMany?: RegistryMutationRecoveryUpdateManyWithWhereWithoutOperationInput | RegistryMutationRecoveryUpdateManyWithWhereWithoutOperationInput[]
+    deleteMany?: RegistryMutationRecoveryScalarWhereInput | RegistryMutationRecoveryScalarWhereInput[]
+  }
+
+  export type RegistryMutationOperationCreateNestedOneWithoutRecoveriesInput = {
+    create?: XOR<RegistryMutationOperationCreateWithoutRecoveriesInput, RegistryMutationOperationUncheckedCreateWithoutRecoveriesInput>
+    connectOrCreate?: RegistryMutationOperationCreateOrConnectWithoutRecoveriesInput
+    connect?: RegistryMutationOperationWhereUniqueInput
+  }
+
+  export type AuditLogCreateNestedOneWithoutRegistryMutationRecoveriesInput = {
+    create?: XOR<AuditLogCreateWithoutRegistryMutationRecoveriesInput, AuditLogUncheckedCreateWithoutRegistryMutationRecoveriesInput>
+    connectOrCreate?: AuditLogCreateOrConnectWithoutRegistryMutationRecoveriesInput
+    connect?: AuditLogWhereUniqueInput
+  }
+
+  export type RegistryMutationOperationUpdateOneRequiredWithoutRecoveriesNestedInput = {
+    create?: XOR<RegistryMutationOperationCreateWithoutRecoveriesInput, RegistryMutationOperationUncheckedCreateWithoutRecoveriesInput>
+    connectOrCreate?: RegistryMutationOperationCreateOrConnectWithoutRecoveriesInput
+    upsert?: RegistryMutationOperationUpsertWithoutRecoveriesInput
+    connect?: RegistryMutationOperationWhereUniqueInput
+    update?: XOR<XOR<RegistryMutationOperationUpdateToOneWithWhereWithoutRecoveriesInput, RegistryMutationOperationUpdateWithoutRecoveriesInput>, RegistryMutationOperationUncheckedUpdateWithoutRecoveriesInput>
+  }
+
+  export type AuditLogUpdateOneRequiredWithoutRegistryMutationRecoveriesNestedInput = {
+    create?: XOR<AuditLogCreateWithoutRegistryMutationRecoveriesInput, AuditLogUncheckedCreateWithoutRegistryMutationRecoveriesInput>
+    connectOrCreate?: AuditLogCreateOrConnectWithoutRegistryMutationRecoveriesInput
+    upsert?: AuditLogUpsertWithoutRegistryMutationRecoveriesInput
+    connect?: AuditLogWhereUniqueInput
+    update?: XOR<XOR<AuditLogUpdateToOneWithWhereWithoutRegistryMutationRecoveriesInput, AuditLogUpdateWithoutRegistryMutationRecoveriesInput>, AuditLogUncheckedUpdateWithoutRegistryMutationRecoveriesInput>
   }
 
   export type ProjectCreateNestedOneWithoutRollbackOperationsInput = {
@@ -266352,6 +268057,20 @@ export namespace Prisma {
     connect?: UserWhereUniqueInput
   }
 
+  export type RegistryMutationRecoveryCreateNestedManyWithoutAuditLogInput = {
+    create?: XOR<RegistryMutationRecoveryCreateWithoutAuditLogInput, RegistryMutationRecoveryUncheckedCreateWithoutAuditLogInput> | RegistryMutationRecoveryCreateWithoutAuditLogInput[] | RegistryMutationRecoveryUncheckedCreateWithoutAuditLogInput[]
+    connectOrCreate?: RegistryMutationRecoveryCreateOrConnectWithoutAuditLogInput | RegistryMutationRecoveryCreateOrConnectWithoutAuditLogInput[]
+    createMany?: RegistryMutationRecoveryCreateManyAuditLogInputEnvelope
+    connect?: RegistryMutationRecoveryWhereUniqueInput | RegistryMutationRecoveryWhereUniqueInput[]
+  }
+
+  export type RegistryMutationRecoveryUncheckedCreateNestedManyWithoutAuditLogInput = {
+    create?: XOR<RegistryMutationRecoveryCreateWithoutAuditLogInput, RegistryMutationRecoveryUncheckedCreateWithoutAuditLogInput> | RegistryMutationRecoveryCreateWithoutAuditLogInput[] | RegistryMutationRecoveryUncheckedCreateWithoutAuditLogInput[]
+    connectOrCreate?: RegistryMutationRecoveryCreateOrConnectWithoutAuditLogInput | RegistryMutationRecoveryCreateOrConnectWithoutAuditLogInput[]
+    createMany?: RegistryMutationRecoveryCreateManyAuditLogInputEnvelope
+    connect?: RegistryMutationRecoveryWhereUniqueInput | RegistryMutationRecoveryWhereUniqueInput[]
+  }
+
   export type OrganizationUpdateOneWithoutAuditLogsNestedInput = {
     create?: XOR<OrganizationCreateWithoutAuditLogsInput, OrganizationUncheckedCreateWithoutAuditLogsInput>
     connectOrCreate?: OrganizationCreateOrConnectWithoutAuditLogsInput
@@ -266370,6 +268089,34 @@ export namespace Prisma {
     delete?: UserWhereInput | boolean
     connect?: UserWhereUniqueInput
     update?: XOR<XOR<UserUpdateToOneWithWhereWithoutAuditLogsInput, UserUpdateWithoutAuditLogsInput>, UserUncheckedUpdateWithoutAuditLogsInput>
+  }
+
+  export type RegistryMutationRecoveryUpdateManyWithoutAuditLogNestedInput = {
+    create?: XOR<RegistryMutationRecoveryCreateWithoutAuditLogInput, RegistryMutationRecoveryUncheckedCreateWithoutAuditLogInput> | RegistryMutationRecoveryCreateWithoutAuditLogInput[] | RegistryMutationRecoveryUncheckedCreateWithoutAuditLogInput[]
+    connectOrCreate?: RegistryMutationRecoveryCreateOrConnectWithoutAuditLogInput | RegistryMutationRecoveryCreateOrConnectWithoutAuditLogInput[]
+    upsert?: RegistryMutationRecoveryUpsertWithWhereUniqueWithoutAuditLogInput | RegistryMutationRecoveryUpsertWithWhereUniqueWithoutAuditLogInput[]
+    createMany?: RegistryMutationRecoveryCreateManyAuditLogInputEnvelope
+    set?: RegistryMutationRecoveryWhereUniqueInput | RegistryMutationRecoveryWhereUniqueInput[]
+    disconnect?: RegistryMutationRecoveryWhereUniqueInput | RegistryMutationRecoveryWhereUniqueInput[]
+    delete?: RegistryMutationRecoveryWhereUniqueInput | RegistryMutationRecoveryWhereUniqueInput[]
+    connect?: RegistryMutationRecoveryWhereUniqueInput | RegistryMutationRecoveryWhereUniqueInput[]
+    update?: RegistryMutationRecoveryUpdateWithWhereUniqueWithoutAuditLogInput | RegistryMutationRecoveryUpdateWithWhereUniqueWithoutAuditLogInput[]
+    updateMany?: RegistryMutationRecoveryUpdateManyWithWhereWithoutAuditLogInput | RegistryMutationRecoveryUpdateManyWithWhereWithoutAuditLogInput[]
+    deleteMany?: RegistryMutationRecoveryScalarWhereInput | RegistryMutationRecoveryScalarWhereInput[]
+  }
+
+  export type RegistryMutationRecoveryUncheckedUpdateManyWithoutAuditLogNestedInput = {
+    create?: XOR<RegistryMutationRecoveryCreateWithoutAuditLogInput, RegistryMutationRecoveryUncheckedCreateWithoutAuditLogInput> | RegistryMutationRecoveryCreateWithoutAuditLogInput[] | RegistryMutationRecoveryUncheckedCreateWithoutAuditLogInput[]
+    connectOrCreate?: RegistryMutationRecoveryCreateOrConnectWithoutAuditLogInput | RegistryMutationRecoveryCreateOrConnectWithoutAuditLogInput[]
+    upsert?: RegistryMutationRecoveryUpsertWithWhereUniqueWithoutAuditLogInput | RegistryMutationRecoveryUpsertWithWhereUniqueWithoutAuditLogInput[]
+    createMany?: RegistryMutationRecoveryCreateManyAuditLogInputEnvelope
+    set?: RegistryMutationRecoveryWhereUniqueInput | RegistryMutationRecoveryWhereUniqueInput[]
+    disconnect?: RegistryMutationRecoveryWhereUniqueInput | RegistryMutationRecoveryWhereUniqueInput[]
+    delete?: RegistryMutationRecoveryWhereUniqueInput | RegistryMutationRecoveryWhereUniqueInput[]
+    connect?: RegistryMutationRecoveryWhereUniqueInput | RegistryMutationRecoveryWhereUniqueInput[]
+    update?: RegistryMutationRecoveryUpdateWithWhereUniqueWithoutAuditLogInput | RegistryMutationRecoveryUpdateWithWhereUniqueWithoutAuditLogInput[]
+    updateMany?: RegistryMutationRecoveryUpdateManyWithWhereWithoutAuditLogInput | RegistryMutationRecoveryUpdateManyWithWhereWithoutAuditLogInput[]
+    deleteMany?: RegistryMutationRecoveryScalarWhereInput | RegistryMutationRecoveryScalarWhereInput[]
   }
 
   export type UserCreateNestedOneWithoutAdminAuditLogsInput = {
@@ -271331,6 +273078,7 @@ export namespace Prisma {
     ipAddress?: string | null
     createdAt?: Date | string
     organization?: OrganizationCreateNestedOneWithoutAuditLogsInput
+    registryMutationRecoveries?: RegistryMutationRecoveryCreateNestedManyWithoutAuditLogInput
   }
 
   export type AuditLogUncheckedCreateWithoutActorInput = {
@@ -271342,6 +273090,7 @@ export namespace Prisma {
     metadata?: NullableJsonNullValueInput | InputJsonValue
     ipAddress?: string | null
     createdAt?: Date | string
+    registryMutationRecoveries?: RegistryMutationRecoveryUncheckedCreateNestedManyWithoutAuditLogInput
   }
 
   export type AuditLogCreateOrConnectWithoutActorInput = {
@@ -275661,6 +277410,7 @@ export namespace Prisma {
     ipAddress?: string | null
     createdAt?: Date | string
     actor?: UserCreateNestedOneWithoutAuditLogsInput
+    registryMutationRecoveries?: RegistryMutationRecoveryCreateNestedManyWithoutAuditLogInput
   }
 
   export type AuditLogUncheckedCreateWithoutOrganizationInput = {
@@ -275672,6 +277422,7 @@ export namespace Prisma {
     metadata?: NullableJsonNullValueInput | InputJsonValue
     ipAddress?: string | null
     createdAt?: Date | string
+    registryMutationRecoveries?: RegistryMutationRecoveryUncheckedCreateNestedManyWithoutAuditLogInput
   }
 
   export type AuditLogCreateOrConnectWithoutOrganizationInput = {
@@ -281162,6 +282913,8 @@ export namespace Prisma {
     intentHash: string
     state?: $Enums.RegistryMutationState
     fencingToken?: bigint | number
+    attemptNumber?: bigint | number
+    attemptId?: string | null
     ownerToken?: string | null
     leaseExpiresAt?: Date | string | null
     backendPid?: number | null
@@ -281176,6 +282929,7 @@ export namespace Prisma {
     recoveryEvidence?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
+    recoveries?: RegistryMutationRecoveryCreateNestedManyWithoutOperationInput
   }
 
   export type RegistryMutationOperationUncheckedCreateWithoutProjectInput = {
@@ -281187,6 +282941,8 @@ export namespace Prisma {
     intentHash: string
     state?: $Enums.RegistryMutationState
     fencingToken?: bigint | number
+    attemptNumber?: bigint | number
+    attemptId?: string | null
     ownerToken?: string | null
     leaseExpiresAt?: Date | string | null
     backendPid?: number | null
@@ -281201,6 +282957,7 @@ export namespace Prisma {
     recoveryEvidence?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
+    recoveries?: RegistryMutationRecoveryUncheckedCreateNestedManyWithoutOperationInput
   }
 
   export type RegistryMutationOperationCreateOrConnectWithoutProjectInput = {
@@ -282454,6 +284211,8 @@ export namespace Prisma {
     intentHash?: StringFilter<"RegistryMutationOperation"> | string
     state?: EnumRegistryMutationStateFilter<"RegistryMutationOperation"> | $Enums.RegistryMutationState
     fencingToken?: BigIntFilter<"RegistryMutationOperation"> | bigint | number
+    attemptNumber?: BigIntFilter<"RegistryMutationOperation"> | bigint | number
+    attemptId?: StringNullableFilter<"RegistryMutationOperation"> | string | null
     ownerToken?: StringNullableFilter<"RegistryMutationOperation"> | string | null
     leaseExpiresAt?: DateTimeNullableFilter<"RegistryMutationOperation"> | Date | string | null
     backendPid?: IntNullableFilter<"RegistryMutationOperation"> | number | null
@@ -298742,6 +300501,34 @@ export namespace Prisma {
     create: XOR<ProjectCreateWithoutRegistryMutationsInput, ProjectUncheckedCreateWithoutRegistryMutationsInput>
   }
 
+  export type RegistryMutationRecoveryCreateWithoutOperationInput = {
+    id?: string
+    attemptNumber: bigint | number
+    resolution: $Enums.RegistryMutationState
+    evidence: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    auditLog: AuditLogCreateNestedOneWithoutRegistryMutationRecoveriesInput
+  }
+
+  export type RegistryMutationRecoveryUncheckedCreateWithoutOperationInput = {
+    id?: string
+    attemptNumber: bigint | number
+    resolution: $Enums.RegistryMutationState
+    auditLogId: string
+    evidence: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+  }
+
+  export type RegistryMutationRecoveryCreateOrConnectWithoutOperationInput = {
+    where: RegistryMutationRecoveryWhereUniqueInput
+    create: XOR<RegistryMutationRecoveryCreateWithoutOperationInput, RegistryMutationRecoveryUncheckedCreateWithoutOperationInput>
+  }
+
+  export type RegistryMutationRecoveryCreateManyOperationInputEnvelope = {
+    data: RegistryMutationRecoveryCreateManyOperationInput | RegistryMutationRecoveryCreateManyOperationInput[]
+    skipDuplicates?: boolean
+  }
+
   export type ProjectUpsertWithoutRegistryMutationsInput = {
     update: XOR<ProjectUpdateWithoutRegistryMutationsInput, ProjectUncheckedUpdateWithoutRegistryMutationsInput>
     create: XOR<ProjectCreateWithoutRegistryMutationsInput, ProjectUncheckedCreateWithoutRegistryMutationsInput>
@@ -298875,6 +300662,227 @@ export namespace Prisma {
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
     runtimeEffects?: ProjectRuntimeEffectUncheckedUpdateManyWithoutProjectNestedInput
     appImageBuilds?: AppImageBuildOperationUncheckedUpdateManyWithoutProjectNestedInput
+  }
+
+  export type RegistryMutationRecoveryUpsertWithWhereUniqueWithoutOperationInput = {
+    where: RegistryMutationRecoveryWhereUniqueInput
+    update: XOR<RegistryMutationRecoveryUpdateWithoutOperationInput, RegistryMutationRecoveryUncheckedUpdateWithoutOperationInput>
+    create: XOR<RegistryMutationRecoveryCreateWithoutOperationInput, RegistryMutationRecoveryUncheckedCreateWithoutOperationInput>
+  }
+
+  export type RegistryMutationRecoveryUpdateWithWhereUniqueWithoutOperationInput = {
+    where: RegistryMutationRecoveryWhereUniqueInput
+    data: XOR<RegistryMutationRecoveryUpdateWithoutOperationInput, RegistryMutationRecoveryUncheckedUpdateWithoutOperationInput>
+  }
+
+  export type RegistryMutationRecoveryUpdateManyWithWhereWithoutOperationInput = {
+    where: RegistryMutationRecoveryScalarWhereInput
+    data: XOR<RegistryMutationRecoveryUpdateManyMutationInput, RegistryMutationRecoveryUncheckedUpdateManyWithoutOperationInput>
+  }
+
+  export type RegistryMutationRecoveryScalarWhereInput = {
+    AND?: RegistryMutationRecoveryScalarWhereInput | RegistryMutationRecoveryScalarWhereInput[]
+    OR?: RegistryMutationRecoveryScalarWhereInput[]
+    NOT?: RegistryMutationRecoveryScalarWhereInput | RegistryMutationRecoveryScalarWhereInput[]
+    id?: StringFilter<"RegistryMutationRecovery"> | string
+    operationId?: StringFilter<"RegistryMutationRecovery"> | string
+    attemptNumber?: BigIntFilter<"RegistryMutationRecovery"> | bigint | number
+    resolution?: EnumRegistryMutationStateFilter<"RegistryMutationRecovery"> | $Enums.RegistryMutationState
+    auditLogId?: StringFilter<"RegistryMutationRecovery"> | string
+    evidence?: JsonFilter<"RegistryMutationRecovery">
+    createdAt?: DateTimeFilter<"RegistryMutationRecovery"> | Date | string
+  }
+
+  export type RegistryMutationOperationCreateWithoutRecoveriesInput = {
+    id: string
+    organizationId: string
+    ownershipEpoch: number
+    kind: $Enums.RegistryMutationKind
+    repositories: JsonNullValueInput | InputJsonValue
+    intentHash: string
+    state?: $Enums.RegistryMutationState
+    fencingToken?: bigint | number
+    attemptNumber?: bigint | number
+    attemptId?: string | null
+    ownerToken?: string | null
+    leaseExpiresAt?: Date | string | null
+    backendPid?: number | null
+    providerOperationId?: string | null
+    providerEvidence?: NullableJsonNullValueInput | InputJsonValue
+    lastErrorCode?: string | null
+    effectStartedAt?: Date | string | null
+    heartbeatAt?: Date | string | null
+    ambiguousAt?: Date | string | null
+    verifiedAt?: Date | string | null
+    recoveredAt?: Date | string | null
+    recoveryEvidence?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    project: ProjectCreateNestedOneWithoutRegistryMutationsInput
+  }
+
+  export type RegistryMutationOperationUncheckedCreateWithoutRecoveriesInput = {
+    id: string
+    projectId: string
+    organizationId: string
+    ownershipEpoch: number
+    kind: $Enums.RegistryMutationKind
+    repositories: JsonNullValueInput | InputJsonValue
+    intentHash: string
+    state?: $Enums.RegistryMutationState
+    fencingToken?: bigint | number
+    attemptNumber?: bigint | number
+    attemptId?: string | null
+    ownerToken?: string | null
+    leaseExpiresAt?: Date | string | null
+    backendPid?: number | null
+    providerOperationId?: string | null
+    providerEvidence?: NullableJsonNullValueInput | InputJsonValue
+    lastErrorCode?: string | null
+    effectStartedAt?: Date | string | null
+    heartbeatAt?: Date | string | null
+    ambiguousAt?: Date | string | null
+    verifiedAt?: Date | string | null
+    recoveredAt?: Date | string | null
+    recoveryEvidence?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type RegistryMutationOperationCreateOrConnectWithoutRecoveriesInput = {
+    where: RegistryMutationOperationWhereUniqueInput
+    create: XOR<RegistryMutationOperationCreateWithoutRecoveriesInput, RegistryMutationOperationUncheckedCreateWithoutRecoveriesInput>
+  }
+
+  export type AuditLogCreateWithoutRegistryMutationRecoveriesInput = {
+    id?: string
+    action: string
+    resourceType: string
+    resourceId?: string | null
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    ipAddress?: string | null
+    createdAt?: Date | string
+    organization?: OrganizationCreateNestedOneWithoutAuditLogsInput
+    actor?: UserCreateNestedOneWithoutAuditLogsInput
+  }
+
+  export type AuditLogUncheckedCreateWithoutRegistryMutationRecoveriesInput = {
+    id?: string
+    organizationId?: string | null
+    actorUserId?: string | null
+    action: string
+    resourceType: string
+    resourceId?: string | null
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    ipAddress?: string | null
+    createdAt?: Date | string
+  }
+
+  export type AuditLogCreateOrConnectWithoutRegistryMutationRecoveriesInput = {
+    where: AuditLogWhereUniqueInput
+    create: XOR<AuditLogCreateWithoutRegistryMutationRecoveriesInput, AuditLogUncheckedCreateWithoutRegistryMutationRecoveriesInput>
+  }
+
+  export type RegistryMutationOperationUpsertWithoutRecoveriesInput = {
+    update: XOR<RegistryMutationOperationUpdateWithoutRecoveriesInput, RegistryMutationOperationUncheckedUpdateWithoutRecoveriesInput>
+    create: XOR<RegistryMutationOperationCreateWithoutRecoveriesInput, RegistryMutationOperationUncheckedCreateWithoutRecoveriesInput>
+    where?: RegistryMutationOperationWhereInput
+  }
+
+  export type RegistryMutationOperationUpdateToOneWithWhereWithoutRecoveriesInput = {
+    where?: RegistryMutationOperationWhereInput
+    data: XOR<RegistryMutationOperationUpdateWithoutRecoveriesInput, RegistryMutationOperationUncheckedUpdateWithoutRecoveriesInput>
+  }
+
+  export type RegistryMutationOperationUpdateWithoutRecoveriesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
+    kind?: EnumRegistryMutationKindFieldUpdateOperationsInput | $Enums.RegistryMutationKind
+    repositories?: JsonNullValueInput | InputJsonValue
+    intentHash?: StringFieldUpdateOperationsInput | string
+    state?: EnumRegistryMutationStateFieldUpdateOperationsInput | $Enums.RegistryMutationState
+    fencingToken?: BigIntFieldUpdateOperationsInput | bigint | number
+    attemptNumber?: BigIntFieldUpdateOperationsInput | bigint | number
+    attemptId?: NullableStringFieldUpdateOperationsInput | string | null
+    ownerToken?: NullableStringFieldUpdateOperationsInput | string | null
+    leaseExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    backendPid?: NullableIntFieldUpdateOperationsInput | number | null
+    providerOperationId?: NullableStringFieldUpdateOperationsInput | string | null
+    providerEvidence?: NullableJsonNullValueInput | InputJsonValue
+    lastErrorCode?: NullableStringFieldUpdateOperationsInput | string | null
+    effectStartedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    heartbeatAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    ambiguousAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    recoveredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    recoveryEvidence?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    project?: ProjectUpdateOneRequiredWithoutRegistryMutationsNestedInput
+  }
+
+  export type RegistryMutationOperationUncheckedUpdateWithoutRecoveriesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
+    kind?: EnumRegistryMutationKindFieldUpdateOperationsInput | $Enums.RegistryMutationKind
+    repositories?: JsonNullValueInput | InputJsonValue
+    intentHash?: StringFieldUpdateOperationsInput | string
+    state?: EnumRegistryMutationStateFieldUpdateOperationsInput | $Enums.RegistryMutationState
+    fencingToken?: BigIntFieldUpdateOperationsInput | bigint | number
+    attemptNumber?: BigIntFieldUpdateOperationsInput | bigint | number
+    attemptId?: NullableStringFieldUpdateOperationsInput | string | null
+    ownerToken?: NullableStringFieldUpdateOperationsInput | string | null
+    leaseExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    backendPid?: NullableIntFieldUpdateOperationsInput | number | null
+    providerOperationId?: NullableStringFieldUpdateOperationsInput | string | null
+    providerEvidence?: NullableJsonNullValueInput | InputJsonValue
+    lastErrorCode?: NullableStringFieldUpdateOperationsInput | string | null
+    effectStartedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    heartbeatAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    ambiguousAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    recoveredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    recoveryEvidence?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AuditLogUpsertWithoutRegistryMutationRecoveriesInput = {
+    update: XOR<AuditLogUpdateWithoutRegistryMutationRecoveriesInput, AuditLogUncheckedUpdateWithoutRegistryMutationRecoveriesInput>
+    create: XOR<AuditLogCreateWithoutRegistryMutationRecoveriesInput, AuditLogUncheckedCreateWithoutRegistryMutationRecoveriesInput>
+    where?: AuditLogWhereInput
+  }
+
+  export type AuditLogUpdateToOneWithWhereWithoutRegistryMutationRecoveriesInput = {
+    where?: AuditLogWhereInput
+    data: XOR<AuditLogUpdateWithoutRegistryMutationRecoveriesInput, AuditLogUncheckedUpdateWithoutRegistryMutationRecoveriesInput>
+  }
+
+  export type AuditLogUpdateWithoutRegistryMutationRecoveriesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    action?: StringFieldUpdateOperationsInput | string
+    resourceType?: StringFieldUpdateOperationsInput | string
+    resourceId?: NullableStringFieldUpdateOperationsInput | string | null
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    ipAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    organization?: OrganizationUpdateOneWithoutAuditLogsNestedInput
+    actor?: UserUpdateOneWithoutAuditLogsNestedInput
+  }
+
+  export type AuditLogUncheckedUpdateWithoutRegistryMutationRecoveriesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: NullableStringFieldUpdateOperationsInput | string | null
+    actorUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    action?: StringFieldUpdateOperationsInput | string
+    resourceType?: StringFieldUpdateOperationsInput | string
+    resourceId?: NullableStringFieldUpdateOperationsInput | string | null
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    ipAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type ProjectCreateWithoutRollbackOperationsInput = {
@@ -299641,6 +301649,34 @@ export namespace Prisma {
     create: XOR<UserCreateWithoutAuditLogsInput, UserUncheckedCreateWithoutAuditLogsInput>
   }
 
+  export type RegistryMutationRecoveryCreateWithoutAuditLogInput = {
+    id?: string
+    attemptNumber: bigint | number
+    resolution: $Enums.RegistryMutationState
+    evidence: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    operation: RegistryMutationOperationCreateNestedOneWithoutRecoveriesInput
+  }
+
+  export type RegistryMutationRecoveryUncheckedCreateWithoutAuditLogInput = {
+    id?: string
+    operationId: string
+    attemptNumber: bigint | number
+    resolution: $Enums.RegistryMutationState
+    evidence: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+  }
+
+  export type RegistryMutationRecoveryCreateOrConnectWithoutAuditLogInput = {
+    where: RegistryMutationRecoveryWhereUniqueInput
+    create: XOR<RegistryMutationRecoveryCreateWithoutAuditLogInput, RegistryMutationRecoveryUncheckedCreateWithoutAuditLogInput>
+  }
+
+  export type RegistryMutationRecoveryCreateManyAuditLogInputEnvelope = {
+    data: RegistryMutationRecoveryCreateManyAuditLogInput | RegistryMutationRecoveryCreateManyAuditLogInput[]
+    skipDuplicates?: boolean
+  }
+
   export type OrganizationUpsertWithoutAuditLogsInput = {
     update: XOR<OrganizationUpdateWithoutAuditLogsInput, OrganizationUncheckedUpdateWithoutAuditLogsInput>
     create: XOR<OrganizationCreateWithoutAuditLogsInput, OrganizationUncheckedCreateWithoutAuditLogsInput>
@@ -299883,6 +301919,22 @@ export namespace Prisma {
     accessGrantsCreated?: ResourceAccessGrantUncheckedUpdateManyWithoutGrantedByNestedInput
     accessGrantsRevoked?: ResourceAccessGrantUncheckedUpdateManyWithoutRevokedByNestedInput
     loginLockout?: AccountLockoutUncheckedUpdateOneWithoutUserNestedInput
+  }
+
+  export type RegistryMutationRecoveryUpsertWithWhereUniqueWithoutAuditLogInput = {
+    where: RegistryMutationRecoveryWhereUniqueInput
+    update: XOR<RegistryMutationRecoveryUpdateWithoutAuditLogInput, RegistryMutationRecoveryUncheckedUpdateWithoutAuditLogInput>
+    create: XOR<RegistryMutationRecoveryCreateWithoutAuditLogInput, RegistryMutationRecoveryUncheckedCreateWithoutAuditLogInput>
+  }
+
+  export type RegistryMutationRecoveryUpdateWithWhereUniqueWithoutAuditLogInput = {
+    where: RegistryMutationRecoveryWhereUniqueInput
+    data: XOR<RegistryMutationRecoveryUpdateWithoutAuditLogInput, RegistryMutationRecoveryUncheckedUpdateWithoutAuditLogInput>
+  }
+
+  export type RegistryMutationRecoveryUpdateManyWithWhereWithoutAuditLogInput = {
+    where: RegistryMutationRecoveryScalarWhereInput
+    data: XOR<RegistryMutationRecoveryUpdateManyMutationInput, RegistryMutationRecoveryUncheckedUpdateManyWithoutAuditLogInput>
   }
 
   export type UserCreateWithoutAdminAuditLogsInput = {
@@ -324690,6 +326742,7 @@ export namespace Prisma {
     ipAddress?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     organization?: OrganizationUpdateOneWithoutAuditLogsNestedInput
+    registryMutationRecoveries?: RegistryMutationRecoveryUpdateManyWithoutAuditLogNestedInput
   }
 
   export type AuditLogUncheckedUpdateWithoutActorInput = {
@@ -324701,6 +326754,7 @@ export namespace Prisma {
     metadata?: NullableJsonNullValueInput | InputJsonValue
     ipAddress?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    registryMutationRecoveries?: RegistryMutationRecoveryUncheckedUpdateManyWithoutAuditLogNestedInput
   }
 
   export type AuditLogUncheckedUpdateManyWithoutActorInput = {
@@ -327313,6 +329367,7 @@ export namespace Prisma {
     ipAddress?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     actor?: UserUpdateOneWithoutAuditLogsNestedInput
+    registryMutationRecoveries?: RegistryMutationRecoveryUpdateManyWithoutAuditLogNestedInput
   }
 
   export type AuditLogUncheckedUpdateWithoutOrganizationInput = {
@@ -327324,6 +329379,7 @@ export namespace Prisma {
     metadata?: NullableJsonNullValueInput | InputJsonValue
     ipAddress?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    registryMutationRecoveries?: RegistryMutationRecoveryUncheckedUpdateManyWithoutAuditLogNestedInput
   }
 
   export type AuditLogUncheckedUpdateManyWithoutOrganizationInput = {
@@ -329086,6 +331142,8 @@ export namespace Prisma {
     intentHash: string
     state?: $Enums.RegistryMutationState
     fencingToken?: bigint | number
+    attemptNumber?: bigint | number
+    attemptId?: string | null
     ownerToken?: string | null
     leaseExpiresAt?: Date | string | null
     backendPid?: number | null
@@ -331014,6 +333072,8 @@ export namespace Prisma {
     intentHash?: StringFieldUpdateOperationsInput | string
     state?: EnumRegistryMutationStateFieldUpdateOperationsInput | $Enums.RegistryMutationState
     fencingToken?: BigIntFieldUpdateOperationsInput | bigint | number
+    attemptNumber?: BigIntFieldUpdateOperationsInput | bigint | number
+    attemptId?: NullableStringFieldUpdateOperationsInput | string | null
     ownerToken?: NullableStringFieldUpdateOperationsInput | string | null
     leaseExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     backendPid?: NullableIntFieldUpdateOperationsInput | number | null
@@ -331028,6 +333088,7 @@ export namespace Prisma {
     recoveryEvidence?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    recoveries?: RegistryMutationRecoveryUpdateManyWithoutOperationNestedInput
   }
 
   export type RegistryMutationOperationUncheckedUpdateWithoutProjectInput = {
@@ -331039,6 +333100,8 @@ export namespace Prisma {
     intentHash?: StringFieldUpdateOperationsInput | string
     state?: EnumRegistryMutationStateFieldUpdateOperationsInput | $Enums.RegistryMutationState
     fencingToken?: BigIntFieldUpdateOperationsInput | bigint | number
+    attemptNumber?: BigIntFieldUpdateOperationsInput | bigint | number
+    attemptId?: NullableStringFieldUpdateOperationsInput | string | null
     ownerToken?: NullableStringFieldUpdateOperationsInput | string | null
     leaseExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     backendPid?: NullableIntFieldUpdateOperationsInput | number | null
@@ -331053,6 +333116,7 @@ export namespace Prisma {
     recoveryEvidence?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    recoveries?: RegistryMutationRecoveryUncheckedUpdateManyWithoutOperationNestedInput
   }
 
   export type RegistryMutationOperationUncheckedUpdateManyWithoutProjectInput = {
@@ -331064,6 +333128,8 @@ export namespace Prisma {
     intentHash?: StringFieldUpdateOperationsInput | string
     state?: EnumRegistryMutationStateFieldUpdateOperationsInput | $Enums.RegistryMutationState
     fencingToken?: BigIntFieldUpdateOperationsInput | bigint | number
+    attemptNumber?: BigIntFieldUpdateOperationsInput | bigint | number
+    attemptId?: NullableStringFieldUpdateOperationsInput | string | null
     ownerToken?: NullableStringFieldUpdateOperationsInput | string | null
     leaseExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     backendPid?: NullableIntFieldUpdateOperationsInput | number | null
@@ -332103,6 +334169,78 @@ export namespace Prisma {
     canceledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type RegistryMutationRecoveryCreateManyOperationInput = {
+    id?: string
+    attemptNumber: bigint | number
+    resolution: $Enums.RegistryMutationState
+    auditLogId: string
+    evidence: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+  }
+
+  export type RegistryMutationRecoveryUpdateWithoutOperationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    attemptNumber?: BigIntFieldUpdateOperationsInput | bigint | number
+    resolution?: EnumRegistryMutationStateFieldUpdateOperationsInput | $Enums.RegistryMutationState
+    evidence?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    auditLog?: AuditLogUpdateOneRequiredWithoutRegistryMutationRecoveriesNestedInput
+  }
+
+  export type RegistryMutationRecoveryUncheckedUpdateWithoutOperationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    attemptNumber?: BigIntFieldUpdateOperationsInput | bigint | number
+    resolution?: EnumRegistryMutationStateFieldUpdateOperationsInput | $Enums.RegistryMutationState
+    auditLogId?: StringFieldUpdateOperationsInput | string
+    evidence?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type RegistryMutationRecoveryUncheckedUpdateManyWithoutOperationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    attemptNumber?: BigIntFieldUpdateOperationsInput | bigint | number
+    resolution?: EnumRegistryMutationStateFieldUpdateOperationsInput | $Enums.RegistryMutationState
+    auditLogId?: StringFieldUpdateOperationsInput | string
+    evidence?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type RegistryMutationRecoveryCreateManyAuditLogInput = {
+    id?: string
+    operationId: string
+    attemptNumber: bigint | number
+    resolution: $Enums.RegistryMutationState
+    evidence: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+  }
+
+  export type RegistryMutationRecoveryUpdateWithoutAuditLogInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    attemptNumber?: BigIntFieldUpdateOperationsInput | bigint | number
+    resolution?: EnumRegistryMutationStateFieldUpdateOperationsInput | $Enums.RegistryMutationState
+    evidence?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    operation?: RegistryMutationOperationUpdateOneRequiredWithoutRecoveriesNestedInput
+  }
+
+  export type RegistryMutationRecoveryUncheckedUpdateWithoutAuditLogInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    operationId?: StringFieldUpdateOperationsInput | string
+    attemptNumber?: BigIntFieldUpdateOperationsInput | bigint | number
+    resolution?: EnumRegistryMutationStateFieldUpdateOperationsInput | $Enums.RegistryMutationState
+    evidence?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type RegistryMutationRecoveryUncheckedUpdateManyWithoutAuditLogInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    operationId?: StringFieldUpdateOperationsInput | string
+    attemptNumber?: BigIntFieldUpdateOperationsInput | bigint | number
+    resolution?: EnumRegistryMutationStateFieldUpdateOperationsInput | $Enums.RegistryMutationState
+    evidence?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type SubscriptionCreateManyPlanInput = {

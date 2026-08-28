@@ -223,8 +223,8 @@ const prodPlatform = helmTemplate(['--values', resolve(root, 'helm/platform/valu
 if (renderedConfigValue(defaultPlatform, 'SERVER_DEPLOY_SNAPSHOT_IMAGE') !== '0') {
   throw new Error('Default chart must keep snapshot-image publication disabled');
 }
-if (renderedConfigValue(prodPlatform, 'SERVER_DEPLOY_SNAPSHOT_IMAGE') !== '1') {
-  throw new Error('Production chart must explicitly enable snapshot-image publication');
+if (renderedConfigValue(prodPlatform, 'SERVER_DEPLOY_SNAPSHOT_IMAGE') !== '0') {
+  throw new Error('Production chart must keep snapshot-image publication disabled until activation');
 }
 assertIncludes(
   renderedConfigValue(prodPlatform, 'SERVER_DEPLOY_BUILD_SERVICE_ACCOUNT'),

@@ -91,19 +91,23 @@ export interface RegistryRef {
   digest: string;
 }
 
+export interface RegistryRequestOptions {
+  signal?: AbortSignal;
+}
+
 /**
  * Abstracts the OCI/Artifact-Registry surface. The in-memory test adapter and
  * the (follow-up) live-AR adapter both implement this — the promotion logic
  * never talks to GCP directly.
  */
 export interface RegistryAdapter {
-  imageExists(repo: string, digest: string): Promise<boolean>;
+  imageExists(repo: string, digest: string, options?: RegistryRequestOptions): Promise<boolean>;
 
   /** All referrers/attachments whose subject is `digest` in `repo`. */
-  listReferrers(repo: string, digest: string): Promise<OciAttachment[]>;
+  listReferrers(repo: string, digest: string, options?: RegistryRequestOptions): Promise<OciAttachment[]>;
 
   /** Copy the image manifest + config + layers by digest. */
-  copyImage(source: RegistryRef, targetRepo: string): Promise<{ created: boolean }>;
+  copyImage(source: RegistryRef, targetRepo: string, options?: RegistryRequestOptions): Promise<{ created: boolean }>;
 
   /**
    * Copy an attachment blob into `targetRepo` and RE-LINK its subject to
@@ -113,16 +117,17 @@ export interface RegistryAdapter {
     source: { repo: string; attachment: OciAttachment },
     targetRepo: string,
     newSubjectDigest: string,
+    options?: RegistryRequestOptions,
   ): Promise<{ attachment: OciAttachment; created: boolean }>;
 
   /** Delete one attachment manifest created by this attempt. */
-  deleteReferrer(repo: string, digest: string): Promise<void>;
+  deleteReferrer(repo: string, digest: string, options?: RegistryRequestOptions): Promise<void>;
 
   /** Delete the image manifest created by this attempt. */
-  deleteImage(repo: string, digest: string): Promise<void>;
+  deleteImage(repo: string, digest: string, options?: RegistryRequestOptions): Promise<void>;
 
   /** Pin the verified digest under an immutable cleanup-policy retention tag. */
-  pinImage(repo: string, digest: string, tag: string): Promise<{ created: boolean }>;
+  pinImage(repo: string, digest: string, tag: string, options?: RegistryRequestOptions): Promise<{ created: boolean }>;
 }
 
 export const DEFAULT_REQUIRED_ATTESTATIONS: AttestationKind[] = ['signature', 'sbom', 'provenance'];
@@ -284,6 +289,7 @@ export async function promoteArtifact(input: {
   ) => boolean | BinaryAuthorizationGateResult | Promise<boolean | BinaryAuthorizationGateResult>;
 }): Promise<PromotionResult> {
   const assertActive = () => input.signal?.throwIfAborted();
+  const requestOptions = input.signal ? { signal: input.signal } : undefined;
   assertActive();
   const required = input.required ?? DEFAULT_REQUIRED_ATTESTATIONS;
   const { adapter, source } = input;
@@ -291,7 +297,7 @@ export async function promoteArtifact(input: {
   const preparedAt = new Date().toISOString();
 
   // 0. Source image must exist.
-  if (!(await adapter.imageExists(source.repo, source.digest))) {
+  if (!(await adapter.imageExists(source.repo, source.digest, requestOptions))) {
     throw new PromotionBlockedError(
       `Source image ${source.repo}@${source.digest} not found`,
       'PROMOTION_SOURCE_MISSING',
@@ -304,7 +310,7 @@ export async function promoteArtifact(input: {
    *    whose attestations are already incomplete at the source must never be
    *    promoted — it is unverifiable by construction.
    */
-  const sourceReferrers = await adapter.listReferrers(source.repo, source.digest);
+  const sourceReferrers = await adapter.listReferrers(source.repo, source.digest, requestOptions);
   assertActive();
   const missingAtSource = missingAttestations(sourceReferrers, required, source.digest);
 
@@ -316,7 +322,7 @@ export async function promoteArtifact(input: {
     );
   }
 
-  const targetExisted = await adapter.imageExists(target.repo, target.digest);
+  const targetExisted = await adapter.imageExists(target.repo, target.digest, requestOptions);
   assertActive();
 
   /*
@@ -324,7 +330,7 @@ export async function promoteArtifact(input: {
    * Snapshot them even when the subject manifest is absent so rollback never
    * deletes evidence that predates this attempt.
    */
-  const targetBefore = await adapter.listReferrers(target.repo, target.digest);
+  const targetBefore = await adapter.listReferrers(target.repo, target.digest, requestOptions);
   assertActive();
 
   const targetWasComplete =
@@ -371,11 +377,11 @@ export async function promoteArtifact(input: {
       );
     }
 
-    const finalReferrers = await adapter.listReferrers(target.repo, target.digest);
+    const finalReferrers = await adapter.listReferrers(target.repo, target.digest, requestOptions);
     assertActive();
 
     if (
-      !(await adapter.imageExists(target.repo, target.digest)) ||
+      !(await adapter.imageExists(target.repo, target.digest, requestOptions)) ||
       missingAttestations(finalReferrers, required, target.digest).length > 0 ||
       !targetContainsSourceEvidence(sourceReferrers, finalReferrers, target.digest)
     ) {
@@ -386,7 +392,7 @@ export async function promoteArtifact(input: {
     }
 
     const targetRetentionTag = retentionTag(source, target.repo, gateResult.policy, gateResult.policyEtag);
-    await adapter.pinImage(target.repo, target.digest, targetRetentionTag);
+    await adapter.pinImage(target.repo, target.digest, targetRetentionTag, requestOptions);
     assertActive();
 
     return {
@@ -420,7 +426,7 @@ export async function promoteArtifact(input: {
      */
     imageCreated = !targetExisted;
 
-    const imageReceipt = await adapter.copyImage(source, target.repo);
+    const imageReceipt = await adapter.copyImage(source, target.repo, requestOptions);
     assertActive();
 
     if (!imageReceipt.created) {
@@ -444,7 +450,12 @@ export async function promoteArtifact(input: {
         createdReferrers.push(attachment.digest);
       }
 
-      const copied = await adapter.copyAndRelinkReferrer({ repo: source.repo, attachment }, target.repo, target.digest);
+      const copied = await adapter.copyAndRelinkReferrer(
+        { repo: source.repo, attachment },
+        target.repo,
+        target.digest,
+        requestOptions,
+      );
       assertActive();
 
       if (!copied.created) {
@@ -461,7 +472,7 @@ export async function promoteArtifact(input: {
      *    every required kind is present AND its subjectDigest matches the target
      *    image digest. This catches a silent copy/relink failure.
      */
-    const targetReferrers = await adapter.listReferrers(target.repo, target.digest);
+    const targetReferrers = await adapter.listReferrers(target.repo, target.digest, requestOptions);
     assertActive();
     const missingAtTarget = missingAttestations(targetReferrers, required, target.digest);
 
@@ -517,12 +528,12 @@ export async function promoteArtifact(input: {
      * a concurrent cleanup/rewrite cannot turn stale pre-policy evidence into a
      * committed release proof.
      */
-    const finalReferrers = await adapter.listReferrers(target.repo, target.digest);
+    const finalReferrers = await adapter.listReferrers(target.repo, target.digest, requestOptions);
     assertActive();
     const missingAtCommit = missingAttestations(finalReferrers, required, target.digest);
 
     if (
-      !(await adapter.imageExists(target.repo, target.digest)) ||
+      !(await adapter.imageExists(target.repo, target.digest, requestOptions)) ||
       missingAtCommit.length > 0 ||
       !targetContainsSourceEvidence(sourceReferrers, finalReferrers, target.digest)
     ) {
@@ -534,7 +545,7 @@ export async function promoteArtifact(input: {
     }
 
     const targetRetentionTag = retentionTag(source, target.repo, gateResult.policy, gateResult.policyEtag);
-    await adapter.pinImage(target.repo, target.digest, targetRetentionTag);
+    await adapter.pinImage(target.repo, target.digest, targetRetentionTag, requestOptions);
     assertActive();
 
     return {
@@ -560,14 +571,31 @@ export async function promoteArtifact(input: {
      */
     const rollbackErrors: unknown[] = [];
 
+    /* Losing the durable registry fence makes every further mutation unsafe,
+     * including compensation. Leave the partial graph for verify-first
+     * operator recovery; a stale owner must never delete a winner's objects. */
+    assertActive();
+
     for (const digest of [...new Set(createdReferrers)].reverse()) {
-      await adapter.deleteReferrer(target.repo, digest).catch((rollbackError) => rollbackErrors.push(rollbackError));
+      assertActive();
+      try {
+        await adapter.deleteReferrer(target.repo, digest, requestOptions);
+      } catch (rollbackError) {
+        assertActive();
+        rollbackErrors.push(rollbackError);
+      }
+      assertActive();
     }
 
     if (imageCreated) {
-      await adapter
-        .deleteImage(target.repo, target.digest)
-        .catch((rollbackError) => rollbackErrors.push(rollbackError));
+      assertActive();
+      try {
+        await adapter.deleteImage(target.repo, target.digest, requestOptions);
+      } catch (rollbackError) {
+        assertActive();
+        rollbackErrors.push(rollbackError);
+      }
+      assertActive();
     }
 
     if (rollbackErrors.length > 0) {

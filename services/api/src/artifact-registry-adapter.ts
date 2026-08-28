@@ -2,7 +2,13 @@ import { createHash } from 'node:crypto';
 
 import { GoogleAuth, type AuthClient } from 'google-auth-library';
 
-import type { AttestationKind, OciAttachment, RegistryAdapter, RegistryRef } from './artifact-promotion.js';
+import type {
+  AttestationKind,
+  OciAttachment,
+  RegistryAdapter,
+  RegistryRef,
+  RegistryRequestOptions,
+} from './artifact-promotion.js';
 
 const DIGEST_RE = /^sha256:[a-f0-9]{64}$/u;
 const AR_HOST_RE = /^(?<location>[a-z][a-z0-9-]{0,62})-docker\.pkg\.dev$/u;
@@ -520,8 +526,8 @@ export class ArtifactRegistryOciAdapter implements RegistryAdapter {
   }
 
   /** Public exact-manifest lookup used by permanent-erasure verification. */
-  async manifestExists(repo: string, digest: string): Promise<boolean> {
-    return this.#manifestExists(parseArtifactRegistryImageRepository(repo), assertSha256Digest(digest));
+  async manifestExists(repo: string, digest: string, options?: RegistryRequestOptions): Promise<boolean> {
+    return this.#manifestExists(parseArtifactRegistryImageRepository(repo), assertSha256Digest(digest), options);
   }
 
   /**
@@ -529,11 +535,11 @@ export class ArtifactRegistryOciAdapter implements RegistryAdapter {
    * control plane. Pagination is exhaustive and cycle-checked; response bodies
    * remain bounded per page so a compromised provider cannot exhaust the API.
    */
-  async snapshotPackage(repo: string): Promise<ArtifactRegistryPackageSnapshot> {
+  async snapshotPackage(repo: string, options?: RegistryRequestOptions): Promise<ArtifactRegistryPackageSnapshot> {
     const parsed = parseArtifactRegistryImageRepository(repo);
     const packageName = this.#packageResourceName(parsed);
     const packageUrl = this.#controlPlaneUrl(packageName);
-    const packageResponse = await this.#request(packageUrl);
+    const packageResponse = await this.#request(packageUrl, {}, options);
 
     if (packageResponse.status === 404) {
       return { repository: repo, exists: false, versions: [], tags: [] };
@@ -563,7 +569,7 @@ export class ArtifactRegistryOciAdapter implements RegistryAdapter {
         url.searchParams.set('pageToken', versionToken);
       }
 
-      const response = await this.#request(url);
+      const response = await this.#request(url, {}, options);
       this.#assertOk(response, 'REGISTRY_VERSION_LIST_FAILED');
 
       const body = await this.#readControlPlaneObject(response, 'REGISTRY_VERSION_LIST_INVALID');
@@ -597,7 +603,7 @@ export class ArtifactRegistryOciAdapter implements RegistryAdapter {
         url.searchParams.set('pageToken', tagToken);
       }
 
-      const response = await this.#request(url);
+      const response = await this.#request(url, {}, options);
       this.#assertOk(response, 'REGISTRY_TAG_LIST_FAILED');
 
       const body = await this.#readControlPlaneObject(response, 'REGISTRY_TAG_LIST_INVALID');
@@ -643,9 +649,9 @@ export class ArtifactRegistryOciAdapter implements RegistryAdapter {
     };
   }
 
-  async packageExists(repo: string): Promise<boolean> {
+  async packageExists(repo: string, options?: RegistryRequestOptions): Promise<boolean> {
     const parsed = parseArtifactRegistryImageRepository(repo);
-    const response = await this.#request(this.#controlPlaneUrl(this.#packageResourceName(parsed)));
+    const response = await this.#request(this.#controlPlaneUrl(this.#packageResourceName(parsed)), {}, options);
 
     if (response.status === 404) {
       return false;
@@ -657,11 +663,13 @@ export class ArtifactRegistryOciAdapter implements RegistryAdapter {
     return true;
   }
 
-  async tagExists(repo: string, tag: string): Promise<boolean> {
+  async tagExists(repo: string, tag: string, options?: RegistryRequestOptions): Promise<boolean> {
     const parsed = parseArtifactRegistryImageRepository(repo);
 
     const response = await this.#request(
       this.#controlPlaneUrl(`${this.#packageResourceName(parsed)}/tags/${this.#encodedTag(tag)}`),
+      {},
+      options,
     );
 
     if (response.status === 404) {
@@ -674,12 +682,13 @@ export class ArtifactRegistryOciAdapter implements RegistryAdapter {
     return true;
   }
 
-  async deleteTag(repo: string, tag: string): Promise<void> {
+  async deleteTag(repo: string, tag: string, options?: RegistryRequestOptions): Promise<void> {
     const parsed = parseArtifactRegistryImageRepository(repo);
 
     const response = await this.#request(
       this.#controlPlaneUrl(`${this.#packageResourceName(parsed)}/tags/${this.#encodedTag(tag)}`),
       { method: 'DELETE' },
+      options,
     );
 
     if (response.status === 404) {
@@ -690,14 +699,14 @@ export class ArtifactRegistryOciAdapter implements RegistryAdapter {
     await response.body?.cancel().catch(() => undefined);
   }
 
-  async deleteVersion(repo: string, digest: string): Promise<void> {
+  async deleteVersion(repo: string, digest: string, options?: RegistryRequestOptions): Promise<void> {
     const parsed = parseArtifactRegistryImageRepository(repo);
 
     const versionUrl = this.#controlPlaneUrl(
       `${this.#packageResourceName(parsed)}/versions/${encodeURIComponent(assertSha256Digest(digest))}`,
     );
 
-    const response = await this.#request(versionUrl, { method: 'DELETE' });
+    const response = await this.#request(versionUrl, { method: 'DELETE' }, options);
 
     if (response.status === 404) {
       return;
@@ -705,19 +714,19 @@ export class ArtifactRegistryOciAdapter implements RegistryAdapter {
 
     if (response.status === 409) {
       await response.body?.cancel().catch(() => undefined);
-      await this.#waitUntilAbsent(versionUrl, 'REGISTRY_VERSION_DELETE_UNVERIFIED');
+      await this.#waitUntilAbsent(versionUrl, 'REGISTRY_VERSION_DELETE_UNVERIFIED', options);
 
       return;
     }
 
     this.#assertOk(response, 'REGISTRY_VERSION_DELETE_FAILED');
-    await this.#waitForOperation(response, 'REGISTRY_VERSION_DELETE_FAILED');
+    await this.#waitForOperation(response, 'REGISTRY_VERSION_DELETE_FAILED', options);
   }
 
-  async deletePackage(repo: string): Promise<void> {
+  async deletePackage(repo: string, options?: RegistryRequestOptions): Promise<void> {
     const parsed = parseArtifactRegistryImageRepository(repo);
     const packageUrl = this.#controlPlaneUrl(this.#packageResourceName(parsed));
-    const response = await this.#request(packageUrl, { method: 'DELETE' });
+    const response = await this.#request(packageUrl, { method: 'DELETE' }, options);
 
     if (response.status === 404) {
       return;
@@ -725,22 +734,26 @@ export class ArtifactRegistryOciAdapter implements RegistryAdapter {
 
     if (response.status === 409) {
       await response.body?.cancel().catch(() => undefined);
-      await this.#waitUntilAbsent(packageUrl, 'REGISTRY_PACKAGE_DELETE_UNVERIFIED');
+      await this.#waitUntilAbsent(packageUrl, 'REGISTRY_PACKAGE_DELETE_UNVERIFIED', options);
 
       return;
     }
 
     this.#assertOk(response, 'REGISTRY_PACKAGE_DELETE_FAILED');
-    await this.#waitForOperation(response, 'REGISTRY_PACKAGE_DELETE_FAILED');
+    await this.#waitForOperation(response, 'REGISTRY_PACKAGE_DELETE_FAILED', options);
   }
 
-  async imageExists(repo: string, digest: string): Promise<boolean> {
+  async imageExists(repo: string, digest: string, options?: RegistryRequestOptions): Promise<boolean> {
     const parsed = parseArtifactRegistryImageRepository(repo);
 
-    const response = await this.#request(this.#url(parsed, `manifests/${assertSha256Digest(digest)}`), {
-      method: 'HEAD',
-      headers: { accept: MANIFEST_ACCEPT },
-    });
+    const response = await this.#request(
+      this.#url(parsed, `manifests/${assertSha256Digest(digest)}`),
+      {
+        method: 'HEAD',
+        headers: { accept: MANIFEST_ACCEPT },
+      },
+      options,
+    );
 
     if (response.status === 404) {
       return false;
@@ -751,7 +764,7 @@ export class ArtifactRegistryOciAdapter implements RegistryAdapter {
     return true;
   }
 
-  async listReferrers(repo: string, digest: string): Promise<OciAttachment[]> {
+  async listReferrers(repo: string, digest: string, options?: RegistryRequestOptions): Promise<OciAttachment[]> {
     const parsed = parseArtifactRegistryImageRepository(repo);
     const subjectDigest = assertSha256Digest(digest);
     const descriptors: OciDescriptor[] = [];
@@ -769,7 +782,11 @@ export class ArtifactRegistryOciAdapter implements RegistryAdapter {
 
       pages.add(next.href);
 
-      const response = await this.#request(next, { headers: { accept: 'application/vnd.oci.image.index.v1+json' } });
+      const response = await this.#request(
+        next,
+        { headers: { accept: 'application/vnd.oci.image.index.v1+json' } },
+        options,
+      );
 
       if (response.status === 404) {
         return [];
@@ -813,7 +830,7 @@ export class ArtifactRegistryOciAdapter implements RegistryAdapter {
 
       seen.add(attachmentDigest);
 
-      const manifest = await this.#readManifest(parsed, attachmentDigest);
+      const manifest = await this.#readManifest(parsed, attachmentDigest, options);
       const actualSubject = assertSha256Digest(manifest.value.subject?.digest ?? '');
       const artifactType = descriptor.artifactType ?? manifest.value.artifactType;
 
@@ -837,7 +854,7 @@ export class ArtifactRegistryOciAdapter implements RegistryAdapter {
       let remainingEvidenceBytes = MAX_EVIDENCE_BYTES;
 
       for (const payloadDigest of payloadDigests) {
-        const payload = await this.#readBlobBytes(parsed, payloadDigest, remainingEvidenceBytes);
+        const payload = await this.#readBlobBytes(parsed, payloadDigest, remainingEvidenceBytes, options);
         payloads.push(payload);
         remainingEvidenceBytes -= payload.byteLength;
       }
@@ -862,21 +879,25 @@ export class ArtifactRegistryOciAdapter implements RegistryAdapter {
     return attachments;
   }
 
-  async copyImage(source: RegistryRef, targetRepo: string): Promise<{ created: boolean }> {
+  async copyImage(
+    source: RegistryRef,
+    targetRepo: string,
+    options?: RegistryRequestOptions,
+  ): Promise<{ created: boolean }> {
     const sourceRepo = parseArtifactRegistryImageRepository(source.repo);
     const target = parseArtifactRegistryImageRepository(targetRepo);
     const digest = assertSha256Digest(source.digest);
-    const existed = await this.imageExists(targetRepo, digest);
+    const existed = await this.imageExists(targetRepo, digest, options);
 
     if (!existed) {
-      await this.#copyManifestGraph(sourceRepo, target, digest, new Set());
+      await this.#copyManifestGraph(sourceRepo, target, digest, new Set(), options);
     }
 
     /*
      * Verify after PUT; a 2xx response is not sufficient evidence that the
      * target can be pulled in the target repository context.
      */
-    if (!(await this.imageExists(targetRepo, digest))) {
+    if (!(await this.imageExists(targetRepo, digest, options))) {
       throw new ArtifactRegistryError('REGISTRY_IMAGE_COPY_UNVERIFIED', 'Copied OCI image is not readable at target.');
     }
 
@@ -887,12 +908,13 @@ export class ArtifactRegistryOciAdapter implements RegistryAdapter {
     source: { repo: string; attachment: OciAttachment },
     targetRepo: string,
     newSubjectDigest: string,
+    options?: RegistryRequestOptions,
   ): Promise<{ attachment: OciAttachment; created: boolean }> {
     const sourceRepo = parseArtifactRegistryImageRepository(source.repo);
     const target = parseArtifactRegistryImageRepository(targetRepo);
     const attachmentDigest = assertSha256Digest(source.attachment.digest);
     const subjectDigest = assertSha256Digest(newSubjectDigest);
-    const document = await this.#readManifest(sourceRepo, attachmentDigest);
+    const document = await this.#readManifest(sourceRepo, attachmentDigest, options);
     const sourceSubject = assertSha256Digest(document.value.subject?.digest ?? '');
 
     /*
@@ -908,13 +930,13 @@ export class ArtifactRegistryOciAdapter implements RegistryAdapter {
       );
     }
 
-    const existed = await this.#manifestExists(target, attachmentDigest);
+    const existed = await this.#manifestExists(target, attachmentDigest, options);
 
     if (!existed) {
-      await this.#copyManifestGraph(sourceRepo, target, attachmentDigest, new Set());
+      await this.#copyManifestGraph(sourceRepo, target, attachmentDigest, new Set(), options);
     }
 
-    const verified = (await this.listReferrers(targetRepo, subjectDigest)).find(
+    const verified = (await this.listReferrers(targetRepo, subjectDigest, options)).find(
       (attachment) => attachment.digest === attachmentDigest && attachment.subjectDigest === subjectDigest,
     );
 
@@ -928,15 +950,20 @@ export class ArtifactRegistryOciAdapter implements RegistryAdapter {
     return { attachment: verified, created: !existed };
   }
 
-  async deleteReferrer(repo: string, digest: string): Promise<void> {
-    await this.#deleteManifest(parseArtifactRegistryImageRepository(repo), assertSha256Digest(digest));
+  async deleteReferrer(repo: string, digest: string, options?: RegistryRequestOptions): Promise<void> {
+    await this.#deleteManifest(parseArtifactRegistryImageRepository(repo), assertSha256Digest(digest), options);
   }
 
-  async deleteImage(repo: string, digest: string): Promise<void> {
-    await this.#deleteManifest(parseArtifactRegistryImageRepository(repo), assertSha256Digest(digest));
+  async deleteImage(repo: string, digest: string, options?: RegistryRequestOptions): Promise<void> {
+    await this.#deleteManifest(parseArtifactRegistryImageRepository(repo), assertSha256Digest(digest), options);
   }
 
-  async pinImage(repo: string, digest: string, tag: string): Promise<{ created: boolean }> {
+  async pinImage(
+    repo: string,
+    digest: string,
+    tag: string,
+    options?: RegistryRequestOptions,
+  ): Promise<{ created: boolean }> {
     const target = parseArtifactRegistryImageRepository(repo);
     const expectedDigest = assertSha256Digest(digest);
 
@@ -945,7 +972,7 @@ export class ArtifactRegistryOciAdapter implements RegistryAdapter {
     }
 
     const tagUrl = this.#url(target, `manifests/${tag}`);
-    const existing = await this.#request(tagUrl, { headers: { accept: MANIFEST_ACCEPT } });
+    const existing = await this.#request(tagUrl, { headers: { accept: MANIFEST_ACCEPT } }, options);
 
     if (existing.ok) {
       const existingBytes = await this.#readBoundedResponseBytes(
@@ -971,16 +998,20 @@ export class ArtifactRegistryOciAdapter implements RegistryAdapter {
       this.#assertOk(existing, 'REGISTRY_RETENTION_TAG_LOOKUP_FAILED');
     }
 
-    const document = await this.#readManifest(target, expectedDigest);
+    const document = await this.#readManifest(target, expectedDigest, options);
 
-    const pinned = await this.#request(tagUrl, {
-      method: 'PUT',
-      headers: { 'content-type': document.contentType },
-      body: document.bytes,
-    });
+    const pinned = await this.#request(
+      tagUrl,
+      {
+        method: 'PUT',
+        headers: { 'content-type': document.contentType },
+        body: document.bytes,
+      },
+      options,
+    );
     this.#assertOk(pinned, 'REGISTRY_RETENTION_TAG_WRITE_FAILED');
 
-    const verified = await this.#request(tagUrl, { headers: { accept: MANIFEST_ACCEPT } });
+    const verified = await this.#request(tagUrl, { headers: { accept: MANIFEST_ACCEPT } }, options);
     this.#assertOk(verified, 'REGISTRY_RETENTION_TAG_UNVERIFIED');
 
     const verifiedBytes = await this.#readBoundedResponseBytes(
@@ -999,8 +1030,12 @@ export class ArtifactRegistryOciAdapter implements RegistryAdapter {
     return { created: true };
   }
 
-  async #deleteManifest(repo: ArtifactRegistryRepository, digest: string): Promise<void> {
-    const response = await this.#request(this.#url(repo, `manifests/${digest}`), { method: 'DELETE' });
+  async #deleteManifest(
+    repo: ArtifactRegistryRepository,
+    digest: string,
+    options?: RegistryRequestOptions,
+  ): Promise<void> {
+    const response = await this.#request(this.#url(repo, `manifests/${digest}`), { method: 'DELETE' }, options);
 
     if (response.status === 404) {
       return;
@@ -1014,6 +1049,7 @@ export class ArtifactRegistryOciAdapter implements RegistryAdapter {
     target: ArtifactRegistryRepository,
     digest: string,
     visited: Set<string>,
+    options?: RegistryRequestOptions,
   ): Promise<void> {
     if (visited.has(digest)) {
       return;
@@ -1021,11 +1057,11 @@ export class ArtifactRegistryOciAdapter implements RegistryAdapter {
 
     visited.add(digest);
 
-    if (await this.#manifestExists(target, digest)) {
+    if (await this.#manifestExists(target, digest, options)) {
       return;
     }
 
-    const document = await this.#readManifest(source, digest);
+    const document = await this.#readManifest(source, digest, options);
 
     const blobDescriptors = [
       document.value.config,
@@ -1034,18 +1070,22 @@ export class ArtifactRegistryOciAdapter implements RegistryAdapter {
     ].filter((descriptor): descriptor is OciDescriptor => Boolean(descriptor?.digest));
 
     for (const descriptor of blobDescriptors) {
-      await this.#copyBlob(source, target, assertSha256Digest(descriptor.digest ?? ''));
+      await this.#copyBlob(source, target, assertSha256Digest(descriptor.digest ?? ''), options);
     }
 
     for (const child of document.value.manifests ?? []) {
-      await this.#copyManifestGraph(source, target, assertSha256Digest(child.digest ?? ''), visited);
+      await this.#copyManifestGraph(source, target, assertSha256Digest(child.digest ?? ''), visited, options);
     }
 
-    const response = await this.#request(this.#url(target, `manifests/${digest}`), {
-      method: 'PUT',
-      headers: { 'content-type': document.contentType },
-      body: document.bytes,
-    });
+    const response = await this.#request(
+      this.#url(target, `manifests/${digest}`),
+      {
+        method: 'PUT',
+        headers: { 'content-type': document.contentType },
+        body: document.bytes,
+      },
+      options,
+    );
     this.#assertOk(response, 'REGISTRY_MANIFEST_COPY_FAILED');
   }
 
@@ -1053,9 +1093,10 @@ export class ArtifactRegistryOciAdapter implements RegistryAdapter {
     source: ArtifactRegistryRepository,
     target: ArtifactRegistryRepository,
     digest: string,
+    options?: RegistryRequestOptions,
   ): Promise<void> {
     const targetUrl = this.#url(target, `blobs/${digest}`);
-    const exists = await this.#request(targetUrl, { method: 'HEAD' });
+    const exists = await this.#request(targetUrl, { method: 'HEAD' }, options);
 
     if (exists.ok) {
       return;
@@ -1065,7 +1106,7 @@ export class ArtifactRegistryOciAdapter implements RegistryAdapter {
       this.#assertOk(exists, 'REGISTRY_BLOB_LOOKUP_FAILED');
     }
 
-    const begun = await this.#request(this.#url(target, 'blobs/uploads/'), { method: 'POST' });
+    const begun = await this.#request(this.#url(target, 'blobs/uploads/'), { method: 'POST' }, options);
     this.#assertOk(begun, 'REGISTRY_BLOB_UPLOAD_START_FAILED');
 
     const location = begun.headers.get('location');
@@ -1088,7 +1129,7 @@ export class ArtifactRegistryOciAdapter implements RegistryAdapter {
 
     upload.searchParams.set('digest', digest);
 
-    const sourceResponse = await this.#request(this.#url(source, `blobs/${digest}`));
+    const sourceResponse = await this.#request(this.#url(source, `blobs/${digest}`), {}, options);
     this.#assertOk(sourceResponse, 'REGISTRY_BLOB_READ_FAILED');
 
     if (!sourceResponse.body) {
@@ -1126,6 +1167,7 @@ export class ArtifactRegistryOciAdapter implements RegistryAdapter {
         // Required by Node's fetch implementation for a streaming request body.
         duplex: 'half',
       } as RequestInit & { duplex: 'half' },
+      options,
       1,
     );
     this.#assertOk(completed, 'REGISTRY_BLOB_UPLOAD_FAILED');
@@ -1135,10 +1177,18 @@ export class ArtifactRegistryOciAdapter implements RegistryAdapter {
     }
   }
 
-  async #readManifest(repo: ArtifactRegistryRepository, digest: string): Promise<ManifestDocument> {
-    const response = await this.#request(this.#url(repo, `manifests/${assertSha256Digest(digest)}`), {
-      headers: { accept: MANIFEST_ACCEPT },
-    });
+  async #readManifest(
+    repo: ArtifactRegistryRepository,
+    digest: string,
+    options?: RegistryRequestOptions,
+  ): Promise<ManifestDocument> {
+    const response = await this.#request(
+      this.#url(repo, `manifests/${assertSha256Digest(digest)}`),
+      {
+        headers: { accept: MANIFEST_ACCEPT },
+      },
+      options,
+    );
     this.#assertOk(response, 'REGISTRY_MANIFEST_READ_FAILED');
 
     const bytes = await this.#readBoundedResponseBytes(
@@ -1173,11 +1223,19 @@ export class ArtifactRegistryOciAdapter implements RegistryAdapter {
     };
   }
 
-  async #manifestExists(repo: ArtifactRegistryRepository, digest: string): Promise<boolean> {
-    const response = await this.#request(this.#url(repo, `manifests/${digest}`), {
-      method: 'HEAD',
-      headers: { accept: MANIFEST_ACCEPT },
-    });
+  async #manifestExists(
+    repo: ArtifactRegistryRepository,
+    digest: string,
+    options?: RegistryRequestOptions,
+  ): Promise<boolean> {
+    const response = await this.#request(
+      this.#url(repo, `manifests/${digest}`),
+      {
+        method: 'HEAD',
+        headers: { accept: MANIFEST_ACCEPT },
+      },
+      options,
+    );
 
     if (response.status === 404) {
       return false;
@@ -1188,8 +1246,13 @@ export class ArtifactRegistryOciAdapter implements RegistryAdapter {
     return true;
   }
 
-  async #readBlobBytes(repo: ArtifactRegistryRepository, digest: string, maxBytes: number): Promise<Buffer> {
-    const response = await this.#request(this.#url(repo, `blobs/${assertSha256Digest(digest)}`));
+  async #readBlobBytes(
+    repo: ArtifactRegistryRepository,
+    digest: string,
+    maxBytes: number,
+    options?: RegistryRequestOptions,
+  ): Promise<Buffer> {
+    const response = await this.#request(this.#url(repo, `blobs/${assertSha256Digest(digest)}`), {}, options);
     this.#assertOk(response, 'REGISTRY_REFERRER_PAYLOAD_MISSING');
 
     const bytes = await this.#readBoundedResponseBytes(
@@ -1371,7 +1434,7 @@ export class ArtifactRegistryOciAdapter implements RegistryAdapter {
     return value;
   }
 
-  async #waitForOperation(response: Response, code: string): Promise<void> {
+  async #waitForOperation(response: Response, code: string, options?: RegistryRequestOptions): Promise<void> {
     let operation = await this.#readControlPlaneObject(response, code);
 
     for (let poll = 0; poll < this.#maxOperationPolls; poll += 1) {
@@ -1389,9 +1452,9 @@ export class ArtifactRegistryOciAdapter implements RegistryAdapter {
         throw new ArtifactRegistryError(code, 'Artifact Registry deletion operation is malformed.');
       }
 
-      await this.#sleep(Math.min(100 * 2 ** Math.min(poll, 5), 2_000));
+      await this.#sleepWithSignal(Math.min(100 * 2 ** Math.min(poll, 5), 2_000), options?.signal);
 
-      const polled = await this.#request(this.#controlPlaneUrl(name));
+      const polled = await this.#request(this.#controlPlaneUrl(name), {}, options);
       this.#assertOk(polled, code);
       operation = await this.#readControlPlaneObject(polled, code);
     }
@@ -1399,9 +1462,9 @@ export class ArtifactRegistryOciAdapter implements RegistryAdapter {
     throw new ArtifactRegistryError(code, 'Artifact Registry deletion operation did not complete in time.');
   }
 
-  async #waitUntilAbsent(url: URL, code: string): Promise<void> {
+  async #waitUntilAbsent(url: URL, code: string, options?: RegistryRequestOptions): Promise<void> {
     for (let poll = 0; poll < this.#maxOperationPolls; poll += 1) {
-      const response = await this.#request(url);
+      const response = await this.#request(url, {}, options);
 
       if (response.status === 404) {
         return;
@@ -1409,7 +1472,7 @@ export class ArtifactRegistryOciAdapter implements RegistryAdapter {
 
       this.#assertOk(response, code);
       await response.body?.cancel().catch(() => undefined);
-      await this.#sleep(Math.min(100 * 2 ** Math.min(poll, 5), 2_000));
+      await this.#sleepWithSignal(Math.min(100 * 2 ** Math.min(poll, 5), 2_000), options?.signal);
     }
 
     throw new ArtifactRegistryError(code, 'Artifact Registry deletion could not be verified.');
@@ -1436,18 +1499,102 @@ export class ArtifactRegistryOciAdapter implements RegistryAdapter {
     return next;
   }
 
-  async #request(url: URL, init: RequestInit = {}, maxAttempts = this.#maxAttempts): Promise<Response> {
+  async #sleepWithSignal(ms: number, signal?: AbortSignal): Promise<void> {
+    signal?.throwIfAborted();
+    if (!signal) {
+      await this.#sleep(ms);
+      return;
+    }
+    await new Promise<void>((resolve, reject) => {
+      let settled = false;
+      const aborted = () => {
+        if (settled) return;
+        settled = true;
+        signal.removeEventListener('abort', aborted);
+        reject(signal.reason);
+      };
+      signal.addEventListener('abort', aborted, { once: true });
+      if (signal.aborted) {
+        aborted();
+        return;
+      }
+      void this.#sleep(ms).then(
+        () => {
+          if (settled) return;
+          settled = true;
+          signal.removeEventListener('abort', aborted);
+          resolve();
+        },
+        (error) => {
+          if (settled) return;
+          settled = true;
+          signal.removeEventListener('abort', aborted);
+          reject(error);
+        },
+      );
+    });
+  }
+
+  async #awaitWithSignal<T>(effect: Promise<T>, signal?: AbortSignal): Promise<T> {
+    signal?.throwIfAborted();
+    if (!signal) return effect;
+
+    return new Promise<T>((resolve, reject) => {
+      let settled = false;
+      const aborted = () => {
+        if (settled) return;
+        settled = true;
+        signal.removeEventListener('abort', aborted);
+        reject(signal.reason);
+      };
+      signal.addEventListener('abort', aborted, { once: true });
+      if (signal.aborted) {
+        aborted();
+        return;
+      }
+      void effect.then(
+        (value) => {
+          if (settled) return;
+          settled = true;
+          signal.removeEventListener('abort', aborted);
+          resolve(value);
+        },
+        (error) => {
+          if (settled) return;
+          settled = true;
+          signal.removeEventListener('abort', aborted);
+          reject(error);
+        },
+      );
+    });
+  }
+
+  async #request(
+    url: URL,
+    init: RequestInit = {},
+    options?: RegistryRequestOptions,
+    maxAttempts = this.#maxAttempts,
+  ): Promise<Response> {
     let lastError: unknown;
 
     for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+      options?.signal?.throwIfAborted();
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), this.#requestTimeoutMs);
+      const abortFromAuthority = () => controller.abort(options?.signal?.reason);
+      if (options?.signal && !options.signal.aborted) {
+        options.signal.addEventListener('abort', abortFromAuthority, { once: true });
+      }
+      const timeout = setTimeout(() => {
+        controller.abort(new Error('REGISTRY_REQUEST_TIMEOUT'));
+        options?.signal?.removeEventListener('abort', abortFromAuthority);
+      }, this.#requestTimeoutMs);
       timeout.unref();
 
       let responseReturned = false;
 
       try {
-        const token = await this.#tokenProvider.getAccessToken();
+        const token = await this.#awaitWithSignal(this.#tokenProvider.getAccessToken(), options?.signal);
+        options?.signal?.throwIfAborted();
         const headers = new Headers(init.headers);
         headers.set('authorization', `Bearer ${token}`);
 
@@ -1503,7 +1650,7 @@ export class ArtifactRegistryOciAdapter implements RegistryAdapter {
 
         if ((response.status === 401 || TRANSIENT_STATUS.has(response.status)) && attempt < maxAttempts) {
           await response.arrayBuffer().catch(() => undefined);
-          await this.#sleep(Math.min(100 * 2 ** (attempt - 1), 1_000));
+          await this.#sleepWithSignal(Math.min(100 * 2 ** (attempt - 1), 1_000), options?.signal);
           continue;
         }
 
@@ -1512,12 +1659,13 @@ export class ArtifactRegistryOciAdapter implements RegistryAdapter {
         return response;
       } catch (error) {
         lastError = error;
+        options?.signal?.throwIfAborted();
 
         if (attempt >= maxAttempts) {
           break;
         }
 
-        await this.#sleep(Math.min(100 * 2 ** (attempt - 1), 1_000));
+        await this.#sleepWithSignal(Math.min(100 * 2 ** (attempt - 1), 1_000), options?.signal);
       } finally {
         /*
          * Keep the abort deadline alive while the caller consumes a response
@@ -1527,6 +1675,7 @@ export class ArtifactRegistryOciAdapter implements RegistryAdapter {
          */
         if (!responseReturned) {
           clearTimeout(timeout);
+          options?.signal?.removeEventListener('abort', abortFromAuthority);
         }
       }
     }

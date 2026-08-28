@@ -218,14 +218,18 @@ never cuts a release from an unpromoted image.
    `vibecore-prod-artifact-promotion-config-json` containing the strictly
    validated source/tenant repository and policy map. Then add
    `ARTIFACT_PROMOTION_CONFIG_JSON` to the sync map above.
-4. Deploy through the production workflow. `values-prod.yaml` and the
-   `--reuse-values` workflow pin both full service-account resources; Helm
-   refuses `serverDeploySnapshotImage=1` if either identity, KMS key, source
-   repo or API Workload Identity is empty. The builder and signer bindings are
+4. Deploy the identities through the production workflow while
+   `serverDeploySnapshotImage=0` remains reasserted. `values-prod.yaml` and the
+   `--reuse-values` workflow deliberately keep publication off; Terraform must
+   complete before any activation change. Helm refuses a later
+   `serverDeploySnapshotImage=1` if either identity, KMS key, source repo or API
+   Workload Identity is empty. The builder and signer bindings are
    source-repository-only; Terraform rejects an accidental tenant-target grant.
-   Verify a real build produces the image signature, signed SPDX attestation
-   and Cloud Build provenance against one immutable digest before enabling
-   another tenant.
+5. Run a controlled signed-image canary and retain its provider, signature,
+   SPDX and provenance evidence against one immutable digest. Only then make an
+   audited code review that changes both the production value and workflow
+   interlock to `1`; never use a one-off Helm override, because the next
+   `--reuse-values` deploy intentionally forces the reviewed fail-closed value.
 
 As of the repository audit on 2026-08-26, the production source repo and KMS
 key exist, but the promotion Secret and platform policies do not; activation

@@ -1054,43 +1054,67 @@ export interface RegistryMutationGuard {
   readonly signal: AbortSignal;
   readonly ownerToken: string;
   readonly fencingToken: bigint;
+  readonly attemptNumber: bigint;
+  readonly attemptId: string;
   readonly backendPid: number;
   assertActive(): Promise<void>;
   recordProviderOperationId(providerOperationId: string): Promise<void>;
   recordProviderEvidence(evidence: unknown): Promise<void>;
 }
 
-interface RegistryMutationRecoveryEvidenceBase {
-  schemaVersion: 'registry-mutation-recovery-v1';
+export interface RegistryMutationRetryGuard {
+  readonly signal: AbortSignal;
+  readonly attemptNumber: bigint;
+  readonly attemptId: string;
+  assertActive(): Promise<void>;
+}
+
+export interface RegistryMutationRecoveryObservation {
+  resolution: 'VERIFIED' | 'FAILED_SAFE' | 'MANUAL_RECOVERY';
+  providerEvidenceHash?: string;
+  observationWindowStartedAt: string;
+  observationWindowEndedAt: string;
+  providerQueries: Array<{
+    queriedAt: string;
+    providerOperationId?: string;
+    result: 'MATCHED_EFFECT' | 'ABSENT' | 'UNRESOLVED';
+  }>;
+}
+
+interface RegistryMutationRecoveryEvidenceBase extends RegistryMutationRecoveryObservation {
+  schemaVersion: 'registry-mutation-recovery-v2';
   operatorUserId: string;
-  auditEventId: string;
+  auditLogId: string;
   operationId: string;
   projectId: string;
   organizationId: string;
   intentHash: string;
-  observationWindowStartedAt: string;
-  observationWindowEndedAt: string;
+  attemptId: string;
+  attemptNumber: string;
+  fencingToken: string;
 }
 
 export type RegistryMutationRecoveryEvidence =
   | (RegistryMutationRecoveryEvidenceBase & {
       resolution: 'VERIFIED';
       providerEvidenceHash: string;
-      providerQueries: Array<{
-        queriedAt: string;
-        providerOperationId?: string;
-        result: 'MATCHED_EFFECT';
-      }>;
     })
   | (RegistryMutationRecoveryEvidenceBase & {
       resolution: 'FAILED_SAFE';
       providerEvidenceHash?: never;
-      providerQueries: Array<{
-        queriedAt: string;
-        providerOperationId?: string;
-        result: 'ABSENT';
-      }>;
+    })
+  | (RegistryMutationRecoveryEvidenceBase & {
+      resolution: 'MANUAL_RECOVERY';
+      providerEvidenceHash?: never;
     });
+
+export interface RegistryMutationRecoveryResult {
+  state: RegistryMutationRecoveryEvidence['resolution'];
+  operationId: string;
+  attemptId: string;
+  attemptNumber: string;
+  auditLogId: string;
+}
 
 export interface ProjectRegistryErasureAuthorityRecord {
   organizationId: string;
@@ -2284,7 +2308,11 @@ export interface ApiStore {
   withRegistryMutation<T>(
     intent: RegistryMutationIntent,
     effect: (guard: RegistryMutationGuard) => Promise<T>,
-    options?: { replayVerified(evidence: unknown): T | Promise<T> },
+    options?: {
+      replayVerified?(evidence: unknown): T | Promise<T>;
+      /** Required before reopening the same FAILED_SAFE project-erasure intent. */
+      verifyFailedSafeRetry?(guard: RegistryMutationRetryGuard): Promise<void>;
+    },
   ): Promise<T>;
 
   /** Commit the immutable Cloud Build intent under the current release fence. */
@@ -2358,12 +2386,13 @@ export interface ApiStore {
     promotionReferences: unknown;
     releaseFence: ProjectReleaseFence;
   }): Promise<void>;
-  /** Resolve an AMBIGUOUS registry effect only from an audited provider proof. */
+  /** Platform-operator recovery. Creates and links the immutable AuditLog row atomically. */
   resolveAmbiguousRegistryMutation(input: {
     operationId: string;
-    expectedOrganizationId: string;
-    evidence: RegistryMutationRecoveryEvidence;
-  }): Promise<void>;
+    operatorUserId: string;
+    ipAddress?: string;
+    observation: RegistryMutationRecoveryObservation;
+  }): Promise<RegistryMutationRecoveryResult>;
 
   /** Build producers retained for cancellation by the permanent-delete saga. */
   listProjectAppImageBuildsForDeletion(lease: ObjectStorageOperationLease): Promise<AppImageBuildOperationRecord[]>;

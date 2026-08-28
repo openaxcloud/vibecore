@@ -5,9 +5,11 @@ import {
   executeProjectRegistryErasure,
   type ProjectRegistryErasureProvider,
   type ProjectRegistryErasureReceipt,
+  validateProjectRegistryErasureReceipt,
+  verifyProjectRegistryErasureReplaySafety,
 } from './project-registry-erasure.js';
 import { registryMutationIntentHash } from './registry-mutation.js';
-import type { ApiStore, RegistryMutationGuard } from './store.js';
+import type { ApiStore, RegistryMutationGuard, RegistryMutationRetryGuard } from './store.js';
 
 export interface ProjectImageErasureSubreceipt extends ObjectStorageJsonObject {
   readonly schemaVersion: 1;
@@ -31,7 +33,7 @@ export interface ProjectImageErasureCoordinatorInput {
 
 function guardedRegistryProvider(
   provider: ProjectRegistryErasureProvider,
-  guard: RegistryMutationGuard,
+  guard: Pick<RegistryMutationGuard, 'signal' | 'assertActive'> | RegistryMutationRetryGuard,
   assertLease: () => Promise<void>,
 ): ProjectRegistryErasureProvider {
   const invoke = async <T>(effect: () => Promise<T>): Promise<T> => {
@@ -42,16 +44,17 @@ function guardedRegistryProvider(
     await assertLease();
     return result;
   };
+  const options = { signal: guard.signal };
   return {
-    snapshotPackage: (repo) => invoke(() => provider.snapshotPackage(repo)),
-    manifestExists: (repo, digest) => invoke(() => provider.manifestExists(repo, digest)),
-    listReferrers: (repo, digest) => invoke(() => provider.listReferrers(repo, digest)),
-    tagExists: (repo, tag) => invoke(() => provider.tagExists(repo, tag)),
-    deleteTag: (repo, tag) => invoke(() => provider.deleteTag(repo, tag)),
-    deleteReferrer: (repo, digest) => invoke(() => provider.deleteReferrer(repo, digest)),
-    deleteImage: (repo, digest) => invoke(() => provider.deleteImage(repo, digest)),
-    deleteVersion: (repo, digest) => invoke(() => provider.deleteVersion(repo, digest)),
-    deletePackage: (repo) => invoke(() => provider.deletePackage(repo)),
+    snapshotPackage: (repo) => invoke(() => provider.snapshotPackage(repo, options)),
+    manifestExists: (repo, digest) => invoke(() => provider.manifestExists(repo, digest, options)),
+    listReferrers: (repo, digest) => invoke(() => provider.listReferrers(repo, digest, options)),
+    tagExists: (repo, tag) => invoke(() => provider.tagExists(repo, tag, options)),
+    deleteTag: (repo, tag) => invoke(() => provider.deleteTag(repo, tag, options)),
+    deleteReferrer: (repo, digest) => invoke(() => provider.deleteReferrer(repo, digest, options)),
+    deleteImage: (repo, digest) => invoke(() => provider.deleteImage(repo, digest, options)),
+    deleteVersion: (repo, digest) => invoke(() => provider.deleteVersion(repo, digest, options)),
+    deletePackage: (repo) => invoke(() => provider.deletePackage(repo, options)),
   };
 }
 
@@ -151,10 +154,12 @@ export async function captureCancelAndSweepProjectImages(
     ) => store.countProjectRegistryReferencesOutsideProject(reference, excluded),
   };
   const repositories = prior ? prior.inventory.packages.map((pkg) => pkg.repository) : authority.projectPackages;
+  let retryInventory = prior?.inventory;
   const erase = async (guard?: RegistryMutationGuard): Promise<ProjectRegistryErasureReceipt> => {
     const activeProvider = guard ? guardedRegistryProvider(provider, guard, assertLease) : provider;
     const inventory =
       prior?.inventory ??
+      retryInventory ??
       (await captureProjectRegistryErasureInventory({
         projectId,
         projectPackages: authority.projectPackages,
@@ -206,11 +211,57 @@ export async function captureCancelAndSweepProjectImages(
               projectId,
               operationId: lease.operationId,
               repositories,
-              priorInventoryHash: prior?.inventory.inventoryHash ?? null,
               authority,
             }),
           },
           erase,
+          {
+            replayVerified: (evidence) => {
+              const inventory = prior?.inventory ?? retryInventory;
+              if (!inventory || !evidence || typeof evidence !== 'object') {
+                throw new Error('REGISTRY_ERASURE_REPLAY_EVIDENCE_INVALID');
+              }
+              validateProjectRegistryErasureReceipt(evidence as ProjectRegistryErasureReceipt, inventory);
+              return evidence as ProjectRegistryErasureReceipt;
+            },
+            verifyFailedSafeRetry: async (retryGuard) => {
+              const activeProvider = guardedRegistryProvider(provider, retryGuard, assertLease);
+              const inventory =
+                prior?.inventory ??
+                (await captureProjectRegistryErasureInventory({
+                  projectId,
+                  projectPackages: authority.projectPackages,
+                  sourceImages: authority.sourceImages,
+                  tenantImages: authority.tenantImages,
+                  releaseManifests: authority.releaseManifests,
+                  provider: activeProvider,
+                  referenceAuthority,
+                }));
+              if (prior) {
+                await verifyProjectRegistryErasureReplaySafety({
+                  inventory,
+                  provider: activeProvider,
+                  referenceAuthority,
+                  guard: {
+                    assertPreparedAndLease: async ({ projectId: guardedProjectId, inventoryHash }) => {
+                      await retryGuard.assertActive();
+                      await assertLease();
+                      const durable = await store.readProjectRegistryErasure(lease);
+                      if (
+                        !durable ||
+                        durable.inventory.projectId !== guardedProjectId ||
+                        durable.inventory.inventoryHash !== inventoryHash
+                      ) {
+                        throw new Error('REGISTRY_ERASURE_DURABLE_GUARD_LOST');
+                      }
+                    },
+                    withPackageFence: (_repository, effect) => effect(),
+                  },
+                });
+              }
+              retryInventory = inventory;
+            },
+          },
         );
   const terminal = await store.listProjectAppImageBuildsForDeletion(lease);
   if (terminal.some((row) => row.state.phase !== 'CANCELLED')) {
