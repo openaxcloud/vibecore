@@ -1100,6 +1100,32 @@ jobs:
       - name: Helm render test — password-activation interlock (blocking)
         run: node scripts/validate-helm-access-activation-flag.mjs
 
+      # RE-AUTHENTIFICATION avant la phase kubectl/helm.
+      #
+      # Les identifiants obtenus au début du job sont issus d'un échange WIF dont
+      # le jeton d'accès vit environ une heure. Entre-temps, ce job construit
+      # deux tiers d'images séquentiellement sur un seul worker Cloud Build : le
+      # 2026-08-28, la construction du tier runtime a duré 36 minutes à elle
+      # seule, et un `helm upgrade` a été refusé en plein vol avec
+      #
+      #     UPGRADE FAILED: … rolled back due to atomic being set:
+      #     the server has asked for the client to provide credentials
+      #     (get persistentvolumeclaims vibecore-shared-csi)
+      #
+      # `--atomic` a bien annulé, la production est restée saine — mais la
+      # livraison a été perdue et a dû être relancée à la main. Ce n'est pas un
+      # aléa : plus le build est lourd, plus l'expiration est certaine.
+      #
+      # Ré-échanger le jeton OIDC de GitHub (disponible pendant toute la durée
+      # du job) donne des identifiants frais juste avant les opérations qui en
+      # dépendent. `get-credentials` seul n'y suffit pas : il réécrit le
+      # kubeconfig, il ne renouvelle pas le jeton d'accès sous-jacent.
+      - name: Refresh Google Cloud credentials before the rollout
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_ARTIFACT_WRITER_SERVICE_ACCOUNT }}
+
       # kubectl through Connect Gateway: the cluster control plane is
       # IP-restricted, so direct `get-gke-credentials` won't reach it from a
       # GitHub-hosted runner. Connect Gateway routes kubectl through a
