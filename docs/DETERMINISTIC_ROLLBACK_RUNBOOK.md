@@ -11,12 +11,22 @@ calling the workspace manager.
 
 The runtime envelope pins tenant/project/project-manifest identity, billing plan
 and entitlement digest, access-policy version, machine key and rate-card
-version, CPU/memory, port, health path, encrypted environment overrides, secret
-policy and the complete effective environment database migration-ledger digest. Rollback never
-substitutes a current rate card, machine default, `PORT`, health path or
-environment override. `CURRENT` is the only write policy enabled initially:
-current project secrets are resolved before the effect. A `PINNED` manifest is
-fail-closed until a separately retained immutable secret snapshot exists.
+version, CPU/memory, runtime class, port, health path, encrypted environment
+overrides, secret policy and the complete effective environment database
+migration-ledger digest. An `autoscale` envelope is the only class accepted by
+the generic rollback routes. A `reserved-vm` envelope additionally pins the
+Reserved deployment identity, tier and persistent-volume claim, but remains
+explicitly unsupported by generic rollback even after its source Deployment is
+pruned or decommissioned. Rollback never substitutes a current rate card,
+machine default, `PORT`, health path or environment override. `CURRENT` is the
+only write policy enabled initially: current project secrets are resolved
+before the effect. A `PINNED` manifest is fail-closed until a separately
+retained immutable secret snapshot exists.
+
+The exact historical RateCard version is an independent authority for the
+machine tuple at both preflight and commit. Migration 0100 makes historical
+RateCard data append-only: only the operational `active` flag may flip; version,
+machine data and timestamps cannot be updated, and a card cannot be deleted.
 
 For server releases, promotion evidence is self-hashed and binds the committed
 Binary Authorization result to the same tenant, project, artifact repository
@@ -74,12 +84,15 @@ rotation cannot mix two database targets. Rollback decrypts its historic
 overrides, resolves `CURRENT` secrets once, and applies the same rule. A
 PostgreSQL database pins the complete `_ecode_schema_migrations` ledger even
 when the release has no new migration plan. The release/rollback critical
-section holds a session advisory lock on the same key used by migration
-transactions, from the final pre-effect check through the manifest commit; the
-ledger read itself is autocommit, so `idle_in_transaction_session_timeout`
-cannot silently release the fence during manager IO. Explicit advisory unlock
-is followed by session close as the fail-safe. The same backend re-proves lock
-ownership and the exact ledger immediately before READY/manifest commit.
+section holds a session advisory lock on the same versioned, backend-local key
+used by migration transactions, from the final pre-effect check through the
+manifest commit. The key does not contain project or environment identity: two
+projects whose syntactically different URLs reach the same PostgreSQL backend
+must serialize against the same ledger. The ledger read itself is autocommit,
+so `idle_in_transaction_session_timeout` cannot silently release the fence
+during manager IO. Explicit advisory unlock is followed by session close as the
+fail-safe. The same backend re-proves lock ownership and the exact ledger
+immediately before READY/manifest commit.
 Missing, malformed, changed, advanced or unavailable ledgers fail during
 preflight; if the session is lost after manager IO, the release is refused
 before READY and the runtime cleanup/recovery path runs. `mode: none` is valid
@@ -89,6 +102,14 @@ mutations share the project release barrier, so they cannot appear between this
 pin and commit. An access-policy-only release does not restart the runtime and
 therefore preserves the source manifest's database pin exactly; the Store
 rejects any caller that tries to substitute a newly resolved database pin.
+
+A successful rollback writes its localized HTTP 201 receipt into the
+`RollbackIdempotencyRequest` in the same transaction as READY and the new
+ReleaseManifest. Retrying the key therefore replays the exact response even if
+the newly created Deployment row is pruned before the original response is
+sent. Completed receipts are immutable; deletion is allowed only as part of
+Project erasure, while deleting the actor User may perform the narrow FK
+`actorUserId -> NULL` transition without changing the receipt.
 
 Static releases retain bytes at
 `static-artifacts/sha256/<artifact-digest>`. Rollback verifies that retained
@@ -125,6 +146,13 @@ publication or redeploy that appends a new server ReleaseManifest must still
 record the exact 0100 envelopes for the runtime state it actually applied. Keep
 this fail-closed boundary until Reserved CHANGE itself has a transactional,
 immutable release-envelope contract.
+
+CREATE and REDEPLOY recovery are independently durable. A poison metadata or
+ciphertext envelope is quarantined with a long `MANUAL` defer, while transient
+queue failures receive capped exponential backoff. Each reaper tick examines a
+bounded batch and continues past a deferred oldest operation, so one poison row
+cannot starve healthy work behind it; the stored diagnostic is retained until a
+later recovery step replaces it.
 
 ## Integrated 0099/0100 manifest contract
 
