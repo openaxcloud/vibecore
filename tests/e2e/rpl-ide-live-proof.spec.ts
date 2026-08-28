@@ -135,7 +135,17 @@ async function paneActions(page: Page, paneIndex = 0) {
 async function clickPaneAction(page: Page, paneIndex: number, name: string) {
   await paneActions(page, paneIndex);
 
-  const item = page.locator('.bolt-project-tab-actions-menu').getByRole('button', { name, exact: true });
+  /*
+   * `menuitem`, plus `button`. Le menu d'actions d'onglet est désormais un vrai
+   * menu ARIA : le conteneur porte `role="menu"` et ses entrées `role="menuitem"`.
+   * Un rôle explicite REMPLACE le rôle implicite, donc `getByRole('button')` ne
+   * les voit plus — d'où l'échec « element(s) not found » alors que le menu
+   * s'ouvrait bien.
+   *
+   * Le test n'est pas assoupli : il vérifie maintenant le nom accessible ET la
+   * sémantique de menu, là où il ne vérifiait que le premier.
+   */
+  const item = page.locator('.bolt-project-tab-actions-menu').getByRole('menuitem', { name, exact: true });
   await expect(item).toBeVisible();
   await item.click();
   await page.waitForTimeout(500);
