@@ -198,10 +198,16 @@ async function setup(options: { objectStorage?: ObjectStorage } = {}) {
    */
   await store.upsertProjectSecret({
     projectId: source.id,
+    expectedOrganizationId: org.id,
     key: 'STRIPE_KEY',
     valueEncrypted: encryptJson({ value: SECRET_VALUE }),
   });
-  await store.upsertProjectEnvVar({ projectId: source.id, key: 'DATABASE_URL', value: ENV_VALUE });
+  await store.upsertProjectEnvVar({
+    projectId: source.id,
+    expectedOrganizationId: org.id,
+    key: 'DATABASE_URL',
+    value: ENV_VALUE,
+  });
 
   await projectStorage.writeFiles(source.id, [
     { path: 'src/app.ts', content: 'console.log("hello");\n' },

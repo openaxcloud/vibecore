@@ -62,6 +62,8 @@ interface StorageTopology {
   workspaceProjectIds: string[];
   localSnapshotObjects: Array<{ projectId: string; storageKey: string }>;
   staticDeploymentIds: string[];
+  staticArtifactRefs: string[];
+  staticAliasDeploymentIds: string[];
   billingSubscriptions: Array<{
     id: string;
     externalId: string | null;
@@ -155,6 +157,8 @@ function topologyFingerprint(topology: Omit<StorageTopology, 'fingerprint' | 'sh
         `${left.projectId}:${left.storageKey}`.localeCompare(`${right.projectId}:${right.storageKey}`),
       ),
     staticDeploymentIds: sort(topology.staticDeploymentIds),
+    staticArtifactRefs: sort(topology.staticArtifactRefs),
+    staticAliasDeploymentIds: sort(topology.staticAliasDeploymentIds),
     billingSubscriptions: topology.billingSubscriptions
       .map(({ id, externalId }) => ({ id, externalId }))
       .sort((left, right) => left.id.localeCompare(right.id)),
@@ -321,18 +325,17 @@ export class AccountPurgeStore {
           select: { id: true },
         })
       : [];
-    const manifestDeploymentIds = bucketProjectIds.length
+    const staticManifests = bucketProjectIds.length
       ? await tx.releaseManifest.findMany({
           where: { projectId: { in: bucketProjectIds }, artifactKind: 'static-snapshot' },
-          select: { deploymentId: true },
+          select: { deploymentId: true, artifactRef: true },
         })
       : [];
     const staticDeploymentIds = [
-      ...new Set([
-        ...deploymentIds.map(({ id }) => id),
-        ...manifestDeploymentIds.map(({ deploymentId }) => deploymentId),
-      ]),
+      ...new Set([...deploymentIds.map(({ id }) => id), ...staticManifests.map(({ deploymentId }) => deploymentId)]),
     ];
+    const staticArtifactRefs = [...new Set(staticManifests.map(({ artifactRef }) => artifactRef))];
+    const staticAliasDeploymentIds = staticDeploymentIds;
     const fingerprint = topologyFingerprint({
       orgIds,
       soleOrgIds,
@@ -340,6 +343,8 @@ export class AccountPurgeStore {
       workspaceProjectIds,
       localSnapshotObjects,
       staticDeploymentIds,
+      staticArtifactRefs,
+      staticAliasDeploymentIds,
       billingSubscriptions,
     });
 
@@ -351,6 +356,8 @@ export class AccountPurgeStore {
       workspaceProjectIds,
       localSnapshotObjects,
       staticDeploymentIds,
+      staticArtifactRefs,
+      staticAliasDeploymentIds,
       billingSubscriptions,
       fingerprint,
     };
@@ -403,6 +410,8 @@ export class AccountPurgeStore {
           workspaceProjectIds: topology.workspaceProjectIds,
           localSnapshotObjects: topology.localSnapshotObjects,
           staticDeploymentIds: topology.staticDeploymentIds,
+          staticArtifactRefs: topology.staticArtifactRefs,
+          staticAliasDeploymentIds: topology.staticAliasDeploymentIds,
         },
       };
     });
@@ -687,6 +696,8 @@ export class AccountPurgeStore {
         workspaceProjectIds: topology.workspaceProjectIds,
         localSnapshotObjects: topology.localSnapshotObjects,
         staticDeploymentIds: topology.staticDeploymentIds,
+        staticArtifactRefs: topology.staticArtifactRefs,
+        staticAliasDeploymentIds: topology.staticAliasDeploymentIds,
       };
       const billingSubscriptions = topology.billingSubscriptions.filter(
         (subscription): subscription is BillingSubscriptionInventory =>
@@ -1069,6 +1080,8 @@ export class AccountPurgeStore {
           workspaceProjectIds: guarantee.workspaceProjectIds,
           localSnapshotObjects: guarantee.localSnapshotObjects,
           staticDeploymentIds: guarantee.staticDeploymentIds,
+          staticArtifactRefs: guarantee.staticArtifactRefs,
+          staticAliasDeploymentIds: guarantee.staticAliasDeploymentIds,
         },
         leaseContext,
       );
@@ -1094,6 +1107,8 @@ export class AccountPurgeStore {
             workspaceProjectIds: guarantee.workspaceProjectIds,
             localSnapshotObjects: guarantee.localSnapshotObjects,
             staticDeploymentIds: guarantee.staticDeploymentIds,
+            staticArtifactRefs: guarantee.staticArtifactRefs,
+            staticAliasDeploymentIds: guarantee.staticAliasDeploymentIds,
           },
           guarantee.planId,
           guarantee.ownerToken,

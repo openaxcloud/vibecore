@@ -444,6 +444,14 @@ runDbTests('tenant transfer + release — PostgreSQL lock/fence interleavings', 
       data: { organizationId: organizations.source.id, name: 'Release fence', slug: `release-fence-${suffix()}` },
     });
     const revision = await seedManifest(storeA, project.id);
+    const provisioning = await prismaA.databaseInstance.create({
+      data: {
+        projectId: project.id,
+        organizationId: organizations.source.id,
+        environment: 'production',
+        status: 'PROVISIONING',
+      },
+    });
     const ownerToken = `release-owner-${suffix()}`;
     const lease = await storeA.acquireProjectReleaseBarrier({
       projectId: project.id,
@@ -467,9 +475,36 @@ runDbTests('tenant transfer + release — PostgreSQL lock/fence interleavings', 
           digest: projectManifestDigest(nextManifest),
           manifest: nextManifest,
         }),
+        storeB.upsertProjectEnvVar({
+          projectId: project.id,
+          expectedOrganizationId: organizations.source.id,
+          key: 'DATABASE_URL',
+          value: 'postgres://release-race.invalid/app',
+          scope: 'preview',
+        }),
+        storeB.upsertProjectSecret({
+          projectId: project.id,
+          expectedOrganizationId: organizations.source.id,
+          key: 'DATABASE_URL',
+          valueEncrypted: 'encrypted:release-race',
+        }),
+        storeB.acquireDatabaseProvisioning({
+          projectId: project.id,
+          expectedOrganizationId: organizations.source.id,
+          organizationId: organizations.source.id,
+          retentionDays: 7,
+          environment: 'development',
+          provisioningDeadlineAt: new Date(Date.now() + 60_000).toISOString(),
+        }),
+        storeB.completeDatabaseProvisioning(provisioning.id, {
+          projectId: project.id,
+          expectedOrganizationId: organizations.source.id,
+          key: 'PROD_DATABASE_URL',
+          valueEncrypted: 'encrypted:release-race-production',
+        }),
       ]);
 
-      expect(attempts).toHaveLength(2);
+      expect(attempts).toHaveLength(6);
       for (const attempt of attempts) {
         expect(attempt.status).toBe('rejected');
         expect((attempt as PromiseRejectedResult).reason).toMatchObject({ code: 'CHECKPOINT_BARRIER_ACTIVE' });

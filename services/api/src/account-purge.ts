@@ -84,6 +84,10 @@ export interface PurgeStorageInventory {
    * Includes ids referenced only by append-only ReleaseManifest rows.
    */
   staticDeploymentIds: string[];
+  /** Content-addressed static release objects referenced by those projects. */
+  staticArtifactRefs: string[];
+  /** Source/target ids used to remove routing aliases that mention purged deployments. */
+  staticAliasDeploymentIds: string[];
 }
 
 export interface PurgeEffectDescriptor {
@@ -101,7 +105,9 @@ export interface PurgeEffectDescriptor {
     | 'local_project_archive'
     | 'local_project_snapshot'
     | 'local_workspace_storage'
-    | 'static_deployment_snapshot';
+    | 'static_deployment_snapshot'
+    | 'static_release_artifact'
+    | 'static_routing_alias';
   resourceId: string;
 }
 

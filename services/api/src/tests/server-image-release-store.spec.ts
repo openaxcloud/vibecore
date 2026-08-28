@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
+import {
+  parseServerRollbackPromotionEvidence,
+  parseServerRollbackRuntimeSpec,
+  rollbackManifestDigest,
+} from '../deterministic-rollback.js';
 // eslint-disable-next-line no-restricted-imports -- this service has no ~/ path alias; keep the store spec service-local.
-import type { DeploymentRecord, ServerImageReleaseCommitInput } from '../store.js';
+import type { DeploymentRecord, ReleasePlanEntitlementsPin, ServerImageReleaseCommitInput } from '../store.js';
+import { deterministicServerReleaseFixture } from './deterministic-release-fixture.js';
 import { acquireTestProjectReleaseFence } from './project-release-barrier-fixture.js';
 import { TestApiStore } from './test-api-store.js';
 
@@ -29,38 +35,28 @@ async function fixture() {
     projectId: project.id,
     organizationId: organization.id,
   });
-  const promotion = {
+  const pins = deterministicServerReleaseFixture({
+    organizationId: organization.id,
+    projectId: project.id,
+    projectManifestDigest: release.digest,
+    accessPolicyVersion: 1,
+    artifactRef: IMAGE_REF,
+    artifactDigest: DIGEST,
     promotionId: 'promo-store-test',
-    sourceRepo: 'europe-west9-docker.pkg.dev/build-project/build-repo/p-project',
-    sourceDigest: DIGEST,
-    targetRepo: IMAGE_REF,
-    targetTenant: organization.id,
-    retentionTag: `active-promo-${'a'.repeat(32)}`,
-    attachments: ['signature', 'sbom', 'provenance'].map((type, index) => ({
-      type,
-      digest: `sha256:${String(index + 1).repeat(64)}`,
-      subjectDigest: DIGEST,
-      relinked: true,
-    })),
-    binaryAuthorizationResult: 'PASSED',
-    binaryAuthorizationPolicy: 'projects/policy-proj/platforms/gke/policies/release-policy',
-    binaryAuthorizationPolicyEtag: 'policy-etag-0001',
-    binaryAuthorizationEvaluatedImage: `${IMAGE_REF}@${DIGEST}`,
-    binaryAuthorizationEvaluatedAt: '2026-08-26T00:00:00.500Z',
-    state: 'PROMOTION_COMMITTED',
-    preparedAt: '2026-08-26T00:00:00.000Z',
-    committedAt: '2026-08-26T00:00:01.000Z',
-  };
+  });
   const deployment = await store.createDeployment({
     projectId: project.id,
     provider: 'server',
     environment: 'preview',
     status: 'BUILDING',
+    machineSize: 'shared-0.5',
     metadata: {
+      planEntitlements: pins.planEntitlements,
       projectManifestDigest: release.digest,
       serverDeploy: {
         image: { imageRef: IMAGE_REF, imageDigest: DIGEST },
-        promotion,
+        promotion: pins.promotion,
+        rollbackRuntimeSpec: pins.runtimeSpec,
       },
     },
   });
@@ -71,6 +67,8 @@ async function fixture() {
     environment: 'preview',
     artifactRef: IMAGE_REF,
     artifactDigest: DIGEST,
+    runtimeSpec: pins.runtimeSpec,
+    promotionEvidence: pins.promotionEvidence,
     url: 'https://release.example.test',
     previewUrl: 'https://release.example.test',
     metadata: deployment.metadata as Record<string, unknown>,
@@ -79,7 +77,7 @@ async function fixture() {
     releaseFence: release.releaseFence,
   };
 
-  return { store, organization, project, deployment, input };
+  return { store, organization, project, deployment, input, release };
 }
 
 function withoutPromotion(metadata: DeploymentRecord['metadata']): Record<string, unknown> {
@@ -149,6 +147,56 @@ describe('commitServerImageRelease', () => {
     expect(store.releaseManifests).toEqual([]);
   });
 
+  it.each([
+    ['cpu', { cpuMillicores: 501 }],
+    ['memory', { memoryMb: 2_049 }],
+    ['rate-card version', { rateCardVersion: 2 }],
+  ])('rejects a self-consistent runtime %s claim that disagrees with the historical card', async (_label, patch) => {
+    const { store, deployment, input } = await fixture();
+    const { hash: _hash, ...body } = input.runtimeSpec as Record<string, unknown>;
+    const machine = { ...(body.machine as Record<string, unknown>), ...patch };
+    const tamperedBody = { ...body, machine };
+    const tamperedRuntime = { ...tamperedBody, hash: rollbackManifestDigest(tamperedBody) };
+
+    await expect(store.commitServerImageRelease({ ...input, runtimeSpec: tamperedRuntime })).rejects.toThrow(
+      /SERVER_RELEASE_PROMOTION_NOT_COMMITTED/u,
+    );
+    expect((await store.getDeployment(input.projectId, deployment.id))?.status).toBe('BUILDING');
+    expect(store.releaseManifests).toEqual([]);
+  });
+
+  it('keeps the public manifest append API closed to null or tampered server envelopes', async () => {
+    const { store, deployment, input } = await fixture();
+    const planEntitlements = input.metadata.planEntitlements as ReleasePlanEntitlementsPin;
+    const projectManifestDigest = input.metadata.projectManifestDigest as string;
+    const base = {
+      projectId: input.projectId,
+      deploymentId: input.deploymentId,
+      environment: input.environment,
+      version: 1,
+      provider: 'server',
+      artifactKind: 'server-image' as const,
+      artifactRef: input.artifactRef,
+      artifactDigest: input.artifactDigest,
+      accessPolicyVersion: deployment.accessPolicyVersion,
+      planEntitlements,
+      projectManifestDigest,
+    };
+
+    await expect(store.createReleaseManifest(base)).rejects.toMatchObject({
+      code: 'ROLLBACK_MANIFEST_LEGACY_UNSUPPORTED',
+    });
+    await expect(
+      store.createReleaseManifest({
+        ...base,
+        runtimeSpec: { ...(input.runtimeSpec as Record<string, unknown>), hash: `sha256:${'0'.repeat(64)}` },
+        promotionEvidence: input.promotionEvidence,
+      }),
+    ).rejects.toMatchObject({ code: 'ROLLBACK_RUNTIME_SPEC_TAMPERED' });
+    expect(store.releaseManifests).toEqual([]);
+    expect((await store.getDeployment(input.projectId, deployment.id))?.status).toBe('BUILDING');
+  });
+
   it('lets a terminal cancel win without manufacturing a release', async () => {
     const { store, deployment, input } = await fixture();
     await store.updateDeployment(input.projectId, deployment.id, {
@@ -160,5 +208,40 @@ describe('commitServerImageRelease', () => {
     expect(result.committed).toBe(false);
     expect(result.deployment.status).toBe('CANCELED');
     expect(store.releaseManifests).toEqual([]);
+  });
+
+  it('rebinds both deterministic envelopes atomically when READY access policy changes', async () => {
+    const { store, deployment, input, release } = await fixture();
+    const committed = await store.commitServerImageRelease(input);
+    const source = committed.manifest!;
+    const sourceRuntime = parseServerRollbackRuntimeSpec(source.runtimeSpec);
+
+    const policy = await store.setDeploymentAccessPolicy({
+      projectId: input.projectId,
+      deploymentId: deployment.id,
+      mode: 'INVITE_ONLY',
+      expectedVersion: 1,
+      releaseSource: source,
+      releaseFence: release.releaseFence,
+      releaseDatabasePin: sourceRuntime.spec.database,
+    });
+
+    expect(policy?.version).toBe(2);
+    const releases = await store.listReleaseManifests(input.projectId, input.environment);
+    expect(releases).toHaveLength(2);
+    const rebound = releases[0]!;
+    const reboundRuntime = parseServerRollbackRuntimeSpec(rebound.runtimeSpec);
+
+    expect(rebound.accessPolicyVersion).toBe(2);
+    expect(reboundRuntime.spec.accessPolicyVersion).toBe(2);
+    expect(reboundRuntime.spec.envOverrides).toEqual(sourceRuntime.spec.envOverrides);
+    expect(reboundRuntime.spec.machine).toEqual(sourceRuntime.spec.machine);
+    expect(reboundRuntime.spec.port).toBe(sourceRuntime.spec.port);
+    expect(reboundRuntime.spec.healthPath).toBe(sourceRuntime.spec.healthPath);
+    expect(reboundRuntime.spec.database).toEqual(sourceRuntime.spec.database);
+    expect(parseServerRollbackPromotionEvidence(rebound.promotionEvidence)).toEqual(
+      parseServerRollbackPromotionEvidence(source.promotionEvidence),
+    );
+    expect((await store.getDeployment(input.projectId, deployment.id))?.accessPolicyVersion).toBe(2);
   });
 });

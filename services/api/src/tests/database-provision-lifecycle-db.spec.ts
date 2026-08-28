@@ -99,6 +99,7 @@ runDbTests('managed database provisioning lifecycle — durable Postgres CAS', (
       });
       const retry = {
         projectId: project.id,
+        expectedOrganizationId: organization.id,
         organizationId: organization.id,
         retentionDays: 28,
         environment: 'development',
@@ -147,11 +148,13 @@ runDbTests('managed database provisioning lifecycle — durable Postgres CAS', (
 
       const completed = await store.completeDatabaseProvisioning(row.id, {
         projectId: project.id,
+        expectedOrganizationId: organization.id,
         key: 'DATABASE_URL',
         valueEncrypted: 'encrypted:first-uri',
       });
       const stale = await store.completeDatabaseProvisioning(row.id, {
         projectId: project.id,
+        expectedOrganizationId: organization.id,
         key: 'DATABASE_URL',
         valueEncrypted: 'encrypted:stale-uri',
       });

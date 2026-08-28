@@ -252,6 +252,7 @@ describe('ProjectManifest API and deployment binding', () => {
     });
     await store.createDatabaseInstance({
       projectId: project.id,
+      expectedOrganizationId: organization.id,
       organizationId: organization.id,
       retentionDays: 7,
     });

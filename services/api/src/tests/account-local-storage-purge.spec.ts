@@ -87,12 +87,14 @@ describe.sequential('account purge — disposable local filesystem proof', () =>
           workspaceStorage: [{ projectId: 'shared-project', workspaceId: 'ws-subject' }],
           snapshotObjects: [{ projectId: 'owned-project', storageKey: 'snapshots/owned-project/checkpoint.zip' }],
           staticDeploymentIds: ['deployment-subject'],
+          staticArtifactRefs: [],
+          staticAliasDeploymentIds: ['deployment-subject'],
         },
         { lease, projectRoot, staticRoot },
       );
 
       expect(outcome.verified).toBe(true);
-      expect(outcome.classes).toHaveLength(5);
+      expect(outcome.classes).toHaveLength(7);
       expect(outcome.classes.every((entry) => entry.remainingAfterPurge === 0)).toBe(true);
       await expect(exists(join(projectRoot, 'owned-project'))).resolves.toBe(false);
       await expect(exists(join(projectRoot, '_objects', 'exports', 'owned-project'))).resolves.toBe(false);
@@ -128,6 +130,8 @@ describe.sequential('account purge — disposable local filesystem proof', () =>
       workspaceStorage: [],
       snapshotObjects: [],
       staticDeploymentIds: ['deployment-race'],
+      staticArtifactRefs: [],
+      staticAliasDeploymentIds: ['deployment-race'],
     };
 
     try {
@@ -149,6 +153,109 @@ describe.sequential('account purge — disposable local filesystem proof', () =>
         remainingAfterPurge: 1,
       });
       await expect(exists(snapshot)).resolves.toBe(true);
+    } finally {
+      await rm(base, { recursive: true, force: true });
+    }
+  });
+
+  it('erases sole-owner artifacts and every alias edge while retaining only a live shared digest', async () => {
+    const base = await mkdtemp(join(tmpdir(), 'vibecore-purge-static-artifacts-'));
+    const projectRoot = join(base, 'projects');
+    const staticRoot = join(base, 'static');
+    const soleDigest = 'a'.repeat(64);
+    const sharedDigest = 'b'.repeat(64);
+    const soleRef = `static-artifacts/sha256/${soleDigest}`;
+    const sharedRef = `static-artifacts/sha256/${sharedDigest}`;
+    const solePath = join(staticRoot, '.artifacts', 'sha256', soleDigest, 'index.html');
+    const sharedPath = join(staticRoot, '.artifacts', 'sha256', sharedDigest, 'index.html');
+    const sourceAlias = join(staticRoot, '.aliases', 'purged-source');
+    const inboundAlias = join(staticRoot, '.aliases', 'outside-source');
+    const unrelatedAlias = join(staticRoot, '.aliases', 'outside-keep');
+    const durable = durableLease();
+
+    try {
+      await Promise.all([
+        put(solePath, 'sole bytes'),
+        put(sharedPath, 'shared bytes'),
+        put(sourceAlias, 'outside-target\n'),
+        put(inboundAlias, 'purged-target\n'),
+        put(unrelatedAlias, 'outside-target\n'),
+      ]);
+
+      const outcome = await eraseLocalAccountStorage(
+        {
+          ownedProjectIds: [],
+          workspaceStorage: [],
+          snapshotObjects: [],
+          staticDeploymentIds: [],
+          staticArtifactRefs: [soleRef, sharedRef],
+          staticAliasDeploymentIds: ['purged-source', 'purged-target'],
+        },
+        {
+          lease: durable.lease,
+          projectRoot,
+          staticRoot,
+          isStaticArtifactRetainedOutsidePurge: async (artifactRef) => artifactRef === sharedRef,
+        },
+      );
+
+      expect(outcome.verified).toBe(true);
+      expect(outcome.classes).toHaveLength(8);
+      expect(outcome.classes.find(({ dataClass }) => dataClass === 'shared_static_release_artifacts')).toMatchObject({
+        action: 'retained',
+        reason: expect.any(String),
+      });
+      await expect(exists(solePath)).resolves.toBe(false);
+      await expect(exists(sharedPath)).resolves.toBe(true);
+      await expect(exists(sourceAlias)).resolves.toBe(false);
+      await expect(exists(inboundAlias)).resolves.toBe(false);
+      await expect(exists(unrelatedAlias)).resolves.toBe(true);
+      expect([...durable.receipts.keys()]).toEqual(
+        expect.arrayContaining([
+          `static-release-artifact:${soleDigest}`,
+          'static-routing-alias:purged-source',
+          'static-routing-alias:outside-source',
+        ]),
+      );
+      expect(durable.receipts.has(`static-release-artifact:${sharedDigest}`)).toBe(false);
+    } finally {
+      await rm(base, { recursive: true, force: true });
+    }
+  });
+
+  it('does not certify a routing alias recreated after its durable erasure receipt', async () => {
+    const base = await mkdtemp(join(tmpdir(), 'vibecore-purge-static-alias-replay-'));
+    const projectRoot = join(base, 'projects');
+    const staticRoot = join(base, 'static');
+    const aliasPath = join(staticRoot, '.aliases', 'purged-source');
+    const durable = durableLease();
+    const inventory = {
+      ownedProjectIds: [],
+      workspaceStorage: [],
+      snapshotObjects: [],
+      staticDeploymentIds: [],
+      staticArtifactRefs: [],
+      staticAliasDeploymentIds: ['purged-source'],
+    };
+
+    try {
+      await put(aliasPath, 'outside-target\n');
+      await expect(
+        eraseLocalAccountStorage(inventory, { lease: durable.lease, projectRoot, staticRoot }),
+      ).resolves.toMatchObject({ verified: true });
+
+      await put(aliasPath, 'late-target\n');
+      const replay = await eraseLocalAccountStorage(inventory, {
+        lease: durable.lease,
+        projectRoot,
+        staticRoot,
+      });
+
+      expect(replay.verified).toBe(false);
+      expect(replay.classes.find(({ dataClass }) => dataClass === 'static_routing_aliases')).toMatchObject({
+        remainingAfterPurge: 1,
+      });
+      await expect(exists(aliasPath)).resolves.toBe(true);
     } finally {
       await rm(base, { recursive: true, force: true });
     }
@@ -228,6 +335,8 @@ describe.sequential('account purge — disposable local filesystem proof', () =>
             },
           ],
           staticDeploymentIds: ['deployment-stale-writer', 'deployment-restore-target'],
+          staticArtifactRefs: [],
+          staticAliasDeploymentIds: ['deployment-stale-writer', 'deployment-restore-target'],
         },
         { lease: durableLease().lease, projectRoot, staticRoot },
       ).finally(() => {
@@ -313,6 +422,8 @@ describe.sequential('account purge — disposable local filesystem proof', () =>
             workspaceStorage: [],
             snapshotObjects: [{ projectId: 'owned-project', storageKey: 'snapshots/other-project/stolen.zip' }],
             staticDeploymentIds: [],
+            staticArtifactRefs: [],
+            staticAliasDeploymentIds: [],
           },
           { lease: durableLease().lease, projectRoot, staticRoot },
         ),

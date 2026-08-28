@@ -5,7 +5,16 @@ import { join } from 'node:path';
 import { PLAN_ENTITLEMENTS_VERSION } from '@vibecore/billing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { buildApiApp } from '../app.js';
-import { computeStaticSnapshotDigest, staticDeploymentSnapshotDir } from '../deployments.js';
+import {
+  computeStaticArtifactDigest,
+  computeStaticSnapshotDigest,
+  garbageCollectStaticArtifacts,
+  retainStaticSnapshotArtifact,
+  resolveStaticDeploymentRoutingAlias,
+  staticDeploymentArtifactDir,
+  staticDeploymentSnapshotDir,
+  writeStaticDeploymentRoutingAlias,
+} from '../deployments.js';
 import type { EmailProvider } from '../email.js';
 // eslint-disable-next-line no-restricted-imports -- this service has no ~/ path alias; keep the endpoint spec service-local.
 import { canonicalizeProjectManifest, projectManifestDigest } from '../project-manifest.js';
@@ -34,19 +43,31 @@ const RELEASE_PLAN_ENTITLEMENTS = {
 };
 
 describe('static rollback-to-previous (deterministic, fail-closed)', () => {
-  const prev = process.env.STATIC_DEPLOY_STORAGE_DIR;
+  const previousEnvironment = {
+    previewDomain: process.env.PREVIEW_DOMAIN,
+    previewProxySecret: process.env.PREVIEW_PROXY_SHARED_SECRET,
+    storageDir: process.env.STATIC_DEPLOY_STORAGE_DIR,
+  };
   let storageDir: string;
 
   beforeEach(async () => {
     storageDir = await mkdtemp(join(tmpdir(), 'rbtp-'));
     process.env.STATIC_DEPLOY_STORAGE_DIR = storageDir;
+    delete process.env.PREVIEW_DOMAIN;
+    process.env.PREVIEW_PROXY_SHARED_SECRET = 'static-alias-proxy-secret';
   });
 
   afterEach(async () => {
-    if (prev === undefined) {
-      delete process.env.STATIC_DEPLOY_STORAGE_DIR;
-    } else {
-      process.env.STATIC_DEPLOY_STORAGE_DIR = prev;
+    for (const [key, value] of Object.entries({
+      PREVIEW_DOMAIN: previousEnvironment.previewDomain,
+      PREVIEW_PROXY_SHARED_SECRET: previousEnvironment.previewProxySecret,
+      STATIC_DEPLOY_STORAGE_DIR: previousEnvironment.storageDir,
+    })) {
+      if (value === undefined) {
+        delete process.env[key];
+      } else {
+        process.env[key] = value;
+      }
     }
     await rm(storageDir, { recursive: true, force: true });
   });
@@ -96,10 +117,16 @@ describe('static rollback-to-previous (deterministic, fail-closed)', () => {
     });
 
     const dir = staticDeploymentSnapshotDir(deployment.id);
-    await mkdir(dir, { recursive: true });
-    await writeFile(join(dir, 'index.html'), `<!doctype html><body><h1>${marker}</h1></body>`, 'utf8');
+    const assetBody = `window.__STATIC_RELEASE__ = ${JSON.stringify(marker)};\n`;
+    const indexHtml =
+      `<!doctype html><body><h1>${marker}</h1>` +
+      `<script src="/static-deployments/${deployment.id}/assets/app.js"></script></body>`;
+    await mkdir(join(dir, 'assets'), { recursive: true });
+    await writeFile(join(dir, 'index.html'), indexHtml, 'utf8');
+    await writeFile(join(dir, 'assets', 'app.js'), assetBody, 'utf8');
 
     const artifactDigest = (await computeStaticSnapshotDigest(deployment.id))!;
+    const artifactRef = await retainStaticSnapshotArtifact(deployment.id, artifactDigest);
     await store.createReleaseManifest({
       projectId,
       deploymentId: deployment.id,
@@ -107,7 +134,7 @@ describe('static rollback-to-previous (deterministic, fail-closed)', () => {
       version,
       provider: 'static',
       artifactKind: 'static-snapshot',
-      artifactRef: `static-deployments/${deployment.id}`,
+      artifactRef,
       artifactDigest,
       configDigest: 'sha256:' + '0'.repeat(64),
       accessPolicyVersion: 1,
@@ -115,13 +142,22 @@ describe('static rollback-to-previous (deterministic, fail-closed)', () => {
       projectManifestDigest: projectManifest.digest,
     });
 
-    return { deployment, artifactDigest, projectManifestDigest: projectManifest.digest };
+    return {
+      deployment,
+      artifactDigest,
+      artifactRef,
+      assetBody,
+      indexHtml,
+      projectManifestDigest: projectManifest.digest,
+    };
   }
 
   it('restores the previous version bytes into a new READY deployment', async () => {
     const { app, store, auth, projectId } = await setup();
     const v1 = await publishStatic(store, projectId, 1, 'VERSION ONE');
     await publishStatic(store, projectId, 2, 'VERSION TWO');
+    store.deployments.delete(v1.deployment.id);
+    await rm(staticDeploymentSnapshotDir(v1.deployment.id), { recursive: true, force: true });
 
     const res = await app.inject({
       method: 'POST',
@@ -148,13 +184,153 @@ describe('static rollback-to-previous (deterministic, fail-closed)', () => {
 
     // The rollback deployment serves v1's bytes.
     const restoredHtml = await readFile(join(staticDeploymentSnapshotDir(body.deployment.id), 'index.html'), 'utf8');
-    expect(restoredHtml).toContain('VERSION ONE');
-    expect(restoredHtml).not.toContain('VERSION TWO');
+    expect(restoredHtml).toBe(v1.indexHtml);
+    expect(await computeStaticSnapshotDigest(body.deployment.id)).toBe(v1.artifactDigest);
+
+    const legacyAsset = await app.inject({
+      method: 'GET',
+      url: `/static-deployments/${v1.deployment.id}/assets/app.js`,
+    });
+    expect(legacyAsset.statusCode).toBe(200);
+    expect(legacyAsset.body).toBe(v1.assetBody);
+    expect(legacyAsset.headers['x-vibecore-static-deployment']).toBe(body.deployment.id);
+    expect(legacyAsset.headers['x-vibecore-static-deployment-alias']).toBe(v1.deployment.id);
 
     // A new manifest (v3) was appended for the rollback release.
     const releases = await store.listReleaseManifests(projectId, 'preview');
     expect(releases[0].version).toBe(3);
     expect(releases[0].deploymentId).toBe(body.deployment.id);
+    expect(releases[0].artifactRef).toBe(v1.artifactRef);
+
+    const gc = await garbageCollectStaticArtifacts((artifactRef) => store.isReleaseArtifactRetained(artifactRef));
+    expect(gc.removed).toEqual([]);
+    expect(await computeStaticArtifactDigest(v1.artifactRef)).toBe(v1.artifactDigest);
+  });
+
+  it('chains two byte-identical rollbacks to the latest READY target and enforces its access policy', async () => {
+    const { app, store, auth, projectId } = await setup();
+    const v1 = await publishStatic(store, projectId, 1, 'CHAINED VERSION ONE');
+    await publishStatic(store, projectId, 2, 'CHAINED VERSION TWO');
+    store.deployments.delete(v1.deployment.id);
+    await rm(staticDeploymentSnapshotDir(v1.deployment.id), { recursive: true, force: true });
+
+    const first = await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/deployments/rollback-to-previous`,
+      headers: { authorization: `Bearer ${auth.token}`, 'idempotency-key': 'static-chain-first' },
+      payload: { environment: 'preview' },
+    });
+    expect(first.statusCode).toBe(201);
+    const firstRollbackId = first.json().deployment.id as string;
+
+    await publishStatic(store, projectId, 4, 'CHAINED NEW HEAD');
+    store.deployments.delete(firstRollbackId);
+    await rm(staticDeploymentSnapshotDir(firstRollbackId), { recursive: true, force: true });
+
+    const second = await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/deployments/rollback-to-previous`,
+      headers: { authorization: `Bearer ${auth.token}`, 'idempotency-key': 'static-chain-second' },
+      payload: { environment: 'preview' },
+    });
+    expect(second.statusCode).toBe(201);
+    const secondRollbackId = second.json().deployment.id as string;
+
+    expect(await resolveStaticDeploymentRoutingAlias(v1.deployment.id)).toEqual({
+      targetDeploymentId: secondRollbackId,
+      edges: [
+        { sourceDeploymentId: v1.deployment.id, targetDeploymentId: firstRollbackId },
+        { sourceDeploymentId: firstRollbackId, targetDeploymentId: secondRollbackId },
+      ],
+    });
+    expect(await store.getDeployment(projectId, v1.deployment.id)).toBeUndefined();
+    expect(await store.getDeployment(projectId, firstRollbackId)).toBeUndefined();
+    expect(await computeStaticSnapshotDigest(secondRollbackId)).toBe(v1.artifactDigest);
+    expect(await readFile(join(staticDeploymentSnapshotDir(secondRollbackId), 'index.html'), 'utf8')).toBe(
+      v1.indexHtml,
+    );
+
+    const served = await app.inject({
+      method: 'GET',
+      url: `/static-deployments/${v1.deployment.id}/assets/app.js`,
+    });
+    expect(served.statusCode).toBe(200);
+    expect(served.body).toBe(v1.assetBody);
+    expect(served.headers['x-vibecore-static-deployment']).toBe(secondRollbackId);
+
+    await store.updateDeployment(projectId, secondRollbackId, { status: 'FAILED' });
+    expect(
+      (
+        await app.inject({
+          method: 'GET',
+          url: `/static-deployments/${v1.deployment.id}/assets/app.js`,
+        })
+      ).statusCode,
+    ).toBe(404);
+    await store.updateDeployment(projectId, secondRollbackId, { status: 'READY' });
+
+    const releaseHead = (await store.listReleaseManifests(projectId, 'preview'))[0];
+    const secondRollback = await store.getDeployment(projectId, secondRollbackId);
+    expect(releaseHead.deploymentId).toBe(secondRollbackId);
+    const policyRelease = await acquireTestProjectReleaseFence(store, {
+      projectId,
+      organizationId: auth.organization.id,
+      operationId: `static-policy:${secondRollbackId}`,
+    });
+    try {
+      await store.setDeploymentAccessPolicy({
+        projectId,
+        deploymentId: secondRollbackId,
+        mode: 'WORKSPACE_ONLY',
+        expectedVersion: secondRollback!.accessPolicyVersion,
+        releaseSource: releaseHead,
+        releaseFence: policyRelease.releaseFence,
+      });
+    } finally {
+      await policyRelease.release();
+    }
+
+    const denied = await app.inject({
+      method: 'GET',
+      url: `/static-deployments/${v1.deployment.id}/assets/app.js`,
+    });
+    expect(denied.statusCode).toBe(401);
+
+    const proxyAuthorized = await app.inject({
+      method: 'GET',
+      url: `/static-deployments/${v1.deployment.id}/assets/app.js`,
+      headers: { authorization: 'Bearer static-alias-proxy-secret' },
+    });
+    expect(proxyAuthorized.statusCode).toBe(200);
+    expect(proxyAuthorized.body).toBe(v1.assetBody);
+    expect(proxyAuthorized.headers['x-vibecore-static-deployment']).toBe(secondRollbackId);
+  });
+
+  it('prefers the immutable rollback alias when the mutable source row and snapshot still exist', async () => {
+    const { app, store, auth, projectId } = await setup();
+    const v1 = await publishStatic(store, projectId, 1, 'SOURCE STILL PRESENT');
+    await publishStatic(store, projectId, 2, 'CURRENT');
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/deployments/rollback-to-previous`,
+      headers: { authorization: `Bearer ${auth.token}`, 'idempotency-key': 'static-source-present' },
+      payload: { environment: 'preview' },
+    });
+    expect(response.statusCode).toBe(201);
+    const rollbackId = response.json().deployment.id as string;
+
+    await writeFile(join(staticDeploymentSnapshotDir(v1.deployment.id), 'assets', 'app.js'), 'TAMPERED SOURCE\n');
+    expect(await computeStaticSnapshotDigest(v1.deployment.id)).not.toBe(v1.artifactDigest);
+    expect(await computeStaticSnapshotDigest(rollbackId)).toBe(v1.artifactDigest);
+
+    const served = await app.inject({
+      method: 'GET',
+      url: `/static-deployments/${v1.deployment.id}/assets/app.js`,
+    });
+    expect(served.statusCode).toBe(200);
+    expect(served.body).toBe(v1.assetBody);
+    expect(served.headers['x-vibecore-static-deployment']).toBe(rollbackId);
   });
 
   it('restores from immutable plan/project pins after the source Deployment row is pruned', async () => {
@@ -207,7 +383,56 @@ describe('static rollback-to-previous (deterministic, fail-closed)', () => {
     ).toHaveLength(0);
   });
 
-  it('refuses unpinned Reserved VM rollback before creating an operation, deployment, or manager effect', async () => {
+  it.each([
+    [
+      'missing',
+      (store: TestApiStore) => {
+        store.deploymentAccessPolicies.splice(0);
+      },
+    ],
+    [
+      'malformed',
+      (store: TestApiStore) => {
+        const policy = store.deploymentAccessPolicies[0];
+        if (policy) policy.revision = '';
+      },
+    ],
+    [
+      'legacy version',
+      (store: TestApiStore) => {
+        const previous = [...store.releaseManifests].sort((left, right) => left.version - right.version)[0];
+        if (previous) previous.accessPolicyVersion = 0;
+      },
+    ],
+  ])(
+    'rejects a %s retained static access policy before authority, copy, alias, or deployment creation',
+    async (_, mutate) => {
+      const { app, store, auth, projectId } = await setup();
+      const previous = await publishStatic(store, projectId, 1, 'POLICY SOURCE');
+      await publishStatic(store, projectId, 2, 'POLICY HEAD');
+      mutate(store);
+      const deploymentCount = store.deployments.size;
+
+      const response = await app.inject({
+        method: 'POST',
+        url: `/projects/${projectId}/deployments/rollback-to-previous`,
+        headers: {
+          authorization: `Bearer ${auth.token}`,
+          'idempotency-key': 'static-policy-missing',
+        },
+        payload: { environment: 'preview' },
+      });
+
+      expect(response.statusCode).toBe(409);
+      expect(response.json()).toMatchObject({ code: 'RELEASE_ACCESS_POLICY_INVALID' });
+      expect(store.rollbackOperations.size).toBe(0);
+      expect(store.deployments.size).toBe(deploymentCount);
+      expect(await resolveStaticDeploymentRoutingAlias(previous.deployment.id)).toBeUndefined();
+      await app.close();
+    },
+  );
+
+  it('keeps Reserved CHANGE/recovery with legacy manifests inadmissible before any rollback authority', async () => {
     const { app, store, auth, projectId } = await setup();
     const projectManifest = await store.getLatestProjectManifest(projectId);
     if (!projectManifest) throw new Error('TEST_PROJECT_MANIFEST_MISSING');
@@ -223,14 +448,21 @@ describe('static rollback-to-previous (deterministic, fail-closed)', () => {
         projectManifestDigest: projectManifest.digest,
       },
     });
+    /*
+     * This is the durable post-CHANGE/recovery shape: the same Deployment row
+     * became a Reserved VM in place, while its historic release manifests are
+     * legacy rows with no 0100 runtime/promotion authority. Recovery must never
+     * make those null envelopes admissible for either rollback endpoint.
+     */
     const reserved = await store.updateDeployment(projectId, created.id, {
       runtimeKind: 'reserved-vm',
       runtimeVersion: 3,
       reservedVmTier: 'dedicated-1',
       persistentStorageClaim: `reserved-data-${created.id}`,
+      metadata: { reservedVmChangeRecovered: true },
     });
     for (const version of [1, 2]) {
-      await store.createReleaseManifest({
+      store.seedLegacyReleaseManifestForTest({
         projectId,
         deploymentId: reserved.id,
         environment: 'preview',
@@ -244,6 +476,12 @@ describe('static rollback-to-previous (deterministic, fail-closed)', () => {
         projectManifestDigest: projectManifest.digest,
       });
     }
+    expect((await store.listReleaseManifests(projectId, 'preview')).every((manifest) => !manifest.runtimeSpec)).toBe(
+      true,
+    );
+    expect(
+      (await store.listReleaseManifests(projectId, 'preview')).every((manifest) => !manifest.promotionEvidence),
+    ).toBe(true);
     const deploymentCount = (await store.listDeployments(projectId)).length;
     const manager = vi.fn(async () => new Response('unexpected manager call', { status: 500 }));
     globalThis.fetch = manager as typeof fetch;
@@ -266,6 +504,23 @@ describe('static rollback-to-previous (deterministic, fail-closed)', () => {
     expect(direct.json()).toMatchObject({ code: 'RESERVED_VM_ROLLBACK_UNPINNED' });
     expect(store.rollbackOperations.size).toBe(0);
     expect(await store.listDeployments(projectId)).toHaveLength(deploymentCount);
+    expect(manager).not.toHaveBeenCalled();
+
+    /* Pruning the changed/recovered row must not turn its legacy manifests into authority. */
+    store.deployments.delete(reserved.id);
+    const manifestOnly = await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/deployments/rollback-to-previous`,
+      headers: {
+        authorization: `Bearer ${auth.token}`,
+        'idempotency-key': 'reserved-legacy-manifest-only-refused-0002',
+      },
+      payload: { environment: 'preview' },
+    });
+    expect(manifestOnly.statusCode).toBe(409);
+    expect(manifestOnly.json()).toMatchObject({ code: 'ROLLBACK_RUNTIME_SPEC_INVALID' });
+    expect(store.rollbackOperations.size).toBe(0);
+    expect(await store.listDeployments(projectId)).toHaveLength(0);
     expect(manager).not.toHaveBeenCalled();
     await app.close();
   });
@@ -391,7 +646,7 @@ describe('static rollback-to-previous (deterministic, fail-closed)', () => {
       deploymentId,
       environment: 'preview',
       provider: 'static',
-      artifactRef: `static-deployments/${deploymentId}`,
+      artifactRef: sourceManifest.artifactRef,
       artifactDigest: previous.artifactDigest,
       ...(sourceManifest.configDigest ? { configDigest: sourceManifest.configDigest } : {}),
       accessPolicyVersion: sourceManifest.accessPolicyVersion,
@@ -503,9 +758,11 @@ describe('static rollback-to-previous (deterministic, fail-closed)', () => {
 
     const store = new PausingRollbackStore();
     const { app, auth, projectId } = await setup(store);
-    await publishStatic(store, projectId, 1, 'VERSION ONE');
+    const previous = await publishStatic(store, projectId, 1, 'VERSION ONE');
 
     const current = await publishStatic(store, projectId, 2, 'VERSION TWO');
+    store.deployments.delete(previous.deployment.id);
+    await rm(staticDeploymentSnapshotDir(previous.deployment.id), { recursive: true, force: true });
 
     const inFlight = app.inject({
       method: 'POST',
@@ -521,7 +778,7 @@ describe('static rollback-to-previous (deterministic, fail-closed)', () => {
       version: 3,
       provider: 'static',
       artifactKind: 'static-snapshot',
-      artifactRef: `static-deployments/${current.deployment.id}`,
+      artifactRef: current.artifactRef,
       artifactDigest: current.artifactDigest,
       accessPolicyVersion: current.deployment.accessPolicyVersion,
       planEntitlements: RELEASE_PLAN_ENTITLEMENTS,
@@ -538,6 +795,15 @@ describe('static rollback-to-previous (deterministic, fail-closed)', () => {
     );
     expect(rollback?.status).toBe('FAILED');
     expect(await computeStaticSnapshotDigest(rollback!.id)).toBeUndefined();
+    expect(await resolveStaticDeploymentRoutingAlias(previous.deployment.id)).toBeUndefined();
+    expect(
+      (
+        await app.inject({
+          method: 'GET',
+          url: `/static-deployments/${previous.deployment.id}/assets/app.js`,
+        })
+      ).statusCode,
+    ).toBe(404);
     expect((await store.listReleaseManifests(projectId, 'preview')).map((manifest) => manifest.version)).toEqual([
       3, 2, 1,
     ]);
@@ -613,6 +879,11 @@ describe('static rollback-to-previous (deterministic, fail-closed)', () => {
     const orphanDir = staticDeploymentSnapshotDir(deploymentId);
     await mkdir(orphanDir, { recursive: true });
     await writeFile(join(orphanDir, 'partial.html'), 'PARTIAL ORPHAN', 'utf8');
+    await writeStaticDeploymentRoutingAlias(previous.deployment.id, deploymentId);
+    expect(await resolveStaticDeploymentRoutingAlias(previous.deployment.id)).toEqual({
+      targetDeploymentId: deploymentId,
+      edges: [{ sourceDeploymentId: previous.deployment.id, targetDeploymentId: deploymentId }],
+    });
     store.rollbackOperations.set(`${projectId}:${idempotencyKey}`, {
       ...effect,
       leaseExpiresAt: new Date(0).toISOString(),
@@ -623,6 +894,20 @@ describe('static rollback-to-previous (deterministic, fail-closed)', () => {
       url: `/static-deployments/${deploymentId}/partial.html`,
     });
     expect(partialArtifact.statusCode).toBe(404);
+
+    /*
+     * The alias is installed before the release commit. During that crash
+     * window the last committed source remains readable, while the guessed
+     * target URL must never expose QUEUED/partial bytes.
+     */
+    const committedSource = await app.inject({
+      method: 'GET',
+      url: `/static-deployments/${previous.deployment.id}/assets/app.js`,
+    });
+    expect(committedSource.statusCode).toBe(200);
+    expect(committedSource.body).toBe(previous.assetBody);
+    expect(committedSource.headers['x-vibecore-static-deployment']).toBe(previous.deployment.id);
+    expect(committedSource.headers['x-vibecore-static-deployment-alias']).toBeUndefined();
 
     const queuedServingState = await app.inject({
       method: 'GET',
@@ -642,6 +927,7 @@ describe('static rollback-to-previous (deterministic, fail-closed)', () => {
     expect(recovered.statusCode).toBe(409);
     expect(recovered.json()).toMatchObject({ code: 'ROLLBACK_RECOVERED_FAILED_ATTEMPT' });
     expect(await computeStaticSnapshotDigest(deploymentId)).toBeUndefined();
+    expect(await resolveStaticDeploymentRoutingAlias(previous.deployment.id)).toBeUndefined();
     expect((await store.getDeployment(projectId, deploymentId))?.status).toBe('FAILED');
 
     const failedServingState = await app.inject({
@@ -661,6 +947,65 @@ describe('static rollback-to-previous (deterministic, fail-closed)', () => {
     expect(replay.statusCode).toBe(409);
     expect(replay.headers['idempotency-replayed']).toBe('true');
     expect(replay.json()).toEqual(recovered.json());
+  });
+
+  it('rejects forged, cross-project, divergent, cyclic, and corrupt static aliases', async () => {
+    const { app, store, auth, projectId } = await setup();
+    const source = await publishStatic(store, projectId, 1, 'ALIAS AUTHORITY SOURCE');
+    const unrelated = await publishStatic(store, projectId, 2, 'UNRELATED READY TARGET');
+
+    const expectSourceDenied = async () => {
+      const response = await app.inject({
+        method: 'GET',
+        url: `/static-deployments/${source.deployment.id}/assets/app.js`,
+      });
+      expect(response.statusCode).toBe(404);
+      expect(response.json()).toMatchObject({ code: 'STATIC_DEPLOY_ARTIFACT_NOT_FOUND' });
+    };
+
+    /* READY + committed is insufficient: the target must be a rollback of this exact source. */
+    await writeStaticDeploymentRoutingAlias(source.deployment.id, unrelated.deployment.id);
+    expect(await resolveStaticDeploymentRoutingAlias(source.deployment.id)).toEqual({
+      targetDeploymentId: unrelated.deployment.id,
+      edges: [{ sourceDeploymentId: source.deployment.id, targetDeploymentId: unrelated.deployment.id }],
+    });
+    await expectSourceDenied();
+
+    /* Even an exact rolledBackFrom edge cannot substitute different immutable bytes. */
+    await store.updateDeployment(projectId, unrelated.deployment.id, {
+      rolledBackFromId: source.deployment.id,
+    });
+    expect(unrelated.artifactDigest).not.toBe(source.artifactDigest);
+    await expectSourceDenied();
+
+    const otherProjectResponse = await app.inject({
+      method: 'POST',
+      url: `/orgs/${auth.organization.id}/projects`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { name: 'Alias Cross Project Target' },
+    });
+    expect(otherProjectResponse.statusCode).toBe(201);
+    const otherProjectId = (otherProjectResponse.json() as { project: { id: string } }).project.id;
+    const crossProject = await publishStatic(store, otherProjectId, 1, 'CROSS PROJECT TARGET');
+    await store.updateDeployment(otherProjectId, crossProject.deployment.id, {
+      rolledBackFromId: source.deployment.id,
+    });
+
+    /* A syntactically valid rollback edge must not cross the source manifest's project boundary. */
+    await writeStaticDeploymentRoutingAlias(source.deployment.id, crossProject.deployment.id);
+    await expectSourceDenied();
+
+    /* Cycles are structural corruption and never fall back to mutable source bytes. */
+    await writeStaticDeploymentRoutingAlias(source.deployment.id, unrelated.deployment.id);
+    await writeStaticDeploymentRoutingAlias(unrelated.deployment.id, source.deployment.id);
+    expect(await resolveStaticDeploymentRoutingAlias(source.deployment.id)).toBeNull();
+    await expectSourceDenied();
+
+    /* Invalid on-disk targets are likewise corruption, not a routing hint. */
+    await mkdir(join(storageDir, '.aliases'), { recursive: true });
+    await writeFile(join(storageDir, '.aliases', source.deployment.id), '../outside\n', 'utf8');
+    expect(await resolveStaticDeploymentRoutingAlias(source.deployment.id)).toBeNull();
+    await expectSourceDenied();
   });
 
   it('fails closed (409) when there is no previous version', async () => {
@@ -691,8 +1036,8 @@ describe('static rollback-to-previous (deterministic, fail-closed)', () => {
     const v1 = await publishStatic(store, projectId, 1, 'VERSION ONE');
     await publishStatic(store, projectId, 2, 'VERSION TWO');
 
-    // Tamper v1's retained snapshot AFTER its manifest digest was recorded.
-    await writeFile(join(staticDeploymentSnapshotDir(v1.deployment.id), 'index.html'), '<body>TAMPERED</body>', 'utf8');
+    // Tamper v1's retained content AFTER its manifest digest was recorded.
+    await writeFile(join(staticDeploymentArtifactDir(v1.artifactRef), 'index.html'), '<body>TAMPERED</body>', 'utf8');
 
     const res = await app.inject({
       method: 'POST',
@@ -710,7 +1055,7 @@ describe('static rollback-to-previous (deterministic, fail-closed)', () => {
     const v1 = await publishStatic(store, projectId, 1, 'VERSION ONE');
     await publishStatic(store, projectId, 2, 'VERSION TWO');
 
-    await rm(staticDeploymentSnapshotDir(v1.deployment.id), { recursive: true, force: true });
+    await rm(staticDeploymentArtifactDir(v1.artifactRef), { recursive: true, force: true });
 
     const res = await app.inject({
       method: 'POST',

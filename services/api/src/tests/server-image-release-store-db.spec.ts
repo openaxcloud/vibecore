@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { PrismaApiStore } from '../prisma-store.js';
 // eslint-disable-next-line no-restricted-imports -- this service has no ~/ path alias; keep the DB spec service-local.
 import type { ServerImageReleaseCommitInput } from '../store.js';
+import { deterministicServerReleaseFixture } from './deterministic-release-fixture.js';
 import { acquireTestProjectReleaseFence } from './project-release-barrier-fixture.js';
 
 const runDbTests = process.env.DATABASE_URL ? describe : describe.skip;
@@ -40,37 +41,31 @@ runDbTests('server-image release — durable Postgres linearization', () => {
         organizationId: organization.id,
       });
 
-      const promotion = {
+      const pins = deterministicServerReleaseFixture({
+        organizationId: organization.id,
+        projectId: project.id,
+        projectManifestDigest: release.digest,
+        accessPolicyVersion: 1,
+        artifactRef: imageRef,
+        artifactDigest: DIGEST,
         promotionId: `promo-${suffix()}`,
-        sourceRepo: `europe-west9-docker.pkg.dev/build-project/build-repo/p-${project.id.toLowerCase()}`,
-        sourceDigest: DIGEST,
-        targetRepo: imageRef,
-        targetTenant: organization.id,
-        retentionTag: `active-promo-${'a'.repeat(32)}`,
-        attachments: ['signature', 'sbom', 'provenance'].map((type, index) => ({
-          type,
-          digest: `sha256:${String(index + 1).repeat(64)}`,
-          subjectDigest: DIGEST,
-          relinked: true,
-        })),
-        binaryAuthorizationResult: 'PASSED',
-        binaryAuthorizationPolicy: 'projects/policy-proj/platforms/gke/policies/release-policy',
-        binaryAuthorizationPolicyEtag: 'policy-etag-0001',
-        binaryAuthorizationEvaluatedImage: `${imageRef}@${DIGEST}`,
-        binaryAuthorizationEvaluatedAt: '2026-08-26T00:00:00.500Z',
-        state: 'PROMOTION_COMMITTED',
-        preparedAt: '2026-08-26T00:00:00.000Z',
-        committedAt: '2026-08-26T00:00:01.000Z',
-      };
+      });
+      const promotion = pins.promotion;
       const deployment = await storeA.createDeployment({
         projectId: project.id,
         provider: 'server',
         environment: 'preview',
         status: 'BUILDING',
+        machineSize: 'shared-0.5',
         accessPolicy: { mode: 'INVITE_ONLY' },
         metadata: {
+          planEntitlements: pins.planEntitlements,
           projectManifestDigest: release.digest,
-          serverDeploy: { image: { imageRef, imageDigest: DIGEST }, promotion },
+          serverDeploy: {
+            image: { imageRef, imageDigest: DIGEST },
+            promotion,
+            rollbackRuntimeSpec: pins.runtimeSpec,
+          },
         },
       });
       const input: ServerImageReleaseCommitInput = {
@@ -80,6 +75,8 @@ runDbTests('server-image release — durable Postgres linearization', () => {
         environment: 'preview',
         artifactRef: imageRef,
         artifactDigest: DIGEST,
+        runtimeSpec: pins.runtimeSpec,
+        promotionEvidence: pins.promotionEvidence,
         url: 'https://release.example.test',
         previewUrl: 'https://release.example.test',
         metadata: deployment.metadata as Record<string, unknown>,

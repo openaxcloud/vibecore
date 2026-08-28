@@ -1,10 +1,11 @@
-import { createDatabaseClient } from '@vibecore/database';
+import { createDatabaseClient, Prisma } from '@vibecore/database';
 import { PLAN_ENTITLEMENTS_VERSION } from '@vibecore/billing';
 import { describe, expect, it } from 'vitest';
 
 import { createDefaultProjectManifest, projectManifestDigest } from '../project-manifest.js';
 import { PrismaApiStore } from '../prisma-store.js';
 import type { ProjectReleaseFence } from '../store.js';
+import { deterministicServerReleaseFixture } from './deterministic-release-fixture.js';
 
 const runDbTests = process.env.DATABASE_URL ? describe : describe.skip;
 const DIGEST = `sha256:${'a'.repeat(64)}`;
@@ -17,6 +18,8 @@ const PLAN_ENTITLEMENTS = {
   publishRegions: 'all' as const,
 };
 const TARGET_PLAN_ENTITLEMENTS = { ...PLAN_ENTITLEMENTS, plan: 'core' as const };
+const MIGRATION_POINT = `sha256:${'1'.repeat(64)}`;
+const TARGET_MIGRATION_POINT = `sha256:${'2'.repeat(64)}`;
 
 function suffix() {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
@@ -124,9 +127,35 @@ async function seedReservedPreview(
    * the already-fenced/settled row to that exact post-release state directly.
    */
   await prisma.deployment.update({ where: { id: deployment.id }, data: { status: 'READY' } });
+  const initialReadyDeployment = await store.getDeployment(project.id, deployment.id);
+  if (!initialReadyDeployment) throw new Error('Reserved VM publish fixture lost its deployment');
+  const pins = deterministicServerReleaseFixture({
+    organizationId: organization.id,
+    projectId: project.id,
+    projectManifestDigest: manifestDigest,
+    accessPolicyVersion: initialReadyDeployment.accessPolicyVersion,
+    artifactRef: imageRef,
+    artifactDigest: DIGEST,
+    machineKey: 'shared-0.5',
+    database: { mode: 'exact-ledger', ledgerDigest: MIGRATION_POINT },
+    planEntitlements: PLAN_ENTITLEMENTS,
+  });
+  await prisma.deployment.update({
+    where: { id: deployment.id },
+    data: {
+      metadata: {
+        planEntitlements: PLAN_ENTITLEMENTS,
+        projectManifestDigest: manifestDigest,
+        serverDeploy: {
+          image: { imageRef, imageDigest: DIGEST },
+          promotion: pins.promotion,
+          rollbackRuntimeSpec: pins.runtimeSpec,
+        },
+      },
+    },
+  });
   const readyDeployment = await store.getDeployment(project.id, deployment.id);
-
-  if (!readyDeployment) throw new Error('Reserved VM publish fixture lost its deployment');
+  if (!readyDeployment) throw new Error('Reserved VM publish fixture lost its pinned deployment');
   const releaseSource = await store.createReleaseManifest({
     projectId: project.id,
     deploymentId: deployment.id,
@@ -137,13 +166,15 @@ async function seedReservedPreview(
     artifactRef: imageRef,
     artifactDigest: DIGEST,
     configDigest: 'config-v1',
-    dbMigrationPoint: 'migration-v1',
+    dbMigrationPoint: MIGRATION_POINT,
+    runtimeSpec: pins.runtimeSpec,
+    promotionEvidence: pins.promotionEvidence,
     accessPolicyVersion: readyDeployment.accessPolicyVersion,
     planEntitlements: PLAN_ENTITLEMENTS,
     projectManifestDigest: manifestDigest,
   });
 
-  return { actor, organization, project, manifest, manifestDigest, deployment: readyDeployment, releaseSource };
+  return { actor, organization, project, manifest, manifestDigest, deployment: readyDeployment, releaseSource, pins };
 }
 
 async function acquirePublishFence(
@@ -182,6 +213,23 @@ runDbTests('Reserved VM in-place publish — PostgreSQL release barrier', () => 
       const storeA = new PrismaApiStore(prismaA);
       const storeB = new PrismaApiStore(prismaB);
       const seeded = await seedReservedPreview(prismaA, storeA, 'reserved-publish');
+      const productionPins = deterministicServerReleaseFixture({
+        organizationId: seeded.organization.id,
+        projectId: seeded.project.id,
+        environment: 'production',
+        projectManifestDigest: seeded.manifestDigest,
+        accessPolicyVersion: seeded.deployment.accessPolicyVersion,
+        artifactRef: seeded.releaseSource.artifactRef,
+        artifactDigest: seeded.releaseSource.artifactDigest,
+        machineKey: seeded.deployment.machineSize,
+        database: { mode: 'exact-ledger', ledgerDigest: MIGRATION_POINT },
+        planEntitlements: PLAN_ENTITLEMENTS,
+      });
+      const publishPins = {
+        dbMigrationPoint: MIGRATION_POINT,
+        runtimeSpec: productionPins.runtimeSpec,
+        promotionEvidence: productionPins.promotionEvidence,
+      };
       sourceOrganizationId = seeded.organization.id;
       const target = await prismaA.organization.create({
         data: { name: `publish-target-${suffix()}`, slug: `publish-target-${suffix()}` },
@@ -233,6 +281,7 @@ runDbTests('Reserved VM in-place publish — PostgreSQL release barrier', () => 
           expectedRuntimeVersion: seeded.deployment.runtimeVersion! + 1,
           productionUrl: seeded.deployment.url!,
           sourceReleaseManifestId: prepared.releaseSource.id,
+          ...publishPins,
           releaseFence: release.fence,
         }),
       ).rejects.toMatchObject({ code: 'RESERVED_VM_RUNTIME_VERSION_CONFLICT' });
@@ -247,6 +296,7 @@ runDbTests('Reserved VM in-place publish — PostgreSQL release barrier', () => 
           expectedRuntimeVersion: seeded.deployment.runtimeVersion!,
           productionUrl: seeded.deployment.url!,
           sourceReleaseManifestId: `missing-${suffix()}`,
+          ...publishPins,
           releaseFence: release.fence,
         }),
       ).rejects.toMatchObject({ code: 'RESERVED_VM_RELEASE_SOURCE_INVALID' });
@@ -262,6 +312,10 @@ runDbTests('Reserved VM in-place publish — PostgreSQL release barrier', () => 
           artifactKind: 'server-image',
           artifactRef: prepared.releaseSource.artifactRef,
           artifactDigest: `sha256:${'d'.repeat(64)}`,
+          configDigest: prepared.releaseSource.configDigest,
+          dbMigrationPoint: prepared.releaseSource.dbMigrationPoint,
+          runtimeSpec: seeded.pins.runtimeSpec,
+          promotionEvidence: seeded.pins.promotionEvidence as Prisma.InputJsonValue,
           accessPolicyVersion: seeded.deployment.accessPolicyVersion,
         },
       });
@@ -274,6 +328,7 @@ runDbTests('Reserved VM in-place publish — PostgreSQL release barrier', () => 
           expectedRuntimeVersion: seeded.deployment.runtimeVersion!,
           productionUrl: seeded.deployment.url!,
           sourceReleaseManifestId: badArtifact.id,
+          ...publishPins,
           releaseFence: release.fence,
         }),
       ).rejects.toMatchObject({ code: 'RESERVED_VM_RELEASE_SOURCE_INVALID' });
@@ -287,6 +342,10 @@ runDbTests('Reserved VM in-place publish — PostgreSQL release barrier', () => 
           artifactKind: 'server-image',
           artifactRef: prepared.releaseSource.artifactRef,
           artifactDigest: prepared.releaseSource.artifactDigest,
+          configDigest: prepared.releaseSource.configDigest,
+          dbMigrationPoint: prepared.releaseSource.dbMigrationPoint,
+          runtimeSpec: seeded.pins.runtimeSpec,
+          promotionEvidence: seeded.pins.promotionEvidence as Prisma.InputJsonValue,
           accessPolicyVersion: seeded.deployment.accessPolicyVersion + 1,
         },
       });
@@ -299,6 +358,7 @@ runDbTests('Reserved VM in-place publish — PostgreSQL release barrier', () => 
           expectedRuntimeVersion: seeded.deployment.runtimeVersion!,
           productionUrl: seeded.deployment.url!,
           sourceReleaseManifestId: badPolicy.id,
+          ...publishPins,
           releaseFence: release.fence,
         }),
       ).rejects.toMatchObject({ code: 'RESERVED_VM_RELEASE_SOURCE_INVALID' });
@@ -328,6 +388,7 @@ runDbTests('Reserved VM in-place publish — PostgreSQL release barrier', () => 
           expectedRuntimeVersion: seeded.deployment.runtimeVersion!,
           productionUrl: seeded.deployment.url!,
           sourceReleaseManifestId: legacyUnpinnedSource.id,
+          ...publishPins,
           releaseFence: release.fence,
         }),
       ).rejects.toMatchObject({ code: 'RESERVED_VM_RELEASE_SOURCE_INVALID' });
@@ -342,6 +403,7 @@ runDbTests('Reserved VM in-place publish — PostgreSQL release barrier', () => 
           expectedRuntimeVersion: seeded.deployment.runtimeVersion!,
           productionUrl: seeded.deployment.url!,
           sourceReleaseManifestId: prepared.releaseSource.id,
+          ...publishPins,
           releaseFence: release.fence,
         }),
         storeB.createReservedVmChangeOperation({
@@ -362,11 +424,11 @@ runDbTests('Reserved VM in-place publish — PostgreSQL release barrier', () => 
           rateCardVersion: 1,
         }),
       ]);
+      if (publishResult.status !== 'fulfilled') throw publishResult.reason;
       expect(publishResult.status).toBe('fulfilled');
       expect(changeResult.status).toBe('rejected');
       if (changeResult.status !== 'rejected') throw new Error('CHANGE unexpectedly won publish barrier race');
       expect(changeResult.reason).toMatchObject({ code: 'CHECKPOINT_BARRIER_ACTIVE' });
-      if (publishResult.status !== 'fulfilled') throw publishResult.reason;
       const published = publishResult.value;
       expect(published).toMatchObject({
         id: seeded.deployment.id,
@@ -398,47 +460,24 @@ runDbTests('Reserved VM in-place publish — PostgreSQL release barrier', () => 
         expectedRuntimeVersion: seeded.deployment.runtimeVersion!,
         productionUrl: seeded.deployment.url!,
         sourceReleaseManifestId: prepared.releaseSource.id,
+        ...publishPins,
         releaseFence: release.fence,
       });
       expect(replay.id).toBe(seeded.deployment.id);
       expect(await productionCount()).toBe(1);
 
-      await prismaA.releaseManifest.update({
-        where: { id: productionRelease.id },
-        data: { planEntitlements: { ...PLAN_ENTITLEMENTS, publishRegion: 'eu' } },
-      });
       await expect(
-        storeB.publishReservedVmInPlace({
-          projectId: seeded.project.id,
-          deploymentId: seeded.deployment.id,
-          organizationId: seeded.organization.id,
-          actorUserId: seeded.actor.id,
-          expectedRuntimeVersion: seeded.deployment.runtimeVersion!,
-          productionUrl: seeded.deployment.url!,
-          sourceReleaseManifestId: prepared.releaseSource.id,
-          releaseFence: release.fence,
+        prismaA.releaseManifest.update({
+          where: { id: productionRelease.id },
+          data: { planEntitlements: { ...PLAN_ENTITLEMENTS, publishRegion: 'eu' } },
         }),
-      ).rejects.toMatchObject({ code: 'RESERVED_VM_RELEASE_REPLAY_CONFLICT' });
-
-      await prismaA.releaseManifest.update({
-        where: { id: productionRelease.id },
-        data: {
-          planEntitlements: PLAN_ENTITLEMENTS,
-          projectManifestDigest: `sha256:${'b'.repeat(64)}`,
-        },
-      });
+      ).rejects.toThrow();
       await expect(
-        storeB.publishReservedVmInPlace({
-          projectId: seeded.project.id,
-          deploymentId: seeded.deployment.id,
-          organizationId: seeded.organization.id,
-          actorUserId: seeded.actor.id,
-          expectedRuntimeVersion: seeded.deployment.runtimeVersion!,
-          productionUrl: seeded.deployment.url!,
-          sourceReleaseManifestId: prepared.releaseSource.id,
-          releaseFence: release.fence,
+        prismaA.releaseManifest.update({
+          where: { id: productionRelease.id },
+          data: { projectManifestDigest: `sha256:${'b'.repeat(64)}` },
         }),
-      ).rejects.toMatchObject({ code: 'RESERVED_VM_RELEASE_REPLAY_CONFLICT' });
+      ).rejects.toThrow();
       expect(await productionCount()).toBe(1);
       expect((await prismaA.project.findUniqueOrThrow({ where: { id: seeded.project.id } })).organizationId).toBe(
         seeded.organization.id,
@@ -535,13 +574,29 @@ runDbTests('Reserved VM in-place publish — PostgreSQL release barrier', () => 
         operationId: `redeploy-release:${redeploy.operation.id}`,
       });
       const targetDigest = `sha256:${'9'.repeat(64)}`;
+      const targetPins = deterministicServerReleaseFixture({
+        organizationId: seeded.organization.id,
+        projectId: seeded.project.id,
+        environment: 'preview',
+        projectManifestDigest: targetManifestDigest,
+        accessPolicyVersion: seeded.deployment.accessPolicyVersion,
+        artifactRef: seeded.releaseSource.artifactRef,
+        artifactDigest: targetDigest,
+        machineKey: lease.operation.targetMachineSize,
+        rateCardVersion: lease.operation.rateCardVersion ?? 1,
+        cpuMillicores: lease.operation.targetCpuMillicores,
+        memoryMb: lease.operation.targetMemoryMb,
+        database: { mode: 'exact-ledger', ledgerDigest: TARGET_MIGRATION_POINT },
+        planEntitlements: TARGET_PLAN_ENTITLEMENTS,
+      });
       const targetMetadata = {
         ...(redeploy.deployment.metadata as Record<string, unknown>),
         planEntitlements: TARGET_PLAN_ENTITLEMENTS,
         projectManifestDigest: targetManifestDigest,
         serverDeploy: {
           image: { imageRef: seeded.releaseSource.artifactRef, imageDigest: targetDigest },
-          promotion: promotion(seeded.organization.id, seeded.releaseSource.artifactRef, targetDigest),
+          promotion: targetPins.promotion,
+          rollbackRuntimeSpec: targetPins.runtimeSpec,
           releaseConfigDigest: 'config-v2',
         },
       };
@@ -553,7 +608,9 @@ runDbTests('Reserved VM in-place publish — PostgreSQL release barrier', () => 
         artifactRef: seeded.releaseSource.artifactRef,
         artifactDigest: targetDigest,
         configDigest: 'config-v2',
-        dbMigrationPoint: 'migration-v2',
+        dbMigrationPoint: TARGET_MIGRATION_POINT,
+        runtimeSpec: targetPins.runtimeSpec,
+        promotionEvidence: targetPins.promotionEvidence,
         url: seeded.deployment.url!,
         previewUrl: seeded.deployment.previewUrl,
         metadata: targetMetadata,

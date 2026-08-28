@@ -19,7 +19,6 @@ import { TestApiStore } from './test-api-store.js';
 const ACCESS_SECRET = 'deployment-access-test-secret-with-at-least-32-bytes';
 const PROXY_SECRET = 'preview-proxy-test-secret';
 const PREVIEW_DOMAIN = 'preview.e-code.test';
-const RELEASE_PROJECT_MANIFEST_DIGEST = `sha256:${'1'.repeat(64)}`;
 const RELEASE_PLAN_ENTITLEMENTS = {
   version: PLAN_ENTITLEMENTS_VERSION,
   plan: 'starter' as const,
@@ -120,6 +119,8 @@ describe('deployment access API', () => {
     });
 
     const project = await store.createProject({ organizationId: org.id, name: 'Access app', slug: 'access-app' });
+    const projectManifest = await store.getLatestProjectManifest(project.id);
+    if (!projectManifest) throw new Error('Expected the access fixture project manifest');
 
     const otherProject = await store.createProject({
       organizationId: otherOrg.id,
@@ -145,7 +146,7 @@ describe('deployment access API', () => {
       accessPolicy: { mode: 'PUBLIC', createdByUserId: owner.id },
       metadata: {
         planEntitlements: RELEASE_PLAN_ENTITLEMENTS,
-        projectManifestDigest: RELEASE_PROJECT_MANIFEST_DIGEST,
+        projectManifestDigest: projectManifest.digest,
       },
     });
     await store.updateDeployment(project.id, deployment.id, {
@@ -158,14 +159,14 @@ describe('deployment access API', () => {
       version: 1,
       provider: 'static',
       artifactKind: 'static-snapshot',
-      artifactRef: `static-deployments/${deployment.id}`,
-      artifactDigest: 'a'.repeat(64),
+      artifactRef: `static-artifacts/sha256/${'a'.repeat(64)}`,
+      artifactDigest: `sha256:${'a'.repeat(64)}`,
       accessPolicyVersion: deployment.accessPolicyVersion,
       planEntitlements: RELEASE_PLAN_ENTITLEMENTS,
-      projectManifestDigest: RELEASE_PROJECT_MANIFEST_DIGEST,
+      projectManifestDigest: projectManifest.digest,
     });
 
-    return { app, store, owner, outsider, project, otherProject, deployment };
+    return { app, store, owner, outsider, project, projectManifest, otherProject, deployment };
   }
 
   const proxyHeaders = { authorization: `Bearer ${PROXY_SECRET}` };
@@ -386,7 +387,7 @@ describe('deployment access API', () => {
   });
 
   it('refuses manifests that do not pin the deployment exact access policy', async () => {
-    const { app, store, project, deployment } = await setup();
+    const { app, store, project, projectManifest, deployment } = await setup();
 
     try {
       await expect(
@@ -397,11 +398,11 @@ describe('deployment access API', () => {
           version: 2,
           provider: 'static',
           artifactKind: 'static-snapshot',
-          artifactRef: `static-deployments/${deployment.id}`,
-          artifactDigest: 'b'.repeat(64),
+          artifactRef: `static-artifacts/sha256/${'b'.repeat(64)}`,
+          artifactDigest: `sha256:${'b'.repeat(64)}`,
           accessPolicyVersion: deployment.accessPolicyVersion + 1,
           planEntitlements: RELEASE_PLAN_ENTITLEMENTS,
-          projectManifestDigest: RELEASE_PROJECT_MANIFEST_DIGEST,
+          projectManifestDigest: projectManifest.digest,
         }),
       ).rejects.toMatchObject({ code: 'RELEASE_ACCESS_POLICY_INVALID' });
     } finally {

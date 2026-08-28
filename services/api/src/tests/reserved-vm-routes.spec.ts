@@ -12,6 +12,7 @@ class TestEmailProvider implements EmailProvider {
 
 const originalManagerUrl = process.env.WORKSPACE_MANAGER_URL;
 const originalManagerSecret = process.env.WORKSPACE_MANAGER_SHARED_SECRET;
+const originalConfigEncryptionKey = process.env.CONFIG_ENCRYPTION_KEY;
 const PAYLOAD_ENV_KEYS = [
   'RESERVED_VM_RUNTIME_ENABLED',
   'RESERVED_VM_PAYLOAD_ENCRYPTION_KEY_ID',
@@ -29,6 +30,8 @@ afterEach(() => {
   else process.env.WORKSPACE_MANAGER_URL = originalManagerUrl;
   if (originalManagerSecret === undefined) delete process.env.WORKSPACE_MANAGER_SHARED_SECRET;
   else process.env.WORKSPACE_MANAGER_SHARED_SECRET = originalManagerSecret;
+  if (originalConfigEncryptionKey === undefined) delete process.env.CONFIG_ENCRYPTION_KEY;
+  else process.env.CONFIG_ENCRYPTION_KEY = originalConfigEncryptionKey;
   for (const key of PAYLOAD_ENV_KEYS) {
     const value = originalPayloadEnv[key];
     if (value === undefined) delete process.env[key];
@@ -89,6 +92,7 @@ function capability(enabled = true) {
 describe('Reserved VM deployment routes', () => {
   it('fails production boot before traffic when the Reserved VM payload keyring is missing, weak, or invalid', async () => {
     process.env.WORKSPACE_MANAGER_URL = 'https://workspace-manager.example.test';
+    process.env.CONFIG_ENCRYPTION_KEY = 'test-production-config-encryption-key-0001';
     process.env.RESERVED_VM_RUNTIME_ENABLED = 'true';
     delete process.env.RESERVED_VM_PAYLOAD_ENCRYPTION_KEY_ID;
     delete process.env.RESERVED_VM_PAYLOAD_ENCRYPTION_KEY;

@@ -3,6 +3,8 @@ import { buildApiApp, type ApiAppOptions } from '../app.js';
 import { TestApiStore } from './test-api-store.js';
 import type { EmailProvider } from '../email.js';
 import { createDefaultProjectManifest, projectManifestDigest } from '../project-manifest.js';
+import { deterministicServerReleaseFixture } from './deterministic-release-fixture.js';
+import { RESERVED_VM_TERMS_VERSION } from '../reserved-vm.js';
 
 /*
  * Reconcile-on-read for provider='server' deployments.
@@ -113,6 +115,41 @@ describe('server deploy reconcile-on-read (false-FAILED self-heal)', () => {
     ...overrides,
   });
 
+  function deterministicImageMetadata(input: {
+    organizationId: string;
+    projectId: string;
+    projectManifestDigest: string;
+    host: string;
+    serverDeploy?: Record<string, unknown>;
+  }) {
+    const pins = deterministicServerReleaseFixture({
+      organizationId: input.organizationId,
+      projectId: input.projectId,
+      projectManifestDigest: input.projectManifestDigest,
+      accessPolicyVersion: 1,
+      artifactRef: IMAGE_REF,
+      artifactDigest: DIGEST,
+      healthPath: '/health',
+    });
+    return {
+      pins,
+      metadata: {
+        planEntitlements: pins.planEntitlements,
+        projectManifestDigest: input.projectManifestDigest,
+        serverDeploy: {
+          host: input.host,
+          applied: true,
+          image: { imageRef: IMAGE_REF, imageUri: `${IMAGE_REF}@${DIGEST}`, imageDigest: DIGEST },
+          promotion: pins.promotion,
+          rollbackRuntimeSpec: pins.runtimeSpec,
+          rollbackPromotionEvidence: pins.promotionEvidence,
+          releaseConfigDigest: DIGEST,
+          ...(input.serverDeploy ?? {}),
+        },
+      },
+    };
+  }
+
   it('promotes a BUILDING server deploy to READY when the manager reports a ready replica', async () => {
     const { app, store, auth, projectId, projectManifestDigest } = await setup();
     stubManagerStatus(1);
@@ -203,21 +240,19 @@ describe('server deploy reconcile-on-read (false-FAILED self-heal)', () => {
     const { app, store, auth, projectId, projectManifestDigest } = await setup();
     stubManagerStatus(1);
     const host = 'd-promoted.preview.e-code.ai';
+    const release = deterministicImageMetadata({
+      organizationId: auth.organization.id,
+      projectId,
+      projectManifestDigest,
+      host,
+    });
     const deployment = await store.createDeployment({
       projectId,
       provider: 'server',
       environment: 'preview',
       status: 'BUILDING',
-      metadata: {
-        projectManifestDigest,
-        serverDeploy: {
-          host,
-          applied: true,
-          image: { imageRef: IMAGE_REF, imageUri: `${IMAGE_REF}@${DIGEST}`, imageDigest: DIGEST },
-          promotion: promotion(auth.organization.id),
-          releaseConfigDigest: DIGEST,
-        },
-      },
+      machineSize: 'shared-0.5',
+      metadata: release.metadata,
     });
     const res = await app.inject({
       method: 'GET',
@@ -236,25 +271,124 @@ describe('server deploy reconcile-on-read (false-FAILED self-heal)', () => {
     await app.close();
   });
 
-  it('fails terminally with no manifest when the release fence is lost immediately before commit', async () => {
+  it('reconciles a Reserved CREATE with operation-pinned resources after active rate-card drift', async () => {
     const { app, store, auth, projectId, projectManifestDigest } = await setup();
-    stubManagerStatus(1);
-    const host = 'd-fence-lost.preview.e-code.ai';
+    const operationKey = 'reserved-reconcile-rate-card-drift-0001';
+    const release = deterministicImageMetadata({
+      organizationId: auth.organization.id,
+      projectId,
+      projectManifestDigest,
+      host: 'd-reserved-reconcile.preview.e-code.ai',
+    });
     const deployment = await store.createDeployment({
       projectId,
       provider: 'server',
       environment: 'preview',
       status: 'BUILDING',
-      metadata: {
-        projectManifestDigest,
-        serverDeploy: {
-          host,
-          applied: true,
-          image: { imageRef: IMAGE_REF, imageUri: `${IMAGE_REF}@${DIGEST}`, imageDigest: DIGEST },
-          promotion: promotion(auth.organization.id),
-          releaseConfigDigest: DIGEST,
-        },
+      machineSize: 'shared-0.5',
+      metadata: { ...release.metadata, reservedVmOperationKey: operationKey },
+      reservedVm: {
+        organizationId: auth.organization.id,
+        actorUserId: auth.user.id,
+        idempotencyKey: operationKey,
+        requestHash: 'reserved-reconcile-rate-card-drift-request',
+        tier: 'shared-0.5',
+        termsVersion: RESERVED_VM_TERMS_VERSION,
+        monthlyPriceCents: 2_000,
+        rateCardVersion: 1,
       },
+    });
+    const activeCardLookup = vi.spyOn(store, 'getActiveRateCard').mockResolvedValue({
+      version: 2,
+      data: {
+        version: 2,
+        effectiveAt: '2026-08-28T00:00:00.000Z',
+        currency: 'usd',
+        compute: {
+          cpuSecondUnits: 1,
+          gbSecondUnits: 1,
+          unitCents: 1,
+          requestCents: 1,
+          baseCentsPerMonth: 0,
+          egressCentsPerGib: 1,
+        },
+        machineSizes: [
+          {
+            key: 'shared-0.5',
+            label: 'Drifted',
+            vcpu: 7.777,
+            ramGb: 7,
+            cpuMillicores: 7_777,
+            ramMb: 7_168,
+            computeUnitsPerSecond: 1,
+          },
+        ],
+        planMaxMachineVcpu: { free: 1, core: 8, pro: 8 },
+      },
+    });
+    const reconfigureBodies: Array<Record<string, unknown>> = [];
+    globalThis.fetch = vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
+      const href = String(url);
+      if (href.endsWith(`/server-deployments/${deployment.id}/status`)) {
+        return new Response(JSON.stringify({ exists: true, readyReplicas: 1, replicas: 1 }), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        });
+      }
+      if (href.endsWith(`/server-deployments/${deployment.id}/reconfigure`)) {
+        const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
+        reconfigureBodies.push(body);
+        return new Response(
+          JSON.stringify({
+            ready: true,
+            readyReplicas: 1,
+            appliedFencingToken: body.fencingToken,
+            persistentVolumeClaimName: `reserved-data-${deployment.id}`,
+          }),
+          { status: 200, headers: { 'content-type': 'application/json' } },
+        );
+      }
+      return new Response('{}', { status: 200, headers: { 'content-type': 'application/json' } });
+    }) as typeof fetch;
+
+    const response = await app.inject({
+      method: 'GET',
+      url: `/projects/${projectId}/deployments/${deployment.id}`,
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json().deployment.status).toBe('READY');
+    expect(reconfigureBodies).toEqual([
+      expect.objectContaining({
+        cpuRequest: '500m',
+        cpuLimit: '500m',
+        memoryRequest: '2048Mi',
+        memoryLimit: '2048Mi',
+      }),
+    ]);
+    expect(activeCardLookup).not.toHaveBeenCalled();
+    expect(store.releaseManifests[0]?.runtimeSpec).toEqual(release.pins.runtimeSpec);
+    await app.close();
+  });
+
+  it('fails terminally with no manifest when the release fence is lost immediately before commit', async () => {
+    const { app, store, auth, projectId, projectManifestDigest } = await setup();
+    stubManagerStatus(1);
+    const host = 'd-fence-lost.preview.e-code.ai';
+    const release = deterministicImageMetadata({
+      organizationId: auth.organization.id,
+      projectId,
+      projectManifestDigest,
+      host,
+    });
+    const deployment = await store.createDeployment({
+      projectId,
+      provider: 'server',
+      environment: 'preview',
+      status: 'BUILDING',
+      machineSize: 'shared-0.5',
+      metadata: release.metadata,
     });
     const assertBarrier = store.assertProjectReleaseBarrier.bind(store);
     let assertions = 0;
@@ -291,21 +425,19 @@ describe('server deploy reconcile-on-read (false-FAILED self-heal)', () => {
   it('refuses an artifact whose bound manifest changed before reconcile', async () => {
     const { app, store, auth, projectId, projectManifestDigest: builtManifestDigest } = await setup();
     stubManagerStatus(1);
+    const release = deterministicImageMetadata({
+      organizationId: auth.organization.id,
+      projectId,
+      projectManifestDigest: builtManifestDigest,
+      host: 'd-stale-manifest.preview.e-code.ai',
+    });
     const deployment = await store.createDeployment({
       projectId,
       provider: 'server',
       environment: 'preview',
       status: 'BUILDING',
-      metadata: {
-        projectManifestDigest: builtManifestDigest,
-        serverDeploy: {
-          host: 'd-stale-manifest.preview.e-code.ai',
-          applied: true,
-          image: { imageRef: IMAGE_REF, imageUri: `${IMAGE_REF}@${DIGEST}`, imageDigest: DIGEST },
-          promotion: promotion(auth.organization.id),
-          releaseConfigDigest: DIGEST,
-        },
-      },
+      machineSize: 'shared-0.5',
+      metadata: release.metadata,
     });
     const nextManifest = { ...createDefaultProjectManifest(projectId), manifestVersion: 2 };
     await store.createProjectManifestRevision({
@@ -343,27 +475,22 @@ describe('server deploy reconcile-on-read (false-FAILED self-heal)', () => {
   ])('fails closed when image promotion evidence is %s: no READY and no release', async (_label, evidence) => {
     const { app, store, auth, projectId, projectManifestDigest } = await setup();
     stubManagerStatus(1);
+    const release = deterministicImageMetadata({
+      organizationId: auth.organization.id,
+      projectId,
+      projectManifestDigest,
+      host: 'd-unverified.preview.e-code.ai',
+      serverDeploy: {
+        ...(evidence ? { promotion: { ...evidence, targetTenant: auth.organization.id } } : { promotion: undefined }),
+      },
+    });
     const deployment = await store.createDeployment({
       projectId,
       provider: 'server',
       environment: 'preview',
       status: 'BUILDING',
-      metadata: {
-        projectManifestDigest,
-        serverDeploy: {
-          host: 'd-unverified.preview.e-code.ai',
-          applied: true,
-          image: { imageRef: IMAGE_REF, imageUri: `${IMAGE_REF}@${DIGEST}`, imageDigest: DIGEST },
-          ...(evidence
-            ? {
-                promotion: {
-                  ...evidence,
-                  targetTenant: auth.organization.id,
-                },
-              }
-            : {}),
-        },
-      },
+      machineSize: 'shared-0.5',
+      metadata: release.metadata,
     });
     const res = await app.inject({
       method: 'GET',
@@ -379,20 +506,19 @@ describe('server deploy reconcile-on-read (false-FAILED self-heal)', () => {
   it('is idempotent under concurrent reconcile requests: one manifest, one version', async () => {
     const { app, store, auth, projectId, projectManifestDigest } = await setup();
     stubManagerStatus(1);
+    const release = deterministicImageMetadata({
+      organizationId: auth.organization.id,
+      projectId,
+      projectManifestDigest,
+      host: 'd-concurrent.preview.e-code.ai',
+    });
     const deployment = await store.createDeployment({
       projectId,
       provider: 'server',
       environment: 'preview',
       status: 'BUILDING',
-      metadata: {
-        projectManifestDigest,
-        serverDeploy: {
-          host: 'd-concurrent.preview.e-code.ai',
-          applied: true,
-          image: { imageRef: IMAGE_REF, imageDigest: DIGEST },
-          promotion: promotion(auth.organization.id),
-        },
-      },
+      machineSize: 'shared-0.5',
+      metadata: release.metadata,
     });
     const request = () =>
       app.inject({

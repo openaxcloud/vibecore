@@ -19,6 +19,7 @@ import {
 import { PrismaApiStore } from '../prisma-store.js';
 import type { ProjectFile, ProjectStorage, StoredArchive } from '../project-storage.js';
 import { executePhysicalRemix, remixFileSnapshotHash } from '../remix-physical-service.js';
+import { remixIdeStateDigest } from '../remix-ide-state.js';
 
 async function canReachDatabase() {
   if (!process.env.DATABASE_URL) return false;
@@ -231,7 +232,7 @@ function serviceDeps(
       return { snapshotId: snapshot.id, snapshotHash };
     },
     loadSourceSnapshot: (snapshotId: string) => projectStorage.listFiles(snapshotId),
-    persistTargetManifest: async () => undefined,
+    buildTargetIdeState: (files: ProjectFile[]) => ({ files }),
     recordCompleted: async () => undefined,
   };
 }
@@ -404,16 +405,18 @@ runDbTests('physical remix — real PostgreSQL multi-client CAS and compensation
         name: 'Hidden until finalize',
         slug: `hidden-${suffix}`,
       });
-      const linked = await storeA.getRemixJob(created.job.id, organization.id);
-      expect(linked).toBeDefined();
-      const indexing = await storeA.transitionRemixJob({
-        id: created.job.id,
-        organizationId: organization.id,
-        operationToken: 'shared-owner-token',
-        expectedVersion: linked!.version,
-        expectedStates: ['PENDING'],
-        state: 'INDEXING',
+      const targetIdeState = { files: { entries: [], updatedAt: new Date().toISOString() } };
+      const targetIdeStateDigest = remixIdeStateDigest(targetIdeState)!;
+      await prismaA.remixJob.update({
+        where: { id: created.job.id },
+        data: {
+          state: 'INDEXING',
+          targetIdeState,
+          targetIdeStateDigest,
+          version: { increment: 1 },
+        },
       });
+      const indexing = await storeA.getRemixJob(created.job.id, organization.id);
       expect(indexing).toBeDefined();
 
       const [finalizedA, finalizedB] = await Promise.all([
@@ -421,23 +424,31 @@ runDbTests('physical remix — real PostgreSQL multi-client CAS and compensation
           remixJobId: created.job.id,
           organizationId: organization.id,
           operationToken: 'shared-owner-token',
+          expectedVersion: indexing!.version,
+          requestHash: 'd'.repeat(64),
           targetProjectId: target.id,
         }),
         storeB.finalizeClaimedRemix({
           remixJobId: created.job.id,
           organizationId: organization.id,
           operationToken: 'shared-owner-token',
+          expectedVersion: indexing!.version,
+          requestHash: 'd'.repeat(64),
           targetProjectId: target.id,
         }),
       ]);
 
-      expect([finalizedA, finalizedB].filter(Boolean)).toHaveLength(1);
+      expect([finalizedA, finalizedB].filter(Boolean)).toHaveLength(2);
       expect(await prismaA.remixJob.findUnique({ where: { id: created.job.id } })).toMatchObject({
         state: 'COMPLETED',
         targetProjectId: target.id,
         operationToken: null,
       });
       expect(await prismaA.project.findUnique({ where: { id: target.id } })).toMatchObject({ deletedAt: null });
+      expect(await prismaA.projectIdeState.findUnique({ where: { projectId: target.id } })).toMatchObject({
+        state: targetIdeState,
+        version: 1,
+      });
     } finally {
       if (organizationId) await prismaA.organization.delete({ where: { id: organizationId } }).catch(() => undefined);
       await Promise.allSettled([prismaA.$disconnect(), prismaB.$disconnect()]);
@@ -571,10 +582,10 @@ runDbTests('physical remix — real PostgreSQL multi-client CAS and compensation
       const objectStorage = new MemoryObjectStorage();
       const provisioner = new PostApplyFailingForkProvisioner();
       let capturedProvisioningDeadline: string | undefined;
-      const acquireDatabaseProvisioning = store.acquireDatabaseProvisioning.bind(store);
-      vi.spyOn(store, 'acquireDatabaseProvisioning').mockImplementation(async (input) => {
+      const acquireClaimedRemixDatabase = store.acquireClaimedRemixDatabase.bind(store);
+      vi.spyOn(store, 'acquireClaimedRemixDatabase').mockImplementation(async (input) => {
         capturedProvisioningDeadline = input.provisioningDeadlineAt;
-        return acquireDatabaseProvisioning(input);
+        return acquireClaimedRemixDatabase(input);
       });
 
       // Mutation discriminator: a process-clock pin would ask CNPG for a PITR
