@@ -66,6 +66,7 @@ jobs:
 
       - name: Prisma validate and generate
         run: |
+          pnpm run db:migrations:validate
           pnpm exec prisma validate --schema packages/database/prisma/schema.prisma
           pnpm --filter @vibecore/database db:generate
           pnpm --filter @vibecore/database db:deploy

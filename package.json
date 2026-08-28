@@ -20,6 +20,7 @@
     "production:validate": "node scripts/validate-production-enterprise.mjs --strict",
     "production:validate:live": "node scripts/validate-production-enterprise.mjs --strict --live",
     "production:validate:self-test": "node scripts/validate-production-enterprise.mjs --self-test",
+    "db:migrations:validate": "node scripts/validate-prisma-migrations.mjs",
     "platform:verify:production": "pnpm run platform:verify && pnpm run production:validate",
     "runtime:validate:remote-kubernetes": "tsx scripts/validate-remote-kubernetes-runtime.ts",
     "runtime:validate:api-kubernetes": "tsx scripts/validate-runtime-api-kubernetes.ts",
