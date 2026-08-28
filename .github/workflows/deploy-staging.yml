@@ -81,6 +81,37 @@ jobs:
           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.GCP_DEPLOY_SERVICE_ACCOUNT }}
 
+      # RELEASE INTEGRITY: staging must never become a second production path.
+      #
+      # This workflow runs `helm upgrade --install vibecore --namespace vibecore` — the
+      # SAME release name and namespace as production — inside `GCP_PROJECT_ID`, which
+      # IS the production project (`vibecore-495216`). The only thing separating it from
+      # production is `vars.STAGING_APP_CLUSTER`, which is currently defined NOWHERE
+      # (not at repo level, not on the `staging` environment). It therefore fails today
+      # by accident, not by design: the moment someone sets that variable to the prod
+      # cluster, this becomes an ungated, tag-based deploy of the production release.
+      #
+      # deploy-main.yml is the only sanctioned production path, and it is gated. This
+      # check makes staging fail CLOSED and loudly instead.
+      - name: Refuse to target the production cluster
+        env:
+          TARGET_CLUSTER: ${{ vars.STAGING_APP_CLUSTER }}
+          PROD_CLUSTER: vibecore-prod-app
+        run: |
+          set -euo pipefail
+          if [ -z "${TARGET_CLUSTER}" ]; then
+            echo "::error::vars.STAGING_APP_CLUSTER is not set — refusing to run a helm upgrade against an unnamed cluster."
+            echo "Set it on the staging environment to the staging cluster name."
+            exit 1
+          fi
+          if [ "${TARGET_CLUSTER}" = "${PROD_CLUSTER}" ]; then
+            echo "::error::STAGING_APP_CLUSTER is '${TARGET_CLUSTER}', the PRODUCTION cluster."
+            echo "::error::This workflow deploys the 'vibecore' release into namespace 'vibecore' by mutable tag, ungated."
+            echo "::error::Production is deployed only by deploy-main.yml, behind the exact-SHA release gate."
+            exit 1
+          fi
+          echo "staging target cluster: ${TARGET_CLUSTER} (production is ${PROD_CLUSTER})"
+
       - uses: google-github-actions/get-gke-credentials@v2
         with:
           cluster_name: ${{ vars.STAGING_APP_CLUSTER }}

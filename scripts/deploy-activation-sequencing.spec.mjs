@@ -35,7 +35,15 @@ const indexOfStep = (name) => steps.findIndex((s) => s.name === name);
 const CUTOVER_STEP = 'Detect password-activation cutover (SEC-8)';
 const BARRIER_STEP = 'Drain barrier — outlast the legacy public max-age (SEC-8)';
 const PHASE2_STEP = 'Phase 2 — arm password activation (SEC-8)';
-const UPGRADE_STEP = 'Helm upgrade (web + runtime image tags)';
+/*
+ * Le nom de l'étape a changé avec le déploiement par digest : les services ne
+ * sont plus épinglés par tag mais par le digest du manifeste validé. Le garde
+ * SUIT le renommage — aucune assertion n'est retirée, elles portent toutes sur
+ * la même étape. Résolu ici plutôt que par un nom laxiste : une expression
+ * régulière permissive laisserait passer une future étape d'upgrade qui ne
+ * serait pas celle-ci.
+ */
+const UPGRADE_STEP = 'Helm upgrade (all services pinned by digest)';
 const VERIFY_STEP = 'Verify the activation interlock state (SEC-8)';
 
 /**

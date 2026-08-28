@@ -21,7 +21,43 @@
 #     web image matches this commit's lockfile.
 #   * runtime-tier.yaml serializes api, workspace-manager, preview-proxy,
 #     ai-gateway, worker and screenshotter on the 8 GB worker. Admin is not built
-#     by this continuous path; its current tag is preserved by `--reuse-values`.
+#     by this continuous path; its current digest is carried forward unchanged.
+#
+# ---------------------------------------------------------------------------
+# RELEASE INTEGRITY (exact-SHA gate) — added 2026-08-12
+# ---------------------------------------------------------------------------
+# Until now this workflow built and rolled out EVERY push to main with no
+# relationship to that commit's test results. Verified against the GitHub API,
+# three commits reached production on a red or cancelled pipeline:
+#
+#   113c17e8  Production CI = failure    -> deployed
+#   9fc8a243  Production CI = failure    -> deployed
+#   3a53b439  Production CI + Quality = cancelled -> deployed
+#
+# and Production E2E had never run on any of them, because e2e.yml did not
+# trigger on push to main at all.
+#
+# The structure below closes that. Read it as four layers:
+#
+#   resolve-target   binds the whole run to ONE full 40-hex commit. There is no
+#                    free-form tag input any more: a dispatch names a commit, and
+#                    that commit must already be on main.
+#   release-gate     proves CI + E2E + Security + Quality are green FOR THAT EXACT
+#                    COMMIT. It holds NO cloud credentials — `id-token: write` is
+#                    granted per-job, and only to build-and-deploy — so a refusal
+#                    is structurally before WIF, not merely before it in reading
+#                    order.
+#   preflight-gates  repo-local policy (secret scan, signing wiring).
+#   build-and-deploy builds, resolves every image to an immutable DIGEST, scans
+#                    and signature-verifies THAT digest, records a manifest
+#                    (service -> source sha -> build id -> digest -> signature ->
+#                    SBOM), deploys BY DIGEST, and then proves the running pods
+#                    report those digests back.
+#
+# Break-glass (when the gate must be bypassed) is deliberately NOT here: it lives
+# in deploy-break-glass.yml, which can only deploy a previously signed manifest
+# and needs two approvals. Adding a bypass switch to this workflow would make the
+# gate optional, which is the same as not having it.
 
 name: Deploy Production (Continuous)
 
@@ -57,8 +93,11 @@ on:
       - 'playwright*.config.ts'
   workflow_dispatch:
     inputs:
-      short_sha:
-        description: Override image tag to build/deploy (defaults to the pushed commit)
+      target_sha:
+        description: >-
+          Full 40-hex commit sha to deploy. Must already be an ancestor of
+          origin/main and must pass the same release gate as a push. Leave empty
+          to deploy the head of main.
         required: false
       force_tiers:
         description: >-
@@ -66,9 +105,12 @@ on:
           bypassing path detection. For validating conditional builds via dispatch.
         required: false
 
+# NOTE: `id-token: write` is deliberately NOT granted here. Granting it at the
+# workflow level hands a WIF-exchangeable token to every job, including the gate
+# that is supposed to be able to refuse before any cloud credential exists. It is
+# granted on build-and-deploy alone.
 permissions:
   contents: read
-  id-token: write
 
 # Never run two production rollouts at once, and never cancel an in-flight one
 # (cancelling mid-`helm upgrade --atomic` or mid-build leaves things half-applied).
@@ -83,8 +125,204 @@ env:
   FLEET_MEMBERSHIP: vibecore-prod-app
   HELM_RELEASE: vibecore
   HELM_NAMESPACE: vibecore
+  # Must match infra/cloudbuild/*.yaml `_KMS_KEYRING` / `_KMS_KEY` — those are what
+  # actually SIGN the images. These workflows previously said `vibecore-supply-chain`,
+  # a keyring that does not exist in the project (`gcloud kms keyrings list` returns
+  # only `ecode-supply-chain`), so `cosign verify` could never have succeeded.
+  KMS_KEYRING: ecode-supply-chain
+  KMS_KEY_NAME: cosign-images
 
 jobs:
+  # ---------------------------------------------------------------------------
+  # Bind the run to exactly one commit, before anything else happens.
+  # ---------------------------------------------------------------------------
+  resolve-target:
+    name: Resolve target commit (exact SHA)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    outputs:
+      target_sha: ${{ steps.target.outputs.target_sha }}
+      short_sha: ${{ steps.target.outputs.short_sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Full history: the dispatch path has to prove the requested commit is
+          # actually on main, which needs main's history locally.
+          fetch-depth: 0
+
+      # THE WORKFLOW GRAPH ITSELF MUST BE MAIN'S.
+      #
+      # Every other assertion in this file checks the CODE at `target_sha`. None of them
+      # can see which workflow YAML is actually executing: `workflow_dispatch` runs the
+      # graph from the ref it was dispatched on, so a feature branch could carry an
+      # edited deploy-main.yml — with the gate removed — and still reach the production
+      # environment and WIF. Production dispatches from feature branches have already
+      # succeeded in this repo, so this is observed behaviour, not a hypothetical.
+      #
+      # `GITHUB_WORKFLOW_REF` is the one value that names the file AND the ref actually
+      # loaded, e.g. `owner/repo/.github/workflows/deploy-main.yml@refs/heads/main`. It
+      # is set by the runner and is not settable from inputs.
+      #
+      # This is defence in depth, not the whole defence: the durable controls are the
+      # `production` environment's branch policy and the WIF provider's subject
+      # condition, both of which need repo/GCP admin. As of 2026-08-12 the `production`
+      # environment had `protection_rules: []` and `branch_policy: null` — i.e. no
+      # protection at all — so this check is currently the ONLY thing enforcing it.
+      - name: Assert this workflow graph is main's, not a side branch's
+        env:
+          WORKFLOW_REF: ${{ github.workflow_ref }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          set -euo pipefail
+          EXPECTED="${GITHUB_REPOSITORY}/.github/workflows/deploy-main.yml@refs/heads/main"
+          echo "workflow_ref = ${WORKFLOW_REF}"
+          echo "expected     = ${EXPECTED}"
+          if [ "${WORKFLOW_REF}" != "${EXPECTED}" ]; then
+            echo "::error::this run is executing '${WORKFLOW_REF}', not the deploy workflow on refs/heads/main."
+            echo "::error::Production can only be deployed by main's own workflow file. Dispatch from main."
+            exit 1
+          fi
+          # Belt: on a push, the ref must also be main (paths-ignore/branches already
+          # ensure it, but a future trigger edit must not quietly widen this).
+          if [ "${EVENT}" = "push" ] && [ "${GITHUB_REF}" != "refs/heads/main" ]; then
+            echo "::error::push event on ${GITHUB_REF}, expected refs/heads/main"
+            exit 1
+          fi
+
+      - name: Resolve and bind target SHA
+        id: target
+        env:
+          # Via env, never interpolated into the shell: this value is attacker-
+          # controllable on a dispatch and the run must not be able to execute it.
+          TARGET_SHA_INPUT: ${{ inputs.target_sha }}
+          PUSH_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+
+          if [ -n "${TARGET_SHA_INPUT:-}" ]; then
+            # A dispatch may only name a commit — never a free-form image tag.
+            # The old `short_sha` input accepted any 7-40 hex string and used it
+            # directly as the tag to build and deploy, with no requirement that it
+            # correspond to a commit, to main, or to anything that had been tested.
+            if ! printf '%s' "${TARGET_SHA_INPUT}" | grep -Eq '^[0-9a-f]{40}$'; then
+              echo "::error::target_sha must be a FULL 40-hex commit sha (got '${TARGET_SHA_INPUT}')"
+              exit 1
+            fi
+            TARGET_SHA="${TARGET_SHA_INPUT}"
+
+          else
+            TARGET_SHA="${PUSH_SHA}"
+          fi
+
+          if ! printf '%s' "${TARGET_SHA}" | grep -Eq '^[0-9a-f]{40}$'; then
+            echo "::error::resolved target sha is not 40-hex: '${TARGET_SHA}'"
+            exit 1
+          fi
+
+          # Existence and main-ancestry are checked for EVERY resolved target, not only
+          # for an explicitly dispatched one. Previously the push path skipped both on
+          # the assumption that `github.sha` is trivially on main — which stops being
+          # true the moment a trigger is widened, a workflow is re-dispatched on another
+          # ref, or the event payload is anything but a plain push. An assumption that
+          # only holds under today's triggers is not a check.
+          if ! git cat-file -e "${TARGET_SHA}^{commit}" 2>/dev/null; then
+            echo "::error::${TARGET_SHA} is not a commit in this repository"
+            exit 1
+          fi
+          git fetch --no-tags origin main
+          if ! git merge-base --is-ancestor "${TARGET_SHA}" origin/main; then
+            echo "::error::${TARGET_SHA} is not an ancestor of origin/main — refusing to deploy an off-main commit"
+            exit 1
+          fi
+
+          # The image tag is DERIVED from the target commit, never supplied. This is
+          # what makes "the tag we build" and "the commit we gated" the same fact.
+          SHORT_SHA="${TARGET_SHA:0:10}"
+
+          echo "target_sha=${TARGET_SHA}" >> "$GITHUB_OUTPUT"
+          echo "short_sha=${SHORT_SHA}" >> "$GITHUB_OUTPUT"
+          {
+            echo "### Target commit"
+            echo ""
+            echo "- **SHA:** \`${TARGET_SHA}\`"
+            echo "- **Derived image tag:** \`${SHORT_SHA}\`"
+            echo "- **Trigger:** \`${{ github.event_name }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # ---------------------------------------------------------------------------
+  # The gate. Holds no cloud credentials — see the permissions block.
+  # ---------------------------------------------------------------------------
+  release-gate:
+    name: Release gate — required checks green for THIS commit (blocking)
+    needs: [resolve-target]
+    runs-on: ubuntu-latest
+    # Long enough to outlast a full CI+E2E cycle for the commit that was just
+    # pushed; the gate itself refuses within seconds once a check goes red.
+    timeout-minutes: 100
+    permissions:
+      contents: read
+      actions: read # read other workflows' runs for this commit
+      # NO id-token. A refusal here happens before any Google credential exists.
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.resolve-target.outputs.target_sha }}
+
+      - name: Assert checkout is exactly the target commit
+        env:
+          TARGET_SHA: ${{ needs.resolve-target.outputs.target_sha }}
+        run: |
+          set -euo pipefail
+          HEAD_SHA="$(git rev-parse HEAD)"
+          echo "HEAD=${HEAD_SHA} TARGET=${TARGET_SHA}"
+          if [ "${HEAD_SHA}" != "${TARGET_SHA}" ]; then
+            echo "::error::checkout HEAD ${HEAD_SHA} != target ${TARGET_SHA}"
+            exit 1
+          fi
+
+      - name: Assert every required workflow file exists at the pinned path
+        run: |
+          set -euo pipefail
+          # The policy pins workflows by numeric id + path. If the file is gone at
+          # this commit, the gate would sit waiting for a run that can never start,
+          # and the failure would look like a timeout instead of what it is.
+          missing=0
+          while read -r p; do
+            if [ ! -f "${p}" ]; then
+              echo "::error::required workflow file '${p}' does not exist at this commit"
+              missing=1
+            else
+              echo "ok: ${p}"
+            fi
+          done < <(python3 -c "import json;[print(w['path']) for w in json.load(open('scripts/release-gate/required-checks.json'))['requiredWorkflows']]")
+          [ "${missing}" -eq 0 ]
+
+      - name: Self-test the gate engine before trusting it
+        # Hermetic (Node stdlib only, no node_modules): the gate proves its own
+        # refusal logic on fixtures before it is allowed to decide anything real.
+        run: node scripts/release-gate/verify-required-checks.mjs --self-test
+
+      - name: Verify required checks are green for this exact commit
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TARGET_SHA: ${{ needs.resolve-target.outputs.target_sha }}
+        run: |
+          set -euo pipefail
+          node scripts/release-gate/verify-required-checks.mjs \
+            --sha "${TARGET_SHA}" \
+            --repo "${GITHUB_REPOSITORY}" \
+            --json gate-verdict.json
+
+      - name: Upload gate verdict
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-gate-verdict-${{ needs.resolve-target.outputs.short_sha }}
+          path: gate-verdict.json
+          if-no-files-found: warn
+
   # B6 — gates that must pass BEFORE anything is built or rolled out.
   #
   # security.yaml already runs gitleaks on push/PR, but that is a *separate*
@@ -93,10 +331,27 @@ jobs:
   # itself, where failing it actually prevents the rollout.
   preflight-gates:
     name: Preflight gates (secrets + pipeline policy, blocking)
+    needs: [resolve-target, release-gate]
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.resolve-target.outputs.target_sha }}
+
+      - name: Assert checkout is exactly the target commit
+        env:
+          TARGET_SHA: ${{ needs.resolve-target.outputs.target_sha }}
+        run: |
+          set -euo pipefail
+          HEAD_SHA="$(git rev-parse HEAD)"
+          if [ "${HEAD_SHA}" != "${TARGET_SHA}" ]; then
+            echo "::error::checkout HEAD ${HEAD_SHA} != target ${TARGET_SHA}"
+            exit 1
+          fi
+          echo "scanning ${HEAD_SHA}"
 
       - name: Install gitleaks
         run: |
@@ -137,44 +392,62 @@ jobs:
           python3 scripts/validate-image-signing-wired.py --self-test
           python3 scripts/validate-image-signing-wired.py
 
+      # Same idea, applied to the gate itself: prove that THIS workflow still runs
+      # the deploy behind the release gate, still withholds WIF from the gate job,
+      # still pins the rollout by digest, and still requires all four pipelines.
+      # A gate that can be quietly unwired is a gate with an expiry date.
+      - name: Pipeline policy — the exact-SHA release gate must still be wired
+        run: |
+          set -euo pipefail
+          node scripts/release-gate/validate-deploy-gate-wired.mjs --self-test
+          node scripts/release-gate/validate-deploy-gate-wired.mjs
+
   build-and-deploy:
-    name: Build tiers sequentially, then helm upgrade
-    needs: [preflight-gates]
+    name: Build tiers sequentially, then helm upgrade by digest
+    # Both gates, explicitly. `preflight-gates` already needs `release-gate`, but
+    # naming it here too means a future edit to preflight's `needs:` cannot quietly
+    # detach the deploy from the gate.
+    needs: [resolve-target, release-gate, preflight-gates]
     runs-on: ubuntu-latest
     timeout-minutes: 90
+    permissions:
+      contents: read
+      id-token: write # the ONLY job that can exchange a WIF token
     environment:
       name: production
 
     steps:
       - uses: actions/checkout@v4
         with:
+          # Pinned to the gated commit, not to whatever main points at now: on a
+          # busy branch, `github.sha` for a queued run can be several commits behind
+          # HEAD, and checking out a ref instead of a sha would build code that was
+          # never gated.
+          ref: ${{ needs.resolve-target.outputs.target_sha }}
           # Full history so the change-detection step can diff this push against
           # its `before` SHA (or HEAD~1 on workflow_dispatch).
           fetch-depth: 0
 
-      - name: Resolve image tag
-        id: tag
+      - name: Assert checkout is exactly the gated commit
         env:
-          # Pass the workflow_dispatch input via env (never interpolate it
-          # directly into the shell) so a value like `$(curl evil)` cannot be
-          # executed in this job, which holds prod GCP/WIF credentials.
-          SHORT_SHA_INPUT: ${{ inputs.short_sha }}
+          TARGET_SHA: ${{ needs.resolve-target.outputs.target_sha }}
+          SHORT_SHA: ${{ needs.resolve-target.outputs.short_sha }}
         run: |
           set -euo pipefail
-          # Matches the 10-char short sha used by the Cloud Build configs and
-          # the docker tags they push (web:<sha>, api:<sha>, ...).
-          if [ -n "${SHORT_SHA_INPUT}" ]; then
-            if ! printf '%s' "${SHORT_SHA_INPUT}" | grep -Eq '^[0-9a-f]{7,40}$'; then
-              echo "Invalid short_sha input: ${SHORT_SHA_INPUT}" >&2
-              exit 1
-            fi
-            SHORT_SHA="${SHORT_SHA_INPUT}"
-          else
-            SHORT_SHA="$(git rev-parse --short=10 HEAD)"
+          HEAD_SHA="$(git rev-parse HEAD)"
+          echo "HEAD=${HEAD_SHA} TARGET=${TARGET_SHA}"
+          if [ "${HEAD_SHA}" != "${TARGET_SHA}" ]; then
+            echo "::error::checkout HEAD ${HEAD_SHA} != gated target ${TARGET_SHA} — refusing to build"
+            exit 1
           fi
+          # The image tag is a pure function of the gated commit. Assert that too,
+          # so a mismatch surfaces here rather than as an image nobody can trace.
+          if [ "${SHORT_SHA}" != "${TARGET_SHA:0:10}" ]; then
+            echo "::error::short sha ${SHORT_SHA} is not derived from ${TARGET_SHA}"
+            exit 1
+          fi
+          echo "TARGET_SHA=${TARGET_SHA}" >> "$GITHUB_ENV"
           echo "SHORT_SHA=${SHORT_SHA}" >> "$GITHUB_ENV"
-          echo "short_sha=${SHORT_SHA}" >> "$GITHUB_OUTPUT"
-          echo "Deploying image tag: ${SHORT_SHA}"
 
       # Decide which image tiers actually need rebuilding from the changed paths.
       # CONSERVATIVE: default every tier to TRUE and only flip to false when we are
@@ -264,14 +537,23 @@ jobs:
         run: |
           set -euo pipefail
           echo "::group::gcloud builds submit — runtime-tier"
-          gcloud builds submit \
+          # Capture the id of THIS submission directly. It used to be recovered
+          # afterwards by listing builds and matching on the 10-char short sha, which
+          # attributes a build by coincidence of prefix: a re-run, a concurrent
+          # submission, or another tier sharing the sha could all match, and the
+          # manifest would then name a build that did not produce the image.
+          # Logs still stream; --format only shapes the final resource line.
+          RUNTIME_BUILD_ID="$(gcloud builds submit \
+            --format='value(id)' \
             --project="${GCP_PROJECT_ID}" \
             --region="${GAR_LOCATION}" \
             --config=infra/cloudbuild/runtime-tier.yaml \
             --substitutions=_SHORT_SHA="${SHORT_SHA}" \
             --machine-type=e2-highcpu-8 \
             --timeout=3600s \
-            .
+            . )"
+          echo "RUNTIME_BUILD_ID=${RUNTIME_BUILD_ID}" >> "$GITHUB_ENV"
+          echo "runtime-tier build id: ${RUNTIME_BUILD_ID}"
           echo "::endgroup::"
 
       # ---- Build 2/2: web tier ----
@@ -301,14 +583,23 @@ jobs:
           # so the workspace never provisions ("No backend workspace" / "Failed
           # to spawn bolt shell"). The /api/runtime/* routes live on the API
           # service (services/api/src/app.ts), exposed at api.e-code.ai.
-          gcloud builds submit \
+          # Capture the id of THIS submission directly. It used to be recovered
+          # afterwards by listing builds and matching on the 10-char short sha, which
+          # attributes a build by coincidence of prefix: a re-run, a concurrent
+          # submission, or another tier sharing the sha could all match, and the
+          # manifest would then name a build that did not produce the image.
+          # Logs still stream; --format only shapes the final resource line.
+          WEB_BUILD_ID="$(gcloud builds submit \
+            --format='value(id)' \
             --project="${GCP_PROJECT_ID}" \
             --region="${GAR_LOCATION}" \
             --config=infra/cloudbuild/single-web.yaml \
             --substitutions=_DEPS_TAG="${DEPS_TAG}",_SHORT_SHA="${SHORT_SHA}",_VITE_RUNTIME_MODE=remote-kubernetes,_VITE_RUNTIME_API_BASE_URL=https://api.e-code.ai/api/runtime,_VITE_BYOK_DISABLED=true \
             --machine-type=e2-highcpu-8 \
             --timeout=1800s \
-            .
+            . )"
+          echo "WEB_BUILD_ID=${WEB_BUILD_ID}" >> "$GITHUB_ENV"
+          echo "single-web build id: ${WEB_BUILD_ID}"
           echo "::endgroup::"
 
       # ---- Build 3/3: workspace-agent runtime image ----
@@ -324,89 +615,463 @@ jobs:
         run: |
           set -euo pipefail
           echo "::group::gcloud builds submit — workspace-agent"
-          gcloud builds submit \
+          # Capture the id of THIS submission directly. It used to be recovered
+          # afterwards by listing builds and matching on the 10-char short sha, which
+          # attributes a build by coincidence of prefix: a re-run, a concurrent
+          # submission, or another tier sharing the sha could all match, and the
+          # manifest would then name a build that did not produce the image.
+          # Logs still stream; --format only shapes the final resource line.
+          WSAGENT_BUILD_ID="$(gcloud builds submit \
+            --format='value(id)' \
             --project="${GCP_PROJECT_ID}" \
             --region="${GAR_LOCATION}" \
             --config=infra/cloudbuild/workspace-agent.yaml \
             --substitutions=_SHORT_SHA="${SHORT_SHA}" \
             --machine-type=e2-highcpu-8 \
             --timeout=1800s \
-            .
+            . )"
+          echo "WSAGENT_BUILD_ID=${WSAGENT_BUILD_ID}" >> "$GITHUB_ENV"
+          echo "workspace-agent build id: ${WSAGENT_BUILD_ID}"
           echo "::endgroup::"
-
-      # B6 — BLOCKING vulnerability gate on the images this run just built.
-      #
-      # Deliberately placed AFTER the builds and BEFORE `helm upgrade`: that is
-      # the last point where refusing to ship costs nothing. A gate that ran
-      # after the rollout would only be able to tell us we had already shipped
-      # the CVE.
-      #
-      # Why Trivy and not the `gcloud artifacts docker images scan` steps in the
-      # Cloud Build configs: Artifact Registry scanning is DISABLED on this
-      # project (`containerscanning.googleapis.com` is not enabled), so those
-      # steps have been failing into their `|| echo WARN` for as long as they
-      # have existed and `allowFailure: true` hid it. They report nothing today.
-      #
-      # --ignore-unfixed: only CVEs with an available fix can block, otherwise
-      # the gate is unactionable and the first instinct is to disable it.
-      # Accepted-risk CVEs live in .trivyignore with a justification and expiry.
-      - name: Vulnerability gate on built images (blocking)
-        run: |
-          set -euo pipefail
-          # Keep this pinned, and verify the asset actually exists before
-          # bumping: release asset names are not stable across versions, and a
-          # 404 here fails the gate for the wrong reason (curl -sSfL is silent
-          # about it until tar chokes).
-          TRIVY_VERSION=0.72.0
-          curl -sSfL "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz" \
-            | tar -xz -C /tmp trivy
-          sudo install /tmp/trivy /usr/local/bin/trivy
-          trivy --version
-          gcloud auth configure-docker "${GAR_LOCATION}-docker.pkg.dev" --quiet
-
-          REG="${GAR_LOCATION}-docker.pkg.dev/${GCP_PROJECT_ID}/${GAR_REPO}"
-          IMAGES=""
-          if [ "${{ steps.tiers.outputs.web }}" = "true" ]; then
-            IMAGES="${IMAGES} ${REG}/web:${SHORT_SHA}"
-          fi
-          if [ "${{ steps.tiers.outputs.runtime }}" = "true" ]; then
-            for s in api workspace-manager preview-proxy ai-gateway worker screenshotter; do
-              IMAGES="${IMAGES} ${REG}/${s}:${SHORT_SHA}"
-            done
-          fi
-          if [ "${{ steps.tiers.outputs.wsagent }}" = "true" ]; then
-            IMAGES="${IMAGES} ${REG}/workspace-agent:sha-${SHORT_SHA}"
-          fi
-          if [ -z "${IMAGES// /}" ]; then
-            echo "No tier was rebuilt this run — nothing to scan."
-            exit 0
-          fi
-
-          rc=0
-          for img in ${IMAGES}; do
-            echo "::group::trivy ${img}"
-            # Two passes so the log is useful: an informational HIGH listing,
-            # then the CRITICAL pass that actually decides the gate.
-            trivy image --quiet --scanners vuln --severity HIGH \
-              --ignore-unfixed --ignorefile .trivyignore "${img}" || true
-            if ! trivy image --quiet --scanners vuln --severity CRITICAL \
-                   --ignore-unfixed --ignorefile .trivyignore \
-                   --exit-code 1 "${img}"; then
-              echo "::error::CRITICAL fixable vulnerability in ${img}"
-              rc=1
-            fi
-            echo "::endgroup::"
-          done
-          if [ "$rc" -ne 0 ]; then
-            echo "::error::Vulnerability gate FAILED — refusing to deploy. Fix the CVE, or add a justified entry to .trivyignore."
-            exit 1
-          fi
-          echo "Vulnerability gate passed for:${IMAGES}"
 
       - name: Set up Helm
         uses: azure/setup-helm@v4
         with:
           version: v3.16.2
+
+      # kubectl through Connect Gateway: the cluster control plane is
+      # IP-restricted, so direct `get-gke-credentials` won't reach it from a
+      # GitHub-hosted runner. Connect Gateway routes kubectl through a
+      # Google-managed proxy authenticated by the WIF identity (IAM), no VPN.
+      #
+      # Moved AHEAD of the scan/deploy steps: resolving digests for the tiers this
+      # run did NOT rebuild requires reading what the release currently deploys.
+      - name: Get cluster credentials via Connect Gateway
+        run: |
+          set -euo pipefail
+          gcloud components install gke-gcloud-auth-plugin --quiet
+          gcloud container fleet memberships get-credentials "${FLEET_MEMBERSHIP}" \
+            --project="${GCP_PROJECT_ID}"
+          kubectl config current-context
+
+      - name: Assert every rebuilt tier has a traceable build id
+        run: |
+          set -euo pipefail
+          # The ids are captured directly by the submit steps above. This only checks
+          # none is empty: a rebuilt tier with no id produces a manifest that cannot be
+          # audited, and the manifest builder would reject it later with a less useful
+          # message.
+          for pair in "runtime:${{ steps.tiers.outputs.runtime }}:${RUNTIME_BUILD_ID:-}" \
+                      "web:${{ steps.tiers.outputs.web }}:${WEB_BUILD_ID:-}" \
+                      "wsagent:${{ steps.tiers.outputs.wsagent }}:${WSAGENT_BUILD_ID:-}"; do
+            tier="${pair%%:*}"; rest="${pair#*:}"; built="${rest%%:*}"; id="${rest#*:}"
+            if [ "${built}" = "true" ] && [ -z "${id}" ]; then
+              echo "::error::the ${tier} tier was rebuilt but its Cloud Build id was not captured"
+              exit 1
+            fi
+            echo "${tier} build id: ${id:-(not rebuilt)}"
+          done
+
+      # ---- Resolve every deployed service to an IMMUTABLE DIGEST ----
+      #
+      # A tag is a mutable pointer. `--set imageTag=<sha>` only tells the kubelet a
+      # name to resolve at pull time; between the vulnerability gate reading
+      # `api:<sha>` and the pod pulling it, anything with registry write access can
+      # move that tag onto different bytes and nothing in the rollout would notice.
+      #
+      # Every service in the chart gets a digest — including the tiers this run did
+      # not rebuild (and `admin`, which this path never builds). Their currently
+      # deployed reference is carried forward as a digest, so the release is fully
+      # pinned rather than "pinned for the parts we happened to touch".
+      - name: Resolve immutable image digests for every service
+        run: |
+          set -euo pipefail
+          REG="${GAR_LOCATION}-docker.pkg.dev/${GCP_PROJECT_ID}/${GAR_REPO}"
+          echo "REG=${REG}" >> "$GITHUB_ENV"
+
+          # NOTE: this step deliberately does NOT read `helm get values`. On the real
+          # production release that command emits INVALID JSON (a stored value contains
+          # a raw newline inside a string), so parsing it would abort this step and
+          # block every deploy. The live Deployments answer the same question — what is
+          # each service running — and are always valid. See the non-rebuilt branch.
+
+          # valuesKey:imageName:tier:chartService:rolled
+          #   tier         — which build produces it, i.e. whether THIS run rebuilt it
+          #   chartService — helm pins `services.<key>.imageDigest` for it, so its digest
+          #                  must be resolvable on EVERY run (rebuilt or carried forward)
+          #   rolled       — this workflow waits for its rollout and checks its imageIDs
+          #
+          # admin: an enabled chart service this continuous path never builds or rolls.
+          # Its current digest is carried forward so the release stays fully pinned.
+          #
+          # screenshotter is a chart service like any other. The chart AND values-prod
+          # both say `enabled: false`, but the live production release has it TRUE — set
+          # once via `--set` and frozen by `--reuse-values`. Chart defaults are not what
+          # runs, so enablement is discovered from the cluster (no Deployment => skip)
+          # rather than assumed here; otherwise a genuinely running service would be the
+          # only one left on a mutable tag.
+          #
+          # screenshotter stays rolled=false on purpose: this workflow has never waited
+          # on its rollout, and it is not enabled in every environment, so demanding a
+          # running pod for it would introduce a new failure mode. Its digest IS pinned,
+          # scanned and signature-verified; only the post-rollout imageID check skips it.
+          # That is a deliberate, stated limit — not an oversight.
+          #
+          # workspace-agent is not a chart service at all — it is an image reference the
+          # api hands to each workspace pod, tagged `sha-<sha>`. It is listed so that
+          # when it is rebuilt it is still scanned and signature-verified; the previous
+          # vulnerability gate covered it, and dropping it would have silently ended
+          # that coverage.
+          SERVICES="web:web:web:true:true admin:admin:none:true:false api:api:runtime:true:true worker:worker:runtime:true:true aiGateway:ai-gateway:runtime:true:true workspaceManager:workspace-manager:runtime:true:true previewProxy:preview-proxy:runtime:true:true screenshotter:screenshotter:runtime:true:false workspaceAgent:workspace-agent:wsagent:false:false"
+
+          rebuilt_web="${{ steps.tiers.outputs.web }}"
+          rebuilt_runtime="${{ steps.tiers.outputs.runtime }}"
+          rebuilt_wsagent="${{ steps.tiers.outputs.wsagent }}"
+
+          echo '[]' > /tmp/services.json
+
+          for entry in ${SERVICES}; do
+            IFS=: read -r key image tier chart_service rolled <<< "${entry}"
+
+            case "${tier}" in
+              web) rebuilt="${rebuilt_web}" ;;
+              runtime) rebuilt="${rebuilt_runtime}" ;;
+              wsagent) rebuilt="${rebuilt_wsagent}" ;;
+              *) rebuilt=false ;;
+            esac
+
+
+            if [ "${rebuilt}" = "true" ]; then
+              # The workspace-agent uses the `sha-<sha>` tag convention, not `<sha>`.
+              if [ "${tier}" = "wsagent" ]; then TAG="sha-${SHORT_SHA}"; else TAG="${SHORT_SHA}"; fi
+              SOURCE_SHA="${TARGET_SHA}"
+              case "${tier}" in
+                web) BUILD_ID="${WEB_BUILD_ID}" ;;
+                runtime) BUILD_ID="${RUNTIME_BUILD_ID}" ;;
+                wsagent) BUILD_ID="${WSAGENT_BUILD_ID}" ;;
+              esac
+            else
+              BUILD_ID=""
+              # The workspace-agent is not a Deployment — its reference lives in the
+              # platform configmap, which the api hands to each workspace pod. It used
+              # to be skipped entirely when not rebuilt, which left it on a MUTABLE TAG
+              # (`workspace-agent:sha-<sha>`) while every chart service was digest-
+              # pinned: the one image running inside customer workspaces was the one
+              # image nobody pinned. Resolve it like any other.
+              if [ "${tier}" = "wsagent" ]; then
+                CM_IMAGE="$(kubectl -n "${HELM_NAMESPACE}" get configmap \
+                  "${HELM_RELEASE}-vibecore-platform-platform-env" \
+                  -o jsonpath='{.data.WORKSPACE_AGENT_IMAGE}' 2>/dev/null || echo "")"
+                if [ -z "${CM_IMAGE}" ]; then
+                  echo "::error::${key}: WORKSPACE_AGENT_IMAGE is not set in the live configmap — cannot pin it"
+                  exit 1
+                fi
+                echo "${key}: currently referenced as ${CM_IMAGE}"
+                PINNED=""; TAG=""
+                case "${CM_IMAGE}" in
+                  *@sha256:*) PINNED="${CM_IMAGE##*@}" ;;
+                  *:*)        TAG="${CM_IMAGE##*:}" ;;
+                esac
+                SOURCE_SHA=""
+                # `sha-<10hex>` is this image's tag convention.
+                CANDIDATE="${TAG#sha-}"
+                if printf '%s' "${CANDIDATE}" | grep -Eq '^[0-9a-f]{10}$'; then
+                  SOURCE_SHA="$(git rev-parse "${CANDIDATE}" 2>/dev/null || echo "")"
+                fi
+                if ! printf '%s' "${SOURCE_SHA}" | grep -Eq '^[0-9a-f]{40}$'; then
+                  echo "::error::${key}: cannot establish which commit produced ${CM_IMAGE}"
+                  echo "Fix: re-run this deploy with the workspace-agent tier rebuilt."
+                  exit 1
+                fi
+                echo "${key}: source commit ${SOURCE_SHA}"
+              else
+
+              # What is this service RUNNING right now? Read it from the live Deployment,
+              # not from `helm get values`.
+              #
+              # Two reasons, both found by reading the real production release:
+              #   * `helm get values -o json` on it emits INVALID JSON — one stored value
+              #     (the Nix registry blob) contains a raw newline inside a string, which
+              #     `jq` rejects. Under `set -e` this step would have died there and
+              #     EVERY deploy would have been blocked, before ever reading a tag.
+              #   * the release has `screenshotter.enabled: true`, set once via `--set`
+              #     and frozen by `--reuse-values`, while both values.yaml and
+              #     values-prod.yaml say false. Chart defaults are not what runs.
+              #
+              # The Deployment is the authority on both questions at once: it exists iff
+              # the service is enabled, and its image is exactly what is deployed.
+              DEP_IMAGE="$(kubectl -n "${HELM_NAMESPACE}" get deploy \
+                -l "app.kubernetes.io/name=${image}" \
+                -o jsonpath='{.items[0].spec.template.spec.containers[0].image}' 2>/dev/null || echo "")"
+              if [ -z "${DEP_IMAGE}" ]; then
+                # No Deployment => the service is disabled in this release. There is
+                # nothing running to carry forward and nothing to pin.
+                echo "${key}: no Deployment in the cluster (service disabled) — skipping"
+                continue
+              fi
+              PINNED=""
+              TAG=""
+              case "${DEP_IMAGE}" in
+                *@sha256:*) PINNED="${DEP_IMAGE##*@}" ;;
+                *:*)        TAG="${DEP_IMAGE##*:}" ;;
+              esac
+              echo "${key}: currently running ${DEP_IMAGE}"
+
+              # Provenance for a carried-forward image. A digest-pinned Deployment has
+              # no tag left to infer a commit from, so the deploy stamps the source sha
+              # as a pod-template annotation next to the image. Bootstrap (a release
+              # still on tags, i.e. the first gated deploy) falls back to resolving the
+              # 10-hex tag through git. If neither yields a commit we STOP: the manifest
+              # must not claim provenance it does not have.
+              SOURCE_SHA="$(kubectl -n "${HELM_NAMESPACE}" get deploy \
+                -l "app.kubernetes.io/name=${image}" \
+                -o jsonpath='{.items[0].spec.template.metadata.annotations.vibecore\.dev/image-source-sha}' 2>/dev/null || echo "")"
+              if [ -z "${SOURCE_SHA}" ] && printf '%s' "${TAG}" | grep -Eq '^[0-9a-f]{10}$'; then
+                SOURCE_SHA="$(git rev-parse "${TAG}" 2>/dev/null || echo "")"
+              fi
+              if ! printf '%s' "${SOURCE_SHA}" | grep -Eq '^[0-9a-f]{40}$'; then
+                echo "::error::${key}: cannot establish which commit produced ${DEP_IMAGE}"
+                echo "It carries no vibecore.dev/image-source-sha annotation and its reference is not a resolvable 10-hex tag."
+                echo "Fix: re-run this deploy with the tier that owns ${key} rebuilt, which stamps provenance for future runs."
+                explain_current
+                exit 1
+              fi
+              echo "${key}: source commit ${SOURCE_SHA}"
+              fi
+            fi
+
+            # Every failure below is fail-closed and, on the FIRST digest-based upgrade,
+            # is also the most likely thing to stop the cutover. So each one prints what
+            # the release actually stores for this service: without it the operator gets
+            # "cannot pin this service" and has to go dig the values out of the cluster
+            # by hand, during a deploy, to learn something the job already knew.
+            explain_current() {
+              echo "::group::what ${key} is actually running"
+              kubectl -n "${HELM_NAMESPACE}" get deploy -l "app.kubernetes.io/name=${image}" \
+                -o custom-columns='DEPLOYMENT:.metadata.name,IMAGE:.spec.template.spec.containers[0].image' 2>&1 || true
+              echo "Fix: re-run once with this tier rebuilt, or pin it explicitly with"
+              echo "  helm upgrade ... --set-string services.${key}.imageDigest=sha256:<64 hex>"
+              echo "::endgroup::"
+            }
+
+            if [ -n "${PINNED:-}" ]; then
+              DIGEST="${PINNED}"
+              echo "${key}: carried forward pinned digest ${DIGEST}"
+            else
+              if [ -z "${TAG}" ] || [ "${TAG}" = "null" ]; then
+                echo "::error::${key}: no digest and no tag available — cannot pin this service"
+                explain_current
+                exit 1
+              fi
+              if [ "${TAG}" = "REQUIRED_OVERRIDE_AT_DEPLOY" ]; then
+                # values-prod.yaml's placeholder. Reaching it means the release has no
+                # real image pinned for this service, so there is nothing to carry
+                # forward — deploying would resolve a placeholder tag that does not exist.
+                echo "::error::${key}: the release stores the values-prod placeholder tag; this service has never been pinned to a real image"
+                explain_current
+                exit 1
+              fi
+              # Ask the registry what that tag resolves to RIGHT NOW, once, and use the
+              # answer everywhere downstream (scan, signature, deploy, verification).
+              DIGEST="$(gcloud artifacts docker images describe "${REG}/${image}:${TAG}" \
+                --project="${GCP_PROJECT_ID}" \
+                --format='value(image_summary.digest)' 2>/dev/null || echo "")"
+              if ! printf '%s' "${DIGEST}" | grep -Eq '^sha256:[0-9a-f]{64}$'; then
+                echo "::error::${key}: could not resolve ${REG}/${image}:${TAG} to a digest (got '${DIGEST}')"
+                echo "The tag does not exist in the registry, or the deploy service account cannot read it."
+                explain_current
+                exit 1
+              fi
+              echo "${key}: ${image}:${TAG} -> ${DIGEST}"
+            fi
+
+            jq --arg service "${key}" --arg image "${image}" --arg tag "${TAG}" \
+               --arg digest "${DIGEST}" --arg buildId "${BUILD_ID:-}" \
+               --arg sourceSha "${SOURCE_SHA:-}" --argjson rebuilt "${rebuilt}" \
+               --argjson chartService "${chart_service}" --argjson rolled "${rolled}" \
+               '. += [{service:$service, image:$image, tag:$tag, digest:$digest,
+                       rebuilt:$rebuilt, chartService:$chartService, rolled:$rolled,
+                       cloudBuildId:(if $buildId == "" then null else $buildId end),
+                       sourceSha:(if $sourceSha == "" then null else $sourceSha end)}]' \
+               /tmp/services.json > /tmp/services.next && mv /tmp/services.next /tmp/services.json
+            unset PINNED
+          done
+
+          echo "::group::resolved digests"
+          jq -r '.[] | "\(.service)\t\(.digest)\t\(if .rebuilt then "rebuilt" else "carried forward" end)\t\(if .rolled then "rolled" else "not rolled" end)"' /tmp/services.json
+          echo "::endgroup::"
+
+      - name: Install Trivy and cosign
+        run: |
+          set -euo pipefail
+          # Keep these pinned, and verify the asset actually exists before bumping:
+          # release asset names are not stable across versions, and a 404 fails the
+          # gate for the wrong reason (curl -sSfL is silent about it until tar chokes).
+          # Both binaries are verified against a PINNED sha256 before they are trusted.
+          # They decide whether this release ships: trivy is the vulnerability gate and
+          # cosign is what proves the images are the ones that were signed. Downloading
+          # either without checking its bytes means a compromised or truncated release
+          # asset silently becomes the thing that says "safe".
+          # Values taken from the projects' own published checksum files:
+          #   trivy_<v>_checksums.txt  ·  cosign_checksums.txt
+          # To rotate: bump the version and copy the line for this asset from those files.
+          TRIVY_VERSION=0.72.0
+          TRIVY_SHA256=bbb64b9695866ce4a7a8f5c9592002c5961cab378577fa3f8a040df362b9b2ea
+          COSIGN_VERSION=2.4.3
+          COSIGN_SHA256=caaad125acef1cb81d58dcdc454a1e429d09a750d1e9e2b3ed1aed8964454708
+
+          curl -sSfL -o /tmp/trivy.tgz \
+            "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz"
+          echo "${TRIVY_SHA256}  /tmp/trivy.tgz" | sha256sum -c -
+          tar -xzf /tmp/trivy.tgz -C /tmp trivy
+          sudo install /tmp/trivy /usr/local/bin/trivy
+          trivy --version
+
+          curl -sSfL -o /tmp/cosign \
+            "https://github.com/sigstore/cosign/releases/download/v${COSIGN_VERSION}/cosign-linux-amd64"
+          echo "${COSIGN_SHA256}  /tmp/cosign" | sha256sum -c -
+          sudo install /tmp/cosign /usr/local/bin/cosign
+          cosign version
+
+          gcloud auth configure-docker "${GAR_LOCATION}-docker.pkg.dev" --quiet
+
+      # B6 — BLOCKING vulnerability gate, now aimed at the DIGEST rather than the tag.
+      #
+      # Deliberately placed AFTER the builds and BEFORE `helm upgrade`: that is the
+      # last point where refusing to ship costs nothing. A gate that ran after the
+      # rollout would only be able to tell us we had already shipped the CVE. Scanning
+      # the digest closes the remaining gap — the bytes scanned are provably the bytes
+      # deployed, because the same digest string is what helm sets.
+      #
+      # Why Trivy and not the `gcloud artifacts docker images scan` steps in the Cloud
+      # Build configs: Artifact Registry scanning is DISABLED on this project
+      # (`containerscanning.googleapis.com` is not enabled), so those steps have been
+      # failing into their `|| echo WARN` for as long as they have existed and
+      # `allowFailure: true` hid it. They report nothing today.
+      #
+      # --ignore-unfixed: only CVEs with an available fix can block, otherwise the
+      # gate is unactionable and the first instinct is to disable it. Accepted-risk
+      # CVEs live in .trivyignore with a justification and expiry.
+      #
+      # The SBOM is produced in the same loop, while Trivy's analysis of that image is
+      # still cached, so the supply-chain record costs one extra pass instead of a
+      # second full download.
+      - name: Vulnerability gate + SBOM on the exact digests (blocking)
+        run: |
+          set -euo pipefail
+          mkdir -p sbom
+          rc=0
+          while read -r service image digest; do
+            ref="${REG}/${image}@${digest}"
+            echo "::group::trivy ${service} ${digest}"
+            # Two passes so the log is useful: an informational HIGH listing, then the
+            # CRITICAL pass that actually decides the gate.
+            trivy image --quiet --scanners vuln --severity HIGH \
+              --ignore-unfixed --ignorefile .trivyignore "${ref}" || true
+            if ! trivy image --quiet --scanners vuln --severity CRITICAL \
+                   --ignore-unfixed --ignorefile .trivyignore \
+                   --exit-code 1 "${ref}"; then
+              echo "::error::CRITICAL fixable vulnerability in ${ref}"
+              rc=1
+            fi
+            trivy image --quiet --format cyclonedx --output "sbom/${service}.cdx.json" "${ref}"
+            echo "::endgroup::"
+          done < <(jq -r '.[] | "\(.service) \(.image) \(.digest)"' /tmp/services.json)
+
+          if [ "$rc" -ne 0 ]; then
+            echo "::error::Vulnerability gate FAILED — refusing to deploy. Fix the CVE, or add a justified entry to .trivyignore."
+            exit 1
+          fi
+
+          # Record each SBOM's own sha256 in the manifest so the artifact uploaded with
+          # this run can later be shown to be the one that was scanned.
+          jq -c '.[]' /tmp/services.json | while read -r row; do
+            svc="$(printf '%s' "${row}" | jq -r .service)"
+            printf '%s  sbom/%s.cdx.json\n' "$(sha256sum "sbom/${svc}.cdx.json" | cut -d' ' -f1)" "${svc}"
+          done > sbom/SHA256SUMS
+          cat sbom/SHA256SUMS
+
+      # Cosign signatures are already mandatory at admission (Kyverno). Verifying here
+      # means an unsigned or mis-signed image is refused BEFORE the rollout starts,
+      # instead of appearing as pods stuck at admission mid-upgrade.
+      #
+      # Verification needs only the KMS PUBLIC key, not signing rights: the deploy
+      # service account requires roles/cloudkms.publicKeyViewer on the cosign-images
+      # key. If that grant is missing this step fails closed with the role named.
+      - name: Verify image signatures (cosign, blocking)
+        run: |
+          set -euo pipefail
+          KMS_KEY="gcpkms://projects/${GCP_PROJECT_ID}/locations/${GAR_LOCATION}/keyRings/${KMS_KEYRING}/cryptoKeys/${KMS_KEY_NAME}"
+          echo "KMS_KEY=${KMS_KEY}" >> "$GITHUB_ENV"
+          rc=0
+          while read -r service image digest; do
+            ref="${REG}/${image}@${digest}"
+            echo "::group::cosign verify ${service}"
+            if cosign verify --key "${KMS_KEY}" "${ref}" >/dev/null 2>/tmp/cosign.err; then
+              echo "signature OK: ${ref}"
+            else
+              sed -n '1,20p' /tmp/cosign.err
+              echo "::error::signature verification FAILED for ${ref}"
+              rc=1
+            fi
+            echo "::endgroup::"
+          done < <(jq -r '.[] | "\(.service) \(.image) \(.digest)"' /tmp/services.json)
+          if [ "$rc" -ne 0 ]; then
+            echo "::error::At least one image is not validly signed by ${KMS_KEY}."
+            echo "::error::If this is a permissions error, the deploy service account needs roles/cloudkms.publicKeyViewer on that key."
+            exit 1
+          fi
+
+      # RE-VERIFY THE GATE IMMEDIATELY BEFORE MUTATING PRODUCTION.
+      #
+      # The gate ran once, before the build. Building three image tiers takes tens of
+      # minutes, and a required check can go red in that window — a re-run that fails,
+      # a security scan that flips. Deploying on the strength of a verdict that old is
+      # deploying on a stale fact. This costs one API round trip and is the last moment
+      # at which refusing is free.
+      - name: Re-verify required checks are STILL green (last point before rollout)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          node scripts/release-gate/verify-required-checks.mjs \
+            --sha "${TARGET_SHA}" --repo "${GITHUB_REPOSITORY}" --no-wait \
+            --json gate-verdict-prerollout.json
+          # Bind the manifest to the verdict that actually authorised this rollout, so
+          # "which checks were green when this shipped" is answerable from the artifact
+          # rather than from run logs that expire.
+          echo "GATE_VERDICT_SHA256=$(sha256sum gate-verdict-prerollout.json | cut -d' ' -f1)" >> "$GITHUB_ENV"
+
+      # THE MANIFEST (release-integrity requirement 5): service -> source sha ->
+      # Cloud Build id -> digest -> signature -> SBOM. The builder REFUSES to emit a
+      # manifest that would not be a proof: any missing digest, any rebuilt service
+      # without a build id, any image built from a different commit, any unverified
+      # signature stops the deploy here.
+      - name: Build release manifest (blocking)
+        run: |
+          set -euo pipefail
+          jq -n \
+            --arg targetSha "${TARGET_SHA}" \
+            --arg repository "${GITHUB_REPOSITORY}" \
+            --arg registry "${REG}" \
+            --arg runUrl "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" \
+            --arg key "${KMS_KEY}" \
+            --arg verdict "${GATE_VERDICT_SHA256}" \
+            --slurpfile services /tmp/services.json \
+            --slurpfile sums <(jq -Rn '[inputs | split("  ") | {(.[1] | sub("^sbom/"; "") | sub("\\.cdx\\.json$"; "")): .[0]}] | add' < sbom/SHA256SUMS) \
+            '{targetSha:$targetSha, repository:$repository, registry:$registry,
+              workflowRunUrl:$runUrl, gateVerdictSha256:$verdict,
+              expectedServices: ($services[0] | map(.service)),
+              services: ($services[0] | map(. + {
+                signature: {verified: true, key: $key},
+                sbom: {format: "cyclonedx-json", artifact: ("sbom/" + .service + ".cdx.json"),
+                       sha256: ($sums[0][.service] // null)}
+              }))}' > /tmp/manifest-input.json
+
+          node scripts/release-gate/release-manifest.mjs build \
+            --input /tmp/manifest-input.json \
+            --out release-manifest.json
+          cp release-manifest.json sbom/release-manifest.json
 
       # D2 (approved 2026-07-17): MANDATORY render test before any upgrade. The
       # rollback flag used to live only in a `kubectl set env`, which the next
@@ -448,10 +1113,23 @@ jobs:
           kubectl config current-context
 
       - name: Record current release revision (for rollback)
+        id: prevrev
         run: |
           set -euo pipefail
           helm history "${HELM_RELEASE}" -n "${HELM_NAMESPACE}" || true
-          echo "Rollback: helm rollback ${HELM_RELEASE} <REVISION> -n ${HELM_NAMESPACE}"
+          # Captured, not merely printed: the post-rollout checks below can fail AFTER a
+          # successful upgrade (imageID mismatch, missing flag), and `--atomic` does not
+          # cover that window — it only reverts an upgrade that itself failed. Without
+          # this number there is nothing to roll back TO except a human reading history
+          # during an incident.
+          PREV="$(helm history "${HELM_RELEASE}" -n "${HELM_NAMESPACE}" -o json 2>/dev/null \
+            | jq -r '[.[] | select(.status == "deployed")] | last | .revision // ""')"
+          if [ -z "${PREV}" ]; then
+            PREV="$(helm history "${HELM_RELEASE}" -n "${HELM_NAMESPACE}" -o json 2>/dev/null \
+              | jq -r 'max_by(.revision) | .revision // ""')"
+          fi
+          echo "previous deployed revision: ${PREV:-(none — first install)}"
+          echo "revision=${PREV}" >> "$GITHUB_OUTPUT"
 
       # ---- P104 / SEC-8: decide phase-1 vs steady-state BEFORE the upgrade ----
       #
@@ -584,15 +1262,24 @@ jobs:
       # --atomic auto-rolls-back on a failed
       # upgrade (a bad ai-gateway/worker container fails readiness → rollback;
       # the agent image is a configmap value the api re-reads on its restart).
-      - name: Helm upgrade (web + runtime image tags)
+
+      # --reuse-values preserves every existing value (all prod config) and overrides
+      # the image references. NOTE: because --reuse-values keeps the release's stored
+      # configmap values, a change to values-prod.yaml alone never reaches prod —
+      # values that must change here have to be re-asserted via --set.
+      # previewUrlTemplate is pinned to the host ROOT (no '/p/<ws>/<port>/' path
+      # prefix) so client-side routers in generated apps work; a path prefix makes
+      # BrowserRouter-style apps render blank. --atomic auto-rolls-back on a failed
+      # upgrade (a bad ai-gateway/worker container fails readiness → rollback; the
+      # agent image is a configmap value the api re-reads on its restart).
+      #
+      # Every service is set BY DIGEST, from the manifest that was just validated —
+      # including services this run did not rebuild, whose current digest is carried
+      # forward. imageTag is re-asserted alongside purely as human-readable
+      # provenance; the chart ignores it whenever a digest is present.
+      - name: Helm upgrade (all services pinned by digest)
         run: |
           set -euo pipefail
-          # Only --set the imageTag of a tier we actually rebuilt this run; a skipped
-          # tier keeps its currently-deployed tag via --reuse-values. This is what
-          # makes conditional builds safe: we NEVER point a Deployment at an image
-          # tag that wasn't published, so there is no ImagePullBackOff / atomic
-          # rollback risk. previewUrlTemplate is always re-asserted (configmap value
-          # that --reuse-values would otherwise freeze).
           SETS=( --set "platformEnv.runtime.previewUrlTemplate=https://{workspaceId}-{port}.preview.e-code.ai/" )
           # D2 (approved 2026-07-17): re-assert the digest-rollback flag on EVERY
           # upgrade (configmap value that --reuse-values would otherwise freeze
@@ -604,35 +1291,64 @@ jobs:
           # cutover step above ("0" on a cutover, "1" in steady state). Always
           # explicit — --reuse-values would otherwise freeze whatever the release
           # happens to store, which is precisely how an interlock silently rots.
+          #
+          # CONSERVÉ à la fusion avec le déploiement par digest : les `--set
+          # imageTag` par service que portait cette branche sont, eux, remplacés
+          # par la boucle de digests ci-dessous (le manifeste fait autorité). Ce
+          # drapeau-ci n'est pas une référence d'image : le perdre rendrait
+          # l'interlock dépendant de ce que la release a stocké.
           SETS+=( --set-string "platformEnv.runtime.deploymentAccessActivationEnabled=${{ steps.cutover.outputs.phase1_flag }}" )
-          if [ "${{ steps.tiers.outputs.web }}" = "true" ]; then
-            SETS+=( --set "services.web.imageTag=${SHORT_SHA}" )
+
+          # Only entries that ARE chart services get a `services.<key>` override —
+          # `--set services.workspaceAgent.…` would invent a service the chart has no
+          # template for, and helm would happily store it.
+          while read -r service digest tag; do
+            SETS+=( --set-string "services.${service}.imageDigest=${digest}" )
+            if [ -n "${tag}" ] && [ "${tag}" != "null" ]; then
+              SETS+=( --set-string "services.${service}.imageTag=${tag}" )
+            fi
+          # `!= false`, not a bare truthiness test: an entry whose chartService field is
+          # absent would be silently skipped by the latter, i.e. a service would quietly
+          # keep whatever digest the release already stored instead of the one this run
+          # verified. Absent means "not marked as non-chart", so include it and let the
+          # chart reject an unknown key loudly. Same expression as the break-glass path.
+          done < <(jq -r '.services[] | select(.chartService != false) | "\(.service) \(.digest) \(.tag // "")"' release-manifest.json)
+
+          # The workspace-agent is not a chart service: it is an image reference the api
+          # hands to each workspace pod. Pin it by the digest already resolved, scanned
+          # and signature-verified above — never by re-resolving the tag here, which
+          # would reintroduce the gap between "what we checked" and "what we ship".
+          WSAGENT_DIGEST="$(jq -r '.services[] | select(.service == "workspaceAgent") | .digest' release-manifest.json)"
+          if [ -n "${WSAGENT_DIGEST}" ]; then
+            SETS+=( --set-string "platformEnv.runtime.workspaceAgentImage=${REG}/workspace-agent@${WSAGENT_DIGEST}" )
           fi
-          if [ "${{ steps.tiers.outputs.runtime }}" = "true" ]; then
-            SETS+=(
-              --set "services.api.imageTag=${SHORT_SHA}"
-              --set "services.workspaceManager.imageTag=${SHORT_SHA}"
-              --set "services.previewProxy.imageTag=${SHORT_SHA}"
-              --set "services.aiGateway.imageTag=${SHORT_SHA}"
-              --set "services.worker.imageTag=${SHORT_SHA}"
-              # P11 screenshotter (auto thumbnails). Asserted here — NOT only in
-              # values-prod.yaml — because --reuse-values ignores that file. Gated
-              # on the runtime tier so enabled=true is only ever set in a run that
-              # just pushed screenshotter:${SHORT_SHA} (never an unpublished tag →
-              # no ImagePullBackOff risk); once stored, --reuse-values carries
-              # enabled+imageTag through web-only deploys. The shared secret is
-              # chart-managed (templates/screenshotter-auth-secret.yaml), the
-              # config values are re-asserted like previewUrlTemplate above.
-              --set "services.screenshotter.enabled=true"
-              --set "services.screenshotter.imageTag=${SHORT_SHA}"
-              --set-string "platformEnv.screenshotterUrl=http://vibecore-vibecore-platform-screenshotter.vibecore.svc.cluster.local:3030"
-              --set-string "platformEnv.screenshotterAllowedHosts=preview.e-code.ai"
-              --set-string "platformEnv.screenshotterPreviewProxyUrl=http://vibecore-vibecore-platform-preview-proxy.vibecore.svc.cluster.local:3020"
-            )
-          fi
-          if [ "${{ steps.tiers.outputs.wsagent }}" = "true" ]; then
-            SETS+=( --set "platformEnv.runtime.workspaceAgentImage=${GAR_LOCATION}-docker.pkg.dev/${GCP_PROJECT_ID}/${GAR_REPO}/workspace-agent:sha-${SHORT_SHA}" )
-          fi
+
+          # Repris de main : ces valeurs de configmap sont RÉ-AFFIRMÉES à chaque
+          # upgrade parce que `--reuse-values` ignore values-prod.yaml — sans quoi
+          # elles resteraient figées sur ce que la release avait stocké. Le digest
+          # du screenshotter, lui, arrive par la boucle ci-dessus : c'est un chart
+          # service comme un autre, il n'a donc pas besoin d'imageTag ici.
+          #
+          # HORS du `if` ci-dessus : ces valeurs ne dépendent pas du
+          # workspace-agent. Les laisser dedans les aurait rendues
+          # conditionnelles à la présence de son digest — le screenshotter aurait
+          # perdu sa configuration sur tout run où le workspace-agent n'est pas
+          # reconstruit.
+          #
+          # Ports 3030 / 3020, pas 8080. Vérifié sur le cluster de production :
+          #   svc vibecore-vibecore-platform-screenshotter  → 3030
+          #   svc vibecore-vibecore-platform-preview-proxy  → 3020
+          # et c'est bien ce que le configmap servi aujourd'hui contient. Un
+          # 8080 ici aurait été poussé au premier déploiement et aurait coupé
+          # les vignettes, sans rien casser d'assez visible pour être remarqué
+          # tout de suite.
+          SETS+=(
+            --set "services.screenshotter.enabled=true"
+            --set-string "platformEnv.screenshotterUrl=http://vibecore-vibecore-platform-screenshotter.vibecore.svc.cluster.local:3030"
+            --set-string "platformEnv.screenshotterAllowedHosts=preview.e-code.ai"
+            --set-string "platformEnv.screenshotterPreviewProxyUrl=http://vibecore-vibecore-platform-preview-proxy.vibecore.svc.cluster.local:3020"
+          )
+
           echo "helm --set args: ${SETS[*]}"
           helm upgrade "${HELM_RELEASE}" infra/helm/platform \
             --namespace "${HELM_NAMESPACE}" \
@@ -640,6 +1356,10 @@ jobs:
             --atomic \
             --timeout 10m \
             "${SETS[@]}"
+          # From here on, a failure means production has ALREADY been changed. The
+          # rollback step below keys off this marker so it never reverts a healthy
+          # release because something failed before the upgrade (a build, a scan).
+          echo "UPGRADE_APPLIED=1" >> "$GITHUB_ENV"
 
       - name: Verify rollout
         run: |
@@ -666,6 +1386,83 @@ jobs:
             echo "screenshotter Deployment absent (not yet enabled by a runtime-tier deploy) — skipped"
           fi
 
+      # Release-integrity requirement 6, second half: prove the cluster is running the
+      # digests this release recorded. `helm upgrade` succeeding only proves what we
+      # ASKED for; `imageID` is what the kubelet reports it actually pulled and ran.
+      #
+      # Only pods of the CURRENT ReplicaSet are examined. With maxUnavailable:0 the old
+      # pods can still be terminating when `rollout status` returns, and counting them
+      # would report a mismatch for images that are on their way out.
+      - name: Verify running imageIDs match the release manifest
+        run: |
+          set -euo pipefail
+          echo '{}' > /tmp/observed.json
+
+          while read -r service image; do
+            # Chart service keys are camelCase; the k8s label is kebab-case.
+            label="${image}"
+            dep="$(kubectl -n "${HELM_NAMESPACE}" get deploy -l "app.kubernetes.io/name=${label}" -o name 2>/dev/null | head -n1)"
+            if [ -z "${dep}" ]; then
+              dep="deploy/${HELM_RELEASE}-vibecore-platform-${label}"
+            fi
+            # `kubectl get -o name` prints `deployment.apps/<name>`, NOT `deploy/<name>`.
+            # Stripping a literal "deploy/" leaves the group prefix attached, the
+            # ownerReferences match below never fires, and the ReplicaSet lookup comes
+            # back empty — which this step then reports as "no running pod", i.e. a
+            # deploy that failed for a reason that has nothing to do with the images.
+            # Caught by scripts/release-gate/proof-digest-rollout.sh on a real cluster.
+            depname="${dep##*/}"
+
+            # The ACTIVE ReplicaSet is the one carrying the Deployment's current
+            # revision — NOT the most recently created one. Kubernetes reuses an
+            # existing ReplicaSet when a rollout returns to a pod template it has seen
+            # before, so after a break-glass restore (or any return to an earlier
+            # digest) the newest-by-creationTimestamp ReplicaSet is the one that was
+            # just scaled to ZERO, and this step would report "no running pod" for a
+            # service that is running perfectly. Caught by
+            # scripts/release-gate/proof-digest-rollout.sh step 8 on a real cluster.
+            REV="$(kubectl -n "${HELM_NAMESPACE}" get deploy "${depname}" \
+              -o jsonpath='{.metadata.annotations.deployment\.kubernetes\.io/revision}')"
+            HASH="$(kubectl -n "${HELM_NAMESPACE}" get rs -o json \
+              | jq -r --arg d "${depname}" --arg rev "${REV}" '
+                  [ .items[]
+                    | select((.metadata.ownerReferences // [])[]?.name == $d)
+                    | select(.metadata.annotations["deployment.kubernetes.io/revision"] == $rev) ]
+                  | first | .metadata.labels["pod-template-hash"] // ""')"
+            if [ -z "${HASH}" ] || [ "${HASH}" = "null" ]; then
+              echo "::error::${service}: could not find the ReplicaSet for ${depname} at revision ${REV}"
+              exit 1
+            fi
+
+            IDS="$(kubectl -n "${HELM_NAMESPACE}" get pods \
+              -l "app.kubernetes.io/name=${label},pod-template-hash=${HASH}" -o json \
+              | jq -c --arg img "${label}" '
+                  [ .items[]
+                    | select(.metadata.deletionTimestamp == null)
+                    | select(.status.phase == "Running")
+                    | .status.containerStatuses[]?
+                    | select(.name == $img)
+                    | .imageID ]')"
+
+            jq --arg s "${service}" --argjson ids "${IDS}" '. + {($s): $ids}' /tmp/observed.json \
+              > /tmp/observed.next && mv /tmp/observed.next /tmp/observed.json
+          # Must match verify-imageids' own filter EXACTLY (`rolled !== false`). With a
+          # bare truthiness test here, an entry whose `rolled` field is absent would be
+          # skipped when collecting imageIDs but still demanded by the verifier — which
+          # then reports "no running pod reported an imageID" and fails the deploy for a
+          # reason that has nothing to do with the images.
+          done < <(jq -r '.services[] | select(.rolled != false) | "\(.service) \(.image)"' release-manifest.json)
+
+          echo "::group::observed imageIDs"
+          jq . /tmp/observed.json
+          echo "::endgroup::"
+
+          # verify-imageids itself skips entries with rolled=false (admin, screenshotter,
+          # workspace-agent), so the set of services that must match is decided by the
+          # manifest — an auditable artifact — rather than by a filter in this file.
+          node scripts/release-gate/release-manifest.mjs verify-imageids \
+            --manifest release-manifest.json \
+            --observed /tmp/observed.json
       # ---- P104 / SEC-8 · phase 1 -> phase 2 barrier -------------------------
       #
       # `rollout status` above returned as soon as the NEW ReplicaSet was complete.
@@ -867,6 +1664,46 @@ jobs:
             exit 1
           fi
 
+      # The manifest and SBOMs are the audit trail for this release: what shipped,
+      # from which commit and build, as which digests. Uploaded even on failure —
+      # a refused or half-finished deploy is exactly when you want to see them.
+      # POST-CHECK FAILURE => ROLL BACK. `--atomic` only reverts an upgrade that failed
+      # on its own terms; everything verified afterwards (imageIDs match the manifest,
+      # the rollback flag survived) happens on a release that is already live. Leaving
+      # production on a rollout we just declared unverifiable, and merely going red, is
+      # the wrong default: the previous revision was verified, this one is not.
+      - name: Roll back to the previous revision (post-check failure)
+        if: failure() && env.UPGRADE_APPLIED == '1' && steps.prevrev.outputs.revision != ''
+        env:
+          PREV_REVISION: ${{ steps.prevrev.outputs.revision }}
+        run: |
+          set -uo pipefail
+          echo "::error::post-rollout verification failed — rolling production back to revision ${PREV_REVISION}"
+          if helm rollback "${HELM_RELEASE}" "${PREV_REVISION}" -n "${HELM_NAMESPACE}" --wait --timeout 10m; then
+            echo "rolled back to revision ${PREV_REVISION}"
+          else
+            echo "::error::ROLLBACK FAILED — production is on an unverified release. Escalate now."
+            exit 1
+          fi
+          for svc in web api workspace-manager preview-proxy ai-gateway worker; do
+            dep="$(kubectl -n "${HELM_NAMESPACE}" get deploy -l "app.kubernetes.io/name=${svc}" -o name 2>/dev/null | head -n1)"
+            [ -n "${dep}" ] || continue
+            kubectl -n "${HELM_NAMESPACE}" rollout status "${dep}" --timeout=5m || true
+          done
+          {
+            echo "## ⚠️ Rolled back"
+            echo ""
+            echo "Post-rollout verification failed; production was returned to revision \`${PREV_REVISION}\`."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload release manifest and SBOMs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-manifest-${{ needs.resolve-target.outputs.short_sha }}
+          path: sbom/
+          if-no-files-found: warn
+
       # P104 / SEC-8: POST-DEPLOY proof, read back from the LIVE cluster, that the
       # interlock ended this run in exactly the state the cutover step decided —
       # "1" only when a barrier actually ran (or had already run on a previous
@@ -917,6 +1754,7 @@ jobs:
         env:
           STATUS: ${{ job.status }}
           SLACK_WEBHOOK: ${{ secrets.SLACK_DEPLOY_WEBHOOK }}
+          TARGET_SHA: ${{ needs.resolve-target.outputs.target_sha }}
         run: |
           set -uo pipefail
           if [ "${STATUS}" = "success" ]; then
@@ -928,15 +1766,15 @@ jobs:
           {
             echo "## ${TITLE}"
             echo ""
-            echo "- **Tag:** \`${SHORT_SHA:-unknown}\`"
-            echo "- **Commit:** \`${GITHUB_SHA}\`"
+            echo "- **Gated commit:** \`${TARGET_SHA}\`"
+            echo "- **Derived tag:** \`${SHORT_SHA:-unknown}\`"
             echo "- **Release:** \`${HELM_RELEASE}\` / ns \`${HELM_NAMESPACE}\`"
             echo "- **Run:** ${RUN_URL}"
           } >> "$GITHUB_STEP_SUMMARY"
 
           if [ -n "${SLACK_WEBHOOK}" ]; then
             payload="$(printf '{"text":"%s %s\n>tag: %s | commit: %s\n>%s"}' \
-              "${ICON}" "${TITLE}" "${SHORT_SHA:-unknown}" "${GITHUB_SHA}" "${RUN_URL}")"
+              "${ICON}" "${TITLE}" "${SHORT_SHA:-unknown}" "${TARGET_SHA}" "${RUN_URL}")"
             curl -fsS -X POST -H 'Content-Type: application/json' \
               -d "${payload}" "${SLACK_WEBHOOK}" || echo "WARN: Slack notify failed (non-fatal)"
           else
