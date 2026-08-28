@@ -17,7 +17,7 @@ import { appPublicEnglish } from './app-public-copy.js';
 import type { ProjectCheckpointLease } from './checkpoint-lease.js';
 import { LedgerStore } from './ledger-store.js';
 import { AccountPurgeStore, type AccountPurgeLeaseOptions } from './account-purge-store.js';
-import type { PurgeStorageDeps } from './account-purge.js';
+import type { AccountPurgeProjectDeletionAuthority, PurgeStorageDeps } from './account-purge.js';
 import {
   isValidDeploymentAccessPolicyRecord,
   normalizeDeploymentAccessMode,
@@ -2662,6 +2662,9 @@ function projectFromPermanentDeletionSnapshot(
   if (
     typeof snapshot.id !== 'string' ||
     typeof snapshot.organizationId !== 'string' ||
+    typeof snapshot.ownershipEpoch !== 'number' ||
+    !Number.isSafeInteger(snapshot.ownershipEpoch) ||
+    snapshot.ownershipEpoch < 0 ||
     typeof snapshot.projectRecordHash !== 'string' ||
     !/^[0-9a-f]{64}$/.test(snapshot.projectRecordHash) ||
     snapshot.state !== 'PERMANENTLY_DELETED'
@@ -2675,6 +2678,7 @@ function projectFromPermanentDeletionSnapshot(
   return {
     id: snapshot.id as string,
     organizationId: snapshot.organizationId as string,
+    ownershipEpoch: snapshot.ownershipEpoch as number,
     projectRecordHash: snapshot.projectRecordHash as string,
     state: 'PERMANENTLY_DELETED',
     ...(typeof snapshot.permanentDeletionStartedAt === 'string'
@@ -3395,7 +3399,13 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
   }
 
   purgeUserAccount(input: { userId: string; correlationId?: string }, deps: PurgeStorageDeps) {
-    return this.withStaticArtifactErasureBarrier(() => this.accountPurge.purge(input, deps));
+    /*
+     * Each owned project now runs the canonical hard-delete saga, which owns
+     * the global static-artifact barrier through its final Project+receipt
+     * transaction. Wrapping the parent purge in the same distributed barrier
+     * would self-deadlock on a second PostgreSQL session.
+     */
+    return this.accountPurge.purge(input, deps);
   }
 
   reconcilePurgeFreezes() {
@@ -4898,9 +4908,15 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
       allowPermanentDeletion?: boolean;
       allowedObjectStorageOperationId?: string;
       checkpointBarrierAuthority?: ProjectCheckpointLease;
+      accountPurgeDeletionAuthority?: AccountPurgeProjectDeletionAuthority;
     } = {},
   ): Promise<void> {
-    await this.accountPurge.assertProjectStorageMutable(tx, scope.projectId, scope.workspaceId);
+    await this.accountPurge.assertProjectStorageMutable(
+      tx,
+      scope.projectId,
+      scope.workspaceId,
+      options.accountPurgeDeletionAuthority,
+    );
     await tx.$executeRawUnsafe(
       'SELECT pg_advisory_xact_lock(hashtext($1))',
       objectStorageMutationAdvisoryKey(scope.projectId),
@@ -6107,6 +6123,7 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
       requestHash: string;
       actorUserId: string;
       ipAddress?: string;
+      accountPurgeDeletionAuthority?: AccountPurgeProjectDeletionAuthority;
       preflightPhysicalErasure: () => Promise<ObjectStorageStaticErasurePlan>;
       erasePhysical: (assertLease: () => Promise<void>, lease: ObjectStorageOperationLease) => Promise<void>;
       verifyPhysicalAbsence: (
@@ -6148,6 +6165,9 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
           allowDeletedProject: true,
           allowPermanentDeletion: true,
           allowedObjectStorageOperationId,
+          ...(input.accountPurgeDeletionAuthority
+            ? { accountPurgeDeletionAuthority: input.accountPurgeDeletionAuthority }
+            : {}),
         });
         await assertProjectReservedVmDecommissioned(tx, input.projectId);
         await this.assertNoActiveRemixSourceShare(tx, input.projectId);
@@ -6165,6 +6185,9 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
             allowDeletedProject: true,
             allowPermanentDeletion: true,
             allowedObjectStorageOperationId: matchingOperation?.operationId,
+            ...(input.accountPurgeDeletionAuthority
+              ? { accountPurgeDeletionAuthority: input.accountPurgeDeletionAuthority }
+              : {}),
           });
           await assertProjectReservedVmDecommissioned(tx, input.projectId);
           await this.assertNoActiveRemixSourceShare(tx, input.projectId);
@@ -6188,6 +6211,12 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
             statusCode: 409,
           });
         }
+        if (
+          input.accountPurgeDeletionAuthority &&
+          current.ownershipEpoch !== input.accountPurgeDeletionAuthority.expectedOwnershipEpoch
+        ) {
+          throw projectOrganizationChangedError();
+        }
 
         const ownerToken = `project-permanent-delete:${randomUUID()}`;
         let claimed = await this.prisma.$transaction((tx) =>
@@ -6204,6 +6233,9 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
             requestHash: input.requestHash,
             ownerToken,
             leaseTtlSeconds: OBJECT_STORAGE_OPERATION_LEASE_TTL_SECONDS,
+            ...(input.accountPurgeDeletionAuthority
+              ? { accountPurgeDeletionAuthority: input.accountPurgeDeletionAuthority }
+              : {}),
           }),
         );
 
@@ -6276,6 +6308,14 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
             try {
               runtimePreflight = await this.prisma.$transaction(async (tx) => {
                 await assertObjectStorageOperationFence(tx, heartbeat.lease());
+                if (input.accountPurgeDeletionAuthority) {
+                  await this.accountPurge.assertProjectStorageMutable(
+                    tx,
+                    input.projectId,
+                    undefined,
+                    input.accountPurgeDeletionAuthority,
+                  );
+                }
                 const projects = await tx.$queryRaw<Array<{ organizationId: string; ownershipEpoch: number }>>`
                   SELECT "organizationId", "ownershipEpoch"
                   FROM "Project"
@@ -6322,12 +6362,18 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
                * provider. Preserve the permanent-deletion freeze and quarantine
                * instead of routing through FAILED_SAFE, which would re-enable
                * project writes. */
+              const errorCode = this.objectStorageRecoveryErrorCode(error);
+              const parentAuthorityLost =
+                Boolean(input.accountPurgeDeletionAuthority) &&
+                ['PROJECT_STORAGE_FENCED_FOR_ACCOUNT_PURGE', 'ACCOUNT_PURGE_LEASE_LOST'].includes(errorCode);
               await this.prisma
                 .$transaction((tx) =>
-                  markPermanentDeletionRuntimeEffectAmbiguous(tx, heartbeat.lease(), {
-                    error,
-                    errorCode: 'PROJECT_RUNTIME_EFFECT_AUTHORITY_UNAVAILABLE',
-                  }),
+                  parentAuthorityLost
+                    ? markObjectStorageOperationFailedSafe(tx, heartbeat.lease(), { errorCode, error })
+                    : markPermanentDeletionRuntimeEffectAmbiguous(tx, heartbeat.lease(), {
+                        error,
+                        errorCode: 'PROJECT_RUNTIME_EFFECT_AUTHORITY_UNAVAILABLE',
+                      }),
                 )
                 .catch(() => undefined);
               throw error;
@@ -6351,7 +6397,12 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
               const staticArtifactPlan = await input.preflightPhysicalErasure();
               await heartbeat.assert();
               await this.prisma.$transaction((tx) =>
-                recordPermanentDeletionStaticArtifactPlan(tx, heartbeat.lease(), staticArtifactPlan),
+                recordPermanentDeletionStaticArtifactPlan(
+                  tx,
+                  heartbeat.lease(),
+                  staticArtifactPlan,
+                  input.accountPurgeDeletionAuthority,
+                ),
               );
             } catch (error) {
               const errorCode = this.objectStorageRecoveryErrorCode(error);
@@ -6363,11 +6414,30 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
               );
               throw error;
             }
-            await this.prisma.$transaction((tx) =>
-              markObjectStorageOperationEffectStarted(tx, heartbeat.lease(), {
-                command: 'project-permanent-delete',
-              }),
-            );
+            try {
+              await this.prisma.$transaction((tx) =>
+                markObjectStorageOperationEffectStarted(
+                  tx,
+                  heartbeat.lease(),
+                  { command: 'project-permanent-delete' },
+                  input.accountPurgeDeletionAuthority,
+                ),
+              );
+            } catch (error) {
+              /* The parent authority and the effect transition are checked in
+               * one short transaction. A rejection here is provably before the
+               * first provider dispatch, so it is safe to restore the child
+               * operation instead of manufacturing VERIFY_FIRST ambiguity. */
+              await this.prisma
+                .$transaction((tx) =>
+                  markObjectStorageOperationFailedSafe(tx, heartbeat.lease(), {
+                    errorCode: this.objectStorageRecoveryErrorCode(error),
+                    error,
+                  }),
+                )
+                .catch(() => undefined);
+              throw error;
+            }
             await input.erasePhysical(heartbeat.assert, heartbeat.lease());
             await heartbeat.assert();
             await this.prisma.$transaction((tx) =>
@@ -6382,13 +6452,16 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
             proof = await input.verifyPhysicalAbsence(heartbeat.assert, heartbeat.lease());
           } catch (error) {
             if (recoveryVerificationOnly) {
-              await this.prisma.$transaction((tx) =>
-                markObjectStorageOperationManualRecovery(tx, heartbeat.lease(), {
-                  errorCode: 'PROJECT_PERMANENT_DELETION_VERIFICATION_AMBIGUOUS',
-                  error,
-                  evidence: { verificationAttempted: true },
-                }),
-              );
+              const errorCode = this.objectStorageRecoveryErrorCode(error);
+              if (!['PROJECT_STORAGE_FENCED_FOR_ACCOUNT_PURGE', 'ACCOUNT_PURGE_LEASE_LOST'].includes(errorCode)) {
+                await this.prisma.$transaction((tx) =>
+                  markObjectStorageOperationManualRecovery(tx, heartbeat.lease(), {
+                    errorCode: 'PROJECT_PERMANENT_DELETION_VERIFICATION_AMBIGUOUS',
+                    error,
+                    evidence: { verificationAttempted: true },
+                  }),
+                );
+              }
             }
             throw error;
           }

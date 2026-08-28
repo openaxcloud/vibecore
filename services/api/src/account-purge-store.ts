@@ -9,6 +9,7 @@ import {
   anonymizedEmail,
   anonymizedOrgSlug,
   buildErasureProof,
+  type AccountPurgeProjectDeletionAuthority,
   type AccountPurgePreview,
   type PurgeClassReport,
   type PurgeEffectDescriptor,
@@ -20,6 +21,13 @@ import {
 } from './account-purge.js';
 import { appPublicEnglish } from './app-public-copy.js';
 import { DELETION_GRACE_PERIOD_DAYS, FINANCIAL_RETENTION_DAYS } from './data-deletion.js';
+import {
+  objectStorageIdempotencyScopeHash,
+  objectStorageRequestHash,
+  objectStorageScopeHash,
+  type ObjectStorageJsonObject,
+} from './object-storage-operation.js';
+import { projectPermanentDeletionRequestHash } from './project-permanent-deletion.js';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const MEMBERSHIP_RESOURCE = 'membership';
@@ -37,6 +45,11 @@ const ACTIVE_SUBSCRIPTION_STATES = ['TRIALING', 'ACTIVE', 'PAST_DUE', 'UNPAID'] 
 const RETRYABLE_VERIFIED_PURGE_EFFECT_TYPES = new Set([
   'billing_subscription',
   'gcs_bucket',
+  'project_permanent_delete',
+  'k8s_service',
+  'k8s_pod',
+  'k8s_secret',
+  'k8s_pvc',
   'local_project_storage',
   'local_project_archive',
   'local_project_snapshot',
@@ -68,6 +81,12 @@ interface StorageTopology {
   orgIds: string[];
   soleOrgIds: string[];
   sharedOrgIds: string[];
+  ownedProjects: Array<{
+    projectId: string;
+    organizationId: string;
+    projectName: string;
+    ownershipEpoch: number;
+  }>;
   bucketProjectIds: string[];
   workspaceProjectIds: string[];
   localSnapshotObjects: Array<{ projectId: string; storageKey: string }>;
@@ -90,6 +109,9 @@ interface PurgeGuarantee extends PurgeStorageInventory {
   requestedAt: Date;
   purgeDueAt: Date;
   fingerprint: string;
+  orgIds: string[];
+  soleOrgIds: string[];
+  sharedOrgIds: string[];
   billingSubscriptions: BillingSubscriptionInventory[];
   correlationId?: string;
 }
@@ -98,6 +120,17 @@ interface PurgeHeartbeat {
   lost(): boolean;
   markLost(): void;
   stop(): Promise<void>;
+}
+
+interface OwnedProjectDeletionIdentity extends AccountPurgeProjectDeletionAuthority {
+  requestHash: string;
+}
+
+interface VerifiedOwnedProjectDeletionReceipt {
+  projectId: string;
+  operationId: string;
+  requestHash: string;
+  completedAt: Date;
 }
 
 interface LockedPlan {
@@ -159,6 +192,14 @@ function topologyFingerprint(topology: Omit<StorageTopology, 'fingerprint' | 'sh
   return JSON.stringify({
     orgIds: sort(topology.orgIds),
     soleOrgIds: sort(topology.soleOrgIds),
+    ownedProjects: [...topology.ownedProjects]
+      .map(({ projectId, organizationId, projectName, ownershipEpoch }) => ({
+        projectId,
+        organizationId,
+        projectName,
+        ownershipEpoch,
+      }))
+      .sort((left, right) => left.projectId.localeCompare(right.projectId)),
     bucketProjectIds: sort(topology.bucketProjectIds),
     workspaceProjectIds: sort(topology.workspaceProjectIds),
     localSnapshotObjects: topology.localSnapshotObjects
@@ -173,6 +214,125 @@ function topologyFingerprint(topology: Omit<StorageTopology, 'fingerprint' | 'sh
       .map(({ id, externalId }) => ({ id, externalId }))
       .sort((left, right) => left.id.localeCompare(right.id)),
   });
+}
+
+function residualAccountStorageInventory(inventory: PurgeStorageInventory): PurgeStorageInventory {
+  const ownedProjectIds = new Set(inventory.ownedProjects.map(({ projectId }) => projectId));
+  return {
+    ownedProjects: [],
+    bucketProjectIds: [],
+    workspaceProjectIds: inventory.workspaceProjectIds.filter((projectId) => !ownedProjectIds.has(projectId)),
+    localSnapshotObjects: [],
+    staticDeploymentIds: [],
+    staticArtifactRefs: [],
+    staticAliasDeploymentIds: [],
+  };
+}
+
+function sameStringSet(left: string[], right: string[]): boolean {
+  const normalize = (values: string[]) => [...new Set(values)].sort();
+  return JSON.stringify(normalize(left)) === JSON.stringify(normalize(right));
+}
+
+interface StoredPurgeInventory extends PurgeStorageInventory {
+  billingSubscriptions: BillingSubscriptionInventory[];
+}
+
+function nonEmptyString(value: unknown): value is string {
+  return typeof value === 'string' && value.length > 0;
+}
+
+function storedStringList(value: unknown): string[] | undefined {
+  if (!Array.isArray(value) || !value.every(nonEmptyString)) return undefined;
+  if (new Set(value).size !== value.length) return undefined;
+  return [...value];
+}
+
+function parseStoredPurgeInventory(value: unknown): StoredPurgeInventory | undefined {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
+  const record = value as Record<string, unknown>;
+  const bucketProjectIds = storedStringList(record.bucketProjectIds);
+  const workspaceProjectIds = storedStringList(record.workspaceProjectIds);
+  const staticDeploymentIds = storedStringList(record.staticDeploymentIds);
+  const staticArtifactRefs = storedStringList(record.staticArtifactRefs);
+  const staticAliasDeploymentIds = storedStringList(record.staticAliasDeploymentIds);
+  if (
+    !bucketProjectIds ||
+    !workspaceProjectIds ||
+    !staticDeploymentIds ||
+    !staticArtifactRefs ||
+    !staticAliasDeploymentIds ||
+    !Array.isArray(record.ownedProjects) ||
+    !Array.isArray(record.localSnapshotObjects) ||
+    !Array.isArray(record.billingSubscriptions)
+  ) {
+    return undefined;
+  }
+
+  const ownedProjects = record.ownedProjects.flatMap((entry) => {
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return [];
+    const project = entry as Record<string, unknown>;
+    return nonEmptyString(project.projectId) &&
+      nonEmptyString(project.organizationId) &&
+      nonEmptyString(project.projectName) &&
+      typeof project.ownershipEpoch === 'number' &&
+      Number.isSafeInteger(project.ownershipEpoch) &&
+      project.ownershipEpoch >= 0
+      ? [
+          {
+            projectId: project.projectId,
+            organizationId: project.organizationId,
+            projectName: project.projectName,
+            ownershipEpoch: project.ownershipEpoch,
+          },
+        ]
+      : [];
+  });
+  const localSnapshotObjects = record.localSnapshotObjects.flatMap((entry) => {
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return [];
+    const snapshot = entry as Record<string, unknown>;
+    return nonEmptyString(snapshot.projectId) && nonEmptyString(snapshot.storageKey)
+      ? [{ projectId: snapshot.projectId, storageKey: snapshot.storageKey }]
+      : [];
+  });
+  const billingSubscriptions = record.billingSubscriptions.flatMap((entry) => {
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return [];
+    const subscription = entry as Record<string, unknown>;
+    return nonEmptyString(subscription.id) &&
+      (subscription.externalId === null || nonEmptyString(subscription.externalId)) &&
+      typeof subscription.status === 'string' &&
+      ACTIVE_SUBSCRIPTION_STATES.includes(subscription.status as ActiveSubscriptionStatus)
+      ? [
+          {
+            id: subscription.id,
+            externalId: subscription.externalId as string | null,
+            status: subscription.status as ActiveSubscriptionStatus,
+          },
+        ]
+      : [];
+  });
+  if (
+    ownedProjects.length !== record.ownedProjects.length ||
+    localSnapshotObjects.length !== record.localSnapshotObjects.length ||
+    billingSubscriptions.length !== record.billingSubscriptions.length ||
+    new Set(ownedProjects.map(({ projectId }) => projectId)).size !== ownedProjects.length ||
+    new Set(localSnapshotObjects.map(({ projectId, storageKey }) => `${projectId}\u0000${storageKey}`)).size !==
+      localSnapshotObjects.length ||
+    new Set(billingSubscriptions.map(({ id }) => id)).size !== billingSubscriptions.length
+  ) {
+    return undefined;
+  }
+
+  return {
+    ownedProjects,
+    bucketProjectIds,
+    workspaceProjectIds,
+    localSnapshotObjects,
+    staticDeploymentIds,
+    staticArtifactRefs,
+    staticAliasDeploymentIds,
+    billingSubscriptions,
+  };
 }
 
 function preferencesWithoutDeletion(preferences: unknown): Prisma.InputJsonValue {
@@ -238,6 +398,124 @@ export class AccountPurgeStore {
     );
   }
 
+  private async assertOwnedProjectPhysicalOperationsAvailable(
+    tx: Prisma.TransactionClient,
+    input: {
+      userId: string;
+      projects: PurgeStorageInventory['ownedProjects'];
+      recoveringPlanId?: string;
+      allowMissingProjects: boolean;
+    },
+  ): Promise<void> {
+    if (input.projects.length === 0) return;
+    const projectIds = [...new Set(input.projects.map(({ projectId }) => projectId))].sort();
+    const lockedProjects = await tx.$queryRaw<
+      Array<{ id: string; permanentDeletionStartedAt: Date | null }>
+    >(Prisma.sql`
+      SELECT project."id", project."permanentDeletionStartedAt"
+        FROM "Project" project
+       WHERE project."id" IN (${Prisma.join(projectIds)})
+       ORDER BY project."id"
+       FOR UPDATE
+    `);
+    if (!input.allowMissingProjects && lockedProjects.length !== projectIds.length) {
+      throw Object.assign(new Error(appPublicEnglish('ACCOUNT_PURGE_PROJECT_PHYSICAL_OPERATION_ACTIVE')), {
+        code: 'ACCOUNT_PURGE_PROJECT_PHYSICAL_OPERATION_ACTIVE',
+        statusCode: 409,
+      });
+    }
+
+    const activeOperations = await tx.$queryRaw<
+      Array<{
+        id: string;
+        kind: string;
+        status: string;
+        idempotencyKey: string;
+        requestHash: string;
+        command: string | null;
+        expectedProjectNameHash: string | null;
+        projectIds: string[];
+        organizationIds: string[];
+      }>
+    >(Prisma.sql`
+      SELECT operation."id",
+             operation."kind"::text AS "kind",
+             operation."status"::text AS "status",
+             operation."idempotencyKey",
+             operation."requestHash",
+             operation."payload"->>'command' AS "command",
+             operation."payload"->>'expectedProjectNameHash' AS "expectedProjectNameHash",
+             ARRAY(
+               SELECT scope."projectIdSnapshot"
+                 FROM "ObjectStorageOperationProjectScope" scope
+                WHERE scope."operationId" = operation."id"
+                ORDER BY scope."ordinal"
+             ) AS "projectIds",
+             ARRAY(
+               SELECT scope."expectedOrganizationId"
+                 FROM "ObjectStorageOperationProjectScope" scope
+                WHERE scope."operationId" = operation."id"
+                ORDER BY scope."ordinal"
+             ) AS "organizationIds"
+        FROM "ObjectStorageOperation" operation
+       WHERE operation."status" IN (
+               'PREPARED'::"ObjectStorageOperationStatus",
+               'EFFECT_STARTED'::"ObjectStorageOperationStatus",
+               'VERIFYING'::"ObjectStorageOperationStatus",
+               'MANUAL_RECOVERY'::"ObjectStorageOperationStatus"
+             )
+         AND EXISTS (
+               SELECT 1
+                 FROM "ObjectStorageOperationProjectScope" scope
+                WHERE scope."operationId" = operation."id"
+                  AND scope."projectIdSnapshot" IN (${Prisma.join(projectIds)})
+             )
+       ORDER BY operation."id"
+    `);
+    const projectById = new Map(input.projects.map((project) => [project.projectId, project] as const));
+    const allowedOperationProjects = new Set<string>();
+    for (const operation of activeOperations) {
+      const projectId = operation.projectIds[0];
+      const project = projectId ? projectById.get(projectId) : undefined;
+      const allowed =
+        Boolean(input.recoveringPlanId) &&
+        operation.kind === 'PROJECT_PERMANENT_DELETE' &&
+        operation.status !== 'MANUAL_RECOVERY' &&
+        operation.projectIds.length === 1 &&
+        operation.organizationIds.length === 1 &&
+        Boolean(project) &&
+        operation.organizationIds[0] === project?.organizationId &&
+        operation.idempotencyKey === `account-purge:${input.recoveringPlanId}:${projectId}` &&
+        operation.requestHash ===
+          projectPermanentDeletionRequestHash({
+            projectId: project!.projectId,
+            organizationId: project!.organizationId,
+            actorUserId: input.userId,
+            expectedProjectName: project!.projectName,
+          }) &&
+        operation.command === 'project-permanent-delete' &&
+        operation.expectedProjectNameHash === createHash('sha256').update(project!.projectName).digest('hex');
+      if (!allowed) {
+        throw Object.assign(new Error(appPublicEnglish('ACCOUNT_PURGE_PROJECT_PHYSICAL_OPERATION_ACTIVE')), {
+          code: 'ACCOUNT_PURGE_PROJECT_PHYSICAL_OPERATION_ACTIVE',
+          statusCode: 409,
+        });
+      }
+      allowedOperationProjects.add(projectId!);
+    }
+    if (
+      lockedProjects.some(
+        ({ id, permanentDeletionStartedAt }) =>
+          permanentDeletionStartedAt !== null && !allowedOperationProjects.has(id),
+      )
+    ) {
+      throw Object.assign(new Error(appPublicEnglish('ACCOUNT_PURGE_PROJECT_PHYSICAL_OPERATION_ACTIVE')), {
+        code: 'ACCOUNT_PURGE_PROJECT_PHYSICAL_OPERATION_ACTIVE',
+        statusCode: 409,
+      });
+    }
+  }
+
   private async resolveTopology(tx: Prisma.TransactionClient, userId: string): Promise<StorageTopology> {
     const memberships = await tx.organizationMember.findMany({ where: { userId }, select: { organizationId: true } });
     const orgIds = [...new Set(memberships.map((membership) => membership.organizationId))];
@@ -250,7 +528,10 @@ export class AccountPurgeStore {
     }
 
     const bucketProjects = soleOrgIds.length
-      ? await tx.project.findMany({ where: { organizationId: { in: soleOrgIds } }, select: { id: true } })
+      ? await tx.project.findMany({
+          where: { organizationId: { in: soleOrgIds } },
+          select: { id: true, organizationId: true, name: true, ownershipEpoch: true },
+        })
       : [];
     const orgProjects = orgIds.length
       ? await tx.project.findMany({ where: { organizationId: { in: orgIds } }, select: { id: true } })
@@ -276,7 +557,15 @@ export class AccountPurgeStore {
           select: { id: true, externalId: true, status: true },
         })
       : [];
-    const bucketProjectIds = bucketProjects.map(({ id }) => id);
+    const ownedProjects = bucketProjects
+      .map(({ id, organizationId, name, ownershipEpoch }) => ({
+        projectId: id,
+        organizationId,
+        projectName: name,
+        ownershipEpoch,
+      }))
+      .sort((left, right) => left.projectId.localeCompare(right.projectId));
+    const bucketProjectIds = ownedProjects.map(({ projectId }) => projectId);
     const workspaceProjectIds = [
       ...new Set([
         ...orgProjects.map(({ id }) => id),
@@ -312,6 +601,7 @@ export class AccountPurgeStore {
     const fingerprint = topologyFingerprint({
       orgIds,
       soleOrgIds,
+      ownedProjects,
       bucketProjectIds,
       workspaceProjectIds,
       localSnapshotObjects,
@@ -325,6 +615,7 @@ export class AccountPurgeStore {
       orgIds,
       soleOrgIds,
       sharedOrgIds,
+      ownedProjects,
       bucketProjectIds,
       workspaceProjectIds,
       localSnapshotObjects,
@@ -379,6 +670,7 @@ export class AccountPurgeStore {
         requestedAt: requestedAt.toISOString(),
         purgeDueAt: purgeDueAt.toISOString(),
         inventory: {
+          ownedProjects: topology.ownedProjects,
           bucketProjectIds: topology.bucketProjectIds,
           workspaceProjectIds: topology.workspaceProjectIds,
           localSnapshotObjects: topology.localSnapshotObjects,
@@ -434,13 +726,15 @@ export class AccountPurgeStore {
     return this.prisma.$transaction(async (tx) => {
       await tx.$executeRawUnsafe('SELECT pg_advisory_xact_lock(hashtext($1))', `account-purge:${userId}`);
       const databaseNow = await this.databaseNow(tx);
-      const plans = await tx.$queryRawUnsafe<Array<{ status: string; leaseExpiresAt: Date }>>(
-        `SELECT status, "leaseExpiresAt" FROM "PurgePlan" WHERE "userId" = $1 FOR UPDATE`,
+      const plans = await tx.$queryRawUnsafe<Array<{ status: string; frozen: boolean }>>(
+        `SELECT plan.status,
+                EXISTS (SELECT 1 FROM "PurgeFreeze" purge_freeze WHERE purge_freeze."planId" = plan.id) AS frozen
+           FROM "PurgePlan" plan WHERE plan."userId" = $1 FOR UPDATE`,
         userId,
       );
       const active = plans[0];
 
-      if (active?.status === PLAN_ACTIVE) {
+      if (active?.status === PLAN_ACTIVE || active?.frozen === true) {
         throw Object.assign(new Error(appPublicEnglish('ACCOUNT_PURGE_ALREADY_STARTED')), {
           code: 'ACCOUNT_PURGE_ALREADY_STARTED',
           statusCode: 409,
@@ -469,14 +763,11 @@ export class AccountPurgeStore {
   async isObjectStorageFrozen(projectId: string): Promise<boolean> {
     const rows = await this.prisma.$queryRawUnsafe<Array<{ frozen: boolean }>>(
       `SELECT EXISTS (
-         SELECT 1 FROM "PurgeFreeze" AS freeze
-         JOIN "PurgePlan" AS plan ON plan.id = freeze."planId"
-        WHERE freeze."resourceType" = $1 AND freeze."resourceId" = $2
-          AND plan.status = $3
+         SELECT 1 FROM "PurgeFreeze" AS purge_freeze
+        WHERE purge_freeze."resourceType" = $1 AND purge_freeze."resourceId" = $2
        ) AS frozen`,
       OBJECT_STORAGE_RESOURCE,
       projectId,
-      PLAN_ACTIVE,
     );
     return rows[0]?.frozen === true;
   }
@@ -488,7 +779,10 @@ export class AccountPurgeStore {
   private async assertUsersNotPurging(tx: Prisma.TransactionClient, userIds: string[]): Promise<void> {
     if (userIds.length === 0) return;
     const active = await tx.purgePlan.count({
-      where: { userId: { in: [...new Set(userIds)] }, status: PLAN_ACTIVE },
+      where: {
+        userId: { in: [...new Set(userIds)] },
+        OR: [{ status: PLAN_ACTIVE }, { freezes: { some: {} } }],
+      },
     });
     if (active > 0) {
       throw Object.assign(new Error(appPublicEnglish('USER_TOPOLOGY_FROZEN_FOR_ACCOUNT_PURGE')), {
@@ -511,7 +805,7 @@ export class AccountPurgeStore {
     await tx.$executeRawUnsafe('SELECT pg_advisory_xact_lock(hashtext($1))', TOPOLOGY_LOCK);
     await this.assertUsersNotPurging(tx, subjectUserIds);
     const count = await tx.purgeFreeze.count({
-      where: { resourceType: MEMBERSHIP_RESOURCE, resourceId: organizationId, plan: { status: PLAN_ACTIVE } },
+      where: { resourceType: MEMBERSHIP_RESOURCE, resourceId: organizationId },
     });
     if (count > 0) {
       throw Object.assign(new Error(appPublicEnglish('MEMBERSHIP_FROZEN_FOR_ACCOUNT_PURGE')), {
@@ -532,7 +826,6 @@ export class AccountPurgeStore {
       where: {
         resourceType: { in: [OBJECT_STORAGE_RESOURCE, PROJECT_TOPOLOGY_RESOURCE] },
         resourceId: projectId,
-        plan: { status: PLAN_ACTIVE },
       },
     });
     if (count > 0) {
@@ -544,14 +837,15 @@ export class AccountPurgeStore {
   }
 
   /**
-   * Storage writers are fenced while the owning purge plan is ACTIVE. A
-   * completed/abandoned plan is immutable audit history, not a permanent write
-   * denial for a surviving project that was conservatively inventoried.
+   * Storage writers are fenced while a durable PurgeFreeze row exists. Failed
+   * or abandoned attempts retain those rows after any provider effect; a later
+   * owner must reclaim and verify the same plan before writes can resume.
    */
   async assertProjectStorageMutable(
     tx: Prisma.TransactionClient,
     projectId: string,
     workspaceId?: string,
+    deletionAuthority?: AccountPurgeProjectDeletionAuthority,
   ): Promise<void> {
     /*
      * Physical writers already hold the project physical/NFS barrier. They use
@@ -559,6 +853,69 @@ export class AccountPurgeStore {
      * as soon as an in-flight validation transaction commits; purge never waits
      * for the physical/NFS lock while holding topology.
      */
+    if (deletionAuthority) {
+      const expectedIdempotencyKey = `account-purge:${deletionAuthority.planId}:${deletionAuthority.projectId}`;
+      const expectedRequestHash = projectPermanentDeletionRequestHash({
+        projectId: deletionAuthority.projectId,
+        organizationId: deletionAuthority.expectedOrganizationId,
+        actorUserId: deletionAuthority.userId,
+        expectedProjectName: deletionAuthority.expectedProjectName,
+      });
+      if (
+        deletionAuthority.idempotencyKey !== expectedIdempotencyKey ||
+        deletionAuthority.requestHash !== expectedRequestHash
+      ) {
+        throw Object.assign(new Error(appPublicEnglish('PROJECT_STORAGE_FENCED_FOR_ACCOUNT_PURGE')), {
+          code: 'PROJECT_STORAGE_FENCED_FOR_ACCOUNT_PURGE',
+          statusCode: 409,
+        });
+      }
+      await tx.$executeRawUnsafe(
+        'SELECT pg_advisory_xact_lock_shared(hashtext($1))',
+        `account-purge:${deletionAuthority.userId}`,
+      );
+      await tx.$executeRawUnsafe('SELECT pg_advisory_xact_lock_shared(hashtext($1))', TOPOLOGY_LOCK);
+      const plans = await tx.$queryRawUnsafe<Array<{ inventory: unknown }>>(
+        `SELECT inventory
+           FROM "PurgePlan"
+          WHERE id = $1
+            AND "userId" = $2
+            AND "ownerToken" = $3
+            AND status = $4
+            AND "leaseExpiresAt" > date_trunc('milliseconds', clock_timestamp())
+          LIMIT 1`,
+        deletionAuthority.planId,
+        deletionAuthority.userId,
+        deletionAuthority.ownerToken,
+        PLAN_ACTIVE,
+      );
+      const inventory = plans[0]?.inventory;
+      const ownedProjects =
+        inventory && typeof inventory === 'object' && !Array.isArray(inventory)
+          ? (inventory as { ownedProjects?: unknown }).ownedProjects
+          : undefined;
+      const exactAuthority = Array.isArray(ownedProjects)
+        ? ownedProjects.some((entry) => {
+            if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return false;
+            const project = entry as Record<string, unknown>;
+            return (
+              project.projectId === deletionAuthority.projectId &&
+              project.projectId === projectId &&
+              project.organizationId === deletionAuthority.expectedOrganizationId &&
+              project.projectName === deletionAuthority.expectedProjectName &&
+              project.ownershipEpoch === deletionAuthority.expectedOwnershipEpoch
+            );
+          })
+        : false;
+      if (!exactAuthority) {
+        throw Object.assign(new Error(appPublicEnglish('PROJECT_STORAGE_FENCED_FOR_ACCOUNT_PURGE')), {
+          code: 'PROJECT_STORAGE_FENCED_FOR_ACCOUNT_PURGE',
+          statusCode: 409,
+        });
+      }
+      return;
+    }
+
     await assertAccountPurgeMutationAllowed(tx, { projectIds: [projectId] });
     const rows = await tx.$queryRawUnsafe<Array<{ planned: boolean }>>(
       `SELECT EXISTS (
@@ -626,6 +983,18 @@ export class AccountPurgeStore {
         soleOrganizationIds: topology.soleOrgIds,
       });
 
+      const activeSourceShareCount = topology.bucketProjectIds.length
+        ? await tx.remixStorageShare.count({
+            where: { sourceProjectId: { in: topology.bucketProjectIds }, state: 'ACTIVE' },
+          })
+        : 0;
+      if (activeSourceShareCount > 0) {
+        throw Object.assign(new Error(appPublicEnglish('ACCOUNT_PURGE_REMIX_STORAGE_SHARE_ACTIVE')), {
+          code: 'ACCOUNT_PURGE_REMIX_STORAGE_SHARE_ACTIVE',
+          statusCode: 409,
+        });
+      }
+
       /*
        * Cloud project bindings are owned by a separate tenant control plane and
        * restrict Project deletion. Refuse while the topology lock is held,
@@ -648,13 +1017,56 @@ export class AccountPurgeStore {
         await this.lockObjectStorageProject(tx, projectId);
       }
       const rows = await tx.$queryRawUnsafe<
-        Array<{ id: string; ownerToken: string; status: string; leaseExpiresAt: Date; version: number }>
+        Array<{
+          id: string;
+          ownerToken: string;
+          status: string;
+          leaseExpiresAt: Date;
+          version: number;
+          inventory: unknown;
+          topologyFingerprint: string;
+          effectCount: number;
+        }>
       >(
-        `SELECT id, "ownerToken", status, "leaseExpiresAt", version
-           FROM "PurgePlan" WHERE "userId" = $1 FOR UPDATE`,
+        `SELECT plan.id, plan."ownerToken", plan.status, plan."leaseExpiresAt", plan.version,
+                plan.inventory, plan."topologyFingerprint",
+                (SELECT COUNT(*)::int FROM "PurgeEffect" effect WHERE effect."planId" = plan.id) AS "effectCount"
+           FROM "PurgePlan" plan WHERE plan."userId" = $1 FOR UPDATE`,
         userId,
       );
       const existing = rows[0];
+      const recoveringEffects = Boolean(existing && existing.effectCount > 0);
+      const storedInventory = recoveringEffects ? parseStoredPurgeInventory(existing?.inventory) : undefined;
+      const persistedFingerprint = existing?.topologyFingerprint;
+      const storedFingerprint = storedInventory
+        ? topologyFingerprint({
+            orgIds: topology.orgIds,
+            soleOrgIds: topology.soleOrgIds,
+            ownedProjects: storedInventory.ownedProjects,
+            bucketProjectIds: storedInventory.bucketProjectIds,
+            workspaceProjectIds: storedInventory.workspaceProjectIds,
+            localSnapshotObjects: storedInventory.localSnapshotObjects,
+            staticDeploymentIds: storedInventory.staticDeploymentIds,
+            staticArtifactRefs: storedInventory.staticArtifactRefs,
+            staticAliasDeploymentIds: storedInventory.staticAliasDeploymentIds,
+            billingSubscriptions: storedInventory.billingSubscriptions,
+          })
+        : undefined;
+      if (
+        recoveringEffects &&
+        (!storedInventory || !nonEmptyString(persistedFingerprint) || persistedFingerprint !== storedFingerprint)
+      ) {
+        throw Object.assign(new Error(appPublicEnglish('ACCOUNT_PURGE_PHYSICAL_INCOMPLETE')), {
+          code: 'ACCOUNT_PURGE_PLAN_INVENTORY_INVALID',
+          statusCode: 503,
+        });
+      }
+      await this.assertOwnedProjectPhysicalOperationsAvailable(tx, {
+        userId,
+        projects: storedInventory?.ownedProjects ?? topology.ownedProjects,
+        ...(recoveringEffects && existing ? { recoveringPlanId: existing.id } : {}),
+        allowMissingProjects: Boolean(storedInventory),
+      });
       // Topology/state-machine preflight can be intentionally expensive. Start
       // the provider lease from a fresh PostgreSQL clock after that work, not
       // from the deletion-policy timestamp read at transaction entry.
@@ -673,18 +1085,31 @@ export class AccountPurgeStore {
 
       const ownerToken = randomUUID();
       const leaseExpiresAt = new Date(leaseDatabaseNow.getTime() + this.lease.ttlMs);
-      const inventory = {
-        bucketProjectIds: topology.bucketProjectIds,
-        workspaceProjectIds: topology.workspaceProjectIds,
-        localSnapshotObjects: topology.localSnapshotObjects,
-        staticDeploymentIds: topology.staticDeploymentIds,
-        staticArtifactRefs: topology.staticArtifactRefs,
-        staticAliasDeploymentIds: topology.staticAliasDeploymentIds,
-      };
-      const billingSubscriptions = topology.billingSubscriptions.filter(
-        (subscription): subscription is BillingSubscriptionInventory =>
+      const inventory: PurgeStorageInventory = storedInventory
+        ? {
+            ownedProjects: storedInventory.ownedProjects,
+            bucketProjectIds: storedInventory.bucketProjectIds,
+            workspaceProjectIds: storedInventory.workspaceProjectIds,
+            localSnapshotObjects: storedInventory.localSnapshotObjects,
+            staticDeploymentIds: storedInventory.staticDeploymentIds,
+            staticArtifactRefs: storedInventory.staticArtifactRefs,
+            staticAliasDeploymentIds: storedInventory.staticAliasDeploymentIds,
+          }
+        : {
+            ownedProjects: topology.ownedProjects,
+            bucketProjectIds: topology.bucketProjectIds,
+            workspaceProjectIds: topology.workspaceProjectIds,
+            localSnapshotObjects: topology.localSnapshotObjects,
+            staticDeploymentIds: topology.staticDeploymentIds,
+            staticArtifactRefs: topology.staticArtifactRefs,
+            staticAliasDeploymentIds: topology.staticAliasDeploymentIds,
+          };
+      const billingSubscriptions =
+        storedInventory?.billingSubscriptions ??
+        topology.billingSubscriptions.filter((subscription): subscription is BillingSubscriptionInventory =>
           ACTIVE_SUBSCRIPTION_STATES.includes(subscription.status as ActiveSubscriptionStatus),
-      );
+        );
+      const fingerprint = storedInventory && existing ? existing.topologyFingerprint : topology.fingerprint;
       const plan = existing
         ? await tx.purgePlan.update({
             where: { id: existing.id },
@@ -695,8 +1120,12 @@ export class AccountPurgeStore {
               leaseExpiresAt,
               requestedAt,
               purgeDueAt,
-              topologyFingerprint: topology.fingerprint,
-              inventory: { ...inventory, billingSubscriptions } as unknown as Prisma.InputJsonValue,
+              ...(storedInventory
+                ? {}
+                : {
+                    topologyFingerprint: fingerprint,
+                    inventory: { ...inventory, billingSubscriptions } as unknown as Prisma.InputJsonValue,
+                  }),
               correlationId,
               lastErrorCode: null,
               completedAt: null,
@@ -719,12 +1148,12 @@ export class AccountPurgeStore {
       await tx.purgeFreeze.deleteMany({ where: { planId: plan.id } });
       const freezes = [
         ...topology.orgIds.map((resourceId) => ({ planId: plan.id, resourceType: MEMBERSHIP_RESOURCE, resourceId })),
-        ...topology.bucketProjectIds.map((resourceId) => ({
+        ...inventory.bucketProjectIds.map((resourceId) => ({
           planId: plan.id,
           resourceType: OBJECT_STORAGE_RESOURCE,
           resourceId,
         })),
-        ...topology.workspaceProjectIds.map((resourceId) => ({
+        ...inventory.workspaceProjectIds.map((resourceId) => ({
           planId: plan.id,
           resourceType: PROJECT_TOPOLOGY_RESOURCE,
           resourceId,
@@ -739,7 +1168,10 @@ export class AccountPurgeStore {
         version: plan.version,
         requestedAt,
         purgeDueAt,
-        fingerprint: topology.fingerprint,
+        fingerprint,
+        orgIds: topology.orgIds,
+        soleOrgIds: topology.soleOrgIds,
+        sharedOrgIds: topology.sharedOrgIds,
         correlationId,
         billingSubscriptions,
         ...inventory,
@@ -787,6 +1219,199 @@ export class AccountPurgeStore {
         code: 'ACCOUNT_PURGE_LEASE_LOST',
       });
     }
+  }
+
+  private ownedProjectDeletionIdentity(
+    guarantee: PurgeGuarantee,
+    project: PurgeGuarantee['ownedProjects'][number],
+  ): OwnedProjectDeletionIdentity {
+    const idempotencyKey = `account-purge:${guarantee.planId}:${project.projectId}`;
+    return {
+      planId: guarantee.planId,
+      ownerToken: guarantee.ownerToken,
+      userId: guarantee.userId,
+      projectId: project.projectId,
+      expectedOrganizationId: project.organizationId,
+      expectedProjectName: project.projectName,
+      expectedOwnershipEpoch: project.ownershipEpoch,
+      idempotencyKey,
+      requestHash: projectPermanentDeletionRequestHash({
+        projectId: project.projectId,
+        organizationId: project.organizationId,
+        actorUserId: guarantee.userId,
+        expectedProjectName: project.projectName,
+      }),
+    };
+  }
+
+  private async assertOwnedProjectDeletionReceipt(
+    tx: Prisma.TransactionClient,
+    identity: OwnedProjectDeletionIdentity,
+  ): Promise<VerifiedOwnedProjectDeletionReceipt> {
+    const projects = await tx.$queryRaw<Array<{ id: string }>>`
+      SELECT "id" FROM "Project" WHERE "id" = ${identity.projectId} LIMIT 1
+    `;
+    if (projects[0]) {
+      throw Object.assign(new Error(appPublicEnglish('ACCOUNT_PURGE_PHYSICAL_INCOMPLETE')), {
+        code: 'ACCOUNT_PURGE_PROJECT_DELETE_INCOMPLETE',
+        statusCode: 503,
+      });
+    }
+
+    const rows = await tx.$queryRaw<
+      Array<{
+        organizationId: string;
+        operationId: string;
+        idempotencyKey: string;
+        requestHash: string;
+        receiptScopeHash: string;
+        receiptIdempotencyScopeHash: string;
+        completedAt: Date;
+        state: string;
+        operationKind: string;
+        operationStatus: string;
+        operationIdempotencyKey: string;
+        operationRequestHash: string;
+        operationScopeHash: string;
+        operationIdempotencyScopeHash: string;
+        operationPayload: unknown;
+        operationPreconditions: unknown;
+        command: string | null;
+        actorUserIdHash: string | null;
+        expectedProjectNameHash: string | null;
+        scopeCount: number;
+        scopeProjectId: string | null;
+        scopeOrganizationId: string | null;
+        scopeExpectedDeletedAt: Date | null;
+        snapshotProjectId: string | null;
+        snapshotOrganizationId: string | null;
+        snapshotOwnershipEpoch: number | null;
+        snapshotState: string | null;
+      }>
+    >`
+      SELECT
+        receipt."organizationId",
+        receipt."operationId",
+        receipt."idempotencyKey",
+        receipt."requestHash",
+        receipt."scopeHash" AS "receiptScopeHash",
+        receipt."idempotencyScopeHash" AS "receiptIdempotencyScopeHash",
+        receipt."completedAt",
+        receipt."state"::text AS "state",
+        operation."kind"::text AS "operationKind",
+        operation."status"::text AS "operationStatus",
+        operation."idempotencyKey" AS "operationIdempotencyKey",
+        operation."requestHash" AS "operationRequestHash",
+        operation."scopeHash" AS "operationScopeHash",
+        operation."idempotencyScopeHash" AS "operationIdempotencyScopeHash",
+        operation."payload" AS "operationPayload",
+        operation."preconditions" AS "operationPreconditions",
+        operation."payload"->>'command' AS "command",
+        operation."payload"->>'actorUserIdHash' AS "actorUserIdHash",
+        operation."payload"->>'expectedProjectNameHash' AS "expectedProjectNameHash",
+        (SELECT COUNT(*)::int FROM "ObjectStorageOperationProjectScope" all_scope
+          WHERE all_scope."operationId" = operation."id") AS "scopeCount",
+        scope."projectIdSnapshot" AS "scopeProjectId",
+        scope."expectedOrganizationId" AS "scopeOrganizationId",
+        scope."expectedDeletedAt" AS "scopeExpectedDeletedAt",
+        receipt."projectSnapshot"->>'id' AS "snapshotProjectId",
+        receipt."projectSnapshot"->>'organizationId' AS "snapshotOrganizationId",
+        receipt."projectSnapshot"->>'state' AS "snapshotState",
+        CASE
+          WHEN jsonb_typeof(receipt."projectSnapshot"->'ownershipEpoch') = 'number'
+          THEN (receipt."projectSnapshot"->>'ownershipEpoch')::int
+          ELSE NULL
+        END AS "snapshotOwnershipEpoch"
+      FROM "ProjectPermanentDeletionReceipt" receipt
+      JOIN "ObjectStorageOperation" operation ON operation."id" = receipt."operationId"
+      LEFT JOIN "ObjectStorageOperationProjectScope" scope
+        ON scope."operationId" = operation."id" AND scope."ordinal" = 0
+      WHERE receipt."projectId" = ${identity.projectId}
+      LIMIT 1
+    `;
+    const receipt = rows[0];
+    const exactScope = receipt
+      ? [
+          {
+            projectId: identity.projectId,
+            expectedOrganizationId: identity.expectedOrganizationId,
+            expectedDeletedAt: receipt.scopeExpectedDeletedAt?.toISOString() ?? null,
+          },
+        ]
+      : [];
+    const canonicalRequestScope = receipt
+      ? [
+          {
+            projectId: identity.projectId,
+            expectedOrganizationId: identity.expectedOrganizationId,
+            expectedDeletedAt: null,
+          },
+        ]
+      : [];
+    let reconstructedRequestHash: string | undefined;
+    let storedPreconditions: ObjectStorageJsonObject | undefined;
+    if (
+      receipt?.operationPayload &&
+      typeof receipt.operationPayload === 'object' &&
+      !Array.isArray(receipt.operationPayload) &&
+      receipt.operationPreconditions &&
+      typeof receipt.operationPreconditions === 'object' &&
+      !Array.isArray(receipt.operationPreconditions)
+    ) {
+      try {
+        storedPreconditions = receipt.operationPreconditions as ObjectStorageJsonObject;
+        reconstructedRequestHash = objectStorageRequestHash({
+          kind: 'PROJECT_PERMANENT_DELETE',
+          scopes: canonicalRequestScope,
+          payload: receipt.operationPayload as ObjectStorageJsonObject,
+          preconditions: {
+            tenantMustMatch: true,
+            physicalAbsenceRequired: true,
+          },
+        });
+      } catch {
+        reconstructedRequestHash = undefined;
+      }
+    }
+    if (
+      !receipt ||
+      receipt.organizationId !== identity.expectedOrganizationId ||
+      receipt.idempotencyKey !== identity.idempotencyKey ||
+      receipt.requestHash !== identity.requestHash ||
+      receipt.operationIdempotencyKey !== receipt.idempotencyKey ||
+      receipt.operationRequestHash !== receipt.requestHash ||
+      receipt.receiptScopeHash !== receipt.operationScopeHash ||
+      receipt.receiptIdempotencyScopeHash !== receipt.operationIdempotencyScopeHash ||
+      receipt.operationIdempotencyScopeHash !== objectStorageIdempotencyScopeHash(exactScope) ||
+      reconstructedRequestHash !== identity.requestHash ||
+      storedPreconditions?.tenantMustMatch !== true ||
+      storedPreconditions.physicalAbsenceRequired !== true ||
+      receipt.state !== 'COMMITTED' ||
+      receipt.operationKind !== 'PROJECT_PERMANENT_DELETE' ||
+      receipt.operationStatus !== 'COMMITTED' ||
+      receipt.command !== 'project-permanent-delete' ||
+      receipt.actorUserIdHash !== createHash('sha256').update(identity.userId).digest('hex') ||
+      receipt.expectedProjectNameHash !== createHash('sha256').update(identity.expectedProjectName).digest('hex') ||
+      receipt.scopeCount !== 1 ||
+      receipt.scopeProjectId !== identity.projectId ||
+      receipt.scopeOrganizationId !== identity.expectedOrganizationId ||
+      receipt.operationScopeHash !== objectStorageScopeHash(exactScope) ||
+      receipt.snapshotProjectId !== identity.projectId ||
+      receipt.snapshotOrganizationId !== identity.expectedOrganizationId ||
+      receipt.snapshotOwnershipEpoch !== identity.expectedOwnershipEpoch ||
+      receipt.snapshotState !== 'PERMANENTLY_DELETED'
+    ) {
+      throw Object.assign(new Error(appPublicEnglish('ACCOUNT_PURGE_PHYSICAL_INCOMPLETE')), {
+        code: 'ACCOUNT_PURGE_PROJECT_DELETE_RECEIPT_INVALID',
+        statusCode: 503,
+      });
+    }
+    return {
+      projectId: identity.projectId,
+      operationId: receipt.operationId,
+      requestHash: receipt.requestHash,
+      completedAt: receipt.completedAt,
+    };
   }
 
   async renewLease(planId: string, ownerToken: string, expectedVersion: number): Promise<number | null> {
@@ -1127,17 +1752,53 @@ export class AccountPurgeStore {
         }
       }
 
-      const physical = await deps.eraseStorage(
-        {
-          bucketProjectIds: guarantee.bucketProjectIds,
-          workspaceProjectIds: guarantee.workspaceProjectIds,
-          localSnapshotObjects: guarantee.localSnapshotObjects,
-          staticDeploymentIds: guarantee.staticDeploymentIds,
-          staticArtifactRefs: guarantee.staticArtifactRefs,
-          staticAliasDeploymentIds: guarantee.staticAliasDeploymentIds,
-        },
-        leaseContext,
-      );
+      if (guarantee.ownedProjects.length > 0 && !deps.permanentlyDeleteOwnedProject) {
+        throw Object.assign(new Error(appPublicEnglish('ACCOUNT_PURGE_PHYSICAL_INCOMPLETE')), {
+          code: 'ACCOUNT_PURGE_PROJECT_DELETER_UNAVAILABLE',
+          statusCode: 503,
+        });
+      }
+      for (const project of [...guarantee.ownedProjects].sort((left, right) =>
+        left.projectId.localeCompare(right.projectId),
+      )) {
+        const identity = this.ownedProjectDeletionIdentity(guarantee, project);
+        await leaseContext.validate();
+        const execution = await leaseContext.executeEffect(
+          {
+            key: `project-permanent-delete:${identity.projectId}`,
+            resourceType: 'project_permanent_delete',
+            resourceId: identity.projectId,
+          },
+          async () => {
+            await deps.permanentlyDeleteOwnedProject!(identity, leaseContext);
+            await leaseContext.validate();
+            const receipt = await this.prisma.$transaction((tx) =>
+              this.assertOwnedProjectDeletionReceipt(tx, identity),
+            );
+            return {
+              projectId: receipt.projectId,
+              operationId: receipt.operationId,
+              requestHash: receipt.requestHash,
+              completedAt: receipt.completedAt.toISOString(),
+            };
+          },
+        );
+        await leaseContext.validate();
+        const receipt = await this.prisma.$transaction((tx) => this.assertOwnedProjectDeletionReceipt(tx, identity));
+        if (
+          execution.receipt.projectId !== receipt.projectId ||
+          execution.receipt.operationId !== receipt.operationId ||
+          execution.receipt.requestHash !== receipt.requestHash ||
+          execution.receipt.completedAt !== receipt.completedAt.toISOString()
+        ) {
+          throw Object.assign(new Error(appPublicEnglish('ACCOUNT_PURGE_PHYSICAL_INCOMPLETE')), {
+            code: 'ACCOUNT_PURGE_PROJECT_DELETE_EFFECT_RECEIPT_INVALID',
+            statusCode: 503,
+          });
+        }
+      }
+
+      const physical = await deps.eraseStorage(residualAccountStorageInventory(guarantee), leaseContext);
 
       if (!physical?.verified) {
         throw Object.assign(new Error(appPublicEnglish('ACCOUNT_PURGE_PHYSICAL_INCOMPLETE')), {
@@ -1154,21 +1815,51 @@ export class AccountPurgeStore {
     } finally {
       await heartbeat.stop();
       await deps
-        .releaseWorkspaceBarrier?.(
-          {
-            bucketProjectIds: guarantee.bucketProjectIds,
-            workspaceProjectIds: guarantee.workspaceProjectIds,
-            localSnapshotObjects: guarantee.localSnapshotObjects,
-            staticDeploymentIds: guarantee.staticDeploymentIds,
-            staticArtifactRefs: guarantee.staticArtifactRefs,
-            staticAliasDeploymentIds: guarantee.staticAliasDeploymentIds,
-          },
-          guarantee.planId,
-          guarantee.ownerToken,
-        )
+        .releaseWorkspaceBarrier?.(residualAccountStorageInventory(guarantee), guarantee.planId, guarantee.ownerToken)
         .catch(() => undefined);
 
       if (!completed) await this.abandon(guarantee, 'ACCOUNT_PURGE_ATTEMPT_ABORTED');
+    }
+  }
+
+  private assertPostProjectDeletionTopology(guarantee: PurgeGuarantee, topology: StorageTopology): void {
+    const expectedWorkspaceProjectIds = residualAccountStorageInventory(guarantee).workspaceProjectIds;
+    const expectedBilling = new Map(
+      guarantee.billingSubscriptions.map(({ id, externalId }) => [id, externalId] as const),
+    );
+    const currentBilling = new Map(
+      topology.billingSubscriptions.map((subscription) => [subscription.id, subscription]),
+    );
+    const capturedBillingValid = guarantee.billingSubscriptions.every(({ id, externalId }) => {
+      const current = currentBilling.get(id);
+      return (
+        current?.externalId === externalId &&
+        (current.status === 'CANCELED' ||
+          ACTIVE_SUBSCRIPTION_STATES.includes(current.status as ActiveSubscriptionStatus))
+      );
+    });
+    const unexpectedActiveBilling = topology.billingSubscriptions.some(
+      ({ id, externalId, status }) =>
+        ACTIVE_SUBSCRIPTION_STATES.includes(status as ActiveSubscriptionStatus) &&
+        expectedBilling.get(id) !== externalId,
+    );
+    const invalid =
+      !sameStringSet(topology.orgIds, guarantee.orgIds) ||
+      !sameStringSet(topology.soleOrgIds, guarantee.soleOrgIds) ||
+      !sameStringSet(topology.sharedOrgIds, guarantee.sharedOrgIds) ||
+      topology.ownedProjects.length !== 0 ||
+      topology.bucketProjectIds.length !== 0 ||
+      !sameStringSet(topology.workspaceProjectIds, expectedWorkspaceProjectIds) ||
+      topology.localSnapshotObjects.length !== 0 ||
+      topology.staticDeploymentIds.length !== 0 ||
+      topology.staticArtifactRefs.length !== 0 ||
+      topology.staticAliasDeploymentIds.length !== 0 ||
+      !capturedBillingValid ||
+      unexpectedActiveBilling;
+    if (invalid) {
+      throw Object.assign(new Error(appPublicEnglish('ACCOUNT_PURGE_TOPOLOGY_DRIFT')), {
+        code: 'ACCOUNT_PURGE_TOPOLOGY_DRIFT',
+      });
     }
   }
 
@@ -1194,22 +1885,25 @@ export class AccountPurgeStore {
         if (locked.databaseNow < purgeDueAt)
           return { outcome: 'not_due' as const, purgeDueAt: purgeDueAt.toISOString() };
 
-        const topology = await this.resolveTopology(tx, guarantee.userId);
-        if (topology.fingerprint !== guarantee.fingerprint) {
-          throw Object.assign(new Error(appPublicEnglish('ACCOUNT_PURGE_TOPOLOGY_DRIFT')), {
-            code: 'ACCOUNT_PURGE_TOPOLOGY_DRIFT',
-          });
+        const projectDeletionReceipts: VerifiedOwnedProjectDeletionReceipt[] = [];
+        for (const project of guarantee.ownedProjects) {
+          projectDeletionReceipts.push(
+            await this.assertOwnedProjectDeletionReceipt(tx, this.ownedProjectDeletionIdentity(guarantee, project)),
+          );
         }
+        const topology = await this.resolveTopology(tx, guarantee.userId);
+        this.assertPostProjectDeletionTopology(guarantee, topology);
 
         const userId = guarantee.userId;
         const now = locked.databaseNow;
         const nowIso = now.toISOString();
-        const { soleOrgIds, sharedOrgIds } = topology;
+        const { soleOrgIds, sharedOrgIds } = guarantee;
         const classes: PurgeClassReport[] = [];
 
         await fencePurgedUserStateMachines(this.prisma, tx, {
           userId,
           soleOrganizationIds: soleOrgIds,
+          ownedProjectIds: guarantee.ownedProjects.map(({ projectId }) => projectId),
         });
 
         // An impersonation session belongs operationally to both the target
@@ -1315,10 +2009,34 @@ export class AccountPurgeStore {
         const chatShares = await tx.chatShare.deleteMany({ where: { authorUserId: userId } });
         classes.push({ dataClass: 'chat_shares', action: 'deleted', models: { ChatShare: chatShares.count } });
 
-        const projects = soleOrgIds.length
-          ? await tx.project.deleteMany({ where: { organizationId: { in: soleOrgIds } } })
-          : { count: 0 };
-        classes.push({ dataClass: 'projects', action: 'deleted', models: { Project: projects.count } });
+        /*
+         * Owned projects were already removed one-by-one by the canonical
+         * permanent-deletion saga. Never cascade them here: doing so would erase
+         * the provider inventories needed by CNPG/volume/registry verification.
+         */
+        classes.push({
+          dataClass: 'projects',
+          action: 'deleted',
+          models: { Project: guarantee.ownedProjects.length },
+          evidence: {
+            receiptCount: projectDeletionReceipts.length,
+            receiptDigest: createHash('sha256')
+              .update(
+                JSON.stringify(
+                  projectDeletionReceipts
+                    .map(({ projectId, operationId, requestHash, completedAt }) => ({
+                      projectId,
+                      operationId,
+                      requestHash,
+                      completedAt: completedAt.toISOString(),
+                    }))
+                    .sort((left, right) => left.projectId.localeCompare(right.projectId)),
+                ),
+              )
+              .digest('hex'),
+          },
+          remainingAfterPurge: 0,
+        });
 
         const importJobs = soleOrgIds.length
           ? await tx.importJob.deleteMany({ where: { organizationId: { in: soleOrgIds } } })
@@ -1622,6 +2340,22 @@ export class AccountPurgeStore {
             } as unknown as Prisma.InputJsonValue,
           },
         });
+        const residualWorkspaceProjectIds = residualAccountStorageInventory(guarantee).workspaceProjectIds.sort();
+        const completedPlanInventory: Prisma.InputJsonValue = {
+          schemaVersion: 'account-purge-completed-v2',
+          projectDeletionReceipts: projectDeletionReceipts
+            .map(({ projectId, operationId, requestHash, completedAt }) => ({
+              projectId,
+              operationId,
+              requestHash,
+              completedAt: completedAt.toISOString(),
+            }))
+            .sort((left, right) => left.projectId.localeCompare(right.projectId)),
+          residualWorkspaceProjectCount: residualWorkspaceProjectIds.length,
+          residualWorkspaceProjectDigest: createHash('sha256')
+            .update(JSON.stringify(residualWorkspaceProjectIds))
+            .digest('hex'),
+        };
         await tx.purgePlan.update({
           where: { id: guarantee.planId },
           data: {
@@ -1630,6 +2364,14 @@ export class AccountPurgeStore {
             leaseExpiresAt: now,
             version: { increment: 1 },
             lastErrorCode: null,
+            /*
+             * The ACTIVE inventory needs the plaintext project name to bind a
+             * deletion confirmation and to recover the child saga. After every
+             * child receipt is independently verified, retain only non-secret
+             * receipt identities and a one-way topology commitment.
+             */
+            topologyFingerprint: `sha256:${createHash('sha256').update(guarantee.fingerprint).digest('hex')}`,
+            inventory: completedPlanInventory,
           },
         });
         await tx.purgeFreeze.deleteMany({ where: { planId: guarantee.planId } });

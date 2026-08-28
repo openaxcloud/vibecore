@@ -75,7 +75,10 @@ export async function assertAccountPurgeMutationAllowed(
     }
 
     const activeUserPlan = await tx.purgePlan.findFirst({
-      where: { userId: { in: userIds }, status: ACTIVE_PURGE_STATUS },
+      where: {
+        userId: { in: userIds },
+        OR: [{ status: ACTIVE_PURGE_STATUS }, { freezes: { some: {} } }],
+      },
       select: { userId: true },
     });
     if (activeUserPlan) {
@@ -88,7 +91,6 @@ export async function assertAccountPurgeMutationAllowed(
       where: {
         resourceType: MEMBERSHIP_RESOURCE,
         resourceId: { in: organizationIds },
-        plan: { status: ACTIVE_PURGE_STATUS },
       },
       select: { id: true },
     });
@@ -102,7 +104,6 @@ export async function assertAccountPurgeMutationAllowed(
       where: {
         resourceType: { in: [...PROJECT_RESOURCES] },
         resourceId: { in: projectIds },
-        plan: { status: ACTIVE_PURGE_STATUS },
       },
       select: { id: true },
     });
@@ -117,7 +118,7 @@ export interface PurgedStateMachineFenceResult {
   remixJobsFenced: number;
   rollbackOperationsFenced: number;
   reservationsReleased: number;
-  partialProjectsDeleted: number;
+  partialProjectsVerifiedAbsent: number;
 }
 
 function actorOrSoleOrganization(
@@ -388,7 +389,7 @@ export async function assertAccountPurgeStateMachinesSafeToStart(
 export async function fencePurgedUserStateMachines(
   database: DatabaseClient,
   tx: Prisma.TransactionClient,
-  input: { userId: string; soleOrganizationIds: readonly string[] },
+  input: { userId: string; soleOrganizationIds: readonly string[]; ownedProjectIds: readonly string[] },
 ): Promise<PurgedStateMachineFenceResult> {
   const soleOrganizationIds = uniqueIds(input.soleOrganizationIds);
   await assertAccountPurgeStateMachinesSafeToStart(tx, input);
@@ -615,14 +616,22 @@ export async function fencePurgedUserStateMachines(
   }
 
   const partialProjectIds = [...new Set([...importTargetIds, ...remixTargetIds])].sort();
-  const partialProjectsDeleted =
-    partialProjectIds.length > 0
-      ? (
-          await tx.project.deleteMany({
-            where: { id: { in: partialProjectIds }, deletedAt: { not: null } },
-          })
-        ).count
+  const ownedProjectIds = new Set(uniqueIds(input.ownedProjectIds));
+  const partialOwnedProjectIds = partialProjectIds.filter((projectId) => ownedProjectIds.has(projectId));
+  const partialProjectsRemaining =
+    partialOwnedProjectIds.length > 0
+      ? await tx.project.count({
+          where: { id: { in: partialOwnedProjectIds } },
+        })
       : 0;
+  if (partialProjectsRemaining > 0) {
+    /*
+     * Every project row must already have been removed by its canonical
+     * PROJECT_PERMANENT_DELETE child operation. Cascading it here would discard
+     * the provider inventories and bypass the immutable physical receipt.
+     */
+    throw purgeConflict('ACCOUNT_PURGE_STATE_MACHINE_TARGET_VISIBLE');
+  }
 
   const activeReservationCount = await tx.ledgerReservation.count({
     where: {
@@ -664,6 +673,6 @@ export async function fencePurgedUserStateMachines(
     remixJobsFenced: remixIdsToFence.length,
     rollbackOperationsFenced: rollbackOperationsToFence.length,
     reservationsReleased,
-    partialProjectsDeleted,
+    partialProjectsVerifiedAbsent: partialOwnedProjectIds.length,
   };
 }

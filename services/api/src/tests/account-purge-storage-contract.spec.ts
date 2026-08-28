@@ -17,7 +17,7 @@ describe('account purge — production storage writer contract', () => {
     ).rejects.toMatchObject({ code: 'UNSAFE_PROJECT_STORAGE_ADAPTER' });
   });
 
-  it('keeps only the purged collaborator checkout fenced after terminal purge', async () => {
+  it('releases retained shared-project storage fences after terminal purge', async () => {
     const store = new TestApiStore();
     const owner = await store.createUser({ email: 'workspace-owner@example.test', passwordHash: 'hash' });
     const subject = await store.createUser({ email: 'workspace-subject@example.test', passwordHash: 'hash' });
@@ -51,9 +51,7 @@ describe('account purge — production storage writer contract', () => {
         expectedOrganizationId: organization.id,
         workspaceId: subjectWorkspaceId,
       }),
-    ).rejects.toMatchObject({
-      code: 'PROJECT_STORAGE_FENCED_FOR_ACCOUNT_PURGE',
-    });
+    ).resolves.toBeUndefined();
     await expect(
       store.assertProjectStorageMutable({
         projectId: project.id,

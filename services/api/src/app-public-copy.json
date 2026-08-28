@@ -1763,6 +1763,14 @@
     "en": "Account purge is blocked while a managed cloud project binding remains active.",
     "fr": "La purge du compte est bloquée tant qu’une liaison de projet cloud géré reste active."
   },
+  "ACCOUNT_PURGE_PROJECT_PHYSICAL_OPERATION_ACTIVE": {
+    "en": "Account purge is blocked while a project physical-storage operation remains active.",
+    "fr": "La purge du compte est bloquée tant qu’une opération de stockage physique du projet reste active."
+  },
+  "ACCOUNT_PURGE_REMIX_STORAGE_SHARE_ACTIVE": {
+    "en": "Account purge is blocked while an owned project is the retained source of an active Remix storage share. Revoke or detach that share first.",
+    "fr": "La purge du compte est bloquée tant qu’un projet détenu est la source conservée d’un partage de stockage Remix actif. Révoquez ou détachez d’abord ce partage."
+  },
   "ACCOUNT_PURGE_ALREADY_ACTIVE": {
     "en": "Another account-purge executor is already active.",
     "fr": "Un autre exécuteur de purge de compte est déjà actif."

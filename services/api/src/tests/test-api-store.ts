@@ -16,8 +16,10 @@ import {
   anonymizedEmail,
   buildErasureProof,
   type AccountPurgePreview,
+  type AccountPurgeProjectDeletionAuthority,
   type ErasureProof,
   type PurgeStorageDeps,
+  type PurgeStorageInventory,
   type PurgeUserAccountResult,
 } from '../account-purge.js';
 import { DELETION_GRACE_PERIOD_DAYS } from '../data-deletion.js';
@@ -470,12 +472,15 @@ export class TestApiStore implements ApiStore {
   readonly systemSettings = new Map<string, SystemSettingRecord>();
   readonly purgeReceipts = new Map<string, { planId: string; purgedAt: string; proof: ErasureProof }>();
   readonly purgeEffects = new Map<string, Record<string, unknown>>();
+  readonly purgeEffectStartedPlanIds = new Set<string>();
+  readonly purgePlanInventories = new Map<string, PurgeStorageInventory>();
   readonly purgeFrozenUsers = new Set<string>();
   readonly purgeFrozenOrganizations = new Set<string>();
   readonly purgePlanUserIds = new Set<string>();
   readonly purgePlannedProjectIds = new Set<string>();
   readonly purgePlannedWorkspaceIds = new Set<string>();
   readonly purgeFrozenProjects = new Set<string>();
+  readonly purgeProjectDeletionAuthorities = new Map<string, AccountPurgeProjectDeletionAuthority>();
   readonly emailVerifications = new Map<
     string,
     { userId: string; tokenHash: string; expiresAt: string; usedAt?: string; email?: string }
@@ -743,6 +748,7 @@ export class TestApiStore implements ApiStore {
       allowDeletedProject?: boolean;
       allowPermanentDeletion?: boolean;
       checkpointBarrierAuthority?: ProjectCheckpointLease;
+      accountPurgeDeletionAuthority?: AccountPurgeProjectDeletionAuthority;
     } = {},
   ): Promise<T> {
     return this.withProjectPhysicalBarriers([scope.projectId], async () => {
@@ -758,6 +764,7 @@ export class TestApiStore implements ApiStore {
       allowDeletedProject?: boolean;
       allowPermanentDeletion?: boolean;
       checkpointBarrierAuthority?: ProjectCheckpointLease;
+      accountPurgeDeletionAuthority?: AccountPurgeProjectDeletionAuthority;
     } = {},
   ): Promise<void> {
     await this.assertProjectStorageMutable(scope, options);
@@ -959,6 +966,15 @@ export class TestApiStore implements ApiStore {
         (project) => organizationIds.has(project.organizationId) && soleOrganizationIds.has(project.organizationId),
       )
       .map((project) => project.id);
+    const ownedProjects = bucketProjectIds
+      .map((projectId) => this.projects.get(projectId))
+      .filter((project): project is ProjectRecord => Boolean(project))
+      .map((project) => ({
+        projectId: project.id,
+        organizationId: project.organizationId,
+        projectName: project.name,
+        ownershipEpoch: project.ownershipEpoch,
+      }));
     const localSnapshotObjects = [...this.snapshots.values()].flatMap((snapshot) =>
       bucketProjectIds.includes(snapshot.projectId) && snapshot.storageKey
         ? [{ projectId: snapshot.projectId, storageKey: snapshot.storageKey }]
@@ -992,6 +1008,7 @@ export class TestApiStore implements ApiStore {
       requestedAt: deletion.requestedAt,
       purgeDueAt: purgeDueAt.toISOString(),
       inventory: {
+        ownedProjects,
         bucketProjectIds,
         workspaceProjectIds,
         localSnapshotObjects,
@@ -1116,18 +1133,30 @@ export class TestApiStore implements ApiStore {
           statusCode: 409,
         });
       }
-      const frozenProjectIds = [
-        ...new Set([...preview.inventory!.bucketProjectIds, ...preview.inventory!.workspaceProjectIds]),
-      ];
+      if (
+        [...this.remixStorageShares.values()].some(
+          (share) => preview.inventory!.bucketProjectIds.includes(share.sourceProjectId) && share.state === 'ACTIVE',
+        )
+      ) {
+        throw Object.assign(new Error('ACCOUNT_PURGE_REMIX_STORAGE_SHARE_ACTIVE'), {
+          code: 'ACCOUNT_PURGE_REMIX_STORAGE_SHARE_ACTIVE',
+          statusCode: 409,
+        });
+      }
+      const inventory = this.purgePlanInventories.get(planId) ?? structuredClone(preview.inventory!);
+      if (!this.purgePlanInventories.has(planId)) this.purgePlanInventories.set(planId, inventory);
+      const frozenProjectIds = [...new Set([...inventory.bucketProjectIds, ...inventory.workspaceProjectIds])];
       this.purgeFrozenUsers.add(input.userId);
       for (const organizationId of subjectOrgIds) this.purgeFrozenOrganizations.add(organizationId);
       for (const projectId of frozenProjectIds) this.purgeFrozenProjects.add(projectId);
       this.purgePlanUserIds.add(input.userId);
-      for (const projectId of preview.inventory!.bucketProjectIds) this.purgePlannedProjectIds.add(projectId);
-      for (const projectId of preview.inventory!.workspaceProjectIds) {
+      for (const projectId of inventory.bucketProjectIds) this.purgePlannedProjectIds.add(projectId);
+      for (const projectId of inventory.workspaceProjectIds) {
         const digest = createHash('sha256').update(`${projectId}:${input.userId}`).digest('hex').slice(0, 16);
         this.purgePlannedWorkspaceIds.add(`${projectId}:ws-${digest}`);
       }
+      let completed = false;
+      let effectStarted = false;
       const lease = {
         planId,
         ownerToken,
@@ -1139,6 +1168,8 @@ export class TestApiStore implements ApiStore {
           const key = `${planId}:${descriptor.key}`;
           const previous = this.purgeEffects.get(key) as T | undefined;
           if (previous) return { executed: false, receipt: previous };
+          effectStarted = true;
+          this.purgeEffectStartedPlanIds.add(planId);
           const receipt = await effect();
           this.purgeEffects.set(key, receipt);
           return { executed: true, receipt };
@@ -1171,7 +1202,86 @@ export class TestApiStore implements ApiStore {
             return receipt;
           });
         }
-        const physical = await deps.eraseStorage(preview.inventory!, lease);
+        if (inventory.ownedProjects.length > 0 && !deps.permanentlyDeleteOwnedProject) {
+          throw Object.assign(new Error('ACCOUNT_PURGE_PROJECT_DELETER_UNAVAILABLE'), {
+            code: 'ACCOUNT_PURGE_PROJECT_DELETER_UNAVAILABLE',
+            statusCode: 503,
+          });
+        }
+        const projectDeletionReceipts: ProjectPermanentDeletionReceiptRecord[] = [];
+        for (const project of inventory.ownedProjects) {
+          const authority: AccountPurgeProjectDeletionAuthority = {
+            planId,
+            ownerToken,
+            userId: input.userId,
+            projectId: project.projectId,
+            expectedOrganizationId: project.organizationId,
+            expectedProjectName: project.projectName,
+            expectedOwnershipEpoch: project.ownershipEpoch,
+            idempotencyKey: `account-purge:${planId}:${project.projectId}`,
+            requestHash: projectPermanentDeletionRequestHash({
+              projectId: project.projectId,
+              organizationId: project.organizationId,
+              actorUserId: input.userId,
+              expectedProjectName: project.projectName,
+            }),
+          };
+          this.purgeProjectDeletionAuthorities.set(project.projectId, authority);
+          const execution = await lease.executeEffect(
+            { key: `project-permanent-delete:${project.projectId}` },
+            async () => {
+              await deps.permanentlyDeleteOwnedProject!(authority, lease);
+              const completedReceipt = this.projectPermanentDeletionReceipts.get(project.projectId);
+              if (!completedReceipt) {
+                throw Object.assign(new Error('ACCOUNT_PURGE_PROJECT_DELETE_RECEIPT_INVALID'), {
+                  code: 'ACCOUNT_PURGE_PROJECT_DELETE_RECEIPT_INVALID',
+                  statusCode: 503,
+                });
+              }
+              return {
+                projectId: completedReceipt.projectId,
+                operationId: completedReceipt.operationId,
+                requestHash: completedReceipt.requestHash,
+                completedAt: completedReceipt.completedAt,
+              };
+            },
+          );
+          const receipt = this.projectPermanentDeletionReceipts.get(project.projectId);
+          if (
+            this.projects.has(project.projectId) ||
+            !receipt ||
+            execution.receipt.projectId !== receipt.projectId ||
+            execution.receipt.operationId !== receipt.operationId ||
+            execution.receipt.requestHash !== receipt.requestHash ||
+            execution.receipt.completedAt !== receipt.completedAt ||
+            receipt.organizationId !== project.organizationId ||
+            receipt.idempotencyKey !== authority.idempotencyKey ||
+            receipt.requestHash !== authority.requestHash ||
+            receipt.project.id !== project.projectId ||
+            receipt.project.organizationId !== project.organizationId ||
+            receipt.project.ownershipEpoch !== project.ownershipEpoch ||
+            receipt.project.state !== 'PERMANENTLY_DELETED'
+          ) {
+            throw Object.assign(new Error('ACCOUNT_PURGE_PROJECT_DELETE_RECEIPT_INVALID'), {
+              code: 'ACCOUNT_PURGE_PROJECT_DELETE_RECEIPT_INVALID',
+              statusCode: 503,
+            });
+          }
+          projectDeletionReceipts.push(receipt);
+        }
+        const ownedProjectIds = new Set(inventory.ownedProjects.map(({ projectId }) => projectId));
+        const residualInventory = {
+          ownedProjects: [],
+          bucketProjectIds: [],
+          workspaceProjectIds: inventory.workspaceProjectIds.filter((projectId) => !ownedProjectIds.has(projectId)),
+          localSnapshotObjects: [],
+          staticDeploymentIds: [],
+          staticArtifactRefs: [],
+          staticAliasDeploymentIds: [],
+        };
+        effectStarted = true;
+        this.purgeEffectStartedPlanIds.add(planId);
+        const physical = await deps.eraseStorage(residualInventory, lease);
         if (!physical?.verified)
           throw Object.assign(new Error('ACCOUNT_PURGE_PHYSICAL_INCOMPLETE'), {
             code: 'ACCOUNT_PURGE_PHYSICAL_INCOMPLETE',
@@ -1200,13 +1310,13 @@ export class TestApiStore implements ApiStore {
           }
           const target =
             job.state !== 'COMMITTED' && job.targetProjectId ? this.projects.get(job.targetProjectId) : undefined;
-          if (target?.deletedAt) {
-            this.projects.delete(target.id);
-            this.projectManifestRevisions.delete(target.id);
-            this.projectIdeStates.delete(target.id);
-            job.targetProjectId = undefined;
+          if (target?.deletedAt && ownedProjectIds.has(target.id)) {
+            throw Object.assign(new Error('ACCOUNT_PURGE_STATE_MACHINE_TARGET_VISIBLE'), {
+              code: 'ACCOUNT_PURGE_STATE_MACHINE_TARGET_VISIBLE',
+              statusCode: 409,
+            });
           }
-          if (job.state !== 'COMMITTED') job.error = 'ACCOUNT_PURGE_COMPLETED';
+          if (job.state !== 'COMMITTED') job.error = appPublicEnglish('ACCOUNT_PURGE_COMPLETED');
           job.actorUserId = undefined;
           job.stagedFiles = undefined;
           job.connectorPreview = undefined;
@@ -1224,15 +1334,15 @@ export class TestApiStore implements ApiStore {
           }
           const target =
             job.state !== 'COMPLETED' && job.targetProjectId ? this.projects.get(job.targetProjectId) : undefined;
-          if (target?.deletedAt) {
-            this.projects.delete(target.id);
-            this.projectManifestRevisions.delete(target.id);
-            this.projectIdeStates.delete(target.id);
-            job.targetProjectId = undefined;
+          if (target?.deletedAt && ownedProjectIds.has(target.id)) {
+            throw Object.assign(new Error('ACCOUNT_PURGE_STATE_MACHINE_TARGET_VISIBLE'), {
+              code: 'ACCOUNT_PURGE_STATE_MACHINE_TARGET_VISIBLE',
+              statusCode: 409,
+            });
           }
           if (job.state !== 'COMPLETED') {
             job.errorCode = 'ACCOUNT_PURGE_COMPLETED';
-            job.error = 'ACCOUNT_PURGE_COMPLETED';
+            job.error = appPublicEnglish('ACCOUNT_PURGE_COMPLETED');
           }
           job.actorUserId = undefined;
           job.operationToken = undefined;
@@ -1304,27 +1414,98 @@ export class TestApiStore implements ApiStore {
               remainingAfterPurge: 0,
             },
             ...physical.classes,
+            {
+              dataClass: 'projects',
+              action: 'deleted',
+              models: { Project: inventory.ownedProjects.length },
+              evidence: {
+                receiptCount: projectDeletionReceipts.length,
+                receiptDigest: createHash('sha256')
+                  .update(
+                    JSON.stringify(
+                      projectDeletionReceipts
+                        .map(({ projectId, operationId, requestHash, completedAt }) => ({
+                          projectId,
+                          operationId,
+                          requestHash,
+                          completedAt,
+                        }))
+                        .sort((left, right) => left.projectId.localeCompare(right.projectId)),
+                    ),
+                  )
+                  .digest('hex'),
+              },
+              remainingAfterPurge: 0,
+            },
             { dataClass: 'profile', action: 'anonymized', reason: 'tombstone_carries_purgedAt', models: { User: 1 } },
           ],
         });
         this.purgeReceipts.set(input.userId, { planId, purgedAt, proof });
         await this.mutateSystemSettingIds('account.pendingDeletionUserIds', { remove: input.userId });
+        completed = true;
         return { outcome: 'purged', planId, proof };
       } finally {
-        this.purgeFrozenUsers.delete(input.userId);
-        for (const organizationId of subjectOrgIds) this.purgeFrozenOrganizations.delete(organizationId);
-        for (const projectId of frozenProjectIds) this.purgeFrozenProjects.delete(projectId);
-        await deps.releaseWorkspaceBarrier?.(preview.inventory!, planId, ownerToken);
+        if (completed || !effectStarted) {
+          this.purgeFrozenUsers.delete(input.userId);
+          for (const organizationId of subjectOrgIds) this.purgeFrozenOrganizations.delete(organizationId);
+          for (const projectId of frozenProjectIds) this.purgeFrozenProjects.delete(projectId);
+          this.purgePlanUserIds.delete(input.userId);
+          this.purgeEffectStartedPlanIds.delete(planId);
+          this.purgePlanInventories.delete(planId);
+          for (const projectId of inventory.bucketProjectIds) this.purgePlannedProjectIds.delete(projectId);
+          for (const projectId of inventory.workspaceProjectIds) {
+            const digest = createHash('sha256').update(`${projectId}:${input.userId}`).digest('hex').slice(0, 16);
+            this.purgePlannedWorkspaceIds.delete(`${projectId}:ws-${digest}`);
+          }
+        }
+        for (const project of inventory.ownedProjects) {
+          this.purgeProjectDeletionAuthorities.delete(project.projectId);
+        }
+        const ownedProjectIds = new Set(inventory.ownedProjects.map(({ projectId }) => projectId));
+        await deps.releaseWorkspaceBarrier?.(
+          {
+            ownedProjects: [],
+            bucketProjectIds: [],
+            workspaceProjectIds: inventory.workspaceProjectIds.filter((projectId) => !ownedProjectIds.has(projectId)),
+            localSnapshotObjects: [],
+            staticDeploymentIds: [],
+            staticArtifactRefs: [],
+            staticAliasDeploymentIds: [],
+          },
+          planId,
+          ownerToken,
+        );
       }
     });
   }
 
   async reconcilePurgeFreezes() {
-    const reconciled = this.purgeFrozenUsers.size + this.purgeFrozenOrganizations.size + this.purgeFrozenProjects.size;
-    this.purgeFrozenUsers.clear();
-    this.purgeFrozenOrganizations.clear();
-    this.purgeFrozenProjects.clear();
-    return { scanned: reconciled, reconciled, planIds: [] as string[] };
+    const scanned = this.purgeFrozenUsers.size + this.purgeFrozenOrganizations.size + this.purgeFrozenProjects.size;
+    const protectedPlanIds = new Set(
+      [...this.purgeEffects.keys()].flatMap((key) => {
+        const separator = key.indexOf(':');
+        if (separator <= 0) return [];
+        const planId = key.slice(0, separator);
+        const userId = planId.startsWith('purge-') ? planId.slice('purge-'.length) : undefined;
+        return userId && this.purgePlanUserIds.has(userId) ? [planId] : [];
+      }),
+    );
+    for (const planId of this.purgeEffectStartedPlanIds) protectedPlanIds.add(planId);
+    let reconciled = 0;
+    for (const userId of [...this.purgeFrozenUsers]) {
+      if (protectedPlanIds.has(`purge-${userId}`)) continue;
+      this.purgeFrozenUsers.delete(userId);
+      this.purgePlanUserIds.delete(userId);
+      reconciled += 1;
+    }
+    if (protectedPlanIds.size === 0) {
+      reconciled += this.purgeFrozenOrganizations.size + this.purgeFrozenProjects.size;
+      this.purgeFrozenOrganizations.clear();
+      this.purgeFrozenProjects.clear();
+      this.purgePlannedProjectIds.clear();
+      this.purgePlannedWorkspaceIds.clear();
+    }
+    return { scanned, reconciled, planIds: [...protectedPlanIds].sort() };
   }
 
   async isObjectStorageProjectPurgeFrozen(projectId: string) {
@@ -1682,13 +1863,24 @@ export class TestApiStore implements ApiStore {
 
   async assertProjectStorageMutable(
     scope: ProjectPhysicalMutationScope,
-    options: { allowDeletedProject?: boolean; allowPermanentDeletion?: boolean } = {},
+    options: {
+      allowDeletedProject?: boolean;
+      allowPermanentDeletion?: boolean;
+      accountPurgeDeletionAuthority?: AccountPurgeProjectDeletionAuthority;
+    } = {},
   ) {
     const { projectId, workspaceId } = scope;
+    const expectedAuthority = this.purgeProjectDeletionAuthorities.get(projectId);
+    const suppliedAuthority = options.accountPurgeDeletionAuthority;
+    const ownsPurgeFence =
+      expectedAuthority !== undefined &&
+      suppliedAuthority !== undefined &&
+      JSON.stringify(expectedAuthority) === JSON.stringify(suppliedAuthority);
     if (
-      this.purgeFrozenProjects.has(projectId) ||
-      this.purgePlannedProjectIds.has(projectId) ||
-      (workspaceId ? this.purgePlannedWorkspaceIds.has(`${projectId}:${workspaceId}`) : false)
+      !ownsPurgeFence &&
+      (this.purgeFrozenProjects.has(projectId) ||
+        this.purgePlannedProjectIds.has(projectId) ||
+        (workspaceId ? this.purgePlannedWorkspaceIds.has(`${projectId}:${workspaceId}`) : false))
     ) {
       throw Object.assign(new Error('PROJECT_STORAGE_FENCED_FOR_ACCOUNT_PURGE'), {
         code: 'PROJECT_STORAGE_FENCED_FOR_ACCOUNT_PURGE',
@@ -2588,6 +2780,7 @@ export class TestApiStore implements ApiStore {
       requestHash: string;
       actorUserId: string;
       ipAddress?: string;
+      accountPurgeDeletionAuthority?: AccountPurgeProjectDeletionAuthority;
       preflightPhysicalErasure: () => Promise<ObjectStorageStaticErasurePlan>;
       erasePhysical: (assertLease: () => Promise<void>, lease: ObjectStorageOperationLease) => Promise<void>;
       verifyPhysicalAbsence: (
@@ -2659,6 +2852,15 @@ export class TestApiStore implements ApiStore {
             statusCode: 409,
           });
         }
+        if (
+          input.accountPurgeDeletionAuthority &&
+          project.ownershipEpoch !== input.accountPurgeDeletionAuthority.expectedOwnershipEpoch
+        ) {
+          throw Object.assign(new Error('PROJECT_ORGANIZATION_CHANGED_DURING_MUTATION'), {
+            code: 'PROJECT_ORGANIZATION_CHANGED_DURING_MUTATION',
+            statusCode: 409,
+          });
+        }
         const priorPermanentDeletionStartedAt = project.permanentDeletionStartedAt;
         const priorDeletedAt = project.deletedAt;
         project.permanentDeletionStartedAt ??= now();
@@ -2666,9 +2868,12 @@ export class TestApiStore implements ApiStore {
         project.updatedAt = now();
 
         const assertLease = async () => {
-          this.assertExpectedProjectTenant(input, {
+          await this.assertProjectStorageMutable(input, {
             allowDeletedProject: true,
             allowPermanentDeletion: true,
+            ...(input.accountPurgeDeletionAuthority
+              ? { accountPurgeDeletionAuthority: input.accountPurgeDeletionAuthority }
+              : {}),
           });
         };
         const lease: ObjectStorageOperationLease = {
@@ -2722,6 +2927,7 @@ export class TestApiStore implements ApiStore {
           project: {
             id: project.id,
             organizationId: project.organizationId,
+            ownershipEpoch: project.ownershipEpoch,
             projectRecordHash,
             state: 'PERMANENTLY_DELETED',
             permanentDeletionStartedAt: project.permanentDeletionStartedAt,
@@ -2751,7 +2957,13 @@ export class TestApiStore implements ApiStore {
 
         return { ...receipt, project: { ...receipt.project }, proof: structuredClone(receipt.proof), replayed: false };
       },
-      { allowDeletedProject: true, allowPermanentDeletion: true },
+      {
+        allowDeletedProject: true,
+        allowPermanentDeletion: true,
+        ...(input.accountPurgeDeletionAuthority
+          ? { accountPurgeDeletionAuthority: input.accountPurgeDeletionAuthority }
+          : {}),
+      },
     );
   }
 

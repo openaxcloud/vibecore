@@ -70,6 +70,18 @@ export interface ErasureProof {
  */
 /** Per-subject physical footprint the store resolves for erasure (reserve #3). */
 export interface PurgeStorageInventory {
+  /**
+   * Projects owned by organizations for which the subject is the sole member.
+   * The immutable identity is captured before any physical effect so account
+   * purge can drive the normal PROJECT_PERMANENT_DELETE saga instead of
+   * deleting the relational row (and losing its provider authorities) itself.
+   */
+  ownedProjects: Array<{
+    projectId: string;
+    organizationId: string;
+    projectName: string;
+    ownershipEpoch: number;
+  }>;
   /** Projects whose per-project GCS bucket the subject owns (their sole orgs). */
   bucketProjectIds: string[];
   /** Every project the subject has a workspace in (sole-org + collaborator). */
@@ -95,6 +107,7 @@ export interface PurgeEffectDescriptor {
   key: string;
   resourceType:
     | 'billing_subscription'
+    | 'project_permanent_delete'
     | 'gcs_bucket'
     | 'workspace_barrier'
     | 'k8s_service'
@@ -136,6 +149,18 @@ export interface PurgeLeaseContext {
   executeEffect: PurgeEffectExecutor;
 }
 
+export interface AccountPurgeProjectDeletionAuthority {
+  planId: string;
+  ownerToken: string;
+  userId: string;
+  projectId: string;
+  expectedOrganizationId: string;
+  expectedProjectName: string;
+  expectedOwnershipEpoch: number;
+  idempotencyKey: string;
+  requestHash: string;
+}
+
 export interface PurgeStorageDeps {
   /**
    * Cancels one live provider subscription. The caller supplies a stable
@@ -148,6 +173,18 @@ export interface PurgeStorageDeps {
     externalSubscriptionId: string,
     idempotencyKey: string,
   ) => Promise<{ canceled: boolean; providerStatus?: string }>;
+
+  /**
+   * Executes or replays the canonical permanent-project deletion saga. The
+   * account-purge store independently validates the resulting immutable DB
+   * receipt before it may anonymize the subject, so this callback cannot turn a
+   * partial provider response into proof. Omission is fail-closed whenever the
+   * purge owns at least one project.
+   */
+  permanentlyDeleteOwnedProject?: (
+    authority: AccountPurgeProjectDeletionAuthority,
+    lease: PurgeLeaseContext,
+  ) => Promise<void>;
 
   /**
    * `guard` (RR-CODEX-12) is called before each irreversible bucket/PVC delete; it

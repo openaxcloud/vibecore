@@ -8,7 +8,12 @@ import {
   type QuotaOverrideKey,
 } from '@vibecore/billing';
 import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
-import type { AccountPurgePreview, PurgeStorageDeps, PurgeUserAccountResult } from './account-purge.js';
+import type {
+  AccountPurgePreview,
+  AccountPurgeProjectDeletionAuthority,
+  PurgeStorageDeps,
+  PurgeUserAccountResult,
+} from './account-purge.js';
 import type { DeploymentAccessMode, DeploymentAccessPolicyRecord } from './deployment-access.js';
 import type { LoginLockoutState, LoginThrottleConfig } from './login-throttle.js';
 import type { RollbackSuccessReceipt } from './rollback-response.js';
@@ -172,6 +177,7 @@ export interface ProjectPermanentDeletionReceiptRecord {
   project: {
     id: string;
     organizationId: string;
+    ownershipEpoch: number;
     projectRecordHash: string;
     state: 'PERMANENTLY_DELETED';
     permanentDeletionStartedAt?: string;
@@ -2493,6 +2499,7 @@ export interface ApiStore {
       requestHash: string;
       actorUserId: string;
       ipAddress?: string;
+      accountPurgeDeletionAuthority?: AccountPurgeProjectDeletionAuthority;
       preflightPhysicalErasure: () => Promise<ObjectStorageStaticErasurePlan>;
       erasePhysical: (assertLease: () => Promise<void>, lease: ObjectStorageOperationLease) => Promise<void>;
       verifyPhysicalAbsence: (

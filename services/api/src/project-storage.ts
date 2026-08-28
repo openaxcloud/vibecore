@@ -279,6 +279,15 @@ export interface GitProvider {
   }): Promise<{ url: string; number: number }>;
 }
 
+export interface ProjectPhysicalAbsenceProof {
+  treeAbsent: boolean;
+  exportsAbsent: boolean;
+  snapshotsAbsent: boolean;
+  staticSnapshotsAbsent?: boolean;
+  staticAliasesAbsent?: boolean;
+  staticArtifactSummary?: ObjectStorageStaticArtifactSummary;
+}
+
 export interface ProjectStorage {
   writeFiles(
     projectId: string,
@@ -343,14 +352,7 @@ export interface ProjectStorage {
   /** Explicit capability bit: method presence alone is insufficient when no DB authority was injected. */
   supportsProjectStaticErasure?(): boolean;
   /** Live absence proof under the same already-owned physical + NFS barrier. */
-  verifyProjectDataAbsentWithinPhysicalAccess?(projectId: string): Promise<{
-    treeAbsent: boolean;
-    exportsAbsent: boolean;
-    snapshotsAbsent: boolean;
-    staticSnapshotsAbsent?: boolean;
-    staticAliasesAbsent?: boolean;
-    staticArtifactSummary?: ObjectStorageStaticArtifactSummary;
-  }>;
+  verifyProjectDataAbsentWithinPhysicalAccess?(projectId: string): Promise<ProjectPhysicalAbsenceProof>;
 }
 
 export interface ProjectStaticArtifactAuthority {
@@ -1514,7 +1516,7 @@ export class LocalProjectStorage implements ProjectStorage {
     await this.verifyProjectStaticDataAbsentWithinPhysicalAccess(projectId);
   }
 
-  async verifyProjectDataAbsentWithinPhysicalAccess(projectId: string) {
+  async verifyProjectDataAbsentWithinPhysicalAccess(projectId: string): Promise<ProjectPhysicalAbsenceProof> {
     const [treeExists, exportsExist, snapshotsExist] = await Promise.all([
       pathExists(safeProjectPath(projectId)),
       pathExists(safeProjectPath('_objects', `exports/${projectId}`)),
