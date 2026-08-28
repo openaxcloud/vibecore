@@ -88,16 +88,19 @@ describe('HSTS in production', () => {
   let originalCookieSecret: string | undefined;
   let originalJwtSecret: string | undefined;
   let originalWorkspaceManagerUrl: string | undefined;
+  let originalConfigEncryptionKey: string | undefined;
 
   beforeEach(() => {
     originalNodeEnv = process.env.NODE_ENV;
     originalCookieSecret = process.env.COOKIE_SECRET;
     originalJwtSecret = process.env.JWT_SECRET;
     originalWorkspaceManagerUrl = process.env.WORKSPACE_MANAGER_URL;
+    originalConfigEncryptionKey = process.env.CONFIG_ENCRYPTION_KEY;
     process.env.NODE_ENV = 'production';
     process.env.COOKIE_SECRET = 'test-cookie-secret-long-enough-for-production-hsts';
     process.env.JWT_SECRET = 'test-jwt-secret-long-enough-for-production-hsts';
     process.env.WORKSPACE_MANAGER_URL = 'http://workspace-manager.vibecore.svc:3010';
+    process.env.CONFIG_ENCRYPTION_KEY = 'test-production-config-encryption-key-0001';
   });
 
   afterEach(() => {
@@ -119,6 +122,12 @@ describe('HSTS in production', () => {
       delete process.env.WORKSPACE_MANAGER_URL;
     } else {
       process.env.WORKSPACE_MANAGER_URL = originalWorkspaceManagerUrl;
+    }
+
+    if (originalConfigEncryptionKey === undefined) {
+      delete process.env.CONFIG_ENCRYPTION_KEY;
+    } else {
+      process.env.CONFIG_ENCRYPTION_KEY = originalConfigEncryptionKey;
     }
   });
 
