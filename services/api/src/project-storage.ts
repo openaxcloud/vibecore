@@ -150,16 +150,15 @@ export interface GitProvider {
     ahead: number;
     behind: number;
   }>;
-  commit(input: {
-    projectId: string;
-    expectedOrganizationId: string;
-    workspaceId?: string;
-    message: string;
-    files: ProjectFile[];
-    selectedFiles?: string[];
-    authorName?: string;
-    authorEmail?: string;
-  }): Promise<{ sha: string; message: string }>;
+  commit(
+    input: Omit<ProjectPhysicalMutationScope, 'physicalAccessOperation'> & {
+      message: string;
+      files: ProjectFile[];
+      selectedFiles?: string[];
+      authorName?: string;
+      authorEmail?: string;
+    },
+  ): Promise<{ sha: string; message: string }>;
   push(input: {
     projectId: string;
     expectedOrganizationId: string;
@@ -1261,9 +1260,11 @@ export class LocalProjectStorage implements ProjectStorage {
   private withTreeMutation<T>(
     projectId: string,
     scope: Omit<ProjectPhysicalMutationScope, 'projectId'>,
+    physicalAccessOperation: 'WRITE' | 'DELETE',
     mutate: () => Promise<T>,
   ): Promise<T> {
-    const authority = { projectId, ...scope };
+    /* Never trust/forward a caller-provided operation stamp. */
+    const authority = { ...scope, projectId, physicalAccessOperation };
 
     return this.mutationCoordinator ? this.mutationCoordinator(authority, mutate) : withProjectLock(projectId, mutate);
   }
@@ -1274,7 +1275,7 @@ export class LocalProjectStorage implements ProjectStorage {
     scope: Omit<ProjectPhysicalMutationScope, 'projectId'>,
     guard?: () => Promise<void>,
   ) {
-    return this.withTreeMutation(projectId, scope, async () => {
+    return this.withTreeMutation(projectId, scope, 'WRITE', async () => {
       for (const file of files) {
         const target = safeWorkspacePath(projectId, scope.workspaceId, file.path);
         await guard?.();
@@ -1290,7 +1291,7 @@ export class LocalProjectStorage implements ProjectStorage {
   async listFiles(projectId: string, scope: Omit<ProjectPhysicalMutationScope, 'projectId'>) {
     const read = () => this.listFilesWithinPhysicalAccess(projectId, scope.workspaceId);
     return this.accessCoordinator
-      ? this.accessCoordinator({ projectId, ...scope }, read)
+      ? this.accessCoordinator({ ...scope, projectId, physicalAccessOperation: 'READ' }, read)
       : withProjectLock(projectId, read);
   }
 
@@ -1310,7 +1311,7 @@ export class LocalProjectStorage implements ProjectStorage {
     };
 
     return this.objectMutationCoordinator
-      ? this.objectMutationCoordinator({ projectId, ...scope }, mutate)
+      ? this.objectMutationCoordinator({ ...scope, projectId, physicalAccessOperation: 'WRITE' }, mutate)
       : withProjectLock(projectId, mutate);
   }
 
@@ -1320,7 +1321,7 @@ export class LocalProjectStorage implements ProjectStorage {
     scope: Omit<ProjectPhysicalMutationScope, 'projectId'>,
     options: { replaceExisting?: boolean } = {},
   ) {
-    return this.withTreeMutation(projectId, scope, async () => {
+    return this.withTreeMutation(projectId, scope, 'WRITE', async () => {
       const files = await filesFromZipBase64(base64);
 
       if (options.replaceExisting) {
@@ -1384,7 +1385,7 @@ export class LocalProjectStorage implements ProjectStorage {
   ) {
     const read = () => this.getSnapshotFilesWithinPhysicalAccess(projectId, storageKey);
     return this.accessCoordinator
-      ? this.accessCoordinator({ projectId, ...scope }, read)
+      ? this.accessCoordinator({ ...scope, projectId, physicalAccessOperation: 'READ' }, read)
       : withProjectLock(projectId, read);
   }
 
@@ -1410,7 +1411,7 @@ export class LocalProjectStorage implements ProjectStorage {
     input: { projectId: string; expectedOrganizationId: string; workspaceId?: string; files: ProjectFile[] },
     guard?: () => Promise<void>,
   ) {
-    return this.withTreeMutation(input.projectId, input, async () => {
+    return this.withTreeMutation(input.projectId, input, 'WRITE', async () => {
       const target = safeWorkspacePath(input.projectId, input.workspaceId);
 
       /*
@@ -1439,7 +1440,7 @@ export class LocalProjectStorage implements ProjectStorage {
     scope: Omit<ProjectPhysicalMutationScope, 'projectId'>,
     guard?: () => Promise<void>,
   ): Promise<void> {
-    await this.withTreeMutation(projectId, scope, async () => {
+    await this.withTreeMutation(projectId, scope, 'DELETE', async () => {
       await guard?.();
       await resilientRm(safeProjectPath(projectId));
     });
@@ -1604,7 +1605,7 @@ export class GitCliProvider implements GitProvider {
     mutate: () => Promise<T>,
   ): Promise<T> {
     return this.mutationCoordinator
-      ? this.mutationCoordinator({ projectId, ...scope }, mutate)
+      ? this.mutationCoordinator({ ...scope, projectId, physicalAccessOperation: 'WRITE' }, mutate)
       : withProjectLock(projectId, mutate);
   }
 
@@ -1906,16 +1907,15 @@ export class GitCliProvider implements GitProvider {
     return { branch, detached, changedFiles, fileStatuses, conflicts, ahead, behind };
   }
 
-  async commit(input: {
-    projectId: string;
-    expectedOrganizationId: string;
-    workspaceId?: string;
-    message: string;
-    files: ProjectFile[];
-    selectedFiles?: string[];
-    authorName?: string;
-    authorEmail?: string;
-  }) {
+  async commit(
+    input: Omit<ProjectPhysicalMutationScope, 'physicalAccessOperation'> & {
+      message: string;
+      files: ProjectFile[];
+      selectedFiles?: string[];
+      authorName?: string;
+      authorEmail?: string;
+    },
+  ) {
     return this.withMutationLock(input.projectId, input, async () => {
       await this.ensureRepository(input.projectId, input.workspaceId);
 

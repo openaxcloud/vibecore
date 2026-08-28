@@ -607,6 +607,7 @@ import {
   type InstalledSkillRecord,
   type ImportJobRecord,
   type ProjectIdeStateRecord,
+  type ProjectPhysicalMutationScope,
   type ProjectRecord,
   type ReleaseManifestRecord,
   type ProjectReleaseFence,
@@ -7554,8 +7555,11 @@ async function findInFlightDeploymentForCwd(
   return undefined;
 }
 
-async function commitInitialScaffold(gitProvider: GitProvider, projectId: string, expectedOrganizationId: string) {
-  const scope = { expectedOrganizationId };
+async function commitInitialScaffold(
+  gitProvider: GitProvider,
+  projectId: string,
+  scope: Omit<ProjectPhysicalMutationScope, 'projectId' | 'physicalAccessOperation'>,
+) {
   const status = await gitProvider.status(projectId, scope);
 
   if (status.changedFiles.length === 0) {
@@ -7564,7 +7568,7 @@ async function commitInitialScaffold(gitProvider: GitProvider, projectId: string
 
   return gitProvider.commit({
     projectId,
-    expectedOrganizationId,
+    ...scope,
     message: appPublicEnglish('GIT_INITIAL_COMMIT_MESSAGE'),
     files: [],
   });
@@ -23847,7 +23851,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       { expectedOrganizationId: project.organizationId },
     );
     await persistProjectFileManifest(store, project.id, project.organizationId, files, request.currentUser!.id);
-    await commitInitialScaffold(gitProvider, project.id, project.organizationId);
+    await commitInitialScaffold(gitProvider, project.id, { expectedOrganizationId: project.organizationId });
     await recordUsage(request, orgId, 'projects.count');
     await store.recordProjectActivity({
       projectId: project.id,
@@ -23971,7 +23975,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       expectedOrganizationId: project.organizationId,
     });
     await persistProjectFileManifest(store, project.id, project.organizationId, files, request.currentUser!.id);
-    await commitInitialScaffold(gitProvider, project.id, project.organizationId);
+    await commitInitialScaffold(gitProvider, project.id, { expectedOrganizationId: project.organizationId });
     await recordUsage(request, orgId, 'projects.count');
 
     /*
@@ -24077,7 +24081,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         },
       }),
     );
-    await commitInitialScaffold(gitProvider, project.id, project.organizationId);
+    await commitInitialScaffold(gitProvider, project.id, { expectedOrganizationId: project.organizationId });
     await recordUsage(request, orgId, 'projects.count');
     await store.recordProjectActivity({
       projectId: project.id,
@@ -24224,16 +24228,25 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       await leaseManager.guard();
 
       if (job.targetProjectId) {
+        const partialTargetAuthority = {
+          kind: 'IMPORT_TARGET' as const,
+          jobId: job.id,
+          operationToken: job.operationToken!,
+        };
         await projectStorage.deleteProjectFiles(
           job.targetProjectId,
-          { expectedOrganizationId: job.organizationId },
+          { expectedOrganizationId: job.organizationId, partialTargetAuthority },
           () => leaseManager.guard(),
         );
         await leaseManager.guard();
 
         if (
-          (await projectStorage.listFiles(job.targetProjectId, { expectedOrganizationId: job.organizationId }))
-            .length !== 0
+          (
+            await projectStorage.listFiles(job.targetProjectId, {
+              expectedOrganizationId: job.organizationId,
+              partialTargetAuthority,
+            })
+          ).length !== 0
         ) {
           throw Object.assign(new Error(appPublicEnglish('IMPORT_CLEANUP_FILES_REMAIN')), {
             statusCode: 409,
@@ -25038,26 +25051,30 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           manifestCloneMode: durableTarget?.manifestCloneMode,
         });
       });
+      const partialTargetAuthority = {
+        kind: 'IMPORT_TARGET' as const,
+        jobId: importJobId,
+        operationToken: operationToken!,
+      };
+      const targetPhysicalScope = {
+        expectedOrganizationId: project.organizationId,
+        partialTargetAuthority,
+      };
 
       let verifiedFiles: ProjectFile[] = [];
       const finalized = await store.withSerializedMutation(
         `import-target-effect:${project.id}`,
         async () => {
           await operationLeaseManager!.guard();
-          await projectStorage.writeFiles(
-            project.id,
-            targetFiles,
-            { expectedOrganizationId: project.organizationId },
-            () => operationLeaseManager!.guard(),
+          await projectStorage.writeFiles(project.id, targetFiles, targetPhysicalScope, () =>
+            operationLeaseManager!.guard(),
           );
           await operationLeaseManager!.guard();
           if (durableTarget?.initializeGitScaffold) {
-            await commitInitialScaffold(gitProvider, project.id, project.organizationId);
+            await commitInitialScaffold(gitProvider, project.id, targetPhysicalScope);
             await operationLeaseManager!.guard();
           }
-          verifiedFiles = await projectStorage.listFiles(project.id, {
-            expectedOrganizationId: project.organizationId,
-          });
+          verifiedFiles = await projectStorage.listFiles(project.id, targetPhysicalScope);
           const expectedFileHash = durableTarget?.expectedFileHash ?? checkpointFilesHash(targetFiles);
           if (checkpointFilesHash(verifiedFiles) !== expectedFileHash) {
             throw new ImportInvariantError(
@@ -30283,6 +30300,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     remixJobId: string;
     targetProjectId: string;
     expectedOrganizationId: string;
+    operationToken: string;
     guard: () => Promise<void>;
   }): Promise<void> => {
     await input.guard();
@@ -30291,6 +30309,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     if (target.organizationId !== input.expectedOrganizationId) {
       throw Object.assign(new Error(appPublicEnglish('PROJECT_ORGANIZATION_CHANGED_DURING_MUTATION')), {
         code: 'PROJECT_ORGANIZATION_CHANGED_DURING_MUTATION',
+        statusCode: 409,
+      });
+    }
+    const remixJob = await store.getRemixJob(input.remixJobId, input.expectedOrganizationId);
+    if (!remixJob?.actorUserId) {
+      throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+        code: 'REMIX_CLEANUP_ACTOR_MISSING',
         statusCode: 409,
       });
     }
@@ -30309,21 +30334,25 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
     }
 
-    const authorityId = `remix-cleanup:${input.remixJobId}`;
     const idempotencyKey = `remix-cleanup:${input.remixJobId}:${target.id}`;
     const requestHash = projectPermanentDeletionRequestHash({
       projectId: target.id,
       organizationId: target.organizationId,
-      actorUserId: authorityId,
+      actorUserId: remixJob.actorUserId,
       expectedProjectName: target.name,
     });
     await store.hardDeleteProject({
       projectId: target.id,
       expectedOrganizationId: target.organizationId,
+      partialTargetAuthority: {
+        kind: 'REMIX_TARGET',
+        jobId: input.remixJobId,
+        operationToken: input.operationToken,
+      },
       expectedProjectName: target.name,
       idempotencyKey,
       requestHash,
-      actorUserId: authorityId,
+      actorUserId: remixJob.actorUserId,
       resolveLegacyDatabaseAuthorities: async (requests, lease) =>
         new ManagerProjectDatabaseKubernetesPort(
           workspaceManagerUrl(),

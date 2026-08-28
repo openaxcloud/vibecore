@@ -23,7 +23,13 @@ import {
   type RemixState,
   type RemixStoragePolicy,
 } from './remix-pipeline.js';
-import type { ApiStore, DatabasePhysicalAuthority, ProjectRecord, RemixJobRecord } from './store.js';
+import type {
+  ApiStore,
+  DatabasePhysicalAuthority,
+  ProjectPhysicalMutationScope,
+  ProjectRecord,
+  RemixJobRecord,
+} from './store.js';
 
 const REMIX_LEASE_MS = 5 * 60_000;
 
@@ -48,7 +54,7 @@ export interface RemixPhysicalServiceDeps {
     expectedOrganizationId: string;
   }): Promise<ObjectStorageInventory>;
   executeObjectStorageCommand(input: {
-    scopes: Array<{ projectId: string; expectedOrganizationId: string }>;
+    scopes: ProjectPhysicalMutationScope[];
     command: TenantObjectStorageCommand;
     idempotencyKey: string;
   }): Promise<ObjectStorageCommandExecution>;
@@ -62,6 +68,7 @@ export interface RemixPhysicalServiceDeps {
     remixJobId: string;
     targetProjectId: string;
     expectedOrganizationId: string;
+    operationToken: string;
     guard: () => Promise<void>;
   }): Promise<void>;
   ensureProjectQuota(organizationId: string): Promise<void>;
@@ -303,6 +310,7 @@ async function compensate(
       remixJobId: ownedCleanup.id,
       targetProjectId,
       expectedOrganizationId: ownedCleanup.organizationId,
+      operationToken,
       guard: cleanupGuard,
     });
     await cleanupGuard();
@@ -377,6 +385,11 @@ export async function executePhysicalRemix(
     return { kind: 'busy', job: current };
   }
   current = claimed;
+  const partialTargetAuthority = {
+    kind: 'REMIX_TARGET' as const,
+    jobId: current.id,
+    operationToken,
+  };
 
   const guard = async () => {
     const renewed = await deps.store.renewRemixJobLease({
@@ -643,16 +656,13 @@ export async function executePhysicalRemix(
       });
       current = (await deps.store.getRemixJob(current.id, current.organizationId)) ?? current;
       await guard();
-      await deps.projectStorage.writeFiles(
-        target.id,
-        sanitizedFiles,
-        { expectedOrganizationId: target.organizationId },
-        guard,
-      );
-      await guard();
-      const verifiedFiles = await deps.projectStorage.listFiles(target.id, {
+      const targetPhysicalScope = {
         expectedOrganizationId: target.organizationId,
-      });
+        partialTargetAuthority,
+      };
+      await deps.projectStorage.writeFiles(target.id, sanitizedFiles, targetPhysicalScope, guard);
+      await guard();
+      const verifiedFiles = await deps.projectStorage.listFiles(target.id, targetPhysicalScope);
       if (remixFileSnapshotHash(verifiedFiles) !== remixFileSnapshotHash(sanitizedFiles)) {
         throw new RemixInvariantError('Target file digest mismatch after clone', 'REMIX_TARGET_DIGEST_MISMATCH');
       }
@@ -716,7 +726,12 @@ export async function executePhysicalRemix(
               projectId: storageAuthority.authoritySourceProjectId,
               expectedOrganizationId: storageAuthority.authoritySourceOrganizationId,
             },
-            { projectId: current.targetProjectId, expectedOrganizationId: current.organizationId },
+            {
+              projectId: current.targetProjectId,
+              expectedOrganizationId: current.organizationId,
+              partialTargetAuthority,
+              physicalAccessOperation: 'OBJECT_CLONE',
+            },
           ],
           command: {
             type: 'CLONE_PROJECT',

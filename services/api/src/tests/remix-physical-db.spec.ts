@@ -16,10 +16,15 @@ import {
   type SignedUrlResult,
   type UploadUrlResult,
 } from '../object-storage.js';
+import { objectStorageStaticArtifactSummary, type ObjectStorageOperationLease } from '../object-storage-operation.js';
 import { PrismaApiStore } from '../prisma-store.js';
+import { projectPermanentDeletionRequestHash } from '../project-permanent-deletion.js';
 import type { ProjectFile, ProjectStorage, StoredArchive } from '../project-storage.js';
 import { executePhysicalRemix, remixFileSnapshotHash } from '../remix-physical-service.js';
 import { remixIdeStateDigest } from '../remix-ide-state.js';
+import { emptyManagedDatabaseErasureCallbacks } from './project-database-erasure-test-support.js';
+import { persistEmptyProjectRegistryErasure } from './project-registry-erasure-test-helper.js';
+import { seedVerifiedEmptyProjectVolumeErasure } from './project-volume-erasure-fixture.js';
 
 async function canReachDatabase() {
   if (!process.env.DATABASE_URL) return false;
@@ -146,19 +151,23 @@ class MemoryObjectStorage implements ObjectStorage {
   ) {
     await guard?.();
     this.buckets.set(targetProjectId, structuredClone(inventory));
-    if (this.failCloneAfterCopy) {
-      throw new ObjectStorageError('injected target clone failure', 'CLONE_INJECTED_FAILURE');
-    }
     return structuredClone(inventory);
+  }
+
+  throwAfterCommittedCloneIfRequested() {
+    if (!this.failCloneAfterCopy) return;
+    this.failCloneAfterCopy = false;
+    throw new ObjectStorageError('injected target clone failure', 'CLONE_INJECTED_FAILURE');
+  }
+
+  throwBeforeDeleteIfRequested() {
+    if (!this.failDeleteOnce) return;
+    this.failDeleteOnce = false;
+    throw new ObjectStorageError('injected target cleanup failure', 'CLEANUP_INJECTED_FAILURE');
   }
 
   async deleteBucket(projectId: string, guard?: () => Promise<void>) {
     await guard?.();
-
-    if (this.failDeleteOnce) {
-      this.failDeleteOnce = false;
-      throw new ObjectStorageError('injected target cleanup failure', 'CLEANUP_INJECTED_FAILURE');
-    }
 
     const deleted = this.buckets.delete(projectId);
     this.deletedProjects.push(projectId);
@@ -228,6 +237,8 @@ const sourceFiles: ProjectFile[] = [
   { path: '.env', content: 'SHORT_TOKEN=abc\n', updatedAt: '2026-08-26T00:00:00.000Z' },
 ];
 
+const emptyStaticArtifactSummary = objectStorageStaticArtifactSummary([]);
+
 function serviceDeps(
   store: PrismaApiStore,
   projectStorage: MemoryProjectStorage,
@@ -249,11 +260,15 @@ function serviceDeps(
       }
       return objectStorage.inventoryProjectObjects(scope.projectId);
     },
-    executeObjectStorageCommand: (input: {
+    executeObjectStorageCommand: async (input: {
       scopes: Array<{ projectId: string; expectedOrganizationId: string }>;
       command: Parameters<PrismaApiStore['executeTenantObjectStorageCommand']>[0]['command'];
       idempotencyKey: string;
-    }) => store.executeTenantObjectStorageCommand({ ...input, storage: objectStorage }),
+    }) => {
+      const execution = await store.executeTenantObjectStorageCommand({ ...input, storage: objectStorage });
+      if (input.command.type === 'CLONE_PROJECT') objectStorage.throwAfterCommittedCloneIfRequested();
+      return execution;
+    },
     databaseProvisioner,
     databasePhysicalAuthority: ({ projectId, retentionDays }: { projectId: string; retentionDays: number }) => ({
       tier: 'isolated' as const,
@@ -263,18 +278,143 @@ function serviceDeps(
       retentionDays: Math.max(1, retentionDays),
     }),
     permanentlyDeleteTargetProject: async ({
+      remixJobId,
       targetProjectId,
       expectedOrganizationId,
+      operationToken,
       guard,
     }: {
+      remixJobId: string;
       targetProjectId: string;
       expectedOrganizationId: string;
+      operationToken: string;
       guard: () => Promise<void>;
     }) => {
       await guard();
-      await objectStorage.deleteBucket(targetProjectId, guard);
-      await projectStorage.deleteProjectFiles(targetProjectId, { expectedOrganizationId });
-      await store.prisma.project.deleteMany({ where: { id: targetProjectId, organizationId: expectedOrganizationId } });
+      const target = await store.getProject(targetProjectId);
+      if (!target) return;
+      if (target.organizationId !== expectedOrganizationId) {
+        throw Object.assign(new Error('PROJECT_ORGANIZATION_CHANGED_DURING_MUTATION'), {
+          code: 'PROJECT_ORGANIZATION_CHANGED_DURING_MUTATION',
+          statusCode: 409,
+        });
+      }
+      const remixJob = await store.getRemixJob(remixJobId, expectedOrganizationId);
+      if (!remixJob?.actorUserId) throw new Error('REMIX_CLEANUP_ACTOR_MISSING');
+
+      const actorUserId = remixJob.actorUserId;
+      const databaseErasure = emptyManagedDatabaseErasureCallbacks();
+      let registryReceipt: Awaited<ReturnType<typeof persistEmptyProjectRegistryErasure>> | undefined;
+      let volumeProof: Awaited<ReturnType<typeof seedVerifiedEmptyProjectVolumeErasure>> | undefined;
+      const ensureVolumeProof = async (lease: ObjectStorageOperationLease) => {
+        if (volumeProof) return volumeProof;
+        const current = await store.prisma.project.findUniqueOrThrow({
+          where: { id: target.id },
+          select: { ownershipEpoch: true },
+        });
+        volumeProof = await seedVerifiedEmptyProjectVolumeErasure(store.prisma, {
+          operationId: lease.operationId,
+          projectId: target.id,
+          organizationId: target.organizationId,
+          ownershipEpoch: current.ownershipEpoch,
+          fencingToken: lease.fencingToken,
+        });
+        return volumeProof;
+      };
+      const requestHash = projectPermanentDeletionRequestHash({
+        projectId: target.id,
+        organizationId: target.organizationId,
+        actorUserId,
+        expectedProjectName: target.name,
+      });
+
+      await store.hardDeleteProject({
+        projectId: target.id,
+        expectedOrganizationId: target.organizationId,
+        partialTargetAuthority: { kind: 'REMIX_TARGET', jobId: remixJobId, operationToken },
+        expectedProjectName: target.name,
+        actorUserId,
+        idempotencyKey: `remix-cleanup:${remixJobId}:${target.id}`,
+        requestHash,
+        resolveLegacyDatabaseAuthorities: databaseErasure.resolveLegacyDatabaseAuthorities,
+        preflightManagedDatabases: databaseErasure.preflightManagedDatabases,
+        purgeManagedDatabases: async (plan, fence, lease) => {
+          if (plan.instances.length > 0) {
+            await guard();
+            await databaseProvisioner.teardownFork({ targetProjectId: target.id, guard });
+          }
+          return databaseErasure.purgeManagedDatabases(plan, fence, lease);
+        },
+        verifyManagedDatabases: databaseErasure.verifyManagedDatabases,
+        preflightPhysicalErasure: async () => {
+          objectStorage.throwBeforeDeleteIfRequested();
+          return { summary: emptyStaticArtifactSummary, artifacts: [] };
+        },
+        erasePhysical: async (assertLease, lease) => {
+          await assertLease();
+          await guard();
+          await projectStorage.eraseProjectDataWithinPhysicalAccess(target.id);
+          await objectStorage.deleteBucket(target.id, assertLease);
+          registryReceipt = await persistEmptyProjectRegistryErasure(store, lease, target.id);
+          await ensureVolumeProof(lease);
+        },
+        verifyPhysicalAbsence: async (assertLease, lease) => {
+          await assertLease();
+          await guard();
+          registryReceipt ??= await persistEmptyProjectRegistryErasure(store, lease, target.id);
+          const volumes = await ensureVolumeProof(lease);
+          const files = await projectStorage.listFilesWithinPhysicalAccess(target.id);
+          const bucketExists = await objectStorage.bucketExists(target.id);
+          if (files.length > 0 || bucketExists) {
+            throw Object.assign(new Error('REMIX_PROJECT_ERASURE_INCOMPLETE'), {
+              code: 'REMIX_PROJECT_ERASURE_INCOMPLETE',
+              statusCode: 503,
+            });
+          }
+          return {
+            outcome: 'VERIFIED_ABSENT' as const,
+            verifier: 'remix-physical-db-test-v1',
+            evidence: {
+              schemaVersion: 'project-permanent-erasure-v3',
+              filesystem: {
+                projectTreeAbsent: true,
+                workspaceTreesAbsent: true,
+                objectCacheAbsent: true,
+                staticSnapshotsAbsent: true,
+                staticAliasesAbsent: true,
+                staticArtifactSummary: emptyStaticArtifactSummary,
+              },
+              gcs: { bucketAbsent: true, objectCount: 0 },
+              projectImages: {
+                schemaVersion: 1,
+                projectId: target.id,
+                operationId: lease.operationId,
+                cloudBuild: { producerCount: 0, terminalProofCount: 0, lateSuccessCount: 0 },
+                registry: registryReceipt,
+              },
+              workspaceManager: {
+                schemaVersion: 'workspace-project-erasure-v3',
+                projectId: target.id,
+                organizationId: target.organizationId,
+                databaseInventoryRetained: true,
+                runtimeEffectsDrained: true,
+                kubernetes: {
+                  deploymentsAbsent: true,
+                  replicaSetsAbsent: true,
+                  podsAbsent: true,
+                  servicesAbsent: true,
+                  endpointsAbsent: true,
+                  endpointSlicesAbsent: true,
+                  ingressesAbsent: true,
+                  ownedRuntimeSecretsAbsent: true,
+                  persistentVolumeClaimsAbsent: true,
+                },
+                volumes,
+              },
+            },
+          };
+        },
+      });
     },
     ensureProjectQuota: async () => undefined,
     createSourceSnapshot: async ({
@@ -748,9 +888,12 @@ runDbTests('physical remix — real PostgreSQL multi-client CAS and compensation
   it('injected post-copy failure removes only target bucket/files/project and leaves source recoverable', async () => {
     const prisma = createDatabaseClient();
     let organizationId: string | undefined;
+    let actorUserId: string | undefined;
 
     try {
       const suffix = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+      const actor = await prisma.user.create({ data: { email: `compensation-${suffix}@example.test` } });
+      actorUserId = actor.id;
       const organization = await prisma.organization.create({
         data: { name: `Compensation ${suffix}`, slug: `compensation-${suffix}` },
       });
@@ -773,6 +916,7 @@ runDbTests('physical remix — real PostgreSQL multi-client CAS and compensation
         targetOrganizationId: organization.id,
         idempotencyKey: `compensate-${suffix}`,
         requestHash: 'c'.repeat(64),
+        actorUserId: actor.id,
         storagePolicy: 'CLONE',
         name: 'Must disappear',
         sourceFiles,
@@ -790,6 +934,7 @@ runDbTests('physical remix — real PostgreSQL multi-client CAS and compensation
       expect(projectStorage.files.has(objectStorage.deletedProjects[0])).toBe(false);
     } finally {
       if (organizationId) await prisma.organization.delete({ where: { id: organizationId } }).catch(() => undefined);
+      if (actorUserId) await prisma.user.delete({ where: { id: actorUserId } }).catch(() => undefined);
       await prisma.$disconnect();
     }
   });
@@ -797,9 +942,12 @@ runDbTests('physical remix — real PostgreSQL multi-client CAS and compensation
   it('persists the target DB claim before CNPG apply and compensates only that partial target', async () => {
     const prisma = createDatabaseClient();
     let organizationId: string | undefined;
+    let actorUserId: string | undefined;
 
     try {
       const suffix = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+      const actor = await prisma.user.create({ data: { email: `db-compensation-${suffix}@example.test` } });
+      actorUserId = actor.id;
       const organization = await prisma.organization.create({
         data: { name: `DB compensation ${suffix}`, slug: `db-compensation-${suffix}` },
       });
@@ -844,6 +992,7 @@ runDbTests('physical remix — real PostgreSQL multi-client CAS and compensation
         targetOrganizationId: organization.id,
         idempotencyKey: `db-compensate-${suffix}`,
         requestHash: 'e'.repeat(64),
+        actorUserId: actor.id,
         storagePolicy: 'DETACH',
         name: 'Partial DB target',
         sourceFiles,
@@ -873,6 +1022,7 @@ runDbTests('physical remix — real PostgreSQL multi-client CAS and compensation
     } finally {
       vi.useRealTimers();
       if (organizationId) await prisma.organization.delete({ where: { id: organizationId } }).catch(() => undefined);
+      if (actorUserId) await prisma.user.delete({ where: { id: actorUserId } }).catch(() => undefined);
       await prisma.$disconnect();
     }
   });
@@ -881,9 +1031,12 @@ runDbTests('physical remix — real PostgreSQL multi-client CAS and compensation
     const prismaA = createDatabaseClient();
     const prismaB = createDatabaseClient();
     let organizationId: string | undefined;
+    let actorUserId: string | undefined;
 
     try {
       const suffix = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+      const actor = await prismaA.user.create({ data: { email: `cleanup-resume-${suffix}@example.test` } });
+      actorUserId = actor.id;
       const organization = await prismaA.organization.create({
         data: { name: `Cleanup resume ${suffix}`, slug: `cleanup-resume-${suffix}` },
       });
@@ -907,6 +1060,7 @@ runDbTests('physical remix — real PostgreSQL multi-client CAS and compensation
         targetOrganizationId: organization.id,
         idempotencyKey: `cleanup-resume-${suffix}`,
         requestHash: 'f'.repeat(64),
+        actorUserId: actor.id,
         storagePolicy: 'CLONE' as const,
         name: 'Recoverable partial target',
         sourceFiles,
@@ -928,6 +1082,7 @@ runDbTests('physical remix — real PostgreSQL multi-client CAS and compensation
       expect(objectStorage.deletedProjects).not.toContain(source.id);
     } finally {
       if (organizationId) await prismaA.organization.delete({ where: { id: organizationId } }).catch(() => undefined);
+      if (actorUserId) await prismaA.user.delete({ where: { id: actorUserId } }).catch(() => undefined);
       await Promise.allSettled([prismaA.$disconnect(), prismaB.$disconnect()]);
     }
   });

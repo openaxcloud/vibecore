@@ -5312,9 +5312,34 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
     }
     const commandIdentity = objectStorageCommandIdentity(input.command);
     const pinnedInventory = objectStorageCommandPinnedInventory(input.command);
+    /*
+     * The durable object-operation scope must commit the same deletion state
+     * that the outer physical-access fence just authorized. Hidden remix
+     * targets are deliberately soft-deleted, so defaulting this snapshot to
+     * null would reject the exact REMIX_TARGET before CLONE_PROJECT can claim
+     * its own provider-effect lease. The claim transaction re-locks the rows
+     * and rejects any drift from these snapshots.
+     */
+    const deletionStates = await this.prisma.project.findMany({
+      where: { id: { in: scopes.map(({ projectId }) => projectId) } },
+      select: { id: true, organizationId: true, deletedAt: true },
+    });
+    const deletionStateByProject = new Map(deletionStates.map((project) => [project.id, project]));
+    if (
+      deletionStates.length !== scopes.length ||
+      scopes.some(
+        (scope) => deletionStateByProject.get(scope.projectId)?.organizationId !== scope.expectedOrganizationId,
+      )
+    ) {
+      throw projectOrganizationChangedError();
+    }
     const operationRequest = {
       kind: input.command.type === 'CLONE_PROJECT' ? ('PROJECT_REMIX_CLONE' as const) : ('TENANT_MUTATION' as const),
-      scopes: scopes.map(({ projectId, expectedOrganizationId }) => ({ projectId, expectedOrganizationId })),
+      scopes: scopes.map(({ projectId, expectedOrganizationId }) => ({
+        projectId,
+        expectedOrganizationId,
+        expectedDeletedAt: deletionStateByProject.get(projectId)!.deletedAt?.toISOString() ?? null,
+      })),
       payload: commandIdentity,
       preconditions: {
         tenantMustMatch: true,
@@ -6437,6 +6462,63 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
     return rows[0];
   }
 
+  /**
+   * Lock and validate the exact durable owner of a hidden import/remix target.
+   * The job row is locked before the Project row, matching the state-machine
+   * transitions that first lock their job and then hide/reveal/delete a target.
+   */
+  private async lockPartialTargetAuthority(
+    tx: Prisma.TransactionClient,
+    scope: ProjectPhysicalMutationScope,
+  ): Promise<boolean> {
+    const authority = scope.partialTargetAuthority;
+    if (!authority) return false;
+
+    const operation = scope.physicalAccessOperation;
+    if (!operation) return false;
+
+    const materializingState = authority.kind === 'IMPORT_TARGET' ? 'COMMITTING' : 'SOURCE_SANITIZED';
+    const states =
+      operation === 'WRITE'
+        ? [materializingState]
+        : operation === 'DELETE'
+          ? ['CLEANUP_PENDING']
+          : operation === 'OBJECT_CLONE'
+            ? authority.kind === 'REMIX_TARGET'
+              ? ['STORAGE_PINNED']
+              : []
+            : [materializingState, 'CLEANUP_PENDING'];
+    if (states.length === 0) return false;
+
+    if (authority.kind === 'IMPORT_TARGET') {
+      const rows = await tx.$queryRaw<Array<{ id: string }>>(Prisma.sql`
+        SELECT job."id"
+        FROM "ImportJob" job
+        WHERE job."id" = ${authority.jobId}
+          AND job."organizationId" = ${scope.expectedOrganizationId}
+          AND job."targetProjectId" = ${scope.projectId}
+          AND job."operationToken" = ${authority.operationToken}
+          AND job."operationExpiresAt" > date_trunc('milliseconds', clock_timestamp())
+          AND job."state" IN (${Prisma.join(states)})
+        FOR UPDATE
+      `);
+      return rows.length === 1;
+    }
+
+    const rows = await tx.$queryRaw<Array<{ id: string }>>(Prisma.sql`
+      SELECT job."id"
+      FROM "RemixJob" job
+      WHERE job."id" = ${authority.jobId}
+        AND job."organizationId" = ${scope.expectedOrganizationId}
+        AND job."targetProjectId" = ${scope.projectId}
+        AND job."operationToken" = ${authority.operationToken}
+        AND job."operationExpiresAt" > date_trunc('milliseconds', clock_timestamp())
+        AND job."state" IN (${Prisma.join(states)})
+      FOR UPDATE
+    `);
+    return rows.length === 1;
+  }
+
   private async lockExpectedProjectTenantMutation(
     tx: Prisma.TransactionClient,
     scope: ProjectPhysicalMutationScope,
@@ -6460,6 +6542,10 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
       'SELECT pg_advisory_xact_lock(hashtext($1))',
       objectStorageMutationAdvisoryKey(scope.projectId),
     );
+    const partialTargetAuthorized = await this.lockPartialTargetAuthority(tx, scope);
+    if (scope.partialTargetAuthority && !partialTargetAuthorized) {
+      throw projectOrganizationChangedError();
+    }
     await lockProjectAfterPurgeTopology(tx, scope.projectId);
 
     const project = await tx.project.findUnique({
@@ -6469,7 +6555,7 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
 
     if (
       !project ||
-      (!options.allowDeletedProject && project.deletedAt) ||
+      (!options.allowDeletedProject && project.deletedAt && !partialTargetAuthorized) ||
       project.organizationId !== scope.expectedOrganizationId
     ) {
       throw projectOrganizationChangedError();
@@ -7698,6 +7784,14 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
       ) => Promise<ObjectStorageVerification>;
     },
   ): Promise<ProjectPermanentDeletionResult> {
+    /* Hard-delete is the cleanup operation; never accept a caller-forged stamp. */
+    const physicalScope: ProjectPhysicalMutationScope = {
+      projectId: input.projectId,
+      expectedOrganizationId: input.expectedOrganizationId,
+      workspaceId: input.workspaceId,
+      partialTargetAuthority: input.partialTargetAuthority,
+      physicalAccessOperation: 'DELETE',
+    };
     const operationRequest = projectPermanentDeletionOperationRequest({
       projectId: input.projectId,
       organizationId: input.expectedOrganizationId,
@@ -7727,7 +7821,7 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
           idempotencyKey: input.idempotencyKey,
           requestHash: input.requestHash,
         });
-        await this.lockExpectedProjectTenantMutation(tx, input, {
+        await this.lockExpectedProjectTenantMutation(tx, physicalScope, {
           allowDeletedProject: true,
           allowPermanentDeletion: true,
           allowedObjectStorageOperationId,
@@ -7747,7 +7841,7 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
             idempotencyKey: input.idempotencyKey,
             requestHash: input.requestHash,
           });
-          await this.lockExpectedProjectTenantMutation(tx, input, {
+          await this.lockExpectedProjectTenantMutation(tx, physicalScope, {
             allowDeletedProject: true,
             allowPermanentDeletion: true,
             allowedObjectStorageOperationId: matchingOperation?.operationId,

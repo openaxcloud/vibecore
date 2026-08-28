@@ -745,10 +745,15 @@ export class TestApiStore implements ApiStore {
     options: { allowDeletedProject?: boolean; allowPermanentDeletion?: boolean } = {},
   ): ProjectRecord {
     const project = this.projects.get(scope.projectId);
+    const partialTargetAuthorized = this.hasPartialTargetAuthority(scope);
+
+    if (scope.partialTargetAuthority && !partialTargetAuthorized) {
+      throw projectOrganizationChangedError();
+    }
 
     if (
       !project ||
-      (!options.allowDeletedProject && project.deletedAt) ||
+      (!options.allowDeletedProject && project.deletedAt && !partialTargetAuthorized) ||
       project.organizationId !== scope.expectedOrganizationId
     ) {
       throw projectOrganizationChangedError();
@@ -762,6 +767,37 @@ export class TestApiStore implements ApiStore {
     }
 
     return project;
+  }
+
+  private hasPartialTargetAuthority(scope: ProjectPhysicalMutationScope): boolean {
+    const authority = scope.partialTargetAuthority;
+    const operation = scope.physicalAccessOperation;
+    if (!authority || !operation) return false;
+
+    const materializingState = authority.kind === 'IMPORT_TARGET' ? 'COMMITTING' : 'SOURCE_SANITIZED';
+    const allowedStates =
+      operation === 'WRITE'
+        ? [materializingState]
+        : operation === 'DELETE'
+          ? ['CLEANUP_PENDING']
+          : operation === 'OBJECT_CLONE'
+            ? authority.kind === 'REMIX_TARGET'
+              ? ['STORAGE_PINNED']
+              : []
+            : [materializingState, 'CLEANUP_PENDING'];
+    const job =
+      authority.kind === 'IMPORT_TARGET' ? this.importJobs.get(authority.jobId) : this.remixJobs.get(authority.jobId);
+    const nowMs = this.databaseClockNowMs ?? Date.now();
+
+    return Boolean(
+      job &&
+        job.organizationId === scope.expectedOrganizationId &&
+        job.targetProjectId === scope.projectId &&
+        job.operationToken === authority.operationToken &&
+        job.operationExpiresAt &&
+        Date.parse(job.operationExpiresAt) > nowMs &&
+        allowedStates.includes(job.state),
+    );
   }
 
   private withProjectPhysicalBarriers<T>(projectIds: string[], effect: () => Promise<T>): Promise<T> {
@@ -3569,6 +3605,14 @@ export class TestApiStore implements ApiStore {
       ) => Promise<ObjectStorageVerification>;
     },
   ): Promise<ProjectPermanentDeletionResult> {
+    /* Hard-delete is the cleanup operation; never accept a caller-forged stamp. */
+    const physicalScope: ProjectPhysicalMutationScope = {
+      projectId: input.projectId,
+      expectedOrganizationId: input.expectedOrganizationId,
+      workspaceId: input.workspaceId,
+      partialTargetAuthority: input.partialTargetAuthority,
+      physicalAccessOperation: 'DELETE',
+    };
     const expectedRequestHash = projectPermanentDeletionRequestHash({
       projectId: input.projectId,
       organizationId: input.expectedOrganizationId,
@@ -3591,7 +3635,7 @@ export class TestApiStore implements ApiStore {
     if (existing) return existing;
 
     return this.withProjectTenantMutation(
-      input,
+      physicalScope,
       async () => {
         if (
           [...this.remixStorageShares.values()].some(
@@ -3622,7 +3666,7 @@ export class TestApiStore implements ApiStore {
             statusCode: 409,
           });
         }
-        const project = this.assertExpectedProjectTenant(input, {
+        const project = this.assertExpectedProjectTenant(physicalScope, {
           allowDeletedProject: true,
           allowPermanentDeletion: true,
         });
@@ -3648,7 +3692,7 @@ export class TestApiStore implements ApiStore {
         project.updatedAt = now();
 
         const assertLease = async () => {
-          await this.assertProjectStorageMutable(input, {
+          await this.assertProjectStorageMutable(physicalScope, {
             allowDeletedProject: true,
             allowPermanentDeletion: true,
             ...(input.accountPurgeDeletionAuthority
@@ -3797,7 +3841,7 @@ export class TestApiStore implements ApiStore {
             statusCode: 409,
           });
         }
-        this.assertExpectedProjectTenant(input, {
+        this.assertExpectedProjectTenant(physicalScope, {
           allowDeletedProject: true,
           allowPermanentDeletion: true,
         });
