@@ -70,6 +70,36 @@ jobs:
           pnpm --filter @vibecore/database db:generate
           pnpm --filter @vibecore/database db:deploy
 
+      # Le client Prisma est VERSIONNE (packages/database/generated). Ce job le
+      # regenere juste au-dessus, donc lint/typecheck/tests y travaillent
+      # toujours sur un client a jour — et ne voient jamais une derive.
+      #
+      # Les autres workflows, eux, ne le regenerent pas : l'audit i18n live et
+      # les suites e2e demarrent l'API sur la copie COMMITEE. Un client perime
+      # y produit une panne au demarrage ou un 500 a la premiere ecriture, avec
+      # un message qui ne parle pas de Prisma. Trois branches du meme lot sont
+      # restees bloquees des jours sur exactement ce symptome :
+      #
+      #   - `Property 'projectCheckpoint' does not exist on type 'PrismaClient'`
+      #   - `Property 'dBMigrationExecution' does not exist ...`
+      #   - `/auth/register` en 500, parce que SessionScalarFieldEnum ignorait
+      #     `lastActiveAt` : chaque test qui commence par s'authentifier tombait.
+      #
+      # D'ou cette porte : si la regeneration produit autre chose que ce qui est
+      # commite, l'artefact versionne est perime et on le dit tout de suite, ici,
+      # avec le nom du fichier — plutot que trois workflows plus loin sous la
+      # forme d'une panne d'infrastructure apparente.
+      - name: Committed Prisma client matches the schema
+        run: |
+          if git diff --quiet -- packages/database/generated; then
+            echo "client Prisma commite : a jour"
+            exit 0
+          fi
+
+          echo "::error::Le client Prisma commite ne correspond plus au schema. Lancez 'pnpm --filter @vibecore/database db:generate' et committez packages/database/generated."
+          git diff --stat -- packages/database/generated
+          exit 1
+
       - name: Lint
         run: pnpm run lint
 
