@@ -1102,6 +1102,9 @@ importers:
       fastify:
         specifier: ^5.8.5
         version: 5.8.5
+      google-auth-library:
+        specifier: 9.15.1
+        version: 9.15.1
       tsx:
         specifier: ^4.21.0
         version: 4.21.0

@@ -9,6 +9,7 @@
     "@vibecore/sandbox-runtime": "workspace:*",
     "@vibecore/workspace-sdk": "workspace:*",
     "fastify": "^5.8.5",
+    "google-auth-library": "9.15.1",
     "tsx": "^4.21.0",
     "zod": "^3.24.1"
   },
@@ -18,9 +19,9 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "start": "node dist/server.js",
-    "build": "tsc --outDir dist --rootDir src --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --esModuleInterop true --strict true src/manager.ts src/app.ts src/server.ts src/prisma-store.ts",
+    "build": "tsc --outDir dist --rootDir src --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --esModuleInterop true --strict true src/manager.ts src/app.ts src/server.ts src/prisma-store.ts src/project-volume-erasure.ts src/project-volume-erasure-adapters.ts",
     "test": "vitest --run --config vitest.config.ts",
-    "typecheck": "tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --esModuleInterop true --strict true src/manager.ts src/app.ts src/server.ts src/prisma-store.ts",
+    "typecheck": "tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --esModuleInterop true --strict true src/manager.ts src/app.ts src/server.ts src/prisma-store.ts src/project-volume-erasure.ts src/project-volume-erasure-adapters.ts",
     "lint": "echo \"workspace-manager lint covered by typecheck\""
   }
 }
