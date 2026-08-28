@@ -1956,7 +1956,10 @@ runDbTests('object-storage operation saga — real PostgreSQL', () => {
       actorUserId: actor.id,
       expectedProjectName: seeded.project.name,
     });
-    const preflightPhysicalErasure = vi.fn(async () => EMPTY_STATIC_ARTIFACT_SUMMARY);
+    const preflightPhysicalErasure = vi.fn(async () => ({
+      summary: EMPTY_STATIC_ARTIFACT_SUMMARY,
+      artifacts: [],
+    }));
     const erasePhysical = vi.fn(async () => {
       throw Object.assign(new Error('PROJECT_WORKSPACE_ERASURE_REPLAY_REQUIRED'), {
         code: 'PROJECT_WORKSPACE_ERASURE_REPLAY_REQUIRED',
@@ -2670,6 +2673,83 @@ runDbTests('object-storage operation saga — real PostgreSQL', () => {
         .deleteMany({ where: { id: { in: [seeded.source.id, seeded.target.id] } } })
         .catch(() => undefined);
       await Promise.allSettled([store.disconnect(), replayClient.$disconnect()]);
+    }
+  });
+
+  it('refuses to replay a legacy receipt without current durable physical ledgers', async () => {
+    const prisma = createDatabaseClient();
+    const token = suffix();
+    const projectId = `legacy-replay-project-${token}`;
+    const organizationId = `legacy-replay-org-${token}`;
+    const operationId = `legacy-replay-operation-${token}`;
+    const idempotencyKey = `legacy-replay-${token}`;
+    const digest = (label: string) => createHash('sha256').update(`${label}:${token}`).digest('hex');
+    const scopeHash = digest('scope');
+    const idempotencyScopeHash = digest('idempotency-scope');
+    const requestHash = digest('request');
+    const completedAt = new Date();
+    const legacyProof = {
+      outcome: 'VERIFIED_ABSENT',
+      verifiedAt: completedAt.toISOString(),
+      verifier: 'legacy-project-delete-v1',
+      evidence: {
+        schemaVersion: 'project-permanent-erasure-v1',
+        filesystem: { projectTreeAbsent: true, workspaceTreesAbsent: true, objectCacheAbsent: true },
+        gcs: { bucketAbsent: true, objectCount: 0 },
+      },
+    };
+
+    try {
+      await prisma.$transaction(async (tx) => {
+        await tx.$executeRaw`
+          INSERT INTO "ObjectStorageOperation" (
+            "id", "kind", "status", "scopeHash", "idempotencyScopeHash", "idempotencyKey",
+            "requestHash", "payload", "preconditions", "result", "fencingToken", "attempts",
+            "preparedAt", "effectStartedAt", "verificationStartedAt", "committedAt", "createdAt", "updatedAt"
+          ) VALUES (
+            ${operationId}, 'PROJECT_PERMANENT_DELETE'::"ObjectStorageOperationKind",
+            'COMMITTED'::"ObjectStorageOperationStatus", ${scopeHash}, ${idempotencyScopeHash},
+            ${idempotencyKey}, ${requestHash}, '{"command":"permanently-delete-project"}'::jsonb,
+            '{"tenantMustMatch":true,"physicalAbsenceRequired":true}'::jsonb,
+            ${JSON.stringify({ project: { id: projectId, state: 'PERMANENTLY_DELETED' } })}::jsonb,
+            1, 1, clock_timestamp() - INTERVAL '3 seconds', clock_timestamp() - INTERVAL '2 seconds',
+            clock_timestamp() - INTERVAL '1 second', clock_timestamp(), clock_timestamp() - INTERVAL '3 seconds',
+            clock_timestamp()
+          )
+        `;
+        await tx.$executeRaw`
+          INSERT INTO "ObjectStorageOperationProjectScope" (
+            "operationId", "ordinal", "projectIdSnapshot", "projectId", "expectedOrganizationId", "createdAt"
+          ) VALUES (${operationId}, 0, ${projectId}, NULL, ${organizationId}, clock_timestamp())
+        `;
+        await tx.$executeRaw`
+          INSERT INTO "ProjectPermanentDeletionReceipt" (
+            "projectId", "operationId", "organizationId", "scopeHash", "idempotencyScopeHash",
+            "idempotencyKey", "requestHash", "projectSnapshot", "state", "proof", "result",
+            "deletedAt", "completedAt", "createdAt"
+          ) VALUES (
+            ${projectId}, ${operationId}, ${organizationId}, ${scopeHash}, ${idempotencyScopeHash},
+            ${idempotencyKey}, ${requestHash},
+            ${JSON.stringify({ id: projectId, organizationId, ownershipEpoch: 0, state: 'PERMANENTLY_DELETED' })}::jsonb,
+            'COMMITTED'::"ObjectStorageOperationStatus", ${JSON.stringify(legacyProof)}::jsonb,
+            ${JSON.stringify({ project: { id: projectId, state: 'PERMANENTLY_DELETED' } })}::jsonb,
+            ${completedAt}, ${completedAt}, ${completedAt}
+          )
+        `;
+      });
+
+      await expect(
+        prisma.$transaction((tx) =>
+          getPermanentDeletionReplay(tx, {
+            projectId,
+            expectedOrganizationId: organizationId,
+            idempotencyKey,
+            requestHash,
+          }),
+        ),
+      ).rejects.toMatchObject({ code: 'OBJECT_STORAGE_OPERATION_PERMANENT_ERASURE_PROOF_INCOMPLETE' });
+    } finally {
+      await prisma.$disconnect();
     }
   });
 });

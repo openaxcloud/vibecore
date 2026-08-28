@@ -3894,6 +3894,8 @@ export async function getPermanentDeletionReplay(
       projectId: string;
       operationId: string;
       organizationId: string;
+      scopeHash: string;
+      idempotencyScopeHash: string;
       idempotencyKey: string;
       requestHash: string;
       projectSnapshot: unknown;
@@ -3901,13 +3903,29 @@ export async function getPermanentDeletionReplay(
       proof: unknown;
       result: unknown;
       completedAt: Date;
+      operationKind: ObjectStorageOperationKind;
+      operationState: ObjectStorageOperationStatus;
+      operationScopeHash: string;
+      operationIdempotencyScopeHash: string;
+      operationIdempotencyKey: string;
+      operationRequestHash: string;
+      operationPreconditions: unknown;
     }>
   >(Prisma.sql`
     SELECT
-      "projectId", "operationId", "organizationId", "idempotencyKey", "requestHash",
-      "projectSnapshot", "state", "proof", "result", "completedAt"
-    FROM "ProjectPermanentDeletionReceipt"
-    WHERE "projectId" = ${input.projectId}
+      receipt."projectId", receipt."operationId", receipt."organizationId",
+      receipt."scopeHash", receipt."idempotencyScopeHash", receipt."idempotencyKey",
+      receipt."requestHash", receipt."projectSnapshot",
+      receipt."state", receipt."proof", receipt."result", receipt."completedAt",
+      operation."kind" AS "operationKind", operation."status" AS "operationState",
+      operation."scopeHash" AS "operationScopeHash",
+      operation."idempotencyScopeHash" AS "operationIdempotencyScopeHash",
+      operation."idempotencyKey" AS "operationIdempotencyKey",
+      operation."requestHash" AS "operationRequestHash",
+      operation."preconditions" AS "operationPreconditions"
+    FROM "ProjectPermanentDeletionReceipt" receipt
+    JOIN "ObjectStorageOperation" operation ON operation."id" = receipt."operationId"
+    WHERE receipt."projectId" = ${input.projectId}
   `);
   const row = rows[0];
   if (!row) return null;
@@ -3921,13 +3939,168 @@ export async function getPermanentDeletionReplay(
       409,
     );
   }
-  if (row.state !== 'COMMITTED') {
+  if (
+    row.state !== 'COMMITTED' ||
+    row.operationKind !== 'PROJECT_PERMANENT_DELETE' ||
+    row.operationState !== 'COMMITTED' ||
+    row.operationScopeHash !== row.scopeHash ||
+    row.operationIdempotencyScopeHash !== row.idempotencyScopeHash ||
+    row.operationIdempotencyKey !== row.idempotencyKey ||
+    row.operationRequestHash !== row.requestHash
+  ) {
     throw operationError('OBJECT_STORAGE_OPERATION_RECEIPT_CORRUPT', 'Permanent deletion receipt is invalid', 500);
   }
   const projectSnapshot = normalizeJsonObject(row.projectSnapshot, 'stored project snapshot');
+  const preconditions = normalizeJsonObject(row.operationPreconditions, 'stored permanent deletion preconditions');
   const proof = validateVerification(
     normalizeJsonObject(row.proof, 'stored deletion proof') as unknown as ObjectStorageVerification,
   );
+  assertPermanentDeletionEvidence(proof.evidence, preconditions);
+
+  const scopes = await tx.$queryRaw<
+    Array<{ ordinal: number; projectIdSnapshot: string; expectedOrganizationId: string }>
+  >(Prisma.sql`
+    SELECT "ordinal", "projectIdSnapshot", "expectedOrganizationId"
+    FROM "ObjectStorageOperationProjectScope"
+    WHERE "operationId" = ${row.operationId}
+    ORDER BY "ordinal"
+  `);
+  if (
+    scopes.length !== 1 ||
+    scopes[0]?.ordinal !== 0 ||
+    scopes[0]?.projectIdSnapshot !== row.projectId ||
+    scopes[0]?.expectedOrganizationId !== row.organizationId
+  ) {
+    throw operationError('OBJECT_STORAGE_OPERATION_RECEIPT_CORRUPT', 'Permanent deletion scope is invalid', 500);
+  }
+
+  const databaseCascade = proof.evidence.databaseCascade;
+  if (
+    !databaseCascade ||
+    typeof databaseCascade !== 'object' ||
+    Array.isArray(databaseCascade) ||
+    databaseCascade.projectReleaseReferencesAbsent !== true ||
+    databaseCascade.liveScopeDetached !== true ||
+    databaseCascade.workspaceRuntimeRowsAbsent !== true ||
+    databaseCascade.scheduledTaskRowsAbsent !== true ||
+    databaseCascade.scheduledRunRowsAbsent !== true ||
+    databaseCascade.runtimeEffectRowsAbsent !== true ||
+    databaseCascade.volumeErasurePlanRetained !== true ||
+    databaseCascade.databaseInstanceRowsAbsent !== true ||
+    databaseCascade.databaseSnapshotRowsAbsent !== true ||
+    databaseCascade.databaseRestoreRowsAbsent !== true ||
+    databaseCascade.databaseErasurePlanRetained !== true ||
+    databaseCascade.registryMutationRowsAbsent !== true ||
+    databaseCascade.appImageBuildRowsAbsent !== true
+  ) {
+    throw operationError(
+      'OBJECT_STORAGE_OPERATION_PERMANENT_ERASURE_PROOF_INCOMPLETE',
+      'Permanent deletion replay is missing the final database-cascade proof',
+      409,
+    );
+  }
+
+  const workspaceManager = proof.evidence.workspaceManager as ObjectStorageJsonObject;
+  const volumeProof = workspaceManager.volumes as ObjectStorageJsonObject;
+  const volumePlans = await tx.$queryRaw<
+    Array<{
+      projectIdSnapshot: string;
+      organizationId: string;
+      ownershipEpoch: number;
+      state: string;
+      inventoryHash: string | null;
+      verificationHash: string | null;
+      quiescenceHash: string | null;
+      finalScanHash: string | null;
+    }>
+  >(Prisma.sql`
+    SELECT "projectIdSnapshot", "organizationId", "ownershipEpoch", "state"::text AS "state",
+           "inventoryHash", "verificationHash", "quiescenceHash", "finalScanHash"
+    FROM "ProjectVolumeErasure"
+    WHERE "operationId" = ${row.operationId}
+  `);
+  const volumePlan = volumePlans[0];
+  if (
+    !volumePlan ||
+    volumePlan.projectIdSnapshot !== row.projectId ||
+    volumePlan.organizationId !== row.organizationId ||
+    volumePlan.ownershipEpoch !== projectSnapshot.ownershipEpoch ||
+    volumePlan.state !== 'VERIFIED' ||
+    volumePlan.inventoryHash !== volumeProof.inventoryHash ||
+    volumePlan.verificationHash !== volumeProof.verificationHash ||
+    volumePlan.quiescenceHash !== volumeProof.quiescenceHash ||
+    volumePlan.finalScanHash !== volumeProof.finalScanHash
+  ) {
+    throw operationError(
+      'OBJECT_STORAGE_OPERATION_PROJECT_VOLUME_ERASURE_UNVERIFIED',
+      'Permanent deletion replay has no matching durable volume receipt',
+      409,
+    );
+  }
+
+  const databasePlans = await tx.$queryRaw<
+    Array<{
+      projectId: string;
+      organizationId: string;
+      ownershipEpoch: number;
+      stage: string;
+      receipt: unknown;
+    }>
+  >(Prisma.sql`
+    SELECT "projectId", "organizationId", "ownershipEpoch", "stage"::text AS "stage", "receipt"
+    FROM "ProjectDatabaseErasurePlan"
+    WHERE "operationId" = ${row.operationId}
+  `);
+  const databasePlan = databasePlans[0];
+  const managedDatabase = proof.evidence.managedDatabase;
+  if (
+    !databasePlan ||
+    databasePlan.projectId !== row.projectId ||
+    databasePlan.organizationId !== row.organizationId ||
+    databasePlan.ownershipEpoch !== projectSnapshot.ownershipEpoch ||
+    databasePlan.stage !== 'VERIFIED' ||
+    !databasePlan.receipt ||
+    !managedDatabase ||
+    typeof managedDatabase !== 'object' ||
+    Array.isArray(managedDatabase) ||
+    canonicalJson(normalizeJsonObject(databasePlan.receipt, 'database erasure receipt')) !==
+      canonicalJson(managedDatabase)
+  ) {
+    throw operationError(
+      'OBJECT_STORAGE_OPERATION_PROJECT_DATABASE_ERASURE_UNVERIFIED',
+      'Permanent deletion replay has no matching durable database receipt',
+      409,
+    );
+  }
+
+  const registryRows = await tx.$queryRaw<Array<{ projectIdSnapshot: string; state: string; receipt: unknown }>>(
+    Prisma.sql`
+      SELECT "projectIdSnapshot", "state"::text AS "state", "receipt"
+      FROM "ProjectRegistryErasure"
+      WHERE "operationId" = ${row.operationId}
+    `,
+  );
+  const registry = registryRows[0];
+  const projectImages = proof.evidence.projectImages as ObjectStorageJsonObject;
+  const registryProof = projectImages.registry;
+  if (
+    projectImages.projectId !== row.projectId ||
+    projectImages.operationId !== row.operationId ||
+    !registry ||
+    registry.projectIdSnapshot !== row.projectId ||
+    registry.state !== 'VERIFIED' ||
+    !registry.receipt ||
+    !registryProof ||
+    typeof registryProof !== 'object' ||
+    Array.isArray(registryProof) ||
+    canonicalJson(normalizeJsonObject(registry.receipt, 'registry erasure receipt')) !== canonicalJson(registryProof)
+  ) {
+    throw operationError(
+      'OBJECT_STORAGE_OPERATION_PROJECT_REGISTRY_ERASURE_INCOMPLETE',
+      'Permanent deletion replay has no matching durable registry receipt',
+      409,
+    );
+  }
   const result = normalizeJson(row.result, 'stored deletion result');
   if (result === null) {
     throw operationError('OBJECT_STORAGE_OPERATION_RECEIPT_CORRUPT', 'Permanent deletion receipt has no result', 500);
