@@ -41992,34 +41992,39 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       | { claimed: false }
       | { claimed: true; deploymentId: string; operationId: string; jobId: string }
       | { error: string; code: string; retryable: true };
-
-    try {
+    reservedVmCreateRecovery = { claimed: false };
+    for (let candidate = 0; candidate < 8; candidate += 1) {
       const recovered = await store.claimNextRecoverableReservedVmOperation({
         ownerToken: randomUUID(),
-        ttlMs: 1_000,
+        ttlMs: 10_000,
         kinds: ['CREATE'],
       });
+      if (!recovered) break;
 
-      if (!recovered) {
-        reservedVmCreateRecovery = { claimed: false };
-      } else {
+      let retryClass: 'TRANSIENT' | 'MANUAL' = 'TRANSIENT';
+      try {
         const metadata = readReservedVmCreateMetadata(recovered.deployment);
-
         if (
           !metadata ||
           recovered.operation.kind !== 'CREATE' ||
           recovered.operation.requestHash !== metadata.inputHash ||
           recovered.operation.actorUserId !== metadata.actorUserId
         ) {
+          retryClass = 'MANUAL';
           throw Object.assign(reservedVmInternalError('RESERVED_VM_CREATE_METADATA_INVALID'), {
             code: 'RESERVED_VM_CREATE_METADATA_INVALID',
           });
         }
-
-        const buildInput = parse(
-          createDeploymentSchema.extend({ secondaryWorkspaceId: z.string().min(1).optional() }),
-          metadata.buildInput,
-        );
+        let buildInput;
+        try {
+          buildInput = parse(
+            createDeploymentSchema.extend({ secondaryWorkspaceId: z.string().min(1).optional() }),
+            metadata.buildInput,
+          );
+        } catch (error) {
+          retryClass = 'MANUAL';
+          throw error;
+        }
         const jobId = await enqueueDeployJob({
           projectId: recovered.operation.projectId,
           deploymentId: recovered.operation.deploymentId,
@@ -42032,14 +42037,33 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           operationId: recovered.operation.id,
           jobId,
         };
+        break;
+      } catch (error) {
+        const code = (error as { code?: string }).code ?? 'RESERVED_VM_CREATE_RECOVERY_FAILED';
+        if (recovered.operation.leaseOwner) {
+          await store
+            .deferReservedVmRecovery({
+              operationId: recovered.operation.id,
+              ownerToken: recovered.operation.leaseOwner,
+              fencingToken: recovered.operation.fencingToken,
+              errorCode: code,
+              errorMessage: error instanceof Error ? error.message : String(error),
+              retryClass,
+            })
+            .catch((deferError) => request.log.error({ err: deferError }, 'reserved VM create recovery defer failed'));
+        }
+        metrics.increment('reserved_vm_recovery_deferred_total', {
+          kind: 'CREATE',
+          retry_class: retryClass,
+          code,
+        });
+        reservedVmCreateRecovery = {
+          error: error instanceof Error ? error.message : String(error),
+          code,
+          retryable: true,
+        };
+        request.log.error({ err: error }, 'reserved VM create recovery enqueue failed');
       }
-    } catch (error) {
-      reservedVmCreateRecovery = {
-        error: error instanceof Error ? error.message : String(error),
-        code: (error as { code?: string }).code ?? 'RESERVED_VM_CREATE_RECOVERY_FAILED',
-        retryable: true,
-      };
-      request.log.error({ err: error }, 'reserved VM create recovery enqueue failed');
     }
 
     let reservedVmRedeployRecovery:
@@ -42047,29 +42071,19 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       | { claimed: true; deploymentId: string; operationId: string; jobId: string }
       | { error: string; code: string };
 
-    try {
-      /*
-       * Redis enqueue is not part of the operation-creation transaction. The
-       * sanitized build input lives on the READY deployment, so this sweep can
-       * reconstruct the exact same BullMQ job after either an enqueue failure or
-       * an API crash. Claim only REDEPLOY here: CHANGE recovery is driven by its
-       * separate runtime-effect loop.
-       *
-       * This claim is discovery-only and deliberately short. A worker that wins
-       * the immediate race receives a retryable lease-busy response; BullMQ's
-       * configured retry then reacquires a fresh deployment-global fence. The
-       * stable operation-key job id prevents repeated reaper ticks from creating
-       * a second build.
-       */
-      const recovered = await store.claimNextRecoverableReservedVmOperation({
-        ownerToken: randomUUID(),
-        ttlMs: 1_000,
-        kinds: ['REDEPLOY'],
-      });
+    reservedVmRedeployRecovery = { claimed: false };
+    for (let candidate = 0; candidate < 8; candidate += 1) {
+      let recovered: Awaited<ReturnType<ApiStore['claimNextRecoverableReservedVmOperation']>>;
+      let retryClass: 'TRANSIENT' | 'MANUAL' = 'TRANSIENT';
+      try {
+        /* The stable operation-key job id keeps successful recovery enqueue idempotent. */
+        recovered = await store.claimNextRecoverableReservedVmOperation({
+          ownerToken: randomUUID(),
+          ttlMs: 10_000,
+          kinds: ['REDEPLOY'],
+        });
 
-      if (!recovered) {
-        reservedVmRedeployRecovery = { claimed: false };
-      } else {
+        if (!recovered) break;
         const metadata = readReservedVmRedeployMetadata(recovered.deployment);
 
         if (
@@ -42078,15 +42092,22 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           recovered.operation.id !== metadata.operationId ||
           !recovered.operation.actorUserId
         ) {
+          retryClass = 'MANUAL';
           throw Object.assign(reservedVmInternalError('Recoverable Reserved VM redeploy metadata is inconsistent.'), {
             code: 'RESERVED_VM_REDEPLOY_METADATA_INVALID',
           });
         }
 
-        const buildInput = parse(
-          createDeploymentSchema.extend({ secondaryWorkspaceId: z.string().min(1).optional() }),
-          metadata.buildInput,
-        );
+        let buildInput;
+        try {
+          buildInput = parse(
+            createDeploymentSchema.extend({ secondaryWorkspaceId: z.string().min(1).optional() }),
+            metadata.buildInput,
+          );
+        } catch (error) {
+          retryClass = 'MANUAL';
+          throw error;
+        }
         const jobId = await enqueueDeployJob({
           projectId: recovered.operation.projectId,
           deploymentId: recovered.operation.deploymentId,
@@ -42100,13 +42121,33 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           operationId: recovered.operation.id,
           jobId,
         };
+        break;
+      } catch (error) {
+        if (recovered?.operation.leaseOwner) {
+          await store
+            .deferReservedVmRecovery({
+              operationId: recovered.operation.id,
+              ownerToken: recovered.operation.leaseOwner,
+              fencingToken: recovered.operation.fencingToken,
+              errorCode: (error as { code?: string }).code ?? 'RESERVED_VM_REDEPLOY_RECOVERY_FAILED',
+              errorMessage: error instanceof Error ? error.message : String(error),
+              retryClass,
+            })
+            .catch((deferError) =>
+              request.log.error({ err: deferError }, 'reserved VM redeploy recovery defer failed'),
+            );
+        }
+        metrics.increment('reserved_vm_recovery_deferred_total', {
+          kind: 'REDEPLOY',
+          retry_class: retryClass,
+          code: (error as { code?: string }).code ?? 'RESERVED_VM_REDEPLOY_RECOVERY_FAILED',
+        });
+        reservedVmRedeployRecovery = {
+          error: error instanceof Error ? error.message : String(error),
+          code: (error as { code?: string }).code ?? 'RESERVED_VM_REDEPLOY_RECOVERY_FAILED',
+        };
+        request.log.error({ err: error }, 'reserved VM redeploy recovery enqueue failed');
       }
-    } catch (error) {
-      reservedVmRedeployRecovery = {
-        error: error instanceof Error ? error.message : String(error),
-        code: (error as { code?: string }).code ?? 'RESERVED_VM_REDEPLOY_RECOVERY_FAILED',
-      };
-      request.log.error({ err: error }, 'reserved VM redeploy recovery enqueue failed');
     }
 
     let reservedVmChangeRecovery:

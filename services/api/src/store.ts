@@ -3470,6 +3470,15 @@ export interface ApiStore {
     ttlMs: number;
     kinds?: Array<'CREATE' | 'CHANGE' | 'REDEPLOY' | 'DECOMMISSION'>;
   }): Promise<{ operation: ReservedVmLease; deployment: DeploymentRecord } | undefined>;
+  /** Durable CAS backoff for a claimed recovery candidate; preserves saga phase/status. */
+  deferReservedVmRecovery(input: {
+    operationId: string;
+    ownerToken: string;
+    fencingToken: number;
+    errorCode: string;
+    errorMessage: string;
+    retryClass: 'TRANSIENT' | 'MANUAL';
+  }): Promise<ReservedVmLease>;
   prepareReservedVmPublish(input: {
     projectId: string;
     deploymentId: string;
