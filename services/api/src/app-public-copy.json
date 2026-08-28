@@ -2579,6 +2579,26 @@
     "en": "Password protection is only available for static deployments. This deployment is served from another domain, where the password gate cannot be enforced.",
     "fr": "La protection par mot de passe n’est disponible que pour les déploiements statiques. Ce déploiement est servi depuis un autre domaine, où la porte de mot de passe ne peut pas être appliquée."
   },
+  "RATE_LIMIT_STORE_UNAVAILABLE_ADMIN": {
+    "en": "Rate limiting is temporarily unavailable — admin mutations are refused.",
+    "fr": "La limitation de débit est momentanément indisponible — les modifications d’administration sont refusées."
+  },
+  "RATE_LIMIT_STORE_UNAVAILABLE_REQUEST": {
+    "en": "Rate limiting is temporarily unavailable — request refused.",
+    "fr": "La limitation de débit est momentanément indisponible — requête refusée."
+  },
+  "RATE_LIMIT_STORE_UNREACHABLE_INTERNAL": {
+    "en": "The rate-limit store is unreachable — request refused (fail-closed).",
+    "fr": "Le store de limitation de débit est injoignable — requête refusée (fail-closed)."
+  },
+  "RATE_LIMIT_BACKEND_MISSING_INTERNAL": {
+    "en": "FastifyRateLimitSharedStore: no backend was provided.",
+    "fr": "FastifyRateLimitSharedStore : aucun backend fourni."
+  },
+  "RATE_LIMIT_NON_NUMERIC_COUNT_INTERNAL": {
+    "en": "The redis rate-limit returned a non-numeric count.",
+    "fr": "La limitation de débit redis a renvoyé un compteur non numérique."
+  },
   "WORKSPACE_RESOURCES_UNAVAILABLE": {
     "en": "Workspace resource metrics are not available right now.",
     "fr": "Les mesures de ressources de l’espace de travail ne sont pas disponibles pour le moment."
