@@ -391,6 +391,53 @@ describe('project volume permanent erasure', () => {
     expectEveryIoGuarded(input.events);
   });
 
+  it('inventories and erases a Retain PV/provider even when the PVC disappeared before capture', async () => {
+    const input = fixture('Retain');
+    input.kubernetes.pvcs.delete(`${namespace}/${pvcName}`);
+
+    const inventory = await capture(input);
+    expect(inventory.entries).toMatchObject([
+      { disposition: 'erase-orphan', expectedPvcUid: pvcUid, volumes: [{ name: pvName, providerPresent: true }] },
+    ]);
+
+    const evidence = await execute(input, inventory);
+    expect(evidence.entries).toEqual([
+      {
+        namespace,
+        pvcName,
+        disposition: 'erase-orphan',
+        pvcAbsent: true,
+        pvAbsent: true,
+        providerAbsent: true,
+      },
+    ]);
+    const io = input.events.filter((event) => event.startsWith('io:'));
+    expect(io.indexOf('io:provider.delete-volume')).toBeLessThan(io.indexOf('io:kubernetes.delete-pv'));
+    expect(input.provider.volumes.size).toBe(0);
+    expect(input.kubernetes.pvs.size).toBe(0);
+    expectEveryIoGuarded(input.events);
+  });
+
+  it('fails closed when an absent PVC leaves a PV whose claimRef UID has no durable authority', async () => {
+    const input = fixture('Retain');
+    input.kubernetes.pvcs.delete(`${namespace}/${pvcName}`);
+    const snapshot = sourceSnapshot({
+      references: sourceSnapshot().references.map(({ expectedPvcUid: _expectedPvcUid, ...reference }) => reference),
+    });
+
+    await expect(
+      captureProjectVolumeErasureInventory({
+        scope,
+        sourceSnapshot: snapshot,
+        kubernetes: input.kubernetes,
+        providers: input.providers,
+        leaseGuard: input.leaseGuard,
+      }),
+    ).rejects.toMatchObject({ code: 'VOLUME_ERASURE_ORPHAN_IDENTITY_UNPROVEN' });
+    expect(input.provider.volumes.get(volumeHandle)).toBe('9876543210');
+    expect(input.kubernetes.pvs.has(pvName)).toBe(true);
+  });
+
   it('accepts an unlabelled legacy claim only with exact durable source authority', async () => {
     const input = fixture();
     input.kubernetes.pvcs.set(`${namespace}/${pvcName}`, makePvc({ labels: {} }));
@@ -666,5 +713,53 @@ describe('GCE Persistent Disk provider adapter', () => {
       { accept: 'application/json', authorization: 'Bearer ephemeral-adc-token' },
       { accept: 'application/json', authorization: 'Bearer ephemeral-adc-token' },
     ]);
+  });
+
+  it('rejects a canonical disk handle outside the configured provider-project boundary before auth or fetch', async () => {
+    let tokenCalls = 0;
+    let fetchCalls = 0;
+    const adapter = new GcePersistentDiskProviderAdapter({
+      allowedProjects: ['vibecore-allowed1'],
+      tokenProvider: {
+        async getAccessToken() {
+          tokenCalls += 1;
+          return 'must-not-be-used';
+        },
+      },
+      fetch: async () => {
+        fetchCalls += 1;
+        return new Response(undefined, { status: 404 });
+      },
+    });
+
+    await expect(adapter.inspect(volumeHandle)).rejects.toMatchObject({
+      code: 'VOLUME_ERASURE_GCE_PROJECT_FORBIDDEN',
+      statusCode: 409,
+    });
+    expect(tokenCalls).toBe(0);
+    expect(fetchCalls).toBe(0);
+  });
+
+  it('applies the provider deadline to ADC token acquisition before issuing Compute I/O', async () => {
+    let fetchCalls = 0;
+    const adapter = new GcePersistentDiskProviderAdapter({
+      allowedProjects: ['vibecore-prod1'],
+      timeoutMs: 10,
+      tokenProvider: {
+        getAccessToken() {
+          return new Promise<string>(() => undefined);
+        },
+      },
+      fetch: async () => {
+        fetchCalls += 1;
+        return new Response(undefined, { status: 404 });
+      },
+    });
+
+    await expect(adapter.inspect(volumeHandle)).rejects.toMatchObject({
+      code: 'VOLUME_ERASURE_GCE_TIMEOUT',
+      statusCode: 503,
+    });
+    expect(fetchCalls).toBe(0);
   });
 });

@@ -269,16 +269,36 @@ exports.Prisma.ObjectStorageOperationScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
-exports.Prisma.ProjectDatabaseErasurePlanScalarFieldEnum = {
+exports.Prisma.ProjectVolumeErasureScalarFieldEnum = {
   operationId: 'operationId',
-  projectId: 'projectId',
+  projectIdSnapshot: 'projectIdSnapshot',
   organizationId: 'organizationId',
   ownershipEpoch: 'ownershipEpoch',
-  inventorySha256: 'inventorySha256',
-  plan: 'plan',
-  stage: 'stage',
+  namespace: 'namespace',
+  state: 'state',
+  sourceSnapshot: 'sourceSnapshot',
+  inventory: 'inventory',
+  inventoryHash: 'inventoryHash',
   evidence: 'evidence',
-  receipt: 'receipt',
+  verificationHash: 'verificationHash',
+  verificationFencingToken: 'verificationFencingToken',
+  preparedAt: 'preparedAt',
+  inventoriedAt: 'inventoriedAt',
+  erasingAt: 'erasingAt',
+  verifiedAt: 'verifiedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.ProjectVolumeErasureTargetScalarFieldEnum = {
+  operationId: 'operationId',
+  ordinal: 'ordinal',
+  namespace: 'namespace',
+  pvcName: 'pvcName',
+  expectedPvcUid: 'expectedPvcUid',
+  inventoryEntry: 'inventoryEntry',
+  evidenceEntry: 'evidenceEntry',
+  verifiedFencingToken: 'verifiedFencingToken',
   verifiedAt: 'verifiedAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
@@ -2405,12 +2425,10 @@ exports.ObjectStorageOperationStatus = exports.$Enums.ObjectStorageOperationStat
   MANUAL_RECOVERY: 'MANUAL_RECOVERY'
 };
 
-exports.ProjectDatabaseErasureStage = exports.$Enums.ProjectDatabaseErasureStage = {
-  INVENTORY_BOUND: 'INVENTORY_BOUND',
-  KUBERNETES_PURGE: 'KUBERNETES_PURGE',
-  SHARED_SQL_PURGE: 'SHARED_SQL_PURGE',
-  BACKUP_PREFIX_PURGE: 'BACKUP_PREFIX_PURGE',
-  FINAL_VERIFICATION: 'FINAL_VERIFICATION',
+exports.ProjectVolumeErasureState = exports.$Enums.ProjectVolumeErasureState = {
+  PREPARED: 'PREPARED',
+  INVENTORIED: 'INVENTORIED',
+  ERASING: 'ERASING',
   VERIFIED: 'VERIFIED'
 };
 
@@ -2733,7 +2751,8 @@ exports.Prisma.ModelName = {
   RolePermission: 'RolePermission',
   Project: 'Project',
   ObjectStorageOperation: 'ObjectStorageOperation',
-  ProjectDatabaseErasurePlan: 'ProjectDatabaseErasurePlan',
+  ProjectVolumeErasure: 'ProjectVolumeErasure',
+  ProjectVolumeErasureTarget: 'ProjectVolumeErasureTarget',
   ObjectStorageOperationPinnedObject: 'ObjectStorageOperationPinnedObject',
   ObjectStorageOperationPinnedGeneration: 'ObjectStorageOperationPinnedGeneration',
   ProjectPermanentDeletionArtifactPlan: 'ProjectPermanentDeletionArtifactPlan',

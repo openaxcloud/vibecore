@@ -181,7 +181,7 @@ async function setup(label: string, options: { staticVerifier?: boolean; unsafeS
     objectStorage: objectStorage.adapter,
     emailProvider: new QuietEmailProvider(),
     projectWorkspaceDeletion: async (_action, projectId, organizationId) => ({
-      schemaVersion: 'workspace-project-erasure-v2',
+      schemaVersion: 'workspace-project-erasure-v3',
       projectId,
       organizationId,
       databaseInventoryRetained: true,
@@ -196,6 +196,18 @@ async function setup(label: string, options: { staticVerifier?: boolean; unsafeS
         ingressesAbsent: true,
         ownedRuntimeSecretsAbsent: true,
         persistentVolumeClaimsAbsent: true,
+      },
+      volumes: {
+        schemaVersion: 1,
+        inventoryHash: 'a'.repeat(64),
+        verificationHash: 'b'.repeat(64),
+        entryCount: 0,
+        erasedEntryCount: 0,
+        alreadyAbsentEntryCount: 0,
+        sharedExclusionCount: 0,
+        persistentVolumeClaimsAbsent: true,
+        persistentVolumesAbsent: true,
+        providerVolumesAbsent: true,
       },
     }),
     projectDatabaseErasureServiceFactory: () =>

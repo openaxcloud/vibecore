@@ -8,7 +8,11 @@ const SAFE_ID_RE = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,191}$/u;
 const KUBERNETES_NAME_RE = /^[a-z0-9](?:[-a-z0-9.]{0,251}[a-z0-9])?$/u;
 
 export type VolumeReclaimPolicy = 'Delete' | 'Retain';
-export type ProjectVolumeSourceKind = 'workspace-runtime' | 'reserved-vm';
+export type ProjectVolumeSourceKind =
+  | 'workspace-runtime'
+  | 'project-persistent-volume'
+  | 'reserved-vm'
+  | 'runtime-effect-target';
 
 export class ProjectVolumeErasureError extends Error {
   constructor(
@@ -46,6 +50,17 @@ export interface ProjectVolumeSourceReference extends ProjectVolumeTenantScope {
 export interface CompleteProjectVolumeReferenceSnapshot {
   snapshotId: string;
   completeness: 'all-active-references-for-candidate-claims';
+  /**
+   * Exact claims selected by the deletion inventory. A candidate can have no
+   * remaining source row (for example an orphan found by the project label
+   * scan), while `references` still proves that every surviving reference to
+   * these names was captured.
+   */
+  candidates?: readonly {
+    namespace: string;
+    pvcName: string;
+    expectedPvcUid?: string;
+  }[];
   references: readonly ProjectVolumeSourceReference[];
 }
 
@@ -219,10 +234,23 @@ export interface ErasableProjectVolumeInventoryEntry extends InventoryEntryBase 
   volume: InventoryVolume | null;
 }
 
+/**
+ * A PVC may already be gone while a Retain-policy or finalizer-blocked PV still
+ * owns provider bytes. Such a PV is erasable only when a durable source row
+ * retained the exact PVC UID found in claimRef; a same-name guess is never
+ * deletion authority.
+ */
+export interface OrphanedProjectVolumeInventoryEntry extends InventoryEntryBase {
+  disposition: 'erase-orphan';
+  expectedPvcUid: string;
+  volumes: readonly InventoryVolume[];
+}
+
 export type ProjectVolumeErasureInventoryEntry =
   | AbsentProjectVolumeInventoryEntry
   | ExcludedProjectVolumeInventoryEntry
-  | ErasableProjectVolumeInventoryEntry;
+  | ErasableProjectVolumeInventoryEntry
+  | OrphanedProjectVolumeInventoryEntry;
 
 interface UnsealedProjectVolumeErasureInventory {
   schemaVersion: 1;
@@ -272,9 +300,13 @@ export interface ProjectVolumeErasureEvidence {
 }
 
 const DEFAULT_POLL_POLICY: ProjectVolumeErasurePollPolicy = {
-  maxAttempts: 90,
-  initialDelayMs: 1_000,
-  maxDelayMs: 5_000,
+  // One persisted entry is processed per manager request. Production adapters
+  // use a 4s request deadline; six polls bound the complete PVC/provider/PV
+  // entry below the API's 180s transport deadline even when every read times
+  // out. A still-deleting disk is resumed from the sealed entry on replay.
+  maxAttempts: 6,
+  initialDelayMs: 250,
+  maxDelayMs: 2_000,
 };
 
 const DEFAULT_CLOCK: ProjectVolumeErasureClock = {
@@ -477,6 +509,9 @@ function referenceSnapshotEvidence(snapshot: CompleteProjectVolumeReferenceSnaps
   return sha256({
     snapshotId: snapshot.snapshotId,
     completeness: snapshot.completeness,
+    candidates: [...(snapshot.candidates ?? [])].sort(
+      (left, right) => left.namespace.localeCompare(right.namespace) || left.pvcName.localeCompare(right.pvcName),
+    ),
     references: [...snapshot.references].sort((left, right) => left.referenceId.localeCompare(right.referenceId)),
   });
 }
@@ -505,6 +540,20 @@ function validateSourceSnapshot(
   const referenceIds = new Set<string>();
   const groups = new Map<string, ProjectVolumeSourceReference[]>();
 
+  for (const candidate of snapshot.candidates ?? []) {
+    assertKubernetesName(candidate.namespace, 'PVC namespace');
+    assertKubernetesName(candidate.pvcName, 'PVC name');
+    if (candidate.expectedPvcUid) assertSafeId(candidate.expectedPvcUid, 'expected PVC UID');
+    const key = claimKey(candidate.namespace, candidate.pvcName);
+    if (groups.has(key)) {
+      throw erasureError(
+        'VOLUME_ERASURE_SOURCE_SNAPSHOT_INVALID',
+        'The source snapshot contains a duplicate candidate.',
+      );
+    }
+    groups.set(key, []);
+  }
+
   for (const reference of snapshot.references) {
     assertScope(reference);
     assertSafeId(reference.referenceId, 'source reference ID');
@@ -525,11 +574,18 @@ function validateSourceSnapshot(
     referenceIds.add(reference.referenceId);
 
     const key = claimKey(reference.namespace, reference.pvcName);
+    if (snapshot.candidates && !groups.has(key)) {
+      throw erasureError(
+        'VOLUME_ERASURE_SOURCE_SNAPSHOT_INVALID',
+        'A durable reference falls outside the exact candidate inventory.',
+      );
+    }
     groups.set(key, [...(groups.get(key) ?? []), reference]);
   }
 
   for (const [key, references] of groups) {
     if (
+      !snapshot.candidates &&
       !references.some(
         (reference) => reference.projectId === scope.projectId && reference.organizationId === scope.organizationId,
       )
@@ -622,7 +678,10 @@ export async function captureProjectVolumeErasureInventory(
     );
 
     const [namespace, pvcName] = key.split('/') as [string, string];
-    const tenantKeys = new Set(references.map((reference) => `${reference.organizationId}/${reference.projectId}`));
+    const tenantKeys = new Set([
+      `${input.scope.organizationId}/${input.scope.projectId}`,
+      ...references.map((reference) => `${reference.organizationId}/${reference.projectId}`),
+    ]);
 
     const base: InventoryEntryBase = {
       namespace,
@@ -632,26 +691,113 @@ export async function captureProjectVolumeErasureInventory(
       distinctTenantCount: tenantKeys.size,
     };
 
+    const expectedUids = sortedUnique(
+      [
+        ...targetReferences.map((reference) => reference.expectedPvcUid),
+        input.sourceSnapshot.candidates?.find(
+          (candidate) => candidate.namespace === namespace && candidate.pvcName === pvcName,
+        )?.expectedPvcUid,
+      ].filter((uid): uid is string => Boolean(uid)),
+    );
+
     const claim = await guarded(input.leaseGuard, 'kubernetes.read-pvc', () =>
       input.kubernetes.getPersistentVolumeClaim(namespace, pvcName),
     );
 
     if (!claim) {
-      entries.push({ ...base, disposition: 'already-absent' });
+      const orphanCandidates = allVolumes.filter(
+        (volume) => volume.spec.claimRef?.namespace === namespace && volume.spec.claimRef.name === pvcName,
+      );
+
+      if (orphanCandidates.length === 0) {
+        entries.push({ ...base, disposition: 'already-absent' });
+        continue;
+      }
+
+      if (expectedUids.length !== 1) {
+        throw erasureError(
+          'VOLUME_ERASURE_ORPHAN_IDENTITY_UNPROVEN',
+          'A PVC is absent but a retained PV cannot be tied to one durable PVC UID.',
+        );
+      }
+
+      const expectedPvcUid = expectedUids[0]!;
+      if (orphanCandidates.some((volume) => volume.spec.claimRef?.uid !== expectedPvcUid)) {
+        throw erasureError(
+          'VOLUME_ERASURE_ORPHAN_IDENTITY_CONFLICT',
+          'A retained PV claimRef does not match the durable PVC identity.',
+        );
+      }
+
+      if (tenantKeys.size > 1) {
+        throw erasureError(
+          'VOLUME_ERASURE_ORPHAN_SHARED',
+          'A retained PV still has references from more than one tenant.',
+        );
+      }
+
+      const orphanVolumes: InventoryVolume[] = [];
+      for (const volume of orphanCandidates.sort((left, right) =>
+        left.metadata.name.localeCompare(right.metadata.name),
+      )) {
+        assertMetadata(volume.metadata, volume.metadata.name);
+        const driver = volume.spec.csi?.driver;
+        const volumeHandle = volume.spec.csi?.volumeHandle;
+        if (!driver || !volumeHandle) {
+          throw erasureError('VOLUME_ERASURE_CSI_IDENTITY_MISSING', 'The retained PV has no complete CSI identity.');
+        }
+        assertSafeId(driver, 'CSI driver');
+        const storageClassName = volume.spec.storageClassName || null;
+        const storageClass = storageClassName
+          ? await guarded(input.leaseGuard, 'kubernetes.read-storage-class', () =>
+              input.kubernetes.getStorageClass(storageClassName),
+            )
+          : undefined;
+        if (storageClassName && !storageClass) {
+          throw erasureError(
+            'VOLUME_ERASURE_STORAGE_CLASS_NOT_OBSERVABLE',
+            'The retained PV StorageClass is not observable.',
+            503,
+          );
+        }
+        if (storageClass) {
+          assertMetadata(storageClass.metadata, storageClassName!);
+          if (storageClass.provisioner !== driver) {
+            throw erasureError(
+              'VOLUME_ERASURE_STORAGE_CLASS_CONFLICT',
+              'StorageClass provisioner and retained PV CSI driver disagree.',
+            );
+          }
+        }
+        if (
+          (handleReferenceCounts.get(`${driver}\n${volumeHandle}`) ?? 0) > 1 ||
+          hasSharedMarker(volume.metadata.labels, storageClass?.metadata.labels)
+        ) {
+          throw erasureError(
+            'VOLUME_ERASURE_ORPHAN_SHARED',
+            'A retained PV has a shared handle or shared-storage marker.',
+          );
+        }
+        const provider = providerFor(input.providers, driver);
+        const providerObservation = await guarded(input.leaseGuard, 'provider.inspect-volume', () =>
+          provider.inspect(volumeHandle),
+        );
+        assertProviderObservation(providerObservation);
+        orphanVolumes.push(compactVolume(volume, storageClass, providerObservation));
+      }
+
+      entries.push({ ...base, disposition: 'erase-orphan', expectedPvcUid, volumes: orphanVolumes });
       continue;
     }
 
     assertMetadata(claim.metadata, pvcName, namespace);
 
-    const expectedUids = sortedUnique(
-      targetReferences.map((reference) => reference.expectedPvcUid).filter((uid): uid is string => Boolean(uid)),
-    );
-
     if (expectedUids.length > 1 || (expectedUids[0] && expectedUids[0] !== claim.metadata.uid)) {
       throw erasureError('VOLUME_ERASURE_PVC_UID_CONFLICT', 'The source record and live claim identities disagree.');
     }
 
-    const legacyAuthorized = targetReferences.every((reference) => reference.allowLegacyUnlabelled === true);
+    const legacyAuthorized =
+      targetReferences.length > 0 && targetReferences.every((reference) => reference.allowLegacyUnlabelled === true);
     const ownership = assertClaimOwnership(claim, input.scope, legacyAuthorized);
     const inventoryClaim = compactClaim(claim, ownership);
     const volumeName = claim.spec.volumeName;
@@ -1132,6 +1278,122 @@ async function eraseEntry(
   };
 }
 
+function orphanVolumeAsErasable(
+  entry: OrphanedProjectVolumeInventoryEntry,
+  volume: InventoryVolume,
+): ErasableProjectVolumeInventoryEntry {
+  return {
+    namespace: entry.namespace,
+    pvcName: entry.pvcName,
+    sourceEvidenceHash: entry.sourceEvidenceHash,
+    sourceReferenceCount: entry.sourceReferenceCount,
+    distinctTenantCount: entry.distinctTenantCount,
+    disposition: 'erase',
+    claim: {
+      namespace: entry.namespace,
+      name: entry.pvcName,
+      uid: entry.expectedPvcUid,
+      resourceVersion: 'orphaned-pvc',
+      finalizers: [],
+      ownership: 'legacy-source-reference',
+    },
+    volume,
+  };
+}
+
+async function eraseOrphanEntry(
+  input: ExecuteProjectVolumeErasureInput,
+  entry: OrphanedProjectVolumeInventoryEntry,
+  policy: ProjectVolumeErasurePollPolicy,
+  clock: ProjectVolumeErasureClock,
+): Promise<ProjectVolumeErasureEntryEvidence> {
+  for (const volume of entry.volumes) {
+    const exact = orphanVolumeAsErasable(entry, volume);
+    await assertNoLiveSharedVolumeHandle(input, exact);
+    if (volume.reclaimPolicy === 'Retain') {
+      await eraseProviderVolume(input, exact, policy, clock);
+      await beginVolumeDeletion(input, exact);
+      await waitForVolumeAbsent(input, exact, policy, clock);
+    } else {
+      await beginVolumeDeletion(input, exact);
+      await eraseProviderVolume(input, exact, policy, clock);
+      await waitForVolumeAbsent(input, exact, policy, clock);
+    }
+  }
+
+  return {
+    namespace: entry.namespace,
+    pvcName: entry.pvcName,
+    disposition: 'erase-orphan',
+    pvcAbsent: true,
+    pvAbsent: true,
+    providerAbsent: true,
+  };
+}
+
+export async function executeProjectVolumeErasureEntry(
+  input: ExecuteProjectVolumeErasureInput,
+  entry: ProjectVolumeErasureInventoryEntry,
+): Promise<ProjectVolumeErasureEntryEvidence> {
+  assertScope(input.expectedScope);
+  assertProjectVolumeErasureInventory(input.inventory);
+  if (
+    input.inventory.schemaVersion !== 1 ||
+    input.inventory.scope.organizationId !== input.expectedScope.organizationId ||
+    input.inventory.scope.projectId !== input.expectedScope.projectId ||
+    !input.inventory.entries.some((candidate) => canonicalize(candidate) === canonicalize(entry))
+  ) {
+    throw erasureError('VOLUME_ERASURE_SCOPE_CONFLICT', 'The inventory entry does not match the caller.');
+  }
+
+  const policy = resolvedPollPolicy(input.pollPolicy);
+  const clock = input.clock ?? DEFAULT_CLOCK;
+  if (entry.disposition === 'erase') return eraseEntry(input, entry, policy, clock);
+  if (entry.disposition === 'erase-orphan') return eraseOrphanEntry(input, entry, policy, clock);
+  if (entry.disposition === 'excluded-shared') {
+    return {
+      namespace: entry.namespace,
+      pvcName: entry.pvcName,
+      disposition: entry.disposition,
+      pvcAbsent: false,
+      pvAbsent: false,
+      providerAbsent: false,
+      exclusionReason: entry.exclusionReason,
+    };
+  }
+  return {
+    namespace: entry.namespace,
+    pvcName: entry.pvcName,
+    disposition: entry.disposition,
+    pvcAbsent: true,
+    pvAbsent: true,
+    providerAbsent: true,
+  };
+}
+
+export function sealProjectVolumeErasureEvidence(
+  inventory: ProjectVolumeErasureInventory,
+  evidenceEntries: readonly ProjectVolumeErasureEntryEvidence[],
+): ProjectVolumeErasureEvidence {
+  assertProjectVolumeErasureInventory(inventory);
+  if (
+    evidenceEntries.length !== inventory.entries.length ||
+    evidenceEntries.some((entry, ordinal) => {
+      const expected = inventory.entries[ordinal];
+      return !expected || entry.namespace !== expected.namespace || entry.pvcName !== expected.pvcName;
+    })
+  ) {
+    throw erasureError('VOLUME_ERASURE_EVIDENCE_INVALID', 'Evidence does not cover the sealed inventory.', 500);
+  }
+  const unsignedEvidence = {
+    schemaVersion: 1 as const,
+    inventoryHash: inventory.inventoryHash,
+    entries: [...evidenceEntries],
+    verified: true as const,
+  };
+  return { ...unsignedEvidence, verificationHash: sha256(unsignedEvidence) };
+}
+
 export async function executeProjectVolumeErasure(
   input: ExecuteProjectVolumeErasureInput,
 ): Promise<ProjectVolumeErasureEvidence> {
@@ -1146,43 +1408,12 @@ export async function executeProjectVolumeErasure(
     throw erasureError('VOLUME_ERASURE_SCOPE_CONFLICT', 'The inventory tenant scope does not match the caller.');
   }
 
-  const pollPolicy = resolvedPollPolicy(input.pollPolicy);
-  const clock = input.clock ?? DEFAULT_CLOCK;
   const evidenceEntries: ProjectVolumeErasureEntryEvidence[] = [];
 
   for (const entry of input.inventory.entries) {
-    if (entry.disposition === 'erase') {
-      evidenceEntries.push(await eraseEntry(input, entry, pollPolicy, clock));
-    } else if (entry.disposition === 'excluded-shared') {
-      evidenceEntries.push({
-        namespace: entry.namespace,
-        pvcName: entry.pvcName,
-        disposition: entry.disposition,
-        pvcAbsent: false,
-        pvAbsent: false,
-        providerAbsent: false,
-        exclusionReason: entry.exclusionReason,
-      });
-    } else {
-      evidenceEntries.push({
-        namespace: entry.namespace,
-        pvcName: entry.pvcName,
-        disposition: entry.disposition,
-        pvcAbsent: true,
-        pvAbsent: true,
-        providerAbsent: true,
-      });
-    }
+    evidenceEntries.push(await executeProjectVolumeErasureEntry(input, entry));
   }
-
-  const unsignedEvidence = {
-    schemaVersion: 1 as const,
-    inventoryHash: input.inventory.inventoryHash,
-    entries: evidenceEntries,
-    verified: true as const,
-  };
-
-  return { ...unsignedEvidence, verificationHash: sha256(unsignedEvidence) };
+  return sealProjectVolumeErasureEvidence(input.inventory, evidenceEntries);
 }
 
 export const projectVolumeErasureConstants = Object.freeze({
