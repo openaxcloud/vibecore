@@ -2,6 +2,13 @@ import { redactAuditMetadata, type AuditEvent } from '@vibecore/audit';
 import { hashToken } from '@vibecore/auth';
 import type { PlanKey, QuotaKey } from '@vibecore/billing';
 import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
+import {
+  CLEARED_LOCKOUT,
+  nextStateOnFailure,
+  type LoginLockoutState,
+  type LoginThrottleConfig,
+} from '../login-throttle.js';
+import { isSessionIdleExpired, sessionIdleTimeoutMs } from '../session-idle.js';
 import { DEFAULT_ENV_VAR_SCOPE } from '../store.js';
 import type {
   EnvVarScope,
@@ -359,6 +366,7 @@ export class TestApiStore implements ApiStore {
       tokenHash: hashToken(input.token),
       expiresAt: input.expiresAt.toISOString(),
       createdAt: now(),
+      lastActiveAt: now() as string | undefined,
       ipAddress: input.ipAddress,
       userAgent: input.userAgent,
       impersonatedBy: input.impersonatedBy,
@@ -375,7 +383,34 @@ export class TestApiStore implements ApiStore {
       return undefined;
     }
 
+    const lastActiveMs = new Date(session.lastActiveAt ?? session.createdAt).getTime();
+
+    if (isSessionIdleExpired(lastActiveMs, Date.now(), sessionIdleTimeoutMs())) {
+      return undefined;
+    }
+
     return session;
+  }
+
+  /** Test hook: force touchSession to throw (fail-open-on-write proof). */
+  touchSessionShouldThrow = false;
+
+  async touchSession(sessionId: string, nowMs: number, throttleMs = 60_000): Promise<void> {
+    if (this.touchSessionShouldThrow) {
+      throw new Error('simulated touchSession failure');
+    }
+
+    for (const session of this.sessions.values()) {
+      if (session.id !== sessionId || session.revokedAt) {
+        continue;
+      }
+
+      const lastActiveMs = session.lastActiveAt ? new Date(session.lastActiveAt).getTime() : 0;
+
+      if (nowMs - lastActiveMs >= throttleMs) {
+        session.lastActiveAt = new Date(nowMs).toISOString();
+      }
+    }
   }
 
   async listSessions(userId: string) {
@@ -499,6 +534,33 @@ export class TestApiStore implements ApiStore {
 
   async countUnusedRecoveryCodes(userId: string) {
     return [...this.recoveryCodes.values()].filter((item) => item.userId === userId && !item.usedAt).length;
+  }
+
+  private loginLockouts = new Map<string, LoginLockoutState>();
+  /** Test hook: force getLoginLockout/recordFailedLogin to throw (fail-open proof). */
+  loginLockoutShouldThrow = false;
+
+  async getLoginLockout(userId: string): Promise<LoginLockoutState | undefined> {
+    if (this.loginLockoutShouldThrow) {
+      throw new Error('simulated lockout store outage');
+    }
+
+    return this.loginLockouts.get(userId);
+  }
+
+  async recordFailedLogin(userId: string, nowMs: number, config: LoginThrottleConfig): Promise<LoginLockoutState> {
+    if (this.loginLockoutShouldThrow) {
+      throw new Error('simulated lockout store outage');
+    }
+
+    const next = nextStateOnFailure(this.loginLockouts.get(userId) ?? CLEARED_LOCKOUT, nowMs, config);
+    this.loginLockouts.set(userId, next);
+
+    return next;
+  }
+
+  async clearLoginLockout(userId: string): Promise<void> {
+    this.loginLockouts.delete(userId);
   }
 
   async createOrganization(input: { name: string; slug: string; ownerUserId: string }) {
