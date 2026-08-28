@@ -23916,7 +23916,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     if (b) {
       reply.status(423).send({
-        error: 'Project is quiesced for a coordinated checkpoint — retry after the barrier lifts.',
+        // `reply.request` : ce helper ne reçoit que la réponse, mais Fastify
+        // expose la requête associée — la locale reste donc celle de l'appelant.
+        error: appPublicCopy('CHECKPOINT_PROJECT_QUIESCED', transactionalLocaleForRequest(reply.request)),
         code: 'CHECKPOINT_BARRIER_ACTIVE',
         barrierId: b.barrierId,
       });
@@ -24181,7 +24183,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const ckpt = await store.getProjectCheckpoint(ckptId);
 
     if (!ckpt || ckpt.projectId !== project.id) {
-      return reply.status(404).send({ error: 'Checkpoint not found', code: 'CHECKPOINT_NOT_FOUND' });
+      return reply.status(404).send({ error: appPublicCopy('CHECKPOINT_NOT_FOUND_MESSAGE', transactionalLocaleForRequest(request)), code: 'CHECKPOINT_NOT_FOUND' });
     }
 
     return { checkpoint: ckpt };
@@ -24200,7 +24202,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const ckpt = await store.getProjectCheckpoint(ckptId);
 
     if (!ckpt || ckpt.projectId !== project.id || ckpt.state !== 'COMMITTED') {
-      return reply.status(404).send({ error: 'Committed checkpoint not found', code: 'CHECKPOINT_NOT_FOUND' });
+      return reply.status(404).send({ error: appPublicCopy('CHECKPOINT_COMMITTED_NOT_FOUND_MESSAGE', transactionalLocaleForRequest(request)), code: 'CHECKPOINT_NOT_FOUND' });
     }
 
     const manifest = ckpt.manifest as {
@@ -24210,13 +24212,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const filesComponent = manifest.components.find((c) => c.componentKind === 'FILES');
 
     if (!filesComponent) {
-      return reply.status(422).send({ error: 'No FILES component', code: 'CHECKPOINT_NO_FILES' });
+      return reply.status(422).send({ error: appPublicCopy('CHECKPOINT_NO_FILES_MESSAGE', transactionalLocaleForRequest(request)), code: 'CHECKPOINT_NO_FILES' });
     }
 
     const snapshot = await store.getSnapshot(filesComponent.snapshotId);
 
     if (!snapshot) {
-      return reply.status(409).send({ error: 'Snapshot missing', code: 'CHECKPOINT_SNAPSHOT_MISSING' });
+      return reply.status(409).send({ error: appPublicCopy('CHECKPOINT_SNAPSHOT_MISSING_MESSAGE', transactionalLocaleForRequest(request)), code: 'CHECKPOINT_SNAPSHOT_MISSING' });
     }
 
     const files = await getSnapshotFiles(snapshot);
@@ -24269,7 +24271,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const ckpt = await store.getProjectCheckpoint(ckptId);
 
     if (!ckpt || ckpt.projectId !== project.id || ckpt.state !== 'COMMITTED') {
-      return reply.status(404).send({ error: 'Committed checkpoint not found', code: 'CHECKPOINT_NOT_FOUND' });
+      return reply.status(404).send({ error: appPublicCopy('CHECKPOINT_COMMITTED_NOT_FOUND_MESSAGE', transactionalLocaleForRequest(request)), code: 'CHECKPOINT_NOT_FOUND' });
     }
 
     const manifest = ckpt.manifest as {
@@ -24280,13 +24282,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const filesComponent = manifest.components.find((c) => c.componentKind === 'FILES');
 
     if (!filesComponent) {
-      return reply.status(422).send({ error: 'No FILES component', code: 'CHECKPOINT_NO_FILES' });
+      return reply.status(422).send({ error: appPublicCopy('CHECKPOINT_NO_FILES_MESSAGE', transactionalLocaleForRequest(request)), code: 'CHECKPOINT_NO_FILES' });
     }
 
     const snapshot = await store.getSnapshot(filesComponent.snapshotId);
 
     if (!snapshot) {
-      return reply.status(409).send({ error: 'Snapshot missing', code: 'CHECKPOINT_SNAPSHOT_MISSING' });
+      return reply.status(409).send({ error: appPublicCopy('CHECKPOINT_SNAPSHOT_MISSING_MESSAGE', transactionalLocaleForRequest(request)), code: 'CHECKPOINT_SNAPSHOT_MISSING' });
     }
 
     const files = await getSnapshotFiles(snapshot);
@@ -24296,7 +24298,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     if (!safety.ok) {
       return reply.status(409).send({
-        error: `Refus de restaurer sans point de retour : ${safety.error}`,
+        error: appPublicCopy('CHECKPOINT_RESTORE_NO_FALLBACK', transactionalLocaleForRequest(request), {
+          reason: String(safety.error ?? ''),
+        }),
         code: 'CHECKPOINT_SAFETY_FAILED',
       });
     }
@@ -24331,7 +24335,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       if (!matches) {
         // (4) Divergence dite, pas avalée : le point de retour reste exploitable.
         return reply.status(409).send({
-          error: 'Le contenu restauré ne re-hash pas le manifeste du checkpoint',
+          error: appPublicCopy('CHECKPOINT_RESTORE_HASH_MISMATCH', transactionalLocaleForRequest(request)),
           code: 'CHECKPOINT_RESTORE_HASH_MISMATCH',
           expectedHash: manifest.contentHashes.files,
           restoredHash,

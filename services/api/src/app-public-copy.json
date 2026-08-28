@@ -2578,5 +2578,33 @@
   "DEPLOYMENT_ACCESS_UNSUPPORTED_PROVIDER": {
     "en": "Password protection is only available for static deployments. This deployment is served from another domain, where the password gate cannot be enforced.",
     "fr": "La protection par mot de passe n’est disponible que pour les déploiements statiques. Ce déploiement est servi depuis un autre domaine, où la porte de mot de passe ne peut pas être appliquée."
+  },
+  "CHECKPOINT_PROJECT_QUIESCED": {
+    "en": "Project is quiesced for a coordinated checkpoint — retry after the barrier lifts.",
+    "fr": "Le projet est figé le temps d’un point de restauration coordonné — réessayez une fois la barrière levée."
+  },
+  "CHECKPOINT_NOT_FOUND_MESSAGE": {
+    "en": "Checkpoint not found",
+    "fr": "Point de restauration introuvable"
+  },
+  "CHECKPOINT_COMMITTED_NOT_FOUND_MESSAGE": {
+    "en": "Committed checkpoint not found",
+    "fr": "Point de restauration validé introuvable"
+  },
+  "CHECKPOINT_NO_FILES_MESSAGE": {
+    "en": "No FILES component",
+    "fr": "Aucun composant de fichiers"
+  },
+  "CHECKPOINT_SNAPSHOT_MISSING_MESSAGE": {
+    "en": "Snapshot missing",
+    "fr": "Instantané manquant"
+  },
+  "CHECKPOINT_RESTORE_NO_FALLBACK": {
+    "en": "Refusing to restore without a point of return: {reason}",
+    "fr": "Refus de restaurer sans point de retour : {reason}"
+  },
+  "CHECKPOINT_RESTORE_HASH_MISMATCH": {
+    "en": "The restored content does not re-hash to the checkpoint manifest",
+    "fr": "Le contenu restauré ne correspond plus à l’empreinte du manifeste du point de restauration"
   }
 }
