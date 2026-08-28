@@ -192,6 +192,18 @@ export interface ObjectStorageRecoveryReport {
   operationIds: string[];
 }
 
+export interface ObjectStorageVersionGcReport {
+  scanned: number;
+  claimed: number;
+  recovered: number;
+  committed: number;
+  deferred: number;
+  quarantined: number;
+  busy: number;
+  deletedGenerations: number;
+  projectIds: string[];
+}
+
 export interface ImportStagedFile {
   path: string;
   content: string;
@@ -2065,6 +2077,12 @@ export interface ApiStore {
     batchSize?: number;
     maxCandidates?: number;
   }): Promise<ObjectStorageRecoveryReport>;
+  /** Collect unreferenced noncurrent generations through a fenced, verify-first saga. */
+  reconcileObjectStorageVersionGc(input: {
+    storage: ObjectStorage;
+    batchSize?: number;
+    maxSchedules?: number;
+  }): Promise<ObjectStorageVersionGcReport>;
   /** Refuse every local/static storage write once project purge fencing begins. */
   assertProjectStorageMutable(scope: ProjectPhysicalMutationScope): Promise<void>;
   hasPurgeReceipt(userId: string): Promise<boolean>;

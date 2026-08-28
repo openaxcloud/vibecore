@@ -9,6 +9,7 @@ export const OBJECT_STORAGE_OPERATION_KINDS = [
   'PROJECT_TRANSFER',
   'PROJECT_PERMANENT_DELETE',
   'PROJECT_REMIX_CLONE',
+  'PROJECT_VERSION_GC',
   'ACCOUNT_PURGE_ERASURE',
 ] as const;
 
@@ -93,6 +94,8 @@ export interface ClaimObjectStorageOperationInput extends ObjectStorageOperation
   leaseTtlSeconds: number;
   /** Required for PROJECT_REMIX_CLONE; normalized outside the bounded JSON payload. */
   pinnedInventory?: ObjectStoragePinnedInventory;
+  /** Required for PROJECT_VERSION_GC; exact noncurrent generations, max 500 per operation. */
+  pinnedGenerations?: readonly ObjectStoragePinnedGeneration[];
   /** Ephemeral authority used by signed-capability claims; never serialized automatically. */
   checkpointBarrierAuthority?: ObjectStorageCheckpointBarrierAuthority;
 }
@@ -107,6 +110,13 @@ export interface ObjectStoragePinnedInventoryEntry {
 export interface ObjectStoragePinnedInventory {
   bucketExists: boolean;
   objects: ObjectStoragePinnedInventoryEntry[];
+}
+
+export interface ObjectStoragePinnedGeneration {
+  key: string;
+  size: number;
+  generation: string;
+  contentHash: string | null;
 }
 
 export interface ObjectStorageOperationLease {
@@ -492,6 +502,56 @@ export function objectStoragePinnedInventoryDigest(inventory: ObjectStoragePinne
   return sha256(canonicalJson(canonical as unknown as ObjectStorageJsonValue));
 }
 
+export function canonicalizeObjectStoragePinnedGenerations(
+  generations: readonly ObjectStoragePinnedGeneration[],
+): ObjectStoragePinnedGeneration[] {
+  if (!Array.isArray(generations) || generations.length > 500) {
+    throw operationError(
+      'OBJECT_STORAGE_OPERATION_PINNED_GENERATIONS_INVALID',
+      'Pinned generation batch must contain at most 500 objects',
+      400,
+    );
+  }
+  const canonical = generations
+    .map((generation) => {
+      if (
+        typeof generation.key !== 'string' ||
+        generation.key.length < 1 ||
+        generation.key.length > 1024 ||
+        !Number.isSafeInteger(generation.size) ||
+        generation.size < 0 ||
+        typeof generation.generation !== 'string' ||
+        generation.generation.length < 1 ||
+        generation.generation.length > 255 ||
+        !(generation.contentHash === null || PINNED_CONTENT_HASH.test(generation.contentHash))
+      ) {
+        throw operationError(
+          'OBJECT_STORAGE_OPERATION_PINNED_GENERATIONS_INVALID',
+          'Pinned generation batch is invalid',
+          400,
+        );
+      }
+      return { ...generation };
+    })
+    .sort((left, right) => left.key.localeCompare(right.key) || left.generation.localeCompare(right.generation));
+  if (
+    new Set(canonical.map((generation) => `${generation.key}\u0000${generation.generation}`)).size !== canonical.length
+  ) {
+    throw operationError(
+      'OBJECT_STORAGE_OPERATION_PINNED_GENERATIONS_INVALID',
+      'Pinned generation batch contains duplicates',
+      400,
+    );
+  }
+  return canonical;
+}
+
+export function objectStoragePinnedGenerationDigest(generations: readonly ObjectStoragePinnedGeneration[]): string {
+  return sha256(
+    canonicalJson(canonicalizeObjectStoragePinnedGenerations(generations) as unknown as ObjectStorageJsonValue),
+  );
+}
+
 export function objectStorageArtifactInventoryDigest(
   dispositions: readonly ObjectStorageStaticArtifactDisposition[],
 ): string {
@@ -737,6 +797,36 @@ function validateClaimInput(input: ClaimObjectStorageOperationInput): CanonicalO
       400,
     );
   }
+  if (input.kind === 'PROJECT_VERSION_GC') {
+    if (!input.pinnedGenerations || input.scopes.length !== 1) {
+      throw operationError(
+        'OBJECT_STORAGE_OPERATION_PINNED_GENERATIONS_REQUIRED',
+        'Version history collection requires one project and a normalized generation batch',
+        400,
+      );
+    }
+    const generations = canonicalizeObjectStoragePinnedGenerations(input.pinnedGenerations);
+    if (
+      input.payload.command !== 'gc-object-generations' ||
+      input.payload.candidateCount !== generations.length ||
+      input.payload.candidateDigest !== objectStoragePinnedGenerationDigest(generations) ||
+      typeof input.payload.disableVersioningWhenComplete !== 'boolean' ||
+      !SHA256.test(String(input.payload.activeReferenceDigest ?? '')) ||
+      !SHA256.test(String(input.payload.currentGenerationDigest ?? ''))
+    ) {
+      throw operationError(
+        'OBJECT_STORAGE_OPERATION_PINNED_GENERATIONS_MISMATCH',
+        'Pinned generation batch does not match the durable operation payload',
+        409,
+      );
+    }
+  } else if (input.pinnedGenerations) {
+    throw operationError(
+      'OBJECT_STORAGE_OPERATION_PINNED_GENERATIONS_UNEXPECTED',
+      'Pinned generations are only valid for version history collection',
+      400,
+    );
+  }
   if (input.kind === 'ACCOUNT_PURGE_ERASURE' && typeof input.preconditions.purgePlanId !== 'string') {
     throw operationError(
       'OBJECT_STORAGE_OPERATION_PURGE_PLAN_REQUIRED',
@@ -864,6 +954,61 @@ export async function readObjectStorageOperationPinnedInventory(
     throw operationError('OBJECT_STORAGE_OPERATION_PINNED_INVENTORY_CORRUPT', 'Pinned inventory is corrupt', 500);
   }
   return inventory;
+}
+
+export async function readObjectStorageOperationPinnedGenerations(
+  tx: Tx,
+  operationId: string,
+): Promise<ObjectStoragePinnedGeneration[]> {
+  assertSafeId(operationId, 'operationId');
+  const [operation, rows] = await Promise.all([
+    readOperationRow(tx, operationId),
+    tx.$queryRaw<
+      Array<{
+        ordinal: number;
+        key: string;
+        size: bigint | number | string;
+        generation: string;
+        contentHash: string | null;
+      }>
+    >(Prisma.sql`
+      SELECT "ordinal", "key", "size", "generation", "contentHash"
+      FROM "ObjectStorageOperationPinnedGeneration"
+      WHERE "operationId" = ${operationId}
+      ORDER BY "ordinal" ASC
+    `),
+  ]);
+  if (!operation || operation.kind !== 'PROJECT_VERSION_GC') {
+    throw operationError(
+      'OBJECT_STORAGE_OPERATION_PINNED_GENERATIONS_NOT_FOUND',
+      'Pinned generation batch was not found',
+      404,
+    );
+  }
+  const generations = rows.map((row, ordinal) => {
+    const size = Number(row.size);
+    if (row.ordinal !== ordinal || !Number.isSafeInteger(size)) {
+      throw operationError(
+        'OBJECT_STORAGE_OPERATION_PINNED_GENERATIONS_CORRUPT',
+        'Pinned generation batch is corrupt',
+        500,
+      );
+    }
+    return { key: row.key, size, generation: row.generation, contentHash: row.contentHash };
+  });
+  const canonical = canonicalizeObjectStoragePinnedGenerations(generations);
+  const payload = normalizeJsonObject(operation.payload, 'stored payload');
+  if (
+    payload.candidateCount !== canonical.length ||
+    payload.candidateDigest !== objectStoragePinnedGenerationDigest(canonical)
+  ) {
+    throw operationError(
+      'OBJECT_STORAGE_OPERATION_PINNED_GENERATIONS_CORRUPT',
+      'Pinned generation batch is corrupt',
+      500,
+    );
+  }
+  return canonical;
 }
 
 async function readOperationRow(tx: Tx, operationId: string, forUpdate = false): Promise<OperationRow | null> {
@@ -1193,6 +1338,7 @@ async function validateLockedProjects(
       input.preconditions.capabilityDrainRequired === true ||
       input.kind === 'PROJECT_TRANSFER' ||
       input.kind === 'PROJECT_PERMANENT_DELETE' ||
+      input.kind === 'PROJECT_VERSION_GC' ||
       input.kind === 'ACCOUNT_PURGE_ERASURE';
     if (
       capabilityDrainRequired &&
@@ -1294,6 +1440,19 @@ export async function claimObjectStorageOperation(
         throw operationError(
           'OBJECT_STORAGE_OPERATION_IDEMPOTENCY_CONFLICT',
           'Pinned inventory does not match the stored clone request',
+          409,
+        );
+      }
+    }
+    if (existing.kind === 'PROJECT_VERSION_GC') {
+      const storedGenerations = await readObjectStorageOperationPinnedGenerations(tx, existing.id);
+      if (
+        objectStoragePinnedGenerationDigest(storedGenerations) !==
+        objectStoragePinnedGenerationDigest(input.pinnedGenerations!)
+      ) {
+        throw operationError(
+          'OBJECT_STORAGE_OPERATION_IDEMPOTENCY_CONFLICT',
+          'Pinned generation batch does not match the stored collection request',
           409,
         );
       }
@@ -1469,6 +1628,25 @@ export async function claimObjectStorageOperation(
               Prisma.sql`(
               ${operationId}, ${offset + index}, ${object.key}, ${BigInt(object.size)},
               ${object.generation}, ${object.contentHash}
+            )`,
+          ),
+        )}
+      `);
+    }
+  }
+
+  if (input.kind === 'PROJECT_VERSION_GC') {
+    const generations = canonicalizeObjectStoragePinnedGenerations(input.pinnedGenerations!);
+    if (generations.length > 0) {
+      await tx.$executeRaw(Prisma.sql`
+        INSERT INTO "ObjectStorageOperationPinnedGeneration" (
+          "operationId", "ordinal", "key", "generation", "size", "contentHash"
+        ) VALUES ${Prisma.join(
+          generations.map(
+            (generation, ordinal) =>
+              Prisma.sql`(
+              ${operationId}, ${ordinal}, ${generation.key}, ${generation.generation},
+              ${BigInt(generation.size)}, ${generation.contentHash}
             )`,
           ),
         )}
@@ -2085,7 +2263,10 @@ export async function listObjectStorageRecoveryCandidates(
       "fencingToken", "leaseExpiresAt"
     FROM "ObjectStorageOperation"
     WHERE (
-        "status" = 'PREPARED'
+        (
+          "status" = 'PREPARED'
+          AND "kind" <> 'PROJECT_VERSION_GC'::"ObjectStorageOperationKind"
+        )
         OR (
           "status" IN ('EFFECT_STARTED', 'VERIFYING')
           AND "kind" IN (

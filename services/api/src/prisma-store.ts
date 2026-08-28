@@ -48,8 +48,10 @@ import {
   markSignedCapabilityIssued,
   objectStorageIdempotencyScopeHash,
   objectStorageMutationAdvisoryKey,
+  objectStoragePinnedGenerationDigest,
   objectStorageRequestHash,
   quarantineObjectStorageOperationRecovery,
+  readObjectStorageOperationPinnedGenerations,
   readObjectStorageOperationPinnedInventory,
   reclaimObjectStorageOperationForVerification,
   recordPermanentDeletionStaticArtifactPlan,
@@ -61,6 +63,29 @@ import {
   type ObjectStorageVerification,
   type PermanentDeletionReplay,
 } from './object-storage-operation.js';
+import {
+  activeObjectStorageGenerationReferences,
+  claimObjectStorageVersionGcSchedule,
+  deletePendingObjectStorageVersionGcSchedule,
+  deferLeasedObjectStorageVersionGcSchedule,
+  deferPendingObjectStorageVersionGcSchedule,
+  heartbeatObjectStorageVersionGcSchedule,
+  listObjectStorageVersionGcSchedules,
+  objectStorageGenerationReferenceDigest,
+  planObjectStorageVersionGc,
+  quarantinePendingObjectStorageVersionGcSchedule,
+  quarantineExpiredObjectStorageVersionGcSchedule,
+  quarantineObjectStorageVersionGcSchedule,
+  reclaimObjectStorageVersionGcSchedule,
+  releaseObjectStorageVersionGcSchedule,
+  resetExpiredObjectStorageVersionGcSchedule,
+  scheduleObjectStorageVersionGc,
+  verifyObjectStorageVersionGc,
+  type ObjectStorageGenerationReference,
+  type ObjectStorageVersionGcPlan,
+  type ObjectStorageVersionGcScheduleCandidate,
+  type ObjectStorageVersionGcScheduleLease,
+} from './object-storage-version-gc.js';
 import {
   assertObjectStorageCommandPreconditions,
   assertValidObjectStorageCommand,
@@ -179,6 +204,7 @@ import type {
   OAuthConnectionRecord,
   ObjectStorageCapabilityCommand,
   ObjectStorageRecoveryReport,
+  ObjectStorageVersionGcReport,
   OrganizationRecord,
   OrganizationInviteRecord,
   ProjectActivityListOptions,
@@ -1966,7 +1992,10 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
     return this.withProjectPhysicalBarrier(projectId, effect);
   }
 
-  private objectStorageOperationHeartbeat(initialLease: ObjectStorageOperationLease) {
+  private objectStorageOperationHeartbeat(
+    initialLease: ObjectStorageOperationLease,
+    sideEffect?: (tx: Prisma.TransactionClient, lease: ObjectStorageOperationLease) => Promise<void>,
+  ) {
     let lease = initialLease;
     let stopped = false;
     let lost: unknown;
@@ -1984,9 +2013,15 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
         if (stopped || lost) break;
 
         try {
-          lease = await this.prisma.$transaction((tx) =>
-            heartbeatObjectStorageOperation(tx, lease, OBJECT_STORAGE_OPERATION_LEASE_TTL_SECONDS),
-          );
+          lease = await this.prisma.$transaction(async (tx) => {
+            const renewed = await heartbeatObjectStorageOperation(
+              tx,
+              lease,
+              OBJECT_STORAGE_OPERATION_LEASE_TTL_SECONDS,
+            );
+            await sideEffect?.(tx, renewed);
+            return renewed;
+          });
         } catch (error) {
           lost = error;
         }
@@ -2330,7 +2365,7 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
 
         const now = await databaseNow(tx);
         const reservedCapabilityExpiresAt = new Date(now.getTime() + SIGNED_URL_TTL_MS).toISOString();
-        return reserveSignedCapabilityAuthorization(tx, {
+        const authorization = await reserveSignedCapabilityAuthorization(tx, {
           operationId: claimed.operation.id,
           requestHash,
           scopeHash: claimed.operation.scopeHash,
@@ -2341,6 +2376,14 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
             ? { checkpointBarrierAuthority: command.checkpointBarrierAuthority }
             : {}),
         });
+        if (command.method === 'PUT') {
+          await scheduleObjectStorageVersionGc(tx, {
+            projectId: command.projectId,
+            expectedOrganizationId: command.expectedOrganizationId,
+            notBefore: new Date(authorization.reservedCapabilityExpiresAt),
+          });
+        }
+        return authorization;
       });
 
       const result = await signer({ expiresAt: authorization.reservedCapabilityExpiresAt });
@@ -2374,6 +2417,23 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
   }): Promise<ObjectStorageCommandExecution> {
     assertValidObjectStorageCommand(input.command);
     return this.withProjectPhysicalAccesses(input.scopes, async () => {
+      await this.prisma.$transaction(async (tx) => {
+        for (const scope of input.scopes) {
+          await this.lockExpectedProjectTenantMutation(tx, scope, {
+            allowActiveCheckpoint: Boolean(input.checkpointBarrierAuthority),
+          });
+        }
+        const activeTargetShare = await tx.remixStorageShare.findFirst({
+          where: {
+            targetProjectId: { in: objectStorageCommandMutationProjectIds(input.command) },
+            state: 'ACTIVE',
+          },
+          select: { id: true },
+        });
+        if (activeTargetShare) {
+          throw new ObjectStorageError(appPublicEnglish('OBJECT_STORAGE_SHARED_READ_ONLY'), 'SHARED_READ_ONLY');
+        }
+      });
       if (input.command.type !== 'CLONE_PROJECT') {
         const command = await pinObjectStorageCommand(input.storage, input.command);
         return this.executeTenantObjectStorageCommandWithinPhysicalAccess({ ...input, command });
@@ -2626,12 +2686,22 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
        */
       await heartbeat.assert();
       await heartbeat.stop();
-      await this.prisma.$transaction((tx) =>
-        finalizeObjectStorageOperation(tx, heartbeat.lease(), {
+      const putProjectId = input.command.type === 'PUT_OBJECT' ? input.command.projectId : undefined;
+      await this.prisma.$transaction(async (tx) => {
+        await finalizeObjectStorageOperation(tx, heartbeat.lease(), {
           verification,
           result: objectStorageCommandReceipt(input.command, execution),
-        }),
-      );
+        });
+        if (putProjectId) {
+          const putScope = scopes.find((scope) => scope.projectId === putProjectId);
+          if (!putScope) throw new TypeError('OBJECT_STORAGE_OPERATION_SCOPE_REQUIRED');
+          await scheduleObjectStorageVersionGc(tx, {
+            projectId: putProjectId,
+            expectedOrganizationId: putScope.expectedOrganizationId,
+            notBefore: await databaseNow(tx),
+          });
+        }
+      });
       return execution;
     } finally {
       await heartbeat.stop();
@@ -2906,12 +2976,29 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
               });
               await heartbeat.assert();
               await heartbeat.stop();
-              await this.prisma.$transaction((tx) =>
-                finalizeObjectStorageOperation(tx, heartbeat.lease(), {
+              await this.prisma.$transaction(async (tx) => {
+                await finalizeObjectStorageOperation(tx, heartbeat.lease(), {
                   verification: recovered.verification,
                   result: objectStorageCommandReceiptFromExecution(recovered.execution),
-                }),
-              );
+                });
+                if (recovered.execution.type === 'PUT_OBJECT') {
+                  const scope = reclaimed.operation.scopes[0];
+                  const recoveredProjectId = reclaimed.operation.payload.projectId;
+                  if (
+                    reclaimed.operation.scopes.length !== 1 ||
+                    !scope ||
+                    typeof recoveredProjectId !== 'string' ||
+                    scope.projectId !== recoveredProjectId
+                  ) {
+                    throw new TypeError('OBJECT_STORAGE_OPERATION_SCOPE_REQUIRED');
+                  }
+                  await scheduleObjectStorageVersionGc(tx, {
+                    projectId: scope.projectId,
+                    expectedOrganizationId: scope.expectedOrganizationId,
+                    notBefore: await databaseNow(tx),
+                  });
+                }
+              });
               report.recovered += 1;
             } catch (error) {
               await heartbeat.stop().catch(() => undefined);
@@ -2960,6 +3047,607 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
         }
       }
 
+      if (candidates.length < batchSize) break;
+    }
+    return report;
+  }
+
+  private async objectStorageVersionGcAuthority(
+    tx: Prisma.TransactionClient,
+    scope: ProjectPhysicalMutationScope,
+    allowedObjectStorageOperationId?: string,
+  ): Promise<{
+    now: Date;
+    capabilityExpiresAt: Date | null;
+    activeReferences: ObjectStorageGenerationReference[];
+    activeReferenceDigest: string;
+  }> {
+    await this.lockExpectedProjectTenantMutation(tx, scope, {
+      ...(allowedObjectStorageOperationId ? { allowedObjectStorageOperationId } : {}),
+    });
+    const [now, project, shares] = await Promise.all([
+      databaseNow(tx),
+      tx.project.findUnique({
+        where: { id: scope.projectId },
+        select: { objectStorageCapabilityExpiresAt: true },
+      }),
+      tx.remixStorageShare.findMany({
+        where: { sourceProjectId: scope.projectId, state: 'ACTIVE' },
+        select: { sourceInventory: true },
+        orderBy: { id: 'asc' },
+      }),
+    ]);
+    if (!project) throw projectOrganizationChangedError();
+    const activeReferences = activeObjectStorageGenerationReferences(shares.map((share) => share.sourceInventory));
+    return {
+      now,
+      capabilityExpiresAt: project.objectStorageCapabilityExpiresAt,
+      activeReferences,
+      activeReferenceDigest: objectStorageGenerationReferenceDigest(activeReferences),
+    };
+  }
+
+  private objectStorageVersionGcPlansEqual(
+    left: ObjectStorageVersionGcPlan,
+    right: ObjectStorageVersionGcPlan,
+  ): boolean {
+    return (
+      left.candidateDigest === right.candidateDigest &&
+      left.activeReferenceDigest === right.activeReferenceDigest &&
+      left.currentGenerationDigest === right.currentGenerationDigest &&
+      left.remainingCandidateCount === right.remainingCandidateCount &&
+      left.disableVersioningWhenComplete === right.disableVersioningWhenComplete
+    );
+  }
+
+  private objectStorageVersionGcNextAttempt(plan: ObjectStorageVersionGcPlan, now: Date): Date | undefined {
+    if (plan.remainingCandidateCount > 0) return now;
+    if (plan.activeReferences.length > 0) return new Date(now.getTime() + 15 * 60_000);
+    return undefined;
+  }
+
+  private async inspectObjectStorageVersionGcProvider(
+    storage: ObjectStorage,
+    projectId: string,
+    activeReferences: readonly ObjectStorageGenerationReference[],
+  ): Promise<{ bucketExists: boolean; versioningEnabled: boolean; plan?: ObjectStorageVersionGcPlan }> {
+    if (!storage.listObjectVersions || !storage.bucketVersioningEnabled) {
+      throw new ObjectStorageError(
+        'Object generation history cannot be inspected',
+        'OBJECT_STORAGE_VERSION_GC_INSPECTION_REQUIRED',
+      );
+    }
+    const bucketExists = await storage.bucketExists(projectId);
+    if (!bucketExists) return { bucketExists: false, versioningEnabled: false };
+    const [versioningEnabled, live, versions] = await Promise.all([
+      storage.bucketVersioningEnabled(projectId),
+      storage.listObjects(projectId),
+      storage.listObjectVersions(projectId),
+    ]);
+    return {
+      bucketExists: true,
+      versioningEnabled,
+      plan: planObjectStorageVersionGc({ live, versions, activeReferences }),
+    };
+  }
+
+  private async finalizeObjectStorageVersionGc(
+    lease: ObjectStorageOperationLease,
+    scheduleLease: ObjectStorageVersionGcScheduleLease,
+    plan: ObjectStorageVersionGcPlan,
+    verified: Awaited<ReturnType<typeof verifyObjectStorageVersionGc>>,
+  ): Promise<void> {
+    await this.prisma.$transaction(async (tx) => {
+      await finalizeObjectStorageOperation(tx, lease, {
+        verification: {
+          outcome: 'VERIFIED',
+          verifier: 'api-object-storage-version-gc-v1',
+          evidence: verified.evidence,
+        },
+        result: verified.result,
+      });
+      const now = await databaseNow(tx);
+      const nextAttemptAt = this.objectStorageVersionGcNextAttempt(plan, now);
+      await releaseObjectStorageVersionGcSchedule(tx, scheduleLease, {
+        deleteSchedule: !nextAttemptAt,
+        ...(nextAttemptAt ? { nextAttemptAt } : {}),
+      });
+    });
+  }
+
+  private async runObjectStorageVersionGcEffect(input: {
+    storage: ObjectStorage;
+    scope: ProjectPhysicalMutationScope;
+    operation: ObjectStorageOperationRecord;
+    operationLease: ObjectStorageOperationLease;
+    scheduleLease: ObjectStorageVersionGcScheduleLease;
+    plan: ObjectStorageVersionGcPlan;
+    recovering: boolean;
+  }): Promise<{ committed: boolean; deletedGenerations: number }> {
+    let scheduleLease = input.scheduleLease;
+    const heartbeat = this.objectStorageOperationHeartbeat(input.operationLease, (tx, renewed) => {
+      if (!renewed.leaseExpiresAt) throw new TypeError('OBJECT_STORAGE_OPERATION_LEASE_INVALID');
+      return heartbeatObjectStorageVersionGcSchedule(tx, scheduleLease, renewed.leaseExpiresAt);
+    });
+    let effectStarted = input.recovering;
+    let deletedGenerations = 0;
+    try {
+      const authority = await this.prisma.$transaction((tx) =>
+        this.objectStorageVersionGcAuthority(tx, input.scope, input.operation.id),
+      );
+      if (authority.activeReferenceDigest !== input.plan.activeReferenceDigest) {
+        throw new ObjectStorageError(
+          'Active remix generation authority changed',
+          'OBJECT_STORAGE_VERSION_GC_ACTIVE_REFERENCE_MISMATCH',
+        );
+      }
+
+      if (!input.recovering) {
+        const provider = await this.inspectObjectStorageVersionGcProvider(
+          input.storage,
+          input.scope.projectId,
+          authority.activeReferences,
+        );
+        if (
+          !provider.bucketExists ||
+          !provider.plan ||
+          !this.objectStorageVersionGcPlansEqual(provider.plan, input.plan)
+        ) {
+          await heartbeat.assert();
+          await heartbeat.stop();
+          await this.prisma.$transaction(async (tx) => {
+            await markObjectStorageOperationFailedSafe(tx, heartbeat.lease(), {
+              errorCode: 'OBJECT_STORAGE_VERSION_GC_PRECONDITION_CHANGED',
+              error: new Error('Provider generation preconditions changed before effect'),
+            });
+            await releaseObjectStorageVersionGcSchedule(tx, scheduleLease, {
+              deleteSchedule: false,
+              nextAttemptAt: await databaseNow(tx),
+              errorCode: 'OBJECT_STORAGE_VERSION_GC_PRECONDITION_CHANGED',
+            });
+          });
+          return { committed: false, deletedGenerations: 0 };
+        }
+        await this.prisma.$transaction((tx) =>
+          markObjectStorageOperationEffectStarted(tx, heartbeat.lease(), {
+            command: 'gc-object-generations',
+            candidateDigest: input.plan.candidateDigest,
+          }),
+        );
+        effectStarted = true;
+      }
+
+      if (!input.storage.listObjectVersions) {
+        throw new ObjectStorageError(
+          'Object generation history cannot be inspected',
+          'OBJECT_STORAGE_VERSION_GC_INSPECTION_REQUIRED',
+        );
+      }
+      const existing = new Set(
+        (await input.storage.listObjectVersions(input.scope.projectId)).objects.map(
+          (object) => `${object.key}\u0000${object.generation ?? ''}`,
+        ),
+      );
+      for (const candidate of input.plan.candidates) {
+        const identity = `${candidate.key}\u0000${candidate.generation}`;
+        if (!existing.has(identity)) continue;
+        await heartbeat.assert();
+        const deleted = await input.storage.deleteObject(input.scope.projectId, {
+          key: candidate.key,
+          generation: candidate.generation,
+        });
+        deletedGenerations += deleted.count;
+        await heartbeat.assert();
+      }
+
+      await this.prisma.$transaction((tx) =>
+        beginObjectStorageOperationVerification(tx, heartbeat.lease(), {
+          command: 'gc-object-generations',
+          candidateDigest: input.plan.candidateDigest,
+        }),
+      );
+      const verified = await verifyObjectStorageVersionGc({
+        storage: input.storage,
+        projectId: input.scope.projectId,
+        candidates: input.plan.candidates,
+        activeReferences: authority.activeReferences,
+        expectedCurrentGenerationDigest: input.plan.currentGenerationDigest,
+        disableVersioningWhenComplete: input.plan.disableVersioningWhenComplete,
+        assertLease: heartbeat.assert,
+      });
+      await heartbeat.assert();
+      await heartbeat.stop();
+      await this.finalizeObjectStorageVersionGc(heartbeat.lease(), scheduleLease, input.plan, verified);
+      return { committed: true, deletedGenerations };
+    } catch (error) {
+      await heartbeat.stop().catch(() => undefined);
+      const errorCode = this.objectStorageRecoveryErrorCode(error);
+      try {
+        if (!effectStarted) {
+          await this.prisma.$transaction(async (tx) => {
+            await markObjectStorageOperationFailedSafe(tx, heartbeat.lease(), { errorCode, error });
+            await releaseObjectStorageVersionGcSchedule(tx, scheduleLease, {
+              deleteSchedule: false,
+              nextAttemptAt: new Date((await databaseNow(tx)).getTime() + 5_000),
+              errorCode,
+              errorMessage: error instanceof Error ? error.message : String(error),
+            });
+          });
+        } else if (this.objectStorageRecoveryIsDeterministic(error)) {
+          await this.prisma.$transaction(async (tx) => {
+            await markObjectStorageOperationManualRecovery(tx, heartbeat.lease(), {
+              errorCode,
+              error,
+              evidence: { verifier: 'api-object-storage-version-gc-v1' },
+            });
+            await quarantineObjectStorageVersionGcSchedule(tx, scheduleLease, {
+              errorCode,
+              errorMessage: error instanceof Error ? error.message : String(error),
+            });
+          });
+        } else {
+          await this.prisma.$transaction(async (tx) => {
+            const deferred = await deferLeasedObjectStorageOperationRecovery(tx, heartbeat.lease(), {
+              errorCode,
+              error,
+              retryAfterSeconds: Math.min(3_600, 5 * 2 ** Math.min(input.operation.attempts, 9)),
+            });
+            if (!deferred.ownerToken || !deferred.leaseExpiresAt) {
+              throw new TypeError('OBJECT_STORAGE_OPERATION_LEASE_INVALID');
+            }
+            scheduleLease = await deferLeasedObjectStorageVersionGcSchedule(tx, scheduleLease, {
+              operationOwnerToken: deferred.ownerToken,
+              operationLeaseExpiresAt: deferred.leaseExpiresAt,
+              errorCode,
+              errorMessage: error instanceof Error ? error.message : String(error),
+            });
+          });
+        }
+      } catch {
+        /* A lost lease is handled by the next due verify-first sweep. */
+      }
+      throw error;
+    }
+  }
+
+  private async processPendingObjectStorageVersionGcSchedule(input: {
+    storage: ObjectStorage;
+    candidate: ObjectStorageVersionGcScheduleCandidate;
+  }): Promise<{ claimed: boolean; committed: boolean; deletedGenerations: number }> {
+    const scope = {
+      projectId: input.candidate.projectId,
+      expectedOrganizationId: input.candidate.expectedOrganizationId,
+    };
+    return this.withProjectPhysicalMutation(scope, async () => {
+      const authority = await this.prisma.$transaction((tx) => this.objectStorageVersionGcAuthority(tx, scope));
+      if (authority.capabilityExpiresAt && authority.capabilityExpiresAt > authority.now) {
+        await this.prisma.$transaction((tx) =>
+          deferPendingObjectStorageVersionGcSchedule(tx, {
+            candidate: input.candidate,
+            nextAttemptAt: authority.capabilityExpiresAt!,
+            errorCode: 'OBJECT_STORAGE_CAPABILITY_ACTIVE',
+          }),
+        );
+        return { claimed: false, committed: false, deletedGenerations: 0 };
+      }
+
+      const provider = await this.inspectObjectStorageVersionGcProvider(
+        input.storage,
+        scope.projectId,
+        authority.activeReferences,
+      );
+      if (!provider.bucketExists) {
+        if (authority.activeReferences.length > 0) {
+          await this.prisma.$transaction((tx) =>
+            quarantinePendingObjectStorageVersionGcSchedule(tx, input.candidate, {
+              errorCode: 'OBJECT_STORAGE_VERSION_GC_ACTIVE_REFERENCE_MISSING',
+              errorMessage: 'An active share references an absent bucket',
+            }),
+          );
+          throw new ObjectStorageError(
+            'An active share references an absent bucket',
+            'OBJECT_STORAGE_VERSION_GC_ACTIVE_REFERENCE_MISSING',
+          );
+        }
+        await this.prisma.$transaction((tx) => deletePendingObjectStorageVersionGcSchedule(tx, input.candidate));
+        return { claimed: false, committed: true, deletedGenerations: 0 };
+      }
+      const plan = provider.plan!;
+      if (plan.candidates.length === 0 && plan.activeReferences.length > 0 && provider.versioningEnabled) {
+        await this.prisma.$transaction((tx) =>
+          deferPendingObjectStorageVersionGcSchedule(tx, {
+            candidate: input.candidate,
+            nextAttemptAt: new Date(authority.now.getTime() + 15 * 60_000),
+          }),
+        );
+        return { claimed: false, committed: false, deletedGenerations: 0 };
+      }
+      if (plan.candidates.length === 0 && !plan.disableVersioningWhenComplete && !provider.versioningEnabled) {
+        await this.prisma.$transaction((tx) => deletePendingObjectStorageVersionGcSchedule(tx, input.candidate));
+        return { claimed: false, committed: true, deletedGenerations: 0 };
+      }
+
+      const ownerToken = `object-storage-version-gc:${randomUUID()}`;
+      const operationRequest = {
+        kind: 'PROJECT_VERSION_GC' as const,
+        scopes: [{ projectId: scope.projectId, expectedOrganizationId: scope.expectedOrganizationId }],
+        payload: {
+          command: 'gc-object-generations',
+          candidateCount: plan.candidates.length,
+          candidateDigest: plan.candidateDigest,
+          activeReferenceDigest: plan.activeReferenceDigest,
+          currentGenerationDigest: plan.currentGenerationDigest,
+          disableVersioningWhenComplete: plan.disableVersioningWhenComplete,
+          remainingCandidateCount: plan.remainingCandidateCount,
+        },
+        preconditions: { tenantMustMatch: true, capabilityDrainRequired: true },
+      };
+      const requestHash = objectStorageRequestHash(operationRequest);
+      const claimed = await this.prisma.$transaction(async (tx) => {
+        const operation = await claimObjectStorageOperation(tx, {
+          ...operationRequest,
+          idempotencyKey: `version-gc:${scope.projectId}:${input.candidate.fencingToken + 1n}`,
+          requestHash,
+          ownerToken,
+          leaseTtlSeconds: OBJECT_STORAGE_OPERATION_LEASE_TTL_SECONDS,
+          pinnedGenerations: plan.candidates,
+        });
+        if (operation.kind !== 'ACQUIRED' || !operation.operation.leaseExpiresAt) {
+          throw Object.assign(new Error('OBJECT_STORAGE_VERSION_GC_OPERATION_UNAVAILABLE'), {
+            code: 'OBJECT_STORAGE_VERSION_GC_OPERATION_UNAVAILABLE',
+            statusCode: 409,
+          });
+        }
+        const shares = await tx.remixStorageShare.findMany({
+          where: { sourceProjectId: scope.projectId, state: 'ACTIVE' },
+          select: { sourceInventory: true },
+          orderBy: { id: 'asc' },
+        });
+        if (
+          objectStorageGenerationReferenceDigest(
+            activeObjectStorageGenerationReferences(shares.map((share) => share.sourceInventory)),
+          ) !== plan.activeReferenceDigest
+        ) {
+          throw new ObjectStorageError(
+            'Active remix generation authority changed',
+            'OBJECT_STORAGE_VERSION_GC_ACTIVE_REFERENCE_MISMATCH',
+          );
+        }
+        const scheduleLease = await claimObjectStorageVersionGcSchedule(tx, {
+          candidate: input.candidate,
+          ownerToken,
+          operationId: operation.operation.id,
+          operationLeaseExpiresAt: operation.operation.leaseExpiresAt,
+        });
+        return { operation, scheduleLease };
+      });
+      const effect = await this.runObjectStorageVersionGcEffect({
+        storage: input.storage,
+        scope,
+        operation: claimed.operation.operation,
+        operationLease: claimed.operation.lease,
+        scheduleLease: claimed.scheduleLease,
+        plan,
+        recovering: false,
+      });
+      return {
+        claimed: true,
+        committed: effect.committed,
+        deletedGenerations: effect.deletedGenerations,
+      };
+    });
+  }
+
+  private async processClaimedObjectStorageVersionGcSchedule(input: {
+    storage: ObjectStorage;
+    candidate: ObjectStorageVersionGcScheduleCandidate;
+  }): Promise<{ recovered: boolean; deletedGenerations: number }> {
+    if (!input.candidate.lastOperationId) {
+      await this.prisma.$transaction((tx) =>
+        quarantineExpiredObjectStorageVersionGcSchedule(tx, input.candidate, {
+          errorCode: 'OBJECT_STORAGE_VERSION_GC_OPERATION_MISSING',
+          errorMessage: 'Claimed version GC schedule has no operation',
+        }),
+      );
+      return { recovered: false, deletedGenerations: 0 };
+    }
+    const identity = await this.prisma.objectStorageOperation.findUnique({
+      where: { id: input.candidate.lastOperationId },
+      select: { requestHash: true, scopeHash: true, status: true },
+    });
+    if (!identity) {
+      await this.prisma.$transaction((tx) =>
+        quarantineExpiredObjectStorageVersionGcSchedule(tx, input.candidate, {
+          errorCode: 'OBJECT_STORAGE_VERSION_GC_OPERATION_MISSING',
+          errorMessage: 'Claimed version GC operation is absent',
+        }),
+      );
+      return { recovered: false, deletedGenerations: 0 };
+    }
+    const inspection = await this.prisma.$transaction((tx) =>
+      inspectObjectStorageOperationRecovery(tx, {
+        operationId: input.candidate.lastOperationId!,
+        requestHash: identity.requestHash,
+        scopeHash: identity.scopeHash,
+      }),
+    );
+    if (inspection.action === 'REPLAY') {
+      await this.prisma.$transaction(async (tx) =>
+        resetExpiredObjectStorageVersionGcSchedule(tx, input.candidate, {
+          nextAttemptAt: await databaseNow(tx),
+        }),
+      );
+      return { recovered: true, deletedGenerations: 0 };
+    }
+    if (inspection.action === 'BUSY') return { recovered: false, deletedGenerations: 0 };
+    if (inspection.action === 'MANUAL_RECOVERY') {
+      await this.prisma.$transaction((tx) =>
+        quarantineExpiredObjectStorageVersionGcSchedule(tx, input.candidate, {
+          errorCode: inspection.operation.lastErrorCode ?? 'OBJECT_STORAGE_VERSION_GC_MANUAL_RECOVERY',
+          errorMessage: inspection.operation.lastErrorMessage ?? 'Version GC requires manual recovery',
+        }),
+      );
+      return { recovered: false, deletedGenerations: 0 };
+    }
+    return this.withObjectStorageRecoveryPhysicalScope(inspection.operation, async () => {
+      if (inspection.action === 'RETRY_SAFE') {
+        await this.prisma.$transaction(async (tx) => {
+          await expirePreparedObjectStorageOperationFailedSafe(tx, {
+            operationId: inspection.operation.id,
+            requestHash: inspection.operation.requestHash,
+            scopeHash: inspection.operation.scopeHash,
+            fencingToken: inspection.operation.fencingToken,
+            errorCode: 'OBJECT_STORAGE_VERSION_GC_PREPARED_EXPIRED',
+          });
+          await resetExpiredObjectStorageVersionGcSchedule(tx, input.candidate, {
+            nextAttemptAt: await databaseNow(tx),
+            errorCode: 'OBJECT_STORAGE_VERSION_GC_PREPARED_EXPIRED',
+          });
+        });
+        return { recovered: false, deletedGenerations: 0 };
+      }
+
+      const ownerToken = `object-storage-version-gc-recovery:${randomUUID()}`;
+      const reclaimed = await this.prisma.$transaction(async (tx) => {
+        const operation = await reclaimObjectStorageOperationForVerification(tx, {
+          operationId: inspection.operation.id,
+          requestHash: inspection.operation.requestHash,
+          scopeHash: inspection.operation.scopeHash,
+          ownerToken,
+          leaseTtlSeconds: OBJECT_STORAGE_OPERATION_LEASE_TTL_SECONDS,
+        });
+        if (operation.kind !== 'ACQUIRED' || !operation.operation.leaseExpiresAt) return { operation };
+        const scheduleLease = await reclaimObjectStorageVersionGcSchedule(tx, {
+          candidate: input.candidate,
+          ownerToken,
+          operationId: operation.operation.id,
+          operationLeaseExpiresAt: operation.operation.leaseExpiresAt,
+        });
+        return { operation, scheduleLease };
+      });
+      if (reclaimed.operation.kind !== 'ACQUIRED' || !reclaimed.scheduleLease) {
+        return { recovered: false, deletedGenerations: 0 };
+      }
+      const pinned = await this.prisma.$transaction((tx) =>
+        readObjectStorageOperationPinnedGenerations(tx, reclaimed.operation.operation.id),
+      );
+      const payload = reclaimed.operation.operation.payload;
+      if (
+        payload.command !== 'gc-object-generations' ||
+        typeof payload.activeReferenceDigest !== 'string' ||
+        typeof payload.currentGenerationDigest !== 'string' ||
+        typeof payload.disableVersioningWhenComplete !== 'boolean' ||
+        typeof payload.remainingCandidateCount !== 'number' ||
+        !Number.isSafeInteger(payload.remainingCandidateCount) ||
+        payload.remainingCandidateCount < 0
+      ) {
+        throw new TypeError('OBJECT_STORAGE_VERSION_GC_PAYLOAD_INVALID');
+      }
+      const scope = {
+        projectId: input.candidate.projectId,
+        expectedOrganizationId: input.candidate.expectedOrganizationId,
+      };
+      const authority = await this.prisma.$transaction((tx) =>
+        this.objectStorageVersionGcAuthority(tx, scope, reclaimed.operation.operation.id),
+      );
+      const plan: ObjectStorageVersionGcPlan = {
+        candidates: pinned,
+        candidateDigest: objectStoragePinnedGenerationDigest(pinned),
+        activeReferences: authority.activeReferences,
+        activeReferenceDigest: payload.activeReferenceDigest,
+        currentGenerations: [],
+        currentGenerationDigest: payload.currentGenerationDigest,
+        remainingCandidateCount: payload.remainingCandidateCount,
+        disableVersioningWhenComplete: payload.disableVersioningWhenComplete,
+      };
+      const effect = await this.runObjectStorageVersionGcEffect({
+        storage: input.storage,
+        scope,
+        operation: reclaimed.operation.operation,
+        operationLease: reclaimed.operation.lease,
+        scheduleLease: reclaimed.scheduleLease,
+        plan,
+        recovering: true,
+      });
+      return { recovered: effect.committed, deletedGenerations: effect.deletedGenerations };
+    });
+  }
+
+  async reconcileObjectStorageVersionGc(input: {
+    storage: ObjectStorage;
+    batchSize?: number;
+    maxSchedules?: number;
+  }): Promise<ObjectStorageVersionGcReport> {
+    const batchSize = Math.max(1, Math.min(input.batchSize ?? 50, 500));
+    const maxSchedules = Math.max(batchSize, Math.min(input.maxSchedules ?? 1_000, 10_000));
+    const report: ObjectStorageVersionGcReport = {
+      scanned: 0,
+      claimed: 0,
+      recovered: 0,
+      committed: 0,
+      deferred: 0,
+      quarantined: 0,
+      busy: 0,
+      deletedGenerations: 0,
+      projectIds: [],
+    };
+    let after: { dueAt: string; projectId: string } | undefined;
+    while (report.scanned < maxSchedules) {
+      const candidates = await this.prisma.$transaction((tx) =>
+        listObjectStorageVersionGcSchedules(tx, {
+          limit: Math.min(batchSize, maxSchedules - report.scanned),
+          ...(after ? { after } : {}),
+        }),
+      );
+      if (candidates.length === 0) break;
+      for (const candidate of candidates) {
+        report.scanned += 1;
+        report.projectIds.push(candidate.projectId);
+        after = { dueAt: candidate.dueAt, projectId: candidate.projectId };
+        try {
+          if (candidate.status === 'PENDING') {
+            const result = await this.processPendingObjectStorageVersionGcSchedule({
+              storage: input.storage,
+              candidate,
+            });
+            if (result.committed) report.committed += 1;
+            else report.deferred += 1;
+            if (result.claimed) report.claimed += 1;
+            report.deletedGenerations += result.deletedGenerations;
+          } else {
+            const result = await this.processClaimedObjectStorageVersionGcSchedule({
+              storage: input.storage,
+              candidate,
+            });
+            if (result.recovered) report.recovered += 1;
+            else report.busy += 1;
+            report.deletedGenerations += result.deletedGenerations;
+          }
+        } catch (error) {
+          if (candidate.status === 'PENDING') {
+            const errorCode = this.objectStorageRecoveryErrorCode(error);
+            await this.prisma
+              .$transaction(async (tx) => {
+                if (this.objectStorageRecoveryIsDeterministic(error)) {
+                  return quarantinePendingObjectStorageVersionGcSchedule(tx, candidate, {
+                    errorCode,
+                    errorMessage: error instanceof Error ? error.message : String(error),
+                  });
+                }
+                const now = await databaseNow(tx);
+                return deferPendingObjectStorageVersionGcSchedule(tx, {
+                  candidate,
+                  nextAttemptAt: new Date(now.getTime() + 30_000),
+                  errorCode,
+                  errorMessage: error instanceof Error ? error.message : String(error),
+                });
+              })
+              .catch(() => undefined);
+          }
+          if (this.objectStorageRecoveryIsDeterministic(error)) report.quarantined += 1;
+          else report.deferred += 1;
+        }
+      }
       if (candidates.length < batchSize) break;
     }
     return report;
@@ -6313,6 +7001,11 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
             });
           }
 
+          await scheduleObjectStorageVersionGc(tx, {
+            projectId: input.sourceProjectId,
+            expectedOrganizationId: input.sourceOrganizationId,
+            notBefore: now,
+          });
           return mapRemixStorageShare(existing);
         }
 
@@ -6326,19 +7019,23 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
           })),
         } satisfies Prisma.InputJsonObject;
 
-        return mapRemixStorageShare(
-          await tx.remixStorageShare.create({
-            data: {
-              sourceProjectId: input.sourceProjectId,
-              targetProjectId: input.targetProjectId,
-              sourceOrganizationId: input.sourceOrganizationId,
-              targetOrganizationId: input.targetOrganizationId,
-              consentVersion: input.consentVersion,
-              consentedByUserId: input.consentedByUserId ?? null,
-              sourceInventory: storedSourceInventory,
-            },
-          }),
-        );
+        const created = await tx.remixStorageShare.create({
+          data: {
+            sourceProjectId: input.sourceProjectId,
+            targetProjectId: input.targetProjectId,
+            sourceOrganizationId: input.sourceOrganizationId,
+            targetOrganizationId: input.targetOrganizationId,
+            consentVersion: input.consentVersion,
+            consentedByUserId: input.consentedByUserId ?? null,
+            sourceInventory: storedSourceInventory,
+          },
+        });
+        await scheduleObjectStorageVersionGc(tx, {
+          projectId: input.sourceProjectId,
+          expectedOrganizationId: input.sourceOrganizationId,
+          notBefore: now,
+        });
+        return mapRemixStorageShare(created);
       });
     });
   }
@@ -6368,19 +7065,26 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
           organizationIds: [scope?.sourceOrganizationId, input.targetOrganizationId],
           projectIds: [scope?.sourceProjectId, input.targetProjectId],
         });
+        const now = await databaseNow(tx);
         const updated = await tx.remixStorageShare.updateMany({
           where: {
             targetProjectId: input.targetProjectId,
             targetOrganizationId: input.targetOrganizationId,
             state: 'ACTIVE',
           },
-          data: { state: 'REVOKED', revokedAt: new Date() },
+          data: { state: 'REVOKED', revokedAt: now },
         });
 
         if (updated.count !== 1) return undefined;
 
         const row = await tx.remixStorageShare.findUnique({ where: { targetProjectId: input.targetProjectId } });
-        return row ? mapRemixStorageShare(row) : undefined;
+        if (!row) throw new TypeError('REMIX_STORAGE_SHARE_STATE_INVALID');
+        await scheduleObjectStorageVersionGc(tx, {
+          projectId: row.sourceProjectId,
+          expectedOrganizationId: row.sourceOrganizationId,
+          notBefore: now,
+        });
+        return mapRemixStorageShare(row);
       }),
     );
   }
@@ -6441,7 +7145,16 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
           throw projectOrganizationChangedError();
         }
 
-        return (await tx.remixStorageShare.deleteMany({ where: { targetProjectId: input.targetProjectId } })).count > 0;
+        const deleted =
+          (await tx.remixStorageShare.deleteMany({ where: { targetProjectId: input.targetProjectId } })).count > 0;
+        if (deleted && shareScope) {
+          await scheduleObjectStorageVersionGc(tx, {
+            projectId: shareScope.sourceProjectId,
+            expectedOrganizationId: shareScope.sourceOrganizationId,
+            notBefore: now,
+          });
+        }
+        return deleted;
       }),
     );
   }

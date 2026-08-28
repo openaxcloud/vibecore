@@ -1154,6 +1154,14 @@ export class TestApiStore implements ApiStore {
   }): Promise<ObjectStorageCommandExecution> {
     assertValidObjectStorageCommand(input.command);
     return this.withProjectPhysicalAccesses(input.scopes, async () => {
+      for (const projectId of objectStorageCommandMutationProjectIds(input.command)) {
+        if (await this.getRemixStorageShareByTarget(projectId)) {
+          throw Object.assign(new Error(appPublicEnglish('OBJECT_STORAGE_SHARED_READ_ONLY')), {
+            code: 'SHARED_READ_ONLY',
+            statusCode: 409,
+          });
+        }
+      }
       if (input.command.type !== 'CLONE_PROJECT') {
         const command = await pinObjectStorageCommand(input.storage, input.command);
         return this.executeTenantObjectStorageCommandWithinPhysicalAccess({ ...input, command });
@@ -1405,6 +1413,30 @@ export class TestApiStore implements ApiStore {
       replayed: 0,
       busy: 0,
       operationIds: [],
+    };
+  }
+
+  async reconcileObjectStorageVersionGc(): Promise<{
+    scanned: number;
+    claimed: number;
+    recovered: number;
+    committed: number;
+    deferred: number;
+    quarantined: number;
+    busy: number;
+    deletedGenerations: number;
+    projectIds: string[];
+  }> {
+    return {
+      scanned: 0,
+      claimed: 0,
+      recovered: 0,
+      committed: 0,
+      deferred: 0,
+      quarantined: 0,
+      busy: 0,
+      deletedGenerations: 0,
+      projectIds: [],
     };
   }
 

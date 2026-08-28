@@ -40952,6 +40952,33 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             : 'OBJECT_STORAGE_RECOVERY_FAILED',
       };
     }
+    let objectStorageVersionGc:
+      | Awaited<ReturnType<ApiStore['reconcileObjectStorageVersionGc']>>
+      | { error: string; code: string };
+    try {
+      const storage = resolveRawObjectStorage();
+      if (!storage.active) {
+        objectStorageVersionGc = {
+          error: appPublicEnglish('OBJECT_STORAGE_BACKEND_REQUIRED'),
+          code: 'OBJECT_STORAGE_BACKEND_REQUIRED',
+        };
+      } else {
+        objectStorageVersionGc = await store.reconcileObjectStorageVersionGc({
+          storage,
+          batchSize: 50,
+          maxSchedules: 1_000,
+        });
+      }
+    } catch (error) {
+      request.log.error({ err: error }, 'object-storage version GC sweep failed');
+      objectStorageVersionGc = {
+        error: error instanceof Error ? error.message : String(error),
+        code:
+          error && typeof error === 'object' && 'code' in error && typeof error.code === 'string'
+            ? error.code
+            : 'OBJECT_STORAGE_VERSION_GC_FAILED',
+      };
+    }
     let reservedVmCreateCancellationRecovery:
       | { claimed: false }
       | { claimed: true; deploymentId: string; operationId: string; status: 'CANCELED' }
@@ -41465,6 +41492,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return {
       ...reaped,
       objectStorageRecovery,
+      objectStorageVersionGc,
       runtimeMetering,
       publicationExpiry,
       reservedVmCreateCancellationRecovery,
