@@ -91,6 +91,26 @@
     "en": "Database connection not found for this project",
     "fr": "Aucune connexion à une base de données n’a été trouvée pour ce projet."
   },
+  "DATABASE_INSTANCE_NOT_FOUND": {
+    "en": "Managed database not found.",
+    "fr": "Base de données gérée introuvable."
+  },
+  "DATABASE_RESTORE_LIMIT_REACHED": {
+    "en": "The managed database restore inventory limit has been reached.",
+    "fr": "La limite d’inventaire des restaurations de la base de données gérée est atteinte."
+  },
+  "DATABASE_PHYSICAL_AUTHORITY_INVALID": {
+    "en": "The managed database physical authority is invalid.",
+    "fr": "L’autorité physique de la base de données gérée est invalide."
+  },
+  "DATABASE_PHYSICAL_AUTHORITY_RECONCILIATION_REQUIRED": {
+    "en": "The managed database physical authority must be reconciled before continuing.",
+    "fr": "L’autorité physique de la base de données gérée doit être réconciliée avant de continuer."
+  },
+  "DATABASE_PHYSICAL_AUTHORITY_MISMATCH": {
+    "en": "The managed database physical authority no longer matches its recorded topology.",
+    "fr": "L’autorité physique de la base de données gérée ne correspond plus à la topologie enregistrée."
+  },
   "DATABASE_MONGODB_INVALID_JSON": {
     "en": "MongoDB query must be valid JSON",
     "fr": "La requête MongoDB doit contenir du JSON valide."

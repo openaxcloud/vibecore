@@ -45775,7 +45775,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
               ? await options.databasePhysicalAuthorityResolver(project.id, 'production')
               : productionDatabaseInstance?.physicalAuthority;
             if (!resolvedAuthority || resolvedAuthority.tier !== 'isolated') {
-              throw new Error('managed production database authority is absent');
+              throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+                code: 'DATABASE_PHYSICAL_AUTHORITY_RECONCILIATION_REQUIRED',
+              });
             }
             migrationPhysicalAuthority = requireRestorablePhysicalAuthority(resolvedAuthority);
           } catch {

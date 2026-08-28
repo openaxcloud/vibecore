@@ -41,8 +41,6 @@ describe('object-storage signed capability source contract', () => {
         'app.ts:createDownloadUrl',
         'app.ts:createDownloadUrl',
         'app.ts:createDownloadUrl',
-        'object-storage.ts:createUploadUrl',
-        'object-storage.ts:createDownloadUrl',
         'server-deploy-transfer.ts:createUploadUrl',
         'server-deploy-transfer.ts:createUploadUrl',
         'server-deploy-transfer.ts:createDownloadUrl',
@@ -52,7 +50,7 @@ describe('object-storage signed capability source contract', () => {
     );
 
     const app = readFileSync(resolve(srcRoot, 'app.ts'), 'utf8');
-    expect(app).toContain('return tenantObjectStorageForProject(project);');
+    expect(app).toContain('return tenantObjectStorageForProject(project, releaseGuard);');
     expect(app).toContain('store.issueSignedObjectStorageCapability(');
     expect(app).toContain('store.issueSignedObjectStorageCapabilityWithinPhysicalAccess(');
 

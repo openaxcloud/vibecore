@@ -350,6 +350,13 @@ describe('app.ts i18n source guard', () => {
       // Security audit/SIEM framing and internal-secret maintenance response.
       '{…} (trigger={…})',
       'DB_ROLLBACK_ENABLED is off',
+      // Durable registry/build receipt parsers. These are invariant codes used
+      // only to quarantine corrupt provider evidence; route responses are
+      // localized separately and never expose the code as prose.
+      'REGISTRY_MUTATION_RECEIPT_CORRUPT',
+      'REGISTRY_MUTATION_BUILD_RECEIPT_CORRUPT',
+      'REGISTRY_MUTATION_SIGNING_RECEIPT_CORRUPT',
+      'REGISTRY_MUTATION_PROMOTION_RECEIPT_CORRUPT',
     ]);
 
     expect(result.parseErrors).toEqual([]);
@@ -399,6 +406,33 @@ describe('credit-ledger persistence source guard', () => {
         'PROJECT_TRANSFER_OPERATION_IDENTITY_CORRUPT',
         'OBJECT_STORAGE_OPERATION_IDEMPOTENCY_CONFLICT',
         'PROJECT_TRANSFER_OWNERSHIP_EPOCH_COMMIT_FAILED',
+        // Durable Cloud Build / Artifact Registry lifecycle invariants. They
+        // are machine-only recovery codes and are never rendered as copy.
+        'APP_IMAGE_BUILD_CANCELLATION_AUTHORITY_INVALID',
+        'APP_IMAGE_BUILD_CANCELLATION_PROOF_CONFLICT',
+        'APP_IMAGE_BUILD_DIGEST_CONFLICT',
+        'APP_IMAGE_BUILD_IDENTITY_CONFLICT',
+        'APP_IMAGE_BUILD_NOT_FOUND',
+        'APP_IMAGE_BUILD_OPERATION_TAG_MISMATCH',
+        'APP_IMAGE_BUILD_PHASE_CONFLICT',
+        'APP_IMAGE_BUILD_PROMOTION_AUTHORITY_INVALID',
+        'APP_IMAGE_BUILD_PROMOTION_CONFLICT',
+        'APP_IMAGE_BUILD_PROMOTION_EVIDENCE_INVALID',
+        'APP_IMAGE_BUILD_PROMOTION_INTENT_MISSING',
+        'APP_IMAGE_BUILD_PROVIDER_OUTCOME_REQUIRED',
+        'APP_IMAGE_BUILD_REJECTION_CONFLICT',
+        'APP_IMAGE_BUILD_TERMINAL_CONFLICT',
+        'APP_IMAGE_BUILD_TERMINAL_STATUS_CONFLICT',
+        'REGISTRY_ERASURE_INTENT_CONFLICT',
+        'REGISTRY_ERASURE_INVENTORY_HASH_MISMATCH',
+        'REGISTRY_ERASURE_INVENTORY_MISSING',
+        'REGISTRY_ERASURE_NOT_STARTED',
+        'REGISTRY_ERASURE_PROJECT_MISMATCH',
+        'REGISTRY_ERASURE_RECEIPT_CONFLICT',
+        'REGISTRY_ERASURE_RECEIPT_MISMATCH',
+        'REGISTRY_ERASURE_RECEIPT_MISSING',
+        'REGISTRY_MUTATION_BACKEND_PID_INVALID',
+        'REGISTRY_MUTATION_FENCE_LOST',
         // Durable recovery evidence retained for operators and never rendered
         // as response copy.
         'Provider generation preconditions changed before effect',

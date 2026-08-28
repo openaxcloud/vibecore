@@ -2663,25 +2663,25 @@ function mapDatabaseInstance(row: {
 }
 
 function databasePhysicalAuthorityData(authority: DatabasePhysicalAuthority, capturedAt: Date) {
-  const safe = (value: string | undefined, field: string, maximum: number): string | null => {
+  const safe = (value: string | undefined, maximum: number): string | null => {
     if (value === undefined) return null;
     const normalized = value.trim();
     if (!normalized || normalized.length > maximum || /[\u0000-\u001f\u007f]/.test(normalized)) {
-      throw Object.assign(new Error(`Invalid ${field}`), {
+      throw Object.assign(new Error(appPublicEnglish('DATABASE_PHYSICAL_AUTHORITY_INVALID')), {
         code: 'DATABASE_PHYSICAL_AUTHORITY_INVALID',
         statusCode: 400,
       });
     }
     return normalized;
   };
-  const clusterName = safe(authority.clusterName, 'clusterName', 253);
-  const databaseCrName = safe(authority.databaseCrName, 'databaseCrName', 253);
-  const databaseName = safe(authority.databaseName, 'databaseName', 63);
-  const roleName = safe(authority.roleName, 'roleName', 63);
-  const backupBucket = safe(authority.backupBucket, 'backupBucket', 222);
-  const backupPrefix = safe(authority.backupPrefix, 'backupPrefix', 1024);
-  const clusterUid = safe(authority.clusterUid, 'clusterUid', 255);
-  const databaseCrUid = safe(authority.databaseCrUid, 'databaseCrUid', 255);
+  const clusterName = safe(authority.clusterName, 253);
+  const databaseCrName = safe(authority.databaseCrName, 253);
+  const databaseName = safe(authority.databaseName, 63);
+  const roleName = safe(authority.roleName, 63);
+  const backupBucket = safe(authority.backupBucket, 222);
+  const backupPrefix = safe(authority.backupPrefix, 1024);
+  const clusterUid = safe(authority.clusterUid, 255);
+  const databaseCrUid = safe(authority.databaseCrUid, 255);
 
   if (
     !clusterName ||
@@ -2702,7 +2702,7 @@ function databasePhysicalAuthorityData(authority: DatabasePhysicalAuthority, cap
     (backupPrefix !== null &&
       (!backupPrefix.endsWith('/') || backupPrefix.startsWith('/') || backupPrefix.split('/').includes('..')))
   ) {
-    throw Object.assign(new Error('Managed database physical authority is incomplete'), {
+    throw Object.assign(new Error(appPublicEnglish('DATABASE_PHYSICAL_AUTHORITY_INVALID')), {
       code: 'DATABASE_PHYSICAL_AUTHORITY_INVALID',
       statusCode: 400,
     });
@@ -4473,7 +4473,7 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
         orderBy: [{ environment: 'asc' }, { version: 'asc' }],
       }),
     ]);
-    if (!project) throw new Error('PROJECT_NOT_FOUND');
+    if (!project) throw new Error(appPublicEnglish('PROJECT_NOT_FOUND'));
     const projectPackages = new Set<string>();
     const sourceImages: ProjectRegistryErasureAuthorityRecord['sourceImages'] = [];
     const tenantImages: ProjectRegistryErasureAuthorityRecord['tenantImages'] = [];
@@ -14552,14 +14552,14 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
         FOR UPDATE
       `;
       if (!instance[0]) {
-        throw Object.assign(new Error('Managed database was not found'), {
+        throw Object.assign(new Error(appPublicEnglish('DATABASE_INSTANCE_NOT_FOUND')), {
           code: 'DATABASE_INSTANCE_NOT_FOUND',
           statusCode: 404,
         });
       }
       const count = await tx.databaseRestore.count({ where: { databaseInstanceId: input.databaseInstanceId } });
       if (count >= 512) {
-        throw Object.assign(new Error('Managed database restore inventory limit reached'), {
+        throw Object.assign(new Error(appPublicEnglish('DATABASE_RESTORE_LIMIT_REACHED')), {
           code: 'DATABASE_RESTORE_LIMIT_REACHED',
           statusCode: 429,
         });
@@ -14634,7 +14634,7 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
       `;
       const capturedAt = authorityClock[0]?.capturedAt;
       if (!(capturedAt instanceof Date)) {
-        throw Object.assign(new Error('Database clock is unavailable'), {
+        throw Object.assign(new Error(appPublicEnglish('DATABASE_TIME_UNAVAILABLE')), {
           code: 'DATABASE_PHYSICAL_AUTHORITY_CLOCK_UNAVAILABLE',
           statusCode: 503,
         });
@@ -14662,19 +14662,16 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
 
       const existingRecord = mapDatabaseInstance(existing);
       if (!existingRecord.physicalAuthority) {
-        throw Object.assign(new Error('Legacy database authority must be reconciled from live CNPG resources'), {
+        throw Object.assign(new Error(appPublicEnglish('DATABASE_PHYSICAL_AUTHORITY_RECONCILIATION_REQUIRED')), {
           code: 'DATABASE_PHYSICAL_AUTHORITY_RECONCILIATION_REQUIRED',
           statusCode: 409,
         });
       }
       if (!sameDatabasePhysicalAuthority(existingRecord, input.physicalAuthority)) {
-        throw Object.assign(
-          new Error('Managed database physical authority cannot follow billing or configuration drift'),
-          {
-            code: 'DATABASE_PHYSICAL_AUTHORITY_MISMATCH',
-            statusCode: 409,
-          },
-        );
+        throw Object.assign(new Error(appPublicEnglish('DATABASE_PHYSICAL_AUTHORITY_MISMATCH')), {
+          code: 'DATABASE_PHYSICAL_AUTHORITY_MISMATCH',
+          statusCode: 409,
+        });
       }
 
       const claimed = await tx.databaseInstance.updateMany({
