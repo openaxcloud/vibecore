@@ -63,11 +63,12 @@ module "redis" {
 }
 
 module "storage" {
-  source      = "./modules/storage"
-  project_id  = var.project_id
-  region      = var.region
-  name_prefix = local.name_prefix
-  labels      = local.labels
+  source                         = "./modules/storage"
+  project_id                     = var.project_id
+  region                         = var.region
+  name_prefix                    = local.name_prefix
+  labels                         = local.labels
+  platform_service_account_email = module.iam.platform_workload_service_account
 }
 
 module "secret_manager" {

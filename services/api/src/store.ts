@@ -28,10 +28,11 @@ import type { ProjectStaticArtifactAuthority, ProjectStaticErasureInventory } fr
 import type {
   ProjectDatabaseErasureFence,
   ProjectDatabaseErasureEffects,
+  ProjectDatabaseLegacyAuthorityResolution,
   ProjectDatabaseErasurePlan,
   ProjectDatabaseErasureReceipt,
 } from './project-database-erasure.js';
-import type { ProjectDatabaseErasureConfiguration } from './project-database-erasure-ledger.js';
+import type { ProjectDatabaseLegacyAuthorityRequest } from './project-database-erasure-ledger.js';
 
 export interface UserRecord {
   id: string;
@@ -464,6 +465,28 @@ export interface ProjectPhysicalMutationScope {
   projectId: string;
   expectedOrganizationId: string;
   workspaceId?: string;
+  /** Exact outer account-purge authority for the canonical project-delete subplan. */
+  accountPurgeCoordinator?: {
+    planId: string;
+    ownerToken: string;
+    expectedOwnershipEpoch: number;
+    assertActive?: () => Promise<void>;
+  };
+}
+
+/** Immutable provider authority captured before a managed-database effect. */
+export interface DatabasePhysicalAuthority {
+  tier: 'shared' | 'isolated';
+  clusterName: string;
+  databaseCrName?: string;
+  databaseName?: string;
+  roleName?: string;
+  backupBucket?: string;
+  backupPrefix?: string;
+  clusterUid?: string;
+  databaseCrUid?: string;
+  /** Provider retention governing shared physical backups; zero means disabled. */
+  retentionDays: number;
 }
 
 /**
@@ -483,6 +506,7 @@ export interface DatabaseInstanceRecord {
   sizeBytes: number;
   retentionDays: number;
   pitrEnabled: boolean;
+  physicalAuthority?: DatabasePhysicalAuthority & { capturedAt: string };
   provisioningDeadlineAt?: string;
   lastErrorCode?: string;
   lastErrorAt?: string;
@@ -2477,14 +2501,30 @@ export interface ApiStore {
       expectedProjectName: string;
       idempotencyKey: string;
       requestHash: string;
-      actorUserId: string;
+      actorUserId?: string;
+      /** Stable non-user authority for internal coordinators (for example account purge). */
+      authorityId?: string;
+      accountPurgeCoordinator?: {
+        planId: string;
+        ownerToken: string;
+        expectedOwnershipEpoch: number;
+        assertActive: () => Promise<void>;
+      };
       ipAddress?: string;
-      databaseErasureConfiguration: ProjectDatabaseErasureConfiguration;
+      resolveLegacyDatabaseAuthorities: (
+        requests: readonly ProjectDatabaseLegacyAuthorityRequest[],
+        lease: ObjectStorageOperationLease,
+      ) => Promise<readonly ProjectDatabaseLegacyAuthorityResolution[]>;
       purgeManagedDatabases: (
         plan: ProjectDatabaseErasurePlan,
         fence: ProjectDatabaseErasureFence,
         lease: ObjectStorageOperationLease,
       ) => Promise<ProjectDatabaseErasureEffects>;
+      preflightManagedDatabases: (
+        plan: ProjectDatabaseErasurePlan,
+        fence: ProjectDatabaseErasureFence,
+        lease: ObjectStorageOperationLease,
+      ) => Promise<void>;
       verifyManagedDatabases: (
         plan: ProjectDatabaseErasurePlan,
         fence: ProjectDatabaseErasureFence,
@@ -2492,10 +2532,15 @@ export interface ApiStore {
         effects: ProjectDatabaseErasureEffects,
       ) => Promise<ProjectDatabaseErasureReceipt>;
       preflightPhysicalErasure: () => Promise<ObjectStorageStaticArtifactSummary>;
-      erasePhysical: (assertLease: () => Promise<void>, lease: ObjectStorageOperationLease) => Promise<void>;
+      erasePhysical: (
+        assertLease: () => Promise<void>,
+        lease: ObjectStorageOperationLease,
+        databaseEffects: ProjectDatabaseErasureEffects,
+      ) => Promise<void>;
       verifyPhysicalAbsence: (
         assertLease: () => Promise<void>,
         lease: ObjectStorageOperationLease,
+        databaseEffects: ProjectDatabaseErasureEffects,
       ) => Promise<ObjectStorageVerification>;
     },
   ): Promise<ProjectPermanentDeletionResult>;
@@ -2735,6 +2780,7 @@ export interface ApiStore {
     retentionDays: number;
     environment: 'development';
     provisioningDeadlineAt: string;
+    physicalAuthority: DatabasePhysicalAuthority;
   }): Promise<{ instance: DatabaseInstanceRecord; acquired: boolean; created: boolean }>;
   completeClaimedRemixDatabase(input: {
     remixJobId: string;
@@ -3552,6 +3598,7 @@ export interface ApiStore {
     region?: string;
     environment?: string;
     provisioningDeadlineAt: string;
+    physicalAuthority: DatabasePhysicalAuthority;
   }): Promise<{ instance: DatabaseInstanceRecord; acquired: boolean; created: boolean }>;
   completeDatabaseProvisioning(
     id: string,

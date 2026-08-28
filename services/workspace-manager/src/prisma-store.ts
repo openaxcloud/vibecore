@@ -1188,7 +1188,7 @@ export class PrismaWorkspaceStore implements WorkspaceStore {
   private async lockLiveProjectDeletionOperation(
     tx: Prisma.TransactionClient,
     lease: WorkspaceProjectDeletionLease,
-    allowedStatuses: readonly ('EFFECT_STARTED' | 'VERIFYING')[],
+    allowedStatuses: readonly ('PREPARED' | 'EFFECT_STARTED' | 'VERIFYING')[],
   ): Promise<void> {
     if (!/^[1-9][0-9]{0,39}$/.test(lease.fencingToken) || allowedStatuses.length === 0) {
       throw workspacePurgeStoreInvariantError(WORKSPACE_PURGE_STORE_INVARIANT.projectDeletionLeaseInvalid, {
@@ -1217,7 +1217,7 @@ export class PrismaWorkspaceStore implements WorkspaceStore {
     const operation = rows[0];
     if (
       !operation ||
-      !allowedStatuses.includes(operation.status as 'EFFECT_STARTED' | 'VERIFYING') ||
+      !allowedStatuses.includes(operation.status as 'PREPARED' | 'EFFECT_STARTED' | 'VERIFYING') ||
       operation.leaseExpiresAt <= operation.databaseNow
     ) {
       throw workspacePurgeStoreInvariantError(WORKSPACE_PURGE_STORE_INVARIANT.projectDeletionLeaseInvalid, {
@@ -1277,14 +1277,14 @@ export class PrismaWorkspaceStore implements WorkspaceStore {
 
   async assertProjectDeletionLease(
     lease: WorkspaceProjectDeletionLease,
-    allowedStatuses: readonly ('EFFECT_STARTED' | 'VERIFYING')[],
+    allowedStatuses: readonly ('PREPARED' | 'EFFECT_STARTED' | 'VERIFYING')[],
   ): Promise<void> {
     await this.prisma.$transaction((tx) => this.lockLiveProjectDeletionOperation(tx, lease, allowedStatuses));
   }
 
   async acquireProjectDeletionFence(
     lease: WorkspaceProjectDeletionLease,
-    allowedStatuses: readonly ('EFFECT_STARTED' | 'VERIFYING')[],
+    allowedStatuses: readonly ('PREPARED' | 'EFFECT_STARTED' | 'VERIFYING')[],
   ): Promise<WorkspaceProjectDeletionInventory> {
     const outcome = await this.prisma.$transaction(async (tx) => {
       await this.lockLiveProjectDeletionOperation(tx, lease, allowedStatuses);

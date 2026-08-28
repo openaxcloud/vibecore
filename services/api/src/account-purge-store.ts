@@ -68,6 +68,7 @@ interface StorageTopology {
   orgIds: string[];
   soleOrgIds: string[];
   sharedOrgIds: string[];
+  ownedProjects: PurgeStorageInventory['ownedProjects'];
   bucketProjectIds: string[];
   workspaceProjectIds: string[];
   localSnapshotObjects: Array<{ projectId: string; storageKey: string }>;
@@ -159,6 +160,7 @@ function topologyFingerprint(topology: Omit<StorageTopology, 'fingerprint' | 'sh
   return JSON.stringify({
     orgIds: sort(topology.orgIds),
     soleOrgIds: sort(topology.soleOrgIds),
+    ownedProjects: [...topology.ownedProjects].sort((left, right) => left.id.localeCompare(right.id)),
     bucketProjectIds: sort(topology.bucketProjectIds),
     workspaceProjectIds: sort(topology.workspaceProjectIds),
     localSnapshotObjects: topology.localSnapshotObjects
@@ -250,7 +252,10 @@ export class AccountPurgeStore {
     }
 
     const bucketProjects = soleOrgIds.length
-      ? await tx.project.findMany({ where: { organizationId: { in: soleOrgIds } }, select: { id: true } })
+      ? await tx.project.findMany({
+          where: { organizationId: { in: soleOrgIds } },
+          select: { id: true, organizationId: true, name: true, ownershipEpoch: true },
+        })
       : [];
     const orgProjects = orgIds.length
       ? await tx.project.findMany({ where: { organizationId: { in: orgIds } }, select: { id: true } })
@@ -312,6 +317,7 @@ export class AccountPurgeStore {
     const fingerprint = topologyFingerprint({
       orgIds,
       soleOrgIds,
+      ownedProjects: bucketProjects,
       bucketProjectIds,
       workspaceProjectIds,
       localSnapshotObjects,
@@ -325,6 +331,7 @@ export class AccountPurgeStore {
       orgIds,
       soleOrgIds,
       sharedOrgIds,
+      ownedProjects: bucketProjects,
       bucketProjectIds,
       workspaceProjectIds,
       localSnapshotObjects,
@@ -379,6 +386,7 @@ export class AccountPurgeStore {
         requestedAt: requestedAt.toISOString(),
         purgeDueAt: purgeDueAt.toISOString(),
         inventory: {
+          ownedProjects: topology.ownedProjects,
           bucketProjectIds: topology.bucketProjectIds,
           workspaceProjectIds: topology.workspaceProjectIds,
           localSnapshotObjects: topology.localSnapshotObjects,
@@ -552,7 +560,70 @@ export class AccountPurgeStore {
     tx: Prisma.TransactionClient,
     projectId: string,
     workspaceId?: string,
+    expectedOrganizationId?: string,
+    coordinator?: { planId: string; ownerToken: string; expectedOwnershipEpoch: number },
   ): Promise<void> {
+    if (coordinator) {
+      const preliminary = await tx.purgePlan.findUnique({
+        where: { id: coordinator.planId },
+        select: { userId: true },
+      });
+      if (!preliminary) {
+        throw Object.assign(new Error(appPublicEnglish('ACCOUNT_PURGE_LEASE_LOST')), {
+          code: 'ACCOUNT_PURGE_LEASE_LOST',
+          statusCode: 409,
+        });
+      }
+      await tx.$executeRawUnsafe(
+        'SELECT pg_advisory_xact_lock_shared(hashtext($1))',
+        `account-purge:${preliminary.userId}`,
+      );
+      await tx.$executeRawUnsafe('SELECT pg_advisory_xact_lock_shared(hashtext($1))', TOPOLOGY_LOCK);
+      const databaseNow = await this.databaseNow(tx);
+      const plan = await tx.purgePlan.findUnique({
+        where: { id: coordinator.planId },
+        select: {
+          ownerToken: true,
+          status: true,
+          leaseExpiresAt: true,
+          inventory: true,
+        },
+      });
+      const inventory = plan?.inventory as { ownedProjects?: unknown } | null | undefined;
+      const projectAuthority = Array.isArray(inventory?.ownedProjects)
+        ? inventory.ownedProjects.find(
+            (value): value is { id: string; organizationId: string; ownershipEpoch: number } =>
+              Boolean(value) &&
+              typeof value === 'object' &&
+              (value as { id?: unknown }).id === projectId &&
+              (value as { organizationId?: unknown }).organizationId === expectedOrganizationId &&
+              (value as { ownershipEpoch?: unknown }).ownershipEpoch === coordinator.expectedOwnershipEpoch,
+          )
+        : undefined;
+      const freezeCount = await tx.purgeFreeze.count({
+        where: {
+          planId: coordinator.planId,
+          resourceId: projectId,
+          resourceType: { in: [OBJECT_STORAGE_RESOURCE, PROJECT_TOPOLOGY_RESOURCE] },
+        },
+      });
+      if (
+        !plan ||
+        plan.status !== PLAN_ACTIVE ||
+        plan.ownerToken !== coordinator.ownerToken ||
+        !plan.leaseExpiresAt ||
+        plan.leaseExpiresAt <= databaseNow ||
+        !projectAuthority ||
+        freezeCount === 0
+      ) {
+        throw Object.assign(new Error(appPublicEnglish('ACCOUNT_PURGE_LEASE_LOST')), {
+          code: 'ACCOUNT_PURGE_LEASE_LOST',
+          statusCode: 409,
+        });
+      }
+      return;
+    }
+
     /*
      * Physical writers already hold the project physical/NFS barrier. They use
      * the shared topology lock here so purge can install its exclusive freeze
@@ -674,6 +745,7 @@ export class AccountPurgeStore {
       const ownerToken = randomUUID();
       const leaseExpiresAt = new Date(leaseDatabaseNow.getTime() + this.lease.ttlMs);
       const inventory = {
+        ownedProjects: topology.ownedProjects,
         bucketProjectIds: topology.bucketProjectIds,
         workspaceProjectIds: topology.workspaceProjectIds,
         localSnapshotObjects: topology.localSnapshotObjects,
@@ -1127,14 +1199,45 @@ export class AccountPurgeStore {
         }
       }
 
+      const projectReceipts =
+        guarantee.ownedProjects.length === 0
+          ? []
+          : await (() => {
+              if (!deps.eraseOwnedProjects) {
+                throw Object.assign(new Error('Owned project permanent-deletion coordinator is unavailable'), {
+                  code: 'ACCOUNT_PURGE_PROJECT_COORDINATOR_UNAVAILABLE',
+                });
+              }
+              return deps.eraseOwnedProjects(guarantee.ownedProjects, leaseContext);
+            })();
+      const receiptByProject = new Map(projectReceipts.map((receipt) => [receipt.projectId, receipt]));
+      if (
+        receiptByProject.size !== projectReceipts.length ||
+        projectReceipts.length !== guarantee.ownedProjects.length ||
+        guarantee.ownedProjects.some((project) => {
+          const receipt = receiptByProject.get(project.id);
+          return (
+            !receipt ||
+            receipt.organizationId !== project.organizationId ||
+            receipt.idempotencyKey !== `account-purge:${guarantee.planId}:${project.id}`
+          );
+        })
+      ) {
+        throw Object.assign(new Error('Owned project permanent-deletion receipt is incomplete'), {
+          code: 'ACCOUNT_PURGE_PROJECT_RECEIPT_INCOMPLETE',
+        });
+      }
+
+      const ownedProjectIds = new Set(guarantee.ownedProjects.map(({ id }) => id));
       const physical = await deps.eraseStorage(
         {
-          bucketProjectIds: guarantee.bucketProjectIds,
-          workspaceProjectIds: guarantee.workspaceProjectIds,
-          localSnapshotObjects: guarantee.localSnapshotObjects,
-          staticDeploymentIds: guarantee.staticDeploymentIds,
-          staticArtifactRefs: guarantee.staticArtifactRefs,
-          staticAliasDeploymentIds: guarantee.staticAliasDeploymentIds,
+          ownedProjects: [],
+          bucketProjectIds: [],
+          workspaceProjectIds: guarantee.workspaceProjectIds.filter((projectId) => !ownedProjectIds.has(projectId)),
+          localSnapshotObjects: [],
+          staticDeploymentIds: [],
+          staticArtifactRefs: [],
+          staticAliasDeploymentIds: [],
         },
         leaseContext,
       );
@@ -1145,7 +1248,14 @@ export class AccountPurgeStore {
         });
       }
 
-      const result = await this.finalize(guarantee, physical.classes);
+      const projectClass: PurgeClassReport = {
+        dataClass: 'owned_project_permanent_deletion',
+        action: 'deleted',
+        models: { Project: projectReceipts.length },
+        evidence: { receipts: projectReceipts },
+        remainingAfterPurge: 0,
+      };
+      const result = await this.finalize(guarantee, [projectClass, ...physical.classes], projectReceipts);
       completed = result.outcome === 'purged' || result.outcome === 'already_purged';
       return result;
     } catch (error) {
@@ -1156,6 +1266,7 @@ export class AccountPurgeStore {
       await deps
         .releaseWorkspaceBarrier?.(
           {
+            ownedProjects: guarantee.ownedProjects,
             bucketProjectIds: guarantee.bucketProjectIds,
             workspaceProjectIds: guarantee.workspaceProjectIds,
             localSnapshotObjects: guarantee.localSnapshotObjects,
@@ -1175,6 +1286,14 @@ export class AccountPurgeStore {
   private async finalize(
     guarantee: PurgeGuarantee,
     physicalClasses: PurgeClassReport[],
+    projectReceipts: Array<{
+      projectId: string;
+      organizationId: string;
+      operationId: string;
+      idempotencyKey: string;
+      requestHash: string;
+      completedAt: string;
+    }>,
   ): Promise<PurgeUserAccountResult> {
     return this.prisma.$transaction(
       async (tx) => {
@@ -1195,10 +1314,53 @@ export class AccountPurgeStore {
           return { outcome: 'not_due' as const, purgeDueAt: purgeDueAt.toISOString() };
 
         const topology = await this.resolveTopology(tx, guarantee.userId);
-        if (topology.fingerprint !== guarantee.fingerprint) {
+        const reboundFingerprint = topologyFingerprint({
+          ...topology,
+          ownedProjects: guarantee.ownedProjects,
+          bucketProjectIds: guarantee.bucketProjectIds,
+          workspaceProjectIds: guarantee.workspaceProjectIds,
+          localSnapshotObjects: guarantee.localSnapshotObjects,
+          staticDeploymentIds: guarantee.staticDeploymentIds,
+          staticArtifactRefs: guarantee.staticArtifactRefs,
+          staticAliasDeploymentIds: guarantee.staticAliasDeploymentIds,
+        });
+        if (reboundFingerprint !== guarantee.fingerprint) {
           throw Object.assign(new Error(appPublicEnglish('ACCOUNT_PURGE_TOPOLOGY_DRIFT')), {
             code: 'ACCOUNT_PURGE_TOPOLOGY_DRIFT',
           });
+        }
+
+        const receiptByProject = new Map(projectReceipts.map((receipt) => [receipt.projectId, receipt]));
+        for (const project of guarantee.ownedProjects) {
+          const supplied = receiptByProject.get(project.id);
+          const durable = await tx.projectPermanentDeletionReceipt.findUnique({ where: { projectId: project.id } });
+          const liveProject = await tx.project.findUnique({ where: { id: project.id }, select: { id: true } });
+          const databasePlan = supplied
+            ? await tx.projectDatabaseErasurePlan.findUnique({ where: { operationId: supplied.operationId } })
+            : undefined;
+          if (
+            !supplied ||
+            supplied.organizationId !== project.organizationId ||
+            supplied.idempotencyKey !== `account-purge:${guarantee.planId}:${project.id}` ||
+            liveProject ||
+            !durable ||
+            durable.operationId !== supplied.operationId ||
+            durable.organizationId !== supplied.organizationId ||
+            durable.idempotencyKey !== supplied.idempotencyKey ||
+            durable.requestHash !== supplied.requestHash ||
+            durable.state !== 'COMMITTED' ||
+            !databasePlan ||
+            databasePlan.projectId !== project.id ||
+            databasePlan.organizationId !== project.organizationId ||
+            databasePlan.ownershipEpoch !== project.ownershipEpoch ||
+            databasePlan.stage !== 'VERIFIED' ||
+            !databasePlan.receipt ||
+            (databasePlan.receipt as { schemaVersion?: unknown }).schemaVersion !== 2
+          ) {
+            throw Object.assign(new Error('Owned project permanent-deletion receipt is not durable'), {
+              code: 'ACCOUNT_PURGE_PROJECT_RECEIPT_INVALID',
+            });
+          }
         }
 
         const userId = guarantee.userId;
@@ -1315,10 +1477,20 @@ export class AccountPurgeStore {
         const chatShares = await tx.chatShare.deleteMany({ where: { authorUserId: userId } });
         classes.push({ dataClass: 'chat_shares', action: 'deleted', models: { ChatShare: chatShares.count } });
 
-        const projects = soleOrgIds.length
-          ? await tx.project.deleteMany({ where: { organizationId: { in: soleOrgIds } } })
-          : { count: 0 };
-        classes.push({ dataClass: 'projects', action: 'deleted', models: { Project: projects.count } });
+        const remainingOwnedProjects = guarantee.ownedProjects.length
+          ? await tx.project.count({ where: { id: { in: guarantee.ownedProjects.map(({ id }) => id) } } })
+          : 0;
+        if (remainingOwnedProjects !== 0) {
+          throw Object.assign(new Error('Owned projects remain after permanent-deletion subplans'), {
+            code: 'ACCOUNT_PURGE_PROJECTS_REMAIN',
+          });
+        }
+        classes.push({
+          dataClass: 'projects',
+          action: 'deleted',
+          models: { Project: guarantee.ownedProjects.length },
+          remainingAfterPurge: 0,
+        });
 
         const importJobs = soleOrgIds.length
           ? await tx.importJob.deleteMany({ where: { organizationId: { in: soleOrgIds } } })

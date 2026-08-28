@@ -394,3 +394,8 @@ database:
   # only AFTER annotating the live resources for Helm ownership (see template).
   rbacManaged:
     enabled: false
+  # Additive hardened Role/RoleBinding. Also default-off: enable only after the
+  # GCS IAM and manager shared-secret preflights have been configured and
+  # reviewed; this grants controller/descendant erasure in project-databases.
+  hardenedRbacManaged:
+    enabled: false

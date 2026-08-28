@@ -1,4 +1,4 @@
-import type { DatabaseProvisioner, DatabaseTier } from './database-provisioner.js';
+import type { DatabaseProvisioner } from './database-provisioner.js';
 import type { ApiStore, DatabaseInstanceRecord } from './store.js';
 
 export const DEFAULT_DATABASE_PROVISION_TIMEOUT_MS = 10 * 60 * 1000;
@@ -49,7 +49,6 @@ export async function reconcileDatabaseProvisioning(input: {
   store: ApiStore;
   provisioner: DatabaseProvisioner;
   instance: DatabaseInstanceRecord;
-  tier: DatabaseTier;
   nowMs?: number;
   encryptConnectionUri: (uri: string) => string;
 }): Promise<DatabaseProvisionReconcileResult> {
@@ -76,9 +75,17 @@ export async function reconcileDatabaseProvisioning(input: {
   let probeFailed = false;
 
   try {
+    const authority = input.instance.physicalAuthority;
+    if (!authority) {
+      throw Object.assign(new Error('Legacy database physical authority is not reconciled'), {
+        code: 'DATABASE_PHYSICAL_AUTHORITY_RECONCILIATION_REQUIRED',
+      });
+    }
     uri = await input.provisioner.getConnectionUri({
       projectId: input.instance.projectId,
-      tier: input.tier,
+      tier: authority.tier,
+      ...(authority.tier === 'shared' ? { sharedClusterName: authority.clusterName } : {}),
+      ...(authority.tier === 'isolated' ? { physicalClusterName: authority.clusterName } : {}),
       environment: input.instance.environment,
     });
   } catch {

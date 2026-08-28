@@ -54,7 +54,13 @@ runDbTests('managed database provisioning lifecycle — durable Postgres CAS', (
     let applicationClient: PgClient | undefined;
 
     try {
-      await executor.provisionTenant({ adminUri: adminUrl.toString(), role, db: database, password });
+      await executor.provisionTenant({
+        adminUri: adminUrl.toString(),
+        role,
+        db: database,
+        password,
+        guard: async () => undefined,
+      });
 
       await expect(
         executor.verifyConnection({
@@ -104,6 +110,13 @@ runDbTests('managed database provisioning lifecycle — durable Postgres CAS', (
         retentionDays: 28,
         environment: 'development',
         provisioningDeadlineAt: new Date(Date.now() + 600_000).toISOString(),
+        physicalAuthority: {
+          tier: 'isolated' as const,
+          clusterName: `db-${project.id}`.toLowerCase().slice(0, 53),
+          backupBucket: 'vibecore-test-db-backups',
+          backupPrefix: `db/${project.id}/development/`,
+          retentionDays: 28,
+        },
       };
 
       const [first, second] = await Promise.all([

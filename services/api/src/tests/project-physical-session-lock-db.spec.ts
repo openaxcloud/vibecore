@@ -552,6 +552,13 @@ runDbTests('project physical barrier — session advisory lease', () => {
       retentionDays: 7,
       environment: 'development',
       provisioningDeadlineAt: new Date(Date.now() + 600_000).toISOString(),
+      physicalAuthority: {
+        tier: 'isolated' as const,
+        clusterName: `db-${seeded.project.id}`.toLowerCase().slice(0, 53),
+        backupBucket: 'vibecore-test-db-backups',
+        backupPrefix: `db/${seeded.project.id}/development/`,
+        retentionDays: 7,
+      },
     };
     let release: (() => Promise<boolean>) | undefined;
 

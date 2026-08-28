@@ -70,6 +70,13 @@ export interface ErasureProof {
  */
 /** Per-subject physical footprint the store resolves for erasure (reserve #3). */
 export interface PurgeStorageInventory {
+  /** Immutable identities of projects the subject solely owns. */
+  ownedProjects: Array<{
+    id: string;
+    organizationId: string;
+    name: string;
+    ownershipEpoch: number;
+  }>;
   /** Projects whose per-project GCS bucket the subject owns (their sole orgs). */
   bucketProjectIds: string[];
   /** Every project the subject has a workspace in (sole-org + collaborator). */
@@ -137,6 +144,24 @@ export interface PurgeLeaseContext {
 }
 
 export interface PurgeStorageDeps {
+  /**
+   * Reuse the canonical PROJECT_PERMANENT_DELETE saga for every solely-owned
+   * project. The deterministic key is `account-purge:<planId>:<projectId>`;
+   * the callback must replay that exact operation and return its durable receipt.
+   */
+  eraseOwnedProjects?: (
+    projects: PurgeStorageInventory['ownedProjects'],
+    lease: PurgeLeaseContext,
+  ) => Promise<
+    Array<{
+      projectId: string;
+      organizationId: string;
+      operationId: string;
+      idempotencyKey: string;
+      requestHash: string;
+      completedAt: string;
+    }>
+  >;
   /**
    * Cancels one live provider subscription. The caller supplies a stable
    * per-plan idempotency key, so a provider success followed by a lost database

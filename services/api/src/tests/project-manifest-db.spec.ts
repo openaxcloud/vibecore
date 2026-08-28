@@ -11,6 +11,7 @@ import {
   verifyStoredProjectManifestRevision,
 } from '../project-manifest.js';
 import { seedVerifiedEmptyProjectVolumeErasure } from './project-volume-erasure-fixture.js';
+import { emptyManagedDatabaseErasureCallbacks } from './project-database-erasure-test-support.js';
 
 async function canReachDatabase() {
   if (!process.env.DATABASE_URL) {
@@ -52,6 +53,7 @@ function hardDeleteProject(
       actorUserId,
       expectedProjectName: project.name,
     }),
+    ...emptyManagedDatabaseErasureCallbacks(),
     preflightPhysicalErasure: async () => emptyStaticArtifactSummary,
     erasePhysical: async (_assertLease, lease) => {
       const current = await prisma.project.findUniqueOrThrow({

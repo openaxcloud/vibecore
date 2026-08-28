@@ -159,6 +159,13 @@ async function setup(
     projectStorage,
     emailProvider: new QuietEmailProvider(),
     databaseProvisioner: options.provisioner ?? provisionerWithPhase('completed'),
+    databasePhysicalAuthorityResolver: async (projectId) => ({
+      tier: 'isolated',
+      clusterName: `db-${projectId}-prod`.toLowerCase().slice(0, 53),
+      backupBucket: 'vibecore-test-db-backups',
+      backupPrefix: `db/${projectId}/production/`,
+      retentionDays: 28,
+    }),
     migrationApplier,
     migrationLedgerInspector: async () => {
       const rows = [...migrationApplier.ledger].map(([name, digest]) => ({ name, sha256: digest }));

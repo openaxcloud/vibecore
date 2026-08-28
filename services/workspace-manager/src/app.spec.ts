@@ -822,12 +822,13 @@ describe('workspace-manager app', () => {
       spec: { instances: 1 },
     };
 
-    it('applies a CNPG resource in the project-databases namespace', async () => {
+    it('rejects a CSI-producing Cluster on the generic apply route', async () => {
       const runtime = manager();
       const app = buildWorkspaceManagerApp(runtime.manager);
       const res = await app.inject({ method: 'POST', url: '/databases/apply', payload: { manifest: cnpgCluster } });
-      expect(res.statusCode).toBe(200);
-      expect(runtime.k8s.objects.has('project-databases:Cluster:db-p1')).toBe(true);
+      expect(res.statusCode).toBe(403);
+      expect(res.json().code).toBe('DB_CSI_EFFECT_REQUIRED');
+      expect(runtime.k8s.objects.has('project-databases:Cluster:db-p1')).toBe(false);
       await app.close();
     });
 
@@ -937,21 +938,33 @@ describe('workspace-manager app', () => {
       await app.close();
     });
 
-    it('applies shared-tier Pooler and Database CNPG kinds', async () => {
-      for (const kind of ['Pooler', 'Database'] as const) {
-        const runtime = manager();
-        const app = buildWorkspaceManagerApp(runtime.manager);
-        const res = await app.inject({
-          method: 'POST',
-          url: '/databases/apply',
-          payload: {
-            manifest: { ...cnpgCluster, kind, metadata: { name: `sh-${kind}`, namespace: 'project-databases' } },
+    it('allows a project-owned legacy Database CR but refuses shared Pooler mutation', async () => {
+      const runtime = manager();
+      const app = buildWorkspaceManagerApp(runtime.manager);
+      const database = await app.inject({
+        method: 'POST',
+        url: '/databases/apply',
+        payload: {
+          manifest: {
+            ...cnpgCluster,
+            kind: 'Database',
+            metadata: {
+              name: 'db-p1',
+              namespace: 'project-databases',
+              labels: { 'vibecore.ai/project-id': 'p1', 'vibecore.ai/org-id': 'org-1' },
+            },
           },
-        });
-        expect(res.statusCode).toBe(200);
-        expect(runtime.k8s.objects.has(`project-databases:${kind}:sh-${kind}`)).toBe(true);
-        await app.close();
-      }
+        },
+      });
+      expect(database.statusCode).toBe(200);
+
+      const pooler = await app.inject({
+        method: 'POST',
+        url: '/databases/apply',
+        payload: { manifest: { ...cnpgCluster, kind: 'Pooler' } },
+      });
+      expect(pooler.statusCode).toBe(403);
+      await app.close();
     });
 
     it('rejects a forbidden kind', async () => {

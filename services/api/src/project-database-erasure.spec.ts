@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { DB_NAMESPACE, clusterName, restoreClusterName } from './database-provisioner.js';
+import { DB_NAMESPACE, clusterName, restoreClusterName, sharedDbName, tenantRoleName } from './database-provisioner.js';
 import {
   GcsProjectDatabaseBackupPort,
   PgProjectDatabaseSharedSqlPort,
@@ -25,12 +25,10 @@ const CAPTURED_AT = '2026-08-28T08:00:00.000Z';
 
 function catalog(overrides: Partial<ProjectDatabaseErasureCatalog> = {}): ProjectDatabaseErasureCatalog {
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     projectId: PROJECT_ID,
     organizationId: ORGANIZATION_ID,
     capturedAt: CAPTURED_AT,
-    tier: 'isolated',
-    backupBucket: 'vibecore-db-backups',
     instances: [
       {
         id: 'instance-prod',
@@ -42,6 +40,14 @@ function catalog(overrides: Partial<ProjectDatabaseErasureCatalog> = {}): Projec
         sizeBytes: 42,
         retentionDays: 28,
         pitrEnabled: true,
+        physicalAuthority: {
+          tier: 'isolated',
+          clusterName: clusterName(PROJECT_ID, 'production'),
+          backupBucket: 'vibecore-db-backups',
+          backupPrefix: `db/${PROJECT_ID}/`,
+          retentionDays: 28,
+          capturedAt: CAPTURED_AT,
+        },
         snapshots: [
           {
             id: 'snapshot-prod',
@@ -64,6 +70,14 @@ function catalog(overrides: Partial<ProjectDatabaseErasureCatalog> = {}): Projec
         sizeBytes: 24,
         retentionDays: 7,
         pitrEnabled: true,
+        physicalAuthority: {
+          tier: 'isolated',
+          clusterName: clusterName(PROJECT_ID, 'development'),
+          backupBucket: 'vibecore-db-backups',
+          backupPrefix: `db/${PROJECT_ID}/`,
+          retentionDays: 7,
+          capturedAt: CAPTURED_AT,
+        },
         snapshots: [
           {
             id: 'snapshot-dev',
@@ -93,6 +107,25 @@ function catalog(overrides: Partial<ProjectDatabaseErasureCatalog> = {}): Projec
 
 function plan(overrides: Partial<ProjectDatabaseErasureCatalog> = {}): ProjectDatabaseErasurePlan {
   return buildProjectDatabaseErasurePlan({ ...catalog(overrides), operationId: 'erase-op-1' });
+}
+
+function sharedPlan(retentionDays = 0): ProjectDatabaseErasurePlan {
+  const inventory = catalog();
+  inventory.instances = inventory.instances.map((instance) => ({
+    ...instance,
+    physicalAuthority: {
+      tier: 'shared',
+      clusterName: 'shared-pg-0',
+      databaseCrName: clusterName(PROJECT_ID, instance.environment),
+      databaseName: sharedDbName(PROJECT_ID, instance.environment),
+      roleName: tenantRoleName(PROJECT_ID, instance.environment),
+      clusterUid: 'uid-shared-pg-0',
+      databaseCrUid: `uid-Database-${clusterName(PROJECT_ID, instance.environment)}`,
+      retentionDays,
+      capturedAt: CAPTURED_AT,
+    },
+  }));
+  return buildProjectDatabaseErasurePlan({ ...inventory, operationId: 'erase-op-1' });
 }
 
 function resource(
@@ -148,16 +181,26 @@ class FakeBackups implements ProjectDatabaseBackupPort {
   readonly versions = new Map<string, ProjectDatabaseBackupVersion>();
   readonly deleted: ProjectDatabaseBackupVersion[] = [];
 
-  constructor(seed: ProjectDatabaseBackupVersion[] = []) {
+  constructor(
+    seed: ProjectDatabaseBackupVersion[] = [],
+    private readonly softDeleteRetentionSeconds = 0,
+  ) {
     for (const item of seed) this.versions.set(`${item.key}:${item.generation}`, item);
+  }
+
+  async inspectBucket(): Promise<{ softDeleteRetentionSeconds: number }> {
+    return { softDeleteRetentionSeconds: this.softDeleteRetentionSeconds };
   }
 
   async listFirstPage(input: {
     bucket: string;
     prefix: string;
     limit: number;
+    softDeleted: boolean;
   }): Promise<ProjectDatabaseBackupVersion[]> {
-    return [...this.versions.values()].filter((item) => item.key.startsWith(input.prefix)).slice(0, input.limit);
+    return [...this.versions.values()]
+      .filter((item) => item.key.startsWith(input.prefix) && item.softDeleted === input.softDeleted)
+      .slice(0, input.limit);
   }
 
   async deleteVersion(input: { bucket: string; key: string; generation: string }): Promise<'deleted' | 'absent'> {
@@ -230,7 +273,7 @@ describe('buildProjectDatabaseErasurePlan', () => {
     ]);
     expect(first.targets.restoreClusterNames).toEqual([restoreClusterName(PROJECT_ID, 'restore-dev')]);
     expect(first.targets.backupNames).toHaveLength(2);
-    expect(first.backupPrefix).toBe(`db/${PROJECT_ID}/`);
+    expect(first.backupTargets).toEqual([{ bucket: 'vibecore-db-backups', prefix: `db/${PROJECT_ID}/` }]);
   });
 
   it('rejects ambiguous relational inventory and unsafe bucket coordinates', () => {
@@ -240,7 +283,12 @@ describe('buildProjectDatabaseErasurePlan', () => {
     expect(() => buildProjectDatabaseErasurePlan({ ...duplicate, operationId: 'op' })).toThrowError(
       expect.objectContaining({ code: 'INVALID_INVENTORY' }),
     );
-    expect(() => plan({ backupBucket: 'gs://bucket/path' })).toThrowError(
+    const unsafeBucket = catalog();
+    unsafeBucket.instances[0].physicalAuthority = {
+      ...unsafeBucket.instances[0].physicalAuthority,
+      backupBucket: 'gs://bucket/path',
+    };
+    expect(() => buildProjectDatabaseErasurePlan({ ...unsafeBucket, operationId: 'op' })).toThrowError(
       expect.objectContaining({ code: 'INVALID_INVENTORY' }),
     );
     const crossTenant = catalog();
@@ -252,7 +300,7 @@ describe('buildProjectDatabaseErasurePlan', () => {
 });
 
 describe('ProjectDatabaseErasureService', () => {
-  it('deletes isolated CNPG CRs, descendants, and every backup generation before issuing a receipt', async () => {
+  it('quiesces isolated CNPG controllers, delegates PVCs, and deletes every backup generation before receipt', async () => {
     const erasurePlan = plan();
     const dev = clusterName(PROJECT_ID, 'development');
     const restore = restoreClusterName(PROJECT_ID, 'restore-dev');
@@ -266,10 +314,10 @@ describe('ProjectDatabaseErasureService', () => {
       resource('Cluster', restore),
     ]);
     const backups = new FakeBackups([
-      { key: `db/${PROJECT_ID}/base/backup.tar`, generation: '1' },
-      { key: `db/${PROJECT_ID}/base/backup.tar`, generation: '2' },
-      { key: `db/${PROJECT_ID}/wals/0001`, generation: '9' },
-      { key: 'db/another-project/wals/keep', generation: '1' },
+      { key: `db/${PROJECT_ID}/base/backup.tar`, generation: '1', softDeleted: false },
+      { key: `db/${PROJECT_ID}/base/backup.tar`, generation: '2', softDeleted: false },
+      { key: `db/${PROJECT_ID}/wals/0001`, generation: '9', softDeleted: false },
+      { key: 'db/another-project/wals/keep', generation: '1', softDeleted: false },
     ]);
     const fence = new FakeFence();
     const service = new ProjectDatabaseErasureService(kubernetes, backups, undefined, {
@@ -278,26 +326,44 @@ describe('ProjectDatabaseErasureService', () => {
       now: () => new Date('2026-08-28T10:00:00.000Z'),
     });
 
-    const receipt = await service.erase(erasurePlan, fence);
+    const effects = await service.purge(erasurePlan, fence);
 
-    expect(receipt.effects).toEqual({
-      kubernetesResourcesDeleted: 7,
+    expect(effects).toEqual({
+      kubernetesResourcesDeleted: 6,
       sharedTenantsErased: 0,
       backupGenerationsDeleted: 3,
+      persistentVolumeClaims: [
+        {
+          namespace: DB_NAMESPACE,
+          pvcName: `${dev}-1`,
+          expectedPvcUid: `uid-PersistentVolumeClaim-${dev}-1`,
+        },
+      ],
     });
+    expect(kubernetes.deleted[0]?.kind).toBe('Cluster');
+    expect(kubernetes.deleted.some(({ kind }) => kind === 'PersistentVolumeClaim')).toBe(false);
+    // The canonical project-volume saga owns PVC/PV/provider erasure.
+    kubernetes.resources.delete(`PersistentVolumeClaim:${dev}-1`);
+    const receipt = await service.verify(erasurePlan, fence, effects);
     expect(receipt.proof).toMatchObject({
       kubernetesAbsent: true,
       backupGenerationsAbsent: true,
-      backupPrefix: `db/${PROJECT_ID}/`,
+      backupTargets: [
+        {
+          bucket: 'vibecore-db-backups',
+          prefix: `db/${PROJECT_ID}/`,
+          generationsAbsent: true,
+          softDeletedAbsent: true,
+        },
+      ],
     });
     expect(backups.versions.has('db/another-project/wals/keep:1')).toBe(true);
-    expect(kubernetes.deleted.at(-1)?.kind).toBe('PersistentVolumeClaim');
     expect(fence.checkpoints.at(-1)?.stage).toBe('VERIFIED');
     expect(fence.assertions.some((event) => event.effect?.includes(':complete'))).toBe(true);
   });
 
   it('drops both shared logical databases and roles while never targeting the shared cluster or Pooler', async () => {
-    const erasurePlan = plan({ tier: 'shared', sharedClusterName: 'shared-pg-0' });
+    const erasurePlan = sharedPlan();
     const kubernetes = new FakeKubernetes(
       erasurePlan.targets.databaseCrNames.map((name) => resource('Database', name)),
     );
@@ -316,7 +382,7 @@ describe('ProjectDatabaseErasureService', () => {
   });
 
   it('fails closed if the manager presents shared infrastructure as a project target', async () => {
-    const erasurePlan = plan({ tier: 'shared', sharedClusterName: 'shared-pg-0' });
+    const erasurePlan = sharedPlan();
     const unsafe = resource('Cluster', 'shared-pg-0');
     const kubernetes = new FakeKubernetes([unsafe]);
     const fence = new FakeFence();
@@ -330,6 +396,66 @@ describe('ProjectDatabaseErasureService', () => {
     expect(fence.checkpoints.some((checkpoint) => checkpoint.stage === 'VERIFIED')).toBe(false);
   });
 
+  it('rejects a recreated CNPG Database whose UID no longer matches the captured authority', async () => {
+    const erasurePlan = sharedPlan();
+    const target = resource('Database', erasurePlan.targets.databaseCrNames[0]!);
+    target.uid = 'uid-recreated-database';
+    const kubernetes = new FakeKubernetes([target]);
+
+    await expect(
+      new ProjectDatabaseErasureService(kubernetes, new FakeBackups(), new FakeSharedSql(), {
+        kubernetesSettleDelayMs: 0,
+      }).erase(erasurePlan, new FakeFence()),
+    ).rejects.toMatchObject({ code: 'UNSAFE_KUBERNETES_TARGET' });
+    expect(kubernetes.deleted).toEqual([]);
+  });
+
+  it('waits for the exact shared-cluster backup retention barrier instead of claiming backup deletion', async () => {
+    const erasurePlan = sharedPlan(7);
+    const kubernetes = new FakeKubernetes(
+      erasurePlan.targets.databaseCrNames.map((name) => resource('Database', name)),
+    );
+    const sql = new FakeSharedSql();
+    erasurePlan.targets.sharedTenants.forEach((tenant) => sql.seed(tenant));
+    const service = new ProjectDatabaseErasureService(kubernetes, new FakeBackups(), sql, {
+      kubernetesSettleDelayMs: 0,
+      now: () => new Date('2026-08-29T08:00:00.000Z'),
+    });
+
+    await expect(service.erase(erasurePlan, new FakeFence())).rejects.toMatchObject({
+      code: 'SHARED_BACKUP_RETENTION_ACTIVE',
+      retryAt: '2026-09-04T08:00:00.000Z',
+    });
+    expect(erasurePlan.backupTargets).toEqual([]);
+  });
+
+  it('refuses an enabled GCS soft-delete policy and waits for provider hard deletion evidence', async () => {
+    const erasurePlan = plan();
+    await expect(
+      new ProjectDatabaseErasureService(new FakeKubernetes(), new FakeBackups([], 604_800)).erase(
+        erasurePlan,
+        new FakeFence(),
+      ),
+    ).rejects.toMatchObject({ code: 'BACKUP_SOFT_DELETE_POLICY_ENABLED' });
+
+    const retained = new FakeBackups([
+      {
+        key: `db/${PROJECT_ID}/base/retained`,
+        generation: '17',
+        softDeleted: true,
+        hardDeleteTime: '2026-09-01T08:00:00.000Z',
+      },
+    ]);
+    await expect(
+      new ProjectDatabaseErasureService(new FakeKubernetes(), retained, undefined, {
+        now: () => new Date('2026-08-29T08:00:00.000Z'),
+      }).erase(erasurePlan, new FakeFence()),
+    ).rejects.toMatchObject({
+      code: 'BACKUP_SOFT_DELETE_RETENTION_ACTIVE',
+      retryAt: '2026-09-01T08:00:00.000Z',
+    });
+  });
+
   it('is crash/replay safe and never returns a receipt after a lost fence', async () => {
     const erasurePlan = plan();
     const dev = clusterName(PROJECT_ID, 'development');
@@ -337,7 +463,7 @@ describe('ProjectDatabaseErasureService', () => {
       resource('Cluster', dev),
       resource('PersistentVolumeClaim', `${dev}-1`, dev),
     ]);
-    const backups = new FakeBackups([{ key: `db/${PROJECT_ID}/base/a`, generation: '1' }]);
+    const backups = new FakeBackups([{ key: `db/${PROJECT_ID}/base/a`, generation: '1', softDeleted: false }]);
     let rejected = false;
     const losingFence = new FakeFence((context) => {
       if (!rejected && context.effect?.startsWith('delete:Cluster:') && context.effect.endsWith(':complete')) {
@@ -354,7 +480,17 @@ describe('ProjectDatabaseErasureService', () => {
     await expect(service.erase(erasurePlan, losingFence)).rejects.toThrow('lease lost');
     expect(losingFence.checkpoints.some((checkpoint) => checkpoint.stage === 'VERIFIED')).toBe(false);
 
-    const replayReceipt = await service.erase(erasurePlan, new FakeFence());
+    const replayFence = new FakeFence();
+    const replayEffects = await service.purge(erasurePlan, replayFence);
+    expect(replayEffects.persistentVolumeClaims).toEqual([
+      {
+        namespace: DB_NAMESPACE,
+        pvcName: `${dev}-1`,
+        expectedPvcUid: `uid-PersistentVolumeClaim-${dev}-1`,
+      },
+    ]);
+    kubernetes.resources.delete(`PersistentVolumeClaim:${dev}-1`);
+    const replayReceipt = await service.verify(erasurePlan, replayFence, replayEffects);
     expect(replayReceipt.proof.kubernetesAbsent).toBe(true);
     expect(replayReceipt.proof.backupGenerationsAbsent).toBe(true);
     expect(kubernetes.resources.size).toBe(0);
@@ -363,7 +499,7 @@ describe('ProjectDatabaseErasureService', () => {
 
   it('rejects a mutated durable plan before any provider effect', async () => {
     const erasurePlan = plan();
-    erasurePlan.backupPrefix = 'db/another-project/';
+    erasurePlan.backupTargets[0]!.prefix = 'db/another-project/';
     const kubernetes = new FakeKubernetes();
 
     await expect(
@@ -374,6 +510,32 @@ describe('ProjectDatabaseErasureService', () => {
 });
 
 describe('GcsProjectDatabaseBackupPort', () => {
+  it('fails closed before reading bucket policy when the service account lacks an erasure permission', async () => {
+    const getMetadata = vi.fn(
+      async () =>
+        [{ softDeletePolicy: { retentionDurationSeconds: 0 } }] as [
+          { softDeletePolicy: { retentionDurationSeconds: number } },
+        ],
+    );
+    const storage = {
+      bucket: () => ({
+        iam: {
+          testPermissions: async () =>
+            [{ permissions: ['storage.buckets.get', 'storage.objects.list'] }] as [{ permissions: string[] }],
+        },
+        getMetadata,
+        getFiles: vi.fn(),
+        file: vi.fn(),
+      }),
+    };
+    const adapter = new GcsProjectDatabaseBackupPort('backups', storage);
+
+    await expect(adapter.inspectBucket({ bucket: 'backups' })).rejects.toMatchObject({
+      code: 'BACKUP_IAM_PREFLIGHT_FAILED',
+    });
+    expect(getMetadata).not.toHaveBeenCalled();
+  });
+
   it('lists noncurrent generations and deletes the exact immutable generation with CAS', async () => {
     const deletes: Array<{ name: string; generation: string; match: string }> = [];
     const storage = {
@@ -381,6 +543,13 @@ describe('GcsProjectDatabaseBackupPort', () => {
         expect(bucket).toBe('backups');
 
         return {
+          iam: {
+            testPermissions: async (permissions: string[]) => [{ permissions }] as [{ permissions: string[] }],
+          },
+          getMetadata: async () =>
+            [{ softDeletePolicy: { retentionDurationSeconds: 0 } }] as [
+              { softDeletePolicy: { retentionDurationSeconds: number } },
+            ],
           getFiles: async (options: Record<string, unknown>) => {
             expect(options).toMatchObject({ versions: true, autoPaginate: false, prefix: `db/${PROJECT_ID}/` });
 
@@ -410,9 +579,16 @@ describe('GcsProjectDatabaseBackupPort', () => {
     };
     const adapter = new GcsProjectDatabaseBackupPort('backups', storage);
 
-    expect(await adapter.listFirstPage({ bucket: 'backups', prefix: `db/${PROJECT_ID}/`, limit: 500 })).toEqual([
-      { key: `db/${PROJECT_ID}/base/a`, generation: '1' },
-      { key: `db/${PROJECT_ID}/base/a`, generation: '2' },
+    expect(
+      await adapter.listFirstPage({
+        bucket: 'backups',
+        prefix: `db/${PROJECT_ID}/`,
+        limit: 500,
+        softDeleted: false,
+      }),
+    ).toEqual([
+      { key: `db/${PROJECT_ID}/base/a`, generation: '1', softDeleted: false },
+      { key: `db/${PROJECT_ID}/base/a`, generation: '2', softDeleted: false },
     ]);
     await adapter.deleteVersion({ bucket: 'backups', key: `db/${PROJECT_ID}/base/a`, generation: '2' });
     expect(deletes).toEqual([{ name: `db/${PROJECT_ID}/base/a`, generation: '2', match: '2' }]);
@@ -421,6 +597,13 @@ describe('GcsProjectDatabaseBackupPort', () => {
   it('fails closed when GCS omits a generation or the caller changes buckets', async () => {
     const storage = {
       bucket: () => ({
+        iam: {
+          testPermissions: async (permissions: string[]) => [{ permissions }] as [{ permissions: string[] }],
+        },
+        getMetadata: async () =>
+          [{ softDeletePolicy: { retentionDurationSeconds: 0 } }] as [
+            { softDeletePolicy: { retentionDurationSeconds: number } },
+          ],
         getFiles: async () =>
           [[{ name: `db/${PROJECT_ID}/base/a`, metadata: {}, delete: async () => undefined }]] as [
             Array<{ name: string; metadata: {}; delete: () => Promise<void> }>,
@@ -431,10 +614,10 @@ describe('GcsProjectDatabaseBackupPort', () => {
     const adapter = new GcsProjectDatabaseBackupPort('backups', storage);
 
     await expect(
-      adapter.listFirstPage({ bucket: 'backups', prefix: `db/${PROJECT_ID}/`, limit: 1 }),
+      adapter.listFirstPage({ bucket: 'backups', prefix: `db/${PROJECT_ID}/`, limit: 1, softDeleted: false }),
     ).rejects.toMatchObject({ code: 'BACKUP_GENERATION_UNPINNABLE' });
     await expect(
-      adapter.listFirstPage({ bucket: 'different', prefix: `db/${PROJECT_ID}/`, limit: 1 }),
+      adapter.listFirstPage({ bucket: 'different', prefix: `db/${PROJECT_ID}/`, limit: 1, softDeleted: false }),
     ).rejects.toMatchObject({ code: 'BACKUP_BUCKET_MISMATCH' });
   });
 });
@@ -455,8 +638,8 @@ describe('PgProjectDatabaseSharedSqlPort', () => {
     };
     const effects: string[] = [];
     const adapter = new PgProjectDatabaseSharedSqlPort(
-      async (cluster) => {
-        expect(cluster).toBe('shared-pg-0');
+      async (resolvedTenant) => {
+        expect(resolvedTenant).toEqual(tenant);
         return 'postgresql://admin:redacted@shared/app';
       },
       () => client,

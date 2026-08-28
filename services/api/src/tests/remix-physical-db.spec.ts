@@ -255,6 +255,27 @@ function serviceDeps(
       idempotencyKey: string;
     }) => store.executeTenantObjectStorageCommand({ ...input, storage: objectStorage }),
     databaseProvisioner,
+    databasePhysicalAuthority: ({ projectId, retentionDays }: { projectId: string; retentionDays: number }) => ({
+      tier: 'isolated' as const,
+      clusterName: `db-${projectId}`.toLowerCase().slice(0, 53),
+      backupBucket: 'unit-test-db-backups',
+      backupPrefix: `db/${projectId}/development/`,
+      retentionDays: Math.max(1, retentionDays),
+    }),
+    permanentlyDeleteTargetProject: async ({
+      targetProjectId,
+      expectedOrganizationId,
+      guard,
+    }: {
+      targetProjectId: string;
+      expectedOrganizationId: string;
+      guard: () => Promise<void>;
+    }) => {
+      await guard();
+      await objectStorage.deleteBucket(targetProjectId, guard);
+      await projectStorage.deleteProjectFiles(targetProjectId, { expectedOrganizationId });
+      await store.prisma.project.deleteMany({ where: { id: targetProjectId, organizationId: expectedOrganizationId } });
+    },
     ensureProjectQuota: async () => undefined,
     createSourceSnapshot: async ({
       remixJobId,
@@ -639,6 +660,12 @@ runDbTests('physical remix — real PostgreSQL multi-client CAS and compensation
           status: 'ACTIVE',
           pitrEnabled: true,
           retentionDays: 14,
+          physicalTier: 'ISOLATED',
+          physicalClusterName: `db-${source.id}`.toLowerCase().slice(0, 53),
+          physicalBackupBucket: 'unit-test-db-backups',
+          physicalBackupPrefix: `db/${source.id}/development/`,
+          physicalRetentionDays: 14,
+          physicalAuthorityAt: new Date(),
         },
       });
       const store = new PrismaApiStore(prisma);

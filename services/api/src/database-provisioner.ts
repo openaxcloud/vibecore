@@ -18,6 +18,7 @@ import { createHmac } from 'node:crypto';
 import { Client as PgClient } from 'pg';
 
 import { appPublicEnglish } from './app-public-copy.js';
+import type { DatabasePhysicalAuthority } from './store.js';
 
 /** Minimal manifest shape (structurally compatible with k8s-client's K8sObject). */
 export interface K8sManifest {
@@ -30,7 +31,26 @@ export interface K8sManifest {
 /** Port the provisioner uses to talk to Kubernetes (real impl = via ws-manager). */
 export interface K8sApplyPort {
   apply(manifest: K8sManifest): Promise<void>;
-  get(kind: string, namespace: string, name: string): Promise<{ status?: Record<string, unknown> } | undefined>;
+  applyCsiCluster(input: {
+    manifest: K8sManifest;
+    projectId: string;
+    expectedOrganizationId: string;
+    action: 'CNPG_PROVISION' | 'CNPG_RESTORE' | 'CNPG_REMIX';
+    resourceId: string;
+    targets: readonly { namespace: typeof DB_NAMESPACE; pvcName: string }[];
+  }): Promise<void>;
+  get(
+    kind: string,
+    namespace: string,
+    name: string,
+  ): Promise<
+    | {
+        metadata?: { name?: string; uid?: string; resourceVersion?: string; labels?: Record<string, string> };
+        spec?: Record<string, unknown>;
+        status?: Record<string, unknown>;
+      }
+    | undefined
+  >;
   delete(kind: string, namespace: string, name: string): Promise<void>;
   /**
    * Read a Secret's decoded string data (or undefined if absent). Used to fetch the
@@ -45,8 +65,7 @@ const CNPG_API = 'postgresql.cnpg.io/v1';
 const BACKUP_NOT_AVAILABLE = 'BACKUP_NOT_AVAILABLE';
 const BACKUP_RESOURCE_NOT_FOUND = 'BACKUP_RESOURCE_NOT_FOUND';
 
-/** Default shared cluster for the free tier (overridable via DB_SHARED_CLUSTER). */
-export const DEFAULT_SHARED_CLUSTER = process.env.DB_SHARED_CLUSTER?.trim() || 'shared-pg-0';
+/** Legacy shared-cluster default. Never use this value to infer persisted ownership. */
 
 /*
  * P2d dev/prod split: a project has a `development` database (its workspace DB)
@@ -85,19 +104,15 @@ function dbLabels(projectId: string, organizationId?: string): Record<string, st
 }
 
 /*
- * TIER routing by PLAN (NOT by dev/prod) — see docs/DB_ARCHITECTURE_V3_TIERED.md.
- * Replit isolates every PAID project per-project from dev onward (Helium dev is
- * already isolated, not just Neon prod); we only mutualise the FREE tier for cost.
- *   free            → 'shared'   (shared CNPG cluster + logical Database CRD)
- *   team/enterprise → 'isolated' (dedicated per-project CNPG Cluster, hibernated)
- * Both the dev and prod database of a project use the SAME tier as its org plan: a
- * paying customer is never on the shared cluster, even while developing. Hibernation
- * (scale-to-zero) applies to both tiers for cost.
+ * New databases are always isolated, independently of mutable billing state.
+ * `shared` remains part of the type solely for already-provisioned legacy rows;
+ * their exact physical authority is persisted on DatabaseInstance and is never
+ * reconstructed from this helper or from DB_SHARED_CLUSTER.
  */
 export type DatabaseTier = 'shared' | 'isolated';
 
-export function resolveDatabaseTier(planKey: string | undefined): DatabaseTier {
-  return planKey === 'team' || planKey === 'enterprise' ? 'isolated' : 'shared';
+export function resolveDatabaseTier(_planKey: string | undefined): DatabaseTier {
+  return 'isolated';
 }
 
 /** Safe Postgres identifier derived from a (cuid) project id. */
@@ -185,7 +200,14 @@ export function buildSharedTenantUri(input: {
  * Split out so the provisioner's branch logic is unit-testable with a fake.
  */
 export interface TenantSqlExecutor {
-  provisionTenant(input: { adminUri: string; role: string; db: string; password: string }): Promise<void>;
+  provisionTenant(input: {
+    adminUri: string;
+    role: string;
+    db: string;
+    password: string;
+    /** Durable ledger fence. It is re-read around every mutating SQL statement. */
+    guard: () => Promise<void>;
+  }): Promise<void>;
   /**
    * Prove that the exact application URI can execute SQL. A Kubernetes Secret or
    * a healthy CR alone is not enough to declare a user database ACTIVE.
@@ -218,21 +240,34 @@ export class PgTenantSqlExecutor implements TenantSqlExecutor {
       }) as unknown as TenantSqlClient,
   ) {}
 
-  async provisionTenant(input: { adminUri: string; role: string; db: string; password: string }): Promise<void> {
-    const { adminUri, role, db, password } = input;
+  async provisionTenant(input: {
+    adminUri: string;
+    role: string;
+    db: string;
+    password: string;
+    guard: () => Promise<void>;
+  }): Promise<void> {
+    const { adminUri, role, db, password, guard } = input;
+    await guard();
     const client = this.createClient(adminUri);
     await client.connect();
 
     try {
+      await guard();
       const roleExists = await client.query('SELECT 1 FROM pg_roles WHERE rolname = $1', [role]);
 
       if (roleExists.rowCount === 0) {
+        await guard();
         await client.query(`CREATE ROLE "${role}" LOGIN PASSWORD '${password}'`);
+        await guard();
       } else {
         // keep the role's password in sync with the deterministic value
+        await guard();
         await client.query(`ALTER ROLE "${role}" LOGIN PASSWORD '${password}'`);
+        await guard();
       }
 
+      await guard();
       const dbExists = await client.query('SELECT 1 FROM pg_database WHERE datname = $1', [db]);
 
       if (dbExists.rowCount === 0) {
@@ -247,15 +282,21 @@ export class PgTenantSqlExecutor implements TenantSqlExecutor {
          * stays stuck on "No database yet" for every free-tier project.
          * Idempotent (GRANT of an already-held membership is a no-op).
          */
+        await guard();
         await client.query(`GRANT "${role}" TO CURRENT_USER`);
+        await guard();
         // CREATE DATABASE cannot run inside a transaction; node-postgres simple
         // queries are autocommit, so this is fine.
         await client.query(`CREATE DATABASE "${db}" OWNER "${role}"`);
+        await guard();
       }
 
       // Tenant isolation: only the owner may connect to its own database.
+      await guard();
       await client.query(`REVOKE CONNECT ON DATABASE "${db}" FROM PUBLIC`);
+      await guard();
       await client.query(`GRANT CONNECT ON DATABASE "${db}" TO "${role}"`);
+      await guard();
     } finally {
       await client.end().catch(() => {});
     }
@@ -322,9 +363,60 @@ export function buildPoolerManifest(sharedClusterName: string): K8sManifest {
 }
 
 /** Barman object-store block → the already-provisioned GCS backups bucket. */
-export function buildBarmanObjectStore(projectId: string, backupBucket: string): Record<string, unknown> {
+export function databaseBackupPrefix(projectId: string, environment: DatabaseEnvironment = 'development'): string {
+  return `db/${projectId}/${environment}/`;
+}
+
+function normalizedBackupPrefix(prefix: string): string {
+  const normalized = prefix.trim().replace(/^\/+/, '');
+  if (!normalized || normalized.includes('..') || !normalized.endsWith('/')) {
+    throw Object.assign(new Error('Invalid database backup prefix'), {
+      code: 'DATABASE_PHYSICAL_AUTHORITY_INVALID',
+      statusCode: 409,
+    });
+  }
+  return normalized;
+}
+
+type IsolatedBackupAuthority = DatabasePhysicalAuthority & {
+  tier: 'isolated';
+  backupBucket: string;
+  backupPrefix: string;
+};
+
+function requireIsolatedBackupAuthority(
+  authority: DatabasePhysicalAuthority | undefined,
+  expectedClusterName?: string,
+): IsolatedBackupAuthority {
+  const bucket = authority?.backupBucket?.trim();
+  const prefix = authority?.backupPrefix ? normalizedBackupPrefix(authority.backupPrefix) : undefined;
+  if (
+    !authority ||
+    authority.tier !== 'isolated' ||
+    (expectedClusterName !== undefined && authority.clusterName !== expectedClusterName) ||
+    !bucket ||
+    !/^[a-z0-9][a-z0-9._-]{1,220}[a-z0-9]$/.test(bucket) ||
+    !prefix ||
+    !Number.isSafeInteger(authority.retentionDays) ||
+    authority.retentionDays < 1 ||
+    authority.retentionDays > 3650 ||
+    authority.databaseCrName !== undefined ||
+    authority.databaseName !== undefined ||
+    authority.roleName !== undefined
+  ) {
+    throw Object.assign(new Error('Persisted database physical authority is incomplete'), {
+      code: 'DATABASE_PHYSICAL_AUTHORITY_RECONCILIATION_REQUIRED',
+      statusCode: 409,
+    });
+  }
+  return { ...authority, tier: 'isolated', backupBucket: bucket, backupPrefix: prefix };
+}
+
+/** Build Barman configuration from already-persisted physical authority. */
+export function buildBarmanObjectStore(backupBucket: string, backupPrefix: string): Record<string, unknown> {
+  const prefix = normalizedBackupPrefix(backupPrefix);
   return {
-    destinationPath: `gs://${backupBucket}/db/${projectId}`,
+    destinationPath: `gs://${backupBucket}/${prefix.slice(0, -1)}`,
     googleCredentials: { gkeEnvironment: true },
     wal: { compression: 'gzip' },
     data: { compression: 'gzip' },
@@ -352,6 +444,8 @@ export function buildClusterManifest(input: {
   projectId: string;
   organizationId?: string;
   backupBucket: string;
+  /** Exact, persisted provider prefix. Defaults only for pure manifest callers. */
+  backupPrefix?: string;
   retentionDays: number;
   storageGi?: number;
   /** Backup GSA email — when set, the cluster pods get the WI annotation. */
@@ -384,7 +478,10 @@ export function buildClusterManifest(input: {
       },
       ...(sat ? { serviceAccountTemplate: sat } : {}),
       backup: {
-        barmanObjectStore: buildBarmanObjectStore(input.projectId, input.backupBucket),
+        barmanObjectStore: buildBarmanObjectStore(
+          input.backupBucket,
+          input.backupPrefix ?? databaseBackupPrefix(input.projectId, input.environment),
+        ),
         retentionPolicy: `${Math.max(1, input.retentionDays)}d`,
       },
     },
@@ -414,8 +511,13 @@ export function buildScheduledBackupManifest(
  * pour que la RELECTURE du statut vise exactement l'objet créé — le recalculer
  * à la main ailleurs finirait par diverger et « vérifier » un autre backup.
  */
-export function onDemandBackupName(projectId: string, snapshotId: string, environment?: DatabaseEnvironment): string {
-  return `${clusterName(projectId, environment)}-${snapshotId}`.toLowerCase().slice(0, 53);
+export function onDemandBackupName(
+  projectId: string,
+  snapshotId: string,
+  environment?: DatabaseEnvironment,
+  physicalClusterName = clusterName(projectId, environment),
+): string {
+  return `${physicalClusterName}-${snapshotId}`.toLowerCase().slice(0, 53);
 }
 
 export function buildOnDemandBackupManifest(
@@ -423,16 +525,17 @@ export function buildOnDemandBackupManifest(
   snapshotId: string,
   environment?: DatabaseEnvironment,
   organizationId?: string,
+  physicalClusterName = clusterName(projectId, environment),
 ): K8sManifest {
   return {
     apiVersion: CNPG_API,
     kind: 'Backup',
     metadata: {
-      name: onDemandBackupName(projectId, snapshotId, environment),
+      name: onDemandBackupName(projectId, snapshotId, environment, physicalClusterName),
       namespace: DB_NAMESPACE,
       labels: dbLabels(projectId, organizationId),
     },
-    spec: { cluster: { name: clusterName(projectId, environment) } },
+    spec: { cluster: { name: physicalClusterName } },
   };
 }
 
@@ -447,6 +550,8 @@ export function buildRestoreClusterManifest(input: {
   restoreId: string;
   targetTimeIso: string;
   backupBucket: string;
+  backupPrefix?: string;
+  environment?: DatabaseEnvironment;
   storageGi?: number;
   backupServiceAccount?: string;
 }): K8sManifest {
@@ -472,7 +577,13 @@ export function buildRestoreClusterManifest(input: {
         },
       },
       externalClusters: [
-        { name: sourceName, barmanObjectStore: buildBarmanObjectStore(input.projectId, input.backupBucket) },
+        {
+          name: sourceName,
+          barmanObjectStore: buildBarmanObjectStore(
+            input.backupBucket,
+            input.backupPrefix ?? databaseBackupPrefix(input.projectId, input.environment),
+          ),
+        },
       ],
     },
   };
@@ -490,6 +601,9 @@ export function buildDatabaseForkClusterManifest(input: {
   targetOrganizationId: string;
   targetTimeIso: string;
   backupBucket: string;
+  sourceBackupBucket?: string;
+  sourceBackupPrefix?: string;
+  targetBackupPrefix?: string;
   retentionDays: number;
   storageGi?: number;
   backupServiceAccount?: string;
@@ -521,14 +635,20 @@ export function buildDatabaseForkClusterManifest(input: {
       externalClusters: [
         {
           name: sourceName,
-          barmanObjectStore: buildBarmanObjectStore(input.sourceProjectId, input.backupBucket),
+          barmanObjectStore: buildBarmanObjectStore(
+            input.sourceBackupBucket ?? input.backupBucket,
+            input.sourceBackupPrefix ?? databaseBackupPrefix(input.sourceProjectId),
+          ),
         },
       ],
       // Once recovery completes, new WAL/base backups belong exclusively to the
       // target project. Compensation can delete this cluster without touching
       // the source archive prefix.
       backup: {
-        barmanObjectStore: buildBarmanObjectStore(input.targetProjectId, input.backupBucket),
+        barmanObjectStore: buildBarmanObjectStore(
+          input.backupBucket,
+          input.targetBackupPrefix ?? databaseBackupPrefix(input.targetProjectId),
+        ),
         retentionPolicy: `${Math.max(1, input.retentionDays)}d`,
       },
     },
@@ -545,7 +665,7 @@ export interface ProvisionResult {
    * en cours » de « ça ne partira jamais » — c'est précisément ce qui produisait
    * un statut PROVISIONING éternel (voir `provisionInstance`).
    */
-  reason?: 'SHARED_TENANT_UNAVAILABLE';
+  reason?: 'SHARED_TENANT_UNAVAILABLE' | 'SHARED_TIER_LEGACY_READ_ONLY';
 }
 
 export interface RestoreProgress {
@@ -557,12 +677,14 @@ export interface ProvisionInput {
   projectId: string;
   organizationId: string;
   retentionDays: number;
-  /** Plan-derived tier (resolveDatabaseTier). Defaults to 'isolated'. */
+  /** Persisted physical tier. New rows must always pass `isolated`. */
   tier?: DatabaseTier;
   /** Shared tier: the shared cluster to place this project's logical DB on. */
   sharedClusterName?: string;
   /** P2d dev/prod split. Defaults to 'development' (un-suffixed, backward compatible). */
   environment?: DatabaseEnvironment;
+  /** Set-once authority committed with DatabaseInstance before provider I/O. */
+  physicalAuthority: DatabasePhysicalAuthority;
 }
 
 /** Provisioner contract used by the api routes + scheduler. */
@@ -577,6 +699,7 @@ export interface DatabaseProvisioner {
     projectId: string;
     tier?: DatabaseTier;
     sharedClusterName?: string;
+    physicalClusterName?: string;
     environment?: DatabaseEnvironment;
   }): Promise<string | undefined>;
   takeSnapshot(input: {
@@ -584,6 +707,7 @@ export interface DatabaseProvisioner {
     organizationId: string;
     snapshotId: string;
     environment?: DatabaseEnvironment;
+    physicalAuthority: DatabasePhysicalAuthority;
   }): Promise<{ applied: boolean }>;
   /**
    * ÉTAT RÉEL d'un backup, par lecture du `status` du CR `Backup` CNPG.
@@ -600,13 +724,16 @@ export interface DatabaseProvisioner {
     projectId: string;
     snapshotId: string;
     environment?: DatabaseEnvironment;
+    physicalAuthority: DatabasePhysicalAuthority;
   }): Promise<{ found: boolean; phase?: string; completed: boolean; error?: string }>;
   startRestore(input: {
     projectId: string;
-    organizationId?: string;
+    organizationId: string;
     restoreId: string;
     targetTimeIso: string;
     retentionDays: number;
+    environment: DatabaseEnvironment;
+    physicalAuthority: DatabasePhysicalAuthority;
   }): Promise<{ applied: boolean; clusterName: string }>;
   restoreProgress(input: { projectId: string; restoreId: string }): Promise<RestoreProgress>;
   forkInstance(input: {
@@ -615,6 +742,8 @@ export interface DatabaseProvisioner {
     targetOrganizationId: string;
     targetTimeIso: string;
     retentionDays: number;
+    sourcePhysicalAuthority: DatabasePhysicalAuthority;
+    targetPhysicalAuthority: DatabasePhysicalAuthority;
     guard?: () => Promise<void>;
   }): Promise<ProvisionResult>;
   /** Returns the target-only application URI once the recovered cluster is ready. */
@@ -655,10 +784,12 @@ export class NoopProvisioner implements DatabaseProvisioner {
 
   async startRestore(input: {
     projectId: string;
-    organizationId?: string;
+    organizationId: string;
     restoreId: string;
     targetTimeIso: string;
     retentionDays: number;
+    environment: DatabaseEnvironment;
+    physicalAuthority: DatabasePhysicalAuthority;
   }): Promise<{ applied: boolean; clusterName: string }> {
     return { applied: false, clusterName: restoreClusterName(input.projectId, input.restoreId) };
   }
@@ -673,6 +804,8 @@ export class NoopProvisioner implements DatabaseProvisioner {
     targetOrganizationId: string;
     targetTimeIso: string;
     retentionDays: number;
+    sourcePhysicalAuthority: DatabasePhysicalAuthority;
+    targetPhysicalAuthority: DatabasePhysicalAuthority;
     guard?: () => Promise<void>;
   }): Promise<ProvisionResult> {
     return { clusterName: clusterName(input.targetProjectId), applied: false };
@@ -693,114 +826,81 @@ export class CnpgProvisioner implements DatabaseProvisioner {
 
   constructor(
     private readonly k8s: K8sApplyPort,
-    private readonly backupBucket: string,
+    _backupBucket: string,
     private readonly backupServiceAccount?: string,
     private readonly sqlExec: TenantSqlExecutor = new PgTenantSqlExecutor(),
   ) {}
 
-  /**
-   * Provision (idempotently) the shared-tier tenant role + database + isolation
-   * on the shared cluster, and return its pooled `DATABASE_URL` — or undefined
-   * when the prerequisites are missing (no tenant secret configured, or the
-   * shared cluster's admin secret is unreadable). Undefined keeps the shared
-   * tier inert, so nothing breaks before `shared-pg-0` + `DB_SHARED_TENANT_SECRET`
-   * are in place. The admin credentials come from the CNPG `<cluster>-app`
-   * secret; that role is granted CREATEDB + CREATEROLE at cluster bootstrap.
-   */
-  async #ensureSharedTenant(
-    projectId: string,
-    sharedCluster: string,
-    environment?: DatabaseEnvironment,
-  ): Promise<string | undefined> {
-    const password = sharedTenantPassword(projectId, environment);
-
-    if (!password) {
-      return undefined;
+  private async applyCsiCluster(input: {
+    manifest: K8sManifest;
+    projectId: string;
+    organizationId: string;
+    action: 'CNPG_PROVISION' | 'CNPG_RESTORE' | 'CNPG_REMIX';
+    resourceId: string;
+  }): Promise<void> {
+    const instances = Number(input.manifest.spec?.instances ?? 1);
+    if (!Number.isSafeInteger(instances) || instances < 1 || instances > 32) {
+      throw Object.assign(new Error('CNPG PVC target count is invalid'), {
+        code: 'DATABASE_CSI_TARGETS_INVALID',
+        statusCode: 409,
+      });
     }
-
-    const admin = await this.k8s.getSecret(DB_NAMESPACE, `${sharedCluster}-app`).catch(() => undefined);
-    const adminUser = admin?.username?.trim();
-    const adminPassword = admin?.password;
-
-    if (!adminUser || !adminPassword) {
-      return undefined;
-    }
-
-    const adminDb = admin?.dbname?.trim() || 'app';
-    const adminUri = `postgresql://${adminUser}:${encodeURIComponent(adminPassword)}@${sharedCluster}-rw.${DB_NAMESPACE}.svc:5432/${adminDb}`;
-
-    await this.sqlExec.provisionTenant({
-      adminUri,
-      role: tenantRoleName(projectId, environment),
-      db: sharedDbName(projectId, environment),
-      password,
+    await this.k8s.applyCsiCluster({
+      manifest: input.manifest,
+      projectId: input.projectId,
+      expectedOrganizationId: input.organizationId,
+      action: input.action,
+      resourceId: input.resourceId,
+      targets: Array.from({ length: instances }, (_, index) => ({
+        namespace: DB_NAMESPACE,
+        pvcName: `${input.manifest.metadata.name}-${index + 1}`,
+      })),
     });
-
-    return buildSharedTenantUri({ projectId, password, sharedClusterName: sharedCluster, environment });
   }
 
   async provisionInstance(input: ProvisionInput): Promise<ProvisionResult> {
     if (input.tier === 'shared') {
-      /*
-       * Shared tier: place a logical DB on a shared cluster via the Database CRD.
-       * The shared Pooler is Helm-owned infrastructure, never a per-project
-       * resource. The owner role + isolation SQL + DATABASE_URL are applied by
-       * the admin-SQL slice; until then the DB CRD is not created.
-       */
-      const sharedCluster = input.sharedClusterName ?? DEFAULT_SHARED_CLUSTER;
-
-      /*
-       * BUG-QA-DB-PROVISIONING-STUCK — le rôle propriétaire doit exister AVANT la
-       * Database CR, et son échec ne peut plus être ignoré.
-       *
-       * Le code posait la CR même quand `#ensureSharedTenant` n'avait rien fait
-       * (« best-effort », échec avalé). CNPG refusait alors de créer la base et
-       * la CR restait indéfiniment en échec — reproduit en réel :
-       *
-       *   Database db-<projet>  APPLIED=false
-       *   ERROR: role "t_<projet>" does not exist (SQLSTATE 42704)
-       *
-       * Côté produit, cela se voyait comme un statut « PROVISIONING » qui ne
-       * finissait jamais : personne ne réconciliait la ligne, et la ressource
-       * empoisonnée restait dans le cluster.
-       *
-       * Le déclencheur le plus simple est l'absence de `DB_SHARED_TENANT_SECRET`
-       * — mais TOUTE défaillance passait par le même trou : cluster partagé
-       * injoignable, secret `<cluster>-app` absent, erreur SQL, RBAC refusé. On
-       * n'applique donc plus rien tant que le locataire n'est pas réellement en
-       * place, et on NOMME la raison au lieu de la taire.
-       */
-      const tenantUri = await this.#ensureSharedTenant(input.projectId, sharedCluster, input.environment).catch(
-        () => undefined,
-      );
-
-      if (!tenantUri) {
-        return { clusterName: sharedCluster, applied: false, reason: 'SHARED_TENANT_UNAVAILABLE' };
+      // Shared is a legacy, read-only topology. Creation requires privileged SQL
+      // and a Database CR; neither is safe without the durable erasure/runtime
+      // ledger. New callers must provision an isolated Cluster instead.
+      const sharedClusterName = input.sharedClusterName?.trim();
+      if (
+        !sharedClusterName ||
+        input.physicalAuthority?.tier !== 'shared' ||
+        input.physicalAuthority.clusterName !== sharedClusterName
+      ) {
+        throw Object.assign(new Error('Legacy shared physical authority is required'), {
+          code: 'DATABASE_PHYSICAL_AUTHORITY_RECONCILIATION_REQUIRED',
+          statusCode: 409,
+        });
       }
-
-      await this.k8s.apply(
-        buildDatabaseCrManifest({
-          projectId: input.projectId,
-          organizationId: input.organizationId,
-          sharedClusterName: sharedCluster,
-          environment: input.environment,
-        }),
-      );
-
-      return { clusterName: sharedCluster, applied: true };
+      return {
+        clusterName: sharedClusterName,
+        applied: false,
+        reason: 'SHARED_TIER_LEGACY_READ_ONLY',
+      };
     }
 
     // Isolated tier (paid / default): a dedicated cluster per project + environment.
-    await this.k8s.apply(
-      buildClusterManifest({
+    const authority = requireIsolatedBackupAuthority(
+      input.physicalAuthority,
+      clusterName(input.projectId, input.environment),
+    );
+    await this.applyCsiCluster({
+      manifest: buildClusterManifest({
         projectId: input.projectId,
         organizationId: input.organizationId,
-        backupBucket: this.backupBucket,
-        retentionDays: input.retentionDays,
+        backupBucket: authority.backupBucket,
+        backupPrefix: authority.backupPrefix,
+        retentionDays: authority.retentionDays,
         backupServiceAccount: this.backupServiceAccount,
         environment: input.environment,
       }),
-    );
+      projectId: input.projectId,
+      organizationId: input.organizationId,
+      action: 'CNPG_PROVISION',
+      resourceId: `cnpg-provision:${input.projectId}:${input.environment ?? 'development'}`,
+    });
     await this.k8s.apply(buildScheduledBackupManifest(input.projectId, input.environment, input.organizationId));
 
     return { clusterName: clusterName(input.projectId, input.environment), applied: true };
@@ -810,20 +910,24 @@ export class CnpgProvisioner implements DatabaseProvisioner {
     projectId: string;
     tier?: DatabaseTier;
     sharedClusterName?: string;
+    physicalClusterName?: string;
     environment?: DatabaseEnvironment;
   }): Promise<string | undefined> {
     if (input.tier === 'shared') {
-      // Idempotently ensure the tenant exists, then prove that the exact pooled
-      // application URI can execute SQL. A generated URI is not readiness.
-      const uri = await this.#ensureSharedTenant(
-        input.projectId,
-        input.sharedClusterName ?? DEFAULT_SHARED_CLUSTER,
-        input.environment,
-      );
-
-      if (!uri) {
+      // Legacy shared readiness is deliberately read-only. The exact cluster is
+      // supplied from persisted physical authority; configuration fallback is
+      // forbidden because DB_SHARED_CLUSTER may have changed since creation.
+      const sharedClusterName = input.sharedClusterName?.trim();
+      const password = sharedTenantPassword(input.projectId, input.environment);
+      if (!sharedClusterName || !password) {
         return undefined;
       }
+      const uri = buildSharedTenantUri({
+        projectId: input.projectId,
+        password,
+        sharedClusterName,
+        environment: input.environment,
+      });
 
       const verified = await this.sqlExec.verifyConnection({
         uri,
@@ -834,7 +938,7 @@ export class CnpgProvisioner implements DatabaseProvisioner {
       return verified ? uri : undefined;
     }
 
-    const name = clusterName(input.projectId, input.environment);
+    const name = input.physicalClusterName?.trim() || clusterName(input.projectId, input.environment);
     const cluster = await this.k8s.get('Cluster', DB_NAMESPACE, name);
     const phase = cluster?.status?.phase;
     const readyInstances = Number(cluster?.status?.readyInstances ?? 0);
@@ -858,16 +962,30 @@ export class CnpgProvisioner implements DatabaseProvisioner {
     organizationId: string;
     snapshotId: string;
     environment?: DatabaseEnvironment;
+    physicalAuthority: DatabasePhysicalAuthority;
   }): Promise<{ applied: boolean }> {
+    const authority = requireIsolatedBackupAuthority(input.physicalAuthority);
     await this.k8s.apply(
-      buildOnDemandBackupManifest(input.projectId, input.snapshotId, input.environment, input.organizationId),
+      buildOnDemandBackupManifest(
+        input.projectId,
+        input.snapshotId,
+        input.environment,
+        input.organizationId,
+        authority.clusterName,
+      ),
     );
 
     return { applied: true };
   }
 
-  async backupStatus(input: { projectId: string; snapshotId: string; environment?: DatabaseEnvironment }) {
-    const name = onDemandBackupName(input.projectId, input.snapshotId, input.environment);
+  async backupStatus(input: {
+    projectId: string;
+    snapshotId: string;
+    environment?: DatabaseEnvironment;
+    physicalAuthority: DatabasePhysicalAuthority;
+  }) {
+    const authority = requireIsolatedBackupAuthority(input.physicalAuthority);
+    const name = onDemandBackupName(input.projectId, input.snapshotId, input.environment, authority.clusterName);
     /*
      * Kind `Backup` exactement : le workspace-manager filtre sur une allowlist
      * (`DB_ROLLBACK_KINDS`) et refuse 403 toute autre forme, y compris le nom
@@ -892,20 +1010,31 @@ export class CnpgProvisioner implements DatabaseProvisioner {
 
   async startRestore(input: {
     projectId: string;
-    organizationId?: string;
+    organizationId: string;
     restoreId: string;
     targetTimeIso: string;
     retentionDays: number;
+    environment: DatabaseEnvironment;
+    physicalAuthority: DatabasePhysicalAuthority;
   }): Promise<{ applied: boolean; clusterName: string }> {
+    const authority = requireIsolatedBackupAuthority(input.physicalAuthority);
     const manifest = buildRestoreClusterManifest({
       projectId: input.projectId,
       organizationId: input.organizationId,
       restoreId: input.restoreId,
       targetTimeIso: input.targetTimeIso,
-      backupBucket: this.backupBucket,
+      backupBucket: authority.backupBucket,
+      backupPrefix: authority.backupPrefix,
+      environment: input.environment,
       backupServiceAccount: this.backupServiceAccount,
     });
-    await this.k8s.apply(manifest);
+    await this.applyCsiCluster({
+      manifest,
+      projectId: input.projectId,
+      organizationId: input.organizationId,
+      action: 'CNPG_RESTORE',
+      resourceId: `cnpg-restore:${input.projectId}:${input.restoreId}`,
+    });
 
     return { applied: true, clusterName: manifest.metadata.name };
   }
@@ -927,15 +1056,32 @@ export class CnpgProvisioner implements DatabaseProvisioner {
     targetOrganizationId: string;
     targetTimeIso: string;
     retentionDays: number;
+    sourcePhysicalAuthority: DatabasePhysicalAuthority;
+    targetPhysicalAuthority: DatabasePhysicalAuthority;
     guard?: () => Promise<void>;
   }): Promise<ProvisionResult> {
+    const sourceAuthority = requireIsolatedBackupAuthority(input.sourcePhysicalAuthority);
+    const targetAuthority = requireIsolatedBackupAuthority(
+      input.targetPhysicalAuthority,
+      clusterName(input.targetProjectId, 'development'),
+    );
     const manifest = buildDatabaseForkClusterManifest({
       ...input,
-      backupBucket: this.backupBucket,
+      sourceBackupBucket: sourceAuthority.backupBucket,
+      sourceBackupPrefix: sourceAuthority.backupPrefix,
+      backupBucket: targetAuthority.backupBucket,
+      targetBackupPrefix: targetAuthority.backupPrefix,
+      retentionDays: targetAuthority.retentionDays,
       backupServiceAccount: this.backupServiceAccount,
     });
     await input.guard?.();
-    await this.k8s.apply(manifest);
+    await this.applyCsiCluster({
+      manifest,
+      projectId: input.targetProjectId,
+      organizationId: input.targetOrganizationId,
+      action: 'CNPG_REMIX',
+      resourceId: `cnpg-remix:${input.targetProjectId}`,
+    });
     await input.guard?.();
     await this.k8s.apply(buildScheduledBackupManifest(input.targetProjectId, undefined, input.targetOrganizationId));
 
@@ -988,7 +1134,7 @@ export class ManagerK8sPort implements K8sApplyPort {
     private readonly secret?: string,
   ) {}
 
-  private async call(method: string, path: string, body?: unknown): Promise<Response> {
+  private async call(method: string, path: string, body?: unknown, timeoutMs = 30_000): Promise<Response> {
     return fetch(`${this.baseUrl.replace(/\/+$/, '')}${path}`, {
       method,
       headers: {
@@ -996,7 +1142,7 @@ export class ManagerK8sPort implements K8sApplyPort {
         ...(this.secret ? { authorization: `Bearer ${this.secret}` } : {}),
       },
       body: body ? JSON.stringify(body) : undefined,
-      signal: AbortSignal.timeout(30_000),
+      signal: AbortSignal.timeout(timeoutMs),
     });
   }
 
@@ -1006,6 +1152,33 @@ export class ManagerK8sPort implements K8sApplyPort {
 
     if (!res.ok) {
       throw new Error(`manager apply failed: ${res.status}`);
+    }
+  }
+
+  async applyCsiCluster(input: {
+    manifest: K8sManifest;
+    projectId: string;
+    expectedOrganizationId: string;
+    action: 'CNPG_PROVISION' | 'CNPG_RESTORE' | 'CNPG_REMIX';
+    resourceId: string;
+    targets: readonly { namespace: typeof DB_NAMESPACE; pvcName: string }[];
+  }): Promise<void> {
+    const res = await this.call('POST', '/databases/apply-csi', input, 180_000);
+    if (!res.ok) {
+      await res.body?.cancel().catch(() => undefined);
+      throw Object.assign(new Error(`manager CSI apply failed: ${res.status}`), {
+        code: 'DATABASE_CSI_APPLY_FAILED',
+        statusCode: 503,
+      });
+    }
+    const receipt = (await res.json().catch(() => undefined)) as
+      | { applied?: unknown; csiEvidencePersisted?: unknown }
+      | undefined;
+    if (receipt?.applied !== true || receipt.csiEvidencePersisted !== true) {
+      throw Object.assign(new Error('manager CSI settlement receipt is invalid'), {
+        code: 'DATABASE_CSI_SETTLEMENT_UNPROVEN',
+        statusCode: 503,
+      });
     }
   }
 
@@ -1026,7 +1199,13 @@ export class ManagerK8sPort implements K8sApplyPort {
       throw new Error(`manager get failed: ${res.status}`);
     }
 
-    return (await res.json().catch(() => undefined)) as { status?: Record<string, unknown> } | undefined;
+    return (await res.json().catch(() => undefined)) as
+      | {
+          metadata?: { name?: string; uid?: string; resourceVersion?: string; labels?: Record<string, string> };
+          spec?: Record<string, unknown>;
+          status?: Record<string, unknown>;
+        }
+      | undefined;
   }
 
   async delete(kind: string, namespace: string, name: string): Promise<void> {
