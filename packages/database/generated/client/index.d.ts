@@ -599,6 +599,21 @@ export type ConsensusRecord = $Result.DefaultSelection<Prisma.$ConsensusRecordPa
  */
 export type WorkspaceRuntime = $Result.DefaultSelection<Prisma.$WorkspaceRuntimePayload>
 /**
+ * Model ProjectRuntimeEffect
+ * Durable provider-effect fence for every project-scoped Kubernetes mutation.
+ * An IN_FLIGHT row is intentionally not recoverable by time alone: losing the
+ * database/session fence while an API request may still reach Kubernetes is an
+ * ambiguous external outcome and permanent deletion must remain fail-closed.
+ */
+export type ProjectRuntimeEffect = $Result.DefaultSelection<Prisma.$ProjectRuntimeEffectPayload>
+/**
+ * Model ProjectRuntimeEffectTarget
+ * Immutable, non-secret resource identities captured before a runtime effect
+ * can enter IN_FLIGHT. They survive Workspace/ScheduledTask cleanup and make a
+ * crash-recovery sweep independent of mutable relational rows.
+ */
+export type ProjectRuntimeEffectTarget = $Result.DefaultSelection<Prisma.$ProjectRuntimeEffectTargetPayload>
+/**
  * Model ConnectorCatalog
  *
  */
@@ -1099,6 +1114,18 @@ export const ProjectPermanentDeletionArtifactState: {
 export type ProjectPermanentDeletionArtifactState = (typeof ProjectPermanentDeletionArtifactState)[keyof typeof ProjectPermanentDeletionArtifactState]
 
 
+export const ProjectRuntimeEffectState: {
+  PREPARED: 'PREPARED',
+  IN_FLIGHT: 'IN_FLIGHT',
+  SETTLED: 'SETTLED',
+  DRAINING: 'DRAINING',
+  DRAINED: 'DRAINED',
+  ABORTED: 'ABORTED'
+};
+
+export type ProjectRuntimeEffectState = (typeof ProjectRuntimeEffectState)[keyof typeof ProjectRuntimeEffectState]
+
+
 export const TicketMessageAuthor: {
   USER: 'USER',
   ADMIN: 'ADMIN',
@@ -1462,6 +1489,10 @@ export const ObjectStorageVersionGcStatus: typeof $Enums.ObjectStorageVersionGcS
 export type ProjectPermanentDeletionArtifactState = $Enums.ProjectPermanentDeletionArtifactState
 
 export const ProjectPermanentDeletionArtifactState: typeof $Enums.ProjectPermanentDeletionArtifactState
+
+export type ProjectRuntimeEffectState = $Enums.ProjectRuntimeEffectState
+
+export const ProjectRuntimeEffectState: typeof $Enums.ProjectRuntimeEffectState
 
 export type TicketMessageAuthor = $Enums.TicketMessageAuthor
 
@@ -2733,6 +2764,26 @@ export class PrismaClient<
   get workspaceRuntime(): Prisma.WorkspaceRuntimeDelegate<ExtArgs, ClientOptions>;
 
   /**
+   * `prisma.projectRuntimeEffect`: Exposes CRUD operations for the **ProjectRuntimeEffect** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more ProjectRuntimeEffects
+    * const projectRuntimeEffects = await prisma.projectRuntimeEffect.findMany()
+    * ```
+    */
+  get projectRuntimeEffect(): Prisma.ProjectRuntimeEffectDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.projectRuntimeEffectTarget`: Exposes CRUD operations for the **ProjectRuntimeEffectTarget** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more ProjectRuntimeEffectTargets
+    * const projectRuntimeEffectTargets = await prisma.projectRuntimeEffectTarget.findMany()
+    * ```
+    */
+  get projectRuntimeEffectTarget(): Prisma.ProjectRuntimeEffectTargetDelegate<ExtArgs, ClientOptions>;
+
+  /**
    * `prisma.connectorCatalog`: Exposes CRUD operations for the **ConnectorCatalog** model.
     * Example usage:
     * ```ts
@@ -3809,6 +3860,8 @@ export namespace Prisma {
     AgentRunResult: 'AgentRunResult',
     ConsensusRecord: 'ConsensusRecord',
     WorkspaceRuntime: 'WorkspaceRuntime',
+    ProjectRuntimeEffect: 'ProjectRuntimeEffect',
+    ProjectRuntimeEffectTarget: 'ProjectRuntimeEffectTarget',
     ConnectorCatalog: 'ConnectorCatalog',
     UserConnection: 'UserConnection',
     ProjectConnectionLink: 'ProjectConnectionLink',
@@ -3878,7 +3931,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "user" | "accountLockout" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "objectStorageOperation" | "objectStorageOperationPinnedObject" | "objectStorageOperationPinnedGeneration" | "projectPermanentDeletionArtifactPlan" | "objectStorageCapabilityReservation" | "objectStorageOperationProjectScope" | "objectStorageVersionGcSchedule" | "projectPermanentDeletionReceipt" | "projectSlugRedirect" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "installedSkill" | "skillAuditEvent" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "collaborationGroup" | "collaborationGroupMember" | "resourceAccessGrant" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectManifestRevision" | "projectStorageObject" | "deployment" | "reservedVmOperation" | "reservedVmBillingPeriod" | "deploymentEnvironment" | "releaseManifest" | "rollbackIdempotencyRequest" | "deploymentAccessPolicy" | "deploymentAccessExchangeTicket" | "rateCard" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "providerRequestMetric" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "runtimeWebSocketTicket" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "mcpGlobalPolicy" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore" | "dBMigrationExecution" | "scheduledTask" | "scheduledTaskRun" | "agentRoutingCard" | "agentCallLog" | "projectCheckpoint" | "remixJob" | "remixStorageShare" | "importJob" | "importCreditReservation" | "galleryListing" | "ledgerAccount" | "ledgerTransaction" | "ledgerEntry" | "ledgerReservation" | "ledgerFxRate" | "ledgerReconciliationRun" | "previewReadinessBeacon" | "workspaceLifecycleEvent" | "workspacePostMortem" | "cloudTenant" | "cloudProjectBinding" | "cloudProjectFactoryEvent" | "cloudOperation" | "cloudOperationEvent" | "cloudTenantTransfer" | "cloudTeardownRecord" | "platformIamIdentity" | "platformIamImpersonationAudit" | "purgePlan" | "purgeFreeze" | "purgeEffect" | "purgeReceipt"
+      modelProps: "user" | "accountLockout" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "objectStorageOperation" | "objectStorageOperationPinnedObject" | "objectStorageOperationPinnedGeneration" | "projectPermanentDeletionArtifactPlan" | "objectStorageCapabilityReservation" | "objectStorageOperationProjectScope" | "objectStorageVersionGcSchedule" | "projectPermanentDeletionReceipt" | "projectSlugRedirect" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "installedSkill" | "skillAuditEvent" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "collaborationGroup" | "collaborationGroupMember" | "resourceAccessGrant" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectManifestRevision" | "projectStorageObject" | "deployment" | "reservedVmOperation" | "reservedVmBillingPeriod" | "deploymentEnvironment" | "releaseManifest" | "rollbackIdempotencyRequest" | "deploymentAccessPolicy" | "deploymentAccessExchangeTicket" | "rateCard" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "providerRequestMetric" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "runtimeWebSocketTicket" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "mcpGlobalPolicy" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "projectRuntimeEffect" | "projectRuntimeEffectTarget" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore" | "dBMigrationExecution" | "scheduledTask" | "scheduledTaskRun" | "agentRoutingCard" | "agentCallLog" | "projectCheckpoint" | "remixJob" | "remixStorageShare" | "importJob" | "importCreditReservation" | "galleryListing" | "ledgerAccount" | "ledgerTransaction" | "ledgerEntry" | "ledgerReservation" | "ledgerFxRate" | "ledgerReconciliationRun" | "previewReadinessBeacon" | "workspaceLifecycleEvent" | "workspacePostMortem" | "cloudTenant" | "cloudProjectBinding" | "cloudProjectFactoryEvent" | "cloudOperation" | "cloudOperationEvent" | "cloudTenantTransfer" | "cloudTeardownRecord" | "platformIamIdentity" | "platformIamImpersonationAudit" | "purgePlan" | "purgeFreeze" | "purgeEffect" | "purgeReceipt"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -11562,6 +11615,154 @@ export namespace Prisma {
           }
         }
       }
+      ProjectRuntimeEffect: {
+        payload: Prisma.$ProjectRuntimeEffectPayload<ExtArgs>
+        fields: Prisma.ProjectRuntimeEffectFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.ProjectRuntimeEffectFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectRuntimeEffectPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.ProjectRuntimeEffectFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectRuntimeEffectPayload>
+          }
+          findFirst: {
+            args: Prisma.ProjectRuntimeEffectFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectRuntimeEffectPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.ProjectRuntimeEffectFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectRuntimeEffectPayload>
+          }
+          findMany: {
+            args: Prisma.ProjectRuntimeEffectFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectRuntimeEffectPayload>[]
+          }
+          create: {
+            args: Prisma.ProjectRuntimeEffectCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectRuntimeEffectPayload>
+          }
+          createMany: {
+            args: Prisma.ProjectRuntimeEffectCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.ProjectRuntimeEffectCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectRuntimeEffectPayload>[]
+          }
+          delete: {
+            args: Prisma.ProjectRuntimeEffectDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectRuntimeEffectPayload>
+          }
+          update: {
+            args: Prisma.ProjectRuntimeEffectUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectRuntimeEffectPayload>
+          }
+          deleteMany: {
+            args: Prisma.ProjectRuntimeEffectDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.ProjectRuntimeEffectUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.ProjectRuntimeEffectUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectRuntimeEffectPayload>[]
+          }
+          upsert: {
+            args: Prisma.ProjectRuntimeEffectUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectRuntimeEffectPayload>
+          }
+          aggregate: {
+            args: Prisma.ProjectRuntimeEffectAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateProjectRuntimeEffect>
+          }
+          groupBy: {
+            args: Prisma.ProjectRuntimeEffectGroupByArgs<ExtArgs>
+            result: $Utils.Optional<ProjectRuntimeEffectGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.ProjectRuntimeEffectCountArgs<ExtArgs>
+            result: $Utils.Optional<ProjectRuntimeEffectCountAggregateOutputType> | number
+          }
+        }
+      }
+      ProjectRuntimeEffectTarget: {
+        payload: Prisma.$ProjectRuntimeEffectTargetPayload<ExtArgs>
+        fields: Prisma.ProjectRuntimeEffectTargetFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.ProjectRuntimeEffectTargetFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectRuntimeEffectTargetPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.ProjectRuntimeEffectTargetFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectRuntimeEffectTargetPayload>
+          }
+          findFirst: {
+            args: Prisma.ProjectRuntimeEffectTargetFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectRuntimeEffectTargetPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.ProjectRuntimeEffectTargetFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectRuntimeEffectTargetPayload>
+          }
+          findMany: {
+            args: Prisma.ProjectRuntimeEffectTargetFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectRuntimeEffectTargetPayload>[]
+          }
+          create: {
+            args: Prisma.ProjectRuntimeEffectTargetCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectRuntimeEffectTargetPayload>
+          }
+          createMany: {
+            args: Prisma.ProjectRuntimeEffectTargetCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.ProjectRuntimeEffectTargetCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectRuntimeEffectTargetPayload>[]
+          }
+          delete: {
+            args: Prisma.ProjectRuntimeEffectTargetDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectRuntimeEffectTargetPayload>
+          }
+          update: {
+            args: Prisma.ProjectRuntimeEffectTargetUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectRuntimeEffectTargetPayload>
+          }
+          deleteMany: {
+            args: Prisma.ProjectRuntimeEffectTargetDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.ProjectRuntimeEffectTargetUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.ProjectRuntimeEffectTargetUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectRuntimeEffectTargetPayload>[]
+          }
+          upsert: {
+            args: Prisma.ProjectRuntimeEffectTargetUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectRuntimeEffectTargetPayload>
+          }
+          aggregate: {
+            args: Prisma.ProjectRuntimeEffectTargetAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateProjectRuntimeEffectTarget>
+          }
+          groupBy: {
+            args: Prisma.ProjectRuntimeEffectTargetGroupByArgs<ExtArgs>
+            result: $Utils.Optional<ProjectRuntimeEffectTargetGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.ProjectRuntimeEffectTargetCountArgs<ExtArgs>
+            result: $Utils.Optional<ProjectRuntimeEffectTargetCountAggregateOutputType> | number
+          }
+        }
+      }
       ConnectorCatalog: {
         payload: Prisma.$ConnectorCatalogPayload<ExtArgs>
         fields: Prisma.ConnectorCatalogFieldRefs
@@ -15770,6 +15971,8 @@ export namespace Prisma {
     agentRunResult?: AgentRunResultOmit
     consensusRecord?: ConsensusRecordOmit
     workspaceRuntime?: WorkspaceRuntimeOmit
+    projectRuntimeEffect?: ProjectRuntimeEffectOmit
+    projectRuntimeEffectTarget?: ProjectRuntimeEffectTargetOmit
     connectorCatalog?: ConnectorCatalogOmit
     userConnection?: UserConnectionOmit
     projectConnectionLink?: ProjectConnectionLinkOmit
@@ -16824,6 +17027,7 @@ export namespace Prisma {
     checkpoints: number
     releaseManifests: number
     objectStorageOperationScopes: number
+    runtimeEffects: number
   }
 
   export type ProjectCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -16863,6 +17067,7 @@ export namespace Prisma {
     checkpoints?: boolean | ProjectCountOutputTypeCountCheckpointsArgs
     releaseManifests?: boolean | ProjectCountOutputTypeCountReleaseManifestsArgs
     objectStorageOperationScopes?: boolean | ProjectCountOutputTypeCountObjectStorageOperationScopesArgs
+    runtimeEffects?: boolean | ProjectCountOutputTypeCountRuntimeEffectsArgs
   }
 
   // Custom InputTypes
@@ -17126,6 +17331,13 @@ export namespace Prisma {
    */
   export type ProjectCountOutputTypeCountObjectStorageOperationScopesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: ObjectStorageOperationProjectScopeWhereInput
+  }
+
+  /**
+   * ProjectCountOutputType without action
+   */
+  export type ProjectCountOutputTypeCountRuntimeEffectsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ProjectRuntimeEffectWhereInput
   }
 
 
@@ -17575,6 +17787,37 @@ export namespace Prisma {
    */
   export type AgentRunCountOutputTypeCountResultsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: AgentRunResultWhereInput
+  }
+
+
+  /**
+   * Count Type ProjectRuntimeEffectCountOutputType
+   */
+
+  export type ProjectRuntimeEffectCountOutputType = {
+    targets: number
+  }
+
+  export type ProjectRuntimeEffectCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    targets?: boolean | ProjectRuntimeEffectCountOutputTypeCountTargetsArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * ProjectRuntimeEffectCountOutputType without action
+   */
+  export type ProjectRuntimeEffectCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectRuntimeEffectCountOutputType
+     */
+    select?: ProjectRuntimeEffectCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * ProjectRuntimeEffectCountOutputType without action
+   */
+  export type ProjectRuntimeEffectCountOutputTypeCountTargetsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ProjectRuntimeEffectTargetWhereInput
   }
 
 
@@ -31973,6 +32216,7 @@ export namespace Prisma {
     releaseManifests?: boolean | Project$releaseManifestsArgs<ExtArgs>
     objectStorageOperationScopes?: boolean | Project$objectStorageOperationScopesArgs<ExtArgs>
     objectStorageVersionGcSchedule?: boolean | Project$objectStorageVersionGcScheduleArgs<ExtArgs>
+    runtimeEffects?: boolean | Project$runtimeEffectsArgs<ExtArgs>
     _count?: boolean | ProjectCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["project"]>
 
@@ -32083,6 +32327,7 @@ export namespace Prisma {
     releaseManifests?: boolean | Project$releaseManifestsArgs<ExtArgs>
     objectStorageOperationScopes?: boolean | Project$objectStorageOperationScopesArgs<ExtArgs>
     objectStorageVersionGcSchedule?: boolean | Project$objectStorageVersionGcScheduleArgs<ExtArgs>
+    runtimeEffects?: boolean | Project$runtimeEffectsArgs<ExtArgs>
     _count?: boolean | ProjectCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type ProjectIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -32135,6 +32380,7 @@ export namespace Prisma {
       releaseManifests: Prisma.$ReleaseManifestPayload<ExtArgs>[]
       objectStorageOperationScopes: Prisma.$ObjectStorageOperationProjectScopePayload<ExtArgs>[]
       objectStorageVersionGcSchedule: Prisma.$ObjectStorageVersionGcSchedulePayload<ExtArgs> | null
+      runtimeEffects: Prisma.$ProjectRuntimeEffectPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -32589,6 +32835,7 @@ export namespace Prisma {
     releaseManifests<T extends Project$releaseManifestsArgs<ExtArgs> = {}>(args?: Subset<T, Project$releaseManifestsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ReleaseManifestPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     objectStorageOperationScopes<T extends Project$objectStorageOperationScopesArgs<ExtArgs> = {}>(args?: Subset<T, Project$objectStorageOperationScopesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ObjectStorageOperationProjectScopePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     objectStorageVersionGcSchedule<T extends Project$objectStorageVersionGcScheduleArgs<ExtArgs> = {}>(args?: Subset<T, Project$objectStorageVersionGcScheduleArgs<ExtArgs>>): Prisma__ObjectStorageVersionGcScheduleClient<$Result.GetResult<Prisma.$ObjectStorageVersionGcSchedulePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    runtimeEffects<T extends Project$runtimeEffectsArgs<ExtArgs> = {}>(args?: Subset<T, Project$runtimeEffectsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectRuntimeEffectPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -33955,6 +34202,30 @@ export namespace Prisma {
      */
     include?: ObjectStorageVersionGcScheduleInclude<ExtArgs> | null
     where?: ObjectStorageVersionGcScheduleWhereInput
+  }
+
+  /**
+   * Project.runtimeEffects
+   */
+  export type Project$runtimeEffectsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectRuntimeEffect
+     */
+    select?: ProjectRuntimeEffectSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectRuntimeEffect
+     */
+    omit?: ProjectRuntimeEffectOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectRuntimeEffectInclude<ExtArgs> | null
+    where?: ProjectRuntimeEffectWhereInput
+    orderBy?: ProjectRuntimeEffectOrderByWithRelationInput | ProjectRuntimeEffectOrderByWithRelationInput[]
+    cursor?: ProjectRuntimeEffectWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: ProjectRuntimeEffectScalarFieldEnum | ProjectRuntimeEffectScalarFieldEnum[]
   }
 
   /**
@@ -140538,6 +140809,2503 @@ export namespace Prisma {
 
 
   /**
+   * Model ProjectRuntimeEffect
+   */
+
+  export type AggregateProjectRuntimeEffect = {
+    _count: ProjectRuntimeEffectCountAggregateOutputType | null
+    _avg: ProjectRuntimeEffectAvgAggregateOutputType | null
+    _sum: ProjectRuntimeEffectSumAggregateOutputType | null
+    _min: ProjectRuntimeEffectMinAggregateOutputType | null
+    _max: ProjectRuntimeEffectMaxAggregateOutputType | null
+  }
+
+  export type ProjectRuntimeEffectAvgAggregateOutputType = {
+    ownershipEpoch: number | null
+    fencingToken: number | null
+  }
+
+  export type ProjectRuntimeEffectSumAggregateOutputType = {
+    ownershipEpoch: number | null
+    fencingToken: bigint | null
+  }
+
+  export type ProjectRuntimeEffectMinAggregateOutputType = {
+    id: string | null
+    projectId: string | null
+    organizationId: string | null
+    ownershipEpoch: number | null
+    action: string | null
+    resourceId: string | null
+    intentHash: string | null
+    targetDigest: string | null
+    fencingToken: bigint | null
+    ownerToken: string | null
+    state: $Enums.ProjectRuntimeEffectState | null
+    leaseExpiresAt: Date | null
+    preparedAt: Date | null
+    dispatchedAt: Date | null
+    settledAt: Date | null
+    drainingAt: Date | null
+    drainedAt: Date | null
+    abortedAt: Date | null
+    lastErrorCode: string | null
+    operatorQuiescenceHash: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type ProjectRuntimeEffectMaxAggregateOutputType = {
+    id: string | null
+    projectId: string | null
+    organizationId: string | null
+    ownershipEpoch: number | null
+    action: string | null
+    resourceId: string | null
+    intentHash: string | null
+    targetDigest: string | null
+    fencingToken: bigint | null
+    ownerToken: string | null
+    state: $Enums.ProjectRuntimeEffectState | null
+    leaseExpiresAt: Date | null
+    preparedAt: Date | null
+    dispatchedAt: Date | null
+    settledAt: Date | null
+    drainingAt: Date | null
+    drainedAt: Date | null
+    abortedAt: Date | null
+    lastErrorCode: string | null
+    operatorQuiescenceHash: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type ProjectRuntimeEffectCountAggregateOutputType = {
+    id: number
+    projectId: number
+    organizationId: number
+    ownershipEpoch: number
+    action: number
+    resourceId: number
+    intentHash: number
+    targetDigest: number
+    fencingToken: number
+    ownerToken: number
+    state: number
+    leaseExpiresAt: number
+    preparedAt: number
+    dispatchedAt: number
+    settledAt: number
+    drainingAt: number
+    drainedAt: number
+    abortedAt: number
+    lastErrorCode: number
+    providerReceipt: number
+    operatorQuiescenceHash: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type ProjectRuntimeEffectAvgAggregateInputType = {
+    ownershipEpoch?: true
+    fencingToken?: true
+  }
+
+  export type ProjectRuntimeEffectSumAggregateInputType = {
+    ownershipEpoch?: true
+    fencingToken?: true
+  }
+
+  export type ProjectRuntimeEffectMinAggregateInputType = {
+    id?: true
+    projectId?: true
+    organizationId?: true
+    ownershipEpoch?: true
+    action?: true
+    resourceId?: true
+    intentHash?: true
+    targetDigest?: true
+    fencingToken?: true
+    ownerToken?: true
+    state?: true
+    leaseExpiresAt?: true
+    preparedAt?: true
+    dispatchedAt?: true
+    settledAt?: true
+    drainingAt?: true
+    drainedAt?: true
+    abortedAt?: true
+    lastErrorCode?: true
+    operatorQuiescenceHash?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type ProjectRuntimeEffectMaxAggregateInputType = {
+    id?: true
+    projectId?: true
+    organizationId?: true
+    ownershipEpoch?: true
+    action?: true
+    resourceId?: true
+    intentHash?: true
+    targetDigest?: true
+    fencingToken?: true
+    ownerToken?: true
+    state?: true
+    leaseExpiresAt?: true
+    preparedAt?: true
+    dispatchedAt?: true
+    settledAt?: true
+    drainingAt?: true
+    drainedAt?: true
+    abortedAt?: true
+    lastErrorCode?: true
+    operatorQuiescenceHash?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type ProjectRuntimeEffectCountAggregateInputType = {
+    id?: true
+    projectId?: true
+    organizationId?: true
+    ownershipEpoch?: true
+    action?: true
+    resourceId?: true
+    intentHash?: true
+    targetDigest?: true
+    fencingToken?: true
+    ownerToken?: true
+    state?: true
+    leaseExpiresAt?: true
+    preparedAt?: true
+    dispatchedAt?: true
+    settledAt?: true
+    drainingAt?: true
+    drainedAt?: true
+    abortedAt?: true
+    lastErrorCode?: true
+    providerReceipt?: true
+    operatorQuiescenceHash?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type ProjectRuntimeEffectAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ProjectRuntimeEffect to aggregate.
+     */
+    where?: ProjectRuntimeEffectWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     *
+     * Determine the order of ProjectRuntimeEffects to fetch.
+     */
+    orderBy?: ProjectRuntimeEffectOrderByWithRelationInput | ProjectRuntimeEffectOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     *
+     * Sets the start position
+     */
+    cursor?: ProjectRuntimeEffectWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Take `±n` ProjectRuntimeEffects from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Skip the first `n` ProjectRuntimeEffects.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     *
+     * Count returned ProjectRuntimeEffects
+    **/
+    _count?: true | ProjectRuntimeEffectCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     *
+     * Select which fields to average
+    **/
+    _avg?: ProjectRuntimeEffectAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     *
+     * Select which fields to sum
+    **/
+    _sum?: ProjectRuntimeEffectSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     *
+     * Select which fields to find the minimum value
+    **/
+    _min?: ProjectRuntimeEffectMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     *
+     * Select which fields to find the maximum value
+    **/
+    _max?: ProjectRuntimeEffectMaxAggregateInputType
+  }
+
+  export type GetProjectRuntimeEffectAggregateType<T extends ProjectRuntimeEffectAggregateArgs> = {
+        [P in keyof T & keyof AggregateProjectRuntimeEffect]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateProjectRuntimeEffect[P]>
+      : GetScalarType<T[P], AggregateProjectRuntimeEffect[P]>
+  }
+
+
+
+
+  export type ProjectRuntimeEffectGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ProjectRuntimeEffectWhereInput
+    orderBy?: ProjectRuntimeEffectOrderByWithAggregationInput | ProjectRuntimeEffectOrderByWithAggregationInput[]
+    by: ProjectRuntimeEffectScalarFieldEnum[] | ProjectRuntimeEffectScalarFieldEnum
+    having?: ProjectRuntimeEffectScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: ProjectRuntimeEffectCountAggregateInputType | true
+    _avg?: ProjectRuntimeEffectAvgAggregateInputType
+    _sum?: ProjectRuntimeEffectSumAggregateInputType
+    _min?: ProjectRuntimeEffectMinAggregateInputType
+    _max?: ProjectRuntimeEffectMaxAggregateInputType
+  }
+
+  export type ProjectRuntimeEffectGroupByOutputType = {
+    id: string
+    projectId: string
+    organizationId: string
+    ownershipEpoch: number
+    action: string
+    resourceId: string
+    intentHash: string
+    targetDigest: string
+    fencingToken: bigint
+    ownerToken: string | null
+    state: $Enums.ProjectRuntimeEffectState
+    leaseExpiresAt: Date | null
+    preparedAt: Date
+    dispatchedAt: Date | null
+    settledAt: Date | null
+    drainingAt: Date | null
+    drainedAt: Date | null
+    abortedAt: Date | null
+    lastErrorCode: string | null
+    providerReceipt: JsonValue | null
+    operatorQuiescenceHash: string | null
+    createdAt: Date
+    updatedAt: Date
+    _count: ProjectRuntimeEffectCountAggregateOutputType | null
+    _avg: ProjectRuntimeEffectAvgAggregateOutputType | null
+    _sum: ProjectRuntimeEffectSumAggregateOutputType | null
+    _min: ProjectRuntimeEffectMinAggregateOutputType | null
+    _max: ProjectRuntimeEffectMaxAggregateOutputType | null
+  }
+
+  type GetProjectRuntimeEffectGroupByPayload<T extends ProjectRuntimeEffectGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<ProjectRuntimeEffectGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof ProjectRuntimeEffectGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], ProjectRuntimeEffectGroupByOutputType[P]>
+            : GetScalarType<T[P], ProjectRuntimeEffectGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type ProjectRuntimeEffectSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    projectId?: boolean
+    organizationId?: boolean
+    ownershipEpoch?: boolean
+    action?: boolean
+    resourceId?: boolean
+    intentHash?: boolean
+    targetDigest?: boolean
+    fencingToken?: boolean
+    ownerToken?: boolean
+    state?: boolean
+    leaseExpiresAt?: boolean
+    preparedAt?: boolean
+    dispatchedAt?: boolean
+    settledAt?: boolean
+    drainingAt?: boolean
+    drainedAt?: boolean
+    abortedAt?: boolean
+    lastErrorCode?: boolean
+    providerReceipt?: boolean
+    operatorQuiescenceHash?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+    targets?: boolean | ProjectRuntimeEffect$targetsArgs<ExtArgs>
+    _count?: boolean | ProjectRuntimeEffectCountOutputTypeDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["projectRuntimeEffect"]>
+
+  export type ProjectRuntimeEffectSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    projectId?: boolean
+    organizationId?: boolean
+    ownershipEpoch?: boolean
+    action?: boolean
+    resourceId?: boolean
+    intentHash?: boolean
+    targetDigest?: boolean
+    fencingToken?: boolean
+    ownerToken?: boolean
+    state?: boolean
+    leaseExpiresAt?: boolean
+    preparedAt?: boolean
+    dispatchedAt?: boolean
+    settledAt?: boolean
+    drainingAt?: boolean
+    drainedAt?: boolean
+    abortedAt?: boolean
+    lastErrorCode?: boolean
+    providerReceipt?: boolean
+    operatorQuiescenceHash?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["projectRuntimeEffect"]>
+
+  export type ProjectRuntimeEffectSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    projectId?: boolean
+    organizationId?: boolean
+    ownershipEpoch?: boolean
+    action?: boolean
+    resourceId?: boolean
+    intentHash?: boolean
+    targetDigest?: boolean
+    fencingToken?: boolean
+    ownerToken?: boolean
+    state?: boolean
+    leaseExpiresAt?: boolean
+    preparedAt?: boolean
+    dispatchedAt?: boolean
+    settledAt?: boolean
+    drainingAt?: boolean
+    drainedAt?: boolean
+    abortedAt?: boolean
+    lastErrorCode?: boolean
+    providerReceipt?: boolean
+    operatorQuiescenceHash?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["projectRuntimeEffect"]>
+
+  export type ProjectRuntimeEffectSelectScalar = {
+    id?: boolean
+    projectId?: boolean
+    organizationId?: boolean
+    ownershipEpoch?: boolean
+    action?: boolean
+    resourceId?: boolean
+    intentHash?: boolean
+    targetDigest?: boolean
+    fencingToken?: boolean
+    ownerToken?: boolean
+    state?: boolean
+    leaseExpiresAt?: boolean
+    preparedAt?: boolean
+    dispatchedAt?: boolean
+    settledAt?: boolean
+    drainingAt?: boolean
+    drainedAt?: boolean
+    abortedAt?: boolean
+    lastErrorCode?: boolean
+    providerReceipt?: boolean
+    operatorQuiescenceHash?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type ProjectRuntimeEffectOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "projectId" | "organizationId" | "ownershipEpoch" | "action" | "resourceId" | "intentHash" | "targetDigest" | "fencingToken" | "ownerToken" | "state" | "leaseExpiresAt" | "preparedAt" | "dispatchedAt" | "settledAt" | "drainingAt" | "drainedAt" | "abortedAt" | "lastErrorCode" | "providerReceipt" | "operatorQuiescenceHash" | "createdAt" | "updatedAt", ExtArgs["result"]["projectRuntimeEffect"]>
+  export type ProjectRuntimeEffectInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+    targets?: boolean | ProjectRuntimeEffect$targetsArgs<ExtArgs>
+    _count?: boolean | ProjectRuntimeEffectCountOutputTypeDefaultArgs<ExtArgs>
+  }
+  export type ProjectRuntimeEffectIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+  }
+  export type ProjectRuntimeEffectIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+  }
+
+  export type $ProjectRuntimeEffectPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "ProjectRuntimeEffect"
+    objects: {
+      project: Prisma.$ProjectPayload<ExtArgs>
+      targets: Prisma.$ProjectRuntimeEffectTargetPayload<ExtArgs>[]
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      projectId: string
+      organizationId: string
+      ownershipEpoch: number
+      action: string
+      resourceId: string
+      intentHash: string
+      targetDigest: string
+      fencingToken: bigint
+      ownerToken: string | null
+      state: $Enums.ProjectRuntimeEffectState
+      leaseExpiresAt: Date | null
+      preparedAt: Date
+      dispatchedAt: Date | null
+      settledAt: Date | null
+      drainingAt: Date | null
+      drainedAt: Date | null
+      abortedAt: Date | null
+      lastErrorCode: string | null
+      providerReceipt: Prisma.JsonValue | null
+      operatorQuiescenceHash: string | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["projectRuntimeEffect"]>
+    composites: {}
+  }
+
+  type ProjectRuntimeEffectGetPayload<S extends boolean | null | undefined | ProjectRuntimeEffectDefaultArgs> = $Result.GetResult<Prisma.$ProjectRuntimeEffectPayload, S>
+
+  type ProjectRuntimeEffectCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<ProjectRuntimeEffectFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: ProjectRuntimeEffectCountAggregateInputType | true
+    }
+
+  export interface ProjectRuntimeEffectDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['ProjectRuntimeEffect'], meta: { name: 'ProjectRuntimeEffect' } }
+    /**
+     * Find zero or one ProjectRuntimeEffect that matches the filter.
+     * @param {ProjectRuntimeEffectFindUniqueArgs} args - Arguments to find a ProjectRuntimeEffect
+     * @example
+     * // Get one ProjectRuntimeEffect
+     * const projectRuntimeEffect = await prisma.projectRuntimeEffect.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends ProjectRuntimeEffectFindUniqueArgs>(args: SelectSubset<T, ProjectRuntimeEffectFindUniqueArgs<ExtArgs>>): Prisma__ProjectRuntimeEffectClient<$Result.GetResult<Prisma.$ProjectRuntimeEffectPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one ProjectRuntimeEffect that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {ProjectRuntimeEffectFindUniqueOrThrowArgs} args - Arguments to find a ProjectRuntimeEffect
+     * @example
+     * // Get one ProjectRuntimeEffect
+     * const projectRuntimeEffect = await prisma.projectRuntimeEffect.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends ProjectRuntimeEffectFindUniqueOrThrowArgs>(args: SelectSubset<T, ProjectRuntimeEffectFindUniqueOrThrowArgs<ExtArgs>>): Prisma__ProjectRuntimeEffectClient<$Result.GetResult<Prisma.$ProjectRuntimeEffectPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ProjectRuntimeEffect that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectRuntimeEffectFindFirstArgs} args - Arguments to find a ProjectRuntimeEffect
+     * @example
+     * // Get one ProjectRuntimeEffect
+     * const projectRuntimeEffect = await prisma.projectRuntimeEffect.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends ProjectRuntimeEffectFindFirstArgs>(args?: SelectSubset<T, ProjectRuntimeEffectFindFirstArgs<ExtArgs>>): Prisma__ProjectRuntimeEffectClient<$Result.GetResult<Prisma.$ProjectRuntimeEffectPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ProjectRuntimeEffect that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectRuntimeEffectFindFirstOrThrowArgs} args - Arguments to find a ProjectRuntimeEffect
+     * @example
+     * // Get one ProjectRuntimeEffect
+     * const projectRuntimeEffect = await prisma.projectRuntimeEffect.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends ProjectRuntimeEffectFindFirstOrThrowArgs>(args?: SelectSubset<T, ProjectRuntimeEffectFindFirstOrThrowArgs<ExtArgs>>): Prisma__ProjectRuntimeEffectClient<$Result.GetResult<Prisma.$ProjectRuntimeEffectPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more ProjectRuntimeEffects that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectRuntimeEffectFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all ProjectRuntimeEffects
+     * const projectRuntimeEffects = await prisma.projectRuntimeEffect.findMany()
+     *
+     * // Get first 10 ProjectRuntimeEffects
+     * const projectRuntimeEffects = await prisma.projectRuntimeEffect.findMany({ take: 10 })
+     *
+     * // Only select the `id`
+     * const projectRuntimeEffectWithIdOnly = await prisma.projectRuntimeEffect.findMany({ select: { id: true } })
+     *
+     */
+    findMany<T extends ProjectRuntimeEffectFindManyArgs>(args?: SelectSubset<T, ProjectRuntimeEffectFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectRuntimeEffectPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a ProjectRuntimeEffect.
+     * @param {ProjectRuntimeEffectCreateArgs} args - Arguments to create a ProjectRuntimeEffect.
+     * @example
+     * // Create one ProjectRuntimeEffect
+     * const ProjectRuntimeEffect = await prisma.projectRuntimeEffect.create({
+     *   data: {
+     *     // ... data to create a ProjectRuntimeEffect
+     *   }
+     * })
+     *
+     */
+    create<T extends ProjectRuntimeEffectCreateArgs>(args: SelectSubset<T, ProjectRuntimeEffectCreateArgs<ExtArgs>>): Prisma__ProjectRuntimeEffectClient<$Result.GetResult<Prisma.$ProjectRuntimeEffectPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many ProjectRuntimeEffects.
+     * @param {ProjectRuntimeEffectCreateManyArgs} args - Arguments to create many ProjectRuntimeEffects.
+     * @example
+     * // Create many ProjectRuntimeEffects
+     * const projectRuntimeEffect = await prisma.projectRuntimeEffect.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *
+     */
+    createMany<T extends ProjectRuntimeEffectCreateManyArgs>(args?: SelectSubset<T, ProjectRuntimeEffectCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many ProjectRuntimeEffects and returns the data saved in the database.
+     * @param {ProjectRuntimeEffectCreateManyAndReturnArgs} args - Arguments to create many ProjectRuntimeEffects.
+     * @example
+     * // Create many ProjectRuntimeEffects
+     * const projectRuntimeEffect = await prisma.projectRuntimeEffect.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *
+     * // Create many ProjectRuntimeEffects and only return the `id`
+     * const projectRuntimeEffectWithIdOnly = await prisma.projectRuntimeEffect.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     *
+     */
+    createManyAndReturn<T extends ProjectRuntimeEffectCreateManyAndReturnArgs>(args?: SelectSubset<T, ProjectRuntimeEffectCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectRuntimeEffectPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a ProjectRuntimeEffect.
+     * @param {ProjectRuntimeEffectDeleteArgs} args - Arguments to delete one ProjectRuntimeEffect.
+     * @example
+     * // Delete one ProjectRuntimeEffect
+     * const ProjectRuntimeEffect = await prisma.projectRuntimeEffect.delete({
+     *   where: {
+     *     // ... filter to delete one ProjectRuntimeEffect
+     *   }
+     * })
+     *
+     */
+    delete<T extends ProjectRuntimeEffectDeleteArgs>(args: SelectSubset<T, ProjectRuntimeEffectDeleteArgs<ExtArgs>>): Prisma__ProjectRuntimeEffectClient<$Result.GetResult<Prisma.$ProjectRuntimeEffectPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one ProjectRuntimeEffect.
+     * @param {ProjectRuntimeEffectUpdateArgs} args - Arguments to update one ProjectRuntimeEffect.
+     * @example
+     * // Update one ProjectRuntimeEffect
+     * const projectRuntimeEffect = await prisma.projectRuntimeEffect.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     *
+     */
+    update<T extends ProjectRuntimeEffectUpdateArgs>(args: SelectSubset<T, ProjectRuntimeEffectUpdateArgs<ExtArgs>>): Prisma__ProjectRuntimeEffectClient<$Result.GetResult<Prisma.$ProjectRuntimeEffectPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more ProjectRuntimeEffects.
+     * @param {ProjectRuntimeEffectDeleteManyArgs} args - Arguments to filter ProjectRuntimeEffects to delete.
+     * @example
+     * // Delete a few ProjectRuntimeEffects
+     * const { count } = await prisma.projectRuntimeEffect.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     *
+     */
+    deleteMany<T extends ProjectRuntimeEffectDeleteManyArgs>(args?: SelectSubset<T, ProjectRuntimeEffectDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ProjectRuntimeEffects.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectRuntimeEffectUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many ProjectRuntimeEffects
+     * const projectRuntimeEffect = await prisma.projectRuntimeEffect.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     *
+     */
+    updateMany<T extends ProjectRuntimeEffectUpdateManyArgs>(args: SelectSubset<T, ProjectRuntimeEffectUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ProjectRuntimeEffects and returns the data updated in the database.
+     * @param {ProjectRuntimeEffectUpdateManyAndReturnArgs} args - Arguments to update many ProjectRuntimeEffects.
+     * @example
+     * // Update many ProjectRuntimeEffects
+     * const projectRuntimeEffect = await prisma.projectRuntimeEffect.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *
+     * // Update zero or more ProjectRuntimeEffects and only return the `id`
+     * const projectRuntimeEffectWithIdOnly = await prisma.projectRuntimeEffect.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     *
+     */
+    updateManyAndReturn<T extends ProjectRuntimeEffectUpdateManyAndReturnArgs>(args: SelectSubset<T, ProjectRuntimeEffectUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectRuntimeEffectPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one ProjectRuntimeEffect.
+     * @param {ProjectRuntimeEffectUpsertArgs} args - Arguments to update or create a ProjectRuntimeEffect.
+     * @example
+     * // Update or create a ProjectRuntimeEffect
+     * const projectRuntimeEffect = await prisma.projectRuntimeEffect.upsert({
+     *   create: {
+     *     // ... data to create a ProjectRuntimeEffect
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the ProjectRuntimeEffect we want to update
+     *   }
+     * })
+     */
+    upsert<T extends ProjectRuntimeEffectUpsertArgs>(args: SelectSubset<T, ProjectRuntimeEffectUpsertArgs<ExtArgs>>): Prisma__ProjectRuntimeEffectClient<$Result.GetResult<Prisma.$ProjectRuntimeEffectPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of ProjectRuntimeEffects.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectRuntimeEffectCountArgs} args - Arguments to filter ProjectRuntimeEffects to count.
+     * @example
+     * // Count the number of ProjectRuntimeEffects
+     * const count = await prisma.projectRuntimeEffect.count({
+     *   where: {
+     *     // ... the filter for the ProjectRuntimeEffects we want to count
+     *   }
+     * })
+    **/
+    count<T extends ProjectRuntimeEffectCountArgs>(
+      args?: Subset<T, ProjectRuntimeEffectCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], ProjectRuntimeEffectCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a ProjectRuntimeEffect.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectRuntimeEffectAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends ProjectRuntimeEffectAggregateArgs>(args: Subset<T, ProjectRuntimeEffectAggregateArgs>): Prisma.PrismaPromise<GetProjectRuntimeEffectAggregateType<T>>
+
+    /**
+     * Group by ProjectRuntimeEffect.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectRuntimeEffectGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     *
+    **/
+    groupBy<
+      T extends ProjectRuntimeEffectGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: ProjectRuntimeEffectGroupByArgs['orderBy'] }
+        : { orderBy?: ProjectRuntimeEffectGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, ProjectRuntimeEffectGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetProjectRuntimeEffectGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the ProjectRuntimeEffect model
+   */
+  readonly fields: ProjectRuntimeEffectFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for ProjectRuntimeEffect.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__ProjectRuntimeEffectClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    project<T extends ProjectDefaultArgs<ExtArgs> = {}>(args?: Subset<T, ProjectDefaultArgs<ExtArgs>>): Prisma__ProjectClient<$Result.GetResult<Prisma.$ProjectPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    targets<T extends ProjectRuntimeEffect$targetsArgs<ExtArgs> = {}>(args?: Subset<T, ProjectRuntimeEffect$targetsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectRuntimeEffectTargetPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the ProjectRuntimeEffect model
+   */
+  interface ProjectRuntimeEffectFieldRefs {
+    readonly id: FieldRef<"ProjectRuntimeEffect", 'String'>
+    readonly projectId: FieldRef<"ProjectRuntimeEffect", 'String'>
+    readonly organizationId: FieldRef<"ProjectRuntimeEffect", 'String'>
+    readonly ownershipEpoch: FieldRef<"ProjectRuntimeEffect", 'Int'>
+    readonly action: FieldRef<"ProjectRuntimeEffect", 'String'>
+    readonly resourceId: FieldRef<"ProjectRuntimeEffect", 'String'>
+    readonly intentHash: FieldRef<"ProjectRuntimeEffect", 'String'>
+    readonly targetDigest: FieldRef<"ProjectRuntimeEffect", 'String'>
+    readonly fencingToken: FieldRef<"ProjectRuntimeEffect", 'BigInt'>
+    readonly ownerToken: FieldRef<"ProjectRuntimeEffect", 'String'>
+    readonly state: FieldRef<"ProjectRuntimeEffect", 'ProjectRuntimeEffectState'>
+    readonly leaseExpiresAt: FieldRef<"ProjectRuntimeEffect", 'DateTime'>
+    readonly preparedAt: FieldRef<"ProjectRuntimeEffect", 'DateTime'>
+    readonly dispatchedAt: FieldRef<"ProjectRuntimeEffect", 'DateTime'>
+    readonly settledAt: FieldRef<"ProjectRuntimeEffect", 'DateTime'>
+    readonly drainingAt: FieldRef<"ProjectRuntimeEffect", 'DateTime'>
+    readonly drainedAt: FieldRef<"ProjectRuntimeEffect", 'DateTime'>
+    readonly abortedAt: FieldRef<"ProjectRuntimeEffect", 'DateTime'>
+    readonly lastErrorCode: FieldRef<"ProjectRuntimeEffect", 'String'>
+    readonly providerReceipt: FieldRef<"ProjectRuntimeEffect", 'Json'>
+    readonly operatorQuiescenceHash: FieldRef<"ProjectRuntimeEffect", 'String'>
+    readonly createdAt: FieldRef<"ProjectRuntimeEffect", 'DateTime'>
+    readonly updatedAt: FieldRef<"ProjectRuntimeEffect", 'DateTime'>
+  }
+
+
+  // Custom InputTypes
+  /**
+   * ProjectRuntimeEffect findUnique
+   */
+  export type ProjectRuntimeEffectFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectRuntimeEffect
+     */
+    select?: ProjectRuntimeEffectSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectRuntimeEffect
+     */
+    omit?: ProjectRuntimeEffectOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectRuntimeEffectInclude<ExtArgs> | null
+    /**
+     * Filter, which ProjectRuntimeEffect to fetch.
+     */
+    where: ProjectRuntimeEffectWhereUniqueInput
+  }
+
+  /**
+   * ProjectRuntimeEffect findUniqueOrThrow
+   */
+  export type ProjectRuntimeEffectFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectRuntimeEffect
+     */
+    select?: ProjectRuntimeEffectSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectRuntimeEffect
+     */
+    omit?: ProjectRuntimeEffectOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectRuntimeEffectInclude<ExtArgs> | null
+    /**
+     * Filter, which ProjectRuntimeEffect to fetch.
+     */
+    where: ProjectRuntimeEffectWhereUniqueInput
+  }
+
+  /**
+   * ProjectRuntimeEffect findFirst
+   */
+  export type ProjectRuntimeEffectFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectRuntimeEffect
+     */
+    select?: ProjectRuntimeEffectSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectRuntimeEffect
+     */
+    omit?: ProjectRuntimeEffectOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectRuntimeEffectInclude<ExtArgs> | null
+    /**
+     * Filter, which ProjectRuntimeEffect to fetch.
+     */
+    where?: ProjectRuntimeEffectWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     *
+     * Determine the order of ProjectRuntimeEffects to fetch.
+     */
+    orderBy?: ProjectRuntimeEffectOrderByWithRelationInput | ProjectRuntimeEffectOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     *
+     * Sets the position for searching for ProjectRuntimeEffects.
+     */
+    cursor?: ProjectRuntimeEffectWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Take `±n` ProjectRuntimeEffects from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Skip the first `n` ProjectRuntimeEffects.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     *
+     * Filter by unique combinations of ProjectRuntimeEffects.
+     */
+    distinct?: ProjectRuntimeEffectScalarFieldEnum | ProjectRuntimeEffectScalarFieldEnum[]
+  }
+
+  /**
+   * ProjectRuntimeEffect findFirstOrThrow
+   */
+  export type ProjectRuntimeEffectFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectRuntimeEffect
+     */
+    select?: ProjectRuntimeEffectSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectRuntimeEffect
+     */
+    omit?: ProjectRuntimeEffectOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectRuntimeEffectInclude<ExtArgs> | null
+    /**
+     * Filter, which ProjectRuntimeEffect to fetch.
+     */
+    where?: ProjectRuntimeEffectWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     *
+     * Determine the order of ProjectRuntimeEffects to fetch.
+     */
+    orderBy?: ProjectRuntimeEffectOrderByWithRelationInput | ProjectRuntimeEffectOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     *
+     * Sets the position for searching for ProjectRuntimeEffects.
+     */
+    cursor?: ProjectRuntimeEffectWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Take `±n` ProjectRuntimeEffects from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Skip the first `n` ProjectRuntimeEffects.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     *
+     * Filter by unique combinations of ProjectRuntimeEffects.
+     */
+    distinct?: ProjectRuntimeEffectScalarFieldEnum | ProjectRuntimeEffectScalarFieldEnum[]
+  }
+
+  /**
+   * ProjectRuntimeEffect findMany
+   */
+  export type ProjectRuntimeEffectFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectRuntimeEffect
+     */
+    select?: ProjectRuntimeEffectSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectRuntimeEffect
+     */
+    omit?: ProjectRuntimeEffectOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectRuntimeEffectInclude<ExtArgs> | null
+    /**
+     * Filter, which ProjectRuntimeEffects to fetch.
+     */
+    where?: ProjectRuntimeEffectWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     *
+     * Determine the order of ProjectRuntimeEffects to fetch.
+     */
+    orderBy?: ProjectRuntimeEffectOrderByWithRelationInput | ProjectRuntimeEffectOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     *
+     * Sets the position for listing ProjectRuntimeEffects.
+     */
+    cursor?: ProjectRuntimeEffectWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Take `±n` ProjectRuntimeEffects from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Skip the first `n` ProjectRuntimeEffects.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     *
+     * Filter by unique combinations of ProjectRuntimeEffects.
+     */
+    distinct?: ProjectRuntimeEffectScalarFieldEnum | ProjectRuntimeEffectScalarFieldEnum[]
+  }
+
+  /**
+   * ProjectRuntimeEffect create
+   */
+  export type ProjectRuntimeEffectCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectRuntimeEffect
+     */
+    select?: ProjectRuntimeEffectSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectRuntimeEffect
+     */
+    omit?: ProjectRuntimeEffectOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectRuntimeEffectInclude<ExtArgs> | null
+    /**
+     * The data needed to create a ProjectRuntimeEffect.
+     */
+    data: XOR<ProjectRuntimeEffectCreateInput, ProjectRuntimeEffectUncheckedCreateInput>
+  }
+
+  /**
+   * ProjectRuntimeEffect createMany
+   */
+  export type ProjectRuntimeEffectCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many ProjectRuntimeEffects.
+     */
+    data: ProjectRuntimeEffectCreateManyInput | ProjectRuntimeEffectCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * ProjectRuntimeEffect createManyAndReturn
+   */
+  export type ProjectRuntimeEffectCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectRuntimeEffect
+     */
+    select?: ProjectRuntimeEffectSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectRuntimeEffect
+     */
+    omit?: ProjectRuntimeEffectOmit<ExtArgs> | null
+    /**
+     * The data used to create many ProjectRuntimeEffects.
+     */
+    data: ProjectRuntimeEffectCreateManyInput | ProjectRuntimeEffectCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectRuntimeEffectIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * ProjectRuntimeEffect update
+   */
+  export type ProjectRuntimeEffectUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectRuntimeEffect
+     */
+    select?: ProjectRuntimeEffectSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectRuntimeEffect
+     */
+    omit?: ProjectRuntimeEffectOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectRuntimeEffectInclude<ExtArgs> | null
+    /**
+     * The data needed to update a ProjectRuntimeEffect.
+     */
+    data: XOR<ProjectRuntimeEffectUpdateInput, ProjectRuntimeEffectUncheckedUpdateInput>
+    /**
+     * Choose, which ProjectRuntimeEffect to update.
+     */
+    where: ProjectRuntimeEffectWhereUniqueInput
+  }
+
+  /**
+   * ProjectRuntimeEffect updateMany
+   */
+  export type ProjectRuntimeEffectUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update ProjectRuntimeEffects.
+     */
+    data: XOR<ProjectRuntimeEffectUpdateManyMutationInput, ProjectRuntimeEffectUncheckedUpdateManyInput>
+    /**
+     * Filter which ProjectRuntimeEffects to update
+     */
+    where?: ProjectRuntimeEffectWhereInput
+    /**
+     * Limit how many ProjectRuntimeEffects to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * ProjectRuntimeEffect updateManyAndReturn
+   */
+  export type ProjectRuntimeEffectUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectRuntimeEffect
+     */
+    select?: ProjectRuntimeEffectSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectRuntimeEffect
+     */
+    omit?: ProjectRuntimeEffectOmit<ExtArgs> | null
+    /**
+     * The data used to update ProjectRuntimeEffects.
+     */
+    data: XOR<ProjectRuntimeEffectUpdateManyMutationInput, ProjectRuntimeEffectUncheckedUpdateManyInput>
+    /**
+     * Filter which ProjectRuntimeEffects to update
+     */
+    where?: ProjectRuntimeEffectWhereInput
+    /**
+     * Limit how many ProjectRuntimeEffects to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectRuntimeEffectIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * ProjectRuntimeEffect upsert
+   */
+  export type ProjectRuntimeEffectUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectRuntimeEffect
+     */
+    select?: ProjectRuntimeEffectSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectRuntimeEffect
+     */
+    omit?: ProjectRuntimeEffectOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectRuntimeEffectInclude<ExtArgs> | null
+    /**
+     * The filter to search for the ProjectRuntimeEffect to update in case it exists.
+     */
+    where: ProjectRuntimeEffectWhereUniqueInput
+    /**
+     * In case the ProjectRuntimeEffect found by the `where` argument doesn't exist, create a new ProjectRuntimeEffect with this data.
+     */
+    create: XOR<ProjectRuntimeEffectCreateInput, ProjectRuntimeEffectUncheckedCreateInput>
+    /**
+     * In case the ProjectRuntimeEffect was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<ProjectRuntimeEffectUpdateInput, ProjectRuntimeEffectUncheckedUpdateInput>
+  }
+
+  /**
+   * ProjectRuntimeEffect delete
+   */
+  export type ProjectRuntimeEffectDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectRuntimeEffect
+     */
+    select?: ProjectRuntimeEffectSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectRuntimeEffect
+     */
+    omit?: ProjectRuntimeEffectOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectRuntimeEffectInclude<ExtArgs> | null
+    /**
+     * Filter which ProjectRuntimeEffect to delete.
+     */
+    where: ProjectRuntimeEffectWhereUniqueInput
+  }
+
+  /**
+   * ProjectRuntimeEffect deleteMany
+   */
+  export type ProjectRuntimeEffectDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ProjectRuntimeEffects to delete
+     */
+    where?: ProjectRuntimeEffectWhereInput
+    /**
+     * Limit how many ProjectRuntimeEffects to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * ProjectRuntimeEffect.targets
+   */
+  export type ProjectRuntimeEffect$targetsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectRuntimeEffectTarget
+     */
+    select?: ProjectRuntimeEffectTargetSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectRuntimeEffectTarget
+     */
+    omit?: ProjectRuntimeEffectTargetOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectRuntimeEffectTargetInclude<ExtArgs> | null
+    where?: ProjectRuntimeEffectTargetWhereInput
+    orderBy?: ProjectRuntimeEffectTargetOrderByWithRelationInput | ProjectRuntimeEffectTargetOrderByWithRelationInput[]
+    cursor?: ProjectRuntimeEffectTargetWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: ProjectRuntimeEffectTargetScalarFieldEnum | ProjectRuntimeEffectTargetScalarFieldEnum[]
+  }
+
+  /**
+   * ProjectRuntimeEffect without action
+   */
+  export type ProjectRuntimeEffectDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectRuntimeEffect
+     */
+    select?: ProjectRuntimeEffectSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectRuntimeEffect
+     */
+    omit?: ProjectRuntimeEffectOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectRuntimeEffectInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model ProjectRuntimeEffectTarget
+   */
+
+  export type AggregateProjectRuntimeEffectTarget = {
+    _count: ProjectRuntimeEffectTargetCountAggregateOutputType | null
+    _avg: ProjectRuntimeEffectTargetAvgAggregateOutputType | null
+    _sum: ProjectRuntimeEffectTargetSumAggregateOutputType | null
+    _min: ProjectRuntimeEffectTargetMinAggregateOutputType | null
+    _max: ProjectRuntimeEffectTargetMaxAggregateOutputType | null
+  }
+
+  export type ProjectRuntimeEffectTargetAvgAggregateOutputType = {
+    ordinal: number | null
+  }
+
+  export type ProjectRuntimeEffectTargetSumAggregateOutputType = {
+    ordinal: number | null
+  }
+
+  export type ProjectRuntimeEffectTargetMinAggregateOutputType = {
+    effectId: string | null
+    ordinal: number | null
+    kind: string | null
+    namespace: string | null
+    name: string | null
+    expectedUid: string | null
+    expectedResourceVersion: string | null
+    manifestDigest: string | null
+  }
+
+  export type ProjectRuntimeEffectTargetMaxAggregateOutputType = {
+    effectId: string | null
+    ordinal: number | null
+    kind: string | null
+    namespace: string | null
+    name: string | null
+    expectedUid: string | null
+    expectedResourceVersion: string | null
+    manifestDigest: string | null
+  }
+
+  export type ProjectRuntimeEffectTargetCountAggregateOutputType = {
+    effectId: number
+    ordinal: number
+    kind: number
+    namespace: number
+    name: number
+    expectedUid: number
+    expectedResourceVersion: number
+    manifestDigest: number
+    _all: number
+  }
+
+
+  export type ProjectRuntimeEffectTargetAvgAggregateInputType = {
+    ordinal?: true
+  }
+
+  export type ProjectRuntimeEffectTargetSumAggregateInputType = {
+    ordinal?: true
+  }
+
+  export type ProjectRuntimeEffectTargetMinAggregateInputType = {
+    effectId?: true
+    ordinal?: true
+    kind?: true
+    namespace?: true
+    name?: true
+    expectedUid?: true
+    expectedResourceVersion?: true
+    manifestDigest?: true
+  }
+
+  export type ProjectRuntimeEffectTargetMaxAggregateInputType = {
+    effectId?: true
+    ordinal?: true
+    kind?: true
+    namespace?: true
+    name?: true
+    expectedUid?: true
+    expectedResourceVersion?: true
+    manifestDigest?: true
+  }
+
+  export type ProjectRuntimeEffectTargetCountAggregateInputType = {
+    effectId?: true
+    ordinal?: true
+    kind?: true
+    namespace?: true
+    name?: true
+    expectedUid?: true
+    expectedResourceVersion?: true
+    manifestDigest?: true
+    _all?: true
+  }
+
+  export type ProjectRuntimeEffectTargetAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ProjectRuntimeEffectTarget to aggregate.
+     */
+    where?: ProjectRuntimeEffectTargetWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     *
+     * Determine the order of ProjectRuntimeEffectTargets to fetch.
+     */
+    orderBy?: ProjectRuntimeEffectTargetOrderByWithRelationInput | ProjectRuntimeEffectTargetOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     *
+     * Sets the start position
+     */
+    cursor?: ProjectRuntimeEffectTargetWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Take `±n` ProjectRuntimeEffectTargets from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Skip the first `n` ProjectRuntimeEffectTargets.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     *
+     * Count returned ProjectRuntimeEffectTargets
+    **/
+    _count?: true | ProjectRuntimeEffectTargetCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     *
+     * Select which fields to average
+    **/
+    _avg?: ProjectRuntimeEffectTargetAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     *
+     * Select which fields to sum
+    **/
+    _sum?: ProjectRuntimeEffectTargetSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     *
+     * Select which fields to find the minimum value
+    **/
+    _min?: ProjectRuntimeEffectTargetMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     *
+     * Select which fields to find the maximum value
+    **/
+    _max?: ProjectRuntimeEffectTargetMaxAggregateInputType
+  }
+
+  export type GetProjectRuntimeEffectTargetAggregateType<T extends ProjectRuntimeEffectTargetAggregateArgs> = {
+        [P in keyof T & keyof AggregateProjectRuntimeEffectTarget]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateProjectRuntimeEffectTarget[P]>
+      : GetScalarType<T[P], AggregateProjectRuntimeEffectTarget[P]>
+  }
+
+
+
+
+  export type ProjectRuntimeEffectTargetGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ProjectRuntimeEffectTargetWhereInput
+    orderBy?: ProjectRuntimeEffectTargetOrderByWithAggregationInput | ProjectRuntimeEffectTargetOrderByWithAggregationInput[]
+    by: ProjectRuntimeEffectTargetScalarFieldEnum[] | ProjectRuntimeEffectTargetScalarFieldEnum
+    having?: ProjectRuntimeEffectTargetScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: ProjectRuntimeEffectTargetCountAggregateInputType | true
+    _avg?: ProjectRuntimeEffectTargetAvgAggregateInputType
+    _sum?: ProjectRuntimeEffectTargetSumAggregateInputType
+    _min?: ProjectRuntimeEffectTargetMinAggregateInputType
+    _max?: ProjectRuntimeEffectTargetMaxAggregateInputType
+  }
+
+  export type ProjectRuntimeEffectTargetGroupByOutputType = {
+    effectId: string
+    ordinal: number
+    kind: string
+    namespace: string
+    name: string
+    expectedUid: string | null
+    expectedResourceVersion: string | null
+    manifestDigest: string | null
+    _count: ProjectRuntimeEffectTargetCountAggregateOutputType | null
+    _avg: ProjectRuntimeEffectTargetAvgAggregateOutputType | null
+    _sum: ProjectRuntimeEffectTargetSumAggregateOutputType | null
+    _min: ProjectRuntimeEffectTargetMinAggregateOutputType | null
+    _max: ProjectRuntimeEffectTargetMaxAggregateOutputType | null
+  }
+
+  type GetProjectRuntimeEffectTargetGroupByPayload<T extends ProjectRuntimeEffectTargetGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<ProjectRuntimeEffectTargetGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof ProjectRuntimeEffectTargetGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], ProjectRuntimeEffectTargetGroupByOutputType[P]>
+            : GetScalarType<T[P], ProjectRuntimeEffectTargetGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type ProjectRuntimeEffectTargetSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    effectId?: boolean
+    ordinal?: boolean
+    kind?: boolean
+    namespace?: boolean
+    name?: boolean
+    expectedUid?: boolean
+    expectedResourceVersion?: boolean
+    manifestDigest?: boolean
+    effect?: boolean | ProjectRuntimeEffectDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["projectRuntimeEffectTarget"]>
+
+  export type ProjectRuntimeEffectTargetSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    effectId?: boolean
+    ordinal?: boolean
+    kind?: boolean
+    namespace?: boolean
+    name?: boolean
+    expectedUid?: boolean
+    expectedResourceVersion?: boolean
+    manifestDigest?: boolean
+    effect?: boolean | ProjectRuntimeEffectDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["projectRuntimeEffectTarget"]>
+
+  export type ProjectRuntimeEffectTargetSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    effectId?: boolean
+    ordinal?: boolean
+    kind?: boolean
+    namespace?: boolean
+    name?: boolean
+    expectedUid?: boolean
+    expectedResourceVersion?: boolean
+    manifestDigest?: boolean
+    effect?: boolean | ProjectRuntimeEffectDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["projectRuntimeEffectTarget"]>
+
+  export type ProjectRuntimeEffectTargetSelectScalar = {
+    effectId?: boolean
+    ordinal?: boolean
+    kind?: boolean
+    namespace?: boolean
+    name?: boolean
+    expectedUid?: boolean
+    expectedResourceVersion?: boolean
+    manifestDigest?: boolean
+  }
+
+  export type ProjectRuntimeEffectTargetOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"effectId" | "ordinal" | "kind" | "namespace" | "name" | "expectedUid" | "expectedResourceVersion" | "manifestDigest", ExtArgs["result"]["projectRuntimeEffectTarget"]>
+  export type ProjectRuntimeEffectTargetInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    effect?: boolean | ProjectRuntimeEffectDefaultArgs<ExtArgs>
+  }
+  export type ProjectRuntimeEffectTargetIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    effect?: boolean | ProjectRuntimeEffectDefaultArgs<ExtArgs>
+  }
+  export type ProjectRuntimeEffectTargetIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    effect?: boolean | ProjectRuntimeEffectDefaultArgs<ExtArgs>
+  }
+
+  export type $ProjectRuntimeEffectTargetPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "ProjectRuntimeEffectTarget"
+    objects: {
+      effect: Prisma.$ProjectRuntimeEffectPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      effectId: string
+      ordinal: number
+      kind: string
+      namespace: string
+      name: string
+      expectedUid: string | null
+      expectedResourceVersion: string | null
+      manifestDigest: string | null
+    }, ExtArgs["result"]["projectRuntimeEffectTarget"]>
+    composites: {}
+  }
+
+  type ProjectRuntimeEffectTargetGetPayload<S extends boolean | null | undefined | ProjectRuntimeEffectTargetDefaultArgs> = $Result.GetResult<Prisma.$ProjectRuntimeEffectTargetPayload, S>
+
+  type ProjectRuntimeEffectTargetCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<ProjectRuntimeEffectTargetFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: ProjectRuntimeEffectTargetCountAggregateInputType | true
+    }
+
+  export interface ProjectRuntimeEffectTargetDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['ProjectRuntimeEffectTarget'], meta: { name: 'ProjectRuntimeEffectTarget' } }
+    /**
+     * Find zero or one ProjectRuntimeEffectTarget that matches the filter.
+     * @param {ProjectRuntimeEffectTargetFindUniqueArgs} args - Arguments to find a ProjectRuntimeEffectTarget
+     * @example
+     * // Get one ProjectRuntimeEffectTarget
+     * const projectRuntimeEffectTarget = await prisma.projectRuntimeEffectTarget.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends ProjectRuntimeEffectTargetFindUniqueArgs>(args: SelectSubset<T, ProjectRuntimeEffectTargetFindUniqueArgs<ExtArgs>>): Prisma__ProjectRuntimeEffectTargetClient<$Result.GetResult<Prisma.$ProjectRuntimeEffectTargetPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one ProjectRuntimeEffectTarget that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {ProjectRuntimeEffectTargetFindUniqueOrThrowArgs} args - Arguments to find a ProjectRuntimeEffectTarget
+     * @example
+     * // Get one ProjectRuntimeEffectTarget
+     * const projectRuntimeEffectTarget = await prisma.projectRuntimeEffectTarget.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends ProjectRuntimeEffectTargetFindUniqueOrThrowArgs>(args: SelectSubset<T, ProjectRuntimeEffectTargetFindUniqueOrThrowArgs<ExtArgs>>): Prisma__ProjectRuntimeEffectTargetClient<$Result.GetResult<Prisma.$ProjectRuntimeEffectTargetPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ProjectRuntimeEffectTarget that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectRuntimeEffectTargetFindFirstArgs} args - Arguments to find a ProjectRuntimeEffectTarget
+     * @example
+     * // Get one ProjectRuntimeEffectTarget
+     * const projectRuntimeEffectTarget = await prisma.projectRuntimeEffectTarget.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends ProjectRuntimeEffectTargetFindFirstArgs>(args?: SelectSubset<T, ProjectRuntimeEffectTargetFindFirstArgs<ExtArgs>>): Prisma__ProjectRuntimeEffectTargetClient<$Result.GetResult<Prisma.$ProjectRuntimeEffectTargetPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ProjectRuntimeEffectTarget that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectRuntimeEffectTargetFindFirstOrThrowArgs} args - Arguments to find a ProjectRuntimeEffectTarget
+     * @example
+     * // Get one ProjectRuntimeEffectTarget
+     * const projectRuntimeEffectTarget = await prisma.projectRuntimeEffectTarget.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends ProjectRuntimeEffectTargetFindFirstOrThrowArgs>(args?: SelectSubset<T, ProjectRuntimeEffectTargetFindFirstOrThrowArgs<ExtArgs>>): Prisma__ProjectRuntimeEffectTargetClient<$Result.GetResult<Prisma.$ProjectRuntimeEffectTargetPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more ProjectRuntimeEffectTargets that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectRuntimeEffectTargetFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all ProjectRuntimeEffectTargets
+     * const projectRuntimeEffectTargets = await prisma.projectRuntimeEffectTarget.findMany()
+     *
+     * // Get first 10 ProjectRuntimeEffectTargets
+     * const projectRuntimeEffectTargets = await prisma.projectRuntimeEffectTarget.findMany({ take: 10 })
+     *
+     * // Only select the `effectId`
+     * const projectRuntimeEffectTargetWithEffectIdOnly = await prisma.projectRuntimeEffectTarget.findMany({ select: { effectId: true } })
+     *
+     */
+    findMany<T extends ProjectRuntimeEffectTargetFindManyArgs>(args?: SelectSubset<T, ProjectRuntimeEffectTargetFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectRuntimeEffectTargetPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a ProjectRuntimeEffectTarget.
+     * @param {ProjectRuntimeEffectTargetCreateArgs} args - Arguments to create a ProjectRuntimeEffectTarget.
+     * @example
+     * // Create one ProjectRuntimeEffectTarget
+     * const ProjectRuntimeEffectTarget = await prisma.projectRuntimeEffectTarget.create({
+     *   data: {
+     *     // ... data to create a ProjectRuntimeEffectTarget
+     *   }
+     * })
+     *
+     */
+    create<T extends ProjectRuntimeEffectTargetCreateArgs>(args: SelectSubset<T, ProjectRuntimeEffectTargetCreateArgs<ExtArgs>>): Prisma__ProjectRuntimeEffectTargetClient<$Result.GetResult<Prisma.$ProjectRuntimeEffectTargetPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many ProjectRuntimeEffectTargets.
+     * @param {ProjectRuntimeEffectTargetCreateManyArgs} args - Arguments to create many ProjectRuntimeEffectTargets.
+     * @example
+     * // Create many ProjectRuntimeEffectTargets
+     * const projectRuntimeEffectTarget = await prisma.projectRuntimeEffectTarget.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *
+     */
+    createMany<T extends ProjectRuntimeEffectTargetCreateManyArgs>(args?: SelectSubset<T, ProjectRuntimeEffectTargetCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many ProjectRuntimeEffectTargets and returns the data saved in the database.
+     * @param {ProjectRuntimeEffectTargetCreateManyAndReturnArgs} args - Arguments to create many ProjectRuntimeEffectTargets.
+     * @example
+     * // Create many ProjectRuntimeEffectTargets
+     * const projectRuntimeEffectTarget = await prisma.projectRuntimeEffectTarget.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *
+     * // Create many ProjectRuntimeEffectTargets and only return the `effectId`
+     * const projectRuntimeEffectTargetWithEffectIdOnly = await prisma.projectRuntimeEffectTarget.createManyAndReturn({
+     *   select: { effectId: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     *
+     */
+    createManyAndReturn<T extends ProjectRuntimeEffectTargetCreateManyAndReturnArgs>(args?: SelectSubset<T, ProjectRuntimeEffectTargetCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectRuntimeEffectTargetPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a ProjectRuntimeEffectTarget.
+     * @param {ProjectRuntimeEffectTargetDeleteArgs} args - Arguments to delete one ProjectRuntimeEffectTarget.
+     * @example
+     * // Delete one ProjectRuntimeEffectTarget
+     * const ProjectRuntimeEffectTarget = await prisma.projectRuntimeEffectTarget.delete({
+     *   where: {
+     *     // ... filter to delete one ProjectRuntimeEffectTarget
+     *   }
+     * })
+     *
+     */
+    delete<T extends ProjectRuntimeEffectTargetDeleteArgs>(args: SelectSubset<T, ProjectRuntimeEffectTargetDeleteArgs<ExtArgs>>): Prisma__ProjectRuntimeEffectTargetClient<$Result.GetResult<Prisma.$ProjectRuntimeEffectTargetPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one ProjectRuntimeEffectTarget.
+     * @param {ProjectRuntimeEffectTargetUpdateArgs} args - Arguments to update one ProjectRuntimeEffectTarget.
+     * @example
+     * // Update one ProjectRuntimeEffectTarget
+     * const projectRuntimeEffectTarget = await prisma.projectRuntimeEffectTarget.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     *
+     */
+    update<T extends ProjectRuntimeEffectTargetUpdateArgs>(args: SelectSubset<T, ProjectRuntimeEffectTargetUpdateArgs<ExtArgs>>): Prisma__ProjectRuntimeEffectTargetClient<$Result.GetResult<Prisma.$ProjectRuntimeEffectTargetPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more ProjectRuntimeEffectTargets.
+     * @param {ProjectRuntimeEffectTargetDeleteManyArgs} args - Arguments to filter ProjectRuntimeEffectTargets to delete.
+     * @example
+     * // Delete a few ProjectRuntimeEffectTargets
+     * const { count } = await prisma.projectRuntimeEffectTarget.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     *
+     */
+    deleteMany<T extends ProjectRuntimeEffectTargetDeleteManyArgs>(args?: SelectSubset<T, ProjectRuntimeEffectTargetDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ProjectRuntimeEffectTargets.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectRuntimeEffectTargetUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many ProjectRuntimeEffectTargets
+     * const projectRuntimeEffectTarget = await prisma.projectRuntimeEffectTarget.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     *
+     */
+    updateMany<T extends ProjectRuntimeEffectTargetUpdateManyArgs>(args: SelectSubset<T, ProjectRuntimeEffectTargetUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ProjectRuntimeEffectTargets and returns the data updated in the database.
+     * @param {ProjectRuntimeEffectTargetUpdateManyAndReturnArgs} args - Arguments to update many ProjectRuntimeEffectTargets.
+     * @example
+     * // Update many ProjectRuntimeEffectTargets
+     * const projectRuntimeEffectTarget = await prisma.projectRuntimeEffectTarget.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *
+     * // Update zero or more ProjectRuntimeEffectTargets and only return the `effectId`
+     * const projectRuntimeEffectTargetWithEffectIdOnly = await prisma.projectRuntimeEffectTarget.updateManyAndReturn({
+     *   select: { effectId: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     *
+     */
+    updateManyAndReturn<T extends ProjectRuntimeEffectTargetUpdateManyAndReturnArgs>(args: SelectSubset<T, ProjectRuntimeEffectTargetUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectRuntimeEffectTargetPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one ProjectRuntimeEffectTarget.
+     * @param {ProjectRuntimeEffectTargetUpsertArgs} args - Arguments to update or create a ProjectRuntimeEffectTarget.
+     * @example
+     * // Update or create a ProjectRuntimeEffectTarget
+     * const projectRuntimeEffectTarget = await prisma.projectRuntimeEffectTarget.upsert({
+     *   create: {
+     *     // ... data to create a ProjectRuntimeEffectTarget
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the ProjectRuntimeEffectTarget we want to update
+     *   }
+     * })
+     */
+    upsert<T extends ProjectRuntimeEffectTargetUpsertArgs>(args: SelectSubset<T, ProjectRuntimeEffectTargetUpsertArgs<ExtArgs>>): Prisma__ProjectRuntimeEffectTargetClient<$Result.GetResult<Prisma.$ProjectRuntimeEffectTargetPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of ProjectRuntimeEffectTargets.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectRuntimeEffectTargetCountArgs} args - Arguments to filter ProjectRuntimeEffectTargets to count.
+     * @example
+     * // Count the number of ProjectRuntimeEffectTargets
+     * const count = await prisma.projectRuntimeEffectTarget.count({
+     *   where: {
+     *     // ... the filter for the ProjectRuntimeEffectTargets we want to count
+     *   }
+     * })
+    **/
+    count<T extends ProjectRuntimeEffectTargetCountArgs>(
+      args?: Subset<T, ProjectRuntimeEffectTargetCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], ProjectRuntimeEffectTargetCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a ProjectRuntimeEffectTarget.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectRuntimeEffectTargetAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends ProjectRuntimeEffectTargetAggregateArgs>(args: Subset<T, ProjectRuntimeEffectTargetAggregateArgs>): Prisma.PrismaPromise<GetProjectRuntimeEffectTargetAggregateType<T>>
+
+    /**
+     * Group by ProjectRuntimeEffectTarget.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectRuntimeEffectTargetGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     *
+    **/
+    groupBy<
+      T extends ProjectRuntimeEffectTargetGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: ProjectRuntimeEffectTargetGroupByArgs['orderBy'] }
+        : { orderBy?: ProjectRuntimeEffectTargetGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, ProjectRuntimeEffectTargetGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetProjectRuntimeEffectTargetGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the ProjectRuntimeEffectTarget model
+   */
+  readonly fields: ProjectRuntimeEffectTargetFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for ProjectRuntimeEffectTarget.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__ProjectRuntimeEffectTargetClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    effect<T extends ProjectRuntimeEffectDefaultArgs<ExtArgs> = {}>(args?: Subset<T, ProjectRuntimeEffectDefaultArgs<ExtArgs>>): Prisma__ProjectRuntimeEffectClient<$Result.GetResult<Prisma.$ProjectRuntimeEffectPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the ProjectRuntimeEffectTarget model
+   */
+  interface ProjectRuntimeEffectTargetFieldRefs {
+    readonly effectId: FieldRef<"ProjectRuntimeEffectTarget", 'String'>
+    readonly ordinal: FieldRef<"ProjectRuntimeEffectTarget", 'Int'>
+    readonly kind: FieldRef<"ProjectRuntimeEffectTarget", 'String'>
+    readonly namespace: FieldRef<"ProjectRuntimeEffectTarget", 'String'>
+    readonly name: FieldRef<"ProjectRuntimeEffectTarget", 'String'>
+    readonly expectedUid: FieldRef<"ProjectRuntimeEffectTarget", 'String'>
+    readonly expectedResourceVersion: FieldRef<"ProjectRuntimeEffectTarget", 'String'>
+    readonly manifestDigest: FieldRef<"ProjectRuntimeEffectTarget", 'String'>
+  }
+
+
+  // Custom InputTypes
+  /**
+   * ProjectRuntimeEffectTarget findUnique
+   */
+  export type ProjectRuntimeEffectTargetFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectRuntimeEffectTarget
+     */
+    select?: ProjectRuntimeEffectTargetSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectRuntimeEffectTarget
+     */
+    omit?: ProjectRuntimeEffectTargetOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectRuntimeEffectTargetInclude<ExtArgs> | null
+    /**
+     * Filter, which ProjectRuntimeEffectTarget to fetch.
+     */
+    where: ProjectRuntimeEffectTargetWhereUniqueInput
+  }
+
+  /**
+   * ProjectRuntimeEffectTarget findUniqueOrThrow
+   */
+  export type ProjectRuntimeEffectTargetFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectRuntimeEffectTarget
+     */
+    select?: ProjectRuntimeEffectTargetSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectRuntimeEffectTarget
+     */
+    omit?: ProjectRuntimeEffectTargetOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectRuntimeEffectTargetInclude<ExtArgs> | null
+    /**
+     * Filter, which ProjectRuntimeEffectTarget to fetch.
+     */
+    where: ProjectRuntimeEffectTargetWhereUniqueInput
+  }
+
+  /**
+   * ProjectRuntimeEffectTarget findFirst
+   */
+  export type ProjectRuntimeEffectTargetFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectRuntimeEffectTarget
+     */
+    select?: ProjectRuntimeEffectTargetSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectRuntimeEffectTarget
+     */
+    omit?: ProjectRuntimeEffectTargetOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectRuntimeEffectTargetInclude<ExtArgs> | null
+    /**
+     * Filter, which ProjectRuntimeEffectTarget to fetch.
+     */
+    where?: ProjectRuntimeEffectTargetWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     *
+     * Determine the order of ProjectRuntimeEffectTargets to fetch.
+     */
+    orderBy?: ProjectRuntimeEffectTargetOrderByWithRelationInput | ProjectRuntimeEffectTargetOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     *
+     * Sets the position for searching for ProjectRuntimeEffectTargets.
+     */
+    cursor?: ProjectRuntimeEffectTargetWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Take `±n` ProjectRuntimeEffectTargets from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Skip the first `n` ProjectRuntimeEffectTargets.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     *
+     * Filter by unique combinations of ProjectRuntimeEffectTargets.
+     */
+    distinct?: ProjectRuntimeEffectTargetScalarFieldEnum | ProjectRuntimeEffectTargetScalarFieldEnum[]
+  }
+
+  /**
+   * ProjectRuntimeEffectTarget findFirstOrThrow
+   */
+  export type ProjectRuntimeEffectTargetFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectRuntimeEffectTarget
+     */
+    select?: ProjectRuntimeEffectTargetSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectRuntimeEffectTarget
+     */
+    omit?: ProjectRuntimeEffectTargetOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectRuntimeEffectTargetInclude<ExtArgs> | null
+    /**
+     * Filter, which ProjectRuntimeEffectTarget to fetch.
+     */
+    where?: ProjectRuntimeEffectTargetWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     *
+     * Determine the order of ProjectRuntimeEffectTargets to fetch.
+     */
+    orderBy?: ProjectRuntimeEffectTargetOrderByWithRelationInput | ProjectRuntimeEffectTargetOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     *
+     * Sets the position for searching for ProjectRuntimeEffectTargets.
+     */
+    cursor?: ProjectRuntimeEffectTargetWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Take `±n` ProjectRuntimeEffectTargets from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Skip the first `n` ProjectRuntimeEffectTargets.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     *
+     * Filter by unique combinations of ProjectRuntimeEffectTargets.
+     */
+    distinct?: ProjectRuntimeEffectTargetScalarFieldEnum | ProjectRuntimeEffectTargetScalarFieldEnum[]
+  }
+
+  /**
+   * ProjectRuntimeEffectTarget findMany
+   */
+  export type ProjectRuntimeEffectTargetFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectRuntimeEffectTarget
+     */
+    select?: ProjectRuntimeEffectTargetSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectRuntimeEffectTarget
+     */
+    omit?: ProjectRuntimeEffectTargetOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectRuntimeEffectTargetInclude<ExtArgs> | null
+    /**
+     * Filter, which ProjectRuntimeEffectTargets to fetch.
+     */
+    where?: ProjectRuntimeEffectTargetWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     *
+     * Determine the order of ProjectRuntimeEffectTargets to fetch.
+     */
+    orderBy?: ProjectRuntimeEffectTargetOrderByWithRelationInput | ProjectRuntimeEffectTargetOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     *
+     * Sets the position for listing ProjectRuntimeEffectTargets.
+     */
+    cursor?: ProjectRuntimeEffectTargetWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Take `±n` ProjectRuntimeEffectTargets from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Skip the first `n` ProjectRuntimeEffectTargets.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     *
+     * Filter by unique combinations of ProjectRuntimeEffectTargets.
+     */
+    distinct?: ProjectRuntimeEffectTargetScalarFieldEnum | ProjectRuntimeEffectTargetScalarFieldEnum[]
+  }
+
+  /**
+   * ProjectRuntimeEffectTarget create
+   */
+  export type ProjectRuntimeEffectTargetCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectRuntimeEffectTarget
+     */
+    select?: ProjectRuntimeEffectTargetSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectRuntimeEffectTarget
+     */
+    omit?: ProjectRuntimeEffectTargetOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectRuntimeEffectTargetInclude<ExtArgs> | null
+    /**
+     * The data needed to create a ProjectRuntimeEffectTarget.
+     */
+    data: XOR<ProjectRuntimeEffectTargetCreateInput, ProjectRuntimeEffectTargetUncheckedCreateInput>
+  }
+
+  /**
+   * ProjectRuntimeEffectTarget createMany
+   */
+  export type ProjectRuntimeEffectTargetCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many ProjectRuntimeEffectTargets.
+     */
+    data: ProjectRuntimeEffectTargetCreateManyInput | ProjectRuntimeEffectTargetCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * ProjectRuntimeEffectTarget createManyAndReturn
+   */
+  export type ProjectRuntimeEffectTargetCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectRuntimeEffectTarget
+     */
+    select?: ProjectRuntimeEffectTargetSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectRuntimeEffectTarget
+     */
+    omit?: ProjectRuntimeEffectTargetOmit<ExtArgs> | null
+    /**
+     * The data used to create many ProjectRuntimeEffectTargets.
+     */
+    data: ProjectRuntimeEffectTargetCreateManyInput | ProjectRuntimeEffectTargetCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectRuntimeEffectTargetIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * ProjectRuntimeEffectTarget update
+   */
+  export type ProjectRuntimeEffectTargetUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectRuntimeEffectTarget
+     */
+    select?: ProjectRuntimeEffectTargetSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectRuntimeEffectTarget
+     */
+    omit?: ProjectRuntimeEffectTargetOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectRuntimeEffectTargetInclude<ExtArgs> | null
+    /**
+     * The data needed to update a ProjectRuntimeEffectTarget.
+     */
+    data: XOR<ProjectRuntimeEffectTargetUpdateInput, ProjectRuntimeEffectTargetUncheckedUpdateInput>
+    /**
+     * Choose, which ProjectRuntimeEffectTarget to update.
+     */
+    where: ProjectRuntimeEffectTargetWhereUniqueInput
+  }
+
+  /**
+   * ProjectRuntimeEffectTarget updateMany
+   */
+  export type ProjectRuntimeEffectTargetUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update ProjectRuntimeEffectTargets.
+     */
+    data: XOR<ProjectRuntimeEffectTargetUpdateManyMutationInput, ProjectRuntimeEffectTargetUncheckedUpdateManyInput>
+    /**
+     * Filter which ProjectRuntimeEffectTargets to update
+     */
+    where?: ProjectRuntimeEffectTargetWhereInput
+    /**
+     * Limit how many ProjectRuntimeEffectTargets to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * ProjectRuntimeEffectTarget updateManyAndReturn
+   */
+  export type ProjectRuntimeEffectTargetUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectRuntimeEffectTarget
+     */
+    select?: ProjectRuntimeEffectTargetSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectRuntimeEffectTarget
+     */
+    omit?: ProjectRuntimeEffectTargetOmit<ExtArgs> | null
+    /**
+     * The data used to update ProjectRuntimeEffectTargets.
+     */
+    data: XOR<ProjectRuntimeEffectTargetUpdateManyMutationInput, ProjectRuntimeEffectTargetUncheckedUpdateManyInput>
+    /**
+     * Filter which ProjectRuntimeEffectTargets to update
+     */
+    where?: ProjectRuntimeEffectTargetWhereInput
+    /**
+     * Limit how many ProjectRuntimeEffectTargets to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectRuntimeEffectTargetIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * ProjectRuntimeEffectTarget upsert
+   */
+  export type ProjectRuntimeEffectTargetUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectRuntimeEffectTarget
+     */
+    select?: ProjectRuntimeEffectTargetSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectRuntimeEffectTarget
+     */
+    omit?: ProjectRuntimeEffectTargetOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectRuntimeEffectTargetInclude<ExtArgs> | null
+    /**
+     * The filter to search for the ProjectRuntimeEffectTarget to update in case it exists.
+     */
+    where: ProjectRuntimeEffectTargetWhereUniqueInput
+    /**
+     * In case the ProjectRuntimeEffectTarget found by the `where` argument doesn't exist, create a new ProjectRuntimeEffectTarget with this data.
+     */
+    create: XOR<ProjectRuntimeEffectTargetCreateInput, ProjectRuntimeEffectTargetUncheckedCreateInput>
+    /**
+     * In case the ProjectRuntimeEffectTarget was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<ProjectRuntimeEffectTargetUpdateInput, ProjectRuntimeEffectTargetUncheckedUpdateInput>
+  }
+
+  /**
+   * ProjectRuntimeEffectTarget delete
+   */
+  export type ProjectRuntimeEffectTargetDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectRuntimeEffectTarget
+     */
+    select?: ProjectRuntimeEffectTargetSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectRuntimeEffectTarget
+     */
+    omit?: ProjectRuntimeEffectTargetOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectRuntimeEffectTargetInclude<ExtArgs> | null
+    /**
+     * Filter which ProjectRuntimeEffectTarget to delete.
+     */
+    where: ProjectRuntimeEffectTargetWhereUniqueInput
+  }
+
+  /**
+   * ProjectRuntimeEffectTarget deleteMany
+   */
+  export type ProjectRuntimeEffectTargetDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ProjectRuntimeEffectTargets to delete
+     */
+    where?: ProjectRuntimeEffectTargetWhereInput
+    /**
+     * Limit how many ProjectRuntimeEffectTargets to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * ProjectRuntimeEffectTarget without action
+   */
+  export type ProjectRuntimeEffectTargetDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectRuntimeEffectTarget
+     */
+    select?: ProjectRuntimeEffectTargetSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectRuntimeEffectTarget
+     */
+    omit?: ProjectRuntimeEffectTargetOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectRuntimeEffectTargetInclude<ExtArgs> | null
+  }
+
+
+  /**
    * Model ConnectorCatalog
    */
 
@@ -207715,6 +210483,49 @@ export namespace Prisma {
   export type WorkspaceRuntimeScalarFieldEnum = (typeof WorkspaceRuntimeScalarFieldEnum)[keyof typeof WorkspaceRuntimeScalarFieldEnum]
 
 
+  export const ProjectRuntimeEffectScalarFieldEnum: {
+    id: 'id',
+    projectId: 'projectId',
+    organizationId: 'organizationId',
+    ownershipEpoch: 'ownershipEpoch',
+    action: 'action',
+    resourceId: 'resourceId',
+    intentHash: 'intentHash',
+    targetDigest: 'targetDigest',
+    fencingToken: 'fencingToken',
+    ownerToken: 'ownerToken',
+    state: 'state',
+    leaseExpiresAt: 'leaseExpiresAt',
+    preparedAt: 'preparedAt',
+    dispatchedAt: 'dispatchedAt',
+    settledAt: 'settledAt',
+    drainingAt: 'drainingAt',
+    drainedAt: 'drainedAt',
+    abortedAt: 'abortedAt',
+    lastErrorCode: 'lastErrorCode',
+    providerReceipt: 'providerReceipt',
+    operatorQuiescenceHash: 'operatorQuiescenceHash',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type ProjectRuntimeEffectScalarFieldEnum = (typeof ProjectRuntimeEffectScalarFieldEnum)[keyof typeof ProjectRuntimeEffectScalarFieldEnum]
+
+
+  export const ProjectRuntimeEffectTargetScalarFieldEnum: {
+    effectId: 'effectId',
+    ordinal: 'ordinal',
+    kind: 'kind',
+    namespace: 'namespace',
+    name: 'name',
+    expectedUid: 'expectedUid',
+    expectedResourceVersion: 'expectedResourceVersion',
+    manifestDigest: 'manifestDigest'
+  };
+
+  export type ProjectRuntimeEffectTargetScalarFieldEnum = (typeof ProjectRuntimeEffectTargetScalarFieldEnum)[keyof typeof ProjectRuntimeEffectTargetScalarFieldEnum]
+
+
   export const ConnectorCatalogScalarFieldEnum: {
     id: 'id',
     provider: 'provider',
@@ -209177,6 +211988,20 @@ export namespace Prisma {
 
 
   /**
+   * Reference to a field of type 'ProjectRuntimeEffectState'
+   */
+  export type EnumProjectRuntimeEffectStateFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ProjectRuntimeEffectState'>
+
+
+
+  /**
+   * Reference to a field of type 'ProjectRuntimeEffectState[]'
+   */
+  export type ListEnumProjectRuntimeEffectStateFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ProjectRuntimeEffectState[]'>
+
+
+
+  /**
    * Reference to a field of type 'CreditEntryKind'
    */
   export type EnumCreditEntryKindFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CreditEntryKind'>
@@ -210454,6 +213279,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestListRelationFilter
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeListRelationFilter
     objectStorageVersionGcSchedule?: XOR<ObjectStorageVersionGcScheduleNullableScalarRelationFilter, ObjectStorageVersionGcScheduleWhereInput> | null
+    runtimeEffects?: ProjectRuntimeEffectListRelationFilter
   }
 
   export type ProjectOrderByWithRelationInput = {
@@ -210515,6 +213341,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestOrderByRelationAggregateInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeOrderByRelationAggregateInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleOrderByWithRelationInput
+    runtimeEffects?: ProjectRuntimeEffectOrderByRelationAggregateInput
   }
 
   export type ProjectWhereUniqueInput = Prisma.AtLeast<{
@@ -210580,6 +213407,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestListRelationFilter
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeListRelationFilter
     objectStorageVersionGcSchedule?: XOR<ObjectStorageVersionGcScheduleNullableScalarRelationFilter, ObjectStorageVersionGcScheduleWhereInput> | null
+    runtimeEffects?: ProjectRuntimeEffectListRelationFilter
   }, "id" | "organizationId_slug">
 
   export type ProjectOrderByWithAggregationInput = {
@@ -218274,6 +221102,230 @@ export namespace Prisma {
     updatedAt?: DateTimeWithAggregatesFilter<"WorkspaceRuntime"> | Date | string
   }
 
+  export type ProjectRuntimeEffectWhereInput = {
+    AND?: ProjectRuntimeEffectWhereInput | ProjectRuntimeEffectWhereInput[]
+    OR?: ProjectRuntimeEffectWhereInput[]
+    NOT?: ProjectRuntimeEffectWhereInput | ProjectRuntimeEffectWhereInput[]
+    id?: StringFilter<"ProjectRuntimeEffect"> | string
+    projectId?: StringFilter<"ProjectRuntimeEffect"> | string
+    organizationId?: StringFilter<"ProjectRuntimeEffect"> | string
+    ownershipEpoch?: IntFilter<"ProjectRuntimeEffect"> | number
+    action?: StringFilter<"ProjectRuntimeEffect"> | string
+    resourceId?: StringFilter<"ProjectRuntimeEffect"> | string
+    intentHash?: StringFilter<"ProjectRuntimeEffect"> | string
+    targetDigest?: StringFilter<"ProjectRuntimeEffect"> | string
+    fencingToken?: BigIntFilter<"ProjectRuntimeEffect"> | bigint | number
+    ownerToken?: StringNullableFilter<"ProjectRuntimeEffect"> | string | null
+    state?: EnumProjectRuntimeEffectStateFilter<"ProjectRuntimeEffect"> | $Enums.ProjectRuntimeEffectState
+    leaseExpiresAt?: DateTimeNullableFilter<"ProjectRuntimeEffect"> | Date | string | null
+    preparedAt?: DateTimeFilter<"ProjectRuntimeEffect"> | Date | string
+    dispatchedAt?: DateTimeNullableFilter<"ProjectRuntimeEffect"> | Date | string | null
+    settledAt?: DateTimeNullableFilter<"ProjectRuntimeEffect"> | Date | string | null
+    drainingAt?: DateTimeNullableFilter<"ProjectRuntimeEffect"> | Date | string | null
+    drainedAt?: DateTimeNullableFilter<"ProjectRuntimeEffect"> | Date | string | null
+    abortedAt?: DateTimeNullableFilter<"ProjectRuntimeEffect"> | Date | string | null
+    lastErrorCode?: StringNullableFilter<"ProjectRuntimeEffect"> | string | null
+    providerReceipt?: JsonNullableFilter<"ProjectRuntimeEffect">
+    operatorQuiescenceHash?: StringNullableFilter<"ProjectRuntimeEffect"> | string | null
+    createdAt?: DateTimeFilter<"ProjectRuntimeEffect"> | Date | string
+    updatedAt?: DateTimeFilter<"ProjectRuntimeEffect"> | Date | string
+    project?: XOR<ProjectScalarRelationFilter, ProjectWhereInput>
+    targets?: ProjectRuntimeEffectTargetListRelationFilter
+  }
+
+  export type ProjectRuntimeEffectOrderByWithRelationInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    organizationId?: SortOrder
+    ownershipEpoch?: SortOrder
+    action?: SortOrder
+    resourceId?: SortOrder
+    intentHash?: SortOrder
+    targetDigest?: SortOrder
+    fencingToken?: SortOrder
+    ownerToken?: SortOrderInput | SortOrder
+    state?: SortOrder
+    leaseExpiresAt?: SortOrderInput | SortOrder
+    preparedAt?: SortOrder
+    dispatchedAt?: SortOrderInput | SortOrder
+    settledAt?: SortOrderInput | SortOrder
+    drainingAt?: SortOrderInput | SortOrder
+    drainedAt?: SortOrderInput | SortOrder
+    abortedAt?: SortOrderInput | SortOrder
+    lastErrorCode?: SortOrderInput | SortOrder
+    providerReceipt?: SortOrderInput | SortOrder
+    operatorQuiescenceHash?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    project?: ProjectOrderByWithRelationInput
+    targets?: ProjectRuntimeEffectTargetOrderByRelationAggregateInput
+  }
+
+  export type ProjectRuntimeEffectWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: ProjectRuntimeEffectWhereInput | ProjectRuntimeEffectWhereInput[]
+    OR?: ProjectRuntimeEffectWhereInput[]
+    NOT?: ProjectRuntimeEffectWhereInput | ProjectRuntimeEffectWhereInput[]
+    projectId?: StringFilter<"ProjectRuntimeEffect"> | string
+    organizationId?: StringFilter<"ProjectRuntimeEffect"> | string
+    ownershipEpoch?: IntFilter<"ProjectRuntimeEffect"> | number
+    action?: StringFilter<"ProjectRuntimeEffect"> | string
+    resourceId?: StringFilter<"ProjectRuntimeEffect"> | string
+    intentHash?: StringFilter<"ProjectRuntimeEffect"> | string
+    targetDigest?: StringFilter<"ProjectRuntimeEffect"> | string
+    fencingToken?: BigIntFilter<"ProjectRuntimeEffect"> | bigint | number
+    ownerToken?: StringNullableFilter<"ProjectRuntimeEffect"> | string | null
+    state?: EnumProjectRuntimeEffectStateFilter<"ProjectRuntimeEffect"> | $Enums.ProjectRuntimeEffectState
+    leaseExpiresAt?: DateTimeNullableFilter<"ProjectRuntimeEffect"> | Date | string | null
+    preparedAt?: DateTimeFilter<"ProjectRuntimeEffect"> | Date | string
+    dispatchedAt?: DateTimeNullableFilter<"ProjectRuntimeEffect"> | Date | string | null
+    settledAt?: DateTimeNullableFilter<"ProjectRuntimeEffect"> | Date | string | null
+    drainingAt?: DateTimeNullableFilter<"ProjectRuntimeEffect"> | Date | string | null
+    drainedAt?: DateTimeNullableFilter<"ProjectRuntimeEffect"> | Date | string | null
+    abortedAt?: DateTimeNullableFilter<"ProjectRuntimeEffect"> | Date | string | null
+    lastErrorCode?: StringNullableFilter<"ProjectRuntimeEffect"> | string | null
+    providerReceipt?: JsonNullableFilter<"ProjectRuntimeEffect">
+    operatorQuiescenceHash?: StringNullableFilter<"ProjectRuntimeEffect"> | string | null
+    createdAt?: DateTimeFilter<"ProjectRuntimeEffect"> | Date | string
+    updatedAt?: DateTimeFilter<"ProjectRuntimeEffect"> | Date | string
+    project?: XOR<ProjectScalarRelationFilter, ProjectWhereInput>
+    targets?: ProjectRuntimeEffectTargetListRelationFilter
+  }, "id">
+
+  export type ProjectRuntimeEffectOrderByWithAggregationInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    organizationId?: SortOrder
+    ownershipEpoch?: SortOrder
+    action?: SortOrder
+    resourceId?: SortOrder
+    intentHash?: SortOrder
+    targetDigest?: SortOrder
+    fencingToken?: SortOrder
+    ownerToken?: SortOrderInput | SortOrder
+    state?: SortOrder
+    leaseExpiresAt?: SortOrderInput | SortOrder
+    preparedAt?: SortOrder
+    dispatchedAt?: SortOrderInput | SortOrder
+    settledAt?: SortOrderInput | SortOrder
+    drainingAt?: SortOrderInput | SortOrder
+    drainedAt?: SortOrderInput | SortOrder
+    abortedAt?: SortOrderInput | SortOrder
+    lastErrorCode?: SortOrderInput | SortOrder
+    providerReceipt?: SortOrderInput | SortOrder
+    operatorQuiescenceHash?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: ProjectRuntimeEffectCountOrderByAggregateInput
+    _avg?: ProjectRuntimeEffectAvgOrderByAggregateInput
+    _max?: ProjectRuntimeEffectMaxOrderByAggregateInput
+    _min?: ProjectRuntimeEffectMinOrderByAggregateInput
+    _sum?: ProjectRuntimeEffectSumOrderByAggregateInput
+  }
+
+  export type ProjectRuntimeEffectScalarWhereWithAggregatesInput = {
+    AND?: ProjectRuntimeEffectScalarWhereWithAggregatesInput | ProjectRuntimeEffectScalarWhereWithAggregatesInput[]
+    OR?: ProjectRuntimeEffectScalarWhereWithAggregatesInput[]
+    NOT?: ProjectRuntimeEffectScalarWhereWithAggregatesInput | ProjectRuntimeEffectScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"ProjectRuntimeEffect"> | string
+    projectId?: StringWithAggregatesFilter<"ProjectRuntimeEffect"> | string
+    organizationId?: StringWithAggregatesFilter<"ProjectRuntimeEffect"> | string
+    ownershipEpoch?: IntWithAggregatesFilter<"ProjectRuntimeEffect"> | number
+    action?: StringWithAggregatesFilter<"ProjectRuntimeEffect"> | string
+    resourceId?: StringWithAggregatesFilter<"ProjectRuntimeEffect"> | string
+    intentHash?: StringWithAggregatesFilter<"ProjectRuntimeEffect"> | string
+    targetDigest?: StringWithAggregatesFilter<"ProjectRuntimeEffect"> | string
+    fencingToken?: BigIntWithAggregatesFilter<"ProjectRuntimeEffect"> | bigint | number
+    ownerToken?: StringNullableWithAggregatesFilter<"ProjectRuntimeEffect"> | string | null
+    state?: EnumProjectRuntimeEffectStateWithAggregatesFilter<"ProjectRuntimeEffect"> | $Enums.ProjectRuntimeEffectState
+    leaseExpiresAt?: DateTimeNullableWithAggregatesFilter<"ProjectRuntimeEffect"> | Date | string | null
+    preparedAt?: DateTimeWithAggregatesFilter<"ProjectRuntimeEffect"> | Date | string
+    dispatchedAt?: DateTimeNullableWithAggregatesFilter<"ProjectRuntimeEffect"> | Date | string | null
+    settledAt?: DateTimeNullableWithAggregatesFilter<"ProjectRuntimeEffect"> | Date | string | null
+    drainingAt?: DateTimeNullableWithAggregatesFilter<"ProjectRuntimeEffect"> | Date | string | null
+    drainedAt?: DateTimeNullableWithAggregatesFilter<"ProjectRuntimeEffect"> | Date | string | null
+    abortedAt?: DateTimeNullableWithAggregatesFilter<"ProjectRuntimeEffect"> | Date | string | null
+    lastErrorCode?: StringNullableWithAggregatesFilter<"ProjectRuntimeEffect"> | string | null
+    providerReceipt?: JsonNullableWithAggregatesFilter<"ProjectRuntimeEffect">
+    operatorQuiescenceHash?: StringNullableWithAggregatesFilter<"ProjectRuntimeEffect"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"ProjectRuntimeEffect"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"ProjectRuntimeEffect"> | Date | string
+  }
+
+  export type ProjectRuntimeEffectTargetWhereInput = {
+    AND?: ProjectRuntimeEffectTargetWhereInput | ProjectRuntimeEffectTargetWhereInput[]
+    OR?: ProjectRuntimeEffectTargetWhereInput[]
+    NOT?: ProjectRuntimeEffectTargetWhereInput | ProjectRuntimeEffectTargetWhereInput[]
+    effectId?: StringFilter<"ProjectRuntimeEffectTarget"> | string
+    ordinal?: IntFilter<"ProjectRuntimeEffectTarget"> | number
+    kind?: StringFilter<"ProjectRuntimeEffectTarget"> | string
+    namespace?: StringFilter<"ProjectRuntimeEffectTarget"> | string
+    name?: StringFilter<"ProjectRuntimeEffectTarget"> | string
+    expectedUid?: StringNullableFilter<"ProjectRuntimeEffectTarget"> | string | null
+    expectedResourceVersion?: StringNullableFilter<"ProjectRuntimeEffectTarget"> | string | null
+    manifestDigest?: StringNullableFilter<"ProjectRuntimeEffectTarget"> | string | null
+    effect?: XOR<ProjectRuntimeEffectScalarRelationFilter, ProjectRuntimeEffectWhereInput>
+  }
+
+  export type ProjectRuntimeEffectTargetOrderByWithRelationInput = {
+    effectId?: SortOrder
+    ordinal?: SortOrder
+    kind?: SortOrder
+    namespace?: SortOrder
+    name?: SortOrder
+    expectedUid?: SortOrderInput | SortOrder
+    expectedResourceVersion?: SortOrderInput | SortOrder
+    manifestDigest?: SortOrderInput | SortOrder
+    effect?: ProjectRuntimeEffectOrderByWithRelationInput
+  }
+
+  export type ProjectRuntimeEffectTargetWhereUniqueInput = Prisma.AtLeast<{
+    effectId_kind_namespace_name?: ProjectRuntimeEffectTargetEffectIdKindNamespaceNameCompoundUniqueInput
+    effectId_ordinal?: ProjectRuntimeEffectTargetEffectIdOrdinalCompoundUniqueInput
+    AND?: ProjectRuntimeEffectTargetWhereInput | ProjectRuntimeEffectTargetWhereInput[]
+    OR?: ProjectRuntimeEffectTargetWhereInput[]
+    NOT?: ProjectRuntimeEffectTargetWhereInput | ProjectRuntimeEffectTargetWhereInput[]
+    effectId?: StringFilter<"ProjectRuntimeEffectTarget"> | string
+    ordinal?: IntFilter<"ProjectRuntimeEffectTarget"> | number
+    kind?: StringFilter<"ProjectRuntimeEffectTarget"> | string
+    namespace?: StringFilter<"ProjectRuntimeEffectTarget"> | string
+    name?: StringFilter<"ProjectRuntimeEffectTarget"> | string
+    expectedUid?: StringNullableFilter<"ProjectRuntimeEffectTarget"> | string | null
+    expectedResourceVersion?: StringNullableFilter<"ProjectRuntimeEffectTarget"> | string | null
+    manifestDigest?: StringNullableFilter<"ProjectRuntimeEffectTarget"> | string | null
+    effect?: XOR<ProjectRuntimeEffectScalarRelationFilter, ProjectRuntimeEffectWhereInput>
+  }, "effectId_ordinal" | "effectId_kind_namespace_name">
+
+  export type ProjectRuntimeEffectTargetOrderByWithAggregationInput = {
+    effectId?: SortOrder
+    ordinal?: SortOrder
+    kind?: SortOrder
+    namespace?: SortOrder
+    name?: SortOrder
+    expectedUid?: SortOrderInput | SortOrder
+    expectedResourceVersion?: SortOrderInput | SortOrder
+    manifestDigest?: SortOrderInput | SortOrder
+    _count?: ProjectRuntimeEffectTargetCountOrderByAggregateInput
+    _avg?: ProjectRuntimeEffectTargetAvgOrderByAggregateInput
+    _max?: ProjectRuntimeEffectTargetMaxOrderByAggregateInput
+    _min?: ProjectRuntimeEffectTargetMinOrderByAggregateInput
+    _sum?: ProjectRuntimeEffectTargetSumOrderByAggregateInput
+  }
+
+  export type ProjectRuntimeEffectTargetScalarWhereWithAggregatesInput = {
+    AND?: ProjectRuntimeEffectTargetScalarWhereWithAggregatesInput | ProjectRuntimeEffectTargetScalarWhereWithAggregatesInput[]
+    OR?: ProjectRuntimeEffectTargetScalarWhereWithAggregatesInput[]
+    NOT?: ProjectRuntimeEffectTargetScalarWhereWithAggregatesInput | ProjectRuntimeEffectTargetScalarWhereWithAggregatesInput[]
+    effectId?: StringWithAggregatesFilter<"ProjectRuntimeEffectTarget"> | string
+    ordinal?: IntWithAggregatesFilter<"ProjectRuntimeEffectTarget"> | number
+    kind?: StringWithAggregatesFilter<"ProjectRuntimeEffectTarget"> | string
+    namespace?: StringWithAggregatesFilter<"ProjectRuntimeEffectTarget"> | string
+    name?: StringWithAggregatesFilter<"ProjectRuntimeEffectTarget"> | string
+    expectedUid?: StringNullableWithAggregatesFilter<"ProjectRuntimeEffectTarget"> | string | null
+    expectedResourceVersion?: StringNullableWithAggregatesFilter<"ProjectRuntimeEffectTarget"> | string | null
+    manifestDigest?: StringNullableWithAggregatesFilter<"ProjectRuntimeEffectTarget"> | string | null
+  }
+
   export type ConnectorCatalogWhereInput = {
     AND?: ConnectorCatalogWhereInput | ConnectorCatalogWhereInput[]
     OR?: ConnectorCatalogWhereInput[]
@@ -224738,6 +227790,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
+    runtimeEffects?: ProjectRuntimeEffectCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateInput = {
@@ -224798,6 +227851,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
+    runtimeEffects?: ProjectRuntimeEffectUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUpdateInput = {
@@ -224858,6 +227912,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
+    runtimeEffects?: ProjectRuntimeEffectUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateInput = {
@@ -224918,6 +227973,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
+    runtimeEffects?: ProjectRuntimeEffectUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateManyInput = {
@@ -233285,6 +236341,267 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type ProjectRuntimeEffectCreateInput = {
+    id?: string
+    organizationId: string
+    ownershipEpoch: number
+    action: string
+    resourceId: string
+    intentHash: string
+    targetDigest: string
+    fencingToken?: bigint | number
+    ownerToken?: string | null
+    state?: $Enums.ProjectRuntimeEffectState
+    leaseExpiresAt?: Date | string | null
+    preparedAt?: Date | string
+    dispatchedAt?: Date | string | null
+    settledAt?: Date | string | null
+    drainingAt?: Date | string | null
+    drainedAt?: Date | string | null
+    abortedAt?: Date | string | null
+    lastErrorCode?: string | null
+    providerReceipt?: NullableJsonNullValueInput | InputJsonValue
+    operatorQuiescenceHash?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    project: ProjectCreateNestedOneWithoutRuntimeEffectsInput
+    targets?: ProjectRuntimeEffectTargetCreateNestedManyWithoutEffectInput
+  }
+
+  export type ProjectRuntimeEffectUncheckedCreateInput = {
+    id?: string
+    projectId: string
+    organizationId: string
+    ownershipEpoch: number
+    action: string
+    resourceId: string
+    intentHash: string
+    targetDigest: string
+    fencingToken?: bigint | number
+    ownerToken?: string | null
+    state?: $Enums.ProjectRuntimeEffectState
+    leaseExpiresAt?: Date | string | null
+    preparedAt?: Date | string
+    dispatchedAt?: Date | string | null
+    settledAt?: Date | string | null
+    drainingAt?: Date | string | null
+    drainedAt?: Date | string | null
+    abortedAt?: Date | string | null
+    lastErrorCode?: string | null
+    providerReceipt?: NullableJsonNullValueInput | InputJsonValue
+    operatorQuiescenceHash?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    targets?: ProjectRuntimeEffectTargetUncheckedCreateNestedManyWithoutEffectInput
+  }
+
+  export type ProjectRuntimeEffectUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
+    action?: StringFieldUpdateOperationsInput | string
+    resourceId?: StringFieldUpdateOperationsInput | string
+    intentHash?: StringFieldUpdateOperationsInput | string
+    targetDigest?: StringFieldUpdateOperationsInput | string
+    fencingToken?: BigIntFieldUpdateOperationsInput | bigint | number
+    ownerToken?: NullableStringFieldUpdateOperationsInput | string | null
+    state?: EnumProjectRuntimeEffectStateFieldUpdateOperationsInput | $Enums.ProjectRuntimeEffectState
+    leaseExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    preparedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    dispatchedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    settledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    drainingAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    drainedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    abortedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastErrorCode?: NullableStringFieldUpdateOperationsInput | string | null
+    providerReceipt?: NullableJsonNullValueInput | InputJsonValue
+    operatorQuiescenceHash?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    project?: ProjectUpdateOneRequiredWithoutRuntimeEffectsNestedInput
+    targets?: ProjectRuntimeEffectTargetUpdateManyWithoutEffectNestedInput
+  }
+
+  export type ProjectRuntimeEffectUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
+    action?: StringFieldUpdateOperationsInput | string
+    resourceId?: StringFieldUpdateOperationsInput | string
+    intentHash?: StringFieldUpdateOperationsInput | string
+    targetDigest?: StringFieldUpdateOperationsInput | string
+    fencingToken?: BigIntFieldUpdateOperationsInput | bigint | number
+    ownerToken?: NullableStringFieldUpdateOperationsInput | string | null
+    state?: EnumProjectRuntimeEffectStateFieldUpdateOperationsInput | $Enums.ProjectRuntimeEffectState
+    leaseExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    preparedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    dispatchedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    settledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    drainingAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    drainedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    abortedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastErrorCode?: NullableStringFieldUpdateOperationsInput | string | null
+    providerReceipt?: NullableJsonNullValueInput | InputJsonValue
+    operatorQuiescenceHash?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    targets?: ProjectRuntimeEffectTargetUncheckedUpdateManyWithoutEffectNestedInput
+  }
+
+  export type ProjectRuntimeEffectCreateManyInput = {
+    id?: string
+    projectId: string
+    organizationId: string
+    ownershipEpoch: number
+    action: string
+    resourceId: string
+    intentHash: string
+    targetDigest: string
+    fencingToken?: bigint | number
+    ownerToken?: string | null
+    state?: $Enums.ProjectRuntimeEffectState
+    leaseExpiresAt?: Date | string | null
+    preparedAt?: Date | string
+    dispatchedAt?: Date | string | null
+    settledAt?: Date | string | null
+    drainingAt?: Date | string | null
+    drainedAt?: Date | string | null
+    abortedAt?: Date | string | null
+    lastErrorCode?: string | null
+    providerReceipt?: NullableJsonNullValueInput | InputJsonValue
+    operatorQuiescenceHash?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ProjectRuntimeEffectUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
+    action?: StringFieldUpdateOperationsInput | string
+    resourceId?: StringFieldUpdateOperationsInput | string
+    intentHash?: StringFieldUpdateOperationsInput | string
+    targetDigest?: StringFieldUpdateOperationsInput | string
+    fencingToken?: BigIntFieldUpdateOperationsInput | bigint | number
+    ownerToken?: NullableStringFieldUpdateOperationsInput | string | null
+    state?: EnumProjectRuntimeEffectStateFieldUpdateOperationsInput | $Enums.ProjectRuntimeEffectState
+    leaseExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    preparedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    dispatchedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    settledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    drainingAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    drainedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    abortedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastErrorCode?: NullableStringFieldUpdateOperationsInput | string | null
+    providerReceipt?: NullableJsonNullValueInput | InputJsonValue
+    operatorQuiescenceHash?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProjectRuntimeEffectUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
+    action?: StringFieldUpdateOperationsInput | string
+    resourceId?: StringFieldUpdateOperationsInput | string
+    intentHash?: StringFieldUpdateOperationsInput | string
+    targetDigest?: StringFieldUpdateOperationsInput | string
+    fencingToken?: BigIntFieldUpdateOperationsInput | bigint | number
+    ownerToken?: NullableStringFieldUpdateOperationsInput | string | null
+    state?: EnumProjectRuntimeEffectStateFieldUpdateOperationsInput | $Enums.ProjectRuntimeEffectState
+    leaseExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    preparedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    dispatchedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    settledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    drainingAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    drainedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    abortedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastErrorCode?: NullableStringFieldUpdateOperationsInput | string | null
+    providerReceipt?: NullableJsonNullValueInput | InputJsonValue
+    operatorQuiescenceHash?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProjectRuntimeEffectTargetCreateInput = {
+    ordinal: number
+    kind: string
+    namespace: string
+    name: string
+    expectedUid?: string | null
+    expectedResourceVersion?: string | null
+    manifestDigest?: string | null
+    effect: ProjectRuntimeEffectCreateNestedOneWithoutTargetsInput
+  }
+
+  export type ProjectRuntimeEffectTargetUncheckedCreateInput = {
+    effectId: string
+    ordinal: number
+    kind: string
+    namespace: string
+    name: string
+    expectedUid?: string | null
+    expectedResourceVersion?: string | null
+    manifestDigest?: string | null
+  }
+
+  export type ProjectRuntimeEffectTargetUpdateInput = {
+    ordinal?: IntFieldUpdateOperationsInput | number
+    kind?: StringFieldUpdateOperationsInput | string
+    namespace?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    expectedUid?: NullableStringFieldUpdateOperationsInput | string | null
+    expectedResourceVersion?: NullableStringFieldUpdateOperationsInput | string | null
+    manifestDigest?: NullableStringFieldUpdateOperationsInput | string | null
+    effect?: ProjectRuntimeEffectUpdateOneRequiredWithoutTargetsNestedInput
+  }
+
+  export type ProjectRuntimeEffectTargetUncheckedUpdateInput = {
+    effectId?: StringFieldUpdateOperationsInput | string
+    ordinal?: IntFieldUpdateOperationsInput | number
+    kind?: StringFieldUpdateOperationsInput | string
+    namespace?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    expectedUid?: NullableStringFieldUpdateOperationsInput | string | null
+    expectedResourceVersion?: NullableStringFieldUpdateOperationsInput | string | null
+    manifestDigest?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type ProjectRuntimeEffectTargetCreateManyInput = {
+    effectId: string
+    ordinal: number
+    kind: string
+    namespace: string
+    name: string
+    expectedUid?: string | null
+    expectedResourceVersion?: string | null
+    manifestDigest?: string | null
+  }
+
+  export type ProjectRuntimeEffectTargetUpdateManyMutationInput = {
+    ordinal?: IntFieldUpdateOperationsInput | number
+    kind?: StringFieldUpdateOperationsInput | string
+    namespace?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    expectedUid?: NullableStringFieldUpdateOperationsInput | string | null
+    expectedResourceVersion?: NullableStringFieldUpdateOperationsInput | string | null
+    manifestDigest?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type ProjectRuntimeEffectTargetUncheckedUpdateManyInput = {
+    effectId?: StringFieldUpdateOperationsInput | string
+    ordinal?: IntFieldUpdateOperationsInput | number
+    kind?: StringFieldUpdateOperationsInput | string
+    namespace?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    expectedUid?: NullableStringFieldUpdateOperationsInput | string | null
+    expectedResourceVersion?: NullableStringFieldUpdateOperationsInput | string | null
+    manifestDigest?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
   export type ConnectorCatalogCreateInput = {
     id?: string
     provider: string
@@ -240744,6 +244061,12 @@ export namespace Prisma {
     isNot?: ObjectStorageVersionGcScheduleWhereInput | null
   }
 
+  export type ProjectRuntimeEffectListRelationFilter = {
+    every?: ProjectRuntimeEffectWhereInput
+    some?: ProjectRuntimeEffectWhereInput
+    none?: ProjectRuntimeEffectWhereInput
+  }
+
   export type ProjectEnvironmentOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
@@ -240805,6 +244128,10 @@ export namespace Prisma {
   }
 
   export type ObjectStorageOperationProjectScopeOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type ProjectRuntimeEffectOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -245683,6 +249010,177 @@ export namespace Prisma {
     purgeFenceToken?: SortOrder
     purgeFrozenAt?: SortOrder
     updatedAt?: SortOrder
+  }
+
+  export type EnumProjectRuntimeEffectStateFilter<$PrismaModel = never> = {
+    equals?: $Enums.ProjectRuntimeEffectState | EnumProjectRuntimeEffectStateFieldRefInput<$PrismaModel>
+    in?: $Enums.ProjectRuntimeEffectState[] | ListEnumProjectRuntimeEffectStateFieldRefInput<$PrismaModel>
+    notIn?: $Enums.ProjectRuntimeEffectState[] | ListEnumProjectRuntimeEffectStateFieldRefInput<$PrismaModel>
+    not?: NestedEnumProjectRuntimeEffectStateFilter<$PrismaModel> | $Enums.ProjectRuntimeEffectState
+  }
+
+  export type ProjectRuntimeEffectTargetListRelationFilter = {
+    every?: ProjectRuntimeEffectTargetWhereInput
+    some?: ProjectRuntimeEffectTargetWhereInput
+    none?: ProjectRuntimeEffectTargetWhereInput
+  }
+
+  export type ProjectRuntimeEffectTargetOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type ProjectRuntimeEffectCountOrderByAggregateInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    organizationId?: SortOrder
+    ownershipEpoch?: SortOrder
+    action?: SortOrder
+    resourceId?: SortOrder
+    intentHash?: SortOrder
+    targetDigest?: SortOrder
+    fencingToken?: SortOrder
+    ownerToken?: SortOrder
+    state?: SortOrder
+    leaseExpiresAt?: SortOrder
+    preparedAt?: SortOrder
+    dispatchedAt?: SortOrder
+    settledAt?: SortOrder
+    drainingAt?: SortOrder
+    drainedAt?: SortOrder
+    abortedAt?: SortOrder
+    lastErrorCode?: SortOrder
+    providerReceipt?: SortOrder
+    operatorQuiescenceHash?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ProjectRuntimeEffectAvgOrderByAggregateInput = {
+    ownershipEpoch?: SortOrder
+    fencingToken?: SortOrder
+  }
+
+  export type ProjectRuntimeEffectMaxOrderByAggregateInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    organizationId?: SortOrder
+    ownershipEpoch?: SortOrder
+    action?: SortOrder
+    resourceId?: SortOrder
+    intentHash?: SortOrder
+    targetDigest?: SortOrder
+    fencingToken?: SortOrder
+    ownerToken?: SortOrder
+    state?: SortOrder
+    leaseExpiresAt?: SortOrder
+    preparedAt?: SortOrder
+    dispatchedAt?: SortOrder
+    settledAt?: SortOrder
+    drainingAt?: SortOrder
+    drainedAt?: SortOrder
+    abortedAt?: SortOrder
+    lastErrorCode?: SortOrder
+    operatorQuiescenceHash?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ProjectRuntimeEffectMinOrderByAggregateInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    organizationId?: SortOrder
+    ownershipEpoch?: SortOrder
+    action?: SortOrder
+    resourceId?: SortOrder
+    intentHash?: SortOrder
+    targetDigest?: SortOrder
+    fencingToken?: SortOrder
+    ownerToken?: SortOrder
+    state?: SortOrder
+    leaseExpiresAt?: SortOrder
+    preparedAt?: SortOrder
+    dispatchedAt?: SortOrder
+    settledAt?: SortOrder
+    drainingAt?: SortOrder
+    drainedAt?: SortOrder
+    abortedAt?: SortOrder
+    lastErrorCode?: SortOrder
+    operatorQuiescenceHash?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ProjectRuntimeEffectSumOrderByAggregateInput = {
+    ownershipEpoch?: SortOrder
+    fencingToken?: SortOrder
+  }
+
+  export type EnumProjectRuntimeEffectStateWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.ProjectRuntimeEffectState | EnumProjectRuntimeEffectStateFieldRefInput<$PrismaModel>
+    in?: $Enums.ProjectRuntimeEffectState[] | ListEnumProjectRuntimeEffectStateFieldRefInput<$PrismaModel>
+    notIn?: $Enums.ProjectRuntimeEffectState[] | ListEnumProjectRuntimeEffectStateFieldRefInput<$PrismaModel>
+    not?: NestedEnumProjectRuntimeEffectStateWithAggregatesFilter<$PrismaModel> | $Enums.ProjectRuntimeEffectState
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumProjectRuntimeEffectStateFilter<$PrismaModel>
+    _max?: NestedEnumProjectRuntimeEffectStateFilter<$PrismaModel>
+  }
+
+  export type ProjectRuntimeEffectScalarRelationFilter = {
+    is?: ProjectRuntimeEffectWhereInput
+    isNot?: ProjectRuntimeEffectWhereInput
+  }
+
+  export type ProjectRuntimeEffectTargetEffectIdKindNamespaceNameCompoundUniqueInput = {
+    effectId: string
+    kind: string
+    namespace: string
+    name: string
+  }
+
+  export type ProjectRuntimeEffectTargetEffectIdOrdinalCompoundUniqueInput = {
+    effectId: string
+    ordinal: number
+  }
+
+  export type ProjectRuntimeEffectTargetCountOrderByAggregateInput = {
+    effectId?: SortOrder
+    ordinal?: SortOrder
+    kind?: SortOrder
+    namespace?: SortOrder
+    name?: SortOrder
+    expectedUid?: SortOrder
+    expectedResourceVersion?: SortOrder
+    manifestDigest?: SortOrder
+  }
+
+  export type ProjectRuntimeEffectTargetAvgOrderByAggregateInput = {
+    ordinal?: SortOrder
+  }
+
+  export type ProjectRuntimeEffectTargetMaxOrderByAggregateInput = {
+    effectId?: SortOrder
+    ordinal?: SortOrder
+    kind?: SortOrder
+    namespace?: SortOrder
+    name?: SortOrder
+    expectedUid?: SortOrder
+    expectedResourceVersion?: SortOrder
+    manifestDigest?: SortOrder
+  }
+
+  export type ProjectRuntimeEffectTargetMinOrderByAggregateInput = {
+    effectId?: SortOrder
+    ordinal?: SortOrder
+    kind?: SortOrder
+    namespace?: SortOrder
+    name?: SortOrder
+    expectedUid?: SortOrder
+    expectedResourceVersion?: SortOrder
+    manifestDigest?: SortOrder
+  }
+
+  export type ProjectRuntimeEffectTargetSumOrderByAggregateInput = {
+    ordinal?: SortOrder
   }
 
   export type ConnectorCatalogCountOrderByAggregateInput = {
@@ -253585,6 +257083,13 @@ export namespace Prisma {
     connect?: ObjectStorageVersionGcScheduleWhereUniqueInput
   }
 
+  export type ProjectRuntimeEffectCreateNestedManyWithoutProjectInput = {
+    create?: XOR<ProjectRuntimeEffectCreateWithoutProjectInput, ProjectRuntimeEffectUncheckedCreateWithoutProjectInput> | ProjectRuntimeEffectCreateWithoutProjectInput[] | ProjectRuntimeEffectUncheckedCreateWithoutProjectInput[]
+    connectOrCreate?: ProjectRuntimeEffectCreateOrConnectWithoutProjectInput | ProjectRuntimeEffectCreateOrConnectWithoutProjectInput[]
+    createMany?: ProjectRuntimeEffectCreateManyProjectInputEnvelope
+    connect?: ProjectRuntimeEffectWhereUniqueInput | ProjectRuntimeEffectWhereUniqueInput[]
+  }
+
   export type ProjectEnvironmentUncheckedCreateNestedManyWithoutProjectInput = {
     create?: XOR<ProjectEnvironmentCreateWithoutProjectInput, ProjectEnvironmentUncheckedCreateWithoutProjectInput> | ProjectEnvironmentCreateWithoutProjectInput[] | ProjectEnvironmentUncheckedCreateWithoutProjectInput[]
     connectOrCreate?: ProjectEnvironmentCreateOrConnectWithoutProjectInput | ProjectEnvironmentCreateOrConnectWithoutProjectInput[]
@@ -253850,6 +257355,13 @@ export namespace Prisma {
     create?: XOR<ObjectStorageVersionGcScheduleCreateWithoutProjectInput, ObjectStorageVersionGcScheduleUncheckedCreateWithoutProjectInput>
     connectOrCreate?: ObjectStorageVersionGcScheduleCreateOrConnectWithoutProjectInput
     connect?: ObjectStorageVersionGcScheduleWhereUniqueInput
+  }
+
+  export type ProjectRuntimeEffectUncheckedCreateNestedManyWithoutProjectInput = {
+    create?: XOR<ProjectRuntimeEffectCreateWithoutProjectInput, ProjectRuntimeEffectUncheckedCreateWithoutProjectInput> | ProjectRuntimeEffectCreateWithoutProjectInput[] | ProjectRuntimeEffectUncheckedCreateWithoutProjectInput[]
+    connectOrCreate?: ProjectRuntimeEffectCreateOrConnectWithoutProjectInput | ProjectRuntimeEffectCreateOrConnectWithoutProjectInput[]
+    createMany?: ProjectRuntimeEffectCreateManyProjectInputEnvelope
+    connect?: ProjectRuntimeEffectWhereUniqueInput | ProjectRuntimeEffectWhereUniqueInput[]
   }
 
   export type OrganizationUpdateOneRequiredWithoutProjectsNestedInput = {
@@ -254390,6 +257902,20 @@ export namespace Prisma {
     update?: XOR<XOR<ObjectStorageVersionGcScheduleUpdateToOneWithWhereWithoutProjectInput, ObjectStorageVersionGcScheduleUpdateWithoutProjectInput>, ObjectStorageVersionGcScheduleUncheckedUpdateWithoutProjectInput>
   }
 
+  export type ProjectRuntimeEffectUpdateManyWithoutProjectNestedInput = {
+    create?: XOR<ProjectRuntimeEffectCreateWithoutProjectInput, ProjectRuntimeEffectUncheckedCreateWithoutProjectInput> | ProjectRuntimeEffectCreateWithoutProjectInput[] | ProjectRuntimeEffectUncheckedCreateWithoutProjectInput[]
+    connectOrCreate?: ProjectRuntimeEffectCreateOrConnectWithoutProjectInput | ProjectRuntimeEffectCreateOrConnectWithoutProjectInput[]
+    upsert?: ProjectRuntimeEffectUpsertWithWhereUniqueWithoutProjectInput | ProjectRuntimeEffectUpsertWithWhereUniqueWithoutProjectInput[]
+    createMany?: ProjectRuntimeEffectCreateManyProjectInputEnvelope
+    set?: ProjectRuntimeEffectWhereUniqueInput | ProjectRuntimeEffectWhereUniqueInput[]
+    disconnect?: ProjectRuntimeEffectWhereUniqueInput | ProjectRuntimeEffectWhereUniqueInput[]
+    delete?: ProjectRuntimeEffectWhereUniqueInput | ProjectRuntimeEffectWhereUniqueInput[]
+    connect?: ProjectRuntimeEffectWhereUniqueInput | ProjectRuntimeEffectWhereUniqueInput[]
+    update?: ProjectRuntimeEffectUpdateWithWhereUniqueWithoutProjectInput | ProjectRuntimeEffectUpdateWithWhereUniqueWithoutProjectInput[]
+    updateMany?: ProjectRuntimeEffectUpdateManyWithWhereWithoutProjectInput | ProjectRuntimeEffectUpdateManyWithWhereWithoutProjectInput[]
+    deleteMany?: ProjectRuntimeEffectScalarWhereInput | ProjectRuntimeEffectScalarWhereInput[]
+  }
+
   export type ProjectEnvironmentUncheckedUpdateManyWithoutProjectNestedInput = {
     create?: XOR<ProjectEnvironmentCreateWithoutProjectInput, ProjectEnvironmentUncheckedCreateWithoutProjectInput> | ProjectEnvironmentCreateWithoutProjectInput[] | ProjectEnvironmentUncheckedCreateWithoutProjectInput[]
     connectOrCreate?: ProjectEnvironmentCreateOrConnectWithoutProjectInput | ProjectEnvironmentCreateOrConnectWithoutProjectInput[]
@@ -254918,6 +258444,20 @@ export namespace Prisma {
     delete?: ObjectStorageVersionGcScheduleWhereInput | boolean
     connect?: ObjectStorageVersionGcScheduleWhereUniqueInput
     update?: XOR<XOR<ObjectStorageVersionGcScheduleUpdateToOneWithWhereWithoutProjectInput, ObjectStorageVersionGcScheduleUpdateWithoutProjectInput>, ObjectStorageVersionGcScheduleUncheckedUpdateWithoutProjectInput>
+  }
+
+  export type ProjectRuntimeEffectUncheckedUpdateManyWithoutProjectNestedInput = {
+    create?: XOR<ProjectRuntimeEffectCreateWithoutProjectInput, ProjectRuntimeEffectUncheckedCreateWithoutProjectInput> | ProjectRuntimeEffectCreateWithoutProjectInput[] | ProjectRuntimeEffectUncheckedCreateWithoutProjectInput[]
+    connectOrCreate?: ProjectRuntimeEffectCreateOrConnectWithoutProjectInput | ProjectRuntimeEffectCreateOrConnectWithoutProjectInput[]
+    upsert?: ProjectRuntimeEffectUpsertWithWhereUniqueWithoutProjectInput | ProjectRuntimeEffectUpsertWithWhereUniqueWithoutProjectInput[]
+    createMany?: ProjectRuntimeEffectCreateManyProjectInputEnvelope
+    set?: ProjectRuntimeEffectWhereUniqueInput | ProjectRuntimeEffectWhereUniqueInput[]
+    disconnect?: ProjectRuntimeEffectWhereUniqueInput | ProjectRuntimeEffectWhereUniqueInput[]
+    delete?: ProjectRuntimeEffectWhereUniqueInput | ProjectRuntimeEffectWhereUniqueInput[]
+    connect?: ProjectRuntimeEffectWhereUniqueInput | ProjectRuntimeEffectWhereUniqueInput[]
+    update?: ProjectRuntimeEffectUpdateWithWhereUniqueWithoutProjectInput | ProjectRuntimeEffectUpdateWithWhereUniqueWithoutProjectInput[]
+    updateMany?: ProjectRuntimeEffectUpdateManyWithWhereWithoutProjectInput | ProjectRuntimeEffectUpdateManyWithWhereWithoutProjectInput[]
+    deleteMany?: ProjectRuntimeEffectScalarWhereInput | ProjectRuntimeEffectScalarWhereInput[]
   }
 
   export type ObjectStorageOperationProjectScopeCreateNestedManyWithoutOperationInput = {
@@ -257818,6 +261358,80 @@ export namespace Prisma {
     delete?: PurgePlanWhereInput | boolean
     connect?: PurgePlanWhereUniqueInput
     update?: XOR<XOR<PurgePlanUpdateToOneWithWhereWithoutWorkspaceRuntimesInput, PurgePlanUpdateWithoutWorkspaceRuntimesInput>, PurgePlanUncheckedUpdateWithoutWorkspaceRuntimesInput>
+  }
+
+  export type ProjectCreateNestedOneWithoutRuntimeEffectsInput = {
+    create?: XOR<ProjectCreateWithoutRuntimeEffectsInput, ProjectUncheckedCreateWithoutRuntimeEffectsInput>
+    connectOrCreate?: ProjectCreateOrConnectWithoutRuntimeEffectsInput
+    connect?: ProjectWhereUniqueInput
+  }
+
+  export type ProjectRuntimeEffectTargetCreateNestedManyWithoutEffectInput = {
+    create?: XOR<ProjectRuntimeEffectTargetCreateWithoutEffectInput, ProjectRuntimeEffectTargetUncheckedCreateWithoutEffectInput> | ProjectRuntimeEffectTargetCreateWithoutEffectInput[] | ProjectRuntimeEffectTargetUncheckedCreateWithoutEffectInput[]
+    connectOrCreate?: ProjectRuntimeEffectTargetCreateOrConnectWithoutEffectInput | ProjectRuntimeEffectTargetCreateOrConnectWithoutEffectInput[]
+    createMany?: ProjectRuntimeEffectTargetCreateManyEffectInputEnvelope
+    connect?: ProjectRuntimeEffectTargetWhereUniqueInput | ProjectRuntimeEffectTargetWhereUniqueInput[]
+  }
+
+  export type ProjectRuntimeEffectTargetUncheckedCreateNestedManyWithoutEffectInput = {
+    create?: XOR<ProjectRuntimeEffectTargetCreateWithoutEffectInput, ProjectRuntimeEffectTargetUncheckedCreateWithoutEffectInput> | ProjectRuntimeEffectTargetCreateWithoutEffectInput[] | ProjectRuntimeEffectTargetUncheckedCreateWithoutEffectInput[]
+    connectOrCreate?: ProjectRuntimeEffectTargetCreateOrConnectWithoutEffectInput | ProjectRuntimeEffectTargetCreateOrConnectWithoutEffectInput[]
+    createMany?: ProjectRuntimeEffectTargetCreateManyEffectInputEnvelope
+    connect?: ProjectRuntimeEffectTargetWhereUniqueInput | ProjectRuntimeEffectTargetWhereUniqueInput[]
+  }
+
+  export type EnumProjectRuntimeEffectStateFieldUpdateOperationsInput = {
+    set?: $Enums.ProjectRuntimeEffectState
+  }
+
+  export type ProjectUpdateOneRequiredWithoutRuntimeEffectsNestedInput = {
+    create?: XOR<ProjectCreateWithoutRuntimeEffectsInput, ProjectUncheckedCreateWithoutRuntimeEffectsInput>
+    connectOrCreate?: ProjectCreateOrConnectWithoutRuntimeEffectsInput
+    upsert?: ProjectUpsertWithoutRuntimeEffectsInput
+    connect?: ProjectWhereUniqueInput
+    update?: XOR<XOR<ProjectUpdateToOneWithWhereWithoutRuntimeEffectsInput, ProjectUpdateWithoutRuntimeEffectsInput>, ProjectUncheckedUpdateWithoutRuntimeEffectsInput>
+  }
+
+  export type ProjectRuntimeEffectTargetUpdateManyWithoutEffectNestedInput = {
+    create?: XOR<ProjectRuntimeEffectTargetCreateWithoutEffectInput, ProjectRuntimeEffectTargetUncheckedCreateWithoutEffectInput> | ProjectRuntimeEffectTargetCreateWithoutEffectInput[] | ProjectRuntimeEffectTargetUncheckedCreateWithoutEffectInput[]
+    connectOrCreate?: ProjectRuntimeEffectTargetCreateOrConnectWithoutEffectInput | ProjectRuntimeEffectTargetCreateOrConnectWithoutEffectInput[]
+    upsert?: ProjectRuntimeEffectTargetUpsertWithWhereUniqueWithoutEffectInput | ProjectRuntimeEffectTargetUpsertWithWhereUniqueWithoutEffectInput[]
+    createMany?: ProjectRuntimeEffectTargetCreateManyEffectInputEnvelope
+    set?: ProjectRuntimeEffectTargetWhereUniqueInput | ProjectRuntimeEffectTargetWhereUniqueInput[]
+    disconnect?: ProjectRuntimeEffectTargetWhereUniqueInput | ProjectRuntimeEffectTargetWhereUniqueInput[]
+    delete?: ProjectRuntimeEffectTargetWhereUniqueInput | ProjectRuntimeEffectTargetWhereUniqueInput[]
+    connect?: ProjectRuntimeEffectTargetWhereUniqueInput | ProjectRuntimeEffectTargetWhereUniqueInput[]
+    update?: ProjectRuntimeEffectTargetUpdateWithWhereUniqueWithoutEffectInput | ProjectRuntimeEffectTargetUpdateWithWhereUniqueWithoutEffectInput[]
+    updateMany?: ProjectRuntimeEffectTargetUpdateManyWithWhereWithoutEffectInput | ProjectRuntimeEffectTargetUpdateManyWithWhereWithoutEffectInput[]
+    deleteMany?: ProjectRuntimeEffectTargetScalarWhereInput | ProjectRuntimeEffectTargetScalarWhereInput[]
+  }
+
+  export type ProjectRuntimeEffectTargetUncheckedUpdateManyWithoutEffectNestedInput = {
+    create?: XOR<ProjectRuntimeEffectTargetCreateWithoutEffectInput, ProjectRuntimeEffectTargetUncheckedCreateWithoutEffectInput> | ProjectRuntimeEffectTargetCreateWithoutEffectInput[] | ProjectRuntimeEffectTargetUncheckedCreateWithoutEffectInput[]
+    connectOrCreate?: ProjectRuntimeEffectTargetCreateOrConnectWithoutEffectInput | ProjectRuntimeEffectTargetCreateOrConnectWithoutEffectInput[]
+    upsert?: ProjectRuntimeEffectTargetUpsertWithWhereUniqueWithoutEffectInput | ProjectRuntimeEffectTargetUpsertWithWhereUniqueWithoutEffectInput[]
+    createMany?: ProjectRuntimeEffectTargetCreateManyEffectInputEnvelope
+    set?: ProjectRuntimeEffectTargetWhereUniqueInput | ProjectRuntimeEffectTargetWhereUniqueInput[]
+    disconnect?: ProjectRuntimeEffectTargetWhereUniqueInput | ProjectRuntimeEffectTargetWhereUniqueInput[]
+    delete?: ProjectRuntimeEffectTargetWhereUniqueInput | ProjectRuntimeEffectTargetWhereUniqueInput[]
+    connect?: ProjectRuntimeEffectTargetWhereUniqueInput | ProjectRuntimeEffectTargetWhereUniqueInput[]
+    update?: ProjectRuntimeEffectTargetUpdateWithWhereUniqueWithoutEffectInput | ProjectRuntimeEffectTargetUpdateWithWhereUniqueWithoutEffectInput[]
+    updateMany?: ProjectRuntimeEffectTargetUpdateManyWithWhereWithoutEffectInput | ProjectRuntimeEffectTargetUpdateManyWithWhereWithoutEffectInput[]
+    deleteMany?: ProjectRuntimeEffectTargetScalarWhereInput | ProjectRuntimeEffectTargetScalarWhereInput[]
+  }
+
+  export type ProjectRuntimeEffectCreateNestedOneWithoutTargetsInput = {
+    create?: XOR<ProjectRuntimeEffectCreateWithoutTargetsInput, ProjectRuntimeEffectUncheckedCreateWithoutTargetsInput>
+    connectOrCreate?: ProjectRuntimeEffectCreateOrConnectWithoutTargetsInput
+    connect?: ProjectRuntimeEffectWhereUniqueInput
+  }
+
+  export type ProjectRuntimeEffectUpdateOneRequiredWithoutTargetsNestedInput = {
+    create?: XOR<ProjectRuntimeEffectCreateWithoutTargetsInput, ProjectRuntimeEffectUncheckedCreateWithoutTargetsInput>
+    connectOrCreate?: ProjectRuntimeEffectCreateOrConnectWithoutTargetsInput
+    upsert?: ProjectRuntimeEffectUpsertWithoutTargetsInput
+    connect?: ProjectRuntimeEffectWhereUniqueInput
+    update?: XOR<XOR<ProjectRuntimeEffectUpdateToOneWithWhereWithoutTargetsInput, ProjectRuntimeEffectUpdateWithoutTargetsInput>, ProjectRuntimeEffectUncheckedUpdateWithoutTargetsInput>
   }
 
   export type ConnectorCatalogCreatedefaultScopesInput = {
@@ -261062,6 +264676,23 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumConsensusOutcomeFilter<$PrismaModel>
     _max?: NestedEnumConsensusOutcomeFilter<$PrismaModel>
+  }
+
+  export type NestedEnumProjectRuntimeEffectStateFilter<$PrismaModel = never> = {
+    equals?: $Enums.ProjectRuntimeEffectState | EnumProjectRuntimeEffectStateFieldRefInput<$PrismaModel>
+    in?: $Enums.ProjectRuntimeEffectState[] | ListEnumProjectRuntimeEffectStateFieldRefInput<$PrismaModel>
+    notIn?: $Enums.ProjectRuntimeEffectState[] | ListEnumProjectRuntimeEffectStateFieldRefInput<$PrismaModel>
+    not?: NestedEnumProjectRuntimeEffectStateFilter<$PrismaModel> | $Enums.ProjectRuntimeEffectState
+  }
+
+  export type NestedEnumProjectRuntimeEffectStateWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.ProjectRuntimeEffectState | EnumProjectRuntimeEffectStateFieldRefInput<$PrismaModel>
+    in?: $Enums.ProjectRuntimeEffectState[] | ListEnumProjectRuntimeEffectStateFieldRefInput<$PrismaModel>
+    notIn?: $Enums.ProjectRuntimeEffectState[] | ListEnumProjectRuntimeEffectStateFieldRefInput<$PrismaModel>
+    not?: NestedEnumProjectRuntimeEffectStateWithAggregatesFilter<$PrismaModel> | $Enums.ProjectRuntimeEffectState
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumProjectRuntimeEffectStateFilter<$PrismaModel>
+    _max?: NestedEnumProjectRuntimeEffectStateFilter<$PrismaModel>
   }
 
   export type NestedEnumCreditEntryKindFilter<$PrismaModel = never> = {
@@ -265625,6 +269256,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
+    runtimeEffects?: ProjectRuntimeEffectCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutOrganizationInput = {
@@ -265684,6 +269316,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
+    runtimeEffects?: ProjectRuntimeEffectUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutOrganizationInput = {
@@ -271254,6 +274887,68 @@ export namespace Prisma {
     create: XOR<ObjectStorageVersionGcScheduleCreateWithoutProjectInput, ObjectStorageVersionGcScheduleUncheckedCreateWithoutProjectInput>
   }
 
+  export type ProjectRuntimeEffectCreateWithoutProjectInput = {
+    id?: string
+    organizationId: string
+    ownershipEpoch: number
+    action: string
+    resourceId: string
+    intentHash: string
+    targetDigest: string
+    fencingToken?: bigint | number
+    ownerToken?: string | null
+    state?: $Enums.ProjectRuntimeEffectState
+    leaseExpiresAt?: Date | string | null
+    preparedAt?: Date | string
+    dispatchedAt?: Date | string | null
+    settledAt?: Date | string | null
+    drainingAt?: Date | string | null
+    drainedAt?: Date | string | null
+    abortedAt?: Date | string | null
+    lastErrorCode?: string | null
+    providerReceipt?: NullableJsonNullValueInput | InputJsonValue
+    operatorQuiescenceHash?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    targets?: ProjectRuntimeEffectTargetCreateNestedManyWithoutEffectInput
+  }
+
+  export type ProjectRuntimeEffectUncheckedCreateWithoutProjectInput = {
+    id?: string
+    organizationId: string
+    ownershipEpoch: number
+    action: string
+    resourceId: string
+    intentHash: string
+    targetDigest: string
+    fencingToken?: bigint | number
+    ownerToken?: string | null
+    state?: $Enums.ProjectRuntimeEffectState
+    leaseExpiresAt?: Date | string | null
+    preparedAt?: Date | string
+    dispatchedAt?: Date | string | null
+    settledAt?: Date | string | null
+    drainingAt?: Date | string | null
+    drainedAt?: Date | string | null
+    abortedAt?: Date | string | null
+    lastErrorCode?: string | null
+    providerReceipt?: NullableJsonNullValueInput | InputJsonValue
+    operatorQuiescenceHash?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    targets?: ProjectRuntimeEffectTargetUncheckedCreateNestedManyWithoutEffectInput
+  }
+
+  export type ProjectRuntimeEffectCreateOrConnectWithoutProjectInput = {
+    where: ProjectRuntimeEffectWhereUniqueInput
+    create: XOR<ProjectRuntimeEffectCreateWithoutProjectInput, ProjectRuntimeEffectUncheckedCreateWithoutProjectInput>
+  }
+
+  export type ProjectRuntimeEffectCreateManyProjectInputEnvelope = {
+    data: ProjectRuntimeEffectCreateManyProjectInput | ProjectRuntimeEffectCreateManyProjectInput[]
+    skipDuplicates?: boolean
+  }
+
   export type OrganizationUpsertWithoutProjectsInput = {
     update: XOR<OrganizationUpdateWithoutProjectsInput, OrganizationUncheckedUpdateWithoutProjectsInput>
     create: XOR<OrganizationCreateWithoutProjectsInput, OrganizationUncheckedCreateWithoutProjectsInput>
@@ -272361,6 +276056,51 @@ export namespace Prisma {
     requestedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProjectRuntimeEffectUpsertWithWhereUniqueWithoutProjectInput = {
+    where: ProjectRuntimeEffectWhereUniqueInput
+    update: XOR<ProjectRuntimeEffectUpdateWithoutProjectInput, ProjectRuntimeEffectUncheckedUpdateWithoutProjectInput>
+    create: XOR<ProjectRuntimeEffectCreateWithoutProjectInput, ProjectRuntimeEffectUncheckedCreateWithoutProjectInput>
+  }
+
+  export type ProjectRuntimeEffectUpdateWithWhereUniqueWithoutProjectInput = {
+    where: ProjectRuntimeEffectWhereUniqueInput
+    data: XOR<ProjectRuntimeEffectUpdateWithoutProjectInput, ProjectRuntimeEffectUncheckedUpdateWithoutProjectInput>
+  }
+
+  export type ProjectRuntimeEffectUpdateManyWithWhereWithoutProjectInput = {
+    where: ProjectRuntimeEffectScalarWhereInput
+    data: XOR<ProjectRuntimeEffectUpdateManyMutationInput, ProjectRuntimeEffectUncheckedUpdateManyWithoutProjectInput>
+  }
+
+  export type ProjectRuntimeEffectScalarWhereInput = {
+    AND?: ProjectRuntimeEffectScalarWhereInput | ProjectRuntimeEffectScalarWhereInput[]
+    OR?: ProjectRuntimeEffectScalarWhereInput[]
+    NOT?: ProjectRuntimeEffectScalarWhereInput | ProjectRuntimeEffectScalarWhereInput[]
+    id?: StringFilter<"ProjectRuntimeEffect"> | string
+    projectId?: StringFilter<"ProjectRuntimeEffect"> | string
+    organizationId?: StringFilter<"ProjectRuntimeEffect"> | string
+    ownershipEpoch?: IntFilter<"ProjectRuntimeEffect"> | number
+    action?: StringFilter<"ProjectRuntimeEffect"> | string
+    resourceId?: StringFilter<"ProjectRuntimeEffect"> | string
+    intentHash?: StringFilter<"ProjectRuntimeEffect"> | string
+    targetDigest?: StringFilter<"ProjectRuntimeEffect"> | string
+    fencingToken?: BigIntFilter<"ProjectRuntimeEffect"> | bigint | number
+    ownerToken?: StringNullableFilter<"ProjectRuntimeEffect"> | string | null
+    state?: EnumProjectRuntimeEffectStateFilter<"ProjectRuntimeEffect"> | $Enums.ProjectRuntimeEffectState
+    leaseExpiresAt?: DateTimeNullableFilter<"ProjectRuntimeEffect"> | Date | string | null
+    preparedAt?: DateTimeFilter<"ProjectRuntimeEffect"> | Date | string
+    dispatchedAt?: DateTimeNullableFilter<"ProjectRuntimeEffect"> | Date | string | null
+    settledAt?: DateTimeNullableFilter<"ProjectRuntimeEffect"> | Date | string | null
+    drainingAt?: DateTimeNullableFilter<"ProjectRuntimeEffect"> | Date | string | null
+    drainedAt?: DateTimeNullableFilter<"ProjectRuntimeEffect"> | Date | string | null
+    abortedAt?: DateTimeNullableFilter<"ProjectRuntimeEffect"> | Date | string | null
+    lastErrorCode?: StringNullableFilter<"ProjectRuntimeEffect"> | string | null
+    providerReceipt?: JsonNullableFilter<"ProjectRuntimeEffect">
+    operatorQuiescenceHash?: StringNullableFilter<"ProjectRuntimeEffect"> | string | null
+    createdAt?: DateTimeFilter<"ProjectRuntimeEffect"> | Date | string
+    updatedAt?: DateTimeFilter<"ProjectRuntimeEffect"> | Date | string
   }
 
   export type ObjectStorageOperationProjectScopeCreateWithoutOperationInput = {
@@ -273578,6 +277318,7 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
     releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
+    runtimeEffects?: ProjectRuntimeEffectCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutObjectStorageOperationScopesInput = {
@@ -273637,6 +277378,7 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
     releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
+    runtimeEffects?: ProjectRuntimeEffectUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutObjectStorageOperationScopesInput = {
@@ -273793,6 +277535,7 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
     releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
+    runtimeEffects?: ProjectRuntimeEffectUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutObjectStorageOperationScopesInput = {
@@ -273852,6 +277595,7 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
     releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
+    runtimeEffects?: ProjectRuntimeEffectUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutObjectStorageVersionGcScheduleInput = {
@@ -273911,6 +277655,7 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
     releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
+    runtimeEffects?: ProjectRuntimeEffectCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutObjectStorageVersionGcScheduleInput = {
@@ -273970,6 +277715,7 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
     releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
+    runtimeEffects?: ProjectRuntimeEffectUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutObjectStorageVersionGcScheduleInput = {
@@ -274120,6 +277866,7 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
     releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
+    runtimeEffects?: ProjectRuntimeEffectUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutObjectStorageVersionGcScheduleInput = {
@@ -274179,6 +277926,7 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
     releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
+    runtimeEffects?: ProjectRuntimeEffectUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ObjectStorageOperationUpsertWithoutVersionGcSchedulesInput = {
@@ -274475,6 +278223,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
+    runtimeEffects?: ProjectRuntimeEffectCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutSlugRedirectsInput = {
@@ -274534,6 +278283,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
+    runtimeEffects?: ProjectRuntimeEffectUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutSlugRedirectsInput = {
@@ -274609,6 +278359,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
+    runtimeEffects?: ProjectRuntimeEffectUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutSlugRedirectsInput = {
@@ -274668,6 +278419,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
+    runtimeEffects?: ProjectRuntimeEffectUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserCreateWithoutAgentMemoriesInput = {
@@ -275203,6 +278955,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
+    runtimeEffects?: ProjectRuntimeEffectCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutAgentMemoriesInput = {
@@ -275262,6 +279015,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
+    runtimeEffects?: ProjectRuntimeEffectUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutAgentMemoriesInput = {
@@ -275337,6 +279091,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
+    runtimeEffects?: ProjectRuntimeEffectUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutAgentMemoriesInput = {
@@ -275396,6 +279151,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
+    runtimeEffects?: ProjectRuntimeEffectUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserCreateWithoutAgentMemoryPreferencesInput = {
@@ -275687,6 +279443,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
+    runtimeEffects?: ProjectRuntimeEffectCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutAgentMemoryPreferencesInput = {
@@ -275746,6 +279503,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
+    runtimeEffects?: ProjectRuntimeEffectUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutAgentMemoryPreferencesInput = {
@@ -276065,6 +279823,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
+    runtimeEffects?: ProjectRuntimeEffectUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutAgentMemoryPreferencesInput = {
@@ -276124,6 +279883,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
+    runtimeEffects?: ProjectRuntimeEffectUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutIdeStateInput = {
@@ -276183,6 +279943,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
+    runtimeEffects?: ProjectRuntimeEffectCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutIdeStateInput = {
@@ -276242,6 +280003,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
+    runtimeEffects?: ProjectRuntimeEffectUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutIdeStateInput = {
@@ -276448,6 +280210,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
+    runtimeEffects?: ProjectRuntimeEffectUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutIdeStateInput = {
@@ -276507,6 +280270,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
+    runtimeEffects?: ProjectRuntimeEffectUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutProjectIdeStateUpdatesInput = {
@@ -276703,6 +280467,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
+    runtimeEffects?: ProjectRuntimeEffectCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutAgentPatchProposalsInput = {
@@ -276762,6 +280527,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
+    runtimeEffects?: ProjectRuntimeEffectUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutAgentPatchProposalsInput = {
@@ -276837,6 +280603,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
+    runtimeEffects?: ProjectRuntimeEffectUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutAgentPatchProposalsInput = {
@@ -276896,6 +280663,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
+    runtimeEffects?: ProjectRuntimeEffectUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutRepairEventsInput = {
@@ -276955,6 +280723,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
+    runtimeEffects?: ProjectRuntimeEffectCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutRepairEventsInput = {
@@ -277014,6 +280783,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
+    runtimeEffects?: ProjectRuntimeEffectUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutRepairEventsInput = {
@@ -277089,6 +280859,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
+    runtimeEffects?: ProjectRuntimeEffectUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutRepairEventsInput = {
@@ -277148,6 +280919,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
+    runtimeEffects?: ProjectRuntimeEffectUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutSkillsInput = {
@@ -277207,6 +280979,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
+    runtimeEffects?: ProjectRuntimeEffectCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutSkillsInput = {
@@ -277266,6 +281039,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
+    runtimeEffects?: ProjectRuntimeEffectUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutSkillsInput = {
@@ -277341,6 +281115,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
+    runtimeEffects?: ProjectRuntimeEffectUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutSkillsInput = {
@@ -277400,6 +281175,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
+    runtimeEffects?: ProjectRuntimeEffectUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutEnvironmentsInput = {
@@ -277459,6 +281235,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
+    runtimeEffects?: ProjectRuntimeEffectCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutEnvironmentsInput = {
@@ -277518,6 +281295,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
+    runtimeEffects?: ProjectRuntimeEffectUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutEnvironmentsInput = {
@@ -277593,6 +281371,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
+    runtimeEffects?: ProjectRuntimeEffectUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutEnvironmentsInput = {
@@ -277652,6 +281431,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
+    runtimeEffects?: ProjectRuntimeEffectUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutSecretsInput = {
@@ -277711,6 +281491,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
+    runtimeEffects?: ProjectRuntimeEffectCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutSecretsInput = {
@@ -277770,6 +281551,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
+    runtimeEffects?: ProjectRuntimeEffectUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutSecretsInput = {
@@ -277845,6 +281627,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
+    runtimeEffects?: ProjectRuntimeEffectUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutSecretsInput = {
@@ -277904,6 +281687,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
+    runtimeEffects?: ProjectRuntimeEffectUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutEnvVarsInput = {
@@ -277963,6 +281747,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
+    runtimeEffects?: ProjectRuntimeEffectCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutEnvVarsInput = {
@@ -278022,6 +281807,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
+    runtimeEffects?: ProjectRuntimeEffectUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutEnvVarsInput = {
@@ -278097,6 +281883,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
+    runtimeEffects?: ProjectRuntimeEffectUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutEnvVarsInput = {
@@ -278156,6 +281943,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
+    runtimeEffects?: ProjectRuntimeEffectUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutCollaboratorsInput = {
@@ -278215,6 +282003,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
+    runtimeEffects?: ProjectRuntimeEffectCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutCollaboratorsInput = {
@@ -278274,6 +282063,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
+    runtimeEffects?: ProjectRuntimeEffectUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutCollaboratorsInput = {
@@ -278480,6 +282270,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
+    runtimeEffects?: ProjectRuntimeEffectUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutCollaboratorsInput = {
@@ -278539,6 +282330,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
+    runtimeEffects?: ProjectRuntimeEffectUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutProjectCollaborationsInput = {
@@ -278735,6 +282527,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
+    runtimeEffects?: ProjectRuntimeEffectCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutActivityInput = {
@@ -278794,6 +282587,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
+    runtimeEffects?: ProjectRuntimeEffectUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutActivityInput = {
@@ -279000,6 +282794,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
+    runtimeEffects?: ProjectRuntimeEffectUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutActivityInput = {
@@ -279059,6 +282854,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
+    runtimeEffects?: ProjectRuntimeEffectUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutProjectActivityInput = {
@@ -279255,6 +283051,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
+    runtimeEffects?: ProjectRuntimeEffectCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutCollaborationPresenceInput = {
@@ -279314,6 +283111,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
+    runtimeEffects?: ProjectRuntimeEffectUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutCollaborationPresenceInput = {
@@ -279520,6 +283318,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
+    runtimeEffects?: ProjectRuntimeEffectUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutCollaborationPresenceInput = {
@@ -279579,6 +283378,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
+    runtimeEffects?: ProjectRuntimeEffectUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutCollaborationPresenceInput = {
@@ -279775,6 +283575,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
+    runtimeEffects?: ProjectRuntimeEffectCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutCollaborationCommentsInput = {
@@ -279834,6 +283635,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
+    runtimeEffects?: ProjectRuntimeEffectUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutCollaborationCommentsInput = {
@@ -280040,6 +283842,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
+    runtimeEffects?: ProjectRuntimeEffectUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutCollaborationCommentsInput = {
@@ -280099,6 +283902,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
+    runtimeEffects?: ProjectRuntimeEffectUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutCollaborationCommentsInput = {
@@ -280295,6 +284099,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
+    runtimeEffects?: ProjectRuntimeEffectCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutShareLinksInput = {
@@ -280354,6 +284159,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
+    runtimeEffects?: ProjectRuntimeEffectUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutShareLinksInput = {
@@ -280560,6 +284366,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
+    runtimeEffects?: ProjectRuntimeEffectUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutShareLinksInput = {
@@ -280619,6 +284426,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
+    runtimeEffects?: ProjectRuntimeEffectUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutCollaborationShareLinksInput = {
@@ -282338,6 +286146,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
+    runtimeEffects?: ProjectRuntimeEffectCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutTemplatesInput = {
@@ -282397,6 +286206,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
+    runtimeEffects?: ProjectRuntimeEffectUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutTemplatesInput = {
@@ -282573,6 +286383,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
+    runtimeEffects?: ProjectRuntimeEffectUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutTemplatesInput = {
@@ -282632,6 +286443,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
+    runtimeEffects?: ProjectRuntimeEffectUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type OrganizationUpsertWithoutProjectTemplatesInput = {
@@ -282798,6 +286610,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
+    runtimeEffects?: ProjectRuntimeEffectCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutWorkspacesInput = {
@@ -282857,6 +286670,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
+    runtimeEffects?: ProjectRuntimeEffectUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutWorkspacesInput = {
@@ -283119,6 +286933,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
+    runtimeEffects?: ProjectRuntimeEffectUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutWorkspacesInput = {
@@ -283178,6 +286993,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
+    runtimeEffects?: ProjectRuntimeEffectUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type WorkspaceSessionUpsertWithWhereUniqueWithoutWorkspaceInput = {
@@ -283699,6 +287515,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
+    runtimeEffects?: ProjectRuntimeEffectCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutFileSnapshotsInput = {
@@ -283758,6 +287575,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
+    runtimeEffects?: ProjectRuntimeEffectUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutFileSnapshotsInput = {
@@ -283876,6 +287694,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
+    runtimeEffects?: ProjectRuntimeEffectUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutFileSnapshotsInput = {
@@ -283935,6 +287754,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
+    runtimeEffects?: ProjectRuntimeEffectUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type WorkspaceUpsertWithoutSnapshotsInput = {
@@ -284043,6 +287863,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
+    runtimeEffects?: ProjectRuntimeEffectCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutSnapshotsInput = {
@@ -284102,6 +287923,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
+    runtimeEffects?: ProjectRuntimeEffectUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutSnapshotsInput = {
@@ -284308,6 +288130,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
+    runtimeEffects?: ProjectRuntimeEffectUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutSnapshotsInput = {
@@ -284367,6 +288190,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
+    runtimeEffects?: ProjectRuntimeEffectUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutProjectSnapshotsInput = {
@@ -284563,6 +288387,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
+    runtimeEffects?: ProjectRuntimeEffectCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutManifestRevisionsInput = {
@@ -284622,6 +288447,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
+    runtimeEffects?: ProjectRuntimeEffectUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutManifestRevisionsInput = {
@@ -284697,6 +288523,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
+    runtimeEffects?: ProjectRuntimeEffectUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutManifestRevisionsInput = {
@@ -284756,6 +288583,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
+    runtimeEffects?: ProjectRuntimeEffectUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutStorageObjectsInput = {
@@ -284815,6 +288643,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
+    runtimeEffects?: ProjectRuntimeEffectCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutStorageObjectsInput = {
@@ -284874,6 +288703,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
+    runtimeEffects?: ProjectRuntimeEffectUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutStorageObjectsInput = {
@@ -284949,6 +288779,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
+    runtimeEffects?: ProjectRuntimeEffectUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutStorageObjectsInput = {
@@ -285008,6 +288839,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
+    runtimeEffects?: ProjectRuntimeEffectUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutDeploymentsInput = {
@@ -285067,6 +288899,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
+    runtimeEffects?: ProjectRuntimeEffectCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutDeploymentsInput = {
@@ -285126,6 +288959,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
+    runtimeEffects?: ProjectRuntimeEffectUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutDeploymentsInput = {
@@ -285419,6 +289253,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
+    runtimeEffects?: ProjectRuntimeEffectUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutDeploymentsInput = {
@@ -285478,6 +289313,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
+    runtimeEffects?: ProjectRuntimeEffectUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type DeploymentEnvironmentUpsertWithoutDeploymentsInput = {
@@ -285657,6 +289493,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
+    runtimeEffects?: ProjectRuntimeEffectCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutReservedVmOperationsInput = {
@@ -285716,6 +289553,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
+    runtimeEffects?: ProjectRuntimeEffectUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutReservedVmOperationsInput = {
@@ -286080,6 +289918,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
+    runtimeEffects?: ProjectRuntimeEffectUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutReservedVmOperationsInput = {
@@ -286139,6 +289978,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
+    runtimeEffects?: ProjectRuntimeEffectUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type DeploymentUpsertWithoutReservedVmOperationsInput = {
@@ -286505,6 +290345,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
+    runtimeEffects?: ProjectRuntimeEffectCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutReservedVmBillingPeriodsInput = {
@@ -286564,6 +290405,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
+    runtimeEffects?: ProjectRuntimeEffectUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutReservedVmBillingPeriodsInput = {
@@ -286928,6 +290770,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
+    runtimeEffects?: ProjectRuntimeEffectUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutReservedVmBillingPeriodsInput = {
@@ -286987,6 +290830,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
+    runtimeEffects?: ProjectRuntimeEffectUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type DeploymentUpsertWithoutReservedVmBillingPeriodsInput = {
@@ -287471,6 +291315,7 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
+    runtimeEffects?: ProjectRuntimeEffectCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutReleaseManifestsInput = {
@@ -287530,6 +291375,7 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
+    runtimeEffects?: ProjectRuntimeEffectUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutReleaseManifestsInput = {
@@ -287605,6 +291451,7 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
+    runtimeEffects?: ProjectRuntimeEffectUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutReleaseManifestsInput = {
@@ -287664,6 +291511,7 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
+    runtimeEffects?: ProjectRuntimeEffectUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutRollbackOperationsInput = {
@@ -287723,6 +291571,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
+    runtimeEffects?: ProjectRuntimeEffectCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutRollbackOperationsInput = {
@@ -287782,6 +291631,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
+    runtimeEffects?: ProjectRuntimeEffectUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutRollbackOperationsInput = {
@@ -287988,6 +291838,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
+    runtimeEffects?: ProjectRuntimeEffectUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutRollbackOperationsInput = {
@@ -288047,6 +291898,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
+    runtimeEffects?: ProjectRuntimeEffectUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutRollbackOperationsInput = {
@@ -290361,6 +294213,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
+    runtimeEffects?: ProjectRuntimeEffectCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutConversationsInput = {
@@ -290420,6 +294273,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
+    runtimeEffects?: ProjectRuntimeEffectUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutConversationsInput = {
@@ -290654,6 +294508,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
+    runtimeEffects?: ProjectRuntimeEffectUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutConversationsInput = {
@@ -290713,6 +294568,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
+    runtimeEffects?: ProjectRuntimeEffectUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutConversationsInput = {
@@ -293079,6 +296935,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
+    runtimeEffects?: ProjectRuntimeEffectCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutRuntimeWebSocketTicketsInput = {
@@ -293138,6 +296995,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
+    runtimeEffects?: ProjectRuntimeEffectUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutRuntimeWebSocketTicketsInput = {
@@ -293350,6 +297208,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
+    runtimeEffects?: ProjectRuntimeEffectUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutRuntimeWebSocketTicketsInput = {
@@ -293409,6 +297268,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
+    runtimeEffects?: ProjectRuntimeEffectUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserCreateWithoutPasswordResetTokensInput = {
@@ -297739,6 +301599,442 @@ export namespace Prisma {
     receipt?: PurgeReceiptUncheckedUpdateOneWithoutPlanNestedInput
   }
 
+  export type ProjectCreateWithoutRuntimeEffectsInput = {
+    id?: string
+    ownershipEpoch?: number
+    name: string
+    slug: string
+    description?: string | null
+    sourceType?: string
+    templateName?: string | null
+    gitRepositoryUrl?: string | null
+    gitDefaultBranch?: string | null
+    persistentVolumeClaim?: string | null
+    thumbnailUrl?: string | null
+    thumbnailUpdatedAt?: Date | string | null
+    objectStorageCapabilityExpiresAt?: Date | string | null
+    permanentDeletionStartedAt?: Date | string | null
+    deletedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    organization: OrganizationCreateNestedOneWithoutProjectsInput
+    environments?: ProjectEnvironmentCreateNestedManyWithoutProjectInput
+    envVars?: ProjectEnvVarCreateNestedManyWithoutProjectInput
+    secrets?: ProjectSecretCreateNestedManyWithoutProjectInput
+    collaborators?: ProjectCollaboratorCreateNestedManyWithoutProjectInput
+    activity?: ProjectActivityCreateNestedManyWithoutProjectInput
+    templates?: ProjectTemplateCreateNestedManyWithoutSourceProjectInput
+    galleryListings?: GalleryListingCreateNestedManyWithoutSourceProjectInput
+    workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
+    snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
+    manifestRevisions?: ProjectManifestRevisionCreateNestedManyWithoutProjectInput
+    storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
+    deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    reservedVmOperations?: ReservedVmOperationCreateNestedManyWithoutProjectInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodCreateNestedManyWithoutProjectInput
+    rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutProjectInput
+    fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
+    conversations?: AiConversationCreateNestedManyWithoutProjectInput
+    ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
+    collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutProjectInput
+    collaborationComments?: CollaborationCommentCreateNestedManyWithoutProjectInput
+    shareLinks?: ProjectShareLinkCreateNestedManyWithoutProjectInput
+    agentMemories?: AgentMemoryCreateNestedManyWithoutProjectInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
+    agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
+    connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
+    databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
+    skills?: ProjectSkillCreateNestedManyWithoutProjectInput
+    repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
+    slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
+    importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
+    targetRemixJobs?: RemixJobCreateNestedManyWithoutTargetProjectInput
+    sourceRemixShares?: RemixStorageShareCreateNestedManyWithoutSourceProjectInput
+    targetRemixShares?: RemixStorageShareCreateNestedManyWithoutTargetProjectInput
+    cloudBinding?: CloudProjectBindingCreateNestedOneWithoutProjectInput
+    checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
+    releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
+    objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
+  }
+
+  export type ProjectUncheckedCreateWithoutRuntimeEffectsInput = {
+    id?: string
+    organizationId: string
+    ownershipEpoch?: number
+    name: string
+    slug: string
+    description?: string | null
+    sourceType?: string
+    templateName?: string | null
+    gitRepositoryUrl?: string | null
+    gitDefaultBranch?: string | null
+    persistentVolumeClaim?: string | null
+    thumbnailUrl?: string | null
+    thumbnailUpdatedAt?: Date | string | null
+    objectStorageCapabilityExpiresAt?: Date | string | null
+    permanentDeletionStartedAt?: Date | string | null
+    deletedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    environments?: ProjectEnvironmentUncheckedCreateNestedManyWithoutProjectInput
+    envVars?: ProjectEnvVarUncheckedCreateNestedManyWithoutProjectInput
+    secrets?: ProjectSecretUncheckedCreateNestedManyWithoutProjectInput
+    collaborators?: ProjectCollaboratorUncheckedCreateNestedManyWithoutProjectInput
+    activity?: ProjectActivityUncheckedCreateNestedManyWithoutProjectInput
+    templates?: ProjectTemplateUncheckedCreateNestedManyWithoutSourceProjectInput
+    galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutSourceProjectInput
+    workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
+    snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
+    manifestRevisions?: ProjectManifestRevisionUncheckedCreateNestedManyWithoutProjectInput
+    storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
+    deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    reservedVmOperations?: ReservedVmOperationUncheckedCreateNestedManyWithoutProjectInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedCreateNestedManyWithoutProjectInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutProjectInput
+    fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
+    conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
+    ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
+    collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutProjectInput
+    collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutProjectInput
+    shareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutProjectInput
+    agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutProjectInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
+    agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
+    connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
+    databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
+    skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
+    repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
+    slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    targetRemixJobs?: RemixJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    sourceRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutSourceProjectInput
+    targetRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetProjectInput
+    cloudBinding?: CloudProjectBindingUncheckedCreateNestedOneWithoutProjectInput
+    checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
+    releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
+  }
+
+  export type ProjectCreateOrConnectWithoutRuntimeEffectsInput = {
+    where: ProjectWhereUniqueInput
+    create: XOR<ProjectCreateWithoutRuntimeEffectsInput, ProjectUncheckedCreateWithoutRuntimeEffectsInput>
+  }
+
+  export type ProjectRuntimeEffectTargetCreateWithoutEffectInput = {
+    ordinal: number
+    kind: string
+    namespace: string
+    name: string
+    expectedUid?: string | null
+    expectedResourceVersion?: string | null
+    manifestDigest?: string | null
+  }
+
+  export type ProjectRuntimeEffectTargetUncheckedCreateWithoutEffectInput = {
+    ordinal: number
+    kind: string
+    namespace: string
+    name: string
+    expectedUid?: string | null
+    expectedResourceVersion?: string | null
+    manifestDigest?: string | null
+  }
+
+  export type ProjectRuntimeEffectTargetCreateOrConnectWithoutEffectInput = {
+    where: ProjectRuntimeEffectTargetWhereUniqueInput
+    create: XOR<ProjectRuntimeEffectTargetCreateWithoutEffectInput, ProjectRuntimeEffectTargetUncheckedCreateWithoutEffectInput>
+  }
+
+  export type ProjectRuntimeEffectTargetCreateManyEffectInputEnvelope = {
+    data: ProjectRuntimeEffectTargetCreateManyEffectInput | ProjectRuntimeEffectTargetCreateManyEffectInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type ProjectUpsertWithoutRuntimeEffectsInput = {
+    update: XOR<ProjectUpdateWithoutRuntimeEffectsInput, ProjectUncheckedUpdateWithoutRuntimeEffectsInput>
+    create: XOR<ProjectCreateWithoutRuntimeEffectsInput, ProjectUncheckedCreateWithoutRuntimeEffectsInput>
+    where?: ProjectWhereInput
+  }
+
+  export type ProjectUpdateToOneWithWhereWithoutRuntimeEffectsInput = {
+    where?: ProjectWhereInput
+    data: XOR<ProjectUpdateWithoutRuntimeEffectsInput, ProjectUncheckedUpdateWithoutRuntimeEffectsInput>
+  }
+
+  export type ProjectUpdateWithoutRuntimeEffectsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
+    name?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceType?: StringFieldUpdateOperationsInput | string
+    templateName?: NullableStringFieldUpdateOperationsInput | string | null
+    gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
+    persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    objectStorageCapabilityExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    permanentDeletionStartedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    organization?: OrganizationUpdateOneRequiredWithoutProjectsNestedInput
+    environments?: ProjectEnvironmentUpdateManyWithoutProjectNestedInput
+    envVars?: ProjectEnvVarUpdateManyWithoutProjectNestedInput
+    secrets?: ProjectSecretUpdateManyWithoutProjectNestedInput
+    collaborators?: ProjectCollaboratorUpdateManyWithoutProjectNestedInput
+    activity?: ProjectActivityUpdateManyWithoutProjectNestedInput
+    templates?: ProjectTemplateUpdateManyWithoutSourceProjectNestedInput
+    galleryListings?: GalleryListingUpdateManyWithoutSourceProjectNestedInput
+    workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
+    snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
+    manifestRevisions?: ProjectManifestRevisionUpdateManyWithoutProjectNestedInput
+    storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
+    deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    reservedVmOperations?: ReservedVmOperationUpdateManyWithoutProjectNestedInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUpdateManyWithoutProjectNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutProjectNestedInput
+    fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
+    conversations?: AiConversationUpdateManyWithoutProjectNestedInput
+    ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
+    collaborationPresence?: CollaborationPresenceUpdateManyWithoutProjectNestedInput
+    collaborationComments?: CollaborationCommentUpdateManyWithoutProjectNestedInput
+    shareLinks?: ProjectShareLinkUpdateManyWithoutProjectNestedInput
+    agentMemories?: AgentMemoryUpdateManyWithoutProjectNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
+    agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
+    connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
+    databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
+    skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
+    repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
+    slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
+    importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
+    targetRemixJobs?: RemixJobUpdateManyWithoutTargetProjectNestedInput
+    sourceRemixShares?: RemixStorageShareUpdateManyWithoutSourceProjectNestedInput
+    targetRemixShares?: RemixStorageShareUpdateManyWithoutTargetProjectNestedInput
+    cloudBinding?: CloudProjectBindingUpdateOneWithoutProjectNestedInput
+    checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
+    releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
+    objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
+  }
+
+  export type ProjectUncheckedUpdateWithoutRuntimeEffectsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
+    name?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceType?: StringFieldUpdateOperationsInput | string
+    templateName?: NullableStringFieldUpdateOperationsInput | string | null
+    gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
+    persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    objectStorageCapabilityExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    permanentDeletionStartedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    environments?: ProjectEnvironmentUncheckedUpdateManyWithoutProjectNestedInput
+    envVars?: ProjectEnvVarUncheckedUpdateManyWithoutProjectNestedInput
+    secrets?: ProjectSecretUncheckedUpdateManyWithoutProjectNestedInput
+    collaborators?: ProjectCollaboratorUncheckedUpdateManyWithoutProjectNestedInput
+    activity?: ProjectActivityUncheckedUpdateManyWithoutProjectNestedInput
+    templates?: ProjectTemplateUncheckedUpdateManyWithoutSourceProjectNestedInput
+    galleryListings?: GalleryListingUncheckedUpdateManyWithoutSourceProjectNestedInput
+    workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
+    snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
+    manifestRevisions?: ProjectManifestRevisionUncheckedUpdateManyWithoutProjectNestedInput
+    storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
+    deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    reservedVmOperations?: ReservedVmOperationUncheckedUpdateManyWithoutProjectNestedInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedUpdateManyWithoutProjectNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutProjectNestedInput
+    fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
+    conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
+    ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
+    collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutProjectNestedInput
+    collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutProjectNestedInput
+    shareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutProjectNestedInput
+    agentMemories?: AgentMemoryUncheckedUpdateManyWithoutProjectNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
+    agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
+    connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
+    databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
+    skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
+    repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
+    slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    targetRemixJobs?: RemixJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    sourceRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutSourceProjectNestedInput
+    targetRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutTargetProjectNestedInput
+    cloudBinding?: CloudProjectBindingUncheckedUpdateOneWithoutProjectNestedInput
+    checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
+    releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
+  }
+
+  export type ProjectRuntimeEffectTargetUpsertWithWhereUniqueWithoutEffectInput = {
+    where: ProjectRuntimeEffectTargetWhereUniqueInput
+    update: XOR<ProjectRuntimeEffectTargetUpdateWithoutEffectInput, ProjectRuntimeEffectTargetUncheckedUpdateWithoutEffectInput>
+    create: XOR<ProjectRuntimeEffectTargetCreateWithoutEffectInput, ProjectRuntimeEffectTargetUncheckedCreateWithoutEffectInput>
+  }
+
+  export type ProjectRuntimeEffectTargetUpdateWithWhereUniqueWithoutEffectInput = {
+    where: ProjectRuntimeEffectTargetWhereUniqueInput
+    data: XOR<ProjectRuntimeEffectTargetUpdateWithoutEffectInput, ProjectRuntimeEffectTargetUncheckedUpdateWithoutEffectInput>
+  }
+
+  export type ProjectRuntimeEffectTargetUpdateManyWithWhereWithoutEffectInput = {
+    where: ProjectRuntimeEffectTargetScalarWhereInput
+    data: XOR<ProjectRuntimeEffectTargetUpdateManyMutationInput, ProjectRuntimeEffectTargetUncheckedUpdateManyWithoutEffectInput>
+  }
+
+  export type ProjectRuntimeEffectTargetScalarWhereInput = {
+    AND?: ProjectRuntimeEffectTargetScalarWhereInput | ProjectRuntimeEffectTargetScalarWhereInput[]
+    OR?: ProjectRuntimeEffectTargetScalarWhereInput[]
+    NOT?: ProjectRuntimeEffectTargetScalarWhereInput | ProjectRuntimeEffectTargetScalarWhereInput[]
+    effectId?: StringFilter<"ProjectRuntimeEffectTarget"> | string
+    ordinal?: IntFilter<"ProjectRuntimeEffectTarget"> | number
+    kind?: StringFilter<"ProjectRuntimeEffectTarget"> | string
+    namespace?: StringFilter<"ProjectRuntimeEffectTarget"> | string
+    name?: StringFilter<"ProjectRuntimeEffectTarget"> | string
+    expectedUid?: StringNullableFilter<"ProjectRuntimeEffectTarget"> | string | null
+    expectedResourceVersion?: StringNullableFilter<"ProjectRuntimeEffectTarget"> | string | null
+    manifestDigest?: StringNullableFilter<"ProjectRuntimeEffectTarget"> | string | null
+  }
+
+  export type ProjectRuntimeEffectCreateWithoutTargetsInput = {
+    id?: string
+    organizationId: string
+    ownershipEpoch: number
+    action: string
+    resourceId: string
+    intentHash: string
+    targetDigest: string
+    fencingToken?: bigint | number
+    ownerToken?: string | null
+    state?: $Enums.ProjectRuntimeEffectState
+    leaseExpiresAt?: Date | string | null
+    preparedAt?: Date | string
+    dispatchedAt?: Date | string | null
+    settledAt?: Date | string | null
+    drainingAt?: Date | string | null
+    drainedAt?: Date | string | null
+    abortedAt?: Date | string | null
+    lastErrorCode?: string | null
+    providerReceipt?: NullableJsonNullValueInput | InputJsonValue
+    operatorQuiescenceHash?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    project: ProjectCreateNestedOneWithoutRuntimeEffectsInput
+  }
+
+  export type ProjectRuntimeEffectUncheckedCreateWithoutTargetsInput = {
+    id?: string
+    projectId: string
+    organizationId: string
+    ownershipEpoch: number
+    action: string
+    resourceId: string
+    intentHash: string
+    targetDigest: string
+    fencingToken?: bigint | number
+    ownerToken?: string | null
+    state?: $Enums.ProjectRuntimeEffectState
+    leaseExpiresAt?: Date | string | null
+    preparedAt?: Date | string
+    dispatchedAt?: Date | string | null
+    settledAt?: Date | string | null
+    drainingAt?: Date | string | null
+    drainedAt?: Date | string | null
+    abortedAt?: Date | string | null
+    lastErrorCode?: string | null
+    providerReceipt?: NullableJsonNullValueInput | InputJsonValue
+    operatorQuiescenceHash?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ProjectRuntimeEffectCreateOrConnectWithoutTargetsInput = {
+    where: ProjectRuntimeEffectWhereUniqueInput
+    create: XOR<ProjectRuntimeEffectCreateWithoutTargetsInput, ProjectRuntimeEffectUncheckedCreateWithoutTargetsInput>
+  }
+
+  export type ProjectRuntimeEffectUpsertWithoutTargetsInput = {
+    update: XOR<ProjectRuntimeEffectUpdateWithoutTargetsInput, ProjectRuntimeEffectUncheckedUpdateWithoutTargetsInput>
+    create: XOR<ProjectRuntimeEffectCreateWithoutTargetsInput, ProjectRuntimeEffectUncheckedCreateWithoutTargetsInput>
+    where?: ProjectRuntimeEffectWhereInput
+  }
+
+  export type ProjectRuntimeEffectUpdateToOneWithWhereWithoutTargetsInput = {
+    where?: ProjectRuntimeEffectWhereInput
+    data: XOR<ProjectRuntimeEffectUpdateWithoutTargetsInput, ProjectRuntimeEffectUncheckedUpdateWithoutTargetsInput>
+  }
+
+  export type ProjectRuntimeEffectUpdateWithoutTargetsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
+    action?: StringFieldUpdateOperationsInput | string
+    resourceId?: StringFieldUpdateOperationsInput | string
+    intentHash?: StringFieldUpdateOperationsInput | string
+    targetDigest?: StringFieldUpdateOperationsInput | string
+    fencingToken?: BigIntFieldUpdateOperationsInput | bigint | number
+    ownerToken?: NullableStringFieldUpdateOperationsInput | string | null
+    state?: EnumProjectRuntimeEffectStateFieldUpdateOperationsInput | $Enums.ProjectRuntimeEffectState
+    leaseExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    preparedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    dispatchedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    settledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    drainingAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    drainedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    abortedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastErrorCode?: NullableStringFieldUpdateOperationsInput | string | null
+    providerReceipt?: NullableJsonNullValueInput | InputJsonValue
+    operatorQuiescenceHash?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    project?: ProjectUpdateOneRequiredWithoutRuntimeEffectsNestedInput
+  }
+
+  export type ProjectRuntimeEffectUncheckedUpdateWithoutTargetsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
+    action?: StringFieldUpdateOperationsInput | string
+    resourceId?: StringFieldUpdateOperationsInput | string
+    intentHash?: StringFieldUpdateOperationsInput | string
+    targetDigest?: StringFieldUpdateOperationsInput | string
+    fencingToken?: BigIntFieldUpdateOperationsInput | bigint | number
+    ownerToken?: NullableStringFieldUpdateOperationsInput | string | null
+    state?: EnumProjectRuntimeEffectStateFieldUpdateOperationsInput | $Enums.ProjectRuntimeEffectState
+    leaseExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    preparedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    dispatchedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    settledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    drainingAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    drainedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    abortedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastErrorCode?: NullableStringFieldUpdateOperationsInput | string | null
+    providerReceipt?: NullableJsonNullValueInput | InputJsonValue
+    operatorQuiescenceHash?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type UserCreateWithoutUserConnectionsInput = {
     id?: string
     email: string
@@ -298236,6 +302532,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
+    runtimeEffects?: ProjectRuntimeEffectCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutConnectionLinksInput = {
@@ -298295,6 +302592,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
+    runtimeEffects?: ProjectRuntimeEffectUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutConnectionLinksInput = {
@@ -298554,6 +302852,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
+    runtimeEffects?: ProjectRuntimeEffectUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutConnectionLinksInput = {
@@ -298613,6 +302912,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
+    runtimeEffects?: ProjectRuntimeEffectUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserConnectionUpsertWithoutProjectLinksInput = {
@@ -302055,6 +306355,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
+    runtimeEffects?: ProjectRuntimeEffectCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutDatabaseInstancesInput = {
@@ -302114,6 +306415,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
+    runtimeEffects?: ProjectRuntimeEffectUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutDatabaseInstancesInput = {
@@ -302341,6 +306643,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
+    runtimeEffects?: ProjectRuntimeEffectUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutDatabaseInstancesInput = {
@@ -302400,6 +306703,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
+    runtimeEffects?: ProjectRuntimeEffectUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type DatabaseSnapshotUpsertWithWhereUniqueWithoutDatabaseInstanceInput = {
@@ -303205,6 +307509,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
+    runtimeEffects?: ProjectRuntimeEffectCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutCheckpointsInput = {
@@ -303264,6 +307569,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
+    runtimeEffects?: ProjectRuntimeEffectUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutCheckpointsInput = {
@@ -303470,6 +307776,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
+    runtimeEffects?: ProjectRuntimeEffectUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutCheckpointsInput = {
@@ -303529,6 +307836,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
+    runtimeEffects?: ProjectRuntimeEffectUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutProjectCheckpointsInput = {
@@ -303725,6 +308033,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
+    runtimeEffects?: ProjectRuntimeEffectCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutTargetRemixJobsInput = {
@@ -303784,6 +308093,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
+    runtimeEffects?: ProjectRuntimeEffectUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutTargetRemixJobsInput = {
@@ -303941,6 +308251,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
+    runtimeEffects?: ProjectRuntimeEffectUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutTargetRemixJobsInput = {
@@ -304000,6 +308311,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
+    runtimeEffects?: ProjectRuntimeEffectUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type DatabaseInstanceUpsertWithoutRemixJobsAsTargetInput = {
@@ -304153,6 +308465,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
+    runtimeEffects?: ProjectRuntimeEffectCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutSourceRemixSharesInput = {
@@ -304212,6 +308525,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
+    runtimeEffects?: ProjectRuntimeEffectUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutSourceRemixSharesInput = {
@@ -304276,6 +308590,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
+    runtimeEffects?: ProjectRuntimeEffectCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutTargetRemixSharesInput = {
@@ -304335,6 +308650,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
+    runtimeEffects?: ProjectRuntimeEffectUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutTargetRemixSharesInput = {
@@ -304827,6 +309143,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
+    runtimeEffects?: ProjectRuntimeEffectUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutSourceRemixSharesInput = {
@@ -304886,6 +309203,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
+    runtimeEffects?: ProjectRuntimeEffectUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUpsertWithoutTargetRemixSharesInput = {
@@ -304956,6 +309274,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
+    runtimeEffects?: ProjectRuntimeEffectUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutTargetRemixSharesInput = {
@@ -305015,6 +309334,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
+    runtimeEffects?: ProjectRuntimeEffectUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type OrganizationUpsertWithoutRemixStorageSharesAsSourceInput = {
@@ -305673,6 +309993,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
+    runtimeEffects?: ProjectRuntimeEffectCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutImportJobsInput = {
@@ -305732,6 +310053,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
+    runtimeEffects?: ProjectRuntimeEffectUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutImportJobsInput = {
@@ -306080,6 +310402,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
+    runtimeEffects?: ProjectRuntimeEffectUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutImportJobsInput = {
@@ -306139,6 +310462,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
+    runtimeEffects?: ProjectRuntimeEffectUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ImportCreditReservationUpsertWithoutImportJobInput = {
@@ -306357,6 +310681,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
+    runtimeEffects?: ProjectRuntimeEffectCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutGalleryListingsInput = {
@@ -306416,6 +310741,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
+    runtimeEffects?: ProjectRuntimeEffectUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutGalleryListingsInput = {
@@ -306622,6 +310948,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
+    runtimeEffects?: ProjectRuntimeEffectUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutGalleryListingsInput = {
@@ -306681,6 +311008,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
+    runtimeEffects?: ProjectRuntimeEffectUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutGalleryListingsInput = {
@@ -308997,6 +313325,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
+    runtimeEffects?: ProjectRuntimeEffectCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutCloudBindingInput = {
@@ -309056,6 +313385,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
+    runtimeEffects?: ProjectRuntimeEffectUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutCloudBindingInput = {
@@ -309376,6 +313706,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
+    runtimeEffects?: ProjectRuntimeEffectUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutCloudBindingInput = {
@@ -309435,6 +313766,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
+    runtimeEffects?: ProjectRuntimeEffectUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type CloudProjectFactoryEventUpsertWithWhereUniqueWithoutBindingInput = {
@@ -315229,6 +319561,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
+    runtimeEffects?: ProjectRuntimeEffectUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutOrganizationInput = {
@@ -315288,6 +319621,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
+    runtimeEffects?: ProjectRuntimeEffectUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateManyWithoutOrganizationInput = {
@@ -317209,6 +321543,31 @@ export namespace Prisma {
     createdAt?: Date | string
   }
 
+  export type ProjectRuntimeEffectCreateManyProjectInput = {
+    id?: string
+    organizationId: string
+    ownershipEpoch: number
+    action: string
+    resourceId: string
+    intentHash: string
+    targetDigest: string
+    fencingToken?: bigint | number
+    ownerToken?: string | null
+    state?: $Enums.ProjectRuntimeEffectState
+    leaseExpiresAt?: Date | string | null
+    preparedAt?: Date | string
+    dispatchedAt?: Date | string | null
+    settledAt?: Date | string | null
+    drainingAt?: Date | string | null
+    drainedAt?: Date | string | null
+    abortedAt?: Date | string | null
+    lastErrorCode?: string | null
+    providerReceipt?: NullableJsonNullValueInput | InputJsonValue
+    operatorQuiescenceHash?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
   export type ProjectEnvironmentUpdateWithoutProjectInput = {
     id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
@@ -318921,6 +323280,83 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type ProjectRuntimeEffectUpdateWithoutProjectInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
+    action?: StringFieldUpdateOperationsInput | string
+    resourceId?: StringFieldUpdateOperationsInput | string
+    intentHash?: StringFieldUpdateOperationsInput | string
+    targetDigest?: StringFieldUpdateOperationsInput | string
+    fencingToken?: BigIntFieldUpdateOperationsInput | bigint | number
+    ownerToken?: NullableStringFieldUpdateOperationsInput | string | null
+    state?: EnumProjectRuntimeEffectStateFieldUpdateOperationsInput | $Enums.ProjectRuntimeEffectState
+    leaseExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    preparedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    dispatchedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    settledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    drainingAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    drainedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    abortedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastErrorCode?: NullableStringFieldUpdateOperationsInput | string | null
+    providerReceipt?: NullableJsonNullValueInput | InputJsonValue
+    operatorQuiescenceHash?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    targets?: ProjectRuntimeEffectTargetUpdateManyWithoutEffectNestedInput
+  }
+
+  export type ProjectRuntimeEffectUncheckedUpdateWithoutProjectInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
+    action?: StringFieldUpdateOperationsInput | string
+    resourceId?: StringFieldUpdateOperationsInput | string
+    intentHash?: StringFieldUpdateOperationsInput | string
+    targetDigest?: StringFieldUpdateOperationsInput | string
+    fencingToken?: BigIntFieldUpdateOperationsInput | bigint | number
+    ownerToken?: NullableStringFieldUpdateOperationsInput | string | null
+    state?: EnumProjectRuntimeEffectStateFieldUpdateOperationsInput | $Enums.ProjectRuntimeEffectState
+    leaseExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    preparedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    dispatchedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    settledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    drainingAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    drainedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    abortedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastErrorCode?: NullableStringFieldUpdateOperationsInput | string | null
+    providerReceipt?: NullableJsonNullValueInput | InputJsonValue
+    operatorQuiescenceHash?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    targets?: ProjectRuntimeEffectTargetUncheckedUpdateManyWithoutEffectNestedInput
+  }
+
+  export type ProjectRuntimeEffectUncheckedUpdateManyWithoutProjectInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
+    action?: StringFieldUpdateOperationsInput | string
+    resourceId?: StringFieldUpdateOperationsInput | string
+    intentHash?: StringFieldUpdateOperationsInput | string
+    targetDigest?: StringFieldUpdateOperationsInput | string
+    fencingToken?: BigIntFieldUpdateOperationsInput | bigint | number
+    ownerToken?: NullableStringFieldUpdateOperationsInput | string | null
+    state?: EnumProjectRuntimeEffectStateFieldUpdateOperationsInput | $Enums.ProjectRuntimeEffectState
+    leaseExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    preparedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    dispatchedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    settledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    drainingAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    drainedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    abortedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastErrorCode?: NullableStringFieldUpdateOperationsInput | string | null
+    providerReceipt?: NullableJsonNullValueInput | InputJsonValue
+    operatorQuiescenceHash?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type ObjectStorageOperationProjectScopeCreateManyOperationInput = {
     ordinal: number
     projectIdSnapshot: string
@@ -320196,6 +324632,46 @@ export namespace Prisma {
     errorMessage?: NullableStringFieldUpdateOperationsInput | string | null
     startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type ProjectRuntimeEffectTargetCreateManyEffectInput = {
+    ordinal: number
+    kind: string
+    namespace: string
+    name: string
+    expectedUid?: string | null
+    expectedResourceVersion?: string | null
+    manifestDigest?: string | null
+  }
+
+  export type ProjectRuntimeEffectTargetUpdateWithoutEffectInput = {
+    ordinal?: IntFieldUpdateOperationsInput | number
+    kind?: StringFieldUpdateOperationsInput | string
+    namespace?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    expectedUid?: NullableStringFieldUpdateOperationsInput | string | null
+    expectedResourceVersion?: NullableStringFieldUpdateOperationsInput | string | null
+    manifestDigest?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type ProjectRuntimeEffectTargetUncheckedUpdateWithoutEffectInput = {
+    ordinal?: IntFieldUpdateOperationsInput | number
+    kind?: StringFieldUpdateOperationsInput | string
+    namespace?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    expectedUid?: NullableStringFieldUpdateOperationsInput | string | null
+    expectedResourceVersion?: NullableStringFieldUpdateOperationsInput | string | null
+    manifestDigest?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type ProjectRuntimeEffectTargetUncheckedUpdateManyWithoutEffectInput = {
+    ordinal?: IntFieldUpdateOperationsInput | number
+    kind?: StringFieldUpdateOperationsInput | string
+    namespace?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    expectedUid?: NullableStringFieldUpdateOperationsInput | string | null
+    expectedResourceVersion?: NullableStringFieldUpdateOperationsInput | string | null
+    manifestDigest?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type ProjectConnectionLinkCreateManyUserConnectionInput = {

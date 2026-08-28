@@ -2,6 +2,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import {
   activeNixGeneration,
+  appBuildPodName,
   assertWorkspaceImageAllowed,
   assertNixGenerationUsable,
   chooseNixStoreZone,
@@ -12,6 +13,8 @@ import {
   parseNixStorePvcZones,
   serverAppDeployment,
   serverDeploymentName,
+  scheduledJobPodName,
+  scheduledJobSecretName,
   serverAppPersistentVolumeClaim,
   workspaceAgentSecret,
   workspacePod,
@@ -56,6 +59,8 @@ const WORKSPACE_PURGE_INVARIANT = {
   pvcRemains: 'WORKSPACE_PURGE_PVC_REMAINS',
   barrierUnverifiable: 'WORKSPACE_PURGE_BARRIER_UNVERIFIABLE',
   workspaceNotFound: 'WORKSPACE_NOT_FOUND',
+  projectDeletionAuthorityUnavailable: 'WORKSPACE_PROJECT_DELETION_AUTHORITY_UNAVAILABLE',
+  projectDeletionResourceRemains: 'WORKSPACE_PROJECT_DELETION_RESOURCE_REMAINS',
 } as const;
 
 type WorkspacePurgeInvariantCode = (typeof WORKSPACE_PURGE_INVARIANT)[keyof typeof WORKSPACE_PURGE_INVARIANT];
@@ -154,6 +159,91 @@ export interface WorkspacePurgeLease {
   ownerToken: string;
 }
 
+/**
+ * Exact API-owned permanent-deletion lease. The manager independently checks
+ * this tuple against ObjectStorageOperation before every Kubernetes effect so
+ * an expired/reclaimed API worker cannot keep deleting workspace resources.
+ */
+export interface WorkspaceProjectDeletionLease {
+  operationId: string;
+  ownerToken: string;
+  fencingToken: string;
+  requestHash: string;
+  scopeHash: string;
+  projectId: string;
+  expectedOrganizationId: string;
+}
+
+export type ProjectRuntimeEffectTargetKind =
+  | 'Deployment'
+  | 'ReplicaSet'
+  | 'Pod'
+  | 'Service'
+  | 'Endpoints'
+  | 'EndpointSlice'
+  | 'Ingress'
+  | 'Secret'
+  | 'PersistentVolumeClaim';
+
+export interface ProjectRuntimeEffectTarget {
+  kind: ProjectRuntimeEffectTargetKind;
+  namespace: string;
+  name: string;
+}
+
+export interface ProjectRuntimeEffectDescriptor {
+  action: string;
+  resourceId: string;
+  targets: ProjectRuntimeEffectTarget[];
+}
+
+export interface WorkspaceProjectDeletionProof {
+  schemaVersion: 'workspace-project-erasure-v2';
+  projectId: string;
+  organizationId: string;
+  databaseInventoryRetained: true;
+  runtimeEffectsDrained: true;
+  kubernetes: {
+    deploymentsAbsent: true;
+    replicaSetsAbsent: true;
+    podsAbsent: true;
+    servicesAbsent: true;
+    endpointsAbsent: true;
+    endpointSlicesAbsent: true;
+    ingressesAbsent: true;
+    ownedRuntimeSecretsAbsent: true;
+    persistentVolumeClaimsAbsent: true;
+  };
+}
+
+export interface WorkspaceProjectDeletionInventory {
+  workspaces: WorkspaceRecord[];
+  /** User-facing Workspace rows survive runtime loss and retain deterministic names. */
+  workspaceIds: string[];
+  /** Project.persistentVolumeClaim predates WorkspaceRuntime and may be unlabelled. */
+  persistentVolumeClaims: string[];
+  /** Durable server deployment ids cover legacy app secrets lacking a Project label. */
+  serverDeploymentIds: string[];
+  /** Durable scheduled-run ids cover Pods/Secrets even when labels are missing. */
+  scheduledRunIds: string[];
+  /** Provider targets captured before every runtime effect entered IN_FLIGHT. */
+  runtimeEffectTargets: ProjectRuntimeEffectTarget[];
+  /** Effects transitioned to DRAINING by this permanent-deletion authority. */
+  runtimeEffectIds: string[];
+}
+
+export interface WorkspaceProjectDeletionState {
+  runtimeCount: number;
+  /** True only when every persisted provider effect is DRAINED or ABORTED. */
+  runtimeEffectsDrained: boolean;
+  workspaceIds: string[];
+  persistentVolumeClaims: string[];
+  serverDeploymentIds: string[];
+  scheduledRunIds: string[];
+  runtimeEffectTargets: ProjectRuntimeEffectTarget[];
+  runtimeEffectIds: string[];
+}
+
 export interface WorkspacePurgeEffectDescriptor {
   key: string;
   resourceType: 'workspace_barrier' | 'k8s_service' | 'k8s_pod' | 'k8s_secret' | 'k8s_pvc';
@@ -208,6 +298,22 @@ export interface WorkspaceStore {
    * Production holds the WorkspaceRuntime row lock for the whole provider call.
    */
   executeProvisionEffect<T>(workspaceId: string, effect: () => Promise<T>): Promise<T>;
+  /**
+   * Session-level project barrier shared with the API physical-mutation lock.
+   * The callback receives a live authority assertion for multi-effect providers.
+   */
+  executeProjectProvisionEffect?<T>(
+    input: { projectId: string; expectedOrganizationId: string },
+    effect: (assertAuthority: () => Promise<void>) => Promise<T>,
+  ): Promise<T>;
+  executeDeploymentProvisionEffect?<T>(
+    input: string | { deploymentId: string; projectId: string; expectedOrganizationId: string },
+    effect: (assertAuthority: () => Promise<void>) => Promise<T>,
+  ): Promise<T>;
+  executeScheduledRunProvisionEffect?<T>(
+    input: { runId: string; projectId: string; expectedOrganizationId: string },
+    effect: (assertAuthority: () => Promise<void>) => Promise<T>,
+  ): Promise<T>;
   acquirePurgeFence(workspaceId: string, lease: WorkspacePurgeLease): Promise<WorkspaceRecord>;
   releasePurgeFence(workspaceId: string, lease: WorkspacePurgeLease): Promise<boolean>;
   completePurgeState(
@@ -222,6 +328,18 @@ export interface WorkspaceStore {
     effect: () => Promise<T>,
   ): Promise<{ executed: boolean; receipt: T }>;
   reconcilePurgeFences(take?: number): Promise<{ scanned: number; reconciled: number; workspaceIds: string[] }>;
+
+  /** Production-only, DB-authoritative project deletion fence. */
+  acquireProjectDeletionFence?(
+    lease: WorkspaceProjectDeletionLease,
+    allowedStatuses: readonly ('EFFECT_STARTED' | 'VERIFYING')[],
+  ): Promise<WorkspaceProjectDeletionInventory>;
+  assertProjectDeletionLease?(
+    lease: WorkspaceProjectDeletionLease,
+    allowedStatuses: readonly ('EFFECT_STARTED' | 'VERIFYING')[],
+  ): Promise<void>;
+  completeProjectDeletion?(lease: WorkspaceProjectDeletionLease): Promise<number>;
+  inspectProjectDeletionState?(lease: WorkspaceProjectDeletionLease): Promise<WorkspaceProjectDeletionState>;
 }
 
 export interface EventBus {
@@ -304,6 +422,27 @@ export class JsonWorkspaceStore implements WorkspaceStore {
       throw workspacePurgeInvariantError(WORKSPACE_PURGE_INVARIANT.frozen, { statusCode: 409 });
     }
     return effect();
+  }
+
+  async executeProjectProvisionEffect<T>(
+    _input: { projectId: string; expectedOrganizationId: string },
+    effect: (assertAuthority: () => Promise<void>) => Promise<T>,
+  ): Promise<T> {
+    return effect(async () => undefined);
+  }
+
+  async executeDeploymentProvisionEffect<T>(
+    _input: string | { deploymentId: string; projectId: string; expectedOrganizationId: string },
+    effect: (assertAuthority: () => Promise<void>) => Promise<T>,
+  ): Promise<T> {
+    return effect(async () => undefined);
+  }
+
+  async executeScheduledRunProvisionEffect<T>(
+    _input: { runId: string; projectId: string; expectedOrganizationId: string },
+    effect: (assertAuthority: () => Promise<void>) => Promise<T>,
+  ): Promise<T> {
+    return effect(async () => undefined);
   }
 
   async acquirePurgeFence(workspaceId: string, lease: WorkspacePurgeLease) {
@@ -1315,7 +1454,11 @@ export class WorkspaceManager {
           metadata: {
             name: secretName,
             namespace: input.namespace,
-            labels: { 'vibecore.ai/server-deploy': input.deploymentId },
+            labels: {
+              'vibecore.ai/server-deploy': input.deploymentId,
+              ...(input.projectId ? { 'vibecore.ai/project': input.projectId } : {}),
+              ...(input.orgId ? { 'vibecore.ai/org': input.orgId } : {}),
+            },
           },
           type: 'Opaque',
           stringData: input.secrets as Record<string, string>,
@@ -2901,6 +3044,401 @@ export class WorkspaceManager {
     this.lastTouchAt.delete(workspaceId);
     await this.publish(deleted, 'workspace.deleted');
     return deleted;
+  }
+
+  private projectDeletionStore() {
+    const store = this.store;
+    if (
+      !store.acquireProjectDeletionFence ||
+      !store.assertProjectDeletionLease ||
+      !store.completeProjectDeletion ||
+      !store.inspectProjectDeletionState
+    ) {
+      throw workspacePurgeInvariantError(WORKSPACE_PURGE_INVARIANT.projectDeletionAuthorityUnavailable, {
+        statusCode: 503,
+      });
+    }
+    return {
+      acquire: store.acquireProjectDeletionFence.bind(store),
+      assertLease: store.assertProjectDeletionLease.bind(store),
+      complete: store.completeProjectDeletion.bind(store),
+      inspect: store.inspectProjectDeletionState.bind(store),
+    };
+  }
+
+  executeProjectProvisionEffect<T>(
+    input: { projectId: string; expectedOrganizationId: string },
+    effect: (assertAuthority: () => Promise<void>) => Promise<T>,
+  ): Promise<T> {
+    if (!this.store.executeProjectProvisionEffect) {
+      throw workspacePurgeInvariantError(WORKSPACE_PURGE_INVARIANT.projectDeletionAuthorityUnavailable, {
+        statusCode: 503,
+      });
+    }
+    return this.store.executeProjectProvisionEffect(input, effect);
+  }
+
+  executeDeploymentProvisionEffect<T>(
+    input: string | { deploymentId: string; projectId: string; expectedOrganizationId: string },
+    effect: (assertAuthority: () => Promise<void>) => Promise<T>,
+  ): Promise<T> {
+    if (!this.store.executeDeploymentProvisionEffect) {
+      throw workspacePurgeInvariantError(WORKSPACE_PURGE_INVARIANT.projectDeletionAuthorityUnavailable, {
+        statusCode: 503,
+      });
+    }
+    return this.store.executeDeploymentProvisionEffect(input, effect);
+  }
+
+  executeScheduledRunProvisionEffect<T>(
+    input: { runId: string; projectId: string; expectedOrganizationId: string },
+    effect: (assertAuthority: () => Promise<void>) => Promise<T>,
+  ): Promise<T> {
+    if (!this.store.executeScheduledRunProvisionEffect) {
+      throw workspacePurgeInvariantError(WORKSPACE_PURGE_INVARIANT.projectDeletionAuthorityUnavailable, {
+        statusCode: 503,
+      });
+    }
+    return this.store.executeScheduledRunProvisionEffect(input, effect);
+  }
+
+  private async projectKubernetesObjects(
+    namespace: string,
+    projectId: string,
+    durableServiceNames: readonly string[] = [],
+  ): Promise<
+    Array<{
+      kind:
+        | 'Deployment'
+        | 'ReplicaSet'
+        | 'Pod'
+        | 'Service'
+        | 'Endpoints'
+        | 'EndpointSlice'
+        | 'Ingress'
+        | 'PersistentVolumeClaim';
+      name: string;
+      serverDeploymentId?: string;
+    }>
+  > {
+    const selectors = [`vibecore.ai/project-id=${projectId}`, `vibecore.ai/project=${projectId}`] as const;
+    const kinds = [
+      'Deployment',
+      'ReplicaSet',
+      'Pod',
+      'Service',
+      'EndpointSlice',
+      'Ingress',
+      'PersistentVolumeClaim',
+    ] as const;
+    const listed = await Promise.all(
+      selectors.flatMap((selector) =>
+        kinds.map(async (kind) => ({ kind, rows: await this.k8s.listByLabel(kind, namespace, selector) })),
+      ),
+    );
+    const byIdentity = new Map<
+      string,
+      {
+        kind:
+          | 'Deployment'
+          | 'ReplicaSet'
+          | 'Pod'
+          | 'Service'
+          | 'Endpoints'
+          | 'EndpointSlice'
+          | 'Ingress'
+          | 'PersistentVolumeClaim';
+        name: string;
+        serverDeploymentId?: string;
+      }
+    >();
+    for (const { kind, rows } of listed) {
+      for (const row of rows) {
+        if (!row.metadata.name) continue;
+        byIdentity.set(`${kind}:${row.metadata.name}`, {
+          kind,
+          name: row.metadata.name,
+          ...(row.metadata.labels?.['vibecore.ai/server-deploy']
+            ? { serverDeploymentId: row.metadata.labels['vibecore.ai/server-deploy'] }
+            : {}),
+        });
+      }
+    }
+    const serviceNames = new Set(durableServiceNames);
+    for (const target of byIdentity.values()) {
+      if (target.kind === 'Service') serviceNames.add(target.name);
+    }
+    const endpointSlices = await Promise.all(
+      [...serviceNames].map((name) =>
+        this.k8s.listByLabel('EndpointSlice', namespace, `kubernetes.io/service-name=${name}`),
+      ),
+    );
+    for (const rows of endpointSlices) {
+      for (const row of rows) {
+        if (!row.metadata.name) continue;
+        byIdentity.set(`EndpointSlice:${row.metadata.name}`, {
+          kind: 'EndpointSlice',
+          name: row.metadata.name,
+        });
+      }
+    }
+    const endpoints = await Promise.all(
+      [...serviceNames].map(async (name) => ({
+        name,
+        object: await this.k8s.get('Endpoints', namespace, name),
+      })),
+    );
+    for (const { name, object } of endpoints) {
+      if (object) byIdentity.set(`Endpoints:${name}`, { kind: 'Endpoints', name });
+    }
+    return [...byIdentity.values()];
+  }
+
+  /**
+   * Deletes every runtime object owned by a project under the API's durable
+   * permanent-deletion lease. Runtime-row names cover legacy/unlabelled
+   * objects; the label inventory additionally catches orphaned Kubernetes
+   * objects whose DB row was lost.
+   */
+  async purgeProjectWorkspaces(
+    namespace: string,
+    lease: WorkspaceProjectDeletionLease,
+    allowedStatuses: readonly ('EFFECT_STARTED' | 'VERIFYING')[] = ['EFFECT_STARTED'],
+  ): Promise<WorkspaceProjectDeletionProof> {
+    const authority = this.projectDeletionStore();
+    const inventory = await authority.acquire(lease, allowedStatuses);
+    const byIdentity = new Map<
+      string,
+      {
+        kind:
+          | 'Deployment'
+          | 'ReplicaSet'
+          | 'Pod'
+          | 'Service'
+          | 'Endpoints'
+          | 'EndpointSlice'
+          | 'Ingress'
+          | 'Secret'
+          | 'PersistentVolumeClaim';
+        name: string;
+      }
+    >();
+    const add = (
+      kind:
+        | 'Deployment'
+        | 'ReplicaSet'
+        | 'Pod'
+        | 'Service'
+        | 'Endpoints'
+        | 'EndpointSlice'
+        | 'Ingress'
+        | 'Secret'
+        | 'PersistentVolumeClaim',
+      name: string,
+    ) => {
+      if (name) byIdentity.set(`${kind}:${name}`, { kind, name });
+    };
+
+    for (const workspace of inventory.workspaces) {
+      add('Pod', workspace.podName);
+      add('Service', workspace.serviceName);
+      add('Secret', workspace.agentTokenSecretName);
+      add('PersistentVolumeClaim', workspace.pvcName);
+    }
+    for (const workspaceId of inventory.workspaceIds) {
+      add('Pod', `workspace-${workspaceId}`);
+      add('Service', `workspace-${workspaceId}`);
+      add('Endpoints', `workspace-${workspaceId}`);
+      add('Secret', `agent-token-${workspaceId}`);
+      add('PersistentVolumeClaim', `pvc-${workspaceId}`);
+    }
+    for (const pvcName of inventory.persistentVolumeClaims) add('PersistentVolumeClaim', pvcName);
+    for (const runId of inventory.scheduledRunIds) {
+      add('Pod', scheduledJobPodName(runId));
+      add('Secret', scheduledJobSecretName(runId));
+    }
+    for (const target of inventory.runtimeEffectTargets) {
+      if (target.namespace !== namespace) {
+        throw workspacePurgeInvariantError(WORKSPACE_PURGE_INVARIANT.projectDeletionResourceRemains, {
+          statusCode: 409,
+        });
+      }
+      add(target.kind, target.name);
+    }
+    const serverDeploymentIds = new Set(inventory.serverDeploymentIds);
+    const durableServiceNames = new Set([
+      ...inventory.workspaces.map(({ serviceName }) => serviceName),
+      ...inventory.workspaceIds.map((workspaceId) => `workspace-${workspaceId}`),
+      ...inventory.serverDeploymentIds.map(serverDeploymentName),
+    ]);
+    for (const target of await this.projectKubernetesObjects(namespace, lease.projectId, [...durableServiceNames])) {
+      add(target.kind, target.name);
+      if (target.serverDeploymentId) {
+        serverDeploymentIds.add(target.serverDeploymentId);
+        durableServiceNames.add(serverDeploymentName(target.serverDeploymentId));
+      }
+    }
+    for (const deploymentId of serverDeploymentIds) {
+      const name = serverDeploymentName(deploymentId);
+      add('Pod', appBuildPodName(deploymentId));
+      add('Deployment', name);
+      add('Service', name);
+      add('Endpoints', name);
+      add('Ingress', name);
+      add('Secret', `app-secrets-${deploymentId}`);
+      add('PersistentVolumeClaim', `reserved-data-${deploymentId}`);
+    }
+
+    const deletionOrder = new Map([
+      ['Deployment', 0],
+      ['ReplicaSet', 1],
+      ['Pod', 2],
+      ['Ingress', 3],
+      ['Service', 4],
+      ['Endpoints', 5],
+      ['EndpointSlice', 6],
+      ['Secret', 7],
+      ['PersistentVolumeClaim', 8],
+    ]);
+    for (const target of [...byIdentity.values()].sort(
+      (left, right) =>
+        (deletionOrder.get(left.kind) ?? 99) - (deletionOrder.get(right.kind) ?? 99) ||
+        left.name.localeCompare(right.name),
+    )) {
+      await authority.assertLease(lease, allowedStatuses);
+      await this.k8s.delete(target.kind, namespace, target.name);
+      await authority.assertLease(lease, allowedStatuses);
+      if (await this.k8s.get(target.kind, namespace, target.name)) {
+        throw workspacePurgeInvariantError(WORKSPACE_PURGE_INVARIANT.projectDeletionResourceRemains, {
+          statusCode: 503,
+        });
+      }
+    }
+
+    await authority.assertLease(lease, allowedStatuses);
+    const remaining = await this.projectKubernetesObjects(namespace, lease.projectId, [...durableServiceNames]);
+    const exactServerResources = await Promise.all(
+      [...serverDeploymentIds].flatMap((deploymentId) => {
+        const name = serverDeploymentName(deploymentId);
+        return [
+          this.k8s.get('Deployment', namespace, name),
+          this.k8s.get('Service', namespace, name),
+          this.k8s.get('Ingress', namespace, name),
+          this.k8s.get('Secret', namespace, `app-secrets-${deploymentId}`),
+        ];
+      }),
+    );
+    if (remaining.length > 0 || exactServerResources.some((object) => object !== undefined)) {
+      throw workspacePurgeInvariantError(WORKSPACE_PURGE_INVARIANT.projectDeletionResourceRemains, {
+        statusCode: 503,
+      });
+    }
+    await authority.complete(lease);
+    return this.verifyProjectWorkspacesAbsent(namespace, lease, allowedStatuses, false);
+  }
+
+  async verifyProjectWorkspacesAbsent(
+    namespace: string,
+    lease: WorkspaceProjectDeletionLease,
+    allowedStatuses: readonly ('EFFECT_STARTED' | 'VERIFYING')[] = ['VERIFYING'],
+    resumeIfIncomplete = true,
+  ): Promise<WorkspaceProjectDeletionProof> {
+    const authority = this.projectDeletionStore();
+    await authority.assertLease(lease, allowedStatuses);
+    const state = await authority.inspect(lease);
+    const [
+      kubernetesObjects,
+      legacyPersistentVolumeClaims,
+      exactWorkspaceResources,
+      exactServerResources,
+      exactScheduledResources,
+      exactRuntimeEffectResources,
+    ] = await Promise.all([
+      this.projectKubernetesObjects(namespace, lease.projectId, [
+        ...state.workspaceIds.map((workspaceId) => `workspace-${workspaceId}`),
+        ...state.serverDeploymentIds.map(serverDeploymentName),
+      ]),
+      Promise.all(
+        state.persistentVolumeClaims.map(async (name) => ({
+          name,
+          object: await this.k8s.get('PersistentVolumeClaim', namespace, name),
+        })),
+      ),
+      Promise.all(
+        state.workspaceIds.flatMap((workspaceId) => [
+          this.k8s.get('Pod', namespace, `workspace-${workspaceId}`),
+          this.k8s.get('Service', namespace, `workspace-${workspaceId}`),
+          this.k8s.get('Endpoints', namespace, `workspace-${workspaceId}`),
+          this.k8s.get('Secret', namespace, `agent-token-${workspaceId}`),
+          this.k8s.get('PersistentVolumeClaim', namespace, `pvc-${workspaceId}`),
+        ]),
+      ),
+      Promise.all(
+        state.serverDeploymentIds.flatMap((deploymentId) => {
+          const name = serverDeploymentName(deploymentId);
+          return [
+            this.k8s.get('Pod', namespace, appBuildPodName(deploymentId)),
+            this.k8s.get('Deployment', namespace, name),
+            this.k8s.get('Service', namespace, name),
+            this.k8s.get('Endpoints', namespace, name),
+            this.k8s.get('Ingress', namespace, name),
+            this.k8s.get('Secret', namespace, `app-secrets-${deploymentId}`),
+            this.k8s.get('PersistentVolumeClaim', namespace, `reserved-data-${deploymentId}`),
+          ];
+        }),
+      ),
+      Promise.all(
+        state.scheduledRunIds.flatMap((runId) => [
+          this.k8s.get('Pod', namespace, scheduledJobPodName(runId)),
+          this.k8s.get('Secret', namespace, scheduledJobSecretName(runId)),
+        ]),
+      ),
+      Promise.all(
+        state.runtimeEffectTargets.map((target) => {
+          if (target.namespace !== namespace) {
+            throw workspacePurgeInvariantError(WORKSPACE_PURGE_INVARIANT.projectDeletionResourceRemains, {
+              statusCode: 409,
+            });
+          }
+          return this.k8s.get(target.kind, target.namespace, target.name);
+        }),
+      ),
+    ]);
+    await authority.assertLease(lease, allowedStatuses);
+    if (
+      !state.runtimeEffectsDrained ||
+      kubernetesObjects.length !== 0 ||
+      legacyPersistentVolumeClaims.some(({ object }) => object !== undefined) ||
+      exactWorkspaceResources.some((object) => object !== undefined) ||
+      exactServerResources.some((object) => object !== undefined) ||
+      exactScheduledResources.some((object) => object !== undefined) ||
+      exactRuntimeEffectResources.some((object) => object !== undefined)
+    ) {
+      if (resumeIfIncomplete && allowedStatuses.includes('VERIFYING')) {
+        return this.purgeProjectWorkspaces(namespace, lease, ['VERIFYING']);
+      }
+      throw workspacePurgeInvariantError(WORKSPACE_PURGE_INVARIANT.projectDeletionResourceRemains, {
+        statusCode: 503,
+      });
+    }
+    return {
+      schemaVersion: 'workspace-project-erasure-v2',
+      projectId: lease.projectId,
+      organizationId: lease.expectedOrganizationId,
+      databaseInventoryRetained: true,
+      runtimeEffectsDrained: true,
+      kubernetes: {
+        deploymentsAbsent: true,
+        replicaSetsAbsent: true,
+        podsAbsent: true,
+        servicesAbsent: true,
+        endpointsAbsent: true,
+        endpointSlicesAbsent: true,
+        ingressesAbsent: true,
+        ownedRuntimeSecretsAbsent: true,
+        persistentVolumeClaimsAbsent: true,
+      },
+    };
   }
 
   async unfreezeWorkspace(workspaceId: string, lease: WorkspacePurgeLease) {

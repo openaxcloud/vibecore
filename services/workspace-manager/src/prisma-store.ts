@@ -1,9 +1,22 @@
+import { createHash, randomUUID } from 'node:crypto';
 import { Prisma, type DatabaseClient } from '@vibecore/database';
-import type { WorkspacePlan } from '@vibecore/k8s-client';
+import {
+  appBuildPodName,
+  scheduledJobPodName,
+  scheduledJobSecretName,
+  serverDeploymentName,
+  type WorkspacePlan,
+} from '@vibecore/k8s-client';
+import { Client } from 'pg';
 
 import type {
+  ProjectRuntimeEffectDescriptor,
+  ProjectRuntimeEffectTarget,
   WorkspacePurgeEffectDescriptor,
   WorkspacePurgeLease,
+  WorkspaceProjectDeletionInventory,
+  WorkspaceProjectDeletionLease,
+  WorkspaceProjectDeletionState,
   WorkspaceRecord,
   WorkspaceStatus,
   WorkspaceStore,
@@ -19,6 +32,13 @@ const WORKSPACE_PURGE_STORE_INVARIANT = {
   fenceLost: 'WORKSPACE_PURGE_FENCE_LOST',
   effectDescriptorMismatch: 'WORKSPACE_PURGE_EFFECT_DESCRIPTOR_MISMATCH',
   effectReceiptCorrupt: 'WORKSPACE_PURGE_EFFECT_RECEIPT_CORRUPT',
+  projectDeletionLeaseInvalid: 'WORKSPACE_PROJECT_DELETION_LEASE_INVALID',
+  projectDeletionScopeInvalid: 'WORKSPACE_PROJECT_DELETION_SCOPE_INVALID',
+  projectDeletionFenceLost: 'WORKSPACE_PROJECT_DELETION_FENCE_LOST',
+  projectProvisionLockUnavailable: 'WORKSPACE_PROJECT_PROVISION_LOCK_UNAVAILABLE',
+  projectRuntimeEffectActive: 'WORKSPACE_PROJECT_RUNTIME_EFFECT_ACTIVE',
+  projectRuntimeEffectFenceLost: 'WORKSPACE_PROJECT_RUNTIME_EFFECT_FENCE_LOST',
+  projectRuntimeEffectInFlight: 'WORKSPACE_PROJECT_RUNTIME_EFFECT_IN_FLIGHT',
 } as const;
 
 type WorkspacePurgeStoreInvariantCode =
@@ -36,6 +56,114 @@ function purgeErrorCode(error: unknown): string {
   const code = (error as { code?: unknown } | null)?.code;
   if (typeof code === 'string' && /^[A-Z0-9_]{1,100}$/.test(code)) return code;
   return 'WORKSPACE_PURGE_EFFECT_FAILED';
+}
+
+const RUNTIME_EFFECT_LEASE_SECONDS = 600;
+
+function runtimeNamespace(): string {
+  return process.env.WORKSPACE_RUNTIME_NAMESPACE?.trim() || 'workspaces';
+}
+
+function normalizeRuntimeEffectDescriptor(
+  descriptor: ProjectRuntimeEffectDescriptor,
+): ProjectRuntimeEffectDescriptor & { intentHash: string; targetDigest: string } {
+  if (
+    !/^[A-Z][A-Z0-9_]{0,79}$/.test(descriptor.action) ||
+    descriptor.resourceId.length < 1 ||
+    descriptor.resourceId.length > 255
+  ) {
+    throw new TypeError('Project runtime effect identity is invalid');
+  }
+  const seen = new Set<string>();
+  const targets = descriptor.targets
+    .map((target) => ({ kind: target.kind, namespace: target.namespace, name: target.name }))
+    .sort(
+      (left, right) =>
+        left.kind.localeCompare(right.kind) ||
+        left.namespace.localeCompare(right.namespace) ||
+        left.name.localeCompare(right.name),
+    )
+    .filter((target) => {
+      const key = `${target.kind}\u0000${target.namespace}\u0000${target.name}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  for (const target of targets) {
+    if (
+      !/^[A-Za-z][A-Za-z0-9.]{0,79}$/.test(target.kind) ||
+      target.namespace.length < 1 ||
+      target.namespace.length > 253 ||
+      target.name.length < 1 ||
+      target.name.length > 253
+    ) {
+      throw new TypeError('Project runtime effect target is invalid');
+    }
+  }
+  const targetDigest = createHash('sha256').update(JSON.stringify(targets)).digest('hex');
+  const intentHash = createHash('sha256')
+    .update(JSON.stringify({ action: descriptor.action, resourceId: descriptor.resourceId, targetDigest }))
+    .digest('hex');
+  return { action: descriptor.action, resourceId: descriptor.resourceId, targets, intentHash, targetDigest };
+}
+
+function workspaceRuntimeTargets(input: {
+  pvcName: string;
+  podName: string;
+  serviceName: string;
+  agentTokenSecretName: string;
+}): ProjectRuntimeEffectTarget[] {
+  const namespace = runtimeNamespace();
+  return [
+    { kind: 'PersistentVolumeClaim', namespace, name: input.pvcName },
+    { kind: 'Pod', namespace, name: input.podName },
+    { kind: 'Service', namespace, name: input.serviceName },
+    { kind: 'Endpoints', namespace, name: input.serviceName },
+    { kind: 'Secret', namespace, name: input.agentTokenSecretName },
+  ];
+}
+
+function deploymentRuntimeTargets(deploymentId: string): ProjectRuntimeEffectTarget[] {
+  const namespace = runtimeNamespace();
+  const name = serverDeploymentName(deploymentId);
+  return [
+    { kind: 'Pod', namespace, name: appBuildPodName(deploymentId) },
+    { kind: 'Deployment', namespace, name },
+    { kind: 'Service', namespace, name },
+    { kind: 'Endpoints', namespace, name },
+    { kind: 'Ingress', namespace, name },
+    { kind: 'Secret', namespace, name: `app-secrets-${deploymentId}` },
+    { kind: 'PersistentVolumeClaim', namespace, name: `reserved-data-${deploymentId}` },
+  ];
+}
+
+function scheduledRunTargets(runId: string): ProjectRuntimeEffectTarget[] {
+  const namespace = runtimeNamespace();
+  return [
+    { kind: 'Pod', namespace, name: scheduledJobPodName(runId) },
+    { kind: 'Secret', namespace, name: scheduledJobSecretName(runId) },
+  ];
+}
+
+const PROJECT_RUNTIME_TARGET_KINDS = new Set<ProjectRuntimeEffectTarget['kind']>([
+  'Deployment',
+  'ReplicaSet',
+  'Pod',
+  'Service',
+  'Endpoints',
+  'EndpointSlice',
+  'Ingress',
+  'Secret',
+  'PersistentVolumeClaim',
+]);
+
+function parseRuntimeEffectTarget(row: { kind: string; namespace: string; name: string }): ProjectRuntimeEffectTarget {
+  if (!PROJECT_RUNTIME_TARGET_KINDS.has(row.kind as ProjectRuntimeEffectTarget['kind'])) {
+    throw workspacePurgeStoreInvariantError(WORKSPACE_PURGE_STORE_INVARIANT.projectDeletionScopeInvalid, {
+      statusCode: 500,
+    });
+  }
+  return { kind: row.kind as ProjectRuntimeEffectTarget['kind'], namespace: row.namespace, name: row.name };
 }
 
 function toPlan(value: unknown): WorkspacePlan {
@@ -172,6 +300,271 @@ function patchToData(patch: Partial<WorkspaceRecord>): Record<string, unknown> {
 export class PrismaWorkspaceStore implements WorkspaceStore {
   constructor(private readonly prisma: DatabaseClient) {}
 
+  private async withProjectProvisionBarrier<T>(
+    input: {
+      projectId: string;
+      expectedOrganizationId: string;
+      descriptor: ProjectRuntimeEffectDescriptor;
+    },
+    effect: (assertAuthority: () => Promise<void>) => Promise<T>,
+  ): Promise<T> {
+    const connectionString = process.env.DATABASE_URL?.trim();
+    if (!connectionString) {
+      throw workspacePurgeStoreInvariantError(WORKSPACE_PURGE_STORE_INVARIANT.projectProvisionLockUnavailable, {
+        statusCode: 503,
+      });
+    }
+    const client = new Client({ connectionString, application_name: 'vibecore-workspace-project-effect' });
+    const descriptor = normalizeRuntimeEffectDescriptor(input.descriptor);
+    const effectId = randomUUID();
+    const ownerToken = randomUUID();
+    let effectPrepared = false;
+    let effectDispatched = false;
+    let lockHeld = false;
+    let connectionHealthy = true;
+    const lockKey = `project-physical-mutation:${input.projectId}`;
+    const onError = () => {
+      connectionHealthy = false;
+      lockHeld = false;
+    };
+    client.on('error', onError);
+    const assertAuthority = async () => {
+      if (!lockHeld || !connectionHealthy) {
+        throw workspacePurgeStoreInvariantError(WORKSPACE_PURGE_STORE_INVARIANT.projectProvisionLockUnavailable, {
+          statusCode: 409,
+        });
+      }
+      const result = await client.query<{
+        organizationId: string;
+        ownershipEpoch: number;
+        deletedAt: Date | null;
+        permanentDeletionStartedAt: Date | null;
+        effectState: string | null;
+        effectOwnerToken: string | null;
+      }>(
+        `SELECT project."organizationId", project."ownershipEpoch", project."deletedAt",
+                project."permanentDeletionStartedAt", effect."state"::text AS "effectState",
+                effect."ownerToken" AS "effectOwnerToken"
+           FROM "Project" project
+           LEFT JOIN "ProjectRuntimeEffect" effect ON effect.id = $2
+          WHERE project.id = $1`,
+        [input.projectId, effectId],
+      );
+      const project = result.rows[0];
+      if (
+        !project ||
+        project.organizationId !== input.expectedOrganizationId ||
+        project.deletedAt !== null ||
+        project.permanentDeletionStartedAt !== null ||
+        (effectDispatched && (project.effectState !== 'IN_FLIGHT' || project.effectOwnerToken !== ownerToken))
+      ) {
+        throw workspacePurgeStoreInvariantError(WORKSPACE_PURGE_STORE_INVARIANT.frozen, { statusCode: 409 });
+      }
+    };
+
+    try {
+      await client.connect();
+      await client.query(`SELECT set_config('statement_timeout', '20000', false)`);
+      await client.query('SELECT pg_advisory_lock(hashtextextended($1, 0))', [lockKey]);
+      lockHeld = true;
+      await client.query(`SELECT set_config('statement_timeout', '0', false)`);
+      await assertAuthority();
+
+      try {
+        await this.prisma.$transaction(async (tx) => {
+          const projects = await tx.$queryRaw<
+            Array<{
+              organizationId: string;
+              ownershipEpoch: number;
+              deletedAt: Date | null;
+              permanentDeletionStartedAt: Date | null;
+            }>
+          >`
+            SELECT "organizationId", "ownershipEpoch", "deletedAt", "permanentDeletionStartedAt"
+            FROM "Project"
+            WHERE "id" = ${input.projectId}
+            FOR SHARE
+          `;
+          const project = projects[0];
+          if (
+            !project ||
+            project.organizationId !== input.expectedOrganizationId ||
+            project.deletedAt !== null ||
+            project.permanentDeletionStartedAt !== null
+          ) {
+            throw workspacePurgeStoreInvariantError(WORKSPACE_PURGE_STORE_INVARIANT.frozen, { statusCode: 409 });
+          }
+          const activeEffects = await tx.$queryRaw<
+            Array<{ id: string; state: string; leaseExpiresAt: Date | null; databaseNow: Date }>
+          >`
+            SELECT "id", "state"::text AS "state", "leaseExpiresAt",
+                   date_trunc('milliseconds', clock_timestamp()) AS "databaseNow"
+            FROM "ProjectRuntimeEffect"
+            WHERE "projectId" = ${input.projectId}
+              AND "action" = ${descriptor.action}
+              AND "resourceId" = ${descriptor.resourceId}
+              AND "state" IN (
+                'PREPARED'::"ProjectRuntimeEffectState",
+                'IN_FLIGHT'::"ProjectRuntimeEffectState"
+              )
+            ORDER BY "id"
+            FOR UPDATE
+          `;
+          const activeEffect = activeEffects[0];
+          if (activeEffect) {
+            if (
+              activeEffect.state === 'PREPARED' &&
+              activeEffect.leaseExpiresAt !== null &&
+              activeEffect.leaseExpiresAt <= activeEffect.databaseNow
+            ) {
+              await tx.$executeRaw(Prisma.sql`
+                UPDATE "ProjectRuntimeEffect"
+                SET "state" = 'ABORTED'::"ProjectRuntimeEffectState",
+                    "ownerToken" = NULL,
+                    "leaseExpiresAt" = NULL,
+                    "lastErrorCode" = 'WORKSPACE_PROJECT_RUNTIME_EFFECT_PREPARED_LEASE_EXPIRED',
+                    "abortedAt" = clock_timestamp(),
+                    "updatedAt" = clock_timestamp()
+                WHERE "id" = ${activeEffect.id}
+                  AND "state" = 'PREPARED'::"ProjectRuntimeEffectState"
+              `);
+            } else {
+              throw workspacePurgeStoreInvariantError(WORKSPACE_PURGE_STORE_INVARIANT.projectRuntimeEffectActive, {
+                statusCode: 409,
+              });
+            }
+          }
+          await tx.$executeRaw(Prisma.sql`
+            INSERT INTO "ProjectRuntimeEffect" (
+              "id", "projectId", "organizationId", "ownershipEpoch", "action", "resourceId",
+              "intentHash", "targetDigest", "fencingToken", "ownerToken", "state",
+              "leaseExpiresAt", "preparedAt", "createdAt", "updatedAt"
+            ) VALUES (
+              ${effectId}, ${input.projectId}, ${input.expectedOrganizationId}, ${project.ownershipEpoch},
+              ${descriptor.action}, ${descriptor.resourceId}, ${descriptor.intentHash}, ${descriptor.targetDigest},
+              1, ${ownerToken}, 'PREPARED'::"ProjectRuntimeEffectState",
+              clock_timestamp() + make_interval(secs => ${RUNTIME_EFFECT_LEASE_SECONDS}),
+              clock_timestamp(), clock_timestamp(), clock_timestamp()
+            )
+          `);
+          for (const [ordinal, target] of descriptor.targets.entries()) {
+            await tx.$executeRaw(Prisma.sql`
+              INSERT INTO "ProjectRuntimeEffectTarget" (
+                "effectId", "ordinal", "kind", "namespace", "name"
+              ) VALUES (${effectId}, ${ordinal}, ${target.kind}, ${target.namespace}, ${target.name})
+            `);
+          }
+        });
+        effectPrepared = true;
+      } catch (error) {
+        const detail = JSON.stringify(error);
+        if (detail.includes('ProjectRuntimeEffect_active_resource_key') || detail.includes('Unique constraint')) {
+          throw workspacePurgeStoreInvariantError(WORKSPACE_PURGE_STORE_INVARIANT.projectRuntimeEffectActive, {
+            statusCode: 409,
+          });
+        }
+        throw error;
+      }
+
+      await assertAuthority();
+      const dispatched = await this.prisma.$executeRaw(Prisma.sql`
+        UPDATE "ProjectRuntimeEffect" effect
+        SET "state" = 'IN_FLIGHT'::"ProjectRuntimeEffectState",
+            "dispatchedAt" = clock_timestamp(),
+            "updatedAt" = clock_timestamp()
+        WHERE effect.id = ${effectId}
+          AND effect."ownerToken" = ${ownerToken}
+          AND effect."state" = 'PREPARED'::"ProjectRuntimeEffectState"
+          AND EXISTS (
+            SELECT 1 FROM "Project" project
+            WHERE project.id = effect."projectId"
+              AND project."organizationId" = effect."organizationId"
+              AND project."ownershipEpoch" = effect."ownershipEpoch"
+              AND project."deletedAt" IS NULL
+              AND project."permanentDeletionStartedAt" IS NULL
+          )
+      `);
+      if (dispatched !== 1) {
+        throw workspacePurgeStoreInvariantError(WORKSPACE_PURGE_STORE_INVARIANT.projectRuntimeEffectFenceLost, {
+          statusCode: 409,
+        });
+      }
+      effectDispatched = true;
+      await assertAuthority();
+
+      try {
+        const result = await effect(assertAuthority);
+        await assertAuthority();
+        const settled = await this.prisma.$executeRaw(Prisma.sql`
+          UPDATE "ProjectRuntimeEffect"
+          SET "state" = 'SETTLED'::"ProjectRuntimeEffectState",
+              "ownerToken" = NULL,
+              "leaseExpiresAt" = NULL,
+              "providerReceipt" = jsonb_build_object('outcome', 'RETURNED'),
+              "settledAt" = clock_timestamp(),
+              "updatedAt" = clock_timestamp()
+          WHERE id = ${effectId}
+            AND "ownerToken" = ${ownerToken}
+            AND "state" = 'IN_FLIGHT'::"ProjectRuntimeEffectState"
+        `);
+        if (settled !== 1) {
+          throw workspacePurgeStoreInvariantError(WORKSPACE_PURGE_STORE_INVARIANT.projectRuntimeEffectFenceLost, {
+            statusCode: 409,
+          });
+        }
+        return result;
+      } catch (error) {
+        if (lockHeld && connectionHealthy && effectDispatched) {
+          await this.prisma
+            .$executeRaw(
+              Prisma.sql`
+              UPDATE "ProjectRuntimeEffect"
+              SET "state" = 'SETTLED'::"ProjectRuntimeEffectState",
+                  "ownerToken" = NULL,
+                  "leaseExpiresAt" = NULL,
+                  "providerReceipt" = jsonb_build_object('outcome', 'RETURNED_ERROR'),
+                  "lastErrorCode" = ${purgeErrorCode(error)},
+                  "settledAt" = clock_timestamp(),
+                  "updatedAt" = clock_timestamp()
+              WHERE id = ${effectId}
+                AND "ownerToken" = ${ownerToken}
+                AND "state" = 'IN_FLIGHT'::"ProjectRuntimeEffectState"
+            `,
+            )
+            .catch(() => undefined);
+        }
+        throw error;
+      }
+    } finally {
+      if (effectPrepared && !effectDispatched && lockHeld && connectionHealthy) {
+        await this.prisma
+          .$executeRaw(
+            Prisma.sql`
+            UPDATE "ProjectRuntimeEffect"
+            SET "state" = 'ABORTED'::"ProjectRuntimeEffectState",
+                "ownerToken" = NULL,
+                "leaseExpiresAt" = NULL,
+                "lastErrorCode" = 'WORKSPACE_PROJECT_RUNTIME_EFFECT_NOT_DISPATCHED',
+                "abortedAt" = clock_timestamp(),
+                "updatedAt" = clock_timestamp()
+            WHERE id = ${effectId}
+              AND "ownerToken" = ${ownerToken}
+              AND "state" = 'PREPARED'::"ProjectRuntimeEffectState"
+          `,
+          )
+          .catch(() => undefined);
+      }
+      if (lockHeld && connectionHealthy) {
+        const unlocked = await client
+          .query<{ unlocked: boolean }>('SELECT pg_advisory_unlock(hashtextextended($1, 0)) AS unlocked', [lockKey])
+          .catch(() => undefined);
+        lockHeld = unlocked?.rows[0]?.unlocked === true ? false : lockHeld;
+      }
+      client.removeListener('error', onError);
+      await client.end().catch(() => undefined);
+    }
+  }
+
   private async databaseNow(tx: Prisma.TransactionClient): Promise<Date> {
     const rows = await tx.$queryRawUnsafe<Array<{ databaseNow: Date }>>(
       `SELECT date_trunc('milliseconds', clock_timestamp()) AS "databaseNow"`,
@@ -184,28 +577,47 @@ export class PrismaWorkspaceStore implements WorkspaceStore {
   }
 
   async create(input: Omit<WorkspaceRecord, 'createdAt' | 'lastActiveAt'>): Promise<WorkspaceRecord> {
-    const now = new Date();
-    const created = (await this.prisma.workspaceRuntime.create({
-      data: {
-        id: input.id,
-        orgId: input.orgId,
-        projectId: input.projectId,
-        plan: input.plan,
-        status: input.status,
-        pvcName: input.pvcName,
-        podName: input.podName,
-        serviceName: input.serviceName,
-        agentTokenSecretName: input.agentTokenSecretName,
-        error: input.error ?? null,
-        purgeFrozen: input.purgeFrozen ?? false,
-        purgePlanId: input.purgePlanId ?? null,
-        purgeFenceToken: input.purgeFenceToken ?? null,
-        purgeFrozenAt: input.purgeFrozenAt ? new Date(input.purgeFrozenAt) : null,
-        createdAt: now,
-        lastActiveAt: now,
-      },
-    })) as PrismaRuntimeRow;
-    return rowToRecord(created);
+    return this.prisma.$transaction(async (tx) => {
+      const projects = await tx.$queryRaw<
+        Array<{ organizationId: string; deletedAt: Date | null; permanentDeletionStartedAt: Date | null }>
+      >`
+        SELECT "organizationId", "deletedAt", "permanentDeletionStartedAt"
+        FROM "Project"
+        WHERE "id" = ${input.projectId}
+        FOR SHARE
+      `;
+      const project = projects[0];
+      if (
+        !project ||
+        project.organizationId !== input.orgId ||
+        project.deletedAt !== null ||
+        project.permanentDeletionStartedAt !== null
+      ) {
+        throw workspacePurgeStoreInvariantError(WORKSPACE_PURGE_STORE_INVARIANT.frozen, { statusCode: 409 });
+      }
+      const now = await this.databaseNow(tx);
+      const created = (await tx.workspaceRuntime.create({
+        data: {
+          id: input.id,
+          orgId: input.orgId,
+          projectId: input.projectId,
+          plan: input.plan,
+          status: input.status,
+          pvcName: input.pvcName,
+          podName: input.podName,
+          serviceName: input.serviceName,
+          agentTokenSecretName: input.agentTokenSecretName,
+          error: input.error ?? null,
+          purgeFrozen: input.purgeFrozen ?? false,
+          purgePlanId: input.purgePlanId ?? null,
+          purgeFenceToken: input.purgeFenceToken ?? null,
+          purgeFrozenAt: input.purgeFrozenAt ? new Date(input.purgeFrozenAt) : null,
+          createdAt: now,
+          lastActiveAt: now,
+        },
+      })) as PrismaRuntimeRow;
+      return rowToRecord(created);
+    });
   }
 
   async update(workspaceId: string, patch: Partial<WorkspaceRecord>): Promise<WorkspaceRecord> {
@@ -269,16 +681,130 @@ export class PrismaWorkspaceStore implements WorkspaceStore {
   }
 
   async executeProvisionEffect<T>(workspaceId: string, effect: () => Promise<T>): Promise<T> {
-    return this.prisma.$transaction(
-      async (tx) => {
-        await tx.$queryRawUnsafe('SELECT id FROM "WorkspaceRuntime" WHERE id = $1 FOR UPDATE', workspaceId);
-        const workspace = await tx.workspaceRuntime.findUnique({ where: { id: workspaceId } });
-        if (!workspace || workspace.purgeFrozen) {
+    const observed = await this.prisma.workspaceRuntime.findUnique({
+      where: { id: workspaceId },
+      select: {
+        projectId: true,
+        orgId: true,
+        pvcName: true,
+        podName: true,
+        serviceName: true,
+        agentTokenSecretName: true,
+      },
+    });
+    if (!observed) {
+      throw workspacePurgeStoreInvariantError(WORKSPACE_PURGE_STORE_INVARIANT.frozen, { statusCode: 409 });
+    }
+    return this.withProjectProvisionBarrier(
+      {
+        projectId: observed.projectId,
+        expectedOrganizationId: observed.orgId,
+        descriptor: {
+          action: 'WORKSPACE_PROVISION',
+          resourceId: workspaceId,
+          targets: workspaceRuntimeTargets(observed),
+        },
+      },
+      async (assertAuthority) => {
+        const workspace = await this.prisma.workspaceRuntime.findUnique({ where: { id: workspaceId } });
+        if (
+          !workspace ||
+          workspace.purgeFrozen ||
+          workspace.projectId !== observed.projectId ||
+          workspace.orgId !== observed.orgId
+        ) {
           throw workspacePurgeStoreInvariantError(WORKSPACE_PURGE_STORE_INVARIANT.frozen, { statusCode: 409 });
         }
+        await assertAuthority();
         return effect();
       },
-      { timeout: 180_000, maxWait: 20_000 },
+    );
+  }
+
+  executeProjectProvisionEffect<T>(
+    input: { projectId: string; expectedOrganizationId: string },
+    effect: (assertAuthority: () => Promise<void>) => Promise<T>,
+  ): Promise<T> {
+    return this.withProjectProvisionBarrier(
+      {
+        ...input,
+        descriptor: { action: 'PROJECT_RUNTIME_MUTATION', resourceId: input.projectId, targets: [] },
+      },
+      effect,
+    );
+  }
+
+  async executeDeploymentProvisionEffect<T>(
+    input: string | { deploymentId: string; projectId: string; expectedOrganizationId: string },
+    effect: (assertAuthority: () => Promise<void>) => Promise<T>,
+  ): Promise<T> {
+    const deploymentId = typeof input === 'string' ? input : input.deploymentId;
+    const deployment = await this.prisma.deployment.findUnique({
+      where: { id: deploymentId },
+      select: { projectId: true, project: { select: { organizationId: true } } },
+    });
+    if (
+      !deployment ||
+      (typeof input !== 'string' &&
+        (deployment.projectId !== input.projectId ||
+          deployment.project.organizationId !== input.expectedOrganizationId))
+    ) {
+      throw workspacePurgeStoreInvariantError(WORKSPACE_PURGE_STORE_INVARIANT.frozen, { statusCode: 409 });
+    }
+    return this.withProjectProvisionBarrier(
+      {
+        projectId: deployment.projectId,
+        expectedOrganizationId: deployment.project.organizationId,
+        descriptor: {
+          action: 'DEPLOYMENT_RUNTIME_MUTATION',
+          resourceId: deploymentId,
+          targets: deploymentRuntimeTargets(deploymentId),
+        },
+      },
+      async (assertAuthority) => {
+        const current = await this.prisma.deployment.findUnique({
+          where: { id: deploymentId },
+          select: { projectId: true },
+        });
+        if (!current || current.projectId !== deployment.projectId) {
+          throw workspacePurgeStoreInvariantError(WORKSPACE_PURGE_STORE_INVARIANT.frozen, { statusCode: 409 });
+        }
+        await assertAuthority();
+        return effect(assertAuthority);
+      },
+    );
+  }
+
+  async executeScheduledRunProvisionEffect<T>(
+    input: { runId: string; projectId: string; expectedOrganizationId: string },
+    effect: (assertAuthority: () => Promise<void>) => Promise<T>,
+  ): Promise<T> {
+    return this.withProjectProvisionBarrier(
+      {
+        projectId: input.projectId,
+        expectedOrganizationId: input.expectedOrganizationId,
+        descriptor: {
+          action: 'SCHEDULED_RUN',
+          resourceId: input.runId,
+          targets: scheduledRunTargets(input.runId),
+        },
+      },
+      async (assertAuthority) => {
+        const run = await this.prisma.scheduledTaskRun.findUnique({
+          where: { id: input.runId },
+          select: { projectId: true, organizationId: true, status: true },
+        });
+        if (
+          !run ||
+          run.projectId !== input.projectId ||
+          run.organizationId !== input.expectedOrganizationId ||
+          run.status !== 'RUNNING'
+        ) {
+          throw workspacePurgeStoreInvariantError(WORKSPACE_PURGE_STORE_INVARIANT.frozen, { statusCode: 409 });
+        }
+        await assertAuthority();
+        return effect(assertAuthority);
+      },
     );
   }
 
@@ -466,6 +992,392 @@ export class PrismaWorkspaceStore implements WorkspaceStore {
     return { executed: outcome.executed, receipt: outcome.receipt };
   }
 
+  private async lockLiveProjectDeletionOperation(
+    tx: Prisma.TransactionClient,
+    lease: WorkspaceProjectDeletionLease,
+    allowedStatuses: readonly ('EFFECT_STARTED' | 'VERIFYING')[],
+  ): Promise<void> {
+    if (!/^[1-9][0-9]{0,39}$/.test(lease.fencingToken) || allowedStatuses.length === 0) {
+      throw workspacePurgeStoreInvariantError(WORKSPACE_PURGE_STORE_INVARIANT.projectDeletionLeaseInvalid, {
+        statusCode: 409,
+      });
+    }
+    const rows = await tx.$queryRaw<Array<{ status: string; leaseExpiresAt: Date; databaseNow: Date }>>(Prisma.sql`
+      WITH lease_clock AS MATERIALIZED (
+        SELECT date_trunc('milliseconds', clock_timestamp()) AS "databaseNow"
+      )
+      SELECT operation."status"::text AS "status", operation."leaseExpiresAt", lease_clock."databaseNow"
+      FROM "ObjectStorageOperation" operation
+      JOIN "ObjectStorageOperationProjectScope" scope
+        ON scope."operationId" = operation."id"
+      CROSS JOIN lease_clock
+      WHERE operation."id" = ${lease.operationId}
+        AND operation."kind" = 'PROJECT_PERMANENT_DELETE'::"ObjectStorageOperationKind"
+        AND operation."ownerToken" = ${lease.ownerToken}
+        AND operation."fencingToken" = ${BigInt(lease.fencingToken)}
+        AND operation."requestHash" = ${lease.requestHash}
+        AND operation."scopeHash" = ${lease.scopeHash}
+        AND scope."projectIdSnapshot" = ${lease.projectId}
+        AND scope."expectedOrganizationId" = ${lease.expectedOrganizationId}
+      FOR UPDATE OF operation
+    `);
+    const operation = rows[0];
+    if (
+      !operation ||
+      !allowedStatuses.includes(operation.status as 'EFFECT_STARTED' | 'VERIFYING') ||
+      operation.leaseExpiresAt <= operation.databaseNow
+    ) {
+      throw workspacePurgeStoreInvariantError(WORKSPACE_PURGE_STORE_INVARIANT.projectDeletionLeaseInvalid, {
+        statusCode: 409,
+      });
+    }
+  }
+
+  async assertProjectDeletionLease(
+    lease: WorkspaceProjectDeletionLease,
+    allowedStatuses: readonly ('EFFECT_STARTED' | 'VERIFYING')[],
+  ): Promise<void> {
+    await this.prisma.$transaction((tx) => this.lockLiveProjectDeletionOperation(tx, lease, allowedStatuses));
+  }
+
+  async acquireProjectDeletionFence(
+    lease: WorkspaceProjectDeletionLease,
+    allowedStatuses: readonly ('EFFECT_STARTED' | 'VERIFYING')[],
+  ): Promise<WorkspaceProjectDeletionInventory> {
+    const outcome = await this.prisma.$transaction(async (tx) => {
+      await this.lockLiveProjectDeletionOperation(tx, lease, allowedStatuses);
+      const projects = await tx.$queryRaw<
+        Array<{
+          organizationId: string;
+          permanentDeletionStartedAt: Date | null;
+          persistentVolumeClaim: string | null;
+          ownershipEpoch: number;
+        }>
+      >`
+        SELECT "organizationId", "permanentDeletionStartedAt", "persistentVolumeClaim", "ownershipEpoch"
+        FROM "Project"
+        WHERE "id" = ${lease.projectId}
+        FOR UPDATE
+      `;
+      const project = projects[0];
+      if (
+        !project ||
+        project.organizationId !== lease.expectedOrganizationId ||
+        project.permanentDeletionStartedAt === null
+      ) {
+        throw workspacePurgeStoreInvariantError(WORKSPACE_PURGE_STORE_INVARIANT.projectDeletionScopeInvalid, {
+          statusCode: 409,
+        });
+      }
+      const runtimeEffectScopes = await tx.$queryRaw<Array<{ id: string; ownershipEpoch: number }>>`
+        SELECT "id", "ownershipEpoch"
+        FROM "ProjectRuntimeEffect"
+        WHERE "projectId" = ${lease.projectId}
+        ORDER BY "id"
+        FOR UPDATE
+      `;
+      if (runtimeEffectScopes.some(({ ownershipEpoch }) => ownershipEpoch > project.ownershipEpoch)) {
+        throw workspacePurgeStoreInvariantError(WORKSPACE_PURGE_STORE_INVARIANT.projectDeletionScopeInvalid, {
+          statusCode: 409,
+        });
+      }
+      await tx.$executeRaw(Prisma.sql`
+        UPDATE "ProjectRuntimeEffect"
+        SET "state" = 'ABORTED'::"ProjectRuntimeEffectState",
+            "ownerToken" = NULL,
+            "leaseExpiresAt" = NULL,
+            "lastErrorCode" = 'WORKSPACE_PROJECT_RUNTIME_EFFECT_NOT_DISPATCHED',
+            "abortedAt" = clock_timestamp(),
+            "updatedAt" = clock_timestamp()
+        WHERE "projectId" = ${lease.projectId}
+          AND "state" = 'PREPARED'::"ProjectRuntimeEffectState"
+      `);
+      const inFlight = await tx.$queryRaw<Array<{ id: string }>>`
+        SELECT "id"
+        FROM "ProjectRuntimeEffect"
+        WHERE "projectId" = ${lease.projectId}
+          AND "state" = 'IN_FLIGHT'::"ProjectRuntimeEffectState"
+        ORDER BY "id"
+      `;
+      if (inFlight.length > 0) {
+        return { kind: 'IN_FLIGHT' as const, effectIds: inFlight.map(({ id }) => id) };
+      }
+      await tx.$executeRaw(Prisma.sql`
+        UPDATE "ProjectRuntimeEffect"
+        SET "state" = 'DRAINING'::"ProjectRuntimeEffectState",
+            "drainingAt" = COALESCE("drainingAt", clock_timestamp()),
+            "updatedAt" = clock_timestamp()
+        WHERE "projectId" = ${lease.projectId}
+          AND "state" = 'SETTLED'::"ProjectRuntimeEffectState"
+      `);
+      await tx.$queryRaw`
+        SELECT "id"
+        FROM "WorkspaceRuntime"
+        WHERE "projectId" = ${lease.projectId}
+        ORDER BY "id"
+        FOR UPDATE
+      `;
+      await tx.$queryRaw`
+        SELECT "id"
+        FROM "ScheduledTask"
+        WHERE "projectId" = ${lease.projectId}
+        ORDER BY "id"
+        FOR UPDATE
+      `;
+      await tx.$queryRaw`
+        SELECT "id"
+        FROM "ScheduledTaskRun"
+        WHERE "projectId" = ${lease.projectId}
+        ORDER BY "id"
+        FOR UPDATE
+      `;
+      const existing = await tx.workspaceRuntime.findMany({ where: { projectId: lease.projectId } });
+      if (
+        existing.some(
+          (workspace) =>
+            workspace.orgId !== lease.expectedOrganizationId ||
+            /* Never steal an account-purge fence. A null-plan permanent-delete
+             * fence is safely rebound only after the ObjectStorageOperation
+             * itself has granted this exact newer owner/fencing token. */
+            (workspace.purgeFrozen && workspace.purgePlanId !== null),
+        )
+      ) {
+        throw workspacePurgeStoreInvariantError(WORKSPACE_PURGE_STORE_INVARIANT.projectDeletionFenceLost, {
+          statusCode: 409,
+        });
+      }
+      await tx.workspaceRuntime.updateMany({
+        where: { projectId: lease.projectId },
+        data: {
+          purgeFrozen: true,
+          purgePlanId: null,
+          purgeFenceToken: lease.ownerToken,
+          purgeFrozenAt: await this.databaseNow(tx),
+        },
+      });
+      const runtimeEffects = await tx.$queryRaw<Array<{ id: string }>>`
+        SELECT "id"
+        FROM "ProjectRuntimeEffect"
+        WHERE "projectId" = ${lease.projectId}
+          AND "state" IN (
+            'DRAINING'::"ProjectRuntimeEffectState",
+            'DRAINED'::"ProjectRuntimeEffectState"
+          )
+        ORDER BY "id"
+      `;
+      const runtimeEffectTargets = await tx.$queryRaw<Array<{ kind: string; namespace: string; name: string }>>`
+        SELECT target."kind", target."namespace", target."name"
+        FROM "ProjectRuntimeEffectTarget" target
+        JOIN "ProjectRuntimeEffect" effect ON effect.id = target."effectId"
+        WHERE effect."projectId" = ${lease.projectId}
+          AND effect."state" IN (
+            'DRAINING'::"ProjectRuntimeEffectState",
+            'DRAINED'::"ProjectRuntimeEffectState"
+          )
+        ORDER BY target."kind", target."namespace", target."name"
+      `;
+      return {
+        kind: 'READY' as const,
+        inventory: {
+          workspaces: (await tx.workspaceRuntime.findMany({ where: { projectId: lease.projectId } })).map((row) =>
+            rowToRecord(row as PrismaRuntimeRow),
+          ),
+          workspaceIds: (
+            await tx.workspace.findMany({
+              where: { projectId: lease.projectId },
+              select: { id: true },
+              orderBy: { id: 'asc' },
+            })
+          ).map(({ id }) => id),
+          persistentVolumeClaims: project.persistentVolumeClaim ? [project.persistentVolumeClaim] : [],
+          serverDeploymentIds: (
+            await tx.deployment.findMany({
+              where: { projectId: lease.projectId, provider: { not: 'static' } },
+              select: { id: true },
+              orderBy: { id: 'asc' },
+            })
+          ).map(({ id }) => id),
+          scheduledRunIds: (
+            await tx.scheduledTaskRun.findMany({
+              where: { projectId: lease.projectId },
+              select: { id: true },
+              orderBy: { id: 'asc' },
+            })
+          ).map(({ id }) => id),
+          runtimeEffectTargets: runtimeEffectTargets.map(parseRuntimeEffectTarget),
+          runtimeEffectIds: runtimeEffects.map(({ id }) => id),
+        },
+      };
+    });
+    if (outcome.kind === 'IN_FLIGHT') {
+      throw Object.assign(
+        workspacePurgeStoreInvariantError(WORKSPACE_PURGE_STORE_INVARIANT.projectRuntimeEffectInFlight, {
+          statusCode: 409,
+        }),
+        { effectIds: outcome.effectIds },
+      );
+    }
+    return outcome.inventory;
+  }
+
+  async completeProjectDeletion(lease: WorkspaceProjectDeletionLease): Promise<number> {
+    return this.prisma.$transaction(async (tx) => {
+      await this.lockLiveProjectDeletionOperation(tx, lease, ['EFFECT_STARTED', 'VERIFYING']);
+      const projects = await tx.$queryRaw<Array<{ id: string }>>`
+        SELECT "id"
+        FROM "Project"
+        WHERE "id" = ${lease.projectId}
+          AND "organizationId" = ${lease.expectedOrganizationId}
+          AND "permanentDeletionStartedAt" IS NOT NULL
+        FOR UPDATE
+      `;
+      if (!projects[0]) {
+        throw workspacePurgeStoreInvariantError(WORKSPACE_PURGE_STORE_INVARIANT.projectDeletionScopeInvalid, {
+          statusCode: 409,
+        });
+      }
+      await tx.$queryRaw`
+        SELECT "id"
+        FROM "WorkspaceRuntime"
+        WHERE "projectId" = ${lease.projectId}
+        ORDER BY "id"
+        FOR UPDATE
+      `;
+      const rows = await tx.workspaceRuntime.findMany({ where: { projectId: lease.projectId } });
+      if (
+        rows.some(
+          (workspace) =>
+            workspace.orgId !== lease.expectedOrganizationId ||
+            !workspace.purgeFrozen ||
+            workspace.purgePlanId !== null ||
+            workspace.purgeFenceToken !== lease.ownerToken,
+        )
+      ) {
+        throw workspacePurgeStoreInvariantError(WORKSPACE_PURGE_STORE_INVARIANT.projectDeletionFenceLost, {
+          statusCode: 409,
+        });
+      }
+      const nonDrainable = await tx.$queryRaw<Array<{ id: string; state: string }>>`
+        SELECT "id", "state"::text AS "state"
+        FROM "ProjectRuntimeEffect"
+        WHERE "projectId" = ${lease.projectId}
+          AND "state" IN (
+            'PREPARED'::"ProjectRuntimeEffectState",
+            'IN_FLIGHT'::"ProjectRuntimeEffectState",
+            'SETTLED'::"ProjectRuntimeEffectState"
+          )
+        ORDER BY "id"
+        FOR UPDATE
+      `;
+      if (nonDrainable.length > 0) {
+        throw workspacePurgeStoreInvariantError(WORKSPACE_PURGE_STORE_INVARIANT.projectRuntimeEffectInFlight, {
+          statusCode: 409,
+        });
+      }
+      const advanced = await tx.$executeRaw(Prisma.sql`
+        UPDATE "ProjectRuntimeEffect"
+        SET "state" = 'DRAINED'::"ProjectRuntimeEffectState",
+            "drainedAt" = clock_timestamp(),
+            "updatedAt" = clock_timestamp()
+        WHERE "projectId" = ${lease.projectId}
+          AND "state" = 'DRAINING'::"ProjectRuntimeEffectState"
+      `);
+      /* Runtime rows and scheduled tasks are the crash-recovery inventory for
+       * exact Pod/Secret names. Keep them until the API's final transaction
+       * has accepted the physical proof; that transaction deletes them and the
+       * Project atomically with the permanent receipt. */
+      return advanced;
+    });
+  }
+
+  async inspectProjectDeletionState(lease: WorkspaceProjectDeletionLease): Promise<WorkspaceProjectDeletionState> {
+    return this.prisma.$transaction(async (tx) => {
+      await this.lockLiveProjectDeletionOperation(tx, lease, ['EFFECT_STARTED', 'VERIFYING']);
+      const projects = await tx.$queryRaw<
+        Array<{
+          organizationId: string;
+          permanentDeletionStartedAt: Date | null;
+          persistentVolumeClaim: string | null;
+        }>
+      >`
+        SELECT "organizationId", "permanentDeletionStartedAt", "persistentVolumeClaim"
+        FROM "Project"
+        WHERE "id" = ${lease.projectId}
+        FOR SHARE
+      `;
+      const project = projects[0];
+      if (
+        !project ||
+        project.organizationId !== lease.expectedOrganizationId ||
+        project.permanentDeletionStartedAt === null
+      ) {
+        throw workspacePurgeStoreInvariantError(WORKSPACE_PURGE_STORE_INVARIANT.projectDeletionScopeInvalid, {
+          statusCode: 409,
+        });
+      }
+      const runtimeEffects = await tx.$queryRaw<Array<{ id: string }>>`
+        SELECT "id"
+        FROM "ProjectRuntimeEffect"
+        WHERE "projectId" = ${lease.projectId}
+          AND "state" IN (
+            'DRAINING'::"ProjectRuntimeEffectState",
+            'DRAINED'::"ProjectRuntimeEffectState"
+          )
+        ORDER BY "id"
+      `;
+      const runtimeEffectTargets = await tx.$queryRaw<Array<{ kind: string; namespace: string; name: string }>>`
+        SELECT target."kind", target."namespace", target."name"
+        FROM "ProjectRuntimeEffectTarget" target
+        JOIN "ProjectRuntimeEffect" effect ON effect.id = target."effectId"
+        WHERE effect."projectId" = ${lease.projectId}
+          AND effect."state" IN (
+            'DRAINING'::"ProjectRuntimeEffectState",
+            'DRAINED'::"ProjectRuntimeEffectState"
+          )
+        ORDER BY target."kind", target."namespace", target."name"
+      `;
+      const runtimeEffectState = await tx.$queryRaw<Array<{ drained: boolean }>>`
+        SELECT NOT EXISTS (
+          SELECT 1
+          FROM "ProjectRuntimeEffect"
+          WHERE "projectId" = ${lease.projectId}
+            AND "state" NOT IN (
+              'DRAINED'::"ProjectRuntimeEffectState",
+              'ABORTED'::"ProjectRuntimeEffectState"
+            )
+        ) AS "drained"
+      `;
+      return {
+        runtimeCount: await tx.workspaceRuntime.count({ where: { projectId: lease.projectId } }),
+        runtimeEffectsDrained: runtimeEffectState[0]?.drained === true,
+        workspaceIds: (
+          await tx.workspace.findMany({
+            where: { projectId: lease.projectId },
+            select: { id: true },
+            orderBy: { id: 'asc' },
+          })
+        ).map(({ id }) => id),
+        persistentVolumeClaims: project.persistentVolumeClaim ? [project.persistentVolumeClaim] : [],
+        serverDeploymentIds: (
+          await tx.deployment.findMany({
+            where: { projectId: lease.projectId, provider: { not: 'static' } },
+            select: { id: true },
+            orderBy: { id: 'asc' },
+          })
+        ).map(({ id }) => id),
+        scheduledRunIds: (
+          await tx.scheduledTaskRun.findMany({
+            where: { projectId: lease.projectId },
+            select: { id: true },
+            orderBy: { id: 'asc' },
+          })
+        ).map(({ id }) => id),
+        runtimeEffectTargets: runtimeEffectTargets.map(parseRuntimeEffectTarget),
+        runtimeEffectIds: runtimeEffects.map(({ id }) => id),
+      };
+    });
+  }
+
   async reconcilePurgeFences(take = 500): Promise<{ scanned: number; reconciled: number; workspaceIds: string[] }> {
     const candidates = await this.prisma.workspaceRuntime.findMany({
       where: { purgeFrozen: true },
@@ -491,6 +1403,25 @@ export class PrismaWorkspaceStore implements WorkspaceStore {
             candidate.purgePlanId,
             candidate.purgeFenceToken,
           );
+          live = rows[0]?.live === true;
+        } else if (candidate.purgeFenceToken) {
+          const rows = await tx.$queryRaw<Array<{ live: boolean }>>`
+            WITH target AS MATERIALIZED (
+              SELECT "status", "leaseExpiresAt"
+              FROM "ObjectStorageOperation"
+              WHERE "kind" = 'PROJECT_PERMANENT_DELETE'::"ObjectStorageOperationKind"
+                AND "ownerToken" = ${candidate.purgeFenceToken}
+              FOR UPDATE
+            ), lease_clock AS MATERIALIZED (
+              SELECT date_trunc('milliseconds', clock_timestamp()) AS ts FROM target
+            )
+            SELECT target."status" IN (
+                     'EFFECT_STARTED'::"ObjectStorageOperationStatus",
+                     'VERIFYING'::"ObjectStorageOperationStatus"
+                   )
+                   AND target."leaseExpiresAt" > lease_clock.ts AS live
+            FROM target CROSS JOIN lease_clock
+          `;
           live = rows[0]?.live === true;
         }
         if (live) return false;

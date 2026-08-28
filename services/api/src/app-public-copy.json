@@ -923,6 +923,10 @@
     "en": "Skipped: the previous run of this task was still in progress (overlap policy: FORBID).",
     "fr": "Exécution ignorée : l’exécution précédente était toujours en cours (politique de chevauchement : FORBID)."
   },
+  "SCHEDULE_RUN_CANCELED_BY_USER": {
+    "en": "Canceled by a user.",
+    "fr": "Exécution annulée par un utilisateur."
+  },
   "SCHEDULE_RUN_TIMEOUT": {
     "en": "Timed out after {seconds}s.",
     "fr": "Délai dépassé après {seconds} s."

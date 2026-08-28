@@ -1,7 +1,13 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import type { K8sObject, WorkspaceK8sClient } from '@vibecore/k8s-client';
 import { buildWorkspaceManagerApp } from './app.js';
-import { WorkspaceManager, type EventBus, type WorkspaceRecord, type WorkspaceStore } from './manager.js';
+import {
+  WorkspaceManager,
+  type EventBus,
+  type WorkspaceProjectDeletionLease,
+  type WorkspaceRecord,
+  type WorkspaceStore,
+} from './manager.js';
 import type { WorkspaceEvent } from '@vibecore/workspace-sdk';
 
 const ENV_KEYS = [
@@ -14,6 +20,7 @@ const ENV_KEYS = [
 class TestWorkspaceStore implements WorkspaceStore {
   readonly workspaces = new Map<string, WorkspaceRecord>();
   readonly purgeEffects = new Map<string, Record<string, unknown>>();
+  readonly projectDeletionWorkspaceIds: string[] = [];
 
   async create(input: Omit<WorkspaceRecord, 'createdAt' | 'lastActiveAt'>) {
     const now = new Date().toISOString();
@@ -80,6 +87,27 @@ class TestWorkspaceStore implements WorkspaceStore {
   async executeProvisionEffect<T>(workspaceId: string, effect: () => Promise<T>) {
     if (this.workspaces.get(workspaceId)?.purgeFrozen) throw new Error('WORKSPACE_PURGE_FROZEN');
     return effect();
+  }
+
+  async executeProjectProvisionEffect<T>(
+    _input: { projectId: string; expectedOrganizationId: string },
+    effect: (assertAuthority: () => Promise<void>) => Promise<T>,
+  ) {
+    return effect(async () => undefined);
+  }
+
+  async executeDeploymentProvisionEffect<T>(
+    _input: string | { deploymentId: string; projectId: string; expectedOrganizationId: string },
+    effect: (assertAuthority: () => Promise<void>) => Promise<T>,
+  ) {
+    return effect(async () => undefined);
+  }
+
+  async executeScheduledRunProvisionEffect<T>(
+    _input: { runId: string; projectId: string; expectedOrganizationId: string },
+    effect: (assertAuthority: () => Promise<void>) => Promise<T>,
+  ) {
+    return effect(async () => undefined);
   }
 
   async acquirePurgeFence(workspaceId: string, lease: { planId: string; ownerToken: string }) {
@@ -168,6 +196,49 @@ class TestWorkspaceStore implements WorkspaceStore {
   async reconcilePurgeFences() {
     return { scanned: 0, reconciled: 0, workspaceIds: [] as string[] };
   }
+
+  async assertProjectDeletionLease() {}
+
+  async acquireProjectDeletionFence(lease: WorkspaceProjectDeletionLease) {
+    const rows = [...this.workspaces.values()].filter((workspace) => workspace.projectId === lease.projectId);
+    this.projectDeletionWorkspaceIds.splice(0, this.projectDeletionWorkspaceIds.length, ...rows.map(({ id }) => id));
+    for (const workspace of rows) {
+      this.workspaces.set(workspace.id, {
+        ...workspace,
+        purgeFrozen: true,
+        purgeFenceToken: lease.ownerToken,
+        purgePlanId: undefined,
+      });
+    }
+    return {
+      workspaces: rows.map((workspace) => this.workspaces.get(workspace.id)!),
+      workspaceIds: [...this.projectDeletionWorkspaceIds],
+      persistentVolumeClaims: [],
+      serverDeploymentIds: [],
+      scheduledRunIds: [],
+      runtimeEffectTargets: [],
+      runtimeEffectIds: [],
+    };
+  }
+
+  async completeProjectDeletion(lease: WorkspaceProjectDeletionLease) {
+    const rows = [...this.workspaces.values()].filter((workspace) => workspace.projectId === lease.projectId);
+    for (const workspace of rows) this.workspaces.delete(workspace.id);
+    return rows.length;
+  }
+
+  async inspectProjectDeletionState(lease: WorkspaceProjectDeletionLease) {
+    return {
+      runtimeCount: [...this.workspaces.values()].filter((workspace) => workspace.projectId === lease.projectId).length,
+      runtimeEffectsDrained: true,
+      workspaceIds: [...this.projectDeletionWorkspaceIds],
+      persistentVolumeClaims: [],
+      serverDeploymentIds: [],
+      scheduledRunIds: [],
+      runtimeEffectTargets: [],
+      runtimeEffectIds: [],
+    };
+  }
 }
 
 class TestK8sClient implements WorkspaceK8sClient {
@@ -195,6 +266,17 @@ class TestK8sClient implements WorkspaceK8sClient {
 
   async *streamPodLogs(namespace: string, name: string) {
     yield `logs:${namespace}:${name}:ready`;
+  }
+
+  async scale() {}
+  async annotate() {}
+
+  async listByLabel(kind: string, namespace: string, labelSelector: string) {
+    const [key, value] = labelSelector.split('=');
+    return [...this.objects.values()].filter(
+      (object) =>
+        object.kind === kind && object.metadata.namespace === namespace && object.metadata.labels?.[key!] === value,
+    );
   }
 }
 
@@ -437,6 +519,82 @@ describe('workspace-manager app', () => {
       expect([...runtime.store.purgeEffects.values()]).toEqual(
         expect.arrayContaining([expect.objectContaining({ deleted: true, verifiedAbsent: true })]),
       );
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('validates the permanent-deletion lease and returns a live project-wide workspace absence proof', async () => {
+    process.env.WORKSPACE_RUNTIME_NAMESPACE = 'prod-workspaces';
+    const runtime = manager();
+    const app = buildWorkspaceManagerApp(runtime.manager);
+    const projectId = 'project-permanent-route';
+    const workspaceId = 'workspace-permanent-route';
+    const lease = {
+      operationId: 'operation-permanent-route',
+      ownerToken: 'owner-token-permanent-route-1234',
+      fencingToken: '3',
+      requestHash: 'a'.repeat(64),
+      scopeHash: 'b'.repeat(64),
+      projectId,
+      expectedOrganizationId: 'org-permanent-route',
+    };
+
+    try {
+      const started = await app.inject({
+        method: 'POST',
+        url: '/workspaces/start',
+        payload: {
+          orgId: lease.expectedOrganizationId,
+          projectId,
+          workspaceId,
+          image: 'agent:test',
+        },
+      });
+      expect(started.statusCode).toBe(200);
+
+      const wrongScope = await app.inject({
+        method: 'POST',
+        url: '/projects/other-project/permanent-delete/workspaces/purge',
+        payload: lease,
+      });
+      expect(wrongScope.statusCode).toBe(409);
+      expect(wrongScope.json()).toMatchObject({ code: 'WORKSPACE_PROJECT_DELETION_SCOPE_INVALID' });
+
+      const purged = await app.inject({
+        method: 'POST',
+        url: `/projects/${projectId}/permanent-delete/workspaces/purge`,
+        payload: lease,
+      });
+      expect(purged.statusCode).toBe(200);
+      expect(purged.json()).toEqual({
+        schemaVersion: 'workspace-project-erasure-v2',
+        projectId,
+        organizationId: lease.expectedOrganizationId,
+        databaseInventoryRetained: true,
+        runtimeEffectsDrained: true,
+        kubernetes: {
+          deploymentsAbsent: true,
+          replicaSetsAbsent: true,
+          podsAbsent: true,
+          servicesAbsent: true,
+          endpointsAbsent: true,
+          endpointSlicesAbsent: true,
+          ingressesAbsent: true,
+          ownedRuntimeSecretsAbsent: true,
+          persistentVolumeClaimsAbsent: true,
+        },
+      });
+      expect(runtime.store.workspaces.size).toBe(0);
+      expect(runtime.k8s.objects.size).toBe(0);
+
+      const verified = await app.inject({
+        method: 'POST',
+        url: `/projects/${projectId}/permanent-delete/workspaces/verify`,
+        payload: lease,
+      });
+      expect(verified.statusCode).toBe(200);
+      expect(verified.json()).toEqual(purged.json());
     } finally {
       await app.close();
     }

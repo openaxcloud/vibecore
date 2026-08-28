@@ -302,6 +302,7 @@ interface LockedProjectRow {
   deletedAt: Date | null;
   permanentDeletionStartedAt: Date | null;
   objectStorageCapabilityExpiresAt: Date | null;
+  ownershipEpoch: number;
 }
 
 const SAFE_ID = /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/;
@@ -955,7 +956,8 @@ async function lockPhysicalDatabaseScope(
         "organizationId",
         "deletedAt",
         "permanentDeletionStartedAt",
-        "objectStorageCapabilityExpiresAt"
+        "objectStorageCapabilityExpiresAt",
+        "ownershipEpoch"
       FROM "Project"
       WHERE "id" = ${projectId}
       FOR UPDATE
@@ -1720,6 +1722,7 @@ function assertPermanentDeletionEvidence(
 ): void {
   const filesystem = evidence.filesystem;
   const gcs = evidence.gcs;
+  const workspaceManager = evidence.workspaceManager;
   if (
     evidence.schemaVersion !== 'project-permanent-erasure-v1' ||
     !filesystem ||
@@ -1737,7 +1740,27 @@ function assertPermanentDeletionEvidence(
     typeof gcs !== 'object' ||
     Array.isArray(gcs) ||
     gcs.bucketAbsent !== true ||
-    gcs.objectCount !== 0
+    gcs.objectCount !== 0 ||
+    !workspaceManager ||
+    typeof workspaceManager !== 'object' ||
+    Array.isArray(workspaceManager) ||
+    workspaceManager.schemaVersion !== 'workspace-project-erasure-v2' ||
+    typeof workspaceManager.projectId !== 'string' ||
+    typeof workspaceManager.organizationId !== 'string' ||
+    workspaceManager.databaseInventoryRetained !== true ||
+    workspaceManager.runtimeEffectsDrained !== true ||
+    !workspaceManager.kubernetes ||
+    typeof workspaceManager.kubernetes !== 'object' ||
+    Array.isArray(workspaceManager.kubernetes) ||
+    workspaceManager.kubernetes.deploymentsAbsent !== true ||
+    workspaceManager.kubernetes.replicaSetsAbsent !== true ||
+    workspaceManager.kubernetes.podsAbsent !== true ||
+    workspaceManager.kubernetes.servicesAbsent !== true ||
+    workspaceManager.kubernetes.endpointsAbsent !== true ||
+    workspaceManager.kubernetes.endpointSlicesAbsent !== true ||
+    workspaceManager.kubernetes.ingressesAbsent !== true ||
+    workspaceManager.kubernetes.ownedRuntimeSecretsAbsent !== true ||
+    workspaceManager.kubernetes.persistentVolumeClaimsAbsent !== true
   ) {
     throw operationError(
       'OBJECT_STORAGE_OPERATION_PERMANENT_ERASURE_PROOF_INCOMPLETE',
@@ -1851,6 +1874,60 @@ export async function markObjectStorageOperationFailedSafe(
       'Operation is not provably before its effect',
       409,
     );
+  }
+  return hydrateOperation(tx, rows[0]);
+}
+
+/**
+ * Quarantine a permanent delete before its own provider effect when an older
+ * project-runtime request is still externally ambiguous. Unlike FAILED_SAFE,
+ * this deliberately preserves Project.permanentDeletionStartedAt: unfreezing
+ * would allow new writes while the lost request may still reach Kubernetes.
+ */
+export async function markPermanentDeletionRuntimeEffectAmbiguous(
+  tx: Tx,
+  lease: ObjectStorageOperationLease,
+  input: { effectIds?: readonly string[]; error: unknown; errorCode?: string },
+): Promise<ObjectStorageOperationRecord> {
+  const effectIds = input.effectIds ?? [];
+  const errorCode = input.errorCode ?? 'PROJECT_RUNTIME_EFFECT_IN_FLIGHT';
+  if (!ERROR_CODE.test(errorCode) || effectIds.some((id) => !SAFE_ID.test(id))) {
+    throw operationError('OBJECT_STORAGE_OPERATION_PROOF_INVALID', 'Runtime effect identity is invalid', 400);
+  }
+  const locked = await lockLeasedOperationScope(tx, lease);
+  if (
+    locked.row.kind !== 'PROJECT_PERMANENT_DELETE' ||
+    locked.row.status !== 'PREPARED' ||
+    locked.row.effectStartedAt !== null
+  ) {
+    throw operationError(
+      'OBJECT_STORAGE_OPERATION_NOT_FAILED_SAFE',
+      'Runtime ambiguity can only quarantine a pre-effect permanent deletion',
+      409,
+    );
+  }
+  const evidence = { runtimeEffectIds: [...effectIds].sort(), authorityVerified: false };
+  const rows = await tx.$queryRaw<OperationRow[]>(Prisma.sql`
+    UPDATE "ObjectStorageOperation"
+    SET "status" = 'MANUAL_RECOVERY'::"ObjectStorageOperationStatus",
+        "ownerToken" = NULL,
+        "leaseExpiresAt" = NULL,
+        "lastErrorCode" = ${errorCode},
+        "lastErrorMessage" = ${safeErrorMessage(input.error)},
+        "evidence" = COALESCE("evidence", '{}'::jsonb)
+          || jsonb_build_object('manualRecovery', ${JSON.stringify(evidence)}::jsonb),
+        "manualRecoveryAt" = clock_timestamp(),
+        "updatedAt" = clock_timestamp()
+    WHERE "id" = ${lease.operationId}
+      AND "ownerToken" = ${lease.ownerToken}
+      AND "fencingToken" = ${lease.fencingToken}
+      AND "requestHash" = ${lease.requestHash}
+      AND "leaseExpiresAt" > clock_timestamp()
+      AND "status" = 'PREPARED'
+    RETURNING *
+  `);
+  if (!rows[0]) {
+    throw operationError('OBJECT_STORAGE_OPERATION_FENCE_LOST', 'Runtime ambiguity fence was lost', 409, true);
   }
   return hydrateOperation(tx, rows[0]);
 }
@@ -2280,7 +2357,7 @@ export async function expirePreparedObjectStorageOperationFailedSafe(
   if (scopes.length === 0) {
     throw operationError('OBJECT_STORAGE_OPERATION_NOT_FOUND', 'Object-storage operation was not found', 404);
   }
-  await lockPhysicalDatabaseScope(
+  const projects = await lockPhysicalDatabaseScope(
     tx,
     scopes.map((scope) => scope.projectIdSnapshot),
   );
@@ -2296,6 +2373,65 @@ export async function expirePreparedObjectStorageOperationFailedSafe(
     row.leaseExpiresAt > (await databaseNow(tx))
   ) {
     throw operationError('OBJECT_STORAGE_OPERATION_FENCE_LOST', 'Prepared recovery fence changed', 409, true);
+  }
+
+  if (row.kind === 'PROJECT_PERMANENT_DELETE') {
+    const scope = scopes[0];
+    const project = scope ? projects.get(scope.projectIdSnapshot) : undefined;
+    const runtimeEffects = scope
+      ? await tx.$queryRaw<Array<{ id: string; ownershipEpoch: number; state: string }>>`
+          SELECT "id", "ownershipEpoch", "state"::text AS "state"
+          FROM "ProjectRuntimeEffect"
+          WHERE "projectId" = ${scope.projectIdSnapshot}
+          ORDER BY "id"
+          FOR UPDATE
+        `
+      : [];
+    if (scope) {
+      await tx.$executeRaw(Prisma.sql`
+        UPDATE "ProjectRuntimeEffect"
+        SET "state" = 'ABORTED'::"ProjectRuntimeEffectState",
+            "ownerToken" = NULL,
+            "leaseExpiresAt" = NULL,
+            "lastErrorCode" = 'PROJECT_RUNTIME_EFFECT_NOT_DISPATCHED',
+            "abortedAt" = clock_timestamp(),
+            "updatedAt" = clock_timestamp()
+        WHERE "projectId" = ${scope.projectIdSnapshot}
+          AND "state" = 'PREPARED'::"ProjectRuntimeEffectState"
+      `);
+    }
+    const ambiguousEffectIds = runtimeEffects
+      .filter(
+        ({ ownershipEpoch, state }) => state === 'IN_FLIGHT' || !project || ownershipEpoch > project.ownershipEpoch,
+      )
+      .map(({ id }) => id)
+      .sort();
+    if (ambiguousEffectIds.length > 0) {
+      const manual = await tx.$queryRaw<OperationRow[]>(Prisma.sql`
+        UPDATE "ObjectStorageOperation"
+        SET "status" = 'MANUAL_RECOVERY'::"ObjectStorageOperationStatus",
+            "ownerToken" = NULL,
+            "leaseExpiresAt" = NULL,
+            "lastErrorCode" = 'PROJECT_RUNTIME_EFFECT_IN_FLIGHT',
+            "lastErrorMessage" = 'A project runtime request may still reach the provider',
+            "evidence" = COALESCE("evidence", '{}'::jsonb)
+              || jsonb_build_object(
+                   'manualRecovery',
+                   ${JSON.stringify({ runtimeEffectIds: ambiguousEffectIds })}::jsonb
+                 ),
+            "manualRecoveryAt" = clock_timestamp(),
+            "updatedAt" = clock_timestamp()
+        WHERE "id" = ${row.id}
+          AND "fencingToken" = ${input.fencingToken}
+          AND "status" = 'PREPARED'
+          AND "leaseExpiresAt" <= clock_timestamp()
+        RETURNING *
+      `);
+      if (!manual[0]) {
+        throw operationError('OBJECT_STORAGE_OPERATION_FENCE_LOST', 'Recovery fence changed', 409, true);
+      }
+      return hydrateOperation(tx, manual[0]);
+    }
   }
 
   if (!(await restorePermanentDeletionBeforeEffect(tx, row, scopes))) {
@@ -2379,6 +2515,7 @@ export async function finalizeObjectStorageOperation(
         scope: ScopeRow;
         projectSnapshot: ObjectStorageJsonObject;
         capabilityUpperBoundAt: Date | null;
+        ownershipEpoch: number;
       }
     | undefined;
   if (locked.row.kind === 'PROJECT_PERMANENT_DELETE') {
@@ -2389,6 +2526,17 @@ export async function finalizeObjectStorageOperation(
     const scope = locked.scopes[0];
     if (!scope || locked.scopes.length !== 1) {
       throw operationError('OBJECT_STORAGE_OPERATION_SCOPE_CORRUPT', 'Permanent deletion scope is invalid', 500);
+    }
+    const workspaceManager = verification.evidence.workspaceManager as ObjectStorageJsonObject;
+    if (
+      workspaceManager.projectId !== scope.projectIdSnapshot ||
+      workspaceManager.organizationId !== scope.expectedOrganizationId
+    ) {
+      throw operationError(
+        'OBJECT_STORAGE_OPERATION_PERMANENT_ERASURE_PROOF_INCOMPLETE',
+        'Workspace erasure proof does not match the permanent deletion scope',
+        409,
+      );
     }
     const snapshotRows = await tx.$queryRaw<
       Array<{
@@ -2406,12 +2554,13 @@ export async function finalizeObjectStorageOperation(
         updatedAt: Date;
         deletedAt: Date | null;
         objectStorageCapabilityExpiresAt: Date | null;
+        ownershipEpoch: number;
       }>
     >(Prisma.sql`
       SELECT
         "id", "organizationId", "name", "slug", "description", "sourceType",
         "templateName", "gitRepositoryUrl", "gitDefaultBranch", "persistentVolumeClaim", "createdAt",
-        "updatedAt", "deletedAt", "objectStorageCapabilityExpiresAt"
+        "updatedAt", "deletedAt", "objectStorageCapabilityExpiresAt", "ownershipEpoch"
       FROM "Project"
       WHERE "id" = ${scope.projectIdSnapshot}
       FOR UPDATE
@@ -2424,6 +2573,7 @@ export async function finalizeObjectStorageOperation(
       canonicalJson({
         id: project.id,
         organizationId: project.organizationId,
+        ownershipEpoch: project.ownershipEpoch,
         name: project.name,
         slug: project.slug,
         description: project.description,
@@ -2440,6 +2590,7 @@ export async function finalizeObjectStorageOperation(
     const projectSnapshot: ObjectStorageJsonObject = {
       id: project.id,
       organizationId: project.organizationId,
+      ownershipEpoch: project.ownershipEpoch,
       projectRecordHash,
       state: 'PERMANENTLY_DELETED',
       permanentDeletionStartedAt: scope.expectedPermanentDeletionStartedAt?.toISOString() ?? null,
@@ -2451,6 +2602,7 @@ export async function finalizeObjectStorageOperation(
       scope,
       projectSnapshot,
       capabilityUpperBoundAt: project.objectStorageCapabilityExpiresAt,
+      ownershipEpoch: project.ownershipEpoch,
     };
   } else {
     if (input.result === undefined || input.result === null) {
@@ -2466,9 +2618,41 @@ export async function finalizeObjectStorageOperation(
 
   let durableVerification = verification;
   if (permanentReceipt) {
+    const runtimeEffects = await tx.$queryRaw<Array<{ id: string; ownershipEpoch: number; state: string }>>`
+      SELECT "id", "ownershipEpoch", "state"::text AS "state"
+      FROM "ProjectRuntimeEffect"
+      WHERE "projectId" = ${permanentReceipt.scope.projectIdSnapshot}
+      ORDER BY "id"
+      FOR UPDATE
+    `;
+    if (
+      runtimeEffects.some(
+        ({ ownershipEpoch, state }) =>
+          ownershipEpoch > permanentReceipt.ownershipEpoch || (state !== 'DRAINED' && state !== 'ABORTED'),
+      )
+    ) {
+      throw operationError(
+        'OBJECT_STORAGE_OPERATION_PROJECT_RUNTIME_EFFECT_ACTIVE',
+        'Project runtime effects are not terminally drained',
+        409,
+      );
+    }
+    /* These rows are deliberately retained as crash-recovery identities until
+     * the physical proof is accepted. Remove them only in this same transaction
+     * as Project + receipt so a failed finalize never loses recovery authority. */
+    await tx.$executeRaw`DELETE FROM "WorkspaceRuntime" WHERE "projectId" = ${permanentReceipt.scope.projectIdSnapshot}`;
+    await tx.$executeRaw`DELETE FROM "ScheduledTask" WHERE "projectId" = ${permanentReceipt.scope.projectIdSnapshot}`;
+    await tx.$executeRaw`DELETE FROM "ProjectRuntimeEffect" WHERE "projectId" = ${permanentReceipt.scope.projectIdSnapshot}`;
     await tx.$executeRaw`DELETE FROM "Project" WHERE "id" = ${permanentReceipt.scope.projectIdSnapshot}`;
     const cascade = await tx.$queryRaw<
-      Array<{ projectReleaseReferencesAbsent: boolean; liveScopeDetached: boolean }>
+      Array<{
+        projectReleaseReferencesAbsent: boolean;
+        liveScopeDetached: boolean;
+        workspaceRuntimeRowsAbsent: boolean;
+        scheduledTaskRowsAbsent: boolean;
+        scheduledRunRowsAbsent: boolean;
+        runtimeEffectRowsAbsent: boolean;
+      }>
     >(Prisma.sql`
       SELECT
         NOT EXISTS (
@@ -2478,9 +2662,32 @@ export async function finalizeObjectStorageOperation(
         NOT EXISTS (
           SELECT 1 FROM "ObjectStorageOperationProjectScope"
           WHERE "operationId" = ${locked.row.id} AND "projectId" IS NOT NULL
-        ) AS "liveScopeDetached"
+        ) AS "liveScopeDetached",
+        NOT EXISTS (
+          SELECT 1 FROM "WorkspaceRuntime"
+          WHERE "projectId" = ${permanentReceipt.scope.projectIdSnapshot}
+        ) AS "workspaceRuntimeRowsAbsent",
+        NOT EXISTS (
+          SELECT 1 FROM "ScheduledTask"
+          WHERE "projectId" = ${permanentReceipt.scope.projectIdSnapshot}
+        ) AS "scheduledTaskRowsAbsent",
+        NOT EXISTS (
+          SELECT 1 FROM "ScheduledTaskRun"
+          WHERE "projectId" = ${permanentReceipt.scope.projectIdSnapshot}
+        ) AS "scheduledRunRowsAbsent",
+        NOT EXISTS (
+          SELECT 1 FROM "ProjectRuntimeEffect"
+          WHERE "projectId" = ${permanentReceipt.scope.projectIdSnapshot}
+        ) AS "runtimeEffectRowsAbsent"
     `);
-    if (cascade[0]?.projectReleaseReferencesAbsent !== true || cascade[0]?.liveScopeDetached !== true) {
+    if (
+      cascade[0]?.projectReleaseReferencesAbsent !== true ||
+      cascade[0]?.liveScopeDetached !== true ||
+      cascade[0]?.workspaceRuntimeRowsAbsent !== true ||
+      cascade[0]?.scheduledTaskRowsAbsent !== true ||
+      cascade[0]?.scheduledRunRowsAbsent !== true ||
+      cascade[0]?.runtimeEffectRowsAbsent !== true
+    ) {
       throw operationError(
         'OBJECT_STORAGE_OPERATION_PROJECT_CASCADE_INCOMPLETE',
         'Project database cascade did not detach every release and operation reference',
@@ -2495,6 +2702,10 @@ export async function finalizeObjectStorageOperation(
           databaseCascade: {
             projectReleaseReferencesAbsent: true,
             liveScopeDetached: true,
+            workspaceRuntimeRowsAbsent: true,
+            scheduledTaskRowsAbsent: true,
+            scheduledRunRowsAbsent: true,
+            runtimeEffectRowsAbsent: true,
           },
         },
       },

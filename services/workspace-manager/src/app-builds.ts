@@ -49,6 +49,7 @@ async function collectLogs(k8s: WorkspaceK8sClient, namespace: string, podName: 
 export async function runAppBuild(
   k8s: WorkspaceK8sClient,
   input: AppBuildInput & { pollIntervalMs?: number },
+  assertAuthority: () => Promise<void> = async () => undefined,
 ): Promise<RunAppBuildResult> {
   // The manifest builder is dependency-free, so the allowlist is enforced here.
   assertWorkspaceImageAllowed(input.image);
@@ -64,7 +65,9 @@ export async function runAppBuild(
   // attempt; start clean so `apply` can't collide with a terminated pod.
   await cleanup();
 
+  await assertAuthority();
   await k8s.apply(appBuildPod(input));
+  await assertAuthority();
 
   const deadline = Date.now() + input.timeoutSeconds * 1000;
 

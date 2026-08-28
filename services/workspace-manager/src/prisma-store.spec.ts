@@ -29,6 +29,8 @@ function uniqueId(prefix: string) {
 integrationDescribe('PrismaWorkspaceStore', () => {
   let store: PrismaWorkspaceStore;
   const createdIds: string[] = [];
+  const createdProjectIds: string[] = [];
+  const createdOrganizationIds: string[] = [];
 
   beforeEach(() => {
     store = new PrismaWorkspaceStore(prisma!);
@@ -44,16 +46,30 @@ integrationDescribe('PrismaWorkspaceStore', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await (prisma as any).workspaceRuntime.deleteMany({ where: { id: { in: createdIds } } });
     }
+    await prisma.project.deleteMany({ where: { id: { in: createdProjectIds } } });
+    await prisma.organization.deleteMany({ where: { id: { in: createdOrganizationIds } } });
     await prisma.$disconnect();
   });
 
   async function createRecord(overrides: Partial<Parameters<PrismaWorkspaceStore['create']>[0]> = {}) {
     const id = overrides.id ?? uniqueId('ws');
+    const orgId = overrides.orgId ?? uniqueId('org');
+    const projectId = overrides.projectId ?? uniqueId('proj');
     createdIds.push(id);
+    if (!createdOrganizationIds.includes(orgId)) {
+      await prisma!.organization.create({ data: { id: orgId, slug: orgId, name: orgId } });
+      createdOrganizationIds.push(orgId);
+    }
+    if (!createdProjectIds.includes(projectId)) {
+      await prisma!.project.create({
+        data: { id: projectId, organizationId: orgId, slug: projectId, name: projectId },
+      });
+      createdProjectIds.push(projectId);
+    }
     return store.create({
       id,
-      orgId: overrides.orgId ?? uniqueId('org'),
-      projectId: overrides.projectId ?? uniqueId('proj'),
+      orgId,
+      projectId,
       plan: overrides.plan ?? 'free',
       status: overrides.status ?? 'STARTING',
       pvcName: overrides.pvcName ?? `pvc-${id}`,
@@ -150,9 +166,7 @@ integrationDescribe('PrismaWorkspaceStore', () => {
 
     // The three new ids appear in the order we inserted them.
     expect(newIds).toEqual([w1.id, w2.id, w3.id]);
-    const statuses = after
-      .filter((r) => [w1.id, w2.id, w3.id].includes(r.id))
-      .map((r) => r.status);
+    const statuses = after.filter((r) => [w1.id, w2.id, w3.id].includes(r.id)).map((r) => r.status);
     expect(statuses).toEqual(['RUNNING', 'STOPPED', 'DELETED']);
   });
 });

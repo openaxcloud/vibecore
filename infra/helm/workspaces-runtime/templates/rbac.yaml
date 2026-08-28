@@ -4,32 +4,44 @@ metadata:
   name: workspace-manager-runtime
   namespace: {{ .Values.namespace }}
 rules:
-  - apiGroups: [""]
-    resources: ["pods", "services", "persistentvolumeclaims"]
-    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: ['']
+    resources: ['pods', 'services', 'persistentvolumeclaims']
+    verbs: ['get', 'list', 'watch', 'create', 'update', 'patch', 'delete']
   # Secrets: workspace-manager only ever touches its own per-workspace agent-token
   # secret BY NAME (agent-token-<workspaceId>), so it does NOT get list/watch —
   # those would let a compromised manager enumerate every tenant's agent-token
   # secret in the namespace.
-  - apiGroups: [""]
-    resources: ["secrets"]
-    verbs: ["get", "create", "update", "patch", "delete"]
-  - apiGroups: [""]
-    resources: ["pods/log"]
-    verbs: ["get", "list", "watch"]
+  - apiGroups: ['']
+    resources: ['secrets']
+    verbs: ['get', 'create', 'update', 'patch', 'delete']
+  # Core Endpoints are legacy Service descendants still present on supported
+  # GKE/Kubernetes versions. They are addressed by the exact Service name; no
+  # namespace-wide list/watch capability is required.
+  - apiGroups: ['']
+    resources: ['endpoints']
+    verbs: ['get', 'delete']
+  - apiGroups: ['']
+    resources: ['pods/log']
+    verbs: ['get', 'list', 'watch']
   # Server deployments (Replit-parity "Autoscale / Reserved VM"): a durable
   # Deployment + Ingress running the user's built backend. Same namespace + gVisor
   # sandbox as workspace pods; the Deployment gives restarts/replicas/rolling-update
   # and the Ingress the public URL (exact host under the preview wildcard cert).
-  - apiGroups: ["apps"]
-    resources: ["deployments"]
-    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
-  - apiGroups: ["networking.k8s.io"]
-    resources: ["ingresses"]
-    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
-  - apiGroups: ["apps"]
-    resources: ["deployments/scale"]
-    verbs: ["get", "update", "patch"]
+  - apiGroups: ['apps']
+    resources: ['deployments', 'replicasets']
+    verbs: ['get', 'list', 'watch', 'create', 'update', 'patch', 'delete']
+  # EndpointSlices are controller-owned Service descendants. Permanent project
+  # erasure lists and removes stale slices only after their Service/controller
+  # is gone, then verifies that no endpoint can continue routing tenant traffic.
+  - apiGroups: ['discovery.k8s.io']
+    resources: ['endpointslices']
+    verbs: ['get', 'list', 'watch', 'delete']
+  - apiGroups: ['networking.k8s.io']
+    resources: ['ingresses']
+    verbs: ['get', 'list', 'watch', 'create', 'update', 'patch', 'delete']
+  - apiGroups: ['apps']
+    resources: ['deployments/scale']
+    verbs: ['get', 'update', 'patch']
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding

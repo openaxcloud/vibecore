@@ -358,6 +358,15 @@ enum ProjectPermanentDeletionArtifactState {
   RETAINED
 }
 
+enum ProjectRuntimeEffectState {
+  PREPARED
+  IN_FLIGHT
+  SETTLED
+  DRAINING
+  DRAINED
+  ABORTED
+}
+
 model Project {
   id                               String                               @id @default(cuid())
   organizationId                   String
@@ -425,6 +434,7 @@ model Project {
   releaseManifests                 ReleaseManifest[]
   objectStorageOperationScopes     ObjectStorageOperationProjectScope[]
   objectStorageVersionGcSchedule   ObjectStorageVersionGcSchedule?
+  runtimeEffects                   ProjectRuntimeEffect[]
 
   @@unique([organizationId, slug])
   @@index([organizationId])
@@ -2388,6 +2398,61 @@ model WorkspaceRuntime {
   @@index([projectId])
   @@index([status, lastActiveAt])
   @@index([purgePlanId, purgeFrozen])
+}
+
+/// Durable provider-effect fence for every project-scoped Kubernetes mutation.
+/// An IN_FLIGHT row is intentionally not recoverable by time alone: losing the
+/// database/session fence while an API request may still reach Kubernetes is an
+/// ambiguous external outcome and permanent deletion must remain fail-closed.
+model ProjectRuntimeEffect {
+  id                     String                       @id @default(cuid())
+  projectId              String
+  organizationId         String
+  ownershipEpoch         Int
+  action                 String
+  resourceId             String
+  intentHash             String
+  targetDigest           String
+  fencingToken           BigInt                       @default(1)
+  ownerToken             String?
+  state                  ProjectRuntimeEffectState    @default(PREPARED)
+  leaseExpiresAt         DateTime?
+  preparedAt             DateTime                     @default(now())
+  dispatchedAt           DateTime?
+  settledAt              DateTime?
+  drainingAt             DateTime?
+  drainedAt              DateTime?
+  abortedAt              DateTime?
+  lastErrorCode          String?
+  providerReceipt        Json?
+  operatorQuiescenceHash String?
+  createdAt              DateTime                     @default(now())
+  updatedAt              DateTime                     @updatedAt
+  project                Project                      @relation(fields: [projectId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  targets                ProjectRuntimeEffectTarget[]
+
+  @@index([projectId, state, createdAt])
+  @@index([organizationId, state, createdAt])
+  @@index([state, leaseExpiresAt])
+}
+
+/// Immutable, non-secret resource identities captured before a runtime effect
+/// can enter IN_FLIGHT. They survive Workspace/ScheduledTask cleanup and make a
+/// crash-recovery sweep independent of mutable relational rows.
+model ProjectRuntimeEffectTarget {
+  effectId                String
+  ordinal                 Int
+  kind                    String
+  namespace               String
+  name                    String
+  expectedUid             String?
+  expectedResourceVersion String?
+  manifestDigest          String?
+  effect                  ProjectRuntimeEffect @relation(fields: [effectId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@id([effectId, ordinal])
+  @@unique([effectId, kind, namespace, name], map: "ProjectRuntimeEffectTarget_identity_key")
+  @@index([kind, namespace, name], map: "ProjectRuntimeEffectTarget_resource_idx")
 }
 
 // --- Integrations panel: connector catalog, user-scoped connections,

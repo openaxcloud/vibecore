@@ -77,6 +77,7 @@ import {
   markObjectStorageOperationEffectStarted,
   markObjectStorageOperationFailedSafe,
   markObjectStorageOperationManualRecovery,
+  markPermanentDeletionRuntimeEffectAmbiguous,
   markSignedCapabilityIssued,
   objectStorageIdempotencyScopeHash,
   objectStorageMutationAdvisoryKey,
@@ -5138,8 +5139,11 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
       actorUserId: string;
       ipAddress?: string;
       preflightPhysicalErasure: () => Promise<ObjectStorageStaticArtifactSummary>;
-      erasePhysical: (assertLease: () => Promise<void>) => Promise<void>;
-      verifyPhysicalAbsence: () => Promise<ObjectStorageVerification>;
+      erasePhysical: (assertLease: () => Promise<void>, lease: ObjectStorageOperationLease) => Promise<void>;
+      verifyPhysicalAbsence: (
+        assertLease: () => Promise<void>,
+        lease: ObjectStorageOperationLease,
+      ) => Promise<ObjectStorageVerification>;
     },
   ): Promise<ProjectPermanentDeletionResult> {
     const operationRequest = projectPermanentDeletionOperationRequest({
@@ -5299,6 +5303,81 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
 
         try {
           if (!recoveryVerificationOnly) {
+            let runtimePreflight: { inFlightEffectIds: string[] };
+            try {
+              runtimePreflight = await this.prisma.$transaction(async (tx) => {
+                await assertObjectStorageOperationFence(tx, heartbeat.lease());
+                const projects = await tx.$queryRaw<Array<{ organizationId: string; ownershipEpoch: number }>>`
+                  SELECT "organizationId", "ownershipEpoch"
+                  FROM "Project"
+                  WHERE "id" = ${input.projectId}
+                    AND "permanentDeletionStartedAt" IS NOT NULL
+                  FOR UPDATE
+                `;
+                if (projects[0]?.organizationId !== input.expectedOrganizationId) {
+                  throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+                    code: 'PROJECT_RUNTIME_EFFECT_SCOPE_INVALID',
+                    statusCode: 409,
+                  });
+                }
+                const effects = await tx.$queryRaw<Array<{ id: string; ownershipEpoch: number; state: string }>>`
+                  SELECT "id", "ownershipEpoch", "state"::text AS "state"
+                  FROM "ProjectRuntimeEffect"
+                  WHERE "projectId" = ${input.projectId}
+                  ORDER BY "id"
+                  FOR UPDATE
+                `;
+                if (effects.some(({ ownershipEpoch }) => ownershipEpoch > projects[0]!.ownershipEpoch)) {
+                  throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+                    code: 'PROJECT_RUNTIME_EFFECT_SCOPE_INVALID',
+                    statusCode: 409,
+                  });
+                }
+                await tx.$executeRaw(Prisma.sql`
+                  UPDATE "ProjectRuntimeEffect"
+                  SET "state" = 'ABORTED'::"ProjectRuntimeEffectState",
+                      "ownerToken" = NULL,
+                      "leaseExpiresAt" = NULL,
+                      "lastErrorCode" = 'PROJECT_RUNTIME_EFFECT_NOT_DISPATCHED',
+                      "abortedAt" = clock_timestamp(),
+                      "updatedAt" = clock_timestamp()
+                  WHERE "projectId" = ${input.projectId}
+                    AND "state" = 'PREPARED'::"ProjectRuntimeEffectState"
+                `);
+                return {
+                  inFlightEffectIds: effects.filter(({ state }) => state === 'IN_FLIGHT').map(({ id }) => id),
+                };
+              });
+            } catch (error) {
+              /* A failed ledger read is not proof that no request reached the
+               * provider. Preserve the permanent-deletion freeze and quarantine
+               * instead of routing through FAILED_SAFE, which would re-enable
+               * project writes. */
+              await this.prisma
+                .$transaction((tx) =>
+                  markPermanentDeletionRuntimeEffectAmbiguous(tx, heartbeat.lease(), {
+                    error,
+                    errorCode: 'PROJECT_RUNTIME_EFFECT_AUTHORITY_UNAVAILABLE',
+                  }),
+                )
+                .catch(() => undefined);
+              throw error;
+            }
+            if (runtimePreflight.inFlightEffectIds.length > 0) {
+              const error = Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+                code: 'PROJECT_RUNTIME_EFFECT_IN_FLIGHT',
+                statusCode: 409,
+                effectIds: runtimePreflight.inFlightEffectIds,
+              });
+              await this.prisma.$transaction((tx) =>
+                markPermanentDeletionRuntimeEffectAmbiguous(tx, heartbeat.lease(), {
+                  effectIds: runtimePreflight.inFlightEffectIds,
+                  error,
+                }),
+              );
+              throw error;
+            }
+
             try {
               const staticArtifactPlan = await input.preflightPhysicalErasure();
               await heartbeat.assert();
@@ -5306,9 +5385,10 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
                 recordPermanentDeletionStaticArtifactPlan(tx, heartbeat.lease(), staticArtifactPlan),
               );
             } catch (error) {
+              const errorCode = this.objectStorageRecoveryErrorCode(error);
               await this.prisma.$transaction((tx) =>
                 markObjectStorageOperationFailedSafe(tx, heartbeat.lease(), {
-                  errorCode: this.objectStorageRecoveryErrorCode(error),
+                  errorCode,
                   error,
                 }),
               );
@@ -5319,7 +5399,7 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
                 command: 'project-permanent-delete',
               }),
             );
-            await input.erasePhysical(heartbeat.assert);
+            await input.erasePhysical(heartbeat.assert, heartbeat.lease());
             await heartbeat.assert();
             await this.prisma.$transaction((tx) =>
               beginObjectStorageOperationVerification(tx, heartbeat.lease(), {
@@ -5330,7 +5410,7 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
 
           let proof: ObjectStorageVerification;
           try {
-            proof = await input.verifyPhysicalAbsence();
+            proof = await input.verifyPhysicalAbsence(heartbeat.assert, heartbeat.lease());
           } catch (error) {
             if (recoveryVerificationOnly) {
               await this.prisma.$transaction((tx) =>
@@ -5534,6 +5614,7 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
                   nonTerminalCheckpointCount,
                   projectTemplateCount,
                   aiConversationCount,
+                  activeRuntimeEffectCount,
                 ] = await Promise.all([
                   tx.databaseInstance.count({ where: { projectId: input.projectId, status: { not: 'DELETED' } } }),
                   tx.cloudProjectBinding.count({ where: { projectId: input.projectId } }),
@@ -5597,6 +5678,9 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
                   }),
                   tx.projectTemplate.count({ where: { sourceProjectId: input.projectId } }),
                   tx.aiConversation.count({ where: { projectId: input.projectId } }),
+                  tx.projectRuntimeEffect.count({
+                    where: { projectId: input.projectId, state: { in: ['PREPARED', 'IN_FLIGHT'] } },
+                  }),
                 ]);
 
                 if (
@@ -5614,7 +5698,8 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
                     activeReservedVmBillingPeriodCount +
                     nonTerminalCheckpointCount +
                     projectTemplateCount +
-                    aiConversationCount >
+                    aiConversationCount +
+                    activeRuntimeEffectCount >
                   0
                 ) {
                   throw Object.assign(new Error(appPublicEnglish('PROJECT_TRANSFER_MANAGED_RESOURCES_ACTIVE')), {
@@ -5716,6 +5801,15 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
                     revokedByUserId: input.actorUserId,
                     revocationReason: 'PROJECT_TRANSFERRED',
                   },
+                });
+
+                /* Only terminal runtime tombstones can reach this point: every
+                 * live/failed/stopped runtime is denied above. Rebind their
+                 * tenant snapshot atomically so a later permanent-delete under
+                 * the new owner can consume the exact recovery identities. */
+                await tx.workspaceRuntime.updateMany({
+                  where: { projectId: input.projectId, status: 'DELETED' },
+                  data: { orgId: input.targetOrganizationId },
                 });
 
                 const transferred = await tx.project.update({

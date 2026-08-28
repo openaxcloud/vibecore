@@ -1438,6 +1438,43 @@ exports.Prisma.WorkspaceRuntimeScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.ProjectRuntimeEffectScalarFieldEnum = {
+  id: 'id',
+  projectId: 'projectId',
+  organizationId: 'organizationId',
+  ownershipEpoch: 'ownershipEpoch',
+  action: 'action',
+  resourceId: 'resourceId',
+  intentHash: 'intentHash',
+  targetDigest: 'targetDigest',
+  fencingToken: 'fencingToken',
+  ownerToken: 'ownerToken',
+  state: 'state',
+  leaseExpiresAt: 'leaseExpiresAt',
+  preparedAt: 'preparedAt',
+  dispatchedAt: 'dispatchedAt',
+  settledAt: 'settledAt',
+  drainingAt: 'drainingAt',
+  drainedAt: 'drainedAt',
+  abortedAt: 'abortedAt',
+  lastErrorCode: 'lastErrorCode',
+  providerReceipt: 'providerReceipt',
+  operatorQuiescenceHash: 'operatorQuiescenceHash',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.ProjectRuntimeEffectTargetScalarFieldEnum = {
+  effectId: 'effectId',
+  ordinal: 'ordinal',
+  kind: 'kind',
+  namespace: 'namespace',
+  name: 'name',
+  expectedUid: 'expectedUid',
+  expectedResourceVersion: 'expectedResourceVersion',
+  manifestDigest: 'manifestDigest'
+};
+
 exports.Prisma.ConnectorCatalogScalarFieldEnum = {
   id: 'id',
   provider: 'provider',
@@ -2482,6 +2519,15 @@ exports.ConsensusOutcome = exports.$Enums.ConsensusOutcome = {
   ABSTAINED: 'ABSTAINED'
 };
 
+exports.ProjectRuntimeEffectState = exports.$Enums.ProjectRuntimeEffectState = {
+  PREPARED: 'PREPARED',
+  IN_FLIGHT: 'IN_FLIGHT',
+  SETTLED: 'SETTLED',
+  DRAINING: 'DRAINING',
+  DRAINED: 'DRAINED',
+  ABORTED: 'ABORTED'
+};
+
 exports.CreditEntryKind = exports.$Enums.CreditEntryKind = {
   GRANT: 'GRANT',
   CONSUMPTION: 'CONSUMPTION',
@@ -2755,6 +2801,8 @@ exports.Prisma.ModelName = {
   AgentRunResult: 'AgentRunResult',
   ConsensusRecord: 'ConsensusRecord',
   WorkspaceRuntime: 'WorkspaceRuntime',
+  ProjectRuntimeEffect: 'ProjectRuntimeEffect',
+  ProjectRuntimeEffectTarget: 'ProjectRuntimeEffectTarget',
   ConnectorCatalog: 'ConnectorCatalog',
   UserConnection: 'UserConnection',
   ProjectConnectionLink: 'ProjectConnectionLink',

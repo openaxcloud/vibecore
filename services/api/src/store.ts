@@ -14,6 +14,7 @@ import type { LoginLockoutState, LoginThrottleConfig } from './login-throttle.js
 import type { RollbackSuccessReceipt } from './rollback-response.js';
 import type {
   ObjectStorageCheckpointBarrierAuthority,
+  ObjectStorageOperationLease,
   ObjectStorageStaticArtifactSummary,
   ObjectStorageVerification,
 } from './object-storage-operation.js';
@@ -2472,8 +2473,11 @@ export interface ApiStore {
       actorUserId: string;
       ipAddress?: string;
       preflightPhysicalErasure: () => Promise<ObjectStorageStaticArtifactSummary>;
-      erasePhysical: (assertLease: () => Promise<void>) => Promise<void>;
-      verifyPhysicalAbsence: () => Promise<ObjectStorageVerification>;
+      erasePhysical: (assertLease: () => Promise<void>, lease: ObjectStorageOperationLease) => Promise<void>;
+      verifyPhysicalAbsence: (
+        assertLease: () => Promise<void>,
+        lease: ObjectStorageOperationLease,
+      ) => Promise<ObjectStorageVerification>;
     },
   ): Promise<ProjectPermanentDeletionResult>;
   transferProject(input: {

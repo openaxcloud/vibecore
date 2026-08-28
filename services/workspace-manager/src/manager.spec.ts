@@ -11,6 +11,7 @@ import {
   resolveAgentBaseUrl,
   unschedulableGraceMs,
   type EventBus,
+  type WorkspaceProjectDeletionLease,
   type WorkspaceRecord,
   type WorkspaceStore,
 } from './manager.js';
@@ -132,13 +133,14 @@ class TestWorkspaceK8sClient implements WorkspaceK8sClient {
   }
 
   async listByLabel(kind: string, namespace: string, labelSelector: string) {
-    const [labelKey] = labelSelector.split('=');
+    const [labelKey, labelValue] = labelSelector.split('=');
 
     return [...this.objects.values()].filter(
       (object) =>
         object.kind === kind &&
         (object.metadata.namespace ?? 'default') === namespace &&
-        object.metadata.labels?.[labelKey] !== undefined,
+        object.metadata.labels?.[labelKey] !== undefined &&
+        (labelValue === undefined || object.metadata.labels[labelKey] === labelValue),
     );
   }
 }
@@ -146,6 +148,11 @@ class TestWorkspaceK8sClient implements WorkspaceK8sClient {
 class TestWorkspaceStore implements WorkspaceStore {
   readonly workspaces = new Map<string, WorkspaceRecord>();
   readonly purgeEffects = new Map<string, Record<string, unknown>>();
+  readonly projectDeletionPersistentVolumeClaims: string[] = [];
+  readonly projectDeletionServerDeploymentIds: string[] = [];
+  readonly projectDeletionWorkspaceIds: string[] = [];
+  readonly projectDeletionScheduledRunIds: string[] = [];
+  projectDeletionLeaseValid = true;
 
   async create(input: Omit<WorkspaceRecord, 'createdAt' | 'lastActiveAt'>) {
     const now = new Date().toISOString();
@@ -216,6 +223,27 @@ class TestWorkspaceStore implements WorkspaceStore {
   async executeProvisionEffect<T>(workspaceId: string, effect: () => Promise<T>) {
     if (this.workspaces.get(workspaceId)?.purgeFrozen) throw new Error('WORKSPACE_PURGE_FROZEN');
     return effect();
+  }
+
+  async executeProjectProvisionEffect<T>(
+    _input: { projectId: string; expectedOrganizationId: string },
+    effect: (assertAuthority: () => Promise<void>) => Promise<T>,
+  ) {
+    return effect(async () => this.assertProjectDeletionLease());
+  }
+
+  async executeDeploymentProvisionEffect<T>(
+    _input: string | { deploymentId: string; projectId: string; expectedOrganizationId: string },
+    effect: (assertAuthority: () => Promise<void>) => Promise<T>,
+  ) {
+    return effect(async () => this.assertProjectDeletionLease());
+  }
+
+  async executeScheduledRunProvisionEffect<T>(
+    _input: { runId: string; projectId: string; expectedOrganizationId: string },
+    effect: (assertAuthority: () => Promise<void>) => Promise<T>,
+  ) {
+    return effect(async () => this.assertProjectDeletionLease());
   }
 
   async acquirePurgeFence(workspaceId: string, lease: { planId: string; ownerToken: string }) {
@@ -304,6 +332,60 @@ class TestWorkspaceStore implements WorkspaceStore {
   async reconcilePurgeFences() {
     return { scanned: 0, reconciled: 0, workspaceIds: [] as string[] };
   }
+
+  async assertProjectDeletionLease() {
+    if (!this.projectDeletionLeaseValid) {
+      throw Object.assign(new Error('WORKSPACE_PROJECT_DELETION_LEASE_INVALID'), { statusCode: 409 });
+    }
+  }
+
+  async acquireProjectDeletionFence(lease: WorkspaceProjectDeletionLease) {
+    await this.assertProjectDeletionLease();
+    const rows = [...this.workspaces.values()].filter((workspace) => workspace.projectId === lease.projectId);
+    this.projectDeletionWorkspaceIds.splice(0, this.projectDeletionWorkspaceIds.length, ...rows.map(({ id }) => id));
+    for (const workspace of rows) {
+      this.workspaces.set(workspace.id, {
+        ...workspace,
+        purgeFrozen: true,
+        purgePlanId: undefined,
+        purgeFenceToken: lease.ownerToken,
+        purgeFrozenAt: new Date().toISOString(),
+      });
+    }
+    return {
+      workspaces: rows.map((workspace) => this.workspaces.get(workspace.id)!),
+      workspaceIds: [...this.projectDeletionWorkspaceIds],
+      persistentVolumeClaims: [...this.projectDeletionPersistentVolumeClaims],
+      serverDeploymentIds: [...this.projectDeletionServerDeploymentIds],
+      scheduledRunIds: [...this.projectDeletionScheduledRunIds],
+      runtimeEffectTargets: [],
+      runtimeEffectIds: [],
+    };
+  }
+
+  async completeProjectDeletion(lease: WorkspaceProjectDeletionLease) {
+    await this.assertProjectDeletionLease();
+    const rows = [...this.workspaces.values()].filter((workspace) => workspace.projectId === lease.projectId);
+    if (rows.some((workspace) => !workspace.purgeFrozen || workspace.purgeFenceToken !== lease.ownerToken)) {
+      throw new Error('WORKSPACE_PROJECT_DELETION_FENCE_LOST');
+    }
+    for (const workspace of rows) this.workspaces.delete(workspace.id);
+    return rows.length;
+  }
+
+  async inspectProjectDeletionState(lease: WorkspaceProjectDeletionLease) {
+    await this.assertProjectDeletionLease();
+    return {
+      runtimeCount: [...this.workspaces.values()].filter((workspace) => workspace.projectId === lease.projectId).length,
+      runtimeEffectsDrained: true,
+      workspaceIds: [...this.projectDeletionWorkspaceIds],
+      persistentVolumeClaims: [...this.projectDeletionPersistentVolumeClaims],
+      serverDeploymentIds: [...this.projectDeletionServerDeploymentIds],
+      scheduledRunIds: [...this.projectDeletionScheduledRunIds],
+      runtimeEffectTargets: [],
+      runtimeEffectIds: [],
+    };
+  }
 }
 
 /*
@@ -362,6 +444,114 @@ describe('WorkspaceManager', () => {
       (k8s.objects.get('workspaces:PersistentVolumeClaim:pvc-workspace_1')?.spec?.resources as any).requests.storage,
     ).toBe('30Gi');
     expect(events.events.map((event) => event.type)).toContain('workspace.running');
+  });
+
+  it('permanently erases every project runtime row and labeled Kubernetes workspace object', async () => {
+    const k8s = new TestWorkspaceK8sClient();
+    const store = new TestWorkspaceStore();
+    const manager = new WorkspaceManager(store, k8s, new TestEventBus(), 'test-workspace-agent-secret');
+    await manager.startWorkspace(input);
+    await k8s.apply({
+      apiVersion: 'v1',
+      kind: 'Endpoints',
+      metadata: { namespace: input.namespace, name: `workspace-${input.workspaceId}` },
+    });
+    await k8s.apply({
+      apiVersion: 'discovery.k8s.io/v1',
+      kind: 'EndpointSlice',
+      metadata: {
+        namespace: input.namespace,
+        name: `workspace-${input.workspaceId}-orphan-slice`,
+        labels: { 'kubernetes.io/service-name': `workspace-${input.workspaceId}` },
+      },
+    });
+    /* Simulate a crash after the Service disappeared but before its endpoint
+     * descendants were garbage-collected. The durable Workspace id must still
+     * make both descendants discoverable on retry. */
+    k8s.objects.delete(`${input.namespace}:Service:workspace-${input.workspaceId}`);
+    store.projectDeletionPersistentVolumeClaims.push('legacy-project-pvc');
+    store.projectDeletionServerDeploymentIds.push('server-deployment-1');
+    const serverLabels = {
+      'vibecore.ai/project': input.projectId,
+      'vibecore.ai/server-deploy': 'server-deployment-1',
+    };
+    for (const [kind, name, labels] of [
+      ['Deployment', 'app-server-deployment-1', serverLabels],
+      ['Pod', 'app-server-deployment-1-abc', serverLabels],
+      ['Service', 'app-server-deployment-1', serverLabels],
+      ['Ingress', 'app-server-deployment-1', serverLabels],
+      ['Secret', 'app-secrets-server-deployment-1', { 'vibecore.ai/server-deploy': 'server-deployment-1' }],
+      ['PersistentVolumeClaim', 'legacy-project-pvc', {}],
+    ] as const) {
+      await k8s.apply({ apiVersion: 'v1', kind, metadata: { namespace: input.namespace, name, labels } });
+    }
+    const lease: WorkspaceProjectDeletionLease = {
+      operationId: 'delete-operation-1',
+      ownerToken: 'delete-owner-token-1234567890',
+      fencingToken: '1',
+      requestHash: 'a'.repeat(64),
+      scopeHash: 'b'.repeat(64),
+      projectId: input.projectId,
+      expectedOrganizationId: input.orgId,
+    };
+
+    const proof = await manager.purgeProjectWorkspaces(input.namespace, lease);
+
+    expect(proof).toEqual({
+      schemaVersion: 'workspace-project-erasure-v2',
+      projectId: input.projectId,
+      organizationId: input.orgId,
+      databaseInventoryRetained: true,
+      runtimeEffectsDrained: true,
+      kubernetes: {
+        deploymentsAbsent: true,
+        replicaSetsAbsent: true,
+        podsAbsent: true,
+        servicesAbsent: true,
+        endpointsAbsent: true,
+        endpointSlicesAbsent: true,
+        ingressesAbsent: true,
+        ownedRuntimeSecretsAbsent: true,
+        persistentVolumeClaimsAbsent: true,
+      },
+    });
+    expect(store.workspaces.size).toBe(0);
+    expect(k8s.objects.size).toBe(0);
+    expect(
+      [...k8s.objects.values()].filter(
+        (object) => object.metadata.labels?.['vibecore.ai/project-id'] === input.projectId,
+      ),
+    ).toHaveLength(0);
+  });
+
+  it('stops a permanent erasure immediately when the API lease is lost between Kubernetes effects', async () => {
+    const k8s = new TestWorkspaceK8sClient();
+    const store = new TestWorkspaceStore();
+    const manager = new WorkspaceManager(store, k8s, new TestEventBus(), 'test-workspace-agent-secret');
+    await manager.startWorkspace(input);
+    const lease: WorkspaceProjectDeletionLease = {
+      operationId: 'delete-operation-lost',
+      ownerToken: 'delete-owner-token-lost-123456',
+      fencingToken: '7',
+      requestHash: 'c'.repeat(64),
+      scopeHash: 'd'.repeat(64),
+      projectId: input.projectId,
+      expectedOrganizationId: input.orgId,
+    };
+    const originalDelete = k8s.delete.bind(k8s);
+    let deleteCalls = 0;
+    k8s.delete = async (kind, namespace, name) => {
+      await originalDelete(kind, namespace, name);
+      deleteCalls += 1;
+      store.projectDeletionLeaseValid = false;
+    };
+
+    await expect(manager.purgeProjectWorkspaces(input.namespace, lease)).rejects.toMatchObject({
+      statusCode: 409,
+    });
+    expect(deleteCalls).toBe(1);
+    expect(store.workspaces.get(input.workspaceId)).toMatchObject({ purgeFrozen: true });
+    expect(k8s.objects.size).toBeGreaterThan(0);
   });
 
   it('never runs the real agent-reachability fetch under vitest, even without the timeout env (keeps the root `vitest --run` suite fast)', async () => {

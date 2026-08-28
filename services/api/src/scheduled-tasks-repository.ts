@@ -13,6 +13,7 @@
  */
 import { randomUUID } from 'node:crypto';
 import type { DatabaseClient } from '@vibecore/database';
+import { appPublicEnglish } from './app-public-copy.js';
 
 export type ScheduledTaskKind = 'WORKFLOW' | 'DEPLOYMENT';
 export type ScheduledTaskRunStatus = 'RUNNING' | 'SUCCESS' | 'FAILED' | 'TIMED_OUT' | 'SKIPPED' | 'CANCELED';
@@ -441,7 +442,7 @@ export class PostgresScheduledTaskRepository implements ScheduledTaskRepository 
     );
 
     if (!row) {
-      throw Object.assign(new Error('PROJECT_STORAGE_PERMANENT_DELETION_ACTIVE'), {
+      throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
         code: 'PROJECT_STORAGE_PERMANENT_DELETION_ACTIVE',
         statusCode: 409,
       });
@@ -544,10 +545,11 @@ export class PostgresScheduledTaskRepository implements ScheduledTaskRepository 
   async cancelRun(runId: string, now: Date): Promise<boolean> {
     const updated = await this.execute(
       `UPDATE "ScheduledTaskRun"
-       SET status = 'CANCELED', "finishedAt" = $2, error = 'Canceled by a user.'
+       SET status = 'CANCELED', "finishedAt" = $2, error = $3
        WHERE id = $1 AND status = 'RUNNING'`,
       runId,
       now,
+      appPublicEnglish('SCHEDULE_RUN_CANCELED_BY_USER'),
     );
 
     return updated > 0;

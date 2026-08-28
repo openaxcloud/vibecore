@@ -69,6 +69,7 @@ import type { ProjectStaticArtifactAuthority, ProjectStaticErasureInventory } fr
 import {
   parseObjectStorageStaticArtifactSummary,
   type ObjectStorageCheckpointBarrierAuthority,
+  type ObjectStorageOperationLease,
   type ObjectStorageStaticArtifactSummary,
   type ObjectStorageVerification,
 } from '../object-storage-operation.js';
@@ -288,6 +289,8 @@ function assertPermanentDeletionProof(
 ): void {
   const filesystem = proof.evidence.filesystem as Record<string, unknown> | undefined;
   const gcs = proof.evidence.gcs as Record<string, unknown> | undefined;
+  const workspaceManager = proof.evidence.workspaceManager as Record<string, unknown> | undefined;
+  const kubernetes = workspaceManager?.kubernetes as Record<string, unknown> | undefined;
   let staticArtifactSummary: ObjectStorageStaticArtifactSummary | undefined;
   let expected: ObjectStorageStaticArtifactSummary | undefined;
   try {
@@ -311,7 +314,19 @@ function assertPermanentDeletionProof(
     staticArtifactSummary.retainedCount === expected.retainedCount &&
     staticArtifactSummary.digest === expected.digest &&
     gcs?.bucketAbsent === true &&
-    gcs.objectCount === 0;
+    gcs.objectCount === 0 &&
+    workspaceManager?.schemaVersion === 'workspace-project-erasure-v2' &&
+    workspaceManager.databaseInventoryRetained === true &&
+    workspaceManager.runtimeEffectsDrained === true &&
+    kubernetes?.deploymentsAbsent === true &&
+    kubernetes.replicaSetsAbsent === true &&
+    kubernetes?.podsAbsent === true &&
+    kubernetes.servicesAbsent === true &&
+    kubernetes.endpointsAbsent === true &&
+    kubernetes.endpointSlicesAbsent === true &&
+    kubernetes.ingressesAbsent === true &&
+    kubernetes.ownedRuntimeSecretsAbsent === true &&
+    kubernetes.persistentVolumeClaimsAbsent === true;
   if (!complete) {
     throw Object.assign(new Error('OBJECT_STORAGE_OPERATION_PERMANENT_ERASURE_PROOF_INCOMPLETE'), {
       code: 'OBJECT_STORAGE_OPERATION_PERMANENT_ERASURE_PROOF_INCOMPLETE',
@@ -2489,8 +2504,11 @@ export class TestApiStore implements ApiStore {
       actorUserId: string;
       ipAddress?: string;
       preflightPhysicalErasure: () => Promise<ObjectStorageStaticArtifactSummary>;
-      erasePhysical: (assertLease: () => Promise<void>) => Promise<void>;
-      verifyPhysicalAbsence: () => Promise<ObjectStorageVerification>;
+      erasePhysical: (assertLease: () => Promise<void>, lease: ObjectStorageOperationLease) => Promise<void>;
+      verifyPhysicalAbsence: (
+        assertLease: () => Promise<void>,
+        lease: ObjectStorageOperationLease,
+      ) => Promise<ObjectStorageVerification>;
     },
   ): Promise<ProjectPermanentDeletionResult> {
     const expectedRequestHash = projectPermanentDeletionRequestHash({
@@ -2568,6 +2586,14 @@ export class TestApiStore implements ApiStore {
             allowPermanentDeletion: true,
           });
         };
+        const lease: ObjectStorageOperationLease = {
+          operationId: `test-permanent-delete:${input.projectId}`,
+          ownerToken: `test-owner:${input.idempotencyKey}`,
+          fencingToken: 1n,
+          requestHash: input.requestHash,
+          scopeHash: createHash('sha256').update(`${input.projectId}:${input.expectedOrganizationId}`).digest('hex'),
+          leaseExpiresAt: new Date(Date.now() + 60_000).toISOString(),
+        };
         let staticArtifactPlan: ObjectStorageStaticArtifactSummary;
         try {
           staticArtifactPlan = await input.preflightPhysicalErasure();
@@ -2579,10 +2605,20 @@ export class TestApiStore implements ApiStore {
           project.updatedAt = now();
           throw error;
         }
-        await input.erasePhysical(assertLease);
+        await input.erasePhysical(assertLease, lease);
         await assertLease();
-        const proof = await input.verifyPhysicalAbsence();
+        const proof = await input.verifyPhysicalAbsence(assertLease, lease);
         assertPermanentDeletionProof(proof, staticArtifactPlan);
+        const workspaceManager = proof.evidence.workspaceManager as Record<string, unknown>;
+        if (
+          workspaceManager.projectId !== input.projectId ||
+          workspaceManager.organizationId !== input.expectedOrganizationId
+        ) {
+          throw Object.assign(new Error('OBJECT_STORAGE_OPERATION_PERMANENT_ERASURE_PROOF_INCOMPLETE'), {
+            code: 'OBJECT_STORAGE_OPERATION_PERMANENT_ERASURE_PROOF_INCOMPLETE',
+            statusCode: 409,
+          });
+        }
         this.assertExpectedProjectTenant(input, {
           allowDeletedProject: true,
           allowPermanentDeletion: true,

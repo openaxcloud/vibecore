@@ -59,6 +59,7 @@ async function collectLogs(k8s: WorkspaceK8sClient, namespace: string, podName: 
 export async function runScheduledJob(
   k8s: WorkspaceK8sClient,
   input: ScheduledJobInput & { secretValues?: Record<string, string>; pollIntervalMs?: number },
+  assertAuthority: () => Promise<void> = async () => undefined,
 ): Promise<RunScheduledJobResult> {
   // The manifest builder is dependency-free, so the allowlist is enforced here.
   assertWorkspaceImageAllowed(input.image);
@@ -102,10 +103,14 @@ export async function runScheduledJob(
   await cleanup();
 
   if (hasSecrets) {
+    await assertAuthority();
     await k8s.apply(scheduledJobSecret(input, input.secretValues!));
+    await assertAuthority();
   }
 
+  await assertAuthority();
   await k8s.apply(scheduledJobPod(input));
+  await assertAuthority();
 
   const deadline = Date.now() + input.timeoutSeconds * 1000;
 

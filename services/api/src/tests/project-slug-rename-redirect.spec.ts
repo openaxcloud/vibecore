@@ -77,7 +77,28 @@ describe('F13 project slug rename + 30-day redirect + guarded delete', () => {
 
   async function setup() {
     const store = new TestApiStore();
-    const app = await buildTestApiApp({ store, objectStorage: activeEmptyObjectStorage() });
+    const app = await buildTestApiApp({
+      store,
+      objectStorage: activeEmptyObjectStorage(),
+      projectWorkspaceDeletion: async (_action, projectId, organizationId) => ({
+        schemaVersion: 'workspace-project-erasure-v2',
+        projectId,
+        organizationId,
+        databaseInventoryRetained: true,
+        runtimeEffectsDrained: true,
+        kubernetes: {
+          deploymentsAbsent: true,
+          replicaSetsAbsent: true,
+          podsAbsent: true,
+          servicesAbsent: true,
+          endpointsAbsent: true,
+          endpointSlicesAbsent: true,
+          ingressesAbsent: true,
+          ownedRuntimeSecretsAbsent: true,
+          persistentVolumeClaimsAbsent: true,
+        },
+      }),
+    });
     const owner = await register(app, 'owner@example.com', 'Slug Org');
     const project = await createProject(app, owner.organization.id, owner.token, 'Alpha', 'alpha-one');
 

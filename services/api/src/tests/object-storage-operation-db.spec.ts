@@ -109,6 +109,7 @@ async function claim(prisma: DatabaseClient, input: ClaimObjectStorageOperationI
 }
 
 async function cleanupMutableSaga(prisma: DatabaseClient, projectId: string, organizationIds: string[]) {
+  await prisma.$executeRaw`DELETE FROM "ProjectRuntimeEffect" WHERE "projectId" = ${projectId}`;
   await prisma.$executeRaw`
     DELETE FROM "ObjectStorageCapabilityReservation" reservation
     WHERE EXISTS (
@@ -622,6 +623,63 @@ runDbTests('object-storage operation saga — real PostgreSQL', () => {
           }),
         ),
       ).rejects.toMatchObject({ code: 'OBJECT_STORAGE_OPERATION_FENCE_LOST', statusCode: 409 });
+    } finally {
+      await cleanupMutableSaga(prisma, seeded.project.id, [seeded.source.id, seeded.target.id]);
+      await prisma.$disconnect();
+    }
+  });
+
+  it('never unfreezes an expired prepared permanent delete while a runtime request is in flight', async () => {
+    const prisma = createDatabaseClient();
+    const seeded = await seedProject(prisma, 'object-saga-expired-runtime');
+    const shape = request({
+      kind: 'PROJECT_PERMANENT_DELETE',
+      scopes: [{ projectId: seeded.project.id, expectedOrganizationId: seeded.source.id, expectedDeletedAt: null }],
+      payload: { command: 'permanently-delete-project' },
+    });
+    try {
+      const acquired = await claim(
+        prisma,
+        claimInput(shape, {
+          idempotencyKey: `expired-runtime-${suffix()}`,
+          ownerToken: `expired-runtime-owner-${suffix()}`,
+        }),
+      );
+      if (acquired.kind !== 'ACQUIRED') throw new Error('EXPECTED_ACQUIRED');
+      await prisma.$executeRaw`
+        INSERT INTO "ProjectRuntimeEffect" (
+          "id", "projectId", "organizationId", "ownershipEpoch", "action", "resourceId",
+          "intentHash", "targetDigest", "fencingToken", "ownerToken", "state",
+          "leaseExpiresAt", "preparedAt", "dispatchedAt", "createdAt", "updatedAt"
+        ) VALUES (
+          ${`expired-runtime-effect-${suffix()}`}, ${seeded.project.id}, ${seeded.source.id}, 0,
+          'START_WORKSPACE', 'expired-runtime-workspace', ${'e'.repeat(64)}, ${'f'.repeat(64)},
+          1, ${`expired-effect-owner-${suffix()}`}, 'IN_FLIGHT'::"ProjectRuntimeEffectState",
+          clock_timestamp() - INTERVAL '1 second', clock_timestamp(), clock_timestamp(),
+          clock_timestamp(), clock_timestamp()
+        )
+      `;
+      await prisma.$executeRaw`
+        UPDATE "ObjectStorageOperation"
+        SET "leaseExpiresAt" = clock_timestamp() - INTERVAL '1 second'
+        WHERE "id" = ${acquired.operation.id}
+      `;
+
+      const expired = await prisma.$transaction((tx) =>
+        expirePreparedObjectStorageOperationFailedSafe(tx, {
+          operationId: acquired.operation.id,
+          requestHash: acquired.operation.requestHash,
+          scopeHash: acquired.operation.scopeHash,
+          fencingToken: acquired.operation.fencingToken,
+        }),
+      );
+      expect(expired).toMatchObject({ status: 'MANUAL_RECOVERY', lastErrorCode: 'PROJECT_RUNTIME_EFFECT_IN_FLIGHT' });
+      await expect(
+        prisma.project.findUniqueOrThrow({
+          where: { id: seeded.project.id },
+          select: { deletedAt: true, permanentDeletionStartedAt: true },
+        }),
+      ).resolves.toEqual({ deletedAt: expect.any(Date), permanentDeletionStartedAt: expect.any(Date) });
     } finally {
       await cleanupMutableSaga(prisma, seeded.project.id, [seeded.source.id, seeded.target.id]);
       await prisma.$disconnect();
@@ -1536,6 +1594,7 @@ runDbTests('object-storage operation saga — real PostgreSQL', () => {
     const actor = await prisma.user.create({ data: { email: `delete-preflight-${suffix()}@example.test` } });
     const store = new PrismaApiStore(prisma);
     const idempotencyKey = `delete-preflight-${suffix()}`;
+    const runtimeEffectId = `runtime-prepared-${suffix()}`;
     const requestHash = projectPermanentDeletionRequestHash({
       projectId: seeded.project.id,
       organizationId: seeded.source.id,
@@ -1557,6 +1616,24 @@ runDbTests('object-storage operation saga — real PostgreSQL', () => {
           staticArtifactSummary: EMPTY_STATIC_ARTIFACT_SUMMARY,
         },
         gcs: { bucketAbsent: true, objectCount: 0 },
+        workspaceManager: {
+          schemaVersion: 'workspace-project-erasure-v2',
+          projectId: seeded.project.id,
+          organizationId: seeded.source.id,
+          databaseInventoryRetained: true,
+          runtimeEffectsDrained: true,
+          kubernetes: {
+            deploymentsAbsent: true,
+            replicaSetsAbsent: true,
+            podsAbsent: true,
+            servicesAbsent: true,
+            endpointsAbsent: true,
+            endpointSlicesAbsent: true,
+            ingressesAbsent: true,
+            ownedRuntimeSecretsAbsent: true,
+            persistentVolumeClaimsAbsent: true,
+          },
+        },
       },
     }));
     let rejectPreflight = true;
@@ -1581,6 +1658,18 @@ runDbTests('object-storage operation saga — real PostgreSQL', () => {
     };
 
     try {
+      await prisma.$executeRaw`
+        INSERT INTO "ProjectRuntimeEffect" (
+          "id", "projectId", "organizationId", "ownershipEpoch", "action", "resourceId",
+          "intentHash", "targetDigest", "fencingToken", "ownerToken", "state",
+          "leaseExpiresAt", "preparedAt", "createdAt", "updatedAt"
+        ) VALUES (
+          ${runtimeEffectId}, ${seeded.project.id}, ${seeded.source.id}, 0,
+          'START_WORKSPACE', 'workspace-prepared', ${'c'.repeat(64)}, ${'d'.repeat(64)},
+          1, ${`runtime-owner-${suffix()}`}, 'PREPARED'::"ProjectRuntimeEffectState",
+          clock_timestamp() + INTERVAL '10 minutes', clock_timestamp(), clock_timestamp(), clock_timestamp()
+        )
+      `;
       await expect(store.hardDeleteProject(deletion)).rejects.toMatchObject({
         code: 'PROJECT_STATIC_ERASURE_AUTHORITY_UNAVAILABLE',
       });
@@ -1599,6 +1688,11 @@ runDbTests('object-storage operation saga — real PostgreSQL', () => {
           WHERE "idempotencyKey" = ${idempotencyKey}
         `,
       ).resolves.toEqual([{ status: 'FAILED_SAFE' }]);
+      await expect(
+        prisma.$queryRaw<Array<{ state: string }>>`
+          SELECT "state"::text AS "state" FROM "ProjectRuntimeEffect" WHERE "id" = ${runtimeEffectId}
+        `,
+      ).resolves.toEqual([{ state: 'ABORTED' }]);
 
       rejectPreflight = false;
       await expect(store.hardDeleteProject(deletion)).resolves.toMatchObject({
@@ -1612,6 +1706,80 @@ runDbTests('object-storage operation saga — real PostgreSQL', () => {
       await cleanupMutableSaga(prisma, seeded.project.id, [seeded.source.id, seeded.target.id]);
       await prisma.user.deleteMany({ where: { id: actor.id } }).catch(() => undefined);
       await prisma.$disconnect();
+    }
+  });
+
+  it('keeps the Project frozen and quarantines deletion while a runtime effect is externally ambiguous', async () => {
+    const prisma = createDatabaseClient();
+    const seeded = await seedProject(prisma, 'object-saga-runtime-ambiguous');
+    const actor = await prisma.user.create({ data: { email: `runtime-ambiguous-${suffix()}@example.test` } });
+    const store = new PrismaApiStore(prisma);
+    const idempotencyKey = `runtime-ambiguous-${suffix()}`;
+    const runtimeEffectId = `runtime-effect-${suffix()}`;
+    const requestHash = projectPermanentDeletionRequestHash({
+      projectId: seeded.project.id,
+      organizationId: seeded.source.id,
+      actorUserId: actor.id,
+      expectedProjectName: seeded.project.name,
+    });
+    const preflightPhysicalErasure = vi.fn(async () => EMPTY_STATIC_ARTIFACT_SUMMARY);
+    const erasePhysical = vi.fn(async () => undefined);
+    const verifyPhysicalAbsence = vi.fn();
+
+    try {
+      await prisma.$executeRaw`
+        INSERT INTO "ProjectRuntimeEffect" (
+          "id", "projectId", "organizationId", "ownershipEpoch", "action", "resourceId",
+          "intentHash", "targetDigest", "fencingToken", "ownerToken", "state",
+          "leaseExpiresAt", "preparedAt", "dispatchedAt", "createdAt", "updatedAt"
+        ) VALUES (
+          ${runtimeEffectId}, ${seeded.project.id}, ${seeded.source.id}, 0,
+          'START_WORKSPACE', 'workspace-ambiguous', ${'a'.repeat(64)}, ${'b'.repeat(64)},
+          1, ${`runtime-owner-${suffix()}`}, 'IN_FLIGHT'::"ProjectRuntimeEffectState",
+          clock_timestamp() - INTERVAL '1 second', clock_timestamp(), clock_timestamp(),
+          clock_timestamp(), clock_timestamp()
+        )
+      `;
+
+      await expect(
+        store.hardDeleteProject({
+          projectId: seeded.project.id,
+          expectedOrganizationId: seeded.source.id,
+          expectedProjectName: seeded.project.name,
+          idempotencyKey,
+          requestHash,
+          actorUserId: actor.id,
+          preflightPhysicalErasure,
+          erasePhysical,
+          verifyPhysicalAbsence,
+        }),
+      ).rejects.toMatchObject({ code: 'PROJECT_RUNTIME_EFFECT_IN_FLIGHT' });
+
+      expect(preflightPhysicalErasure).not.toHaveBeenCalled();
+      expect(erasePhysical).not.toHaveBeenCalled();
+      expect(verifyPhysicalAbsence).not.toHaveBeenCalled();
+      await expect(
+        prisma.project.findUniqueOrThrow({
+          where: { id: seeded.project.id },
+          select: { deletedAt: true, permanentDeletionStartedAt: true },
+        }),
+      ).resolves.toEqual({ deletedAt: expect.any(Date), permanentDeletionStartedAt: expect.any(Date) });
+      await expect(
+        prisma.$queryRaw<Array<{ status: string; lastErrorCode: string | null }>>`
+          SELECT "status"::text AS "status", "lastErrorCode"
+          FROM "ObjectStorageOperation"
+          WHERE "idempotencyKey" = ${idempotencyKey}
+        `,
+      ).resolves.toEqual([{ status: 'MANUAL_RECOVERY', lastErrorCode: 'PROJECT_RUNTIME_EFFECT_IN_FLIGHT' }]);
+      await expect(
+        prisma.$queryRaw<Array<{ state: string }>>`
+          SELECT "state"::text AS "state" FROM "ProjectRuntimeEffect" WHERE "id" = ${runtimeEffectId}
+        `,
+      ).resolves.toEqual([{ state: 'IN_FLIGHT' }]);
+    } finally {
+      await cleanupMutableSaga(prisma, seeded.project.id, [seeded.source.id, seeded.target.id]);
+      await prisma.user.deleteMany({ where: { id: actor.id } }).catch(() => undefined);
+      await store.disconnect();
     }
   });
 
@@ -1646,6 +1814,24 @@ runDbTests('object-storage operation saga — real PostgreSQL', () => {
             staticArtifactSummary: EMPTY_STATIC_ARTIFACT_SUMMARY,
           },
           gcs: { bucketAbsent: true, objectCount: 0 },
+          workspaceManager: {
+            schemaVersion: 'workspace-project-erasure-v2',
+            projectId: seeded.project.id,
+            organizationId: seeded.source.id,
+            databaseInventoryRetained: true,
+            runtimeEffectsDrained: true,
+            kubernetes: {
+              deploymentsAbsent: true,
+              replicaSetsAbsent: true,
+              podsAbsent: true,
+              servicesAbsent: true,
+              endpointsAbsent: true,
+              endpointSlicesAbsent: true,
+              ingressesAbsent: true,
+              ownedRuntimeSecretsAbsent: true,
+              persistentVolumeClaimsAbsent: true,
+            },
+          },
         },
       };
     });
@@ -1691,6 +1877,123 @@ runDbTests('object-storage operation saga — real PostgreSQL', () => {
         .deleteMany({ where: { id: { in: [seeded.source.id, seeded.target.id] } } })
         .catch(() => undefined);
       await store.disconnect();
+    }
+  });
+
+  it('deletes retained WorkspaceRuntime recovery inventory only in the final Project transaction', async () => {
+    const prisma = createDatabaseClient();
+    const seeded = await seedProject(prisma, 'object-saga-delete-runtime-fence');
+    const shape = request({
+      kind: 'PROJECT_PERMANENT_DELETE',
+      scopes: [{ projectId: seeded.project.id, expectedOrganizationId: seeded.source.id, expectedDeletedAt: null }],
+      payload: { command: 'permanently-delete-project' },
+    });
+    const input = claimInput(shape, {
+      idempotencyKey: `delete-runtime-fence-${suffix()}`,
+      ownerToken: `delete-runtime-owner-${suffix()}`,
+    });
+    let lease: ObjectStorageOperationLease | undefined;
+    const runtimeEffectId = `runtime-draining-${suffix()}`;
+    const verification = {
+      outcome: 'VERIFIED_ABSENT' as const,
+      verifier: 'workspace-runtime-fence-test-v1',
+      evidence: {
+        schemaVersion: 'project-permanent-erasure-v1',
+        filesystem: {
+          projectTreeAbsent: true,
+          workspaceTreesAbsent: true,
+          objectCacheAbsent: true,
+          staticSnapshotsAbsent: true,
+          staticAliasesAbsent: true,
+          staticArtifactSummary: EMPTY_STATIC_ARTIFACT_SUMMARY,
+        },
+        gcs: { bucketAbsent: true, objectCount: 0 },
+        workspaceManager: {
+          schemaVersion: 'workspace-project-erasure-v2',
+          projectId: seeded.project.id,
+          organizationId: seeded.source.id,
+          databaseInventoryRetained: true,
+          runtimeEffectsDrained: true,
+          kubernetes: {
+            deploymentsAbsent: true,
+            replicaSetsAbsent: true,
+            podsAbsent: true,
+            servicesAbsent: true,
+            endpointsAbsent: true,
+            endpointSlicesAbsent: true,
+            ingressesAbsent: true,
+            ownedRuntimeSecretsAbsent: true,
+            persistentVolumeClaimsAbsent: true,
+          },
+        },
+      },
+    };
+
+    try {
+      lease = await prisma.$transaction(async (tx) => {
+        const acquired = await claimObjectStorageOperation(tx, input);
+        if (acquired.kind !== 'ACQUIRED') throw new Error('EXPECTED_ACQUIRED');
+        await recordPermanentDeletionStaticArtifactPlan(tx, acquired.lease, EMPTY_STATIC_ARTIFACT_SUMMARY);
+        await markObjectStorageOperationEffectStarted(tx, acquired.lease, { phase: 'workspace-erasure' });
+        await beginObjectStorageOperationVerification(tx, acquired.lease, { phase: 'workspace-verify' });
+        return acquired.lease;
+      });
+      await prisma.workspaceRuntime.create({
+        data: {
+          id: `runtime-${suffix()}`,
+          orgId: seeded.source.id,
+          projectId: seeded.project.id,
+          plan: 'pro',
+          status: 'STOPPED',
+          pvcName: `pvc-${suffix()}`,
+          podName: `pod-${suffix()}`,
+          serviceName: `service-${suffix()}`,
+          agentTokenSecretName: `secret-${suffix()}`,
+        },
+      });
+      await prisma.$executeRaw`
+        INSERT INTO "ProjectRuntimeEffect" (
+          "id", "projectId", "organizationId", "ownershipEpoch", "action", "resourceId",
+          "intentHash", "targetDigest", "state", "drainingAt", "createdAt", "updatedAt"
+        ) VALUES (
+          ${runtimeEffectId}, ${seeded.project.id}, ${seeded.source.id}, 0,
+          'START_WORKSPACE', 'workspace-draining', ${'1'.repeat(64)}, ${'2'.repeat(64)},
+          'DRAINING'::"ProjectRuntimeEffectState", clock_timestamp(), clock_timestamp(), clock_timestamp()
+        )
+      `;
+
+      await expect(
+        prisma.$transaction((tx) => finalizeObjectStorageOperation(tx, lease!, { verification })),
+      ).rejects.toMatchObject({ code: 'OBJECT_STORAGE_OPERATION_PROJECT_RUNTIME_EFFECT_ACTIVE' });
+      await expect(prisma.project.findUnique({ where: { id: seeded.project.id } })).resolves.toMatchObject({
+        id: seeded.project.id,
+      });
+      await expect(prisma.workspaceRuntime.count({ where: { projectId: seeded.project.id } })).resolves.toBe(1);
+      await expect(
+        prisma.$queryRaw<Array<{ status: string; state: string }>>`
+          SELECT operation."status"::text AS "status", effect."state"::text AS "state"
+          FROM "ObjectStorageOperation" operation
+          JOIN "ProjectRuntimeEffect" effect ON effect."id" = ${runtimeEffectId}
+          WHERE operation."id" = ${lease!.operationId}
+        `,
+      ).resolves.toEqual([{ status: 'VERIFYING', state: 'DRAINING' }]);
+      await prisma.$executeRaw`
+        UPDATE "ProjectRuntimeEffect"
+        SET "state" = 'DRAINED'::"ProjectRuntimeEffectState",
+            "drainedAt" = clock_timestamp(),
+            "updatedAt" = clock_timestamp()
+        WHERE "id" = ${runtimeEffectId}
+      `;
+
+      await expect(
+        prisma.$transaction((tx) => finalizeObjectStorageOperation(tx, lease!, { verification })),
+      ).resolves.toMatchObject({ status: 'COMMITTED' });
+      await expect(prisma.project.findUnique({ where: { id: seeded.project.id } })).resolves.toBeNull();
+      await expect(prisma.workspaceRuntime.count({ where: { projectId: seeded.project.id } })).resolves.toBe(0);
+    } finally {
+      await prisma.workspaceRuntime.deleteMany({ where: { projectId: seeded.project.id } }).catch(() => undefined);
+      await cleanupMutableSaga(prisma, seeded.project.id, [seeded.source.id, seeded.target.id]);
+      await prisma.$disconnect();
     }
   });
 
@@ -1745,6 +2048,24 @@ runDbTests('object-storage operation saga — real PostgreSQL', () => {
               staticArtifactSummary,
             },
             gcs: { bucketAbsent: true, objectCount: 0 },
+            workspaceManager: {
+              schemaVersion: 'workspace-project-erasure-v2',
+              projectId: seeded.project.id,
+              organizationId: seeded.source.id,
+              databaseInventoryRetained: true,
+              runtimeEffectsDrained: true,
+              kubernetes: {
+                deploymentsAbsent: true,
+                replicaSetsAbsent: true,
+                podsAbsent: true,
+                servicesAbsent: true,
+                endpointsAbsent: true,
+                endpointSlicesAbsent: true,
+                ingressesAbsent: true,
+                ownedRuntimeSecretsAbsent: true,
+                persistentVolumeClaimsAbsent: true,
+              },
+            },
           },
         };
         await expect(

@@ -52,8 +52,8 @@ export function describeEcodeLockFailure(error: unknown): EcodeLockFailure {
 /** Wire payload for the manager's POST /app-builds/run. */
 export interface AppBuildRunPayload {
   deploymentId: string;
-  orgId?: string;
-  projectId?: string;
+  orgId: string;
+  projectId: string;
   image: string;
   revisionUrl: string;
   revisionSha256?: string;
@@ -95,7 +95,7 @@ export async function buildImageContextFromRevision(opts: {
   agent: SnapshotAgent;
   deploymentId: string;
   projectId: string;
-  orgId?: string;
+  orgId: string;
   objectStorage: RevisionBuildStorage | null;
 
   /** Toolchain image for the build pod (same base image the app image uses). */

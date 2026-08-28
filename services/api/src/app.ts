@@ -449,7 +449,10 @@ import {
   resolveDefaultObjectStorage,
 } from './object-storage.js';
 import { type TenantObjectStorageCommandIntent } from './object-storage-command.js';
-import type { ObjectStorageCheckpointBarrierAuthority } from './object-storage-operation.js';
+import type {
+  ObjectStorageCheckpointBarrierAuthority,
+  ObjectStorageOperationLease,
+} from './object-storage-operation.js';
 import { PrismaApiStore } from './prisma-store.js';
 import { withProjectReleaseBarrier, type ProjectReleaseGuard } from './project-release-barrier.js';
 import { projectPermanentDeletionRequestHash } from './project-permanent-deletion.js';
@@ -723,6 +726,9 @@ export interface ApiAppOptions {
   accountPurgeWorkspaceReconciler?: (
     take: number,
   ) => Promise<{ scanned: number; reconciled: number; workspaceIds: string[] }>;
+
+  /** Deterministic test seam; production uses the fenced workspace-manager control plane. */
+  projectWorkspaceDeletion?: typeof projectWorkspaceDeletionRequest;
 
   /** Injectable for tests; defaults to an env-configured (inert-unless-set) capturer. */
   thumbnailCapturer?: ThumbnailCapturer;
@@ -8233,6 +8239,77 @@ function createAccountPurgeWriteBarrier(): WriteBarrierPort {
   };
 }
 
+const workspaceProjectDeletionProofSchema = z.object({
+  schemaVersion: z.literal('workspace-project-erasure-v2'),
+  projectId: z.string().min(1),
+  organizationId: z.string().min(1),
+  databaseInventoryRetained: z.literal(true),
+  runtimeEffectsDrained: z.literal(true),
+  kubernetes: z.object({
+    deploymentsAbsent: z.literal(true),
+    replicaSetsAbsent: z.literal(true),
+    podsAbsent: z.literal(true),
+    servicesAbsent: z.literal(true),
+    endpointsAbsent: z.literal(true),
+    endpointSlicesAbsent: z.literal(true),
+    ingressesAbsent: z.literal(true),
+    ownedRuntimeSecretsAbsent: z.literal(true),
+    persistentVolumeClaimsAbsent: z.literal(true),
+  }),
+});
+
+type WorkspaceProjectDeletionProof = z.infer<typeof workspaceProjectDeletionProofSchema>;
+
+function workspaceProjectDeletionLeaseBody(
+  projectId: string,
+  expectedOrganizationId: string,
+  lease: ObjectStorageOperationLease,
+) {
+  return {
+    operationId: lease.operationId,
+    ownerToken: lease.ownerToken,
+    fencingToken: lease.fencingToken.toString(),
+    requestHash: lease.requestHash,
+    scopeHash: lease.scopeHash,
+    projectId,
+    expectedOrganizationId,
+  };
+}
+
+async function projectWorkspaceDeletionRequest(
+  action: 'purge' | 'verify',
+  projectId: string,
+  expectedOrganizationId: string,
+  lease: ObjectStorageOperationLease,
+  assertLease: () => Promise<void>,
+): Promise<WorkspaceProjectDeletionProof> {
+  await assertLease();
+  const response = await fetch(
+    `${workspaceManagerUrl()}/projects/${encodeURIComponent(projectId)}/permanent-delete/workspaces/${action}`,
+    {
+      method: 'POST',
+      headers: workspaceManagerControlHeaders(true),
+      body: JSON.stringify(workspaceProjectDeletionLeaseBody(projectId, expectedOrganizationId, lease)),
+      signal: AbortSignal.timeout(action === 'purge' ? 180_000 : 30_000),
+    },
+  );
+  await assertLease();
+  if (!response.ok) {
+    throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+      code: action === 'purge' ? 'PROJECT_WORKSPACE_ERASURE_FAILED' : 'PROJECT_WORKSPACE_ERASURE_UNVERIFIED',
+      statusCode: 503,
+    });
+  }
+  const proof = workspaceProjectDeletionProofSchema.parse(await response.json());
+  if (proof.projectId !== projectId || proof.organizationId !== expectedOrganizationId) {
+    throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+      code: 'PROJECT_WORKSPACE_ERASURE_PROOF_MISMATCH',
+      statusCode: 503,
+    });
+  }
+  return proof;
+}
+
 async function releaseAccountPurgeWorkspaceBarriers(
   workspaceIds: string[],
   planId: string,
@@ -8500,8 +8577,8 @@ async function startServerDeploymentViaManager(payload: {
   tlsSecretName?: string;
   env?: Record<string, string>;
   secrets?: Record<string, string>;
-  projectId?: string;
-  orgId?: string;
+  projectId: string;
+  orgId: string;
   healthPath?: string;
   readyTimeoutMs?: number;
   nixStorePvcName?: string;
@@ -10341,6 +10418,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   const store = options.store ?? createDefaultStore();
   const agentMemory = options.agentMemory ?? createDefaultAgentMemory(store);
   const isProduction = options.isProduction ?? process.env.NODE_ENV === 'production';
+  const projectWorkspaceDeletion = options.projectWorkspaceDeletion ?? projectWorkspaceDeletionRequest;
 
   const mcpMarketplace =
     options.mcpMarketplace ??
@@ -17579,6 +17657,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   );
 
   const scheduledTaskProjectWorkspace = async (projectId: string) => {
+    const project = await store.getProject(projectId);
+    if (!project || project.deletedAt || project.permanentDeletionStartedAt) {
+      throw Object.assign(new Error(appPublicEnglish('PROJECT_NOT_FOUND')), {
+        code: project?.permanentDeletionStartedAt ? 'PROJECT_STORAGE_PERMANENT_DELETION_ACTIVE' : 'PROJECT_NOT_FOUND',
+        statusCode: project?.permanentDeletionStartedAt ? 409 : 404,
+      });
+    }
     const workspaces = await store.listWorkspaces(projectId).catch(() => []);
 
     const existing =
@@ -17586,14 +17671,6 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     if (existing) {
       return existing;
-    }
-
-    const project = await store.getProject(projectId);
-    if (!project || project.deletedAt) {
-      throw Object.assign(new Error(appPublicEnglish('PROJECT_NOT_FOUND')), {
-        code: 'PROJECT_NOT_FOUND',
-        statusCode: 404,
-      });
     }
 
     // A project whose workspace row was never created still deserves its cron.
@@ -28481,7 +28558,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       actorUserId: request.currentUser!.id,
       ipAddress: request.ip,
       preflightPhysicalErasure: () => projectStorage.prepareProjectStaticErasureWithinPhysicalAccess!(project.id),
-      erasePhysical: async (assertLease) => {
+      erasePhysical: async (assertLease, lease) => {
+        /*
+         * Drain/fence the manager first. If its DB authority or Kubernetes
+         * control plane is unavailable, no local/static/GCS bytes have yet
+         * been removed and the durable saga remains recoverable.
+         */
+        await projectWorkspaceDeletion('purge', project.id, project.organizationId, lease, assertLease);
         await assertLease();
         await projectStorage.eraseProjectDataWithinPhysicalAccess(project.id);
         await assertLease();
@@ -28489,7 +28572,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         await assertLease();
         await objectStorage.deleteBucket(project.id, assertLease);
       },
-      verifyPhysicalAbsence: async () => {
+      verifyPhysicalAbsence: async (assertLease, lease) => {
+        const workspaceManager = await projectWorkspaceDeletion(
+          'verify',
+          project.id,
+          project.organizationId,
+          lease,
+          assertLease,
+        );
         const filesystem = await projectStorage.verifyProjectDataAbsentWithinPhysicalAccess!(project.id);
         const bucketStillExists = await objectStorage.bucketExists(project.id);
         const objectCount = bucketStillExists ? (await objectStorage.listObjects(project.id)).objects.length : 0;
@@ -28518,13 +28608,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             schemaVersion: 'project-permanent-erasure-v1',
             filesystem: {
               projectTreeAbsent: filesystem.treeAbsent,
-              workspaceTreesAbsent: filesystem.treeAbsent,
+              workspaceTreesAbsent:
+                workspaceManager.runtimeEffectsDrained && workspaceManager.kubernetes.persistentVolumeClaimsAbsent,
               objectCacheAbsent: filesystem.exportsAbsent,
               staticSnapshotsAbsent: filesystem.staticSnapshotsAbsent,
               staticAliasesAbsent: filesystem.staticAliasesAbsent,
               staticArtifactSummary: filesystem.staticArtifactSummary,
             },
             gcs: { bucketAbsent: true, objectCount: 0 },
+            workspaceManager,
           },
         };
       },

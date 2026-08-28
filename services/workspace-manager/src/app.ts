@@ -65,6 +65,16 @@ const accountPurgeLeaseSchema = z.object({
   ownerToken: z.string().min(16).max(512),
 });
 
+const projectDeletionLeaseSchema = z.object({
+  operationId: z.string().min(1).max(200),
+  ownerToken: z.string().min(16).max(512),
+  fencingToken: z.string().regex(/^[1-9][0-9]{0,39}$/),
+  requestHash: z.string().regex(/^[0-9a-f]{64}$/),
+  scopeHash: z.string().regex(/^[0-9a-f]{64}$/),
+  projectId: z.string().min(1).max(200),
+  expectedOrganizationId: z.string().min(1).max(200),
+});
+
 /*
  * Body for POST /app-builds/run — ONE isolated server-deploy build (reproducible
  * pipeline): fetch the project revision, install+build in a throwaway gVisor
@@ -73,8 +83,8 @@ const accountPurgeLeaseSchema = z.object({
  */
 const appBuildSchema = z.object({
   deploymentId: z.string().min(1),
-  orgId: z.string().optional(),
-  projectId: z.string().optional(),
+  orgId: z.string().min(1),
+  projectId: z.string().min(1),
   image: z.string().min(1),
   revisionUrl: z.string().min(1),
   revisionSha256: z.string().length(64).optional(),
@@ -95,8 +105,8 @@ const appBuildSchema = z.object({
 const serverStartSchema = z
   .object({
     deploymentId: z.string().min(1),
-    orgId: z.string().optional(),
-    projectId: z.string().optional(),
+    orgId: z.string().min(1),
+    projectId: z.string().min(1),
     image: z.string().min(1),
     command: z.array(z.string()).optional(),
     args: z.array(z.string()).optional(),
@@ -460,27 +470,57 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
    * namespace is always the manager's runtimeNamespace() (same as workspaces).
    */
   app.post('/server-deployments/start', async (request) =>
-    manager.startServerDeployment({ ...serverStartSchema.parse(request.body), namespace: runtimeNamespace() }),
+    (() => {
+      const body = serverStartSchema.parse(request.body);
+      return manager.executeDeploymentProvisionEffect(
+        {
+          deploymentId: body.deploymentId,
+          projectId: body.projectId,
+          expectedOrganizationId: body.orgId,
+        },
+        async (assertAuthority) => {
+          await assertAuthority();
+          const result = await manager.startServerDeployment({ ...body, namespace: runtimeNamespace() });
+          await assertAuthority();
+          return result;
+        },
+      );
+    })(),
   );
   app.post('/server-deployments/:deploymentId/reconfigure', async (request) =>
-    manager.reconfigureServerDeployment({
-      ...serverReconfigureSchema.parse(request.body),
-      deploymentId: (request.params as any).deploymentId,
-      namespace: runtimeNamespace(),
+    manager.executeDeploymentProvisionEffect((request.params as any).deploymentId, async (assertAuthority) => {
+      await assertAuthority();
+      const result = await manager.reconfigureServerDeployment({
+        ...serverReconfigureSchema.parse(request.body),
+        deploymentId: (request.params as any).deploymentId,
+        namespace: runtimeNamespace(),
+      });
+      await assertAuthority();
+      return result;
     }),
   );
   app.post('/server-deployments/:deploymentId/suspend', async (request) =>
-    manager.suspendReservedVmDeployment({
-      ...serverSuspendSchema.parse(request.body),
-      deploymentId: (request.params as any).deploymentId,
-      namespace: runtimeNamespace(),
+    manager.executeDeploymentProvisionEffect((request.params as any).deploymentId, async (assertAuthority) => {
+      await assertAuthority();
+      const result = await manager.suspendReservedVmDeployment({
+        ...serverSuspendSchema.parse(request.body),
+        deploymentId: (request.params as any).deploymentId,
+        namespace: runtimeNamespace(),
+      });
+      await assertAuthority();
+      return result;
     }),
   );
   app.post('/server-deployments/:deploymentId/decommission-storage', async (request) =>
-    manager.decommissionReservedVmStorage({
-      ...serverStorageDecommissionSchema.parse(request.body),
-      deploymentId: (request.params as any).deploymentId,
-      namespace: runtimeNamespace(),
+    manager.executeDeploymentProvisionEffect((request.params as any).deploymentId, async (assertAuthority) => {
+      await assertAuthority();
+      const result = await manager.decommissionReservedVmStorage({
+        ...serverStorageDecommissionSchema.parse(request.body),
+        deploymentId: (request.params as any).deploymentId,
+        namespace: runtimeNamespace(),
+      });
+      await assertAuthority();
+      return result;
     }),
   );
 
@@ -499,7 +539,15 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
      */
     const nixPlacement = await manager.resolveNixStorePlacement(body.nixStorePvcName, undefined, body.nixGenerationRef);
 
-    return runAppBuild(manager.k8s, { ...body, ...nixPlacement, namespace: runtimeNamespace() });
+    return manager.executeDeploymentProvisionEffect(
+      {
+        deploymentId: body.deploymentId,
+        projectId: body.projectId,
+        expectedOrganizationId: body.orgId,
+      },
+      (assertAuthority) =>
+        runAppBuild(manager.k8s, { ...body, ...nixPlacement, namespace: runtimeNamespace() }, assertAuthority),
+    );
   });
   app.get('/server-deployments/:deploymentId/status', async (request) =>
     manager.getServerDeploymentStatus(runtimeNamespace(), (request.params as any).deploymentId),
@@ -516,7 +564,13 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
    */
   app.post('/server-deployments/:deploymentId/activate', async (request, reply) => {
     try {
-      return await manager.activateServerDeployment(runtimeNamespace(), (request.params as any).deploymentId);
+      const deploymentId = (request.params as any).deploymentId;
+      return await manager.executeDeploymentProvisionEffect(deploymentId, async (assertAuthority) => {
+        await assertAuthority();
+        const result = await manager.activateServerDeployment(runtimeNamespace(), deploymentId);
+        await assertAuthority();
+        return result;
+      });
     } catch (error) {
       if ((error as { code?: string })?.code === 'SERVER_DEPLOY_NOT_FOUND') {
         return reply
@@ -532,12 +586,10 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
       }
 
       if ((error as { code?: string })?.code === 'RESERVED_VM_ALWAYS_ON_INVARIANT') {
-        return reply
-          .code(503)
-          .send({
-            error: workspaceManagerMessage('reservedVmAlwaysOnInvariant', 'en'),
-            code: 'RESERVED_VM_ALWAYS_ON_INVARIANT',
-          });
+        return reply.code(503).send({
+          error: workspaceManagerMessage('reservedVmAlwaysOnInvariant', 'en'),
+          code: 'RESERVED_VM_ALWAYS_ON_INVARIANT',
+        });
       }
 
       throw error;
@@ -578,7 +630,10 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
   app.post('/scheduled-jobs/run', async (request) => {
     const input = scheduledJobSchema.parse(request.body);
 
-    return runScheduledJob(manager.k8s, { ...input, namespace: runtimeNamespace() });
+    return manager.executeScheduledRunProvisionEffect(
+      { runId: input.runId, projectId: input.projectId, expectedOrganizationId: input.orgId },
+      (assertAuthority) => runScheduledJob(manager.k8s, { ...input, namespace: runtimeNamespace() }, assertAuthority),
+    );
   });
   app.get('/workspaces/:workspaceId', async (request) => manager.store.get((request.params as any).workspaceId));
 
@@ -651,6 +706,28 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
   app.post('/workspaces/:workspaceId/unfreeze', async (request) => {
     const lease = accountPurgeLeaseSchema.parse(request.body);
     return manager.unfreezeWorkspace((request.params as any).workspaceId, lease);
+  });
+  app.post('/projects/:projectId/permanent-delete/workspaces/purge', async (request) => {
+    const lease = projectDeletionLeaseSchema.parse(request.body);
+    const projectId = (request.params as { projectId: string }).projectId;
+    if (lease.projectId !== projectId) {
+      throw Object.assign(new Error(workspaceManagerMessage('requestFailed', 'en')), {
+        code: 'WORKSPACE_PROJECT_DELETION_SCOPE_INVALID',
+        statusCode: 409,
+      });
+    }
+    return manager.purgeProjectWorkspaces(runtimeNamespace(), lease);
+  });
+  app.post('/projects/:projectId/permanent-delete/workspaces/verify', async (request) => {
+    const lease = projectDeletionLeaseSchema.parse(request.body);
+    const projectId = (request.params as { projectId: string }).projectId;
+    if (lease.projectId !== projectId) {
+      throw Object.assign(new Error(workspaceManagerMessage('requestFailed', 'en')), {
+        code: 'WORKSPACE_PROJECT_DELETION_SCOPE_INVALID',
+        statusCode: 409,
+      });
+    }
+    return manager.verifyProjectWorkspacesAbsent(runtimeNamespace(), lease);
   });
   app.post('/account-purge/reconcile', async (request) => {
     const { take } = z.object({ take: z.number().int().min(1).max(500).default(500) }).parse(request.body ?? {});

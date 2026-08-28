@@ -175,6 +175,24 @@ async function setup(label: string, options: { staticVerifier?: boolean; unsafeS
     projectStorage: storage,
     objectStorage: objectStorage.adapter,
     emailProvider: new QuietEmailProvider(),
+    projectWorkspaceDeletion: async (_action, projectId, organizationId) => ({
+      schemaVersion: 'workspace-project-erasure-v2',
+      projectId,
+      organizationId,
+      databaseInventoryRetained: true,
+      runtimeEffectsDrained: true,
+      kubernetes: {
+        deploymentsAbsent: true,
+        replicaSetsAbsent: true,
+        podsAbsent: true,
+        servicesAbsent: true,
+        endpointsAbsent: true,
+        endpointSlicesAbsent: true,
+        ingressesAbsent: true,
+        ownedRuntimeSecretsAbsent: true,
+        persistentVolumeClaimsAbsent: true,
+      },
+    }),
   });
   apps.push(app);
 
