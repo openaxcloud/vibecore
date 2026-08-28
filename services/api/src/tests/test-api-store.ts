@@ -226,6 +226,9 @@ import type {
   RegistryMutationGuard,
   RegistryMutationIntent,
   RegistryMutationRecoveryEvidence,
+  RegistryMutationRecoveryObservation,
+  RegistryMutationRecoveryResult,
+  RegistryMutationRetryGuard,
   ProjectPhysicalMutationScope,
   ProjectPermanentDeletionReceiptRecord,
   ProjectPermanentDeletionResult,
@@ -526,10 +529,14 @@ export class TestApiStore implements ApiStore {
     string,
     {
       intent: RegistryMutationIntent;
-      state: 'IN_FLIGHT' | 'AMBIGUOUS' | 'VERIFIED' | 'FAILED_SAFE';
+      state: 'IN_FLIGHT' | 'AMBIGUOUS' | 'MANUAL_RECOVERY' | 'VERIFIED' | 'FAILED_SAFE';
       fencingToken: bigint;
+      attemptNumber: bigint;
+      attemptId: string;
       providerOperationId?: string;
       providerEvidence?: unknown;
+      recoveryEvidence?: RegistryMutationRecoveryEvidence;
+      ambiguousAt?: string;
     }
   >();
   readonly projectRegistryErasures = new Map<
@@ -894,7 +901,10 @@ export class TestApiStore implements ApiStore {
   withRegistryMutation<T>(
     intent: RegistryMutationIntent,
     effect: (guard: RegistryMutationGuard) => Promise<T>,
-    options?: { replayVerified(evidence: unknown): T | Promise<T> },
+    options?: {
+      replayVerified?(evidence: unknown): T | Promise<T>;
+      verifyFailedSafeRetry?(guard: RegistryMutationRetryGuard): Promise<void>;
+    },
   ): Promise<T> {
     if (!/^sha256:[a-f0-9]{64}$/u.test(intent.intentHash)) {
       throw new TypeError('REGISTRY_MUTATION_INTENT_HASH_INVALID');
@@ -931,42 +941,78 @@ export class TestApiStore implements ApiStore {
             const blocker = [...this.registryMutationOperations.entries()].find(
               ([operationId, operation]) =>
                 operationId !== intent.operationId &&
-                (operation.state === 'IN_FLIGHT' || operation.state === 'AMBIGUOUS') &&
+                ['IN_FLIGHT', 'AMBIGUOUS', 'MANUAL_RECOVERY'].includes(operation.state) &&
                 operation.intent.repositories.some((repository) => ordered.includes(repository)),
             )?.[1];
             if (blocker) {
               throw Object.assign(new Error(`REGISTRY_MUTATION_${blocker.state}`), {
-                code: blocker.state === 'AMBIGUOUS' ? 'REGISTRY_MUTATION_AMBIGUOUS' : 'REGISTRY_MUTATION_ACTIVE',
+                code:
+                  blocker.state === 'AMBIGUOUS'
+                    ? 'REGISTRY_MUTATION_AMBIGUOUS'
+                    : blocker.state === 'MANUAL_RECOVERY'
+                      ? 'REGISTRY_MUTATION_MANUAL_RECOVERY'
+                      : 'REGISTRY_MUTATION_ACTIVE',
               });
             }
             const existing = this.registryMutationOperations.get(intent.operationId);
+            const normalizedIntent = { ...intent, repositories: ordered };
+            const controller = new AbortController();
+            let operation: typeof this.registryMutationOperations extends Map<string, infer V> ? V : never;
             if (existing) {
-              const sameIntent =
-                JSON.stringify(existing.intent) === JSON.stringify({ ...intent, repositories: ordered });
+              const sameIntent = JSON.stringify(existing.intent) === JSON.stringify(normalizedIntent);
               if (!sameIntent) {
                 throw Object.assign(new Error('REGISTRY_MUTATION_INTENT_CONFLICT'), {
                   code: 'REGISTRY_MUTATION_INTENT_CONFLICT',
                 });
               }
-              if (existing.state === 'VERIFIED' && existing.providerEvidence !== undefined && options) {
+              if (existing.state === 'VERIFIED' && existing.providerEvidence !== undefined && options?.replayVerified) {
                 return options.replayVerified(existing.providerEvidence);
               }
-              throw Object.assign(new Error(`REGISTRY_MUTATION_${existing.state}`), {
-                code:
-                  existing.state === 'AMBIGUOUS'
-                    ? 'REGISTRY_MUTATION_AMBIGUOUS'
-                    : existing.state === 'IN_FLIGHT'
-                      ? 'REGISTRY_MUTATION_ACTIVE'
-                      : 'REGISTRY_MUTATION_ALREADY_TERMINAL',
-              });
+              if (
+                existing.state === 'FAILED_SAFE' &&
+                intent.kind === 'PROJECT_ERASURE' &&
+                options?.verifyFailedSafeRetry
+              ) {
+                const nextAttemptNumber = existing.attemptNumber + 1n;
+                const nextFencingToken = existing.fencingToken + 1n;
+                const nextAttemptId = `${intent.operationId}:attempt:${nextAttemptNumber}:fence:${nextFencingToken}`;
+                await options.verifyFailedSafeRetry({
+                  signal: controller.signal,
+                  attemptNumber: nextAttemptNumber,
+                  attemptId: nextAttemptId,
+                  assertActive: async () => controller.signal.throwIfAborted(),
+                });
+                const retryable = { ...existing };
+                delete retryable.recoveryEvidence;
+                delete retryable.ambiguousAt;
+                operation = {
+                  ...retryable,
+                  state: 'IN_FLIGHT',
+                  attemptNumber: nextAttemptNumber,
+                  fencingToken: nextFencingToken,
+                  attemptId: nextAttemptId,
+                };
+              } else {
+                throw Object.assign(new Error(`REGISTRY_MUTATION_${existing.state}`), {
+                  code:
+                    existing.state === 'AMBIGUOUS'
+                      ? 'REGISTRY_MUTATION_AMBIGUOUS'
+                      : existing.state === 'MANUAL_RECOVERY'
+                        ? 'REGISTRY_MUTATION_MANUAL_RECOVERY'
+                        : existing.state === 'IN_FLIGHT'
+                          ? 'REGISTRY_MUTATION_ACTIVE'
+                          : 'REGISTRY_MUTATION_ALREADY_TERMINAL',
+                });
+              }
+            } else {
+              operation = {
+                intent: normalizedIntent,
+                state: 'IN_FLIGHT',
+                fencingToken: 1n,
+                attemptNumber: 1n,
+                attemptId: `${intent.operationId}:attempt:1:fence:1`,
+              };
             }
-            const normalizedIntent = { ...intent, repositories: ordered };
-            const controller = new AbortController();
-            const operation: typeof this.registryMutationOperations extends Map<string, infer V> ? V : never = {
-              intent: normalizedIntent,
-              state: 'IN_FLIGHT' as const,
-              fencingToken: 1n,
-            };
             this.registryMutationOperations.set(intent.operationId, operation);
             const assertActive = async () => {
               if (controller.signal.aborted || operation.state !== 'IN_FLIGHT') {
@@ -980,6 +1026,8 @@ export class TestApiStore implements ApiStore {
                 signal: controller.signal,
                 ownerToken: `test-registry-owner:${intent.operationId}`,
                 fencingToken: operation.fencingToken,
+                attemptNumber: operation.attemptNumber,
+                attemptId: operation.attemptId,
                 backendPid: 1,
                 assertActive,
                 recordProviderOperationId: async (providerOperationId) => {
@@ -999,7 +1047,11 @@ export class TestApiStore implements ApiStore {
               return result;
             } catch (error) {
               controller.abort(error);
-              this.registryMutationOperations.set(intent.operationId, { ...operation, state: 'AMBIGUOUS' });
+              this.registryMutationOperations.set(intent.operationId, {
+                ...operation,
+                state: 'AMBIGUOUS',
+                ambiguousAt: now(),
+              });
               throw error;
             }
           })();
@@ -1009,34 +1061,74 @@ export class TestApiStore implements ApiStore {
 
   async resolveAmbiguousRegistryMutation(input: {
     operationId: string;
-    expectedOrganizationId: string;
-    evidence: RegistryMutationRecoveryEvidence;
-  }): Promise<void> {
+    operatorUserId: string;
+    ipAddress?: string;
+    observation: RegistryMutationRecoveryObservation;
+  }): Promise<RegistryMutationRecoveryResult> {
     const row = this.registryMutationOperations.get(input.operationId);
+    const operator = this.users.get(input.operatorUserId);
+    const auditLogId = id('audit');
+    const evidence = {
+      ...input.observation,
+      schemaVersion: 'registry-mutation-recovery-v2',
+      operatorUserId: input.operatorUserId,
+      auditLogId,
+      operationId: input.operationId,
+      projectId: row?.intent.projectId ?? '',
+      organizationId: row?.intent.organizationId ?? '',
+      intentHash: row?.intent.intentHash ?? '',
+      attemptId: row?.attemptId ?? '',
+      attemptNumber: row?.attemptNumber.toString() ?? '',
+      fencingToken: row?.fencingToken.toString() ?? '',
+    } as RegistryMutationRecoveryEvidence;
     if (
       !row ||
-      row.state !== 'AMBIGUOUS' ||
-      row.intent.organizationId !== input.expectedOrganizationId ||
-      !isRegistryMutationRecoveryEvidence(input.evidence) ||
-      input.evidence.operationId !== input.operationId ||
-      input.evidence.projectId !== row.intent.projectId ||
-      input.evidence.organizationId !== row.intent.organizationId ||
-      input.evidence.intentHash !== row.intent.intentHash ||
-      input.evidence.providerQueries.some(
+      !operator?.platformAdmin ||
+      !['AMBIGUOUS', 'MANUAL_RECOVERY'].includes(row.state) ||
+      (row.state === 'MANUAL_RECOVERY' && evidence.resolution === 'MANUAL_RECOVERY') ||
+      !isRegistryMutationRecoveryEvidence(evidence) ||
+      evidence.providerQueries.some(
         ({ providerOperationId }) =>
           providerOperationId !== undefined && providerOperationId !== row.providerOperationId,
       ) ||
       (row.providerOperationId !== undefined &&
-        input.evidence.providerQueries.some(({ providerOperationId }) => providerOperationId === undefined)) ||
-      (input.evidence.resolution === 'VERIFIED' &&
+        evidence.providerQueries.some(({ providerOperationId }) => providerOperationId === undefined)) ||
+      (evidence.resolution === 'VERIFIED' &&
         (row.providerEvidence === undefined ||
-          input.evidence.providerEvidenceHash !== registryMutationIntentHash(row.providerEvidence))) ||
-      (input.evidence.resolution === 'FAILED_SAFE' &&
+          evidence.providerEvidenceHash !== registryMutationIntentHash(row.providerEvidence))) ||
+      (evidence.resolution === 'FAILED_SAFE' &&
         (row.providerOperationId !== undefined || row.providerEvidence !== undefined))
     ) {
       throw new Error('REGISTRY_MUTATION_RECOVERY_AUTHORITY_INVALID');
     }
-    this.registryMutationOperations.set(input.operationId, { ...row, state: input.evidence.resolution });
+    this.auditLogs.push({
+      id: auditLogId,
+      organizationId: row.intent.organizationId,
+      actorUserId: input.operatorUserId,
+      action: 'registry.mutation.recovery',
+      resourceType: 'registryMutationOperation',
+      resourceId: input.operationId,
+      metadata: {
+        resolution: evidence.resolution,
+        attemptId: row.attemptId,
+        attemptNumber: row.attemptNumber.toString(),
+        providerQueryCount: evidence.providerQueries.length,
+      },
+      ...(input.ipAddress ? { ipAddress: input.ipAddress } : {}),
+      createdAt: now(),
+    });
+    this.registryMutationOperations.set(input.operationId, {
+      ...row,
+      state: evidence.resolution,
+      recoveryEvidence: evidence,
+    });
+    return {
+      state: evidence.resolution,
+      operationId: input.operationId,
+      attemptId: row.attemptId,
+      attemptNumber: row.attemptNumber.toString(),
+      auditLogId,
+    };
   }
 
   async prepareAppImageBuild(input: {

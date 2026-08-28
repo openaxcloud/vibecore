@@ -34469,6 +34469,59 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     };
   });
 
+  /**
+   * Fail-closed operator recovery for a registry effect whose PostgreSQL
+   * session/fence was lost. Identity fields are derived from the locked row;
+   * the client can submit observations but cannot manufacture an actor,
+   * tenant, intent, attempt or AuditLog id.
+   */
+  app.post('/admin/registry-mutations/:operationId/recovery', async (request) => {
+    await requirePlatformAdmin(request);
+    await requireAdminMfaForSensitiveAction(request);
+    await requireRecentAdminReauth(request, 60);
+
+    const { operationId } = parse(
+      z.object({ operationId: z.string().trim().min(1).max(512) }).strict(),
+      request.params,
+    );
+    const providerQuerySchema = z
+      .object({
+        queriedAt: z.string().datetime({ offset: true }),
+        providerOperationId: z.string().trim().min(1).max(512).optional(),
+        result: z.enum(['MATCHED_EFFECT', 'ABSENT', 'UNRESOLVED']),
+      })
+      .strict();
+    const observationBase = {
+      observationWindowStartedAt: z.string().datetime({ offset: true }),
+      observationWindowEndedAt: z.string().datetime({ offset: true }),
+      providerQueries: z.array(providerQuerySchema).min(2).max(16),
+    };
+    const observation = parse(
+      z.discriminatedUnion('resolution', [
+        z
+          .object({
+            ...observationBase,
+            resolution: z.literal('VERIFIED'),
+            providerEvidenceHash: z.string().regex(/^sha256:[a-f0-9]{64}$/u),
+          })
+          .strict(),
+        z.object({ ...observationBase, resolution: z.literal('FAILED_SAFE') }).strict(),
+        z.object({ ...observationBase, resolution: z.literal('MANUAL_RECOVERY') }).strict(),
+      ]),
+      request.body,
+    );
+    const operatorUserId = request.currentUser!.id;
+
+    return {
+      recovery: await store.resolveAmbiguousRegistryMutation({
+        operationId,
+        operatorUserId,
+        ipAddress: request.ip,
+        observation,
+      }),
+    };
+  });
+
   app.get('/admin/users', async (request) => {
     await requirePlatformAdmin(request);
 

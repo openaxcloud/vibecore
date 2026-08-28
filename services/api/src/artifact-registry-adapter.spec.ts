@@ -348,6 +348,68 @@ describe('ArtifactRegistryOciAdapter', () => {
     await expect(denied.imageExists(SOURCE, fixture.imageDigest)).rejects.not.toThrow(/super-secret/u);
   });
 
+  it('propagates caller authority cancellation into a suspended registry fetch', async () => {
+    let entered!: () => void;
+    const fetchEntered = new Promise<void>((resolve) => {
+      entered = resolve;
+    });
+    let providerSignal: AbortSignal | null | undefined;
+    const fetchImpl: typeof fetch = async (_url, init) => {
+      providerSignal = init?.signal;
+      entered();
+      return new Promise<Response>((_resolve, reject) => {
+        if (init?.signal?.aborted) {
+          reject(init.signal.reason);
+          return;
+        }
+        init?.signal?.addEventListener('abort', () => reject(init.signal!.reason), { once: true });
+      });
+    };
+    const adapter = new ArtifactRegistryOciAdapter({
+      fetchImpl,
+      tokenProvider: { getAccessToken: async () => 'unit-secret' },
+      maxAttempts: 4,
+      requestTimeoutMs: 60_000,
+    });
+    const authority = new AbortController();
+    const lost = new Error('registry authority lost');
+    const pending = adapter.imageExists(SOURCE, `sha256:${'a'.repeat(64)}`, { signal: authority.signal });
+
+    await fetchEntered;
+    expect(providerSignal).toBeDefined();
+    expect(providerSignal?.aborted).toBe(false);
+    authority.abort(lost);
+    await expect(pending).rejects.toBe(lost);
+    expect(providerSignal?.aborted).toBe(true);
+  });
+
+  it('stops waiting for a suspended access-token lookup when authority is lost', async () => {
+    let tokenEntered!: () => void;
+    const entered = new Promise<void>((resolve) => {
+      tokenEntered = resolve;
+    });
+    const fetchImpl = vi.fn<typeof fetch>();
+    const adapter = new ArtifactRegistryOciAdapter({
+      fetchImpl,
+      tokenProvider: {
+        getAccessToken: async () => {
+          tokenEntered();
+          return new Promise<string>(() => undefined);
+        },
+      },
+      requestTimeoutMs: 60_000,
+    });
+    const authority = new AbortController();
+    const lost = new Error('registry authority lost before token');
+    const pending = adapter.imageExists(SOURCE, `sha256:${'a'.repeat(64)}`, { signal: authority.signal });
+
+    await entered;
+    authority.abort(lost);
+
+    await expect(pending).rejects.toBe(lost);
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
   it('accepts the digest-bound Sigstore message-signature bundle variant', async () => {
     const fixture = registryFixture({ signatureFormat: 'message-signature' });
 

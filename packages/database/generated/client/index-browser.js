@@ -967,6 +967,8 @@ exports.Prisma.RegistryMutationOperationScalarFieldEnum = {
   intentHash: 'intentHash',
   state: 'state',
   fencingToken: 'fencingToken',
+  attemptNumber: 'attemptNumber',
+  attemptId: 'attemptId',
   ownerToken: 'ownerToken',
   leaseExpiresAt: 'leaseExpiresAt',
   backendPid: 'backendPid',
@@ -981,6 +983,16 @@ exports.Prisma.RegistryMutationOperationScalarFieldEnum = {
   recoveryEvidence: 'recoveryEvidence',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
+};
+
+exports.Prisma.RegistryMutationRecoveryScalarFieldEnum = {
+  id: 'id',
+  operationId: 'operationId',
+  attemptNumber: 'attemptNumber',
+  resolution: 'resolution',
+  auditLogId: 'auditLogId',
+  evidence: 'evidence',
+  createdAt: 'createdAt'
 };
 
 exports.Prisma.RollbackIdempotencyRequestScalarFieldEnum = {
@@ -2650,6 +2662,7 @@ exports.RegistryMutationState = exports.$Enums.RegistryMutationState = {
   PREPARED: 'PREPARED',
   IN_FLIGHT: 'IN_FLIGHT',
   AMBIGUOUS: 'AMBIGUOUS',
+  MANUAL_RECOVERY: 'MANUAL_RECOVERY',
   VERIFIED: 'VERIFIED',
   FAILED_SAFE: 'FAILED_SAFE'
 };
@@ -2969,6 +2982,7 @@ exports.Prisma.ModelName = {
   ReleaseManifest: 'ReleaseManifest',
   AppImageBuildOperation: 'AppImageBuildOperation',
   RegistryMutationOperation: 'RegistryMutationOperation',
+  RegistryMutationRecovery: 'RegistryMutationRecovery',
   RollbackIdempotencyRequest: 'RollbackIdempotencyRequest',
   DeploymentAccessPolicy: 'DeploymentAccessPolicy',
   DeploymentAccessExchangeTicket: 'DeploymentAccessExchangeTicket',

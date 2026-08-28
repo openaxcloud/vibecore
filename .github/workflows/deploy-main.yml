@@ -702,11 +702,11 @@ jobs:
           # "1" + values.schema.json; the post-deploy step below verifies the
           # flag actually reached the running api pods.
           SETS+=( --set-string "platformEnv.runtime.serverDeployRollbackFromDigest=1" )
-          # Snapshot publication is a fail-closed atomic configuration. Reassert
-          # every identity on each --reuse-values upgrade so a fresh signer key
-          # can never depend on a one-time manual Helm override.
+          # Snapshot publication remains off until the Terraform/provisioning +
+          # signed canary activation runbook succeeds. --reuse-values must not
+          # preserve a stale manual "1" and silently bypass that interlock.
           SETS+=(
-            --set-string "platformEnv.runtime.serverDeploySnapshotImage=1"
+            --set-string "platformEnv.runtime.serverDeploySnapshotImage=0"
             --set-string "platformEnv.runtime.serverDeployImageRepo=europe-west9-docker.pkg.dev/${GCP_PROJECT_ID}/vibecore-prod-apps"
             --set-string "platformEnv.runtime.serverDeployCosignKmsKey=gcpkms://projects/${GCP_PROJECT_ID}/locations/europe-west9/keyRings/ecode-supply-chain/cryptoKeys/cosign-images"
             --set-string "platformEnv.runtime.serverDeployBuildServiceAccount=projects/${GCP_PROJECT_ID}/serviceAccounts/vibecore-prod-app-builder@${GCP_PROJECT_ID}.iam.gserviceaccount.com"

@@ -307,6 +307,9 @@ import type {
   RegistryMutationGuard,
   RegistryMutationIntent,
   RegistryMutationRecoveryEvidence,
+  RegistryMutationRecoveryObservation,
+  RegistryMutationRecoveryResult,
+  RegistryMutationRetryGuard,
   ProjectRecord,
   ProjectPhysicalMutationScope,
   ProjectPermanentDeletionResult,
@@ -3327,7 +3330,10 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
   async withRegistryMutation<T>(
     intent: RegistryMutationIntent,
     effect: (guard: RegistryMutationGuard) => Promise<T>,
-    options?: { replayVerified(evidence: unknown): T | Promise<T> },
+    options?: {
+      replayVerified?(evidence: unknown): T | Promise<T>;
+      verifyFailedSafeRetry?(guard: RegistryMutationRetryGuard): Promise<void>;
+    },
   ): Promise<T> {
     if (!/^sha256:[a-f0-9]{64}$/u.test(intent.intentHash)) {
       throw new TypeError('REGISTRY_MUTATION_INTENT_HASH_INVALID');
@@ -3347,6 +3353,7 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
     }
 
     const replay: { present: boolean; evidence?: unknown } = { present: false };
+    let retryFailedSafe = false;
     await this.prisma.$transaction(async (tx) => {
       const projectRows = await tx.$queryRaw<
         Array<{ organizationId: string; ownershipEpoch: number; permanentDeletionStartedAt: Date | null }>
@@ -3399,9 +3406,14 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
         });
       }
 
-      if (existing.state === 'VERIFIED' && existing.providerEvidence !== null && options) {
+      if (existing.state === 'VERIFIED' && existing.providerEvidence !== null && options?.replayVerified) {
         replay.present = true;
         replay.evidence = existing.providerEvidence;
+        return;
+      }
+
+      if (existing.state === 'FAILED_SAFE' && intent.kind === 'PROJECT_ERASURE' && options?.verifyFailedSafeRetry) {
+        retryFailedSafe = true;
         return;
       }
 
@@ -3427,15 +3439,17 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
           code:
             existing.state === 'AMBIGUOUS'
               ? 'REGISTRY_MUTATION_AMBIGUOUS'
-              : existing.state === 'IN_FLIGHT'
-                ? 'REGISTRY_MUTATION_ACTIVE'
-                : 'REGISTRY_MUTATION_ALREADY_TERMINAL',
+              : existing.state === 'MANUAL_RECOVERY'
+                ? 'REGISTRY_MUTATION_MANUAL_RECOVERY'
+                : existing.state === 'IN_FLIGHT'
+                  ? 'REGISTRY_MUTATION_ACTIVE'
+                  : 'REGISTRY_MUTATION_ALREADY_TERMINAL',
           statusCode: 409,
         });
       }
     });
 
-    if (replay.present && options) {
+    if (replay.present && options?.replayVerified) {
       return options.replayVerified(replay.evidence);
     }
 
@@ -3446,6 +3460,8 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
     let client: PoolClient | undefined;
     let backendPid = 0;
     let fencingToken = 0n;
+    let attemptNumber = 0n;
+    let attemptId = '';
     let claimed = false;
     let destroyClient = false;
     let stopHeartbeat = false;
@@ -3473,6 +3489,15 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
       lost ??= error;
       destroyClient = true;
       controller.abort(error);
+    };
+    const assertRegistrySessionActive = async () => {
+      if (controller.signal.aborted) {
+        throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+          code: 'REGISTRY_MUTATION_FENCE_LOST',
+          statusCode: 409,
+          cause: controller.signal.reason,
+        });
+      }
     };
     const delay = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
@@ -3509,7 +3534,11 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
         `SELECT "id", "state"::text AS "state", "repositories"
          FROM "RegistryMutationOperation"
          WHERE "projectId" = $1 AND "id" <> $2
-           AND "state" IN ('IN_FLIGHT'::"RegistryMutationState", 'AMBIGUOUS'::"RegistryMutationState")`,
+           AND "state" IN (
+             'IN_FLIGHT'::"RegistryMutationState",
+             'AMBIGUOUS'::"RegistryMutationState",
+             'MANUAL_RECOVERY'::"RegistryMutationState"
+           )`,
         [intent.projectId, intent.operationId],
       );
       const blocker = blockers.rows.find((row) => {
@@ -3518,25 +3547,84 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
       });
       if (blocker) {
         throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
-          code: blocker.state === 'AMBIGUOUS' ? 'REGISTRY_MUTATION_AMBIGUOUS' : 'REGISTRY_MUTATION_ACTIVE',
+          code:
+            blocker.state === 'AMBIGUOUS'
+              ? 'REGISTRY_MUTATION_AMBIGUOUS'
+              : blocker.state === 'MANUAL_RECOVERY'
+                ? 'REGISTRY_MUTATION_MANUAL_RECOVERY'
+                : 'REGISTRY_MUTATION_ACTIVE',
           statusCode: 409,
         });
       }
 
-      const claimedRows = await client.query<{ fencingToken: string }>(
+      if (retryFailedSafe) {
+        const retryRows = await client.query<{
+          state: string;
+          fencingToken: string;
+          attemptNumber: string;
+          providerEvidence: unknown | null;
+        }>(
+          `SELECT "state"::text AS "state", "fencingToken"::text AS "fencingToken",
+                  "attemptNumber"::text AS "attemptNumber", "providerEvidence"
+           FROM "RegistryMutationOperation"
+           WHERE "id" = $1`,
+          [intent.operationId],
+        );
+        const retryRow = retryRows.rows[0];
+        if (retryRow?.state === 'VERIFIED' && retryRow.providerEvidence !== null && options?.replayVerified) {
+          return options.replayVerified(retryRow.providerEvidence);
+        }
+        if (retryRow?.state !== 'FAILED_SAFE' || !options?.verifyFailedSafeRetry) {
+          throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+            code:
+              retryRow?.state === 'MANUAL_RECOVERY'
+                ? 'REGISTRY_MUTATION_MANUAL_RECOVERY'
+                : retryRow?.state === 'AMBIGUOUS'
+                  ? 'REGISTRY_MUTATION_AMBIGUOUS'
+                  : 'REGISTRY_MUTATION_CLAIM_CONFLICT',
+            statusCode: 409,
+          });
+        }
+        const nextAttemptNumber = BigInt(retryRow.attemptNumber) + 1n;
+        const nextFencingToken = BigInt(retryRow.fencingToken) + 1n;
+        const nextAttemptId = `${intent.operationId}:attempt:${nextAttemptNumber}:fence:${nextFencingToken}`;
+        await options.verifyFailedSafeRetry({
+          signal: controller.signal,
+          attemptNumber: nextAttemptNumber,
+          attemptId: nextAttemptId,
+          assertActive: assertRegistrySessionActive,
+        });
+        await assertRegistrySessionActive();
+      }
+
+      const claimedRows = await client.query<{ fencingToken: string; attemptNumber: string; attemptId: string }>(
         `UPDATE "RegistryMutationOperation"
          SET "state" = 'IN_FLIGHT'::"RegistryMutationState",
              "fencingToken" = "fencingToken" + 1,
+             "attemptNumber" = "attemptNumber" + 1,
+             "attemptId" = "id" || ':attempt:' || ("attemptNumber" + 1)::text
+               || ':fence:' || ("fencingToken" + 1)::text,
              "ownerToken" = $2,
              "leaseExpiresAt" = clock_timestamp() + ($3::bigint * interval '1 millisecond'),
              "backendPid" = $4,
              "effectStartedAt" = clock_timestamp(),
              "heartbeatAt" = clock_timestamp(),
+             "ambiguousAt" = NULL,
+             "recoveredAt" = NULL,
+             "recoveryEvidence" = NULL,
              "lastErrorCode" = NULL,
              "updatedAt" = clock_timestamp()
-         WHERE "id" = $1 AND "state" = 'PREPARED'::"RegistryMutationState"
-         RETURNING "fencingToken"::text AS "fencingToken"`,
-        [intent.operationId, ownerToken, this.registryMutationLeaseMs, backendPid],
+         WHERE "id" = $1
+           AND "state" = $5::"RegistryMutationState"
+         RETURNING "fencingToken"::text AS "fencingToken",
+                   "attemptNumber"::text AS "attemptNumber", "attemptId"`,
+        [
+          intent.operationId,
+          ownerToken,
+          this.registryMutationLeaseMs,
+          backendPid,
+          retryFailedSafe ? 'FAILED_SAFE' : 'PREPARED',
+        ],
       );
       if (!claimedRows.rows[0]) {
         throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
@@ -3545,6 +3633,8 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
         });
       }
       fencingToken = BigInt(claimedRows.rows[0].fencingToken);
+      attemptNumber = BigInt(claimedRows.rows[0].attemptNumber);
+      attemptId = claimedRows.rows[0].attemptId;
       claimed = true;
 
       heartbeat = (async () => {
@@ -3570,15 +3660,7 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
         }
       })();
 
-      const assertActive = async () => {
-        if (controller.signal.aborted) {
-          throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
-            code: 'REGISTRY_MUTATION_FENCE_LOST',
-            statusCode: 409,
-            cause: controller.signal.reason,
-          });
-        }
-      };
+      const assertActive = assertRegistrySessionActive;
       const record = async (column: 'providerOperationId' | 'providerEvidence', value: unknown) => {
         await assertActive();
         const sql =
@@ -3613,6 +3695,8 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
         signal: controller.signal,
         ownerToken,
         fencingToken,
+        attemptNumber,
+        attemptId,
         backendPid,
         assertActive,
         recordProviderOperationId: (providerOperationId) => record('providerOperationId', providerOperationId),
@@ -3690,48 +3774,70 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
 
   async resolveAmbiguousRegistryMutation(input: {
     operationId: string;
-    expectedOrganizationId: string;
-    evidence: RegistryMutationRecoveryEvidence;
-  }): Promise<void> {
-    const evidence = input.evidence;
-    if (!isRegistryMutationRecoveryEvidence(evidence)) {
+    operatorUserId: string;
+    ipAddress?: string;
+    observation: RegistryMutationRecoveryObservation;
+  }): Promise<RegistryMutationRecoveryResult> {
+    if (!input.operationId.trim() || !input.operatorUserId.trim()) {
       throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
         code: 'REGISTRY_MUTATION_RECOVERY_EVIDENCE_INVALID',
         statusCode: 400,
       });
     }
-    await this.prisma.$transaction(async (tx) => {
+    return this.prisma.$transaction(async (tx) => {
       const rows = await tx.$queryRaw<
         Array<{
           state: string;
           projectId: string;
           organizationId: string;
           intentHash: string;
+          kind: string;
+          attemptId: string | null;
+          attemptNumber: string;
+          fencingToken: string;
           providerOperationId: string | null;
           providerEvidence: unknown | null;
           ambiguousAt: Date | null;
         }>
       >(Prisma.sql`
         SELECT "state"::text AS "state", "projectId", "organizationId", "intentHash",
-               "providerOperationId", "providerEvidence", "ambiguousAt"
+               "kind"::text AS "kind", "attemptId", "attemptNumber"::text AS "attemptNumber",
+               "fencingToken"::text AS "fencingToken", "providerOperationId", "providerEvidence", "ambiguousAt"
         FROM "RegistryMutationOperation"
         WHERE "id" = ${input.operationId}
         FOR UPDATE
       `);
       const row = rows[0];
       const now = await databaseNow(tx);
+      const auditLogId = randomUUID();
+      const evidence = {
+        ...input.observation,
+        schemaVersion: 'registry-mutation-recovery-v2',
+        operatorUserId: input.operatorUserId,
+        auditLogId,
+        operationId: input.operationId,
+        projectId: row?.projectId ?? '',
+        organizationId: row?.organizationId ?? '',
+        intentHash: row?.intentHash ?? '',
+        attemptId: row?.attemptId ?? '',
+        attemptNumber: row?.attemptNumber ?? '',
+        fencingToken: row?.fencingToken ?? '',
+      } as RegistryMutationRecoveryEvidence;
       const queryProviderIds = evidence.providerQueries.flatMap(({ providerOperationId }) =>
         providerOperationId === undefined ? [] : [providerOperationId],
       );
+      const operator = await tx.user.findUnique({
+        where: { id: input.operatorUserId },
+        select: { platformAdmin: true },
+      });
       if (
         !row ||
-        row.organizationId !== input.expectedOrganizationId ||
-        row.state !== 'AMBIGUOUS' ||
+        !operator?.platformAdmin ||
+        !['AMBIGUOUS', 'MANUAL_RECOVERY'].includes(row.state) ||
+        (row.state === 'MANUAL_RECOVERY' && evidence.resolution === 'MANUAL_RECOVERY') ||
         row.ambiguousAt === null ||
-        evidence.operationId !== input.operationId ||
-        evidence.projectId !== row.projectId ||
-        evidence.organizationId !== row.organizationId ||
-        evidence.intentHash !== row.intentHash ||
+        row.attemptId === null ||
+        !isRegistryMutationRecoveryEvidence(evidence) ||
         Date.parse(evidence.observationWindowStartedAt) < row.ambiguousAt.getTime() ||
         Date.parse(evidence.observationWindowEndedAt) > now.getTime() ||
         queryProviderIds.some((providerOperationId) => providerOperationId !== row.providerOperationId) ||
@@ -3746,6 +3852,38 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
           statusCode: 409,
         });
       }
+
+      await tx.auditLog.create({
+        data: {
+          id: auditLogId,
+          organizationId: row.organizationId,
+          actorUserId: input.operatorUserId,
+          action: 'registry.mutation.recovery',
+          resourceType: 'registryMutationOperation',
+          resourceId: input.operationId,
+          metadata: {
+            resolution: evidence.resolution,
+            kind: row.kind,
+            attemptId: row.attemptId,
+            attemptNumber: row.attemptNumber,
+            providerOperationIdPresent: row.providerOperationId !== null,
+            providerEvidencePresent: row.providerEvidence !== null,
+            providerQueryCount: evidence.providerQueries.length,
+            observationWindowStartedAt: evidence.observationWindowStartedAt,
+            observationWindowEndedAt: evidence.observationWindowEndedAt,
+          },
+          ...(input.ipAddress ? { ipAddress: input.ipAddress } : {}),
+        },
+      });
+      await tx.registryMutationRecovery.create({
+        data: {
+          operationId: input.operationId,
+          attemptNumber: BigInt(row.attemptNumber),
+          resolution: evidence.resolution,
+          auditLogId,
+          evidence: evidence as unknown as Prisma.InputJsonValue,
+        },
+      });
       await tx.registryMutationOperation.update({
         where: { id: input.operationId },
         data: {
@@ -3753,9 +3891,16 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
           recoveredAt: now,
           recoveryEvidence: evidence as unknown as Prisma.InputJsonValue,
           ...(evidence.resolution === 'VERIFIED' ? { verifiedAt: now } : {}),
-          lastErrorCode: null,
+          lastErrorCode: evidence.resolution === 'MANUAL_RECOVERY' ? 'REGISTRY_MUTATION_MANUAL_RECOVERY' : null,
         },
       });
+      return {
+        state: evidence.resolution,
+        operationId: input.operationId,
+        attemptId: row.attemptId,
+        attemptNumber: row.attemptNumber,
+        auditLogId,
+      };
     });
   }
 
