@@ -72,6 +72,38 @@ NFS barriers are held. The final transaction revalidates source organization,
 capability expiry, operation state, checkpoints, target admission/quota, and all
 managed-resource deny-set rows before changing `Project.organizationId`.
 
+### Version-history retention and collection
+
+An ACTIVE remix storage share retains the exact `(key, generation)` set stored
+in its consent inventory. Source buckets are versioned before the share becomes
+ACTIVE, and source DELETE/MOVE/overwrite commands reject every retained
+generation. Versioning is not left as an unbounded cost sink:
+
+- signed PUT authorization advances both the project capability upper bound and
+  a durable `ObjectStorageVersionGcSchedule` in the same short transaction;
+- share creation schedules collection, and revoke/delete expedites it without
+  lowering a future capability bound;
+- the reap endpoint claims at most 500 exact noncurrent generations into
+  `ObjectStorageOperationPinnedGeneration` rows, holds the physical/NFS fence,
+  deletes by provider generation, and verifies live absence outside all Prisma
+  transactions;
+- ACTIVE share generations and current generations are never candidates. When
+  no ACTIVE share and no noncurrent generation remain, the worker verifies that
+  state and disables bucket versioning;
+- a crash after any provider delete keeps the project frozen. The next sweep
+  reclaims the expired operation for verify-first recovery, reads the normalized
+  generation batch, deletes only still-present candidates, and finalizes the
+  receipt with the same operation and schedule fences.
+
+`PENDING` schedules use PostgreSQL `notBefore` as a hard lower bound. A new
+capability can only move that bound later; revoke can move `nextAttemptAt`
+earlier but never below the bound. `CLAIMED` schedule leases heartbeat in the
+same transaction as their provider-operation lease. Deterministic authority or
+inventory mismatches move both records to manual recovery; transient provider
+errors persist bounded backoff so one poison project cannot starve the keyset
+sweep. Project transfer refuses every pending, claimed, or manual version-GC
+schedule, because historical generations still belong to the source tenant.
+
 ## Expected transfer refusals
 
 - `409 PROJECT_TRANSFER_OBJECT_STORAGE_CAPABILITY_ACTIVE`: wait until the

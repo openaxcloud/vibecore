@@ -219,6 +219,12 @@ export interface ObjectStorage {
    * method; recovery then fails closed instead of certifying ENSURE_BUCKET.
    */
   bucketVersioningEnabled?(projectId: string): Promise<boolean>;
+  /** Enable/disable generation history and verify the provider's live state. */
+  setBucketVersioningEnabled?(
+    projectId: string,
+    enabled: boolean,
+    guard?: () => Promise<void>,
+  ): Promise<{ bucketExists: boolean; enabled: boolean }>;
   listObjects(projectId: string, opts?: { prefix?: string; delimiter?: string }): Promise<ListObjectsResult>;
   /** Exhaustive live + noncurrent generations; destructive prefix verification fails closed without it. */
   listObjectVersions?(projectId: string, opts?: { prefix?: string }): Promise<ListObjectsResult>;
@@ -329,6 +335,10 @@ export class NoopObjectStorage implements ObjectStorage {
     return false;
   }
 
+  async setBucketVersioningEnabled(): Promise<{ bucketExists: boolean; enabled: boolean }> {
+    return { bucketExists: false, enabled: false };
+  }
+
   async listObjects(): Promise<ListObjectsResult> {
     return { objects: [], folders: [] };
   }
@@ -385,7 +395,11 @@ export class GcsObjectStorage implements ObjectStorage {
 
   constructor(private readonly _storage: StorageLike) {}
 
-  private async verifyBucketVersioning(bucket: BucketLike, guard?: () => Promise<void>): Promise<void> {
+  private async verifyBucketVersioning(
+    bucket: BucketLike,
+    expectedEnabled: boolean,
+    guard?: () => Promise<void>,
+  ): Promise<void> {
     /* The real GCS adapter always exposes getMetadata; bounded polling covers propagation. */
     if (!bucket.getMetadata) {
       throw new ObjectStorageError('Bucket object versioning cannot be inspected', 'VERSIONING_INSPECTION_REQUIRED');
@@ -393,12 +407,12 @@ export class GcsObjectStorage implements ObjectStorage {
     for (let attempt = 0; attempt < 5; attempt += 1) {
       await guard?.();
       const [metadata] = await bucket.getMetadata();
-      if (metadata.versioning?.enabled === true) return;
+      if ((metadata.versioning?.enabled === true) === expectedEnabled) return;
       if (attempt < 4) {
         await new Promise<void>((resolve) => setTimeout(resolve, 50 * (attempt + 1)));
       }
     }
-    throw new ObjectStorageError('Bucket object versioning could not be verified', 'VERSIONING_REQUIRED');
+    throw new ObjectStorageError('Bucket object versioning could not be verified', 'VERSIONING_STATE_REQUIRED');
   }
 
   async ensureBucket(projectId: string, guard?: () => Promise<void>) {
@@ -409,7 +423,7 @@ export class GcsObjectStorage implements ObjectStorage {
     if (exists) {
       await guard?.();
       await bucket.setMetadata({ versioning: { enabled: true } });
-      await this.verifyBucketVersioning(bucket, guard);
+      await this.verifyBucketVersioning(bucket, true, guard);
       return { bucket: name, created: false, location: OBJECT_STORAGE_LOCATION };
     }
 
@@ -428,7 +442,7 @@ export class GcsObjectStorage implements ObjectStorage {
           .slice(0, 63),
       },
     });
-    await this.verifyBucketVersioning(bucket, guard);
+    await this.verifyBucketVersioning(bucket, true, guard);
 
     return { bucket: name, created: true, location: OBJECT_STORAGE_LOCATION };
   }
@@ -445,6 +459,16 @@ export class GcsObjectStorage implements ObjectStorage {
     if (!exists || !bucket.getMetadata) return false;
     const [metadata] = await bucket.getMetadata();
     return metadata.versioning?.enabled === true;
+  }
+
+  async setBucketVersioningEnabled(projectId: string, enabled: boolean, guard?: () => Promise<void>) {
+    const bucket = this._storage.bucket(projectBucketName(projectId));
+    const [exists] = await bucket.exists();
+    if (!exists) return { bucketExists: false, enabled: false };
+    await guard?.();
+    await bucket.setMetadata({ versioning: { enabled } });
+    await this.verifyBucketVersioning(bucket, enabled, guard);
+    return { bucketExists: true, enabled };
   }
 
   async listObjects(projectId: string, opts: { prefix?: string; delimiter?: string } = {}) {
