@@ -1,10 +1,11 @@
 import { hashPassword } from '@vibecore/auth';
 import { PLAN_ENTITLEMENTS_VERSION } from '@vibecore/billing';
+import { encryptJson } from '@vibecore/security';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 // The API tsconfig intentionally has no `~/` path alias; runtime ESM tests use package-relative imports.
 // eslint-disable-next-line no-restricted-imports
-import { buildApiApp } from '../app.js';
+import { buildApiApp, type ApiAppOptions } from '../app.js';
 // eslint-disable-next-line no-restricted-imports
 import {
   deploymentAccessCookieName,
@@ -15,6 +16,8 @@ import {
   verifyDeploymentAccessCookie,
 } from '../deployment-access.js';
 import { TestApiStore } from './test-api-store.js';
+import { deterministicServerReleaseFixture } from './deterministic-release-fixture.js';
+import { acquireTestProjectReleaseFence } from './project-release-barrier-fixture.js';
 
 const ACCESS_SECRET = 'deployment-access-test-secret-with-at-least-32-bytes';
 const PROXY_SECRET = 'preview-proxy-test-secret';
@@ -95,9 +98,9 @@ describe('deployment access API', () => {
     }
   });
 
-  async function setup() {
+  async function setup(options: ApiAppOptions = {}) {
     const store = new TestApiStore();
-    const app = await buildApiApp({ store });
+    const app = await buildApiApp({ store, ...options });
 
     const owner = await store.createUser({
       email: 'owner-access@example.com',
@@ -170,6 +173,113 @@ describe('deployment access API', () => {
   }
 
   const proxyHeaders = { authorization: `Bearer ${PROXY_SECRET}` };
+
+  it('refuses a policy-only server release when the effective database ledger advanced past its source pin', async () => {
+    const ledgerA = `sha256:${'1'.repeat(64)}`;
+    const ledgerB = `sha256:${'2'.repeat(64)}`;
+    let observedLedger = ledgerA;
+    const { app, store, owner, project, projectManifest } = await setup({
+      migrationLedgerInspector: async () => ({ status: 'EXACT', digest: observedLedger, entries: 1 }),
+    });
+
+    try {
+      const deployment = await store.createDeployment({
+        projectId: project.id,
+        provider: 'server',
+        environment: 'preview',
+        status: 'BUILDING',
+        machineSize: 'shared-0.5',
+        accessPolicy: { mode: 'PUBLIC', createdByUserId: owner.id },
+        metadata: {
+          planEntitlements: RELEASE_PLAN_ENTITLEMENTS,
+          projectManifestDigest: projectManifest.digest,
+        },
+      });
+      const pins = deterministicServerReleaseFixture({
+        organizationId: project.organizationId,
+        projectId: project.id,
+        projectManifestDigest: projectManifest.digest,
+        accessPolicyVersion: deployment.accessPolicyVersion,
+        artifactRef: 'registry.example.test/access-policy-server',
+        artifactDigest: `sha256:${'3'.repeat(64)}`,
+        database: { mode: 'exact-ledger', ledgerDigest: ledgerA },
+        planEntitlements: RELEASE_PLAN_ENTITLEMENTS,
+      });
+      const staged = await store.updateDeployment(project.id, deployment.id, {
+        metadata: {
+          ...(deployment.metadata as Record<string, unknown>),
+          serverDeploy: {
+            image: {
+              imageRef: 'registry.example.test/access-policy-server',
+              imageDigest: `sha256:${'3'.repeat(64)}`,
+            },
+            promotion: pins.promotion,
+            rollbackRuntimeSpec: pins.runtimeSpec,
+          },
+        },
+      });
+      const releaseFence = await acquireTestProjectReleaseFence(store, {
+        projectId: project.id,
+        organizationId: project.organizationId,
+        operationId: 'fixture:deployment-access-db-pin',
+      });
+      await store.commitServerImageRelease({
+        projectId: project.id,
+        organizationId: project.organizationId,
+        deploymentId: deployment.id,
+        environment: 'preview',
+        artifactRef: 'registry.example.test/access-policy-server',
+        artifactDigest: `sha256:${'3'.repeat(64)}`,
+        dbMigrationPoint: ledgerA,
+        runtimeSpec: pins.runtimeSpec,
+        promotionEvidence: pins.promotionEvidence,
+        url: `https://d-${deployment.id}.${PREVIEW_DOMAIN}`,
+        previewUrl: `https://d-${deployment.id}.${PREVIEW_DOMAIN}`,
+        metadata: staged.metadata as Record<string, unknown>,
+        logs: [],
+        finishedAt: new Date().toISOString(),
+        releaseFence: releaseFence.releaseFence,
+      });
+      await releaseFence.release();
+      await store.upsertProjectSecret({
+        projectId: project.id,
+        expectedOrganizationId: project.organizationId,
+        key: 'DATABASE_URL',
+        valueEncrypted: encryptJson({ value: 'postgres://user:password@database.test/app' }),
+      });
+
+      const manifestCount = (await store.listReleaseManifests(project.id, 'preview')).length;
+      const policyCount = store.deploymentAccessPolicies.length;
+      observedLedger = ledgerB;
+      const refused = await app.inject({
+        method: 'PUT',
+        url: `/projects/${project.id}/deployments/${deployment.id}/access`,
+        headers: { authorization: 'Bearer owner-access-token' },
+        payload: { mode: 'WORKSPACE_ONLY', expectedVersion: deployment.accessPolicyVersion },
+      });
+      expect(refused.statusCode).toBe(409);
+      expect(refused.json()).toMatchObject({ code: 'ROLLBACK_DB_LEDGER_MISMATCH' });
+      expect(await store.listReleaseManifests(project.id, 'preview')).toHaveLength(manifestCount);
+      expect(store.deploymentAccessPolicies).toHaveLength(policyCount);
+      expect((await store.getDeployment(project.id, deployment.id))?.accessPolicyVersion).toBe(
+        deployment.accessPolicyVersion,
+      );
+
+      observedLedger = ledgerA;
+      const accepted = await app.inject({
+        method: 'PUT',
+        url: `/projects/${project.id}/deployments/${deployment.id}/access`,
+        headers: { authorization: 'Bearer owner-access-token' },
+        payload: { mode: 'WORKSPACE_ONLY', expectedVersion: deployment.accessPolicyVersion },
+      });
+      expect(accepted.statusCode).toBe(200);
+      const latest = (await store.listReleaseManifests(project.id, 'preview'))[0]!;
+      expect(latest.dbMigrationPoint).toBe(ledgerA);
+      expect(latest.accessPolicyVersion).toBe(deployment.accessPolicyVersion + 1);
+    } finally {
+      await app.close();
+    }
+  });
 
   it('rotates password proofs, never returns hashes, and locks corrupt policy pointers', async () => {
     const { app, store, project, deployment } = await setup();

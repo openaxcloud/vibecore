@@ -3,15 +3,12 @@ import { describe, expect, it, vi } from 'vitest';
 
 import {
   acquireExactPostgresMigrationLedgerLease,
+  MIGRATION_LEDGER_SERIALIZATION_LOCK_KEY,
   withExactPostgresMigrationLedgerLease,
   type MigrationPgClient,
 } from './db-migration-applier.js';
 
 const runDbTests = process.env.DATABASE_URL ? describe.sequential : describe.skip;
-
-function key(label: string): string {
-  return `rollback-ledger-lease:${label}:${Date.now()}:${Math.random()}`;
-}
 
 function leaseClientWithShortIdleTimeout(connectionString: string): MigrationPgClient {
   const client = new PgClient({ connectionString });
@@ -34,7 +31,7 @@ function leaseClientWithShortIdleTimeout(connectionString: string): MigrationPgC
 runDbTests('exact migration ledger session lease — PostgreSQL contention', () => {
   it('survives a short idle-in-transaction timeout and blocks migration until release', async () => {
     const connectionString = process.env.DATABASE_URL!;
-    const lockKey = key('long-effect');
+    const lockKey = MIGRATION_LEDGER_SERIALIZATION_LOCK_KEY;
     const lease = await acquireExactPostgresMigrationLedgerLease({
       connectionString,
       lockKey,
@@ -68,7 +65,7 @@ runDbTests('exact migration ledger session lease — PostgreSQL contention', () 
 
   it('times out before the effect when a migration owns the lock', async () => {
     const connectionString = process.env.DATABASE_URL!;
-    const lockKey = key('timeout');
+    const lockKey = MIGRATION_LEDGER_SERIALIZATION_LOCK_KEY;
     const blocker = new PgClient({ connectionString });
     const effect = vi.fn(async () => undefined);
 
@@ -88,7 +85,7 @@ runDbTests('exact migration ledger session lease — PostgreSQL contention', () 
 
   it('releases the session lock when the protected effect throws', async () => {
     const connectionString = process.env.DATABASE_URL!;
-    const lockKey = key('throw');
+    const lockKey = MIGRATION_LEDGER_SERIALIZATION_LOCK_KEY;
 
     await expect(
       withExactPostgresMigrationLedgerLease({ connectionString, lockKey }, async () => {
@@ -112,7 +109,7 @@ runDbTests('exact migration ledger session lease — PostgreSQL contention', () 
 
   it('refuses the commit edge after the lease backend is terminated and lets migration take the fence', async () => {
     const connectionString = process.env.DATABASE_URL!;
-    const lockKey = key('lost-session');
+    const lockKey = MIGRATION_LEDGER_SERIALIZATION_LOCK_KEY;
     let leaseBackendPid: number | undefined;
     const lease = await acquireExactPostgresMigrationLedgerLease({
       connectionString,
@@ -163,5 +160,34 @@ runDbTests('exact migration ledger session lease — PostgreSQL contention', () 
       await migration.query('ROLLBACK').catch(() => undefined);
       await Promise.allSettled([killer.end(), migration.end()]);
     }
+  });
+
+  it('serializes different project keys and syntactically different URLs reaching the same target database', async () => {
+    const firstUrl = process.env.DATABASE_URL!;
+    const second = new URL(firstUrl);
+    second.searchParams.set('application_name', 'second-project-ledger-lease');
+    const first = await acquireExactPostgresMigrationLedgerLease({
+      connectionString: firstUrl,
+      lockKey: 'project-a:preview',
+    });
+
+    try {
+      await expect(
+        acquireExactPostgresMigrationLedgerLease({
+          connectionString: second.toString(),
+          lockKey: 'project-b:production',
+          lockTimeoutMs: 50,
+        }),
+      ).rejects.toMatchObject({ code: 'ROLLBACK_DB_LEDGER_UNAVAILABLE' });
+    } finally {
+      await first.release();
+    }
+
+    const secondLease = await acquireExactPostgresMigrationLedgerLease({
+      connectionString: second.toString(),
+      lockKey: 'project-b:production',
+      lockTimeoutMs: 1_000,
+    });
+    await secondLease.release();
   });
 });

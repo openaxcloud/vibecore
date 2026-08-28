@@ -5,6 +5,7 @@ import {
   buildServerRollbackRuntimeSpec,
   rollbackManifestKeyring,
   type ServerRollbackDatabasePin,
+  type ServerRollbackRuntimeIdentity,
 } from '../deterministic-rollback.js';
 import type { ReleasePlanEntitlementsPin } from '../store.js';
 
@@ -64,6 +65,7 @@ export function deterministicServerReleaseFixture(input: {
   database?: ServerRollbackDatabasePin;
   promotionId?: string;
   planEntitlements?: ReleasePlanEntitlementsPin;
+  runtimeIdentity?: ServerRollbackRuntimeIdentity;
 }) {
   const promotion = committedPromotionFixture(input);
   const planEntitlements = input.planEntitlements ?? DETERMINISTIC_RELEASE_PLAN_ENTITLEMENTS;
@@ -84,6 +86,7 @@ export function deterministicServerReleaseFixture(input: {
     healthPath: input.healthPath ?? '/health',
     envOverrides: input.envOverrides ?? {},
     database: input.database ?? { mode: 'none' },
+    ...(input.runtimeIdentity ?? { runtimeClass: 'autoscale' }),
     keyring: rollbackManifestKeyring(),
   });
   const promotionEvidence = buildServerRollbackPromotionEvidence({

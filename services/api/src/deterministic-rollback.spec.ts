@@ -72,6 +72,7 @@ function runtime(database: { mode: 'none' } | { mode: 'exact-ledger'; ledgerDige
     healthPath: '/ready',
     envOverrides: { FEATURE_MODE: 'pinned', PORT_SHADOW: 'not-the-port' },
     database,
+    runtimeClass: 'autoscale',
     keyring: KEYRING,
   });
 }

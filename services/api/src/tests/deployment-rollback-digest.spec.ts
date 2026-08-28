@@ -362,6 +362,7 @@ describe('server rollback re-deploys the retained image by digest (wiring)', () 
       secretPolicy: 'PINNED',
       hash: rollbackManifestDigest({ ...movingRuntimeBody, secretPolicy: 'PINNED' }),
     };
+    store.deployments.delete(response.json().deployment.id as string);
     const deploymentCount = store.deployments.size;
     const operationCount = store.rollbackOperations.size;
     const managerStartCount = captured.starts.length;
@@ -380,6 +381,110 @@ describe('server rollback re-deploys the retained image by digest (wiring)', () 
     expect(store.rollbackOperations.size).toBe(operationCount);
     expect(store.deployments.size).toBe(deploymentCount);
 
+    await app.close();
+  });
+
+  it('refuses a strictly pinned Reserved release after decommission mutation and after source pruning', async () => {
+    const { app, store, auth, projectId } = await setup();
+    const captured = stubManagerStart();
+    const project = await store.getProject(projectId);
+    const projectManifest = await store.getLatestProjectManifest(projectId);
+    const release = await acquireTestProjectReleaseFence(store, {
+      projectId,
+      organizationId: project!.organizationId,
+      operationId: 'fixture:reserved-runtime-class',
+    });
+    const reservedDraft = await store.createDeployment({
+      projectId,
+      provider: 'server',
+      environment: 'preview',
+      status: 'BUILDING',
+      machineSize: 'shared-0.5',
+      metadata: {
+        planEntitlements: DETERMINISTIC_RELEASE_PLAN_ENTITLEMENTS,
+        projectManifestDigest: projectManifest!.digest,
+      },
+    });
+    const reserved = await store.updateDeployment(projectId, reservedDraft.id, {
+      runtimeKind: 'reserved-vm',
+      reservedVmTier: 'shared-0.5',
+      persistentStorageClaim: 'reserved-runtime-class-pvc',
+    });
+    const pins = deterministicServerReleaseFixture({
+      organizationId: project!.organizationId,
+      projectId,
+      projectManifestDigest: projectManifest!.digest,
+      accessPolicyVersion: reserved.accessPolicyVersion,
+      artifactRef: IMAGE_REF,
+      artifactDigest: DIGEST,
+      promotionId: 'promo-reserved-runtime-class',
+      runtimeIdentity: {
+        runtimeClass: 'reserved-vm',
+        reservedVm: {
+          deploymentId: reserved.id,
+          tier: 'shared-0.5',
+          persistentStorageClaim: 'reserved-runtime-class-pvc',
+        },
+      },
+    });
+    const staged = await store.updateDeployment(projectId, reserved.id, {
+      metadata: {
+        ...(reserved.metadata as Record<string, unknown>),
+        serverDeploy: {
+          image: { imageRef: IMAGE_REF, imageDigest: DIGEST },
+          promotion: pins.promotion,
+          rollbackRuntimeSpec: pins.runtimeSpec,
+        },
+      },
+    });
+    await store.commitServerImageRelease({
+      projectId,
+      organizationId: project!.organizationId,
+      deploymentId: reserved.id,
+      environment: 'preview',
+      artifactRef: IMAGE_REF,
+      artifactDigest: DIGEST,
+      runtimeSpec: pins.runtimeSpec,
+      promotionEvidence: pins.promotionEvidence,
+      url: 'https://reserved-runtime-class.preview.test',
+      previewUrl: 'https://reserved-runtime-class.preview.test',
+      metadata: staged.metadata as Record<string, unknown>,
+      logs: [],
+      finishedAt: '2026-08-28T00:00:00.000Z',
+      releaseFence: release.releaseFence,
+    });
+    await release.release();
+    await createRetainedRelease(store, projectId);
+
+    const committedReserved = (await store.getDeployment(projectId, reserved.id))!;
+    store.deployments.set(reserved.id, {
+      ...committedReserved,
+      runtimeKind: 'autoscale',
+      reservedVmTier: undefined,
+      persistentStorageClaim: undefined,
+    });
+    const before = store.deployments.size;
+    const mutated = await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/deployments/rollback-to-previous`,
+      headers: { authorization: `Bearer ${auth.token}`, 'idempotency-key': 'reserved-pinned-mutated' },
+      payload: { environment: 'preview' },
+    });
+    expect(mutated.statusCode).toBe(409);
+    expect(mutated.json()).toMatchObject({ code: 'RESERVED_VM_ROLLBACK_UNPINNED' });
+
+    store.deployments.delete(reserved.id);
+    const pruned = await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/deployments/rollback-to-previous`,
+      headers: { authorization: `Bearer ${auth.token}`, 'idempotency-key': 'reserved-pinned-pruned' },
+      payload: { environment: 'preview' },
+    });
+    expect(pruned.statusCode).toBe(409);
+    expect(pruned.json()).toMatchObject({ code: 'RESERVED_VM_ROLLBACK_UNPINNED' });
+    expect(store.rollbackOperations.size).toBe(0);
+    expect(store.deployments.size).toBe(before - 1);
+    expect(captured.starts).toHaveLength(0);
     await app.close();
   });
 

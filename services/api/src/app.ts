@@ -236,6 +236,7 @@ import {
   acquireExactPostgresMigrationLedgerLease,
   createPostgresMigrationApplier,
   inspectExactPostgresMigrationLedger,
+  MIGRATION_LEDGER_SERIALIZATION_LOCK_KEY,
   type ExactMigrationLedgerInspection,
 } from './db-migration-applier.js';
 import {
@@ -357,6 +358,7 @@ import {
   rollbackManifestKeyring,
   rollbackPlanEntitlementsDigest,
   serverRollbackMachineMatchesRateCard,
+  type ServerRollbackRuntimeIdentity,
   validateServerRollbackManifestPins,
   type ServerRollbackDatabasePin,
   type ServerRollbackPromotionEvidenceV1,
@@ -559,6 +561,7 @@ import {
   type ReleasePlanEntitlementsPin,
   type RollbackLeaseFence,
   type ServerImageReleaseCommitInput,
+  type ServerImageReleaseCommitResult,
   type RuntimeWebSocketEndpoint,
   type SessionRecord,
   type SkillAuditEventRecord,
@@ -4531,7 +4534,7 @@ function requireCommittedServerImagePromotion(
   };
 }
 
-async function commitPromotedServerImageRelease(input: {
+interface CommitPromotedServerImageReleaseInput {
   store: ApiStore;
   deployment: DeploymentRecord;
   organizationId: string;
@@ -4540,11 +4543,31 @@ async function commitPromotedServerImageRelease(input: {
   readyMessage: string;
   dbMigrationPoint?: string;
   rollbackFence?: RollbackLeaseFence;
+  rollbackResponseContentLanguage?: TransactionalLocale;
   releaseFence: ProjectReleaseFence;
   /** Re-prove the environment DB topology/ledger on the held session at the commit edge. */
   assertDatabasePinHeld: () => Promise<void>;
   reservedVmFence?: ServerImageReleaseCommitInput['reservedVmFence'];
-}): Promise<DeploymentRecord> {
+}
+
+async function commitPromotedServerImageRelease(
+  input: CommitPromotedServerImageReleaseInput & {
+    rollbackFence: RollbackLeaseFence;
+    rollbackResponseContentLanguage: TransactionalLocale;
+  },
+): Promise<{
+  deployment: DeploymentRecord;
+  rollbackReceipt: NonNullable<ServerImageReleaseCommitResult['rollbackReceipt']>;
+}>;
+async function commitPromotedServerImageRelease(
+  input: CommitPromotedServerImageReleaseInput,
+): Promise<DeploymentRecord>;
+async function commitPromotedServerImageRelease(
+  input: CommitPromotedServerImageReleaseInput,
+): Promise<
+  | DeploymentRecord
+  | { deployment: DeploymentRecord; rollbackReceipt: NonNullable<ServerImageReleaseCommitResult['rollbackReceipt']> }
+> {
   if (!readDeploymentPlanEntitlementsPin(input.deployment.metadata)) {
     throw Object.assign(new Error(appPublicEnglish('PUBLISH_ENTITLEMENTS_PIN_MISSING')), {
       code: 'PUBLISH_ENTITLEMENTS_PIN_MISSING',
@@ -4592,11 +4615,21 @@ async function commitPromotedServerImageRelease(input: {
     finishedAt: new Date().toISOString(),
     releaseFence: input.releaseFence,
     ...(input.rollbackFence ? { rollbackFence: input.rollbackFence } : {}),
+    ...(input.rollbackResponseContentLanguage
+      ? { rollbackResponseContentLanguage: input.rollbackResponseContentLanguage }
+      : {}),
     ...(input.reservedVmFence ? { reservedVmFence: input.reservedVmFence } : {}),
   });
 
   if (!result.committed || !result.manifest || result.deployment.status !== 'READY') {
     throw new ServerImageReleaseGateError('SERVER_RELEASE_COMMIT_FAILED');
+  }
+
+  if (input.rollbackFence) {
+    if (!result.rollbackReceipt) {
+      throw new ServerImageReleaseGateError('SERVER_RELEASE_COMMIT_FAILED');
+    }
+    return { deployment: result.deployment, rollbackReceipt: result.rollbackReceipt };
   }
 
   return result.deployment;
@@ -10397,7 +10430,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return databasePinFromInspection(
       await migrationLedgerInspector({
         connectionString: connection.value,
-        lockKey: `${projectId}:${environment}`,
+        lockKey: MIGRATION_LEDGER_SERIALIZATION_LOCK_KEY,
       }),
     );
   };
@@ -10464,7 +10497,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         validateLocked(
           await migrationLedgerInspector({
             connectionString: connection.value,
-            lockKey: `${projectId}:${environment}`,
+            lockKey: MIGRATION_LEDGER_SERIALIZATION_LOCK_KEY,
           }),
         );
         return {
@@ -10472,7 +10505,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             validateLocked(
               await migrationLedgerInspector({
                 connectionString: connection.value,
-                lockKey: `${projectId}:${environment}`,
+                lockKey: MIGRATION_LEDGER_SERIALIZATION_LOCK_KEY,
               }),
             );
           },
@@ -10482,7 +10515,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
       const lease = await acquireExactPostgresMigrationLedgerLease({
         connectionString: connection.value,
-        lockKey: `${projectId}:${environment}`,
+        lockKey: MIGRATION_LEDGER_SERIALIZATION_LOCK_KEY,
       });
 
       try {
@@ -10913,8 +10946,6 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     request.rollbackOperation = undefined;
 
     try {
-      await execution.leaseManager.guard();
-
       const serialized = Buffer.isBuffer(payload)
         ? payload.toString('utf8')
         : payload instanceof Uint8Array
@@ -38572,18 +38603,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return reply.code(202).send({ scheduled: true, enabled: true });
   });
 
-  const prepareServerRollbackRuntimeSpec = async (input: {
-    project: ProjectRecord;
-    environment: DeploymentRecord['environment'];
-    projectManifestDigest: string;
-    planEntitlements: ReleasePlanEntitlementsPin;
-    accessPolicyVersion: number;
-    machine: { key: string; rateCardVersion: number; cpuMillicores: number; memoryMb: number };
-    port: number;
-    healthPath: string;
-    envOverrides: Record<string, string>;
-    database: ServerRollbackDatabasePin;
-  }): Promise<ServerRollbackRuntimeSpecV1> =>
+  const prepareServerRollbackRuntimeSpec = async (
+    input: {
+      project: ProjectRecord;
+      environment: DeploymentRecord['environment'];
+      projectManifestDigest: string;
+      planEntitlements: ReleasePlanEntitlementsPin;
+      accessPolicyVersion: number;
+      machine: { key: string; rateCardVersion: number; cpuMillicores: number; memoryMb: number };
+      port: number;
+      healthPath: string;
+      envOverrides: Record<string, string>;
+      database: ServerRollbackDatabasePin;
+    } & ServerRollbackRuntimeIdentity,
+  ): Promise<ServerRollbackRuntimeSpecV1> =>
     buildServerRollbackRuntimeSpec({
       organizationId: input.project.organizationId,
       projectId: input.project.id,
@@ -38596,6 +38629,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       healthPath: input.healthPath,
       envOverrides: input.envOverrides,
       database: input.database,
+      ...(input.runtimeClass === 'reserved-vm'
+        ? { runtimeClass: 'reserved-vm' as const, reservedVm: input.reservedVm }
+        : { runtimeClass: 'autoscale' as const }),
     });
 
   const requireRetainedReleaseAccessPolicy = async (manifest: ReleaseManifestRecord) => {
@@ -38630,6 +38666,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   const resolveRetainedServerRollbackManifest = async (input: {
     manifest: ReleaseManifestRecord;
     project: ProjectRecord;
+    allowReservedVm?: boolean;
   }) => {
     if (input.manifest.artifactKind !== 'server-image' || input.manifest.provider !== 'server') {
       throw new DeterministicRollbackError('ROLLBACK_MANIFEST_ARTIFACT_INVALID');
@@ -38653,6 +38690,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       artifactRef: input.manifest.artifactRef,
       artifactDigest: input.manifest.artifactDigest,
     });
+
+    if (retained.runtimeSpec.runtimeClass !== 'autoscale' && !input.allowReservedVm) {
+      throw Object.assign(new DeterministicRollbackError('RESERVED_VM_ROLLBACK_UNPINNED'), {
+        code: 'RESERVED_VM_ROLLBACK_UNPINNED',
+        statusCode: 409,
+      });
+    }
 
     const storedRateCard = await store.getRateCard(retained.runtimeSpec.machine.rateCardVersion);
     const historicalRateCard =
@@ -39556,6 +39600,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                       healthPath: process.env.SERVER_DEPLOY_HEALTH_PATH || '/',
                       envOverrides: body.envVars,
                       database: releaseDatabasePin,
+                      ...(body.runtimeKind === 'reserved-vm'
+                        ? {
+                            runtimeClass: 'reserved-vm' as const,
+                            reservedVm: {
+                              deploymentId: queued.id,
+                              tier: body.reservedVmTier!,
+                              persistentStorageClaim: queued.persistentStorageClaim!,
+                            },
+                          }
+                        : { runtimeClass: 'autoscale' as const }),
                     });
                     const promotedImage = imageBuildInfo;
                     rollbackPromotionEvidence = buildServerRollbackPromotionEvidence({
@@ -43410,7 +43464,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             }
 
             try {
-              await resolveRetainedServerRollbackManifest({ manifest: productionManifest, project });
+              await resolveRetainedServerRollbackManifest({
+                manifest: productionManifest,
+                project,
+                allowReservedVm: true,
+              });
             } catch (error) {
               return reply.code(409).send({
                 error: localizeBackendErrorForResponse((error as Error).message, locale, 'ROLLBACK_REQUEST_FAILED'),
@@ -43473,6 +43531,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             reservedVmRetained = await resolveRetainedServerRollbackManifest({
               manifest: reservedVmPublish.releaseSource,
               project,
+              allowReservedVm: true,
             });
           } catch (error) {
             return reply.code(409).send({
@@ -43750,6 +43809,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                 healthPath: retained.runtimeSpec.healthPath,
                 envOverrides: retained.envOverrides,
                 database: releaseDatabasePin,
+                ...(retained.runtimeSpec.runtimeClass === 'reserved-vm'
+                  ? { runtimeClass: 'reserved-vm' as const, reservedVm: retained.runtimeSpec.reservedVm }
+                  : { runtimeClass: 'autoscale' as const }),
               }),
               promotionEvidence: reservedVmPublish.releaseSource.promotionEvidence,
             };
@@ -44104,6 +44166,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
               healthPath: process.env.SERVER_DEPLOY_HEALTH_PATH || '/',
               envOverrides: {},
               database: releaseDatabasePin,
+              runtimeClass: 'autoscale',
             });
             const rollbackPromotionEvidence = buildServerRollbackPromotionEvidence({
               organizationId: project.organizationId,
@@ -45560,16 +45623,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
               ],
               finishedAt: new Date().toISOString(),
               releaseFence: releaseGuard.fence,
+              responseContentLanguage: locale,
             });
 
-            return reply.code(201).send({
-              deployment: localizeDeploymentRecord(release.deployment, locale),
-              restoredFromVersion: previous.version,
-              restoredFromDeploymentId: previous.deploymentId,
-              supersededVersion: currentVersion,
-              verifiedArtifactDigest: previous.artifactDigest,
-              url,
-            });
+            request.rollbackOperation = undefined;
+            await leaseManager.stop();
+            setAppLocaleResponseHeaders(reply, release.rollbackReceipt.responseContentLanguage);
+            return reply.code(release.rollbackReceipt.responseStatus).send(release.rollbackReceipt.responseBody);
           } catch (error) {
             const code = (error as { code?: string }).code ?? 'ROLLBACK_RESTORE_FAILED';
 
@@ -45850,7 +45910,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             });
 
             await releaseGuard.assert();
-            ready = await commitPromotedServerImageRelease({
+            const committedRollback = await commitPromotedServerImageRelease({
               store,
               deployment: ready,
               organizationId: project.organizationId,
@@ -45866,16 +45926,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                 fencingToken: operation.fencingToken,
                 expectedHeadVersion,
               },
+              rollbackResponseContentLanguage: locale,
             });
-
-            return reply.code(201).send({
-              deployment: localizeDeploymentRecord(ready, locale),
-              restoredFromVersion: previous.version,
-              restoredFromDeploymentId: previous.deploymentId,
-              supersededVersion: currentVersion,
-              verifiedArtifactDigest: previous.artifactDigest,
-              url: rbUrl,
-            });
+            ready = committedRollback.deployment;
+            request.rollbackOperation = undefined;
+            await leaseManager.stop();
+            setAppLocaleResponseHeaders(reply, committedRollback.rollbackReceipt.responseContentLanguage);
+            return reply
+              .code(committedRollback.rollbackReceipt.responseStatus)
+              .send(committedRollback.rollbackReceipt.responseBody);
           } catch (error) {
             const code = (error as { code?: string }).code ?? 'ROLLBACK_FAILED';
 
@@ -46952,12 +47011,31 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           }
 
           const sourceRuntime = parseServerRollbackRuntimeSpec(releaseSource.runtimeSpec);
-          await releaseGuard.assert();
-          return store.setDeploymentAccessPolicy({
-            ...mutation,
-            releaseFence: releaseGuard.fence,
-            releaseDatabasePin: sourceRuntime.spec.database,
+          const currentSecrets = await resolveProjectSecretValues(store, project.id);
+          const effectiveDatabaseUrl = resolveServerDeployDatabaseUrl({
+            environment: sourceRuntime.spec.environment,
+            projectSecrets: currentSecrets,
+            envOverrides: sourceRuntime.envOverrides,
           });
+          const environmentDatabaseLease = await acquireEnvironmentDatabasePinLease(
+            project.id,
+            sourceRuntime.spec.environment,
+            effectiveDatabaseUrl,
+            sourceRuntime.spec.database,
+          );
+
+          try {
+            await releaseGuard.assert();
+            await assertEnvironmentDatabaseLeaseHeld(environmentDatabaseLease);
+            return await store.setDeploymentAccessPolicy({
+              ...mutation,
+              releaseFence: releaseGuard.fence,
+              releaseDatabasePin: sourceRuntime.spec.database,
+              assertDatabasePinHeld: () => assertEnvironmentDatabaseLeaseHeld(environmentDatabaseLease),
+            });
+          } finally {
+            await environmentDatabaseLease.release();
+          }
         },
       );
     },

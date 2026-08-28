@@ -34,6 +34,7 @@ import {
   rollbackPlanEntitlementsDigest,
   sameServerRollbackRuntimePinsForPublish,
   serverRollbackMachineMatchesRateCard,
+  serverRollbackRuntimeMatchesDeployment,
   validateServerReleaseCommitPins,
 } from './deterministic-rollback.js';
 import {
@@ -49,6 +50,7 @@ import {
   type ProjectManifestCloneMode,
 } from './project-manifest.js';
 import { remixIdeStateDigest, validRemixIdeStatePin } from './remix-ide-state.js';
+import { buildRollbackSuccessReceipt, type RollbackSuccessReceipt } from './rollback-response.js';
 import { isCommittedPromotionForTenant, SERVER_IMAGE_RELEASE_AUDIT_ACTION } from './server-image-promotion.js';
 import { lockProjectAfterPurgeTopology, lockProjectMutation } from './project-mutation-lock.js';
 import {
@@ -1336,6 +1338,59 @@ async function requireRollbackSourceManifest(
   return source;
 }
 
+async function completeRollbackSuccessInTransaction(
+  tx: Prisma.TransactionClient,
+  input: {
+    operation: {
+      id: string;
+      phase: string;
+      deploymentId: string | null;
+      expectedHeadVersion: number | null;
+      previousManifestId: string | null;
+    };
+    deployment: DeploymentRecord;
+    source: { id: string; version: number; deploymentId: string; artifactDigest: string };
+    responseContentLanguage: 'en' | 'fr';
+  },
+): Promise<RollbackSuccessReceipt> {
+  if (
+    !input.operation.deploymentId ||
+    input.operation.deploymentId !== input.deployment.id ||
+    input.operation.previousManifestId !== input.source.id ||
+    input.operation.expectedHeadVersion === null ||
+    !['EFFECT_STARTED', 'RELEASE_COMMITTED'].includes(input.operation.phase) ||
+    input.deployment.status !== 'READY'
+  ) {
+    throw rollbackConflict('ROLLBACK_RESPONSE_PHASE_CONFLICT');
+  }
+
+  const receipt = buildRollbackSuccessReceipt({
+    deployment: input.deployment,
+    responseContentLanguage: input.responseContentLanguage,
+    restoredFromVersion: input.source.version,
+    restoredFromDeploymentId: input.source.deploymentId,
+    supersededVersion: input.operation.expectedHeadVersion,
+    verifiedArtifactDigest: input.source.artifactDigest,
+    url: input.deployment.url ?? '',
+  });
+
+  await tx.rollbackIdempotencyRequest.update({
+    where: { id: input.operation.id },
+    data: {
+      status: 'COMPLETED',
+      phase: 'RELEASE_COMMITTED',
+      leaseOwner: null,
+      leaseExpiresAt: null,
+      responseStatus: receipt.responseStatus,
+      responseContentLanguage: receipt.responseContentLanguage,
+      responseBody: receipt.responseBody as Prisma.InputJsonValue,
+      completedAt: await databaseNow(tx),
+    },
+  });
+
+  return receipt;
+}
+
 /**
  * Acquire the purge half of the global rollback lock order before checkpoint,
  * Project, rollback-operation, deployment or release locks:
@@ -1655,17 +1710,23 @@ function validateReservedVmReleaseManifest(input: {
   manifest: ReleaseManifestRecord;
   organizationId: string;
   projectId: string;
-  machineKey?: string;
+  deployment: {
+    id: string;
+    machineSize: string | null;
+    runtimeKind: string | null;
+    reservedVmTier: string | null;
+    persistentStorageClaim: string | null;
+  };
   promotion: unknown;
 }) {
-  if (!input.machineKey || !input.manifest.planEntitlements || !input.manifest.projectManifestDigest) {
+  if (!input.deployment.machineSize || !input.manifest.planEntitlements || !input.manifest.projectManifestDigest) {
     throw Object.assign(reservedVmStoreError('RESERVED_VM_RELEASE_SOURCE_INVALID'), {
       code: 'RESERVED_VM_RELEASE_SOURCE_INVALID',
       statusCode: 409,
     });
   }
 
-  return validateServerReleaseCommitPins({
+  const pins = validateServerReleaseCommitPins({
     runtimeSpec: input.manifest.runtimeSpec,
     promotionEvidence: input.manifest.promotionEvidence,
     organizationId: input.organizationId,
@@ -1674,12 +1735,21 @@ function validateReservedVmReleaseManifest(input: {
     projectManifestDigest: input.manifest.projectManifestDigest,
     planEntitlements: input.manifest.planEntitlements,
     accessPolicyVersion: input.manifest.accessPolicyVersion,
-    machineKey: input.machineKey,
+    machineKey: input.deployment.machineSize,
     artifactRef: input.manifest.artifactRef,
     artifactDigest: input.manifest.artifactDigest,
     dbMigrationPoint: input.manifest.dbMigrationPoint,
     promotion: input.promotion,
   });
+
+  if (!serverRollbackRuntimeMatchesDeployment(pins.runtimeSpec, input.deployment)) {
+    throw Object.assign(reservedVmStoreError('RESERVED_VM_RELEASE_SOURCE_INVALID'), {
+      code: 'RESERVED_VM_RELEASE_SOURCE_INVALID',
+      statusCode: 409,
+    });
+  }
+
+  return pins;
 }
 
 async function requireReservedVmPublishCandidate(
@@ -1792,7 +1862,7 @@ async function requireReservedVmPublishCandidate(
           manifest: mapReleaseManifest(releaseSource),
           organizationId: input.organizationId,
           projectId: input.projectId,
-          machineKey: deployment.machineSize ?? undefined,
+          deployment,
           promotion: serverDeploy?.promotion,
         })
       : undefined;
@@ -1801,7 +1871,7 @@ async function requireReservedVmPublishCandidate(
           manifest: mapReleaseManifest(committedProductionRelease),
           organizationId: input.organizationId,
           projectId: input.projectId,
-          machineKey: deployment.machineSize ?? undefined,
+          deployment,
           promotion: serverDeploy?.promotion,
         })
       : undefined;
@@ -1854,7 +1924,7 @@ async function requireReservedVmPublishCandidate(
         manifest: mapReleaseManifest(releaseSource),
         organizationId: input.organizationId,
         projectId: input.projectId,
-        machineKey: deployment.machineSize ?? undefined,
+        deployment,
         promotion: serverDeploy?.promotion,
       })
     : undefined;
@@ -12296,7 +12366,8 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
           input.releaseSource.provider !== 'server' ||
           input.releaseSource.artifactKind !== 'server-image' ||
           input.releaseSource.accessPolicyVersion !== deployment.accessPolicyVersion ||
-          !input.releaseDatabasePin
+          !input.releaseDatabasePin ||
+          !input.assertDatabasePinHeld
         ) {
           throw Object.assign(new Error(appPublicEnglish('DEPLOYMENT_ACCESS_RELEASE_MANIFEST_MISMATCH')), {
             statusCode: 409,
@@ -12329,7 +12400,8 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
           promotion: sourcePromotion.promotion,
         });
         if (
-          rollbackManifestDigest(input.releaseDatabasePin) !== rollbackManifestDigest(validated.runtimeSpec.database)
+          rollbackManifestDigest(input.releaseDatabasePin) !== rollbackManifestDigest(validated.runtimeSpec.database) ||
+          !serverRollbackRuntimeMatchesDeployment(validated.runtimeSpec, deployment)
         ) {
           throw Object.assign(new Error(appPublicEnglish('DEPLOYMENT_ACCESS_RELEASE_MANIFEST_MISMATCH')), {
             statusCode: 409,
@@ -12360,6 +12432,7 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
             : {}),
           promotion: sourcePromotion.promotion,
         });
+        await input.assertDatabasePinHeld();
       } else if (input.releaseSource?.promotionEvidence !== undefined) {
         const staticEvidence = parseStaticRollbackRoutingEvidence(input.releaseSource.promotionEvidence);
 
@@ -12820,6 +12893,9 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
             id: true,
             provider: true,
             machineSize: true,
+            runtimeKind: true,
+            reservedVmTier: true,
+            persistentStorageClaim: true,
             metadata: true,
             project: { select: { organizationId: true } },
           },
@@ -12884,7 +12960,10 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
         const historicalCard =
           card?.data ??
           (retained.runtimeSpec.machine.rateCardVersion === BUILTIN_RATE_CARD.version ? BUILTIN_RATE_CARD : undefined);
-        if (!serverRollbackMachineMatchesRateCard(retained.runtimeSpec.machine, historicalCard)) {
+        if (
+          !serverRollbackMachineMatchesRateCard(retained.runtimeSpec.machine, historicalCard) ||
+          !serverRollbackRuntimeMatchesDeployment(retained.runtimeSpec, deployment)
+        ) {
           throw new DeterministicRollbackError('ROLLBACK_RUNTIME_SPEC_MACHINE_INVALID');
         }
       } else {
@@ -13449,6 +13528,21 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
     }
 
     return this.prisma.$transaction(async (tx) => {
+      const completed = await tx.rollbackIdempotencyRequest.findUnique({ where: { id: input.operationId } });
+
+      if (completed?.status === 'COMPLETED') {
+        if (
+          completed.phase !== 'RELEASE_COMMITTED' ||
+          completed.responseStatus !== input.responseStatus ||
+          completed.responseContentLanguage !== input.responseContentLanguage ||
+          rollbackManifestDigest(completed.responseBody) !== rollbackManifestDigest(input.responseBody)
+        ) {
+          throw rollbackConflict('ROLLBACK_RESPONSE_REPLAY_CONFLICT');
+        }
+
+        return mapRollbackOperation(completed);
+      }
+
       const operation = await requireRollbackLease(tx, input);
 
       if (input.responseStatus < 400 && operation.phase !== 'RELEASE_COMMITTED') {
@@ -13752,14 +13846,15 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
           throw rollbackConflict('STATIC_ROLLBACK_RELEASE_CONFLICT');
         }
 
-        if (operation.phase !== 'RELEASE_COMMITTED') {
-          await tx.rollbackIdempotencyRequest.update({
-            where: { id: operation.id },
-            data: { phase: 'RELEASE_COMMITTED' },
-          });
-        }
+        const mappedDeployment = mapDeployment(deployment);
+        const rollbackReceipt = await completeRollbackSuccessInTransaction(tx, {
+          operation,
+          deployment: mappedDeployment,
+          source,
+          responseContentLanguage: input.responseContentLanguage,
+        });
 
-        return { deployment: mapDeployment(deployment), manifest: mapReleaseManifest(existing) };
+        return { deployment: mappedDeployment, manifest: mapReleaseManifest(existing), rollbackReceipt };
       }
 
       const metadata = deployment.metadata as Record<string, unknown> | null;
@@ -13853,12 +13948,15 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
       }
 
       const ready = await tx.deployment.findUniqueOrThrow({ where: { id: input.deploymentId } });
-      await tx.rollbackIdempotencyRequest.update({
-        where: { id: operation.id },
-        data: { phase: 'RELEASE_COMMITTED' },
+      const mappedReady = mapDeployment(ready);
+      const rollbackReceipt = await completeRollbackSuccessInTransaction(tx, {
+        operation,
+        deployment: mappedReady,
+        source,
+        responseContentLanguage: input.responseContentLanguage,
       });
 
-      return { deployment: mapDeployment(ready), manifest: mapReleaseManifest(manifest) };
+      return { deployment: mappedReady, manifest: mapReleaseManifest(manifest), rollbackReceipt };
     });
   }
 
@@ -13872,6 +13970,9 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
 
       if (input.rollbackFence && input.reservedVmFence) {
         throw new Error(ROLLBACK_STORE_FAILURE.serverReleaseFenceConflict);
+      }
+      if (input.rollbackFence && !input.rollbackResponseContentLanguage) {
+        throw new TypeError('ROLLBACK_RESPONSE_CONTENT_LANGUAGE_REQUIRED');
       }
 
       /* Rollback authority starts at actor; ordinary release starts at topology. */
@@ -13967,6 +14068,7 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
           retainedRuntime.machine.cpuMillicores === reservedCommit.operation.targetCpuMillicores &&
           retainedRuntime.machine.memoryMb === reservedCommit.operation.targetMemoryMb &&
           retainedRuntime.machine.rateCardVersion === reservedCommit.operation.rateCardVersion);
+      const releaseRuntimeMatchesDeployment = serverRollbackRuntimeMatchesDeployment(retainedRuntime, deployment);
 
       if (
         deployment.project.organizationId !== input.organizationId ||
@@ -14009,6 +14111,7 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
         retainedRuntime.machine.key !== deployment.machineSize ||
         !releaseMachineMatchesHistoricalCard ||
         !reservedReleaseMachineMatches ||
+        !releaseRuntimeMatchesDeployment ||
         retainedRuntime.secretPolicy !== 'CURRENT' ||
         (retainedRuntime.database.mode === 'none'
           ? input.dbMigrationPoint !== undefined
@@ -14047,6 +14150,7 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
             rollbackOperation.phase !== 'EFFECT_STARTED' ||
             rollbackOperation.effectFencingToken !== input.rollbackFence?.fencingToken ||
             rollbackSource?.artifactKind !== 'server-image' ||
+            parseServerRollbackRuntimeSpec(rollbackSource.runtimeSpec).spec.runtimeClass !== 'autoscale' ||
             rollbackSource.accessPolicyVersion !== deployment.accessPolicyVersion ||
             rollbackSource.provider !== 'server' ||
             rollbackSource.artifactRef !== input.artifactRef ||
@@ -14102,14 +14206,22 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
             throw new Error(SERVER_RELEASE_MANIFEST_WITHOUT_READY);
           }
 
-          if (rollbackOperation && rollbackOperation.phase !== 'RELEASE_COMMITTED') {
-            await tx.rollbackIdempotencyRequest.update({
-              where: { id: rollbackOperation.id },
-              data: { phase: 'RELEASE_COMMITTED' },
-            });
-          }
+          const mappedDeployment = mapDeployment(deployment);
+          const rollbackReceipt = rollbackOperation
+            ? await completeRollbackSuccessInTransaction(tx, {
+                operation: rollbackOperation,
+                deployment: mappedDeployment,
+                source: rollbackSource!,
+                responseContentLanguage: input.rollbackResponseContentLanguage!,
+              })
+            : undefined;
 
-          return { committed: true, deployment: mapDeployment(deployment), manifest: mapReleaseManifest(existing) };
+          return {
+            committed: true,
+            deployment: mappedDeployment,
+            manifest: mapReleaseManifest(existing),
+            ...(rollbackReceipt ? { rollbackReceipt } : {}),
+          };
         }
       }
 
@@ -14227,14 +14339,22 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
         },
       });
 
-      if (rollbackOperation) {
-        await tx.rollbackIdempotencyRequest.update({
-          where: { id: rollbackOperation.id },
-          data: { phase: 'RELEASE_COMMITTED' },
-        });
-      }
+      const mappedReady = mapDeployment(ready);
+      const rollbackReceipt = rollbackOperation
+        ? await completeRollbackSuccessInTransaction(tx, {
+            operation: rollbackOperation,
+            deployment: mappedReady,
+            source: rollbackSource!,
+            responseContentLanguage: input.rollbackResponseContentLanguage!,
+          })
+        : undefined;
 
-      return { committed: true, deployment: mapDeployment(ready), manifest: mapReleaseManifest(manifest) };
+      return {
+        committed: true,
+        deployment: mappedReady,
+        manifest: mapReleaseManifest(manifest),
+        ...(rollbackReceipt ? { rollbackReceipt } : {}),
+      };
     });
   }
 

@@ -482,6 +482,7 @@ describe('durable rollback operation — lease, fencing, and frozen target', () 
         logs: [],
         finishedAt: new Date().toISOString(),
         releaseFence: release.releaseFence,
+        responseContentLanguage: 'en',
       });
 
     await expect(commit(`sha256:${'0'.repeat(64)}`)).rejects.toThrow('STATIC_ROLLBACK_RELEASE_CONFLICT');

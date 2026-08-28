@@ -127,37 +127,58 @@ const databasePinSchema = z.discriminatedUnion('mode', [
   z.object({ mode: z.literal('exact-ledger'), ledgerDigest: z.string().regex(SHA256) }).strict(),
 ]);
 
-const runtimeSpecBodySchema = z
+const runtimeSpecCommonShape = {
+  schemaVersion: z.literal(1),
+  organizationId: z.string().min(1).max(191),
+  projectId: z.string().min(1).max(191),
+  environment: z.enum(RELEASE_ENVIRONMENTS),
+  projectManifestDigest: z.string().regex(PROJECT_MANIFEST_DIGEST),
+  plan: z
+    .object({
+      key: z.string().min(1).max(64),
+      entitlementsDigest: z.string().regex(SHA256),
+    })
+    .strict(),
+  accessPolicyVersion: z.number().int().positive(),
+  machine: z
+    .object({
+      key: z.string().min(1).max(64),
+      rateCardVersion: z.number().int().positive(),
+      cpuMillicores: z.number().int().positive(),
+      memoryMb: z.number().int().positive(),
+    })
+    .strict(),
+  port: z.number().int().min(1).max(65_535),
+  healthPath: z.string().regex(/^\/(?!\/)[^\s?#]{0,1023}$/u),
+  envOverrides: encryptedEnvironmentSchema,
+  secretPolicy: z.enum(['CURRENT', 'PINNED']),
+  database: databasePinSchema,
+} as const;
+
+const autoscaleRuntimeSpecBodySchema = z
+  .object({ ...runtimeSpecCommonShape, runtimeClass: z.literal('autoscale') })
+  .strict();
+const reservedVmRuntimeSpecBodySchema = z
   .object({
-    schemaVersion: z.literal(1),
-    organizationId: z.string().min(1).max(191),
-    projectId: z.string().min(1).max(191),
-    environment: z.enum(RELEASE_ENVIRONMENTS),
-    projectManifestDigest: z.string().regex(PROJECT_MANIFEST_DIGEST),
-    plan: z
+    ...runtimeSpecCommonShape,
+    runtimeClass: z.literal('reserved-vm'),
+    reservedVm: z
       .object({
-        key: z.string().min(1).max(64),
-        entitlementsDigest: z.string().regex(SHA256),
+        deploymentId: z.string().min(1).max(191),
+        tier: z.enum(['shared-0.5', 'dedicated-1', 'dedicated-2', 'dedicated-4']),
+        persistentStorageClaim: z.string().min(1).max(253),
       })
       .strict(),
-    accessPolicyVersion: z.number().int().positive(),
-    machine: z
-      .object({
-        key: z.string().min(1).max(64),
-        rateCardVersion: z.number().int().positive(),
-        cpuMillicores: z.number().int().positive(),
-        memoryMb: z.number().int().positive(),
-      })
-      .strict(),
-    port: z.number().int().min(1).max(65_535),
-    healthPath: z.string().regex(/^\/(?!\/)[^\s?#]{0,1023}$/u),
-    envOverrides: encryptedEnvironmentSchema,
-    secretPolicy: z.enum(['CURRENT', 'PINNED']),
-    database: databasePinSchema,
   })
   .strict();
-
-const runtimeSpecSchema = runtimeSpecBodySchema.extend({ hash: z.string().regex(SHA256) }).strict();
+const runtimeSpecBodySchema = z.discriminatedUnion('runtimeClass', [
+  autoscaleRuntimeSpecBodySchema,
+  reservedVmRuntimeSpecBodySchema,
+]);
+const runtimeSpecSchema = z.discriminatedUnion('runtimeClass', [
+  autoscaleRuntimeSpecBodySchema.extend({ hash: z.string().regex(SHA256) }).strict(),
+  reservedVmRuntimeSpecBodySchema.extend({ hash: z.string().regex(SHA256) }).strict(),
+]);
 
 const promotionEvidenceBodySchema = z
   .object({
@@ -191,6 +212,46 @@ const staticRollbackRoutingEvidenceSchema = staticRollbackRoutingEvidenceBodySch
   .strict();
 
 export type ServerRollbackRuntimeSpecV1 = z.infer<typeof runtimeSpecSchema>;
+
+export type ServerRollbackRuntimeIdentity =
+  | { runtimeClass: 'autoscale' }
+  | {
+      runtimeClass: 'reserved-vm';
+      reservedVm: {
+        deploymentId: string;
+        tier: 'shared-0.5' | 'dedicated-1' | 'dedicated-2' | 'dedicated-4';
+        persistentStorageClaim: string;
+      };
+    };
+
+/** Exact independent Deployment authority checked under the release lock. */
+export function serverRollbackRuntimeMatchesDeployment(
+  runtime: ServerRollbackRuntimeSpecV1,
+  deployment: {
+    id: string;
+    /** Prisma stores this as a string; every value outside the two strict classes fails below. */
+    runtimeKind?: string | null;
+    reservedVmTier?: string | null;
+    persistentStorageClaim?: string | null;
+  },
+): boolean {
+  if (runtime.runtimeClass === 'autoscale') {
+    return (
+      (deployment.runtimeKind === undefined ||
+        deployment.runtimeKind === null ||
+        deployment.runtimeKind === 'autoscale') &&
+      !deployment.reservedVmTier &&
+      !deployment.persistentStorageClaim
+    );
+  }
+
+  return (
+    deployment.runtimeKind === 'reserved-vm' &&
+    runtime.reservedVm.deploymentId === deployment.id &&
+    runtime.reservedVm.tier === deployment.reservedVmTier &&
+    runtime.reservedVm.persistentStorageClaim === deployment.persistentStorageClaim
+  );
+}
 
 /**
  * Independent commit authority for the machine tuple. Never use the active or
@@ -231,20 +292,22 @@ function assertEnvironmentOverrides(value: Record<string, string>): void {
   }
 }
 
-export function buildServerRollbackRuntimeSpec(input: {
-  organizationId: string;
-  projectId: string;
-  environment: (typeof RELEASE_ENVIRONMENTS)[number];
-  projectManifestDigest: string;
-  planEntitlements: ReleasePlanEntitlementsPin;
-  accessPolicyVersion: number;
-  machine: { key: string; rateCardVersion: number; cpuMillicores: number; memoryMb: number };
-  port: number;
-  healthPath: string;
-  envOverrides: Record<string, string>;
-  database: ServerRollbackDatabasePin;
-  keyring?: RollbackManifestKeyring;
-}): ServerRollbackRuntimeSpecV1 {
+export function buildServerRollbackRuntimeSpec(
+  input: {
+    organizationId: string;
+    projectId: string;
+    environment: (typeof RELEASE_ENVIRONMENTS)[number];
+    projectManifestDigest: string;
+    planEntitlements: ReleasePlanEntitlementsPin;
+    accessPolicyVersion: number;
+    machine: { key: string; rateCardVersion: number; cpuMillicores: number; memoryMb: number };
+    port: number;
+    healthPath: string;
+    envOverrides: Record<string, string>;
+    database: ServerRollbackDatabasePin;
+    keyring?: RollbackManifestKeyring;
+  } & ServerRollbackRuntimeIdentity,
+): ServerRollbackRuntimeSpecV1 {
   assertEnvironmentOverrides(input.envOverrides);
   const keyring = input.keyring ?? rollbackManifestKeyring();
   const secret = keyring.keys.get(keyring.currentId);
@@ -254,6 +317,8 @@ export function buildServerRollbackRuntimeSpec(input: {
   const ciphertext = encryptJson({ envOverrides: input.envOverrides }, secret);
   const body = runtimeSpecBodySchema.parse({
     schemaVersion: 1,
+    runtimeClass: input.runtimeClass,
+    ...(input.runtimeClass === 'reserved-vm' ? { reservedVm: input.reservedVm } : {}),
     organizationId: input.organizationId,
     projectId: input.projectId,
     environment: input.environment,
