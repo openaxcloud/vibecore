@@ -19,7 +19,10 @@ if (!process.env.WORKSPACE_AGENT_TOKEN_SECRET) {
 // `pnpm dev` working without standing up a database. The opt-out switch
 // (WORKSPACE_MANAGER_STORE=json) is here for local debugging only — in prod
 // the absence of DATABASE_URL would mean the api was already broken upstream.
-function resolveStore(): WorkspaceStore {
+function resolveStore(volumeSettlement?: {
+  kubernetes: InClusterProjectVolumeKubernetesAdapter;
+  providers: StaticProjectVolumeProviderResolver;
+}): WorkspaceStore {
   const explicit = (process.env.WORKSPACE_MANAGER_STORE ?? '').toLowerCase();
 
   if (explicit === 'json') {
@@ -39,7 +42,7 @@ function resolveStore(): WorkspaceStore {
     console.log(
       JSON.stringify({ level: 'info', service: 'workspace-manager', event: 'store.selected', kind: 'prisma' }),
     );
-    return new PrismaWorkspaceStore(createDatabaseClient());
+    return new PrismaWorkspaceStore(createDatabaseClient(), volumeSettlement);
   }
 
   if (process.env.NODE_ENV === 'production') {
@@ -70,9 +73,9 @@ if (process.env.NODE_ENV === 'production' && allowedGceProjects.length === 0) {
 const k8s = new KubectlWorkspaceK8sClient();
 const volumeErasure = process.env.KUBERNETES_SERVICE_HOST
   ? {
-      // Ten pages cover 5,000 PVs while keeping the pre-delete all-PV ownership
-      // scan inside the API's bounded manager-call deadline under timeouts.
-      kubernetes: new InClusterProjectVolumeKubernetesAdapter({ timeoutMs: 4_000, maxListPages: 10 }),
+      // Kubernetes continuation tokens are consumed to exhaustion; a repeated
+      // token fails closed instead of truncating inventories above 5,000 PVs.
+      kubernetes: new InClusterProjectVolumeKubernetesAdapter({ timeoutMs: 4_000 }),
       providers: new StaticProjectVolumeProviderResolver(
         allowedGceProjects.length > 0
           ? [new GcePersistentDiskProviderAdapter({ allowedProjects: allowedGceProjects, timeoutMs: 4_000 })]
@@ -85,7 +88,7 @@ if (process.env.NODE_ENV === 'production' && !volumeErasure) {
 }
 const app = buildWorkspaceManagerApp(
   new WorkspaceManager(
-    resolveStore(),
+    resolveStore(volumeErasure),
     k8s,
     new StructuredLogEventBus(),
     process.env.WORKSPACE_AGENT_TOKEN_SECRET,

@@ -118,6 +118,14 @@ export interface ObjectStorageOperationLease {
   leaseExpiresAt: string;
 }
 
+export interface ProjectVolumeErasureBatchProgress extends ObjectStorageJsonObject {
+  schemaVersion: 'workspace-project-erasure-progress-v1';
+  complete: false;
+  phase: 'kubernetes' | 'volume-inventory' | 'volume-erasure';
+  processed: number;
+  remaining: number;
+}
+
 export interface StoredObjectStorageOperationScope {
   ordinal: number;
   projectId: string;
@@ -754,6 +762,25 @@ function normalizeJsonObject(value: unknown, field: string): ObjectStorageJsonOb
   return value;
 }
 
+function projectVolumeBatchProgress(value: unknown): ProjectVolumeErasureBatchProgress | undefined {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
+  const progress = (value as Record<string, unknown>).volumeBatchProgress;
+  if (!progress || typeof progress !== 'object' || Array.isArray(progress)) return undefined;
+  const candidate = progress as Record<string, unknown>;
+  if (
+    candidate.schemaVersion !== 'workspace-project-erasure-progress-v1' ||
+    candidate.complete !== false ||
+    !['kubernetes', 'volume-inventory', 'volume-erasure'].includes(String(candidate.phase)) ||
+    !Number.isSafeInteger(candidate.processed) ||
+    Number(candidate.processed) < 0 ||
+    !Number.isSafeInteger(candidate.remaining) ||
+    Number(candidate.remaining) < 1
+  ) {
+    return undefined;
+  }
+  return candidate as unknown as ProjectVolumeErasureBatchProgress;
+}
+
 function normalizeJson(value: unknown, field: string): ObjectStorageJsonValue | null {
   if (value === null) return null;
   assertJson(value, field);
@@ -1329,6 +1356,46 @@ export async function claimObjectStorageOperation(
       }
       return { kind: 'BUSY', operation, retryAt: existing.leaseExpiresAt.toISOString() };
     }
+    const batchProgress = projectVolumeBatchProgress(existing.evidence);
+    if (
+      existing.kind === 'PROJECT_PERMANENT_DELETE' &&
+      existing.status === 'EFFECT_STARTED' &&
+      existing.verificationStartedAt === null &&
+      existing.lastErrorCode === 'PROJECT_VOLUME_ERASURE_BATCH_REPLAY_REQUIRED' &&
+      batchProgress
+    ) {
+      const volumeRoots = await tx.$queryRaw<Array<{ state: string; finalScanHash: string | null }>>(Prisma.sql`
+        SELECT "state"::text AS "state", "finalScanHash"
+        FROM "ProjectVolumeErasure"
+        WHERE "operationId" = ${existing.id}
+        FOR UPDATE
+      `);
+      const volumeRoot = volumeRoots[0];
+      if (!volumeRoot || volumeRoot.state !== 'VERIFIED' || !volumeRoot.finalScanHash) {
+        const resumed = await tx.$queryRaw<OperationRow[]>(Prisma.sql`
+          UPDATE "ObjectStorageOperation"
+          SET "ownerToken" = ${input.ownerToken},
+              "fencingToken" = "fencingToken" + 1,
+              "leaseExpiresAt" = clock_timestamp() + make_interval(secs => ${input.leaseTtlSeconds}),
+              "attempts" = "attempts" + 1,
+              "lastErrorCode" = NULL,
+              "lastErrorMessage" = NULL,
+              "updatedAt" = clock_timestamp()
+          WHERE "id" = ${existing.id}
+            AND "requestHash" = ${input.requestHash}
+            AND "status" = 'EFFECT_STARTED'::"ObjectStorageOperationStatus"
+            AND "verificationStartedAt" IS NULL
+            AND "lastErrorCode" = 'PROJECT_VOLUME_ERASURE_BATCH_REPLAY_REQUIRED'
+            AND "leaseExpiresAt" <= clock_timestamp()
+          RETURNING *
+        `);
+        if (!resumed[0]) {
+          throw operationError('OBJECT_STORAGE_OPERATION_FENCE_LOST', 'Volume batch could not be resumed', 409, true);
+        }
+        const operation = await hydrateOperation(tx, resumed[0]);
+        return { kind: 'ACQUIRED', operation, lease: leaseFrom(operation) };
+      }
+    }
     if (existing.status === 'EFFECT_STARTED' || existing.status === 'VERIFYING') {
       return { kind: 'VERIFY_FIRST', operation: await hydrateOperation(tx, existing) };
     }
@@ -1651,6 +1718,69 @@ export async function markObjectStorageOperationEffectStarted(
   return hydrateOperation(tx, rows[0]);
 }
 
+/**
+ * Relinquishes a permanent-delete lease only after the workspace manager has
+ * committed one bounded erasure batch. The operation remains EFFECT_STARTED;
+ * claimObjectStorageOperation may resume effects (instead of verify-first) only
+ * while the durable volume root is still incomplete. Once the final volume
+ * scan exists, any later crash is ambiguous and returns to verify-first.
+ */
+export async function yieldProjectPermanentDeletionVolumeBatch(
+  tx: Tx,
+  lease: ObjectStorageOperationLease,
+  progress: ProjectVolumeErasureBatchProgress,
+): Promise<ObjectStorageOperationRecord> {
+  assertJsonObject(progress, 'project volume batch progress');
+  if (
+    progress.schemaVersion !== 'workspace-project-erasure-progress-v1' ||
+    progress.complete !== false ||
+    !['kubernetes', 'volume-inventory', 'volume-erasure'].includes(progress.phase) ||
+    !Number.isSafeInteger(progress.processed) ||
+    progress.processed < 0 ||
+    !Number.isSafeInteger(progress.remaining) ||
+    progress.remaining < 1
+  ) {
+    throw operationError(
+      'OBJECT_STORAGE_OPERATION_VOLUME_BATCH_PROGRESS_INVALID',
+      'Project volume batch progress is invalid',
+      400,
+    );
+  }
+  const locked = await lockLeasedOperationScope(tx, lease);
+  if (
+    locked.row.kind !== 'PROJECT_PERMANENT_DELETE' ||
+    locked.row.status !== 'EFFECT_STARTED' ||
+    locked.row.verificationStartedAt !== null
+  ) {
+    throw operationError(
+      'OBJECT_STORAGE_OPERATION_VOLUME_BATCH_NOT_REPLAYABLE',
+      'Only an unverified permanent-delete effect can yield a volume batch',
+      409,
+    );
+  }
+  const rows = await tx.$queryRaw<OperationRow[]>(Prisma.sql`
+    UPDATE "ObjectStorageOperation"
+    SET "evidence" = COALESCE("evidence", '{}'::jsonb)
+          || jsonb_build_object('volumeBatchProgress', ${JSON.stringify(progress)}::jsonb),
+        "lastErrorCode" = 'PROJECT_VOLUME_ERASURE_BATCH_REPLAY_REQUIRED',
+        "lastErrorMessage" = NULL,
+        "leaseExpiresAt" = clock_timestamp() - INTERVAL '1 millisecond',
+        "updatedAt" = clock_timestamp()
+    WHERE "id" = ${lease.operationId}
+      AND "ownerToken" = ${lease.ownerToken}
+      AND "fencingToken" = ${lease.fencingToken}
+      AND "requestHash" = ${lease.requestHash}
+      AND "status" = 'EFFECT_STARTED'::"ObjectStorageOperationStatus"
+      AND "verificationStartedAt" IS NULL
+      AND "leaseExpiresAt" > clock_timestamp()
+    RETURNING *
+  `);
+  if (!rows[0]) {
+    throw operationError('OBJECT_STORAGE_OPERATION_FENCE_LOST', 'Volume batch yield fence was lost', 409, true);
+  }
+  return hydrateOperation(tx, rows[0]);
+}
+
 export async function beginObjectStorageOperationVerification(
   tx: Tx,
   lease: ObjectStorageOperationLease,
@@ -1724,7 +1854,7 @@ function assertPermanentDeletionEvidence(
   const gcs = evidence.gcs;
   const workspaceManager = evidence.workspaceManager;
   if (
-    evidence.schemaVersion !== 'project-permanent-erasure-v2' ||
+    evidence.schemaVersion !== 'project-permanent-erasure-v3' ||
     !filesystem ||
     typeof filesystem !== 'object' ||
     Array.isArray(filesystem) ||
@@ -1764,11 +1894,18 @@ function assertPermanentDeletionEvidence(
     !workspaceManager.volumes ||
     typeof workspaceManager.volumes !== 'object' ||
     Array.isArray(workspaceManager.volumes) ||
-    workspaceManager.volumes.schemaVersion !== 1 ||
+    workspaceManager.volumes.schemaVersion !== 'project-volume-erasure-receipt-v1' ||
+    typeof workspaceManager.volumes.operationId !== 'string' ||
+    typeof workspaceManager.volumes.projectId !== 'string' ||
+    typeof workspaceManager.volumes.organizationId !== 'string' ||
     typeof workspaceManager.volumes.inventoryHash !== 'string' ||
     !/^[a-f0-9]{64}$/u.test(workspaceManager.volumes.inventoryHash) ||
     typeof workspaceManager.volumes.verificationHash !== 'string' ||
     !/^[a-f0-9]{64}$/u.test(workspaceManager.volumes.verificationHash) ||
+    typeof workspaceManager.volumes.finalScanHash !== 'string' ||
+    !/^[a-f0-9]{64}$/u.test(workspaceManager.volumes.finalScanHash) ||
+    typeof workspaceManager.volumes.quiescenceHash !== 'string' ||
+    !/^[a-f0-9]{64}$/u.test(workspaceManager.volumes.quiescenceHash) ||
     typeof workspaceManager.volumes.entryCount !== 'number' ||
     !Number.isSafeInteger(workspaceManager.volumes.entryCount) ||
     workspaceManager.volumes.entryCount < 0 ||
@@ -1780,7 +1917,6 @@ function assertPermanentDeletionEvidence(
     workspaceManager.volumes.alreadyAbsentEntryCount < 0 ||
     workspaceManager.volumes.erasedEntryCount + workspaceManager.volumes.alreadyAbsentEntryCount !==
       workspaceManager.volumes.entryCount ||
-    workspaceManager.volumes.sharedExclusionCount !== 0 ||
     workspaceManager.volumes.persistentVolumeClaimsAbsent !== true ||
     workspaceManager.volumes.persistentVolumesAbsent !== true ||
     workspaceManager.volumes.providerVolumesAbsent !== true
@@ -2562,6 +2698,17 @@ export async function finalizeObjectStorageOperation(
       );
     }
     const volumeProof = workspaceManager.volumes as ObjectStorageJsonObject;
+    if (
+      volumeProof.operationId !== locked.row.id ||
+      volumeProof.projectId !== scope.projectIdSnapshot ||
+      volumeProof.organizationId !== scope.expectedOrganizationId
+    ) {
+      throw operationError(
+        'OBJECT_STORAGE_OPERATION_PROJECT_VOLUME_ERASURE_UNVERIFIED',
+        'Volume erasure receipt does not match the operation scope',
+        409,
+      );
+    }
     const snapshotRows = await tx.$queryRaw<
       Array<{
         id: string;
@@ -2602,12 +2749,19 @@ export async function finalizeObjectStorageOperation(
         inventoryHash: string | null;
         verificationHash: string | null;
         verificationFencingToken: bigint | null;
+        quiescenceSnapshot: unknown | null;
+        quiescenceHash: string | null;
+        finalScanEvidence: unknown | null;
+        finalScanHash: string | null;
+        finalScanFencingToken: bigint | null;
         inventory: unknown | null;
         evidence: unknown | null;
       }>
     >(Prisma.sql`
       SELECT "projectIdSnapshot", "organizationId", "ownershipEpoch", "state"::text AS "state",
-             "inventoryHash", "verificationHash", "verificationFencingToken", "inventory", "evidence"
+             "inventoryHash", "verificationHash", "verificationFencingToken", "inventory", "evidence",
+             "quiescenceSnapshot", "quiescenceHash", "finalScanEvidence", "finalScanHash",
+             "finalScanFencingToken"
       FROM "ProjectVolumeErasure"
       WHERE "operationId" = ${locked.row.id}
       FOR UPDATE
@@ -2637,12 +2791,29 @@ export async function finalizeObjectStorageOperation(
       volumePlan?.evidence && typeof volumePlan.evidence === 'object' && !Array.isArray(volumePlan.evidence)
         ? (volumePlan.evidence as ObjectStorageJsonObject)
         : undefined;
+    const storedQuiescence =
+      volumePlan?.quiescenceSnapshot &&
+      typeof volumePlan.quiescenceSnapshot === 'object' &&
+      !Array.isArray(volumePlan.quiescenceSnapshot)
+        ? (volumePlan.quiescenceSnapshot as ObjectStorageJsonObject)
+        : undefined;
+    const storedFinalScan =
+      volumePlan?.finalScanEvidence &&
+      typeof volumePlan.finalScanEvidence === 'object' &&
+      !Array.isArray(volumePlan.finalScanEvidence)
+        ? (volumePlan.finalScanEvidence as ObjectStorageJsonObject)
+        : undefined;
     const inventoryEntries = Array.isArray(storedInventory?.entries) ? storedInventory.entries : undefined;
     const evidenceEntries = Array.isArray(storedEvidence?.entries) ? storedEvidence.entries : undefined;
     const { inventoryHash: embeddedInventoryHash, ...unsignedInventory } = storedInventory ?? {};
     const { verificationHash: embeddedVerificationHash, ...unsignedEvidence } = storedEvidence ?? {};
     const recomputedInventoryHash = storedInventory ? sha256(canonicalJson(unsignedInventory)) : undefined;
     const recomputedVerificationHash = storedEvidence ? sha256(canonicalJson(unsignedEvidence)) : undefined;
+    const recomputedQuiescenceHash = storedQuiescence
+      ? sha256(canonicalJson(storedQuiescence as ObjectStorageJsonValue))
+      : undefined;
+    const { finalScanHash: embeddedFinalScanHash, ...unsignedFinalScan } = storedFinalScan ?? {};
+    const recomputedFinalScanHash = storedFinalScan ? sha256(canonicalJson(unsignedFinalScan)) : undefined;
     const erasedEntryCount = (inventoryEntries ?? []).filter(
       (entry) =>
         entry !== null &&
@@ -2661,12 +2832,22 @@ export async function finalizeObjectStorageOperation(
       volumePlan.ownershipEpoch !== project.ownershipEpoch ||
       volumePlan.state !== 'VERIFIED' ||
       volumePlan.verificationFencingToken !== lease.fencingToken ||
+      volumePlan.finalScanFencingToken !== lease.fencingToken ||
       volumePlan.inventoryHash !== volumeProof.inventoryHash ||
       volumePlan.verificationHash !== volumeProof.verificationHash ||
+      volumePlan.quiescenceHash !== volumeProof.quiescenceHash ||
+      volumePlan.finalScanHash !== volumeProof.finalScanHash ||
       embeddedInventoryHash !== volumePlan.inventoryHash ||
       embeddedVerificationHash !== volumePlan.verificationHash ||
       recomputedInventoryHash !== volumePlan.inventoryHash ||
       recomputedVerificationHash !== volumePlan.verificationHash ||
+      recomputedQuiescenceHash !== volumePlan.quiescenceHash ||
+      embeddedFinalScanHash !== volumePlan.finalScanHash ||
+      recomputedFinalScanHash !== volumePlan.finalScanHash ||
+      storedFinalScan?.inventoryHash !== volumePlan.inventoryHash ||
+      storedFinalScan?.quiescenceHash !== volumePlan.quiescenceHash ||
+      storedFinalScan?.persistentVolumeListingComplete !== true ||
+      storedFinalScan?.verified !== true ||
       !inventoryEntries ||
       !evidenceEntries ||
       inventoryEntries.length !== volumeProof.entryCount ||
@@ -2701,6 +2882,56 @@ export async function finalizeObjectStorageOperation(
       throw operationError(
         'OBJECT_STORAGE_OPERATION_PROJECT_VOLUME_ERASURE_UNVERIFIED',
         'Project volume erasure ledger does not match the final proof and fence',
+        409,
+      );
+    }
+    const csiProducerRows = await tx.$queryRaw<
+      Array<{
+        effectId: string;
+        state: string;
+        ownershipEpoch: number;
+        targetOrdinal: number;
+        namespace: string;
+        pvcName: string;
+        evidenceHash: string | null;
+      }>
+    >(Prisma.sql`
+      SELECT effect."id" AS "effectId", effect."state"::text AS "state", effect."ownershipEpoch",
+             target."ordinal" AS "targetOrdinal", target."namespace", target."name" AS "pvcName",
+             evidence."evidenceHash"
+      FROM "ProjectRuntimeEffect" effect
+      JOIN "ProjectRuntimeEffectTarget" target ON target."effectId" = effect."id"
+      LEFT JOIN "ProjectRuntimeEffectVolumeEvidence" evidence
+        ON evidence."effectId" = target."effectId" AND evidence."targetOrdinal" = target."ordinal"
+      WHERE effect."projectId" = ${scope.projectIdSnapshot}
+        AND target."kind" = 'PersistentVolumeClaim'
+        AND effect."state" <> 'ABORTED'::"ProjectRuntimeEffectState"
+      ORDER BY effect."id", target."ordinal"
+      FOR SHARE OF effect, target
+    `);
+    const liveQuiescence: ObjectStorageJsonObject = {
+      schemaVersion: 1,
+      projectId: scope.projectIdSnapshot,
+      organizationId: scope.expectedOrganizationId,
+      ownershipEpoch: project.ownershipEpoch,
+      effects: csiProducerRows.map((row) => ({
+        effectId: row.effectId,
+        targetOrdinal: row.targetOrdinal,
+        namespace: row.namespace,
+        pvcName: row.pvcName,
+        evidenceHash: row.evidenceHash ?? '',
+      })),
+    };
+    if (
+      csiProducerRows.some(
+        (row) => row.state !== 'DRAINED' || row.ownershipEpoch !== project.ownershipEpoch || !row.evidenceHash,
+      ) ||
+      !storedQuiescence ||
+      canonicalJson(liveQuiescence) !== canonicalJson(storedQuiescence)
+    ) {
+      throw operationError(
+        'OBJECT_STORAGE_OPERATION_PROJECT_VOLUME_QUIESCENCE_UNVERIFIED',
+        'CSI creation quiescence no longer matches the durable receipt',
         409,
       );
     }

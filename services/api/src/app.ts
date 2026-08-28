@@ -466,6 +466,11 @@ import { PrismaApiStore } from './prisma-store.js';
 import { withProjectReleaseBarrier, type ProjectReleaseGuard } from './project-release-barrier.js';
 import { projectPermanentDeletionRequestHash } from './project-permanent-deletion.js';
 import {
+  advanceProjectVolumeErasureSaga,
+  projectVolumeErasureProgressSchema,
+  projectVolumeErasureReceiptSchema,
+} from './project-volume-erasure-coordinator.js';
+import {
   canonicalizeProjectManifest,
   createDefaultProjectManifest,
   PROJECT_MANIFEST_DIGEST_PATTERN,
@@ -8271,27 +8276,10 @@ const workspaceProjectDeletionProofSchema = z.object({
     ownedRuntimeSecretsAbsent: z.literal(true),
     persistentVolumeClaimsAbsent: z.literal(true),
   }),
-  volumes: z.object({
-    schemaVersion: z.literal(1),
-    inventoryHash: z.string().regex(/^[a-f0-9]{64}$/u),
-    verificationHash: z.string().regex(/^[a-f0-9]{64}$/u),
-    entryCount: z.number().int().nonnegative(),
-    erasedEntryCount: z.number().int().nonnegative(),
-    alreadyAbsentEntryCount: z.number().int().nonnegative(),
-    sharedExclusionCount: z.literal(0),
-    persistentVolumeClaimsAbsent: z.literal(true),
-    persistentVolumesAbsent: z.literal(true),
-    providerVolumesAbsent: z.literal(true),
-  }),
+  volumes: projectVolumeErasureReceiptSchema,
 });
 
-const workspaceProjectDeletionProgressSchema = z.object({
-  schemaVersion: z.literal('workspace-project-erasure-progress-v1'),
-  complete: z.literal(false),
-  phase: z.enum(['kubernetes', 'volume-inventory', 'volume-erasure']),
-  processed: z.number().int().nonnegative(),
-  remaining: z.number().int().positive(),
-});
+const workspaceProjectDeletionProgressSchema = projectVolumeErasureProgressSchema;
 
 type WorkspaceProjectDeletionProof = z.infer<typeof workspaceProjectDeletionProofSchema>;
 
@@ -8318,48 +8306,40 @@ async function projectWorkspaceDeletionRequest(
   lease: ObjectStorageOperationLease,
   assertLease: () => Promise<void>,
 ): Promise<WorkspaceProjectDeletionProof> {
-  for (let batch = 0; batch < 10_000; batch += 1) {
-    await assertLease();
-    const response = await fetch(
-      `${workspaceManagerUrl()}/projects/${encodeURIComponent(projectId)}/permanent-delete/workspaces/${action}`,
-      {
-        method: 'POST',
-        headers: workspaceManagerControlHeaders(true),
-        body: JSON.stringify(workspaceProjectDeletionLeaseBody(projectId, expectedOrganizationId, lease)),
-        signal: AbortSignal.timeout(180_000),
+  const advanced = await advanceProjectVolumeErasureSaga({
+    scope: { operationId: lease.operationId, projectId, organizationId: expectedOrganizationId },
+    assertLease,
+    port: {
+      async advance() {
+        const response = await fetch(
+          `${workspaceManagerUrl()}/projects/${encodeURIComponent(projectId)}/permanent-delete/workspaces/${action}`,
+          {
+            method: 'POST',
+            headers: workspaceManagerControlHeaders(true),
+            body: JSON.stringify(workspaceProjectDeletionLeaseBody(projectId, expectedOrganizationId, lease)),
+            signal: AbortSignal.timeout(180_000),
+          },
+        );
+        if (!response.ok) {
+          throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+            code: action === 'purge' ? 'PROJECT_WORKSPACE_ERASURE_FAILED' : 'PROJECT_WORKSPACE_ERASURE_UNVERIFIED',
+            statusCode: 503,
+          });
+        }
+        const payload = await response.json();
+        const progress = workspaceProjectDeletionProgressSchema.safeParse(payload);
+        return progress.success ? progress.data : workspaceProjectDeletionProofSchema.parse(payload);
       },
-    );
-    await assertLease();
-    if (!response.ok) {
-      throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
-        code: action === 'purge' ? 'PROJECT_WORKSPACE_ERASURE_FAILED' : 'PROJECT_WORKSPACE_ERASURE_UNVERIFIED',
-        statusCode: 503,
-      });
-    }
-    const payload = await response.json();
-    const progress = workspaceProjectDeletionProgressSchema.safeParse(payload);
-    if (progress.success) {
-      if (progress.data.processed === 0) {
-        throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
-          code: 'PROJECT_WORKSPACE_ERASURE_STALLED',
-          statusCode: 503,
-        });
-      }
-      continue;
-    }
-    const proof = workspaceProjectDeletionProofSchema.parse(payload);
-    if (proof.projectId !== projectId || proof.organizationId !== expectedOrganizationId) {
-      throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
-        code: 'PROJECT_WORKSPACE_ERASURE_PROOF_MISMATCH',
-        statusCode: 503,
-      });
-    }
-    return proof;
-  }
-  throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
-    code: 'PROJECT_WORKSPACE_ERASURE_BATCH_LIMIT_EXCEEDED',
-    statusCode: 503,
+    },
   });
+  if (!advanced.complete) {
+    throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+      code: 'PROJECT_WORKSPACE_ERASURE_REPLAY_REQUIRED',
+      statusCode: 503,
+      progress: advanced.progress,
+    });
+  }
+  return advanced.proof;
 }
 
 function createProjectDatabaseErasureService(
@@ -28718,7 +28698,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           verifiedAt: new Date().toISOString(),
           verifier: 'api-project-permanent-delete-v1',
           evidence: {
-            schemaVersion: 'project-permanent-erasure-v2',
+            schemaVersion: 'project-permanent-erasure-v3',
             filesystem: {
               projectTreeAbsent: filesystem.treeAbsent,
               workspaceTreesAbsent:

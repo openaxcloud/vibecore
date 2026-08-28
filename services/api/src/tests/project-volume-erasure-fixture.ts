@@ -52,35 +52,67 @@ export async function seedVerifiedEmptyProjectVolumeErasure(
     verified: true,
   };
   const evidence = { ...unsignedEvidence, verificationHash: sha256(unsignedEvidence) };
+  const quiescenceSnapshot = {
+    schemaVersion: 1,
+    projectId: input.projectId,
+    organizationId: input.organizationId,
+    ownershipEpoch: input.ownershipEpoch,
+    effects: [],
+  };
+  const quiescenceHash = sha256(quiescenceSnapshot);
+  const unsignedFinalScan = {
+    schemaVersion: 1,
+    inventoryHash: inventory.inventoryHash,
+    quiescenceHash,
+    inspectedProviderVolumeCount: 0,
+    persistentVolumeListingComplete: true,
+    verified: true,
+  };
+  const finalScanEvidence = { ...unsignedFinalScan, finalScanHash: sha256(unsignedFinalScan) };
 
   await client.$executeRaw(Prisma.sql`
     INSERT INTO "ProjectVolumeErasure" (
       "operationId", "projectIdSnapshot", "organizationId", "ownershipEpoch", "namespace", "state",
       "sourceSnapshot", "inventory", "inventoryHash", "evidence", "verificationHash",
-      "verificationFencingToken", "inventoriedAt", "erasingAt", "verifiedAt", "updatedAt"
+      "verificationFencingToken", "quiescenceSnapshot", "quiescenceHash", "finalScanEvidence",
+      "finalScanHash", "finalScanFencingToken", "finalScannedAt", "inventoriedAt", "erasingAt",
+      "verifiedAt", "updatedAt"
     ) VALUES (
       ${input.operationId}, ${input.projectId}, ${input.organizationId}, ${input.ownershipEpoch},
       ${input.namespace ?? 'workspaces'}, 'VERIFIED'::"ProjectVolumeErasureState",
       CAST(${JSON.stringify(sourceSnapshot)} AS jsonb), CAST(${JSON.stringify(inventory)} AS jsonb),
       ${inventory.inventoryHash}, CAST(${JSON.stringify(evidence)} AS jsonb), ${evidence.verificationHash},
-      ${input.fencingToken}, clock_timestamp(), clock_timestamp(), clock_timestamp(), clock_timestamp()
+      ${input.fencingToken}, CAST(${JSON.stringify(quiescenceSnapshot)} AS jsonb), ${quiescenceHash},
+      CAST(${JSON.stringify(finalScanEvidence)} AS jsonb), ${finalScanEvidence.finalScanHash},
+      ${input.fencingToken}, clock_timestamp(), clock_timestamp(), clock_timestamp(), clock_timestamp(),
+      clock_timestamp()
     )
     ON CONFLICT ("operationId") DO UPDATE SET
       "evidence" = EXCLUDED."evidence",
       "verificationHash" = EXCLUDED."verificationHash",
       "verificationFencingToken" = EXCLUDED."verificationFencingToken",
+      "quiescenceSnapshot" = EXCLUDED."quiescenceSnapshot",
+      "quiescenceHash" = EXCLUDED."quiescenceHash",
+      "finalScanEvidence" = EXCLUDED."finalScanEvidence",
+      "finalScanHash" = EXCLUDED."finalScanHash",
+      "finalScanFencingToken" = EXCLUDED."finalScanFencingToken",
+      "finalScannedAt" = clock_timestamp(),
       "verifiedAt" = clock_timestamp(),
       "updatedAt" = clock_timestamp()
   `);
 
   return {
-    schemaVersion: 1 as const,
+    schemaVersion: 'project-volume-erasure-receipt-v1' as const,
+    operationId: input.operationId,
+    projectId: input.projectId,
+    organizationId: input.organizationId,
     inventoryHash: inventory.inventoryHash,
     verificationHash: evidence.verificationHash,
+    finalScanHash: finalScanEvidence.finalScanHash,
+    quiescenceHash,
     entryCount: 0,
     erasedEntryCount: 0,
     alreadyAbsentEntryCount: 0,
-    sharedExclusionCount: 0 as const,
     persistentVolumeClaimsAbsent: true as const,
     persistentVolumesAbsent: true as const,
     providerVolumesAbsent: true as const,

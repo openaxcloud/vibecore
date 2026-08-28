@@ -628,6 +628,13 @@ export type ProjectRuntimeEffect = $Result.DefaultSelection<Prisma.$ProjectRunti
  */
 export type ProjectRuntimeEffectTarget = $Result.DefaultSelection<Prisma.$ProjectRuntimeEffectTargetPayload>
 /**
+ * Model ProjectRuntimeEffectVolumeEvidence
+ * Immutable proof captured only after a CSI-producing effect returned and the
+ * claim was Bound. A SETTLED runtime effect with a PVC target must have this
+ * exact PVC→PV→CSI→provider identity, otherwise deletion remains fail-closed.
+ */
+export type ProjectRuntimeEffectVolumeEvidence = $Result.DefaultSelection<Prisma.$ProjectRuntimeEffectVolumeEvidencePayload>
+/**
  * Model ConnectorCatalog
  *
  */
@@ -2832,6 +2839,16 @@ export class PrismaClient<
   get projectRuntimeEffectTarget(): Prisma.ProjectRuntimeEffectTargetDelegate<ExtArgs, ClientOptions>;
 
   /**
+   * `prisma.projectRuntimeEffectVolumeEvidence`: Exposes CRUD operations for the **ProjectRuntimeEffectVolumeEvidence** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more ProjectRuntimeEffectVolumeEvidences
+    * const projectRuntimeEffectVolumeEvidences = await prisma.projectRuntimeEffectVolumeEvidence.findMany()
+    * ```
+    */
+  get projectRuntimeEffectVolumeEvidence(): Prisma.ProjectRuntimeEffectVolumeEvidenceDelegate<ExtArgs, ClientOptions>;
+
+  /**
    * `prisma.connectorCatalog`: Exposes CRUD operations for the **ConnectorCatalog** model.
     * Example usage:
     * ```ts
@@ -3912,6 +3929,7 @@ export namespace Prisma {
     WorkspaceRuntime: 'WorkspaceRuntime',
     ProjectRuntimeEffect: 'ProjectRuntimeEffect',
     ProjectRuntimeEffectTarget: 'ProjectRuntimeEffectTarget',
+    ProjectRuntimeEffectVolumeEvidence: 'ProjectRuntimeEffectVolumeEvidence',
     ConnectorCatalog: 'ConnectorCatalog',
     UserConnection: 'UserConnection',
     ProjectConnectionLink: 'ProjectConnectionLink',
@@ -3981,7 +3999,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "user" | "accountLockout" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "objectStorageOperation" | "projectVolumeErasure" | "projectVolumeErasureTarget" | "objectStorageOperationPinnedObject" | "objectStorageOperationPinnedGeneration" | "projectPermanentDeletionArtifactPlan" | "objectStorageCapabilityReservation" | "objectStorageOperationProjectScope" | "objectStorageVersionGcSchedule" | "projectPermanentDeletionReceipt" | "projectSlugRedirect" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "installedSkill" | "skillAuditEvent" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "collaborationGroup" | "collaborationGroupMember" | "resourceAccessGrant" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectManifestRevision" | "projectStorageObject" | "deployment" | "reservedVmOperation" | "reservedVmBillingPeriod" | "deploymentEnvironment" | "releaseManifest" | "rollbackIdempotencyRequest" | "deploymentAccessPolicy" | "deploymentAccessExchangeTicket" | "rateCard" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "providerRequestMetric" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "runtimeWebSocketTicket" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "mcpGlobalPolicy" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "projectRuntimeEffect" | "projectRuntimeEffectTarget" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore" | "dBMigrationExecution" | "scheduledTask" | "scheduledTaskRun" | "agentRoutingCard" | "agentCallLog" | "projectCheckpoint" | "remixJob" | "remixStorageShare" | "importJob" | "importCreditReservation" | "galleryListing" | "ledgerAccount" | "ledgerTransaction" | "ledgerEntry" | "ledgerReservation" | "ledgerFxRate" | "ledgerReconciliationRun" | "previewReadinessBeacon" | "workspaceLifecycleEvent" | "workspacePostMortem" | "cloudTenant" | "cloudProjectBinding" | "cloudProjectFactoryEvent" | "cloudOperation" | "cloudOperationEvent" | "cloudTenantTransfer" | "cloudTeardownRecord" | "platformIamIdentity" | "platformIamImpersonationAudit" | "purgePlan" | "purgeFreeze" | "purgeEffect" | "purgeReceipt"
+      modelProps: "user" | "accountLockout" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "objectStorageOperation" | "projectVolumeErasure" | "projectVolumeErasureTarget" | "objectStorageOperationPinnedObject" | "objectStorageOperationPinnedGeneration" | "projectPermanentDeletionArtifactPlan" | "objectStorageCapabilityReservation" | "objectStorageOperationProjectScope" | "objectStorageVersionGcSchedule" | "projectPermanentDeletionReceipt" | "projectSlugRedirect" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "installedSkill" | "skillAuditEvent" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "collaborationGroup" | "collaborationGroupMember" | "resourceAccessGrant" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectManifestRevision" | "projectStorageObject" | "deployment" | "reservedVmOperation" | "reservedVmBillingPeriod" | "deploymentEnvironment" | "releaseManifest" | "rollbackIdempotencyRequest" | "deploymentAccessPolicy" | "deploymentAccessExchangeTicket" | "rateCard" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "providerRequestMetric" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "runtimeWebSocketTicket" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "mcpGlobalPolicy" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "projectRuntimeEffect" | "projectRuntimeEffectTarget" | "projectRuntimeEffectVolumeEvidence" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore" | "dBMigrationExecution" | "scheduledTask" | "scheduledTaskRun" | "agentRoutingCard" | "agentCallLog" | "projectCheckpoint" | "remixJob" | "remixStorageShare" | "importJob" | "importCreditReservation" | "galleryListing" | "ledgerAccount" | "ledgerTransaction" | "ledgerEntry" | "ledgerReservation" | "ledgerFxRate" | "ledgerReconciliationRun" | "previewReadinessBeacon" | "workspaceLifecycleEvent" | "workspacePostMortem" | "cloudTenant" | "cloudProjectBinding" | "cloudProjectFactoryEvent" | "cloudOperation" | "cloudOperationEvent" | "cloudTenantTransfer" | "cloudTeardownRecord" | "platformIamIdentity" | "platformIamImpersonationAudit" | "purgePlan" | "purgeFreeze" | "purgeEffect" | "purgeReceipt"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -11961,6 +11979,80 @@ export namespace Prisma {
           }
         }
       }
+      ProjectRuntimeEffectVolumeEvidence: {
+        payload: Prisma.$ProjectRuntimeEffectVolumeEvidencePayload<ExtArgs>
+        fields: Prisma.ProjectRuntimeEffectVolumeEvidenceFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.ProjectRuntimeEffectVolumeEvidenceFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectRuntimeEffectVolumeEvidencePayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.ProjectRuntimeEffectVolumeEvidenceFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectRuntimeEffectVolumeEvidencePayload>
+          }
+          findFirst: {
+            args: Prisma.ProjectRuntimeEffectVolumeEvidenceFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectRuntimeEffectVolumeEvidencePayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.ProjectRuntimeEffectVolumeEvidenceFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectRuntimeEffectVolumeEvidencePayload>
+          }
+          findMany: {
+            args: Prisma.ProjectRuntimeEffectVolumeEvidenceFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectRuntimeEffectVolumeEvidencePayload>[]
+          }
+          create: {
+            args: Prisma.ProjectRuntimeEffectVolumeEvidenceCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectRuntimeEffectVolumeEvidencePayload>
+          }
+          createMany: {
+            args: Prisma.ProjectRuntimeEffectVolumeEvidenceCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.ProjectRuntimeEffectVolumeEvidenceCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectRuntimeEffectVolumeEvidencePayload>[]
+          }
+          delete: {
+            args: Prisma.ProjectRuntimeEffectVolumeEvidenceDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectRuntimeEffectVolumeEvidencePayload>
+          }
+          update: {
+            args: Prisma.ProjectRuntimeEffectVolumeEvidenceUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectRuntimeEffectVolumeEvidencePayload>
+          }
+          deleteMany: {
+            args: Prisma.ProjectRuntimeEffectVolumeEvidenceDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.ProjectRuntimeEffectVolumeEvidenceUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.ProjectRuntimeEffectVolumeEvidenceUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectRuntimeEffectVolumeEvidencePayload>[]
+          }
+          upsert: {
+            args: Prisma.ProjectRuntimeEffectVolumeEvidenceUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectRuntimeEffectVolumeEvidencePayload>
+          }
+          aggregate: {
+            args: Prisma.ProjectRuntimeEffectVolumeEvidenceAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateProjectRuntimeEffectVolumeEvidence>
+          }
+          groupBy: {
+            args: Prisma.ProjectRuntimeEffectVolumeEvidenceGroupByArgs<ExtArgs>
+            result: $Utils.Optional<ProjectRuntimeEffectVolumeEvidenceGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.ProjectRuntimeEffectVolumeEvidenceCountArgs<ExtArgs>
+            result: $Utils.Optional<ProjectRuntimeEffectVolumeEvidenceCountAggregateOutputType> | number
+          }
+        }
+      }
       ConnectorCatalog: {
         payload: Prisma.$ConnectorCatalogPayload<ExtArgs>
         fields: Prisma.ConnectorCatalogFieldRefs
@@ -16173,6 +16265,7 @@ export namespace Prisma {
     workspaceRuntime?: WorkspaceRuntimeOmit
     projectRuntimeEffect?: ProjectRuntimeEffectOmit
     projectRuntimeEffectTarget?: ProjectRuntimeEffectTargetOmit
+    projectRuntimeEffectVolumeEvidence?: ProjectRuntimeEffectVolumeEvidenceOmit
     connectorCatalog?: ConnectorCatalogOmit
     userConnection?: UserConnectionOmit
     projectConnectionLink?: ProjectConnectionLinkOmit
@@ -36049,11 +36142,13 @@ export namespace Prisma {
   export type ProjectVolumeErasureAvgAggregateOutputType = {
     ownershipEpoch: number | null
     verificationFencingToken: number | null
+    finalScanFencingToken: number | null
   }
 
   export type ProjectVolumeErasureSumAggregateOutputType = {
     ownershipEpoch: number | null
     verificationFencingToken: bigint | null
+    finalScanFencingToken: bigint | null
   }
 
   export type ProjectVolumeErasureMinAggregateOutputType = {
@@ -36066,10 +36161,14 @@ export namespace Prisma {
     inventoryHash: string | null
     verificationHash: string | null
     verificationFencingToken: bigint | null
+    quiescenceHash: string | null
+    finalScanHash: string | null
+    finalScanFencingToken: bigint | null
     preparedAt: Date | null
     inventoriedAt: Date | null
     erasingAt: Date | null
     verifiedAt: Date | null
+    finalScannedAt: Date | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -36084,10 +36183,14 @@ export namespace Prisma {
     inventoryHash: string | null
     verificationHash: string | null
     verificationFencingToken: bigint | null
+    quiescenceHash: string | null
+    finalScanHash: string | null
+    finalScanFencingToken: bigint | null
     preparedAt: Date | null
     inventoriedAt: Date | null
     erasingAt: Date | null
     verifiedAt: Date | null
+    finalScannedAt: Date | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -36105,10 +36208,16 @@ export namespace Prisma {
     evidence: number
     verificationHash: number
     verificationFencingToken: number
+    quiescenceSnapshot: number
+    quiescenceHash: number
+    finalScanEvidence: number
+    finalScanHash: number
+    finalScanFencingToken: number
     preparedAt: number
     inventoriedAt: number
     erasingAt: number
     verifiedAt: number
+    finalScannedAt: number
     createdAt: number
     updatedAt: number
     _all: number
@@ -36118,11 +36227,13 @@ export namespace Prisma {
   export type ProjectVolumeErasureAvgAggregateInputType = {
     ownershipEpoch?: true
     verificationFencingToken?: true
+    finalScanFencingToken?: true
   }
 
   export type ProjectVolumeErasureSumAggregateInputType = {
     ownershipEpoch?: true
     verificationFencingToken?: true
+    finalScanFencingToken?: true
   }
 
   export type ProjectVolumeErasureMinAggregateInputType = {
@@ -36135,10 +36246,14 @@ export namespace Prisma {
     inventoryHash?: true
     verificationHash?: true
     verificationFencingToken?: true
+    quiescenceHash?: true
+    finalScanHash?: true
+    finalScanFencingToken?: true
     preparedAt?: true
     inventoriedAt?: true
     erasingAt?: true
     verifiedAt?: true
+    finalScannedAt?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -36153,10 +36268,14 @@ export namespace Prisma {
     inventoryHash?: true
     verificationHash?: true
     verificationFencingToken?: true
+    quiescenceHash?: true
+    finalScanHash?: true
+    finalScanFencingToken?: true
     preparedAt?: true
     inventoriedAt?: true
     erasingAt?: true
     verifiedAt?: true
+    finalScannedAt?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -36174,10 +36293,16 @@ export namespace Prisma {
     evidence?: true
     verificationHash?: true
     verificationFencingToken?: true
+    quiescenceSnapshot?: true
+    quiescenceHash?: true
+    finalScanEvidence?: true
+    finalScanHash?: true
+    finalScanFencingToken?: true
     preparedAt?: true
     inventoriedAt?: true
     erasingAt?: true
     verifiedAt?: true
+    finalScannedAt?: true
     createdAt?: true
     updatedAt?: true
     _all?: true
@@ -36282,10 +36407,16 @@ export namespace Prisma {
     evidence: JsonValue | null
     verificationHash: string | null
     verificationFencingToken: bigint | null
+    quiescenceSnapshot: JsonValue | null
+    quiescenceHash: string | null
+    finalScanEvidence: JsonValue | null
+    finalScanHash: string | null
+    finalScanFencingToken: bigint | null
     preparedAt: Date
     inventoriedAt: Date | null
     erasingAt: Date | null
     verifiedAt: Date | null
+    finalScannedAt: Date | null
     createdAt: Date
     updatedAt: Date
     _count: ProjectVolumeErasureCountAggregateOutputType | null
@@ -36322,10 +36453,16 @@ export namespace Prisma {
     evidence?: boolean
     verificationHash?: boolean
     verificationFencingToken?: boolean
+    quiescenceSnapshot?: boolean
+    quiescenceHash?: boolean
+    finalScanEvidence?: boolean
+    finalScanHash?: boolean
+    finalScanFencingToken?: boolean
     preparedAt?: boolean
     inventoriedAt?: boolean
     erasingAt?: boolean
     verifiedAt?: boolean
+    finalScannedAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     operation?: boolean | ObjectStorageOperationDefaultArgs<ExtArgs>
@@ -36346,10 +36483,16 @@ export namespace Prisma {
     evidence?: boolean
     verificationHash?: boolean
     verificationFencingToken?: boolean
+    quiescenceSnapshot?: boolean
+    quiescenceHash?: boolean
+    finalScanEvidence?: boolean
+    finalScanHash?: boolean
+    finalScanFencingToken?: boolean
     preparedAt?: boolean
     inventoriedAt?: boolean
     erasingAt?: boolean
     verifiedAt?: boolean
+    finalScannedAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     operation?: boolean | ObjectStorageOperationDefaultArgs<ExtArgs>
@@ -36368,10 +36511,16 @@ export namespace Prisma {
     evidence?: boolean
     verificationHash?: boolean
     verificationFencingToken?: boolean
+    quiescenceSnapshot?: boolean
+    quiescenceHash?: boolean
+    finalScanEvidence?: boolean
+    finalScanHash?: boolean
+    finalScanFencingToken?: boolean
     preparedAt?: boolean
     inventoriedAt?: boolean
     erasingAt?: boolean
     verifiedAt?: boolean
+    finalScannedAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     operation?: boolean | ObjectStorageOperationDefaultArgs<ExtArgs>
@@ -36390,15 +36539,21 @@ export namespace Prisma {
     evidence?: boolean
     verificationHash?: boolean
     verificationFencingToken?: boolean
+    quiescenceSnapshot?: boolean
+    quiescenceHash?: boolean
+    finalScanEvidence?: boolean
+    finalScanHash?: boolean
+    finalScanFencingToken?: boolean
     preparedAt?: boolean
     inventoriedAt?: boolean
     erasingAt?: boolean
     verifiedAt?: boolean
+    finalScannedAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
 
-  export type ProjectVolumeErasureOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"operationId" | "projectIdSnapshot" | "organizationId" | "ownershipEpoch" | "namespace" | "state" | "sourceSnapshot" | "inventory" | "inventoryHash" | "evidence" | "verificationHash" | "verificationFencingToken" | "preparedAt" | "inventoriedAt" | "erasingAt" | "verifiedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["projectVolumeErasure"]>
+  export type ProjectVolumeErasureOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"operationId" | "projectIdSnapshot" | "organizationId" | "ownershipEpoch" | "namespace" | "state" | "sourceSnapshot" | "inventory" | "inventoryHash" | "evidence" | "verificationHash" | "verificationFencingToken" | "quiescenceSnapshot" | "quiescenceHash" | "finalScanEvidence" | "finalScanHash" | "finalScanFencingToken" | "preparedAt" | "inventoriedAt" | "erasingAt" | "verifiedAt" | "finalScannedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["projectVolumeErasure"]>
   export type ProjectVolumeErasureInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     operation?: boolean | ObjectStorageOperationDefaultArgs<ExtArgs>
     targets?: boolean | ProjectVolumeErasure$targetsArgs<ExtArgs>
@@ -36430,10 +36585,16 @@ export namespace Prisma {
       evidence: Prisma.JsonValue | null
       verificationHash: string | null
       verificationFencingToken: bigint | null
+      quiescenceSnapshot: Prisma.JsonValue | null
+      quiescenceHash: string | null
+      finalScanEvidence: Prisma.JsonValue | null
+      finalScanHash: string | null
+      finalScanFencingToken: bigint | null
       preparedAt: Date
       inventoriedAt: Date | null
       erasingAt: Date | null
       verifiedAt: Date | null
+      finalScannedAt: Date | null
       createdAt: Date
       updatedAt: Date
     }, ExtArgs["result"]["projectVolumeErasure"]>
@@ -36873,10 +37034,16 @@ export namespace Prisma {
     readonly evidence: FieldRef<"ProjectVolumeErasure", 'Json'>
     readonly verificationHash: FieldRef<"ProjectVolumeErasure", 'String'>
     readonly verificationFencingToken: FieldRef<"ProjectVolumeErasure", 'BigInt'>
+    readonly quiescenceSnapshot: FieldRef<"ProjectVolumeErasure", 'Json'>
+    readonly quiescenceHash: FieldRef<"ProjectVolumeErasure", 'String'>
+    readonly finalScanEvidence: FieldRef<"ProjectVolumeErasure", 'Json'>
+    readonly finalScanHash: FieldRef<"ProjectVolumeErasure", 'String'>
+    readonly finalScanFencingToken: FieldRef<"ProjectVolumeErasure", 'BigInt'>
     readonly preparedAt: FieldRef<"ProjectVolumeErasure", 'DateTime'>
     readonly inventoriedAt: FieldRef<"ProjectVolumeErasure", 'DateTime'>
     readonly erasingAt: FieldRef<"ProjectVolumeErasure", 'DateTime'>
     readonly verifiedAt: FieldRef<"ProjectVolumeErasure", 'DateTime'>
+    readonly finalScannedAt: FieldRef<"ProjectVolumeErasure", 'DateTime'>
     readonly createdAt: FieldRef<"ProjectVolumeErasure", 'DateTime'>
     readonly updatedAt: FieldRef<"ProjectVolumeErasure", 'DateTime'>
   }
@@ -145105,6 +145272,7 @@ export namespace Prisma {
     expectedResourceVersion?: boolean
     manifestDigest?: boolean
     effect?: boolean | ProjectRuntimeEffectDefaultArgs<ExtArgs>
+    volumeEvidence?: boolean | ProjectRuntimeEffectTarget$volumeEvidenceArgs<ExtArgs>
   }, ExtArgs["result"]["projectRuntimeEffectTarget"]>
 
   export type ProjectRuntimeEffectTargetSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -145145,6 +145313,7 @@ export namespace Prisma {
   export type ProjectRuntimeEffectTargetOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"effectId" | "ordinal" | "kind" | "namespace" | "name" | "expectedUid" | "expectedResourceVersion" | "manifestDigest", ExtArgs["result"]["projectRuntimeEffectTarget"]>
   export type ProjectRuntimeEffectTargetInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     effect?: boolean | ProjectRuntimeEffectDefaultArgs<ExtArgs>
+    volumeEvidence?: boolean | ProjectRuntimeEffectTarget$volumeEvidenceArgs<ExtArgs>
   }
   export type ProjectRuntimeEffectTargetIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     effect?: boolean | ProjectRuntimeEffectDefaultArgs<ExtArgs>
@@ -145157,6 +145326,7 @@ export namespace Prisma {
     name: "ProjectRuntimeEffectTarget"
     objects: {
       effect: Prisma.$ProjectRuntimeEffectPayload<ExtArgs>
+      volumeEvidence: Prisma.$ProjectRuntimeEffectVolumeEvidencePayload<ExtArgs> | null
     }
     scalars: $Extensions.GetPayloadResult<{
       effectId: string
@@ -145562,6 +145732,7 @@ export namespace Prisma {
   export interface Prisma__ProjectRuntimeEffectTargetClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
     effect<T extends ProjectRuntimeEffectDefaultArgs<ExtArgs> = {}>(args?: Subset<T, ProjectRuntimeEffectDefaultArgs<ExtArgs>>): Prisma__ProjectRuntimeEffectClient<$Result.GetResult<Prisma.$ProjectRuntimeEffectPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    volumeEvidence<T extends ProjectRuntimeEffectTarget$volumeEvidenceArgs<ExtArgs> = {}>(args?: Subset<T, ProjectRuntimeEffectTarget$volumeEvidenceArgs<ExtArgs>>): Prisma__ProjectRuntimeEffectVolumeEvidenceClient<$Result.GetResult<Prisma.$ProjectRuntimeEffectVolumeEvidencePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -146000,6 +146171,25 @@ export namespace Prisma {
   }
 
   /**
+   * ProjectRuntimeEffectTarget.volumeEvidence
+   */
+  export type ProjectRuntimeEffectTarget$volumeEvidenceArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectRuntimeEffectVolumeEvidence
+     */
+    select?: ProjectRuntimeEffectVolumeEvidenceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectRuntimeEffectVolumeEvidence
+     */
+    omit?: ProjectRuntimeEffectVolumeEvidenceOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectRuntimeEffectVolumeEvidenceInclude<ExtArgs> | null
+    where?: ProjectRuntimeEffectVolumeEvidenceWhereInput
+  }
+
+  /**
    * ProjectRuntimeEffectTarget without action
    */
   export type ProjectRuntimeEffectTargetDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -146015,6 +146205,1194 @@ export namespace Prisma {
      * Choose, which related nodes to fetch as well
      */
     include?: ProjectRuntimeEffectTargetInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model ProjectRuntimeEffectVolumeEvidence
+   */
+
+  export type AggregateProjectRuntimeEffectVolumeEvidence = {
+    _count: ProjectRuntimeEffectVolumeEvidenceCountAggregateOutputType | null
+    _avg: ProjectRuntimeEffectVolumeEvidenceAvgAggregateOutputType | null
+    _sum: ProjectRuntimeEffectVolumeEvidenceSumAggregateOutputType | null
+    _min: ProjectRuntimeEffectVolumeEvidenceMinAggregateOutputType | null
+    _max: ProjectRuntimeEffectVolumeEvidenceMaxAggregateOutputType | null
+  }
+
+  export type ProjectRuntimeEffectVolumeEvidenceAvgAggregateOutputType = {
+    targetOrdinal: number | null
+  }
+
+  export type ProjectRuntimeEffectVolumeEvidenceSumAggregateOutputType = {
+    targetOrdinal: number | null
+  }
+
+  export type ProjectRuntimeEffectVolumeEvidenceMinAggregateOutputType = {
+    effectId: string | null
+    targetOrdinal: number | null
+    pvcUid: string | null
+    pvcResourceVersion: string | null
+    pvName: string | null
+    pvUid: string | null
+    pvResourceVersion: string | null
+    csiDriver: string | null
+    csiVolumeHandle: string | null
+    providerResourceId: string | null
+    evidenceHash: string | null
+    observedAt: Date | null
+  }
+
+  export type ProjectRuntimeEffectVolumeEvidenceMaxAggregateOutputType = {
+    effectId: string | null
+    targetOrdinal: number | null
+    pvcUid: string | null
+    pvcResourceVersion: string | null
+    pvName: string | null
+    pvUid: string | null
+    pvResourceVersion: string | null
+    csiDriver: string | null
+    csiVolumeHandle: string | null
+    providerResourceId: string | null
+    evidenceHash: string | null
+    observedAt: Date | null
+  }
+
+  export type ProjectRuntimeEffectVolumeEvidenceCountAggregateOutputType = {
+    effectId: number
+    targetOrdinal: number
+    pvcUid: number
+    pvcResourceVersion: number
+    pvName: number
+    pvUid: number
+    pvResourceVersion: number
+    csiDriver: number
+    csiVolumeHandle: number
+    providerResourceId: number
+    evidenceHash: number
+    observedAt: number
+    _all: number
+  }
+
+
+  export type ProjectRuntimeEffectVolumeEvidenceAvgAggregateInputType = {
+    targetOrdinal?: true
+  }
+
+  export type ProjectRuntimeEffectVolumeEvidenceSumAggregateInputType = {
+    targetOrdinal?: true
+  }
+
+  export type ProjectRuntimeEffectVolumeEvidenceMinAggregateInputType = {
+    effectId?: true
+    targetOrdinal?: true
+    pvcUid?: true
+    pvcResourceVersion?: true
+    pvName?: true
+    pvUid?: true
+    pvResourceVersion?: true
+    csiDriver?: true
+    csiVolumeHandle?: true
+    providerResourceId?: true
+    evidenceHash?: true
+    observedAt?: true
+  }
+
+  export type ProjectRuntimeEffectVolumeEvidenceMaxAggregateInputType = {
+    effectId?: true
+    targetOrdinal?: true
+    pvcUid?: true
+    pvcResourceVersion?: true
+    pvName?: true
+    pvUid?: true
+    pvResourceVersion?: true
+    csiDriver?: true
+    csiVolumeHandle?: true
+    providerResourceId?: true
+    evidenceHash?: true
+    observedAt?: true
+  }
+
+  export type ProjectRuntimeEffectVolumeEvidenceCountAggregateInputType = {
+    effectId?: true
+    targetOrdinal?: true
+    pvcUid?: true
+    pvcResourceVersion?: true
+    pvName?: true
+    pvUid?: true
+    pvResourceVersion?: true
+    csiDriver?: true
+    csiVolumeHandle?: true
+    providerResourceId?: true
+    evidenceHash?: true
+    observedAt?: true
+    _all?: true
+  }
+
+  export type ProjectRuntimeEffectVolumeEvidenceAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ProjectRuntimeEffectVolumeEvidence to aggregate.
+     */
+    where?: ProjectRuntimeEffectVolumeEvidenceWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     *
+     * Determine the order of ProjectRuntimeEffectVolumeEvidences to fetch.
+     */
+    orderBy?: ProjectRuntimeEffectVolumeEvidenceOrderByWithRelationInput | ProjectRuntimeEffectVolumeEvidenceOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     *
+     * Sets the start position
+     */
+    cursor?: ProjectRuntimeEffectVolumeEvidenceWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Take `±n` ProjectRuntimeEffectVolumeEvidences from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Skip the first `n` ProjectRuntimeEffectVolumeEvidences.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     *
+     * Count returned ProjectRuntimeEffectVolumeEvidences
+    **/
+    _count?: true | ProjectRuntimeEffectVolumeEvidenceCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     *
+     * Select which fields to average
+    **/
+    _avg?: ProjectRuntimeEffectVolumeEvidenceAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     *
+     * Select which fields to sum
+    **/
+    _sum?: ProjectRuntimeEffectVolumeEvidenceSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     *
+     * Select which fields to find the minimum value
+    **/
+    _min?: ProjectRuntimeEffectVolumeEvidenceMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     *
+     * Select which fields to find the maximum value
+    **/
+    _max?: ProjectRuntimeEffectVolumeEvidenceMaxAggregateInputType
+  }
+
+  export type GetProjectRuntimeEffectVolumeEvidenceAggregateType<T extends ProjectRuntimeEffectVolumeEvidenceAggregateArgs> = {
+        [P in keyof T & keyof AggregateProjectRuntimeEffectVolumeEvidence]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateProjectRuntimeEffectVolumeEvidence[P]>
+      : GetScalarType<T[P], AggregateProjectRuntimeEffectVolumeEvidence[P]>
+  }
+
+
+
+
+  export type ProjectRuntimeEffectVolumeEvidenceGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ProjectRuntimeEffectVolumeEvidenceWhereInput
+    orderBy?: ProjectRuntimeEffectVolumeEvidenceOrderByWithAggregationInput | ProjectRuntimeEffectVolumeEvidenceOrderByWithAggregationInput[]
+    by: ProjectRuntimeEffectVolumeEvidenceScalarFieldEnum[] | ProjectRuntimeEffectVolumeEvidenceScalarFieldEnum
+    having?: ProjectRuntimeEffectVolumeEvidenceScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: ProjectRuntimeEffectVolumeEvidenceCountAggregateInputType | true
+    _avg?: ProjectRuntimeEffectVolumeEvidenceAvgAggregateInputType
+    _sum?: ProjectRuntimeEffectVolumeEvidenceSumAggregateInputType
+    _min?: ProjectRuntimeEffectVolumeEvidenceMinAggregateInputType
+    _max?: ProjectRuntimeEffectVolumeEvidenceMaxAggregateInputType
+  }
+
+  export type ProjectRuntimeEffectVolumeEvidenceGroupByOutputType = {
+    effectId: string
+    targetOrdinal: number
+    pvcUid: string
+    pvcResourceVersion: string
+    pvName: string
+    pvUid: string
+    pvResourceVersion: string
+    csiDriver: string
+    csiVolumeHandle: string
+    providerResourceId: string
+    evidenceHash: string
+    observedAt: Date
+    _count: ProjectRuntimeEffectVolumeEvidenceCountAggregateOutputType | null
+    _avg: ProjectRuntimeEffectVolumeEvidenceAvgAggregateOutputType | null
+    _sum: ProjectRuntimeEffectVolumeEvidenceSumAggregateOutputType | null
+    _min: ProjectRuntimeEffectVolumeEvidenceMinAggregateOutputType | null
+    _max: ProjectRuntimeEffectVolumeEvidenceMaxAggregateOutputType | null
+  }
+
+  type GetProjectRuntimeEffectVolumeEvidenceGroupByPayload<T extends ProjectRuntimeEffectVolumeEvidenceGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<ProjectRuntimeEffectVolumeEvidenceGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof ProjectRuntimeEffectVolumeEvidenceGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], ProjectRuntimeEffectVolumeEvidenceGroupByOutputType[P]>
+            : GetScalarType<T[P], ProjectRuntimeEffectVolumeEvidenceGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type ProjectRuntimeEffectVolumeEvidenceSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    effectId?: boolean
+    targetOrdinal?: boolean
+    pvcUid?: boolean
+    pvcResourceVersion?: boolean
+    pvName?: boolean
+    pvUid?: boolean
+    pvResourceVersion?: boolean
+    csiDriver?: boolean
+    csiVolumeHandle?: boolean
+    providerResourceId?: boolean
+    evidenceHash?: boolean
+    observedAt?: boolean
+    target?: boolean | ProjectRuntimeEffectTargetDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["projectRuntimeEffectVolumeEvidence"]>
+
+  export type ProjectRuntimeEffectVolumeEvidenceSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    effectId?: boolean
+    targetOrdinal?: boolean
+    pvcUid?: boolean
+    pvcResourceVersion?: boolean
+    pvName?: boolean
+    pvUid?: boolean
+    pvResourceVersion?: boolean
+    csiDriver?: boolean
+    csiVolumeHandle?: boolean
+    providerResourceId?: boolean
+    evidenceHash?: boolean
+    observedAt?: boolean
+    target?: boolean | ProjectRuntimeEffectTargetDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["projectRuntimeEffectVolumeEvidence"]>
+
+  export type ProjectRuntimeEffectVolumeEvidenceSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    effectId?: boolean
+    targetOrdinal?: boolean
+    pvcUid?: boolean
+    pvcResourceVersion?: boolean
+    pvName?: boolean
+    pvUid?: boolean
+    pvResourceVersion?: boolean
+    csiDriver?: boolean
+    csiVolumeHandle?: boolean
+    providerResourceId?: boolean
+    evidenceHash?: boolean
+    observedAt?: boolean
+    target?: boolean | ProjectRuntimeEffectTargetDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["projectRuntimeEffectVolumeEvidence"]>
+
+  export type ProjectRuntimeEffectVolumeEvidenceSelectScalar = {
+    effectId?: boolean
+    targetOrdinal?: boolean
+    pvcUid?: boolean
+    pvcResourceVersion?: boolean
+    pvName?: boolean
+    pvUid?: boolean
+    pvResourceVersion?: boolean
+    csiDriver?: boolean
+    csiVolumeHandle?: boolean
+    providerResourceId?: boolean
+    evidenceHash?: boolean
+    observedAt?: boolean
+  }
+
+  export type ProjectRuntimeEffectVolumeEvidenceOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"effectId" | "targetOrdinal" | "pvcUid" | "pvcResourceVersion" | "pvName" | "pvUid" | "pvResourceVersion" | "csiDriver" | "csiVolumeHandle" | "providerResourceId" | "evidenceHash" | "observedAt", ExtArgs["result"]["projectRuntimeEffectVolumeEvidence"]>
+  export type ProjectRuntimeEffectVolumeEvidenceInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    target?: boolean | ProjectRuntimeEffectTargetDefaultArgs<ExtArgs>
+  }
+  export type ProjectRuntimeEffectVolumeEvidenceIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    target?: boolean | ProjectRuntimeEffectTargetDefaultArgs<ExtArgs>
+  }
+  export type ProjectRuntimeEffectVolumeEvidenceIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    target?: boolean | ProjectRuntimeEffectTargetDefaultArgs<ExtArgs>
+  }
+
+  export type $ProjectRuntimeEffectVolumeEvidencePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "ProjectRuntimeEffectVolumeEvidence"
+    objects: {
+      target: Prisma.$ProjectRuntimeEffectTargetPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      effectId: string
+      targetOrdinal: number
+      pvcUid: string
+      pvcResourceVersion: string
+      pvName: string
+      pvUid: string
+      pvResourceVersion: string
+      csiDriver: string
+      csiVolumeHandle: string
+      providerResourceId: string
+      evidenceHash: string
+      observedAt: Date
+    }, ExtArgs["result"]["projectRuntimeEffectVolumeEvidence"]>
+    composites: {}
+  }
+
+  type ProjectRuntimeEffectVolumeEvidenceGetPayload<S extends boolean | null | undefined | ProjectRuntimeEffectVolumeEvidenceDefaultArgs> = $Result.GetResult<Prisma.$ProjectRuntimeEffectVolumeEvidencePayload, S>
+
+  type ProjectRuntimeEffectVolumeEvidenceCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<ProjectRuntimeEffectVolumeEvidenceFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: ProjectRuntimeEffectVolumeEvidenceCountAggregateInputType | true
+    }
+
+  export interface ProjectRuntimeEffectVolumeEvidenceDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['ProjectRuntimeEffectVolumeEvidence'], meta: { name: 'ProjectRuntimeEffectVolumeEvidence' } }
+    /**
+     * Find zero or one ProjectRuntimeEffectVolumeEvidence that matches the filter.
+     * @param {ProjectRuntimeEffectVolumeEvidenceFindUniqueArgs} args - Arguments to find a ProjectRuntimeEffectVolumeEvidence
+     * @example
+     * // Get one ProjectRuntimeEffectVolumeEvidence
+     * const projectRuntimeEffectVolumeEvidence = await prisma.projectRuntimeEffectVolumeEvidence.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends ProjectRuntimeEffectVolumeEvidenceFindUniqueArgs>(args: SelectSubset<T, ProjectRuntimeEffectVolumeEvidenceFindUniqueArgs<ExtArgs>>): Prisma__ProjectRuntimeEffectVolumeEvidenceClient<$Result.GetResult<Prisma.$ProjectRuntimeEffectVolumeEvidencePayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one ProjectRuntimeEffectVolumeEvidence that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {ProjectRuntimeEffectVolumeEvidenceFindUniqueOrThrowArgs} args - Arguments to find a ProjectRuntimeEffectVolumeEvidence
+     * @example
+     * // Get one ProjectRuntimeEffectVolumeEvidence
+     * const projectRuntimeEffectVolumeEvidence = await prisma.projectRuntimeEffectVolumeEvidence.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends ProjectRuntimeEffectVolumeEvidenceFindUniqueOrThrowArgs>(args: SelectSubset<T, ProjectRuntimeEffectVolumeEvidenceFindUniqueOrThrowArgs<ExtArgs>>): Prisma__ProjectRuntimeEffectVolumeEvidenceClient<$Result.GetResult<Prisma.$ProjectRuntimeEffectVolumeEvidencePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ProjectRuntimeEffectVolumeEvidence that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectRuntimeEffectVolumeEvidenceFindFirstArgs} args - Arguments to find a ProjectRuntimeEffectVolumeEvidence
+     * @example
+     * // Get one ProjectRuntimeEffectVolumeEvidence
+     * const projectRuntimeEffectVolumeEvidence = await prisma.projectRuntimeEffectVolumeEvidence.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends ProjectRuntimeEffectVolumeEvidenceFindFirstArgs>(args?: SelectSubset<T, ProjectRuntimeEffectVolumeEvidenceFindFirstArgs<ExtArgs>>): Prisma__ProjectRuntimeEffectVolumeEvidenceClient<$Result.GetResult<Prisma.$ProjectRuntimeEffectVolumeEvidencePayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ProjectRuntimeEffectVolumeEvidence that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectRuntimeEffectVolumeEvidenceFindFirstOrThrowArgs} args - Arguments to find a ProjectRuntimeEffectVolumeEvidence
+     * @example
+     * // Get one ProjectRuntimeEffectVolumeEvidence
+     * const projectRuntimeEffectVolumeEvidence = await prisma.projectRuntimeEffectVolumeEvidence.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends ProjectRuntimeEffectVolumeEvidenceFindFirstOrThrowArgs>(args?: SelectSubset<T, ProjectRuntimeEffectVolumeEvidenceFindFirstOrThrowArgs<ExtArgs>>): Prisma__ProjectRuntimeEffectVolumeEvidenceClient<$Result.GetResult<Prisma.$ProjectRuntimeEffectVolumeEvidencePayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more ProjectRuntimeEffectVolumeEvidences that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectRuntimeEffectVolumeEvidenceFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all ProjectRuntimeEffectVolumeEvidences
+     * const projectRuntimeEffectVolumeEvidences = await prisma.projectRuntimeEffectVolumeEvidence.findMany()
+     *
+     * // Get first 10 ProjectRuntimeEffectVolumeEvidences
+     * const projectRuntimeEffectVolumeEvidences = await prisma.projectRuntimeEffectVolumeEvidence.findMany({ take: 10 })
+     *
+     * // Only select the `effectId`
+     * const projectRuntimeEffectVolumeEvidenceWithEffectIdOnly = await prisma.projectRuntimeEffectVolumeEvidence.findMany({ select: { effectId: true } })
+     *
+     */
+    findMany<T extends ProjectRuntimeEffectVolumeEvidenceFindManyArgs>(args?: SelectSubset<T, ProjectRuntimeEffectVolumeEvidenceFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectRuntimeEffectVolumeEvidencePayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a ProjectRuntimeEffectVolumeEvidence.
+     * @param {ProjectRuntimeEffectVolumeEvidenceCreateArgs} args - Arguments to create a ProjectRuntimeEffectVolumeEvidence.
+     * @example
+     * // Create one ProjectRuntimeEffectVolumeEvidence
+     * const ProjectRuntimeEffectVolumeEvidence = await prisma.projectRuntimeEffectVolumeEvidence.create({
+     *   data: {
+     *     // ... data to create a ProjectRuntimeEffectVolumeEvidence
+     *   }
+     * })
+     *
+     */
+    create<T extends ProjectRuntimeEffectVolumeEvidenceCreateArgs>(args: SelectSubset<T, ProjectRuntimeEffectVolumeEvidenceCreateArgs<ExtArgs>>): Prisma__ProjectRuntimeEffectVolumeEvidenceClient<$Result.GetResult<Prisma.$ProjectRuntimeEffectVolumeEvidencePayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many ProjectRuntimeEffectVolumeEvidences.
+     * @param {ProjectRuntimeEffectVolumeEvidenceCreateManyArgs} args - Arguments to create many ProjectRuntimeEffectVolumeEvidences.
+     * @example
+     * // Create many ProjectRuntimeEffectVolumeEvidences
+     * const projectRuntimeEffectVolumeEvidence = await prisma.projectRuntimeEffectVolumeEvidence.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *
+     */
+    createMany<T extends ProjectRuntimeEffectVolumeEvidenceCreateManyArgs>(args?: SelectSubset<T, ProjectRuntimeEffectVolumeEvidenceCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many ProjectRuntimeEffectVolumeEvidences and returns the data saved in the database.
+     * @param {ProjectRuntimeEffectVolumeEvidenceCreateManyAndReturnArgs} args - Arguments to create many ProjectRuntimeEffectVolumeEvidences.
+     * @example
+     * // Create many ProjectRuntimeEffectVolumeEvidences
+     * const projectRuntimeEffectVolumeEvidence = await prisma.projectRuntimeEffectVolumeEvidence.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *
+     * // Create many ProjectRuntimeEffectVolumeEvidences and only return the `effectId`
+     * const projectRuntimeEffectVolumeEvidenceWithEffectIdOnly = await prisma.projectRuntimeEffectVolumeEvidence.createManyAndReturn({
+     *   select: { effectId: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     *
+     */
+    createManyAndReturn<T extends ProjectRuntimeEffectVolumeEvidenceCreateManyAndReturnArgs>(args?: SelectSubset<T, ProjectRuntimeEffectVolumeEvidenceCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectRuntimeEffectVolumeEvidencePayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a ProjectRuntimeEffectVolumeEvidence.
+     * @param {ProjectRuntimeEffectVolumeEvidenceDeleteArgs} args - Arguments to delete one ProjectRuntimeEffectVolumeEvidence.
+     * @example
+     * // Delete one ProjectRuntimeEffectVolumeEvidence
+     * const ProjectRuntimeEffectVolumeEvidence = await prisma.projectRuntimeEffectVolumeEvidence.delete({
+     *   where: {
+     *     // ... filter to delete one ProjectRuntimeEffectVolumeEvidence
+     *   }
+     * })
+     *
+     */
+    delete<T extends ProjectRuntimeEffectVolumeEvidenceDeleteArgs>(args: SelectSubset<T, ProjectRuntimeEffectVolumeEvidenceDeleteArgs<ExtArgs>>): Prisma__ProjectRuntimeEffectVolumeEvidenceClient<$Result.GetResult<Prisma.$ProjectRuntimeEffectVolumeEvidencePayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one ProjectRuntimeEffectVolumeEvidence.
+     * @param {ProjectRuntimeEffectVolumeEvidenceUpdateArgs} args - Arguments to update one ProjectRuntimeEffectVolumeEvidence.
+     * @example
+     * // Update one ProjectRuntimeEffectVolumeEvidence
+     * const projectRuntimeEffectVolumeEvidence = await prisma.projectRuntimeEffectVolumeEvidence.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     *
+     */
+    update<T extends ProjectRuntimeEffectVolumeEvidenceUpdateArgs>(args: SelectSubset<T, ProjectRuntimeEffectVolumeEvidenceUpdateArgs<ExtArgs>>): Prisma__ProjectRuntimeEffectVolumeEvidenceClient<$Result.GetResult<Prisma.$ProjectRuntimeEffectVolumeEvidencePayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more ProjectRuntimeEffectVolumeEvidences.
+     * @param {ProjectRuntimeEffectVolumeEvidenceDeleteManyArgs} args - Arguments to filter ProjectRuntimeEffectVolumeEvidences to delete.
+     * @example
+     * // Delete a few ProjectRuntimeEffectVolumeEvidences
+     * const { count } = await prisma.projectRuntimeEffectVolumeEvidence.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     *
+     */
+    deleteMany<T extends ProjectRuntimeEffectVolumeEvidenceDeleteManyArgs>(args?: SelectSubset<T, ProjectRuntimeEffectVolumeEvidenceDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ProjectRuntimeEffectVolumeEvidences.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectRuntimeEffectVolumeEvidenceUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many ProjectRuntimeEffectVolumeEvidences
+     * const projectRuntimeEffectVolumeEvidence = await prisma.projectRuntimeEffectVolumeEvidence.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     *
+     */
+    updateMany<T extends ProjectRuntimeEffectVolumeEvidenceUpdateManyArgs>(args: SelectSubset<T, ProjectRuntimeEffectVolumeEvidenceUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ProjectRuntimeEffectVolumeEvidences and returns the data updated in the database.
+     * @param {ProjectRuntimeEffectVolumeEvidenceUpdateManyAndReturnArgs} args - Arguments to update many ProjectRuntimeEffectVolumeEvidences.
+     * @example
+     * // Update many ProjectRuntimeEffectVolumeEvidences
+     * const projectRuntimeEffectVolumeEvidence = await prisma.projectRuntimeEffectVolumeEvidence.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *
+     * // Update zero or more ProjectRuntimeEffectVolumeEvidences and only return the `effectId`
+     * const projectRuntimeEffectVolumeEvidenceWithEffectIdOnly = await prisma.projectRuntimeEffectVolumeEvidence.updateManyAndReturn({
+     *   select: { effectId: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     *
+     */
+    updateManyAndReturn<T extends ProjectRuntimeEffectVolumeEvidenceUpdateManyAndReturnArgs>(args: SelectSubset<T, ProjectRuntimeEffectVolumeEvidenceUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectRuntimeEffectVolumeEvidencePayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one ProjectRuntimeEffectVolumeEvidence.
+     * @param {ProjectRuntimeEffectVolumeEvidenceUpsertArgs} args - Arguments to update or create a ProjectRuntimeEffectVolumeEvidence.
+     * @example
+     * // Update or create a ProjectRuntimeEffectVolumeEvidence
+     * const projectRuntimeEffectVolumeEvidence = await prisma.projectRuntimeEffectVolumeEvidence.upsert({
+     *   create: {
+     *     // ... data to create a ProjectRuntimeEffectVolumeEvidence
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the ProjectRuntimeEffectVolumeEvidence we want to update
+     *   }
+     * })
+     */
+    upsert<T extends ProjectRuntimeEffectVolumeEvidenceUpsertArgs>(args: SelectSubset<T, ProjectRuntimeEffectVolumeEvidenceUpsertArgs<ExtArgs>>): Prisma__ProjectRuntimeEffectVolumeEvidenceClient<$Result.GetResult<Prisma.$ProjectRuntimeEffectVolumeEvidencePayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of ProjectRuntimeEffectVolumeEvidences.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectRuntimeEffectVolumeEvidenceCountArgs} args - Arguments to filter ProjectRuntimeEffectVolumeEvidences to count.
+     * @example
+     * // Count the number of ProjectRuntimeEffectVolumeEvidences
+     * const count = await prisma.projectRuntimeEffectVolumeEvidence.count({
+     *   where: {
+     *     // ... the filter for the ProjectRuntimeEffectVolumeEvidences we want to count
+     *   }
+     * })
+    **/
+    count<T extends ProjectRuntimeEffectVolumeEvidenceCountArgs>(
+      args?: Subset<T, ProjectRuntimeEffectVolumeEvidenceCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], ProjectRuntimeEffectVolumeEvidenceCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a ProjectRuntimeEffectVolumeEvidence.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectRuntimeEffectVolumeEvidenceAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends ProjectRuntimeEffectVolumeEvidenceAggregateArgs>(args: Subset<T, ProjectRuntimeEffectVolumeEvidenceAggregateArgs>): Prisma.PrismaPromise<GetProjectRuntimeEffectVolumeEvidenceAggregateType<T>>
+
+    /**
+     * Group by ProjectRuntimeEffectVolumeEvidence.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectRuntimeEffectVolumeEvidenceGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     *
+    **/
+    groupBy<
+      T extends ProjectRuntimeEffectVolumeEvidenceGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: ProjectRuntimeEffectVolumeEvidenceGroupByArgs['orderBy'] }
+        : { orderBy?: ProjectRuntimeEffectVolumeEvidenceGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, ProjectRuntimeEffectVolumeEvidenceGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetProjectRuntimeEffectVolumeEvidenceGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the ProjectRuntimeEffectVolumeEvidence model
+   */
+  readonly fields: ProjectRuntimeEffectVolumeEvidenceFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for ProjectRuntimeEffectVolumeEvidence.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__ProjectRuntimeEffectVolumeEvidenceClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    target<T extends ProjectRuntimeEffectTargetDefaultArgs<ExtArgs> = {}>(args?: Subset<T, ProjectRuntimeEffectTargetDefaultArgs<ExtArgs>>): Prisma__ProjectRuntimeEffectTargetClient<$Result.GetResult<Prisma.$ProjectRuntimeEffectTargetPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the ProjectRuntimeEffectVolumeEvidence model
+   */
+  interface ProjectRuntimeEffectVolumeEvidenceFieldRefs {
+    readonly effectId: FieldRef<"ProjectRuntimeEffectVolumeEvidence", 'String'>
+    readonly targetOrdinal: FieldRef<"ProjectRuntimeEffectVolumeEvidence", 'Int'>
+    readonly pvcUid: FieldRef<"ProjectRuntimeEffectVolumeEvidence", 'String'>
+    readonly pvcResourceVersion: FieldRef<"ProjectRuntimeEffectVolumeEvidence", 'String'>
+    readonly pvName: FieldRef<"ProjectRuntimeEffectVolumeEvidence", 'String'>
+    readonly pvUid: FieldRef<"ProjectRuntimeEffectVolumeEvidence", 'String'>
+    readonly pvResourceVersion: FieldRef<"ProjectRuntimeEffectVolumeEvidence", 'String'>
+    readonly csiDriver: FieldRef<"ProjectRuntimeEffectVolumeEvidence", 'String'>
+    readonly csiVolumeHandle: FieldRef<"ProjectRuntimeEffectVolumeEvidence", 'String'>
+    readonly providerResourceId: FieldRef<"ProjectRuntimeEffectVolumeEvidence", 'String'>
+    readonly evidenceHash: FieldRef<"ProjectRuntimeEffectVolumeEvidence", 'String'>
+    readonly observedAt: FieldRef<"ProjectRuntimeEffectVolumeEvidence", 'DateTime'>
+  }
+
+
+  // Custom InputTypes
+  /**
+   * ProjectRuntimeEffectVolumeEvidence findUnique
+   */
+  export type ProjectRuntimeEffectVolumeEvidenceFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectRuntimeEffectVolumeEvidence
+     */
+    select?: ProjectRuntimeEffectVolumeEvidenceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectRuntimeEffectVolumeEvidence
+     */
+    omit?: ProjectRuntimeEffectVolumeEvidenceOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectRuntimeEffectVolumeEvidenceInclude<ExtArgs> | null
+    /**
+     * Filter, which ProjectRuntimeEffectVolumeEvidence to fetch.
+     */
+    where: ProjectRuntimeEffectVolumeEvidenceWhereUniqueInput
+  }
+
+  /**
+   * ProjectRuntimeEffectVolumeEvidence findUniqueOrThrow
+   */
+  export type ProjectRuntimeEffectVolumeEvidenceFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectRuntimeEffectVolumeEvidence
+     */
+    select?: ProjectRuntimeEffectVolumeEvidenceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectRuntimeEffectVolumeEvidence
+     */
+    omit?: ProjectRuntimeEffectVolumeEvidenceOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectRuntimeEffectVolumeEvidenceInclude<ExtArgs> | null
+    /**
+     * Filter, which ProjectRuntimeEffectVolumeEvidence to fetch.
+     */
+    where: ProjectRuntimeEffectVolumeEvidenceWhereUniqueInput
+  }
+
+  /**
+   * ProjectRuntimeEffectVolumeEvidence findFirst
+   */
+  export type ProjectRuntimeEffectVolumeEvidenceFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectRuntimeEffectVolumeEvidence
+     */
+    select?: ProjectRuntimeEffectVolumeEvidenceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectRuntimeEffectVolumeEvidence
+     */
+    omit?: ProjectRuntimeEffectVolumeEvidenceOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectRuntimeEffectVolumeEvidenceInclude<ExtArgs> | null
+    /**
+     * Filter, which ProjectRuntimeEffectVolumeEvidence to fetch.
+     */
+    where?: ProjectRuntimeEffectVolumeEvidenceWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     *
+     * Determine the order of ProjectRuntimeEffectVolumeEvidences to fetch.
+     */
+    orderBy?: ProjectRuntimeEffectVolumeEvidenceOrderByWithRelationInput | ProjectRuntimeEffectVolumeEvidenceOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     *
+     * Sets the position for searching for ProjectRuntimeEffectVolumeEvidences.
+     */
+    cursor?: ProjectRuntimeEffectVolumeEvidenceWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Take `±n` ProjectRuntimeEffectVolumeEvidences from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Skip the first `n` ProjectRuntimeEffectVolumeEvidences.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     *
+     * Filter by unique combinations of ProjectRuntimeEffectVolumeEvidences.
+     */
+    distinct?: ProjectRuntimeEffectVolumeEvidenceScalarFieldEnum | ProjectRuntimeEffectVolumeEvidenceScalarFieldEnum[]
+  }
+
+  /**
+   * ProjectRuntimeEffectVolumeEvidence findFirstOrThrow
+   */
+  export type ProjectRuntimeEffectVolumeEvidenceFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectRuntimeEffectVolumeEvidence
+     */
+    select?: ProjectRuntimeEffectVolumeEvidenceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectRuntimeEffectVolumeEvidence
+     */
+    omit?: ProjectRuntimeEffectVolumeEvidenceOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectRuntimeEffectVolumeEvidenceInclude<ExtArgs> | null
+    /**
+     * Filter, which ProjectRuntimeEffectVolumeEvidence to fetch.
+     */
+    where?: ProjectRuntimeEffectVolumeEvidenceWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     *
+     * Determine the order of ProjectRuntimeEffectVolumeEvidences to fetch.
+     */
+    orderBy?: ProjectRuntimeEffectVolumeEvidenceOrderByWithRelationInput | ProjectRuntimeEffectVolumeEvidenceOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     *
+     * Sets the position for searching for ProjectRuntimeEffectVolumeEvidences.
+     */
+    cursor?: ProjectRuntimeEffectVolumeEvidenceWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Take `±n` ProjectRuntimeEffectVolumeEvidences from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Skip the first `n` ProjectRuntimeEffectVolumeEvidences.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     *
+     * Filter by unique combinations of ProjectRuntimeEffectVolumeEvidences.
+     */
+    distinct?: ProjectRuntimeEffectVolumeEvidenceScalarFieldEnum | ProjectRuntimeEffectVolumeEvidenceScalarFieldEnum[]
+  }
+
+  /**
+   * ProjectRuntimeEffectVolumeEvidence findMany
+   */
+  export type ProjectRuntimeEffectVolumeEvidenceFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectRuntimeEffectVolumeEvidence
+     */
+    select?: ProjectRuntimeEffectVolumeEvidenceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectRuntimeEffectVolumeEvidence
+     */
+    omit?: ProjectRuntimeEffectVolumeEvidenceOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectRuntimeEffectVolumeEvidenceInclude<ExtArgs> | null
+    /**
+     * Filter, which ProjectRuntimeEffectVolumeEvidences to fetch.
+     */
+    where?: ProjectRuntimeEffectVolumeEvidenceWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     *
+     * Determine the order of ProjectRuntimeEffectVolumeEvidences to fetch.
+     */
+    orderBy?: ProjectRuntimeEffectVolumeEvidenceOrderByWithRelationInput | ProjectRuntimeEffectVolumeEvidenceOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     *
+     * Sets the position for listing ProjectRuntimeEffectVolumeEvidences.
+     */
+    cursor?: ProjectRuntimeEffectVolumeEvidenceWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Take `±n` ProjectRuntimeEffectVolumeEvidences from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Skip the first `n` ProjectRuntimeEffectVolumeEvidences.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     *
+     * Filter by unique combinations of ProjectRuntimeEffectVolumeEvidences.
+     */
+    distinct?: ProjectRuntimeEffectVolumeEvidenceScalarFieldEnum | ProjectRuntimeEffectVolumeEvidenceScalarFieldEnum[]
+  }
+
+  /**
+   * ProjectRuntimeEffectVolumeEvidence create
+   */
+  export type ProjectRuntimeEffectVolumeEvidenceCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectRuntimeEffectVolumeEvidence
+     */
+    select?: ProjectRuntimeEffectVolumeEvidenceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectRuntimeEffectVolumeEvidence
+     */
+    omit?: ProjectRuntimeEffectVolumeEvidenceOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectRuntimeEffectVolumeEvidenceInclude<ExtArgs> | null
+    /**
+     * The data needed to create a ProjectRuntimeEffectVolumeEvidence.
+     */
+    data: XOR<ProjectRuntimeEffectVolumeEvidenceCreateInput, ProjectRuntimeEffectVolumeEvidenceUncheckedCreateInput>
+  }
+
+  /**
+   * ProjectRuntimeEffectVolumeEvidence createMany
+   */
+  export type ProjectRuntimeEffectVolumeEvidenceCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many ProjectRuntimeEffectVolumeEvidences.
+     */
+    data: ProjectRuntimeEffectVolumeEvidenceCreateManyInput | ProjectRuntimeEffectVolumeEvidenceCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * ProjectRuntimeEffectVolumeEvidence createManyAndReturn
+   */
+  export type ProjectRuntimeEffectVolumeEvidenceCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectRuntimeEffectVolumeEvidence
+     */
+    select?: ProjectRuntimeEffectVolumeEvidenceSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectRuntimeEffectVolumeEvidence
+     */
+    omit?: ProjectRuntimeEffectVolumeEvidenceOmit<ExtArgs> | null
+    /**
+     * The data used to create many ProjectRuntimeEffectVolumeEvidences.
+     */
+    data: ProjectRuntimeEffectVolumeEvidenceCreateManyInput | ProjectRuntimeEffectVolumeEvidenceCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectRuntimeEffectVolumeEvidenceIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * ProjectRuntimeEffectVolumeEvidence update
+   */
+  export type ProjectRuntimeEffectVolumeEvidenceUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectRuntimeEffectVolumeEvidence
+     */
+    select?: ProjectRuntimeEffectVolumeEvidenceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectRuntimeEffectVolumeEvidence
+     */
+    omit?: ProjectRuntimeEffectVolumeEvidenceOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectRuntimeEffectVolumeEvidenceInclude<ExtArgs> | null
+    /**
+     * The data needed to update a ProjectRuntimeEffectVolumeEvidence.
+     */
+    data: XOR<ProjectRuntimeEffectVolumeEvidenceUpdateInput, ProjectRuntimeEffectVolumeEvidenceUncheckedUpdateInput>
+    /**
+     * Choose, which ProjectRuntimeEffectVolumeEvidence to update.
+     */
+    where: ProjectRuntimeEffectVolumeEvidenceWhereUniqueInput
+  }
+
+  /**
+   * ProjectRuntimeEffectVolumeEvidence updateMany
+   */
+  export type ProjectRuntimeEffectVolumeEvidenceUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update ProjectRuntimeEffectVolumeEvidences.
+     */
+    data: XOR<ProjectRuntimeEffectVolumeEvidenceUpdateManyMutationInput, ProjectRuntimeEffectVolumeEvidenceUncheckedUpdateManyInput>
+    /**
+     * Filter which ProjectRuntimeEffectVolumeEvidences to update
+     */
+    where?: ProjectRuntimeEffectVolumeEvidenceWhereInput
+    /**
+     * Limit how many ProjectRuntimeEffectVolumeEvidences to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * ProjectRuntimeEffectVolumeEvidence updateManyAndReturn
+   */
+  export type ProjectRuntimeEffectVolumeEvidenceUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectRuntimeEffectVolumeEvidence
+     */
+    select?: ProjectRuntimeEffectVolumeEvidenceSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectRuntimeEffectVolumeEvidence
+     */
+    omit?: ProjectRuntimeEffectVolumeEvidenceOmit<ExtArgs> | null
+    /**
+     * The data used to update ProjectRuntimeEffectVolumeEvidences.
+     */
+    data: XOR<ProjectRuntimeEffectVolumeEvidenceUpdateManyMutationInput, ProjectRuntimeEffectVolumeEvidenceUncheckedUpdateManyInput>
+    /**
+     * Filter which ProjectRuntimeEffectVolumeEvidences to update
+     */
+    where?: ProjectRuntimeEffectVolumeEvidenceWhereInput
+    /**
+     * Limit how many ProjectRuntimeEffectVolumeEvidences to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectRuntimeEffectVolumeEvidenceIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * ProjectRuntimeEffectVolumeEvidence upsert
+   */
+  export type ProjectRuntimeEffectVolumeEvidenceUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectRuntimeEffectVolumeEvidence
+     */
+    select?: ProjectRuntimeEffectVolumeEvidenceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectRuntimeEffectVolumeEvidence
+     */
+    omit?: ProjectRuntimeEffectVolumeEvidenceOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectRuntimeEffectVolumeEvidenceInclude<ExtArgs> | null
+    /**
+     * The filter to search for the ProjectRuntimeEffectVolumeEvidence to update in case it exists.
+     */
+    where: ProjectRuntimeEffectVolumeEvidenceWhereUniqueInput
+    /**
+     * In case the ProjectRuntimeEffectVolumeEvidence found by the `where` argument doesn't exist, create a new ProjectRuntimeEffectVolumeEvidence with this data.
+     */
+    create: XOR<ProjectRuntimeEffectVolumeEvidenceCreateInput, ProjectRuntimeEffectVolumeEvidenceUncheckedCreateInput>
+    /**
+     * In case the ProjectRuntimeEffectVolumeEvidence was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<ProjectRuntimeEffectVolumeEvidenceUpdateInput, ProjectRuntimeEffectVolumeEvidenceUncheckedUpdateInput>
+  }
+
+  /**
+   * ProjectRuntimeEffectVolumeEvidence delete
+   */
+  export type ProjectRuntimeEffectVolumeEvidenceDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectRuntimeEffectVolumeEvidence
+     */
+    select?: ProjectRuntimeEffectVolumeEvidenceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectRuntimeEffectVolumeEvidence
+     */
+    omit?: ProjectRuntimeEffectVolumeEvidenceOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectRuntimeEffectVolumeEvidenceInclude<ExtArgs> | null
+    /**
+     * Filter which ProjectRuntimeEffectVolumeEvidence to delete.
+     */
+    where: ProjectRuntimeEffectVolumeEvidenceWhereUniqueInput
+  }
+
+  /**
+   * ProjectRuntimeEffectVolumeEvidence deleteMany
+   */
+  export type ProjectRuntimeEffectVolumeEvidenceDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ProjectRuntimeEffectVolumeEvidences to delete
+     */
+    where?: ProjectRuntimeEffectVolumeEvidenceWhereInput
+    /**
+     * Limit how many ProjectRuntimeEffectVolumeEvidences to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * ProjectRuntimeEffectVolumeEvidence without action
+   */
+  export type ProjectRuntimeEffectVolumeEvidenceDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectRuntimeEffectVolumeEvidence
+     */
+    select?: ProjectRuntimeEffectVolumeEvidenceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectRuntimeEffectVolumeEvidence
+     */
+    omit?: ProjectRuntimeEffectVolumeEvidenceOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectRuntimeEffectVolumeEvidenceInclude<ExtArgs> | null
   }
 
 
@@ -211764,10 +213142,16 @@ export namespace Prisma {
     evidence: 'evidence',
     verificationHash: 'verificationHash',
     verificationFencingToken: 'verificationFencingToken',
+    quiescenceSnapshot: 'quiescenceSnapshot',
+    quiescenceHash: 'quiescenceHash',
+    finalScanEvidence: 'finalScanEvidence',
+    finalScanHash: 'finalScanHash',
+    finalScanFencingToken: 'finalScanFencingToken',
     preparedAt: 'preparedAt',
     inventoriedAt: 'inventoriedAt',
     erasingAt: 'erasingAt',
     verifiedAt: 'verifiedAt',
+    finalScannedAt: 'finalScannedAt',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
   };
@@ -213278,6 +214662,24 @@ export namespace Prisma {
   };
 
   export type ProjectRuntimeEffectTargetScalarFieldEnum = (typeof ProjectRuntimeEffectTargetScalarFieldEnum)[keyof typeof ProjectRuntimeEffectTargetScalarFieldEnum]
+
+
+  export const ProjectRuntimeEffectVolumeEvidenceScalarFieldEnum: {
+    effectId: 'effectId',
+    targetOrdinal: 'targetOrdinal',
+    pvcUid: 'pvcUid',
+    pvcResourceVersion: 'pvcResourceVersion',
+    pvName: 'pvName',
+    pvUid: 'pvUid',
+    pvResourceVersion: 'pvResourceVersion',
+    csiDriver: 'csiDriver',
+    csiVolumeHandle: 'csiVolumeHandle',
+    providerResourceId: 'providerResourceId',
+    evidenceHash: 'evidenceHash',
+    observedAt: 'observedAt'
+  };
+
+  export type ProjectRuntimeEffectVolumeEvidenceScalarFieldEnum = (typeof ProjectRuntimeEffectVolumeEvidenceScalarFieldEnum)[keyof typeof ProjectRuntimeEffectVolumeEvidenceScalarFieldEnum]
 
 
   export const ConnectorCatalogScalarFieldEnum: {
@@ -216428,10 +217830,16 @@ export namespace Prisma {
     evidence?: JsonNullableFilter<"ProjectVolumeErasure">
     verificationHash?: StringNullableFilter<"ProjectVolumeErasure"> | string | null
     verificationFencingToken?: BigIntNullableFilter<"ProjectVolumeErasure"> | bigint | number | null
+    quiescenceSnapshot?: JsonNullableFilter<"ProjectVolumeErasure">
+    quiescenceHash?: StringNullableFilter<"ProjectVolumeErasure"> | string | null
+    finalScanEvidence?: JsonNullableFilter<"ProjectVolumeErasure">
+    finalScanHash?: StringNullableFilter<"ProjectVolumeErasure"> | string | null
+    finalScanFencingToken?: BigIntNullableFilter<"ProjectVolumeErasure"> | bigint | number | null
     preparedAt?: DateTimeFilter<"ProjectVolumeErasure"> | Date | string
     inventoriedAt?: DateTimeNullableFilter<"ProjectVolumeErasure"> | Date | string | null
     erasingAt?: DateTimeNullableFilter<"ProjectVolumeErasure"> | Date | string | null
     verifiedAt?: DateTimeNullableFilter<"ProjectVolumeErasure"> | Date | string | null
+    finalScannedAt?: DateTimeNullableFilter<"ProjectVolumeErasure"> | Date | string | null
     createdAt?: DateTimeFilter<"ProjectVolumeErasure"> | Date | string
     updatedAt?: DateTimeFilter<"ProjectVolumeErasure"> | Date | string
     operation?: XOR<ObjectStorageOperationScalarRelationFilter, ObjectStorageOperationWhereInput>
@@ -216451,10 +217859,16 @@ export namespace Prisma {
     evidence?: SortOrderInput | SortOrder
     verificationHash?: SortOrderInput | SortOrder
     verificationFencingToken?: SortOrderInput | SortOrder
+    quiescenceSnapshot?: SortOrderInput | SortOrder
+    quiescenceHash?: SortOrderInput | SortOrder
+    finalScanEvidence?: SortOrderInput | SortOrder
+    finalScanHash?: SortOrderInput | SortOrder
+    finalScanFencingToken?: SortOrderInput | SortOrder
     preparedAt?: SortOrder
     inventoriedAt?: SortOrderInput | SortOrder
     erasingAt?: SortOrderInput | SortOrder
     verifiedAt?: SortOrderInput | SortOrder
+    finalScannedAt?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     operation?: ObjectStorageOperationOrderByWithRelationInput
@@ -216477,10 +217891,16 @@ export namespace Prisma {
     evidence?: JsonNullableFilter<"ProjectVolumeErasure">
     verificationHash?: StringNullableFilter<"ProjectVolumeErasure"> | string | null
     verificationFencingToken?: BigIntNullableFilter<"ProjectVolumeErasure"> | bigint | number | null
+    quiescenceSnapshot?: JsonNullableFilter<"ProjectVolumeErasure">
+    quiescenceHash?: StringNullableFilter<"ProjectVolumeErasure"> | string | null
+    finalScanEvidence?: JsonNullableFilter<"ProjectVolumeErasure">
+    finalScanHash?: StringNullableFilter<"ProjectVolumeErasure"> | string | null
+    finalScanFencingToken?: BigIntNullableFilter<"ProjectVolumeErasure"> | bigint | number | null
     preparedAt?: DateTimeFilter<"ProjectVolumeErasure"> | Date | string
     inventoriedAt?: DateTimeNullableFilter<"ProjectVolumeErasure"> | Date | string | null
     erasingAt?: DateTimeNullableFilter<"ProjectVolumeErasure"> | Date | string | null
     verifiedAt?: DateTimeNullableFilter<"ProjectVolumeErasure"> | Date | string | null
+    finalScannedAt?: DateTimeNullableFilter<"ProjectVolumeErasure"> | Date | string | null
     createdAt?: DateTimeFilter<"ProjectVolumeErasure"> | Date | string
     updatedAt?: DateTimeFilter<"ProjectVolumeErasure"> | Date | string
     operation?: XOR<ObjectStorageOperationScalarRelationFilter, ObjectStorageOperationWhereInput>
@@ -216500,10 +217920,16 @@ export namespace Prisma {
     evidence?: SortOrderInput | SortOrder
     verificationHash?: SortOrderInput | SortOrder
     verificationFencingToken?: SortOrderInput | SortOrder
+    quiescenceSnapshot?: SortOrderInput | SortOrder
+    quiescenceHash?: SortOrderInput | SortOrder
+    finalScanEvidence?: SortOrderInput | SortOrder
+    finalScanHash?: SortOrderInput | SortOrder
+    finalScanFencingToken?: SortOrderInput | SortOrder
     preparedAt?: SortOrder
     inventoriedAt?: SortOrderInput | SortOrder
     erasingAt?: SortOrderInput | SortOrder
     verifiedAt?: SortOrderInput | SortOrder
+    finalScannedAt?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: ProjectVolumeErasureCountOrderByAggregateInput
@@ -216529,10 +217955,16 @@ export namespace Prisma {
     evidence?: JsonNullableWithAggregatesFilter<"ProjectVolumeErasure">
     verificationHash?: StringNullableWithAggregatesFilter<"ProjectVolumeErasure"> | string | null
     verificationFencingToken?: BigIntNullableWithAggregatesFilter<"ProjectVolumeErasure"> | bigint | number | null
+    quiescenceSnapshot?: JsonNullableWithAggregatesFilter<"ProjectVolumeErasure">
+    quiescenceHash?: StringNullableWithAggregatesFilter<"ProjectVolumeErasure"> | string | null
+    finalScanEvidence?: JsonNullableWithAggregatesFilter<"ProjectVolumeErasure">
+    finalScanHash?: StringNullableWithAggregatesFilter<"ProjectVolumeErasure"> | string | null
+    finalScanFencingToken?: BigIntNullableWithAggregatesFilter<"ProjectVolumeErasure"> | bigint | number | null
     preparedAt?: DateTimeWithAggregatesFilter<"ProjectVolumeErasure"> | Date | string
     inventoriedAt?: DateTimeNullableWithAggregatesFilter<"ProjectVolumeErasure"> | Date | string | null
     erasingAt?: DateTimeNullableWithAggregatesFilter<"ProjectVolumeErasure"> | Date | string | null
     verifiedAt?: DateTimeNullableWithAggregatesFilter<"ProjectVolumeErasure"> | Date | string | null
+    finalScannedAt?: DateTimeNullableWithAggregatesFilter<"ProjectVolumeErasure"> | Date | string | null
     createdAt?: DateTimeWithAggregatesFilter<"ProjectVolumeErasure"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"ProjectVolumeErasure"> | Date | string
   }
@@ -224250,6 +225682,7 @@ export namespace Prisma {
     expectedResourceVersion?: StringNullableFilter<"ProjectRuntimeEffectTarget"> | string | null
     manifestDigest?: StringNullableFilter<"ProjectRuntimeEffectTarget"> | string | null
     effect?: XOR<ProjectRuntimeEffectScalarRelationFilter, ProjectRuntimeEffectWhereInput>
+    volumeEvidence?: XOR<ProjectRuntimeEffectVolumeEvidenceNullableScalarRelationFilter, ProjectRuntimeEffectVolumeEvidenceWhereInput> | null
   }
 
   export type ProjectRuntimeEffectTargetOrderByWithRelationInput = {
@@ -224262,6 +225695,7 @@ export namespace Prisma {
     expectedResourceVersion?: SortOrderInput | SortOrder
     manifestDigest?: SortOrderInput | SortOrder
     effect?: ProjectRuntimeEffectOrderByWithRelationInput
+    volumeEvidence?: ProjectRuntimeEffectVolumeEvidenceOrderByWithRelationInput
   }
 
   export type ProjectRuntimeEffectTargetWhereUniqueInput = Prisma.AtLeast<{
@@ -224279,6 +225713,7 @@ export namespace Prisma {
     expectedResourceVersion?: StringNullableFilter<"ProjectRuntimeEffectTarget"> | string | null
     manifestDigest?: StringNullableFilter<"ProjectRuntimeEffectTarget"> | string | null
     effect?: XOR<ProjectRuntimeEffectScalarRelationFilter, ProjectRuntimeEffectWhereInput>
+    volumeEvidence?: XOR<ProjectRuntimeEffectVolumeEvidenceNullableScalarRelationFilter, ProjectRuntimeEffectVolumeEvidenceWhereInput> | null
   }, "effectId_ordinal" | "effectId_kind_namespace_name">
 
   export type ProjectRuntimeEffectTargetOrderByWithAggregationInput = {
@@ -224309,6 +225744,99 @@ export namespace Prisma {
     expectedUid?: StringNullableWithAggregatesFilter<"ProjectRuntimeEffectTarget"> | string | null
     expectedResourceVersion?: StringNullableWithAggregatesFilter<"ProjectRuntimeEffectTarget"> | string | null
     manifestDigest?: StringNullableWithAggregatesFilter<"ProjectRuntimeEffectTarget"> | string | null
+  }
+
+  export type ProjectRuntimeEffectVolumeEvidenceWhereInput = {
+    AND?: ProjectRuntimeEffectVolumeEvidenceWhereInput | ProjectRuntimeEffectVolumeEvidenceWhereInput[]
+    OR?: ProjectRuntimeEffectVolumeEvidenceWhereInput[]
+    NOT?: ProjectRuntimeEffectVolumeEvidenceWhereInput | ProjectRuntimeEffectVolumeEvidenceWhereInput[]
+    effectId?: StringFilter<"ProjectRuntimeEffectVolumeEvidence"> | string
+    targetOrdinal?: IntFilter<"ProjectRuntimeEffectVolumeEvidence"> | number
+    pvcUid?: StringFilter<"ProjectRuntimeEffectVolumeEvidence"> | string
+    pvcResourceVersion?: StringFilter<"ProjectRuntimeEffectVolumeEvidence"> | string
+    pvName?: StringFilter<"ProjectRuntimeEffectVolumeEvidence"> | string
+    pvUid?: StringFilter<"ProjectRuntimeEffectVolumeEvidence"> | string
+    pvResourceVersion?: StringFilter<"ProjectRuntimeEffectVolumeEvidence"> | string
+    csiDriver?: StringFilter<"ProjectRuntimeEffectVolumeEvidence"> | string
+    csiVolumeHandle?: StringFilter<"ProjectRuntimeEffectVolumeEvidence"> | string
+    providerResourceId?: StringFilter<"ProjectRuntimeEffectVolumeEvidence"> | string
+    evidenceHash?: StringFilter<"ProjectRuntimeEffectVolumeEvidence"> | string
+    observedAt?: DateTimeFilter<"ProjectRuntimeEffectVolumeEvidence"> | Date | string
+    target?: XOR<ProjectRuntimeEffectTargetScalarRelationFilter, ProjectRuntimeEffectTargetWhereInput>
+  }
+
+  export type ProjectRuntimeEffectVolumeEvidenceOrderByWithRelationInput = {
+    effectId?: SortOrder
+    targetOrdinal?: SortOrder
+    pvcUid?: SortOrder
+    pvcResourceVersion?: SortOrder
+    pvName?: SortOrder
+    pvUid?: SortOrder
+    pvResourceVersion?: SortOrder
+    csiDriver?: SortOrder
+    csiVolumeHandle?: SortOrder
+    providerResourceId?: SortOrder
+    evidenceHash?: SortOrder
+    observedAt?: SortOrder
+    target?: ProjectRuntimeEffectTargetOrderByWithRelationInput
+  }
+
+  export type ProjectRuntimeEffectVolumeEvidenceWhereUniqueInput = Prisma.AtLeast<{
+    effectId_targetOrdinal?: ProjectRuntimeEffectVolumeEvidenceEffectIdTargetOrdinalCompoundUniqueInput
+    AND?: ProjectRuntimeEffectVolumeEvidenceWhereInput | ProjectRuntimeEffectVolumeEvidenceWhereInput[]
+    OR?: ProjectRuntimeEffectVolumeEvidenceWhereInput[]
+    NOT?: ProjectRuntimeEffectVolumeEvidenceWhereInput | ProjectRuntimeEffectVolumeEvidenceWhereInput[]
+    effectId?: StringFilter<"ProjectRuntimeEffectVolumeEvidence"> | string
+    targetOrdinal?: IntFilter<"ProjectRuntimeEffectVolumeEvidence"> | number
+    pvcUid?: StringFilter<"ProjectRuntimeEffectVolumeEvidence"> | string
+    pvcResourceVersion?: StringFilter<"ProjectRuntimeEffectVolumeEvidence"> | string
+    pvName?: StringFilter<"ProjectRuntimeEffectVolumeEvidence"> | string
+    pvUid?: StringFilter<"ProjectRuntimeEffectVolumeEvidence"> | string
+    pvResourceVersion?: StringFilter<"ProjectRuntimeEffectVolumeEvidence"> | string
+    csiDriver?: StringFilter<"ProjectRuntimeEffectVolumeEvidence"> | string
+    csiVolumeHandle?: StringFilter<"ProjectRuntimeEffectVolumeEvidence"> | string
+    providerResourceId?: StringFilter<"ProjectRuntimeEffectVolumeEvidence"> | string
+    evidenceHash?: StringFilter<"ProjectRuntimeEffectVolumeEvidence"> | string
+    observedAt?: DateTimeFilter<"ProjectRuntimeEffectVolumeEvidence"> | Date | string
+    target?: XOR<ProjectRuntimeEffectTargetScalarRelationFilter, ProjectRuntimeEffectTargetWhereInput>
+  }, "effectId_targetOrdinal">
+
+  export type ProjectRuntimeEffectVolumeEvidenceOrderByWithAggregationInput = {
+    effectId?: SortOrder
+    targetOrdinal?: SortOrder
+    pvcUid?: SortOrder
+    pvcResourceVersion?: SortOrder
+    pvName?: SortOrder
+    pvUid?: SortOrder
+    pvResourceVersion?: SortOrder
+    csiDriver?: SortOrder
+    csiVolumeHandle?: SortOrder
+    providerResourceId?: SortOrder
+    evidenceHash?: SortOrder
+    observedAt?: SortOrder
+    _count?: ProjectRuntimeEffectVolumeEvidenceCountOrderByAggregateInput
+    _avg?: ProjectRuntimeEffectVolumeEvidenceAvgOrderByAggregateInput
+    _max?: ProjectRuntimeEffectVolumeEvidenceMaxOrderByAggregateInput
+    _min?: ProjectRuntimeEffectVolumeEvidenceMinOrderByAggregateInput
+    _sum?: ProjectRuntimeEffectVolumeEvidenceSumOrderByAggregateInput
+  }
+
+  export type ProjectRuntimeEffectVolumeEvidenceScalarWhereWithAggregatesInput = {
+    AND?: ProjectRuntimeEffectVolumeEvidenceScalarWhereWithAggregatesInput | ProjectRuntimeEffectVolumeEvidenceScalarWhereWithAggregatesInput[]
+    OR?: ProjectRuntimeEffectVolumeEvidenceScalarWhereWithAggregatesInput[]
+    NOT?: ProjectRuntimeEffectVolumeEvidenceScalarWhereWithAggregatesInput | ProjectRuntimeEffectVolumeEvidenceScalarWhereWithAggregatesInput[]
+    effectId?: StringWithAggregatesFilter<"ProjectRuntimeEffectVolumeEvidence"> | string
+    targetOrdinal?: IntWithAggregatesFilter<"ProjectRuntimeEffectVolumeEvidence"> | number
+    pvcUid?: StringWithAggregatesFilter<"ProjectRuntimeEffectVolumeEvidence"> | string
+    pvcResourceVersion?: StringWithAggregatesFilter<"ProjectRuntimeEffectVolumeEvidence"> | string
+    pvName?: StringWithAggregatesFilter<"ProjectRuntimeEffectVolumeEvidence"> | string
+    pvUid?: StringWithAggregatesFilter<"ProjectRuntimeEffectVolumeEvidence"> | string
+    pvResourceVersion?: StringWithAggregatesFilter<"ProjectRuntimeEffectVolumeEvidence"> | string
+    csiDriver?: StringWithAggregatesFilter<"ProjectRuntimeEffectVolumeEvidence"> | string
+    csiVolumeHandle?: StringWithAggregatesFilter<"ProjectRuntimeEffectVolumeEvidence"> | string
+    providerResourceId?: StringWithAggregatesFilter<"ProjectRuntimeEffectVolumeEvidence"> | string
+    evidenceHash?: StringWithAggregatesFilter<"ProjectRuntimeEffectVolumeEvidence"> | string
+    observedAt?: DateTimeWithAggregatesFilter<"ProjectRuntimeEffectVolumeEvidence"> | Date | string
   }
 
   export type ConnectorCatalogWhereInput = {
@@ -231270,10 +232798,16 @@ export namespace Prisma {
     evidence?: NullableJsonNullValueInput | InputJsonValue
     verificationHash?: string | null
     verificationFencingToken?: bigint | number | null
+    quiescenceSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    quiescenceHash?: string | null
+    finalScanEvidence?: NullableJsonNullValueInput | InputJsonValue
+    finalScanHash?: string | null
+    finalScanFencingToken?: bigint | number | null
     preparedAt?: Date | string
     inventoriedAt?: Date | string | null
     erasingAt?: Date | string | null
     verifiedAt?: Date | string | null
+    finalScannedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     operation: ObjectStorageOperationCreateNestedOneWithoutProjectVolumeErasureInput
@@ -231293,10 +232827,16 @@ export namespace Prisma {
     evidence?: NullableJsonNullValueInput | InputJsonValue
     verificationHash?: string | null
     verificationFencingToken?: bigint | number | null
+    quiescenceSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    quiescenceHash?: string | null
+    finalScanEvidence?: NullableJsonNullValueInput | InputJsonValue
+    finalScanHash?: string | null
+    finalScanFencingToken?: bigint | number | null
     preparedAt?: Date | string
     inventoriedAt?: Date | string | null
     erasingAt?: Date | string | null
     verifiedAt?: Date | string | null
+    finalScannedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     targets?: ProjectVolumeErasureTargetUncheckedCreateNestedManyWithoutErasureInput
@@ -231314,10 +232854,16 @@ export namespace Prisma {
     evidence?: NullableJsonNullValueInput | InputJsonValue
     verificationHash?: NullableStringFieldUpdateOperationsInput | string | null
     verificationFencingToken?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    quiescenceSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    quiescenceHash?: NullableStringFieldUpdateOperationsInput | string | null
+    finalScanEvidence?: NullableJsonNullValueInput | InputJsonValue
+    finalScanHash?: NullableStringFieldUpdateOperationsInput | string | null
+    finalScanFencingToken?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
     preparedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     inventoriedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     erasingAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    finalScannedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     operation?: ObjectStorageOperationUpdateOneRequiredWithoutProjectVolumeErasureNestedInput
@@ -231337,10 +232883,16 @@ export namespace Prisma {
     evidence?: NullableJsonNullValueInput | InputJsonValue
     verificationHash?: NullableStringFieldUpdateOperationsInput | string | null
     verificationFencingToken?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    quiescenceSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    quiescenceHash?: NullableStringFieldUpdateOperationsInput | string | null
+    finalScanEvidence?: NullableJsonNullValueInput | InputJsonValue
+    finalScanHash?: NullableStringFieldUpdateOperationsInput | string | null
+    finalScanFencingToken?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
     preparedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     inventoriedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     erasingAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    finalScannedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     targets?: ProjectVolumeErasureTargetUncheckedUpdateManyWithoutErasureNestedInput
@@ -231359,10 +232911,16 @@ export namespace Prisma {
     evidence?: NullableJsonNullValueInput | InputJsonValue
     verificationHash?: string | null
     verificationFencingToken?: bigint | number | null
+    quiescenceSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    quiescenceHash?: string | null
+    finalScanEvidence?: NullableJsonNullValueInput | InputJsonValue
+    finalScanHash?: string | null
+    finalScanFencingToken?: bigint | number | null
     preparedAt?: Date | string
     inventoriedAt?: Date | string | null
     erasingAt?: Date | string | null
     verifiedAt?: Date | string | null
+    finalScannedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -231379,10 +232937,16 @@ export namespace Prisma {
     evidence?: NullableJsonNullValueInput | InputJsonValue
     verificationHash?: NullableStringFieldUpdateOperationsInput | string | null
     verificationFencingToken?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    quiescenceSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    quiescenceHash?: NullableStringFieldUpdateOperationsInput | string | null
+    finalScanEvidence?: NullableJsonNullValueInput | InputJsonValue
+    finalScanHash?: NullableStringFieldUpdateOperationsInput | string | null
+    finalScanFencingToken?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
     preparedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     inventoriedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     erasingAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    finalScannedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -231400,10 +232964,16 @@ export namespace Prisma {
     evidence?: NullableJsonNullValueInput | InputJsonValue
     verificationHash?: NullableStringFieldUpdateOperationsInput | string | null
     verificationFencingToken?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    quiescenceSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    quiescenceHash?: NullableStringFieldUpdateOperationsInput | string | null
+    finalScanEvidence?: NullableJsonNullValueInput | InputJsonValue
+    finalScanHash?: NullableStringFieldUpdateOperationsInput | string | null
+    finalScanFencingToken?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
     preparedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     inventoriedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     erasingAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    finalScannedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -239771,6 +241341,7 @@ export namespace Prisma {
     expectedResourceVersion?: string | null
     manifestDigest?: string | null
     effect: ProjectRuntimeEffectCreateNestedOneWithoutTargetsInput
+    volumeEvidence?: ProjectRuntimeEffectVolumeEvidenceCreateNestedOneWithoutTargetInput
   }
 
   export type ProjectRuntimeEffectTargetUncheckedCreateInput = {
@@ -239782,6 +241353,7 @@ export namespace Prisma {
     expectedUid?: string | null
     expectedResourceVersion?: string | null
     manifestDigest?: string | null
+    volumeEvidence?: ProjectRuntimeEffectVolumeEvidenceUncheckedCreateNestedOneWithoutTargetInput
   }
 
   export type ProjectRuntimeEffectTargetUpdateInput = {
@@ -239793,6 +241365,7 @@ export namespace Prisma {
     expectedResourceVersion?: NullableStringFieldUpdateOperationsInput | string | null
     manifestDigest?: NullableStringFieldUpdateOperationsInput | string | null
     effect?: ProjectRuntimeEffectUpdateOneRequiredWithoutTargetsNestedInput
+    volumeEvidence?: ProjectRuntimeEffectVolumeEvidenceUpdateOneWithoutTargetNestedInput
   }
 
   export type ProjectRuntimeEffectTargetUncheckedUpdateInput = {
@@ -239804,6 +241377,7 @@ export namespace Prisma {
     expectedUid?: NullableStringFieldUpdateOperationsInput | string | null
     expectedResourceVersion?: NullableStringFieldUpdateOperationsInput | string | null
     manifestDigest?: NullableStringFieldUpdateOperationsInput | string | null
+    volumeEvidence?: ProjectRuntimeEffectVolumeEvidenceUncheckedUpdateOneWithoutTargetNestedInput
   }
 
   export type ProjectRuntimeEffectTargetCreateManyInput = {
@@ -239836,6 +241410,107 @@ export namespace Prisma {
     expectedUid?: NullableStringFieldUpdateOperationsInput | string | null
     expectedResourceVersion?: NullableStringFieldUpdateOperationsInput | string | null
     manifestDigest?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type ProjectRuntimeEffectVolumeEvidenceCreateInput = {
+    pvcUid: string
+    pvcResourceVersion: string
+    pvName: string
+    pvUid: string
+    pvResourceVersion: string
+    csiDriver: string
+    csiVolumeHandle: string
+    providerResourceId: string
+    evidenceHash: string
+    observedAt?: Date | string
+    target: ProjectRuntimeEffectTargetCreateNestedOneWithoutVolumeEvidenceInput
+  }
+
+  export type ProjectRuntimeEffectVolumeEvidenceUncheckedCreateInput = {
+    effectId: string
+    targetOrdinal: number
+    pvcUid: string
+    pvcResourceVersion: string
+    pvName: string
+    pvUid: string
+    pvResourceVersion: string
+    csiDriver: string
+    csiVolumeHandle: string
+    providerResourceId: string
+    evidenceHash: string
+    observedAt?: Date | string
+  }
+
+  export type ProjectRuntimeEffectVolumeEvidenceUpdateInput = {
+    pvcUid?: StringFieldUpdateOperationsInput | string
+    pvcResourceVersion?: StringFieldUpdateOperationsInput | string
+    pvName?: StringFieldUpdateOperationsInput | string
+    pvUid?: StringFieldUpdateOperationsInput | string
+    pvResourceVersion?: StringFieldUpdateOperationsInput | string
+    csiDriver?: StringFieldUpdateOperationsInput | string
+    csiVolumeHandle?: StringFieldUpdateOperationsInput | string
+    providerResourceId?: StringFieldUpdateOperationsInput | string
+    evidenceHash?: StringFieldUpdateOperationsInput | string
+    observedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    target?: ProjectRuntimeEffectTargetUpdateOneRequiredWithoutVolumeEvidenceNestedInput
+  }
+
+  export type ProjectRuntimeEffectVolumeEvidenceUncheckedUpdateInput = {
+    effectId?: StringFieldUpdateOperationsInput | string
+    targetOrdinal?: IntFieldUpdateOperationsInput | number
+    pvcUid?: StringFieldUpdateOperationsInput | string
+    pvcResourceVersion?: StringFieldUpdateOperationsInput | string
+    pvName?: StringFieldUpdateOperationsInput | string
+    pvUid?: StringFieldUpdateOperationsInput | string
+    pvResourceVersion?: StringFieldUpdateOperationsInput | string
+    csiDriver?: StringFieldUpdateOperationsInput | string
+    csiVolumeHandle?: StringFieldUpdateOperationsInput | string
+    providerResourceId?: StringFieldUpdateOperationsInput | string
+    evidenceHash?: StringFieldUpdateOperationsInput | string
+    observedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProjectRuntimeEffectVolumeEvidenceCreateManyInput = {
+    effectId: string
+    targetOrdinal: number
+    pvcUid: string
+    pvcResourceVersion: string
+    pvName: string
+    pvUid: string
+    pvResourceVersion: string
+    csiDriver: string
+    csiVolumeHandle: string
+    providerResourceId: string
+    evidenceHash: string
+    observedAt?: Date | string
+  }
+
+  export type ProjectRuntimeEffectVolumeEvidenceUpdateManyMutationInput = {
+    pvcUid?: StringFieldUpdateOperationsInput | string
+    pvcResourceVersion?: StringFieldUpdateOperationsInput | string
+    pvName?: StringFieldUpdateOperationsInput | string
+    pvUid?: StringFieldUpdateOperationsInput | string
+    pvResourceVersion?: StringFieldUpdateOperationsInput | string
+    csiDriver?: StringFieldUpdateOperationsInput | string
+    csiVolumeHandle?: StringFieldUpdateOperationsInput | string
+    providerResourceId?: StringFieldUpdateOperationsInput | string
+    evidenceHash?: StringFieldUpdateOperationsInput | string
+    observedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProjectRuntimeEffectVolumeEvidenceUncheckedUpdateManyInput = {
+    effectId?: StringFieldUpdateOperationsInput | string
+    targetOrdinal?: IntFieldUpdateOperationsInput | number
+    pvcUid?: StringFieldUpdateOperationsInput | string
+    pvcResourceVersion?: StringFieldUpdateOperationsInput | string
+    pvName?: StringFieldUpdateOperationsInput | string
+    pvUid?: StringFieldUpdateOperationsInput | string
+    pvResourceVersion?: StringFieldUpdateOperationsInput | string
+    csiDriver?: StringFieldUpdateOperationsInput | string
+    csiVolumeHandle?: StringFieldUpdateOperationsInput | string
+    providerResourceId?: StringFieldUpdateOperationsInput | string
+    evidenceHash?: StringFieldUpdateOperationsInput | string
+    observedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type ConnectorCatalogCreateInput = {
@@ -247757,10 +249432,16 @@ export namespace Prisma {
     evidence?: SortOrder
     verificationHash?: SortOrder
     verificationFencingToken?: SortOrder
+    quiescenceSnapshot?: SortOrder
+    quiescenceHash?: SortOrder
+    finalScanEvidence?: SortOrder
+    finalScanHash?: SortOrder
+    finalScanFencingToken?: SortOrder
     preparedAt?: SortOrder
     inventoriedAt?: SortOrder
     erasingAt?: SortOrder
     verifiedAt?: SortOrder
+    finalScannedAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -247768,6 +249449,7 @@ export namespace Prisma {
   export type ProjectVolumeErasureAvgOrderByAggregateInput = {
     ownershipEpoch?: SortOrder
     verificationFencingToken?: SortOrder
+    finalScanFencingToken?: SortOrder
   }
 
   export type ProjectVolumeErasureMaxOrderByAggregateInput = {
@@ -247780,10 +249462,14 @@ export namespace Prisma {
     inventoryHash?: SortOrder
     verificationHash?: SortOrder
     verificationFencingToken?: SortOrder
+    quiescenceHash?: SortOrder
+    finalScanHash?: SortOrder
+    finalScanFencingToken?: SortOrder
     preparedAt?: SortOrder
     inventoriedAt?: SortOrder
     erasingAt?: SortOrder
     verifiedAt?: SortOrder
+    finalScannedAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -247798,10 +249484,14 @@ export namespace Prisma {
     inventoryHash?: SortOrder
     verificationHash?: SortOrder
     verificationFencingToken?: SortOrder
+    quiescenceHash?: SortOrder
+    finalScanHash?: SortOrder
+    finalScanFencingToken?: SortOrder
     preparedAt?: SortOrder
     inventoriedAt?: SortOrder
     erasingAt?: SortOrder
     verifiedAt?: SortOrder
+    finalScannedAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -247809,6 +249499,7 @@ export namespace Prisma {
   export type ProjectVolumeErasureSumOrderByAggregateInput = {
     ownershipEpoch?: SortOrder
     verificationFencingToken?: SortOrder
+    finalScanFencingToken?: SortOrder
   }
 
   export type EnumProjectVolumeErasureStateWithAggregatesFilter<$PrismaModel = never> = {
@@ -252556,6 +254247,11 @@ export namespace Prisma {
     isNot?: ProjectRuntimeEffectWhereInput
   }
 
+  export type ProjectRuntimeEffectVolumeEvidenceNullableScalarRelationFilter = {
+    is?: ProjectRuntimeEffectVolumeEvidenceWhereInput | null
+    isNot?: ProjectRuntimeEffectVolumeEvidenceWhereInput | null
+  }
+
   export type ProjectRuntimeEffectTargetEffectIdKindNamespaceNameCompoundUniqueInput = {
     effectId: string
     kind: string
@@ -252607,6 +254303,69 @@ export namespace Prisma {
 
   export type ProjectRuntimeEffectTargetSumOrderByAggregateInput = {
     ordinal?: SortOrder
+  }
+
+  export type ProjectRuntimeEffectTargetScalarRelationFilter = {
+    is?: ProjectRuntimeEffectTargetWhereInput
+    isNot?: ProjectRuntimeEffectTargetWhereInput
+  }
+
+  export type ProjectRuntimeEffectVolumeEvidenceEffectIdTargetOrdinalCompoundUniqueInput = {
+    effectId: string
+    targetOrdinal: number
+  }
+
+  export type ProjectRuntimeEffectVolumeEvidenceCountOrderByAggregateInput = {
+    effectId?: SortOrder
+    targetOrdinal?: SortOrder
+    pvcUid?: SortOrder
+    pvcResourceVersion?: SortOrder
+    pvName?: SortOrder
+    pvUid?: SortOrder
+    pvResourceVersion?: SortOrder
+    csiDriver?: SortOrder
+    csiVolumeHandle?: SortOrder
+    providerResourceId?: SortOrder
+    evidenceHash?: SortOrder
+    observedAt?: SortOrder
+  }
+
+  export type ProjectRuntimeEffectVolumeEvidenceAvgOrderByAggregateInput = {
+    targetOrdinal?: SortOrder
+  }
+
+  export type ProjectRuntimeEffectVolumeEvidenceMaxOrderByAggregateInput = {
+    effectId?: SortOrder
+    targetOrdinal?: SortOrder
+    pvcUid?: SortOrder
+    pvcResourceVersion?: SortOrder
+    pvName?: SortOrder
+    pvUid?: SortOrder
+    pvResourceVersion?: SortOrder
+    csiDriver?: SortOrder
+    csiVolumeHandle?: SortOrder
+    providerResourceId?: SortOrder
+    evidenceHash?: SortOrder
+    observedAt?: SortOrder
+  }
+
+  export type ProjectRuntimeEffectVolumeEvidenceMinOrderByAggregateInput = {
+    effectId?: SortOrder
+    targetOrdinal?: SortOrder
+    pvcUid?: SortOrder
+    pvcResourceVersion?: SortOrder
+    pvName?: SortOrder
+    pvUid?: SortOrder
+    pvResourceVersion?: SortOrder
+    csiDriver?: SortOrder
+    csiVolumeHandle?: SortOrder
+    providerResourceId?: SortOrder
+    evidenceHash?: SortOrder
+    observedAt?: SortOrder
+  }
+
+  export type ProjectRuntimeEffectVolumeEvidenceSumOrderByAggregateInput = {
+    targetOrdinal?: SortOrder
   }
 
   export type ConnectorCatalogCountOrderByAggregateInput = {
@@ -264939,12 +266698,58 @@ export namespace Prisma {
     connect?: ProjectRuntimeEffectWhereUniqueInput
   }
 
+  export type ProjectRuntimeEffectVolumeEvidenceCreateNestedOneWithoutTargetInput = {
+    create?: XOR<ProjectRuntimeEffectVolumeEvidenceCreateWithoutTargetInput, ProjectRuntimeEffectVolumeEvidenceUncheckedCreateWithoutTargetInput>
+    connectOrCreate?: ProjectRuntimeEffectVolumeEvidenceCreateOrConnectWithoutTargetInput
+    connect?: ProjectRuntimeEffectVolumeEvidenceWhereUniqueInput
+  }
+
+  export type ProjectRuntimeEffectVolumeEvidenceUncheckedCreateNestedOneWithoutTargetInput = {
+    create?: XOR<ProjectRuntimeEffectVolumeEvidenceCreateWithoutTargetInput, ProjectRuntimeEffectVolumeEvidenceUncheckedCreateWithoutTargetInput>
+    connectOrCreate?: ProjectRuntimeEffectVolumeEvidenceCreateOrConnectWithoutTargetInput
+    connect?: ProjectRuntimeEffectVolumeEvidenceWhereUniqueInput
+  }
+
   export type ProjectRuntimeEffectUpdateOneRequiredWithoutTargetsNestedInput = {
     create?: XOR<ProjectRuntimeEffectCreateWithoutTargetsInput, ProjectRuntimeEffectUncheckedCreateWithoutTargetsInput>
     connectOrCreate?: ProjectRuntimeEffectCreateOrConnectWithoutTargetsInput
     upsert?: ProjectRuntimeEffectUpsertWithoutTargetsInput
     connect?: ProjectRuntimeEffectWhereUniqueInput
     update?: XOR<XOR<ProjectRuntimeEffectUpdateToOneWithWhereWithoutTargetsInput, ProjectRuntimeEffectUpdateWithoutTargetsInput>, ProjectRuntimeEffectUncheckedUpdateWithoutTargetsInput>
+  }
+
+  export type ProjectRuntimeEffectVolumeEvidenceUpdateOneWithoutTargetNestedInput = {
+    create?: XOR<ProjectRuntimeEffectVolumeEvidenceCreateWithoutTargetInput, ProjectRuntimeEffectVolumeEvidenceUncheckedCreateWithoutTargetInput>
+    connectOrCreate?: ProjectRuntimeEffectVolumeEvidenceCreateOrConnectWithoutTargetInput
+    upsert?: ProjectRuntimeEffectVolumeEvidenceUpsertWithoutTargetInput
+    disconnect?: ProjectRuntimeEffectVolumeEvidenceWhereInput | boolean
+    delete?: ProjectRuntimeEffectVolumeEvidenceWhereInput | boolean
+    connect?: ProjectRuntimeEffectVolumeEvidenceWhereUniqueInput
+    update?: XOR<XOR<ProjectRuntimeEffectVolumeEvidenceUpdateToOneWithWhereWithoutTargetInput, ProjectRuntimeEffectVolumeEvidenceUpdateWithoutTargetInput>, ProjectRuntimeEffectVolumeEvidenceUncheckedUpdateWithoutTargetInput>
+  }
+
+  export type ProjectRuntimeEffectVolumeEvidenceUncheckedUpdateOneWithoutTargetNestedInput = {
+    create?: XOR<ProjectRuntimeEffectVolumeEvidenceCreateWithoutTargetInput, ProjectRuntimeEffectVolumeEvidenceUncheckedCreateWithoutTargetInput>
+    connectOrCreate?: ProjectRuntimeEffectVolumeEvidenceCreateOrConnectWithoutTargetInput
+    upsert?: ProjectRuntimeEffectVolumeEvidenceUpsertWithoutTargetInput
+    disconnect?: ProjectRuntimeEffectVolumeEvidenceWhereInput | boolean
+    delete?: ProjectRuntimeEffectVolumeEvidenceWhereInput | boolean
+    connect?: ProjectRuntimeEffectVolumeEvidenceWhereUniqueInput
+    update?: XOR<XOR<ProjectRuntimeEffectVolumeEvidenceUpdateToOneWithWhereWithoutTargetInput, ProjectRuntimeEffectVolumeEvidenceUpdateWithoutTargetInput>, ProjectRuntimeEffectVolumeEvidenceUncheckedUpdateWithoutTargetInput>
+  }
+
+  export type ProjectRuntimeEffectTargetCreateNestedOneWithoutVolumeEvidenceInput = {
+    create?: XOR<ProjectRuntimeEffectTargetCreateWithoutVolumeEvidenceInput, ProjectRuntimeEffectTargetUncheckedCreateWithoutVolumeEvidenceInput>
+    connectOrCreate?: ProjectRuntimeEffectTargetCreateOrConnectWithoutVolumeEvidenceInput
+    connect?: ProjectRuntimeEffectTargetWhereUniqueInput
+  }
+
+  export type ProjectRuntimeEffectTargetUpdateOneRequiredWithoutVolumeEvidenceNestedInput = {
+    create?: XOR<ProjectRuntimeEffectTargetCreateWithoutVolumeEvidenceInput, ProjectRuntimeEffectTargetUncheckedCreateWithoutVolumeEvidenceInput>
+    connectOrCreate?: ProjectRuntimeEffectTargetCreateOrConnectWithoutVolumeEvidenceInput
+    upsert?: ProjectRuntimeEffectTargetUpsertWithoutVolumeEvidenceInput
+    connect?: ProjectRuntimeEffectTargetWhereUniqueInput
+    update?: XOR<XOR<ProjectRuntimeEffectTargetUpdateToOneWithWhereWithoutVolumeEvidenceInput, ProjectRuntimeEffectTargetUpdateWithoutVolumeEvidenceInput>, ProjectRuntimeEffectTargetUncheckedUpdateWithoutVolumeEvidenceInput>
   }
 
   export type ConnectorCatalogCreatedefaultScopesInput = {
@@ -279832,10 +281637,16 @@ export namespace Prisma {
     evidence?: NullableJsonNullValueInput | InputJsonValue
     verificationHash?: string | null
     verificationFencingToken?: bigint | number | null
+    quiescenceSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    quiescenceHash?: string | null
+    finalScanEvidence?: NullableJsonNullValueInput | InputJsonValue
+    finalScanHash?: string | null
+    finalScanFencingToken?: bigint | number | null
     preparedAt?: Date | string
     inventoriedAt?: Date | string | null
     erasingAt?: Date | string | null
     verifiedAt?: Date | string | null
+    finalScannedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     targets?: ProjectVolumeErasureTargetCreateNestedManyWithoutErasureInput
@@ -279853,10 +281664,16 @@ export namespace Prisma {
     evidence?: NullableJsonNullValueInput | InputJsonValue
     verificationHash?: string | null
     verificationFencingToken?: bigint | number | null
+    quiescenceSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    quiescenceHash?: string | null
+    finalScanEvidence?: NullableJsonNullValueInput | InputJsonValue
+    finalScanHash?: string | null
+    finalScanFencingToken?: bigint | number | null
     preparedAt?: Date | string
     inventoriedAt?: Date | string | null
     erasingAt?: Date | string | null
     verifiedAt?: Date | string | null
+    finalScannedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     targets?: ProjectVolumeErasureTargetUncheckedCreateNestedManyWithoutErasureInput
@@ -280117,10 +281934,16 @@ export namespace Prisma {
     evidence?: NullableJsonNullValueInput | InputJsonValue
     verificationHash?: NullableStringFieldUpdateOperationsInput | string | null
     verificationFencingToken?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    quiescenceSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    quiescenceHash?: NullableStringFieldUpdateOperationsInput | string | null
+    finalScanEvidence?: NullableJsonNullValueInput | InputJsonValue
+    finalScanHash?: NullableStringFieldUpdateOperationsInput | string | null
+    finalScanFencingToken?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
     preparedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     inventoriedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     erasingAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    finalScannedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     targets?: ProjectVolumeErasureTargetUpdateManyWithoutErasureNestedInput
@@ -280138,10 +281961,16 @@ export namespace Prisma {
     evidence?: NullableJsonNullValueInput | InputJsonValue
     verificationHash?: NullableStringFieldUpdateOperationsInput | string | null
     verificationFencingToken?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    quiescenceSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    quiescenceHash?: NullableStringFieldUpdateOperationsInput | string | null
+    finalScanEvidence?: NullableJsonNullValueInput | InputJsonValue
+    finalScanHash?: NullableStringFieldUpdateOperationsInput | string | null
+    finalScanFencingToken?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
     preparedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     inventoriedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     erasingAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    finalScannedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     targets?: ProjectVolumeErasureTargetUncheckedUpdateManyWithoutErasureNestedInput
@@ -280425,10 +282254,16 @@ export namespace Prisma {
     evidence?: NullableJsonNullValueInput | InputJsonValue
     verificationHash?: string | null
     verificationFencingToken?: bigint | number | null
+    quiescenceSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    quiescenceHash?: string | null
+    finalScanEvidence?: NullableJsonNullValueInput | InputJsonValue
+    finalScanHash?: string | null
+    finalScanFencingToken?: bigint | number | null
     preparedAt?: Date | string
     inventoriedAt?: Date | string | null
     erasingAt?: Date | string | null
     verifiedAt?: Date | string | null
+    finalScannedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     operation: ObjectStorageOperationCreateNestedOneWithoutProjectVolumeErasureInput
@@ -280447,10 +282282,16 @@ export namespace Prisma {
     evidence?: NullableJsonNullValueInput | InputJsonValue
     verificationHash?: string | null
     verificationFencingToken?: bigint | number | null
+    quiescenceSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    quiescenceHash?: string | null
+    finalScanEvidence?: NullableJsonNullValueInput | InputJsonValue
+    finalScanHash?: string | null
+    finalScanFencingToken?: bigint | number | null
     preparedAt?: Date | string
     inventoriedAt?: Date | string | null
     erasingAt?: Date | string | null
     verifiedAt?: Date | string | null
+    finalScannedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -280483,10 +282324,16 @@ export namespace Prisma {
     evidence?: NullableJsonNullValueInput | InputJsonValue
     verificationHash?: NullableStringFieldUpdateOperationsInput | string | null
     verificationFencingToken?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    quiescenceSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    quiescenceHash?: NullableStringFieldUpdateOperationsInput | string | null
+    finalScanEvidence?: NullableJsonNullValueInput | InputJsonValue
+    finalScanHash?: NullableStringFieldUpdateOperationsInput | string | null
+    finalScanFencingToken?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
     preparedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     inventoriedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     erasingAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    finalScannedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     operation?: ObjectStorageOperationUpdateOneRequiredWithoutProjectVolumeErasureNestedInput
@@ -280505,10 +282352,16 @@ export namespace Prisma {
     evidence?: NullableJsonNullValueInput | InputJsonValue
     verificationHash?: NullableStringFieldUpdateOperationsInput | string | null
     verificationFencingToken?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    quiescenceSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    quiescenceHash?: NullableStringFieldUpdateOperationsInput | string | null
+    finalScanEvidence?: NullableJsonNullValueInput | InputJsonValue
+    finalScanHash?: NullableStringFieldUpdateOperationsInput | string | null
+    finalScanFencingToken?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
     preparedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     inventoriedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     erasingAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    finalScannedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -305711,6 +307564,7 @@ export namespace Prisma {
     expectedUid?: string | null
     expectedResourceVersion?: string | null
     manifestDigest?: string | null
+    volumeEvidence?: ProjectRuntimeEffectVolumeEvidenceCreateNestedOneWithoutTargetInput
   }
 
   export type ProjectRuntimeEffectTargetUncheckedCreateWithoutEffectInput = {
@@ -305721,6 +307575,7 @@ export namespace Prisma {
     expectedUid?: string | null
     expectedResourceVersion?: string | null
     manifestDigest?: string | null
+    volumeEvidence?: ProjectRuntimeEffectVolumeEvidenceUncheckedCreateNestedOneWithoutTargetInput
   }
 
   export type ProjectRuntimeEffectTargetCreateOrConnectWithoutEffectInput = {
@@ -305951,6 +307806,37 @@ export namespace Prisma {
     create: XOR<ProjectRuntimeEffectCreateWithoutTargetsInput, ProjectRuntimeEffectUncheckedCreateWithoutTargetsInput>
   }
 
+  export type ProjectRuntimeEffectVolumeEvidenceCreateWithoutTargetInput = {
+    pvcUid: string
+    pvcResourceVersion: string
+    pvName: string
+    pvUid: string
+    pvResourceVersion: string
+    csiDriver: string
+    csiVolumeHandle: string
+    providerResourceId: string
+    evidenceHash: string
+    observedAt?: Date | string
+  }
+
+  export type ProjectRuntimeEffectVolumeEvidenceUncheckedCreateWithoutTargetInput = {
+    pvcUid: string
+    pvcResourceVersion: string
+    pvName: string
+    pvUid: string
+    pvResourceVersion: string
+    csiDriver: string
+    csiVolumeHandle: string
+    providerResourceId: string
+    evidenceHash: string
+    observedAt?: Date | string
+  }
+
+  export type ProjectRuntimeEffectVolumeEvidenceCreateOrConnectWithoutTargetInput = {
+    where: ProjectRuntimeEffectVolumeEvidenceWhereUniqueInput
+    create: XOR<ProjectRuntimeEffectVolumeEvidenceCreateWithoutTargetInput, ProjectRuntimeEffectVolumeEvidenceUncheckedCreateWithoutTargetInput>
+  }
+
   export type ProjectRuntimeEffectUpsertWithoutTargetsInput = {
     update: XOR<ProjectRuntimeEffectUpdateWithoutTargetsInput, ProjectRuntimeEffectUncheckedUpdateWithoutTargetsInput>
     create: XOR<ProjectRuntimeEffectCreateWithoutTargetsInput, ProjectRuntimeEffectUncheckedCreateWithoutTargetsInput>
@@ -306012,6 +307898,103 @@ export namespace Prisma {
     operatorQuiescenceHash?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProjectRuntimeEffectVolumeEvidenceUpsertWithoutTargetInput = {
+    update: XOR<ProjectRuntimeEffectVolumeEvidenceUpdateWithoutTargetInput, ProjectRuntimeEffectVolumeEvidenceUncheckedUpdateWithoutTargetInput>
+    create: XOR<ProjectRuntimeEffectVolumeEvidenceCreateWithoutTargetInput, ProjectRuntimeEffectVolumeEvidenceUncheckedCreateWithoutTargetInput>
+    where?: ProjectRuntimeEffectVolumeEvidenceWhereInput
+  }
+
+  export type ProjectRuntimeEffectVolumeEvidenceUpdateToOneWithWhereWithoutTargetInput = {
+    where?: ProjectRuntimeEffectVolumeEvidenceWhereInput
+    data: XOR<ProjectRuntimeEffectVolumeEvidenceUpdateWithoutTargetInput, ProjectRuntimeEffectVolumeEvidenceUncheckedUpdateWithoutTargetInput>
+  }
+
+  export type ProjectRuntimeEffectVolumeEvidenceUpdateWithoutTargetInput = {
+    pvcUid?: StringFieldUpdateOperationsInput | string
+    pvcResourceVersion?: StringFieldUpdateOperationsInput | string
+    pvName?: StringFieldUpdateOperationsInput | string
+    pvUid?: StringFieldUpdateOperationsInput | string
+    pvResourceVersion?: StringFieldUpdateOperationsInput | string
+    csiDriver?: StringFieldUpdateOperationsInput | string
+    csiVolumeHandle?: StringFieldUpdateOperationsInput | string
+    providerResourceId?: StringFieldUpdateOperationsInput | string
+    evidenceHash?: StringFieldUpdateOperationsInput | string
+    observedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProjectRuntimeEffectVolumeEvidenceUncheckedUpdateWithoutTargetInput = {
+    pvcUid?: StringFieldUpdateOperationsInput | string
+    pvcResourceVersion?: StringFieldUpdateOperationsInput | string
+    pvName?: StringFieldUpdateOperationsInput | string
+    pvUid?: StringFieldUpdateOperationsInput | string
+    pvResourceVersion?: StringFieldUpdateOperationsInput | string
+    csiDriver?: StringFieldUpdateOperationsInput | string
+    csiVolumeHandle?: StringFieldUpdateOperationsInput | string
+    providerResourceId?: StringFieldUpdateOperationsInput | string
+    evidenceHash?: StringFieldUpdateOperationsInput | string
+    observedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProjectRuntimeEffectTargetCreateWithoutVolumeEvidenceInput = {
+    ordinal: number
+    kind: string
+    namespace: string
+    name: string
+    expectedUid?: string | null
+    expectedResourceVersion?: string | null
+    manifestDigest?: string | null
+    effect: ProjectRuntimeEffectCreateNestedOneWithoutTargetsInput
+  }
+
+  export type ProjectRuntimeEffectTargetUncheckedCreateWithoutVolumeEvidenceInput = {
+    effectId: string
+    ordinal: number
+    kind: string
+    namespace: string
+    name: string
+    expectedUid?: string | null
+    expectedResourceVersion?: string | null
+    manifestDigest?: string | null
+  }
+
+  export type ProjectRuntimeEffectTargetCreateOrConnectWithoutVolumeEvidenceInput = {
+    where: ProjectRuntimeEffectTargetWhereUniqueInput
+    create: XOR<ProjectRuntimeEffectTargetCreateWithoutVolumeEvidenceInput, ProjectRuntimeEffectTargetUncheckedCreateWithoutVolumeEvidenceInput>
+  }
+
+  export type ProjectRuntimeEffectTargetUpsertWithoutVolumeEvidenceInput = {
+    update: XOR<ProjectRuntimeEffectTargetUpdateWithoutVolumeEvidenceInput, ProjectRuntimeEffectTargetUncheckedUpdateWithoutVolumeEvidenceInput>
+    create: XOR<ProjectRuntimeEffectTargetCreateWithoutVolumeEvidenceInput, ProjectRuntimeEffectTargetUncheckedCreateWithoutVolumeEvidenceInput>
+    where?: ProjectRuntimeEffectTargetWhereInput
+  }
+
+  export type ProjectRuntimeEffectTargetUpdateToOneWithWhereWithoutVolumeEvidenceInput = {
+    where?: ProjectRuntimeEffectTargetWhereInput
+    data: XOR<ProjectRuntimeEffectTargetUpdateWithoutVolumeEvidenceInput, ProjectRuntimeEffectTargetUncheckedUpdateWithoutVolumeEvidenceInput>
+  }
+
+  export type ProjectRuntimeEffectTargetUpdateWithoutVolumeEvidenceInput = {
+    ordinal?: IntFieldUpdateOperationsInput | number
+    kind?: StringFieldUpdateOperationsInput | string
+    namespace?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    expectedUid?: NullableStringFieldUpdateOperationsInput | string | null
+    expectedResourceVersion?: NullableStringFieldUpdateOperationsInput | string | null
+    manifestDigest?: NullableStringFieldUpdateOperationsInput | string | null
+    effect?: ProjectRuntimeEffectUpdateOneRequiredWithoutTargetsNestedInput
+  }
+
+  export type ProjectRuntimeEffectTargetUncheckedUpdateWithoutVolumeEvidenceInput = {
+    effectId?: StringFieldUpdateOperationsInput | string
+    ordinal?: IntFieldUpdateOperationsInput | number
+    kind?: StringFieldUpdateOperationsInput | string
+    namespace?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    expectedUid?: NullableStringFieldUpdateOperationsInput | string | null
+    expectedResourceVersion?: NullableStringFieldUpdateOperationsInput | string | null
+    manifestDigest?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type UserCreateWithoutUserConnectionsInput = {
@@ -328683,6 +330666,7 @@ export namespace Prisma {
     expectedUid?: NullableStringFieldUpdateOperationsInput | string | null
     expectedResourceVersion?: NullableStringFieldUpdateOperationsInput | string | null
     manifestDigest?: NullableStringFieldUpdateOperationsInput | string | null
+    volumeEvidence?: ProjectRuntimeEffectVolumeEvidenceUpdateOneWithoutTargetNestedInput
   }
 
   export type ProjectRuntimeEffectTargetUncheckedUpdateWithoutEffectInput = {
@@ -328693,6 +330677,7 @@ export namespace Prisma {
     expectedUid?: NullableStringFieldUpdateOperationsInput | string | null
     expectedResourceVersion?: NullableStringFieldUpdateOperationsInput | string | null
     manifestDigest?: NullableStringFieldUpdateOperationsInput | string | null
+    volumeEvidence?: ProjectRuntimeEffectVolumeEvidenceUncheckedUpdateOneWithoutTargetNestedInput
   }
 
   export type ProjectRuntimeEffectTargetUncheckedUpdateManyWithoutEffectInput = {

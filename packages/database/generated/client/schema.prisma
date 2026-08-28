@@ -511,10 +511,16 @@ model ProjectVolumeErasure {
   evidence                 Json?
   verificationHash         String?
   verificationFencingToken BigInt?
+  quiescenceSnapshot       Json?
+  quiescenceHash           String?
+  finalScanEvidence        Json?
+  finalScanHash            String?
+  finalScanFencingToken    BigInt?
   preparedAt               DateTime                     @default(now())
   inventoriedAt            DateTime?
   erasingAt                DateTime?
   verifiedAt               DateTime?
+  finalScannedAt           DateTime?
   createdAt                DateTime                     @default(now())
   updatedAt                DateTime                     @updatedAt
   operation                ObjectStorageOperation       @relation(fields: [operationId], references: [id], onDelete: Cascade, onUpdate: Cascade)
@@ -2508,11 +2514,35 @@ model ProjectRuntimeEffectTarget {
   expectedUid             String?
   expectedResourceVersion String?
   manifestDigest          String?
-  effect                  ProjectRuntimeEffect @relation(fields: [effectId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  effect                  ProjectRuntimeEffect                @relation(fields: [effectId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  volumeEvidence          ProjectRuntimeEffectVolumeEvidence?
 
   @@id([effectId, ordinal])
   @@unique([effectId, kind, namespace, name], map: "ProjectRuntimeEffectTarget_identity_key")
   @@index([kind, namespace, name], map: "ProjectRuntimeEffectTarget_resource_idx")
+}
+
+/// Immutable proof captured only after a CSI-producing effect returned and the
+/// claim was Bound. A SETTLED runtime effect with a PVC target must have this
+/// exact PVC→PV→CSI→provider identity, otherwise deletion remains fail-closed.
+model ProjectRuntimeEffectVolumeEvidence {
+  effectId           String
+  targetOrdinal      Int
+  pvcUid             String
+  pvcResourceVersion String
+  pvName             String
+  pvUid              String
+  pvResourceVersion  String
+  csiDriver          String
+  csiVolumeHandle    String
+  providerResourceId String
+  evidenceHash       String
+  observedAt         DateTime                   @default(now())
+  target             ProjectRuntimeEffectTarget @relation(fields: [effectId, targetOrdinal], references: [effectId, ordinal], onDelete: Cascade, onUpdate: Cascade)
+
+  @@id([effectId, targetOrdinal])
+  @@index([csiDriver, csiVolumeHandle], map: "ProjectRuntimeEffectVolumeEvidence_handle_idx")
+  @@index([pvcUid], map: "ProjectRuntimeEffectVolumeEvidence_pvcUid_idx")
 }
 
 // --- Integrations panel: connector catalog, user-scoped connections,

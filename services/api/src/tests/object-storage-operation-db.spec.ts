@@ -43,6 +43,7 @@ import {
   reclaimObjectStorageOperationForVerification,
   recordPermanentDeletionStaticArtifactPlan,
   reserveSignedCapabilityAuthorization,
+  yieldProjectPermanentDeletionVolumeBatch,
   type ClaimObjectStorageOperationInput,
   type ObjectStorageOperationLease,
   type ObjectStorageOperationRequestShape,
@@ -545,6 +546,48 @@ runDbTests('object-storage operation saga — real PostgreSQL', () => {
     } finally {
       await cleanupMutableSaga(prismaA, seeded.project.id, [seeded.source.id, seeded.target.id]);
       await Promise.allSettled([prismaA.$disconnect(), prismaB.$disconnect()]);
+    }
+  });
+
+  it('hands off one persisted permanent-delete volume batch without waiting for the API lease timeout', async () => {
+    const prisma = createDatabaseClient();
+    const seeded = await seedProject(prisma, 'object-saga-volume-batch');
+    const shape = request({
+      kind: 'PROJECT_PERMANENT_DELETE',
+      scopes: [{ projectId: seeded.project.id, expectedOrganizationId: seeded.source.id, expectedDeletedAt: null }],
+      payload: { command: 'permanently-delete-project' },
+    });
+    const idempotencyKey = `volume-batch-${suffix()}`;
+    const firstInput = claimInput(shape, { idempotencyKey, ownerToken: `volume-owner-a-${suffix()}` });
+
+    try {
+      const first = await claim(prisma, firstInput);
+      if (first.kind !== 'ACQUIRED') throw new Error('EXPECTED_FIRST_VOLUME_BATCH_LEASE');
+      await prisma.$transaction(async (tx) => {
+        await markObjectStorageOperationEffectStarted(tx, first.lease, { command: 'project-permanent-delete' });
+        await yieldProjectPermanentDeletionVolumeBatch(tx, first.lease, {
+          schemaVersion: 'workspace-project-erasure-progress-v1',
+          complete: false,
+          phase: 'volume-erasure',
+          processed: 1,
+          remaining: 2,
+        });
+      });
+
+      const resumed = await claim(
+        prisma,
+        claimInput(shape, { idempotencyKey, ownerToken: `volume-owner-b-${suffix()}` }),
+      );
+      expect(resumed.kind).toBe('ACQUIRED');
+      if (resumed.kind !== 'ACQUIRED') throw new Error('EXPECTED_RESUMED_VOLUME_BATCH_LEASE');
+      expect(resumed.operation).toMatchObject({ status: 'EFFECT_STARTED', attempts: 2 });
+      expect(resumed.lease.fencingToken).toBe(first.lease.fencingToken + 1n);
+      await expect(
+        prisma.$transaction((tx) => assertObjectStorageOperationFence(tx, resumed.lease)),
+      ).resolves.toMatchObject({ id: resumed.operation.id, status: 'EFFECT_STARTED' });
+    } finally {
+      await cleanupMutableSaga(prisma, seeded.project.id, [seeded.source.id, seeded.target.id]);
+      await prisma.$disconnect();
     }
   });
 
@@ -1761,7 +1804,7 @@ runDbTests('object-storage operation saga — real PostgreSQL', () => {
         outcome: 'VERIFIED_ABSENT' as const,
         verifier: 'project-delete-preflight-test-v1',
         evidence: {
-          schemaVersion: 'project-permanent-erasure-v2',
+          schemaVersion: 'project-permanent-erasure-v3',
           filesystem: {
             projectTreeAbsent: true,
             workspaceTreesAbsent: true,
@@ -1864,6 +1907,74 @@ runDbTests('object-storage operation saga — real PostgreSQL', () => {
       await cleanupMutableSaga(prisma, seeded.project.id, [seeded.source.id, seeded.target.id]);
       await prisma.user.deleteMany({ where: { id: actor.id } }).catch(() => undefined);
       await prisma.$disconnect();
+    }
+  });
+
+  it('replays persisted workspace-volume batches immediately without repeating permanent-delete preflight', async () => {
+    const prisma = createDatabaseClient();
+    const seeded = await seedProject(prisma, 'object-saga-delete-volume-batches');
+    const actor = await prisma.user.create({ data: { email: `delete-volume-batches-${suffix()}@example.test` } });
+    const store = new PrismaApiStore(prisma);
+    const idempotencyKey = `delete-volume-batches-${suffix()}`;
+    const requestHash = projectPermanentDeletionRequestHash({
+      projectId: seeded.project.id,
+      organizationId: seeded.source.id,
+      actorUserId: actor.id,
+      expectedProjectName: seeded.project.name,
+    });
+    const preflightPhysicalErasure = vi.fn(async () => EMPTY_STATIC_ARTIFACT_SUMMARY);
+    const erasePhysical = vi.fn(async () => {
+      throw Object.assign(new Error('PROJECT_WORKSPACE_ERASURE_REPLAY_REQUIRED'), {
+        code: 'PROJECT_WORKSPACE_ERASURE_REPLAY_REQUIRED',
+        statusCode: 503,
+        progress: {
+          schemaVersion: 'workspace-project-erasure-progress-v1' as const,
+          complete: false as const,
+          phase: 'volume-erasure' as const,
+          processed: 1,
+          remaining: 2,
+        },
+      });
+    });
+    const deletion = {
+      projectId: seeded.project.id,
+      expectedOrganizationId: seeded.source.id,
+      expectedProjectName: seeded.project.name,
+      idempotencyKey,
+      requestHash,
+      actorUserId: actor.id,
+      preflightPhysicalErasure,
+      erasePhysical,
+      verifyPhysicalAbsence: vi.fn(),
+    };
+
+    try {
+      await expect(store.hardDeleteProject(deletion)).rejects.toMatchObject({
+        code: 'PROJECT_WORKSPACE_ERASURE_REPLAY_REQUIRED',
+      });
+      await expect(store.hardDeleteProject(deletion)).rejects.toMatchObject({
+        code: 'PROJECT_WORKSPACE_ERASURE_REPLAY_REQUIRED',
+      });
+      expect(preflightPhysicalErasure).toHaveBeenCalledOnce();
+      expect(erasePhysical).toHaveBeenCalledTimes(2);
+      expect(deletion.verifyPhysicalAbsence).not.toHaveBeenCalled();
+      await expect(
+        prisma.$queryRaw<Array<{ status: string; attempts: number; lastErrorCode: string | null }>>`
+          SELECT "status"::text AS "status", "attempts", "lastErrorCode"
+          FROM "ObjectStorageOperation"
+          WHERE "idempotencyKey" = ${idempotencyKey}
+        `,
+      ).resolves.toEqual([
+        {
+          status: 'EFFECT_STARTED',
+          attempts: 2,
+          lastErrorCode: 'PROJECT_VOLUME_ERASURE_BATCH_REPLAY_REQUIRED',
+        },
+      ]);
+    } finally {
+      await cleanupMutableSaga(prisma, seeded.project.id, [seeded.source.id, seeded.target.id]);
+      await prisma.user.deleteMany({ where: { id: actor.id } }).catch(() => undefined);
+      await store.disconnect();
     }
   });
 
@@ -1970,7 +2081,7 @@ runDbTests('object-storage operation saga — real PostgreSQL', () => {
         outcome: 'VERIFIED_ABSENT' as const,
         verifier: 'project-delete-retry-test-v1',
         evidence: {
-          schemaVersion: 'project-permanent-erasure-v2',
+          schemaVersion: 'project-permanent-erasure-v3',
           filesystem: {
             projectTreeAbsent: true,
             workspaceTreesAbsent: true,
@@ -2067,7 +2178,7 @@ runDbTests('object-storage operation saga — real PostgreSQL', () => {
       outcome: 'VERIFIED_ABSENT' as const,
       verifier: 'workspace-runtime-fence-test-v1',
       evidence: {
-        schemaVersion: 'project-permanent-erasure-v2',
+        schemaVersion: 'project-permanent-erasure-v3',
         filesystem: {
           projectTreeAbsent: true,
           workspaceTreesAbsent: true,
@@ -2096,13 +2207,17 @@ runDbTests('object-storage operation saga — real PostgreSQL', () => {
             persistentVolumeClaimsAbsent: true,
           },
           volumes: {
-            schemaVersion: 1 as const,
+            schemaVersion: 'project-volume-erasure-receipt-v1' as const,
+            operationId: 'unverified-operation',
+            projectId: seeded.project.id,
+            organizationId: seeded.source.id,
             inventoryHash: '0'.repeat(64),
             verificationHash: '0'.repeat(64),
+            finalScanHash: '0'.repeat(64),
+            quiescenceHash: '0'.repeat(64),
             entryCount: 0,
             erasedEntryCount: 0,
             alreadyAbsentEntryCount: 0,
-            sharedExclusionCount: 0 as const,
             persistentVolumeClaimsAbsent: true as const,
             persistentVolumesAbsent: true as const,
             providerVolumesAbsent: true as const,
@@ -2248,7 +2363,7 @@ runDbTests('object-storage operation saga — real PostgreSQL', () => {
           outcome: 'VERIFIED_ABSENT' as const,
           verifier: 'gcs-inventory-v1',
           evidence: {
-            schemaVersion: 'project-permanent-erasure-v2',
+            schemaVersion: 'project-permanent-erasure-v3',
             filesystem: {
               projectTreeAbsent: true,
               workspaceTreesAbsent: true,
