@@ -8,6 +8,8 @@ import { buildPublishedDeploymentInput, canPublishDeployment } from '../deployme
 import type { EmailProvider } from '../email.js';
 import type { ServerImagePromotionInput } from '../server-image-promotion.js';
 import type { DeploymentRecord } from '../store.js';
+import { DETERMINISTIC_RELEASE_PLAN_ENTITLEMENTS } from './deterministic-release-fixture.js';
+import { acquireTestProjectReleaseFence } from './project-release-barrier-fixture.js';
 import { TestApiStore } from './test-api-store.js';
 
 class TestEmailProvider implements EmailProvider {
@@ -94,9 +96,82 @@ async function setup(options: ApiAppOptions = {}) {
   return { app, store, token: 'pub-token', project, projectManifestDigest: manifest.digest };
 }
 
+async function seedServerImagePackageAuthority(
+  store: TestApiStore,
+  project: { id: string; organizationId: string },
+  sourceRepository: string,
+  targetRepository: string,
+  digest: string,
+) {
+  const operationId = `fixture:image-build:${project.id}`;
+  const operationTag = `fixture-${project.id}`;
+  const buildId = `build-${project.id}`;
+  const release = await acquireTestProjectReleaseFence(store, {
+    projectId: project.id,
+    organizationId: project.organizationId,
+    operationId,
+  });
+
+  try {
+    await store.prepareAppImageBuild({
+      operationId,
+      projectId: project.id,
+      deploymentId: `fixture-deployment-${project.id}`,
+      provider: {
+        gcpProject: 'build-project',
+        region: 'europe-west9',
+        sourceBucket: 'fixture-build-source',
+        sourceObject: `${project.id}/context.tgz`,
+        imageUri: `${sourceRepository}:fixture`,
+        buildServiceAccount: 'fixture-builder@build-project.iam.gserviceaccount.com',
+      },
+      operationTag,
+      intentHash: `fixture-intent-${project.id}`,
+      releaseFence: release.releaseFence,
+    });
+    await store.markAppImageBuildSubmissionStarted({
+      operationId,
+      projectId: project.id,
+      operationTag,
+      releaseFence: release.releaseFence,
+    });
+    await store.recordAppImageBuildIdentity({
+      operationId,
+      projectId: project.id,
+      buildId,
+      operationTag,
+      releaseFence: release.releaseFence,
+    });
+    await store.recordAppImageBuildTerminal({
+      operationId,
+      projectId: project.id,
+      buildId,
+      providerStatus: 'SUCCESS',
+      digest,
+      releaseFence: release.releaseFence,
+    });
+    await store.prepareAppImageBuildPromotion({
+      operationId,
+      projectId: project.id,
+      targetRepository,
+      releaseFence: release.releaseFence,
+    });
+    await store.recordAppImageBuildPromotion({
+      operationId,
+      projectId: project.id,
+      targetRepository,
+      targetDigest: digest,
+      promotionReferences: { fixture: true },
+      releaseFence: release.releaseFence,
+    });
+  } finally {
+    await release.release();
+  }
+}
+
 describe('POST /projects/:id/deployments/:id/publish', () => {
   it('promotes a READY preview deployment to a linked production deployment', async () => {
-    const { app, store, token, project } = await setup();
+    const { app, store, token, project, projectManifestDigest } = await setup();
     const source = await store.createDeployment({
       projectId: project.id,
       expectedOrganizationId: project.organizationId,
@@ -104,6 +179,7 @@ describe('POST /projects/:id/deployments/:id/publish', () => {
       environment: 'preview',
       status: 'READY',
       url: 'https://preview.example/',
+      metadata: { projectManifestDigest },
     });
 
     const res = await app.inject({
@@ -123,13 +199,14 @@ describe('POST /projects/:id/deployments/:id/publish', () => {
   });
 
   it('rejects publishing a deployment that is not READY (409)', async () => {
-    const { app, store, token, project } = await setup();
+    const { app, store, token, project, projectManifestDigest } = await setup();
     const source = await store.createDeployment({
       projectId: project.id,
       expectedOrganizationId: project.organizationId,
       provider: 'static',
       environment: 'preview',
       status: 'BUILDING',
+      metadata: { projectManifestDigest },
     });
 
     const res = await app.inject({
@@ -156,7 +233,9 @@ describe('POST /projects/:id/deployments/:id/publish', () => {
 
   it('provisions a production DatabaseInstance on publish when DB provisioning is enabled (P2d split)', async () => {
     const original = process.env.DB_ROLLBACK_ENABLED;
+    const originalBackupBucket = process.env.DB_BACKUP_BUCKET;
     process.env.DB_ROLLBACK_ENABLED = 'true';
+    process.env.DB_BACKUP_BUCKET = 'fixture-cnpg-backups';
 
     try {
       const provisionInstance = vi.fn(async () => ({
@@ -167,7 +246,7 @@ describe('POST /projects/:id/deployments/:id/publish', () => {
         active: true,
         provisionInstance,
       } as unknown as DatabaseProvisioner;
-      const { app, store, token, project } = await setup({ databaseProvisioner });
+      const { app, store, token, project, projectManifestDigest } = await setup({ databaseProvisioner });
       const source = await store.createDeployment({
         projectId: project.id,
         expectedOrganizationId: project.organizationId,
@@ -175,6 +254,7 @@ describe('POST /projects/:id/deployments/:id/publish', () => {
         environment: 'preview',
         status: 'READY',
         url: 'https://preview.example/',
+        metadata: { projectManifestDigest },
       });
 
       // no production DB before publish
@@ -200,6 +280,12 @@ describe('POST /projects/:id/deployments/:id/publish', () => {
         delete (process.env as Record<string, string | undefined>).DB_ROLLBACK_ENABLED;
       } else {
         process.env.DB_ROLLBACK_ENABLED = original;
+      }
+
+      if (originalBackupBucket === undefined) {
+        delete process.env.DB_BACKUP_BUCKET;
+      } else {
+        process.env.DB_BACKUP_BUCKET = originalBackupBucket;
       }
     }
   });
@@ -262,14 +348,18 @@ describe('POST /projects/:id/deployments/:id/publish', () => {
         return new Response('{}', { status: 200, headers: { 'content-type': 'application/json' } });
       }) as unknown as typeof fetch;
       const sourceRepo = `europe-west9-docker.pkg.dev/build-project/build-repo/p-${project.id.toLowerCase()}`;
+      const targetRepo = `europe-west9-docker.pkg.dev/tenant-project/releases/p-${project.id.toLowerCase()}`;
+      await seedServerImagePackageAuthority(store, project, sourceRepo, targetRepo, digest);
       const source = await store.createDeployment({
         projectId: project.id,
         expectedOrganizationId: project.organizationId,
         provider: 'server',
         environment: 'preview',
         status: 'READY',
+        machineSize: 'shared-0.5',
         url: 'https://preview-server.example/',
         metadata: {
+          planEntitlements: DETERMINISTIC_RELEASE_PLAN_ENTITLEMENTS,
           projectManifestDigest,
           serverDeploy: {
             image: { sourceImageRef: sourceRepo, imageRef: sourceRepo, imageDigest: digest },
@@ -317,13 +407,17 @@ describe('POST /projects/:id/deployments/:id/publish', () => {
       });
       const digest = `sha256:${'a'.repeat(64)}`;
       const sourceRepo = `europe-west9-docker.pkg.dev/build-project/build-repo/p-${project.id.toLowerCase()}`;
+      const targetRepo = `europe-west9-docker.pkg.dev/tenant-project/releases/p-${project.id.toLowerCase()}`;
+      await seedServerImagePackageAuthority(store, project, sourceRepo, targetRepo, digest);
       const source = await store.createDeployment({
         projectId: project.id,
         expectedOrganizationId: project.organizationId,
         provider: 'server',
         environment: 'preview',
         status: 'READY',
+        machineSize: 'shared-0.5',
         metadata: {
+          planEntitlements: DETERMINISTIC_RELEASE_PLAN_ENTITLEMENTS,
           projectManifestDigest,
           serverDeploy: { image: { sourceImageRef: sourceRepo, imageDigest: digest } },
         },
