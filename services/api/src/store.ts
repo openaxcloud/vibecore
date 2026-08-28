@@ -10,6 +10,7 @@ import {
 import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
 import type { AccountPurgePreview, PurgeStorageDeps, PurgeUserAccountResult } from './account-purge.js';
 import type { DeploymentAccessMode, DeploymentAccessPolicyRecord } from './deployment-access.js';
+import type { RollbackSuccessReceipt } from './rollback-response.js';
 
 export interface UserRecord {
   id: string;
@@ -1014,6 +1015,7 @@ export interface StaticRollbackReleaseCommitInput extends RollbackLeaseFence {
   logs: DeploymentRecord['logs'];
   finishedAt: string;
   releaseFence: ProjectReleaseFence;
+  responseContentLanguage: 'en' | 'fr';
 }
 
 /** Atomic READY + immutable manifest commit for ordinary static publishes/redeploys. */
@@ -1067,6 +1069,8 @@ export interface SetDeploymentAccessPolicyInput {
 
   /** Required for a READY server release and exactly equal to the source runtime's DB pin. */
   releaseDatabasePin?: ReleaseDatabasePin;
+  /** Re-proves the held target-DB session immediately before policy + manifest writes. */
+  assertDatabasePinHeld?: () => Promise<void>;
 }
 
 export type DeploymentAccessTicketMutationResult =
@@ -1111,6 +1115,8 @@ export interface ServerImageReleaseCommitInput {
 
   /** Required for rollback-owned deployments; omitted by ordinary publishes. */
   rollbackFence?: RollbackLeaseFence;
+  /** Mandatory together with rollbackFence; the store builds the exact durable 201 body. */
+  rollbackResponseContentLanguage?: 'en' | 'fr';
 
   /**
    * When a promoted image belongs to a Reserved VM saga, release publication,
@@ -1128,6 +1134,7 @@ export interface ServerImageReleaseCommitResult {
   committed: boolean;
   deployment: DeploymentRecord;
   manifest?: ReleaseManifestRecord;
+  rollbackReceipt?: RollbackSuccessReceipt;
 }
 
 /** Atomic READY transition for legacy server runtimes without a promoted image. */
@@ -3700,6 +3707,7 @@ export interface ApiStore {
   commitStaticRollbackRelease(input: StaticRollbackReleaseCommitInput): Promise<{
     deployment: DeploymentRecord;
     manifest: ReleaseManifestRecord;
+    rollbackReceipt: RollbackSuccessReceipt;
   }>;
   /** Atomically append an ordinary static manifest and transition to READY. */
   commitStaticRelease(input: StaticReleaseCommitInput): Promise<StaticReleaseCommitResult>;

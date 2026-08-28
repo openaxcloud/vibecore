@@ -2,6 +2,7 @@ import { createHash, randomUUID } from 'node:crypto';
 
 import type { DatabaseProvisioner } from './database-provisioner.js';
 import { MigrationRolledBackError } from './db-migration-applier.js';
+import { MIGRATION_LEDGER_SERIALIZATION_LOCK_KEY } from './db-migration-lock.js';
 
 export const MIGRATION_MANIFEST_PATH = 'migrations/ecode.publish.json';
 export const MIGRATION_ACTIVE_STATES = [
@@ -366,7 +367,7 @@ async function finalizeRecoveredExecution(input: {
 
   const inspection = await input.applier.inspect({
     connectionString: input.connectionString,
-    lockKey: `${execution.projectId}:${execution.environment}`,
+    lockKey: MIGRATION_LEDGER_SERIALIZATION_LOCK_KEY,
     plan: execution.plan,
   });
   await input.lease.guard();
@@ -593,7 +594,7 @@ export async function runPublishMigration(input: RunPublishMigrationInput): Prom
     try {
       const result = await input.applier.apply({
         connectionString: input.connectionString,
-        lockKey: `${input.projectId}:${input.environment}`,
+        lockKey: MIGRATION_LEDGER_SERIALIZATION_LOCK_KEY,
         migrations: input.migrations,
         beforeCommit: () => lease.guard(),
       });
@@ -607,7 +608,7 @@ export async function runPublishMigration(input: RunPublishMigrationInput): Prom
 
     const inspection = await input.applier.inspect({
       connectionString: input.connectionString,
-      lockKey: `${input.projectId}:${input.environment}`,
+      lockKey: MIGRATION_LEDGER_SERIALIZATION_LOCK_KEY,
       plan,
     });
     await lease.guard();
@@ -667,7 +668,7 @@ export async function runPublishMigration(input: RunPublishMigrationInput): Prom
     const inspected = await input.applier
       .inspect({
         connectionString: input.connectionString,
-        lockKey: `${input.projectId}:${input.environment}`,
+        lockKey: MIGRATION_LEDGER_SERIALIZATION_LOCK_KEY,
         plan,
       })
       .catch((): MigrationTargetInspection => ({ status: 'UNAVAILABLE', applied: [] }));

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import {
   parseServerRollbackPromotionEvidence,
@@ -215,6 +215,7 @@ describe('commitServerImageRelease', () => {
     const committed = await store.commitServerImageRelease(input);
     const source = committed.manifest!;
     const sourceRuntime = parseServerRollbackRuntimeSpec(source.runtimeSpec);
+    const assertDatabasePinHeld = vi.fn(async () => {});
 
     const policy = await store.setDeploymentAccessPolicy({
       projectId: input.projectId,
@@ -224,9 +225,11 @@ describe('commitServerImageRelease', () => {
       releaseSource: source,
       releaseFence: release.releaseFence,
       releaseDatabasePin: sourceRuntime.spec.database,
+      assertDatabasePinHeld,
     });
 
     expect(policy?.version).toBe(2);
+    expect(assertDatabasePinHeld).toHaveBeenCalledTimes(1);
     const releases = await store.listReleaseManifests(input.projectId, input.environment);
     expect(releases).toHaveLength(2);
     const rebound = releases[0]!;

@@ -50,9 +50,11 @@ import {
   rollbackPlanEntitlementsDigest,
   sameServerRollbackRuntimePinsForPublish,
   serverRollbackMachineMatchesRateCard,
+  serverRollbackRuntimeMatchesDeployment,
   validateServerReleaseCommitPins,
 } from '../deterministic-rollback.js';
 import { isCommittedPromotionForTenant, SERVER_IMAGE_RELEASE_AUDIT_ACTION } from '../server-image-promotion.js';
+import { buildRollbackSuccessReceipt } from '../rollback-response.js';
 import { DEFAULT_ENV_VAR_SCOPE, parseReleasePlanEntitlementsPin, sameReleasePlanEntitlementsPin } from '../store.js';
 import type {
   EnvVarScope,
@@ -4938,14 +4940,14 @@ export class TestApiStore implements ApiStore {
     manifest: ReleaseManifestRecord;
     organizationId: string;
     projectId: string;
-    machineKey?: string;
+    deployment: DeploymentRecord;
     promotion: unknown;
   }) {
-    if (!input.machineKey || !input.manifest.planEntitlements || !input.manifest.projectManifestDigest) {
+    if (!input.deployment.machineSize || !input.manifest.planEntitlements || !input.manifest.projectManifestDigest) {
       throw new Error('RESERVED_VM_RELEASE_SOURCE_INVALID');
     }
 
-    return validateServerReleaseCommitPins({
+    const pins = validateServerReleaseCommitPins({
       runtimeSpec: input.manifest.runtimeSpec,
       promotionEvidence: input.manifest.promotionEvidence,
       organizationId: input.organizationId,
@@ -4954,12 +4956,18 @@ export class TestApiStore implements ApiStore {
       projectManifestDigest: input.manifest.projectManifestDigest,
       planEntitlements: input.manifest.planEntitlements,
       accessPolicyVersion: input.manifest.accessPolicyVersion,
-      machineKey: input.machineKey,
+      machineKey: input.deployment.machineSize,
       artifactRef: input.manifest.artifactRef,
       artifactDigest: input.manifest.artifactDigest,
       dbMigrationPoint: input.manifest.dbMigrationPoint,
       promotion: input.promotion,
     });
+
+    if (!serverRollbackRuntimeMatchesDeployment(pins.runtimeSpec, input.deployment)) {
+      throw new Error('RESERVED_VM_RELEASE_SOURCE_INVALID');
+    }
+
+    return pins;
   }
 
   private _reservedVmPublishCandidate(
@@ -5023,7 +5031,7 @@ export class TestApiStore implements ApiStore {
             manifest: releaseSource,
             organizationId: input.organizationId,
             projectId: input.projectId,
-            machineKey: deployment.machineSize,
+            deployment,
             promotion: serverDeploy?.promotion,
           })
         : undefined;
@@ -5032,7 +5040,7 @@ export class TestApiStore implements ApiStore {
             manifest: committedProductionRelease,
             organizationId: input.organizationId,
             projectId: input.projectId,
-            machineKey: deployment.machineSize,
+            deployment,
             promotion: serverDeploy?.promotion,
           })
         : undefined;
@@ -5102,7 +5110,7 @@ export class TestApiStore implements ApiStore {
           manifest: releaseSource,
           organizationId: input.organizationId,
           projectId: input.projectId,
-          machineKey: deployment.machineSize,
+          deployment,
           promotion: serverDeploy?.promotion,
         })
       : undefined;
@@ -5661,7 +5669,8 @@ export class TestApiStore implements ApiStore {
         input.releaseSource.provider !== 'server' ||
         input.releaseSource.artifactKind !== 'server-image' ||
         input.releaseSource.accessPolicyVersion !== deployment.accessPolicyVersion ||
-        !input.releaseDatabasePin
+        !input.releaseDatabasePin ||
+        !input.assertDatabasePinHeld
       ) {
         throw Object.assign(new Error('DEPLOYMENT_ACCESS_RELEASE_MANIFEST_MISMATCH'), {
           statusCode: 409,
@@ -5693,7 +5702,10 @@ export class TestApiStore implements ApiStore {
         ...(input.releaseSource.dbMigrationPoint ? { dbMigrationPoint: input.releaseSource.dbMigrationPoint } : {}),
         promotion: sourcePromotion.promotion,
       });
-      if (rollbackManifestDigest(input.releaseDatabasePin) !== rollbackManifestDigest(validated.runtimeSpec.database)) {
+      if (
+        rollbackManifestDigest(input.releaseDatabasePin) !== rollbackManifestDigest(validated.runtimeSpec.database) ||
+        !serverRollbackRuntimeMatchesDeployment(validated.runtimeSpec, deployment)
+      ) {
         throw Object.assign(new Error('DEPLOYMENT_ACCESS_RELEASE_MANIFEST_MISMATCH'), {
           statusCode: 409,
           code: 'DEPLOYMENT_ACCESS_RELEASE_MANIFEST_MISMATCH',
@@ -5723,6 +5735,7 @@ export class TestApiStore implements ApiStore {
           : {}),
         promotion: sourcePromotion.promotion,
       });
+      await input.assertDatabasePinHeld();
     } else if (input.releaseSource?.promotionEvidence !== undefined) {
       const staticEvidence = parseStaticRollbackRoutingEvidence(input.releaseSource.promotionEvidence);
 
@@ -6079,7 +6092,8 @@ export class TestApiStore implements ApiStore {
         !serverRollbackMachineMatchesRateCard(
           retained.runtimeSpec.machine,
           retained.runtimeSpec.machine.rateCardVersion === BUILTIN_RATE_CARD.version ? BUILTIN_RATE_CARD : undefined,
-        )
+        ) ||
+        !serverRollbackRuntimeMatchesDeployment(retained.runtimeSpec, deployment)
       ) {
         throw new DeterministicRollbackError('ROLLBACK_RUNTIME_SPEC_MACHINE_INVALID');
       }
@@ -6218,6 +6232,47 @@ export class TestApiStore implements ApiStore {
     }
 
     return source;
+  }
+
+  private _completeRollbackSuccess(
+    operation: RollbackOperationRecord,
+    deployment: DeploymentRecord,
+    source: ReleaseManifestRecord,
+    responseContentLanguage: 'en' | 'fr',
+  ) {
+    if (
+      operation.deploymentId !== deployment.id ||
+      operation.previousManifestId !== source.id ||
+      operation.expectedHeadVersion === undefined ||
+      !['EFFECT_STARTED', 'RELEASE_COMMITTED'].includes(operation.phase) ||
+      deployment.status !== 'READY'
+    ) {
+      throw new Error('ROLLBACK_RESPONSE_PHASE_CONFLICT');
+    }
+
+    const rollbackReceipt = buildRollbackSuccessReceipt({
+      deployment,
+      responseContentLanguage,
+      restoredFromVersion: source.version,
+      restoredFromDeploymentId: source.deploymentId,
+      supersededVersion: operation.expectedHeadVersion,
+      verifiedArtifactDigest: source.artifactDigest,
+      url: deployment.url ?? '',
+    });
+    const completed: RollbackOperationRecord = {
+      ...operation,
+      status: 'COMPLETED',
+      phase: 'RELEASE_COMMITTED',
+      leaseOwner: undefined,
+      leaseExpiresAt: undefined,
+      responseStatus: rollbackReceipt.responseStatus,
+      responseContentLanguage: rollbackReceipt.responseContentLanguage,
+      responseBody: rollbackReceipt.responseBody,
+      completedAt: now(),
+      updatedAt: now(),
+    };
+    this.rollbackOperations.set(this._rollbackOperationKey(operation.projectId, operation.idempotencyKey), completed);
+    return rollbackReceipt;
   }
 
   async acquireRollbackOperation(input: {
@@ -6575,6 +6630,22 @@ export class TestApiStore implements ApiStore {
       throw new TypeError('INVALID_ROLLBACK_RESPONSE_BODY');
     }
 
+    const existing = [...this.rollbackOperations.values()].find((candidate) => candidate.id === input.operationId);
+    if (existing?.status === 'COMPLETED') {
+      if (
+        existing.phase !== 'RELEASE_COMMITTED' ||
+        existing.responseStatus !== input.responseStatus ||
+        existing.responseContentLanguage !== input.responseContentLanguage ||
+        rollbackManifestDigest(existing.responseBody) !== rollbackManifestDigest(input.responseBody)
+      ) {
+        throw Object.assign(new Error('ROLLBACK_RESPONSE_REPLAY_CONFLICT'), {
+          code: 'ROLLBACK_RESPONSE_REPLAY_CONFLICT',
+          statusCode: 409,
+        });
+      }
+      return existing;
+    }
+
     const operation = this._requireRollbackLease(input);
 
     if (input.responseStatus < 400 && operation.phase !== 'RELEASE_COMMITTED') {
@@ -6813,7 +6884,11 @@ export class TestApiStore implements ApiStore {
           throw new Error('STATIC_ROLLBACK_RELEASE_CONFLICT');
         }
 
-        return { deployment, manifest: existing };
+        return {
+          deployment,
+          manifest: existing,
+          rollbackReceipt: this._completeRollbackSuccess(operation, deployment, source, input.responseContentLanguage),
+        };
       }
 
       const metadata = deployment.metadata as Record<string, unknown>;
@@ -6870,10 +6945,11 @@ export class TestApiStore implements ApiStore {
         finishedAt: input.finishedAt,
       });
 
-      const updated = { ...operation, phase: 'RELEASE_COMMITTED' as const, updatedAt: now() };
-      this.rollbackOperations.set(this._rollbackOperationKey(operation.projectId, operation.idempotencyKey), updated);
-
-      return { deployment: ready, manifest };
+      return {
+        deployment: ready,
+        manifest,
+        rollbackReceipt: this._completeRollbackSuccess(operation, ready, source, input.responseContentLanguage),
+      };
     });
   }
 
@@ -6881,6 +6957,9 @@ export class TestApiStore implements ApiStore {
     return this.withSerializedMutation(`release-manifest:${input.projectId}:${input.environment}`, async () => {
       if (input.rollbackFence && input.reservedVmFence) {
         throw new Error('SERVER_RELEASE_FENCE_CONFLICT');
+      }
+      if (input.rollbackFence && !input.rollbackResponseContentLanguage) {
+        throw new TypeError('ROLLBACK_RESPONSE_CONTENT_LANGUAGE_REQUIRED');
       }
 
       await this.assertProjectReleaseBarrier({ projectId: input.projectId, ...input.releaseFence });
@@ -6969,6 +7048,7 @@ export class TestApiStore implements ApiStore {
           retainedRuntime.machine.cpuMillicores === reservedOperation.targetCpuMillicores &&
           retainedRuntime.machine.memoryMb === reservedOperation.targetMemoryMb &&
           retainedRuntime.machine.rateCardVersion === reservedOperation.rateCardVersion);
+      const releaseRuntimeMatchesDeployment = serverRollbackRuntimeMatchesDeployment(retainedRuntime, deployment);
 
       if (
         !project ||
@@ -7011,6 +7091,7 @@ export class TestApiStore implements ApiStore {
         retainedRuntime.machine.key !== deployment.machineSize ||
         !releaseMachineMatchesHistoricalCard ||
         !reservedReleaseMachineMatches ||
+        !releaseRuntimeMatchesDeployment ||
         retainedRuntime.secretPolicy !== 'CURRENT' ||
         (retainedRuntime.database.mode === 'none'
           ? input.dbMigrationPoint !== undefined
@@ -7034,6 +7115,7 @@ export class TestApiStore implements ApiStore {
             rollbackOperation.phase !== 'EFFECT_STARTED' ||
             rollbackOperation.effectFencingToken !== input.rollbackFence?.fencingToken ||
             rollbackSource?.artifactKind !== 'server-image' ||
+            parseServerRollbackRuntimeSpec(rollbackSource.runtimeSpec).spec.runtimeClass !== 'autoscale' ||
             rollbackSource.accessPolicyVersion !== deployment.accessPolicyVersion ||
             rollbackSource.provider !== 'server' ||
             rollbackSource.artifactRef !== input.artifactRef ||
@@ -7085,15 +7167,21 @@ export class TestApiStore implements ApiStore {
             deployment = committed.deployment;
           }
 
-          if (rollbackOperation) {
-            const updated = { ...rollbackOperation, phase: 'RELEASE_COMMITTED' as const, updatedAt: now() };
-            this.rollbackOperations.set(
-              this._rollbackOperationKey(rollbackOperation.projectId, rollbackOperation.idempotencyKey),
-              updated,
-            );
-          }
+          const rollbackReceipt = rollbackOperation
+            ? this._completeRollbackSuccess(
+                rollbackOperation,
+                deployment,
+                rollbackSource!,
+                input.rollbackResponseContentLanguage!,
+              )
+            : undefined;
 
-          return { committed: true, deployment, manifest: existing };
+          return {
+            committed: true,
+            deployment,
+            manifest: existing,
+            ...(rollbackReceipt ? { rollbackReceipt } : {}),
+          };
         }
       }
 
@@ -7183,14 +7271,20 @@ export class TestApiStore implements ApiStore {
       });
       this.deployments.set(ready.id, ready);
 
-      if (rollbackOperation) {
-        const updated = { ...rollbackOperation, phase: 'RELEASE_COMMITTED' as const, updatedAt: now() };
-        this.rollbackOperations.set(
-          this._rollbackOperationKey(rollbackOperation.projectId, rollbackOperation.idempotencyKey),
-          updated,
-        );
-      }
-      return { committed: true, deployment: ready, manifest };
+      const rollbackReceipt = rollbackOperation
+        ? this._completeRollbackSuccess(
+            rollbackOperation,
+            ready,
+            rollbackSource!,
+            input.rollbackResponseContentLanguage!,
+          )
+        : undefined;
+      return {
+        committed: true,
+        deployment: ready,
+        manifest,
+        ...(rollbackReceipt ? { rollbackReceipt } : {}),
+      };
     });
   }
 

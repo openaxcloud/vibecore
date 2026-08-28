@@ -8,6 +8,9 @@ import type {
   PersistedMigrationPlanEntry,
   SqlApplier,
 } from './db-migration-execution.js';
+import { MIGRATION_LEDGER_SERIALIZATION_LOCK_KEY } from './db-migration-lock.js';
+
+export { MIGRATION_LEDGER_SERIALIZATION_LOCK_KEY } from './db-migration-lock.js';
 
 export const MIGRATION_LEDGER_TABLE = '_ecode_schema_migrations';
 
@@ -107,7 +110,9 @@ export async function inspectExactPostgresMigrationLedger(input: {
     await client.query('BEGIN');
     await client.query("SELECT set_config('statement_timeout', $1, true)", [String(DEFAULT_STATEMENT_TIMEOUT_MS)]);
     await client.query("SELECT set_config('lock_timeout', $1, true)", [String(DEFAULT_LOCK_TIMEOUT_MS)]);
-    await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1, 0))', [input.lockKey]);
+    await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1, 0))', [
+      MIGRATION_LEDGER_SERIALIZATION_LOCK_KEY,
+    ]);
     const table = await client.query('SELECT to_regclass($1) AS ledger', [MIGRATION_LEDGER_TABLE]);
 
     if (!table.rows[0]?.ledger) {
@@ -174,7 +179,7 @@ export async function acquireExactPostgresMigrationLedgerLease(input: {
     await client.connect();
     await client.query("SELECT set_config('statement_timeout', $1, false)", [String(lockTimeoutMs)]);
     await client.query("SELECT set_config('lock_timeout', $1, false)", [String(lockTimeoutMs)]);
-    await client.query('SELECT pg_advisory_lock(hashtextextended($1, 0))', [input.lockKey]);
+    await client.query('SELECT pg_advisory_lock(hashtextextended($1, 0))', [MIGRATION_LEDGER_SERIALIZATION_LOCK_KEY]);
     lockHeld = true;
     await client.query("SELECT set_config('statement_timeout', '0', false)");
     await client.query("SELECT set_config('lock_timeout', '0', false)");
@@ -206,7 +211,7 @@ export async function acquireExactPostgresMigrationLedgerLease(input: {
                  AND objid = ((hashtextextended($1, 0) & 4294967295)::oid)
                  AND objsubid = 1
              ) AS held`,
-            [input.lockKey],
+            [MIGRATION_LEDGER_SERIALIZATION_LOCK_KEY],
           );
 
           if (held.rows[0]?.held !== true) {
@@ -231,7 +236,7 @@ export async function acquireExactPostgresMigrationLedgerLease(input: {
         try {
           if (lockHeld) {
             const unlocked = await client.query('SELECT pg_advisory_unlock(hashtextextended($1, 0)) AS unlocked', [
-              input.lockKey,
+              MIGRATION_LEDGER_SERIALIZATION_LOCK_KEY,
             ]);
             lockHeld = false;
             /* A false/malformed result is handled by destroying the session below. */
@@ -331,11 +336,13 @@ function classifyLedger(
 
 async function configureTransaction(
   client: MigrationPgClient,
-  input: { lockKey: string; statementTimeoutMs: number; lockTimeoutMs: number },
+  input: { statementTimeoutMs: number; lockTimeoutMs: number },
 ): Promise<void> {
   await client.query("SELECT set_config('statement_timeout', $1, true)", [String(input.statementTimeoutMs)]);
   await client.query("SELECT set_config('lock_timeout', $1, true)", [String(input.lockTimeoutMs)]);
-  await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1, 0))', [input.lockKey]);
+  await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1, 0))', [
+    MIGRATION_LEDGER_SERIALIZATION_LOCK_KEY,
+  ]);
 }
 
 export function createPostgresMigrationApplier(options: PostgresMigrationApplierOptions = {}): SqlApplier {
@@ -361,7 +368,7 @@ export function createPostgresMigrationApplier(options: PostgresMigrationApplier
       try {
         await client.query('BEGIN');
         transactionOpen = true;
-        await configureTransaction(client, { lockKey: input.lockKey, statementTimeoutMs, lockTimeoutMs });
+        await configureTransaction(client, { statementTimeoutMs, lockTimeoutMs });
         await client.query(CREATE_LEDGER);
 
         const existingResult = await client.query(`SELECT name, sha256 FROM ${MIGRATION_LEDGER_TABLE}`);
@@ -430,7 +437,7 @@ export function createPostgresMigrationApplier(options: PostgresMigrationApplier
       try {
         await client.connect();
         await client.query('BEGIN');
-        await configureTransaction(client, { lockKey: input.lockKey, statementTimeoutMs, lockTimeoutMs });
+        await configureTransaction(client, { statementTimeoutMs, lockTimeoutMs });
 
         const table = await client.query('SELECT to_regclass($1) AS ledger', [MIGRATION_LEDGER_TABLE]);
 

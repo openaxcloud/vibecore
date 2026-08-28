@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 import { createDefaultProjectManifest, projectManifestDigest } from '../project-manifest.js';
 import { PrismaApiStore } from '../prisma-store.js';
-import type { ProjectReleaseFence } from '../store.js';
+import type { DeploymentRecord, ProjectReleaseFence } from '../store.js';
 import { deterministicServerReleaseFixture } from './deterministic-release-fixture.js';
 
 const runDbTests = process.env.DATABASE_URL ? describe : describe.skip;
@@ -47,6 +47,21 @@ function promotion(organizationId: string, imageRef: string, digest = DIGEST) {
     state: 'PROMOTION_COMMITTED',
     preparedAt: '2026-08-27T09:59:58.000Z',
     committedAt: '2026-08-27T09:59:59.000Z',
+  };
+}
+
+function reservedRuntimeIdentity(deployment: DeploymentRecord) {
+  if (deployment.runtimeKind !== 'reserved-vm' || !deployment.reservedVmTier || !deployment.persistentStorageClaim) {
+    throw new Error('Reserved VM publish fixture requires exact retained runtime identity');
+  }
+
+  return {
+    runtimeClass: 'reserved-vm' as const,
+    reservedVm: {
+      deploymentId: deployment.id,
+      tier: deployment.reservedVmTier,
+      persistentStorageClaim: deployment.persistentStorageClaim,
+    },
   };
 }
 
@@ -139,6 +154,7 @@ async function seedReservedPreview(
     machineKey: 'shared-0.5',
     database: { mode: 'exact-ledger', ledgerDigest: MIGRATION_POINT },
     planEntitlements: PLAN_ENTITLEMENTS,
+    runtimeIdentity: reservedRuntimeIdentity(initialReadyDeployment),
   });
   await prisma.deployment.update({
     where: { id: deployment.id },
@@ -224,6 +240,7 @@ runDbTests('Reserved VM in-place publish — PostgreSQL release barrier', () => 
         machineKey: seeded.deployment.machineSize,
         database: { mode: 'exact-ledger', ledgerDigest: MIGRATION_POINT },
         planEntitlements: PLAN_ENTITLEMENTS,
+        runtimeIdentity: reservedRuntimeIdentity(seeded.deployment),
       });
       const publishPins = {
         dbMigrationPoint: MIGRATION_POINT,
@@ -588,6 +605,7 @@ runDbTests('Reserved VM in-place publish — PostgreSQL release barrier', () => 
         memoryMb: lease.operation.targetMemoryMb,
         database: { mode: 'exact-ledger', ledgerDigest: TARGET_MIGRATION_POINT },
         planEntitlements: TARGET_PLAN_ENTITLEMENTS,
+        runtimeIdentity: reservedRuntimeIdentity(seeded.deployment),
       });
       const targetMetadata = {
         ...(redeploy.deployment.metadata as Record<string, unknown>),

@@ -130,6 +130,7 @@ function buildRuntimeEnvelope(keyring: RollbackManifestKeyring, value: string) {
     healthPath: '/health',
     envOverrides: { ROTATION_VALUE: value },
     database: { mode: 'none' },
+    runtimeClass: 'autoscale',
     keyring,
   });
 }

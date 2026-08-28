@@ -542,6 +542,8 @@ describe('static rollback-to-previous (deterministic, fail-closed)', () => {
     };
 
     const first = await app.inject(request);
+    const committedDeploymentId = first.json().deployment.id as string;
+    store.deployments.delete(committedDeploymentId);
 
     const replay = await app.inject({
       ...request,
@@ -557,7 +559,7 @@ describe('static rollback-to-previous (deterministic, fail-closed)', () => {
       (await store.listDeployments(projectId)).filter(
         (deployment) => (deployment.metadata as Record<string, unknown> | undefined)?.rollbackToPrevious === true,
       ),
-    ).toHaveLength(1);
+    ).toHaveLength(0);
     expect((await store.listReleaseManifests(projectId, 'preview')).map((manifest) => manifest.version)).toEqual([
       3, 2, 1,
     ]);
@@ -655,6 +657,7 @@ describe('static rollback-to-previous (deterministic, fail-closed)', () => {
       logs: [],
       finishedAt: new Date().toISOString(),
       releaseFence: release.releaseFence,
+      responseContentLanguage: 'en',
     });
     await release.release();
 
@@ -693,7 +696,7 @@ describe('static rollback-to-previous (deterministic, fail-closed)', () => {
     expect(await store.getRollbackOperation(projectId, idempotencyKey)).toMatchObject({
       status: 'COMPLETED',
       phase: 'RELEASE_COMMITTED',
-      fencingToken: 2,
+      fencingToken: 1,
       responseStatus: 201,
     });
   });

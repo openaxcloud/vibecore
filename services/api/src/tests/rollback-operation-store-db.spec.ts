@@ -250,6 +250,7 @@ runDbTests('rollback operation — real PostgreSQL clock, lease, and release CAS
         logs: [],
         finishedAt: new Date().toISOString(),
         releaseFence: release.releaseFence,
+        responseContentLanguage: 'en',
       };
       await expect(otherStore.commitStaticRollbackRelease(commit)).rejects.toThrow('STATIC_ROLLBACK_RELEASE_CONFLICT');
       expect(await prismaA.releaseManifest.count({ where: { deploymentId: operation.deploymentId } })).toBe(0);
@@ -434,6 +435,7 @@ runDbTests('rollback operation — real PostgreSQL clock, lease, and release CAS
             logs: [],
             finishedAt: new Date().toISOString(),
             releaseFence: release.releaseFence,
+            responseContentLanguage: 'fr',
           } satisfies StaticRollbackReleaseCommitInput,
         };
       };
@@ -462,14 +464,29 @@ runDbTests('rollback operation — real PostgreSQL clock, lease, and release CAS
       const winnerIndex = results.findIndex((result) => result.status === 'fulfilled');
       const winner = winnerIndex === 0 ? first : second;
       const winnerStore = winnerIndex === 0 ? storeA : storeB;
-      const responseBody = { deployment: { id: winner.input.deploymentId }, restoredFromVersion: 1 };
+      const winnerResult = results[winnerIndex] as PromiseFulfilledResult<
+        Awaited<ReturnType<typeof storeA.commitStaticRollbackRelease>>
+      >;
+      const receipt = winnerResult.value.rollbackReceipt;
+      expect(receipt).toMatchObject({
+        responseStatus: 201,
+        responseContentLanguage: 'fr',
+        responseBody: {
+          deployment: { id: winner.input.deploymentId, status: 'READY' },
+          restoredFromVersion: 1,
+          restoredFromDeploymentId: seeded.previous.id,
+          supersededVersion: 2,
+          verifiedArtifactDigest: SOURCE_DIGEST,
+        },
+      });
+
+      // The HTTP onSend completion is deliberately an exact no-op after the
+      // READY/manifest transaction has already made the receipt terminal.
       await winnerStore.completeRollbackOperation({
         operationId: winner.operation.id,
         ownerToken: winner.ownerToken,
         fencingToken: 1,
-        responseStatus: 201,
-        responseContentLanguage: 'fr',
-        responseBody,
+        ...receipt,
       });
       await expect(
         winnerStore.acquireRollbackOperation({
@@ -483,7 +500,7 @@ runDbTests('rollback operation — real PostgreSQL clock, lease, and release CAS
         }),
       ).resolves.toMatchObject({
         kind: 'REPLAY',
-        record: { responseStatus: 201, responseContentLanguage: 'fr', responseBody },
+        record: receipt,
       });
     } finally {
       if (seeded) {
