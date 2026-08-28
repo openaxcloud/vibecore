@@ -216,12 +216,13 @@ describe('buildServerDeployEnv', () => {
       deploymentId: 'd',
       port: 3000,
       environment: 'preview',
-      projectSecrets: { FOO: 'from-secret' },
-      envOverrides: { FOO: 'from-override', BAR: 'b' },
+      projectSecrets: { FOO: 'from-secret', DATABASE_URL: 'postgres://base' },
+      envOverrides: { FOO: 'from-override', BAR: 'b', DATABASE_URL: 'postgres://override' },
     });
 
     expect(env.FOO).toBe('from-override');
     expect(env.BAR).toBe('b');
+    expect(env.DATABASE_URL).toBe('postgres://override');
   });
 });
 
@@ -241,12 +242,14 @@ describe('snapshotWorkspaceImageContext', () => {
     const { snapshotWorkspaceImageContext, serverDeployContextObjectKey } = await import('./server-deploy-transfer.js');
     const scripts: string[] = [];
     const agent = fakeAgent({
-      runStep: vi.fn(async ({ args, onLine }: { args: string[]; onLine?: (l: 'info' | 'error', s: string) => void }) => {
-        scripts.push(args[1]);
-        onLine?.('info', '[snapshot] image context: 123456 bytes (deps included)');
+      runStep: vi.fn(
+        async ({ args, onLine }: { args: string[]; onLine?: (l: 'info' | 'error', s: string) => void }) => {
+          scripts.push(args[1]);
+          onLine?.('info', '[snapshot] image context: 123456 bytes (deps included)');
 
-        return { exitCode: 0, timedOut: false };
-      }),
+          return { exitCode: 0, timedOut: false };
+        },
+      ),
     });
 
     const result = await snapshotWorkspaceImageContext({
@@ -270,7 +273,9 @@ describe('snapshotWorkspaceImageContext', () => {
     // Exactly the signed headers, once (a duplicated content-type breaks the V4 signature).
     expect(tarScript).toContain("curl -fsS -X PUT -H 'Content-Type: application/gzip'");
     expect(tarScript).not.toContain("-H 'content-type:");
-    expect(tarScript).toContain("--upload-file .vibecore-src-dep9.tgz 'https://storage.googleapis.com/vc-proj1/tmp?sig=abc&x=1'");
+    expect(tarScript).toContain(
+      "--upload-file .vibecore-src-dep9.tgz 'https://storage.googleapis.com/vc-proj1/tmp?sig=abc&x=1'",
+    );
 
     // The tarball is cleaned up from the workspace afterwards (a second pod step).
     expect(scripts.length).toBe(2);
@@ -318,13 +323,11 @@ describe('snapshotWorkspaceImageContext', () => {
     const { snapshotWorkspaceImageContext } = await import('./server-deploy-transfer.js');
     const result = await snapshotWorkspaceImageContext({
       agent: fakeAgent({
-        runStep: vi.fn(
-          async ({ onLine }: { onLine?: (l: 'info' | 'error', s: string) => void }) => {
-            onLine?.('info', '[snapshot] image context: 999 bytes (deps included)');
+        runStep: vi.fn(async ({ onLine }: { onLine?: (l: 'info' | 'error', s: string) => void }) => {
+          onLine?.('info', '[snapshot] image context: 999 bytes (deps included)');
 
-            return { exitCode: 22, timedOut: false };
-          },
-        ),
+          return { exitCode: 22, timedOut: false };
+        }),
       }),
       deploymentId: 'dep9',
       objectStorage: storage(),
@@ -368,12 +371,14 @@ describe('snapshotWorkspaceRevision', () => {
     const scripts: string[] = [];
     const sha = 'f'.repeat(64);
     const agent = fakeAgent({
-      runStep: vi.fn(async ({ args, onLine }: { args: string[]; onLine?: (l: 'info' | 'error', s: string) => void }) => {
-        scripts.push(args[1]);
-        onLine?.('info', `[revision] 4242 bytes sha256=${sha}`);
+      runStep: vi.fn(
+        async ({ args, onLine }: { args: string[]; onLine?: (l: 'info' | 'error', s: string) => void }) => {
+          scripts.push(args[1]);
+          onLine?.('info', `[revision] 4242 bytes sha256=${sha}`);
 
-        return { exitCode: 0, timedOut: false };
-      }),
+          return { exitCode: 0, timedOut: false };
+        },
+      ),
     });
 
     const result = await snapshotWorkspaceRevision({
@@ -433,13 +438,11 @@ describe('snapshotWorkspaceRevision', () => {
 
     const uploadFailed = await snapshotWorkspaceRevision({
       agent: fakeAgent({
-        runStep: vi.fn(
-          async ({ onLine }: { onLine?: (l: 'info' | 'error', s: string) => void }) => {
-            onLine?.('info', `[revision] 10 bytes sha256=${'a'.repeat(64)}`);
+        runStep: vi.fn(async ({ onLine }: { onLine?: (l: 'info' | 'error', s: string) => void }) => {
+          onLine?.('info', `[revision] 10 bytes sha256=${'a'.repeat(64)}`);
 
-            return { exitCode: 22, timedOut: false };
-          },
-        ),
+          return { exitCode: 22, timedOut: false };
+        }),
       }),
       deploymentId: 'dep9',
       objectStorage: storage(),

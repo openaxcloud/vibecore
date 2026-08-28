@@ -19,6 +19,31 @@ export interface DeploymentAccessPolicyRecord {
   createdAt: string;
 }
 
+/** Validate the immutable policy row used as rollback/serving authority. */
+export function isValidDeploymentAccessPolicyRecord(value: unknown): value is DeploymentAccessPolicyRecord {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const row = value as Partial<DeploymentAccessPolicyRecord> & { passwordHash?: unknown };
+  if (
+    typeof row.id !== 'string' ||
+    !row.id ||
+    typeof row.projectId !== 'string' ||
+    !row.projectId ||
+    typeof row.environment !== 'string' ||
+    !row.environment ||
+    !Number.isSafeInteger(row.version) ||
+    (row.version ?? 0) <= 0 ||
+    typeof row.revision !== 'string' ||
+    !row.revision ||
+    typeof row.mode !== 'string' ||
+    !(DEPLOYMENT_ACCESS_MODES as readonly string[]).includes(row.mode)
+  ) {
+    return false;
+  }
+  return row.mode === 'PASSWORD_PROTECTED'
+    ? typeof row.passwordHash === 'string' && row.passwordHash.length > 0
+    : row.passwordHash === undefined || row.passwordHash === null;
+}
+
 export type DeploymentAccessCookieKind = 'PASSWORD' | 'USER';
 
 export interface DeploymentAccessCookieClaims {

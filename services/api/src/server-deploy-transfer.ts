@@ -466,6 +466,25 @@ async function cleanupTarball(agent: SnapshotAgent, tarPath: string, cwd: string
 }
 
 /**
+ * Resolve the exact DATABASE_URL value that buildServerDeployEnv will inject.
+ * Keeping DB pinning and runtime assembly on this shared primitive prevents a
+ * persisted setting that is not in the pod environment from becoming pinning
+ * authority, and preserves the explicit per-release override precedence.
+ */
+export function resolveServerDeployDatabaseUrl(input: {
+  environment: string;
+  projectSecrets?: Record<string, string>;
+  envOverrides?: Record<string, string>;
+}): string | undefined {
+  const secrets = input.projectSecrets ?? {};
+  const baseUrl = input.environment === 'production' ? secrets.PROD_DATABASE_URL : secrets.DATABASE_URL;
+
+  return Object.prototype.hasOwnProperty.call(input.envOverrides ?? {}, 'DATABASE_URL')
+    ? input.envOverrides?.DATABASE_URL
+    : baseUrl;
+}
+
+/**
  * Assemble the environment for a server-deploy pod: the transfer descriptor
  * (APP_SRC_URL/APP_SRC_B64), the port, the deployment id, the project's secrets
  * (DB URL included), and any per-deploy env overrides. For a production deploy the
@@ -493,11 +512,10 @@ export function buildServerDeployEnv(input: {
   }
 
   const secrets = input.projectSecrets ?? {};
-  const isProd = input.environment === 'production';
 
   // Map the environment's database secret onto the conventional DATABASE_URL the
   // app reads. Prod uses PROD_DATABASE_URL; dev/preview uses DATABASE_URL.
-  const dbUrl = isProd ? secrets.PROD_DATABASE_URL : secrets.DATABASE_URL;
+  const dbUrl = resolveServerDeployDatabaseUrl(input);
 
   for (const [key, value] of Object.entries(secrets)) {
     // Don't leak the prod URL under its raw name into a preview deploy, and vice

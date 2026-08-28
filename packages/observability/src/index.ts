@@ -102,6 +102,21 @@ export const platformMetricDefinitions: MetricDefinition[] = [
     help: 'Unstarted ledger reservations released after expiration.',
     type: 'counter',
   },
+  {
+    name: 'static_artifact_gc_runs_total',
+    help: 'Bounded static artifact garbage-collection sweeps by outcome.',
+    type: 'counter',
+  },
+  {
+    name: 'static_artifact_gc_removed_total',
+    help: 'Unreferenced content-addressed static artifacts removed by the production reaper.',
+    type: 'counter',
+  },
+  {
+    name: 'static_artifact_gc_retained_total',
+    help: 'Content-addressed static artifacts retained because an immutable release still references them.',
+    type: 'counter',
+  },
   { name: 'stripe_webhook_failures_total', help: 'Stripe webhook failures.', type: 'counter' },
   { name: 'resend_webhook_events_total', help: 'Resend transactional-email webhook events received.', type: 'counter' },
   { name: 'abuse_events_total', help: 'Abuse events.', type: 'counter' },
