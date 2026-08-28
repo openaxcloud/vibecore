@@ -15999,6 +15999,7 @@ export namespace Prisma {
     sourceRemixShares: number
     targetRemixShares: number
     checkpoints: number
+    releaseManifests: number
   }
 
   export type ProjectCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -16036,6 +16037,7 @@ export namespace Prisma {
     sourceRemixShares?: boolean | ProjectCountOutputTypeCountSourceRemixSharesArgs
     targetRemixShares?: boolean | ProjectCountOutputTypeCountTargetRemixSharesArgs
     checkpoints?: boolean | ProjectCountOutputTypeCountCheckpointsArgs
+    releaseManifests?: boolean | ProjectCountOutputTypeCountReleaseManifestsArgs
   }
 
   // Custom InputTypes
@@ -16285,6 +16287,13 @@ export namespace Prisma {
    */
   export type ProjectCountOutputTypeCountCheckpointsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: ProjectCheckpointWhereInput
+  }
+
+  /**
+   * ProjectCountOutputType without action
+   */
+  export type ProjectCountOutputTypeCountReleaseManifestsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ReleaseManifestWhereInput
   }
 
 
@@ -30995,6 +31004,7 @@ export namespace Prisma {
     targetRemixShares?: boolean | Project$targetRemixSharesArgs<ExtArgs>
     cloudBinding?: boolean | Project$cloudBindingArgs<ExtArgs>
     checkpoints?: boolean | Project$checkpointsArgs<ExtArgs>
+    releaseManifests?: boolean | Project$releaseManifestsArgs<ExtArgs>
     _count?: boolean | ProjectCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["project"]>
 
@@ -31093,6 +31103,7 @@ export namespace Prisma {
     targetRemixShares?: boolean | Project$targetRemixSharesArgs<ExtArgs>
     cloudBinding?: boolean | Project$cloudBindingArgs<ExtArgs>
     checkpoints?: boolean | Project$checkpointsArgs<ExtArgs>
+    releaseManifests?: boolean | Project$releaseManifestsArgs<ExtArgs>
     _count?: boolean | ProjectCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type ProjectIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -31142,6 +31153,7 @@ export namespace Prisma {
       targetRemixShares: Prisma.$RemixStorageSharePayload<ExtArgs>[]
       cloudBinding: Prisma.$CloudProjectBindingPayload<ExtArgs> | null
       checkpoints: Prisma.$ProjectCheckpointPayload<ExtArgs>[]
+      releaseManifests: Prisma.$ReleaseManifestPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -31590,6 +31602,7 @@ export namespace Prisma {
     targetRemixShares<T extends Project$targetRemixSharesArgs<ExtArgs> = {}>(args?: Subset<T, Project$targetRemixSharesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$RemixStorageSharePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     cloudBinding<T extends Project$cloudBindingArgs<ExtArgs> = {}>(args?: Subset<T, Project$cloudBindingArgs<ExtArgs>>): Prisma__CloudProjectBindingClient<$Result.GetResult<Prisma.$CloudProjectBindingPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
     checkpoints<T extends Project$checkpointsArgs<ExtArgs> = {}>(args?: Subset<T, Project$checkpointsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectCheckpointPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    releaseManifests<T extends Project$releaseManifestsArgs<ExtArgs> = {}>(args?: Subset<T, Project$releaseManifestsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ReleaseManifestPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -32886,6 +32899,30 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: ProjectCheckpointScalarFieldEnum | ProjectCheckpointScalarFieldEnum[]
+  }
+
+  /**
+   * Project.releaseManifests
+   */
+  export type Project$releaseManifestsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ReleaseManifest
+     */
+    select?: ReleaseManifestSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ReleaseManifest
+     */
+    omit?: ReleaseManifestOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ReleaseManifestInclude<ExtArgs> | null
+    where?: ReleaseManifestWhereInput
+    orderBy?: ReleaseManifestOrderByWithRelationInput | ReleaseManifestOrderByWithRelationInput[]
+    cursor?: ReleaseManifestWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: ReleaseManifestScalarFieldEnum | ReleaseManifestScalarFieldEnum[]
   }
 
   /**
@@ -71695,6 +71732,8 @@ export namespace Prisma {
     storeGeneration: number
     configDigest: number
     dbMigrationPoint: number
+    runtimeSpec: number
+    promotionEvidence: number
     accessPolicyVersion: number
     planEntitlements: number
     projectManifestDigest: number
@@ -71762,6 +71801,8 @@ export namespace Prisma {
     storeGeneration?: true
     configDigest?: true
     dbMigrationPoint?: true
+    runtimeSpec?: true
+    promotionEvidence?: true
     accessPolicyVersion?: true
     planEntitlements?: true
     projectManifestDigest?: true
@@ -71868,6 +71909,8 @@ export namespace Prisma {
     storeGeneration: string | null
     configDigest: string | null
     dbMigrationPoint: string | null
+    runtimeSpec: JsonValue | null
+    promotionEvidence: JsonValue | null
     accessPolicyVersion: number
     planEntitlements: JsonValue | null
     projectManifestDigest: string | null
@@ -71906,10 +71949,13 @@ export namespace Prisma {
     storeGeneration?: boolean
     configDigest?: boolean
     dbMigrationPoint?: boolean
+    runtimeSpec?: boolean
+    promotionEvidence?: boolean
     accessPolicyVersion?: boolean
     planEntitlements?: boolean
     projectManifestDigest?: boolean
     createdAt?: boolean
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["releaseManifest"]>
 
   export type ReleaseManifestSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -71925,10 +71971,13 @@ export namespace Prisma {
     storeGeneration?: boolean
     configDigest?: boolean
     dbMigrationPoint?: boolean
+    runtimeSpec?: boolean
+    promotionEvidence?: boolean
     accessPolicyVersion?: boolean
     planEntitlements?: boolean
     projectManifestDigest?: boolean
     createdAt?: boolean
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["releaseManifest"]>
 
   export type ReleaseManifestSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -71944,10 +71993,13 @@ export namespace Prisma {
     storeGeneration?: boolean
     configDigest?: boolean
     dbMigrationPoint?: boolean
+    runtimeSpec?: boolean
+    promotionEvidence?: boolean
     accessPolicyVersion?: boolean
     planEntitlements?: boolean
     projectManifestDigest?: boolean
     createdAt?: boolean
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["releaseManifest"]>
 
   export type ReleaseManifestSelectScalar = {
@@ -71963,17 +72015,30 @@ export namespace Prisma {
     storeGeneration?: boolean
     configDigest?: boolean
     dbMigrationPoint?: boolean
+    runtimeSpec?: boolean
+    promotionEvidence?: boolean
     accessPolicyVersion?: boolean
     planEntitlements?: boolean
     projectManifestDigest?: boolean
     createdAt?: boolean
   }
 
-  export type ReleaseManifestOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "projectId" | "deploymentId" | "environment" | "version" | "provider" | "artifactKind" | "artifactRef" | "artifactDigest" | "storeGeneration" | "configDigest" | "dbMigrationPoint" | "accessPolicyVersion" | "planEntitlements" | "projectManifestDigest" | "createdAt", ExtArgs["result"]["releaseManifest"]>
+  export type ReleaseManifestOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "projectId" | "deploymentId" | "environment" | "version" | "provider" | "artifactKind" | "artifactRef" | "artifactDigest" | "storeGeneration" | "configDigest" | "dbMigrationPoint" | "runtimeSpec" | "promotionEvidence" | "accessPolicyVersion" | "planEntitlements" | "projectManifestDigest" | "createdAt", ExtArgs["result"]["releaseManifest"]>
+  export type ReleaseManifestInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+  }
+  export type ReleaseManifestIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+  }
+  export type ReleaseManifestIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+  }
 
   export type $ReleaseManifestPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "ReleaseManifest"
-    objects: {}
+    objects: {
+      project: Prisma.$ProjectPayload<ExtArgs>
+    }
     scalars: $Extensions.GetPayloadResult<{
       id: string
       projectId: string
@@ -71987,6 +72052,8 @@ export namespace Prisma {
       storeGeneration: string | null
       configDigest: string | null
       dbMigrationPoint: string | null
+      runtimeSpec: Prisma.JsonValue | null
+      promotionEvidence: Prisma.JsonValue | null
       accessPolicyVersion: number
       planEntitlements: Prisma.JsonValue | null
       projectManifestDigest: string | null
@@ -72385,6 +72452,7 @@ export namespace Prisma {
    */
   export interface Prisma__ReleaseManifestClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
+    project<T extends ProjectDefaultArgs<ExtArgs> = {}>(args?: Subset<T, ProjectDefaultArgs<ExtArgs>>): Prisma__ProjectClient<$Result.GetResult<Prisma.$ProjectPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -72426,6 +72494,8 @@ export namespace Prisma {
     readonly storeGeneration: FieldRef<"ReleaseManifest", 'String'>
     readonly configDigest: FieldRef<"ReleaseManifest", 'String'>
     readonly dbMigrationPoint: FieldRef<"ReleaseManifest", 'String'>
+    readonly runtimeSpec: FieldRef<"ReleaseManifest", 'Json'>
+    readonly promotionEvidence: FieldRef<"ReleaseManifest", 'Json'>
     readonly accessPolicyVersion: FieldRef<"ReleaseManifest", 'Int'>
     readonly planEntitlements: FieldRef<"ReleaseManifest", 'Json'>
     readonly projectManifestDigest: FieldRef<"ReleaseManifest", 'String'>
@@ -72447,6 +72517,10 @@ export namespace Prisma {
      */
     omit?: ReleaseManifestOmit<ExtArgs> | null
     /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ReleaseManifestInclude<ExtArgs> | null
+    /**
      * Filter, which ReleaseManifest to fetch.
      */
     where: ReleaseManifestWhereUniqueInput
@@ -72465,6 +72539,10 @@ export namespace Prisma {
      */
     omit?: ReleaseManifestOmit<ExtArgs> | null
     /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ReleaseManifestInclude<ExtArgs> | null
+    /**
      * Filter, which ReleaseManifest to fetch.
      */
     where: ReleaseManifestWhereUniqueInput
@@ -72482,6 +72560,10 @@ export namespace Prisma {
      * Omit specific fields from the ReleaseManifest
      */
     omit?: ReleaseManifestOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ReleaseManifestInclude<ExtArgs> | null
     /**
      * Filter, which ReleaseManifest to fetch.
      */
@@ -72531,6 +72613,10 @@ export namespace Prisma {
      */
     omit?: ReleaseManifestOmit<ExtArgs> | null
     /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ReleaseManifestInclude<ExtArgs> | null
+    /**
      * Filter, which ReleaseManifest to fetch.
      */
     where?: ReleaseManifestWhereInput
@@ -72578,6 +72664,10 @@ export namespace Prisma {
      * Omit specific fields from the ReleaseManifest
      */
     omit?: ReleaseManifestOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ReleaseManifestInclude<ExtArgs> | null
     /**
      * Filter, which ReleaseManifests to fetch.
      */
@@ -72627,6 +72717,10 @@ export namespace Prisma {
      */
     omit?: ReleaseManifestOmit<ExtArgs> | null
     /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ReleaseManifestInclude<ExtArgs> | null
+    /**
      * The data needed to create a ReleaseManifest.
      */
     data: XOR<ReleaseManifestCreateInput, ReleaseManifestUncheckedCreateInput>
@@ -72660,6 +72754,10 @@ export namespace Prisma {
      */
     data: ReleaseManifestCreateManyInput | ReleaseManifestCreateManyInput[]
     skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ReleaseManifestIncludeCreateManyAndReturn<ExtArgs> | null
   }
 
   /**
@@ -72674,6 +72772,10 @@ export namespace Prisma {
      * Omit specific fields from the ReleaseManifest
      */
     omit?: ReleaseManifestOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ReleaseManifestInclude<ExtArgs> | null
     /**
      * The data needed to update a ReleaseManifest.
      */
@@ -72726,6 +72828,10 @@ export namespace Prisma {
      * Limit how many ReleaseManifests to update.
      */
     limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ReleaseManifestIncludeUpdateManyAndReturn<ExtArgs> | null
   }
 
   /**
@@ -72740,6 +72846,10 @@ export namespace Prisma {
      * Omit specific fields from the ReleaseManifest
      */
     omit?: ReleaseManifestOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ReleaseManifestInclude<ExtArgs> | null
     /**
      * The filter to search for the ReleaseManifest to update in case it exists.
      */
@@ -72766,6 +72876,10 @@ export namespace Prisma {
      * Omit specific fields from the ReleaseManifest
      */
     omit?: ReleaseManifestOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ReleaseManifestInclude<ExtArgs> | null
     /**
      * Filter which ReleaseManifest to delete.
      */
@@ -72798,6 +72912,10 @@ export namespace Prisma {
      * Omit specific fields from the ReleaseManifest
      */
     omit?: ReleaseManifestOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ReleaseManifestInclude<ExtArgs> | null
   }
 
 
@@ -161852,6 +161970,7 @@ export namespace Prisma {
     storagePolicy: string | null
     storageConsentVersion: string | null
     storageShareId: string | null
+    targetIdeStateDigest: string | null
     scrubbedCount: number | null
     consentVersion: string | null
     piiMaskedCount: number | null
@@ -161882,6 +162001,7 @@ export namespace Prisma {
     storagePolicy: string | null
     storageConsentVersion: string | null
     storageShareId: string | null
+    targetIdeStateDigest: string | null
     scrubbedCount: number | null
     consentVersion: string | null
     piiMaskedCount: number | null
@@ -161915,6 +162035,8 @@ export namespace Prisma {
     storageInventory: number
     storageShareId: number
     scanFindings: number
+    targetIdeState: number
+    targetIdeStateDigest: number
     scrubbedCount: number
     licenseSnapshot: number
     consentVersion: number
@@ -161962,6 +162084,7 @@ export namespace Prisma {
     storagePolicy?: true
     storageConsentVersion?: true
     storageShareId?: true
+    targetIdeStateDigest?: true
     scrubbedCount?: true
     consentVersion?: true
     piiMaskedCount?: true
@@ -161992,6 +162115,7 @@ export namespace Prisma {
     storagePolicy?: true
     storageConsentVersion?: true
     storageShareId?: true
+    targetIdeStateDigest?: true
     scrubbedCount?: true
     consentVersion?: true
     piiMaskedCount?: true
@@ -162025,6 +162149,8 @@ export namespace Prisma {
     storageInventory?: true
     storageShareId?: true
     scanFindings?: true
+    targetIdeState?: true
+    targetIdeStateDigest?: true
     scrubbedCount?: true
     licenseSnapshot?: true
     consentVersion?: true
@@ -162148,6 +162274,8 @@ export namespace Prisma {
     storageInventory: JsonValue | null
     storageShareId: string | null
     scanFindings: JsonValue | null
+    targetIdeState: JsonValue | null
+    targetIdeStateDigest: string | null
     scrubbedCount: number
     licenseSnapshot: JsonValue | null
     consentVersion: string | null
@@ -162203,6 +162331,8 @@ export namespace Prisma {
     storageInventory?: boolean
     storageShareId?: boolean
     scanFindings?: boolean
+    targetIdeState?: boolean
+    targetIdeStateDigest?: boolean
     scrubbedCount?: boolean
     licenseSnapshot?: boolean
     consentVersion?: boolean
@@ -162242,6 +162372,8 @@ export namespace Prisma {
     storageInventory?: boolean
     storageShareId?: boolean
     scanFindings?: boolean
+    targetIdeState?: boolean
+    targetIdeStateDigest?: boolean
     scrubbedCount?: boolean
     licenseSnapshot?: boolean
     consentVersion?: boolean
@@ -162281,6 +162413,8 @@ export namespace Prisma {
     storageInventory?: boolean
     storageShareId?: boolean
     scanFindings?: boolean
+    targetIdeState?: boolean
+    targetIdeStateDigest?: boolean
     scrubbedCount?: boolean
     licenseSnapshot?: boolean
     consentVersion?: boolean
@@ -162320,6 +162454,8 @@ export namespace Prisma {
     storageInventory?: boolean
     storageShareId?: boolean
     scanFindings?: boolean
+    targetIdeState?: boolean
+    targetIdeStateDigest?: boolean
     scrubbedCount?: boolean
     licenseSnapshot?: boolean
     consentVersion?: boolean
@@ -162335,7 +162471,7 @@ export namespace Prisma {
     updatedAt?: boolean
   }
 
-  export type RemixJobOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "sourceProjectId" | "targetProjectId" | "organizationId" | "actorUserId" | "state" | "idempotencyKey" | "requestHash" | "version" | "operationToken" | "operationExpiresAt" | "sourceSnapshotId" | "sourceSnapshotHash" | "sourceListingId" | "detachedKeys" | "storagePolicy" | "storageConsentVersion" | "storageInventory" | "storageShareId" | "scanFindings" | "scrubbedCount" | "licenseSnapshot" | "consentVersion" | "piiFindings" | "piiMaskedCount" | "dbForked" | "sourceDatabasePin" | "targetDatabaseInstanceId" | "cleanupTerminalState" | "errorCode" | "error" | "createdAt" | "updatedAt", ExtArgs["result"]["remixJob"]>
+  export type RemixJobOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "sourceProjectId" | "targetProjectId" | "organizationId" | "actorUserId" | "state" | "idempotencyKey" | "requestHash" | "version" | "operationToken" | "operationExpiresAt" | "sourceSnapshotId" | "sourceSnapshotHash" | "sourceListingId" | "detachedKeys" | "storagePolicy" | "storageConsentVersion" | "storageInventory" | "storageShareId" | "scanFindings" | "targetIdeState" | "targetIdeStateDigest" | "scrubbedCount" | "licenseSnapshot" | "consentVersion" | "piiFindings" | "piiMaskedCount" | "dbForked" | "sourceDatabasePin" | "targetDatabaseInstanceId" | "cleanupTerminalState" | "errorCode" | "error" | "createdAt" | "updatedAt", ExtArgs["result"]["remixJob"]>
   export type RemixJobInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     targetProject?: boolean | RemixJob$targetProjectArgs<ExtArgs>
     targetDatabaseInstance?: boolean | RemixJob$targetDatabaseInstanceArgs<ExtArgs>
@@ -162422,6 +162558,15 @@ export namespace Prisma {
        * SecretScanFinding[] { path, secretKey, line } — never the value.
        */
       scanFindings: Prisma.JsonValue | null
+      /**
+       * Verified target ProjectIdeState staged while the target remains hidden.
+       * It becomes canonical only in the same transaction as COMPLETED + reveal.
+       */
+      targetIdeState: Prisma.JsonValue | null
+      /**
+       * Canonical SHA-256 pin for targetIdeState (guards JSONB/retry tampering).
+       */
+      targetIdeStateDigest: string | null
       /**
        * Count of value-lines scrubbed out of the clone during CLONING.
        */
@@ -162916,6 +163061,8 @@ export namespace Prisma {
     readonly storageInventory: FieldRef<"RemixJob", 'Json'>
     readonly storageShareId: FieldRef<"RemixJob", 'String'>
     readonly scanFindings: FieldRef<"RemixJob", 'Json'>
+    readonly targetIdeState: FieldRef<"RemixJob", 'Json'>
+    readonly targetIdeStateDigest: FieldRef<"RemixJob", 'String'>
     readonly scrubbedCount: FieldRef<"RemixJob", 'Int'>
     readonly licenseSnapshot: FieldRef<"RemixJob", 'Json'>
     readonly consentVersion: FieldRef<"RemixJob", 'String'>
@@ -195878,6 +196025,8 @@ export namespace Prisma {
     storeGeneration: 'storeGeneration',
     configDigest: 'configDigest',
     dbMigrationPoint: 'dbMigrationPoint',
+    runtimeSpec: 'runtimeSpec',
+    promotionEvidence: 'promotionEvidence',
     accessPolicyVersion: 'accessPolicyVersion',
     planEntitlements: 'planEntitlements',
     projectManifestDigest: 'projectManifestDigest',
@@ -197160,6 +197309,8 @@ export namespace Prisma {
     storageInventory: 'storageInventory',
     storageShareId: 'storageShareId',
     scanFindings: 'scanFindings',
+    targetIdeState: 'targetIdeState',
+    targetIdeStateDigest: 'targetIdeStateDigest',
     scrubbedCount: 'scrubbedCount',
     licenseSnapshot: 'licenseSnapshot',
     consentVersion: 'consentVersion',
@@ -199289,6 +199440,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareListRelationFilter
     cloudBinding?: XOR<CloudProjectBindingNullableScalarRelationFilter, CloudProjectBindingWhereInput> | null
     checkpoints?: ProjectCheckpointListRelationFilter
+    releaseManifests?: ReleaseManifestListRelationFilter
   }
 
   export type ProjectOrderByWithRelationInput = {
@@ -199344,6 +199496,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareOrderByRelationAggregateInput
     cloudBinding?: CloudProjectBindingOrderByWithRelationInput
     checkpoints?: ProjectCheckpointOrderByRelationAggregateInput
+    releaseManifests?: ReleaseManifestOrderByRelationAggregateInput
   }
 
   export type ProjectWhereUniqueInput = Prisma.AtLeast<{
@@ -199403,6 +199556,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareListRelationFilter
     cloudBinding?: XOR<CloudProjectBindingNullableScalarRelationFilter, CloudProjectBindingWhereInput> | null
     checkpoints?: ProjectCheckpointListRelationFilter
+    releaseManifests?: ReleaseManifestListRelationFilter
   }, "id" | "organizationId_slug">
 
   export type ProjectOrderByWithAggregationInput = {
@@ -202430,10 +202584,13 @@ export namespace Prisma {
     storeGeneration?: StringNullableFilter<"ReleaseManifest"> | string | null
     configDigest?: StringNullableFilter<"ReleaseManifest"> | string | null
     dbMigrationPoint?: StringNullableFilter<"ReleaseManifest"> | string | null
+    runtimeSpec?: JsonNullableFilter<"ReleaseManifest">
+    promotionEvidence?: JsonNullableFilter<"ReleaseManifest">
     accessPolicyVersion?: IntFilter<"ReleaseManifest"> | number
     planEntitlements?: JsonNullableFilter<"ReleaseManifest">
     projectManifestDigest?: StringNullableFilter<"ReleaseManifest"> | string | null
     createdAt?: DateTimeFilter<"ReleaseManifest"> | Date | string
+    project?: XOR<ProjectScalarRelationFilter, ProjectWhereInput>
   }
 
   export type ReleaseManifestOrderByWithRelationInput = {
@@ -202449,10 +202606,13 @@ export namespace Prisma {
     storeGeneration?: SortOrderInput | SortOrder
     configDigest?: SortOrderInput | SortOrder
     dbMigrationPoint?: SortOrderInput | SortOrder
+    runtimeSpec?: SortOrderInput | SortOrder
+    promotionEvidence?: SortOrderInput | SortOrder
     accessPolicyVersion?: SortOrder
     planEntitlements?: SortOrderInput | SortOrder
     projectManifestDigest?: SortOrderInput | SortOrder
     createdAt?: SortOrder
+    project?: ProjectOrderByWithRelationInput
   }
 
   export type ReleaseManifestWhereUniqueInput = Prisma.AtLeast<{
@@ -202472,10 +202632,13 @@ export namespace Prisma {
     storeGeneration?: StringNullableFilter<"ReleaseManifest"> | string | null
     configDigest?: StringNullableFilter<"ReleaseManifest"> | string | null
     dbMigrationPoint?: StringNullableFilter<"ReleaseManifest"> | string | null
+    runtimeSpec?: JsonNullableFilter<"ReleaseManifest">
+    promotionEvidence?: JsonNullableFilter<"ReleaseManifest">
     accessPolicyVersion?: IntFilter<"ReleaseManifest"> | number
     planEntitlements?: JsonNullableFilter<"ReleaseManifest">
     projectManifestDigest?: StringNullableFilter<"ReleaseManifest"> | string | null
     createdAt?: DateTimeFilter<"ReleaseManifest"> | Date | string
+    project?: XOR<ProjectScalarRelationFilter, ProjectWhereInput>
   }, "id" | "projectId_environment_version">
 
   export type ReleaseManifestOrderByWithAggregationInput = {
@@ -202491,6 +202654,8 @@ export namespace Prisma {
     storeGeneration?: SortOrderInput | SortOrder
     configDigest?: SortOrderInput | SortOrder
     dbMigrationPoint?: SortOrderInput | SortOrder
+    runtimeSpec?: SortOrderInput | SortOrder
+    promotionEvidence?: SortOrderInput | SortOrder
     accessPolicyVersion?: SortOrder
     planEntitlements?: SortOrderInput | SortOrder
     projectManifestDigest?: SortOrderInput | SortOrder
@@ -202518,6 +202683,8 @@ export namespace Prisma {
     storeGeneration?: StringNullableWithAggregatesFilter<"ReleaseManifest"> | string | null
     configDigest?: StringNullableWithAggregatesFilter<"ReleaseManifest"> | string | null
     dbMigrationPoint?: StringNullableWithAggregatesFilter<"ReleaseManifest"> | string | null
+    runtimeSpec?: JsonNullableWithAggregatesFilter<"ReleaseManifest">
+    promotionEvidence?: JsonNullableWithAggregatesFilter<"ReleaseManifest">
     accessPolicyVersion?: IntWithAggregatesFilter<"ReleaseManifest"> | number
     planEntitlements?: JsonNullableWithAggregatesFilter<"ReleaseManifest">
     projectManifestDigest?: StringNullableWithAggregatesFilter<"ReleaseManifest"> | string | null
@@ -208934,6 +209101,8 @@ export namespace Prisma {
     storageInventory?: JsonNullableFilter<"RemixJob">
     storageShareId?: StringNullableFilter<"RemixJob"> | string | null
     scanFindings?: JsonNullableFilter<"RemixJob">
+    targetIdeState?: JsonNullableFilter<"RemixJob">
+    targetIdeStateDigest?: StringNullableFilter<"RemixJob"> | string | null
     scrubbedCount?: IntFilter<"RemixJob"> | number
     licenseSnapshot?: JsonNullableFilter<"RemixJob">
     consentVersion?: StringNullableFilter<"RemixJob"> | string | null
@@ -208973,6 +209142,8 @@ export namespace Prisma {
     storageInventory?: SortOrderInput | SortOrder
     storageShareId?: SortOrderInput | SortOrder
     scanFindings?: SortOrderInput | SortOrder
+    targetIdeState?: SortOrderInput | SortOrder
+    targetIdeStateDigest?: SortOrderInput | SortOrder
     scrubbedCount?: SortOrder
     licenseSnapshot?: SortOrderInput | SortOrder
     consentVersion?: SortOrderInput | SortOrder
@@ -209016,6 +209187,8 @@ export namespace Prisma {
     storageInventory?: JsonNullableFilter<"RemixJob">
     storageShareId?: StringNullableFilter<"RemixJob"> | string | null
     scanFindings?: JsonNullableFilter<"RemixJob">
+    targetIdeState?: JsonNullableFilter<"RemixJob">
+    targetIdeStateDigest?: StringNullableFilter<"RemixJob"> | string | null
     scrubbedCount?: IntFilter<"RemixJob"> | number
     licenseSnapshot?: JsonNullableFilter<"RemixJob">
     consentVersion?: StringNullableFilter<"RemixJob"> | string | null
@@ -209055,6 +209228,8 @@ export namespace Prisma {
     storageInventory?: SortOrderInput | SortOrder
     storageShareId?: SortOrderInput | SortOrder
     scanFindings?: SortOrderInput | SortOrder
+    targetIdeState?: SortOrderInput | SortOrder
+    targetIdeStateDigest?: SortOrderInput | SortOrder
     scrubbedCount?: SortOrder
     licenseSnapshot?: SortOrderInput | SortOrder
     consentVersion?: SortOrderInput | SortOrder
@@ -209099,6 +209274,8 @@ export namespace Prisma {
     storageInventory?: JsonNullableWithAggregatesFilter<"RemixJob">
     storageShareId?: StringNullableWithAggregatesFilter<"RemixJob"> | string | null
     scanFindings?: JsonNullableWithAggregatesFilter<"RemixJob">
+    targetIdeState?: JsonNullableWithAggregatesFilter<"RemixJob">
+    targetIdeStateDigest?: StringNullableWithAggregatesFilter<"RemixJob"> | string | null
     scrubbedCount?: IntWithAggregatesFilter<"RemixJob"> | number
     licenseSnapshot?: JsonNullableWithAggregatesFilter<"RemixJob">
     consentVersion?: StringNullableWithAggregatesFilter<"RemixJob"> | string | null
@@ -212735,6 +212912,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
+    releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateInput = {
@@ -212789,6 +212967,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingUncheckedCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
+    releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUpdateInput = {
@@ -212843,6 +213022,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
+    releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateInput = {
@@ -212897,6 +213077,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUncheckedUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
+    releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateManyInput = {
@@ -216123,7 +216304,6 @@ export namespace Prisma {
 
   export type ReleaseManifestCreateInput = {
     id?: string
-    projectId: string
     deploymentId: string
     environment?: string
     version: number
@@ -216134,10 +216314,13 @@ export namespace Prisma {
     storeGeneration?: string | null
     configDigest?: string | null
     dbMigrationPoint?: string | null
+    runtimeSpec?: NullableJsonNullValueInput | InputJsonValue
+    promotionEvidence?: NullableJsonNullValueInput | InputJsonValue
     accessPolicyVersion?: number
     planEntitlements?: NullableJsonNullValueInput | InputJsonValue
     projectManifestDigest?: string | null
     createdAt?: Date | string
+    project: ProjectCreateNestedOneWithoutReleaseManifestsInput
   }
 
   export type ReleaseManifestUncheckedCreateInput = {
@@ -216153,6 +216336,8 @@ export namespace Prisma {
     storeGeneration?: string | null
     configDigest?: string | null
     dbMigrationPoint?: string | null
+    runtimeSpec?: NullableJsonNullValueInput | InputJsonValue
+    promotionEvidence?: NullableJsonNullValueInput | InputJsonValue
     accessPolicyVersion?: number
     planEntitlements?: NullableJsonNullValueInput | InputJsonValue
     projectManifestDigest?: string | null
@@ -216161,7 +216346,6 @@ export namespace Prisma {
 
   export type ReleaseManifestUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
-    projectId?: StringFieldUpdateOperationsInput | string
     deploymentId?: StringFieldUpdateOperationsInput | string
     environment?: StringFieldUpdateOperationsInput | string
     version?: IntFieldUpdateOperationsInput | number
@@ -216172,10 +216356,13 @@ export namespace Prisma {
     storeGeneration?: NullableStringFieldUpdateOperationsInput | string | null
     configDigest?: NullableStringFieldUpdateOperationsInput | string | null
     dbMigrationPoint?: NullableStringFieldUpdateOperationsInput | string | null
+    runtimeSpec?: NullableJsonNullValueInput | InputJsonValue
+    promotionEvidence?: NullableJsonNullValueInput | InputJsonValue
     accessPolicyVersion?: IntFieldUpdateOperationsInput | number
     planEntitlements?: NullableJsonNullValueInput | InputJsonValue
     projectManifestDigest?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    project?: ProjectUpdateOneRequiredWithoutReleaseManifestsNestedInput
   }
 
   export type ReleaseManifestUncheckedUpdateInput = {
@@ -216191,6 +216378,8 @@ export namespace Prisma {
     storeGeneration?: NullableStringFieldUpdateOperationsInput | string | null
     configDigest?: NullableStringFieldUpdateOperationsInput | string | null
     dbMigrationPoint?: NullableStringFieldUpdateOperationsInput | string | null
+    runtimeSpec?: NullableJsonNullValueInput | InputJsonValue
+    promotionEvidence?: NullableJsonNullValueInput | InputJsonValue
     accessPolicyVersion?: IntFieldUpdateOperationsInput | number
     planEntitlements?: NullableJsonNullValueInput | InputJsonValue
     projectManifestDigest?: NullableStringFieldUpdateOperationsInput | string | null
@@ -216210,6 +216399,8 @@ export namespace Prisma {
     storeGeneration?: string | null
     configDigest?: string | null
     dbMigrationPoint?: string | null
+    runtimeSpec?: NullableJsonNullValueInput | InputJsonValue
+    promotionEvidence?: NullableJsonNullValueInput | InputJsonValue
     accessPolicyVersion?: number
     planEntitlements?: NullableJsonNullValueInput | InputJsonValue
     projectManifestDigest?: string | null
@@ -216218,7 +216409,6 @@ export namespace Prisma {
 
   export type ReleaseManifestUpdateManyMutationInput = {
     id?: StringFieldUpdateOperationsInput | string
-    projectId?: StringFieldUpdateOperationsInput | string
     deploymentId?: StringFieldUpdateOperationsInput | string
     environment?: StringFieldUpdateOperationsInput | string
     version?: IntFieldUpdateOperationsInput | number
@@ -216229,6 +216419,8 @@ export namespace Prisma {
     storeGeneration?: NullableStringFieldUpdateOperationsInput | string | null
     configDigest?: NullableStringFieldUpdateOperationsInput | string | null
     dbMigrationPoint?: NullableStringFieldUpdateOperationsInput | string | null
+    runtimeSpec?: NullableJsonNullValueInput | InputJsonValue
+    promotionEvidence?: NullableJsonNullValueInput | InputJsonValue
     accessPolicyVersion?: IntFieldUpdateOperationsInput | number
     planEntitlements?: NullableJsonNullValueInput | InputJsonValue
     projectManifestDigest?: NullableStringFieldUpdateOperationsInput | string | null
@@ -216248,6 +216440,8 @@ export namespace Prisma {
     storeGeneration?: NullableStringFieldUpdateOperationsInput | string | null
     configDigest?: NullableStringFieldUpdateOperationsInput | string | null
     dbMigrationPoint?: NullableStringFieldUpdateOperationsInput | string | null
+    runtimeSpec?: NullableJsonNullValueInput | InputJsonValue
+    promotionEvidence?: NullableJsonNullValueInput | InputJsonValue
     accessPolicyVersion?: IntFieldUpdateOperationsInput | number
     planEntitlements?: NullableJsonNullValueInput | InputJsonValue
     projectManifestDigest?: NullableStringFieldUpdateOperationsInput | string | null
@@ -223393,6 +223587,8 @@ export namespace Prisma {
     storageConsentVersion?: string | null
     storageInventory?: NullableJsonNullValueInput | InputJsonValue
     scanFindings?: NullableJsonNullValueInput | InputJsonValue
+    targetIdeState?: NullableJsonNullValueInput | InputJsonValue
+    targetIdeStateDigest?: string | null
     scrubbedCount?: number
     licenseSnapshot?: NullableJsonNullValueInput | InputJsonValue
     consentVersion?: string | null
@@ -223431,6 +223627,8 @@ export namespace Prisma {
     storageInventory?: NullableJsonNullValueInput | InputJsonValue
     storageShareId?: string | null
     scanFindings?: NullableJsonNullValueInput | InputJsonValue
+    targetIdeState?: NullableJsonNullValueInput | InputJsonValue
+    targetIdeStateDigest?: string | null
     scrubbedCount?: number
     licenseSnapshot?: NullableJsonNullValueInput | InputJsonValue
     consentVersion?: string | null
@@ -223465,6 +223663,8 @@ export namespace Prisma {
     storageConsentVersion?: NullableStringFieldUpdateOperationsInput | string | null
     storageInventory?: NullableJsonNullValueInput | InputJsonValue
     scanFindings?: NullableJsonNullValueInput | InputJsonValue
+    targetIdeState?: NullableJsonNullValueInput | InputJsonValue
+    targetIdeStateDigest?: NullableStringFieldUpdateOperationsInput | string | null
     scrubbedCount?: IntFieldUpdateOperationsInput | number
     licenseSnapshot?: NullableJsonNullValueInput | InputJsonValue
     consentVersion?: NullableStringFieldUpdateOperationsInput | string | null
@@ -223503,6 +223703,8 @@ export namespace Prisma {
     storageInventory?: NullableJsonNullValueInput | InputJsonValue
     storageShareId?: NullableStringFieldUpdateOperationsInput | string | null
     scanFindings?: NullableJsonNullValueInput | InputJsonValue
+    targetIdeState?: NullableJsonNullValueInput | InputJsonValue
+    targetIdeStateDigest?: NullableStringFieldUpdateOperationsInput | string | null
     scrubbedCount?: IntFieldUpdateOperationsInput | number
     licenseSnapshot?: NullableJsonNullValueInput | InputJsonValue
     consentVersion?: NullableStringFieldUpdateOperationsInput | string | null
@@ -223539,6 +223741,8 @@ export namespace Prisma {
     storageInventory?: NullableJsonNullValueInput | InputJsonValue
     storageShareId?: string | null
     scanFindings?: NullableJsonNullValueInput | InputJsonValue
+    targetIdeState?: NullableJsonNullValueInput | InputJsonValue
+    targetIdeStateDigest?: string | null
     scrubbedCount?: number
     licenseSnapshot?: NullableJsonNullValueInput | InputJsonValue
     consentVersion?: string | null
@@ -223573,6 +223777,8 @@ export namespace Prisma {
     storageConsentVersion?: NullableStringFieldUpdateOperationsInput | string | null
     storageInventory?: NullableJsonNullValueInput | InputJsonValue
     scanFindings?: NullableJsonNullValueInput | InputJsonValue
+    targetIdeState?: NullableJsonNullValueInput | InputJsonValue
+    targetIdeStateDigest?: NullableStringFieldUpdateOperationsInput | string | null
     scrubbedCount?: IntFieldUpdateOperationsInput | number
     licenseSnapshot?: NullableJsonNullValueInput | InputJsonValue
     consentVersion?: NullableStringFieldUpdateOperationsInput | string | null
@@ -223608,6 +223814,8 @@ export namespace Prisma {
     storageInventory?: NullableJsonNullValueInput | InputJsonValue
     storageShareId?: NullableStringFieldUpdateOperationsInput | string | null
     scanFindings?: NullableJsonNullValueInput | InputJsonValue
+    targetIdeState?: NullableJsonNullValueInput | InputJsonValue
+    targetIdeStateDigest?: NullableStringFieldUpdateOperationsInput | string | null
     scrubbedCount?: IntFieldUpdateOperationsInput | number
     licenseSnapshot?: NullableJsonNullValueInput | InputJsonValue
     consentVersion?: NullableStringFieldUpdateOperationsInput | string | null
@@ -227783,6 +227991,12 @@ export namespace Prisma {
     isNot?: CloudProjectBindingWhereInput | null
   }
 
+  export type ReleaseManifestListRelationFilter = {
+    every?: ReleaseManifestWhereInput
+    some?: ReleaseManifestWhereInput
+    none?: ReleaseManifestWhereInput
+  }
+
   export type ProjectEnvironmentOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
@@ -227836,6 +228050,10 @@ export namespace Prisma {
   }
 
   export type RemixJobOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type ReleaseManifestOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -229825,6 +230043,8 @@ export namespace Prisma {
     storeGeneration?: SortOrder
     configDigest?: SortOrder
     dbMigrationPoint?: SortOrder
+    runtimeSpec?: SortOrder
+    promotionEvidence?: SortOrder
     accessPolicyVersion?: SortOrder
     planEntitlements?: SortOrder
     projectManifestDigest?: SortOrder
@@ -233793,6 +234013,8 @@ export namespace Prisma {
     storageInventory?: SortOrder
     storageShareId?: SortOrder
     scanFindings?: SortOrder
+    targetIdeState?: SortOrder
+    targetIdeStateDigest?: SortOrder
     scrubbedCount?: SortOrder
     licenseSnapshot?: SortOrder
     consentVersion?: SortOrder
@@ -233832,6 +234054,7 @@ export namespace Prisma {
     storagePolicy?: SortOrder
     storageConsentVersion?: SortOrder
     storageShareId?: SortOrder
+    targetIdeStateDigest?: SortOrder
     scrubbedCount?: SortOrder
     consentVersion?: SortOrder
     piiMaskedCount?: SortOrder
@@ -233862,6 +234085,7 @@ export namespace Prisma {
     storagePolicy?: SortOrder
     storageConsentVersion?: SortOrder
     storageShareId?: SortOrder
+    targetIdeStateDigest?: SortOrder
     scrubbedCount?: SortOrder
     consentVersion?: SortOrder
     piiMaskedCount?: SortOrder
@@ -239940,6 +240164,13 @@ export namespace Prisma {
     connect?: ProjectCheckpointWhereUniqueInput | ProjectCheckpointWhereUniqueInput[]
   }
 
+  export type ReleaseManifestCreateNestedManyWithoutProjectInput = {
+    create?: XOR<ReleaseManifestCreateWithoutProjectInput, ReleaseManifestUncheckedCreateWithoutProjectInput> | ReleaseManifestCreateWithoutProjectInput[] | ReleaseManifestUncheckedCreateWithoutProjectInput[]
+    connectOrCreate?: ReleaseManifestCreateOrConnectWithoutProjectInput | ReleaseManifestCreateOrConnectWithoutProjectInput[]
+    createMany?: ReleaseManifestCreateManyProjectInputEnvelope
+    connect?: ReleaseManifestWhereUniqueInput | ReleaseManifestWhereUniqueInput[]
+  }
+
   export type ProjectEnvironmentUncheckedCreateNestedManyWithoutProjectInput = {
     create?: XOR<ProjectEnvironmentCreateWithoutProjectInput, ProjectEnvironmentUncheckedCreateWithoutProjectInput> | ProjectEnvironmentCreateWithoutProjectInput[] | ProjectEnvironmentUncheckedCreateWithoutProjectInput[]
     connectOrCreate?: ProjectEnvironmentCreateOrConnectWithoutProjectInput | ProjectEnvironmentCreateOrConnectWithoutProjectInput[]
@@ -240185,6 +240416,13 @@ export namespace Prisma {
     connectOrCreate?: ProjectCheckpointCreateOrConnectWithoutProjectInput | ProjectCheckpointCreateOrConnectWithoutProjectInput[]
     createMany?: ProjectCheckpointCreateManyProjectInputEnvelope
     connect?: ProjectCheckpointWhereUniqueInput | ProjectCheckpointWhereUniqueInput[]
+  }
+
+  export type ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput = {
+    create?: XOR<ReleaseManifestCreateWithoutProjectInput, ReleaseManifestUncheckedCreateWithoutProjectInput> | ReleaseManifestCreateWithoutProjectInput[] | ReleaseManifestUncheckedCreateWithoutProjectInput[]
+    connectOrCreate?: ReleaseManifestCreateOrConnectWithoutProjectInput | ReleaseManifestCreateOrConnectWithoutProjectInput[]
+    createMany?: ReleaseManifestCreateManyProjectInputEnvelope
+    connect?: ReleaseManifestWhereUniqueInput | ReleaseManifestWhereUniqueInput[]
   }
 
   export type OrganizationUpdateOneRequiredWithoutProjectsNestedInput = {
@@ -240687,6 +240925,20 @@ export namespace Prisma {
     deleteMany?: ProjectCheckpointScalarWhereInput | ProjectCheckpointScalarWhereInput[]
   }
 
+  export type ReleaseManifestUpdateManyWithoutProjectNestedInput = {
+    create?: XOR<ReleaseManifestCreateWithoutProjectInput, ReleaseManifestUncheckedCreateWithoutProjectInput> | ReleaseManifestCreateWithoutProjectInput[] | ReleaseManifestUncheckedCreateWithoutProjectInput[]
+    connectOrCreate?: ReleaseManifestCreateOrConnectWithoutProjectInput | ReleaseManifestCreateOrConnectWithoutProjectInput[]
+    upsert?: ReleaseManifestUpsertWithWhereUniqueWithoutProjectInput | ReleaseManifestUpsertWithWhereUniqueWithoutProjectInput[]
+    createMany?: ReleaseManifestCreateManyProjectInputEnvelope
+    set?: ReleaseManifestWhereUniqueInput | ReleaseManifestWhereUniqueInput[]
+    disconnect?: ReleaseManifestWhereUniqueInput | ReleaseManifestWhereUniqueInput[]
+    delete?: ReleaseManifestWhereUniqueInput | ReleaseManifestWhereUniqueInput[]
+    connect?: ReleaseManifestWhereUniqueInput | ReleaseManifestWhereUniqueInput[]
+    update?: ReleaseManifestUpdateWithWhereUniqueWithoutProjectInput | ReleaseManifestUpdateWithWhereUniqueWithoutProjectInput[]
+    updateMany?: ReleaseManifestUpdateManyWithWhereWithoutProjectInput | ReleaseManifestUpdateManyWithWhereWithoutProjectInput[]
+    deleteMany?: ReleaseManifestScalarWhereInput | ReleaseManifestScalarWhereInput[]
+  }
+
   export type ProjectEnvironmentUncheckedUpdateManyWithoutProjectNestedInput = {
     create?: XOR<ProjectEnvironmentCreateWithoutProjectInput, ProjectEnvironmentUncheckedCreateWithoutProjectInput> | ProjectEnvironmentCreateWithoutProjectInput[] | ProjectEnvironmentUncheckedCreateWithoutProjectInput[]
     connectOrCreate?: ProjectEnvironmentCreateOrConnectWithoutProjectInput | ProjectEnvironmentCreateOrConnectWithoutProjectInput[]
@@ -241177,6 +241429,20 @@ export namespace Prisma {
     update?: ProjectCheckpointUpdateWithWhereUniqueWithoutProjectInput | ProjectCheckpointUpdateWithWhereUniqueWithoutProjectInput[]
     updateMany?: ProjectCheckpointUpdateManyWithWhereWithoutProjectInput | ProjectCheckpointUpdateManyWithWhereWithoutProjectInput[]
     deleteMany?: ProjectCheckpointScalarWhereInput | ProjectCheckpointScalarWhereInput[]
+  }
+
+  export type ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput = {
+    create?: XOR<ReleaseManifestCreateWithoutProjectInput, ReleaseManifestUncheckedCreateWithoutProjectInput> | ReleaseManifestCreateWithoutProjectInput[] | ReleaseManifestUncheckedCreateWithoutProjectInput[]
+    connectOrCreate?: ReleaseManifestCreateOrConnectWithoutProjectInput | ReleaseManifestCreateOrConnectWithoutProjectInput[]
+    upsert?: ReleaseManifestUpsertWithWhereUniqueWithoutProjectInput | ReleaseManifestUpsertWithWhereUniqueWithoutProjectInput[]
+    createMany?: ReleaseManifestCreateManyProjectInputEnvelope
+    set?: ReleaseManifestWhereUniqueInput | ReleaseManifestWhereUniqueInput[]
+    disconnect?: ReleaseManifestWhereUniqueInput | ReleaseManifestWhereUniqueInput[]
+    delete?: ReleaseManifestWhereUniqueInput | ReleaseManifestWhereUniqueInput[]
+    connect?: ReleaseManifestWhereUniqueInput | ReleaseManifestWhereUniqueInput[]
+    update?: ReleaseManifestUpdateWithWhereUniqueWithoutProjectInput | ReleaseManifestUpdateWithWhereUniqueWithoutProjectInput[]
+    updateMany?: ReleaseManifestUpdateManyWithWhereWithoutProjectInput | ReleaseManifestUpdateManyWithWhereWithoutProjectInput[]
+    deleteMany?: ReleaseManifestScalarWhereInput | ReleaseManifestScalarWhereInput[]
   }
 
   export type ProjectCreateNestedOneWithoutSlugRedirectsInput = {
@@ -242525,6 +242791,20 @@ export namespace Prisma {
     update?: DeploymentUpdateWithWhereUniqueWithoutEnvironmentInput | DeploymentUpdateWithWhereUniqueWithoutEnvironmentInput[]
     updateMany?: DeploymentUpdateManyWithWhereWithoutEnvironmentInput | DeploymentUpdateManyWithWhereWithoutEnvironmentInput[]
     deleteMany?: DeploymentScalarWhereInput | DeploymentScalarWhereInput[]
+  }
+
+  export type ProjectCreateNestedOneWithoutReleaseManifestsInput = {
+    create?: XOR<ProjectCreateWithoutReleaseManifestsInput, ProjectUncheckedCreateWithoutReleaseManifestsInput>
+    connectOrCreate?: ProjectCreateOrConnectWithoutReleaseManifestsInput
+    connect?: ProjectWhereUniqueInput
+  }
+
+  export type ProjectUpdateOneRequiredWithoutReleaseManifestsNestedInput = {
+    create?: XOR<ProjectCreateWithoutReleaseManifestsInput, ProjectUncheckedCreateWithoutReleaseManifestsInput>
+    connectOrCreate?: ProjectCreateOrConnectWithoutReleaseManifestsInput
+    upsert?: ProjectUpsertWithoutReleaseManifestsInput
+    connect?: ProjectWhereUniqueInput
+    update?: XOR<XOR<ProjectUpdateToOneWithWhereWithoutReleaseManifestsInput, ProjectUpdateWithoutReleaseManifestsInput>, ProjectUncheckedUpdateWithoutReleaseManifestsInput>
   }
 
   export type ProjectCreateNestedOneWithoutRollbackOperationsInput = {
@@ -251345,6 +251625,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
+    releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutOrganizationInput = {
@@ -251398,6 +251679,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingUncheckedCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
+    releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutOrganizationInput = {
@@ -256596,6 +256878,8 @@ export namespace Prisma {
     storageConsentVersion?: string | null
     storageInventory?: NullableJsonNullValueInput | InputJsonValue
     scanFindings?: NullableJsonNullValueInput | InputJsonValue
+    targetIdeState?: NullableJsonNullValueInput | InputJsonValue
+    targetIdeStateDigest?: string | null
     scrubbedCount?: number
     licenseSnapshot?: NullableJsonNullValueInput | InputJsonValue
     consentVersion?: string | null
@@ -256632,6 +256916,8 @@ export namespace Prisma {
     storageInventory?: NullableJsonNullValueInput | InputJsonValue
     storageShareId?: string | null
     scanFindings?: NullableJsonNullValueInput | InputJsonValue
+    targetIdeState?: NullableJsonNullValueInput | InputJsonValue
+    targetIdeStateDigest?: string | null
     scrubbedCount?: number
     licenseSnapshot?: NullableJsonNullValueInput | InputJsonValue
     consentVersion?: string | null
@@ -256837,6 +257123,56 @@ export namespace Prisma {
 
   export type ProjectCheckpointCreateManyProjectInputEnvelope = {
     data: ProjectCheckpointCreateManyProjectInput | ProjectCheckpointCreateManyProjectInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type ReleaseManifestCreateWithoutProjectInput = {
+    id?: string
+    deploymentId: string
+    environment?: string
+    version: number
+    provider: string
+    artifactKind: string
+    artifactRef: string
+    artifactDigest: string
+    storeGeneration?: string | null
+    configDigest?: string | null
+    dbMigrationPoint?: string | null
+    runtimeSpec?: NullableJsonNullValueInput | InputJsonValue
+    promotionEvidence?: NullableJsonNullValueInput | InputJsonValue
+    accessPolicyVersion?: number
+    planEntitlements?: NullableJsonNullValueInput | InputJsonValue
+    projectManifestDigest?: string | null
+    createdAt?: Date | string
+  }
+
+  export type ReleaseManifestUncheckedCreateWithoutProjectInput = {
+    id?: string
+    deploymentId: string
+    environment?: string
+    version: number
+    provider: string
+    artifactKind: string
+    artifactRef: string
+    artifactDigest: string
+    storeGeneration?: string | null
+    configDigest?: string | null
+    dbMigrationPoint?: string | null
+    runtimeSpec?: NullableJsonNullValueInput | InputJsonValue
+    promotionEvidence?: NullableJsonNullValueInput | InputJsonValue
+    accessPolicyVersion?: number
+    planEntitlements?: NullableJsonNullValueInput | InputJsonValue
+    projectManifestDigest?: string | null
+    createdAt?: Date | string
+  }
+
+  export type ReleaseManifestCreateOrConnectWithoutProjectInput = {
+    where: ReleaseManifestWhereUniqueInput
+    create: XOR<ReleaseManifestCreateWithoutProjectInput, ReleaseManifestUncheckedCreateWithoutProjectInput>
+  }
+
+  export type ReleaseManifestCreateManyProjectInputEnvelope = {
+    data: ReleaseManifestCreateManyProjectInput | ReleaseManifestCreateManyProjectInput[]
     skipDuplicates?: boolean
   }
 
@@ -257711,6 +258047,8 @@ export namespace Prisma {
     storageInventory?: JsonNullableFilter<"RemixJob">
     storageShareId?: StringNullableFilter<"RemixJob"> | string | null
     scanFindings?: JsonNullableFilter<"RemixJob">
+    targetIdeState?: JsonNullableFilter<"RemixJob">
+    targetIdeStateDigest?: StringNullableFilter<"RemixJob"> | string | null
     scrubbedCount?: IntFilter<"RemixJob"> | number
     licenseSnapshot?: JsonNullableFilter<"RemixJob">
     consentVersion?: StringNullableFilter<"RemixJob"> | string | null
@@ -257831,6 +258169,46 @@ export namespace Prisma {
     data: XOR<ProjectCheckpointUpdateManyMutationInput, ProjectCheckpointUncheckedUpdateManyWithoutProjectInput>
   }
 
+  export type ReleaseManifestUpsertWithWhereUniqueWithoutProjectInput = {
+    where: ReleaseManifestWhereUniqueInput
+    update: XOR<ReleaseManifestUpdateWithoutProjectInput, ReleaseManifestUncheckedUpdateWithoutProjectInput>
+    create: XOR<ReleaseManifestCreateWithoutProjectInput, ReleaseManifestUncheckedCreateWithoutProjectInput>
+  }
+
+  export type ReleaseManifestUpdateWithWhereUniqueWithoutProjectInput = {
+    where: ReleaseManifestWhereUniqueInput
+    data: XOR<ReleaseManifestUpdateWithoutProjectInput, ReleaseManifestUncheckedUpdateWithoutProjectInput>
+  }
+
+  export type ReleaseManifestUpdateManyWithWhereWithoutProjectInput = {
+    where: ReleaseManifestScalarWhereInput
+    data: XOR<ReleaseManifestUpdateManyMutationInput, ReleaseManifestUncheckedUpdateManyWithoutProjectInput>
+  }
+
+  export type ReleaseManifestScalarWhereInput = {
+    AND?: ReleaseManifestScalarWhereInput | ReleaseManifestScalarWhereInput[]
+    OR?: ReleaseManifestScalarWhereInput[]
+    NOT?: ReleaseManifestScalarWhereInput | ReleaseManifestScalarWhereInput[]
+    id?: StringFilter<"ReleaseManifest"> | string
+    projectId?: StringFilter<"ReleaseManifest"> | string
+    deploymentId?: StringFilter<"ReleaseManifest"> | string
+    environment?: StringFilter<"ReleaseManifest"> | string
+    version?: IntFilter<"ReleaseManifest"> | number
+    provider?: StringFilter<"ReleaseManifest"> | string
+    artifactKind?: StringFilter<"ReleaseManifest"> | string
+    artifactRef?: StringFilter<"ReleaseManifest"> | string
+    artifactDigest?: StringFilter<"ReleaseManifest"> | string
+    storeGeneration?: StringNullableFilter<"ReleaseManifest"> | string | null
+    configDigest?: StringNullableFilter<"ReleaseManifest"> | string | null
+    dbMigrationPoint?: StringNullableFilter<"ReleaseManifest"> | string | null
+    runtimeSpec?: JsonNullableFilter<"ReleaseManifest">
+    promotionEvidence?: JsonNullableFilter<"ReleaseManifest">
+    accessPolicyVersion?: IntFilter<"ReleaseManifest"> | number
+    planEntitlements?: JsonNullableFilter<"ReleaseManifest">
+    projectManifestDigest?: StringNullableFilter<"ReleaseManifest"> | string | null
+    createdAt?: DateTimeFilter<"ReleaseManifest"> | Date | string
+  }
+
   export type ProjectCreateWithoutSlugRedirectsInput = {
     id?: string
     name: string
@@ -257882,6 +258260,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
+    releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutSlugRedirectsInput = {
@@ -257935,6 +258314,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingUncheckedCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
+    releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutSlugRedirectsInput = {
@@ -258004,6 +258384,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
+    releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutSlugRedirectsInput = {
@@ -258057,6 +258438,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUncheckedUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
+    releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserCreateWithoutAgentMemoriesInput = {
@@ -258586,6 +258968,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
+    releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutAgentMemoriesInput = {
@@ -258639,6 +259022,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingUncheckedCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
+    releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutAgentMemoriesInput = {
@@ -258708,6 +259092,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
+    releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutAgentMemoriesInput = {
@@ -258761,6 +259146,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUncheckedUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
+    releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserCreateWithoutAgentMemoryPreferencesInput = {
@@ -259046,6 +259432,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
+    releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutAgentMemoryPreferencesInput = {
@@ -259099,6 +259486,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingUncheckedCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
+    releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutAgentMemoryPreferencesInput = {
@@ -259412,6 +259800,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
+    releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutAgentMemoryPreferencesInput = {
@@ -259465,6 +259854,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUncheckedUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
+    releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutIdeStateInput = {
@@ -259518,6 +259908,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
+    releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutIdeStateInput = {
@@ -259571,6 +259962,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingUncheckedCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
+    releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutIdeStateInput = {
@@ -259771,6 +260163,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
+    releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutIdeStateInput = {
@@ -259824,6 +260217,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUncheckedUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
+    releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutProjectIdeStateUpdatesInput = {
@@ -260014,6 +260408,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
+    releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutAgentPatchProposalsInput = {
@@ -260067,6 +260462,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingUncheckedCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
+    releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutAgentPatchProposalsInput = {
@@ -260136,6 +260532,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
+    releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutAgentPatchProposalsInput = {
@@ -260189,6 +260586,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUncheckedUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
+    releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutRepairEventsInput = {
@@ -260242,6 +260640,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
+    releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutRepairEventsInput = {
@@ -260295,6 +260694,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingUncheckedCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
+    releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutRepairEventsInput = {
@@ -260364,6 +260764,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
+    releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutRepairEventsInput = {
@@ -260417,6 +260818,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUncheckedUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
+    releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutSkillsInput = {
@@ -260470,6 +260872,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
+    releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutSkillsInput = {
@@ -260523,6 +260926,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingUncheckedCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
+    releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutSkillsInput = {
@@ -260592,6 +260996,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
+    releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutSkillsInput = {
@@ -260645,6 +261050,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUncheckedUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
+    releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutEnvironmentsInput = {
@@ -260698,6 +261104,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
+    releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutEnvironmentsInput = {
@@ -260751,6 +261158,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingUncheckedCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
+    releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutEnvironmentsInput = {
@@ -260820,6 +261228,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
+    releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutEnvironmentsInput = {
@@ -260873,6 +261282,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUncheckedUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
+    releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutSecretsInput = {
@@ -260926,6 +261336,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
+    releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutSecretsInput = {
@@ -260979,6 +261390,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingUncheckedCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
+    releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutSecretsInput = {
@@ -261048,6 +261460,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
+    releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutSecretsInput = {
@@ -261101,6 +261514,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUncheckedUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
+    releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutEnvVarsInput = {
@@ -261154,6 +261568,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
+    releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutEnvVarsInput = {
@@ -261207,6 +261622,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingUncheckedCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
+    releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutEnvVarsInput = {
@@ -261276,6 +261692,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
+    releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutEnvVarsInput = {
@@ -261329,6 +261746,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUncheckedUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
+    releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutCollaboratorsInput = {
@@ -261382,6 +261800,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
+    releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutCollaboratorsInput = {
@@ -261435,6 +261854,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingUncheckedCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
+    releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutCollaboratorsInput = {
@@ -261635,6 +262055,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
+    releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutCollaboratorsInput = {
@@ -261688,6 +262109,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUncheckedUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
+    releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutProjectCollaborationsInput = {
@@ -261878,6 +262300,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
+    releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutActivityInput = {
@@ -261931,6 +262354,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingUncheckedCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
+    releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutActivityInput = {
@@ -262131,6 +262555,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
+    releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutActivityInput = {
@@ -262184,6 +262609,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUncheckedUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
+    releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutProjectActivityInput = {
@@ -262374,6 +262800,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
+    releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutCollaborationPresenceInput = {
@@ -262427,6 +262854,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingUncheckedCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
+    releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutCollaborationPresenceInput = {
@@ -262627,6 +263055,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
+    releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutCollaborationPresenceInput = {
@@ -262680,6 +263109,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUncheckedUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
+    releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutCollaborationPresenceInput = {
@@ -262870,6 +263300,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
+    releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutCollaborationCommentsInput = {
@@ -262923,6 +263354,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingUncheckedCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
+    releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutCollaborationCommentsInput = {
@@ -263123,6 +263555,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
+    releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutCollaborationCommentsInput = {
@@ -263176,6 +263609,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUncheckedUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
+    releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutCollaborationCommentsInput = {
@@ -263366,6 +263800,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
+    releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutShareLinksInput = {
@@ -263419,6 +263854,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingUncheckedCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
+    releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutShareLinksInput = {
@@ -263619,6 +264055,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
+    releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutShareLinksInput = {
@@ -263672,6 +264109,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUncheckedUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
+    releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutCollaborationShareLinksInput = {
@@ -265385,6 +265823,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
+    releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutTemplatesInput = {
@@ -265438,6 +265877,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingUncheckedCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
+    releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutTemplatesInput = {
@@ -265608,6 +266048,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
+    releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutTemplatesInput = {
@@ -265661,6 +266102,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUncheckedUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
+    releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type OrganizationUpsertWithoutProjectTemplatesInput = {
@@ -265821,6 +266263,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
+    releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutWorkspacesInput = {
@@ -265874,6 +266317,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingUncheckedCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
+    releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutWorkspacesInput = {
@@ -266130,6 +266574,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
+    releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutWorkspacesInput = {
@@ -266183,6 +266628,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUncheckedUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
+    releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type WorkspaceSessionUpsertWithWhereUniqueWithoutWorkspaceInput = {
@@ -266698,6 +267144,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
+    releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutFileSnapshotsInput = {
@@ -266751,6 +267198,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingUncheckedCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
+    releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutFileSnapshotsInput = {
@@ -266863,6 +267311,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
+    releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutFileSnapshotsInput = {
@@ -266916,6 +267365,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUncheckedUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
+    releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type WorkspaceUpsertWithoutSnapshotsInput = {
@@ -267018,6 +267468,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
+    releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutSnapshotsInput = {
@@ -267071,6 +267522,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingUncheckedCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
+    releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutSnapshotsInput = {
@@ -267271,6 +267723,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
+    releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutSnapshotsInput = {
@@ -267324,6 +267777,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUncheckedUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
+    releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutProjectSnapshotsInput = {
@@ -267514,6 +267968,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
+    releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutManifestRevisionsInput = {
@@ -267567,6 +268022,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingUncheckedCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
+    releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutManifestRevisionsInput = {
@@ -267636,6 +268092,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
+    releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutManifestRevisionsInput = {
@@ -267689,6 +268146,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUncheckedUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
+    releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutStorageObjectsInput = {
@@ -267742,6 +268200,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
+    releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutStorageObjectsInput = {
@@ -267795,6 +268254,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingUncheckedCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
+    releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutStorageObjectsInput = {
@@ -267864,6 +268324,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
+    releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutStorageObjectsInput = {
@@ -267917,6 +268378,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUncheckedUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
+    releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutDeploymentsInput = {
@@ -267970,6 +268432,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
+    releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutDeploymentsInput = {
@@ -268023,6 +268486,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingUncheckedCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
+    releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutDeploymentsInput = {
@@ -268310,6 +268774,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
+    releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutDeploymentsInput = {
@@ -268363,6 +268828,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUncheckedUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
+    releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type DeploymentEnvironmentUpsertWithoutDeploymentsInput = {
@@ -268536,6 +269002,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
+    releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutReservedVmOperationsInput = {
@@ -268589,6 +269056,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingUncheckedCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
+    releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutReservedVmOperationsInput = {
@@ -268947,6 +269415,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
+    releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutReservedVmOperationsInput = {
@@ -269000,6 +269469,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUncheckedUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
+    releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type DeploymentUpsertWithoutReservedVmOperationsInput = {
@@ -269360,6 +269830,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
+    releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutReservedVmBillingPeriodsInput = {
@@ -269413,6 +269884,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingUncheckedCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
+    releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutReservedVmBillingPeriodsInput = {
@@ -269771,6 +270243,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
+    releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutReservedVmBillingPeriodsInput = {
@@ -269824,6 +270297,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUncheckedUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
+    releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type DeploymentUpsertWithoutReservedVmBillingPeriodsInput = {
@@ -270251,6 +270725,238 @@ export namespace Prisma {
     data: XOR<DeploymentUpdateManyMutationInput, DeploymentUncheckedUpdateManyWithoutEnvironmentInput>
   }
 
+  export type ProjectCreateWithoutReleaseManifestsInput = {
+    id?: string
+    name: string
+    slug: string
+    description?: string | null
+    sourceType?: string
+    templateName?: string | null
+    gitRepositoryUrl?: string | null
+    gitDefaultBranch?: string | null
+    persistentVolumeClaim?: string | null
+    thumbnailUrl?: string | null
+    thumbnailUpdatedAt?: Date | string | null
+    deletedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    organization: OrganizationCreateNestedOneWithoutProjectsInput
+    environments?: ProjectEnvironmentCreateNestedManyWithoutProjectInput
+    envVars?: ProjectEnvVarCreateNestedManyWithoutProjectInput
+    secrets?: ProjectSecretCreateNestedManyWithoutProjectInput
+    collaborators?: ProjectCollaboratorCreateNestedManyWithoutProjectInput
+    activity?: ProjectActivityCreateNestedManyWithoutProjectInput
+    templates?: ProjectTemplateCreateNestedManyWithoutSourceProjectInput
+    galleryListings?: GalleryListingCreateNestedManyWithoutSourceProjectInput
+    workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
+    snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
+    manifestRevisions?: ProjectManifestRevisionCreateNestedManyWithoutProjectInput
+    storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
+    deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    reservedVmOperations?: ReservedVmOperationCreateNestedManyWithoutProjectInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodCreateNestedManyWithoutProjectInput
+    rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutProjectInput
+    fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
+    conversations?: AiConversationCreateNestedManyWithoutProjectInput
+    ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
+    collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutProjectInput
+    collaborationComments?: CollaborationCommentCreateNestedManyWithoutProjectInput
+    shareLinks?: ProjectShareLinkCreateNestedManyWithoutProjectInput
+    agentMemories?: AgentMemoryCreateNestedManyWithoutProjectInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
+    agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
+    connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
+    databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
+    skills?: ProjectSkillCreateNestedManyWithoutProjectInput
+    repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
+    slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
+    importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
+    targetRemixJobs?: RemixJobCreateNestedManyWithoutTargetProjectInput
+    sourceRemixShares?: RemixStorageShareCreateNestedManyWithoutSourceProjectInput
+    targetRemixShares?: RemixStorageShareCreateNestedManyWithoutTargetProjectInput
+    cloudBinding?: CloudProjectBindingCreateNestedOneWithoutProjectInput
+    checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
+  }
+
+  export type ProjectUncheckedCreateWithoutReleaseManifestsInput = {
+    id?: string
+    organizationId: string
+    name: string
+    slug: string
+    description?: string | null
+    sourceType?: string
+    templateName?: string | null
+    gitRepositoryUrl?: string | null
+    gitDefaultBranch?: string | null
+    persistentVolumeClaim?: string | null
+    thumbnailUrl?: string | null
+    thumbnailUpdatedAt?: Date | string | null
+    deletedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    environments?: ProjectEnvironmentUncheckedCreateNestedManyWithoutProjectInput
+    envVars?: ProjectEnvVarUncheckedCreateNestedManyWithoutProjectInput
+    secrets?: ProjectSecretUncheckedCreateNestedManyWithoutProjectInput
+    collaborators?: ProjectCollaboratorUncheckedCreateNestedManyWithoutProjectInput
+    activity?: ProjectActivityUncheckedCreateNestedManyWithoutProjectInput
+    templates?: ProjectTemplateUncheckedCreateNestedManyWithoutSourceProjectInput
+    galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutSourceProjectInput
+    workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
+    snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
+    manifestRevisions?: ProjectManifestRevisionUncheckedCreateNestedManyWithoutProjectInput
+    storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
+    deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    reservedVmOperations?: ReservedVmOperationUncheckedCreateNestedManyWithoutProjectInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedCreateNestedManyWithoutProjectInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutProjectInput
+    fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
+    conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
+    ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
+    collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutProjectInput
+    collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutProjectInput
+    shareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutProjectInput
+    agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutProjectInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
+    agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
+    connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
+    databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
+    skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
+    repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
+    slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    targetRemixJobs?: RemixJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    sourceRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutSourceProjectInput
+    targetRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetProjectInput
+    cloudBinding?: CloudProjectBindingUncheckedCreateNestedOneWithoutProjectInput
+    checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
+  }
+
+  export type ProjectCreateOrConnectWithoutReleaseManifestsInput = {
+    where: ProjectWhereUniqueInput
+    create: XOR<ProjectCreateWithoutReleaseManifestsInput, ProjectUncheckedCreateWithoutReleaseManifestsInput>
+  }
+
+  export type ProjectUpsertWithoutReleaseManifestsInput = {
+    update: XOR<ProjectUpdateWithoutReleaseManifestsInput, ProjectUncheckedUpdateWithoutReleaseManifestsInput>
+    create: XOR<ProjectCreateWithoutReleaseManifestsInput, ProjectUncheckedCreateWithoutReleaseManifestsInput>
+    where?: ProjectWhereInput
+  }
+
+  export type ProjectUpdateToOneWithWhereWithoutReleaseManifestsInput = {
+    where?: ProjectWhereInput
+    data: XOR<ProjectUpdateWithoutReleaseManifestsInput, ProjectUncheckedUpdateWithoutReleaseManifestsInput>
+  }
+
+  export type ProjectUpdateWithoutReleaseManifestsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceType?: StringFieldUpdateOperationsInput | string
+    templateName?: NullableStringFieldUpdateOperationsInput | string | null
+    gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
+    persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    organization?: OrganizationUpdateOneRequiredWithoutProjectsNestedInput
+    environments?: ProjectEnvironmentUpdateManyWithoutProjectNestedInput
+    envVars?: ProjectEnvVarUpdateManyWithoutProjectNestedInput
+    secrets?: ProjectSecretUpdateManyWithoutProjectNestedInput
+    collaborators?: ProjectCollaboratorUpdateManyWithoutProjectNestedInput
+    activity?: ProjectActivityUpdateManyWithoutProjectNestedInput
+    templates?: ProjectTemplateUpdateManyWithoutSourceProjectNestedInput
+    galleryListings?: GalleryListingUpdateManyWithoutSourceProjectNestedInput
+    workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
+    snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
+    manifestRevisions?: ProjectManifestRevisionUpdateManyWithoutProjectNestedInput
+    storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
+    deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    reservedVmOperations?: ReservedVmOperationUpdateManyWithoutProjectNestedInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUpdateManyWithoutProjectNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutProjectNestedInput
+    fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
+    conversations?: AiConversationUpdateManyWithoutProjectNestedInput
+    ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
+    collaborationPresence?: CollaborationPresenceUpdateManyWithoutProjectNestedInput
+    collaborationComments?: CollaborationCommentUpdateManyWithoutProjectNestedInput
+    shareLinks?: ProjectShareLinkUpdateManyWithoutProjectNestedInput
+    agentMemories?: AgentMemoryUpdateManyWithoutProjectNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
+    agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
+    connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
+    databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
+    skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
+    repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
+    slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
+    importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
+    targetRemixJobs?: RemixJobUpdateManyWithoutTargetProjectNestedInput
+    sourceRemixShares?: RemixStorageShareUpdateManyWithoutSourceProjectNestedInput
+    targetRemixShares?: RemixStorageShareUpdateManyWithoutTargetProjectNestedInput
+    cloudBinding?: CloudProjectBindingUpdateOneWithoutProjectNestedInput
+    checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
+  }
+
+  export type ProjectUncheckedUpdateWithoutReleaseManifestsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceType?: StringFieldUpdateOperationsInput | string
+    templateName?: NullableStringFieldUpdateOperationsInput | string | null
+    gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
+    persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    environments?: ProjectEnvironmentUncheckedUpdateManyWithoutProjectNestedInput
+    envVars?: ProjectEnvVarUncheckedUpdateManyWithoutProjectNestedInput
+    secrets?: ProjectSecretUncheckedUpdateManyWithoutProjectNestedInput
+    collaborators?: ProjectCollaboratorUncheckedUpdateManyWithoutProjectNestedInput
+    activity?: ProjectActivityUncheckedUpdateManyWithoutProjectNestedInput
+    templates?: ProjectTemplateUncheckedUpdateManyWithoutSourceProjectNestedInput
+    galleryListings?: GalleryListingUncheckedUpdateManyWithoutSourceProjectNestedInput
+    workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
+    snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
+    manifestRevisions?: ProjectManifestRevisionUncheckedUpdateManyWithoutProjectNestedInput
+    storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
+    deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    reservedVmOperations?: ReservedVmOperationUncheckedUpdateManyWithoutProjectNestedInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedUpdateManyWithoutProjectNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutProjectNestedInput
+    fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
+    conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
+    ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
+    collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutProjectNestedInput
+    collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutProjectNestedInput
+    shareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutProjectNestedInput
+    agentMemories?: AgentMemoryUncheckedUpdateManyWithoutProjectNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
+    agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
+    connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
+    databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
+    skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
+    repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
+    slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    targetRemixJobs?: RemixJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    sourceRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutSourceProjectNestedInput
+    targetRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutTargetProjectNestedInput
+    cloudBinding?: CloudProjectBindingUncheckedUpdateOneWithoutProjectNestedInput
+    checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
+  }
+
   export type ProjectCreateWithoutRollbackOperationsInput = {
     id?: string
     name: string
@@ -270302,6 +271008,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
+    releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutRollbackOperationsInput = {
@@ -270355,6 +271062,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingUncheckedCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
+    releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutRollbackOperationsInput = {
@@ -270555,6 +271263,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
+    releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutRollbackOperationsInput = {
@@ -270608,6 +271317,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUncheckedUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
+    releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutRollbackOperationsInput = {
@@ -272916,6 +273626,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
+    releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutConversationsInput = {
@@ -272969,6 +273680,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingUncheckedCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
+    releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutConversationsInput = {
@@ -273197,6 +273909,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
+    releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutConversationsInput = {
@@ -273250,6 +273963,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUncheckedUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
+    releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutConversationsInput = {
@@ -275610,6 +276324,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
+    releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutRuntimeWebSocketTicketsInput = {
@@ -275663,6 +276378,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingUncheckedCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
+    releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutRuntimeWebSocketTicketsInput = {
@@ -275869,6 +276585,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
+    releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutRuntimeWebSocketTicketsInput = {
@@ -275922,6 +276639,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUncheckedUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
+    releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserCreateWithoutPasswordResetTokensInput = {
@@ -280743,6 +281461,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
+    releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutConnectionLinksInput = {
@@ -280796,6 +281515,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingUncheckedCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
+    releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutConnectionLinksInput = {
@@ -281049,6 +281769,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
+    releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutConnectionLinksInput = {
@@ -281102,6 +281823,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUncheckedUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
+    releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserConnectionUpsertWithoutProjectLinksInput = {
@@ -284538,6 +285260,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
+    releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutDatabaseInstancesInput = {
@@ -284591,6 +285314,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingUncheckedCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
+    releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutDatabaseInstancesInput = {
@@ -284685,6 +285409,8 @@ export namespace Prisma {
     storageConsentVersion?: string | null
     storageInventory?: NullableJsonNullValueInput | InputJsonValue
     scanFindings?: NullableJsonNullValueInput | InputJsonValue
+    targetIdeState?: NullableJsonNullValueInput | InputJsonValue
+    targetIdeStateDigest?: string | null
     scrubbedCount?: number
     licenseSnapshot?: NullableJsonNullValueInput | InputJsonValue
     consentVersion?: string | null
@@ -284722,6 +285448,8 @@ export namespace Prisma {
     storageInventory?: NullableJsonNullValueInput | InputJsonValue
     storageShareId?: string | null
     scanFindings?: NullableJsonNullValueInput | InputJsonValue
+    targetIdeState?: NullableJsonNullValueInput | InputJsonValue
+    targetIdeStateDigest?: string | null
     scrubbedCount?: number
     licenseSnapshot?: NullableJsonNullValueInput | InputJsonValue
     consentVersion?: string | null
@@ -284808,6 +285536,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
+    releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutDatabaseInstancesInput = {
@@ -284861,6 +285590,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUncheckedUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
+    releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type DatabaseSnapshotUpsertWithWhereUniqueWithoutDatabaseInstanceInput = {
@@ -285656,6 +286386,7 @@ export namespace Prisma {
     sourceRemixShares?: RemixStorageShareCreateNestedManyWithoutSourceProjectInput
     targetRemixShares?: RemixStorageShareCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingCreateNestedOneWithoutProjectInput
+    releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutCheckpointsInput = {
@@ -285709,6 +286440,7 @@ export namespace Prisma {
     sourceRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutSourceProjectInput
     targetRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingUncheckedCreateNestedOneWithoutProjectInput
+    releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutCheckpointsInput = {
@@ -285909,6 +286641,7 @@ export namespace Prisma {
     sourceRemixShares?: RemixStorageShareUpdateManyWithoutSourceProjectNestedInput
     targetRemixShares?: RemixStorageShareUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUpdateOneWithoutProjectNestedInput
+    releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutCheckpointsInput = {
@@ -285962,6 +286695,7 @@ export namespace Prisma {
     sourceRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutSourceProjectNestedInput
     targetRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUncheckedUpdateOneWithoutProjectNestedInput
+    releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutProjectCheckpointsInput = {
@@ -286152,6 +286886,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
+    releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutTargetRemixJobsInput = {
@@ -286205,6 +286940,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingUncheckedCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
+    releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutTargetRemixJobsInput = {
@@ -286356,6 +287092,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
+    releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutTargetRemixJobsInput = {
@@ -286409,6 +287146,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUncheckedUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
+    releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type DatabaseInstanceUpsertWithoutRemixJobsAsTargetInput = {
@@ -286556,6 +287294,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
+    releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutSourceRemixSharesInput = {
@@ -286609,6 +287348,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingUncheckedCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
+    releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutSourceRemixSharesInput = {
@@ -286667,6 +287407,7 @@ export namespace Prisma {
     sourceRemixShares?: RemixStorageShareCreateNestedManyWithoutSourceProjectInput
     cloudBinding?: CloudProjectBindingCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
+    releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutTargetRemixSharesInput = {
@@ -286720,6 +287461,7 @@ export namespace Prisma {
     sourceRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutSourceProjectInput
     cloudBinding?: CloudProjectBindingUncheckedCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
+    releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutTargetRemixSharesInput = {
@@ -287079,6 +287821,8 @@ export namespace Prisma {
     storageConsentVersion?: string | null
     storageInventory?: NullableJsonNullValueInput | InputJsonValue
     scanFindings?: NullableJsonNullValueInput | InputJsonValue
+    targetIdeState?: NullableJsonNullValueInput | InputJsonValue
+    targetIdeStateDigest?: string | null
     scrubbedCount?: number
     licenseSnapshot?: NullableJsonNullValueInput | InputJsonValue
     consentVersion?: string | null
@@ -287115,6 +287859,8 @@ export namespace Prisma {
     storageConsentVersion?: string | null
     storageInventory?: NullableJsonNullValueInput | InputJsonValue
     scanFindings?: NullableJsonNullValueInput | InputJsonValue
+    targetIdeState?: NullableJsonNullValueInput | InputJsonValue
+    targetIdeStateDigest?: string | null
     scrubbedCount?: number
     licenseSnapshot?: NullableJsonNullValueInput | InputJsonValue
     consentVersion?: string | null
@@ -287202,6 +287948,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
+    releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutSourceRemixSharesInput = {
@@ -287255,6 +288002,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUncheckedUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
+    releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUpsertWithoutTargetRemixSharesInput = {
@@ -287319,6 +288067,7 @@ export namespace Prisma {
     sourceRemixShares?: RemixStorageShareUpdateManyWithoutSourceProjectNestedInput
     cloudBinding?: CloudProjectBindingUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
+    releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutTargetRemixSharesInput = {
@@ -287372,6 +288121,7 @@ export namespace Prisma {
     sourceRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutSourceProjectNestedInput
     cloudBinding?: CloudProjectBindingUncheckedUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
+    releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type OrganizationUpsertWithoutRemixStorageSharesAsSourceInput = {
@@ -288024,6 +288774,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
+    releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutImportJobsInput = {
@@ -288077,6 +288828,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingUncheckedCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
+    releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutImportJobsInput = {
@@ -288419,6 +289171,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
+    releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutImportJobsInput = {
@@ -288472,6 +289225,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUncheckedUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
+    releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ImportCreditReservationUpsertWithoutImportJobInput = {
@@ -288684,6 +289438,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
+    releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutGalleryListingsInput = {
@@ -288737,6 +289492,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetProjectInput
     cloudBinding?: CloudProjectBindingUncheckedCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
+    releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutGalleryListingsInput = {
@@ -288937,6 +289693,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
+    releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutGalleryListingsInput = {
@@ -288990,6 +289747,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUncheckedUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
+    releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutGalleryListingsInput = {
@@ -291300,6 +292058,7 @@ export namespace Prisma {
     sourceRemixShares?: RemixStorageShareCreateNestedManyWithoutSourceProjectInput
     targetRemixShares?: RemixStorageShareCreateNestedManyWithoutTargetProjectInput
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
+    releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutCloudBindingInput = {
@@ -291353,6 +292112,7 @@ export namespace Prisma {
     sourceRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutSourceProjectInput
     targetRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetProjectInput
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
+    releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutCloudBindingInput = {
@@ -291667,6 +292427,7 @@ export namespace Prisma {
     sourceRemixShares?: RemixStorageShareUpdateManyWithoutSourceProjectNestedInput
     targetRemixShares?: RemixStorageShareUpdateManyWithoutTargetProjectNestedInput
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
+    releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutCloudBindingInput = {
@@ -291720,6 +292481,7 @@ export namespace Prisma {
     sourceRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutSourceProjectNestedInput
     targetRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutTargetProjectNestedInput
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
+    releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type CloudProjectFactoryEventUpsertWithWhereUniqueWithoutBindingInput = {
@@ -297505,6 +298267,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
+    releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutOrganizationInput = {
@@ -297558,6 +298321,7 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUncheckedUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
+    releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateManyWithoutOrganizationInput = {
@@ -299379,6 +300143,8 @@ export namespace Prisma {
     storageInventory?: NullableJsonNullValueInput | InputJsonValue
     storageShareId?: string | null
     scanFindings?: NullableJsonNullValueInput | InputJsonValue
+    targetIdeState?: NullableJsonNullValueInput | InputJsonValue
+    targetIdeStateDigest?: string | null
     scrubbedCount?: number
     licenseSnapshot?: NullableJsonNullValueInput | InputJsonValue
     consentVersion?: string | null
@@ -299441,6 +300207,26 @@ export namespace Prisma {
     barrierExpiresAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+  }
+
+  export type ReleaseManifestCreateManyProjectInput = {
+    id?: string
+    deploymentId: string
+    environment?: string
+    version: number
+    provider: string
+    artifactKind: string
+    artifactRef: string
+    artifactDigest: string
+    storeGeneration?: string | null
+    configDigest?: string | null
+    dbMigrationPoint?: string | null
+    runtimeSpec?: NullableJsonNullValueInput | InputJsonValue
+    promotionEvidence?: NullableJsonNullValueInput | InputJsonValue
+    accessPolicyVersion?: number
+    planEntitlements?: NullableJsonNullValueInput | InputJsonValue
+    projectManifestDigest?: string | null
+    createdAt?: Date | string
   }
 
   export type ProjectEnvironmentUpdateWithoutProjectInput = {
@@ -300819,6 +301605,8 @@ export namespace Prisma {
     storageConsentVersion?: NullableStringFieldUpdateOperationsInput | string | null
     storageInventory?: NullableJsonNullValueInput | InputJsonValue
     scanFindings?: NullableJsonNullValueInput | InputJsonValue
+    targetIdeState?: NullableJsonNullValueInput | InputJsonValue
+    targetIdeStateDigest?: NullableStringFieldUpdateOperationsInput | string | null
     scrubbedCount?: IntFieldUpdateOperationsInput | number
     licenseSnapshot?: NullableJsonNullValueInput | InputJsonValue
     consentVersion?: NullableStringFieldUpdateOperationsInput | string | null
@@ -300855,6 +301643,8 @@ export namespace Prisma {
     storageInventory?: NullableJsonNullValueInput | InputJsonValue
     storageShareId?: NullableStringFieldUpdateOperationsInput | string | null
     scanFindings?: NullableJsonNullValueInput | InputJsonValue
+    targetIdeState?: NullableJsonNullValueInput | InputJsonValue
+    targetIdeStateDigest?: NullableStringFieldUpdateOperationsInput | string | null
     scrubbedCount?: IntFieldUpdateOperationsInput | number
     licenseSnapshot?: NullableJsonNullValueInput | InputJsonValue
     consentVersion?: NullableStringFieldUpdateOperationsInput | string | null
@@ -300890,6 +301680,8 @@ export namespace Prisma {
     storageInventory?: NullableJsonNullValueInput | InputJsonValue
     storageShareId?: NullableStringFieldUpdateOperationsInput | string | null
     scanFindings?: NullableJsonNullValueInput | InputJsonValue
+    targetIdeState?: NullableJsonNullValueInput | InputJsonValue
+    targetIdeStateDigest?: NullableStringFieldUpdateOperationsInput | string | null
     scrubbedCount?: IntFieldUpdateOperationsInput | number
     licenseSnapshot?: NullableJsonNullValueInput | InputJsonValue
     consentVersion?: NullableStringFieldUpdateOperationsInput | string | null
@@ -301054,6 +301846,66 @@ export namespace Prisma {
     barrierExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ReleaseManifestUpdateWithoutProjectInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    deploymentId?: StringFieldUpdateOperationsInput | string
+    environment?: StringFieldUpdateOperationsInput | string
+    version?: IntFieldUpdateOperationsInput | number
+    provider?: StringFieldUpdateOperationsInput | string
+    artifactKind?: StringFieldUpdateOperationsInput | string
+    artifactRef?: StringFieldUpdateOperationsInput | string
+    artifactDigest?: StringFieldUpdateOperationsInput | string
+    storeGeneration?: NullableStringFieldUpdateOperationsInput | string | null
+    configDigest?: NullableStringFieldUpdateOperationsInput | string | null
+    dbMigrationPoint?: NullableStringFieldUpdateOperationsInput | string | null
+    runtimeSpec?: NullableJsonNullValueInput | InputJsonValue
+    promotionEvidence?: NullableJsonNullValueInput | InputJsonValue
+    accessPolicyVersion?: IntFieldUpdateOperationsInput | number
+    planEntitlements?: NullableJsonNullValueInput | InputJsonValue
+    projectManifestDigest?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ReleaseManifestUncheckedUpdateWithoutProjectInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    deploymentId?: StringFieldUpdateOperationsInput | string
+    environment?: StringFieldUpdateOperationsInput | string
+    version?: IntFieldUpdateOperationsInput | number
+    provider?: StringFieldUpdateOperationsInput | string
+    artifactKind?: StringFieldUpdateOperationsInput | string
+    artifactRef?: StringFieldUpdateOperationsInput | string
+    artifactDigest?: StringFieldUpdateOperationsInput | string
+    storeGeneration?: NullableStringFieldUpdateOperationsInput | string | null
+    configDigest?: NullableStringFieldUpdateOperationsInput | string | null
+    dbMigrationPoint?: NullableStringFieldUpdateOperationsInput | string | null
+    runtimeSpec?: NullableJsonNullValueInput | InputJsonValue
+    promotionEvidence?: NullableJsonNullValueInput | InputJsonValue
+    accessPolicyVersion?: IntFieldUpdateOperationsInput | number
+    planEntitlements?: NullableJsonNullValueInput | InputJsonValue
+    projectManifestDigest?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ReleaseManifestUncheckedUpdateManyWithoutProjectInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    deploymentId?: StringFieldUpdateOperationsInput | string
+    environment?: StringFieldUpdateOperationsInput | string
+    version?: IntFieldUpdateOperationsInput | number
+    provider?: StringFieldUpdateOperationsInput | string
+    artifactKind?: StringFieldUpdateOperationsInput | string
+    artifactRef?: StringFieldUpdateOperationsInput | string
+    artifactDigest?: StringFieldUpdateOperationsInput | string
+    storeGeneration?: NullableStringFieldUpdateOperationsInput | string | null
+    configDigest?: NullableStringFieldUpdateOperationsInput | string | null
+    dbMigrationPoint?: NullableStringFieldUpdateOperationsInput | string | null
+    runtimeSpec?: NullableJsonNullValueInput | InputJsonValue
+    promotionEvidence?: NullableJsonNullValueInput | InputJsonValue
+    accessPolicyVersion?: IntFieldUpdateOperationsInput | number
+    planEntitlements?: NullableJsonNullValueInput | InputJsonValue
+    projectManifestDigest?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type CollaborationGroupMemberCreateManyGroupInput = {
@@ -302362,6 +303214,8 @@ export namespace Prisma {
     storageInventory?: NullableJsonNullValueInput | InputJsonValue
     storageShareId?: string | null
     scanFindings?: NullableJsonNullValueInput | InputJsonValue
+    targetIdeState?: NullableJsonNullValueInput | InputJsonValue
+    targetIdeStateDigest?: string | null
     scrubbedCount?: number
     licenseSnapshot?: NullableJsonNullValueInput | InputJsonValue
     consentVersion?: string | null
@@ -302467,6 +303321,8 @@ export namespace Prisma {
     storageConsentVersion?: NullableStringFieldUpdateOperationsInput | string | null
     storageInventory?: NullableJsonNullValueInput | InputJsonValue
     scanFindings?: NullableJsonNullValueInput | InputJsonValue
+    targetIdeState?: NullableJsonNullValueInput | InputJsonValue
+    targetIdeStateDigest?: NullableStringFieldUpdateOperationsInput | string | null
     scrubbedCount?: IntFieldUpdateOperationsInput | number
     licenseSnapshot?: NullableJsonNullValueInput | InputJsonValue
     consentVersion?: NullableStringFieldUpdateOperationsInput | string | null
@@ -302504,6 +303360,8 @@ export namespace Prisma {
     storageInventory?: NullableJsonNullValueInput | InputJsonValue
     storageShareId?: NullableStringFieldUpdateOperationsInput | string | null
     scanFindings?: NullableJsonNullValueInput | InputJsonValue
+    targetIdeState?: NullableJsonNullValueInput | InputJsonValue
+    targetIdeStateDigest?: NullableStringFieldUpdateOperationsInput | string | null
     scrubbedCount?: IntFieldUpdateOperationsInput | number
     licenseSnapshot?: NullableJsonNullValueInput | InputJsonValue
     consentVersion?: NullableStringFieldUpdateOperationsInput | string | null
@@ -302539,6 +303397,8 @@ export namespace Prisma {
     storageInventory?: NullableJsonNullValueInput | InputJsonValue
     storageShareId?: NullableStringFieldUpdateOperationsInput | string | null
     scanFindings?: NullableJsonNullValueInput | InputJsonValue
+    targetIdeState?: NullableJsonNullValueInput | InputJsonValue
+    targetIdeStateDigest?: NullableStringFieldUpdateOperationsInput | string | null
     scrubbedCount?: IntFieldUpdateOperationsInput | number
     licenseSnapshot?: NullableJsonNullValueInput | InputJsonValue
     consentVersion?: NullableStringFieldUpdateOperationsInput | string | null
@@ -302653,6 +303513,8 @@ export namespace Prisma {
     storageConsentVersion?: string | null
     storageInventory?: NullableJsonNullValueInput | InputJsonValue
     scanFindings?: NullableJsonNullValueInput | InputJsonValue
+    targetIdeState?: NullableJsonNullValueInput | InputJsonValue
+    targetIdeStateDigest?: string | null
     scrubbedCount?: number
     licenseSnapshot?: NullableJsonNullValueInput | InputJsonValue
     consentVersion?: string | null
@@ -302687,6 +303549,8 @@ export namespace Prisma {
     storageConsentVersion?: NullableStringFieldUpdateOperationsInput | string | null
     storageInventory?: NullableJsonNullValueInput | InputJsonValue
     scanFindings?: NullableJsonNullValueInput | InputJsonValue
+    targetIdeState?: NullableJsonNullValueInput | InputJsonValue
+    targetIdeStateDigest?: NullableStringFieldUpdateOperationsInput | string | null
     scrubbedCount?: IntFieldUpdateOperationsInput | number
     licenseSnapshot?: NullableJsonNullValueInput | InputJsonValue
     consentVersion?: NullableStringFieldUpdateOperationsInput | string | null
@@ -302723,6 +303587,8 @@ export namespace Prisma {
     storageConsentVersion?: NullableStringFieldUpdateOperationsInput | string | null
     storageInventory?: NullableJsonNullValueInput | InputJsonValue
     scanFindings?: NullableJsonNullValueInput | InputJsonValue
+    targetIdeState?: NullableJsonNullValueInput | InputJsonValue
+    targetIdeStateDigest?: NullableStringFieldUpdateOperationsInput | string | null
     scrubbedCount?: IntFieldUpdateOperationsInput | number
     licenseSnapshot?: NullableJsonNullValueInput | InputJsonValue
     consentVersion?: NullableStringFieldUpdateOperationsInput | string | null
@@ -302758,6 +303624,8 @@ export namespace Prisma {
     storageConsentVersion?: NullableStringFieldUpdateOperationsInput | string | null
     storageInventory?: NullableJsonNullValueInput | InputJsonValue
     scanFindings?: NullableJsonNullValueInput | InputJsonValue
+    targetIdeState?: NullableJsonNullValueInput | InputJsonValue
+    targetIdeStateDigest?: NullableStringFieldUpdateOperationsInput | string | null
     scrubbedCount?: IntFieldUpdateOperationsInput | number
     licenseSnapshot?: NullableJsonNullValueInput | InputJsonValue
     consentVersion?: NullableStringFieldUpdateOperationsInput | string | null
