@@ -213,6 +213,7 @@ exports.Prisma.RolePermissionScalarFieldEnum = {
 exports.Prisma.ProjectScalarFieldEnum = {
   id: 'id',
   organizationId: 'organizationId',
+  ownershipEpoch: 'ownershipEpoch',
   name: 'name',
   slug: 'slug',
   description: 'description',
@@ -268,6 +269,28 @@ exports.Prisma.ObjectStorageOperationPinnedObjectScalarFieldEnum = {
   contentHash: 'contentHash'
 };
 
+exports.Prisma.ObjectStorageOperationPinnedGenerationScalarFieldEnum = {
+  operationId: 'operationId',
+  ordinal: 'ordinal',
+  key: 'key',
+  generation: 'generation',
+  size: 'size',
+  contentHash: 'contentHash'
+};
+
+exports.Prisma.ProjectPermanentDeletionArtifactPlanScalarFieldEnum = {
+  operationId: 'operationId',
+  ordinal: 'ordinal',
+  artifactRef: 'artifactRef',
+  artifactDigest: 'artifactDigest',
+  projectReferenceCount: 'projectReferenceCount',
+  plannedOtherReferenceCount: 'plannedOtherReferenceCount',
+  state: 'state',
+  finalOtherReferenceCount: 'finalOtherReferenceCount',
+  processedAt: 'processedAt',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.ObjectStorageCapabilityReservationScalarFieldEnum = {
   id: 'id',
   operationId: 'operationId',
@@ -293,6 +316,24 @@ exports.Prisma.ObjectStorageOperationProjectScopeScalarFieldEnum = {
   expectedPermanentDeletionStartedAt: 'expectedPermanentDeletionStartedAt',
   deletionFenceDeletedAt: 'deletionFenceDeletedAt',
   createdAt: 'createdAt'
+};
+
+exports.Prisma.ObjectStorageVersionGcScheduleScalarFieldEnum = {
+  projectId: 'projectId',
+  expectedOrganizationId: 'expectedOrganizationId',
+  status: 'status',
+  notBefore: 'notBefore',
+  nextAttemptAt: 'nextAttemptAt',
+  ownerToken: 'ownerToken',
+  fencingToken: 'fencingToken',
+  leaseExpiresAt: 'leaseExpiresAt',
+  attempts: 'attempts',
+  lastOperationId: 'lastOperationId',
+  lastErrorCode: 'lastErrorCode',
+  lastErrorMessage: 'lastErrorMessage',
+  requestedAt: 'requestedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
 };
 
 exports.Prisma.ProjectPermanentDeletionReceiptScalarFieldEnum = {
@@ -2283,6 +2324,7 @@ exports.ObjectStorageOperationKind = exports.$Enums.ObjectStorageOperationKind =
   PROJECT_TRANSFER: 'PROJECT_TRANSFER',
   PROJECT_PERMANENT_DELETE: 'PROJECT_PERMANENT_DELETE',
   PROJECT_REMIX_CLONE: 'PROJECT_REMIX_CLONE',
+  PROJECT_VERSION_GC: 'PROJECT_VERSION_GC',
   ACCOUNT_PURGE_ERASURE: 'ACCOUNT_PURGE_ERASURE'
 };
 
@@ -2295,9 +2337,21 @@ exports.ObjectStorageOperationStatus = exports.$Enums.ObjectStorageOperationStat
   MANUAL_RECOVERY: 'MANUAL_RECOVERY'
 };
 
+exports.ProjectPermanentDeletionArtifactState = exports.$Enums.ProjectPermanentDeletionArtifactState = {
+  PLANNED: 'PLANNED',
+  DELETED: 'DELETED',
+  RETAINED: 'RETAINED'
+};
+
 exports.ObjectStorageCapabilityReservationStatus = exports.$Enums.ObjectStorageCapabilityReservationStatus = {
   RESERVED: 'RESERVED',
   ISSUED: 'ISSUED'
+};
+
+exports.ObjectStorageVersionGcStatus = exports.$Enums.ObjectStorageVersionGcStatus = {
+  PENDING: 'PENDING',
+  CLAIMED: 'CLAIMED',
+  MANUAL_RECOVERY: 'MANUAL_RECOVERY'
 };
 
 exports.CollaborationGroupSource = exports.$Enums.CollaborationGroupSource = {
@@ -2593,8 +2647,11 @@ exports.Prisma.ModelName = {
   Project: 'Project',
   ObjectStorageOperation: 'ObjectStorageOperation',
   ObjectStorageOperationPinnedObject: 'ObjectStorageOperationPinnedObject',
+  ObjectStorageOperationPinnedGeneration: 'ObjectStorageOperationPinnedGeneration',
+  ProjectPermanentDeletionArtifactPlan: 'ProjectPermanentDeletionArtifactPlan',
   ObjectStorageCapabilityReservation: 'ObjectStorageCapabilityReservation',
   ObjectStorageOperationProjectScope: 'ObjectStorageOperationProjectScope',
+  ObjectStorageVersionGcSchedule: 'ObjectStorageVersionGcSchedule',
   ProjectPermanentDeletionReceipt: 'ProjectPermanentDeletionReceipt',
   ProjectSlugRedirect: 'ProjectSlugRedirect',
   AgentMemory: 'AgentMemory',
