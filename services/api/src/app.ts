@@ -12,6 +12,16 @@ import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import jwt from '@fastify/jwt';
 import rateLimit from '@fastify/rate-limit';
+import {
+  consumeRateLimit,
+  createFastifyRateLimitStore,
+  LocalRateLimitBackend,
+  parseStoreFailurePolicy,
+  RateLimitStoreUnavailableError,
+  RedisRateLimitBackend,
+  SharedRateLimitBackend,
+  type RateLimitBackend,
+} from './shared-rate-limit.js';
 import websocket from '@fastify/websocket';
 import {
   createOpaqueToken,
@@ -8693,9 +8703,134 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       callback(null, assertStrictCorsOrigin(origin, allowedOrigins));
     },
   });
+  /*
+   * Client Redis DÉDIÉ au rate limiting.
+   *
+   * On borne les commandes par `commandTimeout` au lieu de couper la file
+   * hors-ligne.
+   *
+   * `lazyConnect: true` + `enableOfflineQueue: false` était un piège : la toute
+   * première commande partait avant que la connexion soit établie et échouait
+   * systématiquement (« Stream isn't writeable »). Couplée au fail-closed, la
+   * combinaison faisait répondre 503 à CHAQUE démarrage de pod, le temps que
+   * Redis se connecte — donc à chaque rollout, pas seulement pendant une panne.
+   *
+   * Avec une file bornée : au démarrage à froid les commandes attendent la
+   * connexion (pas de 503 fantôme) ; pendant une vraie coupure elles échouent au
+   * bout du timeout et le fail-closed prend le relais.
+   *
+   * Le timeout NE DOIT PAS être trop serré. Couplé au fail-closed, il transforme
+   * « Redis est lent » en « l'API refuse le trafic » : à 250 ms, une rafale de
+   * charge concurrente suffisait à faire expirer des commandes pourtant saines et
+   * à renvoyer des 503 en série. 1 s laisse passer les à-coups normaux tout en
+   * bornant l'attente pendant une vraie panne.
+   */
+  const rateLimitStoreFailurePolicy = parseStoreFailurePolicy(process.env.RATE_LIMIT_STORE_FAILURE_POLICY);
+
+  /*
+   * Espace de noms des clés de rate limiting.
+   *
+   * En PRODUCTION il est STABLE et commun à tous les pods — c'est précisément ce
+   * qui rend le compteur partagé (le but de ce lot).
+   *
+   * SOUS TEST il est UNIQUE PAR INSTANCE d'app. Les suites construisent des
+   * dizaines d'apps dans un même processus, toutes vues depuis 127.0.0.1 : avec
+   * un espace commun elles se partagent un seul compartiment et s'épuisent
+   * mutuellement (309 tests tombés en 429 la première fois). Avant ce lot, le
+   * cache LOCAL du plugin les isolait par accident ; on restaure explicitement
+   * cette isolation au lieu de la perdre — sans toucher au comportement de prod.
+   *
+   * Le chemin partagé reste couvert par shared-rate-limit.spec.ts et par la
+   * preuve live à 2 instances.
+   */
+  const isTestRuntime = Boolean(process.env.VITEST) || process.env.NODE_ENV === 'test';
+  const rateLimitKeyPrefix =
+    process.env.RATE_LIMIT_KEY_PREFIX ?? (isTestRuntime ? `rl:test:${randomUUID()}` : 'rl');
+
+  /*
+   * SOUS TEST, on n'utilise PAS le store partagé (sauf RATE_LIMIT_FORCE_SHARED=1).
+   *
+   * Raison : le fail-closed rend l'API sensible à la LATENCE du store, pas
+   * seulement à sa panne. 1445 tests d'intégration martelant un seul Redis en
+   * parallèle font expirer des commandes pourtant saines, et chaque expiration
+   * devient un 503 — des dizaines de tests sans aucun rapport avec le rate
+   * limiting tombaient pour cette seule raison. Les faire dépendre de la latence
+   * Redis n'apporte rien à ce qu'ils vérifient.
+   *
+   * Le chemin partagé n'est pas pour autant non testé : il l'est directement par
+   * shared-rate-limit.spec.ts et par la preuve live à 2 instances contre un vrai
+   * Redis. `RATE_LIMIT_FORCE_SHARED=1` permet de l'exercer ici aussi.
+   *
+   * ⚠️ Conséquence de production à connaître : avec le fail-closed, une latence
+   * Redis durablement supérieure à `commandTimeout` refuse du trafic. C'est le
+   * prix assumé de ne pas s'ouvrir pendant une panne — à surveiller côté
+   * exploitation.
+   */
+  const useSharedRateLimitStore =
+    Boolean(process.env.REDIS_URL) && (!isTestRuntime || process.env.RATE_LIMIT_FORCE_SHARED === '1');
+
+  const sharedRateLimitRedis = useSharedRateLimitStore
+    ? new Redis(process.env.REDIS_URL as string, {
+        connectionName: 'vibecore-rate-limit',
+        commandTimeout: Number(process.env.RATE_LIMIT_REDIS_COMMAND_TIMEOUT_MS ?? 1000),
+        maxRetriesPerRequest: 1,
+      })
+    : undefined;
+
+  /*
+   * ioredis émet une 'error' au niveau processus sur toute faute de connexion ;
+   * sans écouteur, ça devient une 'error' non gérée qui TUE le pod. On loggue et
+   * on avale : le limiteur dégrade, il ne fait pas tomber l'API.
+   */
+  sharedRateLimitRedis?.on('error', (error) =>
+    console.error(
+      JSON.stringify({ level: 'error', service: 'api', component: 'rate-limit-redis', error: String(error) }),
+    ),
+  );
+
+  const globalRateLimitBackend = sharedRateLimitRedis
+    ? new SharedRateLimitBackend(new RedisRateLimitBackend(sharedRateLimitRedis), {
+        policy: rateLimitStoreFailurePolicy,
+        onStoreFailure: (error, policy) =>
+          console.error(
+            JSON.stringify({
+              level: 'error',
+              service: 'api',
+              component: 'api-rate-limit',
+              event: 'shared_store_unavailable',
+              policy,
+              error: String(error),
+            }),
+          ),
+      })
+    : undefined;
+
   await app.register(rateLimit, {
     max: Number(process.env.API_RATE_LIMIT_MAX ?? 2000),
     timeWindow: '1 minute',
+    /*
+     * Store PARTAGÉ. Sans lui, @fastify/rate-limit compte dans un cache local au
+     * processus : avec 2 replicas (HPA → 6), tout plafond valait jusqu'à 6× la
+     * valeur annoncée, y compris ceux qui protègent login/register du brute
+     * force. Le limiteur s'affaiblissait à mesure que la plateforme scalait.
+     *
+     * On passe par NOTRE store plutôt que par l'option `redis` du plugin : les
+     * deux limiteurs (global et admin) partagent ainsi la même politique de
+     * panne et la même erreur typée, au lieu de deux comportements distincts.
+     */
+    ...(globalRateLimitBackend ? { store: createFastifyRateLimitStore(globalRateLimitBackend) } : {}),
+    /*
+     * FAIL-CLOSED. `skipOnError: true` (le défaut de la lib) laisse passer TOUTE
+     * requête quand le store est injoignable : la protection brute force
+     * s'évapore exactement quand un attaquant a intérêt à faire tomber Redis.
+     * À false, un store KO renvoie 429 plutôt que d'ouvrir la vanne.
+     *
+     * Le coût est réel et assumé : une panne Redis dégrade la disponibilité des
+     * routes limitées. Un opérateur qui préfère l'inverse le déclare via
+     * RATE_LIMIT_STORE_FAILURE_POLICY=degrade-local (compteur par pod, jamais
+     * illimité) — jamais par accident.
+     */
+    skipOnError: rateLimitStoreFailurePolicy === 'degrade-local',
     keyGenerator(request) {
       const authorization = request.headers.authorization;
 
@@ -8714,9 +8849,24 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       const credentialKey =
         typeof authorization === 'string' && authorization.startsWith('Bearer ')
           ? hashToken(authorization.slice('Bearer '.length)).slice(0, 16)
-          : 'anonymous';
+          : undefined;
 
-      return `${request.ip}:${credentialKey}`;
+      /*
+       * ISOLATION PAR PORTEUR DE CREDENTIAL.
+       *
+       * Clé authentifiée = le credential SEUL, sans l'IP. En incluant l'IP, le
+       * budget d'un même jeton se dupliquait à chaque adresse source : un
+       * attaquant authentifié disposant de plusieurs IP (proxies, cloud, IPv6
+       * /64) se fabriquait autant de compartiments neufs et sortait de sa propre
+       * limite. Le budget suit désormais le porteur, où qu'il se connecte.
+       *
+       * Corollaire d'isolation : deux tenants ne partagent jamais un compartiment
+       * (jetons distincts ⇒ clés distinctes), donc l'abus de l'un ne consomme pas
+       * le quota de l'autre — y compris derrière une IP de sortie commune.
+       *
+       * Anonyme = par IP : c'est le seul signal non falsifiable avant auth.
+       */
+      return credentialKey ? `${rateLimitKeyPrefix}:cred:${credentialKey}` : `${rateLimitKeyPrefix}:ip:${request.ip}`;
     },
   });
 
@@ -8866,6 +9016,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         }),
         code: 'VALIDATION_ERROR',
         issues: localizeAppValidationIssues(error.issues, locale),
+      });
+    }
+
+    /*
+     * FAIL-CLOSED lisible. Le store de rate limiting est injoignable : on refuse,
+     * mais avec un 503 + retry-after plutôt qu'un 500 anonyme. Ce n'est pas un
+     * bug applicatif mais un mode dégradé connu — l'appelant sait qu'il peut
+     * réessayer, et l'astreinte le distingue d'une panne de code.
+     */
+    if (error instanceof RateLimitStoreUnavailableError) {
+      return reply.code(503).header('retry-after', '5').send({
+        error: appPublicEnglish('RATE_LIMIT_STORE_UNAVAILABLE_REQUEST'),
+        code: error.code,
+        retryable: true,
       });
     }
 
@@ -10468,22 +10632,42 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     },
   );
 
-  const adminRateBuckets = new Map<string, { count: number; resetAt: number }>();
+  /*
+   * Limiteur admin PARTAGÉ entre replicas.
+   *
+   * C'était une `Map` de processus : avec 2 replicas (HPA → 6), le plafond
+   * annoncé de 30 mutations admin/minute en valait jusqu'à 180 — et l'attaquant
+   * n'avait rien à faire, le load balancer répartissait ses requêtes tout seul.
+   * Le compteur vit désormais dans Redis (incrément + TTL atomiques). Sans
+   * REDIS_URL (dev, tests), on garde le compteur local : même sémantique,
+   * portée réduite à un pod, et c'est dit.
+   */
+  const adminRateLocalFallback = new LocalRateLimitBackend();
+  const adminRateLimitBackend: RateLimitBackend = sharedRateLimitRedis
+    ? new SharedRateLimitBackend(new RedisRateLimitBackend(sharedRateLimitRedis), {
+        policy: rateLimitStoreFailurePolicy,
+        fallback: adminRateLocalFallback,
+        onStoreFailure: (error, policy) =>
+          console.error(
+            JSON.stringify({
+              level: 'error',
+              service: 'api',
+              component: 'admin-rate-limit',
+              event: 'shared_store_unavailable',
+              policy,
+              error: String(error),
+            }),
+          ),
+      })
+    : adminRateLocalFallback;
 
   /*
-   * Periodically evict expired buckets. Without this, the map grows without
-   * bound: a caller varying source IP or path component creates a key that is
-   * only ever overwritten when that exact key recurs, so one-off keys live
-   * forever (memory leak / DoS amplifier).
+   * Purge des fenêtres expirées du compteur local. Sans elle, la Map croît sans
+   * borne : une clé vue une seule fois n'est jamais réécrite et vit pour
+   * toujours (fuite mémoire, amplificateur de DoS).
    */
   setInterval(() => {
-    const t = Date.now();
-
-    for (const [k, v] of adminRateBuckets) {
-      if (v.resetAt <= t) {
-        adminRateBuckets.delete(k);
-      }
-    }
+    adminRateLocalFallback.prune();
   }, 60_000).unref();
 
   const parsedAdminRateLimit = Number(process.env.ADMIN_RATE_LIMIT_MAX ?? 30);
@@ -10498,19 +10682,41 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        * attacker bypass the limit by varying the path param (e.g. suspend a
        * different :userId each request), since each target got its own bucket.
        */
-      const key = `${request.ip}:${request.method}:${request.routeOptions.url ?? request.url.split('?')[0]}`;
-      const now = Date.now();
-      const bucket = adminRateBuckets.get(key);
+      const key = `${rateLimitKeyPrefix}:adminrl:${request.ip}:${request.method}:${request.routeOptions.url ?? request.url.split('?')[0]}`;
+      let decision;
 
-      if (!bucket || bucket.resetAt <= now) {
-        adminRateBuckets.set(key, { count: 1, resetAt: now + adminRateWindowMs });
-      } else if (bucket.count >= adminRateLimit) {
+      try {
+        decision = await consumeRateLimit({
+          backend: adminRateLimitBackend,
+          key,
+          limit: adminRateLimit,
+          windowMs: adminRateWindowMs,
+        });
+      } catch (error) {
+        /*
+         * FAIL-CLOSED : store partagé injoignable ⇒ on REFUSE la mutation admin.
+         * 503 (et non 429) : ce n'est pas l'appelant qui a trop consommé, c'est
+         * la plateforme qui ne peut plus compter. Laisser passer ici ouvrirait
+         * les routes admin au moment le plus défavorable.
+         */
+        if (error instanceof RateLimitStoreUnavailableError) {
+          request.log?.error?.({ err: error }, 'admin rate limit store unavailable — refusing (fail-closed)');
+
+          return reply.code(503).header('retry-after', '5').send({
+            error: appPublicEnglish('RATE_LIMIT_STORE_UNAVAILABLE_ADMIN'),
+            code: 'RATE_LIMIT_STORE_UNAVAILABLE',
+            retryable: true,
+          });
+        }
+
+        throw error;
+      }
+
+      if (!decision.allowed) {
         return reply
           .code(429)
-          .header('retry-after', Math.max(1, Math.ceil((bucket.resetAt - now) / 1000)))
+          .header('retry-after', decision.retryAfterSeconds)
           .send({ error: appPublicEnglish('ADMIN_RATE_LIMITED'), code: 'ADMIN_RATE_LIMITED' });
-      } else {
-        bucket.count += 1;
       }
     }
   });
@@ -17029,32 +17235,46 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return reply.code(204).send();
   });
-  /*
-   * SCR-008 — passe-plat des jauges RAM / CPU / stockage de « Vue d'ensemble ».
+  /**
+   * RPL-IDE-001.7 — real RAM / CPU / Storage for the Project Editor's Resources
+   * panel. Read inside the workspace container (cgroup + statfs) rather than
+   * from metrics-server: it is the accounting the kernel actually enforces, it
+   * is the only place the PVC's real usage exists, and it does not depend on an
+   * optional cluster add-on.
    *
-   * Aucune donnée n'est fabriquée ici : la route relaie ce que l'agent lit dans
-   * les cgroup du conteneur. Si l'agent n'est pas joignable, on rend des jauges
-   * VIDES (`null`) plutôt qu'une erreur — une jauge absente est une information
-   * honnête, une erreur bloquerait l'ouverture de tout le panneau pour une
-   * ligne d'affichage secondaire.
+   * Deliberately NOT falling back to local runtime figures the way `/ports`
+   * does: a number from the API pod's own cgroup would describe the platform,
+   * not the user's workspace, and would be indistinguishable from a real
+   * reading. When the agent cannot answer, the panel says so.
    */
-  app.get('/api/runtime/workspaces/:workspaceId/resources', async (request) => {
+  app.get('/api/runtime/workspaces/:workspaceId/resources', async (request, reply) => {
     const { workspaceId } = parse(workspaceParams, request.params);
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:read');
 
     try {
-      return await agentRequest(authorized.workspaceId, '/resources');
-    } catch {
-      return {
-        memory: { used: null, limit: null },
-        cpu: { ratio: null, limitCores: null },
-        storage: { used: null, limit: null },
-        measuredAt: new Date().toISOString(),
-        unavailable: true,
-      };
+      return await agentRequest<{
+        capturedAt: string;
+        memory: { usedBytes: number; limitBytes: number | null; source: string } | null;
+        cpu: { usedPercent: number; limitCores: number | null; sampleMs: number; source: string } | null;
+        storage: { usedBytes: number; totalBytes: number; path: string } | null;
+      }>(authorized.workspaceId, '/resources');
+    } catch (error) {
+      request.log.warn({ err: error, workspaceId: authorized.workspaceId }, 'workspace resources unavailable');
+
+      /*
+       * Localised through the shared public-copy catalogue like every other
+       * user-facing API error: the i18n source guard treats a hardcoded string
+       * here as new debt, and rightly so — this message reaches the IDE.
+       */
+      const message = appPublicCopy('WORKSPACE_RESOURCES_UNAVAILABLE', transactionalLocaleForRequest(request));
+
+      return reply.code(503).send({
+        error: message,
+        message,
+        code: 'WORKSPACE_RESOURCES_UNAVAILABLE',
+      });
     }
   });
-
   app.get('/api/runtime/workspaces/:workspaceId/ports', async (request) => {
     const { workspaceId } = parse(workspaceParams, request.params);
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:read');
