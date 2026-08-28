@@ -188,7 +188,7 @@ import {
 import { generateAuthJwtSecret, generateAuthScaffoldFiles, isAuthScaffoldEnabled } from './auth-scaffold.js';
 import { boltFileActionsFromContent } from './bolt-file-actions.js';
 import { shouldRetirePresenceRow } from './collaboration-presence-cleanup.js';
-import { slugifyRouteSegment } from './slugify.js';
+import { slugify, slugifyRouteSegment } from './slugify.js';
 import {
   checkServiceShutdown,
   openCheckpoint,
@@ -9810,7 +9810,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
       const organization = await store.createOrganization({
         name: body.organizationName ?? `${body.name ?? body.email}'s Organization`,
-        slug: body.organizationName?.toLowerCase().replace(/[^a-z0-9]+/g, '-') ?? `org-${user.id.slice(-8)}`,
+        slug: body.organizationName ? slugify(body.organizationName) : `org-${user.id.slice(-8)}`,
         ownerUserId: user.id,
       });
 
@@ -19204,7 +19204,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     try {
       organization = await store.createOrganization({
         name: body.name,
-        slug: body.slug ?? body.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+        slug: body.slug ?? slugify(body.name),
         ownerUserId: request.currentUser!.id,
       });
     } catch (error) {
@@ -20337,7 +20337,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return store.createProject({
         organizationId: orgId,
         name: body.name,
-        slug: body.slug ?? body.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+        slug: body.slug ?? slugify(body.name),
         description: body.description,
         sourceType: 'blank',
       });
@@ -20446,7 +20446,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return store.createProject({
         organizationId: orgId,
         name: body.name,
-        slug: body.slug ?? body.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+        slug: body.slug ?? slugify(body.name),
         description: body.description,
         sourceType: 'template',
         templateName: body.templateName,
@@ -20516,7 +20516,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return store.createProject({
         organizationId: orgId,
         name,
-        slug: body.slug ?? name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+        slug: body.slug ?? slugify(name),
         sourceType: 'ai',
       });
     });
@@ -20900,7 +20900,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         return store.createProject({
           organizationId: orgId,
           name,
-          slug: name.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + importJobId.slice(-6),
+          slug: slugify(name) + '-' + importJobId.slice(-6),
           sourceType,
         });
       });
@@ -21058,7 +21058,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return store.createProject({
         organizationId: orgId,
         name,
-        slug: body.slug ?? name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+        slug: body.slug ?? slugify(name),
         sourceType: 'github',
         gitRepositoryUrl: imported.remoteUrl,
         gitDefaultBranch: imported.defaultBranch,
@@ -21119,7 +21119,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return store.createProject({
         organizationId: orgId,
         name,
-        slug: body.slug ?? name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+        slug: body.slug ?? slugify(name),
         sourceType: provider,
         gitRepositoryUrl: imported.remoteUrl,
         gitDefaultBranch: imported.defaultBranch,
@@ -21168,7 +21168,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return store.createProject({
         organizationId: orgId,
         name,
-        slug: body.slug ?? name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+        slug: body.slug ?? slugify(name),
         sourceType: 'zip',
       });
     });
@@ -24889,7 +24889,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           projectId: sourceProject.id,
           organizationId: targetOrganizationId,
           name: params.name,
-          slug: params.slug ?? params.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+          slug: params.slug ?? slugify(params.name),
         });
       });
 
@@ -25585,7 +25585,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return store.duplicateProject({
         projectId: project.id,
         name: body.name,
-        slug: body.slug ?? body.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+        slug: body.slug ?? slugify(body.name),
       });
     });
 
