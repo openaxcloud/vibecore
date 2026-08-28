@@ -324,6 +324,7 @@ enum ObjectStorageOperationKind {
   PROJECT_TRANSFER
   PROJECT_PERMANENT_DELETE
   PROJECT_REMIX_CLONE
+  PROJECT_VERSION_GC
   ACCOUNT_PURGE_ERASURE
 }
 
@@ -345,9 +346,25 @@ enum ObjectStorageCapabilityReservationStatus {
   ISSUED
 }
 
+enum ObjectStorageVersionGcStatus {
+  PENDING
+  CLAIMED
+  MANUAL_RECOVERY
+}
+
+enum ProjectPermanentDeletionArtifactState {
+  PLANNED
+  DELETED
+  RETAINED
+}
+
 model Project {
   id                               String                               @id @default(cuid())
   organizationId                   String
+  // Monotonic authority epoch. The database advances it exactly once whenever
+  // organizationId changes, so an idempotency key from an earlier ownership
+  // cycle can never authorize a later transfer round-trip.
+  ownershipEpoch                   Int                                  @default(0)
   name                             String
   slug                             String
   description                      String?
@@ -407,6 +424,7 @@ model Project {
   checkpoints                      ProjectCheckpoint[]
   releaseManifests                 ReleaseManifest[]
   objectStorageOperationScopes     ObjectStorageOperationProjectScope[]
+  objectStorageVersionGcSchedule   ObjectStorageVersionGcSchedule?
 
   @@unique([organizationId, slug])
   @@index([organizationId])
@@ -418,9 +436,9 @@ model Project {
 /// tuples. idempotencyScopeHash omits mutable delete state so the same key with
 /// a changed observation conflicts instead of creating a second operation.
 model ObjectStorageOperation {
-  id                          String                               @id @default(cuid())
+  id                          String                                   @id @default(cuid())
   kind                        ObjectStorageOperationKind
-  status                      ObjectStorageOperationStatus         @default(PREPARED)
+  status                      ObjectStorageOperationStatus             @default(PREPARED)
   scopeHash                   String
   idempotencyScopeHash        String
   idempotencyKey              String
@@ -431,23 +449,26 @@ model ObjectStorageOperation {
   result                      Json?
   reservedCapabilityExpiresAt DateTime?
   ownerToken                  String?
-  fencingToken                BigInt                               @default(1)
+  fencingToken                BigInt                                   @default(1)
   leaseExpiresAt              DateTime?
-  attempts                    Int                                  @default(1)
+  attempts                    Int                                      @default(1)
   lastErrorCode               String?
   lastErrorMessage            String?
-  preparedAt                  DateTime                             @default(now())
+  preparedAt                  DateTime                                 @default(now())
   effectStartedAt             DateTime?
   verificationStartedAt       DateTime?
   committedAt                 DateTime?
   failedSafeAt                DateTime?
   manualRecoveryAt            DateTime?
-  createdAt                   DateTime                             @default(now())
-  updatedAt                   DateTime                             @updatedAt
+  createdAt                   DateTime                                 @default(now())
+  updatedAt                   DateTime                                 @updatedAt
   scopes                      ObjectStorageOperationProjectScope[]
   pinnedObjects               ObjectStorageOperationPinnedObject[]
+  pinnedGenerations           ObjectStorageOperationPinnedGeneration[]
+  permanentDeletionArtifacts  ProjectPermanentDeletionArtifactPlan[]
   capabilityReservations      ObjectStorageCapabilityReservation[]
   permanentDeletionReceipt    ProjectPermanentDeletionReceipt?
+  versionGcSchedules          ObjectStorageVersionGcSchedule[]         @relation("ObjectStorageVersionGcLastOperation")
 
   @@unique([idempotencyScopeHash, idempotencyKey])
   @@index([scopeHash])
@@ -469,6 +490,46 @@ model ObjectStorageOperationPinnedObject {
 
   @@id([operationId, ordinal])
   @@unique([operationId, key])
+}
+
+/// Exact provider generations selected for one bounded version-history GC
+/// operation. Multiple generations of the same key are valid and are retained
+/// for verify-first crash recovery until the operation history is removed.
+model ObjectStorageOperationPinnedGeneration {
+  operationId String
+  ordinal     Int
+  key         String
+  generation  String
+  size        BigInt
+  contentHash String?
+  operation   ObjectStorageOperation @relation(fields: [operationId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@id([operationId, ordinal])
+  @@unique([operationId, key, generation], map: "OSPinnedGeneration_operation_key_generation_key")
+  @@index([operationId, key], map: "OSPinnedGeneration_operation_key_idx")
+}
+
+/// Durable, unbounded-by-project artifact preimage for permanent deletion.
+/// Rows are populated in keyset batches before EFFECT_STARTED and become
+/// immutable with the receipted operation, preserving the disposition digest's
+/// forensic preimage after Project/ReleaseManifest cascade.
+model ProjectPermanentDeletionArtifactPlan {
+  operationId                String
+  ordinal                    Int
+  artifactRef                String
+  artifactDigest             String
+  projectReferenceCount      Int
+  plannedOtherReferenceCount Int
+  state                      ProjectPermanentDeletionArtifactState @default(PLANNED)
+  finalOtherReferenceCount   Int?
+  processedAt                DateTime?
+  createdAt                  DateTime                              @default(now())
+  operation                  ObjectStorageOperation                @relation(fields: [operationId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@id([operationId, ordinal])
+  @@unique([operationId, artifactRef], map: "PPDArtifactPlan_operation_artifact_key")
+  @@index([operationId, state, ordinal], map: "PPDArtifactPlan_operation_state_ordinal_idx")
+  @@index([artifactDigest], map: "PPDArtifactPlan_digest_idx")
 }
 
 /// Non-secret authorization ledger for signed URL issuance. The signature and
@@ -518,6 +579,34 @@ model ObjectStorageOperationProjectScope {
   @@index([projectId])
   @@index([projectIdSnapshot, createdAt])
   @@index([expectedOrganizationId, createdAt])
+}
+
+/// Durable project-level queue for noncurrent object-generation collection.
+/// Claiming this row only chooses work; provider effects are represented by a
+/// separate PROJECT_VERSION_GC ObjectStorageOperation and normalized generation
+/// rows. The queue survives process loss and carries bounded retry/backoff state.
+model ObjectStorageVersionGcSchedule {
+  projectId              String                       @id
+  expectedOrganizationId String
+  status                 ObjectStorageVersionGcStatus @default(PENDING)
+  notBefore              DateTime
+  nextAttemptAt          DateTime
+  ownerToken             String?
+  fencingToken           BigInt                       @default(1)
+  leaseExpiresAt         DateTime?
+  attempts               Int                          @default(0)
+  lastOperationId        String?
+  lastErrorCode          String?
+  lastErrorMessage       String?
+  requestedAt            DateTime                     @default(now())
+  createdAt              DateTime                     @default(now())
+  updatedAt              DateTime                     @updatedAt
+  project                Project                      @relation(fields: [projectId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  lastOperation          ObjectStorageOperation?      @relation("ObjectStorageVersionGcLastOperation", fields: [lastOperationId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  @@index([status, nextAttemptAt, projectId], map: "OSVersionGc_status_due_project_idx")
+  @@index([lastOperationId], map: "OSVersionGc_last_operation_idx")
+  @@index([expectedOrganizationId, requestedAt], map: "OSVersionGc_org_requested_idx")
 }
 
 /// Immutable replay receipt for permanent deletion. `projectId` is a snapshot,

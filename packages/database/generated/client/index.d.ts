@@ -88,6 +88,21 @@ export type ObjectStorageOperation = $Result.DefaultSelection<Prisma.$ObjectStor
  */
 export type ObjectStorageOperationPinnedObject = $Result.DefaultSelection<Prisma.$ObjectStorageOperationPinnedObjectPayload>
 /**
+ * Model ObjectStorageOperationPinnedGeneration
+ * Exact provider generations selected for one bounded version-history GC
+ * operation. Multiple generations of the same key are valid and are retained
+ * for verify-first crash recovery until the operation history is removed.
+ */
+export type ObjectStorageOperationPinnedGeneration = $Result.DefaultSelection<Prisma.$ObjectStorageOperationPinnedGenerationPayload>
+/**
+ * Model ProjectPermanentDeletionArtifactPlan
+ * Durable, unbounded-by-project artifact preimage for permanent deletion.
+ * Rows are populated in keyset batches before EFFECT_STARTED and become
+ * immutable with the receipted operation, preserving the disposition digest's
+ * forensic preimage after Project/ReleaseManifest cascade.
+ */
+export type ProjectPermanentDeletionArtifactPlan = $Result.DefaultSelection<Prisma.$ProjectPermanentDeletionArtifactPlanPayload>
+/**
  * Model ObjectStorageCapabilityReservation
  * Non-secret authorization ledger for signed URL issuance. The signature and
  * URL never enter PostgreSQL: a committed reservation only proves that the
@@ -103,6 +118,14 @@ export type ObjectStorageCapabilityReservation = $Result.DefaultSelection<Prisma
  * exists only for efficient live fencing and becomes NULL on hard deletion.
  */
 export type ObjectStorageOperationProjectScope = $Result.DefaultSelection<Prisma.$ObjectStorageOperationProjectScopePayload>
+/**
+ * Model ObjectStorageVersionGcSchedule
+ * Durable project-level queue for noncurrent object-generation collection.
+ * Claiming this row only chooses work; provider effects are represented by a
+ * separate PROJECT_VERSION_GC ObjectStorageOperation and normalized generation
+ * rows. The queue survives process loss and carries bounded retry/backoff state.
+ */
+export type ObjectStorageVersionGcSchedule = $Result.DefaultSelection<Prisma.$ObjectStorageVersionGcSchedulePayload>
 /**
  * Model ProjectPermanentDeletionReceipt
  * Immutable replay receipt for permanent deletion. `projectId` is a snapshot,
@@ -1031,6 +1054,7 @@ export const ObjectStorageOperationKind: {
   PROJECT_TRANSFER: 'PROJECT_TRANSFER',
   PROJECT_PERMANENT_DELETE: 'PROJECT_PERMANENT_DELETE',
   PROJECT_REMIX_CLONE: 'PROJECT_REMIX_CLONE',
+  PROJECT_VERSION_GC: 'PROJECT_VERSION_GC',
   ACCOUNT_PURGE_ERASURE: 'ACCOUNT_PURGE_ERASURE'
 };
 
@@ -1055,6 +1079,24 @@ export const ObjectStorageCapabilityReservationStatus: {
 };
 
 export type ObjectStorageCapabilityReservationStatus = (typeof ObjectStorageCapabilityReservationStatus)[keyof typeof ObjectStorageCapabilityReservationStatus]
+
+
+export const ObjectStorageVersionGcStatus: {
+  PENDING: 'PENDING',
+  CLAIMED: 'CLAIMED',
+  MANUAL_RECOVERY: 'MANUAL_RECOVERY'
+};
+
+export type ObjectStorageVersionGcStatus = (typeof ObjectStorageVersionGcStatus)[keyof typeof ObjectStorageVersionGcStatus]
+
+
+export const ProjectPermanentDeletionArtifactState: {
+  PLANNED: 'PLANNED',
+  DELETED: 'DELETED',
+  RETAINED: 'RETAINED'
+};
+
+export type ProjectPermanentDeletionArtifactState = (typeof ProjectPermanentDeletionArtifactState)[keyof typeof ProjectPermanentDeletionArtifactState]
 
 
 export const TicketMessageAuthor: {
@@ -1412,6 +1454,14 @@ export const ObjectStorageOperationStatus: typeof $Enums.ObjectStorageOperationS
 export type ObjectStorageCapabilityReservationStatus = $Enums.ObjectStorageCapabilityReservationStatus
 
 export const ObjectStorageCapabilityReservationStatus: typeof $Enums.ObjectStorageCapabilityReservationStatus
+
+export type ObjectStorageVersionGcStatus = $Enums.ObjectStorageVersionGcStatus
+
+export const ObjectStorageVersionGcStatus: typeof $Enums.ObjectStorageVersionGcStatus
+
+export type ProjectPermanentDeletionArtifactState = $Enums.ProjectPermanentDeletionArtifactState
+
+export const ProjectPermanentDeletionArtifactState: typeof $Enums.ProjectPermanentDeletionArtifactState
 
 export type TicketMessageAuthor = $Enums.TicketMessageAuthor
 
@@ -1773,6 +1823,26 @@ export class PrismaClient<
   get objectStorageOperationPinnedObject(): Prisma.ObjectStorageOperationPinnedObjectDelegate<ExtArgs, ClientOptions>;
 
   /**
+   * `prisma.objectStorageOperationPinnedGeneration`: Exposes CRUD operations for the **ObjectStorageOperationPinnedGeneration** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more ObjectStorageOperationPinnedGenerations
+    * const objectStorageOperationPinnedGenerations = await prisma.objectStorageOperationPinnedGeneration.findMany()
+    * ```
+    */
+  get objectStorageOperationPinnedGeneration(): Prisma.ObjectStorageOperationPinnedGenerationDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.projectPermanentDeletionArtifactPlan`: Exposes CRUD operations for the **ProjectPermanentDeletionArtifactPlan** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more ProjectPermanentDeletionArtifactPlans
+    * const projectPermanentDeletionArtifactPlans = await prisma.projectPermanentDeletionArtifactPlan.findMany()
+    * ```
+    */
+  get projectPermanentDeletionArtifactPlan(): Prisma.ProjectPermanentDeletionArtifactPlanDelegate<ExtArgs, ClientOptions>;
+
+  /**
    * `prisma.objectStorageCapabilityReservation`: Exposes CRUD operations for the **ObjectStorageCapabilityReservation** model.
     * Example usage:
     * ```ts
@@ -1791,6 +1861,16 @@ export class PrismaClient<
     * ```
     */
   get objectStorageOperationProjectScope(): Prisma.ObjectStorageOperationProjectScopeDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.objectStorageVersionGcSchedule`: Exposes CRUD operations for the **ObjectStorageVersionGcSchedule** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more ObjectStorageVersionGcSchedules
+    * const objectStorageVersionGcSchedules = await prisma.objectStorageVersionGcSchedule.findMany()
+    * ```
+    */
+  get objectStorageVersionGcSchedule(): Prisma.ObjectStorageVersionGcScheduleDelegate<ExtArgs, ClientOptions>;
 
   /**
    * `prisma.projectPermanentDeletionReceipt`: Exposes CRUD operations for the **ProjectPermanentDeletionReceipt** model.
@@ -3638,8 +3718,11 @@ export namespace Prisma {
     Project: 'Project',
     ObjectStorageOperation: 'ObjectStorageOperation',
     ObjectStorageOperationPinnedObject: 'ObjectStorageOperationPinnedObject',
+    ObjectStorageOperationPinnedGeneration: 'ObjectStorageOperationPinnedGeneration',
+    ProjectPermanentDeletionArtifactPlan: 'ProjectPermanentDeletionArtifactPlan',
     ObjectStorageCapabilityReservation: 'ObjectStorageCapabilityReservation',
     ObjectStorageOperationProjectScope: 'ObjectStorageOperationProjectScope',
+    ObjectStorageVersionGcSchedule: 'ObjectStorageVersionGcSchedule',
     ProjectPermanentDeletionReceipt: 'ProjectPermanentDeletionReceipt',
     ProjectSlugRedirect: 'ProjectSlugRedirect',
     AgentMemory: 'AgentMemory',
@@ -3795,7 +3878,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "user" | "accountLockout" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "objectStorageOperation" | "objectStorageOperationPinnedObject" | "objectStorageCapabilityReservation" | "objectStorageOperationProjectScope" | "projectPermanentDeletionReceipt" | "projectSlugRedirect" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "installedSkill" | "skillAuditEvent" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "collaborationGroup" | "collaborationGroupMember" | "resourceAccessGrant" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectManifestRevision" | "projectStorageObject" | "deployment" | "reservedVmOperation" | "reservedVmBillingPeriod" | "deploymentEnvironment" | "releaseManifest" | "rollbackIdempotencyRequest" | "deploymentAccessPolicy" | "deploymentAccessExchangeTicket" | "rateCard" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "providerRequestMetric" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "runtimeWebSocketTicket" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "mcpGlobalPolicy" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore" | "dBMigrationExecution" | "scheduledTask" | "scheduledTaskRun" | "agentRoutingCard" | "agentCallLog" | "projectCheckpoint" | "remixJob" | "remixStorageShare" | "importJob" | "importCreditReservation" | "galleryListing" | "ledgerAccount" | "ledgerTransaction" | "ledgerEntry" | "ledgerReservation" | "ledgerFxRate" | "ledgerReconciliationRun" | "previewReadinessBeacon" | "workspaceLifecycleEvent" | "workspacePostMortem" | "cloudTenant" | "cloudProjectBinding" | "cloudProjectFactoryEvent" | "cloudOperation" | "cloudOperationEvent" | "cloudTenantTransfer" | "cloudTeardownRecord" | "platformIamIdentity" | "platformIamImpersonationAudit" | "purgePlan" | "purgeFreeze" | "purgeEffect" | "purgeReceipt"
+      modelProps: "user" | "accountLockout" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "objectStorageOperation" | "objectStorageOperationPinnedObject" | "objectStorageOperationPinnedGeneration" | "projectPermanentDeletionArtifactPlan" | "objectStorageCapabilityReservation" | "objectStorageOperationProjectScope" | "objectStorageVersionGcSchedule" | "projectPermanentDeletionReceipt" | "projectSlugRedirect" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "installedSkill" | "skillAuditEvent" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "collaborationGroup" | "collaborationGroupMember" | "resourceAccessGrant" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectManifestRevision" | "projectStorageObject" | "deployment" | "reservedVmOperation" | "reservedVmBillingPeriod" | "deploymentEnvironment" | "releaseManifest" | "rollbackIdempotencyRequest" | "deploymentAccessPolicy" | "deploymentAccessExchangeTicket" | "rateCard" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "providerRequestMetric" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "runtimeWebSocketTicket" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "mcpGlobalPolicy" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore" | "dBMigrationExecution" | "scheduledTask" | "scheduledTaskRun" | "agentRoutingCard" | "agentCallLog" | "projectCheckpoint" | "remixJob" | "remixStorageShare" | "importJob" | "importCreditReservation" | "galleryListing" | "ledgerAccount" | "ledgerTransaction" | "ledgerEntry" | "ledgerReservation" | "ledgerFxRate" | "ledgerReconciliationRun" | "previewReadinessBeacon" | "workspaceLifecycleEvent" | "workspacePostMortem" | "cloudTenant" | "cloudProjectBinding" | "cloudProjectFactoryEvent" | "cloudOperation" | "cloudOperationEvent" | "cloudTenantTransfer" | "cloudTeardownRecord" | "platformIamIdentity" | "platformIamImpersonationAudit" | "purgePlan" | "purgeFreeze" | "purgeEffect" | "purgeReceipt"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -4761,6 +4844,154 @@ export namespace Prisma {
           }
         }
       }
+      ObjectStorageOperationPinnedGeneration: {
+        payload: Prisma.$ObjectStorageOperationPinnedGenerationPayload<ExtArgs>
+        fields: Prisma.ObjectStorageOperationPinnedGenerationFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.ObjectStorageOperationPinnedGenerationFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ObjectStorageOperationPinnedGenerationPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.ObjectStorageOperationPinnedGenerationFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ObjectStorageOperationPinnedGenerationPayload>
+          }
+          findFirst: {
+            args: Prisma.ObjectStorageOperationPinnedGenerationFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ObjectStorageOperationPinnedGenerationPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.ObjectStorageOperationPinnedGenerationFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ObjectStorageOperationPinnedGenerationPayload>
+          }
+          findMany: {
+            args: Prisma.ObjectStorageOperationPinnedGenerationFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ObjectStorageOperationPinnedGenerationPayload>[]
+          }
+          create: {
+            args: Prisma.ObjectStorageOperationPinnedGenerationCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ObjectStorageOperationPinnedGenerationPayload>
+          }
+          createMany: {
+            args: Prisma.ObjectStorageOperationPinnedGenerationCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.ObjectStorageOperationPinnedGenerationCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ObjectStorageOperationPinnedGenerationPayload>[]
+          }
+          delete: {
+            args: Prisma.ObjectStorageOperationPinnedGenerationDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ObjectStorageOperationPinnedGenerationPayload>
+          }
+          update: {
+            args: Prisma.ObjectStorageOperationPinnedGenerationUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ObjectStorageOperationPinnedGenerationPayload>
+          }
+          deleteMany: {
+            args: Prisma.ObjectStorageOperationPinnedGenerationDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.ObjectStorageOperationPinnedGenerationUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.ObjectStorageOperationPinnedGenerationUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ObjectStorageOperationPinnedGenerationPayload>[]
+          }
+          upsert: {
+            args: Prisma.ObjectStorageOperationPinnedGenerationUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ObjectStorageOperationPinnedGenerationPayload>
+          }
+          aggregate: {
+            args: Prisma.ObjectStorageOperationPinnedGenerationAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateObjectStorageOperationPinnedGeneration>
+          }
+          groupBy: {
+            args: Prisma.ObjectStorageOperationPinnedGenerationGroupByArgs<ExtArgs>
+            result: $Utils.Optional<ObjectStorageOperationPinnedGenerationGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.ObjectStorageOperationPinnedGenerationCountArgs<ExtArgs>
+            result: $Utils.Optional<ObjectStorageOperationPinnedGenerationCountAggregateOutputType> | number
+          }
+        }
+      }
+      ProjectPermanentDeletionArtifactPlan: {
+        payload: Prisma.$ProjectPermanentDeletionArtifactPlanPayload<ExtArgs>
+        fields: Prisma.ProjectPermanentDeletionArtifactPlanFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.ProjectPermanentDeletionArtifactPlanFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectPermanentDeletionArtifactPlanPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.ProjectPermanentDeletionArtifactPlanFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectPermanentDeletionArtifactPlanPayload>
+          }
+          findFirst: {
+            args: Prisma.ProjectPermanentDeletionArtifactPlanFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectPermanentDeletionArtifactPlanPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.ProjectPermanentDeletionArtifactPlanFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectPermanentDeletionArtifactPlanPayload>
+          }
+          findMany: {
+            args: Prisma.ProjectPermanentDeletionArtifactPlanFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectPermanentDeletionArtifactPlanPayload>[]
+          }
+          create: {
+            args: Prisma.ProjectPermanentDeletionArtifactPlanCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectPermanentDeletionArtifactPlanPayload>
+          }
+          createMany: {
+            args: Prisma.ProjectPermanentDeletionArtifactPlanCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.ProjectPermanentDeletionArtifactPlanCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectPermanentDeletionArtifactPlanPayload>[]
+          }
+          delete: {
+            args: Prisma.ProjectPermanentDeletionArtifactPlanDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectPermanentDeletionArtifactPlanPayload>
+          }
+          update: {
+            args: Prisma.ProjectPermanentDeletionArtifactPlanUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectPermanentDeletionArtifactPlanPayload>
+          }
+          deleteMany: {
+            args: Prisma.ProjectPermanentDeletionArtifactPlanDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.ProjectPermanentDeletionArtifactPlanUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.ProjectPermanentDeletionArtifactPlanUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectPermanentDeletionArtifactPlanPayload>[]
+          }
+          upsert: {
+            args: Prisma.ProjectPermanentDeletionArtifactPlanUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectPermanentDeletionArtifactPlanPayload>
+          }
+          aggregate: {
+            args: Prisma.ProjectPermanentDeletionArtifactPlanAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateProjectPermanentDeletionArtifactPlan>
+          }
+          groupBy: {
+            args: Prisma.ProjectPermanentDeletionArtifactPlanGroupByArgs<ExtArgs>
+            result: $Utils.Optional<ProjectPermanentDeletionArtifactPlanGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.ProjectPermanentDeletionArtifactPlanCountArgs<ExtArgs>
+            result: $Utils.Optional<ProjectPermanentDeletionArtifactPlanCountAggregateOutputType> | number
+          }
+        }
+      }
       ObjectStorageCapabilityReservation: {
         payload: Prisma.$ObjectStorageCapabilityReservationPayload<ExtArgs>
         fields: Prisma.ObjectStorageCapabilityReservationFieldRefs
@@ -4906,6 +5137,80 @@ export namespace Prisma {
           count: {
             args: Prisma.ObjectStorageOperationProjectScopeCountArgs<ExtArgs>
             result: $Utils.Optional<ObjectStorageOperationProjectScopeCountAggregateOutputType> | number
+          }
+        }
+      }
+      ObjectStorageVersionGcSchedule: {
+        payload: Prisma.$ObjectStorageVersionGcSchedulePayload<ExtArgs>
+        fields: Prisma.ObjectStorageVersionGcScheduleFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.ObjectStorageVersionGcScheduleFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ObjectStorageVersionGcSchedulePayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.ObjectStorageVersionGcScheduleFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ObjectStorageVersionGcSchedulePayload>
+          }
+          findFirst: {
+            args: Prisma.ObjectStorageVersionGcScheduleFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ObjectStorageVersionGcSchedulePayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.ObjectStorageVersionGcScheduleFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ObjectStorageVersionGcSchedulePayload>
+          }
+          findMany: {
+            args: Prisma.ObjectStorageVersionGcScheduleFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ObjectStorageVersionGcSchedulePayload>[]
+          }
+          create: {
+            args: Prisma.ObjectStorageVersionGcScheduleCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ObjectStorageVersionGcSchedulePayload>
+          }
+          createMany: {
+            args: Prisma.ObjectStorageVersionGcScheduleCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.ObjectStorageVersionGcScheduleCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ObjectStorageVersionGcSchedulePayload>[]
+          }
+          delete: {
+            args: Prisma.ObjectStorageVersionGcScheduleDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ObjectStorageVersionGcSchedulePayload>
+          }
+          update: {
+            args: Prisma.ObjectStorageVersionGcScheduleUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ObjectStorageVersionGcSchedulePayload>
+          }
+          deleteMany: {
+            args: Prisma.ObjectStorageVersionGcScheduleDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.ObjectStorageVersionGcScheduleUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.ObjectStorageVersionGcScheduleUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ObjectStorageVersionGcSchedulePayload>[]
+          }
+          upsert: {
+            args: Prisma.ObjectStorageVersionGcScheduleUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ObjectStorageVersionGcSchedulePayload>
+          }
+          aggregate: {
+            args: Prisma.ObjectStorageVersionGcScheduleAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateObjectStorageVersionGcSchedule>
+          }
+          groupBy: {
+            args: Prisma.ObjectStorageVersionGcScheduleGroupByArgs<ExtArgs>
+            result: $Utils.Optional<ObjectStorageVersionGcScheduleGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.ObjectStorageVersionGcScheduleCountArgs<ExtArgs>
+            result: $Utils.Optional<ObjectStorageVersionGcScheduleCountAggregateOutputType> | number
           }
         }
       }
@@ -15374,8 +15679,11 @@ export namespace Prisma {
     project?: ProjectOmit
     objectStorageOperation?: ObjectStorageOperationOmit
     objectStorageOperationPinnedObject?: ObjectStorageOperationPinnedObjectOmit
+    objectStorageOperationPinnedGeneration?: ObjectStorageOperationPinnedGenerationOmit
+    projectPermanentDeletionArtifactPlan?: ProjectPermanentDeletionArtifactPlanOmit
     objectStorageCapabilityReservation?: ObjectStorageCapabilityReservationOmit
     objectStorageOperationProjectScope?: ObjectStorageOperationProjectScopeOmit
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleOmit
     projectPermanentDeletionReceipt?: ProjectPermanentDeletionReceiptOmit
     projectSlugRedirect?: ProjectSlugRedirectOmit
     agentMemory?: AgentMemoryOmit
@@ -16828,13 +17136,19 @@ export namespace Prisma {
   export type ObjectStorageOperationCountOutputType = {
     scopes: number
     pinnedObjects: number
+    pinnedGenerations: number
+    permanentDeletionArtifacts: number
     capabilityReservations: number
+    versionGcSchedules: number
   }
 
   export type ObjectStorageOperationCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     scopes?: boolean | ObjectStorageOperationCountOutputTypeCountScopesArgs
     pinnedObjects?: boolean | ObjectStorageOperationCountOutputTypeCountPinnedObjectsArgs
+    pinnedGenerations?: boolean | ObjectStorageOperationCountOutputTypeCountPinnedGenerationsArgs
+    permanentDeletionArtifacts?: boolean | ObjectStorageOperationCountOutputTypeCountPermanentDeletionArtifactsArgs
     capabilityReservations?: boolean | ObjectStorageOperationCountOutputTypeCountCapabilityReservationsArgs
+    versionGcSchedules?: boolean | ObjectStorageOperationCountOutputTypeCountVersionGcSchedulesArgs
   }
 
   // Custom InputTypes
@@ -16865,8 +17179,29 @@ export namespace Prisma {
   /**
    * ObjectStorageOperationCountOutputType without action
    */
+  export type ObjectStorageOperationCountOutputTypeCountPinnedGenerationsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ObjectStorageOperationPinnedGenerationWhereInput
+  }
+
+  /**
+   * ObjectStorageOperationCountOutputType without action
+   */
+  export type ObjectStorageOperationCountOutputTypeCountPermanentDeletionArtifactsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ProjectPermanentDeletionArtifactPlanWhereInput
+  }
+
+  /**
+   * ObjectStorageOperationCountOutputType without action
+   */
   export type ObjectStorageOperationCountOutputTypeCountCapabilityReservationsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: ObjectStorageCapabilityReservationWhereInput
+  }
+
+  /**
+   * ObjectStorageOperationCountOutputType without action
+   */
+  export type ObjectStorageOperationCountOutputTypeCountVersionGcSchedulesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ObjectStorageVersionGcScheduleWhereInput
   }
 
 
@@ -31302,13 +31637,24 @@ export namespace Prisma {
 
   export type AggregateProject = {
     _count: ProjectCountAggregateOutputType | null
+    _avg: ProjectAvgAggregateOutputType | null
+    _sum: ProjectSumAggregateOutputType | null
     _min: ProjectMinAggregateOutputType | null
     _max: ProjectMaxAggregateOutputType | null
+  }
+
+  export type ProjectAvgAggregateOutputType = {
+    ownershipEpoch: number | null
+  }
+
+  export type ProjectSumAggregateOutputType = {
+    ownershipEpoch: number | null
   }
 
   export type ProjectMinAggregateOutputType = {
     id: string | null
     organizationId: string | null
+    ownershipEpoch: number | null
     name: string | null
     slug: string | null
     description: string | null
@@ -31329,6 +31675,7 @@ export namespace Prisma {
   export type ProjectMaxAggregateOutputType = {
     id: string | null
     organizationId: string | null
+    ownershipEpoch: number | null
     name: string | null
     slug: string | null
     description: string | null
@@ -31349,6 +31696,7 @@ export namespace Prisma {
   export type ProjectCountAggregateOutputType = {
     id: number
     organizationId: number
+    ownershipEpoch: number
     name: number
     slug: number
     description: number
@@ -31368,9 +31716,18 @@ export namespace Prisma {
   }
 
 
+  export type ProjectAvgAggregateInputType = {
+    ownershipEpoch?: true
+  }
+
+  export type ProjectSumAggregateInputType = {
+    ownershipEpoch?: true
+  }
+
   export type ProjectMinAggregateInputType = {
     id?: true
     organizationId?: true
+    ownershipEpoch?: true
     name?: true
     slug?: true
     description?: true
@@ -31391,6 +31748,7 @@ export namespace Prisma {
   export type ProjectMaxAggregateInputType = {
     id?: true
     organizationId?: true
+    ownershipEpoch?: true
     name?: true
     slug?: true
     description?: true
@@ -31411,6 +31769,7 @@ export namespace Prisma {
   export type ProjectCountAggregateInputType = {
     id?: true
     organizationId?: true
+    ownershipEpoch?: true
     name?: true
     slug?: true
     description?: true
@@ -31467,6 +31826,18 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
      *
+     * Select which fields to average
+    **/
+    _avg?: ProjectAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     *
+     * Select which fields to sum
+    **/
+    _sum?: ProjectSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     *
      * Select which fields to find the minimum value
     **/
     _min?: ProjectMinAggregateInputType
@@ -31497,6 +31868,8 @@ export namespace Prisma {
     take?: number
     skip?: number
     _count?: ProjectCountAggregateInputType | true
+    _avg?: ProjectAvgAggregateInputType
+    _sum?: ProjectSumAggregateInputType
     _min?: ProjectMinAggregateInputType
     _max?: ProjectMaxAggregateInputType
   }
@@ -31504,6 +31877,7 @@ export namespace Prisma {
   export type ProjectGroupByOutputType = {
     id: string
     organizationId: string
+    ownershipEpoch: number
     name: string
     slug: string
     description: string | null
@@ -31520,6 +31894,8 @@ export namespace Prisma {
     createdAt: Date
     updatedAt: Date
     _count: ProjectCountAggregateOutputType | null
+    _avg: ProjectAvgAggregateOutputType | null
+    _sum: ProjectSumAggregateOutputType | null
     _min: ProjectMinAggregateOutputType | null
     _max: ProjectMaxAggregateOutputType | null
   }
@@ -31541,6 +31917,7 @@ export namespace Prisma {
   export type ProjectSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     organizationId?: boolean
+    ownershipEpoch?: boolean
     name?: boolean
     slug?: boolean
     description?: boolean
@@ -31595,12 +31972,14 @@ export namespace Prisma {
     checkpoints?: boolean | Project$checkpointsArgs<ExtArgs>
     releaseManifests?: boolean | Project$releaseManifestsArgs<ExtArgs>
     objectStorageOperationScopes?: boolean | Project$objectStorageOperationScopesArgs<ExtArgs>
+    objectStorageVersionGcSchedule?: boolean | Project$objectStorageVersionGcScheduleArgs<ExtArgs>
     _count?: boolean | ProjectCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["project"]>
 
   export type ProjectSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     organizationId?: boolean
+    ownershipEpoch?: boolean
     name?: boolean
     slug?: boolean
     description?: boolean
@@ -31622,6 +32001,7 @@ export namespace Prisma {
   export type ProjectSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     organizationId?: boolean
+    ownershipEpoch?: boolean
     name?: boolean
     slug?: boolean
     description?: boolean
@@ -31643,6 +32023,7 @@ export namespace Prisma {
   export type ProjectSelectScalar = {
     id?: boolean
     organizationId?: boolean
+    ownershipEpoch?: boolean
     name?: boolean
     slug?: boolean
     description?: boolean
@@ -31660,7 +32041,7 @@ export namespace Prisma {
     updatedAt?: boolean
   }
 
-  export type ProjectOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "organizationId" | "name" | "slug" | "description" | "sourceType" | "templateName" | "gitRepositoryUrl" | "gitDefaultBranch" | "persistentVolumeClaim" | "thumbnailUrl" | "thumbnailUpdatedAt" | "objectStorageCapabilityExpiresAt" | "permanentDeletionStartedAt" | "deletedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["project"]>
+  export type ProjectOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "organizationId" | "ownershipEpoch" | "name" | "slug" | "description" | "sourceType" | "templateName" | "gitRepositoryUrl" | "gitDefaultBranch" | "persistentVolumeClaim" | "thumbnailUrl" | "thumbnailUpdatedAt" | "objectStorageCapabilityExpiresAt" | "permanentDeletionStartedAt" | "deletedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["project"]>
   export type ProjectInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     organization?: boolean | OrganizationDefaultArgs<ExtArgs>
     environments?: boolean | Project$environmentsArgs<ExtArgs>
@@ -31701,6 +32082,7 @@ export namespace Prisma {
     checkpoints?: boolean | Project$checkpointsArgs<ExtArgs>
     releaseManifests?: boolean | Project$releaseManifestsArgs<ExtArgs>
     objectStorageOperationScopes?: boolean | Project$objectStorageOperationScopesArgs<ExtArgs>
+    objectStorageVersionGcSchedule?: boolean | Project$objectStorageVersionGcScheduleArgs<ExtArgs>
     _count?: boolean | ProjectCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type ProjectIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -31752,10 +32134,12 @@ export namespace Prisma {
       checkpoints: Prisma.$ProjectCheckpointPayload<ExtArgs>[]
       releaseManifests: Prisma.$ReleaseManifestPayload<ExtArgs>[]
       objectStorageOperationScopes: Prisma.$ObjectStorageOperationProjectScopePayload<ExtArgs>[]
+      objectStorageVersionGcSchedule: Prisma.$ObjectStorageVersionGcSchedulePayload<ExtArgs> | null
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
       organizationId: string
+      ownershipEpoch: number
       name: string
       slug: string
       description: string | null
@@ -32204,6 +32588,7 @@ export namespace Prisma {
     checkpoints<T extends Project$checkpointsArgs<ExtArgs> = {}>(args?: Subset<T, Project$checkpointsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectCheckpointPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     releaseManifests<T extends Project$releaseManifestsArgs<ExtArgs> = {}>(args?: Subset<T, Project$releaseManifestsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ReleaseManifestPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     objectStorageOperationScopes<T extends Project$objectStorageOperationScopesArgs<ExtArgs> = {}>(args?: Subset<T, Project$objectStorageOperationScopesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ObjectStorageOperationProjectScopePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    objectStorageVersionGcSchedule<T extends Project$objectStorageVersionGcScheduleArgs<ExtArgs> = {}>(args?: Subset<T, Project$objectStorageVersionGcScheduleArgs<ExtArgs>>): Prisma__ObjectStorageVersionGcScheduleClient<$Result.GetResult<Prisma.$ObjectStorageVersionGcSchedulePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -32235,6 +32620,7 @@ export namespace Prisma {
   interface ProjectFieldRefs {
     readonly id: FieldRef<"Project", 'String'>
     readonly organizationId: FieldRef<"Project", 'String'>
+    readonly ownershipEpoch: FieldRef<"Project", 'Int'>
     readonly name: FieldRef<"Project", 'String'>
     readonly slug: FieldRef<"Project", 'String'>
     readonly description: FieldRef<"Project", 'String'>
@@ -33553,6 +33939,25 @@ export namespace Prisma {
   }
 
   /**
+   * Project.objectStorageVersionGcSchedule
+   */
+  export type Project$objectStorageVersionGcScheduleArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ObjectStorageVersionGcSchedule
+     */
+    select?: ObjectStorageVersionGcScheduleSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ObjectStorageVersionGcSchedule
+     */
+    omit?: ObjectStorageVersionGcScheduleOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ObjectStorageVersionGcScheduleInclude<ExtArgs> | null
+    where?: ObjectStorageVersionGcScheduleWhereInput
+  }
+
+  /**
    * Project without action
    */
   export type ProjectDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -33927,8 +34332,11 @@ export namespace Prisma {
     updatedAt?: boolean
     scopes?: boolean | ObjectStorageOperation$scopesArgs<ExtArgs>
     pinnedObjects?: boolean | ObjectStorageOperation$pinnedObjectsArgs<ExtArgs>
+    pinnedGenerations?: boolean | ObjectStorageOperation$pinnedGenerationsArgs<ExtArgs>
+    permanentDeletionArtifacts?: boolean | ObjectStorageOperation$permanentDeletionArtifactsArgs<ExtArgs>
     capabilityReservations?: boolean | ObjectStorageOperation$capabilityReservationsArgs<ExtArgs>
     permanentDeletionReceipt?: boolean | ObjectStorageOperation$permanentDeletionReceiptArgs<ExtArgs>
+    versionGcSchedules?: boolean | ObjectStorageOperation$versionGcSchedulesArgs<ExtArgs>
     _count?: boolean | ObjectStorageOperationCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["objectStorageOperation"]>
 
@@ -34023,8 +34431,11 @@ export namespace Prisma {
   export type ObjectStorageOperationInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     scopes?: boolean | ObjectStorageOperation$scopesArgs<ExtArgs>
     pinnedObjects?: boolean | ObjectStorageOperation$pinnedObjectsArgs<ExtArgs>
+    pinnedGenerations?: boolean | ObjectStorageOperation$pinnedGenerationsArgs<ExtArgs>
+    permanentDeletionArtifacts?: boolean | ObjectStorageOperation$permanentDeletionArtifactsArgs<ExtArgs>
     capabilityReservations?: boolean | ObjectStorageOperation$capabilityReservationsArgs<ExtArgs>
     permanentDeletionReceipt?: boolean | ObjectStorageOperation$permanentDeletionReceiptArgs<ExtArgs>
+    versionGcSchedules?: boolean | ObjectStorageOperation$versionGcSchedulesArgs<ExtArgs>
     _count?: boolean | ObjectStorageOperationCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type ObjectStorageOperationIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
@@ -34035,8 +34446,11 @@ export namespace Prisma {
     objects: {
       scopes: Prisma.$ObjectStorageOperationProjectScopePayload<ExtArgs>[]
       pinnedObjects: Prisma.$ObjectStorageOperationPinnedObjectPayload<ExtArgs>[]
+      pinnedGenerations: Prisma.$ObjectStorageOperationPinnedGenerationPayload<ExtArgs>[]
+      permanentDeletionArtifacts: Prisma.$ProjectPermanentDeletionArtifactPlanPayload<ExtArgs>[]
       capabilityReservations: Prisma.$ObjectStorageCapabilityReservationPayload<ExtArgs>[]
       permanentDeletionReceipt: Prisma.$ProjectPermanentDeletionReceiptPayload<ExtArgs> | null
+      versionGcSchedules: Prisma.$ObjectStorageVersionGcSchedulePayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -34461,8 +34875,11 @@ export namespace Prisma {
     readonly [Symbol.toStringTag]: "PrismaPromise"
     scopes<T extends ObjectStorageOperation$scopesArgs<ExtArgs> = {}>(args?: Subset<T, ObjectStorageOperation$scopesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ObjectStorageOperationProjectScopePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     pinnedObjects<T extends ObjectStorageOperation$pinnedObjectsArgs<ExtArgs> = {}>(args?: Subset<T, ObjectStorageOperation$pinnedObjectsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ObjectStorageOperationPinnedObjectPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    pinnedGenerations<T extends ObjectStorageOperation$pinnedGenerationsArgs<ExtArgs> = {}>(args?: Subset<T, ObjectStorageOperation$pinnedGenerationsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ObjectStorageOperationPinnedGenerationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    permanentDeletionArtifacts<T extends ObjectStorageOperation$permanentDeletionArtifactsArgs<ExtArgs> = {}>(args?: Subset<T, ObjectStorageOperation$permanentDeletionArtifactsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectPermanentDeletionArtifactPlanPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     capabilityReservations<T extends ObjectStorageOperation$capabilityReservationsArgs<ExtArgs> = {}>(args?: Subset<T, ObjectStorageOperation$capabilityReservationsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ObjectStorageCapabilityReservationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     permanentDeletionReceipt<T extends ObjectStorageOperation$permanentDeletionReceiptArgs<ExtArgs> = {}>(args?: Subset<T, ObjectStorageOperation$permanentDeletionReceiptArgs<ExtArgs>>): Prisma__ProjectPermanentDeletionReceiptClient<$Result.GetResult<Prisma.$ProjectPermanentDeletionReceiptPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    versionGcSchedules<T extends ObjectStorageOperation$versionGcSchedulesArgs<ExtArgs> = {}>(args?: Subset<T, ObjectStorageOperation$versionGcSchedulesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ObjectStorageVersionGcSchedulePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -34959,6 +35376,54 @@ export namespace Prisma {
   }
 
   /**
+   * ObjectStorageOperation.pinnedGenerations
+   */
+  export type ObjectStorageOperation$pinnedGenerationsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ObjectStorageOperationPinnedGeneration
+     */
+    select?: ObjectStorageOperationPinnedGenerationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ObjectStorageOperationPinnedGeneration
+     */
+    omit?: ObjectStorageOperationPinnedGenerationOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ObjectStorageOperationPinnedGenerationInclude<ExtArgs> | null
+    where?: ObjectStorageOperationPinnedGenerationWhereInput
+    orderBy?: ObjectStorageOperationPinnedGenerationOrderByWithRelationInput | ObjectStorageOperationPinnedGenerationOrderByWithRelationInput[]
+    cursor?: ObjectStorageOperationPinnedGenerationWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: ObjectStorageOperationPinnedGenerationScalarFieldEnum | ObjectStorageOperationPinnedGenerationScalarFieldEnum[]
+  }
+
+  /**
+   * ObjectStorageOperation.permanentDeletionArtifacts
+   */
+  export type ObjectStorageOperation$permanentDeletionArtifactsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectPermanentDeletionArtifactPlan
+     */
+    select?: ProjectPermanentDeletionArtifactPlanSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectPermanentDeletionArtifactPlan
+     */
+    omit?: ProjectPermanentDeletionArtifactPlanOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectPermanentDeletionArtifactPlanInclude<ExtArgs> | null
+    where?: ProjectPermanentDeletionArtifactPlanWhereInput
+    orderBy?: ProjectPermanentDeletionArtifactPlanOrderByWithRelationInput | ProjectPermanentDeletionArtifactPlanOrderByWithRelationInput[]
+    cursor?: ProjectPermanentDeletionArtifactPlanWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: ProjectPermanentDeletionArtifactPlanScalarFieldEnum | ProjectPermanentDeletionArtifactPlanScalarFieldEnum[]
+  }
+
+  /**
    * ObjectStorageOperation.capabilityReservations
    */
   export type ObjectStorageOperation$capabilityReservationsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -34999,6 +35464,30 @@ export namespace Prisma {
      */
     include?: ProjectPermanentDeletionReceiptInclude<ExtArgs> | null
     where?: ProjectPermanentDeletionReceiptWhereInput
+  }
+
+  /**
+   * ObjectStorageOperation.versionGcSchedules
+   */
+  export type ObjectStorageOperation$versionGcSchedulesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ObjectStorageVersionGcSchedule
+     */
+    select?: ObjectStorageVersionGcScheduleSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ObjectStorageVersionGcSchedule
+     */
+    omit?: ObjectStorageVersionGcScheduleOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ObjectStorageVersionGcScheduleInclude<ExtArgs> | null
+    where?: ObjectStorageVersionGcScheduleWhereInput
+    orderBy?: ObjectStorageVersionGcScheduleOrderByWithRelationInput | ObjectStorageVersionGcScheduleOrderByWithRelationInput[]
+    cursor?: ObjectStorageVersionGcScheduleWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: ObjectStorageVersionGcScheduleScalarFieldEnum | ObjectStorageVersionGcScheduleScalarFieldEnum[]
   }
 
   /**
@@ -36131,6 +36620,2294 @@ export namespace Prisma {
      * Choose, which related nodes to fetch as well
      */
     include?: ObjectStorageOperationPinnedObjectInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model ObjectStorageOperationPinnedGeneration
+   */
+
+  export type AggregateObjectStorageOperationPinnedGeneration = {
+    _count: ObjectStorageOperationPinnedGenerationCountAggregateOutputType | null
+    _avg: ObjectStorageOperationPinnedGenerationAvgAggregateOutputType | null
+    _sum: ObjectStorageOperationPinnedGenerationSumAggregateOutputType | null
+    _min: ObjectStorageOperationPinnedGenerationMinAggregateOutputType | null
+    _max: ObjectStorageOperationPinnedGenerationMaxAggregateOutputType | null
+  }
+
+  export type ObjectStorageOperationPinnedGenerationAvgAggregateOutputType = {
+    ordinal: number | null
+    size: number | null
+  }
+
+  export type ObjectStorageOperationPinnedGenerationSumAggregateOutputType = {
+    ordinal: number | null
+    size: bigint | null
+  }
+
+  export type ObjectStorageOperationPinnedGenerationMinAggregateOutputType = {
+    operationId: string | null
+    ordinal: number | null
+    key: string | null
+    generation: string | null
+    size: bigint | null
+    contentHash: string | null
+  }
+
+  export type ObjectStorageOperationPinnedGenerationMaxAggregateOutputType = {
+    operationId: string | null
+    ordinal: number | null
+    key: string | null
+    generation: string | null
+    size: bigint | null
+    contentHash: string | null
+  }
+
+  export type ObjectStorageOperationPinnedGenerationCountAggregateOutputType = {
+    operationId: number
+    ordinal: number
+    key: number
+    generation: number
+    size: number
+    contentHash: number
+    _all: number
+  }
+
+
+  export type ObjectStorageOperationPinnedGenerationAvgAggregateInputType = {
+    ordinal?: true
+    size?: true
+  }
+
+  export type ObjectStorageOperationPinnedGenerationSumAggregateInputType = {
+    ordinal?: true
+    size?: true
+  }
+
+  export type ObjectStorageOperationPinnedGenerationMinAggregateInputType = {
+    operationId?: true
+    ordinal?: true
+    key?: true
+    generation?: true
+    size?: true
+    contentHash?: true
+  }
+
+  export type ObjectStorageOperationPinnedGenerationMaxAggregateInputType = {
+    operationId?: true
+    ordinal?: true
+    key?: true
+    generation?: true
+    size?: true
+    contentHash?: true
+  }
+
+  export type ObjectStorageOperationPinnedGenerationCountAggregateInputType = {
+    operationId?: true
+    ordinal?: true
+    key?: true
+    generation?: true
+    size?: true
+    contentHash?: true
+    _all?: true
+  }
+
+  export type ObjectStorageOperationPinnedGenerationAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ObjectStorageOperationPinnedGeneration to aggregate.
+     */
+    where?: ObjectStorageOperationPinnedGenerationWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     *
+     * Determine the order of ObjectStorageOperationPinnedGenerations to fetch.
+     */
+    orderBy?: ObjectStorageOperationPinnedGenerationOrderByWithRelationInput | ObjectStorageOperationPinnedGenerationOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     *
+     * Sets the start position
+     */
+    cursor?: ObjectStorageOperationPinnedGenerationWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Take `±n` ObjectStorageOperationPinnedGenerations from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Skip the first `n` ObjectStorageOperationPinnedGenerations.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     *
+     * Count returned ObjectStorageOperationPinnedGenerations
+    **/
+    _count?: true | ObjectStorageOperationPinnedGenerationCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     *
+     * Select which fields to average
+    **/
+    _avg?: ObjectStorageOperationPinnedGenerationAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     *
+     * Select which fields to sum
+    **/
+    _sum?: ObjectStorageOperationPinnedGenerationSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     *
+     * Select which fields to find the minimum value
+    **/
+    _min?: ObjectStorageOperationPinnedGenerationMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     *
+     * Select which fields to find the maximum value
+    **/
+    _max?: ObjectStorageOperationPinnedGenerationMaxAggregateInputType
+  }
+
+  export type GetObjectStorageOperationPinnedGenerationAggregateType<T extends ObjectStorageOperationPinnedGenerationAggregateArgs> = {
+        [P in keyof T & keyof AggregateObjectStorageOperationPinnedGeneration]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateObjectStorageOperationPinnedGeneration[P]>
+      : GetScalarType<T[P], AggregateObjectStorageOperationPinnedGeneration[P]>
+  }
+
+
+
+
+  export type ObjectStorageOperationPinnedGenerationGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ObjectStorageOperationPinnedGenerationWhereInput
+    orderBy?: ObjectStorageOperationPinnedGenerationOrderByWithAggregationInput | ObjectStorageOperationPinnedGenerationOrderByWithAggregationInput[]
+    by: ObjectStorageOperationPinnedGenerationScalarFieldEnum[] | ObjectStorageOperationPinnedGenerationScalarFieldEnum
+    having?: ObjectStorageOperationPinnedGenerationScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: ObjectStorageOperationPinnedGenerationCountAggregateInputType | true
+    _avg?: ObjectStorageOperationPinnedGenerationAvgAggregateInputType
+    _sum?: ObjectStorageOperationPinnedGenerationSumAggregateInputType
+    _min?: ObjectStorageOperationPinnedGenerationMinAggregateInputType
+    _max?: ObjectStorageOperationPinnedGenerationMaxAggregateInputType
+  }
+
+  export type ObjectStorageOperationPinnedGenerationGroupByOutputType = {
+    operationId: string
+    ordinal: number
+    key: string
+    generation: string
+    size: bigint
+    contentHash: string | null
+    _count: ObjectStorageOperationPinnedGenerationCountAggregateOutputType | null
+    _avg: ObjectStorageOperationPinnedGenerationAvgAggregateOutputType | null
+    _sum: ObjectStorageOperationPinnedGenerationSumAggregateOutputType | null
+    _min: ObjectStorageOperationPinnedGenerationMinAggregateOutputType | null
+    _max: ObjectStorageOperationPinnedGenerationMaxAggregateOutputType | null
+  }
+
+  type GetObjectStorageOperationPinnedGenerationGroupByPayload<T extends ObjectStorageOperationPinnedGenerationGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<ObjectStorageOperationPinnedGenerationGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof ObjectStorageOperationPinnedGenerationGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], ObjectStorageOperationPinnedGenerationGroupByOutputType[P]>
+            : GetScalarType<T[P], ObjectStorageOperationPinnedGenerationGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type ObjectStorageOperationPinnedGenerationSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    operationId?: boolean
+    ordinal?: boolean
+    key?: boolean
+    generation?: boolean
+    size?: boolean
+    contentHash?: boolean
+    operation?: boolean | ObjectStorageOperationDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["objectStorageOperationPinnedGeneration"]>
+
+  export type ObjectStorageOperationPinnedGenerationSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    operationId?: boolean
+    ordinal?: boolean
+    key?: boolean
+    generation?: boolean
+    size?: boolean
+    contentHash?: boolean
+    operation?: boolean | ObjectStorageOperationDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["objectStorageOperationPinnedGeneration"]>
+
+  export type ObjectStorageOperationPinnedGenerationSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    operationId?: boolean
+    ordinal?: boolean
+    key?: boolean
+    generation?: boolean
+    size?: boolean
+    contentHash?: boolean
+    operation?: boolean | ObjectStorageOperationDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["objectStorageOperationPinnedGeneration"]>
+
+  export type ObjectStorageOperationPinnedGenerationSelectScalar = {
+    operationId?: boolean
+    ordinal?: boolean
+    key?: boolean
+    generation?: boolean
+    size?: boolean
+    contentHash?: boolean
+  }
+
+  export type ObjectStorageOperationPinnedGenerationOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"operationId" | "ordinal" | "key" | "generation" | "size" | "contentHash", ExtArgs["result"]["objectStorageOperationPinnedGeneration"]>
+  export type ObjectStorageOperationPinnedGenerationInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    operation?: boolean | ObjectStorageOperationDefaultArgs<ExtArgs>
+  }
+  export type ObjectStorageOperationPinnedGenerationIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    operation?: boolean | ObjectStorageOperationDefaultArgs<ExtArgs>
+  }
+  export type ObjectStorageOperationPinnedGenerationIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    operation?: boolean | ObjectStorageOperationDefaultArgs<ExtArgs>
+  }
+
+  export type $ObjectStorageOperationPinnedGenerationPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "ObjectStorageOperationPinnedGeneration"
+    objects: {
+      operation: Prisma.$ObjectStorageOperationPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      operationId: string
+      ordinal: number
+      key: string
+      generation: string
+      size: bigint
+      contentHash: string | null
+    }, ExtArgs["result"]["objectStorageOperationPinnedGeneration"]>
+    composites: {}
+  }
+
+  type ObjectStorageOperationPinnedGenerationGetPayload<S extends boolean | null | undefined | ObjectStorageOperationPinnedGenerationDefaultArgs> = $Result.GetResult<Prisma.$ObjectStorageOperationPinnedGenerationPayload, S>
+
+  type ObjectStorageOperationPinnedGenerationCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<ObjectStorageOperationPinnedGenerationFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: ObjectStorageOperationPinnedGenerationCountAggregateInputType | true
+    }
+
+  export interface ObjectStorageOperationPinnedGenerationDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['ObjectStorageOperationPinnedGeneration'], meta: { name: 'ObjectStorageOperationPinnedGeneration' } }
+    /**
+     * Find zero or one ObjectStorageOperationPinnedGeneration that matches the filter.
+     * @param {ObjectStorageOperationPinnedGenerationFindUniqueArgs} args - Arguments to find a ObjectStorageOperationPinnedGeneration
+     * @example
+     * // Get one ObjectStorageOperationPinnedGeneration
+     * const objectStorageOperationPinnedGeneration = await prisma.objectStorageOperationPinnedGeneration.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends ObjectStorageOperationPinnedGenerationFindUniqueArgs>(args: SelectSubset<T, ObjectStorageOperationPinnedGenerationFindUniqueArgs<ExtArgs>>): Prisma__ObjectStorageOperationPinnedGenerationClient<$Result.GetResult<Prisma.$ObjectStorageOperationPinnedGenerationPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one ObjectStorageOperationPinnedGeneration that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {ObjectStorageOperationPinnedGenerationFindUniqueOrThrowArgs} args - Arguments to find a ObjectStorageOperationPinnedGeneration
+     * @example
+     * // Get one ObjectStorageOperationPinnedGeneration
+     * const objectStorageOperationPinnedGeneration = await prisma.objectStorageOperationPinnedGeneration.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends ObjectStorageOperationPinnedGenerationFindUniqueOrThrowArgs>(args: SelectSubset<T, ObjectStorageOperationPinnedGenerationFindUniqueOrThrowArgs<ExtArgs>>): Prisma__ObjectStorageOperationPinnedGenerationClient<$Result.GetResult<Prisma.$ObjectStorageOperationPinnedGenerationPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ObjectStorageOperationPinnedGeneration that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ObjectStorageOperationPinnedGenerationFindFirstArgs} args - Arguments to find a ObjectStorageOperationPinnedGeneration
+     * @example
+     * // Get one ObjectStorageOperationPinnedGeneration
+     * const objectStorageOperationPinnedGeneration = await prisma.objectStorageOperationPinnedGeneration.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends ObjectStorageOperationPinnedGenerationFindFirstArgs>(args?: SelectSubset<T, ObjectStorageOperationPinnedGenerationFindFirstArgs<ExtArgs>>): Prisma__ObjectStorageOperationPinnedGenerationClient<$Result.GetResult<Prisma.$ObjectStorageOperationPinnedGenerationPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ObjectStorageOperationPinnedGeneration that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ObjectStorageOperationPinnedGenerationFindFirstOrThrowArgs} args - Arguments to find a ObjectStorageOperationPinnedGeneration
+     * @example
+     * // Get one ObjectStorageOperationPinnedGeneration
+     * const objectStorageOperationPinnedGeneration = await prisma.objectStorageOperationPinnedGeneration.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends ObjectStorageOperationPinnedGenerationFindFirstOrThrowArgs>(args?: SelectSubset<T, ObjectStorageOperationPinnedGenerationFindFirstOrThrowArgs<ExtArgs>>): Prisma__ObjectStorageOperationPinnedGenerationClient<$Result.GetResult<Prisma.$ObjectStorageOperationPinnedGenerationPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more ObjectStorageOperationPinnedGenerations that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ObjectStorageOperationPinnedGenerationFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all ObjectStorageOperationPinnedGenerations
+     * const objectStorageOperationPinnedGenerations = await prisma.objectStorageOperationPinnedGeneration.findMany()
+     *
+     * // Get first 10 ObjectStorageOperationPinnedGenerations
+     * const objectStorageOperationPinnedGenerations = await prisma.objectStorageOperationPinnedGeneration.findMany({ take: 10 })
+     *
+     * // Only select the `operationId`
+     * const objectStorageOperationPinnedGenerationWithOperationIdOnly = await prisma.objectStorageOperationPinnedGeneration.findMany({ select: { operationId: true } })
+     *
+     */
+    findMany<T extends ObjectStorageOperationPinnedGenerationFindManyArgs>(args?: SelectSubset<T, ObjectStorageOperationPinnedGenerationFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ObjectStorageOperationPinnedGenerationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a ObjectStorageOperationPinnedGeneration.
+     * @param {ObjectStorageOperationPinnedGenerationCreateArgs} args - Arguments to create a ObjectStorageOperationPinnedGeneration.
+     * @example
+     * // Create one ObjectStorageOperationPinnedGeneration
+     * const ObjectStorageOperationPinnedGeneration = await prisma.objectStorageOperationPinnedGeneration.create({
+     *   data: {
+     *     // ... data to create a ObjectStorageOperationPinnedGeneration
+     *   }
+     * })
+     *
+     */
+    create<T extends ObjectStorageOperationPinnedGenerationCreateArgs>(args: SelectSubset<T, ObjectStorageOperationPinnedGenerationCreateArgs<ExtArgs>>): Prisma__ObjectStorageOperationPinnedGenerationClient<$Result.GetResult<Prisma.$ObjectStorageOperationPinnedGenerationPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many ObjectStorageOperationPinnedGenerations.
+     * @param {ObjectStorageOperationPinnedGenerationCreateManyArgs} args - Arguments to create many ObjectStorageOperationPinnedGenerations.
+     * @example
+     * // Create many ObjectStorageOperationPinnedGenerations
+     * const objectStorageOperationPinnedGeneration = await prisma.objectStorageOperationPinnedGeneration.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *
+     */
+    createMany<T extends ObjectStorageOperationPinnedGenerationCreateManyArgs>(args?: SelectSubset<T, ObjectStorageOperationPinnedGenerationCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many ObjectStorageOperationPinnedGenerations and returns the data saved in the database.
+     * @param {ObjectStorageOperationPinnedGenerationCreateManyAndReturnArgs} args - Arguments to create many ObjectStorageOperationPinnedGenerations.
+     * @example
+     * // Create many ObjectStorageOperationPinnedGenerations
+     * const objectStorageOperationPinnedGeneration = await prisma.objectStorageOperationPinnedGeneration.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *
+     * // Create many ObjectStorageOperationPinnedGenerations and only return the `operationId`
+     * const objectStorageOperationPinnedGenerationWithOperationIdOnly = await prisma.objectStorageOperationPinnedGeneration.createManyAndReturn({
+     *   select: { operationId: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     *
+     */
+    createManyAndReturn<T extends ObjectStorageOperationPinnedGenerationCreateManyAndReturnArgs>(args?: SelectSubset<T, ObjectStorageOperationPinnedGenerationCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ObjectStorageOperationPinnedGenerationPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a ObjectStorageOperationPinnedGeneration.
+     * @param {ObjectStorageOperationPinnedGenerationDeleteArgs} args - Arguments to delete one ObjectStorageOperationPinnedGeneration.
+     * @example
+     * // Delete one ObjectStorageOperationPinnedGeneration
+     * const ObjectStorageOperationPinnedGeneration = await prisma.objectStorageOperationPinnedGeneration.delete({
+     *   where: {
+     *     // ... filter to delete one ObjectStorageOperationPinnedGeneration
+     *   }
+     * })
+     *
+     */
+    delete<T extends ObjectStorageOperationPinnedGenerationDeleteArgs>(args: SelectSubset<T, ObjectStorageOperationPinnedGenerationDeleteArgs<ExtArgs>>): Prisma__ObjectStorageOperationPinnedGenerationClient<$Result.GetResult<Prisma.$ObjectStorageOperationPinnedGenerationPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one ObjectStorageOperationPinnedGeneration.
+     * @param {ObjectStorageOperationPinnedGenerationUpdateArgs} args - Arguments to update one ObjectStorageOperationPinnedGeneration.
+     * @example
+     * // Update one ObjectStorageOperationPinnedGeneration
+     * const objectStorageOperationPinnedGeneration = await prisma.objectStorageOperationPinnedGeneration.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     *
+     */
+    update<T extends ObjectStorageOperationPinnedGenerationUpdateArgs>(args: SelectSubset<T, ObjectStorageOperationPinnedGenerationUpdateArgs<ExtArgs>>): Prisma__ObjectStorageOperationPinnedGenerationClient<$Result.GetResult<Prisma.$ObjectStorageOperationPinnedGenerationPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more ObjectStorageOperationPinnedGenerations.
+     * @param {ObjectStorageOperationPinnedGenerationDeleteManyArgs} args - Arguments to filter ObjectStorageOperationPinnedGenerations to delete.
+     * @example
+     * // Delete a few ObjectStorageOperationPinnedGenerations
+     * const { count } = await prisma.objectStorageOperationPinnedGeneration.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     *
+     */
+    deleteMany<T extends ObjectStorageOperationPinnedGenerationDeleteManyArgs>(args?: SelectSubset<T, ObjectStorageOperationPinnedGenerationDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ObjectStorageOperationPinnedGenerations.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ObjectStorageOperationPinnedGenerationUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many ObjectStorageOperationPinnedGenerations
+     * const objectStorageOperationPinnedGeneration = await prisma.objectStorageOperationPinnedGeneration.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     *
+     */
+    updateMany<T extends ObjectStorageOperationPinnedGenerationUpdateManyArgs>(args: SelectSubset<T, ObjectStorageOperationPinnedGenerationUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ObjectStorageOperationPinnedGenerations and returns the data updated in the database.
+     * @param {ObjectStorageOperationPinnedGenerationUpdateManyAndReturnArgs} args - Arguments to update many ObjectStorageOperationPinnedGenerations.
+     * @example
+     * // Update many ObjectStorageOperationPinnedGenerations
+     * const objectStorageOperationPinnedGeneration = await prisma.objectStorageOperationPinnedGeneration.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *
+     * // Update zero or more ObjectStorageOperationPinnedGenerations and only return the `operationId`
+     * const objectStorageOperationPinnedGenerationWithOperationIdOnly = await prisma.objectStorageOperationPinnedGeneration.updateManyAndReturn({
+     *   select: { operationId: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     *
+     */
+    updateManyAndReturn<T extends ObjectStorageOperationPinnedGenerationUpdateManyAndReturnArgs>(args: SelectSubset<T, ObjectStorageOperationPinnedGenerationUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ObjectStorageOperationPinnedGenerationPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one ObjectStorageOperationPinnedGeneration.
+     * @param {ObjectStorageOperationPinnedGenerationUpsertArgs} args - Arguments to update or create a ObjectStorageOperationPinnedGeneration.
+     * @example
+     * // Update or create a ObjectStorageOperationPinnedGeneration
+     * const objectStorageOperationPinnedGeneration = await prisma.objectStorageOperationPinnedGeneration.upsert({
+     *   create: {
+     *     // ... data to create a ObjectStorageOperationPinnedGeneration
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the ObjectStorageOperationPinnedGeneration we want to update
+     *   }
+     * })
+     */
+    upsert<T extends ObjectStorageOperationPinnedGenerationUpsertArgs>(args: SelectSubset<T, ObjectStorageOperationPinnedGenerationUpsertArgs<ExtArgs>>): Prisma__ObjectStorageOperationPinnedGenerationClient<$Result.GetResult<Prisma.$ObjectStorageOperationPinnedGenerationPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of ObjectStorageOperationPinnedGenerations.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ObjectStorageOperationPinnedGenerationCountArgs} args - Arguments to filter ObjectStorageOperationPinnedGenerations to count.
+     * @example
+     * // Count the number of ObjectStorageOperationPinnedGenerations
+     * const count = await prisma.objectStorageOperationPinnedGeneration.count({
+     *   where: {
+     *     // ... the filter for the ObjectStorageOperationPinnedGenerations we want to count
+     *   }
+     * })
+    **/
+    count<T extends ObjectStorageOperationPinnedGenerationCountArgs>(
+      args?: Subset<T, ObjectStorageOperationPinnedGenerationCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], ObjectStorageOperationPinnedGenerationCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a ObjectStorageOperationPinnedGeneration.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ObjectStorageOperationPinnedGenerationAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends ObjectStorageOperationPinnedGenerationAggregateArgs>(args: Subset<T, ObjectStorageOperationPinnedGenerationAggregateArgs>): Prisma.PrismaPromise<GetObjectStorageOperationPinnedGenerationAggregateType<T>>
+
+    /**
+     * Group by ObjectStorageOperationPinnedGeneration.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ObjectStorageOperationPinnedGenerationGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     *
+    **/
+    groupBy<
+      T extends ObjectStorageOperationPinnedGenerationGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: ObjectStorageOperationPinnedGenerationGroupByArgs['orderBy'] }
+        : { orderBy?: ObjectStorageOperationPinnedGenerationGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, ObjectStorageOperationPinnedGenerationGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetObjectStorageOperationPinnedGenerationGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the ObjectStorageOperationPinnedGeneration model
+   */
+  readonly fields: ObjectStorageOperationPinnedGenerationFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for ObjectStorageOperationPinnedGeneration.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__ObjectStorageOperationPinnedGenerationClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    operation<T extends ObjectStorageOperationDefaultArgs<ExtArgs> = {}>(args?: Subset<T, ObjectStorageOperationDefaultArgs<ExtArgs>>): Prisma__ObjectStorageOperationClient<$Result.GetResult<Prisma.$ObjectStorageOperationPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the ObjectStorageOperationPinnedGeneration model
+   */
+  interface ObjectStorageOperationPinnedGenerationFieldRefs {
+    readonly operationId: FieldRef<"ObjectStorageOperationPinnedGeneration", 'String'>
+    readonly ordinal: FieldRef<"ObjectStorageOperationPinnedGeneration", 'Int'>
+    readonly key: FieldRef<"ObjectStorageOperationPinnedGeneration", 'String'>
+    readonly generation: FieldRef<"ObjectStorageOperationPinnedGeneration", 'String'>
+    readonly size: FieldRef<"ObjectStorageOperationPinnedGeneration", 'BigInt'>
+    readonly contentHash: FieldRef<"ObjectStorageOperationPinnedGeneration", 'String'>
+  }
+
+
+  // Custom InputTypes
+  /**
+   * ObjectStorageOperationPinnedGeneration findUnique
+   */
+  export type ObjectStorageOperationPinnedGenerationFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ObjectStorageOperationPinnedGeneration
+     */
+    select?: ObjectStorageOperationPinnedGenerationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ObjectStorageOperationPinnedGeneration
+     */
+    omit?: ObjectStorageOperationPinnedGenerationOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ObjectStorageOperationPinnedGenerationInclude<ExtArgs> | null
+    /**
+     * Filter, which ObjectStorageOperationPinnedGeneration to fetch.
+     */
+    where: ObjectStorageOperationPinnedGenerationWhereUniqueInput
+  }
+
+  /**
+   * ObjectStorageOperationPinnedGeneration findUniqueOrThrow
+   */
+  export type ObjectStorageOperationPinnedGenerationFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ObjectStorageOperationPinnedGeneration
+     */
+    select?: ObjectStorageOperationPinnedGenerationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ObjectStorageOperationPinnedGeneration
+     */
+    omit?: ObjectStorageOperationPinnedGenerationOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ObjectStorageOperationPinnedGenerationInclude<ExtArgs> | null
+    /**
+     * Filter, which ObjectStorageOperationPinnedGeneration to fetch.
+     */
+    where: ObjectStorageOperationPinnedGenerationWhereUniqueInput
+  }
+
+  /**
+   * ObjectStorageOperationPinnedGeneration findFirst
+   */
+  export type ObjectStorageOperationPinnedGenerationFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ObjectStorageOperationPinnedGeneration
+     */
+    select?: ObjectStorageOperationPinnedGenerationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ObjectStorageOperationPinnedGeneration
+     */
+    omit?: ObjectStorageOperationPinnedGenerationOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ObjectStorageOperationPinnedGenerationInclude<ExtArgs> | null
+    /**
+     * Filter, which ObjectStorageOperationPinnedGeneration to fetch.
+     */
+    where?: ObjectStorageOperationPinnedGenerationWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     *
+     * Determine the order of ObjectStorageOperationPinnedGenerations to fetch.
+     */
+    orderBy?: ObjectStorageOperationPinnedGenerationOrderByWithRelationInput | ObjectStorageOperationPinnedGenerationOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     *
+     * Sets the position for searching for ObjectStorageOperationPinnedGenerations.
+     */
+    cursor?: ObjectStorageOperationPinnedGenerationWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Take `±n` ObjectStorageOperationPinnedGenerations from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Skip the first `n` ObjectStorageOperationPinnedGenerations.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     *
+     * Filter by unique combinations of ObjectStorageOperationPinnedGenerations.
+     */
+    distinct?: ObjectStorageOperationPinnedGenerationScalarFieldEnum | ObjectStorageOperationPinnedGenerationScalarFieldEnum[]
+  }
+
+  /**
+   * ObjectStorageOperationPinnedGeneration findFirstOrThrow
+   */
+  export type ObjectStorageOperationPinnedGenerationFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ObjectStorageOperationPinnedGeneration
+     */
+    select?: ObjectStorageOperationPinnedGenerationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ObjectStorageOperationPinnedGeneration
+     */
+    omit?: ObjectStorageOperationPinnedGenerationOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ObjectStorageOperationPinnedGenerationInclude<ExtArgs> | null
+    /**
+     * Filter, which ObjectStorageOperationPinnedGeneration to fetch.
+     */
+    where?: ObjectStorageOperationPinnedGenerationWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     *
+     * Determine the order of ObjectStorageOperationPinnedGenerations to fetch.
+     */
+    orderBy?: ObjectStorageOperationPinnedGenerationOrderByWithRelationInput | ObjectStorageOperationPinnedGenerationOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     *
+     * Sets the position for searching for ObjectStorageOperationPinnedGenerations.
+     */
+    cursor?: ObjectStorageOperationPinnedGenerationWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Take `±n` ObjectStorageOperationPinnedGenerations from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Skip the first `n` ObjectStorageOperationPinnedGenerations.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     *
+     * Filter by unique combinations of ObjectStorageOperationPinnedGenerations.
+     */
+    distinct?: ObjectStorageOperationPinnedGenerationScalarFieldEnum | ObjectStorageOperationPinnedGenerationScalarFieldEnum[]
+  }
+
+  /**
+   * ObjectStorageOperationPinnedGeneration findMany
+   */
+  export type ObjectStorageOperationPinnedGenerationFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ObjectStorageOperationPinnedGeneration
+     */
+    select?: ObjectStorageOperationPinnedGenerationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ObjectStorageOperationPinnedGeneration
+     */
+    omit?: ObjectStorageOperationPinnedGenerationOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ObjectStorageOperationPinnedGenerationInclude<ExtArgs> | null
+    /**
+     * Filter, which ObjectStorageOperationPinnedGenerations to fetch.
+     */
+    where?: ObjectStorageOperationPinnedGenerationWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     *
+     * Determine the order of ObjectStorageOperationPinnedGenerations to fetch.
+     */
+    orderBy?: ObjectStorageOperationPinnedGenerationOrderByWithRelationInput | ObjectStorageOperationPinnedGenerationOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     *
+     * Sets the position for listing ObjectStorageOperationPinnedGenerations.
+     */
+    cursor?: ObjectStorageOperationPinnedGenerationWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Take `±n` ObjectStorageOperationPinnedGenerations from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Skip the first `n` ObjectStorageOperationPinnedGenerations.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     *
+     * Filter by unique combinations of ObjectStorageOperationPinnedGenerations.
+     */
+    distinct?: ObjectStorageOperationPinnedGenerationScalarFieldEnum | ObjectStorageOperationPinnedGenerationScalarFieldEnum[]
+  }
+
+  /**
+   * ObjectStorageOperationPinnedGeneration create
+   */
+  export type ObjectStorageOperationPinnedGenerationCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ObjectStorageOperationPinnedGeneration
+     */
+    select?: ObjectStorageOperationPinnedGenerationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ObjectStorageOperationPinnedGeneration
+     */
+    omit?: ObjectStorageOperationPinnedGenerationOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ObjectStorageOperationPinnedGenerationInclude<ExtArgs> | null
+    /**
+     * The data needed to create a ObjectStorageOperationPinnedGeneration.
+     */
+    data: XOR<ObjectStorageOperationPinnedGenerationCreateInput, ObjectStorageOperationPinnedGenerationUncheckedCreateInput>
+  }
+
+  /**
+   * ObjectStorageOperationPinnedGeneration createMany
+   */
+  export type ObjectStorageOperationPinnedGenerationCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many ObjectStorageOperationPinnedGenerations.
+     */
+    data: ObjectStorageOperationPinnedGenerationCreateManyInput | ObjectStorageOperationPinnedGenerationCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * ObjectStorageOperationPinnedGeneration createManyAndReturn
+   */
+  export type ObjectStorageOperationPinnedGenerationCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ObjectStorageOperationPinnedGeneration
+     */
+    select?: ObjectStorageOperationPinnedGenerationSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ObjectStorageOperationPinnedGeneration
+     */
+    omit?: ObjectStorageOperationPinnedGenerationOmit<ExtArgs> | null
+    /**
+     * The data used to create many ObjectStorageOperationPinnedGenerations.
+     */
+    data: ObjectStorageOperationPinnedGenerationCreateManyInput | ObjectStorageOperationPinnedGenerationCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ObjectStorageOperationPinnedGenerationIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * ObjectStorageOperationPinnedGeneration update
+   */
+  export type ObjectStorageOperationPinnedGenerationUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ObjectStorageOperationPinnedGeneration
+     */
+    select?: ObjectStorageOperationPinnedGenerationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ObjectStorageOperationPinnedGeneration
+     */
+    omit?: ObjectStorageOperationPinnedGenerationOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ObjectStorageOperationPinnedGenerationInclude<ExtArgs> | null
+    /**
+     * The data needed to update a ObjectStorageOperationPinnedGeneration.
+     */
+    data: XOR<ObjectStorageOperationPinnedGenerationUpdateInput, ObjectStorageOperationPinnedGenerationUncheckedUpdateInput>
+    /**
+     * Choose, which ObjectStorageOperationPinnedGeneration to update.
+     */
+    where: ObjectStorageOperationPinnedGenerationWhereUniqueInput
+  }
+
+  /**
+   * ObjectStorageOperationPinnedGeneration updateMany
+   */
+  export type ObjectStorageOperationPinnedGenerationUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update ObjectStorageOperationPinnedGenerations.
+     */
+    data: XOR<ObjectStorageOperationPinnedGenerationUpdateManyMutationInput, ObjectStorageOperationPinnedGenerationUncheckedUpdateManyInput>
+    /**
+     * Filter which ObjectStorageOperationPinnedGenerations to update
+     */
+    where?: ObjectStorageOperationPinnedGenerationWhereInput
+    /**
+     * Limit how many ObjectStorageOperationPinnedGenerations to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * ObjectStorageOperationPinnedGeneration updateManyAndReturn
+   */
+  export type ObjectStorageOperationPinnedGenerationUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ObjectStorageOperationPinnedGeneration
+     */
+    select?: ObjectStorageOperationPinnedGenerationSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ObjectStorageOperationPinnedGeneration
+     */
+    omit?: ObjectStorageOperationPinnedGenerationOmit<ExtArgs> | null
+    /**
+     * The data used to update ObjectStorageOperationPinnedGenerations.
+     */
+    data: XOR<ObjectStorageOperationPinnedGenerationUpdateManyMutationInput, ObjectStorageOperationPinnedGenerationUncheckedUpdateManyInput>
+    /**
+     * Filter which ObjectStorageOperationPinnedGenerations to update
+     */
+    where?: ObjectStorageOperationPinnedGenerationWhereInput
+    /**
+     * Limit how many ObjectStorageOperationPinnedGenerations to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ObjectStorageOperationPinnedGenerationIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * ObjectStorageOperationPinnedGeneration upsert
+   */
+  export type ObjectStorageOperationPinnedGenerationUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ObjectStorageOperationPinnedGeneration
+     */
+    select?: ObjectStorageOperationPinnedGenerationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ObjectStorageOperationPinnedGeneration
+     */
+    omit?: ObjectStorageOperationPinnedGenerationOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ObjectStorageOperationPinnedGenerationInclude<ExtArgs> | null
+    /**
+     * The filter to search for the ObjectStorageOperationPinnedGeneration to update in case it exists.
+     */
+    where: ObjectStorageOperationPinnedGenerationWhereUniqueInput
+    /**
+     * In case the ObjectStorageOperationPinnedGeneration found by the `where` argument doesn't exist, create a new ObjectStorageOperationPinnedGeneration with this data.
+     */
+    create: XOR<ObjectStorageOperationPinnedGenerationCreateInput, ObjectStorageOperationPinnedGenerationUncheckedCreateInput>
+    /**
+     * In case the ObjectStorageOperationPinnedGeneration was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<ObjectStorageOperationPinnedGenerationUpdateInput, ObjectStorageOperationPinnedGenerationUncheckedUpdateInput>
+  }
+
+  /**
+   * ObjectStorageOperationPinnedGeneration delete
+   */
+  export type ObjectStorageOperationPinnedGenerationDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ObjectStorageOperationPinnedGeneration
+     */
+    select?: ObjectStorageOperationPinnedGenerationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ObjectStorageOperationPinnedGeneration
+     */
+    omit?: ObjectStorageOperationPinnedGenerationOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ObjectStorageOperationPinnedGenerationInclude<ExtArgs> | null
+    /**
+     * Filter which ObjectStorageOperationPinnedGeneration to delete.
+     */
+    where: ObjectStorageOperationPinnedGenerationWhereUniqueInput
+  }
+
+  /**
+   * ObjectStorageOperationPinnedGeneration deleteMany
+   */
+  export type ObjectStorageOperationPinnedGenerationDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ObjectStorageOperationPinnedGenerations to delete
+     */
+    where?: ObjectStorageOperationPinnedGenerationWhereInput
+    /**
+     * Limit how many ObjectStorageOperationPinnedGenerations to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * ObjectStorageOperationPinnedGeneration without action
+   */
+  export type ObjectStorageOperationPinnedGenerationDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ObjectStorageOperationPinnedGeneration
+     */
+    select?: ObjectStorageOperationPinnedGenerationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ObjectStorageOperationPinnedGeneration
+     */
+    omit?: ObjectStorageOperationPinnedGenerationOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ObjectStorageOperationPinnedGenerationInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model ProjectPermanentDeletionArtifactPlan
+   */
+
+  export type AggregateProjectPermanentDeletionArtifactPlan = {
+    _count: ProjectPermanentDeletionArtifactPlanCountAggregateOutputType | null
+    _avg: ProjectPermanentDeletionArtifactPlanAvgAggregateOutputType | null
+    _sum: ProjectPermanentDeletionArtifactPlanSumAggregateOutputType | null
+    _min: ProjectPermanentDeletionArtifactPlanMinAggregateOutputType | null
+    _max: ProjectPermanentDeletionArtifactPlanMaxAggregateOutputType | null
+  }
+
+  export type ProjectPermanentDeletionArtifactPlanAvgAggregateOutputType = {
+    ordinal: number | null
+    projectReferenceCount: number | null
+    plannedOtherReferenceCount: number | null
+    finalOtherReferenceCount: number | null
+  }
+
+  export type ProjectPermanentDeletionArtifactPlanSumAggregateOutputType = {
+    ordinal: number | null
+    projectReferenceCount: number | null
+    plannedOtherReferenceCount: number | null
+    finalOtherReferenceCount: number | null
+  }
+
+  export type ProjectPermanentDeletionArtifactPlanMinAggregateOutputType = {
+    operationId: string | null
+    ordinal: number | null
+    artifactRef: string | null
+    artifactDigest: string | null
+    projectReferenceCount: number | null
+    plannedOtherReferenceCount: number | null
+    state: $Enums.ProjectPermanentDeletionArtifactState | null
+    finalOtherReferenceCount: number | null
+    processedAt: Date | null
+    createdAt: Date | null
+  }
+
+  export type ProjectPermanentDeletionArtifactPlanMaxAggregateOutputType = {
+    operationId: string | null
+    ordinal: number | null
+    artifactRef: string | null
+    artifactDigest: string | null
+    projectReferenceCount: number | null
+    plannedOtherReferenceCount: number | null
+    state: $Enums.ProjectPermanentDeletionArtifactState | null
+    finalOtherReferenceCount: number | null
+    processedAt: Date | null
+    createdAt: Date | null
+  }
+
+  export type ProjectPermanentDeletionArtifactPlanCountAggregateOutputType = {
+    operationId: number
+    ordinal: number
+    artifactRef: number
+    artifactDigest: number
+    projectReferenceCount: number
+    plannedOtherReferenceCount: number
+    state: number
+    finalOtherReferenceCount: number
+    processedAt: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type ProjectPermanentDeletionArtifactPlanAvgAggregateInputType = {
+    ordinal?: true
+    projectReferenceCount?: true
+    plannedOtherReferenceCount?: true
+    finalOtherReferenceCount?: true
+  }
+
+  export type ProjectPermanentDeletionArtifactPlanSumAggregateInputType = {
+    ordinal?: true
+    projectReferenceCount?: true
+    plannedOtherReferenceCount?: true
+    finalOtherReferenceCount?: true
+  }
+
+  export type ProjectPermanentDeletionArtifactPlanMinAggregateInputType = {
+    operationId?: true
+    ordinal?: true
+    artifactRef?: true
+    artifactDigest?: true
+    projectReferenceCount?: true
+    plannedOtherReferenceCount?: true
+    state?: true
+    finalOtherReferenceCount?: true
+    processedAt?: true
+    createdAt?: true
+  }
+
+  export type ProjectPermanentDeletionArtifactPlanMaxAggregateInputType = {
+    operationId?: true
+    ordinal?: true
+    artifactRef?: true
+    artifactDigest?: true
+    projectReferenceCount?: true
+    plannedOtherReferenceCount?: true
+    state?: true
+    finalOtherReferenceCount?: true
+    processedAt?: true
+    createdAt?: true
+  }
+
+  export type ProjectPermanentDeletionArtifactPlanCountAggregateInputType = {
+    operationId?: true
+    ordinal?: true
+    artifactRef?: true
+    artifactDigest?: true
+    projectReferenceCount?: true
+    plannedOtherReferenceCount?: true
+    state?: true
+    finalOtherReferenceCount?: true
+    processedAt?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type ProjectPermanentDeletionArtifactPlanAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ProjectPermanentDeletionArtifactPlan to aggregate.
+     */
+    where?: ProjectPermanentDeletionArtifactPlanWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     *
+     * Determine the order of ProjectPermanentDeletionArtifactPlans to fetch.
+     */
+    orderBy?: ProjectPermanentDeletionArtifactPlanOrderByWithRelationInput | ProjectPermanentDeletionArtifactPlanOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     *
+     * Sets the start position
+     */
+    cursor?: ProjectPermanentDeletionArtifactPlanWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Take `±n` ProjectPermanentDeletionArtifactPlans from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Skip the first `n` ProjectPermanentDeletionArtifactPlans.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     *
+     * Count returned ProjectPermanentDeletionArtifactPlans
+    **/
+    _count?: true | ProjectPermanentDeletionArtifactPlanCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     *
+     * Select which fields to average
+    **/
+    _avg?: ProjectPermanentDeletionArtifactPlanAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     *
+     * Select which fields to sum
+    **/
+    _sum?: ProjectPermanentDeletionArtifactPlanSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     *
+     * Select which fields to find the minimum value
+    **/
+    _min?: ProjectPermanentDeletionArtifactPlanMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     *
+     * Select which fields to find the maximum value
+    **/
+    _max?: ProjectPermanentDeletionArtifactPlanMaxAggregateInputType
+  }
+
+  export type GetProjectPermanentDeletionArtifactPlanAggregateType<T extends ProjectPermanentDeletionArtifactPlanAggregateArgs> = {
+        [P in keyof T & keyof AggregateProjectPermanentDeletionArtifactPlan]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateProjectPermanentDeletionArtifactPlan[P]>
+      : GetScalarType<T[P], AggregateProjectPermanentDeletionArtifactPlan[P]>
+  }
+
+
+
+
+  export type ProjectPermanentDeletionArtifactPlanGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ProjectPermanentDeletionArtifactPlanWhereInput
+    orderBy?: ProjectPermanentDeletionArtifactPlanOrderByWithAggregationInput | ProjectPermanentDeletionArtifactPlanOrderByWithAggregationInput[]
+    by: ProjectPermanentDeletionArtifactPlanScalarFieldEnum[] | ProjectPermanentDeletionArtifactPlanScalarFieldEnum
+    having?: ProjectPermanentDeletionArtifactPlanScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: ProjectPermanentDeletionArtifactPlanCountAggregateInputType | true
+    _avg?: ProjectPermanentDeletionArtifactPlanAvgAggregateInputType
+    _sum?: ProjectPermanentDeletionArtifactPlanSumAggregateInputType
+    _min?: ProjectPermanentDeletionArtifactPlanMinAggregateInputType
+    _max?: ProjectPermanentDeletionArtifactPlanMaxAggregateInputType
+  }
+
+  export type ProjectPermanentDeletionArtifactPlanGroupByOutputType = {
+    operationId: string
+    ordinal: number
+    artifactRef: string
+    artifactDigest: string
+    projectReferenceCount: number
+    plannedOtherReferenceCount: number
+    state: $Enums.ProjectPermanentDeletionArtifactState
+    finalOtherReferenceCount: number | null
+    processedAt: Date | null
+    createdAt: Date
+    _count: ProjectPermanentDeletionArtifactPlanCountAggregateOutputType | null
+    _avg: ProjectPermanentDeletionArtifactPlanAvgAggregateOutputType | null
+    _sum: ProjectPermanentDeletionArtifactPlanSumAggregateOutputType | null
+    _min: ProjectPermanentDeletionArtifactPlanMinAggregateOutputType | null
+    _max: ProjectPermanentDeletionArtifactPlanMaxAggregateOutputType | null
+  }
+
+  type GetProjectPermanentDeletionArtifactPlanGroupByPayload<T extends ProjectPermanentDeletionArtifactPlanGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<ProjectPermanentDeletionArtifactPlanGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof ProjectPermanentDeletionArtifactPlanGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], ProjectPermanentDeletionArtifactPlanGroupByOutputType[P]>
+            : GetScalarType<T[P], ProjectPermanentDeletionArtifactPlanGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type ProjectPermanentDeletionArtifactPlanSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    operationId?: boolean
+    ordinal?: boolean
+    artifactRef?: boolean
+    artifactDigest?: boolean
+    projectReferenceCount?: boolean
+    plannedOtherReferenceCount?: boolean
+    state?: boolean
+    finalOtherReferenceCount?: boolean
+    processedAt?: boolean
+    createdAt?: boolean
+    operation?: boolean | ObjectStorageOperationDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["projectPermanentDeletionArtifactPlan"]>
+
+  export type ProjectPermanentDeletionArtifactPlanSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    operationId?: boolean
+    ordinal?: boolean
+    artifactRef?: boolean
+    artifactDigest?: boolean
+    projectReferenceCount?: boolean
+    plannedOtherReferenceCount?: boolean
+    state?: boolean
+    finalOtherReferenceCount?: boolean
+    processedAt?: boolean
+    createdAt?: boolean
+    operation?: boolean | ObjectStorageOperationDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["projectPermanentDeletionArtifactPlan"]>
+
+  export type ProjectPermanentDeletionArtifactPlanSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    operationId?: boolean
+    ordinal?: boolean
+    artifactRef?: boolean
+    artifactDigest?: boolean
+    projectReferenceCount?: boolean
+    plannedOtherReferenceCount?: boolean
+    state?: boolean
+    finalOtherReferenceCount?: boolean
+    processedAt?: boolean
+    createdAt?: boolean
+    operation?: boolean | ObjectStorageOperationDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["projectPermanentDeletionArtifactPlan"]>
+
+  export type ProjectPermanentDeletionArtifactPlanSelectScalar = {
+    operationId?: boolean
+    ordinal?: boolean
+    artifactRef?: boolean
+    artifactDigest?: boolean
+    projectReferenceCount?: boolean
+    plannedOtherReferenceCount?: boolean
+    state?: boolean
+    finalOtherReferenceCount?: boolean
+    processedAt?: boolean
+    createdAt?: boolean
+  }
+
+  export type ProjectPermanentDeletionArtifactPlanOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"operationId" | "ordinal" | "artifactRef" | "artifactDigest" | "projectReferenceCount" | "plannedOtherReferenceCount" | "state" | "finalOtherReferenceCount" | "processedAt" | "createdAt", ExtArgs["result"]["projectPermanentDeletionArtifactPlan"]>
+  export type ProjectPermanentDeletionArtifactPlanInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    operation?: boolean | ObjectStorageOperationDefaultArgs<ExtArgs>
+  }
+  export type ProjectPermanentDeletionArtifactPlanIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    operation?: boolean | ObjectStorageOperationDefaultArgs<ExtArgs>
+  }
+  export type ProjectPermanentDeletionArtifactPlanIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    operation?: boolean | ObjectStorageOperationDefaultArgs<ExtArgs>
+  }
+
+  export type $ProjectPermanentDeletionArtifactPlanPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "ProjectPermanentDeletionArtifactPlan"
+    objects: {
+      operation: Prisma.$ObjectStorageOperationPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      operationId: string
+      ordinal: number
+      artifactRef: string
+      artifactDigest: string
+      projectReferenceCount: number
+      plannedOtherReferenceCount: number
+      state: $Enums.ProjectPermanentDeletionArtifactState
+      finalOtherReferenceCount: number | null
+      processedAt: Date | null
+      createdAt: Date
+    }, ExtArgs["result"]["projectPermanentDeletionArtifactPlan"]>
+    composites: {}
+  }
+
+  type ProjectPermanentDeletionArtifactPlanGetPayload<S extends boolean | null | undefined | ProjectPermanentDeletionArtifactPlanDefaultArgs> = $Result.GetResult<Prisma.$ProjectPermanentDeletionArtifactPlanPayload, S>
+
+  type ProjectPermanentDeletionArtifactPlanCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<ProjectPermanentDeletionArtifactPlanFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: ProjectPermanentDeletionArtifactPlanCountAggregateInputType | true
+    }
+
+  export interface ProjectPermanentDeletionArtifactPlanDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['ProjectPermanentDeletionArtifactPlan'], meta: { name: 'ProjectPermanentDeletionArtifactPlan' } }
+    /**
+     * Find zero or one ProjectPermanentDeletionArtifactPlan that matches the filter.
+     * @param {ProjectPermanentDeletionArtifactPlanFindUniqueArgs} args - Arguments to find a ProjectPermanentDeletionArtifactPlan
+     * @example
+     * // Get one ProjectPermanentDeletionArtifactPlan
+     * const projectPermanentDeletionArtifactPlan = await prisma.projectPermanentDeletionArtifactPlan.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends ProjectPermanentDeletionArtifactPlanFindUniqueArgs>(args: SelectSubset<T, ProjectPermanentDeletionArtifactPlanFindUniqueArgs<ExtArgs>>): Prisma__ProjectPermanentDeletionArtifactPlanClient<$Result.GetResult<Prisma.$ProjectPermanentDeletionArtifactPlanPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one ProjectPermanentDeletionArtifactPlan that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {ProjectPermanentDeletionArtifactPlanFindUniqueOrThrowArgs} args - Arguments to find a ProjectPermanentDeletionArtifactPlan
+     * @example
+     * // Get one ProjectPermanentDeletionArtifactPlan
+     * const projectPermanentDeletionArtifactPlan = await prisma.projectPermanentDeletionArtifactPlan.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends ProjectPermanentDeletionArtifactPlanFindUniqueOrThrowArgs>(args: SelectSubset<T, ProjectPermanentDeletionArtifactPlanFindUniqueOrThrowArgs<ExtArgs>>): Prisma__ProjectPermanentDeletionArtifactPlanClient<$Result.GetResult<Prisma.$ProjectPermanentDeletionArtifactPlanPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ProjectPermanentDeletionArtifactPlan that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectPermanentDeletionArtifactPlanFindFirstArgs} args - Arguments to find a ProjectPermanentDeletionArtifactPlan
+     * @example
+     * // Get one ProjectPermanentDeletionArtifactPlan
+     * const projectPermanentDeletionArtifactPlan = await prisma.projectPermanentDeletionArtifactPlan.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends ProjectPermanentDeletionArtifactPlanFindFirstArgs>(args?: SelectSubset<T, ProjectPermanentDeletionArtifactPlanFindFirstArgs<ExtArgs>>): Prisma__ProjectPermanentDeletionArtifactPlanClient<$Result.GetResult<Prisma.$ProjectPermanentDeletionArtifactPlanPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ProjectPermanentDeletionArtifactPlan that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectPermanentDeletionArtifactPlanFindFirstOrThrowArgs} args - Arguments to find a ProjectPermanentDeletionArtifactPlan
+     * @example
+     * // Get one ProjectPermanentDeletionArtifactPlan
+     * const projectPermanentDeletionArtifactPlan = await prisma.projectPermanentDeletionArtifactPlan.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends ProjectPermanentDeletionArtifactPlanFindFirstOrThrowArgs>(args?: SelectSubset<T, ProjectPermanentDeletionArtifactPlanFindFirstOrThrowArgs<ExtArgs>>): Prisma__ProjectPermanentDeletionArtifactPlanClient<$Result.GetResult<Prisma.$ProjectPermanentDeletionArtifactPlanPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more ProjectPermanentDeletionArtifactPlans that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectPermanentDeletionArtifactPlanFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all ProjectPermanentDeletionArtifactPlans
+     * const projectPermanentDeletionArtifactPlans = await prisma.projectPermanentDeletionArtifactPlan.findMany()
+     *
+     * // Get first 10 ProjectPermanentDeletionArtifactPlans
+     * const projectPermanentDeletionArtifactPlans = await prisma.projectPermanentDeletionArtifactPlan.findMany({ take: 10 })
+     *
+     * // Only select the `operationId`
+     * const projectPermanentDeletionArtifactPlanWithOperationIdOnly = await prisma.projectPermanentDeletionArtifactPlan.findMany({ select: { operationId: true } })
+     *
+     */
+    findMany<T extends ProjectPermanentDeletionArtifactPlanFindManyArgs>(args?: SelectSubset<T, ProjectPermanentDeletionArtifactPlanFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectPermanentDeletionArtifactPlanPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a ProjectPermanentDeletionArtifactPlan.
+     * @param {ProjectPermanentDeletionArtifactPlanCreateArgs} args - Arguments to create a ProjectPermanentDeletionArtifactPlan.
+     * @example
+     * // Create one ProjectPermanentDeletionArtifactPlan
+     * const ProjectPermanentDeletionArtifactPlan = await prisma.projectPermanentDeletionArtifactPlan.create({
+     *   data: {
+     *     // ... data to create a ProjectPermanentDeletionArtifactPlan
+     *   }
+     * })
+     *
+     */
+    create<T extends ProjectPermanentDeletionArtifactPlanCreateArgs>(args: SelectSubset<T, ProjectPermanentDeletionArtifactPlanCreateArgs<ExtArgs>>): Prisma__ProjectPermanentDeletionArtifactPlanClient<$Result.GetResult<Prisma.$ProjectPermanentDeletionArtifactPlanPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many ProjectPermanentDeletionArtifactPlans.
+     * @param {ProjectPermanentDeletionArtifactPlanCreateManyArgs} args - Arguments to create many ProjectPermanentDeletionArtifactPlans.
+     * @example
+     * // Create many ProjectPermanentDeletionArtifactPlans
+     * const projectPermanentDeletionArtifactPlan = await prisma.projectPermanentDeletionArtifactPlan.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *
+     */
+    createMany<T extends ProjectPermanentDeletionArtifactPlanCreateManyArgs>(args?: SelectSubset<T, ProjectPermanentDeletionArtifactPlanCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many ProjectPermanentDeletionArtifactPlans and returns the data saved in the database.
+     * @param {ProjectPermanentDeletionArtifactPlanCreateManyAndReturnArgs} args - Arguments to create many ProjectPermanentDeletionArtifactPlans.
+     * @example
+     * // Create many ProjectPermanentDeletionArtifactPlans
+     * const projectPermanentDeletionArtifactPlan = await prisma.projectPermanentDeletionArtifactPlan.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *
+     * // Create many ProjectPermanentDeletionArtifactPlans and only return the `operationId`
+     * const projectPermanentDeletionArtifactPlanWithOperationIdOnly = await prisma.projectPermanentDeletionArtifactPlan.createManyAndReturn({
+     *   select: { operationId: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     *
+     */
+    createManyAndReturn<T extends ProjectPermanentDeletionArtifactPlanCreateManyAndReturnArgs>(args?: SelectSubset<T, ProjectPermanentDeletionArtifactPlanCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectPermanentDeletionArtifactPlanPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a ProjectPermanentDeletionArtifactPlan.
+     * @param {ProjectPermanentDeletionArtifactPlanDeleteArgs} args - Arguments to delete one ProjectPermanentDeletionArtifactPlan.
+     * @example
+     * // Delete one ProjectPermanentDeletionArtifactPlan
+     * const ProjectPermanentDeletionArtifactPlan = await prisma.projectPermanentDeletionArtifactPlan.delete({
+     *   where: {
+     *     // ... filter to delete one ProjectPermanentDeletionArtifactPlan
+     *   }
+     * })
+     *
+     */
+    delete<T extends ProjectPermanentDeletionArtifactPlanDeleteArgs>(args: SelectSubset<T, ProjectPermanentDeletionArtifactPlanDeleteArgs<ExtArgs>>): Prisma__ProjectPermanentDeletionArtifactPlanClient<$Result.GetResult<Prisma.$ProjectPermanentDeletionArtifactPlanPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one ProjectPermanentDeletionArtifactPlan.
+     * @param {ProjectPermanentDeletionArtifactPlanUpdateArgs} args - Arguments to update one ProjectPermanentDeletionArtifactPlan.
+     * @example
+     * // Update one ProjectPermanentDeletionArtifactPlan
+     * const projectPermanentDeletionArtifactPlan = await prisma.projectPermanentDeletionArtifactPlan.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     *
+     */
+    update<T extends ProjectPermanentDeletionArtifactPlanUpdateArgs>(args: SelectSubset<T, ProjectPermanentDeletionArtifactPlanUpdateArgs<ExtArgs>>): Prisma__ProjectPermanentDeletionArtifactPlanClient<$Result.GetResult<Prisma.$ProjectPermanentDeletionArtifactPlanPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more ProjectPermanentDeletionArtifactPlans.
+     * @param {ProjectPermanentDeletionArtifactPlanDeleteManyArgs} args - Arguments to filter ProjectPermanentDeletionArtifactPlans to delete.
+     * @example
+     * // Delete a few ProjectPermanentDeletionArtifactPlans
+     * const { count } = await prisma.projectPermanentDeletionArtifactPlan.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     *
+     */
+    deleteMany<T extends ProjectPermanentDeletionArtifactPlanDeleteManyArgs>(args?: SelectSubset<T, ProjectPermanentDeletionArtifactPlanDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ProjectPermanentDeletionArtifactPlans.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectPermanentDeletionArtifactPlanUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many ProjectPermanentDeletionArtifactPlans
+     * const projectPermanentDeletionArtifactPlan = await prisma.projectPermanentDeletionArtifactPlan.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     *
+     */
+    updateMany<T extends ProjectPermanentDeletionArtifactPlanUpdateManyArgs>(args: SelectSubset<T, ProjectPermanentDeletionArtifactPlanUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ProjectPermanentDeletionArtifactPlans and returns the data updated in the database.
+     * @param {ProjectPermanentDeletionArtifactPlanUpdateManyAndReturnArgs} args - Arguments to update many ProjectPermanentDeletionArtifactPlans.
+     * @example
+     * // Update many ProjectPermanentDeletionArtifactPlans
+     * const projectPermanentDeletionArtifactPlan = await prisma.projectPermanentDeletionArtifactPlan.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *
+     * // Update zero or more ProjectPermanentDeletionArtifactPlans and only return the `operationId`
+     * const projectPermanentDeletionArtifactPlanWithOperationIdOnly = await prisma.projectPermanentDeletionArtifactPlan.updateManyAndReturn({
+     *   select: { operationId: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     *
+     */
+    updateManyAndReturn<T extends ProjectPermanentDeletionArtifactPlanUpdateManyAndReturnArgs>(args: SelectSubset<T, ProjectPermanentDeletionArtifactPlanUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectPermanentDeletionArtifactPlanPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one ProjectPermanentDeletionArtifactPlan.
+     * @param {ProjectPermanentDeletionArtifactPlanUpsertArgs} args - Arguments to update or create a ProjectPermanentDeletionArtifactPlan.
+     * @example
+     * // Update or create a ProjectPermanentDeletionArtifactPlan
+     * const projectPermanentDeletionArtifactPlan = await prisma.projectPermanentDeletionArtifactPlan.upsert({
+     *   create: {
+     *     // ... data to create a ProjectPermanentDeletionArtifactPlan
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the ProjectPermanentDeletionArtifactPlan we want to update
+     *   }
+     * })
+     */
+    upsert<T extends ProjectPermanentDeletionArtifactPlanUpsertArgs>(args: SelectSubset<T, ProjectPermanentDeletionArtifactPlanUpsertArgs<ExtArgs>>): Prisma__ProjectPermanentDeletionArtifactPlanClient<$Result.GetResult<Prisma.$ProjectPermanentDeletionArtifactPlanPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of ProjectPermanentDeletionArtifactPlans.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectPermanentDeletionArtifactPlanCountArgs} args - Arguments to filter ProjectPermanentDeletionArtifactPlans to count.
+     * @example
+     * // Count the number of ProjectPermanentDeletionArtifactPlans
+     * const count = await prisma.projectPermanentDeletionArtifactPlan.count({
+     *   where: {
+     *     // ... the filter for the ProjectPermanentDeletionArtifactPlans we want to count
+     *   }
+     * })
+    **/
+    count<T extends ProjectPermanentDeletionArtifactPlanCountArgs>(
+      args?: Subset<T, ProjectPermanentDeletionArtifactPlanCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], ProjectPermanentDeletionArtifactPlanCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a ProjectPermanentDeletionArtifactPlan.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectPermanentDeletionArtifactPlanAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends ProjectPermanentDeletionArtifactPlanAggregateArgs>(args: Subset<T, ProjectPermanentDeletionArtifactPlanAggregateArgs>): Prisma.PrismaPromise<GetProjectPermanentDeletionArtifactPlanAggregateType<T>>
+
+    /**
+     * Group by ProjectPermanentDeletionArtifactPlan.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectPermanentDeletionArtifactPlanGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     *
+    **/
+    groupBy<
+      T extends ProjectPermanentDeletionArtifactPlanGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: ProjectPermanentDeletionArtifactPlanGroupByArgs['orderBy'] }
+        : { orderBy?: ProjectPermanentDeletionArtifactPlanGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, ProjectPermanentDeletionArtifactPlanGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetProjectPermanentDeletionArtifactPlanGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the ProjectPermanentDeletionArtifactPlan model
+   */
+  readonly fields: ProjectPermanentDeletionArtifactPlanFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for ProjectPermanentDeletionArtifactPlan.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__ProjectPermanentDeletionArtifactPlanClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    operation<T extends ObjectStorageOperationDefaultArgs<ExtArgs> = {}>(args?: Subset<T, ObjectStorageOperationDefaultArgs<ExtArgs>>): Prisma__ObjectStorageOperationClient<$Result.GetResult<Prisma.$ObjectStorageOperationPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the ProjectPermanentDeletionArtifactPlan model
+   */
+  interface ProjectPermanentDeletionArtifactPlanFieldRefs {
+    readonly operationId: FieldRef<"ProjectPermanentDeletionArtifactPlan", 'String'>
+    readonly ordinal: FieldRef<"ProjectPermanentDeletionArtifactPlan", 'Int'>
+    readonly artifactRef: FieldRef<"ProjectPermanentDeletionArtifactPlan", 'String'>
+    readonly artifactDigest: FieldRef<"ProjectPermanentDeletionArtifactPlan", 'String'>
+    readonly projectReferenceCount: FieldRef<"ProjectPermanentDeletionArtifactPlan", 'Int'>
+    readonly plannedOtherReferenceCount: FieldRef<"ProjectPermanentDeletionArtifactPlan", 'Int'>
+    readonly state: FieldRef<"ProjectPermanentDeletionArtifactPlan", 'ProjectPermanentDeletionArtifactState'>
+    readonly finalOtherReferenceCount: FieldRef<"ProjectPermanentDeletionArtifactPlan", 'Int'>
+    readonly processedAt: FieldRef<"ProjectPermanentDeletionArtifactPlan", 'DateTime'>
+    readonly createdAt: FieldRef<"ProjectPermanentDeletionArtifactPlan", 'DateTime'>
+  }
+
+
+  // Custom InputTypes
+  /**
+   * ProjectPermanentDeletionArtifactPlan findUnique
+   */
+  export type ProjectPermanentDeletionArtifactPlanFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectPermanentDeletionArtifactPlan
+     */
+    select?: ProjectPermanentDeletionArtifactPlanSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectPermanentDeletionArtifactPlan
+     */
+    omit?: ProjectPermanentDeletionArtifactPlanOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectPermanentDeletionArtifactPlanInclude<ExtArgs> | null
+    /**
+     * Filter, which ProjectPermanentDeletionArtifactPlan to fetch.
+     */
+    where: ProjectPermanentDeletionArtifactPlanWhereUniqueInput
+  }
+
+  /**
+   * ProjectPermanentDeletionArtifactPlan findUniqueOrThrow
+   */
+  export type ProjectPermanentDeletionArtifactPlanFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectPermanentDeletionArtifactPlan
+     */
+    select?: ProjectPermanentDeletionArtifactPlanSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectPermanentDeletionArtifactPlan
+     */
+    omit?: ProjectPermanentDeletionArtifactPlanOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectPermanentDeletionArtifactPlanInclude<ExtArgs> | null
+    /**
+     * Filter, which ProjectPermanentDeletionArtifactPlan to fetch.
+     */
+    where: ProjectPermanentDeletionArtifactPlanWhereUniqueInput
+  }
+
+  /**
+   * ProjectPermanentDeletionArtifactPlan findFirst
+   */
+  export type ProjectPermanentDeletionArtifactPlanFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectPermanentDeletionArtifactPlan
+     */
+    select?: ProjectPermanentDeletionArtifactPlanSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectPermanentDeletionArtifactPlan
+     */
+    omit?: ProjectPermanentDeletionArtifactPlanOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectPermanentDeletionArtifactPlanInclude<ExtArgs> | null
+    /**
+     * Filter, which ProjectPermanentDeletionArtifactPlan to fetch.
+     */
+    where?: ProjectPermanentDeletionArtifactPlanWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     *
+     * Determine the order of ProjectPermanentDeletionArtifactPlans to fetch.
+     */
+    orderBy?: ProjectPermanentDeletionArtifactPlanOrderByWithRelationInput | ProjectPermanentDeletionArtifactPlanOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     *
+     * Sets the position for searching for ProjectPermanentDeletionArtifactPlans.
+     */
+    cursor?: ProjectPermanentDeletionArtifactPlanWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Take `±n` ProjectPermanentDeletionArtifactPlans from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Skip the first `n` ProjectPermanentDeletionArtifactPlans.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     *
+     * Filter by unique combinations of ProjectPermanentDeletionArtifactPlans.
+     */
+    distinct?: ProjectPermanentDeletionArtifactPlanScalarFieldEnum | ProjectPermanentDeletionArtifactPlanScalarFieldEnum[]
+  }
+
+  /**
+   * ProjectPermanentDeletionArtifactPlan findFirstOrThrow
+   */
+  export type ProjectPermanentDeletionArtifactPlanFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectPermanentDeletionArtifactPlan
+     */
+    select?: ProjectPermanentDeletionArtifactPlanSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectPermanentDeletionArtifactPlan
+     */
+    omit?: ProjectPermanentDeletionArtifactPlanOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectPermanentDeletionArtifactPlanInclude<ExtArgs> | null
+    /**
+     * Filter, which ProjectPermanentDeletionArtifactPlan to fetch.
+     */
+    where?: ProjectPermanentDeletionArtifactPlanWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     *
+     * Determine the order of ProjectPermanentDeletionArtifactPlans to fetch.
+     */
+    orderBy?: ProjectPermanentDeletionArtifactPlanOrderByWithRelationInput | ProjectPermanentDeletionArtifactPlanOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     *
+     * Sets the position for searching for ProjectPermanentDeletionArtifactPlans.
+     */
+    cursor?: ProjectPermanentDeletionArtifactPlanWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Take `±n` ProjectPermanentDeletionArtifactPlans from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Skip the first `n` ProjectPermanentDeletionArtifactPlans.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     *
+     * Filter by unique combinations of ProjectPermanentDeletionArtifactPlans.
+     */
+    distinct?: ProjectPermanentDeletionArtifactPlanScalarFieldEnum | ProjectPermanentDeletionArtifactPlanScalarFieldEnum[]
+  }
+
+  /**
+   * ProjectPermanentDeletionArtifactPlan findMany
+   */
+  export type ProjectPermanentDeletionArtifactPlanFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectPermanentDeletionArtifactPlan
+     */
+    select?: ProjectPermanentDeletionArtifactPlanSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectPermanentDeletionArtifactPlan
+     */
+    omit?: ProjectPermanentDeletionArtifactPlanOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectPermanentDeletionArtifactPlanInclude<ExtArgs> | null
+    /**
+     * Filter, which ProjectPermanentDeletionArtifactPlans to fetch.
+     */
+    where?: ProjectPermanentDeletionArtifactPlanWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     *
+     * Determine the order of ProjectPermanentDeletionArtifactPlans to fetch.
+     */
+    orderBy?: ProjectPermanentDeletionArtifactPlanOrderByWithRelationInput | ProjectPermanentDeletionArtifactPlanOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     *
+     * Sets the position for listing ProjectPermanentDeletionArtifactPlans.
+     */
+    cursor?: ProjectPermanentDeletionArtifactPlanWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Take `±n` ProjectPermanentDeletionArtifactPlans from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Skip the first `n` ProjectPermanentDeletionArtifactPlans.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     *
+     * Filter by unique combinations of ProjectPermanentDeletionArtifactPlans.
+     */
+    distinct?: ProjectPermanentDeletionArtifactPlanScalarFieldEnum | ProjectPermanentDeletionArtifactPlanScalarFieldEnum[]
+  }
+
+  /**
+   * ProjectPermanentDeletionArtifactPlan create
+   */
+  export type ProjectPermanentDeletionArtifactPlanCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectPermanentDeletionArtifactPlan
+     */
+    select?: ProjectPermanentDeletionArtifactPlanSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectPermanentDeletionArtifactPlan
+     */
+    omit?: ProjectPermanentDeletionArtifactPlanOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectPermanentDeletionArtifactPlanInclude<ExtArgs> | null
+    /**
+     * The data needed to create a ProjectPermanentDeletionArtifactPlan.
+     */
+    data: XOR<ProjectPermanentDeletionArtifactPlanCreateInput, ProjectPermanentDeletionArtifactPlanUncheckedCreateInput>
+  }
+
+  /**
+   * ProjectPermanentDeletionArtifactPlan createMany
+   */
+  export type ProjectPermanentDeletionArtifactPlanCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many ProjectPermanentDeletionArtifactPlans.
+     */
+    data: ProjectPermanentDeletionArtifactPlanCreateManyInput | ProjectPermanentDeletionArtifactPlanCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * ProjectPermanentDeletionArtifactPlan createManyAndReturn
+   */
+  export type ProjectPermanentDeletionArtifactPlanCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectPermanentDeletionArtifactPlan
+     */
+    select?: ProjectPermanentDeletionArtifactPlanSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectPermanentDeletionArtifactPlan
+     */
+    omit?: ProjectPermanentDeletionArtifactPlanOmit<ExtArgs> | null
+    /**
+     * The data used to create many ProjectPermanentDeletionArtifactPlans.
+     */
+    data: ProjectPermanentDeletionArtifactPlanCreateManyInput | ProjectPermanentDeletionArtifactPlanCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectPermanentDeletionArtifactPlanIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * ProjectPermanentDeletionArtifactPlan update
+   */
+  export type ProjectPermanentDeletionArtifactPlanUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectPermanentDeletionArtifactPlan
+     */
+    select?: ProjectPermanentDeletionArtifactPlanSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectPermanentDeletionArtifactPlan
+     */
+    omit?: ProjectPermanentDeletionArtifactPlanOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectPermanentDeletionArtifactPlanInclude<ExtArgs> | null
+    /**
+     * The data needed to update a ProjectPermanentDeletionArtifactPlan.
+     */
+    data: XOR<ProjectPermanentDeletionArtifactPlanUpdateInput, ProjectPermanentDeletionArtifactPlanUncheckedUpdateInput>
+    /**
+     * Choose, which ProjectPermanentDeletionArtifactPlan to update.
+     */
+    where: ProjectPermanentDeletionArtifactPlanWhereUniqueInput
+  }
+
+  /**
+   * ProjectPermanentDeletionArtifactPlan updateMany
+   */
+  export type ProjectPermanentDeletionArtifactPlanUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update ProjectPermanentDeletionArtifactPlans.
+     */
+    data: XOR<ProjectPermanentDeletionArtifactPlanUpdateManyMutationInput, ProjectPermanentDeletionArtifactPlanUncheckedUpdateManyInput>
+    /**
+     * Filter which ProjectPermanentDeletionArtifactPlans to update
+     */
+    where?: ProjectPermanentDeletionArtifactPlanWhereInput
+    /**
+     * Limit how many ProjectPermanentDeletionArtifactPlans to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * ProjectPermanentDeletionArtifactPlan updateManyAndReturn
+   */
+  export type ProjectPermanentDeletionArtifactPlanUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectPermanentDeletionArtifactPlan
+     */
+    select?: ProjectPermanentDeletionArtifactPlanSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectPermanentDeletionArtifactPlan
+     */
+    omit?: ProjectPermanentDeletionArtifactPlanOmit<ExtArgs> | null
+    /**
+     * The data used to update ProjectPermanentDeletionArtifactPlans.
+     */
+    data: XOR<ProjectPermanentDeletionArtifactPlanUpdateManyMutationInput, ProjectPermanentDeletionArtifactPlanUncheckedUpdateManyInput>
+    /**
+     * Filter which ProjectPermanentDeletionArtifactPlans to update
+     */
+    where?: ProjectPermanentDeletionArtifactPlanWhereInput
+    /**
+     * Limit how many ProjectPermanentDeletionArtifactPlans to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectPermanentDeletionArtifactPlanIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * ProjectPermanentDeletionArtifactPlan upsert
+   */
+  export type ProjectPermanentDeletionArtifactPlanUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectPermanentDeletionArtifactPlan
+     */
+    select?: ProjectPermanentDeletionArtifactPlanSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectPermanentDeletionArtifactPlan
+     */
+    omit?: ProjectPermanentDeletionArtifactPlanOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectPermanentDeletionArtifactPlanInclude<ExtArgs> | null
+    /**
+     * The filter to search for the ProjectPermanentDeletionArtifactPlan to update in case it exists.
+     */
+    where: ProjectPermanentDeletionArtifactPlanWhereUniqueInput
+    /**
+     * In case the ProjectPermanentDeletionArtifactPlan found by the `where` argument doesn't exist, create a new ProjectPermanentDeletionArtifactPlan with this data.
+     */
+    create: XOR<ProjectPermanentDeletionArtifactPlanCreateInput, ProjectPermanentDeletionArtifactPlanUncheckedCreateInput>
+    /**
+     * In case the ProjectPermanentDeletionArtifactPlan was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<ProjectPermanentDeletionArtifactPlanUpdateInput, ProjectPermanentDeletionArtifactPlanUncheckedUpdateInput>
+  }
+
+  /**
+   * ProjectPermanentDeletionArtifactPlan delete
+   */
+  export type ProjectPermanentDeletionArtifactPlanDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectPermanentDeletionArtifactPlan
+     */
+    select?: ProjectPermanentDeletionArtifactPlanSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectPermanentDeletionArtifactPlan
+     */
+    omit?: ProjectPermanentDeletionArtifactPlanOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectPermanentDeletionArtifactPlanInclude<ExtArgs> | null
+    /**
+     * Filter which ProjectPermanentDeletionArtifactPlan to delete.
+     */
+    where: ProjectPermanentDeletionArtifactPlanWhereUniqueInput
+  }
+
+  /**
+   * ProjectPermanentDeletionArtifactPlan deleteMany
+   */
+  export type ProjectPermanentDeletionArtifactPlanDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ProjectPermanentDeletionArtifactPlans to delete
+     */
+    where?: ProjectPermanentDeletionArtifactPlanWhereInput
+    /**
+     * Limit how many ProjectPermanentDeletionArtifactPlans to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * ProjectPermanentDeletionArtifactPlan without action
+   */
+  export type ProjectPermanentDeletionArtifactPlanDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectPermanentDeletionArtifactPlan
+     */
+    select?: ProjectPermanentDeletionArtifactPlanSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectPermanentDeletionArtifactPlan
+     */
+    omit?: ProjectPermanentDeletionArtifactPlanOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectPermanentDeletionArtifactPlanInclude<ExtArgs> | null
   }
 
 
@@ -38495,6 +41272,1264 @@ export namespace Prisma {
      * Choose, which related nodes to fetch as well
      */
     include?: ObjectStorageOperationProjectScopeInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model ObjectStorageVersionGcSchedule
+   */
+
+  export type AggregateObjectStorageVersionGcSchedule = {
+    _count: ObjectStorageVersionGcScheduleCountAggregateOutputType | null
+    _avg: ObjectStorageVersionGcScheduleAvgAggregateOutputType | null
+    _sum: ObjectStorageVersionGcScheduleSumAggregateOutputType | null
+    _min: ObjectStorageVersionGcScheduleMinAggregateOutputType | null
+    _max: ObjectStorageVersionGcScheduleMaxAggregateOutputType | null
+  }
+
+  export type ObjectStorageVersionGcScheduleAvgAggregateOutputType = {
+    fencingToken: number | null
+    attempts: number | null
+  }
+
+  export type ObjectStorageVersionGcScheduleSumAggregateOutputType = {
+    fencingToken: bigint | null
+    attempts: number | null
+  }
+
+  export type ObjectStorageVersionGcScheduleMinAggregateOutputType = {
+    projectId: string | null
+    expectedOrganizationId: string | null
+    status: $Enums.ObjectStorageVersionGcStatus | null
+    notBefore: Date | null
+    nextAttemptAt: Date | null
+    ownerToken: string | null
+    fencingToken: bigint | null
+    leaseExpiresAt: Date | null
+    attempts: number | null
+    lastOperationId: string | null
+    lastErrorCode: string | null
+    lastErrorMessage: string | null
+    requestedAt: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type ObjectStorageVersionGcScheduleMaxAggregateOutputType = {
+    projectId: string | null
+    expectedOrganizationId: string | null
+    status: $Enums.ObjectStorageVersionGcStatus | null
+    notBefore: Date | null
+    nextAttemptAt: Date | null
+    ownerToken: string | null
+    fencingToken: bigint | null
+    leaseExpiresAt: Date | null
+    attempts: number | null
+    lastOperationId: string | null
+    lastErrorCode: string | null
+    lastErrorMessage: string | null
+    requestedAt: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type ObjectStorageVersionGcScheduleCountAggregateOutputType = {
+    projectId: number
+    expectedOrganizationId: number
+    status: number
+    notBefore: number
+    nextAttemptAt: number
+    ownerToken: number
+    fencingToken: number
+    leaseExpiresAt: number
+    attempts: number
+    lastOperationId: number
+    lastErrorCode: number
+    lastErrorMessage: number
+    requestedAt: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type ObjectStorageVersionGcScheduleAvgAggregateInputType = {
+    fencingToken?: true
+    attempts?: true
+  }
+
+  export type ObjectStorageVersionGcScheduleSumAggregateInputType = {
+    fencingToken?: true
+    attempts?: true
+  }
+
+  export type ObjectStorageVersionGcScheduleMinAggregateInputType = {
+    projectId?: true
+    expectedOrganizationId?: true
+    status?: true
+    notBefore?: true
+    nextAttemptAt?: true
+    ownerToken?: true
+    fencingToken?: true
+    leaseExpiresAt?: true
+    attempts?: true
+    lastOperationId?: true
+    lastErrorCode?: true
+    lastErrorMessage?: true
+    requestedAt?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type ObjectStorageVersionGcScheduleMaxAggregateInputType = {
+    projectId?: true
+    expectedOrganizationId?: true
+    status?: true
+    notBefore?: true
+    nextAttemptAt?: true
+    ownerToken?: true
+    fencingToken?: true
+    leaseExpiresAt?: true
+    attempts?: true
+    lastOperationId?: true
+    lastErrorCode?: true
+    lastErrorMessage?: true
+    requestedAt?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type ObjectStorageVersionGcScheduleCountAggregateInputType = {
+    projectId?: true
+    expectedOrganizationId?: true
+    status?: true
+    notBefore?: true
+    nextAttemptAt?: true
+    ownerToken?: true
+    fencingToken?: true
+    leaseExpiresAt?: true
+    attempts?: true
+    lastOperationId?: true
+    lastErrorCode?: true
+    lastErrorMessage?: true
+    requestedAt?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type ObjectStorageVersionGcScheduleAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ObjectStorageVersionGcSchedule to aggregate.
+     */
+    where?: ObjectStorageVersionGcScheduleWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     *
+     * Determine the order of ObjectStorageVersionGcSchedules to fetch.
+     */
+    orderBy?: ObjectStorageVersionGcScheduleOrderByWithRelationInput | ObjectStorageVersionGcScheduleOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     *
+     * Sets the start position
+     */
+    cursor?: ObjectStorageVersionGcScheduleWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Take `±n` ObjectStorageVersionGcSchedules from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Skip the first `n` ObjectStorageVersionGcSchedules.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     *
+     * Count returned ObjectStorageVersionGcSchedules
+    **/
+    _count?: true | ObjectStorageVersionGcScheduleCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     *
+     * Select which fields to average
+    **/
+    _avg?: ObjectStorageVersionGcScheduleAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     *
+     * Select which fields to sum
+    **/
+    _sum?: ObjectStorageVersionGcScheduleSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     *
+     * Select which fields to find the minimum value
+    **/
+    _min?: ObjectStorageVersionGcScheduleMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     *
+     * Select which fields to find the maximum value
+    **/
+    _max?: ObjectStorageVersionGcScheduleMaxAggregateInputType
+  }
+
+  export type GetObjectStorageVersionGcScheduleAggregateType<T extends ObjectStorageVersionGcScheduleAggregateArgs> = {
+        [P in keyof T & keyof AggregateObjectStorageVersionGcSchedule]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateObjectStorageVersionGcSchedule[P]>
+      : GetScalarType<T[P], AggregateObjectStorageVersionGcSchedule[P]>
+  }
+
+
+
+
+  export type ObjectStorageVersionGcScheduleGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ObjectStorageVersionGcScheduleWhereInput
+    orderBy?: ObjectStorageVersionGcScheduleOrderByWithAggregationInput | ObjectStorageVersionGcScheduleOrderByWithAggregationInput[]
+    by: ObjectStorageVersionGcScheduleScalarFieldEnum[] | ObjectStorageVersionGcScheduleScalarFieldEnum
+    having?: ObjectStorageVersionGcScheduleScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: ObjectStorageVersionGcScheduleCountAggregateInputType | true
+    _avg?: ObjectStorageVersionGcScheduleAvgAggregateInputType
+    _sum?: ObjectStorageVersionGcScheduleSumAggregateInputType
+    _min?: ObjectStorageVersionGcScheduleMinAggregateInputType
+    _max?: ObjectStorageVersionGcScheduleMaxAggregateInputType
+  }
+
+  export type ObjectStorageVersionGcScheduleGroupByOutputType = {
+    projectId: string
+    expectedOrganizationId: string
+    status: $Enums.ObjectStorageVersionGcStatus
+    notBefore: Date
+    nextAttemptAt: Date
+    ownerToken: string | null
+    fencingToken: bigint
+    leaseExpiresAt: Date | null
+    attempts: number
+    lastOperationId: string | null
+    lastErrorCode: string | null
+    lastErrorMessage: string | null
+    requestedAt: Date
+    createdAt: Date
+    updatedAt: Date
+    _count: ObjectStorageVersionGcScheduleCountAggregateOutputType | null
+    _avg: ObjectStorageVersionGcScheduleAvgAggregateOutputType | null
+    _sum: ObjectStorageVersionGcScheduleSumAggregateOutputType | null
+    _min: ObjectStorageVersionGcScheduleMinAggregateOutputType | null
+    _max: ObjectStorageVersionGcScheduleMaxAggregateOutputType | null
+  }
+
+  type GetObjectStorageVersionGcScheduleGroupByPayload<T extends ObjectStorageVersionGcScheduleGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<ObjectStorageVersionGcScheduleGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof ObjectStorageVersionGcScheduleGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], ObjectStorageVersionGcScheduleGroupByOutputType[P]>
+            : GetScalarType<T[P], ObjectStorageVersionGcScheduleGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type ObjectStorageVersionGcScheduleSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    projectId?: boolean
+    expectedOrganizationId?: boolean
+    status?: boolean
+    notBefore?: boolean
+    nextAttemptAt?: boolean
+    ownerToken?: boolean
+    fencingToken?: boolean
+    leaseExpiresAt?: boolean
+    attempts?: boolean
+    lastOperationId?: boolean
+    lastErrorCode?: boolean
+    lastErrorMessage?: boolean
+    requestedAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+    lastOperation?: boolean | ObjectStorageVersionGcSchedule$lastOperationArgs<ExtArgs>
+  }, ExtArgs["result"]["objectStorageVersionGcSchedule"]>
+
+  export type ObjectStorageVersionGcScheduleSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    projectId?: boolean
+    expectedOrganizationId?: boolean
+    status?: boolean
+    notBefore?: boolean
+    nextAttemptAt?: boolean
+    ownerToken?: boolean
+    fencingToken?: boolean
+    leaseExpiresAt?: boolean
+    attempts?: boolean
+    lastOperationId?: boolean
+    lastErrorCode?: boolean
+    lastErrorMessage?: boolean
+    requestedAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+    lastOperation?: boolean | ObjectStorageVersionGcSchedule$lastOperationArgs<ExtArgs>
+  }, ExtArgs["result"]["objectStorageVersionGcSchedule"]>
+
+  export type ObjectStorageVersionGcScheduleSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    projectId?: boolean
+    expectedOrganizationId?: boolean
+    status?: boolean
+    notBefore?: boolean
+    nextAttemptAt?: boolean
+    ownerToken?: boolean
+    fencingToken?: boolean
+    leaseExpiresAt?: boolean
+    attempts?: boolean
+    lastOperationId?: boolean
+    lastErrorCode?: boolean
+    lastErrorMessage?: boolean
+    requestedAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+    lastOperation?: boolean | ObjectStorageVersionGcSchedule$lastOperationArgs<ExtArgs>
+  }, ExtArgs["result"]["objectStorageVersionGcSchedule"]>
+
+  export type ObjectStorageVersionGcScheduleSelectScalar = {
+    projectId?: boolean
+    expectedOrganizationId?: boolean
+    status?: boolean
+    notBefore?: boolean
+    nextAttemptAt?: boolean
+    ownerToken?: boolean
+    fencingToken?: boolean
+    leaseExpiresAt?: boolean
+    attempts?: boolean
+    lastOperationId?: boolean
+    lastErrorCode?: boolean
+    lastErrorMessage?: boolean
+    requestedAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type ObjectStorageVersionGcScheduleOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"projectId" | "expectedOrganizationId" | "status" | "notBefore" | "nextAttemptAt" | "ownerToken" | "fencingToken" | "leaseExpiresAt" | "attempts" | "lastOperationId" | "lastErrorCode" | "lastErrorMessage" | "requestedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["objectStorageVersionGcSchedule"]>
+  export type ObjectStorageVersionGcScheduleInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+    lastOperation?: boolean | ObjectStorageVersionGcSchedule$lastOperationArgs<ExtArgs>
+  }
+  export type ObjectStorageVersionGcScheduleIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+    lastOperation?: boolean | ObjectStorageVersionGcSchedule$lastOperationArgs<ExtArgs>
+  }
+  export type ObjectStorageVersionGcScheduleIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+    lastOperation?: boolean | ObjectStorageVersionGcSchedule$lastOperationArgs<ExtArgs>
+  }
+
+  export type $ObjectStorageVersionGcSchedulePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "ObjectStorageVersionGcSchedule"
+    objects: {
+      project: Prisma.$ProjectPayload<ExtArgs>
+      lastOperation: Prisma.$ObjectStorageOperationPayload<ExtArgs> | null
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      projectId: string
+      expectedOrganizationId: string
+      status: $Enums.ObjectStorageVersionGcStatus
+      notBefore: Date
+      nextAttemptAt: Date
+      ownerToken: string | null
+      fencingToken: bigint
+      leaseExpiresAt: Date | null
+      attempts: number
+      lastOperationId: string | null
+      lastErrorCode: string | null
+      lastErrorMessage: string | null
+      requestedAt: Date
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["objectStorageVersionGcSchedule"]>
+    composites: {}
+  }
+
+  type ObjectStorageVersionGcScheduleGetPayload<S extends boolean | null | undefined | ObjectStorageVersionGcScheduleDefaultArgs> = $Result.GetResult<Prisma.$ObjectStorageVersionGcSchedulePayload, S>
+
+  type ObjectStorageVersionGcScheduleCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<ObjectStorageVersionGcScheduleFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: ObjectStorageVersionGcScheduleCountAggregateInputType | true
+    }
+
+  export interface ObjectStorageVersionGcScheduleDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['ObjectStorageVersionGcSchedule'], meta: { name: 'ObjectStorageVersionGcSchedule' } }
+    /**
+     * Find zero or one ObjectStorageVersionGcSchedule that matches the filter.
+     * @param {ObjectStorageVersionGcScheduleFindUniqueArgs} args - Arguments to find a ObjectStorageVersionGcSchedule
+     * @example
+     * // Get one ObjectStorageVersionGcSchedule
+     * const objectStorageVersionGcSchedule = await prisma.objectStorageVersionGcSchedule.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends ObjectStorageVersionGcScheduleFindUniqueArgs>(args: SelectSubset<T, ObjectStorageVersionGcScheduleFindUniqueArgs<ExtArgs>>): Prisma__ObjectStorageVersionGcScheduleClient<$Result.GetResult<Prisma.$ObjectStorageVersionGcSchedulePayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one ObjectStorageVersionGcSchedule that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {ObjectStorageVersionGcScheduleFindUniqueOrThrowArgs} args - Arguments to find a ObjectStorageVersionGcSchedule
+     * @example
+     * // Get one ObjectStorageVersionGcSchedule
+     * const objectStorageVersionGcSchedule = await prisma.objectStorageVersionGcSchedule.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends ObjectStorageVersionGcScheduleFindUniqueOrThrowArgs>(args: SelectSubset<T, ObjectStorageVersionGcScheduleFindUniqueOrThrowArgs<ExtArgs>>): Prisma__ObjectStorageVersionGcScheduleClient<$Result.GetResult<Prisma.$ObjectStorageVersionGcSchedulePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ObjectStorageVersionGcSchedule that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ObjectStorageVersionGcScheduleFindFirstArgs} args - Arguments to find a ObjectStorageVersionGcSchedule
+     * @example
+     * // Get one ObjectStorageVersionGcSchedule
+     * const objectStorageVersionGcSchedule = await prisma.objectStorageVersionGcSchedule.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends ObjectStorageVersionGcScheduleFindFirstArgs>(args?: SelectSubset<T, ObjectStorageVersionGcScheduleFindFirstArgs<ExtArgs>>): Prisma__ObjectStorageVersionGcScheduleClient<$Result.GetResult<Prisma.$ObjectStorageVersionGcSchedulePayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ObjectStorageVersionGcSchedule that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ObjectStorageVersionGcScheduleFindFirstOrThrowArgs} args - Arguments to find a ObjectStorageVersionGcSchedule
+     * @example
+     * // Get one ObjectStorageVersionGcSchedule
+     * const objectStorageVersionGcSchedule = await prisma.objectStorageVersionGcSchedule.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends ObjectStorageVersionGcScheduleFindFirstOrThrowArgs>(args?: SelectSubset<T, ObjectStorageVersionGcScheduleFindFirstOrThrowArgs<ExtArgs>>): Prisma__ObjectStorageVersionGcScheduleClient<$Result.GetResult<Prisma.$ObjectStorageVersionGcSchedulePayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more ObjectStorageVersionGcSchedules that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ObjectStorageVersionGcScheduleFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all ObjectStorageVersionGcSchedules
+     * const objectStorageVersionGcSchedules = await prisma.objectStorageVersionGcSchedule.findMany()
+     *
+     * // Get first 10 ObjectStorageVersionGcSchedules
+     * const objectStorageVersionGcSchedules = await prisma.objectStorageVersionGcSchedule.findMany({ take: 10 })
+     *
+     * // Only select the `projectId`
+     * const objectStorageVersionGcScheduleWithProjectIdOnly = await prisma.objectStorageVersionGcSchedule.findMany({ select: { projectId: true } })
+     *
+     */
+    findMany<T extends ObjectStorageVersionGcScheduleFindManyArgs>(args?: SelectSubset<T, ObjectStorageVersionGcScheduleFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ObjectStorageVersionGcSchedulePayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a ObjectStorageVersionGcSchedule.
+     * @param {ObjectStorageVersionGcScheduleCreateArgs} args - Arguments to create a ObjectStorageVersionGcSchedule.
+     * @example
+     * // Create one ObjectStorageVersionGcSchedule
+     * const ObjectStorageVersionGcSchedule = await prisma.objectStorageVersionGcSchedule.create({
+     *   data: {
+     *     // ... data to create a ObjectStorageVersionGcSchedule
+     *   }
+     * })
+     *
+     */
+    create<T extends ObjectStorageVersionGcScheduleCreateArgs>(args: SelectSubset<T, ObjectStorageVersionGcScheduleCreateArgs<ExtArgs>>): Prisma__ObjectStorageVersionGcScheduleClient<$Result.GetResult<Prisma.$ObjectStorageVersionGcSchedulePayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many ObjectStorageVersionGcSchedules.
+     * @param {ObjectStorageVersionGcScheduleCreateManyArgs} args - Arguments to create many ObjectStorageVersionGcSchedules.
+     * @example
+     * // Create many ObjectStorageVersionGcSchedules
+     * const objectStorageVersionGcSchedule = await prisma.objectStorageVersionGcSchedule.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *
+     */
+    createMany<T extends ObjectStorageVersionGcScheduleCreateManyArgs>(args?: SelectSubset<T, ObjectStorageVersionGcScheduleCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many ObjectStorageVersionGcSchedules and returns the data saved in the database.
+     * @param {ObjectStorageVersionGcScheduleCreateManyAndReturnArgs} args - Arguments to create many ObjectStorageVersionGcSchedules.
+     * @example
+     * // Create many ObjectStorageVersionGcSchedules
+     * const objectStorageVersionGcSchedule = await prisma.objectStorageVersionGcSchedule.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *
+     * // Create many ObjectStorageVersionGcSchedules and only return the `projectId`
+     * const objectStorageVersionGcScheduleWithProjectIdOnly = await prisma.objectStorageVersionGcSchedule.createManyAndReturn({
+     *   select: { projectId: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     *
+     */
+    createManyAndReturn<T extends ObjectStorageVersionGcScheduleCreateManyAndReturnArgs>(args?: SelectSubset<T, ObjectStorageVersionGcScheduleCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ObjectStorageVersionGcSchedulePayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a ObjectStorageVersionGcSchedule.
+     * @param {ObjectStorageVersionGcScheduleDeleteArgs} args - Arguments to delete one ObjectStorageVersionGcSchedule.
+     * @example
+     * // Delete one ObjectStorageVersionGcSchedule
+     * const ObjectStorageVersionGcSchedule = await prisma.objectStorageVersionGcSchedule.delete({
+     *   where: {
+     *     // ... filter to delete one ObjectStorageVersionGcSchedule
+     *   }
+     * })
+     *
+     */
+    delete<T extends ObjectStorageVersionGcScheduleDeleteArgs>(args: SelectSubset<T, ObjectStorageVersionGcScheduleDeleteArgs<ExtArgs>>): Prisma__ObjectStorageVersionGcScheduleClient<$Result.GetResult<Prisma.$ObjectStorageVersionGcSchedulePayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one ObjectStorageVersionGcSchedule.
+     * @param {ObjectStorageVersionGcScheduleUpdateArgs} args - Arguments to update one ObjectStorageVersionGcSchedule.
+     * @example
+     * // Update one ObjectStorageVersionGcSchedule
+     * const objectStorageVersionGcSchedule = await prisma.objectStorageVersionGcSchedule.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     *
+     */
+    update<T extends ObjectStorageVersionGcScheduleUpdateArgs>(args: SelectSubset<T, ObjectStorageVersionGcScheduleUpdateArgs<ExtArgs>>): Prisma__ObjectStorageVersionGcScheduleClient<$Result.GetResult<Prisma.$ObjectStorageVersionGcSchedulePayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more ObjectStorageVersionGcSchedules.
+     * @param {ObjectStorageVersionGcScheduleDeleteManyArgs} args - Arguments to filter ObjectStorageVersionGcSchedules to delete.
+     * @example
+     * // Delete a few ObjectStorageVersionGcSchedules
+     * const { count } = await prisma.objectStorageVersionGcSchedule.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     *
+     */
+    deleteMany<T extends ObjectStorageVersionGcScheduleDeleteManyArgs>(args?: SelectSubset<T, ObjectStorageVersionGcScheduleDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ObjectStorageVersionGcSchedules.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ObjectStorageVersionGcScheduleUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many ObjectStorageVersionGcSchedules
+     * const objectStorageVersionGcSchedule = await prisma.objectStorageVersionGcSchedule.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     *
+     */
+    updateMany<T extends ObjectStorageVersionGcScheduleUpdateManyArgs>(args: SelectSubset<T, ObjectStorageVersionGcScheduleUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ObjectStorageVersionGcSchedules and returns the data updated in the database.
+     * @param {ObjectStorageVersionGcScheduleUpdateManyAndReturnArgs} args - Arguments to update many ObjectStorageVersionGcSchedules.
+     * @example
+     * // Update many ObjectStorageVersionGcSchedules
+     * const objectStorageVersionGcSchedule = await prisma.objectStorageVersionGcSchedule.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *
+     * // Update zero or more ObjectStorageVersionGcSchedules and only return the `projectId`
+     * const objectStorageVersionGcScheduleWithProjectIdOnly = await prisma.objectStorageVersionGcSchedule.updateManyAndReturn({
+     *   select: { projectId: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     *
+     */
+    updateManyAndReturn<T extends ObjectStorageVersionGcScheduleUpdateManyAndReturnArgs>(args: SelectSubset<T, ObjectStorageVersionGcScheduleUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ObjectStorageVersionGcSchedulePayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one ObjectStorageVersionGcSchedule.
+     * @param {ObjectStorageVersionGcScheduleUpsertArgs} args - Arguments to update or create a ObjectStorageVersionGcSchedule.
+     * @example
+     * // Update or create a ObjectStorageVersionGcSchedule
+     * const objectStorageVersionGcSchedule = await prisma.objectStorageVersionGcSchedule.upsert({
+     *   create: {
+     *     // ... data to create a ObjectStorageVersionGcSchedule
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the ObjectStorageVersionGcSchedule we want to update
+     *   }
+     * })
+     */
+    upsert<T extends ObjectStorageVersionGcScheduleUpsertArgs>(args: SelectSubset<T, ObjectStorageVersionGcScheduleUpsertArgs<ExtArgs>>): Prisma__ObjectStorageVersionGcScheduleClient<$Result.GetResult<Prisma.$ObjectStorageVersionGcSchedulePayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of ObjectStorageVersionGcSchedules.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ObjectStorageVersionGcScheduleCountArgs} args - Arguments to filter ObjectStorageVersionGcSchedules to count.
+     * @example
+     * // Count the number of ObjectStorageVersionGcSchedules
+     * const count = await prisma.objectStorageVersionGcSchedule.count({
+     *   where: {
+     *     // ... the filter for the ObjectStorageVersionGcSchedules we want to count
+     *   }
+     * })
+    **/
+    count<T extends ObjectStorageVersionGcScheduleCountArgs>(
+      args?: Subset<T, ObjectStorageVersionGcScheduleCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], ObjectStorageVersionGcScheduleCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a ObjectStorageVersionGcSchedule.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ObjectStorageVersionGcScheduleAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends ObjectStorageVersionGcScheduleAggregateArgs>(args: Subset<T, ObjectStorageVersionGcScheduleAggregateArgs>): Prisma.PrismaPromise<GetObjectStorageVersionGcScheduleAggregateType<T>>
+
+    /**
+     * Group by ObjectStorageVersionGcSchedule.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ObjectStorageVersionGcScheduleGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     *
+    **/
+    groupBy<
+      T extends ObjectStorageVersionGcScheduleGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: ObjectStorageVersionGcScheduleGroupByArgs['orderBy'] }
+        : { orderBy?: ObjectStorageVersionGcScheduleGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, ObjectStorageVersionGcScheduleGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetObjectStorageVersionGcScheduleGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the ObjectStorageVersionGcSchedule model
+   */
+  readonly fields: ObjectStorageVersionGcScheduleFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for ObjectStorageVersionGcSchedule.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__ObjectStorageVersionGcScheduleClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    project<T extends ProjectDefaultArgs<ExtArgs> = {}>(args?: Subset<T, ProjectDefaultArgs<ExtArgs>>): Prisma__ProjectClient<$Result.GetResult<Prisma.$ProjectPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    lastOperation<T extends ObjectStorageVersionGcSchedule$lastOperationArgs<ExtArgs> = {}>(args?: Subset<T, ObjectStorageVersionGcSchedule$lastOperationArgs<ExtArgs>>): Prisma__ObjectStorageOperationClient<$Result.GetResult<Prisma.$ObjectStorageOperationPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the ObjectStorageVersionGcSchedule model
+   */
+  interface ObjectStorageVersionGcScheduleFieldRefs {
+    readonly projectId: FieldRef<"ObjectStorageVersionGcSchedule", 'String'>
+    readonly expectedOrganizationId: FieldRef<"ObjectStorageVersionGcSchedule", 'String'>
+    readonly status: FieldRef<"ObjectStorageVersionGcSchedule", 'ObjectStorageVersionGcStatus'>
+    readonly notBefore: FieldRef<"ObjectStorageVersionGcSchedule", 'DateTime'>
+    readonly nextAttemptAt: FieldRef<"ObjectStorageVersionGcSchedule", 'DateTime'>
+    readonly ownerToken: FieldRef<"ObjectStorageVersionGcSchedule", 'String'>
+    readonly fencingToken: FieldRef<"ObjectStorageVersionGcSchedule", 'BigInt'>
+    readonly leaseExpiresAt: FieldRef<"ObjectStorageVersionGcSchedule", 'DateTime'>
+    readonly attempts: FieldRef<"ObjectStorageVersionGcSchedule", 'Int'>
+    readonly lastOperationId: FieldRef<"ObjectStorageVersionGcSchedule", 'String'>
+    readonly lastErrorCode: FieldRef<"ObjectStorageVersionGcSchedule", 'String'>
+    readonly lastErrorMessage: FieldRef<"ObjectStorageVersionGcSchedule", 'String'>
+    readonly requestedAt: FieldRef<"ObjectStorageVersionGcSchedule", 'DateTime'>
+    readonly createdAt: FieldRef<"ObjectStorageVersionGcSchedule", 'DateTime'>
+    readonly updatedAt: FieldRef<"ObjectStorageVersionGcSchedule", 'DateTime'>
+  }
+
+
+  // Custom InputTypes
+  /**
+   * ObjectStorageVersionGcSchedule findUnique
+   */
+  export type ObjectStorageVersionGcScheduleFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ObjectStorageVersionGcSchedule
+     */
+    select?: ObjectStorageVersionGcScheduleSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ObjectStorageVersionGcSchedule
+     */
+    omit?: ObjectStorageVersionGcScheduleOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ObjectStorageVersionGcScheduleInclude<ExtArgs> | null
+    /**
+     * Filter, which ObjectStorageVersionGcSchedule to fetch.
+     */
+    where: ObjectStorageVersionGcScheduleWhereUniqueInput
+  }
+
+  /**
+   * ObjectStorageVersionGcSchedule findUniqueOrThrow
+   */
+  export type ObjectStorageVersionGcScheduleFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ObjectStorageVersionGcSchedule
+     */
+    select?: ObjectStorageVersionGcScheduleSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ObjectStorageVersionGcSchedule
+     */
+    omit?: ObjectStorageVersionGcScheduleOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ObjectStorageVersionGcScheduleInclude<ExtArgs> | null
+    /**
+     * Filter, which ObjectStorageVersionGcSchedule to fetch.
+     */
+    where: ObjectStorageVersionGcScheduleWhereUniqueInput
+  }
+
+  /**
+   * ObjectStorageVersionGcSchedule findFirst
+   */
+  export type ObjectStorageVersionGcScheduleFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ObjectStorageVersionGcSchedule
+     */
+    select?: ObjectStorageVersionGcScheduleSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ObjectStorageVersionGcSchedule
+     */
+    omit?: ObjectStorageVersionGcScheduleOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ObjectStorageVersionGcScheduleInclude<ExtArgs> | null
+    /**
+     * Filter, which ObjectStorageVersionGcSchedule to fetch.
+     */
+    where?: ObjectStorageVersionGcScheduleWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     *
+     * Determine the order of ObjectStorageVersionGcSchedules to fetch.
+     */
+    orderBy?: ObjectStorageVersionGcScheduleOrderByWithRelationInput | ObjectStorageVersionGcScheduleOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     *
+     * Sets the position for searching for ObjectStorageVersionGcSchedules.
+     */
+    cursor?: ObjectStorageVersionGcScheduleWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Take `±n` ObjectStorageVersionGcSchedules from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Skip the first `n` ObjectStorageVersionGcSchedules.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     *
+     * Filter by unique combinations of ObjectStorageVersionGcSchedules.
+     */
+    distinct?: ObjectStorageVersionGcScheduleScalarFieldEnum | ObjectStorageVersionGcScheduleScalarFieldEnum[]
+  }
+
+  /**
+   * ObjectStorageVersionGcSchedule findFirstOrThrow
+   */
+  export type ObjectStorageVersionGcScheduleFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ObjectStorageVersionGcSchedule
+     */
+    select?: ObjectStorageVersionGcScheduleSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ObjectStorageVersionGcSchedule
+     */
+    omit?: ObjectStorageVersionGcScheduleOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ObjectStorageVersionGcScheduleInclude<ExtArgs> | null
+    /**
+     * Filter, which ObjectStorageVersionGcSchedule to fetch.
+     */
+    where?: ObjectStorageVersionGcScheduleWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     *
+     * Determine the order of ObjectStorageVersionGcSchedules to fetch.
+     */
+    orderBy?: ObjectStorageVersionGcScheduleOrderByWithRelationInput | ObjectStorageVersionGcScheduleOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     *
+     * Sets the position for searching for ObjectStorageVersionGcSchedules.
+     */
+    cursor?: ObjectStorageVersionGcScheduleWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Take `±n` ObjectStorageVersionGcSchedules from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Skip the first `n` ObjectStorageVersionGcSchedules.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     *
+     * Filter by unique combinations of ObjectStorageVersionGcSchedules.
+     */
+    distinct?: ObjectStorageVersionGcScheduleScalarFieldEnum | ObjectStorageVersionGcScheduleScalarFieldEnum[]
+  }
+
+  /**
+   * ObjectStorageVersionGcSchedule findMany
+   */
+  export type ObjectStorageVersionGcScheduleFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ObjectStorageVersionGcSchedule
+     */
+    select?: ObjectStorageVersionGcScheduleSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ObjectStorageVersionGcSchedule
+     */
+    omit?: ObjectStorageVersionGcScheduleOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ObjectStorageVersionGcScheduleInclude<ExtArgs> | null
+    /**
+     * Filter, which ObjectStorageVersionGcSchedules to fetch.
+     */
+    where?: ObjectStorageVersionGcScheduleWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     *
+     * Determine the order of ObjectStorageVersionGcSchedules to fetch.
+     */
+    orderBy?: ObjectStorageVersionGcScheduleOrderByWithRelationInput | ObjectStorageVersionGcScheduleOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     *
+     * Sets the position for listing ObjectStorageVersionGcSchedules.
+     */
+    cursor?: ObjectStorageVersionGcScheduleWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Take `±n` ObjectStorageVersionGcSchedules from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Skip the first `n` ObjectStorageVersionGcSchedules.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     *
+     * Filter by unique combinations of ObjectStorageVersionGcSchedules.
+     */
+    distinct?: ObjectStorageVersionGcScheduleScalarFieldEnum | ObjectStorageVersionGcScheduleScalarFieldEnum[]
+  }
+
+  /**
+   * ObjectStorageVersionGcSchedule create
+   */
+  export type ObjectStorageVersionGcScheduleCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ObjectStorageVersionGcSchedule
+     */
+    select?: ObjectStorageVersionGcScheduleSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ObjectStorageVersionGcSchedule
+     */
+    omit?: ObjectStorageVersionGcScheduleOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ObjectStorageVersionGcScheduleInclude<ExtArgs> | null
+    /**
+     * The data needed to create a ObjectStorageVersionGcSchedule.
+     */
+    data: XOR<ObjectStorageVersionGcScheduleCreateInput, ObjectStorageVersionGcScheduleUncheckedCreateInput>
+  }
+
+  /**
+   * ObjectStorageVersionGcSchedule createMany
+   */
+  export type ObjectStorageVersionGcScheduleCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many ObjectStorageVersionGcSchedules.
+     */
+    data: ObjectStorageVersionGcScheduleCreateManyInput | ObjectStorageVersionGcScheduleCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * ObjectStorageVersionGcSchedule createManyAndReturn
+   */
+  export type ObjectStorageVersionGcScheduleCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ObjectStorageVersionGcSchedule
+     */
+    select?: ObjectStorageVersionGcScheduleSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ObjectStorageVersionGcSchedule
+     */
+    omit?: ObjectStorageVersionGcScheduleOmit<ExtArgs> | null
+    /**
+     * The data used to create many ObjectStorageVersionGcSchedules.
+     */
+    data: ObjectStorageVersionGcScheduleCreateManyInput | ObjectStorageVersionGcScheduleCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ObjectStorageVersionGcScheduleIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * ObjectStorageVersionGcSchedule update
+   */
+  export type ObjectStorageVersionGcScheduleUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ObjectStorageVersionGcSchedule
+     */
+    select?: ObjectStorageVersionGcScheduleSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ObjectStorageVersionGcSchedule
+     */
+    omit?: ObjectStorageVersionGcScheduleOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ObjectStorageVersionGcScheduleInclude<ExtArgs> | null
+    /**
+     * The data needed to update a ObjectStorageVersionGcSchedule.
+     */
+    data: XOR<ObjectStorageVersionGcScheduleUpdateInput, ObjectStorageVersionGcScheduleUncheckedUpdateInput>
+    /**
+     * Choose, which ObjectStorageVersionGcSchedule to update.
+     */
+    where: ObjectStorageVersionGcScheduleWhereUniqueInput
+  }
+
+  /**
+   * ObjectStorageVersionGcSchedule updateMany
+   */
+  export type ObjectStorageVersionGcScheduleUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update ObjectStorageVersionGcSchedules.
+     */
+    data: XOR<ObjectStorageVersionGcScheduleUpdateManyMutationInput, ObjectStorageVersionGcScheduleUncheckedUpdateManyInput>
+    /**
+     * Filter which ObjectStorageVersionGcSchedules to update
+     */
+    where?: ObjectStorageVersionGcScheduleWhereInput
+    /**
+     * Limit how many ObjectStorageVersionGcSchedules to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * ObjectStorageVersionGcSchedule updateManyAndReturn
+   */
+  export type ObjectStorageVersionGcScheduleUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ObjectStorageVersionGcSchedule
+     */
+    select?: ObjectStorageVersionGcScheduleSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ObjectStorageVersionGcSchedule
+     */
+    omit?: ObjectStorageVersionGcScheduleOmit<ExtArgs> | null
+    /**
+     * The data used to update ObjectStorageVersionGcSchedules.
+     */
+    data: XOR<ObjectStorageVersionGcScheduleUpdateManyMutationInput, ObjectStorageVersionGcScheduleUncheckedUpdateManyInput>
+    /**
+     * Filter which ObjectStorageVersionGcSchedules to update
+     */
+    where?: ObjectStorageVersionGcScheduleWhereInput
+    /**
+     * Limit how many ObjectStorageVersionGcSchedules to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ObjectStorageVersionGcScheduleIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * ObjectStorageVersionGcSchedule upsert
+   */
+  export type ObjectStorageVersionGcScheduleUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ObjectStorageVersionGcSchedule
+     */
+    select?: ObjectStorageVersionGcScheduleSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ObjectStorageVersionGcSchedule
+     */
+    omit?: ObjectStorageVersionGcScheduleOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ObjectStorageVersionGcScheduleInclude<ExtArgs> | null
+    /**
+     * The filter to search for the ObjectStorageVersionGcSchedule to update in case it exists.
+     */
+    where: ObjectStorageVersionGcScheduleWhereUniqueInput
+    /**
+     * In case the ObjectStorageVersionGcSchedule found by the `where` argument doesn't exist, create a new ObjectStorageVersionGcSchedule with this data.
+     */
+    create: XOR<ObjectStorageVersionGcScheduleCreateInput, ObjectStorageVersionGcScheduleUncheckedCreateInput>
+    /**
+     * In case the ObjectStorageVersionGcSchedule was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<ObjectStorageVersionGcScheduleUpdateInput, ObjectStorageVersionGcScheduleUncheckedUpdateInput>
+  }
+
+  /**
+   * ObjectStorageVersionGcSchedule delete
+   */
+  export type ObjectStorageVersionGcScheduleDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ObjectStorageVersionGcSchedule
+     */
+    select?: ObjectStorageVersionGcScheduleSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ObjectStorageVersionGcSchedule
+     */
+    omit?: ObjectStorageVersionGcScheduleOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ObjectStorageVersionGcScheduleInclude<ExtArgs> | null
+    /**
+     * Filter which ObjectStorageVersionGcSchedule to delete.
+     */
+    where: ObjectStorageVersionGcScheduleWhereUniqueInput
+  }
+
+  /**
+   * ObjectStorageVersionGcSchedule deleteMany
+   */
+  export type ObjectStorageVersionGcScheduleDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ObjectStorageVersionGcSchedules to delete
+     */
+    where?: ObjectStorageVersionGcScheduleWhereInput
+    /**
+     * Limit how many ObjectStorageVersionGcSchedules to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * ObjectStorageVersionGcSchedule.lastOperation
+   */
+  export type ObjectStorageVersionGcSchedule$lastOperationArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ObjectStorageOperation
+     */
+    select?: ObjectStorageOperationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ObjectStorageOperation
+     */
+    omit?: ObjectStorageOperationOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ObjectStorageOperationInclude<ExtArgs> | null
+    where?: ObjectStorageOperationWhereInput
+  }
+
+  /**
+   * ObjectStorageVersionGcSchedule without action
+   */
+  export type ObjectStorageVersionGcScheduleDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ObjectStorageVersionGcSchedule
+     */
+    select?: ObjectStorageVersionGcScheduleSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ObjectStorageVersionGcSchedule
+     */
+    omit?: ObjectStorageVersionGcScheduleOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ObjectStorageVersionGcScheduleInclude<ExtArgs> | null
   }
 
 
@@ -202165,6 +206200,7 @@ export namespace Prisma {
   export const ProjectScalarFieldEnum: {
     id: 'id',
     organizationId: 'organizationId',
+    ownershipEpoch: 'ownershipEpoch',
     name: 'name',
     slug: 'slug',
     description: 'description',
@@ -202229,6 +206265,34 @@ export namespace Prisma {
   export type ObjectStorageOperationPinnedObjectScalarFieldEnum = (typeof ObjectStorageOperationPinnedObjectScalarFieldEnum)[keyof typeof ObjectStorageOperationPinnedObjectScalarFieldEnum]
 
 
+  export const ObjectStorageOperationPinnedGenerationScalarFieldEnum: {
+    operationId: 'operationId',
+    ordinal: 'ordinal',
+    key: 'key',
+    generation: 'generation',
+    size: 'size',
+    contentHash: 'contentHash'
+  };
+
+  export type ObjectStorageOperationPinnedGenerationScalarFieldEnum = (typeof ObjectStorageOperationPinnedGenerationScalarFieldEnum)[keyof typeof ObjectStorageOperationPinnedGenerationScalarFieldEnum]
+
+
+  export const ProjectPermanentDeletionArtifactPlanScalarFieldEnum: {
+    operationId: 'operationId',
+    ordinal: 'ordinal',
+    artifactRef: 'artifactRef',
+    artifactDigest: 'artifactDigest',
+    projectReferenceCount: 'projectReferenceCount',
+    plannedOtherReferenceCount: 'plannedOtherReferenceCount',
+    state: 'state',
+    finalOtherReferenceCount: 'finalOtherReferenceCount',
+    processedAt: 'processedAt',
+    createdAt: 'createdAt'
+  };
+
+  export type ProjectPermanentDeletionArtifactPlanScalarFieldEnum = (typeof ProjectPermanentDeletionArtifactPlanScalarFieldEnum)[keyof typeof ProjectPermanentDeletionArtifactPlanScalarFieldEnum]
+
+
   export const ObjectStorageCapabilityReservationScalarFieldEnum: {
     id: 'id',
     operationId: 'operationId',
@@ -202260,6 +206324,27 @@ export namespace Prisma {
   };
 
   export type ObjectStorageOperationProjectScopeScalarFieldEnum = (typeof ObjectStorageOperationProjectScopeScalarFieldEnum)[keyof typeof ObjectStorageOperationProjectScopeScalarFieldEnum]
+
+
+  export const ObjectStorageVersionGcScheduleScalarFieldEnum: {
+    projectId: 'projectId',
+    expectedOrganizationId: 'expectedOrganizationId',
+    status: 'status',
+    notBefore: 'notBefore',
+    nextAttemptAt: 'nextAttemptAt',
+    ownerToken: 'ownerToken',
+    fencingToken: 'fencingToken',
+    leaseExpiresAt: 'leaseExpiresAt',
+    attempts: 'attempts',
+    lastOperationId: 'lastOperationId',
+    lastErrorCode: 'lastErrorCode',
+    lastErrorMessage: 'lastErrorMessage',
+    requestedAt: 'requestedAt',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type ObjectStorageVersionGcScheduleScalarFieldEnum = (typeof ObjectStorageVersionGcScheduleScalarFieldEnum)[keyof typeof ObjectStorageVersionGcScheduleScalarFieldEnum]
 
 
   export const ProjectPermanentDeletionReceiptScalarFieldEnum: {
@@ -204808,6 +208893,20 @@ export namespace Prisma {
 
 
   /**
+   * Reference to a field of type 'ProjectPermanentDeletionArtifactState'
+   */
+  export type EnumProjectPermanentDeletionArtifactStateFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ProjectPermanentDeletionArtifactState'>
+
+
+
+  /**
+   * Reference to a field of type 'ProjectPermanentDeletionArtifactState[]'
+   */
+  export type ListEnumProjectPermanentDeletionArtifactStateFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ProjectPermanentDeletionArtifactState[]'>
+
+
+
+  /**
    * Reference to a field of type 'ObjectStorageCapabilityReservationStatus'
    */
   export type EnumObjectStorageCapabilityReservationStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ObjectStorageCapabilityReservationStatus'>
@@ -204818,6 +208917,20 @@ export namespace Prisma {
    * Reference to a field of type 'ObjectStorageCapabilityReservationStatus[]'
    */
   export type ListEnumObjectStorageCapabilityReservationStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ObjectStorageCapabilityReservationStatus[]'>
+
+
+
+  /**
+   * Reference to a field of type 'ObjectStorageVersionGcStatus'
+   */
+  export type EnumObjectStorageVersionGcStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ObjectStorageVersionGcStatus'>
+
+
+
+  /**
+   * Reference to a field of type 'ObjectStorageVersionGcStatus[]'
+   */
+  export type ListEnumObjectStorageVersionGcStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ObjectStorageVersionGcStatus[]'>
 
 
 
@@ -206267,6 +210380,7 @@ export namespace Prisma {
     NOT?: ProjectWhereInput | ProjectWhereInput[]
     id?: StringFilter<"Project"> | string
     organizationId?: StringFilter<"Project"> | string
+    ownershipEpoch?: IntFilter<"Project"> | number
     name?: StringFilter<"Project"> | string
     slug?: StringFilter<"Project"> | string
     description?: StringNullableFilter<"Project"> | string | null
@@ -206321,11 +210435,13 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointListRelationFilter
     releaseManifests?: ReleaseManifestListRelationFilter
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeListRelationFilter
+    objectStorageVersionGcSchedule?: XOR<ObjectStorageVersionGcScheduleNullableScalarRelationFilter, ObjectStorageVersionGcScheduleWhereInput> | null
   }
 
   export type ProjectOrderByWithRelationInput = {
     id?: SortOrder
     organizationId?: SortOrder
+    ownershipEpoch?: SortOrder
     name?: SortOrder
     slug?: SortOrder
     description?: SortOrderInput | SortOrder
@@ -206380,6 +210496,7 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointOrderByRelationAggregateInput
     releaseManifests?: ReleaseManifestOrderByRelationAggregateInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeOrderByRelationAggregateInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleOrderByWithRelationInput
   }
 
   export type ProjectWhereUniqueInput = Prisma.AtLeast<{
@@ -206389,6 +210506,7 @@ export namespace Prisma {
     OR?: ProjectWhereInput[]
     NOT?: ProjectWhereInput | ProjectWhereInput[]
     organizationId?: StringFilter<"Project"> | string
+    ownershipEpoch?: IntFilter<"Project"> | number
     name?: StringFilter<"Project"> | string
     slug?: StringFilter<"Project"> | string
     description?: StringNullableFilter<"Project"> | string | null
@@ -206443,11 +210561,13 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointListRelationFilter
     releaseManifests?: ReleaseManifestListRelationFilter
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeListRelationFilter
+    objectStorageVersionGcSchedule?: XOR<ObjectStorageVersionGcScheduleNullableScalarRelationFilter, ObjectStorageVersionGcScheduleWhereInput> | null
   }, "id" | "organizationId_slug">
 
   export type ProjectOrderByWithAggregationInput = {
     id?: SortOrder
     organizationId?: SortOrder
+    ownershipEpoch?: SortOrder
     name?: SortOrder
     slug?: SortOrder
     description?: SortOrderInput | SortOrder
@@ -206464,8 +210584,10 @@ export namespace Prisma {
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: ProjectCountOrderByAggregateInput
+    _avg?: ProjectAvgOrderByAggregateInput
     _max?: ProjectMaxOrderByAggregateInput
     _min?: ProjectMinOrderByAggregateInput
+    _sum?: ProjectSumOrderByAggregateInput
   }
 
   export type ProjectScalarWhereWithAggregatesInput = {
@@ -206474,6 +210596,7 @@ export namespace Prisma {
     NOT?: ProjectScalarWhereWithAggregatesInput | ProjectScalarWhereWithAggregatesInput[]
     id?: StringWithAggregatesFilter<"Project"> | string
     organizationId?: StringWithAggregatesFilter<"Project"> | string
+    ownershipEpoch?: IntWithAggregatesFilter<"Project"> | number
     name?: StringWithAggregatesFilter<"Project"> | string
     slug?: StringWithAggregatesFilter<"Project"> | string
     description?: StringNullableWithAggregatesFilter<"Project"> | string | null
@@ -206523,8 +210646,11 @@ export namespace Prisma {
     updatedAt?: DateTimeFilter<"ObjectStorageOperation"> | Date | string
     scopes?: ObjectStorageOperationProjectScopeListRelationFilter
     pinnedObjects?: ObjectStorageOperationPinnedObjectListRelationFilter
+    pinnedGenerations?: ObjectStorageOperationPinnedGenerationListRelationFilter
+    permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanListRelationFilter
     capabilityReservations?: ObjectStorageCapabilityReservationListRelationFilter
     permanentDeletionReceipt?: XOR<ProjectPermanentDeletionReceiptNullableScalarRelationFilter, ProjectPermanentDeletionReceiptWhereInput> | null
+    versionGcSchedules?: ObjectStorageVersionGcScheduleListRelationFilter
   }
 
   export type ObjectStorageOperationOrderByWithRelationInput = {
@@ -206556,8 +210682,11 @@ export namespace Prisma {
     updatedAt?: SortOrder
     scopes?: ObjectStorageOperationProjectScopeOrderByRelationAggregateInput
     pinnedObjects?: ObjectStorageOperationPinnedObjectOrderByRelationAggregateInput
+    pinnedGenerations?: ObjectStorageOperationPinnedGenerationOrderByRelationAggregateInput
+    permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanOrderByRelationAggregateInput
     capabilityReservations?: ObjectStorageCapabilityReservationOrderByRelationAggregateInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptOrderByWithRelationInput
+    versionGcSchedules?: ObjectStorageVersionGcScheduleOrderByRelationAggregateInput
   }
 
   export type ObjectStorageOperationWhereUniqueInput = Prisma.AtLeast<{
@@ -206593,8 +210722,11 @@ export namespace Prisma {
     updatedAt?: DateTimeFilter<"ObjectStorageOperation"> | Date | string
     scopes?: ObjectStorageOperationProjectScopeListRelationFilter
     pinnedObjects?: ObjectStorageOperationPinnedObjectListRelationFilter
+    pinnedGenerations?: ObjectStorageOperationPinnedGenerationListRelationFilter
+    permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanListRelationFilter
     capabilityReservations?: ObjectStorageCapabilityReservationListRelationFilter
     permanentDeletionReceipt?: XOR<ProjectPermanentDeletionReceiptNullableScalarRelationFilter, ProjectPermanentDeletionReceiptWhereInput> | null
+    versionGcSchedules?: ObjectStorageVersionGcScheduleListRelationFilter
   }, "id" | "idempotencyScopeHash_idempotencyKey">
 
   export type ObjectStorageOperationOrderByWithAggregationInput = {
@@ -206725,6 +210857,154 @@ export namespace Prisma {
     size?: BigIntWithAggregatesFilter<"ObjectStorageOperationPinnedObject"> | bigint | number
     generation?: StringWithAggregatesFilter<"ObjectStorageOperationPinnedObject"> | string
     contentHash?: StringWithAggregatesFilter<"ObjectStorageOperationPinnedObject"> | string
+  }
+
+  export type ObjectStorageOperationPinnedGenerationWhereInput = {
+    AND?: ObjectStorageOperationPinnedGenerationWhereInput | ObjectStorageOperationPinnedGenerationWhereInput[]
+    OR?: ObjectStorageOperationPinnedGenerationWhereInput[]
+    NOT?: ObjectStorageOperationPinnedGenerationWhereInput | ObjectStorageOperationPinnedGenerationWhereInput[]
+    operationId?: StringFilter<"ObjectStorageOperationPinnedGeneration"> | string
+    ordinal?: IntFilter<"ObjectStorageOperationPinnedGeneration"> | number
+    key?: StringFilter<"ObjectStorageOperationPinnedGeneration"> | string
+    generation?: StringFilter<"ObjectStorageOperationPinnedGeneration"> | string
+    size?: BigIntFilter<"ObjectStorageOperationPinnedGeneration"> | bigint | number
+    contentHash?: StringNullableFilter<"ObjectStorageOperationPinnedGeneration"> | string | null
+    operation?: XOR<ObjectStorageOperationScalarRelationFilter, ObjectStorageOperationWhereInput>
+  }
+
+  export type ObjectStorageOperationPinnedGenerationOrderByWithRelationInput = {
+    operationId?: SortOrder
+    ordinal?: SortOrder
+    key?: SortOrder
+    generation?: SortOrder
+    size?: SortOrder
+    contentHash?: SortOrderInput | SortOrder
+    operation?: ObjectStorageOperationOrderByWithRelationInput
+  }
+
+  export type ObjectStorageOperationPinnedGenerationWhereUniqueInput = Prisma.AtLeast<{
+    operationId_key_generation?: ObjectStorageOperationPinnedGenerationOperationIdKeyGenerationCompoundUniqueInput
+    operationId_ordinal?: ObjectStorageOperationPinnedGenerationOperationIdOrdinalCompoundUniqueInput
+    AND?: ObjectStorageOperationPinnedGenerationWhereInput | ObjectStorageOperationPinnedGenerationWhereInput[]
+    OR?: ObjectStorageOperationPinnedGenerationWhereInput[]
+    NOT?: ObjectStorageOperationPinnedGenerationWhereInput | ObjectStorageOperationPinnedGenerationWhereInput[]
+    operationId?: StringFilter<"ObjectStorageOperationPinnedGeneration"> | string
+    ordinal?: IntFilter<"ObjectStorageOperationPinnedGeneration"> | number
+    key?: StringFilter<"ObjectStorageOperationPinnedGeneration"> | string
+    generation?: StringFilter<"ObjectStorageOperationPinnedGeneration"> | string
+    size?: BigIntFilter<"ObjectStorageOperationPinnedGeneration"> | bigint | number
+    contentHash?: StringNullableFilter<"ObjectStorageOperationPinnedGeneration"> | string | null
+    operation?: XOR<ObjectStorageOperationScalarRelationFilter, ObjectStorageOperationWhereInput>
+  }, "operationId_ordinal" | "operationId_key_generation">
+
+  export type ObjectStorageOperationPinnedGenerationOrderByWithAggregationInput = {
+    operationId?: SortOrder
+    ordinal?: SortOrder
+    key?: SortOrder
+    generation?: SortOrder
+    size?: SortOrder
+    contentHash?: SortOrderInput | SortOrder
+    _count?: ObjectStorageOperationPinnedGenerationCountOrderByAggregateInput
+    _avg?: ObjectStorageOperationPinnedGenerationAvgOrderByAggregateInput
+    _max?: ObjectStorageOperationPinnedGenerationMaxOrderByAggregateInput
+    _min?: ObjectStorageOperationPinnedGenerationMinOrderByAggregateInput
+    _sum?: ObjectStorageOperationPinnedGenerationSumOrderByAggregateInput
+  }
+
+  export type ObjectStorageOperationPinnedGenerationScalarWhereWithAggregatesInput = {
+    AND?: ObjectStorageOperationPinnedGenerationScalarWhereWithAggregatesInput | ObjectStorageOperationPinnedGenerationScalarWhereWithAggregatesInput[]
+    OR?: ObjectStorageOperationPinnedGenerationScalarWhereWithAggregatesInput[]
+    NOT?: ObjectStorageOperationPinnedGenerationScalarWhereWithAggregatesInput | ObjectStorageOperationPinnedGenerationScalarWhereWithAggregatesInput[]
+    operationId?: StringWithAggregatesFilter<"ObjectStorageOperationPinnedGeneration"> | string
+    ordinal?: IntWithAggregatesFilter<"ObjectStorageOperationPinnedGeneration"> | number
+    key?: StringWithAggregatesFilter<"ObjectStorageOperationPinnedGeneration"> | string
+    generation?: StringWithAggregatesFilter<"ObjectStorageOperationPinnedGeneration"> | string
+    size?: BigIntWithAggregatesFilter<"ObjectStorageOperationPinnedGeneration"> | bigint | number
+    contentHash?: StringNullableWithAggregatesFilter<"ObjectStorageOperationPinnedGeneration"> | string | null
+  }
+
+  export type ProjectPermanentDeletionArtifactPlanWhereInput = {
+    AND?: ProjectPermanentDeletionArtifactPlanWhereInput | ProjectPermanentDeletionArtifactPlanWhereInput[]
+    OR?: ProjectPermanentDeletionArtifactPlanWhereInput[]
+    NOT?: ProjectPermanentDeletionArtifactPlanWhereInput | ProjectPermanentDeletionArtifactPlanWhereInput[]
+    operationId?: StringFilter<"ProjectPermanentDeletionArtifactPlan"> | string
+    ordinal?: IntFilter<"ProjectPermanentDeletionArtifactPlan"> | number
+    artifactRef?: StringFilter<"ProjectPermanentDeletionArtifactPlan"> | string
+    artifactDigest?: StringFilter<"ProjectPermanentDeletionArtifactPlan"> | string
+    projectReferenceCount?: IntFilter<"ProjectPermanentDeletionArtifactPlan"> | number
+    plannedOtherReferenceCount?: IntFilter<"ProjectPermanentDeletionArtifactPlan"> | number
+    state?: EnumProjectPermanentDeletionArtifactStateFilter<"ProjectPermanentDeletionArtifactPlan"> | $Enums.ProjectPermanentDeletionArtifactState
+    finalOtherReferenceCount?: IntNullableFilter<"ProjectPermanentDeletionArtifactPlan"> | number | null
+    processedAt?: DateTimeNullableFilter<"ProjectPermanentDeletionArtifactPlan"> | Date | string | null
+    createdAt?: DateTimeFilter<"ProjectPermanentDeletionArtifactPlan"> | Date | string
+    operation?: XOR<ObjectStorageOperationScalarRelationFilter, ObjectStorageOperationWhereInput>
+  }
+
+  export type ProjectPermanentDeletionArtifactPlanOrderByWithRelationInput = {
+    operationId?: SortOrder
+    ordinal?: SortOrder
+    artifactRef?: SortOrder
+    artifactDigest?: SortOrder
+    projectReferenceCount?: SortOrder
+    plannedOtherReferenceCount?: SortOrder
+    state?: SortOrder
+    finalOtherReferenceCount?: SortOrderInput | SortOrder
+    processedAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    operation?: ObjectStorageOperationOrderByWithRelationInput
+  }
+
+  export type ProjectPermanentDeletionArtifactPlanWhereUniqueInput = Prisma.AtLeast<{
+    operationId_artifactRef?: ProjectPermanentDeletionArtifactPlanOperationIdArtifactRefCompoundUniqueInput
+    operationId_ordinal?: ProjectPermanentDeletionArtifactPlanOperationIdOrdinalCompoundUniqueInput
+    AND?: ProjectPermanentDeletionArtifactPlanWhereInput | ProjectPermanentDeletionArtifactPlanWhereInput[]
+    OR?: ProjectPermanentDeletionArtifactPlanWhereInput[]
+    NOT?: ProjectPermanentDeletionArtifactPlanWhereInput | ProjectPermanentDeletionArtifactPlanWhereInput[]
+    operationId?: StringFilter<"ProjectPermanentDeletionArtifactPlan"> | string
+    ordinal?: IntFilter<"ProjectPermanentDeletionArtifactPlan"> | number
+    artifactRef?: StringFilter<"ProjectPermanentDeletionArtifactPlan"> | string
+    artifactDigest?: StringFilter<"ProjectPermanentDeletionArtifactPlan"> | string
+    projectReferenceCount?: IntFilter<"ProjectPermanentDeletionArtifactPlan"> | number
+    plannedOtherReferenceCount?: IntFilter<"ProjectPermanentDeletionArtifactPlan"> | number
+    state?: EnumProjectPermanentDeletionArtifactStateFilter<"ProjectPermanentDeletionArtifactPlan"> | $Enums.ProjectPermanentDeletionArtifactState
+    finalOtherReferenceCount?: IntNullableFilter<"ProjectPermanentDeletionArtifactPlan"> | number | null
+    processedAt?: DateTimeNullableFilter<"ProjectPermanentDeletionArtifactPlan"> | Date | string | null
+    createdAt?: DateTimeFilter<"ProjectPermanentDeletionArtifactPlan"> | Date | string
+    operation?: XOR<ObjectStorageOperationScalarRelationFilter, ObjectStorageOperationWhereInput>
+  }, "operationId_ordinal" | "operationId_artifactRef">
+
+  export type ProjectPermanentDeletionArtifactPlanOrderByWithAggregationInput = {
+    operationId?: SortOrder
+    ordinal?: SortOrder
+    artifactRef?: SortOrder
+    artifactDigest?: SortOrder
+    projectReferenceCount?: SortOrder
+    plannedOtherReferenceCount?: SortOrder
+    state?: SortOrder
+    finalOtherReferenceCount?: SortOrderInput | SortOrder
+    processedAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    _count?: ProjectPermanentDeletionArtifactPlanCountOrderByAggregateInput
+    _avg?: ProjectPermanentDeletionArtifactPlanAvgOrderByAggregateInput
+    _max?: ProjectPermanentDeletionArtifactPlanMaxOrderByAggregateInput
+    _min?: ProjectPermanentDeletionArtifactPlanMinOrderByAggregateInput
+    _sum?: ProjectPermanentDeletionArtifactPlanSumOrderByAggregateInput
+  }
+
+  export type ProjectPermanentDeletionArtifactPlanScalarWhereWithAggregatesInput = {
+    AND?: ProjectPermanentDeletionArtifactPlanScalarWhereWithAggregatesInput | ProjectPermanentDeletionArtifactPlanScalarWhereWithAggregatesInput[]
+    OR?: ProjectPermanentDeletionArtifactPlanScalarWhereWithAggregatesInput[]
+    NOT?: ProjectPermanentDeletionArtifactPlanScalarWhereWithAggregatesInput | ProjectPermanentDeletionArtifactPlanScalarWhereWithAggregatesInput[]
+    operationId?: StringWithAggregatesFilter<"ProjectPermanentDeletionArtifactPlan"> | string
+    ordinal?: IntWithAggregatesFilter<"ProjectPermanentDeletionArtifactPlan"> | number
+    artifactRef?: StringWithAggregatesFilter<"ProjectPermanentDeletionArtifactPlan"> | string
+    artifactDigest?: StringWithAggregatesFilter<"ProjectPermanentDeletionArtifactPlan"> | string
+    projectReferenceCount?: IntWithAggregatesFilter<"ProjectPermanentDeletionArtifactPlan"> | number
+    plannedOtherReferenceCount?: IntWithAggregatesFilter<"ProjectPermanentDeletionArtifactPlan"> | number
+    state?: EnumProjectPermanentDeletionArtifactStateWithAggregatesFilter<"ProjectPermanentDeletionArtifactPlan"> | $Enums.ProjectPermanentDeletionArtifactState
+    finalOtherReferenceCount?: IntNullableWithAggregatesFilter<"ProjectPermanentDeletionArtifactPlan"> | number | null
+    processedAt?: DateTimeNullableWithAggregatesFilter<"ProjectPermanentDeletionArtifactPlan"> | Date | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"ProjectPermanentDeletionArtifactPlan"> | Date | string
   }
 
   export type ObjectStorageCapabilityReservationWhereInput = {
@@ -206901,6 +211181,116 @@ export namespace Prisma {
     expectedPermanentDeletionStartedAt?: DateTimeNullableWithAggregatesFilter<"ObjectStorageOperationProjectScope"> | Date | string | null
     deletionFenceDeletedAt?: DateTimeNullableWithAggregatesFilter<"ObjectStorageOperationProjectScope"> | Date | string | null
     createdAt?: DateTimeWithAggregatesFilter<"ObjectStorageOperationProjectScope"> | Date | string
+  }
+
+  export type ObjectStorageVersionGcScheduleWhereInput = {
+    AND?: ObjectStorageVersionGcScheduleWhereInput | ObjectStorageVersionGcScheduleWhereInput[]
+    OR?: ObjectStorageVersionGcScheduleWhereInput[]
+    NOT?: ObjectStorageVersionGcScheduleWhereInput | ObjectStorageVersionGcScheduleWhereInput[]
+    projectId?: StringFilter<"ObjectStorageVersionGcSchedule"> | string
+    expectedOrganizationId?: StringFilter<"ObjectStorageVersionGcSchedule"> | string
+    status?: EnumObjectStorageVersionGcStatusFilter<"ObjectStorageVersionGcSchedule"> | $Enums.ObjectStorageVersionGcStatus
+    notBefore?: DateTimeFilter<"ObjectStorageVersionGcSchedule"> | Date | string
+    nextAttemptAt?: DateTimeFilter<"ObjectStorageVersionGcSchedule"> | Date | string
+    ownerToken?: StringNullableFilter<"ObjectStorageVersionGcSchedule"> | string | null
+    fencingToken?: BigIntFilter<"ObjectStorageVersionGcSchedule"> | bigint | number
+    leaseExpiresAt?: DateTimeNullableFilter<"ObjectStorageVersionGcSchedule"> | Date | string | null
+    attempts?: IntFilter<"ObjectStorageVersionGcSchedule"> | number
+    lastOperationId?: StringNullableFilter<"ObjectStorageVersionGcSchedule"> | string | null
+    lastErrorCode?: StringNullableFilter<"ObjectStorageVersionGcSchedule"> | string | null
+    lastErrorMessage?: StringNullableFilter<"ObjectStorageVersionGcSchedule"> | string | null
+    requestedAt?: DateTimeFilter<"ObjectStorageVersionGcSchedule"> | Date | string
+    createdAt?: DateTimeFilter<"ObjectStorageVersionGcSchedule"> | Date | string
+    updatedAt?: DateTimeFilter<"ObjectStorageVersionGcSchedule"> | Date | string
+    project?: XOR<ProjectScalarRelationFilter, ProjectWhereInput>
+    lastOperation?: XOR<ObjectStorageOperationNullableScalarRelationFilter, ObjectStorageOperationWhereInput> | null
+  }
+
+  export type ObjectStorageVersionGcScheduleOrderByWithRelationInput = {
+    projectId?: SortOrder
+    expectedOrganizationId?: SortOrder
+    status?: SortOrder
+    notBefore?: SortOrder
+    nextAttemptAt?: SortOrder
+    ownerToken?: SortOrderInput | SortOrder
+    fencingToken?: SortOrder
+    leaseExpiresAt?: SortOrderInput | SortOrder
+    attempts?: SortOrder
+    lastOperationId?: SortOrderInput | SortOrder
+    lastErrorCode?: SortOrderInput | SortOrder
+    lastErrorMessage?: SortOrderInput | SortOrder
+    requestedAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    project?: ProjectOrderByWithRelationInput
+    lastOperation?: ObjectStorageOperationOrderByWithRelationInput
+  }
+
+  export type ObjectStorageVersionGcScheduleWhereUniqueInput = Prisma.AtLeast<{
+    projectId?: string
+    AND?: ObjectStorageVersionGcScheduleWhereInput | ObjectStorageVersionGcScheduleWhereInput[]
+    OR?: ObjectStorageVersionGcScheduleWhereInput[]
+    NOT?: ObjectStorageVersionGcScheduleWhereInput | ObjectStorageVersionGcScheduleWhereInput[]
+    expectedOrganizationId?: StringFilter<"ObjectStorageVersionGcSchedule"> | string
+    status?: EnumObjectStorageVersionGcStatusFilter<"ObjectStorageVersionGcSchedule"> | $Enums.ObjectStorageVersionGcStatus
+    notBefore?: DateTimeFilter<"ObjectStorageVersionGcSchedule"> | Date | string
+    nextAttemptAt?: DateTimeFilter<"ObjectStorageVersionGcSchedule"> | Date | string
+    ownerToken?: StringNullableFilter<"ObjectStorageVersionGcSchedule"> | string | null
+    fencingToken?: BigIntFilter<"ObjectStorageVersionGcSchedule"> | bigint | number
+    leaseExpiresAt?: DateTimeNullableFilter<"ObjectStorageVersionGcSchedule"> | Date | string | null
+    attempts?: IntFilter<"ObjectStorageVersionGcSchedule"> | number
+    lastOperationId?: StringNullableFilter<"ObjectStorageVersionGcSchedule"> | string | null
+    lastErrorCode?: StringNullableFilter<"ObjectStorageVersionGcSchedule"> | string | null
+    lastErrorMessage?: StringNullableFilter<"ObjectStorageVersionGcSchedule"> | string | null
+    requestedAt?: DateTimeFilter<"ObjectStorageVersionGcSchedule"> | Date | string
+    createdAt?: DateTimeFilter<"ObjectStorageVersionGcSchedule"> | Date | string
+    updatedAt?: DateTimeFilter<"ObjectStorageVersionGcSchedule"> | Date | string
+    project?: XOR<ProjectScalarRelationFilter, ProjectWhereInput>
+    lastOperation?: XOR<ObjectStorageOperationNullableScalarRelationFilter, ObjectStorageOperationWhereInput> | null
+  }, "projectId">
+
+  export type ObjectStorageVersionGcScheduleOrderByWithAggregationInput = {
+    projectId?: SortOrder
+    expectedOrganizationId?: SortOrder
+    status?: SortOrder
+    notBefore?: SortOrder
+    nextAttemptAt?: SortOrder
+    ownerToken?: SortOrderInput | SortOrder
+    fencingToken?: SortOrder
+    leaseExpiresAt?: SortOrderInput | SortOrder
+    attempts?: SortOrder
+    lastOperationId?: SortOrderInput | SortOrder
+    lastErrorCode?: SortOrderInput | SortOrder
+    lastErrorMessage?: SortOrderInput | SortOrder
+    requestedAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: ObjectStorageVersionGcScheduleCountOrderByAggregateInput
+    _avg?: ObjectStorageVersionGcScheduleAvgOrderByAggregateInput
+    _max?: ObjectStorageVersionGcScheduleMaxOrderByAggregateInput
+    _min?: ObjectStorageVersionGcScheduleMinOrderByAggregateInput
+    _sum?: ObjectStorageVersionGcScheduleSumOrderByAggregateInput
+  }
+
+  export type ObjectStorageVersionGcScheduleScalarWhereWithAggregatesInput = {
+    AND?: ObjectStorageVersionGcScheduleScalarWhereWithAggregatesInput | ObjectStorageVersionGcScheduleScalarWhereWithAggregatesInput[]
+    OR?: ObjectStorageVersionGcScheduleScalarWhereWithAggregatesInput[]
+    NOT?: ObjectStorageVersionGcScheduleScalarWhereWithAggregatesInput | ObjectStorageVersionGcScheduleScalarWhereWithAggregatesInput[]
+    projectId?: StringWithAggregatesFilter<"ObjectStorageVersionGcSchedule"> | string
+    expectedOrganizationId?: StringWithAggregatesFilter<"ObjectStorageVersionGcSchedule"> | string
+    status?: EnumObjectStorageVersionGcStatusWithAggregatesFilter<"ObjectStorageVersionGcSchedule"> | $Enums.ObjectStorageVersionGcStatus
+    notBefore?: DateTimeWithAggregatesFilter<"ObjectStorageVersionGcSchedule"> | Date | string
+    nextAttemptAt?: DateTimeWithAggregatesFilter<"ObjectStorageVersionGcSchedule"> | Date | string
+    ownerToken?: StringNullableWithAggregatesFilter<"ObjectStorageVersionGcSchedule"> | string | null
+    fencingToken?: BigIntWithAggregatesFilter<"ObjectStorageVersionGcSchedule"> | bigint | number
+    leaseExpiresAt?: DateTimeNullableWithAggregatesFilter<"ObjectStorageVersionGcSchedule"> | Date | string | null
+    attempts?: IntWithAggregatesFilter<"ObjectStorageVersionGcSchedule"> | number
+    lastOperationId?: StringNullableWithAggregatesFilter<"ObjectStorageVersionGcSchedule"> | string | null
+    lastErrorCode?: StringNullableWithAggregatesFilter<"ObjectStorageVersionGcSchedule"> | string | null
+    lastErrorMessage?: StringNullableWithAggregatesFilter<"ObjectStorageVersionGcSchedule"> | string | null
+    requestedAt?: DateTimeWithAggregatesFilter<"ObjectStorageVersionGcSchedule"> | Date | string
+    createdAt?: DateTimeWithAggregatesFilter<"ObjectStorageVersionGcSchedule"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"ObjectStorageVersionGcSchedule"> | Date | string
   }
 
   export type ProjectPermanentDeletionReceiptWhereInput = {
@@ -220270,6 +224660,7 @@ export namespace Prisma {
 
   export type ProjectCreateInput = {
     id?: string
+    ownershipEpoch?: number
     name: string
     slug: string
     description?: string | null
@@ -220324,11 +224715,13 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
     releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateInput = {
     id?: string
     organizationId: string
+    ownershipEpoch?: number
     name: string
     slug: string
     description?: string | null
@@ -220382,10 +224775,12 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
     releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -220440,11 +224835,13 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
     releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
     organizationId?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -220498,11 +224895,13 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
     releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectCreateManyInput = {
     id?: string
     organizationId: string
+    ownershipEpoch?: number
     name: string
     slug: string
     description?: string | null
@@ -220522,6 +224921,7 @@ export namespace Prisma {
 
   export type ProjectUpdateManyMutationInput = {
     id?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -220542,6 +224942,7 @@ export namespace Prisma {
   export type ProjectUncheckedUpdateManyInput = {
     id?: StringFieldUpdateOperationsInput | string
     organizationId?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -220588,8 +224989,11 @@ export namespace Prisma {
     updatedAt?: Date | string
     scopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutOperationInput
     pinnedObjects?: ObjectStorageOperationPinnedObjectCreateNestedManyWithoutOperationInput
+    pinnedGenerations?: ObjectStorageOperationPinnedGenerationCreateNestedManyWithoutOperationInput
+    permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanCreateNestedManyWithoutOperationInput
     capabilityReservations?: ObjectStorageCapabilityReservationCreateNestedManyWithoutOperationInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptCreateNestedOneWithoutOperationInput
+    versionGcSchedules?: ObjectStorageVersionGcScheduleCreateNestedManyWithoutLastOperationInput
   }
 
   export type ObjectStorageOperationUncheckedCreateInput = {
@@ -220621,8 +225025,11 @@ export namespace Prisma {
     updatedAt?: Date | string
     scopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutOperationInput
     pinnedObjects?: ObjectStorageOperationPinnedObjectUncheckedCreateNestedManyWithoutOperationInput
+    pinnedGenerations?: ObjectStorageOperationPinnedGenerationUncheckedCreateNestedManyWithoutOperationInput
+    permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanUncheckedCreateNestedManyWithoutOperationInput
     capabilityReservations?: ObjectStorageCapabilityReservationUncheckedCreateNestedManyWithoutOperationInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUncheckedCreateNestedOneWithoutOperationInput
+    versionGcSchedules?: ObjectStorageVersionGcScheduleUncheckedCreateNestedManyWithoutLastOperationInput
   }
 
   export type ObjectStorageOperationUpdateInput = {
@@ -220654,8 +225061,11 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     scopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutOperationNestedInput
     pinnedObjects?: ObjectStorageOperationPinnedObjectUpdateManyWithoutOperationNestedInput
+    pinnedGenerations?: ObjectStorageOperationPinnedGenerationUpdateManyWithoutOperationNestedInput
+    permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanUpdateManyWithoutOperationNestedInput
     capabilityReservations?: ObjectStorageCapabilityReservationUpdateManyWithoutOperationNestedInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUpdateOneWithoutOperationNestedInput
+    versionGcSchedules?: ObjectStorageVersionGcScheduleUpdateManyWithoutLastOperationNestedInput
   }
 
   export type ObjectStorageOperationUncheckedUpdateInput = {
@@ -220687,8 +225097,11 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     scopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutOperationNestedInput
     pinnedObjects?: ObjectStorageOperationPinnedObjectUncheckedUpdateManyWithoutOperationNestedInput
+    pinnedGenerations?: ObjectStorageOperationPinnedGenerationUncheckedUpdateManyWithoutOperationNestedInput
+    permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanUncheckedUpdateManyWithoutOperationNestedInput
     capabilityReservations?: ObjectStorageCapabilityReservationUncheckedUpdateManyWithoutOperationNestedInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUncheckedUpdateOneWithoutOperationNestedInput
+    versionGcSchedules?: ObjectStorageVersionGcScheduleUncheckedUpdateManyWithoutLastOperationNestedInput
   }
 
   export type ObjectStorageOperationCreateManyInput = {
@@ -220838,6 +225251,158 @@ export namespace Prisma {
     size?: BigIntFieldUpdateOperationsInput | bigint | number
     generation?: StringFieldUpdateOperationsInput | string
     contentHash?: StringFieldUpdateOperationsInput | string
+  }
+
+  export type ObjectStorageOperationPinnedGenerationCreateInput = {
+    ordinal: number
+    key: string
+    generation: string
+    size: bigint | number
+    contentHash?: string | null
+    operation: ObjectStorageOperationCreateNestedOneWithoutPinnedGenerationsInput
+  }
+
+  export type ObjectStorageOperationPinnedGenerationUncheckedCreateInput = {
+    operationId: string
+    ordinal: number
+    key: string
+    generation: string
+    size: bigint | number
+    contentHash?: string | null
+  }
+
+  export type ObjectStorageOperationPinnedGenerationUpdateInput = {
+    ordinal?: IntFieldUpdateOperationsInput | number
+    key?: StringFieldUpdateOperationsInput | string
+    generation?: StringFieldUpdateOperationsInput | string
+    size?: BigIntFieldUpdateOperationsInput | bigint | number
+    contentHash?: NullableStringFieldUpdateOperationsInput | string | null
+    operation?: ObjectStorageOperationUpdateOneRequiredWithoutPinnedGenerationsNestedInput
+  }
+
+  export type ObjectStorageOperationPinnedGenerationUncheckedUpdateInput = {
+    operationId?: StringFieldUpdateOperationsInput | string
+    ordinal?: IntFieldUpdateOperationsInput | number
+    key?: StringFieldUpdateOperationsInput | string
+    generation?: StringFieldUpdateOperationsInput | string
+    size?: BigIntFieldUpdateOperationsInput | bigint | number
+    contentHash?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type ObjectStorageOperationPinnedGenerationCreateManyInput = {
+    operationId: string
+    ordinal: number
+    key: string
+    generation: string
+    size: bigint | number
+    contentHash?: string | null
+  }
+
+  export type ObjectStorageOperationPinnedGenerationUpdateManyMutationInput = {
+    ordinal?: IntFieldUpdateOperationsInput | number
+    key?: StringFieldUpdateOperationsInput | string
+    generation?: StringFieldUpdateOperationsInput | string
+    size?: BigIntFieldUpdateOperationsInput | bigint | number
+    contentHash?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type ObjectStorageOperationPinnedGenerationUncheckedUpdateManyInput = {
+    operationId?: StringFieldUpdateOperationsInput | string
+    ordinal?: IntFieldUpdateOperationsInput | number
+    key?: StringFieldUpdateOperationsInput | string
+    generation?: StringFieldUpdateOperationsInput | string
+    size?: BigIntFieldUpdateOperationsInput | bigint | number
+    contentHash?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type ProjectPermanentDeletionArtifactPlanCreateInput = {
+    ordinal: number
+    artifactRef: string
+    artifactDigest: string
+    projectReferenceCount: number
+    plannedOtherReferenceCount: number
+    state?: $Enums.ProjectPermanentDeletionArtifactState
+    finalOtherReferenceCount?: number | null
+    processedAt?: Date | string | null
+    createdAt?: Date | string
+    operation: ObjectStorageOperationCreateNestedOneWithoutPermanentDeletionArtifactsInput
+  }
+
+  export type ProjectPermanentDeletionArtifactPlanUncheckedCreateInput = {
+    operationId: string
+    ordinal: number
+    artifactRef: string
+    artifactDigest: string
+    projectReferenceCount: number
+    plannedOtherReferenceCount: number
+    state?: $Enums.ProjectPermanentDeletionArtifactState
+    finalOtherReferenceCount?: number | null
+    processedAt?: Date | string | null
+    createdAt?: Date | string
+  }
+
+  export type ProjectPermanentDeletionArtifactPlanUpdateInput = {
+    ordinal?: IntFieldUpdateOperationsInput | number
+    artifactRef?: StringFieldUpdateOperationsInput | string
+    artifactDigest?: StringFieldUpdateOperationsInput | string
+    projectReferenceCount?: IntFieldUpdateOperationsInput | number
+    plannedOtherReferenceCount?: IntFieldUpdateOperationsInput | number
+    state?: EnumProjectPermanentDeletionArtifactStateFieldUpdateOperationsInput | $Enums.ProjectPermanentDeletionArtifactState
+    finalOtherReferenceCount?: NullableIntFieldUpdateOperationsInput | number | null
+    processedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    operation?: ObjectStorageOperationUpdateOneRequiredWithoutPermanentDeletionArtifactsNestedInput
+  }
+
+  export type ProjectPermanentDeletionArtifactPlanUncheckedUpdateInput = {
+    operationId?: StringFieldUpdateOperationsInput | string
+    ordinal?: IntFieldUpdateOperationsInput | number
+    artifactRef?: StringFieldUpdateOperationsInput | string
+    artifactDigest?: StringFieldUpdateOperationsInput | string
+    projectReferenceCount?: IntFieldUpdateOperationsInput | number
+    plannedOtherReferenceCount?: IntFieldUpdateOperationsInput | number
+    state?: EnumProjectPermanentDeletionArtifactStateFieldUpdateOperationsInput | $Enums.ProjectPermanentDeletionArtifactState
+    finalOtherReferenceCount?: NullableIntFieldUpdateOperationsInput | number | null
+    processedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProjectPermanentDeletionArtifactPlanCreateManyInput = {
+    operationId: string
+    ordinal: number
+    artifactRef: string
+    artifactDigest: string
+    projectReferenceCount: number
+    plannedOtherReferenceCount: number
+    state?: $Enums.ProjectPermanentDeletionArtifactState
+    finalOtherReferenceCount?: number | null
+    processedAt?: Date | string | null
+    createdAt?: Date | string
+  }
+
+  export type ProjectPermanentDeletionArtifactPlanUpdateManyMutationInput = {
+    ordinal?: IntFieldUpdateOperationsInput | number
+    artifactRef?: StringFieldUpdateOperationsInput | string
+    artifactDigest?: StringFieldUpdateOperationsInput | string
+    projectReferenceCount?: IntFieldUpdateOperationsInput | number
+    plannedOtherReferenceCount?: IntFieldUpdateOperationsInput | number
+    state?: EnumProjectPermanentDeletionArtifactStateFieldUpdateOperationsInput | $Enums.ProjectPermanentDeletionArtifactState
+    finalOtherReferenceCount?: NullableIntFieldUpdateOperationsInput | number | null
+    processedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProjectPermanentDeletionArtifactPlanUncheckedUpdateManyInput = {
+    operationId?: StringFieldUpdateOperationsInput | string
+    ordinal?: IntFieldUpdateOperationsInput | number
+    artifactRef?: StringFieldUpdateOperationsInput | string
+    artifactDigest?: StringFieldUpdateOperationsInput | string
+    projectReferenceCount?: IntFieldUpdateOperationsInput | number
+    plannedOtherReferenceCount?: IntFieldUpdateOperationsInput | number
+    state?: EnumProjectPermanentDeletionArtifactStateFieldUpdateOperationsInput | $Enums.ProjectPermanentDeletionArtifactState
+    finalOtherReferenceCount?: NullableIntFieldUpdateOperationsInput | number | null
+    processedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type ObjectStorageCapabilityReservationCreateInput = {
@@ -221024,6 +225589,130 @@ export namespace Prisma {
     expectedPermanentDeletionStartedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletionFenceDeletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ObjectStorageVersionGcScheduleCreateInput = {
+    expectedOrganizationId: string
+    status?: $Enums.ObjectStorageVersionGcStatus
+    notBefore: Date | string
+    nextAttemptAt: Date | string
+    ownerToken?: string | null
+    fencingToken?: bigint | number
+    leaseExpiresAt?: Date | string | null
+    attempts?: number
+    lastErrorCode?: string | null
+    lastErrorMessage?: string | null
+    requestedAt?: Date | string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    project: ProjectCreateNestedOneWithoutObjectStorageVersionGcScheduleInput
+    lastOperation?: ObjectStorageOperationCreateNestedOneWithoutVersionGcSchedulesInput
+  }
+
+  export type ObjectStorageVersionGcScheduleUncheckedCreateInput = {
+    projectId: string
+    expectedOrganizationId: string
+    status?: $Enums.ObjectStorageVersionGcStatus
+    notBefore: Date | string
+    nextAttemptAt: Date | string
+    ownerToken?: string | null
+    fencingToken?: bigint | number
+    leaseExpiresAt?: Date | string | null
+    attempts?: number
+    lastOperationId?: string | null
+    lastErrorCode?: string | null
+    lastErrorMessage?: string | null
+    requestedAt?: Date | string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ObjectStorageVersionGcScheduleUpdateInput = {
+    expectedOrganizationId?: StringFieldUpdateOperationsInput | string
+    status?: EnumObjectStorageVersionGcStatusFieldUpdateOperationsInput | $Enums.ObjectStorageVersionGcStatus
+    notBefore?: DateTimeFieldUpdateOperationsInput | Date | string
+    nextAttemptAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    ownerToken?: NullableStringFieldUpdateOperationsInput | string | null
+    fencingToken?: BigIntFieldUpdateOperationsInput | bigint | number
+    leaseExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    attempts?: IntFieldUpdateOperationsInput | number
+    lastErrorCode?: NullableStringFieldUpdateOperationsInput | string | null
+    lastErrorMessage?: NullableStringFieldUpdateOperationsInput | string | null
+    requestedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    project?: ProjectUpdateOneRequiredWithoutObjectStorageVersionGcScheduleNestedInput
+    lastOperation?: ObjectStorageOperationUpdateOneWithoutVersionGcSchedulesNestedInput
+  }
+
+  export type ObjectStorageVersionGcScheduleUncheckedUpdateInput = {
+    projectId?: StringFieldUpdateOperationsInput | string
+    expectedOrganizationId?: StringFieldUpdateOperationsInput | string
+    status?: EnumObjectStorageVersionGcStatusFieldUpdateOperationsInput | $Enums.ObjectStorageVersionGcStatus
+    notBefore?: DateTimeFieldUpdateOperationsInput | Date | string
+    nextAttemptAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    ownerToken?: NullableStringFieldUpdateOperationsInput | string | null
+    fencingToken?: BigIntFieldUpdateOperationsInput | bigint | number
+    leaseExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    attempts?: IntFieldUpdateOperationsInput | number
+    lastOperationId?: NullableStringFieldUpdateOperationsInput | string | null
+    lastErrorCode?: NullableStringFieldUpdateOperationsInput | string | null
+    lastErrorMessage?: NullableStringFieldUpdateOperationsInput | string | null
+    requestedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ObjectStorageVersionGcScheduleCreateManyInput = {
+    projectId: string
+    expectedOrganizationId: string
+    status?: $Enums.ObjectStorageVersionGcStatus
+    notBefore: Date | string
+    nextAttemptAt: Date | string
+    ownerToken?: string | null
+    fencingToken?: bigint | number
+    leaseExpiresAt?: Date | string | null
+    attempts?: number
+    lastOperationId?: string | null
+    lastErrorCode?: string | null
+    lastErrorMessage?: string | null
+    requestedAt?: Date | string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ObjectStorageVersionGcScheduleUpdateManyMutationInput = {
+    expectedOrganizationId?: StringFieldUpdateOperationsInput | string
+    status?: EnumObjectStorageVersionGcStatusFieldUpdateOperationsInput | $Enums.ObjectStorageVersionGcStatus
+    notBefore?: DateTimeFieldUpdateOperationsInput | Date | string
+    nextAttemptAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    ownerToken?: NullableStringFieldUpdateOperationsInput | string | null
+    fencingToken?: BigIntFieldUpdateOperationsInput | bigint | number
+    leaseExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    attempts?: IntFieldUpdateOperationsInput | number
+    lastErrorCode?: NullableStringFieldUpdateOperationsInput | string | null
+    lastErrorMessage?: NullableStringFieldUpdateOperationsInput | string | null
+    requestedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ObjectStorageVersionGcScheduleUncheckedUpdateManyInput = {
+    projectId?: StringFieldUpdateOperationsInput | string
+    expectedOrganizationId?: StringFieldUpdateOperationsInput | string
+    status?: EnumObjectStorageVersionGcStatusFieldUpdateOperationsInput | $Enums.ObjectStorageVersionGcStatus
+    notBefore?: DateTimeFieldUpdateOperationsInput | Date | string
+    nextAttemptAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    ownerToken?: NullableStringFieldUpdateOperationsInput | string | null
+    fencingToken?: BigIntFieldUpdateOperationsInput | bigint | number
+    leaseExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    attempts?: IntFieldUpdateOperationsInput | number
+    lastOperationId?: NullableStringFieldUpdateOperationsInput | string | null
+    lastErrorCode?: NullableStringFieldUpdateOperationsInput | string | null
+    lastErrorMessage?: NullableStringFieldUpdateOperationsInput | string | null
+    requestedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type ProjectPermanentDeletionReceiptCreateInput = {
@@ -236021,6 +240710,11 @@ export namespace Prisma {
     none?: ObjectStorageOperationProjectScopeWhereInput
   }
 
+  export type ObjectStorageVersionGcScheduleNullableScalarRelationFilter = {
+    is?: ObjectStorageVersionGcScheduleWhereInput | null
+    isNot?: ObjectStorageVersionGcScheduleWhereInput | null
+  }
+
   export type ProjectEnvironmentOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
@@ -236093,6 +240787,7 @@ export namespace Prisma {
   export type ProjectCountOrderByAggregateInput = {
     id?: SortOrder
     organizationId?: SortOrder
+    ownershipEpoch?: SortOrder
     name?: SortOrder
     slug?: SortOrder
     description?: SortOrder
@@ -236110,9 +240805,14 @@ export namespace Prisma {
     updatedAt?: SortOrder
   }
 
+  export type ProjectAvgOrderByAggregateInput = {
+    ownershipEpoch?: SortOrder
+  }
+
   export type ProjectMaxOrderByAggregateInput = {
     id?: SortOrder
     organizationId?: SortOrder
+    ownershipEpoch?: SortOrder
     name?: SortOrder
     slug?: SortOrder
     description?: SortOrder
@@ -236133,6 +240833,7 @@ export namespace Prisma {
   export type ProjectMinOrderByAggregateInput = {
     id?: SortOrder
     organizationId?: SortOrder
+    ownershipEpoch?: SortOrder
     name?: SortOrder
     slug?: SortOrder
     description?: SortOrder
@@ -236148,6 +240849,10 @@ export namespace Prisma {
     deletedAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+  }
+
+  export type ProjectSumOrderByAggregateInput = {
+    ownershipEpoch?: SortOrder
   }
 
   export type EnumObjectStorageOperationKindFilter<$PrismaModel = never> = {
@@ -236204,6 +240909,18 @@ export namespace Prisma {
     none?: ObjectStorageOperationPinnedObjectWhereInput
   }
 
+  export type ObjectStorageOperationPinnedGenerationListRelationFilter = {
+    every?: ObjectStorageOperationPinnedGenerationWhereInput
+    some?: ObjectStorageOperationPinnedGenerationWhereInput
+    none?: ObjectStorageOperationPinnedGenerationWhereInput
+  }
+
+  export type ProjectPermanentDeletionArtifactPlanListRelationFilter = {
+    every?: ProjectPermanentDeletionArtifactPlanWhereInput
+    some?: ProjectPermanentDeletionArtifactPlanWhereInput
+    none?: ProjectPermanentDeletionArtifactPlanWhereInput
+  }
+
   export type ObjectStorageCapabilityReservationListRelationFilter = {
     every?: ObjectStorageCapabilityReservationWhereInput
     some?: ObjectStorageCapabilityReservationWhereInput
@@ -236215,11 +240932,29 @@ export namespace Prisma {
     isNot?: ProjectPermanentDeletionReceiptWhereInput | null
   }
 
+  export type ObjectStorageVersionGcScheduleListRelationFilter = {
+    every?: ObjectStorageVersionGcScheduleWhereInput
+    some?: ObjectStorageVersionGcScheduleWhereInput
+    none?: ObjectStorageVersionGcScheduleWhereInput
+  }
+
   export type ObjectStorageOperationPinnedObjectOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
+  export type ObjectStorageOperationPinnedGenerationOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type ProjectPermanentDeletionArtifactPlanOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
   export type ObjectStorageCapabilityReservationOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type ObjectStorageVersionGcScheduleOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -236431,6 +241166,161 @@ export namespace Prisma {
     size?: SortOrder
   }
 
+  export type ObjectStorageOperationPinnedGenerationOperationIdKeyGenerationCompoundUniqueInput = {
+    operationId: string
+    key: string
+    generation: string
+  }
+
+  export type ObjectStorageOperationPinnedGenerationOperationIdOrdinalCompoundUniqueInput = {
+    operationId: string
+    ordinal: number
+  }
+
+  export type ObjectStorageOperationPinnedGenerationCountOrderByAggregateInput = {
+    operationId?: SortOrder
+    ordinal?: SortOrder
+    key?: SortOrder
+    generation?: SortOrder
+    size?: SortOrder
+    contentHash?: SortOrder
+  }
+
+  export type ObjectStorageOperationPinnedGenerationAvgOrderByAggregateInput = {
+    ordinal?: SortOrder
+    size?: SortOrder
+  }
+
+  export type ObjectStorageOperationPinnedGenerationMaxOrderByAggregateInput = {
+    operationId?: SortOrder
+    ordinal?: SortOrder
+    key?: SortOrder
+    generation?: SortOrder
+    size?: SortOrder
+    contentHash?: SortOrder
+  }
+
+  export type ObjectStorageOperationPinnedGenerationMinOrderByAggregateInput = {
+    operationId?: SortOrder
+    ordinal?: SortOrder
+    key?: SortOrder
+    generation?: SortOrder
+    size?: SortOrder
+    contentHash?: SortOrder
+  }
+
+  export type ObjectStorageOperationPinnedGenerationSumOrderByAggregateInput = {
+    ordinal?: SortOrder
+    size?: SortOrder
+  }
+
+  export type EnumProjectPermanentDeletionArtifactStateFilter<$PrismaModel = never> = {
+    equals?: $Enums.ProjectPermanentDeletionArtifactState | EnumProjectPermanentDeletionArtifactStateFieldRefInput<$PrismaModel>
+    in?: $Enums.ProjectPermanentDeletionArtifactState[] | ListEnumProjectPermanentDeletionArtifactStateFieldRefInput<$PrismaModel>
+    notIn?: $Enums.ProjectPermanentDeletionArtifactState[] | ListEnumProjectPermanentDeletionArtifactStateFieldRefInput<$PrismaModel>
+    not?: NestedEnumProjectPermanentDeletionArtifactStateFilter<$PrismaModel> | $Enums.ProjectPermanentDeletionArtifactState
+  }
+
+  export type IntNullableFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel> | null
+    in?: number[] | ListIntFieldRefInput<$PrismaModel> | null
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel> | null
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntNullableFilter<$PrismaModel> | number | null
+  }
+
+  export type ProjectPermanentDeletionArtifactPlanOperationIdArtifactRefCompoundUniqueInput = {
+    operationId: string
+    artifactRef: string
+  }
+
+  export type ProjectPermanentDeletionArtifactPlanOperationIdOrdinalCompoundUniqueInput = {
+    operationId: string
+    ordinal: number
+  }
+
+  export type ProjectPermanentDeletionArtifactPlanCountOrderByAggregateInput = {
+    operationId?: SortOrder
+    ordinal?: SortOrder
+    artifactRef?: SortOrder
+    artifactDigest?: SortOrder
+    projectReferenceCount?: SortOrder
+    plannedOtherReferenceCount?: SortOrder
+    state?: SortOrder
+    finalOtherReferenceCount?: SortOrder
+    processedAt?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type ProjectPermanentDeletionArtifactPlanAvgOrderByAggregateInput = {
+    ordinal?: SortOrder
+    projectReferenceCount?: SortOrder
+    plannedOtherReferenceCount?: SortOrder
+    finalOtherReferenceCount?: SortOrder
+  }
+
+  export type ProjectPermanentDeletionArtifactPlanMaxOrderByAggregateInput = {
+    operationId?: SortOrder
+    ordinal?: SortOrder
+    artifactRef?: SortOrder
+    artifactDigest?: SortOrder
+    projectReferenceCount?: SortOrder
+    plannedOtherReferenceCount?: SortOrder
+    state?: SortOrder
+    finalOtherReferenceCount?: SortOrder
+    processedAt?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type ProjectPermanentDeletionArtifactPlanMinOrderByAggregateInput = {
+    operationId?: SortOrder
+    ordinal?: SortOrder
+    artifactRef?: SortOrder
+    artifactDigest?: SortOrder
+    projectReferenceCount?: SortOrder
+    plannedOtherReferenceCount?: SortOrder
+    state?: SortOrder
+    finalOtherReferenceCount?: SortOrder
+    processedAt?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type ProjectPermanentDeletionArtifactPlanSumOrderByAggregateInput = {
+    ordinal?: SortOrder
+    projectReferenceCount?: SortOrder
+    plannedOtherReferenceCount?: SortOrder
+    finalOtherReferenceCount?: SortOrder
+  }
+
+  export type EnumProjectPermanentDeletionArtifactStateWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.ProjectPermanentDeletionArtifactState | EnumProjectPermanentDeletionArtifactStateFieldRefInput<$PrismaModel>
+    in?: $Enums.ProjectPermanentDeletionArtifactState[] | ListEnumProjectPermanentDeletionArtifactStateFieldRefInput<$PrismaModel>
+    notIn?: $Enums.ProjectPermanentDeletionArtifactState[] | ListEnumProjectPermanentDeletionArtifactStateFieldRefInput<$PrismaModel>
+    not?: NestedEnumProjectPermanentDeletionArtifactStateWithAggregatesFilter<$PrismaModel> | $Enums.ProjectPermanentDeletionArtifactState
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumProjectPermanentDeletionArtifactStateFilter<$PrismaModel>
+    _max?: NestedEnumProjectPermanentDeletionArtifactStateFilter<$PrismaModel>
+  }
+
+  export type IntNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel> | null
+    in?: number[] | ListIntFieldRefInput<$PrismaModel> | null
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel> | null
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntNullableWithAggregatesFilter<$PrismaModel> | number | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _avg?: NestedFloatNullableFilter<$PrismaModel>
+    _sum?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedIntNullableFilter<$PrismaModel>
+    _max?: NestedIntNullableFilter<$PrismaModel>
+  }
+
   export type EnumObjectStorageCapabilityReservationStatusFilter<$PrismaModel = never> = {
     equals?: $Enums.ObjectStorageCapabilityReservationStatus | EnumObjectStorageCapabilityReservationStatusFieldRefInput<$PrismaModel>
     in?: $Enums.ObjectStorageCapabilityReservationStatus[] | ListEnumObjectStorageCapabilityReservationStatusFieldRefInput<$PrismaModel>
@@ -236570,6 +241460,97 @@ export namespace Prisma {
     ordinal?: SortOrder
   }
 
+  export type EnumObjectStorageVersionGcStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.ObjectStorageVersionGcStatus | EnumObjectStorageVersionGcStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.ObjectStorageVersionGcStatus[] | ListEnumObjectStorageVersionGcStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.ObjectStorageVersionGcStatus[] | ListEnumObjectStorageVersionGcStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumObjectStorageVersionGcStatusFilter<$PrismaModel> | $Enums.ObjectStorageVersionGcStatus
+  }
+
+  export type ProjectScalarRelationFilter = {
+    is?: ProjectWhereInput
+    isNot?: ProjectWhereInput
+  }
+
+  export type ObjectStorageOperationNullableScalarRelationFilter = {
+    is?: ObjectStorageOperationWhereInput | null
+    isNot?: ObjectStorageOperationWhereInput | null
+  }
+
+  export type ObjectStorageVersionGcScheduleCountOrderByAggregateInput = {
+    projectId?: SortOrder
+    expectedOrganizationId?: SortOrder
+    status?: SortOrder
+    notBefore?: SortOrder
+    nextAttemptAt?: SortOrder
+    ownerToken?: SortOrder
+    fencingToken?: SortOrder
+    leaseExpiresAt?: SortOrder
+    attempts?: SortOrder
+    lastOperationId?: SortOrder
+    lastErrorCode?: SortOrder
+    lastErrorMessage?: SortOrder
+    requestedAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ObjectStorageVersionGcScheduleAvgOrderByAggregateInput = {
+    fencingToken?: SortOrder
+    attempts?: SortOrder
+  }
+
+  export type ObjectStorageVersionGcScheduleMaxOrderByAggregateInput = {
+    projectId?: SortOrder
+    expectedOrganizationId?: SortOrder
+    status?: SortOrder
+    notBefore?: SortOrder
+    nextAttemptAt?: SortOrder
+    ownerToken?: SortOrder
+    fencingToken?: SortOrder
+    leaseExpiresAt?: SortOrder
+    attempts?: SortOrder
+    lastOperationId?: SortOrder
+    lastErrorCode?: SortOrder
+    lastErrorMessage?: SortOrder
+    requestedAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ObjectStorageVersionGcScheduleMinOrderByAggregateInput = {
+    projectId?: SortOrder
+    expectedOrganizationId?: SortOrder
+    status?: SortOrder
+    notBefore?: SortOrder
+    nextAttemptAt?: SortOrder
+    ownerToken?: SortOrder
+    fencingToken?: SortOrder
+    leaseExpiresAt?: SortOrder
+    attempts?: SortOrder
+    lastOperationId?: SortOrder
+    lastErrorCode?: SortOrder
+    lastErrorMessage?: SortOrder
+    requestedAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ObjectStorageVersionGcScheduleSumOrderByAggregateInput = {
+    fencingToken?: SortOrder
+    attempts?: SortOrder
+  }
+
+  export type EnumObjectStorageVersionGcStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.ObjectStorageVersionGcStatus | EnumObjectStorageVersionGcStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.ObjectStorageVersionGcStatus[] | ListEnumObjectStorageVersionGcStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.ObjectStorageVersionGcStatus[] | ListEnumObjectStorageVersionGcStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumObjectStorageVersionGcStatusWithAggregatesFilter<$PrismaModel> | $Enums.ObjectStorageVersionGcStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumObjectStorageVersionGcStatusFilter<$PrismaModel>
+    _max?: NestedEnumObjectStorageVersionGcStatusFilter<$PrismaModel>
+  }
+
   export type ProjectPermanentDeletionReceiptIdempotencyScopeHashIdempotencyKeyCompoundUniqueInput = {
     idempotencyScopeHash: string
     idempotencyKey: string
@@ -236621,11 +241602,6 @@ export namespace Prisma {
     deletedAt?: SortOrder
     completedAt?: SortOrder
     createdAt?: SortOrder
-  }
-
-  export type ProjectScalarRelationFilter = {
-    is?: ProjectWhereInput
-    isNot?: ProjectWhereInput
   }
 
   export type ProjectSlugRedirectProjectIdOldSlugCompoundUniqueInput = {
@@ -237292,17 +242268,6 @@ export namespace Prisma {
     updatedAt?: SortOrder
   }
 
-  export type IntNullableFilter<$PrismaModel = never> = {
-    equals?: number | IntFieldRefInput<$PrismaModel> | null
-    in?: number[] | ListIntFieldRefInput<$PrismaModel> | null
-    notIn?: number[] | ListIntFieldRefInput<$PrismaModel> | null
-    lt?: number | IntFieldRefInput<$PrismaModel>
-    lte?: number | IntFieldRefInput<$PrismaModel>
-    gt?: number | IntFieldRefInput<$PrismaModel>
-    gte?: number | IntFieldRefInput<$PrismaModel>
-    not?: NestedIntNullableFilter<$PrismaModel> | number | null
-  }
-
   export type CollaborationCommentCountOrderByAggregateInput = {
     id?: SortOrder
     projectId?: SortOrder
@@ -237343,22 +242308,6 @@ export namespace Prisma {
 
   export type CollaborationCommentSumOrderByAggregateInput = {
     line?: SortOrder
-  }
-
-  export type IntNullableWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: number | IntFieldRefInput<$PrismaModel> | null
-    in?: number[] | ListIntFieldRefInput<$PrismaModel> | null
-    notIn?: number[] | ListIntFieldRefInput<$PrismaModel> | null
-    lt?: number | IntFieldRefInput<$PrismaModel>
-    lte?: number | IntFieldRefInput<$PrismaModel>
-    gt?: number | IntFieldRefInput<$PrismaModel>
-    gte?: number | IntFieldRefInput<$PrismaModel>
-    not?: NestedIntNullableWithAggregatesFilter<$PrismaModel> | number | null
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _avg?: NestedFloatNullableFilter<$PrismaModel>
-    _sum?: NestedIntNullableFilter<$PrismaModel>
-    _min?: NestedIntNullableFilter<$PrismaModel>
-    _max?: NestedIntNullableFilter<$PrismaModel>
   }
 
   export type ProjectShareLinkCountOrderByAggregateInput = {
@@ -248604,6 +253553,12 @@ export namespace Prisma {
     connect?: ObjectStorageOperationProjectScopeWhereUniqueInput | ObjectStorageOperationProjectScopeWhereUniqueInput[]
   }
 
+  export type ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput = {
+    create?: XOR<ObjectStorageVersionGcScheduleCreateWithoutProjectInput, ObjectStorageVersionGcScheduleUncheckedCreateWithoutProjectInput>
+    connectOrCreate?: ObjectStorageVersionGcScheduleCreateOrConnectWithoutProjectInput
+    connect?: ObjectStorageVersionGcScheduleWhereUniqueInput
+  }
+
   export type ProjectEnvironmentUncheckedCreateNestedManyWithoutProjectInput = {
     create?: XOR<ProjectEnvironmentCreateWithoutProjectInput, ProjectEnvironmentUncheckedCreateWithoutProjectInput> | ProjectEnvironmentCreateWithoutProjectInput[] | ProjectEnvironmentUncheckedCreateWithoutProjectInput[]
     connectOrCreate?: ProjectEnvironmentCreateOrConnectWithoutProjectInput | ProjectEnvironmentCreateOrConnectWithoutProjectInput[]
@@ -248863,6 +253818,12 @@ export namespace Prisma {
     connectOrCreate?: ObjectStorageOperationProjectScopeCreateOrConnectWithoutProjectInput | ObjectStorageOperationProjectScopeCreateOrConnectWithoutProjectInput[]
     createMany?: ObjectStorageOperationProjectScopeCreateManyProjectInputEnvelope
     connect?: ObjectStorageOperationProjectScopeWhereUniqueInput | ObjectStorageOperationProjectScopeWhereUniqueInput[]
+  }
+
+  export type ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput = {
+    create?: XOR<ObjectStorageVersionGcScheduleCreateWithoutProjectInput, ObjectStorageVersionGcScheduleUncheckedCreateWithoutProjectInput>
+    connectOrCreate?: ObjectStorageVersionGcScheduleCreateOrConnectWithoutProjectInput
+    connect?: ObjectStorageVersionGcScheduleWhereUniqueInput
   }
 
   export type OrganizationUpdateOneRequiredWithoutProjectsNestedInput = {
@@ -249393,6 +254354,16 @@ export namespace Prisma {
     deleteMany?: ObjectStorageOperationProjectScopeScalarWhereInput | ObjectStorageOperationProjectScopeScalarWhereInput[]
   }
 
+  export type ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput = {
+    create?: XOR<ObjectStorageVersionGcScheduleCreateWithoutProjectInput, ObjectStorageVersionGcScheduleUncheckedCreateWithoutProjectInput>
+    connectOrCreate?: ObjectStorageVersionGcScheduleCreateOrConnectWithoutProjectInput
+    upsert?: ObjectStorageVersionGcScheduleUpsertWithoutProjectInput
+    disconnect?: ObjectStorageVersionGcScheduleWhereInput | boolean
+    delete?: ObjectStorageVersionGcScheduleWhereInput | boolean
+    connect?: ObjectStorageVersionGcScheduleWhereUniqueInput
+    update?: XOR<XOR<ObjectStorageVersionGcScheduleUpdateToOneWithWhereWithoutProjectInput, ObjectStorageVersionGcScheduleUpdateWithoutProjectInput>, ObjectStorageVersionGcScheduleUncheckedUpdateWithoutProjectInput>
+  }
+
   export type ProjectEnvironmentUncheckedUpdateManyWithoutProjectNestedInput = {
     create?: XOR<ProjectEnvironmentCreateWithoutProjectInput, ProjectEnvironmentUncheckedCreateWithoutProjectInput> | ProjectEnvironmentCreateWithoutProjectInput[] | ProjectEnvironmentUncheckedCreateWithoutProjectInput[]
     connectOrCreate?: ProjectEnvironmentCreateOrConnectWithoutProjectInput | ProjectEnvironmentCreateOrConnectWithoutProjectInput[]
@@ -249913,6 +254884,16 @@ export namespace Prisma {
     deleteMany?: ObjectStorageOperationProjectScopeScalarWhereInput | ObjectStorageOperationProjectScopeScalarWhereInput[]
   }
 
+  export type ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput = {
+    create?: XOR<ObjectStorageVersionGcScheduleCreateWithoutProjectInput, ObjectStorageVersionGcScheduleUncheckedCreateWithoutProjectInput>
+    connectOrCreate?: ObjectStorageVersionGcScheduleCreateOrConnectWithoutProjectInput
+    upsert?: ObjectStorageVersionGcScheduleUpsertWithoutProjectInput
+    disconnect?: ObjectStorageVersionGcScheduleWhereInput | boolean
+    delete?: ObjectStorageVersionGcScheduleWhereInput | boolean
+    connect?: ObjectStorageVersionGcScheduleWhereUniqueInput
+    update?: XOR<XOR<ObjectStorageVersionGcScheduleUpdateToOneWithWhereWithoutProjectInput, ObjectStorageVersionGcScheduleUpdateWithoutProjectInput>, ObjectStorageVersionGcScheduleUncheckedUpdateWithoutProjectInput>
+  }
+
   export type ObjectStorageOperationProjectScopeCreateNestedManyWithoutOperationInput = {
     create?: XOR<ObjectStorageOperationProjectScopeCreateWithoutOperationInput, ObjectStorageOperationProjectScopeUncheckedCreateWithoutOperationInput> | ObjectStorageOperationProjectScopeCreateWithoutOperationInput[] | ObjectStorageOperationProjectScopeUncheckedCreateWithoutOperationInput[]
     connectOrCreate?: ObjectStorageOperationProjectScopeCreateOrConnectWithoutOperationInput | ObjectStorageOperationProjectScopeCreateOrConnectWithoutOperationInput[]
@@ -249927,6 +254908,20 @@ export namespace Prisma {
     connect?: ObjectStorageOperationPinnedObjectWhereUniqueInput | ObjectStorageOperationPinnedObjectWhereUniqueInput[]
   }
 
+  export type ObjectStorageOperationPinnedGenerationCreateNestedManyWithoutOperationInput = {
+    create?: XOR<ObjectStorageOperationPinnedGenerationCreateWithoutOperationInput, ObjectStorageOperationPinnedGenerationUncheckedCreateWithoutOperationInput> | ObjectStorageOperationPinnedGenerationCreateWithoutOperationInput[] | ObjectStorageOperationPinnedGenerationUncheckedCreateWithoutOperationInput[]
+    connectOrCreate?: ObjectStorageOperationPinnedGenerationCreateOrConnectWithoutOperationInput | ObjectStorageOperationPinnedGenerationCreateOrConnectWithoutOperationInput[]
+    createMany?: ObjectStorageOperationPinnedGenerationCreateManyOperationInputEnvelope
+    connect?: ObjectStorageOperationPinnedGenerationWhereUniqueInput | ObjectStorageOperationPinnedGenerationWhereUniqueInput[]
+  }
+
+  export type ProjectPermanentDeletionArtifactPlanCreateNestedManyWithoutOperationInput = {
+    create?: XOR<ProjectPermanentDeletionArtifactPlanCreateWithoutOperationInput, ProjectPermanentDeletionArtifactPlanUncheckedCreateWithoutOperationInput> | ProjectPermanentDeletionArtifactPlanCreateWithoutOperationInput[] | ProjectPermanentDeletionArtifactPlanUncheckedCreateWithoutOperationInput[]
+    connectOrCreate?: ProjectPermanentDeletionArtifactPlanCreateOrConnectWithoutOperationInput | ProjectPermanentDeletionArtifactPlanCreateOrConnectWithoutOperationInput[]
+    createMany?: ProjectPermanentDeletionArtifactPlanCreateManyOperationInputEnvelope
+    connect?: ProjectPermanentDeletionArtifactPlanWhereUniqueInput | ProjectPermanentDeletionArtifactPlanWhereUniqueInput[]
+  }
+
   export type ObjectStorageCapabilityReservationCreateNestedManyWithoutOperationInput = {
     create?: XOR<ObjectStorageCapabilityReservationCreateWithoutOperationInput, ObjectStorageCapabilityReservationUncheckedCreateWithoutOperationInput> | ObjectStorageCapabilityReservationCreateWithoutOperationInput[] | ObjectStorageCapabilityReservationUncheckedCreateWithoutOperationInput[]
     connectOrCreate?: ObjectStorageCapabilityReservationCreateOrConnectWithoutOperationInput | ObjectStorageCapabilityReservationCreateOrConnectWithoutOperationInput[]
@@ -249938,6 +254933,13 @@ export namespace Prisma {
     create?: XOR<ProjectPermanentDeletionReceiptCreateWithoutOperationInput, ProjectPermanentDeletionReceiptUncheckedCreateWithoutOperationInput>
     connectOrCreate?: ProjectPermanentDeletionReceiptCreateOrConnectWithoutOperationInput
     connect?: ProjectPermanentDeletionReceiptWhereUniqueInput
+  }
+
+  export type ObjectStorageVersionGcScheduleCreateNestedManyWithoutLastOperationInput = {
+    create?: XOR<ObjectStorageVersionGcScheduleCreateWithoutLastOperationInput, ObjectStorageVersionGcScheduleUncheckedCreateWithoutLastOperationInput> | ObjectStorageVersionGcScheduleCreateWithoutLastOperationInput[] | ObjectStorageVersionGcScheduleUncheckedCreateWithoutLastOperationInput[]
+    connectOrCreate?: ObjectStorageVersionGcScheduleCreateOrConnectWithoutLastOperationInput | ObjectStorageVersionGcScheduleCreateOrConnectWithoutLastOperationInput[]
+    createMany?: ObjectStorageVersionGcScheduleCreateManyLastOperationInputEnvelope
+    connect?: ObjectStorageVersionGcScheduleWhereUniqueInput | ObjectStorageVersionGcScheduleWhereUniqueInput[]
   }
 
   export type ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutOperationInput = {
@@ -249954,6 +254956,20 @@ export namespace Prisma {
     connect?: ObjectStorageOperationPinnedObjectWhereUniqueInput | ObjectStorageOperationPinnedObjectWhereUniqueInput[]
   }
 
+  export type ObjectStorageOperationPinnedGenerationUncheckedCreateNestedManyWithoutOperationInput = {
+    create?: XOR<ObjectStorageOperationPinnedGenerationCreateWithoutOperationInput, ObjectStorageOperationPinnedGenerationUncheckedCreateWithoutOperationInput> | ObjectStorageOperationPinnedGenerationCreateWithoutOperationInput[] | ObjectStorageOperationPinnedGenerationUncheckedCreateWithoutOperationInput[]
+    connectOrCreate?: ObjectStorageOperationPinnedGenerationCreateOrConnectWithoutOperationInput | ObjectStorageOperationPinnedGenerationCreateOrConnectWithoutOperationInput[]
+    createMany?: ObjectStorageOperationPinnedGenerationCreateManyOperationInputEnvelope
+    connect?: ObjectStorageOperationPinnedGenerationWhereUniqueInput | ObjectStorageOperationPinnedGenerationWhereUniqueInput[]
+  }
+
+  export type ProjectPermanentDeletionArtifactPlanUncheckedCreateNestedManyWithoutOperationInput = {
+    create?: XOR<ProjectPermanentDeletionArtifactPlanCreateWithoutOperationInput, ProjectPermanentDeletionArtifactPlanUncheckedCreateWithoutOperationInput> | ProjectPermanentDeletionArtifactPlanCreateWithoutOperationInput[] | ProjectPermanentDeletionArtifactPlanUncheckedCreateWithoutOperationInput[]
+    connectOrCreate?: ProjectPermanentDeletionArtifactPlanCreateOrConnectWithoutOperationInput | ProjectPermanentDeletionArtifactPlanCreateOrConnectWithoutOperationInput[]
+    createMany?: ProjectPermanentDeletionArtifactPlanCreateManyOperationInputEnvelope
+    connect?: ProjectPermanentDeletionArtifactPlanWhereUniqueInput | ProjectPermanentDeletionArtifactPlanWhereUniqueInput[]
+  }
+
   export type ObjectStorageCapabilityReservationUncheckedCreateNestedManyWithoutOperationInput = {
     create?: XOR<ObjectStorageCapabilityReservationCreateWithoutOperationInput, ObjectStorageCapabilityReservationUncheckedCreateWithoutOperationInput> | ObjectStorageCapabilityReservationCreateWithoutOperationInput[] | ObjectStorageCapabilityReservationUncheckedCreateWithoutOperationInput[]
     connectOrCreate?: ObjectStorageCapabilityReservationCreateOrConnectWithoutOperationInput | ObjectStorageCapabilityReservationCreateOrConnectWithoutOperationInput[]
@@ -249965,6 +254981,13 @@ export namespace Prisma {
     create?: XOR<ProjectPermanentDeletionReceiptCreateWithoutOperationInput, ProjectPermanentDeletionReceiptUncheckedCreateWithoutOperationInput>
     connectOrCreate?: ProjectPermanentDeletionReceiptCreateOrConnectWithoutOperationInput
     connect?: ProjectPermanentDeletionReceiptWhereUniqueInput
+  }
+
+  export type ObjectStorageVersionGcScheduleUncheckedCreateNestedManyWithoutLastOperationInput = {
+    create?: XOR<ObjectStorageVersionGcScheduleCreateWithoutLastOperationInput, ObjectStorageVersionGcScheduleUncheckedCreateWithoutLastOperationInput> | ObjectStorageVersionGcScheduleCreateWithoutLastOperationInput[] | ObjectStorageVersionGcScheduleUncheckedCreateWithoutLastOperationInput[]
+    connectOrCreate?: ObjectStorageVersionGcScheduleCreateOrConnectWithoutLastOperationInput | ObjectStorageVersionGcScheduleCreateOrConnectWithoutLastOperationInput[]
+    createMany?: ObjectStorageVersionGcScheduleCreateManyLastOperationInputEnvelope
+    connect?: ObjectStorageVersionGcScheduleWhereUniqueInput | ObjectStorageVersionGcScheduleWhereUniqueInput[]
   }
 
   export type EnumObjectStorageOperationKindFieldUpdateOperationsInput = {
@@ -250011,6 +255034,34 @@ export namespace Prisma {
     deleteMany?: ObjectStorageOperationPinnedObjectScalarWhereInput | ObjectStorageOperationPinnedObjectScalarWhereInput[]
   }
 
+  export type ObjectStorageOperationPinnedGenerationUpdateManyWithoutOperationNestedInput = {
+    create?: XOR<ObjectStorageOperationPinnedGenerationCreateWithoutOperationInput, ObjectStorageOperationPinnedGenerationUncheckedCreateWithoutOperationInput> | ObjectStorageOperationPinnedGenerationCreateWithoutOperationInput[] | ObjectStorageOperationPinnedGenerationUncheckedCreateWithoutOperationInput[]
+    connectOrCreate?: ObjectStorageOperationPinnedGenerationCreateOrConnectWithoutOperationInput | ObjectStorageOperationPinnedGenerationCreateOrConnectWithoutOperationInput[]
+    upsert?: ObjectStorageOperationPinnedGenerationUpsertWithWhereUniqueWithoutOperationInput | ObjectStorageOperationPinnedGenerationUpsertWithWhereUniqueWithoutOperationInput[]
+    createMany?: ObjectStorageOperationPinnedGenerationCreateManyOperationInputEnvelope
+    set?: ObjectStorageOperationPinnedGenerationWhereUniqueInput | ObjectStorageOperationPinnedGenerationWhereUniqueInput[]
+    disconnect?: ObjectStorageOperationPinnedGenerationWhereUniqueInput | ObjectStorageOperationPinnedGenerationWhereUniqueInput[]
+    delete?: ObjectStorageOperationPinnedGenerationWhereUniqueInput | ObjectStorageOperationPinnedGenerationWhereUniqueInput[]
+    connect?: ObjectStorageOperationPinnedGenerationWhereUniqueInput | ObjectStorageOperationPinnedGenerationWhereUniqueInput[]
+    update?: ObjectStorageOperationPinnedGenerationUpdateWithWhereUniqueWithoutOperationInput | ObjectStorageOperationPinnedGenerationUpdateWithWhereUniqueWithoutOperationInput[]
+    updateMany?: ObjectStorageOperationPinnedGenerationUpdateManyWithWhereWithoutOperationInput | ObjectStorageOperationPinnedGenerationUpdateManyWithWhereWithoutOperationInput[]
+    deleteMany?: ObjectStorageOperationPinnedGenerationScalarWhereInput | ObjectStorageOperationPinnedGenerationScalarWhereInput[]
+  }
+
+  export type ProjectPermanentDeletionArtifactPlanUpdateManyWithoutOperationNestedInput = {
+    create?: XOR<ProjectPermanentDeletionArtifactPlanCreateWithoutOperationInput, ProjectPermanentDeletionArtifactPlanUncheckedCreateWithoutOperationInput> | ProjectPermanentDeletionArtifactPlanCreateWithoutOperationInput[] | ProjectPermanentDeletionArtifactPlanUncheckedCreateWithoutOperationInput[]
+    connectOrCreate?: ProjectPermanentDeletionArtifactPlanCreateOrConnectWithoutOperationInput | ProjectPermanentDeletionArtifactPlanCreateOrConnectWithoutOperationInput[]
+    upsert?: ProjectPermanentDeletionArtifactPlanUpsertWithWhereUniqueWithoutOperationInput | ProjectPermanentDeletionArtifactPlanUpsertWithWhereUniqueWithoutOperationInput[]
+    createMany?: ProjectPermanentDeletionArtifactPlanCreateManyOperationInputEnvelope
+    set?: ProjectPermanentDeletionArtifactPlanWhereUniqueInput | ProjectPermanentDeletionArtifactPlanWhereUniqueInput[]
+    disconnect?: ProjectPermanentDeletionArtifactPlanWhereUniqueInput | ProjectPermanentDeletionArtifactPlanWhereUniqueInput[]
+    delete?: ProjectPermanentDeletionArtifactPlanWhereUniqueInput | ProjectPermanentDeletionArtifactPlanWhereUniqueInput[]
+    connect?: ProjectPermanentDeletionArtifactPlanWhereUniqueInput | ProjectPermanentDeletionArtifactPlanWhereUniqueInput[]
+    update?: ProjectPermanentDeletionArtifactPlanUpdateWithWhereUniqueWithoutOperationInput | ProjectPermanentDeletionArtifactPlanUpdateWithWhereUniqueWithoutOperationInput[]
+    updateMany?: ProjectPermanentDeletionArtifactPlanUpdateManyWithWhereWithoutOperationInput | ProjectPermanentDeletionArtifactPlanUpdateManyWithWhereWithoutOperationInput[]
+    deleteMany?: ProjectPermanentDeletionArtifactPlanScalarWhereInput | ProjectPermanentDeletionArtifactPlanScalarWhereInput[]
+  }
+
   export type ObjectStorageCapabilityReservationUpdateManyWithoutOperationNestedInput = {
     create?: XOR<ObjectStorageCapabilityReservationCreateWithoutOperationInput, ObjectStorageCapabilityReservationUncheckedCreateWithoutOperationInput> | ObjectStorageCapabilityReservationCreateWithoutOperationInput[] | ObjectStorageCapabilityReservationUncheckedCreateWithoutOperationInput[]
     connectOrCreate?: ObjectStorageCapabilityReservationCreateOrConnectWithoutOperationInput | ObjectStorageCapabilityReservationCreateOrConnectWithoutOperationInput[]
@@ -250033,6 +255084,20 @@ export namespace Prisma {
     delete?: ProjectPermanentDeletionReceiptWhereInput | boolean
     connect?: ProjectPermanentDeletionReceiptWhereUniqueInput
     update?: XOR<XOR<ProjectPermanentDeletionReceiptUpdateToOneWithWhereWithoutOperationInput, ProjectPermanentDeletionReceiptUpdateWithoutOperationInput>, ProjectPermanentDeletionReceiptUncheckedUpdateWithoutOperationInput>
+  }
+
+  export type ObjectStorageVersionGcScheduleUpdateManyWithoutLastOperationNestedInput = {
+    create?: XOR<ObjectStorageVersionGcScheduleCreateWithoutLastOperationInput, ObjectStorageVersionGcScheduleUncheckedCreateWithoutLastOperationInput> | ObjectStorageVersionGcScheduleCreateWithoutLastOperationInput[] | ObjectStorageVersionGcScheduleUncheckedCreateWithoutLastOperationInput[]
+    connectOrCreate?: ObjectStorageVersionGcScheduleCreateOrConnectWithoutLastOperationInput | ObjectStorageVersionGcScheduleCreateOrConnectWithoutLastOperationInput[]
+    upsert?: ObjectStorageVersionGcScheduleUpsertWithWhereUniqueWithoutLastOperationInput | ObjectStorageVersionGcScheduleUpsertWithWhereUniqueWithoutLastOperationInput[]
+    createMany?: ObjectStorageVersionGcScheduleCreateManyLastOperationInputEnvelope
+    set?: ObjectStorageVersionGcScheduleWhereUniqueInput | ObjectStorageVersionGcScheduleWhereUniqueInput[]
+    disconnect?: ObjectStorageVersionGcScheduleWhereUniqueInput | ObjectStorageVersionGcScheduleWhereUniqueInput[]
+    delete?: ObjectStorageVersionGcScheduleWhereUniqueInput | ObjectStorageVersionGcScheduleWhereUniqueInput[]
+    connect?: ObjectStorageVersionGcScheduleWhereUniqueInput | ObjectStorageVersionGcScheduleWhereUniqueInput[]
+    update?: ObjectStorageVersionGcScheduleUpdateWithWhereUniqueWithoutLastOperationInput | ObjectStorageVersionGcScheduleUpdateWithWhereUniqueWithoutLastOperationInput[]
+    updateMany?: ObjectStorageVersionGcScheduleUpdateManyWithWhereWithoutLastOperationInput | ObjectStorageVersionGcScheduleUpdateManyWithWhereWithoutLastOperationInput[]
+    deleteMany?: ObjectStorageVersionGcScheduleScalarWhereInput | ObjectStorageVersionGcScheduleScalarWhereInput[]
   }
 
   export type ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutOperationNestedInput = {
@@ -250063,6 +255128,34 @@ export namespace Prisma {
     deleteMany?: ObjectStorageOperationPinnedObjectScalarWhereInput | ObjectStorageOperationPinnedObjectScalarWhereInput[]
   }
 
+  export type ObjectStorageOperationPinnedGenerationUncheckedUpdateManyWithoutOperationNestedInput = {
+    create?: XOR<ObjectStorageOperationPinnedGenerationCreateWithoutOperationInput, ObjectStorageOperationPinnedGenerationUncheckedCreateWithoutOperationInput> | ObjectStorageOperationPinnedGenerationCreateWithoutOperationInput[] | ObjectStorageOperationPinnedGenerationUncheckedCreateWithoutOperationInput[]
+    connectOrCreate?: ObjectStorageOperationPinnedGenerationCreateOrConnectWithoutOperationInput | ObjectStorageOperationPinnedGenerationCreateOrConnectWithoutOperationInput[]
+    upsert?: ObjectStorageOperationPinnedGenerationUpsertWithWhereUniqueWithoutOperationInput | ObjectStorageOperationPinnedGenerationUpsertWithWhereUniqueWithoutOperationInput[]
+    createMany?: ObjectStorageOperationPinnedGenerationCreateManyOperationInputEnvelope
+    set?: ObjectStorageOperationPinnedGenerationWhereUniqueInput | ObjectStorageOperationPinnedGenerationWhereUniqueInput[]
+    disconnect?: ObjectStorageOperationPinnedGenerationWhereUniqueInput | ObjectStorageOperationPinnedGenerationWhereUniqueInput[]
+    delete?: ObjectStorageOperationPinnedGenerationWhereUniqueInput | ObjectStorageOperationPinnedGenerationWhereUniqueInput[]
+    connect?: ObjectStorageOperationPinnedGenerationWhereUniqueInput | ObjectStorageOperationPinnedGenerationWhereUniqueInput[]
+    update?: ObjectStorageOperationPinnedGenerationUpdateWithWhereUniqueWithoutOperationInput | ObjectStorageOperationPinnedGenerationUpdateWithWhereUniqueWithoutOperationInput[]
+    updateMany?: ObjectStorageOperationPinnedGenerationUpdateManyWithWhereWithoutOperationInput | ObjectStorageOperationPinnedGenerationUpdateManyWithWhereWithoutOperationInput[]
+    deleteMany?: ObjectStorageOperationPinnedGenerationScalarWhereInput | ObjectStorageOperationPinnedGenerationScalarWhereInput[]
+  }
+
+  export type ProjectPermanentDeletionArtifactPlanUncheckedUpdateManyWithoutOperationNestedInput = {
+    create?: XOR<ProjectPermanentDeletionArtifactPlanCreateWithoutOperationInput, ProjectPermanentDeletionArtifactPlanUncheckedCreateWithoutOperationInput> | ProjectPermanentDeletionArtifactPlanCreateWithoutOperationInput[] | ProjectPermanentDeletionArtifactPlanUncheckedCreateWithoutOperationInput[]
+    connectOrCreate?: ProjectPermanentDeletionArtifactPlanCreateOrConnectWithoutOperationInput | ProjectPermanentDeletionArtifactPlanCreateOrConnectWithoutOperationInput[]
+    upsert?: ProjectPermanentDeletionArtifactPlanUpsertWithWhereUniqueWithoutOperationInput | ProjectPermanentDeletionArtifactPlanUpsertWithWhereUniqueWithoutOperationInput[]
+    createMany?: ProjectPermanentDeletionArtifactPlanCreateManyOperationInputEnvelope
+    set?: ProjectPermanentDeletionArtifactPlanWhereUniqueInput | ProjectPermanentDeletionArtifactPlanWhereUniqueInput[]
+    disconnect?: ProjectPermanentDeletionArtifactPlanWhereUniqueInput | ProjectPermanentDeletionArtifactPlanWhereUniqueInput[]
+    delete?: ProjectPermanentDeletionArtifactPlanWhereUniqueInput | ProjectPermanentDeletionArtifactPlanWhereUniqueInput[]
+    connect?: ProjectPermanentDeletionArtifactPlanWhereUniqueInput | ProjectPermanentDeletionArtifactPlanWhereUniqueInput[]
+    update?: ProjectPermanentDeletionArtifactPlanUpdateWithWhereUniqueWithoutOperationInput | ProjectPermanentDeletionArtifactPlanUpdateWithWhereUniqueWithoutOperationInput[]
+    updateMany?: ProjectPermanentDeletionArtifactPlanUpdateManyWithWhereWithoutOperationInput | ProjectPermanentDeletionArtifactPlanUpdateManyWithWhereWithoutOperationInput[]
+    deleteMany?: ProjectPermanentDeletionArtifactPlanScalarWhereInput | ProjectPermanentDeletionArtifactPlanScalarWhereInput[]
+  }
+
   export type ObjectStorageCapabilityReservationUncheckedUpdateManyWithoutOperationNestedInput = {
     create?: XOR<ObjectStorageCapabilityReservationCreateWithoutOperationInput, ObjectStorageCapabilityReservationUncheckedCreateWithoutOperationInput> | ObjectStorageCapabilityReservationCreateWithoutOperationInput[] | ObjectStorageCapabilityReservationUncheckedCreateWithoutOperationInput[]
     connectOrCreate?: ObjectStorageCapabilityReservationCreateOrConnectWithoutOperationInput | ObjectStorageCapabilityReservationCreateOrConnectWithoutOperationInput[]
@@ -250087,6 +255180,20 @@ export namespace Prisma {
     update?: XOR<XOR<ProjectPermanentDeletionReceiptUpdateToOneWithWhereWithoutOperationInput, ProjectPermanentDeletionReceiptUpdateWithoutOperationInput>, ProjectPermanentDeletionReceiptUncheckedUpdateWithoutOperationInput>
   }
 
+  export type ObjectStorageVersionGcScheduleUncheckedUpdateManyWithoutLastOperationNestedInput = {
+    create?: XOR<ObjectStorageVersionGcScheduleCreateWithoutLastOperationInput, ObjectStorageVersionGcScheduleUncheckedCreateWithoutLastOperationInput> | ObjectStorageVersionGcScheduleCreateWithoutLastOperationInput[] | ObjectStorageVersionGcScheduleUncheckedCreateWithoutLastOperationInput[]
+    connectOrCreate?: ObjectStorageVersionGcScheduleCreateOrConnectWithoutLastOperationInput | ObjectStorageVersionGcScheduleCreateOrConnectWithoutLastOperationInput[]
+    upsert?: ObjectStorageVersionGcScheduleUpsertWithWhereUniqueWithoutLastOperationInput | ObjectStorageVersionGcScheduleUpsertWithWhereUniqueWithoutLastOperationInput[]
+    createMany?: ObjectStorageVersionGcScheduleCreateManyLastOperationInputEnvelope
+    set?: ObjectStorageVersionGcScheduleWhereUniqueInput | ObjectStorageVersionGcScheduleWhereUniqueInput[]
+    disconnect?: ObjectStorageVersionGcScheduleWhereUniqueInput | ObjectStorageVersionGcScheduleWhereUniqueInput[]
+    delete?: ObjectStorageVersionGcScheduleWhereUniqueInput | ObjectStorageVersionGcScheduleWhereUniqueInput[]
+    connect?: ObjectStorageVersionGcScheduleWhereUniqueInput | ObjectStorageVersionGcScheduleWhereUniqueInput[]
+    update?: ObjectStorageVersionGcScheduleUpdateWithWhereUniqueWithoutLastOperationInput | ObjectStorageVersionGcScheduleUpdateWithWhereUniqueWithoutLastOperationInput[]
+    updateMany?: ObjectStorageVersionGcScheduleUpdateManyWithWhereWithoutLastOperationInput | ObjectStorageVersionGcScheduleUpdateManyWithWhereWithoutLastOperationInput[]
+    deleteMany?: ObjectStorageVersionGcScheduleScalarWhereInput | ObjectStorageVersionGcScheduleScalarWhereInput[]
+  }
+
   export type ObjectStorageOperationCreateNestedOneWithoutPinnedObjectsInput = {
     create?: XOR<ObjectStorageOperationCreateWithoutPinnedObjectsInput, ObjectStorageOperationUncheckedCreateWithoutPinnedObjectsInput>
     connectOrCreate?: ObjectStorageOperationCreateOrConnectWithoutPinnedObjectsInput
@@ -250099,6 +255206,46 @@ export namespace Prisma {
     upsert?: ObjectStorageOperationUpsertWithoutPinnedObjectsInput
     connect?: ObjectStorageOperationWhereUniqueInput
     update?: XOR<XOR<ObjectStorageOperationUpdateToOneWithWhereWithoutPinnedObjectsInput, ObjectStorageOperationUpdateWithoutPinnedObjectsInput>, ObjectStorageOperationUncheckedUpdateWithoutPinnedObjectsInput>
+  }
+
+  export type ObjectStorageOperationCreateNestedOneWithoutPinnedGenerationsInput = {
+    create?: XOR<ObjectStorageOperationCreateWithoutPinnedGenerationsInput, ObjectStorageOperationUncheckedCreateWithoutPinnedGenerationsInput>
+    connectOrCreate?: ObjectStorageOperationCreateOrConnectWithoutPinnedGenerationsInput
+    connect?: ObjectStorageOperationWhereUniqueInput
+  }
+
+  export type ObjectStorageOperationUpdateOneRequiredWithoutPinnedGenerationsNestedInput = {
+    create?: XOR<ObjectStorageOperationCreateWithoutPinnedGenerationsInput, ObjectStorageOperationUncheckedCreateWithoutPinnedGenerationsInput>
+    connectOrCreate?: ObjectStorageOperationCreateOrConnectWithoutPinnedGenerationsInput
+    upsert?: ObjectStorageOperationUpsertWithoutPinnedGenerationsInput
+    connect?: ObjectStorageOperationWhereUniqueInput
+    update?: XOR<XOR<ObjectStorageOperationUpdateToOneWithWhereWithoutPinnedGenerationsInput, ObjectStorageOperationUpdateWithoutPinnedGenerationsInput>, ObjectStorageOperationUncheckedUpdateWithoutPinnedGenerationsInput>
+  }
+
+  export type ObjectStorageOperationCreateNestedOneWithoutPermanentDeletionArtifactsInput = {
+    create?: XOR<ObjectStorageOperationCreateWithoutPermanentDeletionArtifactsInput, ObjectStorageOperationUncheckedCreateWithoutPermanentDeletionArtifactsInput>
+    connectOrCreate?: ObjectStorageOperationCreateOrConnectWithoutPermanentDeletionArtifactsInput
+    connect?: ObjectStorageOperationWhereUniqueInput
+  }
+
+  export type EnumProjectPermanentDeletionArtifactStateFieldUpdateOperationsInput = {
+    set?: $Enums.ProjectPermanentDeletionArtifactState
+  }
+
+  export type NullableIntFieldUpdateOperationsInput = {
+    set?: number | null
+    increment?: number
+    decrement?: number
+    multiply?: number
+    divide?: number
+  }
+
+  export type ObjectStorageOperationUpdateOneRequiredWithoutPermanentDeletionArtifactsNestedInput = {
+    create?: XOR<ObjectStorageOperationCreateWithoutPermanentDeletionArtifactsInput, ObjectStorageOperationUncheckedCreateWithoutPermanentDeletionArtifactsInput>
+    connectOrCreate?: ObjectStorageOperationCreateOrConnectWithoutPermanentDeletionArtifactsInput
+    upsert?: ObjectStorageOperationUpsertWithoutPermanentDeletionArtifactsInput
+    connect?: ObjectStorageOperationWhereUniqueInput
+    update?: XOR<XOR<ObjectStorageOperationUpdateToOneWithWhereWithoutPermanentDeletionArtifactsInput, ObjectStorageOperationUpdateWithoutPermanentDeletionArtifactsInput>, ObjectStorageOperationUncheckedUpdateWithoutPermanentDeletionArtifactsInput>
   }
 
   export type ObjectStorageOperationCreateNestedOneWithoutCapabilityReservationsInput = {
@@ -250147,6 +255294,40 @@ export namespace Prisma {
     delete?: ProjectWhereInput | boolean
     connect?: ProjectWhereUniqueInput
     update?: XOR<XOR<ProjectUpdateToOneWithWhereWithoutObjectStorageOperationScopesInput, ProjectUpdateWithoutObjectStorageOperationScopesInput>, ProjectUncheckedUpdateWithoutObjectStorageOperationScopesInput>
+  }
+
+  export type ProjectCreateNestedOneWithoutObjectStorageVersionGcScheduleInput = {
+    create?: XOR<ProjectCreateWithoutObjectStorageVersionGcScheduleInput, ProjectUncheckedCreateWithoutObjectStorageVersionGcScheduleInput>
+    connectOrCreate?: ProjectCreateOrConnectWithoutObjectStorageVersionGcScheduleInput
+    connect?: ProjectWhereUniqueInput
+  }
+
+  export type ObjectStorageOperationCreateNestedOneWithoutVersionGcSchedulesInput = {
+    create?: XOR<ObjectStorageOperationCreateWithoutVersionGcSchedulesInput, ObjectStorageOperationUncheckedCreateWithoutVersionGcSchedulesInput>
+    connectOrCreate?: ObjectStorageOperationCreateOrConnectWithoutVersionGcSchedulesInput
+    connect?: ObjectStorageOperationWhereUniqueInput
+  }
+
+  export type EnumObjectStorageVersionGcStatusFieldUpdateOperationsInput = {
+    set?: $Enums.ObjectStorageVersionGcStatus
+  }
+
+  export type ProjectUpdateOneRequiredWithoutObjectStorageVersionGcScheduleNestedInput = {
+    create?: XOR<ProjectCreateWithoutObjectStorageVersionGcScheduleInput, ProjectUncheckedCreateWithoutObjectStorageVersionGcScheduleInput>
+    connectOrCreate?: ProjectCreateOrConnectWithoutObjectStorageVersionGcScheduleInput
+    upsert?: ProjectUpsertWithoutObjectStorageVersionGcScheduleInput
+    connect?: ProjectWhereUniqueInput
+    update?: XOR<XOR<ProjectUpdateToOneWithWhereWithoutObjectStorageVersionGcScheduleInput, ProjectUpdateWithoutObjectStorageVersionGcScheduleInput>, ProjectUncheckedUpdateWithoutObjectStorageVersionGcScheduleInput>
+  }
+
+  export type ObjectStorageOperationUpdateOneWithoutVersionGcSchedulesNestedInput = {
+    create?: XOR<ObjectStorageOperationCreateWithoutVersionGcSchedulesInput, ObjectStorageOperationUncheckedCreateWithoutVersionGcSchedulesInput>
+    connectOrCreate?: ObjectStorageOperationCreateOrConnectWithoutVersionGcSchedulesInput
+    upsert?: ObjectStorageOperationUpsertWithoutVersionGcSchedulesInput
+    disconnect?: ObjectStorageOperationWhereInput | boolean
+    delete?: ObjectStorageOperationWhereInput | boolean
+    connect?: ObjectStorageOperationWhereUniqueInput
+    update?: XOR<XOR<ObjectStorageOperationUpdateToOneWithWhereWithoutVersionGcSchedulesInput, ObjectStorageOperationUpdateWithoutVersionGcSchedulesInput>, ObjectStorageOperationUncheckedUpdateWithoutVersionGcSchedulesInput>
   }
 
   export type ObjectStorageOperationCreateNestedOneWithoutPermanentDeletionReceiptInput = {
@@ -250479,14 +255660,6 @@ export namespace Prisma {
     create?: XOR<UserCreateWithoutCollaborationCommentsInput, UserUncheckedCreateWithoutCollaborationCommentsInput>
     connectOrCreate?: UserCreateOrConnectWithoutCollaborationCommentsInput
     connect?: UserWhereUniqueInput
-  }
-
-  export type NullableIntFieldUpdateOperationsInput = {
-    set?: number | null
-    increment?: number
-    decrement?: number
-    multiply?: number
-    divide?: number
   }
 
   export type ProjectUpdateOneRequiredWithoutCollaborationCommentsNestedInput = {
@@ -255516,37 +260689,21 @@ export namespace Prisma {
     _max?: NestedBigIntFilter<$PrismaModel>
   }
 
-  export type NestedEnumObjectStorageCapabilityReservationStatusFilter<$PrismaModel = never> = {
-    equals?: $Enums.ObjectStorageCapabilityReservationStatus | EnumObjectStorageCapabilityReservationStatusFieldRefInput<$PrismaModel>
-    in?: $Enums.ObjectStorageCapabilityReservationStatus[] | ListEnumObjectStorageCapabilityReservationStatusFieldRefInput<$PrismaModel>
-    notIn?: $Enums.ObjectStorageCapabilityReservationStatus[] | ListEnumObjectStorageCapabilityReservationStatusFieldRefInput<$PrismaModel>
-    not?: NestedEnumObjectStorageCapabilityReservationStatusFilter<$PrismaModel> | $Enums.ObjectStorageCapabilityReservationStatus
+  export type NestedEnumProjectPermanentDeletionArtifactStateFilter<$PrismaModel = never> = {
+    equals?: $Enums.ProjectPermanentDeletionArtifactState | EnumProjectPermanentDeletionArtifactStateFieldRefInput<$PrismaModel>
+    in?: $Enums.ProjectPermanentDeletionArtifactState[] | ListEnumProjectPermanentDeletionArtifactStateFieldRefInput<$PrismaModel>
+    notIn?: $Enums.ProjectPermanentDeletionArtifactState[] | ListEnumProjectPermanentDeletionArtifactStateFieldRefInput<$PrismaModel>
+    not?: NestedEnumProjectPermanentDeletionArtifactStateFilter<$PrismaModel> | $Enums.ProjectPermanentDeletionArtifactState
   }
 
-  export type NestedEnumObjectStorageCapabilityReservationStatusWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: $Enums.ObjectStorageCapabilityReservationStatus | EnumObjectStorageCapabilityReservationStatusFieldRefInput<$PrismaModel>
-    in?: $Enums.ObjectStorageCapabilityReservationStatus[] | ListEnumObjectStorageCapabilityReservationStatusFieldRefInput<$PrismaModel>
-    notIn?: $Enums.ObjectStorageCapabilityReservationStatus[] | ListEnumObjectStorageCapabilityReservationStatusFieldRefInput<$PrismaModel>
-    not?: NestedEnumObjectStorageCapabilityReservationStatusWithAggregatesFilter<$PrismaModel> | $Enums.ObjectStorageCapabilityReservationStatus
+  export type NestedEnumProjectPermanentDeletionArtifactStateWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.ProjectPermanentDeletionArtifactState | EnumProjectPermanentDeletionArtifactStateFieldRefInput<$PrismaModel>
+    in?: $Enums.ProjectPermanentDeletionArtifactState[] | ListEnumProjectPermanentDeletionArtifactStateFieldRefInput<$PrismaModel>
+    notIn?: $Enums.ProjectPermanentDeletionArtifactState[] | ListEnumProjectPermanentDeletionArtifactStateFieldRefInput<$PrismaModel>
+    not?: NestedEnumProjectPermanentDeletionArtifactStateWithAggregatesFilter<$PrismaModel> | $Enums.ProjectPermanentDeletionArtifactState
     _count?: NestedIntFilter<$PrismaModel>
-    _min?: NestedEnumObjectStorageCapabilityReservationStatusFilter<$PrismaModel>
-    _max?: NestedEnumObjectStorageCapabilityReservationStatusFilter<$PrismaModel>
-  }
-
-  export type NestedFloatWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: number | FloatFieldRefInput<$PrismaModel>
-    in?: number[] | ListFloatFieldRefInput<$PrismaModel>
-    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel>
-    lt?: number | FloatFieldRefInput<$PrismaModel>
-    lte?: number | FloatFieldRefInput<$PrismaModel>
-    gt?: number | FloatFieldRefInput<$PrismaModel>
-    gte?: number | FloatFieldRefInput<$PrismaModel>
-    not?: NestedFloatWithAggregatesFilter<$PrismaModel> | number
-    _count?: NestedIntFilter<$PrismaModel>
-    _avg?: NestedFloatFilter<$PrismaModel>
-    _sum?: NestedFloatFilter<$PrismaModel>
-    _min?: NestedFloatFilter<$PrismaModel>
-    _max?: NestedFloatFilter<$PrismaModel>
+    _min?: NestedEnumProjectPermanentDeletionArtifactStateFilter<$PrismaModel>
+    _max?: NestedEnumProjectPermanentDeletionArtifactStateFilter<$PrismaModel>
   }
 
   export type NestedIntNullableWithAggregatesFilter<$PrismaModel = never> = {
@@ -255574,6 +260731,56 @@ export namespace Prisma {
     gt?: number | FloatFieldRefInput<$PrismaModel>
     gte?: number | FloatFieldRefInput<$PrismaModel>
     not?: NestedFloatNullableFilter<$PrismaModel> | number | null
+  }
+
+  export type NestedEnumObjectStorageCapabilityReservationStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.ObjectStorageCapabilityReservationStatus | EnumObjectStorageCapabilityReservationStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.ObjectStorageCapabilityReservationStatus[] | ListEnumObjectStorageCapabilityReservationStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.ObjectStorageCapabilityReservationStatus[] | ListEnumObjectStorageCapabilityReservationStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumObjectStorageCapabilityReservationStatusFilter<$PrismaModel> | $Enums.ObjectStorageCapabilityReservationStatus
+  }
+
+  export type NestedEnumObjectStorageCapabilityReservationStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.ObjectStorageCapabilityReservationStatus | EnumObjectStorageCapabilityReservationStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.ObjectStorageCapabilityReservationStatus[] | ListEnumObjectStorageCapabilityReservationStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.ObjectStorageCapabilityReservationStatus[] | ListEnumObjectStorageCapabilityReservationStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumObjectStorageCapabilityReservationStatusWithAggregatesFilter<$PrismaModel> | $Enums.ObjectStorageCapabilityReservationStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumObjectStorageCapabilityReservationStatusFilter<$PrismaModel>
+    _max?: NestedEnumObjectStorageCapabilityReservationStatusFilter<$PrismaModel>
+  }
+
+  export type NestedEnumObjectStorageVersionGcStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.ObjectStorageVersionGcStatus | EnumObjectStorageVersionGcStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.ObjectStorageVersionGcStatus[] | ListEnumObjectStorageVersionGcStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.ObjectStorageVersionGcStatus[] | ListEnumObjectStorageVersionGcStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumObjectStorageVersionGcStatusFilter<$PrismaModel> | $Enums.ObjectStorageVersionGcStatus
+  }
+
+  export type NestedEnumObjectStorageVersionGcStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.ObjectStorageVersionGcStatus | EnumObjectStorageVersionGcStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.ObjectStorageVersionGcStatus[] | ListEnumObjectStorageVersionGcStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.ObjectStorageVersionGcStatus[] | ListEnumObjectStorageVersionGcStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumObjectStorageVersionGcStatusWithAggregatesFilter<$PrismaModel> | $Enums.ObjectStorageVersionGcStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumObjectStorageVersionGcStatusFilter<$PrismaModel>
+    _max?: NestedEnumObjectStorageVersionGcStatusFilter<$PrismaModel>
+  }
+
+  export type NestedFloatWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: number | FloatFieldRefInput<$PrismaModel>
+    in?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    lt?: number | FloatFieldRefInput<$PrismaModel>
+    lte?: number | FloatFieldRefInput<$PrismaModel>
+    gt?: number | FloatFieldRefInput<$PrismaModel>
+    gte?: number | FloatFieldRefInput<$PrismaModel>
+    not?: NestedFloatWithAggregatesFilter<$PrismaModel> | number
+    _count?: NestedIntFilter<$PrismaModel>
+    _avg?: NestedFloatFilter<$PrismaModel>
+    _sum?: NestedFloatFilter<$PrismaModel>
+    _min?: NestedFloatFilter<$PrismaModel>
+    _max?: NestedFloatFilter<$PrismaModel>
   }
 
   export type NestedEnumCollaborationGroupSourceFilter<$PrismaModel = never> = {
@@ -260337,6 +265544,7 @@ export namespace Prisma {
 
   export type ProjectCreateWithoutOrganizationInput = {
     id?: string
+    ownershipEpoch?: number
     name: string
     slug: string
     description?: string | null
@@ -260390,10 +265598,12 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
     releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutOrganizationInput = {
     id?: string
+    ownershipEpoch?: number
     name: string
     slug: string
     description?: string | null
@@ -260447,6 +265657,7 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
     releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutOrganizationInput = {
@@ -261739,6 +266950,7 @@ export namespace Prisma {
     NOT?: ProjectScalarWhereInput | ProjectScalarWhereInput[]
     id?: StringFilter<"Project"> | string
     organizationId?: StringFilter<"Project"> | string
+    ownershipEpoch?: IntFilter<"Project"> | number
     name?: StringFilter<"Project"> | string
     slug?: StringFilter<"Project"> | string
     description?: StringNullableFilter<"Project"> | string | null
@@ -265977,6 +271189,45 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type ObjectStorageVersionGcScheduleCreateWithoutProjectInput = {
+    expectedOrganizationId: string
+    status?: $Enums.ObjectStorageVersionGcStatus
+    notBefore: Date | string
+    nextAttemptAt: Date | string
+    ownerToken?: string | null
+    fencingToken?: bigint | number
+    leaseExpiresAt?: Date | string | null
+    attempts?: number
+    lastErrorCode?: string | null
+    lastErrorMessage?: string | null
+    requestedAt?: Date | string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    lastOperation?: ObjectStorageOperationCreateNestedOneWithoutVersionGcSchedulesInput
+  }
+
+  export type ObjectStorageVersionGcScheduleUncheckedCreateWithoutProjectInput = {
+    expectedOrganizationId: string
+    status?: $Enums.ObjectStorageVersionGcStatus
+    notBefore: Date | string
+    nextAttemptAt: Date | string
+    ownerToken?: string | null
+    fencingToken?: bigint | number
+    leaseExpiresAt?: Date | string | null
+    attempts?: number
+    lastOperationId?: string | null
+    lastErrorCode?: string | null
+    lastErrorMessage?: string | null
+    requestedAt?: Date | string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ObjectStorageVersionGcScheduleCreateOrConnectWithoutProjectInput = {
+    where: ObjectStorageVersionGcScheduleWhereUniqueInput
+    create: XOR<ObjectStorageVersionGcScheduleCreateWithoutProjectInput, ObjectStorageVersionGcScheduleUncheckedCreateWithoutProjectInput>
+  }
+
   export type OrganizationUpsertWithoutProjectsInput = {
     update: XOR<OrganizationUpdateWithoutProjectsInput, OrganizationUncheckedUpdateWithoutProjectsInput>
     create: XOR<OrganizationCreateWithoutProjectsInput, OrganizationUncheckedCreateWithoutProjectsInput>
@@ -267041,6 +272292,51 @@ export namespace Prisma {
     createdAt?: DateTimeFilter<"ObjectStorageOperationProjectScope"> | Date | string
   }
 
+  export type ObjectStorageVersionGcScheduleUpsertWithoutProjectInput = {
+    update: XOR<ObjectStorageVersionGcScheduleUpdateWithoutProjectInput, ObjectStorageVersionGcScheduleUncheckedUpdateWithoutProjectInput>
+    create: XOR<ObjectStorageVersionGcScheduleCreateWithoutProjectInput, ObjectStorageVersionGcScheduleUncheckedCreateWithoutProjectInput>
+    where?: ObjectStorageVersionGcScheduleWhereInput
+  }
+
+  export type ObjectStorageVersionGcScheduleUpdateToOneWithWhereWithoutProjectInput = {
+    where?: ObjectStorageVersionGcScheduleWhereInput
+    data: XOR<ObjectStorageVersionGcScheduleUpdateWithoutProjectInput, ObjectStorageVersionGcScheduleUncheckedUpdateWithoutProjectInput>
+  }
+
+  export type ObjectStorageVersionGcScheduleUpdateWithoutProjectInput = {
+    expectedOrganizationId?: StringFieldUpdateOperationsInput | string
+    status?: EnumObjectStorageVersionGcStatusFieldUpdateOperationsInput | $Enums.ObjectStorageVersionGcStatus
+    notBefore?: DateTimeFieldUpdateOperationsInput | Date | string
+    nextAttemptAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    ownerToken?: NullableStringFieldUpdateOperationsInput | string | null
+    fencingToken?: BigIntFieldUpdateOperationsInput | bigint | number
+    leaseExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    attempts?: IntFieldUpdateOperationsInput | number
+    lastErrorCode?: NullableStringFieldUpdateOperationsInput | string | null
+    lastErrorMessage?: NullableStringFieldUpdateOperationsInput | string | null
+    requestedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    lastOperation?: ObjectStorageOperationUpdateOneWithoutVersionGcSchedulesNestedInput
+  }
+
+  export type ObjectStorageVersionGcScheduleUncheckedUpdateWithoutProjectInput = {
+    expectedOrganizationId?: StringFieldUpdateOperationsInput | string
+    status?: EnumObjectStorageVersionGcStatusFieldUpdateOperationsInput | $Enums.ObjectStorageVersionGcStatus
+    notBefore?: DateTimeFieldUpdateOperationsInput | Date | string
+    nextAttemptAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    ownerToken?: NullableStringFieldUpdateOperationsInput | string | null
+    fencingToken?: BigIntFieldUpdateOperationsInput | bigint | number
+    leaseExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    attempts?: IntFieldUpdateOperationsInput | number
+    lastOperationId?: NullableStringFieldUpdateOperationsInput | string | null
+    lastErrorCode?: NullableStringFieldUpdateOperationsInput | string | null
+    lastErrorMessage?: NullableStringFieldUpdateOperationsInput | string | null
+    requestedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type ObjectStorageOperationProjectScopeCreateWithoutOperationInput = {
     ordinal: number
     projectIdSnapshot: string
@@ -267096,6 +272392,66 @@ export namespace Prisma {
 
   export type ObjectStorageOperationPinnedObjectCreateManyOperationInputEnvelope = {
     data: ObjectStorageOperationPinnedObjectCreateManyOperationInput | ObjectStorageOperationPinnedObjectCreateManyOperationInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type ObjectStorageOperationPinnedGenerationCreateWithoutOperationInput = {
+    ordinal: number
+    key: string
+    generation: string
+    size: bigint | number
+    contentHash?: string | null
+  }
+
+  export type ObjectStorageOperationPinnedGenerationUncheckedCreateWithoutOperationInput = {
+    ordinal: number
+    key: string
+    generation: string
+    size: bigint | number
+    contentHash?: string | null
+  }
+
+  export type ObjectStorageOperationPinnedGenerationCreateOrConnectWithoutOperationInput = {
+    where: ObjectStorageOperationPinnedGenerationWhereUniqueInput
+    create: XOR<ObjectStorageOperationPinnedGenerationCreateWithoutOperationInput, ObjectStorageOperationPinnedGenerationUncheckedCreateWithoutOperationInput>
+  }
+
+  export type ObjectStorageOperationPinnedGenerationCreateManyOperationInputEnvelope = {
+    data: ObjectStorageOperationPinnedGenerationCreateManyOperationInput | ObjectStorageOperationPinnedGenerationCreateManyOperationInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type ProjectPermanentDeletionArtifactPlanCreateWithoutOperationInput = {
+    ordinal: number
+    artifactRef: string
+    artifactDigest: string
+    projectReferenceCount: number
+    plannedOtherReferenceCount: number
+    state?: $Enums.ProjectPermanentDeletionArtifactState
+    finalOtherReferenceCount?: number | null
+    processedAt?: Date | string | null
+    createdAt?: Date | string
+  }
+
+  export type ProjectPermanentDeletionArtifactPlanUncheckedCreateWithoutOperationInput = {
+    ordinal: number
+    artifactRef: string
+    artifactDigest: string
+    projectReferenceCount: number
+    plannedOtherReferenceCount: number
+    state?: $Enums.ProjectPermanentDeletionArtifactState
+    finalOtherReferenceCount?: number | null
+    processedAt?: Date | string | null
+    createdAt?: Date | string
+  }
+
+  export type ProjectPermanentDeletionArtifactPlanCreateOrConnectWithoutOperationInput = {
+    where: ProjectPermanentDeletionArtifactPlanWhereUniqueInput
+    create: XOR<ProjectPermanentDeletionArtifactPlanCreateWithoutOperationInput, ProjectPermanentDeletionArtifactPlanUncheckedCreateWithoutOperationInput>
+  }
+
+  export type ProjectPermanentDeletionArtifactPlanCreateManyOperationInputEnvelope = {
+    data: ProjectPermanentDeletionArtifactPlanCreateManyOperationInput | ProjectPermanentDeletionArtifactPlanCreateManyOperationInput[]
     skipDuplicates?: boolean
   }
 
@@ -267176,6 +272532,50 @@ export namespace Prisma {
     create: XOR<ProjectPermanentDeletionReceiptCreateWithoutOperationInput, ProjectPermanentDeletionReceiptUncheckedCreateWithoutOperationInput>
   }
 
+  export type ObjectStorageVersionGcScheduleCreateWithoutLastOperationInput = {
+    expectedOrganizationId: string
+    status?: $Enums.ObjectStorageVersionGcStatus
+    notBefore: Date | string
+    nextAttemptAt: Date | string
+    ownerToken?: string | null
+    fencingToken?: bigint | number
+    leaseExpiresAt?: Date | string | null
+    attempts?: number
+    lastErrorCode?: string | null
+    lastErrorMessage?: string | null
+    requestedAt?: Date | string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    project: ProjectCreateNestedOneWithoutObjectStorageVersionGcScheduleInput
+  }
+
+  export type ObjectStorageVersionGcScheduleUncheckedCreateWithoutLastOperationInput = {
+    projectId: string
+    expectedOrganizationId: string
+    status?: $Enums.ObjectStorageVersionGcStatus
+    notBefore: Date | string
+    nextAttemptAt: Date | string
+    ownerToken?: string | null
+    fencingToken?: bigint | number
+    leaseExpiresAt?: Date | string | null
+    attempts?: number
+    lastErrorCode?: string | null
+    lastErrorMessage?: string | null
+    requestedAt?: Date | string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ObjectStorageVersionGcScheduleCreateOrConnectWithoutLastOperationInput = {
+    where: ObjectStorageVersionGcScheduleWhereUniqueInput
+    create: XOR<ObjectStorageVersionGcScheduleCreateWithoutLastOperationInput, ObjectStorageVersionGcScheduleUncheckedCreateWithoutLastOperationInput>
+  }
+
+  export type ObjectStorageVersionGcScheduleCreateManyLastOperationInputEnvelope = {
+    data: ObjectStorageVersionGcScheduleCreateManyLastOperationInput | ObjectStorageVersionGcScheduleCreateManyLastOperationInput[]
+    skipDuplicates?: boolean
+  }
+
   export type ObjectStorageOperationProjectScopeUpsertWithWhereUniqueWithoutOperationInput = {
     where: ObjectStorageOperationProjectScopeWhereUniqueInput
     update: XOR<ObjectStorageOperationProjectScopeUpdateWithoutOperationInput, ObjectStorageOperationProjectScopeUncheckedUpdateWithoutOperationInput>
@@ -267218,6 +272618,66 @@ export namespace Prisma {
     size?: BigIntFilter<"ObjectStorageOperationPinnedObject"> | bigint | number
     generation?: StringFilter<"ObjectStorageOperationPinnedObject"> | string
     contentHash?: StringFilter<"ObjectStorageOperationPinnedObject"> | string
+  }
+
+  export type ObjectStorageOperationPinnedGenerationUpsertWithWhereUniqueWithoutOperationInput = {
+    where: ObjectStorageOperationPinnedGenerationWhereUniqueInput
+    update: XOR<ObjectStorageOperationPinnedGenerationUpdateWithoutOperationInput, ObjectStorageOperationPinnedGenerationUncheckedUpdateWithoutOperationInput>
+    create: XOR<ObjectStorageOperationPinnedGenerationCreateWithoutOperationInput, ObjectStorageOperationPinnedGenerationUncheckedCreateWithoutOperationInput>
+  }
+
+  export type ObjectStorageOperationPinnedGenerationUpdateWithWhereUniqueWithoutOperationInput = {
+    where: ObjectStorageOperationPinnedGenerationWhereUniqueInput
+    data: XOR<ObjectStorageOperationPinnedGenerationUpdateWithoutOperationInput, ObjectStorageOperationPinnedGenerationUncheckedUpdateWithoutOperationInput>
+  }
+
+  export type ObjectStorageOperationPinnedGenerationUpdateManyWithWhereWithoutOperationInput = {
+    where: ObjectStorageOperationPinnedGenerationScalarWhereInput
+    data: XOR<ObjectStorageOperationPinnedGenerationUpdateManyMutationInput, ObjectStorageOperationPinnedGenerationUncheckedUpdateManyWithoutOperationInput>
+  }
+
+  export type ObjectStorageOperationPinnedGenerationScalarWhereInput = {
+    AND?: ObjectStorageOperationPinnedGenerationScalarWhereInput | ObjectStorageOperationPinnedGenerationScalarWhereInput[]
+    OR?: ObjectStorageOperationPinnedGenerationScalarWhereInput[]
+    NOT?: ObjectStorageOperationPinnedGenerationScalarWhereInput | ObjectStorageOperationPinnedGenerationScalarWhereInput[]
+    operationId?: StringFilter<"ObjectStorageOperationPinnedGeneration"> | string
+    ordinal?: IntFilter<"ObjectStorageOperationPinnedGeneration"> | number
+    key?: StringFilter<"ObjectStorageOperationPinnedGeneration"> | string
+    generation?: StringFilter<"ObjectStorageOperationPinnedGeneration"> | string
+    size?: BigIntFilter<"ObjectStorageOperationPinnedGeneration"> | bigint | number
+    contentHash?: StringNullableFilter<"ObjectStorageOperationPinnedGeneration"> | string | null
+  }
+
+  export type ProjectPermanentDeletionArtifactPlanUpsertWithWhereUniqueWithoutOperationInput = {
+    where: ProjectPermanentDeletionArtifactPlanWhereUniqueInput
+    update: XOR<ProjectPermanentDeletionArtifactPlanUpdateWithoutOperationInput, ProjectPermanentDeletionArtifactPlanUncheckedUpdateWithoutOperationInput>
+    create: XOR<ProjectPermanentDeletionArtifactPlanCreateWithoutOperationInput, ProjectPermanentDeletionArtifactPlanUncheckedCreateWithoutOperationInput>
+  }
+
+  export type ProjectPermanentDeletionArtifactPlanUpdateWithWhereUniqueWithoutOperationInput = {
+    where: ProjectPermanentDeletionArtifactPlanWhereUniqueInput
+    data: XOR<ProjectPermanentDeletionArtifactPlanUpdateWithoutOperationInput, ProjectPermanentDeletionArtifactPlanUncheckedUpdateWithoutOperationInput>
+  }
+
+  export type ProjectPermanentDeletionArtifactPlanUpdateManyWithWhereWithoutOperationInput = {
+    where: ProjectPermanentDeletionArtifactPlanScalarWhereInput
+    data: XOR<ProjectPermanentDeletionArtifactPlanUpdateManyMutationInput, ProjectPermanentDeletionArtifactPlanUncheckedUpdateManyWithoutOperationInput>
+  }
+
+  export type ProjectPermanentDeletionArtifactPlanScalarWhereInput = {
+    AND?: ProjectPermanentDeletionArtifactPlanScalarWhereInput | ProjectPermanentDeletionArtifactPlanScalarWhereInput[]
+    OR?: ProjectPermanentDeletionArtifactPlanScalarWhereInput[]
+    NOT?: ProjectPermanentDeletionArtifactPlanScalarWhereInput | ProjectPermanentDeletionArtifactPlanScalarWhereInput[]
+    operationId?: StringFilter<"ProjectPermanentDeletionArtifactPlan"> | string
+    ordinal?: IntFilter<"ProjectPermanentDeletionArtifactPlan"> | number
+    artifactRef?: StringFilter<"ProjectPermanentDeletionArtifactPlan"> | string
+    artifactDigest?: StringFilter<"ProjectPermanentDeletionArtifactPlan"> | string
+    projectReferenceCount?: IntFilter<"ProjectPermanentDeletionArtifactPlan"> | number
+    plannedOtherReferenceCount?: IntFilter<"ProjectPermanentDeletionArtifactPlan"> | number
+    state?: EnumProjectPermanentDeletionArtifactStateFilter<"ProjectPermanentDeletionArtifactPlan"> | $Enums.ProjectPermanentDeletionArtifactState
+    finalOtherReferenceCount?: IntNullableFilter<"ProjectPermanentDeletionArtifactPlan"> | number | null
+    processedAt?: DateTimeNullableFilter<"ProjectPermanentDeletionArtifactPlan"> | Date | string | null
+    createdAt?: DateTimeFilter<"ProjectPermanentDeletionArtifactPlan"> | Date | string
   }
 
   export type ObjectStorageCapabilityReservationUpsertWithWhereUniqueWithoutOperationInput = {
@@ -267299,6 +272759,43 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type ObjectStorageVersionGcScheduleUpsertWithWhereUniqueWithoutLastOperationInput = {
+    where: ObjectStorageVersionGcScheduleWhereUniqueInput
+    update: XOR<ObjectStorageVersionGcScheduleUpdateWithoutLastOperationInput, ObjectStorageVersionGcScheduleUncheckedUpdateWithoutLastOperationInput>
+    create: XOR<ObjectStorageVersionGcScheduleCreateWithoutLastOperationInput, ObjectStorageVersionGcScheduleUncheckedCreateWithoutLastOperationInput>
+  }
+
+  export type ObjectStorageVersionGcScheduleUpdateWithWhereUniqueWithoutLastOperationInput = {
+    where: ObjectStorageVersionGcScheduleWhereUniqueInput
+    data: XOR<ObjectStorageVersionGcScheduleUpdateWithoutLastOperationInput, ObjectStorageVersionGcScheduleUncheckedUpdateWithoutLastOperationInput>
+  }
+
+  export type ObjectStorageVersionGcScheduleUpdateManyWithWhereWithoutLastOperationInput = {
+    where: ObjectStorageVersionGcScheduleScalarWhereInput
+    data: XOR<ObjectStorageVersionGcScheduleUpdateManyMutationInput, ObjectStorageVersionGcScheduleUncheckedUpdateManyWithoutLastOperationInput>
+  }
+
+  export type ObjectStorageVersionGcScheduleScalarWhereInput = {
+    AND?: ObjectStorageVersionGcScheduleScalarWhereInput | ObjectStorageVersionGcScheduleScalarWhereInput[]
+    OR?: ObjectStorageVersionGcScheduleScalarWhereInput[]
+    NOT?: ObjectStorageVersionGcScheduleScalarWhereInput | ObjectStorageVersionGcScheduleScalarWhereInput[]
+    projectId?: StringFilter<"ObjectStorageVersionGcSchedule"> | string
+    expectedOrganizationId?: StringFilter<"ObjectStorageVersionGcSchedule"> | string
+    status?: EnumObjectStorageVersionGcStatusFilter<"ObjectStorageVersionGcSchedule"> | $Enums.ObjectStorageVersionGcStatus
+    notBefore?: DateTimeFilter<"ObjectStorageVersionGcSchedule"> | Date | string
+    nextAttemptAt?: DateTimeFilter<"ObjectStorageVersionGcSchedule"> | Date | string
+    ownerToken?: StringNullableFilter<"ObjectStorageVersionGcSchedule"> | string | null
+    fencingToken?: BigIntFilter<"ObjectStorageVersionGcSchedule"> | bigint | number
+    leaseExpiresAt?: DateTimeNullableFilter<"ObjectStorageVersionGcSchedule"> | Date | string | null
+    attempts?: IntFilter<"ObjectStorageVersionGcSchedule"> | number
+    lastOperationId?: StringNullableFilter<"ObjectStorageVersionGcSchedule"> | string | null
+    lastErrorCode?: StringNullableFilter<"ObjectStorageVersionGcSchedule"> | string | null
+    lastErrorMessage?: StringNullableFilter<"ObjectStorageVersionGcSchedule"> | string | null
+    requestedAt?: DateTimeFilter<"ObjectStorageVersionGcSchedule"> | Date | string
+    createdAt?: DateTimeFilter<"ObjectStorageVersionGcSchedule"> | Date | string
+    updatedAt?: DateTimeFilter<"ObjectStorageVersionGcSchedule"> | Date | string
+  }
+
   export type ObjectStorageOperationCreateWithoutPinnedObjectsInput = {
     id?: string
     kind: $Enums.ObjectStorageOperationKind
@@ -267327,8 +272824,11 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     scopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutOperationInput
+    pinnedGenerations?: ObjectStorageOperationPinnedGenerationCreateNestedManyWithoutOperationInput
+    permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanCreateNestedManyWithoutOperationInput
     capabilityReservations?: ObjectStorageCapabilityReservationCreateNestedManyWithoutOperationInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptCreateNestedOneWithoutOperationInput
+    versionGcSchedules?: ObjectStorageVersionGcScheduleCreateNestedManyWithoutLastOperationInput
   }
 
   export type ObjectStorageOperationUncheckedCreateWithoutPinnedObjectsInput = {
@@ -267359,8 +272859,11 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     scopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutOperationInput
+    pinnedGenerations?: ObjectStorageOperationPinnedGenerationUncheckedCreateNestedManyWithoutOperationInput
+    permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanUncheckedCreateNestedManyWithoutOperationInput
     capabilityReservations?: ObjectStorageCapabilityReservationUncheckedCreateNestedManyWithoutOperationInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUncheckedCreateNestedOneWithoutOperationInput
+    versionGcSchedules?: ObjectStorageVersionGcScheduleUncheckedCreateNestedManyWithoutLastOperationInput
   }
 
   export type ObjectStorageOperationCreateOrConnectWithoutPinnedObjectsInput = {
@@ -267407,8 +272910,11 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     scopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutOperationNestedInput
+    pinnedGenerations?: ObjectStorageOperationPinnedGenerationUpdateManyWithoutOperationNestedInput
+    permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanUpdateManyWithoutOperationNestedInput
     capabilityReservations?: ObjectStorageCapabilityReservationUpdateManyWithoutOperationNestedInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUpdateOneWithoutOperationNestedInput
+    versionGcSchedules?: ObjectStorageVersionGcScheduleUpdateManyWithoutLastOperationNestedInput
   }
 
   export type ObjectStorageOperationUncheckedUpdateWithoutPinnedObjectsInput = {
@@ -267439,8 +272945,323 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     scopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutOperationNestedInput
+    pinnedGenerations?: ObjectStorageOperationPinnedGenerationUncheckedUpdateManyWithoutOperationNestedInput
+    permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanUncheckedUpdateManyWithoutOperationNestedInput
     capabilityReservations?: ObjectStorageCapabilityReservationUncheckedUpdateManyWithoutOperationNestedInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUncheckedUpdateOneWithoutOperationNestedInput
+    versionGcSchedules?: ObjectStorageVersionGcScheduleUncheckedUpdateManyWithoutLastOperationNestedInput
+  }
+
+  export type ObjectStorageOperationCreateWithoutPinnedGenerationsInput = {
+    id?: string
+    kind: $Enums.ObjectStorageOperationKind
+    status?: $Enums.ObjectStorageOperationStatus
+    scopeHash: string
+    idempotencyScopeHash: string
+    idempotencyKey: string
+    requestHash: string
+    payload: JsonNullValueInput | InputJsonValue
+    preconditions: JsonNullValueInput | InputJsonValue
+    evidence?: NullableJsonNullValueInput | InputJsonValue
+    result?: NullableJsonNullValueInput | InputJsonValue
+    reservedCapabilityExpiresAt?: Date | string | null
+    ownerToken?: string | null
+    fencingToken?: bigint | number
+    leaseExpiresAt?: Date | string | null
+    attempts?: number
+    lastErrorCode?: string | null
+    lastErrorMessage?: string | null
+    preparedAt?: Date | string
+    effectStartedAt?: Date | string | null
+    verificationStartedAt?: Date | string | null
+    committedAt?: Date | string | null
+    failedSafeAt?: Date | string | null
+    manualRecoveryAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    scopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutOperationInput
+    pinnedObjects?: ObjectStorageOperationPinnedObjectCreateNestedManyWithoutOperationInput
+    permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanCreateNestedManyWithoutOperationInput
+    capabilityReservations?: ObjectStorageCapabilityReservationCreateNestedManyWithoutOperationInput
+    permanentDeletionReceipt?: ProjectPermanentDeletionReceiptCreateNestedOneWithoutOperationInput
+    versionGcSchedules?: ObjectStorageVersionGcScheduleCreateNestedManyWithoutLastOperationInput
+  }
+
+  export type ObjectStorageOperationUncheckedCreateWithoutPinnedGenerationsInput = {
+    id?: string
+    kind: $Enums.ObjectStorageOperationKind
+    status?: $Enums.ObjectStorageOperationStatus
+    scopeHash: string
+    idempotencyScopeHash: string
+    idempotencyKey: string
+    requestHash: string
+    payload: JsonNullValueInput | InputJsonValue
+    preconditions: JsonNullValueInput | InputJsonValue
+    evidence?: NullableJsonNullValueInput | InputJsonValue
+    result?: NullableJsonNullValueInput | InputJsonValue
+    reservedCapabilityExpiresAt?: Date | string | null
+    ownerToken?: string | null
+    fencingToken?: bigint | number
+    leaseExpiresAt?: Date | string | null
+    attempts?: number
+    lastErrorCode?: string | null
+    lastErrorMessage?: string | null
+    preparedAt?: Date | string
+    effectStartedAt?: Date | string | null
+    verificationStartedAt?: Date | string | null
+    committedAt?: Date | string | null
+    failedSafeAt?: Date | string | null
+    manualRecoveryAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    scopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutOperationInput
+    pinnedObjects?: ObjectStorageOperationPinnedObjectUncheckedCreateNestedManyWithoutOperationInput
+    permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanUncheckedCreateNestedManyWithoutOperationInput
+    capabilityReservations?: ObjectStorageCapabilityReservationUncheckedCreateNestedManyWithoutOperationInput
+    permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUncheckedCreateNestedOneWithoutOperationInput
+    versionGcSchedules?: ObjectStorageVersionGcScheduleUncheckedCreateNestedManyWithoutLastOperationInput
+  }
+
+  export type ObjectStorageOperationCreateOrConnectWithoutPinnedGenerationsInput = {
+    where: ObjectStorageOperationWhereUniqueInput
+    create: XOR<ObjectStorageOperationCreateWithoutPinnedGenerationsInput, ObjectStorageOperationUncheckedCreateWithoutPinnedGenerationsInput>
+  }
+
+  export type ObjectStorageOperationUpsertWithoutPinnedGenerationsInput = {
+    update: XOR<ObjectStorageOperationUpdateWithoutPinnedGenerationsInput, ObjectStorageOperationUncheckedUpdateWithoutPinnedGenerationsInput>
+    create: XOR<ObjectStorageOperationCreateWithoutPinnedGenerationsInput, ObjectStorageOperationUncheckedCreateWithoutPinnedGenerationsInput>
+    where?: ObjectStorageOperationWhereInput
+  }
+
+  export type ObjectStorageOperationUpdateToOneWithWhereWithoutPinnedGenerationsInput = {
+    where?: ObjectStorageOperationWhereInput
+    data: XOR<ObjectStorageOperationUpdateWithoutPinnedGenerationsInput, ObjectStorageOperationUncheckedUpdateWithoutPinnedGenerationsInput>
+  }
+
+  export type ObjectStorageOperationUpdateWithoutPinnedGenerationsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    kind?: EnumObjectStorageOperationKindFieldUpdateOperationsInput | $Enums.ObjectStorageOperationKind
+    status?: EnumObjectStorageOperationStatusFieldUpdateOperationsInput | $Enums.ObjectStorageOperationStatus
+    scopeHash?: StringFieldUpdateOperationsInput | string
+    idempotencyScopeHash?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    requestHash?: StringFieldUpdateOperationsInput | string
+    payload?: JsonNullValueInput | InputJsonValue
+    preconditions?: JsonNullValueInput | InputJsonValue
+    evidence?: NullableJsonNullValueInput | InputJsonValue
+    result?: NullableJsonNullValueInput | InputJsonValue
+    reservedCapabilityExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    ownerToken?: NullableStringFieldUpdateOperationsInput | string | null
+    fencingToken?: BigIntFieldUpdateOperationsInput | bigint | number
+    leaseExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    attempts?: IntFieldUpdateOperationsInput | number
+    lastErrorCode?: NullableStringFieldUpdateOperationsInput | string | null
+    lastErrorMessage?: NullableStringFieldUpdateOperationsInput | string | null
+    preparedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    effectStartedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    verificationStartedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    committedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    failedSafeAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    manualRecoveryAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    scopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutOperationNestedInput
+    pinnedObjects?: ObjectStorageOperationPinnedObjectUpdateManyWithoutOperationNestedInput
+    permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanUpdateManyWithoutOperationNestedInput
+    capabilityReservations?: ObjectStorageCapabilityReservationUpdateManyWithoutOperationNestedInput
+    permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUpdateOneWithoutOperationNestedInput
+    versionGcSchedules?: ObjectStorageVersionGcScheduleUpdateManyWithoutLastOperationNestedInput
+  }
+
+  export type ObjectStorageOperationUncheckedUpdateWithoutPinnedGenerationsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    kind?: EnumObjectStorageOperationKindFieldUpdateOperationsInput | $Enums.ObjectStorageOperationKind
+    status?: EnumObjectStorageOperationStatusFieldUpdateOperationsInput | $Enums.ObjectStorageOperationStatus
+    scopeHash?: StringFieldUpdateOperationsInput | string
+    idempotencyScopeHash?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    requestHash?: StringFieldUpdateOperationsInput | string
+    payload?: JsonNullValueInput | InputJsonValue
+    preconditions?: JsonNullValueInput | InputJsonValue
+    evidence?: NullableJsonNullValueInput | InputJsonValue
+    result?: NullableJsonNullValueInput | InputJsonValue
+    reservedCapabilityExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    ownerToken?: NullableStringFieldUpdateOperationsInput | string | null
+    fencingToken?: BigIntFieldUpdateOperationsInput | bigint | number
+    leaseExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    attempts?: IntFieldUpdateOperationsInput | number
+    lastErrorCode?: NullableStringFieldUpdateOperationsInput | string | null
+    lastErrorMessage?: NullableStringFieldUpdateOperationsInput | string | null
+    preparedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    effectStartedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    verificationStartedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    committedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    failedSafeAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    manualRecoveryAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    scopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutOperationNestedInput
+    pinnedObjects?: ObjectStorageOperationPinnedObjectUncheckedUpdateManyWithoutOperationNestedInput
+    permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanUncheckedUpdateManyWithoutOperationNestedInput
+    capabilityReservations?: ObjectStorageCapabilityReservationUncheckedUpdateManyWithoutOperationNestedInput
+    permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUncheckedUpdateOneWithoutOperationNestedInput
+    versionGcSchedules?: ObjectStorageVersionGcScheduleUncheckedUpdateManyWithoutLastOperationNestedInput
+  }
+
+  export type ObjectStorageOperationCreateWithoutPermanentDeletionArtifactsInput = {
+    id?: string
+    kind: $Enums.ObjectStorageOperationKind
+    status?: $Enums.ObjectStorageOperationStatus
+    scopeHash: string
+    idempotencyScopeHash: string
+    idempotencyKey: string
+    requestHash: string
+    payload: JsonNullValueInput | InputJsonValue
+    preconditions: JsonNullValueInput | InputJsonValue
+    evidence?: NullableJsonNullValueInput | InputJsonValue
+    result?: NullableJsonNullValueInput | InputJsonValue
+    reservedCapabilityExpiresAt?: Date | string | null
+    ownerToken?: string | null
+    fencingToken?: bigint | number
+    leaseExpiresAt?: Date | string | null
+    attempts?: number
+    lastErrorCode?: string | null
+    lastErrorMessage?: string | null
+    preparedAt?: Date | string
+    effectStartedAt?: Date | string | null
+    verificationStartedAt?: Date | string | null
+    committedAt?: Date | string | null
+    failedSafeAt?: Date | string | null
+    manualRecoveryAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    scopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutOperationInput
+    pinnedObjects?: ObjectStorageOperationPinnedObjectCreateNestedManyWithoutOperationInput
+    pinnedGenerations?: ObjectStorageOperationPinnedGenerationCreateNestedManyWithoutOperationInput
+    capabilityReservations?: ObjectStorageCapabilityReservationCreateNestedManyWithoutOperationInput
+    permanentDeletionReceipt?: ProjectPermanentDeletionReceiptCreateNestedOneWithoutOperationInput
+    versionGcSchedules?: ObjectStorageVersionGcScheduleCreateNestedManyWithoutLastOperationInput
+  }
+
+  export type ObjectStorageOperationUncheckedCreateWithoutPermanentDeletionArtifactsInput = {
+    id?: string
+    kind: $Enums.ObjectStorageOperationKind
+    status?: $Enums.ObjectStorageOperationStatus
+    scopeHash: string
+    idempotencyScopeHash: string
+    idempotencyKey: string
+    requestHash: string
+    payload: JsonNullValueInput | InputJsonValue
+    preconditions: JsonNullValueInput | InputJsonValue
+    evidence?: NullableJsonNullValueInput | InputJsonValue
+    result?: NullableJsonNullValueInput | InputJsonValue
+    reservedCapabilityExpiresAt?: Date | string | null
+    ownerToken?: string | null
+    fencingToken?: bigint | number
+    leaseExpiresAt?: Date | string | null
+    attempts?: number
+    lastErrorCode?: string | null
+    lastErrorMessage?: string | null
+    preparedAt?: Date | string
+    effectStartedAt?: Date | string | null
+    verificationStartedAt?: Date | string | null
+    committedAt?: Date | string | null
+    failedSafeAt?: Date | string | null
+    manualRecoveryAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    scopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutOperationInput
+    pinnedObjects?: ObjectStorageOperationPinnedObjectUncheckedCreateNestedManyWithoutOperationInput
+    pinnedGenerations?: ObjectStorageOperationPinnedGenerationUncheckedCreateNestedManyWithoutOperationInput
+    capabilityReservations?: ObjectStorageCapabilityReservationUncheckedCreateNestedManyWithoutOperationInput
+    permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUncheckedCreateNestedOneWithoutOperationInput
+    versionGcSchedules?: ObjectStorageVersionGcScheduleUncheckedCreateNestedManyWithoutLastOperationInput
+  }
+
+  export type ObjectStorageOperationCreateOrConnectWithoutPermanentDeletionArtifactsInput = {
+    where: ObjectStorageOperationWhereUniqueInput
+    create: XOR<ObjectStorageOperationCreateWithoutPermanentDeletionArtifactsInput, ObjectStorageOperationUncheckedCreateWithoutPermanentDeletionArtifactsInput>
+  }
+
+  export type ObjectStorageOperationUpsertWithoutPermanentDeletionArtifactsInput = {
+    update: XOR<ObjectStorageOperationUpdateWithoutPermanentDeletionArtifactsInput, ObjectStorageOperationUncheckedUpdateWithoutPermanentDeletionArtifactsInput>
+    create: XOR<ObjectStorageOperationCreateWithoutPermanentDeletionArtifactsInput, ObjectStorageOperationUncheckedCreateWithoutPermanentDeletionArtifactsInput>
+    where?: ObjectStorageOperationWhereInput
+  }
+
+  export type ObjectStorageOperationUpdateToOneWithWhereWithoutPermanentDeletionArtifactsInput = {
+    where?: ObjectStorageOperationWhereInput
+    data: XOR<ObjectStorageOperationUpdateWithoutPermanentDeletionArtifactsInput, ObjectStorageOperationUncheckedUpdateWithoutPermanentDeletionArtifactsInput>
+  }
+
+  export type ObjectStorageOperationUpdateWithoutPermanentDeletionArtifactsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    kind?: EnumObjectStorageOperationKindFieldUpdateOperationsInput | $Enums.ObjectStorageOperationKind
+    status?: EnumObjectStorageOperationStatusFieldUpdateOperationsInput | $Enums.ObjectStorageOperationStatus
+    scopeHash?: StringFieldUpdateOperationsInput | string
+    idempotencyScopeHash?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    requestHash?: StringFieldUpdateOperationsInput | string
+    payload?: JsonNullValueInput | InputJsonValue
+    preconditions?: JsonNullValueInput | InputJsonValue
+    evidence?: NullableJsonNullValueInput | InputJsonValue
+    result?: NullableJsonNullValueInput | InputJsonValue
+    reservedCapabilityExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    ownerToken?: NullableStringFieldUpdateOperationsInput | string | null
+    fencingToken?: BigIntFieldUpdateOperationsInput | bigint | number
+    leaseExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    attempts?: IntFieldUpdateOperationsInput | number
+    lastErrorCode?: NullableStringFieldUpdateOperationsInput | string | null
+    lastErrorMessage?: NullableStringFieldUpdateOperationsInput | string | null
+    preparedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    effectStartedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    verificationStartedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    committedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    failedSafeAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    manualRecoveryAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    scopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutOperationNestedInput
+    pinnedObjects?: ObjectStorageOperationPinnedObjectUpdateManyWithoutOperationNestedInput
+    pinnedGenerations?: ObjectStorageOperationPinnedGenerationUpdateManyWithoutOperationNestedInput
+    capabilityReservations?: ObjectStorageCapabilityReservationUpdateManyWithoutOperationNestedInput
+    permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUpdateOneWithoutOperationNestedInput
+    versionGcSchedules?: ObjectStorageVersionGcScheduleUpdateManyWithoutLastOperationNestedInput
+  }
+
+  export type ObjectStorageOperationUncheckedUpdateWithoutPermanentDeletionArtifactsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    kind?: EnumObjectStorageOperationKindFieldUpdateOperationsInput | $Enums.ObjectStorageOperationKind
+    status?: EnumObjectStorageOperationStatusFieldUpdateOperationsInput | $Enums.ObjectStorageOperationStatus
+    scopeHash?: StringFieldUpdateOperationsInput | string
+    idempotencyScopeHash?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    requestHash?: StringFieldUpdateOperationsInput | string
+    payload?: JsonNullValueInput | InputJsonValue
+    preconditions?: JsonNullValueInput | InputJsonValue
+    evidence?: NullableJsonNullValueInput | InputJsonValue
+    result?: NullableJsonNullValueInput | InputJsonValue
+    reservedCapabilityExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    ownerToken?: NullableStringFieldUpdateOperationsInput | string | null
+    fencingToken?: BigIntFieldUpdateOperationsInput | bigint | number
+    leaseExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    attempts?: IntFieldUpdateOperationsInput | number
+    lastErrorCode?: NullableStringFieldUpdateOperationsInput | string | null
+    lastErrorMessage?: NullableStringFieldUpdateOperationsInput | string | null
+    preparedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    effectStartedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    verificationStartedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    committedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    failedSafeAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    manualRecoveryAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    scopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutOperationNestedInput
+    pinnedObjects?: ObjectStorageOperationPinnedObjectUncheckedUpdateManyWithoutOperationNestedInput
+    pinnedGenerations?: ObjectStorageOperationPinnedGenerationUncheckedUpdateManyWithoutOperationNestedInput
+    capabilityReservations?: ObjectStorageCapabilityReservationUncheckedUpdateManyWithoutOperationNestedInput
+    permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUncheckedUpdateOneWithoutOperationNestedInput
+    versionGcSchedules?: ObjectStorageVersionGcScheduleUncheckedUpdateManyWithoutLastOperationNestedInput
   }
 
   export type ObjectStorageOperationCreateWithoutCapabilityReservationsInput = {
@@ -267472,7 +273293,10 @@ export namespace Prisma {
     updatedAt?: Date | string
     scopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutOperationInput
     pinnedObjects?: ObjectStorageOperationPinnedObjectCreateNestedManyWithoutOperationInput
+    pinnedGenerations?: ObjectStorageOperationPinnedGenerationCreateNestedManyWithoutOperationInput
+    permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanCreateNestedManyWithoutOperationInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptCreateNestedOneWithoutOperationInput
+    versionGcSchedules?: ObjectStorageVersionGcScheduleCreateNestedManyWithoutLastOperationInput
   }
 
   export type ObjectStorageOperationUncheckedCreateWithoutCapabilityReservationsInput = {
@@ -267504,7 +273328,10 @@ export namespace Prisma {
     updatedAt?: Date | string
     scopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutOperationInput
     pinnedObjects?: ObjectStorageOperationPinnedObjectUncheckedCreateNestedManyWithoutOperationInput
+    pinnedGenerations?: ObjectStorageOperationPinnedGenerationUncheckedCreateNestedManyWithoutOperationInput
+    permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanUncheckedCreateNestedManyWithoutOperationInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUncheckedCreateNestedOneWithoutOperationInput
+    versionGcSchedules?: ObjectStorageVersionGcScheduleUncheckedCreateNestedManyWithoutLastOperationInput
   }
 
   export type ObjectStorageOperationCreateOrConnectWithoutCapabilityReservationsInput = {
@@ -267552,7 +273379,10 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     scopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutOperationNestedInput
     pinnedObjects?: ObjectStorageOperationPinnedObjectUpdateManyWithoutOperationNestedInput
+    pinnedGenerations?: ObjectStorageOperationPinnedGenerationUpdateManyWithoutOperationNestedInput
+    permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanUpdateManyWithoutOperationNestedInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUpdateOneWithoutOperationNestedInput
+    versionGcSchedules?: ObjectStorageVersionGcScheduleUpdateManyWithoutLastOperationNestedInput
   }
 
   export type ObjectStorageOperationUncheckedUpdateWithoutCapabilityReservationsInput = {
@@ -267584,7 +273414,10 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     scopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutOperationNestedInput
     pinnedObjects?: ObjectStorageOperationPinnedObjectUncheckedUpdateManyWithoutOperationNestedInput
+    pinnedGenerations?: ObjectStorageOperationPinnedGenerationUncheckedUpdateManyWithoutOperationNestedInput
+    permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanUncheckedUpdateManyWithoutOperationNestedInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUncheckedUpdateOneWithoutOperationNestedInput
+    versionGcSchedules?: ObjectStorageVersionGcScheduleUncheckedUpdateManyWithoutLastOperationNestedInput
   }
 
   export type ObjectStorageOperationCreateWithoutScopesInput = {
@@ -267615,8 +273448,11 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     pinnedObjects?: ObjectStorageOperationPinnedObjectCreateNestedManyWithoutOperationInput
+    pinnedGenerations?: ObjectStorageOperationPinnedGenerationCreateNestedManyWithoutOperationInput
+    permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanCreateNestedManyWithoutOperationInput
     capabilityReservations?: ObjectStorageCapabilityReservationCreateNestedManyWithoutOperationInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptCreateNestedOneWithoutOperationInput
+    versionGcSchedules?: ObjectStorageVersionGcScheduleCreateNestedManyWithoutLastOperationInput
   }
 
   export type ObjectStorageOperationUncheckedCreateWithoutScopesInput = {
@@ -267647,8 +273483,11 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     pinnedObjects?: ObjectStorageOperationPinnedObjectUncheckedCreateNestedManyWithoutOperationInput
+    pinnedGenerations?: ObjectStorageOperationPinnedGenerationUncheckedCreateNestedManyWithoutOperationInput
+    permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanUncheckedCreateNestedManyWithoutOperationInput
     capabilityReservations?: ObjectStorageCapabilityReservationUncheckedCreateNestedManyWithoutOperationInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUncheckedCreateNestedOneWithoutOperationInput
+    versionGcSchedules?: ObjectStorageVersionGcScheduleUncheckedCreateNestedManyWithoutLastOperationInput
   }
 
   export type ObjectStorageOperationCreateOrConnectWithoutScopesInput = {
@@ -267658,6 +273497,7 @@ export namespace Prisma {
 
   export type ProjectCreateWithoutObjectStorageOperationScopesInput = {
     id?: string
+    ownershipEpoch?: number
     name: string
     slug: string
     description?: string | null
@@ -267711,11 +273551,13 @@ export namespace Prisma {
     cloudBinding?: CloudProjectBindingCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
     releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutObjectStorageOperationScopesInput = {
     id?: string
     organizationId: string
+    ownershipEpoch?: number
     name: string
     slug: string
     description?: string | null
@@ -267768,6 +273610,7 @@ export namespace Prisma {
     cloudBinding?: CloudProjectBindingUncheckedCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
     releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutObjectStorageOperationScopesInput = {
@@ -267814,8 +273657,11 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     pinnedObjects?: ObjectStorageOperationPinnedObjectUpdateManyWithoutOperationNestedInput
+    pinnedGenerations?: ObjectStorageOperationPinnedGenerationUpdateManyWithoutOperationNestedInput
+    permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanUpdateManyWithoutOperationNestedInput
     capabilityReservations?: ObjectStorageCapabilityReservationUpdateManyWithoutOperationNestedInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUpdateOneWithoutOperationNestedInput
+    versionGcSchedules?: ObjectStorageVersionGcScheduleUpdateManyWithoutLastOperationNestedInput
   }
 
   export type ObjectStorageOperationUncheckedUpdateWithoutScopesInput = {
@@ -267846,8 +273692,11 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     pinnedObjects?: ObjectStorageOperationPinnedObjectUncheckedUpdateManyWithoutOperationNestedInput
+    pinnedGenerations?: ObjectStorageOperationPinnedGenerationUncheckedUpdateManyWithoutOperationNestedInput
+    permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanUncheckedUpdateManyWithoutOperationNestedInput
     capabilityReservations?: ObjectStorageCapabilityReservationUncheckedUpdateManyWithoutOperationNestedInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUncheckedUpdateOneWithoutOperationNestedInput
+    versionGcSchedules?: ObjectStorageVersionGcScheduleUncheckedUpdateManyWithoutLastOperationNestedInput
   }
 
   export type ProjectUpsertWithoutObjectStorageOperationScopesInput = {
@@ -267863,6 +273712,7 @@ export namespace Prisma {
 
   export type ProjectUpdateWithoutObjectStorageOperationScopesInput = {
     id?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -267916,11 +273766,13 @@ export namespace Prisma {
     cloudBinding?: CloudProjectBindingUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
     releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutObjectStorageOperationScopesInput = {
     id?: StringFieldUpdateOperationsInput | string
     organizationId?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -267973,6 +273825,415 @@ export namespace Prisma {
     cloudBinding?: CloudProjectBindingUncheckedUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
     releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
+  }
+
+  export type ProjectCreateWithoutObjectStorageVersionGcScheduleInput = {
+    id?: string
+    ownershipEpoch?: number
+    name: string
+    slug: string
+    description?: string | null
+    sourceType?: string
+    templateName?: string | null
+    gitRepositoryUrl?: string | null
+    gitDefaultBranch?: string | null
+    persistentVolumeClaim?: string | null
+    thumbnailUrl?: string | null
+    thumbnailUpdatedAt?: Date | string | null
+    objectStorageCapabilityExpiresAt?: Date | string | null
+    permanentDeletionStartedAt?: Date | string | null
+    deletedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    organization: OrganizationCreateNestedOneWithoutProjectsInput
+    environments?: ProjectEnvironmentCreateNestedManyWithoutProjectInput
+    envVars?: ProjectEnvVarCreateNestedManyWithoutProjectInput
+    secrets?: ProjectSecretCreateNestedManyWithoutProjectInput
+    collaborators?: ProjectCollaboratorCreateNestedManyWithoutProjectInput
+    activity?: ProjectActivityCreateNestedManyWithoutProjectInput
+    templates?: ProjectTemplateCreateNestedManyWithoutSourceProjectInput
+    galleryListings?: GalleryListingCreateNestedManyWithoutSourceProjectInput
+    workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
+    snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
+    manifestRevisions?: ProjectManifestRevisionCreateNestedManyWithoutProjectInput
+    storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
+    deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    reservedVmOperations?: ReservedVmOperationCreateNestedManyWithoutProjectInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodCreateNestedManyWithoutProjectInput
+    rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutProjectInput
+    fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
+    conversations?: AiConversationCreateNestedManyWithoutProjectInput
+    ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
+    collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutProjectInput
+    collaborationComments?: CollaborationCommentCreateNestedManyWithoutProjectInput
+    shareLinks?: ProjectShareLinkCreateNestedManyWithoutProjectInput
+    agentMemories?: AgentMemoryCreateNestedManyWithoutProjectInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
+    agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
+    connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
+    databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
+    skills?: ProjectSkillCreateNestedManyWithoutProjectInput
+    repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
+    slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
+    importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
+    targetRemixJobs?: RemixJobCreateNestedManyWithoutTargetProjectInput
+    sourceRemixShares?: RemixStorageShareCreateNestedManyWithoutSourceProjectInput
+    targetRemixShares?: RemixStorageShareCreateNestedManyWithoutTargetProjectInput
+    cloudBinding?: CloudProjectBindingCreateNestedOneWithoutProjectInput
+    checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
+    releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
+    objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
+  }
+
+  export type ProjectUncheckedCreateWithoutObjectStorageVersionGcScheduleInput = {
+    id?: string
+    organizationId: string
+    ownershipEpoch?: number
+    name: string
+    slug: string
+    description?: string | null
+    sourceType?: string
+    templateName?: string | null
+    gitRepositoryUrl?: string | null
+    gitDefaultBranch?: string | null
+    persistentVolumeClaim?: string | null
+    thumbnailUrl?: string | null
+    thumbnailUpdatedAt?: Date | string | null
+    objectStorageCapabilityExpiresAt?: Date | string | null
+    permanentDeletionStartedAt?: Date | string | null
+    deletedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    environments?: ProjectEnvironmentUncheckedCreateNestedManyWithoutProjectInput
+    envVars?: ProjectEnvVarUncheckedCreateNestedManyWithoutProjectInput
+    secrets?: ProjectSecretUncheckedCreateNestedManyWithoutProjectInput
+    collaborators?: ProjectCollaboratorUncheckedCreateNestedManyWithoutProjectInput
+    activity?: ProjectActivityUncheckedCreateNestedManyWithoutProjectInput
+    templates?: ProjectTemplateUncheckedCreateNestedManyWithoutSourceProjectInput
+    galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutSourceProjectInput
+    workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
+    snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
+    manifestRevisions?: ProjectManifestRevisionUncheckedCreateNestedManyWithoutProjectInput
+    storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
+    deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    reservedVmOperations?: ReservedVmOperationUncheckedCreateNestedManyWithoutProjectInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedCreateNestedManyWithoutProjectInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutProjectInput
+    fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
+    conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
+    ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
+    collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutProjectInput
+    collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutProjectInput
+    shareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutProjectInput
+    agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutProjectInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
+    agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
+    connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
+    databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
+    skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
+    repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
+    slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    targetRemixJobs?: RemixJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    sourceRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutSourceProjectInput
+    targetRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetProjectInput
+    cloudBinding?: CloudProjectBindingUncheckedCreateNestedOneWithoutProjectInput
+    checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
+    releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
+  }
+
+  export type ProjectCreateOrConnectWithoutObjectStorageVersionGcScheduleInput = {
+    where: ProjectWhereUniqueInput
+    create: XOR<ProjectCreateWithoutObjectStorageVersionGcScheduleInput, ProjectUncheckedCreateWithoutObjectStorageVersionGcScheduleInput>
+  }
+
+  export type ObjectStorageOperationCreateWithoutVersionGcSchedulesInput = {
+    id?: string
+    kind: $Enums.ObjectStorageOperationKind
+    status?: $Enums.ObjectStorageOperationStatus
+    scopeHash: string
+    idempotencyScopeHash: string
+    idempotencyKey: string
+    requestHash: string
+    payload: JsonNullValueInput | InputJsonValue
+    preconditions: JsonNullValueInput | InputJsonValue
+    evidence?: NullableJsonNullValueInput | InputJsonValue
+    result?: NullableJsonNullValueInput | InputJsonValue
+    reservedCapabilityExpiresAt?: Date | string | null
+    ownerToken?: string | null
+    fencingToken?: bigint | number
+    leaseExpiresAt?: Date | string | null
+    attempts?: number
+    lastErrorCode?: string | null
+    lastErrorMessage?: string | null
+    preparedAt?: Date | string
+    effectStartedAt?: Date | string | null
+    verificationStartedAt?: Date | string | null
+    committedAt?: Date | string | null
+    failedSafeAt?: Date | string | null
+    manualRecoveryAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    scopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutOperationInput
+    pinnedObjects?: ObjectStorageOperationPinnedObjectCreateNestedManyWithoutOperationInput
+    pinnedGenerations?: ObjectStorageOperationPinnedGenerationCreateNestedManyWithoutOperationInput
+    permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanCreateNestedManyWithoutOperationInput
+    capabilityReservations?: ObjectStorageCapabilityReservationCreateNestedManyWithoutOperationInput
+    permanentDeletionReceipt?: ProjectPermanentDeletionReceiptCreateNestedOneWithoutOperationInput
+  }
+
+  export type ObjectStorageOperationUncheckedCreateWithoutVersionGcSchedulesInput = {
+    id?: string
+    kind: $Enums.ObjectStorageOperationKind
+    status?: $Enums.ObjectStorageOperationStatus
+    scopeHash: string
+    idempotencyScopeHash: string
+    idempotencyKey: string
+    requestHash: string
+    payload: JsonNullValueInput | InputJsonValue
+    preconditions: JsonNullValueInput | InputJsonValue
+    evidence?: NullableJsonNullValueInput | InputJsonValue
+    result?: NullableJsonNullValueInput | InputJsonValue
+    reservedCapabilityExpiresAt?: Date | string | null
+    ownerToken?: string | null
+    fencingToken?: bigint | number
+    leaseExpiresAt?: Date | string | null
+    attempts?: number
+    lastErrorCode?: string | null
+    lastErrorMessage?: string | null
+    preparedAt?: Date | string
+    effectStartedAt?: Date | string | null
+    verificationStartedAt?: Date | string | null
+    committedAt?: Date | string | null
+    failedSafeAt?: Date | string | null
+    manualRecoveryAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    scopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutOperationInput
+    pinnedObjects?: ObjectStorageOperationPinnedObjectUncheckedCreateNestedManyWithoutOperationInput
+    pinnedGenerations?: ObjectStorageOperationPinnedGenerationUncheckedCreateNestedManyWithoutOperationInput
+    permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanUncheckedCreateNestedManyWithoutOperationInput
+    capabilityReservations?: ObjectStorageCapabilityReservationUncheckedCreateNestedManyWithoutOperationInput
+    permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUncheckedCreateNestedOneWithoutOperationInput
+  }
+
+  export type ObjectStorageOperationCreateOrConnectWithoutVersionGcSchedulesInput = {
+    where: ObjectStorageOperationWhereUniqueInput
+    create: XOR<ObjectStorageOperationCreateWithoutVersionGcSchedulesInput, ObjectStorageOperationUncheckedCreateWithoutVersionGcSchedulesInput>
+  }
+
+  export type ProjectUpsertWithoutObjectStorageVersionGcScheduleInput = {
+    update: XOR<ProjectUpdateWithoutObjectStorageVersionGcScheduleInput, ProjectUncheckedUpdateWithoutObjectStorageVersionGcScheduleInput>
+    create: XOR<ProjectCreateWithoutObjectStorageVersionGcScheduleInput, ProjectUncheckedCreateWithoutObjectStorageVersionGcScheduleInput>
+    where?: ProjectWhereInput
+  }
+
+  export type ProjectUpdateToOneWithWhereWithoutObjectStorageVersionGcScheduleInput = {
+    where?: ProjectWhereInput
+    data: XOR<ProjectUpdateWithoutObjectStorageVersionGcScheduleInput, ProjectUncheckedUpdateWithoutObjectStorageVersionGcScheduleInput>
+  }
+
+  export type ProjectUpdateWithoutObjectStorageVersionGcScheduleInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
+    name?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceType?: StringFieldUpdateOperationsInput | string
+    templateName?: NullableStringFieldUpdateOperationsInput | string | null
+    gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
+    persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    objectStorageCapabilityExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    permanentDeletionStartedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    organization?: OrganizationUpdateOneRequiredWithoutProjectsNestedInput
+    environments?: ProjectEnvironmentUpdateManyWithoutProjectNestedInput
+    envVars?: ProjectEnvVarUpdateManyWithoutProjectNestedInput
+    secrets?: ProjectSecretUpdateManyWithoutProjectNestedInput
+    collaborators?: ProjectCollaboratorUpdateManyWithoutProjectNestedInput
+    activity?: ProjectActivityUpdateManyWithoutProjectNestedInput
+    templates?: ProjectTemplateUpdateManyWithoutSourceProjectNestedInput
+    galleryListings?: GalleryListingUpdateManyWithoutSourceProjectNestedInput
+    workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
+    snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
+    manifestRevisions?: ProjectManifestRevisionUpdateManyWithoutProjectNestedInput
+    storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
+    deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    reservedVmOperations?: ReservedVmOperationUpdateManyWithoutProjectNestedInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUpdateManyWithoutProjectNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutProjectNestedInput
+    fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
+    conversations?: AiConversationUpdateManyWithoutProjectNestedInput
+    ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
+    collaborationPresence?: CollaborationPresenceUpdateManyWithoutProjectNestedInput
+    collaborationComments?: CollaborationCommentUpdateManyWithoutProjectNestedInput
+    shareLinks?: ProjectShareLinkUpdateManyWithoutProjectNestedInput
+    agentMemories?: AgentMemoryUpdateManyWithoutProjectNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
+    agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
+    connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
+    databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
+    skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
+    repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
+    slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
+    importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
+    targetRemixJobs?: RemixJobUpdateManyWithoutTargetProjectNestedInput
+    sourceRemixShares?: RemixStorageShareUpdateManyWithoutSourceProjectNestedInput
+    targetRemixShares?: RemixStorageShareUpdateManyWithoutTargetProjectNestedInput
+    cloudBinding?: CloudProjectBindingUpdateOneWithoutProjectNestedInput
+    checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
+    releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
+    objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
+  }
+
+  export type ProjectUncheckedUpdateWithoutObjectStorageVersionGcScheduleInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
+    name?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceType?: StringFieldUpdateOperationsInput | string
+    templateName?: NullableStringFieldUpdateOperationsInput | string | null
+    gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
+    persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    objectStorageCapabilityExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    permanentDeletionStartedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    environments?: ProjectEnvironmentUncheckedUpdateManyWithoutProjectNestedInput
+    envVars?: ProjectEnvVarUncheckedUpdateManyWithoutProjectNestedInput
+    secrets?: ProjectSecretUncheckedUpdateManyWithoutProjectNestedInput
+    collaborators?: ProjectCollaboratorUncheckedUpdateManyWithoutProjectNestedInput
+    activity?: ProjectActivityUncheckedUpdateManyWithoutProjectNestedInput
+    templates?: ProjectTemplateUncheckedUpdateManyWithoutSourceProjectNestedInput
+    galleryListings?: GalleryListingUncheckedUpdateManyWithoutSourceProjectNestedInput
+    workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
+    snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
+    manifestRevisions?: ProjectManifestRevisionUncheckedUpdateManyWithoutProjectNestedInput
+    storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
+    deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    reservedVmOperations?: ReservedVmOperationUncheckedUpdateManyWithoutProjectNestedInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedUpdateManyWithoutProjectNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutProjectNestedInput
+    fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
+    conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
+    ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
+    collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutProjectNestedInput
+    collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutProjectNestedInput
+    shareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutProjectNestedInput
+    agentMemories?: AgentMemoryUncheckedUpdateManyWithoutProjectNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
+    agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
+    connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
+    databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
+    skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
+    repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
+    slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    targetRemixJobs?: RemixJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    sourceRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutSourceProjectNestedInput
+    targetRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutTargetProjectNestedInput
+    cloudBinding?: CloudProjectBindingUncheckedUpdateOneWithoutProjectNestedInput
+    checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
+    releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
+  }
+
+  export type ObjectStorageOperationUpsertWithoutVersionGcSchedulesInput = {
+    update: XOR<ObjectStorageOperationUpdateWithoutVersionGcSchedulesInput, ObjectStorageOperationUncheckedUpdateWithoutVersionGcSchedulesInput>
+    create: XOR<ObjectStorageOperationCreateWithoutVersionGcSchedulesInput, ObjectStorageOperationUncheckedCreateWithoutVersionGcSchedulesInput>
+    where?: ObjectStorageOperationWhereInput
+  }
+
+  export type ObjectStorageOperationUpdateToOneWithWhereWithoutVersionGcSchedulesInput = {
+    where?: ObjectStorageOperationWhereInput
+    data: XOR<ObjectStorageOperationUpdateWithoutVersionGcSchedulesInput, ObjectStorageOperationUncheckedUpdateWithoutVersionGcSchedulesInput>
+  }
+
+  export type ObjectStorageOperationUpdateWithoutVersionGcSchedulesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    kind?: EnumObjectStorageOperationKindFieldUpdateOperationsInput | $Enums.ObjectStorageOperationKind
+    status?: EnumObjectStorageOperationStatusFieldUpdateOperationsInput | $Enums.ObjectStorageOperationStatus
+    scopeHash?: StringFieldUpdateOperationsInput | string
+    idempotencyScopeHash?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    requestHash?: StringFieldUpdateOperationsInput | string
+    payload?: JsonNullValueInput | InputJsonValue
+    preconditions?: JsonNullValueInput | InputJsonValue
+    evidence?: NullableJsonNullValueInput | InputJsonValue
+    result?: NullableJsonNullValueInput | InputJsonValue
+    reservedCapabilityExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    ownerToken?: NullableStringFieldUpdateOperationsInput | string | null
+    fencingToken?: BigIntFieldUpdateOperationsInput | bigint | number
+    leaseExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    attempts?: IntFieldUpdateOperationsInput | number
+    lastErrorCode?: NullableStringFieldUpdateOperationsInput | string | null
+    lastErrorMessage?: NullableStringFieldUpdateOperationsInput | string | null
+    preparedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    effectStartedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    verificationStartedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    committedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    failedSafeAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    manualRecoveryAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    scopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutOperationNestedInput
+    pinnedObjects?: ObjectStorageOperationPinnedObjectUpdateManyWithoutOperationNestedInput
+    pinnedGenerations?: ObjectStorageOperationPinnedGenerationUpdateManyWithoutOperationNestedInput
+    permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanUpdateManyWithoutOperationNestedInput
+    capabilityReservations?: ObjectStorageCapabilityReservationUpdateManyWithoutOperationNestedInput
+    permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUpdateOneWithoutOperationNestedInput
+  }
+
+  export type ObjectStorageOperationUncheckedUpdateWithoutVersionGcSchedulesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    kind?: EnumObjectStorageOperationKindFieldUpdateOperationsInput | $Enums.ObjectStorageOperationKind
+    status?: EnumObjectStorageOperationStatusFieldUpdateOperationsInput | $Enums.ObjectStorageOperationStatus
+    scopeHash?: StringFieldUpdateOperationsInput | string
+    idempotencyScopeHash?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    requestHash?: StringFieldUpdateOperationsInput | string
+    payload?: JsonNullValueInput | InputJsonValue
+    preconditions?: JsonNullValueInput | InputJsonValue
+    evidence?: NullableJsonNullValueInput | InputJsonValue
+    result?: NullableJsonNullValueInput | InputJsonValue
+    reservedCapabilityExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    ownerToken?: NullableStringFieldUpdateOperationsInput | string | null
+    fencingToken?: BigIntFieldUpdateOperationsInput | bigint | number
+    leaseExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    attempts?: IntFieldUpdateOperationsInput | number
+    lastErrorCode?: NullableStringFieldUpdateOperationsInput | string | null
+    lastErrorMessage?: NullableStringFieldUpdateOperationsInput | string | null
+    preparedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    effectStartedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    verificationStartedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    committedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    failedSafeAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    manualRecoveryAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    scopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutOperationNestedInput
+    pinnedObjects?: ObjectStorageOperationPinnedObjectUncheckedUpdateManyWithoutOperationNestedInput
+    pinnedGenerations?: ObjectStorageOperationPinnedGenerationUncheckedUpdateManyWithoutOperationNestedInput
+    permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanUncheckedUpdateManyWithoutOperationNestedInput
+    capabilityReservations?: ObjectStorageCapabilityReservationUncheckedUpdateManyWithoutOperationNestedInput
+    permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUncheckedUpdateOneWithoutOperationNestedInput
   }
 
   export type ObjectStorageOperationCreateWithoutPermanentDeletionReceiptInput = {
@@ -268004,7 +274265,10 @@ export namespace Prisma {
     updatedAt?: Date | string
     scopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutOperationInput
     pinnedObjects?: ObjectStorageOperationPinnedObjectCreateNestedManyWithoutOperationInput
+    pinnedGenerations?: ObjectStorageOperationPinnedGenerationCreateNestedManyWithoutOperationInput
+    permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanCreateNestedManyWithoutOperationInput
     capabilityReservations?: ObjectStorageCapabilityReservationCreateNestedManyWithoutOperationInput
+    versionGcSchedules?: ObjectStorageVersionGcScheduleCreateNestedManyWithoutLastOperationInput
   }
 
   export type ObjectStorageOperationUncheckedCreateWithoutPermanentDeletionReceiptInput = {
@@ -268036,7 +274300,10 @@ export namespace Prisma {
     updatedAt?: Date | string
     scopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutOperationInput
     pinnedObjects?: ObjectStorageOperationPinnedObjectUncheckedCreateNestedManyWithoutOperationInput
+    pinnedGenerations?: ObjectStorageOperationPinnedGenerationUncheckedCreateNestedManyWithoutOperationInput
+    permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanUncheckedCreateNestedManyWithoutOperationInput
     capabilityReservations?: ObjectStorageCapabilityReservationUncheckedCreateNestedManyWithoutOperationInput
+    versionGcSchedules?: ObjectStorageVersionGcScheduleUncheckedCreateNestedManyWithoutLastOperationInput
   }
 
   export type ObjectStorageOperationCreateOrConnectWithoutPermanentDeletionReceiptInput = {
@@ -268084,7 +274351,10 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     scopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutOperationNestedInput
     pinnedObjects?: ObjectStorageOperationPinnedObjectUpdateManyWithoutOperationNestedInput
+    pinnedGenerations?: ObjectStorageOperationPinnedGenerationUpdateManyWithoutOperationNestedInput
+    permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanUpdateManyWithoutOperationNestedInput
     capabilityReservations?: ObjectStorageCapabilityReservationUpdateManyWithoutOperationNestedInput
+    versionGcSchedules?: ObjectStorageVersionGcScheduleUpdateManyWithoutLastOperationNestedInput
   }
 
   export type ObjectStorageOperationUncheckedUpdateWithoutPermanentDeletionReceiptInput = {
@@ -268116,11 +274386,15 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     scopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutOperationNestedInput
     pinnedObjects?: ObjectStorageOperationPinnedObjectUncheckedUpdateManyWithoutOperationNestedInput
+    pinnedGenerations?: ObjectStorageOperationPinnedGenerationUncheckedUpdateManyWithoutOperationNestedInput
+    permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanUncheckedUpdateManyWithoutOperationNestedInput
     capabilityReservations?: ObjectStorageCapabilityReservationUncheckedUpdateManyWithoutOperationNestedInput
+    versionGcSchedules?: ObjectStorageVersionGcScheduleUncheckedUpdateManyWithoutLastOperationNestedInput
   }
 
   export type ProjectCreateWithoutSlugRedirectsInput = {
     id?: string
+    ownershipEpoch?: number
     name: string
     slug: string
     description?: string | null
@@ -268174,11 +274448,13 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
     releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutSlugRedirectsInput = {
     id?: string
     organizationId: string
+    ownershipEpoch?: number
     name: string
     slug: string
     description?: string | null
@@ -268231,6 +274507,7 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
     releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutSlugRedirectsInput = {
@@ -268251,6 +274528,7 @@ export namespace Prisma {
 
   export type ProjectUpdateWithoutSlugRedirectsInput = {
     id?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -268304,11 +274582,13 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
     releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutSlugRedirectsInput = {
     id?: StringFieldUpdateOperationsInput | string
     organizationId?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -268361,6 +274641,7 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
     releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
   }
 
   export type UserCreateWithoutAgentMemoriesInput = {
@@ -268841,6 +275122,7 @@ export namespace Prisma {
 
   export type ProjectCreateWithoutAgentMemoriesInput = {
     id?: string
+    ownershipEpoch?: number
     name: string
     slug: string
     description?: string | null
@@ -268894,11 +275176,13 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
     releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutAgentMemoriesInput = {
     id?: string
     organizationId: string
+    ownershipEpoch?: number
     name: string
     slug: string
     description?: string | null
@@ -268951,6 +275235,7 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
     releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutAgentMemoriesInput = {
@@ -268971,6 +275256,7 @@ export namespace Prisma {
 
   export type ProjectUpdateWithoutAgentMemoriesInput = {
     id?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -269024,11 +275310,13 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
     releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutAgentMemoriesInput = {
     id?: StringFieldUpdateOperationsInput | string
     organizationId?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -269081,6 +275369,7 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
     releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
   }
 
   export type UserCreateWithoutAgentMemoryPreferencesInput = {
@@ -269317,6 +275606,7 @@ export namespace Prisma {
 
   export type ProjectCreateWithoutAgentMemoryPreferencesInput = {
     id?: string
+    ownershipEpoch?: number
     name: string
     slug: string
     description?: string | null
@@ -269370,11 +275660,13 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
     releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutAgentMemoryPreferencesInput = {
     id?: string
     organizationId: string
+    ownershipEpoch?: number
     name: string
     slug: string
     description?: string | null
@@ -269427,6 +275719,7 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
     releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutAgentMemoryPreferencesInput = {
@@ -269691,6 +275984,7 @@ export namespace Prisma {
 
   export type ProjectUpdateWithoutAgentMemoryPreferencesInput = {
     id?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -269744,11 +276038,13 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
     releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutAgentMemoryPreferencesInput = {
     id?: StringFieldUpdateOperationsInput | string
     organizationId?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -269801,10 +276097,12 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
     releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutIdeStateInput = {
     id?: string
+    ownershipEpoch?: number
     name: string
     slug: string
     description?: string | null
@@ -269858,11 +276156,13 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
     releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutIdeStateInput = {
     id?: string
     organizationId: string
+    ownershipEpoch?: number
     name: string
     slug: string
     description?: string | null
@@ -269915,6 +276215,7 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
     releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutIdeStateInput = {
@@ -270066,6 +276367,7 @@ export namespace Prisma {
 
   export type ProjectUpdateWithoutIdeStateInput = {
     id?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -270119,11 +276421,13 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
     releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutIdeStateInput = {
     id?: StringFieldUpdateOperationsInput | string
     organizationId?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -270176,6 +276480,7 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
     releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutProjectIdeStateUpdatesInput = {
@@ -270317,6 +276622,7 @@ export namespace Prisma {
 
   export type ProjectCreateWithoutAgentPatchProposalsInput = {
     id?: string
+    ownershipEpoch?: number
     name: string
     slug: string
     description?: string | null
@@ -270370,11 +276676,13 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
     releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutAgentPatchProposalsInput = {
     id?: string
     organizationId: string
+    ownershipEpoch?: number
     name: string
     slug: string
     description?: string | null
@@ -270427,6 +276735,7 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
     releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutAgentPatchProposalsInput = {
@@ -270447,6 +276756,7 @@ export namespace Prisma {
 
   export type ProjectUpdateWithoutAgentPatchProposalsInput = {
     id?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -270500,11 +276810,13 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
     releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutAgentPatchProposalsInput = {
     id?: StringFieldUpdateOperationsInput | string
     organizationId?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -270557,10 +276869,12 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
     releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutRepairEventsInput = {
     id?: string
+    ownershipEpoch?: number
     name: string
     slug: string
     description?: string | null
@@ -270614,11 +276928,13 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
     releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutRepairEventsInput = {
     id?: string
     organizationId: string
+    ownershipEpoch?: number
     name: string
     slug: string
     description?: string | null
@@ -270671,6 +276987,7 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
     releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutRepairEventsInput = {
@@ -270691,6 +277008,7 @@ export namespace Prisma {
 
   export type ProjectUpdateWithoutRepairEventsInput = {
     id?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -270744,11 +277062,13 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
     releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutRepairEventsInput = {
     id?: StringFieldUpdateOperationsInput | string
     organizationId?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -270801,10 +277121,12 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
     releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutSkillsInput = {
     id?: string
+    ownershipEpoch?: number
     name: string
     slug: string
     description?: string | null
@@ -270858,11 +277180,13 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
     releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutSkillsInput = {
     id?: string
     organizationId: string
+    ownershipEpoch?: number
     name: string
     slug: string
     description?: string | null
@@ -270915,6 +277239,7 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
     releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutSkillsInput = {
@@ -270935,6 +277260,7 @@ export namespace Prisma {
 
   export type ProjectUpdateWithoutSkillsInput = {
     id?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -270988,11 +277314,13 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
     releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutSkillsInput = {
     id?: StringFieldUpdateOperationsInput | string
     organizationId?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -271045,10 +277373,12 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
     releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutEnvironmentsInput = {
     id?: string
+    ownershipEpoch?: number
     name: string
     slug: string
     description?: string | null
@@ -271102,11 +277432,13 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
     releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutEnvironmentsInput = {
     id?: string
     organizationId: string
+    ownershipEpoch?: number
     name: string
     slug: string
     description?: string | null
@@ -271159,6 +277491,7 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
     releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutEnvironmentsInput = {
@@ -271179,6 +277512,7 @@ export namespace Prisma {
 
   export type ProjectUpdateWithoutEnvironmentsInput = {
     id?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -271232,11 +277566,13 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
     releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutEnvironmentsInput = {
     id?: StringFieldUpdateOperationsInput | string
     organizationId?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -271289,10 +277625,12 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
     releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutSecretsInput = {
     id?: string
+    ownershipEpoch?: number
     name: string
     slug: string
     description?: string | null
@@ -271346,11 +277684,13 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
     releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutSecretsInput = {
     id?: string
     organizationId: string
+    ownershipEpoch?: number
     name: string
     slug: string
     description?: string | null
@@ -271403,6 +277743,7 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
     releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutSecretsInput = {
@@ -271423,6 +277764,7 @@ export namespace Prisma {
 
   export type ProjectUpdateWithoutSecretsInput = {
     id?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -271476,11 +277818,13 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
     releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutSecretsInput = {
     id?: StringFieldUpdateOperationsInput | string
     organizationId?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -271533,10 +277877,12 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
     releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutEnvVarsInput = {
     id?: string
+    ownershipEpoch?: number
     name: string
     slug: string
     description?: string | null
@@ -271590,11 +277936,13 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
     releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutEnvVarsInput = {
     id?: string
     organizationId: string
+    ownershipEpoch?: number
     name: string
     slug: string
     description?: string | null
@@ -271647,6 +277995,7 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
     releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutEnvVarsInput = {
@@ -271667,6 +278016,7 @@ export namespace Prisma {
 
   export type ProjectUpdateWithoutEnvVarsInput = {
     id?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -271720,11 +278070,13 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
     releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutEnvVarsInput = {
     id?: StringFieldUpdateOperationsInput | string
     organizationId?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -271777,10 +278129,12 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
     releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutCollaboratorsInput = {
     id?: string
+    ownershipEpoch?: number
     name: string
     slug: string
     description?: string | null
@@ -271834,11 +278188,13 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
     releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutCollaboratorsInput = {
     id?: string
     organizationId: string
+    ownershipEpoch?: number
     name: string
     slug: string
     description?: string | null
@@ -271891,6 +278247,7 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
     releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutCollaboratorsInput = {
@@ -272042,6 +278399,7 @@ export namespace Prisma {
 
   export type ProjectUpdateWithoutCollaboratorsInput = {
     id?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -272095,11 +278453,13 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
     releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutCollaboratorsInput = {
     id?: StringFieldUpdateOperationsInput | string
     organizationId?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -272152,6 +278512,7 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
     releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutProjectCollaborationsInput = {
@@ -272293,6 +278654,7 @@ export namespace Prisma {
 
   export type ProjectCreateWithoutActivityInput = {
     id?: string
+    ownershipEpoch?: number
     name: string
     slug: string
     description?: string | null
@@ -272346,11 +278708,13 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
     releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutActivityInput = {
     id?: string
     organizationId: string
+    ownershipEpoch?: number
     name: string
     slug: string
     description?: string | null
@@ -272403,6 +278767,7 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
     releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutActivityInput = {
@@ -272554,6 +278919,7 @@ export namespace Prisma {
 
   export type ProjectUpdateWithoutActivityInput = {
     id?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -272607,11 +278973,13 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
     releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutActivityInput = {
     id?: StringFieldUpdateOperationsInput | string
     organizationId?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -272664,6 +279032,7 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
     releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutProjectActivityInput = {
@@ -272805,6 +279174,7 @@ export namespace Prisma {
 
   export type ProjectCreateWithoutCollaborationPresenceInput = {
     id?: string
+    ownershipEpoch?: number
     name: string
     slug: string
     description?: string | null
@@ -272858,11 +279228,13 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
     releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutCollaborationPresenceInput = {
     id?: string
     organizationId: string
+    ownershipEpoch?: number
     name: string
     slug: string
     description?: string | null
@@ -272915,6 +279287,7 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
     releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutCollaborationPresenceInput = {
@@ -273066,6 +279439,7 @@ export namespace Prisma {
 
   export type ProjectUpdateWithoutCollaborationPresenceInput = {
     id?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -273119,11 +279493,13 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
     releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutCollaborationPresenceInput = {
     id?: StringFieldUpdateOperationsInput | string
     organizationId?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -273176,6 +279552,7 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
     releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutCollaborationPresenceInput = {
@@ -273317,6 +279694,7 @@ export namespace Prisma {
 
   export type ProjectCreateWithoutCollaborationCommentsInput = {
     id?: string
+    ownershipEpoch?: number
     name: string
     slug: string
     description?: string | null
@@ -273370,11 +279748,13 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
     releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutCollaborationCommentsInput = {
     id?: string
     organizationId: string
+    ownershipEpoch?: number
     name: string
     slug: string
     description?: string | null
@@ -273427,6 +279807,7 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
     releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutCollaborationCommentsInput = {
@@ -273578,6 +279959,7 @@ export namespace Prisma {
 
   export type ProjectUpdateWithoutCollaborationCommentsInput = {
     id?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -273631,11 +280013,13 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
     releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutCollaborationCommentsInput = {
     id?: StringFieldUpdateOperationsInput | string
     organizationId?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -273688,6 +280072,7 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
     releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutCollaborationCommentsInput = {
@@ -273829,6 +280214,7 @@ export namespace Prisma {
 
   export type ProjectCreateWithoutShareLinksInput = {
     id?: string
+    ownershipEpoch?: number
     name: string
     slug: string
     description?: string | null
@@ -273882,11 +280268,13 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
     releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutShareLinksInput = {
     id?: string
     organizationId: string
+    ownershipEpoch?: number
     name: string
     slug: string
     description?: string | null
@@ -273939,6 +280327,7 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
     releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutShareLinksInput = {
@@ -274090,6 +280479,7 @@ export namespace Prisma {
 
   export type ProjectUpdateWithoutShareLinksInput = {
     id?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -274143,11 +280533,13 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
     releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutShareLinksInput = {
     id?: StringFieldUpdateOperationsInput | string
     organizationId?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -274200,6 +280592,7 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
     releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutCollaborationShareLinksInput = {
@@ -275864,6 +282257,7 @@ export namespace Prisma {
 
   export type ProjectCreateWithoutTemplatesInput = {
     id?: string
+    ownershipEpoch?: number
     name: string
     slug: string
     description?: string | null
@@ -275917,11 +282311,13 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
     releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutTemplatesInput = {
     id?: string
     organizationId: string
+    ownershipEpoch?: number
     name: string
     slug: string
     description?: string | null
@@ -275974,6 +282370,7 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
     releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutTemplatesInput = {
@@ -276095,6 +282492,7 @@ export namespace Prisma {
 
   export type ProjectUpdateWithoutTemplatesInput = {
     id?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -276148,11 +282546,13 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
     releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutTemplatesInput = {
     id?: StringFieldUpdateOperationsInput | string
     organizationId?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -276205,6 +282605,7 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
     releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
   }
 
   export type OrganizationUpsertWithoutProjectTemplatesInput = {
@@ -276316,6 +282717,7 @@ export namespace Prisma {
 
   export type ProjectCreateWithoutWorkspacesInput = {
     id?: string
+    ownershipEpoch?: number
     name: string
     slug: string
     description?: string | null
@@ -276369,11 +282771,13 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
     releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutWorkspacesInput = {
     id?: string
     organizationId: string
+    ownershipEpoch?: number
     name: string
     slug: string
     description?: string | null
@@ -276426,6 +282830,7 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
     releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutWorkspacesInput = {
@@ -276633,6 +283038,7 @@ export namespace Prisma {
 
   export type ProjectUpdateWithoutWorkspacesInput = {
     id?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -276686,11 +283092,13 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
     releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutWorkspacesInput = {
     id?: StringFieldUpdateOperationsInput | string
     organizationId?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -276743,6 +283151,7 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
     releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
   }
 
   export type WorkspaceSessionUpsertWithWhereUniqueWithoutWorkspaceInput = {
@@ -277209,6 +283618,7 @@ export namespace Prisma {
 
   export type ProjectCreateWithoutFileSnapshotsInput = {
     id?: string
+    ownershipEpoch?: number
     name: string
     slug: string
     description?: string | null
@@ -277262,11 +283672,13 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
     releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutFileSnapshotsInput = {
     id?: string
     organizationId: string
+    ownershipEpoch?: number
     name: string
     slug: string
     description?: string | null
@@ -277319,6 +283731,7 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
     releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutFileSnapshotsInput = {
@@ -277382,6 +283795,7 @@ export namespace Prisma {
 
   export type ProjectUpdateWithoutFileSnapshotsInput = {
     id?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -277435,11 +283849,13 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
     releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutFileSnapshotsInput = {
     id?: StringFieldUpdateOperationsInput | string
     organizationId?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -277492,6 +283908,7 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
     releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
   }
 
   export type WorkspaceUpsertWithoutSnapshotsInput = {
@@ -277545,6 +283962,7 @@ export namespace Prisma {
 
   export type ProjectCreateWithoutSnapshotsInput = {
     id?: string
+    ownershipEpoch?: number
     name: string
     slug: string
     description?: string | null
@@ -277598,11 +284016,13 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
     releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutSnapshotsInput = {
     id?: string
     organizationId: string
+    ownershipEpoch?: number
     name: string
     slug: string
     description?: string | null
@@ -277655,6 +284075,7 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
     releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutSnapshotsInput = {
@@ -277806,6 +284227,7 @@ export namespace Prisma {
 
   export type ProjectUpdateWithoutSnapshotsInput = {
     id?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -277859,11 +284281,13 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
     releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutSnapshotsInput = {
     id?: StringFieldUpdateOperationsInput | string
     organizationId?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -277916,6 +284340,7 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
     releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutProjectSnapshotsInput = {
@@ -278057,6 +284482,7 @@ export namespace Prisma {
 
   export type ProjectCreateWithoutManifestRevisionsInput = {
     id?: string
+    ownershipEpoch?: number
     name: string
     slug: string
     description?: string | null
@@ -278110,11 +284536,13 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
     releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutManifestRevisionsInput = {
     id?: string
     organizationId: string
+    ownershipEpoch?: number
     name: string
     slug: string
     description?: string | null
@@ -278167,6 +284595,7 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
     releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutManifestRevisionsInput = {
@@ -278187,6 +284616,7 @@ export namespace Prisma {
 
   export type ProjectUpdateWithoutManifestRevisionsInput = {
     id?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -278240,11 +284670,13 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
     releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutManifestRevisionsInput = {
     id?: StringFieldUpdateOperationsInput | string
     organizationId?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -278297,10 +284729,12 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
     releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutStorageObjectsInput = {
     id?: string
+    ownershipEpoch?: number
     name: string
     slug: string
     description?: string | null
@@ -278354,11 +284788,13 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
     releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutStorageObjectsInput = {
     id?: string
     organizationId: string
+    ownershipEpoch?: number
     name: string
     slug: string
     description?: string | null
@@ -278411,6 +284847,7 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
     releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutStorageObjectsInput = {
@@ -278431,6 +284868,7 @@ export namespace Prisma {
 
   export type ProjectUpdateWithoutStorageObjectsInput = {
     id?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -278484,11 +284922,13 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
     releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutStorageObjectsInput = {
     id?: StringFieldUpdateOperationsInput | string
     organizationId?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -278541,10 +284981,12 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
     releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutDeploymentsInput = {
     id?: string
+    ownershipEpoch?: number
     name: string
     slug: string
     description?: string | null
@@ -278598,11 +285040,13 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
     releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutDeploymentsInput = {
     id?: string
     organizationId: string
+    ownershipEpoch?: number
     name: string
     slug: string
     description?: string | null
@@ -278655,6 +285099,7 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
     releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutDeploymentsInput = {
@@ -278893,6 +285338,7 @@ export namespace Prisma {
 
   export type ProjectUpdateWithoutDeploymentsInput = {
     id?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -278946,11 +285392,13 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
     releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutDeploymentsInput = {
     id?: StringFieldUpdateOperationsInput | string
     organizationId?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -279003,6 +285451,7 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
     releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
   }
 
   export type DeploymentEnvironmentUpsertWithoutDeploymentsInput = {
@@ -279127,6 +285576,7 @@ export namespace Prisma {
 
   export type ProjectCreateWithoutReservedVmOperationsInput = {
     id?: string
+    ownershipEpoch?: number
     name: string
     slug: string
     description?: string | null
@@ -279180,11 +285630,13 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
     releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutReservedVmOperationsInput = {
     id?: string
     organizationId: string
+    ownershipEpoch?: number
     name: string
     slug: string
     description?: string | null
@@ -279237,6 +285689,7 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
     releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutReservedVmOperationsInput = {
@@ -279546,6 +285999,7 @@ export namespace Prisma {
 
   export type ProjectUpdateWithoutReservedVmOperationsInput = {
     id?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -279599,11 +286053,13 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
     releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutReservedVmOperationsInput = {
     id?: StringFieldUpdateOperationsInput | string
     organizationId?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -279656,6 +286112,7 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
     releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
   }
 
   export type DeploymentUpsertWithoutReservedVmOperationsInput = {
@@ -279967,6 +286424,7 @@ export namespace Prisma {
 
   export type ProjectCreateWithoutReservedVmBillingPeriodsInput = {
     id?: string
+    ownershipEpoch?: number
     name: string
     slug: string
     description?: string | null
@@ -280020,11 +286478,13 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
     releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutReservedVmBillingPeriodsInput = {
     id?: string
     organizationId: string
+    ownershipEpoch?: number
     name: string
     slug: string
     description?: string | null
@@ -280077,6 +286537,7 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
     releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutReservedVmBillingPeriodsInput = {
@@ -280386,6 +286847,7 @@ export namespace Prisma {
 
   export type ProjectUpdateWithoutReservedVmBillingPeriodsInput = {
     id?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -280439,11 +286901,13 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
     releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutReservedVmBillingPeriodsInput = {
     id?: StringFieldUpdateOperationsInput | string
     organizationId?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -280496,6 +286960,7 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
     releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
   }
 
   export type DeploymentUpsertWithoutReservedVmBillingPeriodsInput = {
@@ -280925,6 +287390,7 @@ export namespace Prisma {
 
   export type ProjectCreateWithoutReleaseManifestsInput = {
     id?: string
+    ownershipEpoch?: number
     name: string
     slug: string
     description?: string | null
@@ -280978,11 +287444,13 @@ export namespace Prisma {
     cloudBinding?: CloudProjectBindingCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutReleaseManifestsInput = {
     id?: string
     organizationId: string
+    ownershipEpoch?: number
     name: string
     slug: string
     description?: string | null
@@ -281035,6 +287503,7 @@ export namespace Prisma {
     cloudBinding?: CloudProjectBindingUncheckedCreateNestedOneWithoutProjectInput
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutReleaseManifestsInput = {
@@ -281055,6 +287524,7 @@ export namespace Prisma {
 
   export type ProjectUpdateWithoutReleaseManifestsInput = {
     id?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -281108,11 +287578,13 @@ export namespace Prisma {
     cloudBinding?: CloudProjectBindingUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutReleaseManifestsInput = {
     id?: StringFieldUpdateOperationsInput | string
     organizationId?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -281165,10 +287637,12 @@ export namespace Prisma {
     cloudBinding?: CloudProjectBindingUncheckedUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutRollbackOperationsInput = {
     id?: string
+    ownershipEpoch?: number
     name: string
     slug: string
     description?: string | null
@@ -281222,11 +287696,13 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
     releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutRollbackOperationsInput = {
     id?: string
     organizationId: string
+    ownershipEpoch?: number
     name: string
     slug: string
     description?: string | null
@@ -281279,6 +287755,7 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
     releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutRollbackOperationsInput = {
@@ -281430,6 +287907,7 @@ export namespace Prisma {
 
   export type ProjectUpdateWithoutRollbackOperationsInput = {
     id?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -281483,11 +287961,13 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
     releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutRollbackOperationsInput = {
     id?: StringFieldUpdateOperationsInput | string
     organizationId?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -281540,6 +288020,7 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
     releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutRollbackOperationsInput = {
@@ -283799,6 +290280,7 @@ export namespace Prisma {
 
   export type ProjectCreateWithoutConversationsInput = {
     id?: string
+    ownershipEpoch?: number
     name: string
     slug: string
     description?: string | null
@@ -283852,11 +290334,13 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
     releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutConversationsInput = {
     id?: string
     organizationId: string
+    ownershipEpoch?: number
     name: string
     slug: string
     description?: string | null
@@ -283909,6 +290393,7 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
     releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutConversationsInput = {
@@ -284088,6 +290573,7 @@ export namespace Prisma {
 
   export type ProjectUpdateWithoutConversationsInput = {
     id?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -284141,11 +290627,13 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
     releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutConversationsInput = {
     id?: StringFieldUpdateOperationsInput | string
     organizationId?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -284198,6 +290686,7 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
     releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutConversationsInput = {
@@ -286509,6 +292998,7 @@ export namespace Prisma {
 
   export type ProjectCreateWithoutRuntimeWebSocketTicketsInput = {
     id?: string
+    ownershipEpoch?: number
     name: string
     slug: string
     description?: string | null
@@ -286562,11 +293052,13 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
     releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutRuntimeWebSocketTicketsInput = {
     id?: string
     organizationId: string
+    ownershipEpoch?: number
     name: string
     slug: string
     description?: string | null
@@ -286619,6 +293111,7 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
     releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutRuntimeWebSocketTicketsInput = {
@@ -286776,6 +293269,7 @@ export namespace Prisma {
 
   export type ProjectUpdateWithoutRuntimeWebSocketTicketsInput = {
     id?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -286829,11 +293323,13 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
     releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutRuntimeWebSocketTicketsInput = {
     id?: StringFieldUpdateOperationsInput | string
     organizationId?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -286886,6 +293382,7 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
     releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
   }
 
   export type UserCreateWithoutPasswordResetTokensInput = {
@@ -291658,6 +298155,7 @@ export namespace Prisma {
 
   export type ProjectCreateWithoutConnectionLinksInput = {
     id?: string
+    ownershipEpoch?: number
     name: string
     slug: string
     description?: string | null
@@ -291711,11 +298209,13 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
     releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutConnectionLinksInput = {
     id?: string
     organizationId: string
+    ownershipEpoch?: number
     name: string
     slug: string
     description?: string | null
@@ -291768,6 +298268,7 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
     releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutConnectionLinksInput = {
@@ -291972,6 +298473,7 @@ export namespace Prisma {
 
   export type ProjectUpdateWithoutConnectionLinksInput = {
     id?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -292025,11 +298527,13 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
     releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutConnectionLinksInput = {
     id?: StringFieldUpdateOperationsInput | string
     organizationId?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -292082,6 +298586,7 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
     releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
   }
 
   export type UserConnectionUpsertWithoutProjectLinksInput = {
@@ -295469,6 +301974,7 @@ export namespace Prisma {
 
   export type ProjectCreateWithoutDatabaseInstancesInput = {
     id?: string
+    ownershipEpoch?: number
     name: string
     slug: string
     description?: string | null
@@ -295522,11 +302028,13 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
     releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutDatabaseInstancesInput = {
     id?: string
     organizationId: string
+    ownershipEpoch?: number
     name: string
     slug: string
     description?: string | null
@@ -295579,6 +302087,7 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
     releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutDatabaseInstancesInput = {
@@ -295751,6 +302260,7 @@ export namespace Prisma {
 
   export type ProjectUpdateWithoutDatabaseInstancesInput = {
     id?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -295804,11 +302314,13 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
     releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutDatabaseInstancesInput = {
     id?: StringFieldUpdateOperationsInput | string
     organizationId?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -295861,6 +302373,7 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
     releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
   }
 
   export type DatabaseSnapshotUpsertWithWhereUniqueWithoutDatabaseInstanceInput = {
@@ -296607,6 +303120,7 @@ export namespace Prisma {
 
   export type ProjectCreateWithoutCheckpointsInput = {
     id?: string
+    ownershipEpoch?: number
     name: string
     slug: string
     description?: string | null
@@ -296660,11 +303174,13 @@ export namespace Prisma {
     cloudBinding?: CloudProjectBindingCreateNestedOneWithoutProjectInput
     releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutCheckpointsInput = {
     id?: string
     organizationId: string
+    ownershipEpoch?: number
     name: string
     slug: string
     description?: string | null
@@ -296717,6 +303233,7 @@ export namespace Prisma {
     cloudBinding?: CloudProjectBindingUncheckedCreateNestedOneWithoutProjectInput
     releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutCheckpointsInput = {
@@ -296868,6 +303385,7 @@ export namespace Prisma {
 
   export type ProjectUpdateWithoutCheckpointsInput = {
     id?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -296921,11 +303439,13 @@ export namespace Prisma {
     cloudBinding?: CloudProjectBindingUpdateOneWithoutProjectNestedInput
     releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutCheckpointsInput = {
     id?: StringFieldUpdateOperationsInput | string
     organizationId?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -296978,6 +303498,7 @@ export namespace Prisma {
     cloudBinding?: CloudProjectBindingUncheckedUpdateOneWithoutProjectNestedInput
     releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutProjectCheckpointsInput = {
@@ -297119,6 +303640,7 @@ export namespace Prisma {
 
   export type ProjectCreateWithoutTargetRemixJobsInput = {
     id?: string
+    ownershipEpoch?: number
     name: string
     slug: string
     description?: string | null
@@ -297172,11 +303694,13 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
     releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutTargetRemixJobsInput = {
     id?: string
     organizationId: string
+    ownershipEpoch?: number
     name: string
     slug: string
     description?: string | null
@@ -297229,6 +303753,7 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
     releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutTargetRemixJobsInput = {
@@ -297331,6 +303856,7 @@ export namespace Prisma {
 
   export type ProjectUpdateWithoutTargetRemixJobsInput = {
     id?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -297384,11 +303910,13 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
     releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutTargetRemixJobsInput = {
     id?: StringFieldUpdateOperationsInput | string
     organizationId?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -297441,6 +303969,7 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
     releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
   }
 
   export type DatabaseInstanceUpsertWithoutRemixJobsAsTargetInput = {
@@ -297539,6 +304068,7 @@ export namespace Prisma {
 
   export type ProjectCreateWithoutSourceRemixSharesInput = {
     id?: string
+    ownershipEpoch?: number
     name: string
     slug: string
     description?: string | null
@@ -297592,11 +304122,13 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
     releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutSourceRemixSharesInput = {
     id?: string
     organizationId: string
+    ownershipEpoch?: number
     name: string
     slug: string
     description?: string | null
@@ -297649,6 +304181,7 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
     releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutSourceRemixSharesInput = {
@@ -297658,6 +304191,7 @@ export namespace Prisma {
 
   export type ProjectCreateWithoutTargetRemixSharesInput = {
     id?: string
+    ownershipEpoch?: number
     name: string
     slug: string
     description?: string | null
@@ -297711,11 +304245,13 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
     releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutTargetRemixSharesInput = {
     id?: string
     organizationId: string
+    ownershipEpoch?: number
     name: string
     slug: string
     description?: string | null
@@ -297768,6 +304304,7 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
     releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutTargetRemixSharesInput = {
@@ -298205,6 +304742,7 @@ export namespace Prisma {
 
   export type ProjectUpdateWithoutSourceRemixSharesInput = {
     id?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -298258,11 +304796,13 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
     releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutSourceRemixSharesInput = {
     id?: StringFieldUpdateOperationsInput | string
     organizationId?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -298315,6 +304855,7 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
     releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectUpsertWithoutTargetRemixSharesInput = {
@@ -298330,6 +304871,7 @@ export namespace Prisma {
 
   export type ProjectUpdateWithoutTargetRemixSharesInput = {
     id?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -298383,11 +304925,13 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
     releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutTargetRemixSharesInput = {
     id?: StringFieldUpdateOperationsInput | string
     organizationId?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -298440,6 +304984,7 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
     releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
   }
 
   export type OrganizationUpsertWithoutRemixStorageSharesAsSourceInput = {
@@ -299043,6 +305588,7 @@ export namespace Prisma {
 
   export type ProjectCreateWithoutImportJobsInput = {
     id?: string
+    ownershipEpoch?: number
     name: string
     slug: string
     description?: string | null
@@ -299096,11 +305642,13 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
     releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutImportJobsInput = {
     id?: string
     organizationId: string
+    ownershipEpoch?: number
     name: string
     slug: string
     description?: string | null
@@ -299153,6 +305701,7 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
     releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutImportJobsInput = {
@@ -299446,6 +305995,7 @@ export namespace Prisma {
 
   export type ProjectUpdateWithoutImportJobsInput = {
     id?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -299499,11 +306049,13 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
     releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutImportJobsInput = {
     id?: StringFieldUpdateOperationsInput | string
     organizationId?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -299556,6 +306108,7 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
     releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
   }
 
   export type ImportCreditReservationUpsertWithoutImportJobInput = {
@@ -299719,6 +306272,7 @@ export namespace Prisma {
 
   export type ProjectCreateWithoutGalleryListingsInput = {
     id?: string
+    ownershipEpoch?: number
     name: string
     slug: string
     description?: string | null
@@ -299772,11 +306326,13 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
     releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutGalleryListingsInput = {
     id?: string
     organizationId: string
+    ownershipEpoch?: number
     name: string
     slug: string
     description?: string | null
@@ -299829,6 +306385,7 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
     releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutGalleryListingsInput = {
@@ -299980,6 +306537,7 @@ export namespace Prisma {
 
   export type ProjectUpdateWithoutGalleryListingsInput = {
     id?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -300033,11 +306591,13 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
     releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutGalleryListingsInput = {
     id?: StringFieldUpdateOperationsInput | string
     organizationId?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -300090,6 +306650,7 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
     releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutGalleryListingsInput = {
@@ -302351,6 +308912,7 @@ export namespace Prisma {
 
   export type ProjectCreateWithoutCloudBindingInput = {
     id?: string
+    ownershipEpoch?: number
     name: string
     slug: string
     description?: string | null
@@ -302404,11 +308966,13 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
     releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutCloudBindingInput = {
     id?: string
     organizationId: string
+    ownershipEpoch?: number
     name: string
     slug: string
     description?: string | null
@@ -302461,6 +309025,7 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
     releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutCloudBindingInput = {
@@ -302726,6 +309291,7 @@ export namespace Prisma {
 
   export type ProjectUpdateWithoutCloudBindingInput = {
     id?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -302779,11 +309345,13 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
     releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutCloudBindingInput = {
     id?: StringFieldUpdateOperationsInput | string
     organizationId?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -302836,6 +309404,7 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
     releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
   }
 
   export type CloudProjectFactoryEventUpsertWithWhereUniqueWithoutBindingInput = {
@@ -308113,6 +314682,7 @@ export namespace Prisma {
 
   export type ProjectCreateManyOrganizationInput = {
     id?: string
+    ownershipEpoch?: number
     name: string
     slug: string
     description?: string | null
@@ -308574,6 +315144,7 @@ export namespace Prisma {
 
   export type ProjectUpdateWithoutOrganizationInput = {
     id?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -308627,10 +315198,12 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
     releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutOrganizationInput = {
     id?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -308684,10 +315257,12 @@ export namespace Prisma {
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
     releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateManyWithoutOrganizationInput = {
     id?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     slug?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -312335,6 +318910,26 @@ export namespace Prisma {
     contentHash: string
   }
 
+  export type ObjectStorageOperationPinnedGenerationCreateManyOperationInput = {
+    ordinal: number
+    key: string
+    generation: string
+    size: bigint | number
+    contentHash?: string | null
+  }
+
+  export type ProjectPermanentDeletionArtifactPlanCreateManyOperationInput = {
+    ordinal: number
+    artifactRef: string
+    artifactDigest: string
+    projectReferenceCount: number
+    plannedOtherReferenceCount: number
+    state?: $Enums.ProjectPermanentDeletionArtifactState
+    finalOtherReferenceCount?: number | null
+    processedAt?: Date | string | null
+    createdAt?: Date | string
+  }
+
   export type ObjectStorageCapabilityReservationCreateManyOperationInput = {
     id?: string
     attempt: number
@@ -312347,6 +318942,23 @@ export namespace Prisma {
     evidence?: NullableJsonNullValueInput | InputJsonValue
     reservedAt?: Date | string
     issuedAt?: Date | string | null
+  }
+
+  export type ObjectStorageVersionGcScheduleCreateManyLastOperationInput = {
+    projectId: string
+    expectedOrganizationId: string
+    status?: $Enums.ObjectStorageVersionGcStatus
+    notBefore: Date | string
+    nextAttemptAt: Date | string
+    ownerToken?: string | null
+    fencingToken?: bigint | number
+    leaseExpiresAt?: Date | string | null
+    attempts?: number
+    lastErrorCode?: string | null
+    lastErrorMessage?: string | null
+    requestedAt?: Date | string
+    createdAt?: Date | string
+    updatedAt?: Date | string
   }
 
   export type ObjectStorageOperationProjectScopeUpdateWithoutOperationInput = {
@@ -312406,6 +319018,66 @@ export namespace Prisma {
     contentHash?: StringFieldUpdateOperationsInput | string
   }
 
+  export type ObjectStorageOperationPinnedGenerationUpdateWithoutOperationInput = {
+    ordinal?: IntFieldUpdateOperationsInput | number
+    key?: StringFieldUpdateOperationsInput | string
+    generation?: StringFieldUpdateOperationsInput | string
+    size?: BigIntFieldUpdateOperationsInput | bigint | number
+    contentHash?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type ObjectStorageOperationPinnedGenerationUncheckedUpdateWithoutOperationInput = {
+    ordinal?: IntFieldUpdateOperationsInput | number
+    key?: StringFieldUpdateOperationsInput | string
+    generation?: StringFieldUpdateOperationsInput | string
+    size?: BigIntFieldUpdateOperationsInput | bigint | number
+    contentHash?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type ObjectStorageOperationPinnedGenerationUncheckedUpdateManyWithoutOperationInput = {
+    ordinal?: IntFieldUpdateOperationsInput | number
+    key?: StringFieldUpdateOperationsInput | string
+    generation?: StringFieldUpdateOperationsInput | string
+    size?: BigIntFieldUpdateOperationsInput | bigint | number
+    contentHash?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type ProjectPermanentDeletionArtifactPlanUpdateWithoutOperationInput = {
+    ordinal?: IntFieldUpdateOperationsInput | number
+    artifactRef?: StringFieldUpdateOperationsInput | string
+    artifactDigest?: StringFieldUpdateOperationsInput | string
+    projectReferenceCount?: IntFieldUpdateOperationsInput | number
+    plannedOtherReferenceCount?: IntFieldUpdateOperationsInput | number
+    state?: EnumProjectPermanentDeletionArtifactStateFieldUpdateOperationsInput | $Enums.ProjectPermanentDeletionArtifactState
+    finalOtherReferenceCount?: NullableIntFieldUpdateOperationsInput | number | null
+    processedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProjectPermanentDeletionArtifactPlanUncheckedUpdateWithoutOperationInput = {
+    ordinal?: IntFieldUpdateOperationsInput | number
+    artifactRef?: StringFieldUpdateOperationsInput | string
+    artifactDigest?: StringFieldUpdateOperationsInput | string
+    projectReferenceCount?: IntFieldUpdateOperationsInput | number
+    plannedOtherReferenceCount?: IntFieldUpdateOperationsInput | number
+    state?: EnumProjectPermanentDeletionArtifactStateFieldUpdateOperationsInput | $Enums.ProjectPermanentDeletionArtifactState
+    finalOtherReferenceCount?: NullableIntFieldUpdateOperationsInput | number | null
+    processedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProjectPermanentDeletionArtifactPlanUncheckedUpdateManyWithoutOperationInput = {
+    ordinal?: IntFieldUpdateOperationsInput | number
+    artifactRef?: StringFieldUpdateOperationsInput | string
+    artifactDigest?: StringFieldUpdateOperationsInput | string
+    projectReferenceCount?: IntFieldUpdateOperationsInput | number
+    plannedOtherReferenceCount?: IntFieldUpdateOperationsInput | number
+    state?: EnumProjectPermanentDeletionArtifactStateFieldUpdateOperationsInput | $Enums.ProjectPermanentDeletionArtifactState
+    finalOtherReferenceCount?: NullableIntFieldUpdateOperationsInput | number | null
+    processedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type ObjectStorageCapabilityReservationUpdateWithoutOperationInput = {
     id?: StringFieldUpdateOperationsInput | string
     attempt?: IntFieldUpdateOperationsInput | number
@@ -312446,6 +319118,57 @@ export namespace Prisma {
     evidence?: NullableJsonNullValueInput | InputJsonValue
     reservedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     issuedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type ObjectStorageVersionGcScheduleUpdateWithoutLastOperationInput = {
+    expectedOrganizationId?: StringFieldUpdateOperationsInput | string
+    status?: EnumObjectStorageVersionGcStatusFieldUpdateOperationsInput | $Enums.ObjectStorageVersionGcStatus
+    notBefore?: DateTimeFieldUpdateOperationsInput | Date | string
+    nextAttemptAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    ownerToken?: NullableStringFieldUpdateOperationsInput | string | null
+    fencingToken?: BigIntFieldUpdateOperationsInput | bigint | number
+    leaseExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    attempts?: IntFieldUpdateOperationsInput | number
+    lastErrorCode?: NullableStringFieldUpdateOperationsInput | string | null
+    lastErrorMessage?: NullableStringFieldUpdateOperationsInput | string | null
+    requestedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    project?: ProjectUpdateOneRequiredWithoutObjectStorageVersionGcScheduleNestedInput
+  }
+
+  export type ObjectStorageVersionGcScheduleUncheckedUpdateWithoutLastOperationInput = {
+    projectId?: StringFieldUpdateOperationsInput | string
+    expectedOrganizationId?: StringFieldUpdateOperationsInput | string
+    status?: EnumObjectStorageVersionGcStatusFieldUpdateOperationsInput | $Enums.ObjectStorageVersionGcStatus
+    notBefore?: DateTimeFieldUpdateOperationsInput | Date | string
+    nextAttemptAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    ownerToken?: NullableStringFieldUpdateOperationsInput | string | null
+    fencingToken?: BigIntFieldUpdateOperationsInput | bigint | number
+    leaseExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    attempts?: IntFieldUpdateOperationsInput | number
+    lastErrorCode?: NullableStringFieldUpdateOperationsInput | string | null
+    lastErrorMessage?: NullableStringFieldUpdateOperationsInput | string | null
+    requestedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ObjectStorageVersionGcScheduleUncheckedUpdateManyWithoutLastOperationInput = {
+    projectId?: StringFieldUpdateOperationsInput | string
+    expectedOrganizationId?: StringFieldUpdateOperationsInput | string
+    status?: EnumObjectStorageVersionGcStatusFieldUpdateOperationsInput | $Enums.ObjectStorageVersionGcStatus
+    notBefore?: DateTimeFieldUpdateOperationsInput | Date | string
+    nextAttemptAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    ownerToken?: NullableStringFieldUpdateOperationsInput | string | null
+    fencingToken?: BigIntFieldUpdateOperationsInput | bigint | number
+    leaseExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    attempts?: IntFieldUpdateOperationsInput | number
+    lastErrorCode?: NullableStringFieldUpdateOperationsInput | string | null
+    lastErrorMessage?: NullableStringFieldUpdateOperationsInput | string | null
+    requestedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type CollaborationGroupMemberCreateManyGroupInput = {

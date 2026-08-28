@@ -6,8 +6,38 @@
 -- upper bound before returning a URL; transfer refuses while it is in the
 -- future and while the bucket still exists.
 ALTER TABLE "Project"
+  ADD COLUMN "ownershipEpoch" INTEGER NOT NULL DEFAULT 0,
   ADD COLUMN "objectStorageCapabilityExpiresAt" TIMESTAMP(3),
-  ADD COLUMN "permanentDeletionStartedAt" TIMESTAMP(3);
+  ADD COLUMN "permanentDeletionStartedAt" TIMESTAMP(3),
+  ADD CONSTRAINT "Project_ownershipEpoch_check" CHECK ("ownershipEpoch" >= 0);
+
+-- Preserve compatibility with the pre-0101 transfer statement while making
+-- the authority epoch a database invariant. New code supplies old+1
+-- explicitly; an organization-only update is normalized to the same value.
+CREATE FUNCTION "enforce_project_ownership_epoch"()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  IF NEW."organizationId" IS DISTINCT FROM OLD."organizationId" THEN
+    IF NEW."ownershipEpoch" NOT IN (OLD."ownershipEpoch", OLD."ownershipEpoch" + 1) THEN
+      RAISE EXCEPTION 'Project ownership epoch must advance exactly once per tenant change'
+        USING ERRCODE = '23514';
+    END IF;
+    NEW."ownershipEpoch" := OLD."ownershipEpoch" + 1;
+  ELSIF NEW."ownershipEpoch" IS DISTINCT FROM OLD."ownershipEpoch" THEN
+    RAISE EXCEPTION 'Project ownership epoch cannot change without a tenant change'
+      USING ERRCODE = '23514';
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER "Project_ownership_epoch_guard"
+BEFORE UPDATE OF "organizationId", "ownershipEpoch" ON "Project"
+FOR EACH ROW
+EXECUTE FUNCTION "enforce_project_ownership_epoch"();
 
 CREATE TYPE "ObjectStorageOperationKind" AS ENUM (
   'TENANT_MUTATION',
@@ -16,6 +46,7 @@ CREATE TYPE "ObjectStorageOperationKind" AS ENUM (
   'PROJECT_TRANSFER',
   'PROJECT_PERMANENT_DELETE',
   'PROJECT_REMIX_CLONE',
+  'PROJECT_VERSION_GC',
   'ACCOUNT_PURGE_ERASURE'
 );
 
@@ -31,6 +62,18 @@ CREATE TYPE "ObjectStorageOperationStatus" AS ENUM (
 CREATE TYPE "ObjectStorageCapabilityReservationStatus" AS ENUM (
   'RESERVED',
   'ISSUED'
+);
+
+CREATE TYPE "ObjectStorageVersionGcStatus" AS ENUM (
+  'PENDING',
+  'CLAIMED',
+  'MANUAL_RECOVERY'
+);
+
+CREATE TYPE "ProjectPermanentDeletionArtifactState" AS ENUM (
+  'PLANNED',
+  'DELETED',
+  'RETAINED'
 );
 
 CREATE TABLE "ObjectStorageOperation" (
@@ -150,6 +193,80 @@ CREATE TABLE "ObjectStorageOperationPinnedObject" (
 CREATE UNIQUE INDEX "ObjectStorageOperationPinnedObject_operation_key_key"
   ON "ObjectStorageOperationPinnedObject"("operationId", "key");
 
+CREATE TABLE "ObjectStorageOperationPinnedGeneration" (
+  "operationId" TEXT NOT NULL,
+  "ordinal" INTEGER NOT NULL,
+  "key" TEXT NOT NULL,
+  "generation" TEXT NOT NULL,
+  "size" BIGINT NOT NULL,
+  "contentHash" TEXT,
+
+  CONSTRAINT "ObjectStorageOperationPinnedGeneration_pkey" PRIMARY KEY ("operationId", "ordinal"),
+  CONSTRAINT "ObjectStorageOperationPinnedGeneration_ordinal_check" CHECK ("ordinal" >= 0),
+  CONSTRAINT "ObjectStorageOperationPinnedGeneration_key_check" CHECK (length("key") BETWEEN 1 AND 1024),
+  CONSTRAINT "ObjectStorageOperationPinnedGeneration_generation_check"
+    CHECK (length("generation") BETWEEN 1 AND 255),
+  CONSTRAINT "ObjectStorageOperationPinnedGeneration_size_check" CHECK ("size" >= 0),
+  CONSTRAINT "ObjectStorageOperationPinnedGeneration_content_hash_check"
+    CHECK (
+      "contentHash" IS NULL
+      OR (
+        length("contentHash") BETWEEN 1 AND 520
+        AND "contentHash" ~ '^(sha256|md5|crc32c):[^[:space:]]+$'
+      )
+    ),
+  CONSTRAINT "ObjectStorageOperationPinnedGeneration_operationId_fkey"
+    FOREIGN KEY ("operationId") REFERENCES "ObjectStorageOperation"("id")
+    ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+CREATE UNIQUE INDEX "OSPinnedGeneration_operation_key_generation_key"
+  ON "ObjectStorageOperationPinnedGeneration"("operationId", "key", "generation");
+CREATE INDEX "OSPinnedGeneration_operation_key_idx"
+  ON "ObjectStorageOperationPinnedGeneration"("operationId", "key");
+
+CREATE TABLE "ProjectPermanentDeletionArtifactPlan" (
+  "operationId" TEXT NOT NULL,
+  "ordinal" INTEGER NOT NULL,
+  "artifactRef" TEXT NOT NULL,
+  "artifactDigest" TEXT NOT NULL,
+  "projectReferenceCount" INTEGER NOT NULL,
+  "plannedOtherReferenceCount" INTEGER NOT NULL,
+  "state" "ProjectPermanentDeletionArtifactState" NOT NULL DEFAULT 'PLANNED',
+  "finalOtherReferenceCount" INTEGER,
+  "processedAt" TIMESTAMP(3),
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+  CONSTRAINT "ProjectPermanentDeletionArtifactPlan_pkey" PRIMARY KEY ("operationId", "ordinal"),
+  CONSTRAINT "ProjectPermanentDeletionArtifactPlan_ordinal_check" CHECK ("ordinal" >= 0),
+  CONSTRAINT "ProjectPermanentDeletionArtifactPlan_ref_check"
+    CHECK (length("artifactRef") BETWEEN 1 AND 2048),
+  CONSTRAINT "ProjectPermanentDeletionArtifactPlan_digest_check"
+    CHECK ("artifactDigest" ~ '^[0-9a-f]{64}$'),
+  CONSTRAINT "ProjectPermanentDeletionArtifactPlan_reference_counts_check"
+    CHECK (
+      "projectReferenceCount" > 0
+      AND "plannedOtherReferenceCount" >= 0
+      AND ("finalOtherReferenceCount" IS NULL OR "finalOtherReferenceCount" >= 0)
+    ),
+  CONSTRAINT "ProjectPermanentDeletionArtifactPlan_state_check"
+    CHECK (
+      ("state" = 'PLANNED' AND "finalOtherReferenceCount" IS NULL AND "processedAt" IS NULL)
+      OR ("state" = 'DELETED' AND "finalOtherReferenceCount" = 0 AND "processedAt" IS NOT NULL)
+      OR ("state" = 'RETAINED' AND "finalOtherReferenceCount" > 0 AND "processedAt" IS NOT NULL)
+    ),
+  CONSTRAINT "ProjectPermanentDeletionArtifactPlan_operationId_fkey"
+    FOREIGN KEY ("operationId") REFERENCES "ObjectStorageOperation"("id")
+    ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+CREATE UNIQUE INDEX "PPDArtifactPlan_operation_artifact_key"
+  ON "ProjectPermanentDeletionArtifactPlan"("operationId", "artifactRef");
+CREATE INDEX "PPDArtifactPlan_operation_state_ordinal_idx"
+  ON "ProjectPermanentDeletionArtifactPlan"("operationId", "state", "ordinal");
+CREATE INDEX "PPDArtifactPlan_digest_idx"
+  ON "ProjectPermanentDeletionArtifactPlan"("artifactDigest");
+
 CREATE TABLE "ObjectStorageCapabilityReservation" (
   "id" TEXT NOT NULL,
   "operationId" TEXT NOT NULL,
@@ -231,6 +348,55 @@ CREATE INDEX "ObjectStorageOperationProjectScope_snapshot_createdAt_idx"
   ON "ObjectStorageOperationProjectScope"("projectIdSnapshot", "createdAt");
 CREATE INDEX "ObjectStorageOperationProjectScope_expectedOrg_createdAt_idx"
   ON "ObjectStorageOperationProjectScope"("expectedOrganizationId", "createdAt");
+
+CREATE TABLE "ObjectStorageVersionGcSchedule" (
+  "projectId" TEXT NOT NULL,
+  "expectedOrganizationId" TEXT NOT NULL,
+  "status" "ObjectStorageVersionGcStatus" NOT NULL DEFAULT 'PENDING',
+  "notBefore" TIMESTAMP(3) NOT NULL,
+  "nextAttemptAt" TIMESTAMP(3) NOT NULL,
+  "ownerToken" TEXT,
+  "fencingToken" BIGINT NOT NULL DEFAULT 1,
+  "leaseExpiresAt" TIMESTAMP(3),
+  "attempts" INTEGER NOT NULL DEFAULT 0,
+  "lastOperationId" TEXT,
+  "lastErrorCode" TEXT,
+  "lastErrorMessage" TEXT,
+  "requestedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" TIMESTAMP(3) NOT NULL,
+
+  CONSTRAINT "ObjectStorageVersionGcSchedule_pkey" PRIMARY KEY ("projectId"),
+  CONSTRAINT "ObjectStorageVersionGcSchedule_expected_org_check"
+    CHECK (length("expectedOrganizationId") BETWEEN 1 AND 128),
+  CONSTRAINT "ObjectStorageVersionGcSchedule_owner_check"
+    CHECK ("ownerToken" IS NULL OR length("ownerToken") BETWEEN 16 AND 255),
+  CONSTRAINT "ObjectStorageVersionGcSchedule_fence_check" CHECK ("fencingToken" > 0),
+  CONSTRAINT "ObjectStorageVersionGcSchedule_attempts_check" CHECK ("attempts" >= 0),
+  CONSTRAINT "ObjectStorageVersionGcSchedule_error_bounds_check"
+    CHECK (
+      ("lastErrorCode" IS NULL OR length("lastErrorCode") <= 128)
+      AND ("lastErrorMessage" IS NULL OR length("lastErrorMessage") <= 1000)
+    ),
+  CONSTRAINT "ObjectStorageVersionGcSchedule_lease_state_check"
+    CHECK (
+      ("status" = 'CLAIMED' AND "ownerToken" IS NOT NULL AND "leaseExpiresAt" IS NOT NULL)
+      OR ("status" IN ('PENDING', 'MANUAL_RECOVERY') AND "ownerToken" IS NULL AND "leaseExpiresAt" IS NULL)
+    ),
+  CONSTRAINT "ObjectStorageVersionGcSchedule_projectId_fkey"
+    FOREIGN KEY ("projectId") REFERENCES "Project"("id")
+    ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT "ObjectStorageVersionGcSchedule_lastOperationId_fkey"
+    FOREIGN KEY ("lastOperationId") REFERENCES "ObjectStorageOperation"("id")
+    ON DELETE SET NULL ON UPDATE CASCADE
+);
+
+CREATE INDEX "OSVersionGc_status_due_project_idx"
+  ON "ObjectStorageVersionGcSchedule"("status", "nextAttemptAt", "projectId");
+CREATE INDEX "OSVersionGc_last_operation_idx"
+  ON "ObjectStorageVersionGcSchedule"("lastOperationId");
+CREATE INDEX "OSVersionGc_org_requested_idx"
+  ON "ObjectStorageVersionGcSchedule"("expectedOrganizationId", "requestedAt");
 
 -- There is intentionally no Project FK: the proof must outlive the row whose
 -- provider data was irreversibly erased. The operation FK is RESTRICT so a
@@ -342,5 +508,15 @@ EXECUTE FUNCTION "prevent_receipted_object_storage_history_mutation"();
 
 CREATE TRIGGER "ObjectStorageOperationPinnedObject_receipted_history_guard"
 BEFORE UPDATE OR DELETE ON "ObjectStorageOperationPinnedObject"
+FOR EACH ROW
+EXECUTE FUNCTION "prevent_receipted_object_storage_history_mutation"();
+
+CREATE TRIGGER "ObjectStorageOperationPinnedGeneration_receipted_history_guard"
+BEFORE UPDATE OR DELETE ON "ObjectStorageOperationPinnedGeneration"
+FOR EACH ROW
+EXECUTE FUNCTION "prevent_receipted_object_storage_history_mutation"();
+
+CREATE TRIGGER "ProjectPermanentDeletionArtifactPlan_receipted_history_guard"
+BEFORE UPDATE OR DELETE ON "ProjectPermanentDeletionArtifactPlan"
 FOR EACH ROW
 EXECUTE FUNCTION "prevent_receipted_object_storage_history_mutation"();
