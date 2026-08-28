@@ -3877,6 +3877,8 @@ export interface ApiStore {
     environment?: string;
     provisioningDeadlineAt: string;
     physicalAuthority: DatabasePhysicalAuthority;
+    /** Exact authority required when provisioning is claimed inside a release barrier. */
+    releaseFence?: ProjectReleaseFence;
   }): Promise<{ instance: DatabaseInstanceRecord; acquired: boolean; created: boolean }>;
   completeDatabaseProvisioning(
     id: string,

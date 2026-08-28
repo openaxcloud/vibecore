@@ -8,6 +8,7 @@ import {
 } from './database-provision-lifecycle.js';
 import { NoopProvisioner, type DatabaseProvisioner } from './database-provisioner.js';
 import type { DatabaseInstanceRecord } from './store.js';
+import { acquireTestProjectReleaseFence } from './tests/project-release-barrier-fixture.js';
 import { TestApiStore } from './tests/test-api-store.js';
 
 function instance(overrides: Partial<DatabaseInstanceRecord> = {}): DatabaseInstanceRecord {
@@ -224,6 +225,51 @@ describe('managed database provisioning lifecycle', () => {
     expect([first, second].filter((result) => result.acquired)).toHaveLength(1);
     expect(Array.from(store.databaseInstances.values())).toHaveLength(1);
     expect((await store.getDatabaseInstanceByProject(failed.projectId))?.status).toBe('PROVISIONING');
+  });
+
+  it('accepts only the exact active release fence for a provisioning claim inside publish', async () => {
+    const { store, pending: failed } = await pendingFixture({
+      status: 'FAILED',
+      lastErrorCode: DATABASE_PROVISION_FAILURE.timedOut,
+      lastErrorAt: '2026-08-26T10:01:00.000Z',
+    });
+    const retry = {
+      projectId: failed.projectId,
+      expectedOrganizationId: failed.organizationId,
+      organizationId: failed.organizationId,
+      retentionDays: failed.retentionDays,
+      environment: failed.environment,
+      provisioningDeadlineAt: '2026-08-26T10:20:00.000Z',
+      physicalAuthority: {
+        tier: 'isolated' as const,
+        clusterName: `db-${failed.projectId}`,
+        backupBucket: 'database-backups',
+        backupPrefix: `db/${failed.projectId}/`,
+        retentionDays: failed.retentionDays,
+      },
+    };
+    const barrier = await acquireTestProjectReleaseFence(store, {
+      projectId: failed.projectId,
+      organizationId: failed.organizationId,
+    });
+
+    try {
+      await expect(store.acquireDatabaseProvisioning(retry)).rejects.toMatchObject({
+        code: 'CHECKPOINT_BARRIER_ACTIVE',
+        statusCode: 423,
+      });
+      await expect(
+        store.acquireDatabaseProvisioning({
+          ...retry,
+          releaseFence: { ...barrier.releaseFence, ownerToken: 'forged-publish-owner' },
+        }),
+      ).rejects.toMatchObject({ code: 'PROJECT_RELEASE_BARRIER_LOST', statusCode: 409 });
+      await expect(
+        store.acquireDatabaseProvisioning({ ...retry, releaseFence: barrier.releaseFence }),
+      ).resolves.toMatchObject({ acquired: true, created: false, instance: { status: 'PROVISIONING' } });
+    } finally {
+      await barrier.release();
+    }
   });
 
   it('never retargets a failed instance after backup configuration or plan topology drift', async () => {

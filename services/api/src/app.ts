@@ -46325,17 +46325,22 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
               promotion: serverPublishPromotion.manifest,
             });
 
-            published = await store.updateDeployment(project.id, published.id, {
-              status: 'BUILDING',
-              metadata: {
-                ...(published.metadata as Record<string, unknown>),
-                serverDeploy: {
-                  ...((published.metadata as Record<string, unknown>).serverDeploy as Record<string, unknown>),
-                  rollbackRuntimeSpec,
-                  rollbackPromotionEvidence,
+            published = await store.updateDeployment(
+              project.id,
+              published.id,
+              {
+                status: 'BUILDING',
+                metadata: {
+                  ...(published.metadata as Record<string, unknown>),
+                  serverDeploy: {
+                    ...((published.metadata as Record<string, unknown>).serverDeploy as Record<string, unknown>),
+                    rollbackRuntimeSpec,
+                    rollbackPromotionEvidence,
+                  },
                 },
               },
-            });
+              releaseGuard.fence,
+            );
 
             await releaseGuard.assert();
             environmentDatabaseLease = await acquireEnvironmentDatabasePinLease(
@@ -46362,19 +46367,24 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             await assertEnvironmentDatabaseLeaseHeld(environmentDatabaseLease);
 
             const url = started.url ?? `https://${host}`;
-            published = await store.updateDeployment(project.id, published.id, {
-              status: 'BUILDING',
-              metadata: {
-                ...(published.metadata as Record<string, unknown>),
-                serverDeploy: {
-                  ...((published.metadata as Record<string, unknown>).serverDeploy as Record<string, unknown>),
-                  host,
-                  applied: true,
-                  ready: false,
-                  readyReplicas: started.readyReplicas,
+            published = await store.updateDeployment(
+              project.id,
+              published.id,
+              {
+                status: 'BUILDING',
+                metadata: {
+                  ...(published.metadata as Record<string, unknown>),
+                  serverDeploy: {
+                    ...((published.metadata as Record<string, unknown>).serverDeploy as Record<string, unknown>),
+                    host,
+                    applied: true,
+                    ready: false,
+                    readyReplicas: started.readyReplicas,
+                  },
                 },
               },
-            });
+              releaseGuard.fence,
+            );
 
             if (started.ready) {
               await releaseGuard.assert();
@@ -46396,27 +46406,32 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             await stopServerDeploymentViaManager(published.id).catch(() => undefined);
 
             const code = (error as { code?: string }).code ?? 'SERVER_RELEASE_COMMIT_FAILED';
-            published = await store.updateDeployment(project.id, published.id, {
-              status: 'FAILED',
-              metadata: {
-                ...(published.metadata as Record<string, unknown>),
-                serverDeploy: {
-                  ...((published.metadata as Record<string, unknown>).serverDeploy as Record<string, unknown>),
-                  host,
-                  ready: false,
-                  releaseErrorCode: code,
+            published = await store.updateDeployment(
+              project.id,
+              published.id,
+              {
+                status: 'FAILED',
+                metadata: {
+                  ...(published.metadata as Record<string, unknown>),
+                  serverDeploy: {
+                    ...((published.metadata as Record<string, unknown>).serverDeploy as Record<string, unknown>),
+                    host,
+                    ready: false,
+                    releaseErrorCode: code,
+                  },
                 },
+                logs: [
+                  ...published.logs,
+                  {
+                    timestamp: new Date().toISOString(),
+                    level: 'error',
+                    message: appPublicEnglish(serverImagePromotionErrorCopyKey(code)),
+                  },
+                ],
+                finishedAt: new Date().toISOString(),
               },
-              logs: [
-                ...published.logs,
-                {
-                  timestamp: new Date().toISOString(),
-                  level: 'error',
-                  message: appPublicEnglish(serverImagePromotionErrorCopyKey(code)),
-                },
-              ],
-              finishedAt: new Date().toISOString(),
-            });
+              releaseGuard.fence,
+            );
             request.log?.error?.(
               { code, deploymentId: published.id, projectId: project.id, organizationId: project.organizationId },
               'production server image release blocked',
@@ -46464,6 +46479,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                   environment: 'production',
                   provisioningDeadlineAt: databaseProvisionDeadline(),
                   physicalAuthority: requestedPhysicalAuthority,
+                  releaseFence: releaseGuard.fence,
                 });
 
                 if (acquisition.acquired) {
