@@ -188,6 +188,7 @@ describe('server rollback re-deploys the retained image by digest (wiring)', () 
           rollbackRuntimeSpec: pins.runtimeSpec,
         },
       },
+      releaseFence: release.releaseFence,
     });
     await store.commitServerImageRelease({
       projectId,
@@ -303,6 +304,7 @@ describe('server rollback re-deploys the retained image by digest (wiring)', () 
             rollbackRuntimeSpec: pins.runtimeSpec,
           },
         },
+        releaseFence: release.releaseFence,
       });
       await store.commitServerImageRelease({
         projectId,
@@ -408,12 +410,18 @@ describe('server rollback re-deploys the retained image by digest (wiring)', () 
         planEntitlements: DETERMINISTIC_RELEASE_PLAN_ENTITLEMENTS,
         projectManifestDigest: projectManifest!.digest,
       },
+      releaseFence: release.releaseFence,
     });
-    const reserved = await store.updateDeployment(projectId, reservedDraft.id, {
-      runtimeKind: 'reserved-vm',
-      reservedVmTier: 'shared-0.5',
-      persistentStorageClaim: 'reserved-runtime-class-pvc',
-    });
+    const reserved = await store.updateDeployment(
+      projectId,
+      reservedDraft.id,
+      {
+        runtimeKind: 'reserved-vm',
+        reservedVmTier: 'shared-0.5',
+        persistentStorageClaim: 'reserved-runtime-class-pvc',
+      },
+      release.releaseFence,
+    );
     const pins = deterministicServerReleaseFixture({
       organizationId: project!.organizationId,
       projectId,
@@ -431,16 +439,21 @@ describe('server rollback re-deploys the retained image by digest (wiring)', () 
         },
       },
     });
-    const staged = await store.updateDeployment(projectId, reserved.id, {
-      metadata: {
-        ...(reserved.metadata as Record<string, unknown>),
-        serverDeploy: {
-          image: { imageRef: IMAGE_REF, imageDigest: DIGEST },
-          promotion: pins.promotion,
-          rollbackRuntimeSpec: pins.runtimeSpec,
+    const staged = await store.updateDeployment(
+      projectId,
+      reserved.id,
+      {
+        metadata: {
+          ...(reserved.metadata as Record<string, unknown>),
+          serverDeploy: {
+            image: { imageRef: IMAGE_REF, imageDigest: DIGEST },
+            promotion: pins.promotion,
+            rollbackRuntimeSpec: pins.runtimeSpec,
+          },
         },
       },
-    });
+      release.releaseFence,
+    );
     await store.commitServerImageRelease({
       projectId,
       organizationId: project!.organizationId,
