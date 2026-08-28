@@ -495,11 +495,38 @@ export interface ProjectStorageObjectRecord {
   createdAt: string;
 }
 
+/**
+ * Server-only authority for a project that is intentionally hidden while an
+ * import/remix is materialized or compensated. The token is a renewable,
+ * database-backed lease; knowing a project id is never sufficient authority.
+ */
+export type ProjectPartialTargetAuthority =
+  | {
+      kind: 'IMPORT_TARGET';
+      jobId: string;
+      operationToken: string;
+    }
+  | {
+      kind: 'REMIX_TARGET';
+      jobId: string;
+      operationToken: string;
+    };
+
+/**
+ * Physical adapters stamp this value themselves. It prevents a cleanup lease
+ * from being repurposed to write new bytes, while allowing both materializers
+ * and cleanup owners to verify the exact bytes they respectively wrote/erased.
+ */
+export type ProjectPhysicalAccessOperation = 'READ' | 'WRITE' | 'DELETE' | 'OBJECT_CLONE';
+
 /** Server-captured tenant authority for a project-scoped physical mutation. */
 export interface ProjectPhysicalMutationScope {
   projectId: string;
   expectedOrganizationId: string;
   workspaceId?: string;
+  partialTargetAuthority?: ProjectPartialTargetAuthority;
+  /** Internal adapter stamp; callers must not infer or forward a client value. */
+  physicalAccessOperation?: ProjectPhysicalAccessOperation;
 }
 
 /** Immutable provider authority captured before a managed-database effect. */
