@@ -1,5 +1,4 @@
 import { execFile as execFileCallback } from 'node:child_process';
-import { createHash } from 'node:crypto';
 import { constants as fsConstants, type Dirent } from 'node:fs';
 import {
   access,
@@ -23,8 +22,11 @@ import { appPublicEnglish } from './app-public-copy.js';
 import {
   objectStorageStaticArtifactSummary,
   type ObjectStorageStaticArtifactDisposition,
+  type ObjectStorageStaticArtifactPlanEntry,
   type ObjectStorageStaticArtifactSummary,
+  type ObjectStorageStaticErasurePlan,
 } from './object-storage-operation.js';
+import { withStaticDeploymentStorageLock } from './static-deployment-storage-lock.js';
 import type { ProjectPhysicalMutationScope } from './store.js';
 
 const execFile = promisify(execFileCallback);
@@ -335,7 +337,7 @@ export interface ProjectStorage {
    */
   eraseProjectDataWithinPhysicalAccess(projectId: string): Promise<void>;
   /** Validate the complete DB authority before marking any irreversible provider effect started. */
-  prepareProjectStaticErasureWithinPhysicalAccess?(projectId: string): Promise<ObjectStorageStaticArtifactSummary>;
+  prepareProjectStaticErasureWithinPhysicalAccess?(projectId: string): Promise<ObjectStorageStaticErasurePlan>;
   /** 0100 static-release implementation: erase aliases and only unshared content-addressed artifacts. */
   eraseProjectStaticDataWithinPhysicalAccess?(projectId: string): Promise<void>;
   /** Explicit capability bit: method presence alone is insufficient when no DB authority was injected. */
@@ -438,7 +440,6 @@ function safeProjectPath(projectId: string, filePath = '') {
 const SAFE_STATIC_STORAGE_ID = /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/u;
 const STATIC_ARTIFACT_REF = /^static-artifacts\/sha256\/([a-f0-9]{64})$/u;
 const STATIC_RECOVERY_MARKER = '.tmp-';
-const MAX_STATIC_ARTIFACT_DISPOSITIONS = 10_000;
 
 function staticErasureError(code: string, statusCode = 503): Error {
   return Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), { code, statusCode });
@@ -512,15 +513,6 @@ function staticRecoveryOwner(entryName: string, owners: ReadonlySet<string>): st
   return owners.has(owner) ? owner : undefined;
 }
 
-function staticStorageLockId(id: string): string {
-  assertSafeStaticStorageId(id, 'deployment');
-  return `static-${createHash('sha256').update(id, 'utf8').digest('hex')}`;
-}
-
-function withStaticStorageLock<T>(id: string, effect: () => Promise<T>): Promise<T> {
-  return withProjectLock(staticStorageLockId(id), effect);
-}
-
 function artifactDigest(artifactRef: string): string {
   const digest = STATIC_ARTIFACT_REF.exec(artifactRef)?.[1];
   if (!digest) throw staticErasureError('PROJECT_STATIC_ERASURE_ARTIFACT_REF_INVALID', 400);
@@ -562,10 +554,6 @@ function validateStaticErasureInventory(
     !Array.isArray(inventory.artifacts)
   ) {
     throw staticErasureError('PROJECT_STATIC_ERASURE_AUTHORITY_INVALID');
-  }
-
-  if (inventory.artifacts.length > MAX_STATIC_ARTIFACT_DISPOSITIONS) {
-    throw staticErasureError('PROJECT_STATIC_ERASURE_ARTIFACT_INVENTORY_TOO_LARGE');
   }
 
   const deploymentIds = inventory.deploymentIds.map((deploymentId) => {
@@ -679,7 +667,7 @@ async function eraseRelevantStaticAliases(root: string, deploymentIds: ReadonlyS
     const aliasRoot = staticChildPath(root, '.aliases');
 
     for (const alias of aliases) {
-      await withStaticStorageLock(alias.lockId, async () => {
+      await withStaticDeploymentStorageLock(alias.lockId, async () => {
         if (await staticAliasEntryIsRelevant(aliasRoot, alias.entryName, deploymentIds)) {
           await eraseStaticPath(alias.target);
         }
@@ -1118,13 +1106,12 @@ export class LocalProjectStorage implements ProjectStorage {
     return this.staticErasureAuthority !== undefined;
   }
 
-  async prepareProjectStaticErasureWithinPhysicalAccess(
-    projectId: string,
-  ): Promise<ObjectStorageStaticArtifactSummary> {
+  async prepareProjectStaticErasureWithinPhysicalAccess(projectId: string): Promise<ObjectStorageStaticErasurePlan> {
     const inventory = await this.resolveStaticErasureInventory(projectId);
     const root = staticStorageRoot();
     const deploymentIds = new Set(inventory.deploymentIds);
     const dispositions: ObjectStorageStaticArtifactDisposition[] = [];
+    const artifacts: ObjectStorageStaticArtifactPlanEntry[] = [];
 
     /*
      * This runs while the permanent-delete caller owns the project physical and
@@ -1144,8 +1131,14 @@ export class LocalProjectStorage implements ProjectStorage {
 
     for (const inventoryArtifact of inventory.artifacts) {
       const digest = artifactDigest(inventoryArtifact.artifactRef);
-      await withStaticStorageLock(digest, async () => {
+      await withStaticDeploymentStorageLock(digest, async () => {
         const live = await this.resolveLiveStaticArtifact(projectId, inventoryArtifact.artifactRef);
+        artifacts.push({
+          artifactRef: live.artifactRef,
+          digest,
+          projectReferenceCount: live.projectReferenceCount,
+          otherReferenceCount: live.otherReferenceCount,
+        });
         await ownedStaticEntries(digestRoot, new Set([digest]));
         if (live.otherReferenceCount === 0) {
           dispositions.push({ digest, outcome: 'DELETED_UNREFERENCED', otherReferenceCount: 0 });
@@ -1170,7 +1163,7 @@ export class LocalProjectStorage implements ProjectStorage {
       });
     }
 
-    return objectStorageStaticArtifactSummary(dispositions);
+    return { summary: objectStorageStaticArtifactSummary(dispositions), artifacts };
   }
 
   private async resolveStaticErasureInventory(projectId: string): Promise<ProjectStaticErasureInventory> {
@@ -1215,7 +1208,7 @@ export class LocalProjectStorage implements ProjectStorage {
 
     for (const inventoryArtifact of inventory.artifacts) {
       const digest = artifactDigest(inventoryArtifact.artifactRef);
-      const disposition = await withStaticStorageLock(digest, async () => {
+      const disposition = await withStaticDeploymentStorageLock(digest, async () => {
         const live = await this.resolveLiveStaticArtifact(projectId, inventoryArtifact.artifactRef);
         const entries = await ownedStaticEntries(digestRoot, new Set([digest]));
         const canonical = staticChildPath(digestRoot, digest);
@@ -1478,7 +1471,7 @@ export class LocalProjectStorage implements ProjectStorage {
     const snapshotEntries = await ownedStaticEntries(root, deploymentIds);
 
     for (const entry of snapshotEntries) {
-      await withStaticStorageLock(entry.owner, () => eraseStaticPath(entry.target));
+      await withStaticDeploymentStorageLock(entry.owner, () => eraseStaticPath(entry.target));
     }
 
     await eraseRelevantStaticAliases(root, deploymentIds);
@@ -1491,7 +1484,7 @@ export class LocalProjectStorage implements ProjectStorage {
     for (const inventoryArtifact of inventory.artifacts) {
       const digest = artifactDigest(inventoryArtifact.artifactRef);
 
-      await withStaticStorageLock(digest, async () => {
+      await withStaticDeploymentStorageLock(digest, async () => {
         const live = await this.resolveLiveStaticArtifact(projectId, inventoryArtifact.artifactRef);
         const entries = await ownedStaticEntries(digestRoot, new Set([digest]));
 

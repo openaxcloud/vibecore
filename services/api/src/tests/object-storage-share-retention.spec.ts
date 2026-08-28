@@ -680,7 +680,10 @@ runDbTests('SHARE_WITH_CONSENT source generation retention', () => {
       expect(storage.providerEffects).toHaveLength(effectsBeforeWrongTenant);
       expect(storage.providerReads).toBe(readsBeforeWrongTenant);
 
-      const preflightPhysicalErasure = vi.fn(async () => objectStorageStaticArtifactSummary([]));
+      const preflightPhysicalErasure = vi.fn(async () => ({
+        summary: objectStorageStaticArtifactSummary([]),
+        artifacts: [],
+      }));
       const erasePhysical = vi.fn(async () => undefined);
       const verifyPhysicalAbsence = vi.fn(async () => {
         throw new Error('Physical verification must not run while a source share is active');

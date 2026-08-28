@@ -128,7 +128,7 @@ describe('project settings and lifecycle transfer fences', () => {
           actorUserId: fixture.user.id,
           expectedProjectName: fixture.project.name,
         }),
-        preflightPhysicalErasure: async () => objectStorageStaticArtifactSummary([]),
+        preflightPhysicalErasure: async () => ({ summary: objectStorageStaticArtifactSummary([]), artifacts: [] }),
         erasePhysical: staleHardDeleteEffect,
         verifyPhysicalAbsence: vi.fn(async () => {
           throw new Error('verification must not run');

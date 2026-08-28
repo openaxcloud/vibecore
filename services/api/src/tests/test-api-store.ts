@@ -38,6 +38,7 @@ import {
   parseObjectStorageStaticArtifactSummary,
   type ObjectStorageCheckpointBarrierAuthority,
   type ObjectStorageStaticArtifactSummary,
+  type ObjectStorageStaticErasurePlan,
   type ObjectStorageVerification,
 } from '../object-storage-operation.js';
 import {
@@ -2292,7 +2293,7 @@ export class TestApiStore implements ApiStore {
       requestHash: string;
       actorUserId: string;
       ipAddress?: string;
-      preflightPhysicalErasure: () => Promise<ObjectStorageStaticArtifactSummary>;
+      preflightPhysicalErasure: () => Promise<ObjectStorageStaticErasurePlan>;
       erasePhysical: (assertLease: () => Promise<void>) => Promise<void>;
       verifyPhysicalAbsence: () => Promise<ObjectStorageVerification>;
     },
@@ -2372,10 +2373,10 @@ export class TestApiStore implements ApiStore {
             allowPermanentDeletion: true,
           });
         };
-        let staticArtifactPlan: ObjectStorageStaticArtifactSummary;
+        let staticArtifactPlan: ObjectStorageStaticErasurePlan;
         try {
           staticArtifactPlan = await input.preflightPhysicalErasure();
-          parseObjectStorageStaticArtifactSummary(staticArtifactPlan);
+          parseObjectStorageStaticArtifactSummary(staticArtifactPlan.summary);
           await assertLease();
         } catch (error) {
           project.permanentDeletionStartedAt = priorPermanentDeletionStartedAt;
@@ -2386,7 +2387,7 @@ export class TestApiStore implements ApiStore {
         await input.erasePhysical(assertLease);
         await assertLease();
         const proof = await input.verifyPhysicalAbsence();
-        assertPermanentDeletionProof(proof, staticArtifactPlan);
+        assertPermanentDeletionProof(proof, staticArtifactPlan.summary);
         this.assertExpectedProjectTenant(input, {
           allowDeletedProject: true,
           allowPermanentDeletion: true,

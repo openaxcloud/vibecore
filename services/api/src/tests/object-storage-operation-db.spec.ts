@@ -1566,7 +1566,7 @@ runDbTests('object-storage operation saga — real PostgreSQL', () => {
           code: 'PROJECT_STATIC_ERASURE_AUTHORITY_UNAVAILABLE',
         });
       }
-      return EMPTY_STATIC_ARTIFACT_SUMMARY;
+      return { summary: EMPTY_STATIC_ARTIFACT_SUMMARY, artifacts: [] };
     });
     const deletion = {
       projectId: seeded.project.id,
@@ -1656,7 +1656,7 @@ runDbTests('object-storage operation saga — real PostgreSQL', () => {
       idempotencyKey,
       requestHash,
       actorUserId: actor.id,
-      preflightPhysicalErasure: async () => EMPTY_STATIC_ARTIFACT_SUMMARY,
+      preflightPhysicalErasure: async () => ({ summary: EMPTY_STATIC_ARTIFACT_SUMMARY, artifacts: [] }),
       erasePhysical,
       verifyPhysicalAbsence,
     };
@@ -1705,30 +1705,60 @@ runDbTests('object-storage operation saga — real PostgreSQL', () => {
     const input = claimInput(shape, {
       idempotencyKey: `delete-${suffix()}`,
       ownerToken: `delete-owner-${suffix()}`,
+      leaseTtlSeconds: 180,
     });
-    const staticArtifacts = Array.from({ length: 2_100 }, (_, index) => ({
+    const staticArtifacts = Array.from({ length: 10_001 }, (_, index) => ({
       digest: createHash('sha256').update(`permanent-static-artifact-${index}`).digest('hex'),
       outcome: index % 3 === 0 ? ('RETAINED_BY_OTHER_MANIFEST' as const) : ('DELETED_UNREFERENCED' as const),
       otherReferenceCount: index % 3 === 0 ? 2 : 0,
     }));
     const staticArtifactSummary = objectStorageStaticArtifactSummary(staticArtifacts);
+    const staticArtifactPlan = {
+      summary: staticArtifactSummary,
+      artifacts: staticArtifacts.map((artifact) => ({
+        artifactRef: `static-artifacts/sha256/${artifact.digest}`,
+        digest: artifact.digest,
+        projectReferenceCount: 1,
+        otherReferenceCount: artifact.otherReferenceCount,
+      })),
+    };
     expect(staticArtifactSummary.digest).toBe(objectStorageArtifactInventoryDigest([...staticArtifacts].reverse()));
     expect(() => objectStorageArtifactInventoryDigest([staticArtifacts[0]!, staticArtifacts[0]!])).toThrowError(
       expect.objectContaining({ code: 'OBJECT_STORAGE_OPERATION_ARTIFACT_INVENTORY_INVALID' }),
     );
 
+    const acquired = await prisma.$transaction((tx) => claimObjectStorageOperation(tx, input));
+    if (acquired.kind !== 'ACQUIRED') throw new Error('EXPECTED_ACQUIRED');
+    const frozen = await prisma.$queryRaw<Array<{ deletedAt: Date | null; permanentDeletionStartedAt: Date | null }>>`
+      SELECT "deletedAt", "permanentDeletionStartedAt" FROM "Project"
+      WHERE "id" = ${seeded.project.id}
+    `;
+    expect(frozen[0]?.deletedAt).toBeInstanceOf(Date);
+    expect(frozen[0]?.permanentDeletionStartedAt).toBeInstanceOf(Date);
+
+    await expect(
+      prisma.$transaction(
+        async (tx) => {
+          await recordPermanentDeletionStaticArtifactPlan(tx, acquired.lease, staticArtifactPlan);
+          throw new Error('SIMULATED_PROCESS_EXIT_AFTER_ARTIFACT_PLAN_BATCHES');
+        },
+        { timeout: 30_000 },
+      ),
+    ).rejects.toThrow('SIMULATED_PROCESS_EXIT_AFTER_ARTIFACT_PLAN_BATCHES');
+    await expect(
+      prisma.projectPermanentDeletionArtifactPlan.count({ where: { operationId: acquired.operation.id } }),
+    ).resolves.toBe(0);
+
+    await prisma.$transaction(
+      (tx) => recordPermanentDeletionStaticArtifactPlan(tx, acquired.lease, staticArtifactPlan),
+      { timeout: 30_000 },
+    );
+    await expect(
+      prisma.projectPermanentDeletionArtifactPlan.count({ where: { operationId: acquired.operation.id } }),
+    ).resolves.toBe(10_001);
+
     const finalized = await prisma.$transaction(
       async (tx) => {
-        const acquired = await claimObjectStorageOperation(tx, input);
-        if (acquired.kind !== 'ACQUIRED') throw new Error('EXPECTED_ACQUIRED');
-        const frozen = await tx.$queryRaw<Array<{ deletedAt: Date | null; permanentDeletionStartedAt: Date | null }>>`
-          SELECT "deletedAt", "permanentDeletionStartedAt" FROM "Project"
-          WHERE "id" = ${seeded.project.id}
-        `;
-        expect(frozen[0]?.deletedAt).toBeInstanceOf(Date);
-        expect(frozen[0]?.permanentDeletionStartedAt).toBeInstanceOf(Date);
-
-        await recordPermanentDeletionStaticArtifactPlan(tx, acquired.lease, staticArtifactSummary);
         await markObjectStorageOperationEffectStarted(tx, acquired.lease, { phase: 'provider-erasure-started' });
         await beginObjectStorageOperationVerification(tx, acquired.lease, { phase: 'provider-erasure-complete' });
         const verification = {
@@ -1774,6 +1804,21 @@ runDbTests('object-storage operation saga — real PostgreSQL', () => {
       status: 'COMMITTED',
       result: { project: { id: seeded.project.id, state: 'PERMANENTLY_DELETED' } },
     });
+    await expect(
+      prisma.projectPermanentDeletionArtifactPlan.count({ where: { operationId: finalized.id } }),
+    ).resolves.toBe(10_001);
+    await expect(
+      prisma.$queryRaw<Array<{ state: string; count: number }>>`
+        SELECT "state"::text AS "state", count(*)::int AS "count"
+        FROM "ProjectPermanentDeletionArtifactPlan"
+        WHERE "operationId" = ${finalized.id}
+        GROUP BY "state"
+        ORDER BY "state" ASC
+      `,
+    ).resolves.toEqual([
+      { state: 'DELETED', count: staticArtifactSummary.deletedCount },
+      { state: 'RETAINED', count: staticArtifactSummary.retainedCount },
+    ]);
 
     const replayClient = createDatabaseClient();
     try {
@@ -1854,6 +1899,11 @@ runDbTests('object-storage operation saga — real PostgreSQL', () => {
       await expect(
         replayClient.$executeRaw`
           DELETE FROM "ObjectStorageOperationProjectScope" WHERE "operationId" = ${finalized.id}
+        `,
+      ).rejects.toThrow(/immutable/);
+      await expect(
+        replayClient.$executeRaw`
+          DELETE FROM "ProjectPermanentDeletionArtifactPlan" WHERE "operationId" = ${finalized.id}
         `,
       ).rejects.toThrow(/immutable/);
       await expect(

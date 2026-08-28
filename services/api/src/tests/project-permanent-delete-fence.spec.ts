@@ -100,7 +100,16 @@ class TestPermanentProjectStorage extends LocalProjectStorage {
   }
 
   override async prepareProjectStaticErasureWithinPhysicalAccess(projectId: string) {
-    return objectStorageStaticArtifactSummary(this.artifacts.get(projectId) ?? []);
+    const dispositions = this.artifacts.get(projectId) ?? [];
+    return {
+      summary: objectStorageStaticArtifactSummary(dispositions),
+      artifacts: dispositions.map((artifact) => ({
+        artifactRef: `static-artifacts/sha256/${artifact.digest}`,
+        digest: artifact.digest,
+        projectReferenceCount: 1,
+        otherReferenceCount: artifact.otherReferenceCount,
+      })),
+    };
   }
 
   async seedStaticData(projectId: string) {

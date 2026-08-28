@@ -6,7 +6,7 @@ import type { AccountPurgePreview, PurgeStorageDeps, PurgeUserAccountResult } fr
 import type { DeploymentAccessMode, DeploymentAccessPolicyRecord } from './deployment-access.js';
 import type {
   ObjectStorageCheckpointBarrierAuthority,
-  ObjectStorageStaticArtifactSummary,
+  ObjectStorageStaticErasurePlan,
   ObjectStorageVerification,
 } from './object-storage-operation.js';
 import type {
@@ -2282,7 +2282,7 @@ export interface ApiStore {
       requestHash: string;
       actorUserId: string;
       ipAddress?: string;
-      preflightPhysicalErasure: () => Promise<ObjectStorageStaticArtifactSummary>;
+      preflightPhysicalErasure: () => Promise<ObjectStorageStaticErasurePlan>;
       erasePhysical: (assertLease: () => Promise<void>) => Promise<void>;
       verifyPhysicalAbsence: () => Promise<ObjectStorageVerification>;
     },

@@ -59,7 +59,7 @@ import {
   type ObjectStorageCheckpointBarrierAuthority,
   type ObjectStorageOperationLease,
   type ObjectStorageOperationRecord,
-  type ObjectStorageStaticArtifactSummary,
+  type ObjectStorageStaticErasurePlan,
   type ObjectStorageVerification,
   type PermanentDeletionReplay,
 } from './object-storage-operation.js';
@@ -1916,6 +1916,20 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
     return withProjectLock(projectId, effect);
   }
 
+  /**
+   * Serialize static last-reference decisions across projects and pods. The NFS
+   * heartbeat is the fallback authority if the advisory-lock session dies while
+   * a long filesystem/provider effect is still running.
+   */
+  private withStaticArtifactErasureBarrier<T>(effect: () => Promise<T>): Promise<T> {
+    const barrierId = 'static-artifact-erasure-global';
+    return this.withProjectPhysicalBarrier(barrierId, () => this.withProjectFilesystemLock(barrierId, effect));
+  }
+
+  private withStaticArtifactErasureProjectBarrier<T>(projectId: string, effect: () => Promise<T>): Promise<T> {
+    return this.withStaticArtifactErasureBarrier(() => this.withProjectPhysicalBarrier(projectId, effect));
+  }
+
   async withProjectPhysicalMutation<T>(scope: ProjectPhysicalMutationScope, effect: () => Promise<T>): Promise<T> {
     return this.withProjectPhysicalBarrier(scope.projectId, async () => {
       /*
@@ -2217,7 +2231,7 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
   }
 
   purgeUserAccount(input: { userId: string; correlationId?: string }, deps: PurgeStorageDeps) {
-    return this.accountPurge.purge(input, deps);
+    return this.withStaticArtifactErasureBarrier(() => this.accountPurge.purge(input, deps));
   }
 
   reconcilePurgeFreezes() {
@@ -4837,7 +4851,7 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
       requestHash: string;
       actorUserId: string;
       ipAddress?: string;
-      preflightPhysicalErasure: () => Promise<ObjectStorageStaticArtifactSummary>;
+      preflightPhysicalErasure: () => Promise<ObjectStorageStaticErasurePlan>;
       erasePhysical: (assertLease: () => Promise<void>) => Promise<void>;
       verifyPhysicalAbsence: () => Promise<ObjectStorageVerification>;
     },
@@ -4862,7 +4876,7 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
       });
     }
 
-    return this.withProjectPhysicalBarrier(input.projectId, async () => {
+    return this.withStaticArtifactErasureProjectBarrier(input.projectId, async () => {
       /* Reject a stale tenant before waiting on NFS, but allow an idempotent retry. */
       await this.prisma.$transaction(async (tx) => {
         const allowedObjectStorageOperationId = await this.matchingActiveObjectStorageOperationId(tx, {
