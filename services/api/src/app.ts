@@ -1403,7 +1403,10 @@ const collaborationWebSocketTicketSchema = z.object({
   sessionId: z.string().min(1).optional(),
 });
 
-const transferProjectSchema = z.object({ targetOrganizationId: z.string().min(1) });
+const transferProjectSchema = z.object({
+  targetOrganizationId: z.string().min(1),
+  expectedOwnershipEpoch: z.number().int().nonnegative(),
+});
 const duplicateProjectSchema = z.object({
   name: z.string().trim().min(1).max(200),
   slug: z.string().min(2).max(160).optional(),
@@ -27211,6 +27214,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return { project: deleted.project, replayed: deleted.replayed, completedAt: deleted.completedAt };
   });
   app.post('/projects/:projectId/transfer', async (request) => {
+    const idempotencyKey = requireObjectStorageIdempotencyKey(request);
     const project = await requireProject(
       request,
       store,
@@ -27228,7 +27232,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const body = parse(transferProjectSchema, request.body);
     await requireOrg(request, store, body.targetOrganizationId, 'projects:write');
-    await requireOrganizationNotSuspended(store, body.targetOrganizationId);
+    const observedSourceOrganizationId = project.organizationId;
 
     /*
      * Serialize quota-check + transfer (projects.count is a live count) so two
@@ -27237,9 +27241,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      */
     const transferred = await store.transferProject({
       projectId: project.id,
-      expectedOrganizationId: project.organizationId,
+      expectedOrganizationId: observedSourceOrganizationId,
+      expectedOwnershipEpoch: body.expectedOwnershipEpoch,
       targetOrganizationId: body.targetOrganizationId,
+      idempotencyKey,
       actorUserId: request.currentUser!.id,
+      ipAddress: request.ip,
       assertExternalStorageDetached: async () => {
         const objectStorage = resolveRawObjectStorage();
 
@@ -27257,24 +27264,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         });
       },
       validateTargetAdmission: async () => {
+        await requireOrganizationNotSuspended(store, body.targetOrganizationId);
         await ensureTenantAdmission(request, body.targetOrganizationId, 'project.create', {
           action: 'project.create',
         });
         await ensureQuota(request, body.targetOrganizationId, 'projects.count');
       },
-    });
-    await store.recordProjectActivity({
-      projectId: project.id,
-      expectedOrganizationId: transferred.organizationId,
-      actorUserId: request.currentUser!.id,
-      action: 'project.transfer',
-      metadata: { from: project.organizationId, to: body.targetOrganizationId },
-    });
-    await audit(request, store, {
-      organizationId: body.targetOrganizationId,
-      action: 'project.transfer',
-      resourceType: 'project',
-      resourceId: project.id,
     });
 
     return { project: transferred };

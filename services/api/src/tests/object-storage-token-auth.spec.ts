@@ -356,7 +356,9 @@ describe('object-storage routes — workspace token auth', () => {
       store.transferProject({
         projectId,
         expectedOrganizationId: source.id,
+        expectedOwnershipEpoch: 0,
         targetOrganizationId: target.id,
+        idempotencyKey: `object-list-transfer-${projectId}`,
         actorUserId: user.id,
         assertExternalStorageDetached: async () => undefined,
         validateTargetAdmission: async () => undefined,

@@ -46,6 +46,7 @@ import {
   markObjectStorageOperationFailedSafe,
   markObjectStorageOperationManualRecovery,
   markSignedCapabilityIssued,
+  ObjectStorageOperationError,
   objectStorageIdempotencyScopeHash,
   objectStorageMutationAdvisoryKey,
   objectStorageRequestHash,
@@ -54,6 +55,7 @@ import {
   reclaimObjectStorageOperationForVerification,
   recordPermanentDeletionStaticArtifactPlan,
   reserveSignedCapabilityAuthorization,
+  type ClaimObjectStorageOperationResult,
   type ObjectStorageCheckpointBarrierAuthority,
   type ObjectStorageOperationLease,
   type ObjectStorageOperationRecord,
@@ -1765,6 +1767,156 @@ function mapPermanentDeletionReplay(
     proof: replay.proof,
     completedAt: replay.completedAt,
     replayed: input.replayed,
+  };
+}
+
+const PROJECT_TRANSFER_IDEMPOTENCY_KEY = /^[A-Za-z0-9][A-Za-z0-9._:-]{15,127}$/;
+
+function validateProjectTransferIdentity(input: { expectedOwnershipEpoch: number; idempotencyKey: string }): void {
+  if (!Number.isSafeInteger(input.expectedOwnershipEpoch) || input.expectedOwnershipEpoch < 0) {
+    throw Object.assign(new Error('PROJECT_TRANSFER_OWNERSHIP_EPOCH_INVALID'), {
+      code: 'PROJECT_TRANSFER_OWNERSHIP_EPOCH_INVALID',
+      statusCode: 400,
+    });
+  }
+  if (!PROJECT_TRANSFER_IDEMPOTENCY_KEY.test(input.idempotencyKey)) {
+    throw Object.assign(new Error(appPublicEnglish('OBJECT_STORAGE_IDEMPOTENCY_KEY_REQUIRED')), {
+      code: 'OBJECT_STORAGE_IDEMPOTENCY_KEY_REQUIRED',
+      statusCode: 400,
+    });
+  }
+}
+
+function projectTransferOperationRequest(input: {
+  projectId: string;
+  sourceOrganizationId: string;
+  targetOrganizationId: string;
+  ownershipEpoch: number;
+  idempotencyKey: string;
+}) {
+  return {
+    kind: 'PROJECT_TRANSFER' as const,
+    scopes: [
+      {
+        projectId: input.projectId,
+        expectedOrganizationId: input.sourceOrganizationId,
+      },
+    ],
+    payload: {
+      command: 'project-transfer',
+      projectId: input.projectId,
+      ownershipEpoch: input.ownershipEpoch,
+      sourceOrganizationId: input.sourceOrganizationId,
+      targetOrganizationId: input.targetOrganizationId,
+      clientIdempotencyKeyHash: createHash('sha256').update(input.idempotencyKey).digest('hex'),
+    },
+    preconditions: {
+      tenantMustMatch: true,
+      ownershipEpochMustMatch: input.ownershipEpoch,
+      providerBucketMustBeAbsent: true,
+      capabilityMustBeExpired: true,
+    },
+  };
+}
+
+function projectTransferReceipt(input: {
+  project: ProjectRecord;
+  sourceOrganizationId: string;
+  targetOrganizationId: string;
+  sourceOwnershipEpoch: number;
+}) {
+  return {
+    schemaVersion: 'project-transfer-v1',
+    projectId: input.project.id,
+    sourceOrganizationId: input.sourceOrganizationId,
+    targetOrganizationId: input.targetOrganizationId,
+    sourceOwnershipEpoch: input.sourceOwnershipEpoch,
+    targetOwnershipEpoch: input.project.ownershipEpoch,
+    project: {
+      id: input.project.id,
+      organizationId: input.project.organizationId,
+      ownershipEpoch: input.project.ownershipEpoch,
+      name: input.project.name,
+      slug: input.project.slug,
+      description: input.project.description ?? null,
+      sourceType: input.project.sourceType,
+      templateName: input.project.templateName ?? null,
+      gitRepositoryUrl: input.project.gitRepositoryUrl ?? null,
+      gitDefaultBranch: input.project.gitDefaultBranch ?? null,
+      persistentVolumeClaim: input.project.persistentVolumeClaim,
+      createdAt: input.project.createdAt,
+      updatedAt: input.project.updatedAt,
+      deletedAt: input.project.deletedAt ?? null,
+      permanentDeletionStartedAt: input.project.permanentDeletionStartedAt ?? null,
+      deploymentCount: input.project.deploymentCount ?? null,
+    },
+  };
+}
+
+function parseProjectTransferReceipt(
+  value: unknown,
+  expected: {
+    projectId: string;
+    sourceOrganizationId: string;
+    targetOrganizationId: string;
+    sourceOwnershipEpoch: number;
+  },
+): ProjectRecord {
+  const receipt =
+    value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : null;
+  const projectValue = receipt?.project;
+  const project =
+    projectValue && typeof projectValue === 'object' && !Array.isArray(projectValue)
+      ? (projectValue as Record<string, unknown>)
+      : null;
+  if (
+    receipt?.schemaVersion !== 'project-transfer-v1' ||
+    receipt.projectId !== expected.projectId ||
+    receipt.sourceOrganizationId !== expected.sourceOrganizationId ||
+    receipt.targetOrganizationId !== expected.targetOrganizationId ||
+    receipt.sourceOwnershipEpoch !== expected.sourceOwnershipEpoch ||
+    receipt.targetOwnershipEpoch !== expected.sourceOwnershipEpoch + 1 ||
+    !project ||
+    project.id !== expected.projectId ||
+    project.organizationId !== expected.targetOrganizationId ||
+    project.ownershipEpoch !== expected.sourceOwnershipEpoch + 1 ||
+    typeof project.name !== 'string' ||
+    typeof project.slug !== 'string' ||
+    typeof project.sourceType !== 'string' ||
+    (project.persistentVolumeClaim !== null && typeof project.persistentVolumeClaim !== 'string') ||
+    typeof project.createdAt !== 'string' ||
+    typeof project.updatedAt !== 'string'
+  ) {
+    throw Object.assign(new Error('PROJECT_TRANSFER_RECEIPT_CORRUPT'), {
+      code: 'PROJECT_TRANSFER_RECEIPT_CORRUPT',
+      statusCode: 500,
+    });
+  }
+
+  const optionalString = (candidate: unknown): string | undefined =>
+    typeof candidate === 'string' ? candidate : undefined;
+  const deploymentCount =
+    typeof project.deploymentCount === 'number' && Number.isSafeInteger(project.deploymentCount)
+      ? project.deploymentCount
+      : undefined;
+  return {
+    id: project.id as string,
+    organizationId: project.organizationId as string,
+    ownershipEpoch: project.ownershipEpoch as number,
+    name: project.name as string,
+    slug: project.slug as string,
+    description: optionalString(project.description),
+    sourceType: project.sourceType as ProjectRecord['sourceType'],
+    templateName: optionalString(project.templateName),
+    gitRepositoryUrl: optionalString(project.gitRepositoryUrl),
+    gitDefaultBranch: optionalString(project.gitDefaultBranch),
+    /* Normal API-created projects always have a PVC; accept legacy null receipts exactly as mapProject does. */
+    persistentVolumeClaim: project.persistentVolumeClaim as string,
+    createdAt: project.createdAt as string,
+    updatedAt: project.updatedAt as string,
+    deletedAt: optionalString(project.deletedAt),
+    permanentDeletionStartedAt: optionalString(project.permanentDeletionStartedAt),
+    ...(deploymentCount === undefined ? {} : { deploymentCount }),
   };
 }
 
@@ -4397,20 +4549,120 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
     });
   }
 
+  private async replayCommittedProjectTransfer(input: {
+    projectId: string;
+    expectedOwnershipEpoch: number;
+    targetOrganizationId: string;
+    idempotencyKey: string;
+  }): Promise<ProjectRecord | undefined> {
+    const rows = await this.prisma.$queryRaw<
+      Array<{
+        status: string;
+        requestHash: string;
+        payload: unknown;
+        result: unknown | null;
+        sourceOrganizationId: string;
+      }>
+    >(Prisma.sql`
+      SELECT
+        operation."status"::text AS "status",
+        operation."requestHash",
+        operation."payload",
+        operation."result",
+        scope."expectedOrganizationId" AS "sourceOrganizationId"
+      FROM "ObjectStorageOperation" operation
+      JOIN "ObjectStorageOperationProjectScope" scope
+        ON scope."operationId" = operation."id" AND scope."ordinal" = 0
+      WHERE operation."kind" = 'PROJECT_TRANSFER'::"ObjectStorageOperationKind"
+        AND operation."idempotencyKey" = ${input.idempotencyKey}
+        AND scope."projectIdSnapshot" = ${input.projectId}
+        AND operation."payload"->>'ownershipEpoch' = ${String(input.expectedOwnershipEpoch)}
+      ORDER BY operation."createdAt" ASC, operation."id" ASC
+      LIMIT 2
+    `);
+    if (rows.length === 0) return undefined;
+    if (rows.length !== 1) {
+      throw Object.assign(new Error('PROJECT_TRANSFER_OPERATION_IDENTITY_CORRUPT'), {
+        code: 'PROJECT_TRANSFER_OPERATION_IDENTITY_CORRUPT',
+        statusCode: 500,
+      });
+    }
+
+    const row = rows[0]!;
+    const payload =
+      row.payload && typeof row.payload === 'object' && !Array.isArray(row.payload)
+        ? (row.payload as Record<string, unknown>)
+        : null;
+    if (payload?.targetOrganizationId !== input.targetOrganizationId) {
+      throw Object.assign(new Error('OBJECT_STORAGE_OPERATION_IDEMPOTENCY_CONFLICT'), {
+        code: 'OBJECT_STORAGE_OPERATION_IDEMPOTENCY_CONFLICT',
+        statusCode: 409,
+      });
+    }
+
+    const expectedRequest = projectTransferOperationRequest({
+      projectId: input.projectId,
+      sourceOrganizationId: row.sourceOrganizationId,
+      targetOrganizationId: input.targetOrganizationId,
+      ownershipEpoch: input.expectedOwnershipEpoch,
+      idempotencyKey: input.idempotencyKey,
+    });
+    if (
+      payload?.command !== 'project-transfer' ||
+      payload.projectId !== input.projectId ||
+      payload.ownershipEpoch !== input.expectedOwnershipEpoch ||
+      payload.sourceOrganizationId !== row.sourceOrganizationId ||
+      payload.clientIdempotencyKeyHash !== expectedRequest.payload.clientIdempotencyKeyHash ||
+      row.requestHash !== objectStorageRequestHash(expectedRequest)
+    ) {
+      throw Object.assign(new Error('PROJECT_TRANSFER_OPERATION_IDENTITY_CORRUPT'), {
+        code: 'PROJECT_TRANSFER_OPERATION_IDENTITY_CORRUPT',
+        statusCode: 500,
+      });
+    }
+
+    if (row.status !== 'COMMITTED') return undefined;
+    if (row.result === null) {
+      throw Object.assign(new Error('PROJECT_TRANSFER_RECEIPT_CORRUPT'), {
+        code: 'PROJECT_TRANSFER_RECEIPT_CORRUPT',
+        statusCode: 500,
+      });
+    }
+    return parseProjectTransferReceipt(row.result, {
+      projectId: input.projectId,
+      sourceOrganizationId: row.sourceOrganizationId,
+      targetOrganizationId: input.targetOrganizationId,
+      sourceOwnershipEpoch: input.expectedOwnershipEpoch,
+    });
+  }
+
   async transferProject(input: {
     projectId: string;
     expectedOrganizationId: string;
+    expectedOwnershipEpoch: number;
     targetOrganizationId: string;
+    idempotencyKey: string;
     actorUserId?: string;
+    ipAddress?: string;
     assertExternalStorageDetached: () => Promise<void>;
     validateTargetAdmission: () => Promise<void>;
   }) {
+    validateProjectTransferIdentity(input);
+    const replayInput = {
+      projectId: input.projectId,
+      expectedOwnershipEpoch: input.expectedOwnershipEpoch,
+      targetOrganizationId: input.targetOrganizationId,
+      idempotencyKey: input.idempotencyKey,
+    };
+    const initialReplay = await this.replayCommittedProjectTransfer(replayInput);
+    if (initialReplay) return initialReplay;
+
     const physicalScope = {
       projectId: input.projectId,
       expectedOrganizationId: input.expectedOrganizationId,
     };
 
-    return this.withProjectPhysicalMutation(physicalScope, async () => {
+    const transferAttempt = this.withProjectPhysicalMutation(physicalScope, async () => {
       const current = assertFound(
         await this.prisma.project.findUnique({ where: { id: input.projectId } }),
         'Project not found',
@@ -4421,39 +4673,67 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
         throw projectOrganizationChangedError();
       }
 
+      if (current.ownershipEpoch !== input.expectedOwnershipEpoch) {
+        throw projectOrganizationChangedError();
+      }
+
       if (current.organizationId === input.targetOrganizationId) {
         return mapProject(current);
       }
 
-      const operationRequest = {
-        kind: 'PROJECT_TRANSFER' as const,
-        scopes: [
-          {
-            projectId: input.projectId,
-            expectedOrganizationId: input.expectedOrganizationId,
-          },
-        ],
-        payload: {
-          command: 'project-transfer',
+      const operationRequest = projectTransferOperationRequest({
+        projectId: input.projectId,
+        sourceOrganizationId: input.expectedOrganizationId,
+        targetOrganizationId: input.targetOrganizationId,
+        ownershipEpoch: input.expectedOwnershipEpoch,
+        idempotencyKey: input.idempotencyKey,
+      });
+      const requestHash = objectStorageRequestHash(operationRequest);
+      let claimed: ClaimObjectStorageOperationResult;
+      try {
+        claimed = await this.prisma.$transaction(async (tx) => {
+          const operation = await claimObjectStorageOperation(tx, {
+            ...operationRequest,
+            idempotencyKey: input.idempotencyKey,
+            requestHash,
+            ownerToken: `project-transfer:${randomUUID()}`,
+            leaseTtlSeconds: OBJECT_STORAGE_OPERATION_LEASE_TTL_SECONDS,
+          });
+          if (
+            operation.kind === 'ACQUIRED' &&
+            (await tx.objectStorageVersionGcSchedule.findUnique({
+              where: { projectId: input.projectId },
+              select: { projectId: true },
+            }))
+          ) {
+            throw Object.assign(new Error(appPublicEnglish('PROJECT_TRANSFER_MANAGED_RESOURCES_ACTIVE')), {
+              statusCode: 409,
+              code: 'PROJECT_TRANSFER_MANAGED_RESOURCES_ACTIVE',
+            });
+          }
+          return operation;
+        });
+      } catch (error) {
+        /* Preserve the established transfer-route error contract while 0100/0101 enforce the deny-set. */
+        if (
+          error instanceof ObjectStorageOperationError &&
+          error.code === 'OBJECT_STORAGE_OPERATION_CHECKPOINT_BARRIER_ACTIVE'
+        ) {
+          throw Object.assign(new Error(appPublicEnglish('CHECKPOINT_BARRIER_ACTIVE_MESSAGE')), {
+            code: 'CHECKPOINT_BARRIER_ACTIVE',
+            statusCode: 423,
+          });
+        }
+        throw error;
+      }
+      if (claimed.kind === 'REPLAY') {
+        return parseProjectTransferReceipt(claimed.result, {
+          projectId: input.projectId,
           sourceOrganizationId: input.expectedOrganizationId,
           targetOrganizationId: input.targetOrganizationId,
-        },
-        preconditions: {
-          tenantMustMatch: true,
-          providerBucketMustBeAbsent: true,
-          capabilityMustBeExpired: true,
-        },
-      };
-      const requestHash = objectStorageRequestHash(operationRequest);
-      const claimed = await this.prisma.$transaction((tx) =>
-        claimObjectStorageOperation(tx, {
-          ...operationRequest,
-          idempotencyKey: `project-transfer:${input.expectedOrganizationId}:${input.targetOrganizationId}`,
-          requestHash,
-          ownerToken: `project-transfer:${randomUUID()}`,
-          leaseTtlSeconds: OBJECT_STORAGE_OPERATION_LEASE_TTL_SECONDS,
-        }),
-      );
+          sourceOwnershipEpoch: input.expectedOwnershipEpoch,
+        });
+      }
       if (claimed.kind !== 'ACQUIRED') {
         const retryAt = claimed.kind === 'BUSY' ? claimed.retryAt : undefined;
         throw Object.assign(new Error('PROJECT_TRANSFER_OPERATION_UNAVAILABLE'), {
@@ -4497,6 +4777,7 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
                  * preflight through this ownership commit.
                  */
                 await assertAccountPurgeMutationAllowed(tx, { organizationIds: [input.targetOrganizationId] });
+                await lockProjectAfterPurgeTopology(tx, input.projectId);
 
                 const locked = assertFound(
                   await tx.project.findUnique({ where: { id: input.projectId } }),
@@ -4504,8 +4785,11 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
                   'PROJECT_NOT_FOUND',
                 );
 
-                if (locked.organizationId === input.targetOrganizationId) {
-                  return mapProject(locked);
+                if (
+                  locked.organizationId !== input.expectedOrganizationId ||
+                  locked.ownershipEpoch !== input.expectedOwnershipEpoch
+                ) {
+                  throw projectOrganizationChangedError();
                 }
 
                 const transferNow = await databaseNow(tx);
@@ -4544,6 +4828,7 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
                   nonTerminalCheckpointCount,
                   projectTemplateCount,
                   aiConversationCount,
+                  versionGcScheduleCount,
                 ] = await Promise.all([
                   tx.databaseInstance.count({ where: { projectId: input.projectId, status: { not: 'DELETED' } } }),
                   tx.cloudProjectBinding.count({ where: { projectId: input.projectId } }),
@@ -4603,6 +4888,7 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
                   }),
                   tx.projectTemplate.count({ where: { sourceProjectId: input.projectId } }),
                   tx.aiConversation.count({ where: { projectId: input.projectId } }),
+                  tx.objectStorageVersionGcSchedule.count({ where: { projectId: input.projectId } }),
                 ]);
 
                 if (
@@ -4619,7 +4905,8 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
                     activeReservedVmBillingPeriodCount +
                     nonTerminalCheckpointCount +
                     projectTemplateCount +
-                    aiConversationCount >
+                    aiConversationCount +
+                    versionGcScheduleCount >
                   0
                 ) {
                   throw Object.assign(new Error(appPublicEnglish('PROJECT_TRANSFER_MANAGED_RESOURCES_ACTIVE')), {
@@ -4642,9 +4929,17 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
                   ...detachedSeed,
                   manifestVersion: (sourceRevisionRow?.manifestVersion ?? 0) + 1,
                 });
+                const transferredSnapshot = mapProject({
+                  ...locked,
+                  organizationId: input.targetOrganizationId,
+                  ownershipEpoch: input.expectedOwnershipEpoch + 1,
+                  slug,
+                  updatedAt: transferNow,
+                });
 
                 await markObjectStorageOperationEffectStarted(tx, heartbeat.lease(), {
                   command: 'project-transfer-commit',
+                  ownershipEpoch: input.expectedOwnershipEpoch,
                   targetOrganizationId: input.targetOrganizationId,
                 });
                 await beginObjectStorageOperationVerification(tx, heartbeat.lease(), {
@@ -4659,11 +4954,12 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
                       capabilityUpperBoundExpired: true,
                     },
                   },
-                  result: {
-                    projectId: input.projectId,
+                  result: projectTransferReceipt({
+                    project: transferredSnapshot,
                     sourceOrganizationId: input.expectedOrganizationId,
                     targetOrganizationId: input.targetOrganizationId,
-                  },
+                    sourceOwnershipEpoch: input.expectedOwnershipEpoch,
+                  }),
                 });
 
                 /*
@@ -4711,7 +5007,12 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
 
                 const transferred = await tx.project.update({
                   where: { id: input.projectId },
-                  data: { organizationId: input.targetOrganizationId, slug },
+                  data: {
+                    organizationId: input.targetOrganizationId,
+                    ownershipEpoch: input.expectedOwnershipEpoch + 1,
+                    slug,
+                    updatedAt: transferNow,
+                  },
                 });
                 await tx.projectManifestRevision.create({
                   data: {
@@ -4721,6 +5022,38 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
                     digest: projectManifestDigest(detachedManifest),
                     manifest: detachedManifest as Prisma.InputJsonValue,
                     createdByUserId: input.actorUserId,
+                  },
+                });
+
+                if (
+                  transferred.organizationId !== input.targetOrganizationId ||
+                  transferred.ownershipEpoch !== input.expectedOwnershipEpoch + 1
+                ) {
+                  throw Object.assign(new Error('PROJECT_TRANSFER_OWNERSHIP_EPOCH_COMMIT_FAILED'), {
+                    code: 'PROJECT_TRANSFER_OWNERSHIP_EPOCH_COMMIT_FAILED',
+                    statusCode: 500,
+                  });
+                }
+
+                await tx.projectActivity.create({
+                  data: {
+                    projectId: input.projectId,
+                    actorUserId: input.actorUserId,
+                    action: 'project.transfer',
+                    metadata: {
+                      from: input.expectedOrganizationId,
+                      to: input.targetOrganizationId,
+                    } as Prisma.InputJsonValue,
+                  },
+                });
+                await tx.auditLog.create({
+                  data: {
+                    organizationId: input.targetOrganizationId,
+                    actorUserId: input.actorUserId,
+                    action: 'project.transfer',
+                    resourceType: 'project',
+                    resourceId: input.projectId,
+                    ipAddress: input.ipAddress,
                   },
                 });
 
@@ -4749,6 +5082,14 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
         await heartbeat.stop().catch(() => undefined);
       }
     });
+
+    try {
+      return await transferAttempt;
+    } catch (error) {
+      const racedReplay = await this.replayCommittedProjectTransfer(replayInput);
+      if (racedReplay) return racedReplay;
+      throw error;
+    }
   }
 
   async duplicateProject(input: {
@@ -17492,6 +17833,7 @@ function mapProject(project: any): ProjectRecord {
   return {
     id: project.id,
     organizationId: project.organizationId,
+    ownershipEpoch: project.ownershipEpoch,
     name: project.name,
     slug: project.slug,
     description: project.description ?? undefined,

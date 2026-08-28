@@ -39,7 +39,9 @@ async function transferToTarget(fixture: ProjectFixture) {
   return fixture.store.transferProject({
     projectId: fixture.project.id,
     expectedOrganizationId: fixture.sourceOrganization.id,
+    expectedOwnershipEpoch: 0,
     targetOrganizationId: fixture.targetOrganization.id,
+    idempotencyKey: `creator-fence-transfer-${fixture.project.id}`,
     actorUserId: fixture.user.id,
     assertExternalStorageDetached: async () => undefined,
     validateTargetAdmission: async () => undefined,
@@ -360,7 +362,9 @@ describe('project transfer creator fences — TestApiStore', () => {
       await fixture.store.transferProject({
         projectId: fixture.targetProject.id,
         expectedOrganizationId: fixture.targetOrganization.id,
+        expectedOwnershipEpoch: 0,
         targetOrganizationId: fixture.destinationOrganization.id,
+        idempotencyKey: `remix-stale-transfer-${fixture.targetProject.id}`,
         actorUserId: fixture.user.id,
         assertExternalStorageDetached: async () => undefined,
         validateTargetAdmission: async () => undefined,
@@ -400,7 +404,9 @@ describe('project transfer creator fences — TestApiStore', () => {
         fixture.store.transferProject({
           projectId: fixture.targetProject.id,
           expectedOrganizationId: fixture.targetOrganization.id,
+          expectedOwnershipEpoch: 0,
           targetOrganizationId: fixture.destinationOrganization.id,
+          idempotencyKey: `remix-active-transfer-${fixture.targetProject.id}`,
           actorUserId: fixture.user.id,
           assertExternalStorageDetached: async () => undefined,
           validateTargetAdmission: async () => undefined,
